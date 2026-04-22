@@ -3,26 +3,26 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 const featureCards = [
   {
-    title: 'Explore with confidence',
+    title: 'Clearer exploration',
     description:
-      'Glowbal is being built to help students move from vague ambition to real direction with less stress and more clarity.',
+      'Move from vague ideas to real options with a flow that feels simple, supportive, and easier to trust.',
   },
   {
-    title: 'Understand the why',
+    title: 'Better-fit choices',
     description:
-      'Recommendations should feel personal and explainable, with reasons that actually help people choose well.',
+      'Compare countries, courses, and next steps through a calmer lens that helps the right options stand out.',
   },
   {
-    title: 'Move faster without guessing',
+    title: 'More human guidance',
     description:
-      'The goal is a smoother route from curiosity to shortlist, without the chaos of scattered tabs and conflicting advice.',
+      'Glowbal is being designed to feel thoughtful and encouraging, not like another overwhelming search tool.',
   },
 ];
 
 const launchPoints = [
-  'A cleaner, more guided first experience',
-  'Better-fit country and course discovery',
-  'Shortlists that feel clearer and more human',
+  'A more focused student journey',
+  'Cleaner country and course discovery',
+  'Shortlists with clearer reasoning',
 ];
 
 type WaitlistState = {
@@ -77,81 +77,69 @@ async function joinWaitlist(_prevState: WaitlistState, formData: FormData): Prom
 export default function Home() {
   return (
     <main className="glowbal-waitlist-page text-slate-800">
-      <section className="glowbal-hero-shell mx-auto max-w-6xl px-6 pb-8 pt-8 md:px-10 lg:px-12 lg:pb-12">
-        <div className="glowbal-hero-card overflow-hidden rounded-[2.25rem] border border-white/45 bg-white/70 shadow-[0_24px_80px_rgba(22,33,62,0.12)] backdrop-blur-xl">
-          <div className="grid lg:grid-cols-[1.08fr_0.92fr]">
-            <div className="relative min-h-[420px] overflow-hidden lg:min-h-[680px]">
-              <div className="glowbal-hero-image" />
-              <div className="glowbal-hero-overlay" />
+      <section className="mx-auto max-w-6xl px-6 pb-10 pt-8 md:px-10 lg:px-12 lg:pb-14">
+        <div className="grid gap-6 lg:grid-cols-[1.12fr_0.88fr] lg:items-stretch">
+          <div className="overflow-hidden rounded-[2.1rem] border border-white/50 bg-white/68 shadow-[0_24px_80px_rgba(22,33,62,0.10)] backdrop-blur-xl">
+            <div className="glowbal-study-hero relative min-h-[420px] lg:min-h-[640px]">
+              <div className="glowbal-study-hero-image" />
+              <div className="glowbal-study-hero-overlay" />
               <div className="relative z-10 flex h-full flex-col justify-end p-8 md:p-10 lg:p-12">
-                <span className="inline-flex w-fit rounded-full border border-white/35 bg-white/14 px-4 py-1 text-sm font-semibold text-white/95 backdrop-blur">
+                <span className="inline-flex w-fit rounded-full border border-white/30 bg-white/14 px-4 py-1 text-sm font-semibold text-white/95 backdrop-blur">
                   Glowbal is opening soon
                 </span>
-                <div className="mt-6 max-w-2xl space-y-5 text-white">
-                  <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
-                    A cleaner, calmer way to discover where life after school could take you.
+                <div className="mt-6 max-w-2xl space-y-4 text-white">
+                  <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-[3.7rem] lg:leading-[1.05]">
+                    A cleaner way to help students find their next place in the world.
                   </h1>
-                  <p className="max-w-xl text-base leading-7 text-white/86 md:text-lg">
-                    Glowbal is being rebuilt to help students explore countries, courses, and next steps with more
-                    confidence, more warmth, and much less overwhelm.
+                  <p className="max-w-xl text-base leading-7 text-white/84 md:text-lg">
+                    Glowbal is being rebuilt to make study abroad feel less chaotic and more possible, with a calmer way
+                    to explore countries, courses, and next steps.
                   </p>
-                  <div className="flex flex-wrap gap-3 text-sm text-white/90">
-                    <span className="inline-flex items-center rounded-full border border-white/30 bg-white/14 px-4 py-2 backdrop-blur">
-                      Early access for students, parents, and counsellors
-                    </span>
-                    <span className="inline-flex items-center rounded-full border border-white/30 bg-white/14 px-4 py-2 backdrop-blur">
-                      Join now and get first access when invites open
-                    </span>
-                  </div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <div className="bg-white/92 p-6 md:p-8 lg:p-10">
-              <div className="mx-auto flex h-full max-w-xl flex-col justify-between gap-8">
-                <div>
-                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">Waitlist</p>
-                  <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Get early access</h2>
-                  <p className="mt-3 text-sm leading-6 text-slate-600 md:text-base">
-                    Leave your email and a little context, and we’ll let you know as soon as Glowbal is ready for early
-                    access.
-                  </p>
-                </div>
-
-                <WaitlistForm action={joinWaitlist} />
-
-                <div className="space-y-4">
-                  <div className="rounded-[1.5rem] border border-sky-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(144,224,239,0.14))] p-5">
-                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">What’s coming</p>
-                    <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                      {launchPoints.map((point) => (
-                        <li key={point} className="flex gap-3">
-                          <span className="mt-2 h-2.5 w-2.5 rounded-full bg-[linear-gradient(135deg,#FF4D8C,#00B4D8)]" />
-                          <span>{point}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  <p className="text-xs leading-5 text-slate-500">
-                    Want to peek at the full product structure? Tap the Glowbal logo in the top bar to reveal the hidden
-                    navigation.
-                  </p>
-                </div>
+          <div className="rounded-[2.1rem] border border-black/5 bg-white/92 p-6 shadow-[0_18px_50px_rgba(22,33,62,0.08)] md:p-8 lg:p-10">
+            <div className="mx-auto flex h-full max-w-xl flex-col gap-8">
+              <div className="space-y-3">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">Waitlist</p>
+                <h2 className="text-3xl font-bold tracking-tight text-slate-900">Get early access</h2>
+                <p className="text-sm leading-6 text-slate-600 md:text-base">
+                  Leave your details and we’ll let you know when Glowbal is ready for early users.
+                </p>
               </div>
+
+              <WaitlistForm action={joinWaitlist} />
+
+              <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50/80 p-5">
+                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">What’s coming</p>
+                <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+                  {launchPoints.map((point) => (
+                    <li key={point} className="flex gap-3">
+                      <span className="mt-2 h-2.5 w-2.5 rounded-full bg-[linear-gradient(135deg,#FF4D8C,#00B4D8)]" />
+                      <span>{point}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <p className="text-xs leading-5 text-slate-500">
+                If you want to peek deeper, tap the Glowbal logo in the top bar to reveal the hidden navigation.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-6 pb-14 md:px-10 lg:px-12">
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3">
           {featureCards.map((card) => (
             <article
               key={card.title}
-              className="rounded-[1.6rem] border border-black/5 bg-white/82 p-6 shadow-[0_12px_32px_rgba(22,33,62,0.06)] backdrop-blur"
+              className="rounded-[1.5rem] border border-black/5 bg-white/84 p-6 shadow-[0_12px_30px_rgba(22,33,62,0.05)] backdrop-blur"
             >
-              <h3 className="text-xl font-bold text-slate-900">{card.title}</h3>
+              <h3 className="text-lg font-bold text-slate-900">{card.title}</h3>
               <p className="mt-3 text-sm leading-7 text-slate-600">{card.description}</p>
             </article>
           ))}
