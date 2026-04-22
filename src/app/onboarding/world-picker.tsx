@@ -167,7 +167,7 @@ function WorldGlobe({
           originalUpdate();
           // Mirror the globe scene rotation so stars move with it
           if (starsRef.current && scene) {
-            (starsRef.current as THREE.Points).rotation.copy(scene.rotation);
+            ((starsRef.current as { rotation?: { copy?: (rotation: unknown) => void } }).rotation)?.copy?.(scene.rotation);
           }
         };
       }
@@ -181,7 +181,6 @@ function WorldGlobe({
           ref={globeRef}
           width={globeWidth}
           height={globeHeight}
-          style={{ display: 'block' }}
           backgroundColor="rgba(0,0,0,0)"
           showGlobe={true}
           showAtmosphere={true}

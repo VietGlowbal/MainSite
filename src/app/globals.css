@@ -462,6 +462,11 @@ body {
   box-shadow: 0 0 0 3px rgb(186 230 253 / 0.45);
 }
 
+.glow-textarea {
+  min-height: 7.5rem;
+  resize: vertical;
+}
+
 .glow-message {
   margin-top: 1rem;
   border-radius: 1rem;
