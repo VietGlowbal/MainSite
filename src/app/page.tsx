@@ -1,30 +1,6 @@
 import { WaitlistForm } from '@/components/waitlist-form';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-const featureCards = [
-  {
-    title: 'Clearer exploration',
-    description:
-      'Move from vague ideas to real options with a flow that feels simple, supportive, and easier to trust.',
-  },
-  {
-    title: 'Better-fit choices',
-    description:
-      'Compare countries, courses, and next steps through a calmer lens that helps the right options stand out.',
-  },
-  {
-    title: 'More human guidance',
-    description:
-      'Glowbal is being designed to feel thoughtful and encouraging, not like another overwhelming search tool.',
-  },
-];
-
-const launchPoints = [
-  'A more focused student journey',
-  'Cleaner country and course discovery',
-  'Shortlists with clearer reasoning',
-];
-
 type WaitlistState = {
   status: 'idle' | 'ok' | 'error';
   message: string;
@@ -112,18 +88,6 @@ export default function Home() {
 
               <WaitlistForm action={joinWaitlist} />
 
-              <div className="rounded-[1.5rem] border border-slate-100 bg-slate-50/80 p-5">
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">What’s coming</p>
-                <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                  {launchPoints.map((point) => (
-                    <li key={point} className="flex gap-3">
-                      <span className="mt-2 h-2.5 w-2.5 rounded-full bg-[linear-gradient(135deg,#FF4D8C,#00B4D8)]" />
-                      <span>{point}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
               <p className="text-xs leading-5 text-slate-500">
                 If you want to peek deeper, tap the Glowbal logo in the top bar to reveal the hidden navigation.
               </p>
@@ -132,19 +96,6 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 pb-14 md:px-10 lg:px-12">
-        <div className="grid gap-4 md:grid-cols-3">
-          {featureCards.map((card) => (
-            <article
-              key={card.title}
-              className="rounded-[1.5rem] border border-black/5 bg-white/84 p-6 shadow-[0_12px_30px_rgba(22,33,62,0.05)] backdrop-blur"
-            >
-              <h3 className="text-lg font-bold text-slate-900">{card.title}</h3>
-              <p className="mt-3 text-sm leading-7 text-slate-600">{card.description}</p>
-            </article>
-          ))}
-        </div>
-      </section>
     </main>
   );
 }
