@@ -77,6 +77,45 @@ body {
   background: rgb(0 180 216 / 0.06);
 }
 
+.glowbal-nav-hint {
+  border-radius: 999px;
+  border: 1px solid rgb(0 0 0 / 0.05);
+  background: rgb(255 255 255 / 0.72);
+  padding: 0.45rem 0.8rem;
+  box-shadow: 0 10px 24px rgb(22 33 62 / 0.06);
+}
+
+.glowbal-waitlist-page {
+  min-height: calc(100vh - 73px);
+}
+
+.glowbal-hero-shell {
+  position: relative;
+}
+
+.glowbal-hero-card {
+  position: relative;
+}
+
+.glowbal-hero-image {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.08), rgba(15, 23, 42, 0.5)),
+    url('https://images.unsplash.com/photo-1527631746610-bca00a040d60?auto=format&fit=crop&w=1600&q=80');
+  background-size: cover;
+  background-position: center;
+  transform: scale(1.02);
+}
+
+.glowbal-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 30%),
+    linear-gradient(135deg, rgba(255, 77, 140, 0.18), rgba(0, 180, 216, 0.12));
+}
+
 .glowbal-surface,
 .onboarding-form-shell > section,
 .world-picker-preview-card,

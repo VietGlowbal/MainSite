@@ -3,26 +3,26 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 const featureCards = [
   {
-    title: 'Clearer direction',
+    title: 'Explore with confidence',
     description:
-      'Students get a gentler way to explore countries, study options, and next steps without the usual overwhelm.',
+      'Glowbal is being built to help students move from vague ambition to real direction with less stress and more clarity.',
   },
   {
-    title: 'Human-feeling recommendations',
+    title: 'Understand the why',
     description:
-      'Glowbal is being shaped to explain why an option fits, not just throw a list at someone and hope for the best.',
+      'Recommendations should feel personal and explainable, with reasons that actually help people choose well.',
   },
   {
-    title: 'A more supportive journey',
+    title: 'Move faster without guessing',
     description:
-      'From first interest to shortlist confidence, the experience is being rebuilt to feel calm, modern, and encouraging.',
+      'The goal is a smoother route from curiosity to shortlist, without the chaos of scattered tabs and conflicting advice.',
   },
 ];
 
 const launchPoints = [
-  'Student-first onboarding that feels warm, not bureaucratic',
-  'Shortlists with clearer reasoning and confidence cues',
-  'A softer, brighter experience built for real decision-making',
+  'A cleaner, more guided first experience',
+  'Better-fit country and course discovery',
+  'Shortlists that feel clearer and more human',
 ];
 
 type WaitlistState = {
@@ -76,69 +76,85 @@ async function joinWaitlist(_prevState: WaitlistState, formData: FormData): Prom
 
 export default function Home() {
   return (
-    <main className="min-h-screen bg-transparent text-slate-800">
-      <section className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-10 md:px-10 md:py-14 lg:px-12">
-        <div className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr] lg:items-stretch">
-          <div className="rounded-[2rem] border border-black/5 bg-white/82 p-8 shadow-[0_16px_50px_rgba(22,33,62,0.08)] backdrop-blur md:p-10">
-            <span className="inline-flex w-fit rounded-full border border-pink-200 bg-pink-50 px-4 py-1 text-sm font-semibold text-pink-600">
-              Glowbal is opening soon
-            </span>
-            <div className="mt-6 space-y-5">
-              <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 md:text-6xl">
-                A calmer, smarter way for students to find the right place to study abroad.
-              </h1>
-              <p className="max-w-2xl text-lg leading-8 text-slate-600 md:text-xl">
-                We’re rebuilding Glowbal into a brighter student experience, one that helps people discover better-fit
-                countries, courses, and next steps with more confidence and a lot less noise.
-              </p>
-              <div className="flex flex-wrap gap-3 text-sm text-slate-600">
-                <span className="inline-flex items-center rounded-full border border-sky-100 bg-sky-50 px-4 py-2 font-medium text-sky-700">
-                  Early access for students, parents, and counsellors
+    <main className="glowbal-waitlist-page text-slate-800">
+      <section className="glowbal-hero-shell mx-auto max-w-6xl px-6 pb-8 pt-8 md:px-10 lg:px-12 lg:pb-12">
+        <div className="glowbal-hero-card overflow-hidden rounded-[2.25rem] border border-white/45 bg-white/70 shadow-[0_24px_80px_rgba(22,33,62,0.12)] backdrop-blur-xl">
+          <div className="grid lg:grid-cols-[1.08fr_0.92fr]">
+            <div className="relative min-h-[420px] overflow-hidden lg:min-h-[680px]">
+              <div className="glowbal-hero-image" />
+              <div className="glowbal-hero-overlay" />
+              <div className="relative z-10 flex h-full flex-col justify-end p-8 md:p-10 lg:p-12">
+                <span className="inline-flex w-fit rounded-full border border-white/35 bg-white/14 px-4 py-1 text-sm font-semibold text-white/95 backdrop-blur">
+                  Glowbal is opening soon
                 </span>
-                <span className="inline-flex items-center rounded-full border border-emerald-100 bg-emerald-50 px-4 py-2 font-medium text-emerald-700">
-                  Join now and hear when invites open
-                </span>
+                <div className="mt-6 max-w-2xl space-y-5 text-white">
+                  <h1 className="text-4xl font-extrabold tracking-tight md:text-5xl lg:text-6xl">
+                    A cleaner, calmer way to discover where life after school could take you.
+                  </h1>
+                  <p className="max-w-xl text-base leading-7 text-white/86 md:text-lg">
+                    Glowbal is being rebuilt to help students explore countries, courses, and next steps with more
+                    confidence, more warmth, and much less overwhelm.
+                  </p>
+                  <div className="flex flex-wrap gap-3 text-sm text-white/90">
+                    <span className="inline-flex items-center rounded-full border border-white/30 bg-white/14 px-4 py-2 backdrop-blur">
+                      Early access for students, parents, and counsellors
+                    </span>
+                    <span className="inline-flex items-center rounded-full border border-white/30 bg-white/14 px-4 py-2 backdrop-blur">
+                      Join now and get first access when invites open
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div className="mt-8 grid gap-4 sm:grid-cols-3">
-              {featureCards.map((card) => (
-                <article
-                  key={card.title}
-                  className="rounded-[1.5rem] border border-black/5 bg-white/85 p-5 shadow-[0_12px_32px_rgba(22,33,62,0.05)]"
-                >
-                  <h2 className="text-lg font-bold text-slate-900">{card.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">{card.description}</p>
-                </article>
-              ))}
-            </div>
-          </div>
+            <div className="bg-white/92 p-6 md:p-8 lg:p-10">
+              <div className="mx-auto flex h-full max-w-xl flex-col justify-between gap-8">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">Waitlist</p>
+                  <h2 className="mt-2 text-3xl font-bold tracking-tight text-slate-900">Get early access</h2>
+                  <p className="mt-3 text-sm leading-6 text-slate-600 md:text-base">
+                    Leave your email and a little context, and we’ll let you know as soon as Glowbal is ready for early
+                    access.
+                  </p>
+                </div>
 
-          <div className="rounded-[2rem] border border-black/5 bg-white/88 p-6 shadow-[0_16px_50px_rgba(22,33,62,0.08)] backdrop-blur md:p-8">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">Waitlist</p>
-                <h2 className="mt-2 text-2xl font-bold text-slate-900">Get early access</h2>
-                <p className="mt-3 text-sm leading-6 text-slate-600">
-                  Drop your email and we’ll let you know when Glowbal is ready for early users.
-                </p>
+                <WaitlistForm action={joinWaitlist} />
+
+                <div className="space-y-4">
+                  <div className="rounded-[1.5rem] border border-sky-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(144,224,239,0.14))] p-5">
+                    <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">What’s coming</p>
+                    <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
+                      {launchPoints.map((point) => (
+                        <li key={point} className="flex gap-3">
+                          <span className="mt-2 h-2.5 w-2.5 rounded-full bg-[linear-gradient(135deg,#FF4D8C,#00B4D8)]" />
+                          <span>{point}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <p className="text-xs leading-5 text-slate-500">
+                    Want to peek at the full product structure? Tap the Glowbal logo in the top bar to reveal the hidden
+                    navigation.
+                  </p>
+                </div>
               </div>
             </div>
-
-            <WaitlistForm action={joinWaitlist} />
-
-            <div className="mt-6 rounded-[1.5rem] border border-sky-100 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(144,224,239,0.16))] p-5">
-              <p className="text-sm font-semibold uppercase tracking-[0.18em] text-sky-500">What’s coming</p>
-              <ul className="mt-4 space-y-3 text-sm leading-6 text-slate-600">
-                {launchPoints.map((point) => (
-                  <li key={point} className="flex gap-3">
-                    <span className="mt-2 h-2.5 w-2.5 rounded-full bg-[linear-gradient(135deg,#FF4D8C,#00B4D8)]" />
-                    <span>{point}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
           </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-6xl px-6 pb-14 md:px-10 lg:px-12">
+        <div className="grid gap-5 md:grid-cols-3">
+          {featureCards.map((card) => (
+            <article
+              key={card.title}
+              className="rounded-[1.6rem] border border-black/5 bg-white/82 p-6 shadow-[0_12px_32px_rgba(22,33,62,0.06)] backdrop-blur"
+            >
+              <h3 className="text-xl font-bold text-slate-900">{card.title}</h3>
+              <p className="mt-3 text-sm leading-7 text-slate-600">{card.description}</p>
+            </article>
+          ))}
         </div>
       </section>
     </main>
