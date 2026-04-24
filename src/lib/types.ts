@@ -1,3 +1,13 @@
+export type WaitlistState = {
+  status: 'idle' | 'ok' | 'error';
+  message: string;
+};
+
+export type WaitlistAction = (
+  state: WaitlistState,
+  formData: FormData,
+) => Promise<WaitlistState>;
+
 export type StudentProfile = {
   id?: string;
   user_id?: string;
