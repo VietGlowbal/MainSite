@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useScroll } from 'framer-motion';
+import { motion, useScroll } from 'framer-motion';
 
 interface Props {
   displayName: string;
