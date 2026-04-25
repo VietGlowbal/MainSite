@@ -12,7 +12,7 @@ gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const features = [
   { icon: '🌍', title: 'Explore the Global', body: 'A unique way to explore the world and find the places you will love to study' },
-  { icon: '🛸', title: 'Journey to beyond', body: 'We\'ll not just show you you're options, we\'ll tell you how to get there and track your progress' },
+  { icon: '🛸', title: 'Journey to beyond', body: 'We\'ll not just show you your options, we\'ll tell you how to get there and track your progress' },
   { icon: '✨', title: 'Recommendations that work', body: 'We look at your CV and personal statement to give you custom recommendations to maximise your chances' },
 ];
 
