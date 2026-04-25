@@ -17,20 +17,26 @@ async function joinWaitlist(_prevState: WaitlistState, formData: FormData): Prom
 
   try {
     const supabase = createAdminClient();
-    const { error, data } = await supabase.from('waitlist_signups').upsert(
+
+    // Try insert first — if it succeeds it's a new signup, send the email
+    const { error: insertError } = await supabase.from('waitlist_signups').insert(
       { email, first_name: firstName || null, notes: notes || null, source: 'website_waitlist' },
-      { onConflict: 'email', ignoreDuplicates: true, returning: 'representation' },
     );
 
-    if (error) {
-      if (error.code === '42P01') {
+    const isNew = !insertError;
+
+    // If duplicate, update notes/name silently
+    if (insertError && insertError.code === '23505') {
+      await supabase.from('waitlist_signups').update(
+        { first_name: firstName || null, notes: notes || null },
+      ).eq('email', email);
+    } else if (insertError) {
+      if (insertError.code === '42P01') {
         return { status: 'error', message: 'The waitlist table is not set up yet. Create `waitlist_signups` in Supabase.' };
       }
       return { status: 'error', message: 'Something went wrong saving your signup. Please try again.' };
     }
 
-    // Only send confirmation email on a fresh signup (not a duplicate)
-    const isNew = Array.isArray(data) && data.length > 0;
     if (isNew) {
       await sendEmail({
         to: email,
