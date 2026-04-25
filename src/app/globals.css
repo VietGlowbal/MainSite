@@ -1114,3 +1114,141 @@ body {
   font-weight: 500;
   text-align: right;
 }
+
+/* ── Nav profile link ──────────────────────────────────────────────────── */
+
+.glowbal-nav-profile-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-radius: 999px;
+  padding: 0.4rem 0.6rem 0.4rem 0.95rem;
+  text-decoration: none;
+  transition: background 150ms ease;
+}
+
+.glowbal-nav-profile-link:hover {
+  background: rgb(0 180 216 / 0.06);
+}
+
+.glowbal-nav-profile-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: rgb(15 23 42);
+  max-width: 80px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.glowbal-nav-avatar-ring {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  padding: 2px;
+  flex-shrink: 0;
+  transition: background 0.1s linear;
+}
+
+.glowbal-nav-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #fff;
+  display: block;
+}
+
+.glowbal-nav-avatar-initials {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 700;
+  color: #ff4d8c;
+}
+
+/* ── Mobile bottom nav ─────────────────────────────────────────────────── */
+
+.glowbal-mobile-nav {
+  display: flex;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 -4px 24px rgba(22, 33, 62, 0.08);
+  padding: 0.5rem 0.5rem calc(0.5rem + env(safe-area-inset-bottom));
+  gap: 0.25rem;
+}
+
+/* Only show on small screens */
+@media (min-width: 640px) {
+  .glowbal-mobile-nav {
+    display: none;
+  }
+}
+
+.glowbal-mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 0.5rem 0.25rem;
+  border-radius: 1rem;
+  text-decoration: none;
+  color: rgb(100 116 139);
+  transition: background 150ms ease, color 150ms ease;
+  min-width: 0;
+}
+
+.glowbal-mobile-nav-item:hover,
+.glowbal-mobile-nav-item-active {
+  background: rgb(0 180 216 / 0.07);
+  color: rgb(15 23 42);
+}
+
+.glowbal-mobile-nav-item-active .glowbal-mobile-nav-label {
+  color: #ff4d8c;
+  font-weight: 700;
+}
+
+.glowbal-mobile-nav-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.glowbal-mobile-nav-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.glowbal-mobile-nav-avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  padding: 2px;
+  flex-shrink: 0;
+  transition: background 0.1s linear;
+}
+
+/* Add bottom padding to page content so mobile nav doesn't overlap */
+@media (max-width: 639px) {
+  .glowbal-site-shell {
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+}
