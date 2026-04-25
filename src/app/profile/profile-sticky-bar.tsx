@@ -12,31 +12,20 @@ interface Props {
   hasProfile: boolean;
 }
 
-// Gradient stops that cycle as user scrolls
-const GRADIENT_STOPS = [
-  ['#ff4d8c', '#00b4d8'],   // pink → cyan  (default)
-  ['#ff4d8c', '#a855f7'],   // pink → purple
-  ['#f97316', '#ff4d8c'],   // orange → pink
-  ['#00b4d8', '#a855f7'],   // cyan → purple
-  ['#10b981', '#00b4d8'],   // emerald → cyan
-];
-
 export function ProfileStickyBar({ displayName, email, initials, avatarUrl, docCount, hasProfile }: Props) {
   const { scrollY } = useScroll();
-  const [gradientIndex, setGradientIndex] = useState(0);
+  const [deg, setDeg] = useState(135);
   const [visible, setVisible] = useState(false);
 
-  // Show sticky bar after scrolling 220px
   useEffect(() => {
     return scrollY.on('change', (y: number) => {
       setVisible(y > 220);
-      const idx = Math.floor(y / 300) % GRADIENT_STOPS.length;
-      setGradientIndex(idx);
+      // Rotate 1deg per 2px scrolled, wrapping at 360
+      setDeg((y / 2) % 360);
     });
   }, [scrollY]);
 
-  const [from, to] = GRADIENT_STOPS[gradientIndex];
-  const gradient = `linear-gradient(135deg, ${from}, ${to})`;
+  const gradient = `linear-gradient(${deg}deg, #ff4d8c, #00b4d8)`;
 
   return (
     <motion.div
@@ -53,13 +42,7 @@ export function ProfileStickyBar({ displayName, email, initials, avatarUrl, docC
         pointerEvents: visible ? 'auto' : 'none',
       }}
     >
-      <div
-        style={{
-          margin: '10px auto',
-          maxWidth: '56rem',
-          padding: '0 1.5rem',
-        }}
-      >
+      <div style={{ margin: '10px auto', maxWidth: '56rem', padding: '0 1.5rem' }}>
         <div
           style={{
             display: 'flex',
@@ -73,8 +56,8 @@ export function ProfileStickyBar({ displayName, email, initials, avatarUrl, docC
             padding: '0.5rem 1rem 0.5rem 0.5rem',
           }}
         >
-          {/* Scroll-reactive avatar */}
-          <motion.div
+          {/* Scroll-reactive avatar — only the degree rotates */}
+          <div
             style={{
               width: 36,
               height: 36,
@@ -82,7 +65,7 @@ export function ProfileStickyBar({ displayName, email, initials, avatarUrl, docC
               background: gradient,
               padding: 2,
               flexShrink: 0,
-              transition: 'background 0.6s ease',
+              transition: 'background 0.1s linear',
             }}
           >
             {avatarUrl ? (
@@ -96,12 +79,12 @@ export function ProfileStickyBar({ displayName, email, initials, avatarUrl, docC
               <div style={{
                 width: '100%', height: '100%', borderRadius: '50%',
                 background: '#fff', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: from,
+                justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700, color: '#ff4d8c',
               }}>
                 {initials}
               </div>
             )}
-          </motion.div>
+          </div>
 
           {/* Name + email */}
           <div style={{ flex: 1, minWidth: 0 }}>
