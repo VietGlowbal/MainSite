@@ -40,7 +40,7 @@ async function joinWaitlist(_prevState: WaitlistState, formData: FormData): Prom
     if (isNew) {
       await sendEmail({
         to: email,
-        subject: "You're on the Glowbal waitlist 🌍",
+        subject: "You're on the Glowbal waitlist",
         html: waitlistConfirmationEmail(firstName),
       });
     }

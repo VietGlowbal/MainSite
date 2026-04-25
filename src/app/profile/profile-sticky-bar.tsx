@@ -104,7 +104,7 @@ export function ProfileStickyBar({ displayName, email, initials, avatarUrl, docC
             </div>
             <div style={{ textAlign: 'center' }}>
               <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: hasProfile ? '#10b981' : 'rgb(148 163 184)' }}>
-                {hasProfile ? '✓' : '—'}
+                {hasProfile ? 'Yes' : '—'}
               </p>
               <p style={{ margin: 0, fontSize: '0.65rem', color: 'rgb(148 163 184)' }}>Profile</p>
             </div>

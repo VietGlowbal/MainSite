@@ -73,7 +73,7 @@ export default async function ProfilePage() {
                 <p className="text-xs text-slate-500 mt-0.5">Documents</p>
               </div>
               <div>
-                <p className="text-2xl font-semibold text-slate-900">{profile ? '✓' : '—'}</p>
+                <p className="text-2xl font-semibold text-slate-900">{profile ? 'Yes' : '—'}</p>
                 <p className="text-xs text-slate-500 mt-0.5">Profile set</p>
               </div>
             </div>
