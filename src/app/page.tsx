@@ -1,4 +1,4 @@
-import { LandingShowcase } from '@/components/landing-showcase';
+import { DesignCosmos } from '@/components/landing/design-cosmos';
 import { createAdminClient } from '@/lib/supabase/admin';
 import type { WaitlistState } from '@/lib/types';
 
@@ -33,5 +33,5 @@ async function joinWaitlist(_prevState: WaitlistState, formData: FormData): Prom
 }
 
 export default function Home() {
-  return <LandingShowcase action={joinWaitlist} />;
+  return <DesignCosmos action={joinWaitlist} />;
 }

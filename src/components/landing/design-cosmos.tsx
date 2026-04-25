@@ -90,8 +90,16 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_6px_2px_rgba(34,211,238,.55)]" />
             Opening Soon
           </span>
-          <h1 className="mt-7 flex flex-wrap justify-center gap-x-5 gap-y-2 text-5xl font-black tracking-tight text-white md:text-7xl lg:text-8xl">
-            {['Find', 'your', 'world.'].map((w) => <span key={w} className="c1-word inline-block">{w}</span>)}
+          <h1 className="mt-7 flex flex-wrap justify-center gap-x-4 gap-y-2 text-5xl font-black uppercase tracking-tight text-white md:text-7xl lg:text-8xl">
+            {['Study', 'without', 'limits.'].map((w) => (
+              <span
+                key={w}
+                className="c1-word inline-block"
+                style={w === 'limits.' ? { background: 'linear-gradient(90deg,#ff4d8c,#00b4d8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' } : undefined}
+              >
+                {w}
+              </span>
+            ))}
           </h1>
           <p className="c1-sub mt-6 text-lg leading-8 text-white/60 md:text-xl">
             A calmer, smarter way for students to discover where — and what — to study abroad.
