@@ -55,6 +55,16 @@ export default async function ProfilePage() {
               {profile?.bio && (
                 <p className="mt-3 text-sm leading-relaxed text-slate-600 max-w-prose">{profile.bio}</p>
               )}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <a href="/auth" className="glow-button-secondary text-xs px-3 py-1.5">Sign out</a>
+                <button
+                  className="glow-button-secondary text-xs px-3 py-1.5"
+                  style={{ color: 'rgb(239 68 68)', borderColor: 'rgb(254 226 226)' }}
+                  type="button"
+                >
+                  Delete account
+                </button>
+              </div>
             </div>
 
             <div className="flex shrink-0 gap-6 text-center">
@@ -171,21 +181,6 @@ export default async function ProfilePage() {
               )}
             </section>
           </div>
-
-          {/* ── Account ── */}
-          <section className="glow-card space-y-4">
-            <h2 className="text-xl font-semibold text-slate-900">Account</h2>
-            <div className="flex flex-wrap gap-3">
-              <a href="/auth" className="glow-button-secondary text-sm px-4 py-2">Sign out</a>
-              <button
-                className="glow-button-secondary text-sm px-4 py-2"
-                style={{ color: 'rgb(239 68 68)', borderColor: 'rgb(254 226 226)' }}
-                type="button"
-              >
-                Delete account
-              </button>
-            </div>
-          </section>
 
         </div>
       </main>

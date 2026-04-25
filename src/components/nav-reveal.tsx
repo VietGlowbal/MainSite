@@ -7,9 +7,9 @@ import { useScroll } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 
 const NAV_ITEMS = [
-  { href: '/',            label: 'Home',       icon: '🏠' },
-  { href: '/onboarding',  label: 'Onboarding', icon: '🎓' },
-  { href: '/dashboard',   label: 'Dashboard',  icon: '📊' },
+  { href: '/',              label: 'Home',         icon: '🏠' },
+  { href: '/universities',  label: 'Universities', icon: '🎓' },
+  { href: '/dashboard',     label: 'Dashboard',    icon: '📊' },
 ];
 
 // ── Rotating avatar ring ─────────────────────────────────────────────────────
