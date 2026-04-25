@@ -33,6 +33,11 @@ export type StudentProfile = {
   campus_preferences?: string | null;
   support_needs?: string | null;
   profile_summary?: string | null;
+  bio?: string | null;
+  location?: string | null;
+  nationality?: string | null;
+  achievements?: { id: string; title: string; description: string; year: string }[] | null;
+  skills?: string[] | null;
   created_at?: string;
   updated_at?: string;
 };
