@@ -11,9 +11,10 @@ import type { WaitlistAction } from '@/lib/types';
 gsap.registerPlugin(ScrollTrigger, useGSAP);
 
 const features = [
-  { icon: '🌍', title: 'Explore with clarity', body: 'Discover countries, courses, and next steps without the usual noise and overwhelm.' },
-  { icon: '✨', title: 'Recommendations that make sense', body: 'We explain why an option fits you — not just a ranked list to figure out yourself.' },
-  { icon: '🛸', title: 'A journey built for you', body: 'From curious spark to confident shortlist — calm, modern, and encouraging every step.' },
+  { icon: '🌍', title: 'Explore the Global', body: 'Clean and unique ways to explore the world and find places you'll love to study' },
+
+  { icon: '🛸', title: 'Journey to beyond', body: 'We'll not just show you you're options, we'll tell you how to get there and track your progress' },
+  { icon: '✨', title: 'Recommendations that work', body: 'We look at your CV and personal statement to give you custom recommendations to maximise your chances' },
 ];
 
 export function DesignCosmos({ action }: { action: WaitlistAction }) {
@@ -100,7 +101,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
             className="c1-pill inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-5 py-2 text-xs font-bold uppercase tracking-[.22em] text-cyan-300 backdrop-blur-sm"
           >
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_6px_2px_rgba(34,211,238,.55)]" />
-            Opening Soon
+            Coming May 2026
           </button>
           <h1 className="mt-7 flex flex-wrap justify-center gap-x-4 gap-y-2 text-5xl font-black uppercase tracking-tight text-white md:text-7xl lg:text-8xl">
             {['Study', 'without', 'limits.'].map((w) => (
@@ -114,7 +115,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
             ))}
           </h1>
           <p className="c1-sub mt-6 text-lg leading-8 text-white/60 md:text-xl">
-            A calmer, smarter way for students to discover where — and what — to study abroad.
+            Discover the countries, courses and track your next steps to get you to the place you belong
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             {['Students', 'Parents', 'Counsellors'].map((b) => (
@@ -134,8 +135,8 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
       {/* Features */}
       <section className="c1-features relative px-6 py-24 md:py-32">
         <div className="mx-auto max-w-5xl">
-          <p className="mb-3 text-center text-xs font-bold uppercase tracking-[.22em] text-cyan-400">What's coming</p>
-          <h2 className="mb-14 text-center text-3xl font-bold text-white md:text-4xl">Built for the journey ahead</h2>
+          <p className="mb-3 text-center text-xs font-bold uppercase tracking-[.22em] text-cyan-400">What we're building</p>
+          <h2 className="mb-14 text-center text-3xl font-bold text-white md:text-4xl">Introducing Glowbal</h2>
           <div className="grid gap-5 md:grid-cols-3">
             {features.map((f) => (
               <div key={f.title} className="c1-feature rounded-2xl border border-white/[.07] bg-white/[.04] p-6 backdrop-blur-sm">
@@ -156,7 +157,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
         >
           <p className="text-xs font-bold uppercase tracking-[.22em] text-cyan-400">Early Access</p>
           <h2 className="mt-3 text-2xl font-bold text-white">Be first to explore</h2>
-          <p className="mt-2 text-sm leading-6 text-white/50">Join the waitlist — we'll reach out when Glowbal opens.</p>
+          <p className="mt-2 text-sm leading-6 text-white/50">Join the waitlist, we'll reach out when Glowbal opens in May</p>
           <div style={{ '--glow-input-bg': 'rgba(255,255,255,0.06)', color: 'inherit' } as React.CSSProperties}>
             <WaitlistForm action={action} />
           </div>
