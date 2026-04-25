@@ -461,6 +461,50 @@ body {
   opacity: 0.6;
 }
 
+.glow-button-google {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  width: 100%;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 0.85rem 1.5rem;
+  font-weight: 600;
+  color: #1e293b;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.06);
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  cursor: pointer;
+}
+
+.glow-button-google:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgb(0 0 0 / 0.1);
+}
+
+.glow-button-google:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.glow-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #94a3b8;
+  font-size: 0.85rem;
+  margin: 0.25rem 0;
+}
+
+.glow-divider::before,
+.glow-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: #e2e8f0;
+}
+
 .glow-button-secondary {
   display: inline-flex;
   align-items: center;
@@ -854,4 +898,161 @@ body {
   .study-level-card {
     grid-template-columns: minmax(0, 1fr) 180px;
   }
+}
+
+/* ── Email confirmation screen ─────────────────────────────────────────── */
+
+@keyframes glow-confirm-in {
+  from { opacity: 0; transform: translateY(18px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+@keyframes glow-env-float {
+  0%, 100% { transform: translateY(0);   }
+  50%       { transform: translateY(-8px); }
+}
+
+@keyframes glow-env-flap-open {
+  0%   { d: path("M8 30 L48 58 L88 30"); }
+  60%  { d: path("M8 30 L48 18 L88 30"); }
+  100% { d: path("M8 30 L48 18 L88 30"); }
+}
+
+@keyframes glow-env-check-pop {
+  0%   { r: 0;  opacity: 0; }
+  60%  { r: 16; opacity: 1; }
+  80%  { r: 13; }
+  100% { r: 14; opacity: 1; }
+}
+
+@keyframes glow-env-tick-draw {
+  from { stroke-dashoffset: 24; opacity: 0; }
+  to   { stroke-dashoffset: 0;  opacity: 1; }
+}
+
+@keyframes glow-dot-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+  40%            { transform: scale(1.2); opacity: 1;   }
+}
+
+.glow-confirm-shell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 1rem;
+  padding: 2.5rem 2rem;
+  animation: glow-confirm-in 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.glow-confirm-envelope {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: glow-env-float 3.2s ease-in-out infinite;
+}
+
+.glow-confirm-envelope-svg {
+  width: 96px;
+  height: 96px;
+  overflow: visible;
+}
+
+/* envelope body */
+.glow-env-body {
+  fill: #fff0f6;
+  stroke: #ff4d8c;
+  stroke-width: 2.5;
+}
+
+/* envelope flap — CSS d() animation only works in supporting browsers; fallback is static */
+.glow-env-flap {
+  fill: none;
+  stroke: #ff4d8c;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  animation: glow-env-flap-open 1s cubic-bezier(0.22, 1, 0.36, 1) 0.3s both;
+}
+
+/* check ring */
+.glow-env-check-ring {
+  fill: #ff4d8c;
+  animation: glow-env-check-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) 0.9s both;
+}
+
+/* check tick */
+.glow-env-check-tick {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-dasharray: 24;
+  stroke-dashoffset: 24;
+  animation: glow-env-tick-draw 0.35s ease-out 1.3s both;
+}
+
+/* floating dots */
+.glow-confirm-dot {
+  position: absolute;
+  border-radius: 50%;
+  background: #ff85b3;
+}
+
+.glow-confirm-dot-1 {
+  width: 8px; height: 8px;
+  top: 6px; right: 10px;
+  animation: glow-dot-bounce 1.4s ease-in-out 0s infinite;
+}
+
+.glow-confirm-dot-2 {
+  width: 6px; height: 6px;
+  bottom: 10px; left: 8px;
+  background: #00b4d8;
+  animation: glow-dot-bounce 1.4s ease-in-out 0.2s infinite;
+}
+
+.glow-confirm-dot-3 {
+  width: 5px; height: 5px;
+  top: 18px; left: 14px;
+  background: #ff4d8c;
+  animation: glow-dot-bounce 1.4s ease-in-out 0.4s infinite;
+}
+
+.glow-confirm-heading {
+  font-size: 1.6rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: rgb(15 23 42);
+  margin: 0;
+  min-height: 2.2rem; /* prevent layout shift from dots */
+}
+
+.glow-confirm-body {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: rgb(71 85 105);
+  max-width: 26ch;
+  margin: 0;
+}
+
+.glow-confirm-hint {
+  font-size: 0.85rem;
+  color: rgb(148 163 184);
+  margin: 0;
+}
+
+.glow-confirm-retry {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #ff4d8c;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
 }
