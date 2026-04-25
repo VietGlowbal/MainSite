@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef } from 'react';
+import { useRef, useCallback } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -18,6 +18,14 @@ const features = [
 
 export function DesignCosmos({ action }: { action: WaitlistAction }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const pillClicks = useRef(0);
+
+  const handlePillClick = useCallback(() => {
+    pillClicks.current += 1;
+    if (pillClicks.current >= 5) {
+      window.dispatchEvent(new CustomEvent('glowbal:reveal-nav'));
+    }
+  }, []);
 
   useGSAP(() => {
     // Entry sequence
@@ -86,10 +94,14 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
         </div>
 
         <div className="c1-text relative z-10 max-w-3xl text-center" style={{ perspective: '800px' }}>
-          <span className="c1-pill inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-5 py-2 text-xs font-bold uppercase tracking-[.22em] text-cyan-300 backdrop-blur-sm">
+          <button
+            type="button"
+            onClick={handlePillClick}
+            className="c1-pill inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-5 py-2 text-xs font-bold uppercase tracking-[.22em] text-cyan-300 backdrop-blur-sm"
+          >
             <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_6px_2px_rgba(34,211,238,.55)]" />
             Opening Soon
-          </span>
+          </button>
           <h1 className="mt-7 flex flex-wrap justify-center gap-x-4 gap-y-2 text-5xl font-black uppercase tracking-tight text-white md:text-7xl lg:text-8xl">
             {['Study', 'without', 'limits.'].map((w) => (
               <span
@@ -137,7 +149,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
       </section>
 
       {/* Waitlist */}
-      <section className="relative px-6 pb-32 pt-8">
+      <section className="relative px-6 pb-16 pt-8">
         <div
           className="c1-form mx-auto max-w-md rounded-[2rem] border border-cyan-400/20 p-8 backdrop-blur-xl"
           style={{ background: 'linear-gradient(135deg,rgba(255,255,255,.05),rgba(0,180,216,.06))', boxShadow: '0 0 80px rgba(0,180,216,.09),inset 0 1px 0 rgba(255,255,255,.08)' }}

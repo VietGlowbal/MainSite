@@ -29,11 +29,7 @@ export default function RootLayout({
       className={`${outfit.variable} ${geistMono.variable} h-full overflow-x-hidden bg-white antialiased`}
     >
       <body className="min-h-full overflow-x-hidden bg-white text-slate-800 flex flex-col glowbal-site-shell">
-        <header className="glowbal-topbar border-b border-black/5 bg-white/80 backdrop-blur-xl">
-          <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-10 lg:px-12">
-            <NavReveal />
-          </div>
-        </header>
+        <NavReveal />
         <div className="flex-1 min-h-0">{children}</div>
       </body>
     </html>

@@ -14,29 +14,25 @@ export function NavReveal() {
   const [revealed, setRevealed] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    setRevealed(window.localStorage.getItem('glowbal-nav-revealed') === 'true');
+    if (localStorage.getItem('glowbal-nav-revealed') === 'true') {
+      setRevealed(true);
+    }
+    function onReveal() {
+      setRevealed(true);
+      localStorage.setItem('glowbal-nav-revealed', 'true');
+    }
+    window.addEventListener('glowbal:reveal-nav', onReveal);
+    return () => window.removeEventListener('glowbal:reveal-nav', onReveal);
   }, []);
 
-  const reveal = () => {
-    setRevealed(true);
-    if (typeof window !== 'undefined') {
-      window.localStorage.setItem('glowbal-nav-revealed', 'true');
-    }
-  };
+  if (!revealed) return null;
 
   return (
-    <div className="flex items-center gap-3">
-      <button
-        type="button"
-        onClick={reveal}
-        className="text-lg font-semibold tracking-tight text-slate-900"
-        aria-label="Reveal navigation"
-      >
-        <span className="glowbal-wordmark">Glowbal</span>
-      </button>
-
-      {revealed ? (
+    <header className="glowbal-topbar border-b border-black/5 bg-white/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-10 lg:px-12">
+        <Link href="/" className="text-lg font-semibold tracking-tight text-slate-900">
+          <span className="glowbal-wordmark">Glowbal</span>
+        </Link>
         <nav className="glowbal-nav flex items-center gap-2 text-sm text-slate-600">
           {navItems.map((item) => (
             <Link key={item.href} href={item.href} className="glowbal-nav-link transition hover:text-slate-900">
@@ -44,9 +40,7 @@ export function NavReveal() {
             </Link>
           ))}
         </nav>
-      ) : (
-        <div className="glowbal-nav-hint text-xs text-slate-500">Tap the logo to reveal navigation</div>
-      )}
-    </div>
+      </div>
+    </header>
   );
 }
