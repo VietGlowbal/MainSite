@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { UploadDocumentForm } from './upload-document-form';
 import { ProfileForm } from './profile-form';
+import type { UploadedDocument } from '@/lib/types';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -140,7 +141,7 @@ export default async function ProfilePage() {
               <p className="text-sm text-slate-500">No documents yet.</p>
             ) : (
               <ul className="space-y-3">
-                {documents.map((doc: Record<string, unknown>) => (
+                {documents.map((doc: UploadedDocument) => (
                   <li key={doc.id} className="glow-muted-card text-sm">
                     <p className="font-medium text-slate-900 truncate">{doc.file_name}</p>
                     <p className="mt-0.5 text-slate-500">{doc.type} · {new Date(doc.created_at).toLocaleDateString('en-GB')}</p>

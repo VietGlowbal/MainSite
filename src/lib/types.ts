@@ -8,6 +8,17 @@ export type WaitlistAction = (
   formData: FormData,
 ) => Promise<WaitlistState>;
 
+export type UploadedDocument = {
+  id: string;
+  user_id: string;
+  type: string;
+  storage_key: string;
+  file_name: string;
+  mime_type?: string | null;
+  parsed_summary?: string | null;
+  created_at: string;
+};
+
 export type StudentProfile = {
   id?: string;
   user_id?: string;
