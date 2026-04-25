@@ -1,10 +1,11 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { UploadDocumentForm } from './upload-document-form';
-import { ProfileForm } from './profile-form';
 import { AchievementsForm } from './achievements-form';
 import { ProfileStickyBar } from './profile-sticky-bar';
 import { ProfileAvatar } from './profile-avatar';
+import { PersonalInfoCard } from './personal-info-card';
+import Link from 'next/link';
 import type { UploadedDocument } from '@/lib/types';
 
 export default async function ProfilePage() {
@@ -70,36 +71,28 @@ export default async function ProfilePage() {
 
           {/* ── Info grid ── */}
           <div className="grid gap-8 lg:grid-cols-2">
-            <section className="glow-card space-y-5">
-              <h2 className="text-xl font-semibold text-slate-900">Personal information</h2>
-              <div className="space-y-1 text-sm">
-                <div className="profile-info-row">
-                  <span className="profile-info-label">Full name</span>
-                  <span className="profile-info-value">{user.user_metadata?.full_name || '—'}</span>
-                </div>
-                <div className="profile-info-row">
-                  <span className="profile-info-label">Email</span>
-                  <span className="profile-info-value">{user.email}</span>
-                </div>
-                <div className="profile-info-row">
-                  <span className="profile-info-label">Location</span>
-                  <span className="profile-info-value">{profile?.location || '—'}</span>
-                </div>
-                <div className="profile-info-row">
-                  <span className="profile-info-label">Nationality</span>
-                  <span className="profile-info-value">{profile?.nationality || '—'}</span>
-                </div>
-                <div className="profile-info-row">
-                  <span className="profile-info-label">Member since</span>
-                  <span className="profile-info-value">
-                    {new Date(user.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' })}
-                  </span>
-                </div>
-              </div>
-            </section>
+            <PersonalInfoCard
+              userId={user.id}
+              initialData={{
+                full_name:   user.user_metadata?.full_name ?? '',
+                email:       user.email ?? '',
+                location:    profile?.location ?? '',
+                nationality: profile?.nationality ?? '',
+                bio:         profile?.bio ?? '',
+                memberSince: new Date(user.created_at).toLocaleDateString('en-GB', { month: 'long', year: 'numeric' }),
+              }}
+            />
 
             <section className="glow-card space-y-5">
-              <h2 className="text-xl font-semibold text-slate-900">Academic profile</h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-semibold text-slate-900">Academic profile</h2>
+                <Link
+                  href="/onboarding"
+                  className="glow-button-secondary text-xs px-3 py-1.5"
+                >
+                  Redo onboarding
+                </Link>
+              </div>
               <div className="space-y-1 text-sm">
                 <div className="profile-info-row">
                   <span className="profile-info-label">Study level</span>
@@ -130,17 +123,6 @@ export default async function ProfilePage() {
             userId={user.id}
             initialAchievements={profile?.achievements ?? []}
             initialSkills={profile?.skills ?? []}
-          />
-
-          {/* ── Edit profile ── */}
-          <ProfileForm
-            userId={user.id}
-            initialData={{
-              full_name: user.user_metadata?.full_name ?? '',
-              bio: profile?.bio ?? '',
-              location: profile?.location ?? '',
-              nationality: profile?.nationality ?? '',
-            }}
           />
 
           {/* ── Documents ── */}
