@@ -114,7 +114,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
             ))}
           </h1>
           <p className="c1-sub mt-6 text-lg leading-8 text-white/60 md:text-xl">
-            Discover the countries, courses and track your next steps to get you to the place you belong
+            Discover the countries, courses and track your next <br /> steps to get you to the place you belong
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             {['Students', 'Parents', 'Counsellors'].map((b) => (

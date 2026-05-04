@@ -1,32 +1,83 @@
-export default function UniversitiesPage() {
-  return (
-    <main className="min-h-screen bg-transparent px-6 py-16 md:px-10">
-      <div className="mx-auto max-w-4xl">
-        <div className="glow-card text-center space-y-6 py-16">
-          <div>
-            <span className="glow-pill">Coming soon</span>
-            <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900">
-              University search
-            </h1>
-            <p className="mt-4 text-slate-500 leading-7 max-w-md mx-auto">
-              Search and compare universities worldwide — filtered by subject, country, budget, and your personal profile. This feature is in development.
-            </p>
-          </div>
+import { createClient } from '@/lib/supabase/server';
+import { computeMatchScore } from '@/lib/matching';
+import { toExplorerUniversity, type ApplicationEntry } from '@/lib/explorer-context';
+import type { University } from '@/lib/types';
+import { UniversityExplorerClient } from './university-explorer-client';
 
-          <div className="grid gap-4 sm:grid-cols-3 max-w-lg mx-auto pt-4">
-            {[
-              { label: 'Global coverage', desc: 'Universities across every continent' },
-              { label: 'Smart filters',   desc: 'Match to your goals and budget' },
-              { label: 'Side-by-side',    desc: 'Compare courses and entry requirements' },
-            ].map((f) => (
-              <div key={f.label} className="glow-muted-card text-center space-y-1">
-                <p className="text-sm font-semibold text-slate-800">{f.label}</p>
-                <p className="text-xs text-slate-400 leading-snug">{f.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </main>
+export default async function UniversitiesPage() {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Fetch profile for matching
+  let profile = null;
+  let savedUniversityIds: number[] = [];
+  let initialApplications: ApplicationEntry[] = [];
+
+  if (user) {
+    const [profileResult, savedResult] = await Promise.all([
+      supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase
+        .from('user_universities')
+        .select('id, university_id, status, added_at')
+        .eq('user_id', user.id),
+    ]);
+    profile = profileResult.data;
+    const savedRows = savedResult.data ?? [];
+    savedUniversityIds = savedRows.map((r: { university_id: number }) => r.university_id);
+
+    // Build initial applications from user_universities with active statuses
+    const statusToStage: Record<string, number> = {
+      interested: -1, // not an application yet
+      applying: 0,
+      applied: 2,
+      offer: 5,
+      rejected: 5,
+      enrolled: 5,
+    };
+
+    initialApplications = savedRows
+      .filter((r: { status: string }) => statusToStage[r.status] !== undefined && statusToStage[r.status] >= 0)
+      .map((r: { id: number; university_id: number; status: string; added_at: string }) => ({
+        universityId: r.university_id,
+        userUniversityId: r.id,
+        currentStage: statusToStage[r.status] ?? 0,
+        submittedAt: r.added_at,
+      }));
+  }
+
+  // Fetch all universities
+  const { data: universities } = await supabase
+    .from('universities')
+    .select('*')
+    .order('qs_rank', { ascending: true, nullsFirst: false });
+
+  // Compute match scores and convert to explorer format
+  const explorerUniversities = (universities ?? []).map((uni: University) => {
+    const matchScore = profile ? computeMatchScore(profile, uni) : null;
+    return toExplorerUniversity({
+      ...uni,
+      match_score: matchScore,
+      is_saved: savedUniversityIds.includes(uni.id),
+    });
+  });
+
+  // Sort: best match first
+  explorerUniversities.sort((a, b) => {
+    if (a.match_score !== null && b.match_score !== null) {
+      return b.match_score - a.match_score;
+    }
+    return (a.qs_rank ?? 9999) - (b.qs_rank ?? 9999);
+  });
+
+  return (
+    <UniversityExplorerClient
+      universities={explorerUniversities}
+      initialShortlist={savedUniversityIds}
+      initialApplications={initialApplications}
+      isLoggedIn={!!user}
+    />
   );
 }
