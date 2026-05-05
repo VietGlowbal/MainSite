@@ -179,11 +179,21 @@ export function OnboardingForm({ initialProfile }: Props) {
 
     if (error) {
       setMessage(error.message);
-    } else {
-      setMessage('Profile saved. This version should feel much more polished.');
+      setLoading(false);
+      return;
     }
 
-    setLoading(false);
+    // Mark onboarding as completed
+    await supabase
+      .from('student_profiles')
+      .update({
+        onboarding_completed: true,
+        onboarding_completed_at: new Date().toISOString(),
+      })
+      .eq('user_id', userData.user.id);
+
+    // Redirect to optional document upload step
+    window.location.href = '/onboarding/documents';
   };
 
   const isLastStep = stepIndex === onboardingSteps.length - 1;

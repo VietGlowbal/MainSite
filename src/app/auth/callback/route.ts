@@ -8,11 +8,29 @@ export async function GET(request: Request) {
   if (code) {
     const supabase = await createClient();
     const { error } = await supabase.auth.exchangeCodeForSession(code);
+
     if (!error) {
-      return NextResponse.redirect(`${origin}/profile`);
+      // Check if user has completed onboarding
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('student_profiles')
+          .select('onboarding_completed')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        if (profile?.onboarding_completed) {
+          return NextResponse.redirect(`${origin}/universities`);
+        }
+        return NextResponse.redirect(`${origin}/onboarding`);
+      }
+
+      return NextResponse.redirect(`${origin}/onboarding`);
     }
   }
 
-  // Something went wrong — send back to auth with an error hint
   return NextResponse.redirect(`${origin}/auth?error=auth_callback_failed`);
 }

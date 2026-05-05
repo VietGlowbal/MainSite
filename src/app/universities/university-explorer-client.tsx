@@ -8,8 +8,10 @@ import {
   UniversityExplorerProvider,
   useExplorer,
   filterUniversities,
+  type ExplorerUniversity,
+  type ApplicationEntry,
 } from '@/lib/explorer-context';
-import { APPLICATION_STAGES, FILTER_CATEGORIES, UNIVERSITIES, type University } from '@/lib/university-data';
+import { APPLICATION_STAGES, FILTER_CATEGORIES } from '@/lib/university-data';
 import { LandingGlobe } from '@/components/landing-globe';
 
 /* ── Placeholder view components (replaced in later tasks) ─────────── */
@@ -103,8 +105,8 @@ function HeroSection() {
 }
 
 function FilterBar() {
-  const { activeFilter, setFilter } = useExplorer();
-  const filteredCount = filterUniversities(UNIVERSITIES, activeFilter).length;
+  const { activeFilter, setFilter, universities } = useExplorer();
+  const filteredCount = filterUniversities(universities, activeFilter).length;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-4">
@@ -135,7 +137,7 @@ function FilterBar() {
   );
 }
 
-function UniversityCard({ university }: { university: University }) {
+function UniversityCard({ university }: { university: ExplorerUniversity }) {
   const { isShortlisted, setView } = useExplorer();
   const shortlisted = isShortlisted(university.id);
 
@@ -186,12 +188,13 @@ function UniversityCard({ university }: { university: University }) {
           <p className="mt-0.5 text-sm text-white/50">{university.location}</p>
         </div>
 
-        {/* Rating & reviews */}
+        {/* Match score or rating */}
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-amber-400">⭐ {university.rating}</span>
-          <span className="text-white/40">
-            ({university.reviews.toLocaleString()} reviews)
-          </span>
+          {university.match_score != null ? (
+            <span className="text-[#ff4d8c] font-semibold">{university.match_score}% match</span>
+          ) : (
+            <span className="text-amber-400">QS {university.rank || '—'}</span>
+          )}
         </div>
 
         {/* Tag chips */}
@@ -206,12 +209,18 @@ function UniversityCard({ university }: { university: University }) {
           ))}
         </div>
 
-        {/* Acceptance rate */}
-        <div className="mt-auto pt-2 text-sm text-white/50">
-          Acceptance rate:{' '}
-          <span className="font-medium text-[#00b4d8]">
-            {university.acceptance}
+        {/* Acceptance rate + match score */}
+        <div className="mt-auto pt-2 flex items-center justify-between text-sm text-white/50">
+          <span>
+            {university.accept_rate ? (
+              <>Accept: <span className="font-medium text-[#00b4d8]">{university.accept_rate}</span></>
+            ) : null}
           </span>
+          {university.match_score != null && (
+            <span className="rounded-full bg-[#ff4d8c]/20 px-2.5 py-0.5 text-xs font-bold text-[#ff4d8c]">
+              {university.match_score}% match
+            </span>
+          )}
         </div>
       </div>
     </button>
@@ -219,8 +228,8 @@ function UniversityCard({ university }: { university: University }) {
 }
 
 function UniversityGrid() {
-  const { activeFilter } = useExplorer();
-  const filtered = filterUniversities(UNIVERSITIES, activeFilter);
+  const { activeFilter, universities } = useExplorer();
+  const filtered = filterUniversities(universities, activeFilter);
   const gridRef = useRef<HTMLDivElement>(null);
 
   useGSAP(() => {
@@ -272,7 +281,7 @@ function StarRating({ stars, max = 5 }: { stars: number; max?: number }) {
   );
 }
 
-function ShortlistSidebar({ university }: { university: University }) {
+function ShortlistSidebar({ university }: { university: ExplorerUniversity }) {
   const { addToShortlist, isShortlisted, showToast } = useExplorer();
   const shortlisted = isShortlisted(university.id);
 
@@ -284,15 +293,21 @@ function ShortlistSidebar({ university }: { university: University }) {
   };
 
   const stats = [
-    { label: 'Acceptance Rate', value: university.acceptance },
-    { label: 'Rank', value: university.rank },
-    { label: 'Founded', value: university.founded },
+    { label: 'Acceptance Rate', value: university.accept_rate ?? '—' },
+    { label: 'Rank', value: university.rank || '—' },
+    { label: 'Tuition', value: university.tuition_usd ? `$${university.tuition_usd}` : '—' },
   ];
 
   return (
     <div className="sticky top-20 space-y-5 rounded-2xl border border-white/[.07] bg-white/[.04] p-6 backdrop-blur">
-      {/* University name */}
+      {/* University name + match */}
       <h3 className="text-lg font-semibold text-white">{university.name}</h3>
+      {university.match_score != null && (
+        <p className="text-sm">
+          <span className="font-bold text-[#ff4d8c]">{university.match_score}%</span>
+          <span className="text-white/40"> profile match</span>
+        </p>
+      )}
 
       {/* Key stats */}
       <div className="space-y-3">
@@ -333,9 +348,9 @@ function ShortlistSidebar({ university }: { university: University }) {
 }
 
 function DetailView() {
-  const { selectedUniversityId, setView } = useExplorer();
+  const { selectedUniversityId, setView, universities } = useExplorer();
 
-  const university = UNIVERSITIES.find((u) => u.id === selectedUniversityId);
+  const university = universities.find((u) => u.id === selectedUniversityId);
 
   if (!university) {
     return (
@@ -353,9 +368,9 @@ function DetailView() {
   }
 
   const statItems = [
-    { label: 'Students', value: university.stats.students, icon: '🎓' },
-    { label: 'Staff / Campus', value: `${university.stats.staff} · ${university.stats.campuses}`, icon: '🏫' },
-    { label: 'Acceptance Rate', value: university.acceptance, icon: '📈' },
+    { label: 'Tuition (USD)', value: university.tuition_usd ? `$${university.tuition_usd}` : '—', icon: '💰' },
+    { label: 'Living Cost (USD)', value: university.living_cost_usd ? `$${university.living_cost_usd}` : '—', icon: '🏠' },
+    { label: 'Acceptance Rate', value: university.accept_rate ?? '—', icon: '📈' },
   ];
 
   return (
@@ -389,11 +404,15 @@ function DetailView() {
               {university.name}
             </h2>
             <p className="mt-1 text-sm text-white/50">{university.location}</p>
-            <div className="mt-2 flex items-center gap-2 text-sm">
-              <span className="text-amber-400">⭐ {university.rating}</span>
-              <span className="text-white/40">
-                ({university.reviews.toLocaleString()} reviews)
-              </span>
+            <div className="mt-2 flex items-center gap-3 text-sm">
+              {university.match_score != null && (
+                <span className="rounded-full bg-[#ff4d8c]/20 px-3 py-1 text-sm font-bold text-[#ff4d8c]">
+                  {university.match_score}% match
+                </span>
+              )}
+              {university.rank && (
+                <span className="text-[#00b4d8]">{university.rank}</span>
+              )}
             </div>
           </div>
 
@@ -462,13 +481,13 @@ function DetailView() {
 }
 
 function ShortlistView() {
-  const { shortlist, removeFromShortlist, showToast, proceedToApplications, setView } =
+  const { shortlist, removeFromShortlist, showToast, proceedToApplications, setView, universities } =
     useExplorer();
 
   // Look up full university objects from shortlist IDs
   const shortlistedUniversities = shortlist
-    .map((id) => UNIVERSITIES.find((u) => u.id === id))
-    .filter((u): u is University => u != null);
+    .map((id) => universities.find((u) => u.id === id))
+    .filter((u): u is ExplorerUniversity => u != null);
 
   // ── Empty state ──
   if (shortlistedUniversities.length === 0) {
@@ -647,7 +666,7 @@ function ProgressTimeline({ currentStage }: { currentStage: number }) {
 }
 
 function ApplicationTrackerView() {
-  const { applications, advanceApplication, setView } = useExplorer();
+  const { applications, advanceApplication, setView, universities } = useExplorer();
 
   // ── Empty state ──
   if (applications.length === 0) {
@@ -683,7 +702,7 @@ function ApplicationTrackerView() {
 
       <div className="space-y-6">
         {applications.map((app) => {
-          const university = UNIVERSITIES.find(
+          const university = universities.find(
             (u) => u.id === app.universityId,
           );
           if (!university) return null;
@@ -886,9 +905,26 @@ function ExplorerContent() {
 
 /* ── Exported client component ─────────────────────────────────────── */
 
-export function UniversityExplorerClient() {
+interface ExplorerClientProps {
+  universities: ExplorerUniversity[];
+  initialShortlist: number[];
+  initialApplications: ApplicationEntry[];
+  isLoggedIn: boolean;
+}
+
+export function UniversityExplorerClient({
+  universities,
+  initialShortlist,
+  initialApplications,
+  isLoggedIn,
+}: ExplorerClientProps) {
   return (
-    <UniversityExplorerProvider>
+    <UniversityExplorerProvider
+      initialUniversities={universities}
+      initialShortlist={initialShortlist}
+      initialApplications={initialApplications}
+      isLoggedIn={isLoggedIn}
+    >
       <ExplorerContent />
     </UniversityExplorerProvider>
   );
