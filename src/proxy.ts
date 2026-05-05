@@ -72,26 +72,8 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged in → check onboarding completion for protected routes
-  if (user && isProtected && !pathname.startsWith('/onboarding')) {
-    const { data: profile } = await supabase
-      .from('student_profiles')
-      .select('onboarding_completed, study_level, target_subjects, preferred_countries')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    // Consider onboarding complete if the flag is set OR if the profile
-    // already has core fields filled in
-    const hasCompletedOnboarding =
-      profile?.onboarding_completed ||
-      (profile?.study_level && profile?.preferred_countries?.length > 0);
-
-    if (!hasCompletedOnboarding) {
-      const url = request.nextUrl.clone();
-      url.pathname = '/onboarding';
-      return NextResponse.redirect(url);
-    }
-  }
+  // NOTE: Onboarding redirect temporarily disabled — users can navigate freely
+  // TODO: Re-enable once onboarding_completed flag is reliably set for all users
 
   return response;
 }
