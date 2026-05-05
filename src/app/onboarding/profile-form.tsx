@@ -170,6 +170,8 @@ export function OnboardingForm({ initialProfile }: Props) {
       career_interests: profile.career_interests || [],
       campus_preferences: profile.campus_preferences || null,
       support_needs: profile.support_needs || null,
+      onboarding_completed: true,
+      onboarding_completed_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
@@ -182,15 +184,6 @@ export function OnboardingForm({ initialProfile }: Props) {
       setLoading(false);
       return;
     }
-
-    // Mark onboarding as completed
-    await supabase
-      .from('student_profiles')
-      .update({
-        onboarding_completed: true,
-        onboarding_completed_at: new Date().toISOString(),
-      })
-      .eq('user_id', userData.user.id);
 
     // Redirect to optional document upload step
     window.location.href = '/onboarding/documents';

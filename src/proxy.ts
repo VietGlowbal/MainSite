@@ -76,11 +76,17 @@ export async function proxy(request: NextRequest) {
   if (user && isProtected && !pathname.startsWith('/onboarding')) {
     const { data: profile } = await supabase
       .from('student_profiles')
-      .select('onboarding_completed')
+      .select('onboarding_completed, study_level, target_subjects, preferred_countries')
       .eq('user_id', user.id)
       .maybeSingle();
 
-    if (!profile || !profile.onboarding_completed) {
+    // Consider onboarding complete if the flag is set OR if the profile
+    // already has core fields filled in
+    const hasCompletedOnboarding =
+      profile?.onboarding_completed ||
+      (profile?.study_level && profile?.preferred_countries?.length > 0);
+
+    if (!hasCompletedOnboarding) {
       const url = request.nextUrl.clone();
       url.pathname = '/onboarding';
       return NextResponse.redirect(url);
