@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useScroll } from 'framer-motion';
 import {
   UniversityExplorerProvider,
@@ -9,48 +10,34 @@ import {
   type ExplorerUniversity,
   type ApplicationEntry,
 } from '@/lib/explorer-context';
-import { APPLICATION_STAGES, FILTER_CATEGORIES } from '@/lib/university-data';
-
+import { FILTER_CATEGORIES } from '@/lib/university-data';
 /* ─────────────────────────────────────────────────────────────────────────
-   TAB BAR
+   TAB BAR  (browse + detail only — shortlist/applications live in /my-universities)
 ───────────────────────────────────────────────────────────────────────── */
 
 function TabBar() {
-  const { activeView, setView, shortlist } = useExplorer();
-
-  const tabs = [
-    { key: 'browse' as const, label: 'Browse' },
-    { key: 'shortlist' as const, label: 'Shortlist', badge: shortlist.length },
-    { key: 'applications' as const, label: 'My Applications' },
-  ];
+  const { activeView, setView } = useExplorer();
 
   return (
     <nav className="sticky top-0 z-20 border-b border-black/[.05] bg-white/80 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 py-3">
-        {tabs.map((tab) => {
-          const isActive =
-            activeView === tab.key ||
-            (tab.key === 'browse' && activeView === 'detail');
-          return (
-            <button
-              key={tab.key}
-              type="button"
-              onClick={() => setView(tab.key)}
-              className={`relative rounded-full px-4 py-2 text-sm font-semibold transition-all ${
-                isActive
-                  ? 'bg-pink-50 text-pink-600 border border-pink-200'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 border border-transparent'
-              }`}
-            >
-              {tab.label}
-              {tab.badge != null && tab.badge > 0 && (
-                <span className="ml-2 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-[#ff4d8c] px-1.5 text-xs font-bold text-white">
-                  {tab.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
+        <button
+          type="button"
+          onClick={() => setView('browse')}
+          className={`relative rounded-full px-4 py-2 text-sm font-semibold transition-all ${
+            activeView === 'browse' || activeView === 'detail'
+              ? 'bg-pink-50 text-pink-600 border border-pink-200'
+              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 border border-transparent'
+          }`}
+        >
+          Browse
+        </button>
+        <a
+          href="/my-universities"
+          className="rounded-full px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-700 border border-transparent transition-all"
+        >
+          My Universities →
+        </a>
       </div>
     </nav>
   );
@@ -118,21 +105,33 @@ function FilterBar() {
 ───────────────────────────────────────────────────────────────────────── */
 
 function UniversityCard({ university, index }: { university: ExplorerUniversity; index: number }) {
-  const { isShortlisted, setView } = useExplorer();
-  const shortlisted = isShortlisted(university.id);
+  const { isShortlisted, addToShortlist, showToast, setView } = useExplorer();
+  const router = useRouter();
+  const saved = isShortlisted(university.id);
+
+  const handleSave = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!saved) {
+      await addToShortlist(university.id);
+      showToast(`${university.name} saved — redirecting…`);
+      setTimeout(() => router.push('/my-universities'), 800);
+    } else {
+      router.push('/my-universities');
+    }
+  };
 
   return (
-    <motion.button
-      type="button"
-      onClick={() => setView('detail', university.id)}
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.6), ease: 'easeOut' }}
-      className="group glow-card flex flex-col gap-3 text-left p-0 overflow-hidden hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(22,33,62,0.12)] transition-all duration-300"
+      className="group glow-card flex flex-col gap-3 p-0 overflow-hidden hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(22,33,62,0.12)] transition-all duration-300"
     >
-      {/* Colour banner */}
-      <div
-        className="relative flex h-28 items-center justify-center"
+      {/* Clickable banner area */}
+      <button
+        type="button"
+        onClick={() => setView('detail', university.id)}
+        className="relative flex h-28 w-full items-center justify-center text-left"
         style={{ backgroundColor: university.color }}
       >
         <span className="text-5xl drop-shadow-sm" role="img" aria-label={university.name}>
@@ -143,19 +142,19 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
             {university.rank}
           </span>
         )}
-        {shortlisted && (
+        {saved && (
           <span className="absolute left-3 top-3 rounded-full bg-emerald-500 px-2.5 py-0.5 text-xs font-bold text-white">
-            Shortlisted
+            Saved
           </span>
         )}
-      </div>
+      </button>
 
       {/* Body */}
       <div className="flex flex-1 flex-col gap-2.5 px-5 pb-5">
-        <div>
+        <button type="button" onClick={() => setView('detail', university.id)} className="text-left">
           <h3 className="text-base font-semibold leading-snug text-slate-900">{university.name}</h3>
           <p className="mt-0.5 text-sm text-slate-400">{university.location}</p>
-        </div>
+        </button>
 
         {university.match_score != null && (
           <p className="text-xs font-semibold text-pink-600">
@@ -165,10 +164,7 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
 
         <div className="flex flex-wrap gap-1.5">
           {university.tags.slice(0, 3).map((tag) => (
-            <span
-              key={tag}
-              className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500"
-            >
+            <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
               {tag}
             </span>
           ))}
@@ -182,8 +178,21 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
             <span className="truncate text-right">{university.tuition_usd}</span>
           )}
         </div>
+
+        {/* Save button */}
+        <button
+          type="button"
+          onClick={handleSave}
+          className={`mt-1 w-full rounded-full py-2 text-xs font-semibold transition-all ${
+            saved
+              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
+              : 'bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)] hover:shadow-[0_6px_18px_rgba(255,77,140,0.35)]'
+          }`}
+        >
+          {saved ? 'Saved — View in My Universities →' : '+ Save to My Universities'}
+        </button>
       </div>
-    </motion.button>
+    </motion.div>
   );
 }
 
@@ -356,7 +365,18 @@ function UniversityStickyBar({ university, shortlisted, onShortlist, onBack }: S
 
 function ShortlistSidebar({ university }: { university: ExplorerUniversity }) {
   const { addToShortlist, isShortlisted, showToast } = useExplorer();
-  const shortlisted = isShortlisted(university.id);
+  const router = useRouter();
+  const saved = isShortlisted(university.id);
+
+  const handleSave = async () => {
+    if (!saved) {
+      await addToShortlist(university.id);
+      showToast(`${university.name} saved — redirecting…`);
+      setTimeout(() => router.push('/my-universities'), 800);
+    } else {
+      router.push('/my-universities');
+    }
+  };
 
   const stats = [
     { label: 'Acceptance Rate', value: university.accept_rate ?? '—' },
@@ -387,20 +407,14 @@ function ShortlistSidebar({ university }: { university: ExplorerUniversity }) {
 
       <button
         type="button"
-        onClick={() => {
-          if (!shortlisted) {
-            addToShortlist(university.id);
-            showToast(`${university.name} added to shortlist`);
-          }
-        }}
-        disabled={shortlisted}
+        onClick={handleSave}
         className={`w-full rounded-full py-3 text-sm font-semibold transition-all ${
-          shortlisted
-            ? 'cursor-default bg-emerald-50 text-emerald-600 border border-emerald-200'
+          saved
+            ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
             : 'glow-button-primary'
         }`}
       >
-        {shortlisted ? 'Shortlisted ✓' : 'Add to Shortlist'}
+        {saved ? 'Saved — View in My Universities →' : 'Save to My Universities'}
       </button>
     </div>
   );
@@ -408,6 +422,7 @@ function ShortlistSidebar({ university }: { university: ExplorerUniversity }) {
 
 function DetailView() {
   const { selectedUniversityId, setView, universities, addToShortlist, isShortlisted, showToast } = useExplorer();
+  const router = useRouter();
   const university = universities.find((u) => u.id === selectedUniversityId);
 
   // Scroll to top whenever a university detail opens
@@ -426,20 +441,25 @@ function DetailView() {
     );
   }
 
-  const shortlisted = isShortlisted(university.id);
+  const saved = isShortlisted(university.id);
+
+  const handleSave = async () => {
+    if (!saved) {
+      await addToShortlist(university.id);
+      showToast(`${university.name} saved — redirecting…`);
+      setTimeout(() => router.push('/my-universities'), 800);
+    } else {
+      router.push('/my-universities');
+    }
+  };
 
   return (
     <>
       {/* Sticky bar — appears after scrolling past the banner */}
       <UniversityStickyBar
         university={university}
-        shortlisted={shortlisted}
-        onShortlist={() => {
-          if (!shortlisted) {
-            addToShortlist(university.id);
-            showToast(`${university.name} added to shortlist`);
-          }
-        }}
+        shortlisted={saved}
+        onShortlist={handleSave}
         onBack={() => setView('browse')}
       />
 
@@ -554,10 +574,84 @@ function DetailView() {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   SHORTLIST VIEW
+   TOAST
 ───────────────────────────────────────────────────────────────────────── */
 
-function ShortlistView() {
+function ToastNotification() {
+  const { toast } = useExplorer();
+  if (!toast?.visible) return null;
+
+  return (
+    <div
+      className="fixed bottom-6 right-6 z-50 max-w-sm rounded-2xl border border-black/[.05] bg-white/95 px-5 py-4 shadow-[0_12px_32px_rgba(22,33,62,0.12)] backdrop-blur animate-[slideUp_0.3s_ease-out]"
+      role="status"
+      aria-live="polite"
+    >
+      <p className="text-sm font-semibold text-slate-800">{toast.message}</p>
+      <style>{`
+        @keyframes slideUp {
+          from { opacity: 0; transform: translateY(12px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   EXPLORER CONTENT + PROVIDER WRAPPER
+───────────────────────────────────────────────────────────────────────── */
+
+function ExplorerContent() {
+  const { activeView } = useExplorer();
+
+  return (
+    <div className="relative min-h-screen pb-20 sm:pb-0">
+      <TabBar />
+      <main>
+        <AnimatePresence mode="wait">
+          {(activeView === 'browse' || activeView === 'shortlist' || activeView === 'applications') && (
+            <motion.div key="browse" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <BrowseView />
+            </motion.div>
+          )}
+          {activeView === 'detail' && (
+            <motion.div key="detail" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+              <DetailView />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </main>
+      <ToastNotification />
+    </div>
+  );
+}
+
+interface ExplorerClientProps {
+  universities: ExplorerUniversity[];
+  initialShortlist: number[];
+  initialApplications: ApplicationEntry[];
+  isLoggedIn: boolean;
+}
+
+export function UniversityExplorerClient({
+  universities,
+  initialShortlist,
+  initialApplications,
+  isLoggedIn,
+}: ExplorerClientProps) {
+  return (
+    <UniversityExplorerProvider
+      initialUniversities={universities}
+      initialShortlist={initialShortlist}
+      initialApplications={initialApplications}
+      isLoggedIn={isLoggedIn}
+    >
+      <ExplorerContent />
+    </UniversityExplorerProvider>
+  );
+}
+
   const { shortlist, removeFromShortlist, showToast, proceedToApplications, setView, universities } = useExplorer();
 
   const shortlistedUniversities = shortlist
