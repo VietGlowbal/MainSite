@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import { computeMatchScore } from '@/lib/matching';
-import { toExplorerUniversity, type ApplicationEntry } from '@/lib/explorer-context';
+import { toExplorerUniversity } from '@/lib/explorer-utils';
+import type { ApplicationEntry } from '@/lib/explorer-context';
 import type { University } from '@/lib/types';
 import { UniversityExplorerClient } from './university-explorer-client';
 
