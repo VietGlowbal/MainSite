@@ -522,7 +522,6 @@ function ExplorerContent() {
 
   return (
     <div className="relative min-h-screen pb-20 sm:pb-0">
-      <TabBar />
       <main>
         <AnimatePresence mode="wait">
           {(activeView === 'browse' || activeView === 'shortlist' || activeView === 'applications') && (
