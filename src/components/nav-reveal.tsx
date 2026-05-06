@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useScroll } from 'framer-motion';
+import { motion, useScroll } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 
 const NAV_ITEMS = [
@@ -105,6 +105,84 @@ function MobileNav({ user }: { user: { name: string; avatarUrl?: string } | null
   );
 }
 
+// ── Smart sticky header — hides on scroll-down, reveals on scroll-up ─────────
+function StickyHeader({ user }: { user: { name: string; avatarUrl?: string } | null }) {
+  const { scrollY } = useScroll();
+  const [visible, setVisible] = useState(true);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    let lastY = 0;
+    return scrollY.on('change', (y: number) => {
+      const delta = y - lastY;
+      // Always show at top of page
+      if (y < 80) {
+        setVisible(true);
+        setScrolled(false);
+      } else {
+        setScrolled(true);
+        // Hide when scrolling down more than 4px, show when scrolling up
+        if (delta > 4) setVisible(false);
+        else if (delta < -4) setVisible(true);
+      }
+      lastY = y;
+    });
+  }, [scrollY]);
+
+  return (
+    <motion.header
+      animate={{ y: visible ? 0 : -80, opacity: visible ? 1 : 0 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50 }}
+    >
+      {/* Pill wrapper — floats above page when scrolled, flush when at top */}
+      <div
+        style={{
+          margin: scrolled ? '10px auto' : '0 auto',
+          maxWidth: scrolled ? '72rem' : '100%',
+          padding: scrolled ? '0 1.5rem' : '0',
+          transition: 'margin 0.3s ease, max-width 0.3s ease, padding 0.3s ease',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderRadius: scrolled ? '999px' : '0',
+            border: scrolled ? '1px solid rgba(0,0,0,0.06)' : '1px solid rgba(0,0,0,0.05)',
+            borderTop: scrolled ? undefined : 'none',
+            background: 'rgba(255,255,255,0.92)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: scrolled ? '0 8px 24px rgba(22,33,62,0.1)' : '0 1px 0 rgba(0,0,0,0.05)',
+            padding: scrolled ? '0.4rem 0.5rem 0.4rem 1.25rem' : '0.9rem 1.5rem 0.9rem 2.5rem',
+            transition: 'border-radius 0.3s ease, padding 0.3s ease, box-shadow 0.3s ease',
+          }}
+        >
+          {/* Wordmark */}
+          <Link href="/" style={{ fontSize: '1.05rem', fontWeight: 600, letterSpacing: '-0.01em', textDecoration: 'none' }}>
+            <span className="glowbal-wordmark">Glowbal</span>
+          </Link>
+
+          {/* Desktop nav links */}
+          <nav className="glowbal-nav hidden sm:flex items-center gap-2 text-sm text-slate-600">
+            {NAV_ITEMS.map((item) => (
+              <Link key={item.href} href={item.href} className="glowbal-nav-link transition hover:text-slate-900">
+                {item.label}
+              </Link>
+            ))}
+            {user ? (
+              <NavAvatar name={user.name} avatarUrl={user.avatarUrl} />
+            ) : (
+              <Link href="/auth" className="glowbal-nav-link transition hover:text-slate-900">Sign in</Link>
+            )}
+          </nav>
+        </div>
+      </div>
+    </motion.header>
+  );
+}
+
 // ── Main nav ─────────────────────────────────────────────────────────────────
 export function NavReveal() {
   const [revealed, setRevealed] = useState(false);
@@ -149,25 +227,9 @@ export function NavReveal() {
 
   return (
     <>
-      <header className="glowbal-topbar border-b border-black/5 bg-white/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4 md:px-10 lg:px-12">
-          <Link href="/" className="text-lg font-semibold tracking-tight text-slate-900">
-            <span className="glowbal-wordmark">Glowbal</span>
-          </Link>
-          <nav className="glowbal-nav hidden sm:flex items-center gap-2 text-sm text-slate-600">
-            {NAV_ITEMS.map((item) => (
-              <Link key={item.href} href={item.href} className="glowbal-nav-link transition hover:text-slate-900">
-                {item.label}
-              </Link>
-            ))}
-            {user ? (
-              <NavAvatar name={user.name} avatarUrl={user.avatarUrl} />
-            ) : (
-              <Link href="/auth" className="glowbal-nav-link transition hover:text-slate-900">Sign in</Link>
-            )}
-          </nav>
-        </div>
-      </header>
+      <StickyHeader user={user} />
+      {/* Spacer so page content doesn't sit under the fixed header */}
+      <div style={{ height: 65 }} aria-hidden />
       <MobileNav user={user} />
     </>
   );
