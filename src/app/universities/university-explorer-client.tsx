@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { AnimatePresence, motion, useScroll } from 'framer-motion';
 import {
   UniversityExplorerProvider,
   useExplorer,
@@ -217,6 +217,140 @@ function BrowseView() {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   UNIVERSITY STICKY BAR (detail view)
+───────────────────────────────────────────────────────────────────────── */
+
+interface StickyBarProps {
+  university: ExplorerUniversity;
+  shortlisted: boolean;
+  onShortlist: () => void;
+  onBack: () => void;
+}
+
+function UniversityStickyBar({ university, shortlisted, onShortlist, onBack }: StickyBarProps) {
+  const { scrollY } = useScroll();
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    return scrollY.on('change', (y: number) => {
+      setIsVisible(y > 260);
+    });
+  }, [scrollY]);
+
+  return (
+    <motion.div
+      aria-hidden={!isVisible}
+      initial={false}
+      animate={{ y: isVisible ? 0 : -80, opacity: isVisible ? 1 : 0 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        zIndex: 40,
+        pointerEvents: isVisible ? 'auto' : 'none',
+      }}
+    >
+      <div style={{ margin: '10px auto', maxWidth: '72rem', padding: '0 1.5rem' }}>
+        <div
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
+            borderRadius: '999px',
+            border: '1px solid rgba(0,0,0,0.06)',
+            background: 'rgba(255,255,255,0.92)',
+            backdropFilter: 'blur(20px)',
+            boxShadow: '0 8px 24px rgba(22,33,62,0.1)',
+            padding: '0.5rem 0.75rem 0.5rem 0.5rem',
+          }}
+        >
+          {/* Back button */}
+          <button
+            type="button"
+            onClick={onBack}
+            style={{
+              flexShrink: 0,
+              borderRadius: '999px',
+              border: '1px solid rgba(0,0,0,0.07)',
+              background: 'rgba(255,255,255,0.9)',
+              padding: '0.35rem 0.75rem',
+              fontSize: '0.8rem',
+              fontWeight: 600,
+              color: 'rgb(100 116 139)',
+              cursor: 'pointer',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            ← Browse
+          </button>
+
+          {/* Emoji badge */}
+          <div
+            style={{
+              width: 36,
+              height: 36,
+              borderRadius: '50%',
+              background: university.color,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.1rem',
+              flexShrink: 0,
+            }}
+          >
+            {university.emoji}
+          </div>
+
+          {/* Name + location */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'rgb(15 23 42)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {university.name}
+            </p>
+            <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgb(100 116 139)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {university.location}{university.rank ? ` · ${university.rank}` : ''}
+            </p>
+          </div>
+
+          {/* Match score */}
+          {university.match_score != null && (
+            <div style={{ textAlign: 'center', flexShrink: 0 }}>
+              <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 700, color: '#ff4d8c' }}>{university.match_score}%</p>
+              <p style={{ margin: 0, fontSize: '0.65rem', color: 'rgb(148 163 184)' }}>Match</p>
+            </div>
+          )}
+
+          {/* Shortlist button */}
+          <button
+            type="button"
+            onClick={onShortlist}
+            disabled={shortlisted}
+            style={{
+              flexShrink: 0,
+              borderRadius: '999px',
+              border: shortlisted ? '1px solid rgb(167 243 208)' : 'none',
+              background: shortlisted
+                ? 'rgb(240 253 244)'
+                : 'linear-gradient(135deg, #ff4d8c, #ff85b3)',
+              padding: '0.45rem 1rem',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color: shortlisted ? 'rgb(5 150 105)' : 'white',
+              cursor: shortlisted ? 'default' : 'pointer',
+              boxShadow: shortlisted ? 'none' : '0 4px 14px rgba(255,77,140,0.3)',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {shortlisted ? 'Shortlisted ✓' : '+ Shortlist'}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    DETAIL VIEW
 ───────────────────────────────────────────────────────────────────────── */
 
@@ -273,8 +407,13 @@ function ShortlistSidebar({ university }: { university: ExplorerUniversity }) {
 }
 
 function DetailView() {
-  const { selectedUniversityId, setView, universities } = useExplorer();
+  const { selectedUniversityId, setView, universities, addToShortlist, isShortlisted, showToast } = useExplorer();
   const university = universities.find((u) => u.id === selectedUniversityId);
+
+  // Scroll to top whenever a university detail opens
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [selectedUniversityId]);
 
   if (!university) {
     return (
@@ -287,15 +426,31 @@ function DetailView() {
     );
   }
 
+  const shortlisted = isShortlisted(university.id);
+
   return (
-    <div className="mx-auto max-w-6xl px-4 py-8">
-      <button
-        type="button"
-        onClick={() => setView('browse')}
-        className="glow-button-secondary mb-6 text-sm px-4 py-2"
-      >
-        ← Back to Browse
-      </button>
+    <>
+      {/* Sticky bar — appears after scrolling past the banner */}
+      <UniversityStickyBar
+        university={university}
+        shortlisted={shortlisted}
+        onShortlist={() => {
+          if (!shortlisted) {
+            addToShortlist(university.id);
+            showToast(`${university.name} added to shortlist`);
+          }
+        }}
+        onBack={() => setView('browse')}
+      />
+
+      <div className="mx-auto max-w-6xl px-4 py-8">
+        <button
+          type="button"
+          onClick={() => setView('browse')}
+          className="glow-button-secondary mb-6 text-sm px-4 py-2"
+        >
+          ← Back to Browse
+        </button>
 
       <div className="flex flex-col gap-8 md:flex-row">
         {/* Main */}
@@ -394,6 +549,7 @@ function DetailView() {
         </aside>
       </div>
     </div>
+    </>
   );
 }
 
