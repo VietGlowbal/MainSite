@@ -1,27 +1,47 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 
-type DocType = 'cv' | 'statement_of_purpose' | 'personal_statement';
+type UploadedFile = {
+  docType: string;
+  fileName: string;
+};
 
-const DOC_TYPES: { value: DocType; label: string; hint: string; emoji: string }[] = [
-  { value: 'cv', label: 'CV / Résumé', hint: 'Your academic or professional CV', emoji: '📄' },
-  { value: 'statement_of_purpose', label: 'Statement of Purpose', hint: 'SOP for graduate applications', emoji: '🎯' },
-  { value: 'personal_statement', label: 'Personal Statement', hint: 'UCAS or general personal statement', emoji: '✍️' },
-];
+const ACCEPTED_TYPES = '.pdf,.docx,.doc,.pptx,.xlsx';
+const ACCEPTED_LABEL = '.pdf, .docx, .doc, .pptx, .xlxs';
 
 export function OnboardingDocumentUpload() {
   const supabase = useMemo(() => createClient(), []);
-  const [uploads, setUploads] = useState<{ docType: DocType; fileName: string }[]>([]);
-  const [file, setFile] = useState<File | null>(null);
-  const [docType, setDocType] = useState<DocType>('cv');
+  const [cvFile, setCvFile] = useState<File | null>(null);
+  const [cvUploaded, setCvUploaded] = useState<string | null>(null);
+  const [extraFiles, setExtraFiles] = useState<File[]>([]);
+  const [extraUploaded, setExtraUploaded] = useState<UploadedFile[]>([]);
+  const [sharingText, setSharingText] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [dragOverCv, setDragOverCv] = useState(false);
+  const [dragOverExtra, setDragOverExtra] = useState(false);
 
-  const handleUpload = async () => {
-    if (!file) return;
+  const cvInputRef = useRef<HTMLInputElement>(null);
+  const extraInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCvDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverCv(false);
+    const file = e.dataTransfer.files[0];
+    if (file) setCvFile(file);
+  }, []);
+
+  const handleExtraDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOverExtra(false);
+    const files = Array.from(e.dataTransfer.files);
+    if (files.length > 0) setExtraFiles((prev) => [...prev, ...files]);
+  }, []);
+
+  const handleSubmit = async () => {
     setLoading(true);
     setMessage(null);
     setIsError(false);
@@ -34,121 +54,260 @@ export function OnboardingDocumentUpload() {
       return;
     }
 
-    const path = `${userData.user.id}/${docType}/${Date.now()}-${file.name}`;
+    const userId = userData.user.id;
 
-    const { error: uploadError } = await supabase.storage
-      .from('student-documents')
-      .upload(path, file, { upsert: false });
+    // Upload CV
+    if (cvFile && !cvUploaded) {
+      const path = `${userId}/cv/${Date.now()}-${cvFile.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('student-documents')
+        .upload(path, cvFile, { upsert: false });
 
-    if (uploadError) {
-      setMessage(uploadError.message);
-      setIsError(true);
-      setLoading(false);
-      return;
+      if (uploadError) {
+        setMessage(uploadError.message);
+        setIsError(true);
+        setLoading(false);
+        return;
+      }
+
+      await supabase.from('uploaded_documents').insert({
+        user_id: userId,
+        type: 'cv',
+        storage_key: path,
+        file_name: cvFile.name,
+        mime_type: cvFile.type,
+        parsed_summary: null,
+      });
+
+      setCvUploaded(cvFile.name);
+      setCvFile(null);
     }
 
-    const { error: insertError } = await supabase.from('uploaded_documents').insert({
-      user_id: userData.user.id,
-      type: docType,
-      storage_key: path,
-      file_name: file.name,
-      mime_type: file.type,
-      parsed_summary: null,
-    });
+    // Upload extra files
+    for (const file of extraFiles) {
+      const path = `${userId}/extra/${Date.now()}-${file.name}`;
+      const { error: uploadError } = await supabase.storage
+        .from('student-documents')
+        .upload(path, file, { upsert: false });
 
-    if (insertError) {
-      setMessage(insertError.message);
-      setIsError(true);
-    } else {
-      setUploads((prev) => [...prev, { docType, fileName: file.name }]);
-      setMessage('Uploaded successfully!');
-      setFile(null);
-      const input = document.getElementById('onboarding-doc-input') as HTMLInputElement | null;
-      if (input) input.value = '';
+      if (uploadError) {
+        setMessage(uploadError.message);
+        setIsError(true);
+        setLoading(false);
+        return;
+      }
+
+      await supabase.from('uploaded_documents').insert({
+        user_id: userId,
+        type: 'other',
+        storage_key: path,
+        file_name: file.name,
+        mime_type: file.type,
+        parsed_summary: null,
+      });
+
+      setExtraUploaded((prev) => [...prev, { docType: 'other', fileName: file.name }]);
+    }
+    setExtraFiles([]);
+
+    // Save sharing text as a note
+    if (sharingText.trim()) {
+      await supabase.from('uploaded_documents').insert({
+        user_id: userId,
+        type: 'personal_statement',
+        storage_key: `${userId}/notes/sharing-zone-${Date.now()}.txt`,
+        file_name: 'Sharing Zone Note',
+        mime_type: 'text/plain',
+        parsed_summary: sharingText.trim(),
+      });
     }
 
+    setMessage('Everything uploaded successfully!');
     setLoading(false);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Doc type selector */}
-      <div className="grid grid-cols-3 gap-3">
-        {DOC_TYPES.map((dt) => (
-          <button
-            key={dt.value}
-            type="button"
-            onClick={() => setDocType(dt.value)}
-            className={`rounded-2xl border p-4 text-center transition-all ${
-              docType === dt.value
-                ? 'border-pink-300 bg-pink-50 shadow-[0_0_0_2px_rgba(255,77,140,0.15)]'
-                : 'border-black/5 bg-white/80 hover:border-pink-200'
-            }`}
-          >
-            <span className="text-2xl" aria-hidden="true">{dt.emoji}</span>
-            <p className={`mt-2 text-sm font-semibold ${docType === dt.value ? 'text-pink-600' : 'text-slate-700'}`}>
-              {dt.label}
-            </p>
-            <p className="mt-0.5 text-xs text-slate-400 leading-snug">{dt.hint}</p>
-          </button>
-        ))}
-      </div>
+  const allUploadedFiles = [...extraUploaded];
 
-      {/* File input + upload */}
-      <div className="glow-card space-y-4">
-        <label className="glow-label">
-          Choose file
-          <input
-            id="onboarding-doc-input"
-            className="glow-input mt-2"
-            type="file"
-            accept=".pdf,.doc,.docx,.txt"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
-        {file && (
-          <p className="text-xs text-slate-500 truncate">
-            Selected: <span className="font-medium text-slate-700">{file.name}</span> ({(file.size / 1024).toFixed(0)} KB)
-          </p>
-        )}
+  return (
+    <div className="onboarding-question-card space-y-6 rounded-[2rem] border border-black/5 bg-white/95 p-6 shadow-[0_20px_60px_rgba(22,33,62,0.10)] backdrop-blur-xl md:p-10">
+      {/* CV Upload */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <button
           type="button"
-          onClick={handleUpload}
-          disabled={loading || !file}
-          className="glow-button-primary glow-button-primary-wide"
+          onClick={() => cvInputRef.current?.click()}
+          className="shrink-0 rounded-full bg-gradient-to-r from-[var(--glowbal-pink)] to-[var(--glowbal-pink-light)] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:shadow-lg"
         >
-          {loading ? 'Uploading…' : 'Upload'}
+          Upload your CV
+        </button>
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOverCv(true); }}
+          onDragLeave={() => setDragOverCv(false)}
+          onDrop={handleCvDrop}
+          onClick={() => cvInputRef.current?.click()}
+          className={`flex-1 cursor-pointer rounded-2xl border-2 border-dashed px-6 py-4 text-center transition ${
+            dragOverCv
+              ? 'border-[var(--glowbal-mint)] bg-cyan-50/50'
+              : 'border-slate-200 bg-slate-50/50 hover:border-slate-300'
+          }`}
+        >
+          {cvUploaded ? (
+            <div className="flex items-center justify-center gap-2">
+              <FolderIcon />
+              <span className="text-sm font-medium text-[var(--glowbal-mint)] underline">{cvUploaded}</span>
+            </div>
+          ) : cvFile ? (
+            <p className="text-sm font-medium text-slate-700">{cvFile.name}</p>
+          ) : (
+            <div>
+              <p className="text-sm text-slate-500">Click or Drop to Add File</p>
+              <p className="text-xs text-slate-400">File Types: {ACCEPTED_LABEL}</p>
+            </div>
+          )}
+        </div>
+        <input
+          ref={cvInputRef}
+          type="file"
+          accept={ACCEPTED_TYPES}
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) setCvFile(file);
+          }}
+        />
+      </div>
+
+      {/* Extra files upload */}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start">
+        <button
+          type="button"
+          onClick={() => extraInputRef.current?.click()}
+          className="shrink-0 rounded-full bg-gradient-to-r from-[var(--glowbal-mint)] to-[var(--glowbal-mint-light)] px-6 py-3 text-sm font-bold text-white shadow-md transition hover:shadow-lg"
+        >
+          Anything else?
+        </button>
+        <div className="flex-1 space-y-3">
+          <div
+            onDragOver={(e) => { e.preventDefault(); setDragOverExtra(true); }}
+            onDragLeave={() => setDragOverExtra(false)}
+            onDrop={handleExtraDrop}
+            onClick={() => extraInputRef.current?.click()}
+            className={`cursor-pointer rounded-2xl border-2 border-dashed px-6 py-4 text-center transition ${
+              dragOverExtra
+                ? 'border-[var(--glowbal-mint)] bg-cyan-50/50'
+                : 'border-slate-200 bg-slate-50/50 hover:border-slate-300'
+            }`}
+          >
+            <p className="text-sm text-slate-500">Click or Drop to Add File</p>
+            <p className="text-xs text-slate-400">File Types: {ACCEPTED_LABEL}</p>
+          </div>
+
+          {/* Uploaded file list */}
+          {(allUploadedFiles.length > 0 || extraFiles.length > 0) && (
+            <div className="space-y-2">
+              {allUploadedFiles.map((f, i) => (
+                <div key={i} className="flex items-center gap-2">
+                  <FolderIcon />
+                  <span className="text-sm font-medium text-[var(--glowbal-mint)] underline">{f.fileName}</span>
+                </div>
+              ))}
+              {extraFiles.map((f, i) => (
+                <div key={`pending-${i}`} className="flex items-center gap-2">
+                  <FolderIcon />
+                  <span className="text-sm font-medium text-slate-600">{f.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setExtraFiles((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="ml-auto text-xs text-slate-400 hover:text-red-400"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() => extraInputRef.current?.click()}
+                className="mt-1 rounded-full border border-slate-200 px-4 py-1.5 text-xs font-semibold text-slate-500 hover:border-slate-300 hover:text-slate-700"
+              >
+                + Add more
+              </button>
+            </div>
+          )}
+        </div>
+        <input
+          ref={extraInputRef}
+          type="file"
+          accept={ACCEPTED_TYPES}
+          multiple
+          className="hidden"
+          onChange={(e) => {
+            const files = Array.from(e.target.files || []);
+            if (files.length > 0) setExtraFiles((prev) => [...prev, ...files]);
+          }}
+        />
+      </div>
+
+      <p className="text-center text-xs text-slate-500">
+        Add any extracurricular certificates, degrees, or achievements we should take into account.
+      </p>
+
+      {/* Sharing Zone */}
+      <div className="space-y-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <span className="shrink-0 rounded-full bg-gradient-to-r from-[var(--glowbal-mint)] to-[var(--glowbal-mint-light)] px-5 py-2 text-sm font-bold text-white shadow-md">
+            Sharing Zone
+          </span>
+          <p className="text-sm text-slate-600">
+            What&apos;s on your cute mind? Tell us{' '}
+            <span className="font-semibold italic text-[var(--glowbal-pink)]">anything you would love us to include in our recommendations</span>.
+            We&apos;re all ears!
+          </p>
+        </div>
+        <textarea
+          className="w-full rounded-2xl border border-slate-200 bg-white p-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-[var(--glowbal-mint)] focus:outline-none focus:ring-2 focus:ring-cyan-100"
+          rows={4}
+          placeholder="I don't really have any experience in real work life about Marketing, but I really like creating contents and doing something creative..."
+          value={sharingText}
+          onChange={(e) => setSharingText(e.target.value)}
+        />
+      </div>
+
+      {/* Navigation */}
+      <div className="flex items-center justify-between pt-2">
+        <a
+          href="/onboarding"
+          className="onboarding-nav-btn onboarding-nav-btn-back"
+        >
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          Go Back
+        </a>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={loading}
+          className="onboarding-nav-btn onboarding-nav-btn-next"
+        >
+          {loading ? 'Uploading...' : 'Submit'}
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
         </button>
       </div>
 
-      {/* Success uploads */}
-      {uploads.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">Uploaded</p>
-          {uploads.map((u, i) => (
-            <div key={i} className="glow-muted-card flex items-center justify-between text-sm">
-              <span className="font-medium text-slate-700 truncate">{u.fileName}</span>
-              <span className="shrink-0 rounded-full bg-green-50 border border-green-200 px-2 py-0.5 text-xs font-semibold text-green-600">
-                ✓ Uploaded
-              </span>
-            </div>
-          ))}
-        </div>
-      )}
-
       {/* Message */}
       {message && (
-        <p className={`text-sm rounded-xl px-3 py-2 ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+        <p className={`text-center text-sm rounded-xl px-3 py-2 ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
           {message}
         </p>
       )}
 
-      {/* Continue button */}
-      {uploads.length > 0 && (
+      {/* Continue button after upload */}
+      {(cvUploaded || allUploadedFiles.length > 0) && !loading && (
         <div className="text-center pt-2">
           <a
             href="/universities"
-            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] px-8 py-3 font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.24)] transition hover:shadow-[0_14px_32px_rgba(255,77,140,0.32)]"
+            className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[var(--glowbal-pink)] to-[var(--glowbal-pink-light)] px-8 py-3 font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.24)] transition hover:shadow-[0_14px_32px_rgba(255,77,140,0.32)]"
           >
             Continue to universities
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -158,5 +317,17 @@ export function OnboardingDocumentUpload() {
         </div>
       )}
     </div>
+  );
+}
+
+function FolderIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="M3 7V17C3 18.1046 3.89543 19 5 19H19C20.1046 19 21 18.1046 21 17V9C21 7.89543 20.1046 7 19 7H13L11 5H5C3.89543 5 3 5.89543 3 7Z"
+        fill="var(--glowbal-mint)"
+        opacity="0.8"
+      />
+    </svg>
   );
 }

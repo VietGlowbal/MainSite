@@ -11,19 +11,26 @@ export default async function OnboardingDocumentsPage() {
   if (!user) redirect('/auth');
 
   return (
-    <main className="min-h-screen bg-transparent px-4 py-12 text-slate-800 md:px-8">
-      <div className="mx-auto max-w-2xl space-y-8">
+    <main className="relative min-h-screen overflow-hidden bg-[var(--color-bg)] px-4 py-12 text-slate-800 md:px-8">
+      {/* Background globe decoration */}
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center opacity-[0.06]">
+        <div className="onboarding-globe-container" />
+      </div>
+
+      <div className="relative z-10 mx-auto max-w-3xl space-y-8">
         {/* Header */}
         <div className="text-center space-y-3">
-          <span className="inline-block rounded-full border border-pink-200 bg-pink-50 px-4 py-1.5 text-sm font-semibold text-pink-600">
-            Almost there
-          </span>
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
-            Upload your documents
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900 md:text-3xl">
+            <span className="text-[var(--glowbal-pink)]">Last step</span> before we reveal your best match, are there anything else you would like to tell us?
           </h1>
-          <p className="mx-auto max-w-md text-slate-500 leading-7">
-            Optionally upload your CV or personal statement. This helps us give better
-            recommendations and powers the AI writing assistant later.
+          <p className="mx-auto max-w-lg text-sm leading-7">
+            <span className="font-bold text-[var(--glowbal-mint)]">The more</span>{' '}
+            <span className="font-bold text-slate-700">details you</span>{' '}
+            <span className="font-bold text-[var(--glowbal-pink)]">provide, the</span>{' '}
+            <span className="font-bold text-slate-700">bet</span>
+            <span className="font-bold text-[var(--glowbal-mint)]">ter our</span>{' '}
+            <span className="font-bold text-slate-900">recommendations</span>{' '}
+            <span className="font-bold text-slate-700">will be!</span>
           </p>
         </div>
 

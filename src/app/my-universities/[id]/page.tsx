@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import type { ApplicationTask, University } from '@/lib/types';
 import { TaskList } from './task-list';
 import Link from 'next/link';
+import { UniversityGlobe } from './university-globe';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -48,38 +49,45 @@ export default async function UniversityTasksPage({ params }: Props) {
           Back to my universities
         </Link>
 
-        {/* Header */}
-        <div className="glow-card space-y-3">
-          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-            {university.country} · {university.type ?? 'University'}
-          </p>
-          <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
-            {university.name}
-          </h1>
-          <div className="flex flex-wrap gap-2 text-xs">
-            {university.qs_rank && (
-              <span className="rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 font-semibold text-sky-600">
-                QS #{university.qs_rank}
-              </span>
-            )}
-            {userUniversity.match_score != null && (
-              <span className="rounded-full bg-pink-50 border border-pink-200 px-2 py-0.5 font-semibold text-pink-600">
-                {userUniversity.match_score}% match
-              </span>
-            )}
-            {university.application_deadline && (
-              <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 font-semibold text-amber-600">
-                Deadline: {university.application_deadline}
-              </span>
-            )}
+        {/* Header with globe */}
+        <div className="glow-card relative overflow-hidden space-y-3">
+          {/* Globe decoration */}
+          <div className="uni-detail-globe-wrap">
+            <UniversityGlobe country={university.country} />
           </div>
-          <div className="flex gap-2 pt-2">
-            <Link
-              href={`/my-universities/${id}/writer`}
-              className="rounded-xl border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-600 hover:bg-pink-100 transition"
-            >
-              Open AI Writer
-            </Link>
+
+          <div className="relative z-10">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+              {university.country} · {university.type ?? 'University'}
+            </p>
+            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
+              {university.name}
+            </h1>
+            <div className="flex flex-wrap gap-2 text-xs">
+              {university.qs_rank && (
+                <span className="rounded-full bg-sky-50 border border-sky-200 px-2 py-0.5 font-semibold text-sky-600">
+                  QS #{university.qs_rank}
+                </span>
+              )}
+              {userUniversity.match_score != null && (
+                <span className="rounded-full bg-pink-50 border border-pink-200 px-2 py-0.5 font-semibold text-pink-600">
+                  {userUniversity.match_score}% match
+                </span>
+              )}
+              {university.application_deadline && (
+                <span className="rounded-full bg-amber-50 border border-amber-200 px-2 py-0.5 font-semibold text-amber-600">
+                  Deadline: {university.application_deadline}
+                </span>
+              )}
+            </div>
+            <div className="flex gap-2 pt-2">
+              <Link
+                href={`/my-universities/${id}/writer`}
+                className="rounded-xl border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-semibold text-pink-600 hover:bg-pink-100 transition"
+              >
+                Open AI Writer
+              </Link>
+            </div>
           </div>
         </div>
 
