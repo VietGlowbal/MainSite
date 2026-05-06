@@ -11,6 +11,7 @@ import {
   type ApplicationEntry,
 } from '@/lib/explorer-context';
 import { FILTER_CATEGORIES } from '@/lib/university-data';
+import { MatchBadge } from '@/components/match-badge';
 
 /* ─────────────────────────────────────────────────────────────────────────
    TAB BAR
@@ -121,43 +122,54 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
     }
   };
 
+  const acceptColor = university.accept_rate
+    ? (() => {
+        const num = parseInt(university.accept_rate.replace(/[^0-9]/g, ''), 10);
+        if (isNaN(num)) return 'text-slate-400';
+        if (num < 20) return 'text-emerald-600';
+        if (num <= 40) return 'text-amber-600';
+        return 'text-red-500';
+      })()
+    : 'text-slate-400';
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.6), ease: 'easeOut' }}
-      className="group glow-card flex flex-col gap-3 p-0 overflow-hidden hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(22,33,62,0.12)] transition-all duration-300"
+      className="group relative rounded-2xl overflow-hidden bg-white border border-slate-100 shadow-sm hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(22,33,62,0.12)] transition-all duration-300 flex flex-col"
     >
       <button
         type="button"
         onClick={() => setView('detail', university.id)}
-        className="relative flex h-28 w-full items-center justify-center"
-        style={{ backgroundColor: university.color }}
+        className="relative flex h-40 w-full items-center justify-center"
+        style={{ background: `linear-gradient(135deg, ${university.color} 0%, ${university.color}dd 100%)` }}
       >
         <span className="text-5xl drop-shadow-sm" role="img" aria-label={university.name}>
           {university.emoji}
         </span>
+        <span className="absolute left-3 top-3 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
+          {university.emoji} {university.location}
+        </span>
         {university.rank && (
-          <span className="absolute right-3 top-3 rounded-full bg-black/30 px-2.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
+          <span className="absolute right-3 top-3 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
             {university.rank}
           </span>
         )}
         {saved && (
-          <span className="absolute left-3 top-3 rounded-full bg-emerald-500 px-2.5 py-0.5 text-xs font-bold text-white">
+          <span className="absolute left-3 bottom-3 rounded-full bg-emerald-500 px-2.5 py-0.5 text-xs font-bold text-white">
             Saved
           </span>
         )}
       </button>
 
-      <div className="flex flex-1 flex-col gap-2.5 px-5 pb-5">
+      <div className="flex flex-1 flex-col gap-2.5 px-5 pb-5 pt-4">
         <button type="button" onClick={() => setView('detail', university.id)} className="text-left">
-          <h3 className="text-base font-semibold leading-snug text-slate-900">{university.name}</h3>
+          <h3 className="text-base font-semibold leading-snug text-slate-900 line-clamp-2">{university.name}</h3>
           <p className="mt-0.5 text-sm text-slate-400">{university.location}</p>
         </button>
 
-        {university.match_score != null && (
-          <p className="text-xs font-semibold text-pink-600">{university.match_score}% profile match</p>
-        )}
+        <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} />
 
         <div className="flex flex-wrap gap-1.5">
           {university.tags.slice(0, 3).map((tag) => (
@@ -169,7 +181,7 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
 
         <div className="mt-auto flex items-center justify-between pt-1 text-xs text-slate-400">
           {university.accept_rate
-            ? <span>Accept: <span className="font-semibold text-[#00b4d8]">{university.accept_rate}</span></span>
+            ? <span>Accept: <span className={`font-semibold ${acceptColor}`}>{university.accept_rate}</span></span>
             : <span />}
           {university.tuition_usd && <span className="truncate text-right">{university.tuition_usd}</span>}
         </div>
@@ -177,9 +189,9 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
         <button
           type="button"
           onClick={handleSave}
-          className={`mt-1 w-full rounded-full py-2 text-xs font-semibold transition-all ${
+          className={`mt-1 w-full rounded-full py-2 text-xs font-semibold transition-all md:opacity-0 md:group-hover:opacity-100 ${
             saved
-              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
+              ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 md:opacity-100'
               : 'bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)] hover:shadow-[0_6px_18px_rgba(255,77,140,0.35)]'
           }`}
         >
@@ -326,12 +338,7 @@ function SaveSidebar({ university }: { university: ExplorerUniversity }) {
   return (
     <div className="sticky top-20 space-y-4 glow-card">
       <h3 className="text-lg font-semibold text-slate-900">{university.name}</h3>
-      {university.match_score != null && (
-        <p className="text-sm">
-          <span className="font-bold text-pink-600">{university.match_score}%</span>
-          <span className="text-slate-400"> profile match</span>
-        </p>
-      )}
+      <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} size="md" />
       <div className="space-y-2">
         {stats.map((stat) => (
           <div key={stat.label} className="profile-info-row">
@@ -409,7 +416,7 @@ function DetailView() {
 
             <div>
               <div className="flex flex-wrap items-center gap-2">
-                {university.match_score != null && <span className="glow-pill">{university.match_score}% match</span>}
+                <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} size="md" />
                 {university.rank && (
                   <span className="rounded-full bg-sky-50 border border-sky-200 px-3 py-0.5 text-xs font-semibold text-sky-600">
                     {university.rank}

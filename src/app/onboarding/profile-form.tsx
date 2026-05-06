@@ -228,10 +228,50 @@ export function OnboardingForm({ initialProfile }: Props) {
 
           <div className="mt-12 space-y-5">
             <div className="max-w-lg rounded-[1.75rem] border border-white/25 bg-white/14 p-5 backdrop-blur-sm">
-              <p className="onboarding-eyebrow text-cyan-100/70">Onboarding snapshot</p>
-              <p className="mt-3 text-sm leading-7 text-slate-100/85">
-                Clean, guided, and student-first. Each step should feel focused, visual, and easy to act on.
-              </p>
+              <p className="onboarding-eyebrow text-cyan-100/70">Your Profile</p>
+              <div className="mt-3 space-y-3">
+                {profile.study_level && (
+                  <div>
+                    <p className="text-xs text-white/50">Study level</p>
+                    <p className="text-sm font-semibold capitalize text-white">{profile.study_level}</p>
+                  </div>
+                )}
+                {selectedSubjects.length > 0 && (
+                  <div>
+                    <p className="text-xs text-white/50 mb-1">Subjects</p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedSubjects.slice(0, 5).map((s) => (
+                        <span key={s} className="rounded-full bg-white/20 px-2 py-0.5 text-xs text-white">{s}</span>
+                      ))}
+                      {selectedSubjects.length > 5 && (
+                        <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/60">+{selectedSubjects.length - 5}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {selectedCountries.length > 0 && (
+                  <div>
+                    <p className="text-xs text-white/50 mb-1">Countries</p>
+                    <div className="flex flex-wrap gap-1">
+                      {selectedCountries.slice(0, 4).map((c) => (
+                        <span key={c} className="rounded-full bg-white/20 px-2 py-0.5 text-xs text-white">{c}</span>
+                      ))}
+                      {selectedCountries.length > 4 && (
+                        <span className="rounded-full bg-white/10 px-2 py-0.5 text-xs text-white/60">+{selectedCountries.length - 4}</span>
+                      )}
+                    </div>
+                  </div>
+                )}
+                {profile.budget_range && (
+                  <div>
+                    <p className="text-xs text-white/50">Annual budget</p>
+                    <p className="text-sm font-semibold text-white">{profile.budget_range}</p>
+                  </div>
+                )}
+                {!profile.study_level && selectedSubjects.length === 0 && (
+                  <p className="text-sm text-white/40 italic">Answer the questions to build your profile...</p>
+                )}
+              </div>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-white/10">
               <div

@@ -412,11 +412,87 @@ function ComparisonTable({ userUniversities, statuses, onStatusChange }: {
   );
 }
 
+// ── Timeline view ────────────────────────────────────────────────────────────
+
+function TimelineView({ userUniversities, tasks, completedTasks }: {
+  userUniversities: UUWithUni[];
+  tasks: ApplicationTask[];
+  completedTasks: Set<number>;
+}) {
+  const uuMap = useMemo(() => {
+    const map: Record<number, UUWithUni> = {};
+    for (const uu of userUniversities) map[uu.id] = uu;
+    return map;
+  }, [userUniversities]);
+
+  const deadlines = tasks
+    .filter((t) => t.deadline && !completedTasks.has(t.id))
+    .sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''));
+
+  // Group by month
+  const grouped: Record<string, (ApplicationTask & { universityName: string })[]> = {};
+  for (const task of deadlines) {
+    const date = new Date(task.deadline!);
+    const monthKey = date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+    if (!grouped[monthKey]) grouped[monthKey] = [];
+    const uu = uuMap[task.user_university_id];
+    grouped[monthKey].push({
+      ...task,
+      universityName: uu?.university.name ?? 'Unknown',
+    });
+  }
+
+  if (deadlines.length === 0) {
+    return (
+      <div className="glow-card text-center py-12 space-y-3">
+        <p className="text-3xl">📅</p>
+        <p className="text-slate-500 text-sm">No upcoming deadlines. Set deadlines on your tasks to see them here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      {Object.entries(grouped).map(([month, monthTasks]) => (
+        <div key={month}>
+          <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-3">{month}</p>
+          <div className="space-y-2">
+            {monthTasks.map((d) => {
+              const date = new Date(d.deadline!);
+              const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+              const urgency = daysUntil < 0 ? 'overdue' : daysUntil <= 7 ? 'urgent' : daysUntil <= 30 ? 'soon' : 'ok';
+              const urgencyStyles = {
+                overdue: 'bg-red-50 border-red-200 text-red-700',
+                urgent: 'bg-red-50 border-red-200 text-red-600',
+                soon: 'bg-amber-50 border-amber-200 text-amber-600',
+                ok: 'bg-emerald-50 border-emerald-200 text-emerald-600',
+              };
+
+              return (
+                <div key={d.id} className="flex items-center gap-4 p-3 bg-white rounded-xl border border-slate-100">
+                  <span className="text-sm font-mono text-slate-400 w-14 shrink-0">
+                    {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                  </span>
+                  <span className="text-sm font-semibold text-slate-800 truncate">{d.universityName}</span>
+                  <span className="text-sm text-slate-500 truncate flex-1">{d.title}</span>
+                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${urgencyStyles[urgency]}`}>
+                    {urgency === 'overdue' ? 'Overdue' : urgency === 'urgent' ? `${daysUntil}d left` : urgency === 'soon' ? `${daysUntil}d` : `${daysUntil}d`}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Main client component ────────────────────────────────────────────────────
 
 export function MyUniversitiesClient({ userUniversities, allTasks }: Props) {
   const supabase = useMemo(() => createClient(), []);
-  const [view, setView] = useState<'tracker' | 'compare'>('tracker');
+  const [view, setView] = useState<'tracker' | 'compare' | 'timeline'>('tracker');
   const [statuses, setStatuses] = useState<Record<number, string>>(
     Object.fromEntries(userUniversities.map((uu) => [uu.id, uu.status])),
   );
@@ -517,14 +593,14 @@ export function MyUniversitiesClient({ userUniversities, allTasks }: Props) {
 
       {/* ── View toggle ── */}
       <div className="flex items-center gap-2">
-        {(['tracker', 'compare'] as const).map((v) => (
+        {(['tracker', 'compare', 'timeline'] as const).map((v) => (
           <button key={v} type="button" onClick={() => setView(v)}
             className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
               view === v
                 ? 'bg-pink-50 text-pink-600 border border-pink-200'
                 : 'bg-white/80 text-slate-500 border border-black/5 hover:text-slate-700'
             }`}>
-            {v === 'tracker' ? 'Application Tracker' : 'Compare Universities'}
+            {v === 'tracker' ? 'Application Tracker' : v === 'compare' ? 'Compare Universities' : 'Timeline'}
           </button>
         ))}
         <a href="/universities"
@@ -557,6 +633,15 @@ export function MyUniversitiesClient({ userUniversities, allTasks }: Props) {
           userUniversities={userUniversities}
           statuses={statuses}
           onStatusChange={handleStatusChange}
+        />
+      )}
+
+      {/* ── Timeline view ── */}
+      {view === 'timeline' && (
+        <TimelineView
+          userUniversities={userUniversities}
+          tasks={tasksWithDeadlines}
+          completedTasks={completedTasks}
         />
       )}
     </div>

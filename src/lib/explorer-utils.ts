@@ -2,6 +2,7 @@
 // safe to import from both Server and Client Components.
 
 import type { University } from '@/lib/types';
+import type { MatchBreakdown } from '@/lib/matching';
 
 // ── Extended university type for the explorer ───────────────────────────
 
@@ -36,6 +37,7 @@ export interface ExplorerUniversity {
 
   // Computed / display fields
   match_score: number | null;
+  match_breakdown: MatchBreakdown | null;
   is_saved: boolean;
 
   // Visual fields for the explorer UI (derived from data)
@@ -75,7 +77,7 @@ const COUNTRY_COLORS: Record<string, string> = {
 
 // ── Tag derivation ──────────────────────────────────────────────────────
 
-function deriveTags(uni: University & { match_score: number | null }): string[] {
+function deriveTags(uni: University & { match_score: number | null; match_breakdown?: MatchBreakdown | null }): string[] {
   const tags: string[] = [];
   if (uni.qs_rank && uni.qs_rank <= 50) tags.push('Global Top 50');
   if (uni.qs_rank && uni.qs_rank <= 200) tags.push('Top 200');
@@ -97,7 +99,7 @@ function deriveTags(uni: University & { match_score: number | null }): string[] 
 // ── Main converter ──────────────────────────────────────────────────────
 
 export function toExplorerUniversity(
-  uni: University & { match_score: number | null; is_saved: boolean },
+  uni: University & { match_score: number | null; match_breakdown?: MatchBreakdown | null; is_saved: boolean },
 ): ExplorerUniversity {
   const rank = uni.qs_rank ? `#${uni.qs_rank} QS` : uni.the_rank ? `#${uni.the_rank} THE` : '';
 
@@ -110,6 +112,7 @@ export function toExplorerUniversity(
 
   return {
     ...uni,
+    match_breakdown: uni.match_breakdown ?? null,
     emoji: COUNTRY_EMOJIS[uni.country] ?? '🎓',
     color: COUNTRY_COLORS[uni.country] ?? '#1a3a6c',
     tags: deriveTags(uni),

@@ -6,6 +6,10 @@ import type { AIAnalysis, AISuggestion } from '@/lib/types';
 
 type Props = {
   universityName: string;
+  universityCountry?: string;
+  universityRank?: number | null;
+  universityAcceptRate?: string | null;
+  universityStrengths?: string | null;
   userUniversityId: number;
   initialContent: string;
   initialAnalysis: AIAnalysis | null;
@@ -38,6 +42,10 @@ function ScoreRing({ score }: { score: number }) {
 
 export function StatementWriter({
   universityName,
+  universityCountry,
+  universityRank,
+  universityAcceptRate,
+  universityStrengths,
   userUniversityId,
   initialContent,
   initialAnalysis,
@@ -222,12 +230,20 @@ export function StatementWriter({
 
         <div className="flex-1 overflow-y-auto p-6">
           {status === 'idle' || status === 'analyzing' ? (
-            <textarea
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Paste your personal statement here, or start writing…"
-              className="w-full h-full resize-none border-none outline-none text-base text-slate-700 leading-relaxed placeholder:text-slate-300"
-            />
+            <div className="relative h-full">
+              <textarea
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                placeholder="Paste your personal statement here, or start writing. We'll give you specific feedback on how to strengthen it for this university."
+                className="w-full h-full resize-none border-none outline-none text-base text-slate-700 leading-relaxed placeholder:text-slate-300"
+              />
+              <div className="absolute bottom-3 right-4 text-xs text-slate-400">
+                {wordCount} words
+                {docType === 'personal_statement' && (
+                  <span className={wordCount > 650 ? ' text-red-500 font-medium' : ''}> · UCAS max: 650</span>
+                )}
+              </div>
+            </div>
           ) : (
             <div className="relative min-h-full">
               {renderHighlightedText()}
@@ -246,14 +262,40 @@ export function StatementWriter({
       {/* ── Right: Analysis Panel ── */}
       <section className="w-[40%] flex flex-col bg-slate-50">
         {status === 'idle' && (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
-            <div className="w-20 h-20 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center mb-4">
-              <span className="text-3xl">🎯</span>
+          <div className="flex-1 flex flex-col p-6 space-y-5 overflow-y-auto">
+            {universityStrengths && (
+              <div className="bg-white p-5 rounded-xl border border-slate-200">
+                <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-3">
+                  What {universityName} looks for
+                </p>
+                <p className="text-sm text-slate-600 leading-relaxed">{universityStrengths}</p>
+              </div>
+            )}
+
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-5">
+              <p className="text-xs font-semibold text-amber-700 uppercase tracking-widest mb-2">
+                Example feedback preview
+              </p>
+              <div className="space-y-2 text-sm text-amber-900 opacity-70">
+                <p>✅ Strong opening — clear motivation stated</p>
+                <p>✅ Relevant technical projects mentioned</p>
+                <p>⚠️ No mention of why {universityName} specifically</p>
+                <p>❌ No connection to {universityName}&apos;s research areas</p>
+              </div>
+              <p className="text-xs text-amber-600 mt-3 italic">
+                This is a sample — paste your statement and click Analyze to see real feedback
+              </p>
             </div>
-            <h2 className="text-lg font-semibold text-slate-700">Ready to analyze</h2>
-            <p className="text-sm text-slate-400 mt-2 max-w-xs">
-              Write or paste your statement on the left, then click Analyze to get AI-powered feedback.
-            </p>
+
+            <div className="bg-white p-5 rounded-xl border border-slate-200">
+              <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-3">Tips</p>
+              <ul className="space-y-2 text-sm text-slate-600">
+                <li>• Be specific about why this university</li>
+                <li>• Show, don&apos;t tell — use concrete examples</li>
+                <li>• Connect your past to your future goals</li>
+                <li>• Keep it under 650 words for UCAS</li>
+              </ul>
+            </div>
           </div>
         )}
 

@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import type { University } from '@/lib/types';
+import { computeMatchResult } from '@/lib/matching';
+import type { University, StudentProfile } from '@/lib/types';
 import { StatementWriter } from './statement-writer';
 
 type Props = {
@@ -26,6 +27,15 @@ export default async function WriterPage({ params }: Props) {
   if (!userUniversity) redirect('/my-universities');
 
   const university = userUniversity.university as University;
+
+  // Fetch profile for match score
+  const { data: profile } = await supabase
+    .from('student_profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const matchResult = profile ? computeMatchResult(profile as StudentProfile, university) : null;
 
   // Load existing draft if any
   const { data: existingDraft } = await supabase
@@ -54,13 +64,26 @@ export default async function WriterPage({ params }: Props) {
           <div className="h-5 w-px bg-slate-200" />
           <div>
             <h1 className="text-sm font-semibold text-slate-800">AI Statement Writer</h1>
-            <p className="text-xs text-slate-400">{university.name}</p>
+            <p className="text-xs text-slate-400">{university.name} · {university.country}{university.qs_rank ? ` · #${university.qs_rank} QS` : ''}</p>
           </div>
         </div>
+        {matchResult && (
+          <span className={`text-xs font-bold px-3 py-1 rounded-full ${
+            matchResult.percentage >= 75 ? 'bg-emerald-50 text-emerald-600' :
+            matchResult.percentage >= 50 ? 'bg-amber-50 text-amber-600' :
+            'bg-pink-50 text-pink-600'
+          }`}>
+            {matchResult.percentage}% match
+          </span>
+        )}
       </header>
 
       <StatementWriter
         universityName={university.name}
+        universityCountry={university.country}
+        universityRank={university.qs_rank}
+        universityAcceptRate={university.accept_rate}
+        universityStrengths={university.strengths}
         userUniversityId={userUniversity.id}
         initialContent={existingDraft?.content ?? ''}
         initialAnalysis={existingDraft?.ai_analysis ?? null}

@@ -67,14 +67,45 @@ export default async function ProfilePage() {
               </div>
             </div>
 
-            <div className="flex shrink-0 gap-6 text-center">
-              <div>
-                <p className="text-2xl font-semibold text-slate-900">{documents.length}</p>
-                <p className="text-xs text-slate-500 mt-0.5">Documents</p>
-              </div>
-              <div>
-                <p className="text-2xl font-semibold text-slate-900">{profile ? 'Yes' : '—'}</p>
-                <p className="text-xs text-slate-500 mt-0.5">Profile set</p>
+            <div className="flex shrink-0 flex-col gap-3 min-w-[200px]">
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-semibold text-slate-600">Profile strength</span>
+                  <span className="text-xs font-bold text-pink-600">
+                    {Math.round(([
+                      !!profile?.study_level,
+                      !!profile?.location,
+                      !!profile?.nationality,
+                      documents.length > 0,
+                      (profile?.achievements?.length ?? 0) > 0,
+                    ].filter(Boolean).length / 5) * 100)}%
+                  </span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-gradient-to-r from-pink-500 to-blue-400 rounded-full transition-all duration-500"
+                    style={{ width: `${Math.round(([
+                      !!profile?.study_level,
+                      !!profile?.location,
+                      !!profile?.nationality,
+                      documents.length > 0,
+                      (profile?.achievements?.length ?? 0) > 0,
+                    ].filter(Boolean).length / 5) * 100)}%` }}
+                  />
+                </div>
+                <div className="grid grid-cols-1 gap-0.5 mt-1">
+                  {[
+                    { label: 'Profile set', done: !!profile?.study_level },
+                    { label: 'Location added', done: !!profile?.location },
+                    { label: 'Nationality added', done: !!profile?.nationality },
+                    { label: 'Documents uploaded', done: documents.length > 0 },
+                    { label: 'Achievements added', done: (profile?.achievements?.length ?? 0) > 0 },
+                  ].map((c) => (
+                    <p key={c.label} className={`text-[10px] ${c.done ? 'text-emerald-600' : 'text-slate-400'}`}>
+                      {c.done ? '✅' : '⬜'} {c.label}
+                    </p>
+                  ))}
+                </div>
               </div>
             </div>
           </section>
@@ -137,7 +168,12 @@ export default async function ProfilePage() {
 
           {/* ── Documents ── */}
           <div className="grid gap-8 lg:grid-cols-2">
-            <UploadDocumentForm />
+            <div className="space-y-0">
+              <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700 mb-4">
+                💡 Uploading your CV can improve your match scores by up to 25%
+              </div>
+              <UploadDocumentForm />
+            </div>
 
             <section className="glow-card space-y-5">
               <h2 className="text-xl font-semibold text-slate-900">Your documents</h2>

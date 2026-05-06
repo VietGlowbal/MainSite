@@ -14,6 +14,7 @@ const features = [
   { icon: '🌍', title: 'Explore the Global', body: 'A unique way to explore the world and find the places you will love to study' },
   { icon: '🛸', title: 'Journey to beyond', body: 'We\'ll not just show you your options, we\'ll tell you how to get there and track your progress' },
   { icon: '✨', title: 'Recommendations that work', body: 'We look at your CV and personal statement to give you custom recommendations to maximise your chances' },
+  { icon: '🎓', title: 'University Mentoring', body: 'Connect with current students and alumni from your target universities for real guidance on applications, interviews, and campus life', comingSoon: true },
 ];
 
 export function DesignCosmos({ action }: { action: WaitlistAction }) {
@@ -99,8 +100,8 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
             onClick={handlePillClick}
             className="c1-pill inline-flex items-center gap-2 rounded-full border border-cyan-500/25 bg-cyan-500/10 px-5 py-2 text-xs font-bold uppercase tracking-[.22em] text-cyan-300 backdrop-blur-sm"
           >
-            <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-400 shadow-[0_0_6px_2px_rgba(34,211,238,.55)]" />
-            Coming May 2026
+            <span className="h-2 w-2 shrink-0 rounded-full bg-green-400 animate-pulse" />
+            Now in Early Access
           </button>
           <h1 className="mt-7 flex flex-wrap justify-center gap-x-4 gap-y-2 text-5xl font-black uppercase tracking-tight text-white md:text-7xl lg:text-8xl">
             {['Study', 'without', 'limits.'].map((w) => (
@@ -117,11 +118,12 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
             Discover the countries, courses and track your next <br /> steps to get you to the place you belong
           </p>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            {['Students', 'Parents', 'Counsellors'].map((b) => (
-              <span key={b} className="c1-badge rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/65 backdrop-blur-sm">
-                {b}
-              </span>
-            ))}
+            <a
+              href="/universities"
+              className="c1-badge rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-8 py-3 text-sm font-semibold text-white shadow-[0_4px_20px_rgba(255,61,154,0.35)] hover:shadow-[0_6px_28px_rgba(255,61,154,0.5)] transition-all duration-200"
+            >
+              Start exploring universities →
+            </a>
           </div>
         </div>
 
@@ -131,17 +133,36 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
         </div>
       </section>
 
+      {/* Social proof */}
+      <section className="relative px-6 py-8 border-t border-white/10">
+        <div className="mx-auto max-w-5xl flex justify-center gap-12">
+          {[
+            { value: '500+', label: 'Universities indexed' },
+            { value: '40+', label: 'Countries covered' },
+            { value: 'Beta', label: 'Early access open' },
+          ].map((stat) => (
+            <div key={stat.label} className="text-center">
+              <p className="text-2xl font-bold text-white">{stat.value}</p>
+              <p className="text-xs text-white/50 mt-1">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Features */}
       <section className="c1-features relative px-6 py-24 md:py-32">
         <div className="mx-auto max-w-5xl">
           <p className="mb-3 text-center text-xs font-bold uppercase tracking-[.22em] text-cyan-400">What we're building</p>
           <h2 className="mb-14 text-center text-3xl font-bold text-white md:text-4xl">Introducing Glowbal</h2>
-          <div className="grid gap-5 md:grid-cols-3">
+          <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
             {features.map((f) => (
-              <div key={f.title} className="c1-feature rounded-2xl border border-white/[.07] bg-white/[.04] p-6 backdrop-blur-sm">
+              <div key={f.title} className="c1-feature relative rounded-2xl border border-white/[.07] bg-white/[.04] p-6 backdrop-blur-sm">
                 <div className="mb-4 text-3xl">{f.icon}</div>
                 <h3 className="mb-2 text-base font-bold text-white">{f.title}</h3>
                 <p className="text-sm leading-7 text-white/50">{f.body}</p>
+                {f.comingSoon && (
+                  <span className="mt-3 inline-block text-xs text-[var(--color-primary)] font-semibold uppercase tracking-widest">Coming soon</span>
+                )}
               </div>
             ))}
           </div>

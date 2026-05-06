@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { computeMatchScore } from '@/lib/matching';
+import { computeMatchResult } from '@/lib/matching';
 import { toExplorerUniversity } from '@/lib/explorer-utils';
 import type { ApplicationEntry } from '@/lib/explorer-context';
 import type { University } from '@/lib/types';
@@ -57,10 +57,11 @@ export default async function UniversitiesPage() {
 
   // Compute match scores and convert to explorer format
   const explorerUniversities = (universities ?? []).map((uni: University) => {
-    const matchScore = profile ? computeMatchScore(profile, uni) : null;
+    const matchResult = profile ? computeMatchResult(profile, uni) : null;
     return toExplorerUniversity({
       ...uni,
-      match_score: matchScore,
+      match_score: matchResult?.percentage ?? null,
+      match_breakdown: matchResult?.breakdown ?? null,
       is_saved: savedUniversityIds.includes(uni.id),
     });
   });
