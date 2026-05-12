@@ -280,6 +280,10 @@ function UniversityGrid() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16 pt-6 md:pt-8">
+      <div className="pb-5 pt-2 md:pt-4">
+        <FilterBar />
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[minmax(420px,33vw)_minmax(0,1fr)] lg:items-start xl:gap-6">
         <div className="overflow-visible lg:self-start lg:h-[100svh] lg:min-h-[100svh]">
           <ExplorerRail />
@@ -334,7 +338,7 @@ function ExplorerRail() {
       }
 
       const rect = node.getBoundingClientRect();
-      const top = 104;
+      const top = 72;
       setRailStyle({
         position: 'fixed',
         left: `${rect.left}px`,
@@ -357,7 +361,6 @@ function ExplorerRail() {
   return (
     <div ref={railRef} className="relative h-full min-h-[70vh] lg:min-h-[100svh]">
       <div style={railStyle ?? undefined} className="flex h-full flex-col gap-4">
-        <FilterBar />
         <div className="min-h-[360px] flex-1 overflow-visible">
           <SearchGlobeRail />
         </div>

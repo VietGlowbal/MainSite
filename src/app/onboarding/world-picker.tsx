@@ -116,6 +116,10 @@ function WorldGlobe({
   defaultAltitude?: number;
 }) {
   const starsRef = useRef<unknown>(null);
+  const smallCountryPoints = [
+    { name: 'Singapore', lat: 1.3521, lng: 103.8198 },
+    { name: 'Hong Kong', lat: 22.3193, lng: 114.1694 },
+  ].filter((point) => Array.from(allowedCountries).some((country) => normalizeCountryName(country) === normalizeCountryName(point.name)));
 
   function handleGlobeReady() {
     if (!globeRef.current) return;
@@ -186,6 +190,23 @@ function WorldGlobe({
           globeImageUrl="//unpkg.com/three-globe/example/img/earth-day.jpg"
           onGlobeReady={handleGlobeReady}
           polygonsData={countriesGeo}
+          pointsData={smallCountryPoints}
+          pointLat="lat"
+          pointLng="lng"
+          pointAltitude={(point) => {
+            const countryPoint = point as { name: string };
+            return selectedCountries.some((country) => normalizeCountryName(country) === normalizeCountryName(countryPoint.name)) ? 0.018 : 0.012;
+          }}
+          pointRadius={(point) => {
+            const countryPoint = point as { name: string };
+            return hoveredCountry && normalizeCountryName(hoveredCountry) === normalizeCountryName(countryPoint.name) ? 0.65 : 0.42;
+          }}
+          pointColor={(point) => {
+            const countryPoint = point as { name: string };
+            if (selectedCountries.some((country) => normalizeCountryName(country) === normalizeCountryName(countryPoint.name))) return '#67e8f9';
+            if (hoveredCountry && normalizeCountryName(hoveredCountry) === normalizeCountryName(countryPoint.name)) return '#bae6fd';
+            return 'rgba(255,255,255,0.82)';
+          }}
           polygonGeoJsonGeometry="geometry"
           polygonCapColor={(obj) => {
             const feature = obj as GeoFeature;
@@ -530,6 +551,16 @@ function findBestCountryMatch(country: string, availableCountryNames: string[]) 
   return availableCountryNames.find((candidate) => normalizeCountryName(candidate) === target) ?? null;
 }
 
+const COUNTRY_FOCUS_COORDS: Record<string, { lat: number; lng: number; altitude?: number }> = {
+  'united states': { lat: 39.8, lng: -98.6, altitude: 1.5 },
+  'singapore': { lat: 1.3521, lng: 103.8198, altitude: 1.28 },
+  'hong kong': { lat: 22.3193, lng: 114.1694, altitude: 1.28 },
+};
+
+function getCountryFocus(country: string) {
+  return COUNTRY_FOCUS_COORDS[normalizeCountryName(country)] ?? null;
+}
+
 export function SearchWorldSelector({ selectedCountries, onToggleCountry, availableCountryNames, previewCountry }: SearchWorldSelectorProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const globeBoxRef = useRef<HTMLDivElement>(null);
@@ -594,6 +625,15 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
 
   useEffect(() => {
     if (!previewCountry || !globeRef.current) return;
+    const presetFocus = getCountryFocus(previewCountry);
+    if (presetFocus) {
+      globeRef.current.pointOfView(
+        { lat: presetFocus.lat, lng: presetFocus.lng, altitude: presetFocus.altitude ?? 1.58 },
+        650,
+      );
+      return;
+    }
+
     const feature = countriesGeo.find((f) => getFeatureName(f) === previewFeatureName);
     if (!feature?.geometry) return;
 
@@ -614,7 +654,7 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
   }, [previewCountry]);
 
   return (
-    <section className="glow-search-globe-rail lg:flex lg:h-full lg:w-full lg:flex-1 lg:items-center">
+    <section className="glow-search-globe-rail lg:flex lg:h-full lg:w-full lg:flex-1 lg:items-start">
       <div ref={globeBoxRef} className="glow-search-globe-stage-large lg:-ml-40 xl:-ml-52">
         <WorldGlobe
           mounted={mounted}
