@@ -38,30 +38,28 @@ function QuizBanner() {
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-6">
-      <div className="rounded-[2rem] border border-pink-200 bg-[linear-gradient(135deg,rgba(255,77,140,0.10),rgba(0,180,216,0.08))] px-6 py-6 shadow-[0_16px_40px_rgba(22,33,62,0.08)] backdrop-blur sm:px-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="max-w-3xl">
-            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">{title}</h2>
-            <p className="mt-3 text-sm leading-7 text-slate-600 md:text-base">{description}</p>
-          </div>
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="max-w-3xl">
+          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">{title}</h2>
+          <p className="mt-3 text-sm leading-7 text-slate-600 md:text-base">{description}</p>
+        </div>
 
-          <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-            <button
-              type="button"
-              onClick={() => router.push('/onboarding')}
-              className="rounded-full bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.24)] transition hover:shadow-[0_14px_28px_rgba(255,77,140,0.28)]"
+        <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+          <button
+            type="button"
+            onClick={() => router.push('/onboarding')}
+            className="rounded-full bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.24)] transition hover:shadow-[0_14px_28px_rgba(255,77,140,0.28)]"
+          >
+            {actionLabel}
+          </button>
+          {!isLoggedIn && (
+            <Link
+              href="/auth"
+              className="rounded-full border border-slate-200 bg-white/80 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-pink-200 hover:text-pink-600"
             >
-              {actionLabel}
-            </button>
-            {!isLoggedIn && (
-              <Link
-                href="/auth"
-                className="rounded-full border border-slate-200 bg-white/80 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-pink-200 hover:text-pink-600"
-              >
-                Sign up to save later
-              </Link>
-            )}
-          </div>
+              Sign up to save later
+            </Link>
+          )}
         </div>
       </div>
     </div>
@@ -314,7 +312,7 @@ function UniversityGrid() {
   const filtered = filterUniversities(universities, activeFilter, selectedCountries);
 
   return (
-    <div className="mx-auto max-w-[1560px] px-4 pb-16">
+    <div className="mx-auto max-w-7xl px-4 pb-16">
       <div className="grid gap-6 lg:grid-cols-[minmax(580px,50vw)_minmax(0,1fr)] lg:items-start xl:gap-8">
         <div className="overflow-visible lg:sticky lg:top-0 lg:self-start lg:h-[100svh] lg:min-h-[100svh] lg:pt-4">
           <SearchGlobeRail />
