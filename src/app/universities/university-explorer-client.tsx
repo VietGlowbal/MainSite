@@ -1,9 +1,8 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { AnimatePresence, motion, useScroll } from 'framer-motion';
 import {
   UniversityExplorerProvider,
@@ -19,52 +18,6 @@ const SearchWorldSelector = dynamic(
   () => import('@/app/onboarding/world-picker').then((mod) => mod.SearchWorldSelector),
   { ssr: false },
 );
-
-function QuizBanner() {
-  const router = useRouter();
-  const { isLoggedIn, hasProfile } = useExplorer();
-
-  if (isLoggedIn && hasProfile) return null;
-
-  const title = isLoggedIn
-    ? 'Complete the onboarding quiz to unlock personalised university matches.'
-    : 'Search freely — then take the Glowbal quiz to find the universities that match you best.';
-
-  const description = isLoggedIn
-    ? 'You can browse everything now, but your match scores and tailored recommendations appear once your onboarding answers are filled in.'
-    : 'No account needed to explore. When you are ready, the quiz helps us rank universities around your goals, budget, and preferred countries.';
-
-  const actionLabel = isLoggedIn ? 'Finish onboarding' : 'Take the onboarding quiz';
-
-  return (
-    <div className="mx-auto max-w-6xl px-4 pb-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-        <div className="max-w-3xl">
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">{title}</h2>
-          <p className="mt-3 text-sm leading-7 text-slate-600 md:text-base">{description}</p>
-        </div>
-
-        <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            onClick={() => router.push('/onboarding')}
-            className="rounded-full bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.24)] transition hover:shadow-[0_14px_28px_rgba(255,77,140,0.28)]"
-          >
-            {actionLabel}
-          </button>
-          {!isLoggedIn && (
-            <Link
-              href="/auth"
-              className="rounded-full border border-slate-200 bg-white/80 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-pink-200 hover:text-pink-600"
-            >
-              Sign up to save later
-            </Link>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function QuizStickyBar() {
   const router = useRouter();
@@ -313,13 +266,13 @@ function UniversityGrid() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16">
-      <div className="grid gap-6 lg:grid-cols-[minmax(580px,50vw)_minmax(0,1fr)] lg:items-start xl:gap-8">
-        <div className="overflow-visible lg:sticky lg:top-0 lg:self-start lg:h-[100svh] lg:min-h-[100svh] lg:pt-4">
+      <div className="grid gap-6 lg:grid-cols-[minmax(470px,38vw)_minmax(0,1fr)] lg:items-start xl:gap-6">
+        <div className="overflow-visible lg:self-start lg:h-[100svh] lg:min-h-[100svh]">
           <SearchGlobeRail />
         </div>
 
         <div>
-          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
             {filtered.map((university, i) => (
               <UniversityCard key={university.id} university={university} index={i} />
             ))}
@@ -339,16 +292,48 @@ function UniversityGrid() {
 
 function SearchGlobeRail() {
   const { selectedCountries, toggleCountry, clearCountries, universities, previewCountry } = useExplorer();
+  const railRef = useRef<HTMLDivElement>(null);
+  const [railStyle, setRailStyle] = useState<CSSProperties | null>(null);
   const availableCountryNames = Array.from(new Set(universities.map((university) => university.country))).sort((a, b) => a.localeCompare(b));
 
+  useEffect(() => {
+    function updateRailPosition() {
+      const node = railRef.current;
+      if (!node) return;
+
+      if (window.innerWidth < 1024) {
+        setRailStyle(null);
+        return;
+      }
+
+      const rect = node.getBoundingClientRect();
+      setRailStyle({
+        position: 'fixed',
+        left: `${rect.left}px`,
+        top: '50%',
+        transform: 'translateY(-50%)',
+        width: `${rect.width}px`,
+        zIndex: 10,
+      });
+    }
+
+    updateRailPosition();
+    window.addEventListener('resize', updateRailPosition);
+    return () => window.removeEventListener('resize', updateRailPosition);
+  }, []);
+
   return (
-    <SearchWorldSelector
-      selectedCountries={selectedCountries}
-      onToggleCountry={toggleCountry}
-      onClearCountries={clearCountries}
-      availableCountryNames={availableCountryNames}
-      previewCountry={previewCountry}
-    />
+    <div ref={railRef} className="relative h-full min-h-[70vh] lg:min-h-[100svh]">
+      <div style={railStyle ?? undefined}>
+        <SearchWorldSelector
+          selectedCountries={selectedCountries}
+          onToggleCountry={toggleCountry}
+          onClearCountries={clearCountries}
+          availableCountryNames={availableCountryNames}
+          previewCountry={previewCountry}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -356,7 +341,6 @@ function BrowseView() {
   return (
     <>
       <QuizStickyBar />
-      <QuizBanner />
       <FilterBar />
       <UniversityGrid />
     </>
