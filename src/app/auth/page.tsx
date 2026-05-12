@@ -1,4 +1,13 @@
+import { Suspense } from 'react';
 import { AuthForm } from './auth-form';
+
+function AuthFormFallback() {
+  return (
+    <section className="glow-form-shell flex min-h-[520px] items-center justify-center">
+      <p className="text-sm text-slate-500">Loading sign-in…</p>
+    </section>
+  );
+}
 
 export default function AuthPage() {
   return (
@@ -17,7 +26,9 @@ export default function AuthPage() {
           </p>
         </section>
 
-        <AuthForm />
+        <Suspense fallback={<AuthFormFallback />}>
+          <AuthForm />
+        </Suspense>
       </div>
     </main>
   );
