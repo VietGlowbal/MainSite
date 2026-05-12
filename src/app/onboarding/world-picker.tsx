@@ -614,7 +614,7 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
   }, [previewCountry]);
 
   return (
-    <section className="glow-search-globe-rail lg:flex lg:h-full lg:w-full lg:items-center">
+    <section className="glow-search-globe-rail lg:flex lg:h-full lg:w-full lg:flex-1 lg:items-center">
       <div ref={globeBoxRef} className="glow-search-globe-stage-large lg:-ml-40 xl:-ml-52">
         <WorldGlobe
           mounted={mounted}

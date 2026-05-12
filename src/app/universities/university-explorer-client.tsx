@@ -90,12 +90,12 @@ function FilterBar() {
   const filteredCount = filterUniversities(universities, activeFilter, selectedCountries).length;
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-5">
-      <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 px-5 py-4 shadow-sm backdrop-blur">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div className="rounded-[1.5rem] border border-slate-200 bg-white/88 px-5 py-4 shadow-sm backdrop-blur">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-400">Refine your shortlist</p>
-            <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">Pick a subject filter, or leave it broad</h2>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-400">Refine results</p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">Filter by what actually matters</h2>
           </div>
           <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500">
             <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
@@ -103,7 +103,7 @@ function FilterBar() {
           </div>
         </div>
 
-        <div className="mt-4 flex flex-wrap gap-2.5">
+        <div className="flex flex-wrap gap-2.5">
             {FILTER_CATEGORIES.map((category) => {
               const isActive = activeFilter === category;
               return (
@@ -124,7 +124,7 @@ function FilterBar() {
         </div>
 
         {selectedCountries.length > 0 && (
-          <div className="mt-4 flex flex-wrap items-center gap-2.5 rounded-[1.25rem] border border-cyan-100 bg-cyan-50/70 px-4 py-3">
+          <div className="flex flex-wrap items-center gap-2.5 rounded-[1.25rem] border border-cyan-100 bg-cyan-50/70 px-4 py-3">
             <span className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-cyan-700">Country focus</span>
             {selectedCountries.map((country) => (
               <span key={country} className="rounded-full border border-cyan-200 bg-white px-3 py-1 text-xs font-semibold text-cyan-700">
@@ -192,36 +192,50 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
       <button
         type="button"
         onClick={() => setView('detail', university.id)}
-        className="relative flex h-44 w-full items-center justify-center overflow-hidden"
-        style={{ background: `linear-gradient(135deg, ${university.color} 0%, ${university.color}dd 100%)` }}
+        className="relative flex h-48 w-full items-end justify-start overflow-hidden text-left"
       >
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.28),transparent_48%)]" />
-        <div className="absolute inset-x-8 bottom-0 h-16 rounded-full bg-black/10 blur-2xl" />
-        <span className="relative text-5xl drop-shadow-sm transition-transform duration-300 group-hover:scale-105" role="img" aria-label={university.name}>
-          {university.emoji}
-        </span>
-        <span className="absolute left-3 top-3 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
-          {university.emoji} {university.location}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={university.image_url}
+          alt={university.name}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          onError={(event) => {
+            event.currentTarget.style.display = 'none';
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(180deg, rgba(15,23,42,0.08) 0%, ${university.color}90 72%, ${university.color}dd 100%)` }}
+        />
+        <span className="absolute left-3 top-3 rounded-full bg-white/82 px-2.5 py-1 text-[0.7rem] font-semibold text-slate-700 backdrop-blur-sm">
+          {university.location}
         </span>
         {university.rank && (
-          <span className="absolute right-3 top-3 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
+          <span className="absolute right-3 top-3 rounded-full bg-slate-950/60 px-2.5 py-1 text-[0.7rem] font-semibold text-white backdrop-blur-sm">
             {university.rank}
           </span>
         )}
-        {saved && (
-          <span className="absolute left-3 bottom-3 rounded-full bg-emerald-500 px-2.5 py-0.5 text-xs font-bold text-white">
-            Saved
-          </span>
-        )}
+        <div className="relative z-10 w-full p-4 text-white">
+          <div className="flex items-end justify-between gap-3">
+            <div>
+              <h3 className="text-xl font-semibold leading-tight tracking-tight">{university.name}</h3>
+              <p className="mt-1 text-sm text-white/80">{university.emoji} {university.location}</p>
+            </div>
+            {saved && (
+              <span className="rounded-full bg-emerald-500 px-2.5 py-1 text-[0.7rem] font-bold text-white">
+                Saved
+              </span>
+            )}
+          </div>
+        </div>
       </button>
 
       <div className="flex flex-1 flex-col gap-3 px-5 pb-5 pt-4">
-        <button type="button" onClick={() => setView('detail', university.id)} className="text-left">
-          <h3 className="text-lg font-semibold leading-snug tracking-tight text-slate-950 line-clamp-2">{university.name}</h3>
-          <p className="mt-1 text-sm text-slate-500">{university.location}</p>
-        </button>
-
         <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} />
+
+        {university.description && (
+          <p className="text-sm leading-6 text-slate-600 line-clamp-3">{university.description}</p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           {university.tags.slice(0, 3).map((tag) => (
@@ -265,10 +279,10 @@ function UniversityGrid() {
   const filtered = filterUniversities(universities, activeFilter, selectedCountries);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-16">
-      <div className="grid gap-6 lg:grid-cols-[minmax(470px,38vw)_minmax(0,1fr)] lg:items-start xl:gap-6">
+    <div className="mx-auto max-w-7xl px-4 pb-16 pt-6 md:pt-8">
+      <div className="grid gap-6 lg:grid-cols-[minmax(420px,33vw)_minmax(0,1fr)] lg:items-start xl:gap-6">
         <div className="overflow-visible lg:self-start lg:h-[100svh] lg:min-h-[100svh]">
-          <SearchGlobeRail />
+          <ExplorerRail />
         </div>
 
         <div>
@@ -292,9 +306,22 @@ function UniversityGrid() {
 
 function SearchGlobeRail() {
   const { selectedCountries, toggleCountry, clearCountries, universities, previewCountry } = useExplorer();
+  const availableCountryNames = Array.from(new Set(universities.map((university) => university.country))).sort((a, b) => a.localeCompare(b));
+
+  return (
+    <SearchWorldSelector
+      selectedCountries={selectedCountries}
+      onToggleCountry={toggleCountry}
+      onClearCountries={clearCountries}
+      availableCountryNames={availableCountryNames}
+      previewCountry={previewCountry}
+    />
+  );
+}
+
+function ExplorerRail() {
   const railRef = useRef<HTMLDivElement>(null);
   const [railStyle, setRailStyle] = useState<CSSProperties | null>(null);
-  const availableCountryNames = Array.from(new Set(universities.map((university) => university.country))).sort((a, b) => a.localeCompare(b));
 
   useEffect(() => {
     function updateRailPosition() {
@@ -307,31 +334,33 @@ function SearchGlobeRail() {
       }
 
       const rect = node.getBoundingClientRect();
+      const top = 104;
       setRailStyle({
         position: 'fixed',
         left: `${rect.left}px`,
-        top: '50%',
-        transform: 'translateY(-50%)',
+        top: `${top}px`,
         width: `${rect.width}px`,
         zIndex: 10,
+        maxHeight: `calc(100vh - ${top + 16}px)`,
       });
     }
 
     updateRailPosition();
     window.addEventListener('resize', updateRailPosition);
-    return () => window.removeEventListener('resize', updateRailPosition);
+    window.addEventListener('scroll', updateRailPosition, { passive: true });
+    return () => {
+      window.removeEventListener('resize', updateRailPosition);
+      window.removeEventListener('scroll', updateRailPosition);
+    };
   }, []);
 
   return (
     <div ref={railRef} className="relative h-full min-h-[70vh] lg:min-h-[100svh]">
-      <div style={railStyle ?? undefined}>
-        <SearchWorldSelector
-          selectedCountries={selectedCountries}
-          onToggleCountry={toggleCountry}
-          onClearCountries={clearCountries}
-          availableCountryNames={availableCountryNames}
-          previewCountry={previewCountry}
-        />
+      <div style={railStyle ?? undefined} className="flex h-full flex-col gap-4">
+        <FilterBar />
+        <div className="min-h-[360px] flex-1 overflow-visible">
+          <SearchGlobeRail />
+        </div>
       </div>
     </div>
   );
@@ -341,7 +370,6 @@ function BrowseView() {
   return (
     <>
       <QuizStickyBar />
-      <FilterBar />
       <UniversityGrid />
     </>
   );

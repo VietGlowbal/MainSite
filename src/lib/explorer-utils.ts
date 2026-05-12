@@ -49,6 +49,7 @@ export interface ExplorerUniversity {
   rating: number;
   reviews: number;
   description: string;
+  image_url: string;
   stats: { students: string; staff: string; campuses: string };
   requirements: string[];
   reviewsData: { name: string; stars: number; text: string }[];
@@ -96,6 +97,11 @@ function deriveTags(uni: University & { match_score: number | null; match_breakd
   return tags;
 }
 
+function buildUniversityImageUrl(uni: University) {
+  const query = encodeURIComponent(`${uni.name} university campus`);
+  return `https://source.unsplash.com/1200x800/?${query}`;
+}
+
 // ── Main converter ──────────────────────────────────────────────────────
 
 export function toExplorerUniversity(
@@ -121,6 +127,7 @@ export function toExplorerUniversity(
     rating: uni.match_score != null ? Math.round((uni.match_score / 100) * 50) / 10 : 4.5,
     reviews: 0,
     description: uni.specific_insight ?? uni.strengths ?? '',
+    image_url: buildUniversityImageUrl(uni),
     stats: {
       students: '—',
       staff: '—',
