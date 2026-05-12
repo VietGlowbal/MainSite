@@ -499,17 +499,37 @@ type SearchWorldSelectorProps = {
   availableCountryNames?: string[];
 };
 
+function normalizeCountryName(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\busa\b/g, 'united states')
+    .replace(/\buk\b/g, 'united kingdom')
+    .replace(/\bu a e\b/g, 'united arab emirates')
+    .replace(/\bhk\b/g, 'hong kong')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function findBestCountryMatch(country: string, availableCountryNames: string[]) {
+  const target = normalizeCountryName(country);
+  return availableCountryNames.find((candidate) => normalizeCountryName(candidate) === target) ?? null;
+}
+
 export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClearCountries, availableCountryNames }: SearchWorldSelectorProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const globeBoxRef = useRef<HTMLDivElement>(null);
-  const [globeSize, setGlobeSize] = useState({ width: 540, height: 660 });
+  const [globeSize, setGlobeSize] = useState({ width: 560, height: 720 });
   const [mounted] = useState(() => typeof window !== 'undefined');
   const [countriesGeo, setCountriesGeo] = useState<GeoFeature[]>([]);
   const [activeContinentKey, setActiveContinentKey] = useState<string>('europe');
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const availableNames = useMemo(() => availableCountryNames ?? [], [availableCountryNames]);
   const allowedCountries = useMemo(
-    () => new Set(availableCountryNames && availableCountryNames.length > 0 ? availableCountryNames : countriesGeo.map(getFeatureName)),
-    [availableCountryNames, countriesGeo],
+    () => new Set(availableNames.length > 0 ? countriesGeo.map((feature) => findBestCountryMatch(getFeatureName(feature), availableNames) ? getFeatureName(feature) : '').filter(Boolean) : countriesGeo.map(getFeatureName)),
+    [availableNames, countriesGeo],
   );
 
   useEffect(() => {
@@ -549,20 +569,19 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClea
     countriesGeo.forEach((feature) => {
       const key = classifyContinent(feature);
       if (!key) return;
-      const name = getFeatureName(feature);
-      if (selectedCountries.includes(name)) counts[key] = (counts[key] ?? 0) + 1;
+      const name = findBestCountryMatch(getFeatureName(feature), availableNames);
+      if (name && selectedCountries.includes(name)) counts[key] = (counts[key] ?? 0) + 1;
     });
     return counts;
-  }, [countriesGeo, selectedCountries]);
+  }, [availableNames, countriesGeo, selectedCountries]);
 
   const availableCountries = useMemo(() => {
-    return countriesGeo
+    return Array.from(new Set(countriesGeo
       .filter((f) => classifyContinent(f) === activeContinent.key)
-      .map((f) => getFeatureName(f))
-      .filter((name) => allowedCountries.has(name))
-      .filter(Boolean)
-      .sort((a, b) => a.localeCompare(b));
-  }, [activeContinent.key, allowedCountries, countriesGeo]);
+      .map((f) => findBestCountryMatch(getFeatureName(f), availableNames))
+      .filter((name): name is string => Boolean(name))
+      .sort((a, b) => a.localeCompare(b))));
+  }, [activeContinent.key, availableNames, countriesGeo]);
 
   useEffect(() => {
     if (!mounted || !globeRef.current) return;
@@ -572,10 +591,10 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClea
     );
     const controls = globeRef.current.controls();
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.22;
+    controls.autoRotateSpeed = 0.18;
     controls.enablePan = false;
     controls.minDistance = 120;
-    controls.maxDistance = 280;
+    controls.maxDistance = 320;
   }, [activeContinent, mounted]);
 
   function flyToCountry(country: string) {
@@ -592,15 +611,13 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClea
   }
 
   return (
-    <section className="glow-search-globe-shell glow-card-tight overflow-hidden lg:sticky lg:top-24">
-      <div className="glow-search-globe-backdrop" />
-
-      <div className="relative z-10 flex items-start justify-between gap-4 px-5 pb-4 pt-5">
+    <section className="glow-search-globe-rail lg:sticky lg:top-24">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">Globe-led filtering</p>
-          <h2 className="mt-2 text-[1.65rem] font-semibold tracking-tight text-white">Orbit your options</h2>
-          <p className="mt-2 max-w-xs text-sm leading-6 text-slate-300">
-            Tap countries on the globe or from the list. Your shortlist instantly narrows to the places that feel right.
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Pick countries</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Spin the globe</h2>
+          <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">
+            Keep it fun: tap the globe, narrow your world, and only filter when it actually helps.
           </p>
         </div>
         {selectedCountries.length > 0 && (
@@ -610,103 +627,84 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClea
               if (onClearCountries) onClearCountries();
               else selectedCountries.forEach((country) => onToggleCountry(country));
             }}
-            className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/16"
+            className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:border-pink-200 hover:text-pink-600"
           >
-            Clear all
+            Clear
           </button>
         )}
       </div>
 
-      <div className="relative z-10 px-4 pb-4">
-        <div className="glow-search-globe-stage">
-          <div ref={globeBoxRef} className="glow-search-globe-crop">
-            <div className="glow-search-globe-inner">
-              <WorldGlobe
-                mounted={mounted}
-                globeWidth={globeSize.width}
-                globeHeight={globeSize.height}
-                globeRef={globeRef}
-                countriesGeo={countriesGeo}
-                selectedCountries={selectedCountries}
-                hoveredCountry={hoveredCountry}
-                allowedCountries={allowedCountries}
-                setHoveredCountry={setHoveredCountry}
-                onCountryClick={onToggleCountry}
-              />
-            </div>
-          </div>
+      <div ref={globeBoxRef} className="glow-search-globe-stage-large mt-4">
+        <WorldGlobe
+          mounted={mounted}
+          globeWidth={globeSize.width}
+          globeHeight={globeSize.height}
+          globeRef={globeRef}
+          countriesGeo={countriesGeo}
+          selectedCountries={selectedCountries}
+          hoveredCountry={hoveredCountry}
+          allowedCountries={allowedCountries}
+          setHoveredCountry={setHoveredCountry}
+          onCountryClick={(country) => {
+            const matched = findBestCountryMatch(country, availableNames);
+            if (matched) onToggleCountry(matched);
+          }}
+        />
+      </div>
 
-          <div className="glow-search-globe-panel">
-            <div className="mb-3 flex items-center justify-between gap-3">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Featured continents</p>
-              <span className="text-xs text-slate-500">{selectedCountries.length > 0 ? `${selectedCountries.length} selected` : 'Tap to focus'}</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {continents.map((continent) => {
-                const selected = continent.key === activeContinent.key;
-                const count = selectedCountPerContinent[continent.key] ?? 0;
-                return (
-                  <button
-                    key={continent.key}
-                    type="button"
-                    onClick={() => setActiveContinentKey(continent.key)}
-                    className={`glow-search-continent-pill ${selected ? 'glow-search-continent-pill-active' : ''}`}
-                  >
-                    <span>{continent.label}</span>
-                    {count > 0 && <span className="glow-search-continent-badge">{count}</span>}
-                  </button>
-                );
-              })}
-            </div>
+      <div className="mt-4 flex flex-wrap gap-2">
+        {continents.map((continent) => {
+          const selected = continent.key === activeContinent.key;
+          const count = selectedCountPerContinent[continent.key] ?? 0;
+          return (
+            <button
+              key={continent.key}
+              type="button"
+              onClick={() => setActiveContinentKey(continent.key)}
+              className={`glow-search-continent-pill ${selected ? 'glow-search-continent-pill-active' : ''}`}
+            >
+              <span>{continent.label}</span>
+              {count > 0 && <span className="glow-search-continent-badge">{count}</span>}
+            </button>
+          );
+        })}
+      </div>
 
-            {selectedCountries.length > 0 && (
-              <div className="mt-4">
-                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Selected countries</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedCountries.map((country) => (
-                    <button
-                      key={country}
-                      type="button"
-                      onClick={() => onToggleCountry(country)}
-                      className="glow-search-selected-chip"
-                    >
-                      {country}
-                      <span className="text-slate-300">✕</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4">
-              <div className="mb-2 flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{activeContinent.label}</p>
-                <span className="text-xs text-slate-500">{availableCountries.length} countries</span>
-              </div>
-
-              <div className="glow-search-country-cloud">
-                {availableCountries.map((country) => {
-                  const selected = selectedCountries.includes(country);
-                  return (
-                    <button
-                      key={country}
-                      type="button"
-                      onClick={() => onToggleCountry(country)}
-                      onMouseEnter={() => {
-                        setHoveredCountry(country);
-                        flyToCountry(country);
-                      }}
-                      onMouseLeave={() => setHoveredCountry(null)}
-                      className={`glow-search-country-chip ${selected ? 'glow-search-country-chip-active' : ''}`}
-                    >
-                      {country}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+      {selectedCountries.length > 0 && (
+        <div className="mt-4 flex flex-wrap gap-2">
+          {selectedCountries.map((country) => (
+            <button
+              key={country}
+              type="button"
+              onClick={() => onToggleCountry(country)}
+              className="glow-search-selected-chip"
+            >
+              {country}
+              <span className="text-slate-400">✕</span>
+            </button>
+          ))}
         </div>
+      )}
+
+      <div className="glow-search-country-cloud mt-4">
+        {availableCountries.map((country) => {
+          const selected = selectedCountries.includes(country);
+          return (
+            <button
+              key={country}
+              type="button"
+              onClick={() => onToggleCountry(country)}
+              onMouseEnter={() => {
+                setHoveredCountry(country);
+                flyToCountry(country);
+              }}
+              onMouseLeave={() => setHoveredCountry(null)}
+              className={`glow-search-country-chip ${selected ? 'glow-search-country-chip-active' : ''}`}
+            >
+              {country}
+            </button>
+          );
+        })}
       </div>
     </section>
   );

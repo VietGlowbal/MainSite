@@ -18,6 +18,24 @@ import { type ExplorerUniversity } from '@/lib/explorer-utils';
 
 export type { ExplorerUniversity };
 
+function normalizeCountryName(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/&/g, 'and')
+    .replace(/[^a-z0-9]+/g, ' ')
+    .replace(/\busa\b/g, 'united states')
+    .replace(/\buk\b/g, 'united kingdom')
+    .replace(/\bu a e\b/g, 'united arab emirates')
+    .replace(/\bhk\b/g, 'hong kong')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function countriesMatch(left: string, right: string) {
+  return normalizeCountryName(left) === normalizeCountryName(right);
+}
+
 // ── Interfaces ──────────────────────────────────────────────────────────
 
 export interface ApplicationEntry {
@@ -61,7 +79,9 @@ export function filterUniversities(
   selectedCountries: string[] = [],
 ): ExplorerUniversity[] {
   return universities.filter((u) => {
-    const matchesCountry = selectedCountries.length === 0 || selectedCountries.includes(u.country);
+    const matchesCountry =
+      selectedCountries.length === 0 ||
+      selectedCountries.some((country) => countriesMatch(country, u.country));
     if (!matchesCountry) return false;
     if (filter === 'All') return true;
     const tag = filter === 'Arts & Humanities' ? 'Arts' : filter;

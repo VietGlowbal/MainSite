@@ -26,74 +26,22 @@ const SearchWorldSelector = dynamic(
 
 function HeroSection() {
   return (
-    <section className="px-6 pb-8 pt-10 md:pb-10 md:pt-14">
+    <section className="px-6 pb-6 pt-10 md:pb-8 md:pt-12">
       <div className="mx-auto max-w-7xl">
-        <div className="explorer-hero-shell overflow-hidden rounded-[2rem] border border-white/70 px-6 py-8 shadow-[0_24px_80px_rgba(10,18,38,0.10)] md:px-8 md:py-10 lg:px-10">
-          <div className="explorer-hero-grid gap-8 lg:grid lg:grid-cols-[minmax(0,1.1fr)_320px] lg:items-center">
-            <div className="relative z-10 max-w-3xl">
-              <span className="glow-pill">University Explorer</span>
-              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-slate-950 md:text-5xl lg:text-6xl">
-                Explore a more
-                <span className="glowbal-wordmark block">global shortlist</span>
-              </h1>
-              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
-                Compare standout universities across the world, refine your orbit by country and subject, and build a premium shortlist around your goals.
-              </p>
-
-              <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-600">
-                {[
-                  'Globe-led country discovery',
-                  'Editorial match cards',
-                  'Shortlist and application tracking',
-                ].map((item) => (
-                  <span key={item} className="explorer-hero-chip">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            <div className="relative mt-8 lg:mt-0">
-              <div className="explorer-orbit-card mx-auto max-w-sm">
-                <div className="explorer-orbit-glow" />
-                <div className="relative rounded-[1.75rem] border border-white/12 bg-[linear-gradient(155deg,rgba(4,12,28,0.98),rgba(14,31,58,0.95))] p-5 text-white shadow-[0_24px_60px_rgba(4,12,28,0.35)]">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">Signature view</p>
-                      <p className="mt-1 text-lg font-semibold">Your study world map</p>
-                    </div>
-                    <span className="rounded-full border border-white/12 bg-white/8 px-3 py-1 text-xs font-semibold text-white/80">
-                      Live filters
-                    </span>
-                  </div>
-                  <div className="relative mt-5 flex h-44 items-center justify-center overflow-hidden rounded-[1.5rem] border border-cyan-300/15 bg-[radial-gradient(circle_at_50%_50%,rgba(34,211,238,0.28),rgba(5,10,20,0.04)_42%,rgba(5,10,20,0)_66%)]">
-                    <div className="explorer-orbit-ring explorer-orbit-ring-1" />
-                    <div className="explorer-orbit-ring explorer-orbit-ring-2" />
-                    <div className="explorer-orbit-ring explorer-orbit-ring-3" />
-                    <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-cyan-200/35 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.4),rgba(56,189,248,0.2),rgba(8,47,73,0.96))] text-4xl shadow-[0_0_40px_rgba(34,211,238,0.18)]">
-                      🌍
-                    </div>
-                    <span className="absolute left-7 top-7 rounded-full border border-pink-300/30 bg-pink-300/10 px-2.5 py-1 text-[0.68rem] font-semibold text-pink-100">UK</span>
-                    <span className="absolute right-8 top-12 rounded-full border border-cyan-200/30 bg-cyan-300/10 px-2.5 py-1 text-[0.68rem] font-semibold text-cyan-100">Canada</span>
-                    <span className="absolute bottom-8 left-12 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-2.5 py-1 text-[0.68rem] font-semibold text-emerald-100">Singapore</span>
-                  </div>
-                  <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs text-white/72">
-                    <div className="rounded-2xl border border-white/10 bg-white/6 px-3 py-3">
-                      <p className="text-lg font-semibold text-white">50+</p>
-                      <p className="mt-1">global options</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/6 px-3 py-3">
-                      <p className="text-lg font-semibold text-white">Smart</p>
-                      <p className="mt-1">match layers</p>
-                    </div>
-                    <div className="rounded-2xl border border-white/10 bg-white/6 px-3 py-3">
-                      <p className="text-lg font-semibold text-white">1 tap</p>
-                      <p className="mt-1">save to shortlist</p>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+        <div className="rounded-[2rem] border border-white/80 bg-white/80 px-6 py-8 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur md:px-8 md:py-9">
+          <span className="glow-pill">University Explorer</span>
+          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] text-slate-950 md:text-5xl">
+            Explore the world without the clutter.
+          </h1>
+          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
+            Use the globe on the left to keep things playful, then narrow to the universities that actually matter.
+          </p>
+          <div className="mt-6 flex flex-wrap gap-2.5 text-sm text-slate-600">
+            {['Big globe', 'Fast country filtering', 'Easy shortlist building'].map((item) => (
+              <span key={item} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium">
+                {item}
+              </span>
+            ))}
           </div>
         </div>
       </div>
@@ -160,20 +108,19 @@ function FilterBar() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-5">
-      <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/70 shadow-[0_16px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl">
-        <div className="flex flex-col gap-4 px-5 py-5 md:px-6 lg:flex-row lg:items-center lg:justify-between">
+      <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 px-5 py-4 shadow-sm backdrop-blur">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-400">Refine your shortlist</p>
-            <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">Subjects, countries, and fit — all in one view</h2>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">Pick a subject filter, or leave it broad</h2>
           </div>
-          <div className="flex items-center gap-3 rounded-full border border-slate-200/80 bg-slate-50/80 px-4 py-2 text-sm text-slate-500">
+          <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500">
             <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
-            <span>{filteredCount} {filteredCount === 1 ? 'university' : 'universities'} in orbit</span>
+            <span>{filteredCount} {filteredCount === 1 ? 'university' : 'universities'} showing</span>
           </div>
         </div>
 
-        <div className="border-t border-slate-100/90 px-5 py-4 md:px-6">
-          <div className="flex flex-wrap gap-2.5">
+        <div className="mt-4 flex flex-wrap gap-2.5">
             {FILTER_CATEGORIES.map((category) => {
               const isActive = activeFilter === category;
               return (
@@ -191,26 +138,25 @@ function FilterBar() {
                 </button>
               );
             })}
-          </div>
-
-          {selectedCountries.length > 0 && (
-            <div className="mt-4 flex flex-wrap items-center gap-2.5 rounded-[1.5rem] border border-cyan-100 bg-cyan-50/70 px-4 py-3">
-              <span className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-cyan-700">Country focus</span>
-              {selectedCountries.map((country) => (
-                <span key={country} className="rounded-full border border-cyan-200 bg-white/90 px-3 py-1 text-xs font-semibold text-cyan-700 shadow-sm">
-                  {country}
-                </span>
-              ))}
-              <button
-                type="button"
-                onClick={clearCountries}
-                className="rounded-full border border-cyan-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-pink-200 hover:text-pink-600"
-              >
-                Clear countries
-              </button>
-            </div>
-          )}
         </div>
+
+        {selectedCountries.length > 0 && (
+          <div className="mt-4 flex flex-wrap items-center gap-2.5 rounded-[1.25rem] border border-cyan-100 bg-cyan-50/70 px-4 py-3">
+            <span className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-cyan-700">Country focus</span>
+            {selectedCountries.map((country) => (
+              <span key={country} className="rounded-full border border-cyan-200 bg-white px-3 py-1 text-xs font-semibold text-cyan-700">
+                {country}
+              </span>
+            ))}
+            <button
+              type="button"
+              onClick={clearCountries}
+              className="rounded-full border border-cyan-200 bg-white px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-pink-200 hover:text-pink-600"
+            >
+              Clear countries
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -256,7 +202,7 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.6), ease: 'easeOut' }}
-      className="group relative flex flex-col overflow-hidden rounded-[1.75rem] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,255,0.94))] shadow-[0_18px_50px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_60px_rgba(15,23,42,0.14)]"
+      className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-white/80 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(15,23,42,0.12)]"
     >
       <button
         type="button"
@@ -334,9 +280,9 @@ function UniversityGrid() {
   const filtered = filterUniversities(universities, activeFilter, selectedCountries);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-16">
-      <div className="grid gap-6 lg:grid-cols-[minmax(330px,390px)_minmax(0,1fr)] lg:items-start xl:gap-8">
-        <div className="lg:pr-2">
+    <div className="mx-auto max-w-[1400px] px-4 pb-16">
+      <div className="grid gap-8 lg:grid-cols-[440px_minmax(0,1fr)] lg:items-start xl:gap-10">
+        <div>
           <SearchGlobeRail />
         </div>
 
