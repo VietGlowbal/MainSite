@@ -41,8 +41,7 @@ function QuizBanner() {
       <div className="rounded-[2rem] border border-pink-200 bg-[linear-gradient(135deg,rgba(255,77,140,0.10),rgba(0,180,216,0.08))] px-6 py-6 shadow-[0_16px_40px_rgba(22,33,62,0.08)] backdrop-blur sm:px-8">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="max-w-3xl">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-pink-600">Personalised matching</p>
-            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">{title}</h2>
+            <h2 className="text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">{title}</h2>
             <p className="mt-3 text-sm leading-7 text-slate-600 md:text-base">{description}</p>
           </div>
 
@@ -200,7 +199,7 @@ function FilterBar() {
 ───────────────────────────────────────────────────────────────────────── */
 
 function UniversityCard({ university, index }: { university: ExplorerUniversity; index: number }) {
-  const { isShortlisted, addToShortlist, showToast, setView, isLoggedIn } = useExplorer();
+  const { isShortlisted, addToShortlist, showToast, setView, isLoggedIn, setPreviewCountry } = useExplorer();
   const router = useRouter();
   const saved = isShortlisted(university.id);
 
@@ -236,6 +235,8 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.6), ease: 'easeOut' }}
       className="group relative flex flex-col overflow-hidden rounded-[1.5rem] border border-white/80 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_48px_rgba(15,23,42,0.12)]"
+      onMouseEnter={() => setPreviewCountry(university.country)}
+      onMouseLeave={() => setPreviewCountry(null)}
     >
       <button
         type="button"
@@ -315,7 +316,7 @@ function UniversityGrid() {
   return (
     <div className="mx-auto max-w-[1560px] px-4 pb-16">
       <div className="grid gap-6 lg:grid-cols-[minmax(580px,50vw)_minmax(0,1fr)] lg:items-start xl:gap-8">
-        <div className="overflow-visible lg:sticky lg:top-0 lg:self-start lg:h-screen lg:flex lg:items-center">
+        <div className="overflow-visible lg:sticky lg:top-0 lg:self-start lg:h-[100svh] lg:min-h-[100svh] lg:pt-4">
           <SearchGlobeRail />
         </div>
 
@@ -339,7 +340,7 @@ function UniversityGrid() {
 }
 
 function SearchGlobeRail() {
-  const { selectedCountries, toggleCountry, clearCountries, universities } = useExplorer();
+  const { selectedCountries, toggleCountry, clearCountries, universities, previewCountry } = useExplorer();
   const availableCountryNames = Array.from(new Set(universities.map((university) => university.country))).sort((a, b) => a.localeCompare(b));
 
   return (
@@ -348,6 +349,7 @@ function SearchGlobeRail() {
       onToggleCountry={toggleCountry}
       onClearCountries={clearCountries}
       availableCountryNames={availableCountryNames}
+      previewCountry={previewCountry}
     />
   );
 }

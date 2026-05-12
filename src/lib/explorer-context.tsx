@@ -54,6 +54,7 @@ export interface ExplorerState {
   selectedUniversityId: number | null;
   activeFilter: FilterCategory;
   selectedCountries: string[];
+  previewCountry: string | null;
   shortlist: number[]; // university IDs
   applications: ApplicationEntry[];
   toast: { message: string; visible: boolean } | null;
@@ -64,6 +65,7 @@ export interface ExplorerActions {
   setFilter: (filter: FilterCategory) => void;
   toggleCountry: (country: string) => void;
   clearCountries: () => void;
+  setPreviewCountry: (country: string | null) => void;
   addToShortlist: (id: number) => void;
   removeFromShortlist: (id: number) => void;
   isShortlisted: (id: number) => boolean;
@@ -124,6 +126,7 @@ export function UniversityExplorerProvider({
   const [selectedUniversityId, setSelectedUniversityId] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('All');
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
+  const [previewCountry, setPreviewCountry] = useState<string | null>(null);
   const [shortlist, setShortlist] = useState<number[]>(initialShortlist);
   const [applications, setApplications] = useState<ApplicationEntry[]>(initialApplications);
   const [toast, setToast] = useState<ExplorerState['toast']>(null);
@@ -356,6 +359,7 @@ export function UniversityExplorerProvider({
     selectedUniversityId,
     activeFilter,
     selectedCountries,
+    previewCountry,
     shortlist,
     applications,
     toast,
@@ -364,6 +368,7 @@ export function UniversityExplorerProvider({
     setFilter,
     toggleCountry,
     clearCountries,
+    setPreviewCountry,
     addToShortlist,
     removeFromShortlist,
     isShortlisted,

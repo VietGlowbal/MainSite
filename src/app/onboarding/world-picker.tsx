@@ -97,6 +97,7 @@ function WorldGlobe({
   allowedCountries,
   setHoveredCountry,
   onCountryClick,
+  hoverLocked = false,
   hoverAltitude = 0.06,
   defaultAltitude = 0.005,
 }: {
@@ -110,6 +111,7 @@ function WorldGlobe({
   allowedCountries: Set<string>;
   setHoveredCountry: (value: string | null) => void;
   onCountryClick: (name: string) => void;
+  hoverLocked?: boolean;
   hoverAltitude?: number;
   defaultAltitude?: number;
 }) {
@@ -212,6 +214,7 @@ function WorldGlobe({
             return `<div style="background:rgba(15,23,42,0.85);color:white;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;">${name}${selected ? ' ✓' : ''}</div>`;
           }}
           onPolygonHover={(obj) => {
+            if (hoverLocked) return;
             const feature = obj as GeoFeature | null;
             setHoveredCountry(feature ? getFeatureName(feature) : null);
           }}
@@ -501,6 +504,7 @@ type SearchWorldSelectorProps = {
   onToggleCountry: (country: string) => void;
   onClearCountries?: () => void;
   availableCountryNames?: string[];
+  previewCountry?: string | null;
 };
 
 function normalizeCountryName(value: string) {
@@ -526,7 +530,7 @@ function findBestCountryMatch(country: string, availableCountryNames: string[]) 
   return availableCountryNames.find((candidate) => normalizeCountryName(candidate) === target) ?? null;
 }
 
-export function SearchWorldSelector({ selectedCountries, onToggleCountry, availableCountryNames }: SearchWorldSelectorProps) {
+export function SearchWorldSelector({ selectedCountries, onToggleCountry, availableCountryNames, previewCountry }: SearchWorldSelectorProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const globeBoxRef = useRef<HTMLDivElement>(null);
   const [globeSize, setGlobeSize] = useState({ width: 700, height: 820 });
@@ -538,6 +542,13 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
     () => new Set(availableNames.length > 0 ? countriesGeo.map((feature) => findBestCountryMatch(getFeatureName(feature), availableNames) ? getFeatureName(feature) : '').filter(Boolean) : countriesGeo.map(getFeatureName)),
     [availableNames, countriesGeo],
   );
+  const previewFeatureName = useMemo(() => {
+    if (!previewCountry) return null;
+    const matched = findBestCountryMatch(previewCountry, availableNames);
+    if (!matched) return null;
+    const feature = countriesGeo.find((f) => getFeatureName(f) === matched || findBestCountryMatch(getFeatureName(f), [matched]) === matched);
+    return feature ? getFeatureName(feature) : null;
+  }, [availableNames, countriesGeo, previewCountry]);
 
   useEffect(() => {
     if (!globeBoxRef.current) return;
@@ -581,8 +592,29 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
     controls.maxDistance = 260;
   }, [mounted]);
 
+  useEffect(() => {
+    if (!previewCountry || !globeRef.current) return;
+    const feature = countriesGeo.find((f) => getFeatureName(f) === previewFeatureName);
+    if (!feature?.geometry) return;
+
+    const coords = feature.geometry.type === 'Polygon'
+      ? (feature.geometry.coordinates as PolygonCoords)[0]
+      : (feature.geometry.coordinates as MultiPolygonCoords)[0][0];
+    if (!coords?.length) return;
+
+    const lng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+    const lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+    globeRef.current.pointOfView({ lat, lng, altitude: 1.58 }, 650);
+  }, [countriesGeo, previewCountry, previewFeatureName]);
+
+  useEffect(() => {
+    if (previewCountry) return;
+    if (!globeRef.current) return;
+    globeRef.current.pointOfView({ lat: 24, lng: 12, altitude: 1.72 }, 650);
+  }, [previewCountry]);
+
   return (
-    <section className="glow-search-globe-rail lg:flex lg:w-full lg:items-center">
+    <section className="glow-search-globe-rail lg:flex lg:h-full lg:w-full lg:items-center">
       <div ref={globeBoxRef} className="glow-search-globe-stage-large lg:-ml-40 xl:-ml-52">
         <WorldGlobe
           mounted={mounted}
@@ -591,9 +623,10 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
           globeRef={globeRef}
           countriesGeo={countriesGeo}
           selectedCountries={selectedCountries}
-          hoveredCountry={hoveredCountry}
+          hoveredCountry={previewFeatureName ?? hoveredCountry}
           allowedCountries={allowedCountries}
           setHoveredCountry={setHoveredCountry}
+          hoverLocked={Boolean(previewCountry)}
           hoverAltitude={0.01}
           defaultAltitude={0.004}
           onCountryClick={(country) => {
