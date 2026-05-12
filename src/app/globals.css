@@ -361,6 +361,135 @@ body {
   background: radial-gradient(circle at bottom right, rgb(0 180 216 / 0.18), transparent 30%);
 }
 
+/* ── Universities globe rail ───────────────────────────────────────── */
+
+.glow-search-globe-shell {
+  position: relative;
+  border-radius: 2rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background:
+    linear-gradient(160deg, rgba(7, 16, 34, 0.98), rgba(11, 26, 54, 0.96)),
+    radial-gradient(circle at top left, rgba(255, 77, 140, 0.12), transparent 35%),
+    radial-gradient(circle at bottom right, rgba(0, 194, 255, 0.18), transparent 45%);
+  box-shadow: 0 28px 70px rgb(4 10 24 / 0.28);
+}
+
+.glow-search-globe-backdrop {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 15% 20%, rgba(0, 194, 255, 0.16), transparent 24%),
+    radial-gradient(circle at 80% 80%, rgba(255, 77, 140, 0.14), transparent 28%);
+  pointer-events: none;
+}
+
+.glow-search-globe-stage {
+  display: grid;
+  gap: 1rem;
+}
+
+.glow-search-globe-crop {
+  position: relative;
+  min-height: 360px;
+  overflow: hidden;
+  border-radius: 1.75rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background:
+    radial-gradient(circle at 45% 40%, rgba(0, 194, 255, 0.12), transparent 24%),
+    linear-gradient(180deg, rgba(8, 17, 34, 0.98), rgba(10, 22, 46, 0.95));
+}
+
+.glow-search-globe-inner {
+  position: absolute;
+  inset: 0;
+  transform: translateX(-26%);
+}
+
+.glow-search-globe-panel {
+  position: relative;
+  border-radius: 1.5rem;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  background: rgb(255 255 255 / 0.05);
+  padding: 1rem;
+  backdrop-filter: blur(12px);
+}
+
+.glow-search-continent-pill,
+.glow-search-country-chip,
+.glow-search-selected-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border-radius: 999px;
+  transition: all 180ms ease;
+}
+
+.glow-search-continent-pill {
+  border: 1px solid rgb(255 255 255 / 0.10);
+  background: rgb(255 255 255 / 0.06);
+  color: rgb(203 213 225);
+  padding: 0.55rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.glow-search-continent-pill:hover,
+.glow-search-country-chip:hover,
+.glow-search-selected-chip:hover {
+  transform: translateY(-1px);
+}
+
+.glow-search-continent-pill-active {
+  border-color: rgb(103 232 249 / 0.55);
+  background: linear-gradient(135deg, rgba(0, 194, 255, 0.22), rgba(255, 77, 140, 0.18));
+  color: white;
+  box-shadow: 0 12px 28px rgb(0 194 255 / 0.14);
+}
+
+.glow-search-continent-badge {
+  display: inline-flex;
+  min-width: 1.25rem;
+  justify-content: center;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.2);
+  padding: 0.15rem 0.35rem;
+  font-size: 0.68rem;
+  color: white;
+}
+
+.glow-search-country-cloud {
+  display: flex;
+  max-height: 240px;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  overflow-y: auto;
+  padding-right: 0.15rem;
+}
+
+.glow-search-country-chip,
+.glow-search-selected-chip {
+  border: 1px solid rgb(255 255 255 / 0.10);
+  background: rgb(255 255 255 / 0.08);
+  color: rgb(226 232 240);
+  padding: 0.52rem 0.78rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.glow-search-country-chip-active,
+.glow-search-selected-chip {
+  border-color: rgb(103 232 249 / 0.55);
+  background: rgb(14 165 233 / 0.18);
+  color: white;
+  box-shadow: 0 8px 20px rgb(14 165 233 / 0.16);
+}
+
+@media (min-width: 1024px) {
+  .glow-search-globe-crop {
+    min-height: 430px;
+  }
+}
+
 .onboarding-eyebrow,
 .onboarding-step-eyebrow,
 .onboarding-micro-label,

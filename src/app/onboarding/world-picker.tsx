@@ -51,17 +51,6 @@ type ContinentConfig = {
   };
 };
 
-type ContinentFeature = {
-  properties: {
-    name: string;
-    key: string;
-  };
-  geometry: {
-    type: 'MultiPolygon';
-    coordinates: MultiPolygonCoords;
-  };
-};
-
 const continents: ContinentConfig[] = [
   { key: 'europe', label: 'Europe', emoji: '🏰', lat: 52, lng: 15, altitude: 1.35, colors: { base: 'rgba(168, 85, 247, 0.16)', hover: 'rgba(196, 181, 253, 0.28)', active: 'rgba(192, 132, 252, 0.42)', card: 'rgb(250 245 255)', badge: 'rgb(168 85 247)' } },
   { key: 'north-america', label: 'North America', emoji: '🗽', lat: 45, lng: -100, altitude: 1.45, colors: { base: 'rgba(34, 197, 94, 0.16)', hover: 'rgba(134, 239, 172, 0.28)', active: 'rgba(74, 222, 128, 0.42)', card: 'rgb(240 253 244)', badge: 'rgb(22 163 74)' } },
@@ -105,6 +94,7 @@ function WorldGlobe({
   countriesGeo,
   selectedCountries,
   hoveredCountry,
+  allowedCountries,
   setHoveredCountry,
   onCountryClick,
 }: {
@@ -115,6 +105,7 @@ function WorldGlobe({
   countriesGeo: GeoFeature[];
   selectedCountries: string[];
   hoveredCountry: string | null;
+  allowedCountries: Set<string>;
   setHoveredCountry: (value: string | null) => void;
   onCountryClick: (name: string) => void;
 }) {
@@ -194,6 +185,7 @@ function WorldGlobe({
             const feature = obj as GeoFeature;
             const name = getFeatureName(feature);
             if (EXCLUDED_COUNTRIES.has(name)) return 'rgba(0,0,0,0)';
+            if (!allowedCountries.has(name)) return 'rgba(255,255,255,0.015)';
             if (selectedCountries.includes(name)) return 'rgba(103, 232, 249, 0.75)';
             if (hoveredCountry === name) return 'rgba(186, 230, 253, 0.55)';
             return 'rgba(255,255,255,0.04)';
@@ -203,6 +195,7 @@ function WorldGlobe({
           polygonAltitude={(obj) => {
             const feature = obj as GeoFeature;
             const name = getFeatureName(feature);
+            if (!allowedCountries.has(name)) return 0.002;
             if (hoveredCountry === name) return 0.06;
             if (selectedCountries.includes(name)) return 0.005;
             return 0.005;
@@ -211,6 +204,7 @@ function WorldGlobe({
             const feature = obj as GeoFeature;
             const name = getFeatureName(feature);
             const selected = selectedCountries.includes(name);
+            if (!allowedCountries.has(name)) return `<div style="background:rgba(15,23,42,0.85);color:#94a3b8;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;">${name} — coming soon</div>`;
             return `<div style="background:rgba(15,23,42,0.85);color:white;padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600;">${name}${selected ? ' ✓' : ''}</div>`;
           }}
           onPolygonHover={(obj) => {
@@ -221,7 +215,7 @@ function WorldGlobe({
           onPolygonClick={(obj) => {
             const feature = obj as GeoFeature;
             const name = getFeatureName(feature);
-            if (name && !EXCLUDED_COUNTRIES.has(name)) onCountryClick(name);
+            if (name && !EXCLUDED_COUNTRIES.has(name) && allowedCountries.has(name)) onCountryClick(name);
           }}
         />
       ) : (
@@ -256,7 +250,7 @@ export function WorldPicker({ regions, selectedCountries, onToggleCountry, initi
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const globeBoxRef = useRef<HTMLDivElement>(null);
   const [globeSize, setGlobeSize] = useState({ width: 700, height: 500 });
-  const [mounted, setMounted] = useState(false);
+  const [mounted] = useState(() => typeof window !== 'undefined');
   const [countriesGeo, setCountriesGeo] = useState<GeoFeature[]>([]);
   const [activeContinentKey, setActiveContinentKey] = useState<string>(initialContinentKey ?? continents[0].key);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
@@ -291,8 +285,6 @@ export function WorldPicker({ regions, selectedCountries, onToggleCountry, initi
     });
     return counts;
   }, [countriesGeo, selectedCountries]);
-
-  useEffect(() => { setMounted(true); }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -425,6 +417,7 @@ export function WorldPicker({ regions, selectedCountries, onToggleCountry, initi
                     countriesGeo={countriesGeo}
                     selectedCountries={selectedCountries}
                     hoveredCountry={hoveredCountry}
+                    allowedCountries={new Set(countriesGeo.map(getFeatureName))}
                     setHoveredCountry={setHoveredCountry}
                     onCountryClick={onToggleCountry}
                   />
@@ -496,5 +489,221 @@ export function WorldPicker({ regions, selectedCountries, onToggleCountry, initi
         </div>
       )}
     </>
+  );
+}
+
+type SearchWorldSelectorProps = {
+  selectedCountries: string[];
+  onToggleCountry: (country: string) => void;
+  onClearCountries?: () => void;
+  availableCountryNames?: string[];
+};
+
+export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClearCountries, availableCountryNames }: SearchWorldSelectorProps) {
+  const globeRef = useRef<GlobeMethods | undefined>(undefined);
+  const globeBoxRef = useRef<HTMLDivElement>(null);
+  const [globeSize, setGlobeSize] = useState({ width: 540, height: 720 });
+  const [mounted] = useState(() => typeof window !== 'undefined');
+  const [countriesGeo, setCountriesGeo] = useState<GeoFeature[]>([]);
+  const [activeContinentKey, setActiveContinentKey] = useState<string>('europe');
+  const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const allowedCountries = useMemo(
+    () => new Set(availableCountryNames && availableCountryNames.length > 0 ? availableCountryNames : countriesGeo.map(getFeatureName)),
+    [availableCountryNames, countriesGeo],
+  );
+
+  useEffect(() => {
+    if (!globeBoxRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      if (width > 0 && height > 0) setGlobeSize({ width: Math.floor(width), height: Math.floor(height) });
+    });
+    ro.observe(globeBoxRef.current);
+    return () => ro.disconnect();
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(geoJsonUrl)
+      .then((r) => r.json())
+      .then((data) => {
+        if (!cancelled) {
+          setCountriesGeo((data.features || []).filter((f: GeoFeature) => !EXCLUDED_COUNTRIES.has(getFeatureName(f))));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setCountriesGeo([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const activeContinent = useMemo(
+    () => continents.find((c) => c.key === activeContinentKey) ?? continents[0],
+    [activeContinentKey],
+  );
+
+  const selectedCountPerContinent = useMemo(() => {
+    const counts: Record<string, number> = {};
+    countriesGeo.forEach((feature) => {
+      const key = classifyContinent(feature);
+      if (!key) return;
+      const name = getFeatureName(feature);
+      if (selectedCountries.includes(name)) counts[key] = (counts[key] ?? 0) + 1;
+    });
+    return counts;
+  }, [countriesGeo, selectedCountries]);
+
+  const availableCountries = useMemo(() => {
+    return countriesGeo
+      .filter((f) => classifyContinent(f) === activeContinent.key)
+      .map((f) => getFeatureName(f))
+      .filter((name) => allowedCountries.has(name))
+      .filter(Boolean)
+      .sort((a, b) => a.localeCompare(b));
+  }, [activeContinent.key, allowedCountries, countriesGeo]);
+
+  useEffect(() => {
+    if (!mounted || !globeRef.current) return;
+    globeRef.current.pointOfView(
+      { lat: activeContinent.lat, lng: activeContinent.lng, altitude: activeContinent.altitude },
+      1100,
+    );
+    const controls = globeRef.current.controls();
+    controls.autoRotate = true;
+    controls.autoRotateSpeed = 0.22;
+    controls.enablePan = false;
+    controls.minDistance = 120;
+    controls.maxDistance = 280;
+  }, [activeContinent, mounted]);
+
+  function flyToCountry(country: string) {
+    if (!globeRef.current) return;
+    const feature = countriesGeo.find((f) => getFeatureName(f) === country);
+    if (!feature?.geometry) return;
+    const coords = feature.geometry.type === 'Polygon'
+      ? (feature.geometry.coordinates as PolygonCoords)[0]
+      : (feature.geometry.coordinates as MultiPolygonCoords)[0][0];
+    if (!coords?.length) return;
+    const lng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
+    const lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
+    globeRef.current.pointOfView({ lat, lng, altitude: 1.7 }, 650);
+  }
+
+  return (
+    <section className="glow-search-globe-shell glow-card-tight overflow-hidden lg:sticky lg:top-24">
+      <div className="glow-search-globe-backdrop" />
+
+      <div className="relative z-10 flex items-start justify-between gap-4 px-5 pb-3 pt-5">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">Country explorer</p>
+          <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Orbit your options</h2>
+          <p className="mt-2 max-w-xs text-sm leading-6 text-slate-300">
+            Tap countries on the globe or from the list. Your search instantly narrows to those places.
+          </p>
+        </div>
+        {selectedCountries.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              if (onClearCountries) onClearCountries();
+              else selectedCountries.forEach((country) => onToggleCountry(country));
+            }}
+            className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/16"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
+
+      <div className="relative z-10 px-4 pb-4">
+        <div className="glow-search-globe-stage">
+          <div ref={globeBoxRef} className="glow-search-globe-crop">
+            <div className="glow-search-globe-inner">
+              <WorldGlobe
+                mounted={mounted}
+                globeWidth={globeSize.width}
+                globeHeight={globeSize.height}
+                globeRef={globeRef}
+                countriesGeo={countriesGeo}
+                selectedCountries={selectedCountries}
+                hoveredCountry={hoveredCountry}
+                allowedCountries={allowedCountries}
+                setHoveredCountry={setHoveredCountry}
+                onCountryClick={onToggleCountry}
+              />
+            </div>
+          </div>
+
+          <div className="glow-search-globe-panel">
+            <div className="flex flex-wrap gap-2">
+              {continents.map((continent) => {
+                const selected = continent.key === activeContinent.key;
+                const count = selectedCountPerContinent[continent.key] ?? 0;
+                return (
+                  <button
+                    key={continent.key}
+                    type="button"
+                    onClick={() => setActiveContinentKey(continent.key)}
+                    className={`glow-search-continent-pill ${selected ? 'glow-search-continent-pill-active' : ''}`}
+                  >
+                    <span>{continent.label}</span>
+                    {count > 0 && <span className="glow-search-continent-badge">{count}</span>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {selectedCountries.length > 0 && (
+              <div className="mt-4">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Selected countries</p>
+                <div className="flex flex-wrap gap-2">
+                  {selectedCountries.map((country) => (
+                    <button
+                      key={country}
+                      type="button"
+                      onClick={() => onToggleCountry(country)}
+                      className="glow-search-selected-chip"
+                    >
+                      {country}
+                      <span className="text-slate-300">✕</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="mt-4">
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">{activeContinent.label}</p>
+                <span className="text-xs text-slate-500">{availableCountries.length} countries</span>
+              </div>
+
+              <div className="glow-search-country-cloud">
+                {availableCountries.map((country) => {
+                  const selected = selectedCountries.includes(country);
+                  return (
+                    <button
+                      key={country}
+                      type="button"
+                      onClick={() => onToggleCountry(country)}
+                      onMouseEnter={() => {
+                        setHoveredCountry(country);
+                        flyToCountry(country);
+                      }}
+                      onMouseLeave={() => setHoveredCountry(null)}
+                      className={`glow-search-country-chip ${selected ? 'glow-search-country-chip-active' : ''}`}
+                    >
+                      {country}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

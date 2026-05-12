@@ -31,6 +31,7 @@ export interface ExplorerState {
   activeView: 'browse' | 'detail' | 'shortlist' | 'applications';
   selectedUniversityId: number | null;
   activeFilter: FilterCategory;
+  selectedCountries: string[];
   shortlist: number[]; // university IDs
   applications: ApplicationEntry[];
   toast: { message: string; visible: boolean } | null;
@@ -39,6 +40,8 @@ export interface ExplorerState {
 export interface ExplorerActions {
   setView: (view: ExplorerState['activeView'], universityId?: number) => void;
   setFilter: (filter: FilterCategory) => void;
+  toggleCountry: (country: string) => void;
+  clearCountries: () => void;
   addToShortlist: (id: number) => void;
   removeFromShortlist: (id: number) => void;
   isShortlisted: (id: number) => boolean;
@@ -55,10 +58,15 @@ export interface ExplorerActions {
 export function filterUniversities(
   universities: ExplorerUniversity[],
   filter: FilterCategory,
+  selectedCountries: string[] = [],
 ): ExplorerUniversity[] {
-  if (filter === 'All') return universities;
-  const tag = filter === 'Arts & Humanities' ? 'Arts' : filter;
-  return universities.filter((u) => u.tags.includes(tag));
+  return universities.filter((u) => {
+    const matchesCountry = selectedCountries.length === 0 || selectedCountries.includes(u.country);
+    if (!matchesCountry) return false;
+    if (filter === 'All') return true;
+    const tag = filter === 'Arts & Humanities' ? 'Arts' : filter;
+    return u.tags.includes(tag);
+  });
 }
 
 // ── Context ─────────────────────────────────────────────────────────────
@@ -91,6 +99,7 @@ export function UniversityExplorerProvider({
     useState<ExplorerState['activeView']>('browse');
   const [selectedUniversityId, setSelectedUniversityId] = useState<number | null>(null);
   const [activeFilter, setActiveFilter] = useState<FilterCategory>('All');
+  const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [shortlist, setShortlist] = useState<number[]>(initialShortlist);
   const [applications, setApplications] = useState<ApplicationEntry[]>(initialApplications);
   const [toast, setToast] = useState<ExplorerState['toast']>(null);
@@ -111,6 +120,18 @@ export function UniversityExplorerProvider({
 
   const setFilter = useCallback((filter: FilterCategory) => {
     setActiveFilter(filter);
+  }, []);
+
+  const toggleCountry = useCallback((country: string) => {
+    setSelectedCountries((prev) => (
+      prev.includes(country)
+        ? prev.filter((value) => value !== country)
+        : [...prev, country]
+    ));
+  }, []);
+
+  const clearCountries = useCallback(() => {
+    setSelectedCountries([]);
   }, []);
 
   const addToShortlist = useCallback(
@@ -310,12 +331,15 @@ export function UniversityExplorerProvider({
     activeView,
     selectedUniversityId,
     activeFilter,
+    selectedCountries,
     shortlist,
     applications,
     toast,
     universities: initialUniversities,
     setView,
     setFilter,
+    toggleCountry,
+    clearCountries,
     addToShortlist,
     removeFromShortlist,
     isShortlisted,

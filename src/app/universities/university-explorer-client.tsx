@@ -1,5 +1,6 @@
 'use client';
 
+import dynamic from 'next/dynamic';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -13,6 +14,11 @@ import {
 } from '@/lib/explorer-context';
 import { FILTER_CATEGORIES } from '@/lib/university-data';
 import { MatchBadge } from '@/components/match-badge';
+
+const SearchWorldSelector = dynamic(
+  () => import('@/app/onboarding/world-picker').then((mod) => mod.SearchWorldSelector),
+  { ssr: false },
+);
 
 /* ─────────────────────────────────────────────────────────────────────────
    HERO
@@ -89,8 +95,8 @@ function QuizBanner() {
 ───────────────────────────────────────────────────────────────────────── */
 
 function FilterBar() {
-  const { activeFilter, setFilter, universities } = useExplorer();
-  const filteredCount = filterUniversities(universities, activeFilter).length;
+  const { activeFilter, setFilter, universities, selectedCountries, clearCountries } = useExplorer();
+  const filteredCount = filterUniversities(universities, activeFilter, selectedCountries).length;
 
   return (
     <div className="mx-auto max-w-6xl px-4 pb-4">
@@ -116,6 +122,24 @@ function FilterBar() {
           {filteredCount} {filteredCount === 1 ? 'university' : 'universities'}
         </span>
       </div>
+
+      {selectedCountries.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Country focus</span>
+          {selectedCountries.map((country) => (
+            <span key={country} className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
+              {country}
+            </span>
+          ))}
+          <button
+            type="button"
+            onClick={clearCountries}
+            className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:border-pink-200 hover:text-pink-600"
+          >
+            Clear countries
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -232,17 +256,46 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
 ───────────────────────────────────────────────────────────────────────── */
 
 function UniversityGrid() {
-  const { activeFilter, universities } = useExplorer();
-  const filtered = filterUniversities(universities, activeFilter);
+  const { activeFilter, universities, selectedCountries } = useExplorer();
+  const filtered = filterUniversities(universities, activeFilter, selectedCountries);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-12">
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {filtered.map((university, i) => (
-          <UniversityCard key={university.id} university={university} index={i} />
-        ))}
+    <div className="mx-auto max-w-7xl px-4 pb-12">
+      <div className="grid gap-6 lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)] lg:items-start">
+        <div className="lg:pr-2">
+          <SearchGlobeRail />
+        </div>
+
+        <div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {filtered.map((university, i) => (
+              <UniversityCard key={university.id} university={university} index={i} />
+            ))}
+          </div>
+
+          {filtered.length === 0 && (
+            <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white/85 px-6 py-12 text-center shadow-sm backdrop-blur">
+              <p className="text-lg font-semibold text-slate-900">No universities in this orbit yet.</p>
+              <p className="mt-2 text-sm text-slate-500">Try clearing a country or switching subject filters to widen the map.</p>
+            </div>
+          )}
+        </div>
       </div>
     </div>
+  );
+}
+
+function SearchGlobeRail() {
+  const { selectedCountries, toggleCountry, clearCountries, universities } = useExplorer();
+  const availableCountryNames = Array.from(new Set(universities.map((university) => university.country))).sort((a, b) => a.localeCompare(b));
+
+  return (
+    <SearchWorldSelector
+      selectedCountries={selectedCountries}
+      onToggleCountry={toggleCountry}
+      onClearCountries={clearCountries}
+      availableCountryNames={availableCountryNames}
+    />
   );
 }
 

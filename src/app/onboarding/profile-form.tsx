@@ -13,15 +13,6 @@ import {
   supportNeeds,
 } from '@/lib/onboarding-options';
 
-const GlobeCountryPicker = dynamic(() => import('./world-picker').then((mod) => mod.WorldPicker), {
-  ssr: false,
-  loading: () => (
-    <div className="flex min-h-[280px] items-center justify-center rounded-3xl border border-black/5 bg-white/86 text-sm text-slate-600 shadow-[0_10px_24px_rgba(22,33,62,0.05)]">
-      Loading globe experience...
-    </div>
-  ),
-});
-
 const MiniGlobe = dynamic(
   () => import('@/components/landing-globe').then((mod) => ({ default: mod.LandingGlobe })),
   { ssr: false, loading: () => <div className="h-[200px] w-[200px]" /> },
@@ -275,11 +266,77 @@ export function OnboardingForm({ initialProfile, isSignedIn }: Props) {
 
           {step.key === 'countries' && (
             <div className="space-y-4">
-              <GlobeCountryPicker
-                regions={regions}
-                selectedCountries={selectedCountries}
-                onToggleCountry={(country) => toggleArrayValue('preferred_countries', country)}
-              />
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {regions.map((region) => {
+                  const selectedCount = region.countries.filter((country) => selectedCountries.includes(country)).length;
+                  const allSelected = selectedCount === region.countries.length;
+
+                  return (
+                    <button
+                      key={region.name}
+                      type="button"
+                      onClick={() => {
+                        const shouldAdd = !allSelected;
+                        setProfile((current) => {
+                          const currentValues = new Set(current.preferred_countries || []);
+                          region.countries.forEach((country) => {
+                            if (shouldAdd) currentValues.add(country);
+                            else currentValues.delete(country);
+                          });
+                          return { ...current, preferred_countries: Array.from(currentValues) };
+                        });
+                      }}
+                      className={`rounded-[1.5rem] border px-4 py-4 text-left transition ${
+                        selectedCount > 0
+                          ? 'border-cyan-200 bg-cyan-50/80 shadow-[0_12px_24px_rgba(0,194,255,0.08)]'
+                          : 'border-black/5 bg-white/90 hover:border-sky-200 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold text-slate-900">{region.name}</p>
+                          <p className="mt-1 text-xs text-slate-500">{region.countries.length} countries</p>
+                        </div>
+                        {selectedCount > 0 && (
+                          <span className="rounded-full bg-white px-2 py-1 text-xs font-semibold text-cyan-600 shadow-sm">
+                            {selectedCount} selected
+                          </span>
+                        )}
+                      </div>
+                      <div className="mt-3 flex flex-wrap gap-2">
+                        {region.countries.slice(0, 4).map((country) => (
+                          <span key={country} className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-slate-500">
+                            {country}
+                          </span>
+                        ))}
+                        {region.countries.length > 4 && (
+                          <span className="rounded-full bg-white/90 px-2.5 py-1 text-[11px] font-medium text-slate-400">
+                            +{region.countries.length - 4} more
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="rounded-[1.5rem] border border-black/5 bg-slate-50/80 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-sky-600">Choose specific countries</p>
+                  <span className="text-xs text-slate-400">Pick as many as you like</span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {regions.flatMap((region) => region.countries).map((country) => (
+                    <Chip
+                      key={country}
+                      label={country}
+                      selected={selectedCountries.includes(country)}
+                      onClick={() => toggleArrayValue('preferred_countries', country)}
+                    />
+                  ))}
+                </div>
+              </div>
+
               {selectedCountries.length > 0 && (
                 <div className="rounded-2xl border border-slate-200 bg-slate-50/80 p-4">
                   <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-sky-600">Selected countries</p>
