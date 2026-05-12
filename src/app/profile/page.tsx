@@ -7,6 +7,7 @@ import { ProfileAvatar } from './profile-avatar';
 import { PersonalInfoCard } from './personal-info-card';
 import Link from 'next/link';
 import type { UploadedDocument } from '@/lib/types';
+import { SignOutButton } from '@/components/sign-out-button';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -56,7 +57,7 @@ export default async function ProfilePage() {
                 <p className="mt-3 text-sm leading-relaxed text-slate-600 max-w-prose">{profile.bio}</p>
               )}
               <div className="mt-4 flex flex-wrap gap-2">
-                <a href="/auth" className="glow-button-secondary text-xs px-3 py-1.5">Sign out</a>
+                <SignOutButton className="glow-button-secondary text-xs px-3 py-1.5" />
                 <button
                   className="glow-button-secondary text-xs px-3 py-1.5"
                   style={{ color: 'rgb(239 68 68)', borderColor: 'rgb(254 226 226)' }}

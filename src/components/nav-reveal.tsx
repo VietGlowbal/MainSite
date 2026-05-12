@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, useScroll } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
+import { SignOutButton } from '@/components/sign-out-button';
 
 const NAV_ITEMS = [
   { href: '/',               label: 'Home' },
@@ -109,7 +110,9 @@ function MobileNav({ user }: { user: { name: string; avatarUrl?: string } | null
 }
 
 // ── Smart sticky header — hides on scroll-down, reveals on scroll-up ─────────
-function StickyHeader({ user }: { user: { name: string; avatarUrl?: string } | null }) {
+type UserSummary = { name: string; avatarUrl?: string };
+
+function StickyHeader({ user }: { user: UserSummary | null }) {
   const { scrollY } = useScroll();
   const [visible, setVisible] = useState(true);
   const [scrolled, setScrolled] = useState(false);
@@ -184,7 +187,16 @@ function StickyHeader({ user }: { user: { name: string; avatarUrl?: string } | n
               )
             ))}
             {user ? (
-              <NavAvatar name={user.name} avatarUrl={user.avatarUrl} />
+              <>
+                <NavAvatar name={user.name} avatarUrl={user.avatarUrl} />
+                <SignOutButton
+                  containerClassName="inline-flex"
+                  className="glowbal-nav-link transition hover:text-slate-900"
+                  redirectTo="/auth"
+                >
+                  Sign out
+                </SignOutButton>
+              </>
             ) : (
               <Link href="/auth" className="glowbal-nav-link transition hover:text-slate-900">Sign in</Link>
             )}
@@ -197,13 +209,14 @@ function StickyHeader({ user }: { user: { name: string; avatarUrl?: string } | n
 
 // ── Main nav ─────────────────────────────────────────────────────────────────
 export function NavReveal() {
-  const [revealed, setRevealed] = useState(false);
-  const [user, setUser] = useState<{ name: string; avatarUrl?: string } | null>(null);
+  const [revealed, setRevealed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    const isLanding = window.location.pathname === '/';
+    return !isLanding || localStorage.getItem('glowbal-nav-revealed') === 'true';
+  });
+  const [user, setUser] = useState<UserSummary | null>(null);
 
   useEffect(() => {
-    const isLanding = window.location.pathname === '/';
-    if (!isLanding || localStorage.getItem('glowbal-nav-revealed') === 'true') setRevealed(true);
-
     function onReveal() {
       setRevealed(true);
       localStorage.setItem('glowbal-nav-revealed', 'true');
