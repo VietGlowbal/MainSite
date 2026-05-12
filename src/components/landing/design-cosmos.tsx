@@ -9,20 +9,7 @@ import type { WaitlistAction } from '@/lib/types';
 
 gsap.registerPlugin(useGSAP);
 
-const features = [
-  {
-    title: 'Explore the world simply',
-    body: 'Move through countries and universities without the usual spreadsheet chaos.',
-  },
-  {
-    title: 'Get guidance that feels clear',
-    body: 'Glowbal helps narrow your options without burying you in clutter.',
-  },
-  {
-    title: 'Keep momentum once you choose',
-    body: 'Shortlist, compare, and track next steps in one connected flow.',
-  },
-];
+const features = ['Explore universities worldwide', 'Shortlist the ones that fit', 'Move forward with less chaos'];
 
 export function DesignCosmos({ action }: { action: WaitlistAction }) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -57,8 +44,8 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
         }}
       />
 
-      <section className="relative px-6 pb-20 pt-28 md:pt-32">
-        <div className="mx-auto grid max-w-7xl gap-12 lg:grid-cols-[minmax(0,1fr)_minmax(320px,520px)] lg:items-center">
+      <section className="relative overflow-hidden px-6 pb-20 pt-24 md:pt-28">
+        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(420px,1fr)] lg:items-center">
           <div className="relative z-10 max-w-3xl">
             <button
               type="button"
@@ -69,7 +56,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
               Early access
             </button>
 
-            <h1 className="landing-title mt-6 text-5xl font-semibold leading-none tracking-[-0.05em] md:text-6xl lg:text-7xl">
+            <h1 className="landing-title mt-6 text-5xl font-semibold leading-none tracking-[-0.05em] md:text-6xl lg:text-[5.5rem]">
               Find your best-fit
               <span className="glowbal-wordmark block">future abroad</span>
             </h1>
@@ -93,21 +80,20 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
               </a>
             </div>
 
-            <div className="mt-10 grid gap-4 md:grid-cols-3">
+            <div className="mt-10 flex flex-wrap gap-3">
               {features.map((feature) => (
-                <div key={feature.title} className="landing-feature rounded-[1.5rem] border border-white/10 bg-white/[0.04] p-5 backdrop-blur-sm">
-                  <h2 className="text-base font-semibold text-white">{feature.title}</h2>
-                  <p className="mt-2 text-sm leading-6 text-white/62">{feature.body}</p>
+                <div key={feature} className="landing-feature rounded-full border border-white/12 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-white/78 backdrop-blur-sm">
+                  {feature}
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="landing-globe relative flex items-center justify-center">
-            <div className="absolute h-[22rem] w-[22rem] rounded-full border border-cyan-300/12 md:h-[30rem] md:w-[30rem]" />
-            <div className="absolute h-[26rem] w-[26rem] rounded-full border border-white/8 md:h-[36rem] md:w-[36rem]" />
-            <div className="rounded-full border border-white/10 bg-white/[0.04] p-6 shadow-[0_0_100px_rgba(34,211,238,0.12)] backdrop-blur-md">
-              <LandingGlobe theme="cosmos" size={520} rotateSpeed={0.28} />
+          <div className="landing-globe relative flex items-center justify-center lg:justify-end">
+            <div className="absolute h-[30rem] w-[30rem] rounded-full border border-cyan-300/12 md:h-[40rem] md:w-[40rem] xl:h-[48rem] xl:w-[48rem]" />
+            <div className="absolute h-[36rem] w-[36rem] rounded-full border border-white/8 md:h-[48rem] md:w-[48rem] xl:h-[58rem] xl:w-[58rem]" />
+            <div className="relative translate-x-[10%] rounded-full border border-white/10 bg-white/[0.03] p-4 shadow-[0_0_140px_rgba(34,211,238,0.14)] backdrop-blur-md md:translate-x-[14%] xl:translate-x-[18%]">
+              <LandingGlobe theme="cosmos" size={700} rotateSpeed={0.26} />
             </div>
           </div>
         </div>

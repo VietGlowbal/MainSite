@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { computeMatchResult } from '@/lib/matching';
 import { toExplorerUniversity } from '@/lib/explorer-utils';
 import type { ApplicationEntry } from '@/lib/explorer-context';
@@ -7,6 +8,7 @@ import { UniversityExplorerClient } from './university-explorer-client';
 
 export default async function UniversitiesPage() {
   const supabase = await createClient();
+  const adminSupabase = createAdminClient();
 
   const {
     data: { user },
@@ -50,7 +52,7 @@ export default async function UniversitiesPage() {
   }
 
   // Fetch all universities
-  const { data: universities } = await supabase
+  const { data: universities } = await adminSupabase
     .from('universities')
     .select('*')
     .order('qs_rank', { ascending: true, nullsFirst: false });

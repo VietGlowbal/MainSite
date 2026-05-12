@@ -26,23 +26,16 @@ const SearchWorldSelector = dynamic(
 
 function HeroSection() {
   return (
-    <section className="px-6 pb-6 pt-10 md:pb-8 md:pt-12">
+    <section className="px-6 pb-4 pt-8 md:pb-6 md:pt-10">
       <div className="mx-auto max-w-7xl">
-        <div className="rounded-[2rem] border border-white/80 bg-white/80 px-6 py-8 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur md:px-8 md:py-9">
+        <div className="rounded-[2rem] border border-white/80 bg-white/78 px-6 py-7 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur md:px-8 md:py-8">
           <span className="glow-pill">University Explorer</span>
           <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] text-slate-950 md:text-5xl">
-            Explore the world without the clutter.
+            A cleaner way to explore universities worldwide.
           </h1>
           <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
-            Use the globe on the left to keep things playful, then narrow to the universities that actually matter.
+            The globe stays with you on the left. Tap countries when you want to narrow things down, or just browse everything.
           </p>
-          <div className="mt-6 flex flex-wrap gap-2.5 text-sm text-slate-600">
-            {['Big globe', 'Fast country filtering', 'Easy shortlist building'].map((item) => (
-              <span key={item} className="rounded-full border border-slate-200 bg-white px-3 py-1.5 font-medium">
-                {item}
-              </span>
-            ))}
-          </div>
         </div>
       </div>
     </section>
@@ -280,9 +273,9 @@ function UniversityGrid() {
   const filtered = filterUniversities(universities, activeFilter, selectedCountries);
 
   return (
-    <div className="mx-auto max-w-[1400px] px-4 pb-16">
-      <div className="grid gap-8 lg:grid-cols-[440px_minmax(0,1fr)] lg:items-start xl:gap-10">
-        <div>
+    <div className="mx-auto max-w-[1500px] px-4 pb-16">
+      <div className="grid gap-6 lg:grid-cols-[minmax(520px,46vw)_minmax(0,1fr)] lg:items-start xl:gap-8">
+        <div className="overflow-visible">
           <SearchGlobeRail />
         </div>
 

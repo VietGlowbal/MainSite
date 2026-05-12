@@ -365,12 +365,14 @@ body {
 
 .glow-search-globe-rail {
   position: relative;
+  overflow: visible;
 }
 
 .glow-search-globe-stage-large {
   position: relative;
-  min-height: 520px;
+  min-height: 560px;
   border-radius: 50%;
+  overflow: visible;
   background: radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.14), rgba(255,255,255,0) 58%);
 }
 
@@ -443,7 +445,7 @@ body {
 
 @media (min-width: 1024px) {
   .glow-search-globe-stage-large {
-    min-height: 640px;
+    min-height: 760px;
   }
 }
 

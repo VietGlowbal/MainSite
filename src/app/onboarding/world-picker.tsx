@@ -521,7 +521,7 @@ function findBestCountryMatch(country: string, availableCountryNames: string[]) 
 export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClearCountries, availableCountryNames }: SearchWorldSelectorProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const globeBoxRef = useRef<HTMLDivElement>(null);
-  const [globeSize, setGlobeSize] = useState({ width: 560, height: 720 });
+  const [globeSize, setGlobeSize] = useState({ width: 700, height: 820 });
   const [mounted] = useState(() => typeof window !== 'undefined');
   const [countriesGeo, setCountriesGeo] = useState<GeoFeature[]>([]);
   const [activeContinentKey, setActiveContinentKey] = useState<string>('europe');
@@ -591,7 +591,7 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClea
     );
     const controls = globeRef.current.controls();
     controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.18;
+    controls.autoRotateSpeed = 0.16;
     controls.enablePan = false;
     controls.minDistance = 120;
     controls.maxDistance = 320;
@@ -607,17 +607,17 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClea
     if (!coords?.length) return;
     const lng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
     const lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
-    globeRef.current.pointOfView({ lat, lng, altitude: 1.7 }, 650);
+    globeRef.current.pointOfView({ lat, lng, altitude: 1.32 }, 500);
   }
 
   return (
-    <section className="glow-search-globe-rail lg:sticky lg:top-24">
+    <section className="glow-search-globe-rail lg:sticky lg:top-20">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-slate-400">Pick countries</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Spin the globe</h2>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Spin the world</h2>
           <p className="mt-2 max-w-sm text-sm leading-6 text-slate-600">
-            Keep it fun: tap the globe, narrow your world, and only filter when it actually helps.
+            Keep Glowbal in view while you scroll, then tap countries when you want to focus the list.
           </p>
         </div>
         {selectedCountries.length > 0 && (
@@ -634,7 +634,7 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClea
         )}
       </div>
 
-      <div ref={globeBoxRef} className="glow-search-globe-stage-large mt-4">
+      <div ref={globeBoxRef} className="glow-search-globe-stage-large mt-2 lg:-ml-32 xl:-ml-40">
         <WorldGlobe
           mounted={mounted}
           globeWidth={globeSize.width}
