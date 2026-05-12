@@ -26,16 +26,76 @@ const SearchWorldSelector = dynamic(
 
 function HeroSection() {
   return (
-    <section className="px-6 py-12 md:py-16">
-      <div className="mx-auto max-w-6xl">
-        <span className="glow-pill">University Explorer</span>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
-          Find your{' '}
-          <span className="glowbal-wordmark">perfect match</span>
-        </h1>
-        <p className="mt-3 max-w-xl text-base text-slate-500">
-          Browse top universities worldwide, save your favourites, and track every step of your application journey.
-        </p>
+    <section className="px-6 pb-8 pt-10 md:pb-10 md:pt-14">
+      <div className="mx-auto max-w-7xl">
+        <div className="explorer-hero-shell overflow-hidden rounded-[2rem] border border-white/70 px-6 py-8 shadow-[0_24px_80px_rgba(10,18,38,0.10)] md:px-8 md:py-10 lg:px-10">
+          <div className="explorer-hero-grid gap-8 lg:grid lg:grid-cols-[minmax(0,1.1fr)_320px] lg:items-center">
+            <div className="relative z-10 max-w-3xl">
+              <span className="glow-pill">University Explorer</span>
+              <h1 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-slate-950 md:text-5xl lg:text-6xl">
+                Explore a more
+                <span className="glowbal-wordmark block">global shortlist</span>
+              </h1>
+              <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
+                Compare standout universities across the world, refine your orbit by country and subject, and build a premium shortlist around your goals.
+              </p>
+
+              <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-600">
+                {[
+                  'Globe-led country discovery',
+                  'Editorial match cards',
+                  'Shortlist and application tracking',
+                ].map((item) => (
+                  <span key={item} className="explorer-hero-chip">
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="relative mt-8 lg:mt-0">
+              <div className="explorer-orbit-card mx-auto max-w-sm">
+                <div className="explorer-orbit-glow" />
+                <div className="relative rounded-[1.75rem] border border-white/12 bg-[linear-gradient(155deg,rgba(4,12,28,0.98),rgba(14,31,58,0.95))] p-5 text-white shadow-[0_24px_60px_rgba(4,12,28,0.35)]">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-cyan-200/80">Signature view</p>
+                      <p className="mt-1 text-lg font-semibold">Your study world map</p>
+                    </div>
+                    <span className="rounded-full border border-white/12 bg-white/8 px-3 py-1 text-xs font-semibold text-white/80">
+                      Live filters
+                    </span>
+                  </div>
+                  <div className="relative mt-5 flex h-44 items-center justify-center overflow-hidden rounded-[1.5rem] border border-cyan-300/15 bg-[radial-gradient(circle_at_50%_50%,rgba(34,211,238,0.28),rgba(5,10,20,0.04)_42%,rgba(5,10,20,0)_66%)]">
+                    <div className="explorer-orbit-ring explorer-orbit-ring-1" />
+                    <div className="explorer-orbit-ring explorer-orbit-ring-2" />
+                    <div className="explorer-orbit-ring explorer-orbit-ring-3" />
+                    <div className="relative flex h-24 w-24 items-center justify-center rounded-full border border-cyan-200/35 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.4),rgba(56,189,248,0.2),rgba(8,47,73,0.96))] text-4xl shadow-[0_0_40px_rgba(34,211,238,0.18)]">
+                      🌍
+                    </div>
+                    <span className="absolute left-7 top-7 rounded-full border border-pink-300/30 bg-pink-300/10 px-2.5 py-1 text-[0.68rem] font-semibold text-pink-100">UK</span>
+                    <span className="absolute right-8 top-12 rounded-full border border-cyan-200/30 bg-cyan-300/10 px-2.5 py-1 text-[0.68rem] font-semibold text-cyan-100">Canada</span>
+                    <span className="absolute bottom-8 left-12 rounded-full border border-emerald-300/30 bg-emerald-300/10 px-2.5 py-1 text-[0.68rem] font-semibold text-emerald-100">Singapore</span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-3 gap-3 text-center text-xs text-white/72">
+                    <div className="rounded-2xl border border-white/10 bg-white/6 px-3 py-3">
+                      <p className="text-lg font-semibold text-white">50+</p>
+                      <p className="mt-1">global options</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/6 px-3 py-3">
+                      <p className="text-lg font-semibold text-white">Smart</p>
+                      <p className="mt-1">match layers</p>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-white/6 px-3 py-3">
+                      <p className="text-lg font-semibold text-white">1 tap</p>
+                      <p className="mt-1">save to shortlist</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
   );
@@ -99,47 +159,59 @@ function FilterBar() {
   const filteredCount = filterUniversities(universities, activeFilter, selectedCountries).length;
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-4">
-      <div className="flex flex-wrap items-center gap-2 rounded-2xl border border-black/[.05] bg-white/80 px-4 py-3 shadow-sm backdrop-blur">
-        {FILTER_CATEGORIES.map((category) => {
-          const isActive = activeFilter === category;
-          return (
-            <button
-              key={category}
-              type="button"
-              onClick={() => setFilter(category)}
-              className={`rounded-full px-4 py-1.5 text-sm font-semibold transition-all ${
-                isActive
-                  ? 'bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] text-white shadow-[0_4px_14px_rgba(255,77,140,0.3)]'
-                  : 'bg-slate-100 text-slate-500 hover:bg-slate-200 hover:text-slate-700'
-              }`}
-            >
-              {category}
-            </button>
-          );
-        })}
-        <span className="ml-auto text-sm text-slate-400">
-          {filteredCount} {filteredCount === 1 ? 'university' : 'universities'}
-        </span>
-      </div>
-
-      {selectedCountries.length > 0 && (
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Country focus</span>
-          {selectedCountries.map((country) => (
-            <span key={country} className="rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1 text-xs font-semibold text-cyan-700">
-              {country}
-            </span>
-          ))}
-          <button
-            type="button"
-            onClick={clearCountries}
-            className="rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-semibold text-slate-500 transition hover:border-pink-200 hover:text-pink-600"
-          >
-            Clear countries
-          </button>
+    <div className="mx-auto max-w-7xl px-4 pb-5">
+      <div className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/70 shadow-[0_16px_48px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+        <div className="flex flex-col gap-4 px-5 py-5 md:px-6 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-400">Refine your shortlist</p>
+            <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">Subjects, countries, and fit — all in one view</h2>
+          </div>
+          <div className="flex items-center gap-3 rounded-full border border-slate-200/80 bg-slate-50/80 px-4 py-2 text-sm text-slate-500">
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+            <span>{filteredCount} {filteredCount === 1 ? 'university' : 'universities'} in orbit</span>
+          </div>
         </div>
-      )}
+
+        <div className="border-t border-slate-100/90 px-5 py-4 md:px-6">
+          <div className="flex flex-wrap gap-2.5">
+            {FILTER_CATEGORIES.map((category) => {
+              const isActive = activeFilter === category;
+              return (
+                <button
+                  key={category}
+                  type="button"
+                  onClick={() => setFilter(category)}
+                  className={`rounded-full px-4 py-2 text-sm font-semibold transition-all ${
+                    isActive
+                      ? 'bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] text-white shadow-[0_8px_22px_rgba(255,77,140,0.24)]'
+                      : 'border border-slate-200 bg-white text-slate-600 hover:border-cyan-200 hover:text-slate-900'
+                  }`}
+                >
+                  {category}
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedCountries.length > 0 && (
+            <div className="mt-4 flex flex-wrap items-center gap-2.5 rounded-[1.5rem] border border-cyan-100 bg-cyan-50/70 px-4 py-3">
+              <span className="text-[0.68rem] font-semibold uppercase tracking-[0.2em] text-cyan-700">Country focus</span>
+              {selectedCountries.map((country) => (
+                <span key={country} className="rounded-full border border-cyan-200 bg-white/90 px-3 py-1 text-xs font-semibold text-cyan-700 shadow-sm">
+                  {country}
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={clearCountries}
+                className="rounded-full border border-cyan-200 bg-white/90 px-3 py-1 text-xs font-semibold text-slate-600 transition hover:border-pink-200 hover:text-pink-600"
+              >
+                Clear countries
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
@@ -184,15 +256,17 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.35, delay: Math.min(index * 0.04, 0.6), ease: 'easeOut' }}
-      className="group relative rounded-2xl overflow-hidden bg-white border border-slate-100 shadow-sm hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(22,33,62,0.12)] transition-all duration-300 flex flex-col"
+      className="group relative flex flex-col overflow-hidden rounded-[1.75rem] border border-white/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,255,0.94))] shadow-[0_18px_50px_rgba(15,23,42,0.08)] transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_24px_60px_rgba(15,23,42,0.14)]"
     >
       <button
         type="button"
         onClick={() => setView('detail', university.id)}
-        className="relative flex h-40 w-full items-center justify-center"
+        className="relative flex h-44 w-full items-center justify-center overflow-hidden"
         style={{ background: `linear-gradient(135deg, ${university.color} 0%, ${university.color}dd 100%)` }}
       >
-        <span className="text-5xl drop-shadow-sm" role="img" aria-label={university.name}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.28),transparent_48%)]" />
+        <div className="absolute inset-x-8 bottom-0 h-16 rounded-full bg-black/10 blur-2xl" />
+        <span className="relative text-5xl drop-shadow-sm transition-transform duration-300 group-hover:scale-105" role="img" aria-label={university.name}>
           {university.emoji}
         </span>
         <span className="absolute left-3 top-3 rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white backdrop-blur-sm">
@@ -210,23 +284,23 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
         )}
       </button>
 
-      <div className="flex flex-1 flex-col gap-2.5 px-5 pb-5 pt-4">
+      <div className="flex flex-1 flex-col gap-3 px-5 pb-5 pt-4">
         <button type="button" onClick={() => setView('detail', university.id)} className="text-left">
-          <h3 className="text-base font-semibold leading-snug text-slate-900 line-clamp-2">{university.name}</h3>
-          <p className="mt-0.5 text-sm text-slate-400">{university.location}</p>
+          <h3 className="text-lg font-semibold leading-snug tracking-tight text-slate-950 line-clamp-2">{university.name}</h3>
+          <p className="mt-1 text-sm text-slate-500">{university.location}</p>
         </button>
 
         <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} />
 
-        <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-2">
           {university.tags.slice(0, 3).map((tag) => (
-            <span key={tag} className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-500">
+            <span key={tag} className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[0.7rem] font-semibold text-slate-600">
               {tag}
             </span>
           ))}
         </div>
 
-        <div className="mt-auto flex items-center justify-between pt-1 text-xs text-slate-400">
+        <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3 text-xs text-slate-500">
           {university.accept_rate
             ? <span>Accept: <span className={`font-semibold ${acceptColor}`}>{university.accept_rate}</span></span>
             : <span />}
@@ -236,7 +310,7 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
         <button
           type="button"
           onClick={handleSave}
-          className={`mt-1 w-full rounded-full py-2 text-xs font-semibold transition-all md:opacity-0 md:group-hover:opacity-100 ${
+          className={`mt-1 w-full rounded-full py-2.5 text-xs font-semibold transition-all md:opacity-0 md:group-hover:opacity-100 ${
             !isLoggedIn
               ? 'border border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 md:opacity-100'
               : saved
@@ -260,8 +334,8 @@ function UniversityGrid() {
   const filtered = filterUniversities(universities, activeFilter, selectedCountries);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-12">
-      <div className="grid gap-6 lg:grid-cols-[minmax(320px,380px)_minmax(0,1fr)] lg:items-start">
+    <div className="mx-auto max-w-7xl px-4 pb-16">
+      <div className="grid gap-6 lg:grid-cols-[minmax(330px,390px)_minmax(0,1fr)] lg:items-start xl:gap-8">
         <div className="lg:pr-2">
           <SearchGlobeRail />
         </div>
@@ -274,9 +348,9 @@ function UniversityGrid() {
           </div>
 
           {filtered.length === 0 && (
-            <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white/85 px-6 py-12 text-center shadow-sm backdrop-blur">
+            <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white/85 px-6 py-12 text-center shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur">
               <p className="text-lg font-semibold text-slate-900">No universities in this orbit yet.</p>
-              <p className="mt-2 text-sm text-slate-500">Try clearing a country or switching subject filters to widen the map.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">Try clearing a country, switching the subject lens, or widening your world view to uncover more options.</p>
             </div>
           )}
         </div>

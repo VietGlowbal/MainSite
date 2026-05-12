@@ -502,7 +502,7 @@ type SearchWorldSelectorProps = {
 export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClearCountries, availableCountryNames }: SearchWorldSelectorProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const globeBoxRef = useRef<HTMLDivElement>(null);
-  const [globeSize, setGlobeSize] = useState({ width: 540, height: 720 });
+  const [globeSize, setGlobeSize] = useState({ width: 540, height: 660 });
   const [mounted] = useState(() => typeof window !== 'undefined');
   const [countriesGeo, setCountriesGeo] = useState<GeoFeature[]>([]);
   const [activeContinentKey, setActiveContinentKey] = useState<string>('europe');
@@ -595,12 +595,12 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClea
     <section className="glow-search-globe-shell glow-card-tight overflow-hidden lg:sticky lg:top-24">
       <div className="glow-search-globe-backdrop" />
 
-      <div className="relative z-10 flex items-start justify-between gap-4 px-5 pb-3 pt-5">
+      <div className="relative z-10 flex items-start justify-between gap-4 px-5 pb-4 pt-5">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">Country explorer</p>
-          <h2 className="mt-2 text-xl font-semibold tracking-tight text-white">Orbit your options</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">Globe-led filtering</p>
+          <h2 className="mt-2 text-[1.65rem] font-semibold tracking-tight text-white">Orbit your options</h2>
           <p className="mt-2 max-w-xs text-sm leading-6 text-slate-300">
-            Tap countries on the globe or from the list. Your search instantly narrows to those places.
+            Tap countries on the globe or from the list. Your shortlist instantly narrows to the places that feel right.
           </p>
         </div>
         {selectedCountries.length > 0 && (
@@ -637,6 +637,10 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, onClea
           </div>
 
           <div className="glow-search-globe-panel">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-400">Featured continents</p>
+              <span className="text-xs text-slate-500">{selectedCountries.length > 0 ? `${selectedCountries.length} selected` : 'Tap to focus'}</span>
+            </div>
             <div className="flex flex-wrap gap-2">
               {continents.map((continent) => {
                 const selected = continent.key === activeContinent.key;
