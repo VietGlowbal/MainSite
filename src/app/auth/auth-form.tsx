@@ -1,7 +1,7 @@
 'use client';
 
 import { FormEvent, useMemo, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 
@@ -81,6 +81,7 @@ function FloatingOrbs() {
 export function AuthForm() {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mode, setMode] = useState<Mode>('signup');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -90,12 +91,25 @@ export function AuthForm() {
   const [emailSent, setEmailSent] = useState(false);
   const [sentTo, setSentTo] = useState('');
 
+  const redirectPath = useMemo(() => {
+    const raw = searchParams.get('redirect');
+    return raw && raw.startsWith('/') ? raw : null;
+  }, [searchParams]);
+
+  const buildCallbackUrl = () => {
+    const callbackUrl = new URL('/auth/callback', window.location.origin);
+    if (redirectPath) {
+      callbackUrl.searchParams.set('next', redirectPath);
+    }
+    return callbackUrl.toString();
+  };
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError(null);
     const { error: oauthError } = await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${window.location.origin}/auth/callback` },
+      options: { redirectTo: buildCallbackUrl() },
     });
     if (oauthError) {
       setError(oauthError.message);
@@ -114,7 +128,7 @@ export function AuthForm() {
           password,
           options: {
             data: { full_name: fullName },
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: buildCallbackUrl(),
           },
         });
         if (signUpError) throw signUpError;
@@ -123,7 +137,8 @@ export function AuthForm() {
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        router.push('/profile');
+        router.push(redirectPath ?? '/profile');
+        router.refresh();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -179,7 +194,7 @@ export function AuthForm() {
           >
             We sent a confirmation link to{' '}
             <strong style={{ color: 'rgb(15 23 42)' }}>{sentTo}</strong>.
-            Click it to activate your account and land on your profile.
+            Click it to activate your account and continue where you left off.
           </motion.p>
 
           <motion.p

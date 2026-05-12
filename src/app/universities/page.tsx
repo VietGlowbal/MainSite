@@ -80,6 +80,7 @@ export default async function UniversitiesPage() {
       initialShortlist={savedUniversityIds}
       initialApplications={initialApplications}
       isLoggedIn={!!user}
+      hasProfile={!!profile}
     />
   );
 }

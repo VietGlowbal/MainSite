@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
+  const next = searchParams.get('next');
+  const safeNext = next?.startsWith('/') ? next : null;
 
   if (code) {
     const supabase = await createClient();
@@ -16,6 +18,10 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        if (safeNext) {
+          return NextResponse.redirect(`${origin}${safeNext}`);
+        }
+
         const { data: profile } = await supabase
           .from('student_profiles')
           .select('onboarding_completed, study_level, target_subjects, preferred_countries')

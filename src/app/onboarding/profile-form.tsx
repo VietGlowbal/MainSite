@@ -2,6 +2,7 @@
 
 import dynamic from 'next/dynamic';
 import { FormEvent, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { StudentProfile } from '@/lib/types';
 import {
@@ -28,7 +29,40 @@ const MiniGlobe = dynamic(
 
 type Props = {
   initialProfile?: StudentProfile | null;
+  isSignedIn: boolean;
 };
+
+const ONBOARDING_DRAFT_KEY = 'glowbal-onboarding-draft';
+
+type OnboardingDraft = {
+  profile: StudentProfile;
+  stepIndex: number;
+};
+
+function loadDraft(): OnboardingDraft | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const raw = window.localStorage.getItem(ONBOARDING_DRAFT_KEY);
+    return raw ? (JSON.parse(raw) as OnboardingDraft) : null;
+  } catch {
+    return null;
+  }
+}
+
+function buildInitialProfile(initialProfile?: StudentProfile | null, draftProfile?: StudentProfile | null): StudentProfile {
+  return {
+    study_level: draftProfile?.study_level ?? initialProfile?.study_level ?? '',
+    target_subjects: draftProfile?.target_subjects ?? initialProfile?.target_subjects ?? [],
+    preferred_countries: draftProfile?.preferred_countries ?? initialProfile?.preferred_countries ?? [],
+    budget_range: draftProfile?.budget_range ?? initialProfile?.budget_range ?? budgetMarks[1],
+    academic_background: draftProfile?.academic_background ?? initialProfile?.academic_background ?? '',
+    goals: draftProfile?.goals ?? initialProfile?.goals ?? '',
+    career_interests: draftProfile?.career_interests ?? initialProfile?.career_interests ?? [],
+    campus_preferences: draftProfile?.campus_preferences ?? initialProfile?.campus_preferences ?? '',
+    support_needs: draftProfile?.support_needs ?? initialProfile?.support_needs ?? '',
+  };
+}
 
 const budgetMarks = ['Under $15k', 'Up to $25k', 'Up to $50k', '$50k+'];
 const vennZones = [
@@ -41,43 +75,66 @@ const vennZones = [
   { key: 'flexible', label: 'Flexible', x: '43%', y: '40%' },
 ];
 
-export function OnboardingForm({ initialProfile }: Props) {
+export function OnboardingForm({ initialProfile, isSignedIn }: Props) {
   const supabase = useMemo(() => createClient(), []);
-  const [profile, setProfile] = useState<StudentProfile>({
-    study_level: initialProfile?.study_level ?? '',
-    target_subjects: initialProfile?.target_subjects ?? [],
-    preferred_countries: initialProfile?.preferred_countries ?? [],
-    budget_range: initialProfile?.budget_range ?? budgetMarks[1],
-    academic_background: initialProfile?.academic_background ?? '',
-    goals: initialProfile?.goals ?? '',
-    career_interests: initialProfile?.career_interests ?? [],
-    campus_preferences: initialProfile?.campus_preferences ?? '',
-    support_needs: initialProfile?.support_needs ?? '',
-  });
+  const router = useRouter();
+  const initialState = buildInitialProfile(initialProfile, null);
+  const [profile, setProfile] = useState<StudentProfile>(initialState);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [stepIndex, setStepIndex] = useState(0);
   const [activeFamily, setActiveFamily] = useState('');
   const [pulsingFamily, setPulsingFamily] = useState<string | null>(null);
   const [budgetIndex, setBudgetIndex] = useState(
-    Math.max(budgetMarks.indexOf(initialProfile?.budget_range || budgetMarks[1]), 0),
+    Math.max(budgetMarks.indexOf(initialState.budget_range || budgetMarks[1]), 0),
   );
 
   const step = onboardingSteps[stepIndex];
-  const progress = ((stepIndex + 1) / onboardingSteps.length) * 100;
   const activeSubjectFamily = subjectFamilies.find((family) => family.key === activeFamily) ?? subjectFamilies[0];
   const selectedSupportNeeds = (profile.support_needs || '').split(', ').filter(Boolean);
   const selectedSubjects = profile.target_subjects || [];
   const selectedCountries = profile.preferred_countries || [];
+
+  useEffect(() => {
+    const draft = loadDraft();
+    if (!draft) return;
+
+    const restoredProfile = buildInitialProfile(initialProfile, draft.profile);
+    const restoredStepIndex = Math.max(0, Math.min(draft.stepIndex, onboardingSteps.length - 1));
+    const restoredBudgetIndex = Math.max(
+      budgetMarks.indexOf(restoredProfile.budget_range || budgetMarks[1]),
+      0,
+    );
+
+    const frame = window.requestAnimationFrame(() => {
+      setProfile(restoredProfile);
+      setStepIndex(restoredStepIndex);
+      setBudgetIndex(restoredBudgetIndex);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [initialProfile]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
     setMessage(null);
 
+    if (!isSignedIn) {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(
+          ONBOARDING_DRAFT_KEY,
+          JSON.stringify({ profile, stepIndex }),
+        );
+      }
+      router.push(`/auth?redirect=${encodeURIComponent('/onboarding?complete=1')}`);
+      setLoading(false);
+      return;
+    }
+
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData.user) {
-      setMessage('Please sign in first so we can save your profile.');
+      setMessage('Please sign in so we can save your profile.');
       setLoading(false);
       return;
     }
@@ -108,7 +165,12 @@ export function OnboardingForm({ initialProfile }: Props) {
       return;
     }
 
-    window.location.href = '/onboarding/documents';
+    if (typeof window !== 'undefined') {
+      window.localStorage.removeItem(ONBOARDING_DRAFT_KEY);
+    }
+
+    router.push('/onboarding/documents');
+    router.refresh();
   };
 
   const isLastStep = stepIndex === onboardingSteps.length - 1;
@@ -201,7 +263,6 @@ export function OnboardingForm({ initialProfile }: Props) {
               <SubjectPickerModal
                 family={activeSubjectFamily}
                 selectedSubjects={selectedSubjects}
-                onClose={() => setActiveFamily('')}
                 onToggleSubject={(subject) => toggleArrayValue('target_subjects', subject)}
                 onDone={() => {
                   if (activeSubjectFamily?.key) setPulsingFamily(activeSubjectFamily.key);
@@ -334,13 +395,21 @@ export function OnboardingForm({ initialProfile }: Props) {
               type="submit"
               disabled={loading}
             >
-              {loading ? 'Saving...' : 'Submit'}
+              {loading ? 'Saving...' : isSignedIn ? 'Save and continue' : 'Sign up to save your matches'}
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M5 12h14M12 5l7 7-7 7" />
               </svg>
             </button>
           )}
         </div>
+
+        {!isSignedIn && isLastStep && (
+          <div className="border-t border-black/5 px-6 py-4 text-center md:px-10">
+            <p className="text-sm text-slate-500">
+              You can search freely without an account. To save this quiz and unlock personalised matches, sign up on the final step.
+            </p>
+          </div>
+        )}
 
         {message && <p className="px-6 pb-4 text-center text-sm text-slate-600">{message}</p>}
       </div>
@@ -429,14 +498,12 @@ function Chip({
 function SubjectPickerModal({
   family,
   selectedSubjects,
-  onClose,
   onToggleSubject,
   onDone,
   open,
 }: {
   family: { key: string; label: string; children: string[] };
   selectedSubjects: string[];
-  onClose: () => void;
   onToggleSubject: (subject: string) => void;
   onDone: () => void;
   open: boolean;

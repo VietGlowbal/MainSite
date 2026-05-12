@@ -12,7 +12,6 @@ import {
 import { createClient } from '@/lib/supabase/client';
 import {
   APPLICATION_STAGES,
-  FILTER_CATEGORIES,
   type FilterCategory,
 } from '@/lib/university-data';
 import { type ExplorerUniversity } from '@/lib/explorer-utils';
@@ -47,6 +46,8 @@ export interface ExplorerActions {
   advanceApplication: (universityId: number) => void;
   showToast: (message: string) => void;
   universities: ExplorerUniversity[];
+  isLoggedIn: boolean;
+  hasProfile: boolean;
 }
 
 // ── Filter helper ───────────────────────────────────────────────────────
@@ -74,6 +75,7 @@ interface ProviderProps {
   initialShortlist: number[];
   initialApplications: ApplicationEntry[];
   isLoggedIn: boolean;
+  hasProfile: boolean;
 }
 
 export function UniversityExplorerProvider({
@@ -82,6 +84,7 @@ export function UniversityExplorerProvider({
   initialShortlist,
   initialApplications,
   isLoggedIn,
+  hasProfile,
 }: ProviderProps) {
   const supabase = useMemo(() => createClient(), []);
   const [activeView, setActiveView] =
@@ -319,6 +322,8 @@ export function UniversityExplorerProvider({
     proceedToApplications,
     advanceApplication,
     showToast,
+    isLoggedIn,
+    hasProfile,
   };
 
   return (

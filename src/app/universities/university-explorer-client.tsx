@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { AnimatePresence, motion, useScroll } from 'framer-motion';
 import {
   UniversityExplorerProvider,
@@ -12,38 +13,6 @@ import {
 } from '@/lib/explorer-context';
 import { FILTER_CATEGORIES } from '@/lib/university-data';
 import { MatchBadge } from '@/components/match-badge';
-
-/* ─────────────────────────────────────────────────────────────────────────
-   TAB BAR
-───────────────────────────────────────────────────────────────────────── */
-
-function TabBar() {
-  const { activeView, setView } = useExplorer();
-
-  return (
-    <nav className="sticky top-0 z-20 border-b border-black/[.05] bg-white/80 backdrop-blur-xl">
-      <div className="mx-auto flex max-w-6xl items-center gap-1 px-4 py-3">
-        <button
-          type="button"
-          onClick={() => setView('browse')}
-          className={`relative rounded-full px-4 py-2 text-sm font-semibold transition-all ${
-            activeView === 'browse' || activeView === 'detail'
-              ? 'bg-pink-50 text-pink-600 border border-pink-200'
-              : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700 border border-transparent'
-          }`}
-        >
-          Browse
-        </button>
-        <a
-          href="/my-universities"
-          className="rounded-full px-4 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-50 hover:text-slate-700 border border-transparent transition-all"
-        >
-          My Universities →
-        </a>
-      </div>
-    </nav>
-  );
-}
 
 /* ─────────────────────────────────────────────────────────────────────────
    HERO
@@ -63,6 +32,55 @@ function HeroSection() {
         </p>
       </div>
     </section>
+  );
+}
+
+function QuizBanner() {
+  const router = useRouter();
+  const { isLoggedIn, hasProfile } = useExplorer();
+
+  if (isLoggedIn && hasProfile) return null;
+
+  const title = isLoggedIn
+    ? 'Complete the onboarding quiz to unlock personalised university matches.'
+    : 'Search freely — then take the Glowbal quiz to find the universities that match you best.';
+
+  const description = isLoggedIn
+    ? 'You can browse everything now, but your match scores and tailored recommendations appear once your onboarding answers are filled in.'
+    : 'No account needed to explore. When you are ready, the quiz helps us rank universities around your goals, budget, and preferred countries.';
+
+  const actionLabel = isLoggedIn ? 'Finish onboarding' : 'Take the onboarding quiz';
+
+  return (
+    <div className="mx-auto max-w-6xl px-4 pb-6">
+      <div className="rounded-[2rem] border border-pink-200 bg-[linear-gradient(135deg,rgba(255,77,140,0.10),rgba(0,180,216,0.08))] px-6 py-6 shadow-[0_16px_40px_rgba(22,33,62,0.08)] backdrop-blur sm:px-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="max-w-3xl">
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-pink-600">Personalised matching</p>
+            <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">{title}</h2>
+            <p className="mt-3 text-sm leading-7 text-slate-600 md:text-base">{description}</p>
+          </div>
+
+          <div className="flex shrink-0 flex-col gap-3 sm:flex-row">
+            <button
+              type="button"
+              onClick={() => router.push('/onboarding')}
+              className="rounded-full bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.24)] transition hover:shadow-[0_14px_28px_rgba(255,77,140,0.28)]"
+            >
+              {actionLabel}
+            </button>
+            {!isLoggedIn && (
+              <Link
+                href="/auth"
+                className="rounded-full border border-slate-200 bg-white/80 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:border-pink-200 hover:text-pink-600"
+              >
+                Sign up to save later
+              </Link>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -107,12 +125,17 @@ function FilterBar() {
 ───────────────────────────────────────────────────────────────────────── */
 
 function UniversityCard({ university, index }: { university: ExplorerUniversity; index: number }) {
-  const { isShortlisted, addToShortlist, showToast, setView } = useExplorer();
+  const { isShortlisted, addToShortlist, showToast, setView, isLoggedIn } = useExplorer();
   const router = useRouter();
   const saved = isShortlisted(university.id);
 
   const handleSave = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!isLoggedIn) {
+      router.push('/onboarding');
+      return;
+    }
+
     if (!saved) {
       await addToShortlist(university.id);
       showToast(`${university.name} saved — redirecting…`);
@@ -190,12 +213,14 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
           type="button"
           onClick={handleSave}
           className={`mt-1 w-full rounded-full py-2 text-xs font-semibold transition-all md:opacity-0 md:group-hover:opacity-100 ${
-            saved
+            !isLoggedIn
+              ? 'border border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100 md:opacity-100'
+              : saved
               ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100 md:opacity-100'
               : 'bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)] hover:shadow-[0_6px_18px_rgba(255,77,140,0.35)]'
           }`}
         >
-          {saved ? 'Saved — View in My Universities →' : '+ Save to My Universities'}
+          {!isLoggedIn ? 'Take quiz to unlock your matches →' : saved ? 'Saved — View in My Universities →' : '+ Save to My Universities'}
         </button>
       </div>
     </motion.div>
@@ -225,6 +250,7 @@ function BrowseView() {
   return (
     <>
       <HeroSection />
+      <QuizBanner />
       <FilterBar />
       <UniversityGrid />
     </>
@@ -240,9 +266,10 @@ interface StickyBarProps {
   saved: boolean;
   onSave: () => void;
   onBack: () => void;
+  ctaLabel?: string;
 }
 
-function UniversityStickyBar({ university, saved, onSave, onBack }: StickyBarProps) {
+function UniversityStickyBar({ university, saved, onSave, onBack, ctaLabel }: StickyBarProps) {
   const { scrollY } = useScroll();
   const [isVisible, setIsVisible] = useState(false);
 
@@ -301,7 +328,7 @@ function UniversityStickyBar({ university, saved, onSave, onBack }: StickyBarPro
             cursor: 'pointer',
             boxShadow: saved ? 'none' : '0 4px 14px rgba(255,77,140,0.3)', whiteSpace: 'nowrap',
           }}>
-            {saved ? 'Saved ✓ — View' : '+ Save'}
+            {ctaLabel ?? (saved ? 'Saved ✓ — View' : '+ Save')}
           </button>
         </div>
       </div>
@@ -314,11 +341,16 @@ function UniversityStickyBar({ university, saved, onSave, onBack }: StickyBarPro
 ───────────────────────────────────────────────────────────────────────── */
 
 function SaveSidebar({ university }: { university: ExplorerUniversity }) {
-  const { addToShortlist, isShortlisted, showToast } = useExplorer();
+  const { addToShortlist, isShortlisted, showToast, isLoggedIn } = useExplorer();
   const router = useRouter();
   const saved = isShortlisted(university.id);
 
   const handleSave = async () => {
+    if (!isLoggedIn) {
+      router.push('/onboarding');
+      return;
+    }
+
     if (!saved) {
       await addToShortlist(university.id);
       showToast(`${university.name} saved — redirecting…`);
@@ -351,19 +383,21 @@ function SaveSidebar({ university }: { university: ExplorerUniversity }) {
         type="button"
         onClick={handleSave}
         className={`w-full rounded-full py-3 text-sm font-semibold transition-all ${
-          saved
+          !isLoggedIn
+            ? 'border border-pink-200 bg-pink-50 text-pink-600 hover:bg-pink-100'
+            : saved
             ? 'bg-emerald-50 text-emerald-600 border border-emerald-200 hover:bg-emerald-100'
             : 'glow-button-primary'
         }`}
       >
-        {saved ? 'Saved — View in My Universities →' : 'Save to My Universities'}
+        {!isLoggedIn ? 'Take onboarding quiz for your match →' : saved ? 'Saved — View in My Universities →' : 'Save to My Universities'}
       </button>
     </div>
   );
 }
 
 function DetailView() {
-  const { selectedUniversityId, setView, universities, addToShortlist, isShortlisted, showToast } = useExplorer();
+  const { selectedUniversityId, setView, universities, addToShortlist, isShortlisted, showToast, isLoggedIn } = useExplorer();
   const router = useRouter();
   const university = universities.find((u) => u.id === selectedUniversityId);
 
@@ -385,6 +419,11 @@ function DetailView() {
   const saved = isShortlisted(university.id);
 
   const handleSave = async () => {
+    if (!isLoggedIn) {
+      router.push('/onboarding');
+      return;
+    }
+
     if (!saved) {
       await addToShortlist(university.id);
       showToast(`${university.name} saved — redirecting…`);
@@ -401,6 +440,7 @@ function DetailView() {
         saved={saved}
         onSave={handleSave}
         onBack={() => setView('browse')}
+        ctaLabel={!isLoggedIn ? 'Take quiz for matches' : undefined}
       />
 
       <div className="mx-auto max-w-6xl px-4 py-8">
@@ -553,6 +593,7 @@ interface ExplorerClientProps {
   initialShortlist: number[];
   initialApplications: ApplicationEntry[];
   isLoggedIn: boolean;
+  hasProfile: boolean;
 }
 
 export function UniversityExplorerClient({
@@ -560,6 +601,7 @@ export function UniversityExplorerClient({
   initialShortlist,
   initialApplications,
   isLoggedIn,
+  hasProfile,
 }: ExplorerClientProps) {
   return (
     <UniversityExplorerProvider
@@ -567,6 +609,7 @@ export function UniversityExplorerClient({
       initialShortlist={initialShortlist}
       initialApplications={initialApplications}
       isLoggedIn={isLoggedIn}
+      hasProfile={hasProfile}
     >
       <ExplorerContent />
     </UniversityExplorerProvider>

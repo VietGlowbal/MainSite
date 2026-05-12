@@ -68,8 +68,12 @@ function MobileNav({ user }: { user: { name: string; avatarUrl?: string } | null
 
   const initials = user?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '';
 
+  const baseItems = user
+    ? NAV_ITEMS
+    : NAV_ITEMS.filter((item) => item.href !== '/my-universities');
+
   const allItems = [
-    ...NAV_ITEMS,
+    ...baseItems,
     user ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' },
   ];
 
@@ -172,7 +176,7 @@ function StickyHeader({ user }: { user: UserSummary | null }) {
 
           {/* Desktop nav links */}
           <nav className="glowbal-nav hidden sm:flex items-center gap-2 text-sm text-slate-600">
-            {NAV_ITEMS.map((item) => (
+            {(user ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== '/my-universities')).map((item) => (
               'comingSoon' in item && item.comingSoon ? (
                 <span key={item.href} className="glowbal-nav-link text-slate-400 cursor-not-allowed flex items-center gap-1">
                   {item.label}

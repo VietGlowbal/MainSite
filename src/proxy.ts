@@ -4,16 +4,11 @@ import { createServerClient } from '@supabase/ssr';
 
 // Routes that require authentication
 const PROTECTED_ROUTES = [
-  '/onboarding',
   '/profile',
   '/dashboard',
-  '/universities',
   '/my-universities',
   '/writer',
 ];
-
-// Routes that authenticated users with incomplete onboarding can access
-const ONBOARDING_ALLOWED = ['/onboarding', '/auth'];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -29,7 +24,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Create a Supabase client that can read cookies from the request
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: { headers: request.headers },
   });
 
@@ -61,14 +56,20 @@ export async function proxy(request: NextRequest) {
   if (!user && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth';
-    url.searchParams.set('redirect', pathname);
+    url.searchParams.set('redirect', `${pathname}${request.nextUrl.search}`);
     return NextResponse.redirect(url);
   }
 
   // Logged in user on /auth → redirect away
   if (user && pathname.startsWith('/auth') && !pathname.startsWith('/auth/callback')) {
+    const redirectTarget = request.nextUrl.searchParams.get('redirect');
+    if (redirectTarget?.startsWith('/')) {
+      return NextResponse.redirect(new URL(redirectTarget, request.url));
+    }
+
     const url = request.nextUrl.clone();
     url.pathname = '/universities';
+    url.search = '';
     return NextResponse.redirect(url);
   }
 

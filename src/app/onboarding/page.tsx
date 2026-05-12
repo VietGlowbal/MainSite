@@ -44,7 +44,7 @@ export default async function OnboardingPage() {
         </div>
 
         {/* Question card */}
-        <OnboardingForm initialProfile={profile} />
+        <OnboardingForm initialProfile={profile} isSignedIn={!!user} />
       </div>
     </main>
   );
