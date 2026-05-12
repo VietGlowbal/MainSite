@@ -365,12 +365,15 @@ body {
 
 .glow-search-globe-rail {
   position: relative;
+  display: flex;
+  justify-content: center;
   overflow: visible;
 }
 
 .glow-search-globe-stage-large {
   position: relative;
-  min-height: 560px;
+  width: min(100%, 760px);
+  aspect-ratio: 1 / 1;
   border-radius: 50%;
   overflow: visible;
   background: radial-gradient(circle at 50% 50%, rgba(34, 211, 238, 0.14), rgba(255,255,255,0) 58%);
@@ -444,8 +447,12 @@ body {
 }
 
 @media (min-width: 1024px) {
+  .glow-search-globe-rail {
+    justify-content: flex-start;
+  }
+
   .glow-search-globe-stage-large {
-    min-height: 760px;
+    width: min(52vw, 920px);
   }
 }
 

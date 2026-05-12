@@ -20,28 +20,6 @@ const SearchWorldSelector = dynamic(
   { ssr: false },
 );
 
-/* ─────────────────────────────────────────────────────────────────────────
-   HERO
-───────────────────────────────────────────────────────────────────────── */
-
-function HeroSection() {
-  return (
-    <section className="px-6 pb-4 pt-8 md:pb-6 md:pt-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="rounded-[2rem] border border-white/80 bg-white/78 px-6 py-7 shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur md:px-8 md:py-8">
-          <span className="glow-pill">University Explorer</span>
-          <h1 className="mt-4 max-w-4xl text-4xl font-semibold tracking-[-0.04em] text-slate-950 md:text-5xl">
-            A cleaner way to explore universities worldwide.
-          </h1>
-          <p className="mt-4 max-w-2xl text-base leading-7 text-slate-600 md:text-lg">
-            The globe stays with you on the left. Tap countries when you want to narrow things down, or just browse everything.
-          </p>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function QuizBanner() {
   const router = useRouter();
   const { isLoggedIn, hasProfile } = useExplorer();
@@ -273,8 +251,8 @@ function UniversityGrid() {
   const filtered = filterUniversities(universities, activeFilter, selectedCountries);
 
   return (
-    <div className="mx-auto max-w-[1500px] px-4 pb-16">
-      <div className="grid gap-6 lg:grid-cols-[minmax(520px,46vw)_minmax(0,1fr)] lg:items-start xl:gap-8">
+    <div className="mx-auto max-w-[1560px] px-4 pb-16">
+      <div className="grid gap-6 lg:grid-cols-[minmax(580px,50vw)_minmax(0,1fr)] lg:items-start xl:gap-8">
         <div className="overflow-visible">
           <SearchGlobeRail />
         </div>
@@ -315,7 +293,6 @@ function SearchGlobeRail() {
 function BrowseView() {
   return (
     <>
-      <HeroSection />
       <QuizBanner />
       <FilterBar />
       <UniversityGrid />
