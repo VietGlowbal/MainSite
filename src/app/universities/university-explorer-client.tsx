@@ -69,6 +69,68 @@ function QuizBanner() {
   );
 }
 
+function QuizStickyBar() {
+  const router = useRouter();
+  const { scrollY } = useScroll();
+  const { isLoggedIn, hasProfile } = useExplorer();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    if (isLoggedIn && hasProfile) return;
+
+    return scrollY.on('change', (y: number) => setVisible(y > 240));
+  }, [hasProfile, isLoggedIn, scrollY]);
+
+  if (isLoggedIn && hasProfile) return null;
+
+  return (
+    <motion.div
+      aria-hidden={!visible}
+      initial={false}
+      animate={{ y: visible ? 0 : -80, opacity: visible ? 1 : 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 40, pointerEvents: visible ? 'auto' : 'none' }}
+    >
+      <div style={{ margin: '10px auto', maxWidth: '72rem', padding: '0 1.5rem' }}>
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.75rem',
+          borderRadius: '999px', border: '1px solid rgba(0,0,0,0.06)',
+          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)',
+          boxShadow: '0 8px 24px rgba(22,33,62,0.1)', padding: '0.5rem 0.75rem 0.5rem 0.5rem',
+        }}>
+          <div style={{
+            width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            background: 'linear-gradient(135deg, #ff4d8c, #00b4d8)', color: 'white', fontSize: '1rem',
+          }}>✦</div>
+
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'rgb(15 23 42)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {isLoggedIn ? 'Complete the Glowbal quiz for personalised matches' : 'Take the Glowbal quiz to unlock personalised matches'}
+            </p>
+            <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgb(100 116 139)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              Browse freely now — save and rank universities around your goals when you&apos;re ready.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => router.push('/onboarding')}
+            style={{
+              flexShrink: 0, borderRadius: '999px', border: 'none',
+              background: 'linear-gradient(135deg, #ff4d8c, #ff85b3)',
+              padding: '0.45rem 1rem', fontSize: '0.8rem', fontWeight: 700,
+              color: 'white', cursor: 'pointer', boxShadow: '0 4px 14px rgba(255,77,140,0.3)', whiteSpace: 'nowrap',
+            }}
+          >
+            {isLoggedIn ? 'Finish quiz' : 'Take quiz'}
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    FILTER BAR
 ───────────────────────────────────────────────────────────────────────── */
@@ -253,7 +315,7 @@ function UniversityGrid() {
   return (
     <div className="mx-auto max-w-[1560px] px-4 pb-16">
       <div className="grid gap-6 lg:grid-cols-[minmax(580px,50vw)_minmax(0,1fr)] lg:items-start xl:gap-8">
-        <div className="overflow-visible">
+        <div className="overflow-visible lg:sticky lg:top-0 lg:self-start lg:h-screen lg:flex lg:items-center">
           <SearchGlobeRail />
         </div>
 
@@ -293,6 +355,7 @@ function SearchGlobeRail() {
 function BrowseView() {
   return (
     <>
+      <QuizStickyBar />
       <QuizBanner />
       <FilterBar />
       <UniversityGrid />

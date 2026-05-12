@@ -507,9 +507,13 @@ function normalizeCountryName(value: string) {
   return value
     .trim()
     .toLowerCase()
+    .replace(/united states of america/g, 'united states')
+    .replace(/u s a/g, 'united states')
+    .replace(/u s/g, 'united states')
     .replace(/&/g, 'and')
     .replace(/[^a-z0-9]+/g, ' ')
     .replace(/\busa\b/g, 'united states')
+    .replace(/\bus\b/g, 'united states')
     .replace(/\buk\b/g, 'united kingdom')
     .replace(/\bu a e\b/g, 'united arab emirates')
     .replace(/\bhk\b/g, 'hong kong')
@@ -578,7 +582,7 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
   }, [mounted]);
 
   return (
-    <section className="glow-search-globe-rail lg:sticky lg:top-0 lg:flex lg:h-screen lg:items-center">
+    <section className="glow-search-globe-rail lg:flex lg:w-full lg:items-center">
       <div ref={globeBoxRef} className="glow-search-globe-stage-large lg:-ml-40 xl:-ml-52">
         <WorldGlobe
           mounted={mounted}
