@@ -24,6 +24,15 @@ type ContinentNode = {
   stepKey: StepKey;
 };
 
+type GeoFeature = {
+  properties?: {
+    NAME?: string;
+    name?: string;
+    CONTINENT?: string;
+    continent?: string;
+  };
+};
+
 const continents: ContinentNode[] = [
   { key: 'north-america', label: 'North America', lat: 47, lng: -100, altitude: 0.18, color: '#67e8f9', glow: 'rgba(103,232,249,0.55)', stepKey: 'study_level' },
   { key: 'south-america', label: 'South America', lat: -16, lng: -58, altitude: 0.18, color: '#fbbf24', glow: 'rgba(251,191,36,0.5)', stepKey: 'subjects' },
@@ -36,6 +45,23 @@ const continents: ContinentNode[] = [
 
 const budgetOptions = ['Under $15k', 'Up to $25k', 'Up to $50k', '$50k+'];
 const campusOptions = ['Big city', 'Campus town', 'Quiet / green', 'Flexible'];
+const geoJsonUrl = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
+
+const continentAliases: Record<string, string> = {
+  europe: 'europe',
+  'north america': 'north-america',
+  'south america': 'south-america',
+  africa: 'africa',
+  asia: 'asia',
+  oceania: 'oceania',
+  antarctica: 'antarctica',
+};
+
+function classifyContinent(feature: GeoFeature) {
+  const raw = feature.properties?.CONTINENT || feature.properties?.continent;
+  if (!raw) return null;
+  return continentAliases[String(raw).trim().toLowerCase()] ?? null;
+}
 
 function getInitialAnswers(): Answers {
   return {
@@ -53,6 +79,7 @@ export function GlowbalOption3GlobeDemo() {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
   const [GlobeComp, setGlobeComp] = useState<ComponentType<Record<string, unknown>> | null>(null);
+  const [countriesGeo, setCountriesGeo] = useState<GeoFeature[]>([]);
   const [answers, setAnswers] = useState<Answers>(getInitialAnswers());
   const [activeIndex, setActiveIndex] = useState(0);
   const [globeReady, setGlobeReady] = useState(false);
@@ -60,6 +87,21 @@ export function GlowbalOption3GlobeDemo() {
   useEffect(() => {
     setMounted(true);
     import('react-globe.gl').then((mod) => setGlobeComp(() => mod.default as ComponentType<Record<string, unknown>>));
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(geoJsonUrl)
+      .then((response) => response.json())
+      .then((data) => {
+        if (!cancelled) setCountriesGeo(data.features || []);
+      })
+      .catch(() => {
+        if (!cancelled) setCountriesGeo([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const activeStep = onboardingSteps[activeIndex];
@@ -104,6 +146,11 @@ export function GlowbalOption3GlobeDemo() {
         repeatPeriod: index === activeIndex ? 1100 : 1600,
       })),
     [activeIndex],
+  );
+
+  const highlightedContinents = useMemo(
+    () => new Set(continents.slice(0, Math.max(completedCount, activeIndex + 1)).map((continent) => continent.key)),
+    [activeIndex, completedCount],
   );
 
   function updateAnswer(value: string | string[]) {
@@ -300,6 +347,30 @@ export function GlowbalOption3GlobeDemo() {
                       showAtmosphere
                       atmosphereColor="rgba(186,230,253,0.8)"
                       atmosphereAltitude={0.13}
+                      polygonsData={countriesGeo}
+                      polygonCapColor={(feature: object) => {
+                        const continentKey = classifyContinent(feature as GeoFeature);
+                        if (!continentKey) return 'rgba(255,255,255,0.14)';
+                        const continent = continents.find((item) => item.key === continentKey);
+                        if (!continent) return 'rgba(255,255,255,0.14)';
+                        if (continentKey === currentNode.key) return continent.color;
+                        if (highlightedContinents.has(continentKey)) return `${continent.color}CC`;
+                        return 'rgba(255,255,255,0.10)';
+                      }}
+                      polygonSideColor={() => 'rgba(255,255,255,0.06)'}
+                      polygonStrokeColor={(feature: object) => {
+                        const continentKey = classifyContinent(feature as GeoFeature);
+                        if (!continentKey) return 'rgba(255,255,255,0.18)';
+                        if (continentKey === currentNode.key) return 'rgba(15,23,42,0.3)';
+                        if (highlightedContinents.has(continentKey)) return 'rgba(255,255,255,0.28)';
+                        return 'rgba(255,255,255,0.12)';
+                      }}
+                      polygonAltitude={(feature: object) => {
+                        const continentKey = classifyContinent(feature as GeoFeature);
+                        if (continentKey === currentNode.key) return 0.018;
+                        if (continentKey && highlightedContinents.has(continentKey)) return 0.01;
+                        return 0.004;
+                      }}
                       pointsData={pointsData}
                       pointLat="lat"
                       pointLng="lng"
@@ -341,41 +412,47 @@ export function GlowbalOption3GlobeDemo() {
                 </div>
               </div>
 
-              <div className="grid w-full gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {continents.map((continent, index) => {
-                  const done = index < completedCount;
-                  const current = index === activeIndex;
-                  return (
-                    <button
-                      key={continent.key}
-                      type="button"
-                      onClick={() => {
-                        if (index <= completedCount) setActiveIndex(index);
-                      }}
-                      className="rounded-[24px] border px-4 py-4 text-left transition duration-200"
-                      style={{
-                        borderColor: current ? continent.color : 'rgba(226,232,240,0.9)',
-                        background: current ? 'linear-gradient(180deg, rgba(255,255,255,0.98), rgba(248,250,252,0.92))' : 'rgba(255,255,255,0.74)',
-                        boxShadow: current ? `0 16px 30px ${continent.glow}` : '0 10px 22px rgba(15,23,42,0.04)',
-                        opacity: index > completedCount ? 0.55 : 1,
-                      }}
-                    >
-                      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">
-                        <span className="h-2.5 w-2.5 rounded-full" style={{ background: done || current ? continent.color : 'rgba(148,163,184,0.35)' }} />
-                        {continent.label}
-                      </div>
-                      <div className="mt-2 text-sm font-semibold text-slate-800">{onboardingSteps[index].title}</div>
-                    </button>
-                  );
-                })}
+              <div className="w-full rounded-[24px] border border-white/70 bg-white/60 px-4 py-3 text-center text-sm text-slate-500 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
+                The globe now carries the progress — each question lights up a full continent.
               </div>
             </div>
           </section>
 
           <section className="rounded-[36px] border border-white/70 bg-white/82 p-6 shadow-[0_28px_80px_rgba(255,105,180,0.10)] backdrop-blur-xl sm:p-8">
             <div className="flex min-h-[780px] flex-col">
-              <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-pink-500">
-                {activeStep.eyebrow}
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-pink-500">
+                    {activeStep.eyebrow}
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={goBack}
+                    disabled={activeIndex === 0}
+                    className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-500 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    Back
+                  </button>
+                  {activeStep.key === 'goals' ? (
+                    <button
+                      type="button"
+                      onClick={() => setAnswers(getInitialAnswers())}
+                      className="rounded-full bg-[linear-gradient(135deg,#ff4d8c,#ff92c7)] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(255,77,140,0.22)] transition hover:-translate-y-0.5"
+                    >
+                      Reset demo
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={goNext}
+                      className="rounded-full bg-[linear-gradient(135deg,#00c2ff,#90e0ef)] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(0,194,255,0.22)] transition hover:-translate-y-0.5"
+                    >
+                      Next
+                    </button>
+                  )}
+                </div>
               </div>
               <h2 className="mt-6 max-w-[14ch] text-4xl font-semibold tracking-[-0.04em] text-slate-900 sm:text-5xl">
                 {activeStep.title}
@@ -383,50 +460,6 @@ export function GlowbalOption3GlobeDemo() {
               <p className="mt-4 max-w-xl text-base leading-8 text-slate-600">{activeStep.description}</p>
 
               <div className="mt-8">{renderStepOptions()}</div>
-
-              <div className="mt-8 rounded-[28px] border border-slate-200 bg-slate-50/70 p-5">
-                <div className="text-[11px] font-bold uppercase tracking-[0.18em] text-slate-400">Current picks</div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  {onboardingSteps.map((step) => {
-                    const value = answers[step.key];
-                    const preview = Array.isArray(value) ? value.join(', ') : String(value ?? '').trim();
-                    return (
-                      <div key={step.key} className="rounded-[20px] bg-white px-4 py-3 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-                        <div className="text-xs font-semibold text-slate-400">{step.title}</div>
-                        <div className="mt-1 text-sm font-medium text-slate-700">{preview || '—'}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="mt-auto flex items-center justify-between gap-4 pt-8">
-                <button
-                  type="button"
-                  onClick={goBack}
-                  disabled={activeIndex === 0}
-                  className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-semibold text-slate-500 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
-                >
-                  Back
-                </button>
-                {activeStep.key === 'goals' ? (
-                  <button
-                    type="button"
-                    onClick={() => setAnswers(getInitialAnswers())}
-                    className="rounded-full bg-[linear-gradient(135deg,#ff4d8c,#ff92c7)] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(255,77,140,0.22)] transition hover:-translate-y-0.5"
-                  >
-                    Reset demo
-                  </button>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={goNext}
-                    className="rounded-full bg-[linear-gradient(135deg,#00c2ff,#90e0ef)] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(0,194,255,0.22)] transition hover:-translate-y-0.5"
-                  >
-                    Next
-                  </button>
-                )}
-              </div>
             </div>
           </section>
         </div>
