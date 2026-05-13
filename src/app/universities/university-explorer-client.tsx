@@ -280,16 +280,16 @@ function UniversityGrid() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16 pt-6 md:pt-8">
-      <div className="pb-5 pt-2 md:pt-4">
-        <FilterBar />
-      </div>
-
       <div className="grid gap-6 lg:grid-cols-[minmax(420px,33vw)_minmax(0,1fr)] lg:items-start xl:gap-6">
         <div className="overflow-visible lg:self-start lg:h-[100svh] lg:min-h-[100svh]">
           <ExplorerRail />
         </div>
 
         <div>
+          <div className="pb-5 pt-2 md:pt-4">
+            <FilterBar />
+          </div>
+
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
             {filtered.map((university, i) => (
               <UniversityCard key={university.id} university={university} index={i} />

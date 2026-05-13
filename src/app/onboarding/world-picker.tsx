@@ -97,6 +97,7 @@ function WorldGlobe({
   allowedCountries,
   setHoveredCountry,
   onCountryClick,
+  onReady,
   hoverLocked = false,
   hoverAltitude = 0.06,
   defaultAltitude = 0.005,
@@ -111,6 +112,7 @@ function WorldGlobe({
   allowedCountries: Set<string>;
   setHoveredCountry: (value: string | null) => void;
   onCountryClick: (name: string) => void;
+  onReady?: () => void;
   hoverLocked?: boolean;
   hoverAltitude?: number;
   defaultAltitude?: number;
@@ -122,6 +124,7 @@ function WorldGlobe({
   ].filter((point) => Array.from(allowedCountries).some((country) => normalizeCountryName(country) === normalizeCountryName(point.name)));
 
   function handleGlobeReady() {
+    onReady?.();
     if (!globeRef.current) return;
 
     // Dynamically import Three to create the starfield
@@ -568,6 +571,7 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
   const [mounted] = useState(() => typeof window !== 'undefined');
   const [countriesGeo, setCountriesGeo] = useState<GeoFeature[]>([]);
   const [hoveredCountry, setHoveredCountry] = useState<string | null>(null);
+  const [globeReady, setGlobeReady] = useState(false);
   const availableNames = useMemo(() => availableCountryNames ?? [], [availableCountryNames]);
   const allowedCountries = useMemo(
     () => new Set(availableNames.length > 0 ? countriesGeo.map((feature) => findBestCountryMatch(getFeatureName(feature), availableNames) ? getFeatureName(feature) : '').filter(Boolean) : countriesGeo.map(getFeatureName)),
@@ -655,7 +659,12 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
 
   return (
     <section className="glow-search-globe-rail lg:flex lg:h-full lg:w-full lg:flex-1 lg:items-start">
-      <div ref={globeBoxRef} className="glow-search-globe-stage-large lg:-ml-40 xl:-ml-52">
+      <div ref={globeBoxRef} className={`glow-search-globe-stage-large lg:-ml-40 xl:-ml-52 ${globeReady ? 'glow-search-globe-loaded' : 'glow-search-globe-loading'}`}>
+        {!globeReady && (
+          <div className="glow-search-globe-loader" aria-hidden>
+            <div className="glow-search-globe-loader-ring" />
+          </div>
+        )}
         <WorldGlobe
           mounted={mounted}
           globeWidth={globeSize.width}
@@ -666,6 +675,7 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
           hoveredCountry={previewFeatureName ?? hoveredCountry}
           allowedCountries={allowedCountries}
           setHoveredCountry={setHoveredCountry}
+          onReady={() => setGlobeReady(true)}
           hoverLocked={Boolean(previewCountry)}
           hoverAltitude={0.01}
           defaultAltitude={0.004}
