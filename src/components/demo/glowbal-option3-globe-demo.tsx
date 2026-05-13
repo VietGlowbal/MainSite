@@ -32,6 +32,10 @@ type GeoFeature = {
     CONTINENT?: string;
     continent?: string;
   };
+  geometry?: {
+    type: 'Polygon' | 'MultiPolygon';
+    coordinates: number[][][] | number[][][][];
+  };
 };
 
 const continents: ContinentNode[] = [
@@ -80,8 +84,43 @@ const continentAliases: Record<string, string> = {
 
 function classifyContinent(feature: GeoFeature) {
   const raw = feature.properties?.CONTINENT || feature.properties?.continent;
-  if (!raw) return null;
-  return continentAliases[String(raw).trim().toLowerCase()] ?? null;
+  if (raw) return continentAliases[String(raw).trim().toLowerCase()] ?? null;
+
+  const centroid = getFeatureCentroid(feature);
+  if (!centroid) return null;
+
+  const { lat, lng } = centroid;
+  if (lat < -55) return 'antarctica';
+  if (lng >= 110 && lat < 5) return 'oceania';
+  if (lng >= -20 && lng <= 55 && lat >= -35 && lat <= 37) return 'africa';
+  if (lng >= -12 && lng <= 45 && lat >= 35) return 'europe';
+  if (lng >= 25 && lng <= 180 && lat >= 0) return 'asia';
+  if (lng >= 110 && lat >= 5) return 'asia';
+  if (lng <= -30 && lat >= 12) return 'north-america';
+  if (lng <= -30 && lat < 12) return 'south-america';
+  if (lng > -30 && lng < 25 && lat >= 0) return 'europe';
+  if (lng > -30 && lng < 25 && lat < 0) return 'africa';
+  return null;
+}
+
+function getFeatureCentroid(feature: GeoFeature) {
+  if (!feature.geometry) return null;
+
+  const coords = (feature.geometry.type === 'Polygon'
+    ? feature.geometry.coordinates[0]
+    : feature.geometry.coordinates[0]?.[0]) as number[][] | undefined;
+
+  if (!coords?.length) return null;
+
+  const total = coords.reduce(
+    (acc, [lng, lat]) => ({ lat: acc.lat + lat, lng: acc.lng + lng }),
+    { lat: 0, lng: 0 },
+  );
+
+  return {
+    lat: total.lat / coords.length,
+    lng: total.lng / coords.length,
+  };
 }
 
 function getInitialAnswers(): Answers {
@@ -186,10 +225,7 @@ export function GlowbalOption3GlobeDemo() {
     [countriesGeo, highlightedContinents],
   );
 
-  const suggestedGoals = useMemo(() => {
-    const rotated = [...goalIdeas.slice(goalSeed), ...goalIdeas.slice(0, goalSeed)];
-    return rotated.slice(0, 15);
-  }, [goalSeed]);
+  const generatedGoal = useMemo(() => goalIdeas[goalSeed % goalIdeas.length], [goalSeed]);
 
   function updateAnswer(value: string | string[]) {
     setAnswers((prev) => ({ ...prev, [activeStep.key]: value }));
@@ -352,30 +388,25 @@ export function GlowbalOption3GlobeDemo() {
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
-                onClick={() => setGoalSeed((prev) => (prev + 1) % goalIdeas.length)}
+                onClick={() => {
+                  const nextSeed = (goalSeed + 1) % goalIdeas.length;
+                  setGoalSeed(nextSeed);
+                  updateAnswer(goalIdeas[nextSeed]);
+                }}
                 className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-500 transition hover:-translate-y-0.5 hover:text-slate-700"
               >
-                Generate more ideas
+                {answers.goals ? 'Generate another response' : 'Generate a response'}
               </button>
               <button
                 type="button"
-                onClick={() => updateAnswer(suggestedGoals[0])}
+                onClick={() => updateAnswer(generatedGoal)}
                 className="rounded-full border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-medium text-pink-500 transition hover:-translate-y-0.5"
               >
-                Use one for me
+                Use current response
               </button>
             </div>
-            <div className="grid gap-3 sm:grid-cols-2">
-              {suggestedGoals.map((idea) => (
-                <button
-                  key={idea}
-                  type="button"
-                  onClick={() => updateAnswer(idea)}
-                  className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-left text-sm text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:border-pink-200 hover:text-slate-800"
-                >
-                  {idea}
-                </button>
-              ))}
+            <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 text-sm leading-7 text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
+              {String(answers.goals ?? '').trim() || 'Tap “Generate a response” to create a goal statement.'}
             </div>
           </div>
         );
@@ -407,15 +438,15 @@ export function GlowbalOption3GlobeDemo() {
               <div className="relative flex w-full flex-1 items-center justify-center">
                 <div className="absolute inset-0 rounded-[32px] bg-[radial-gradient(circle,rgba(255,255,255,0.6),transparent_60%)]" />
                 <div className="relative h-[520px] w-full max-w-[560px] overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.6),rgba(255,255,255,0.02)_55%)]">
+                  <div className="pointer-events-none absolute inset-[12%] rounded-full border border-cyan-200/60 shadow-[0_0_0_1px_rgba(255,255,255,0.7),0_0_42px_rgba(125,211,252,0.18)]" />
+                  <div className="pointer-events-none absolute inset-[17%] rounded-full border border-white/35" />
                   {mounted && GlobeComp ? (
                     <GlobeComp
                       ref={globeRef}
                       width={560}
                       height={520}
                       backgroundColor="rgba(0,0,0,0)"
-                      globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-                      bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-                      showGlobe
+                      showGlobe={false}
                       showGraticules
                       showAtmosphere
                       atmosphereColor="rgba(186,230,253,0.72)"
@@ -426,9 +457,9 @@ export function GlowbalOption3GlobeDemo() {
                         if (!continentKey) return 'rgba(255,255,255,0.02)';
                         const continent = continents.find((item) => item.key === continentKey);
                         if (!continent) return 'rgba(255,255,255,0.02)';
-                        if (continentKey === currentNode.key) return continent.color;
-                        if (highlightedContinents.has(continentKey)) return `${continent.color}B3`;
-                        return 'rgba(255,255,255,0.025)';
+                        if (continentKey === currentNode.key) return `${continent.color}F2`;
+                        if (highlightedContinents.has(continentKey)) return `${continent.color}A6`;
+                        return 'rgba(255,255,255,0.015)';
                       }}
                       polygonSideColor={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
@@ -448,9 +479,9 @@ export function GlowbalOption3GlobeDemo() {
                       }}
                       polygonAltitude={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
-                        if (continentKey === currentNode.key) return 0.07;
-                        if (continentKey && highlightedContinents.has(continentKey)) return 0.03;
-                        return 0.002;
+                        if (continentKey === currentNode.key) return 0.1;
+                        if (continentKey && highlightedContinents.has(continentKey)) return 0.045;
+                        return 0.001;
                       }}
                       polygonsTransitionDuration={700}
                       pointsData={pointsData}
@@ -485,16 +516,6 @@ export function GlowbalOption3GlobeDemo() {
                       onGlobeReady={() => {
                         setGlobeReady(true);
                         if (!globeRef.current) return;
-                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                        const material = (globeRef.current as any).globeMaterial?.();
-                        if (material) {
-                          material.transparent = true;
-                          material.opacity = 0.16;
-                          if (material.color?.set) material.color.set('#bfe6ff');
-                          if (material.emissive?.set) material.emissive.set('#7dd3fc');
-                          material.emissiveIntensity = 0.12;
-                          material.shininess = 0.9;
-                        }
                         globeRef.current.pointOfView({ lat: currentNode.lat, lng: currentNode.lng, altitude: 1.55 }, 0);
                       }}
                     />
