@@ -11,7 +11,7 @@ import {
   supportNeeds,
 } from '@/lib/onboarding-options';
 
-const Globe = dynamic(() => import('react-globe.gl'), {
+const Globe = dynamic(() => import('react-globe.gl').then((mod) => mod.default), {
   ssr: false,
   loading: () => <div className="h-[460px] w-[460px] rounded-full bg-white/40" />,
 });
