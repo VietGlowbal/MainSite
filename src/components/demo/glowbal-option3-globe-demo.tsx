@@ -217,10 +217,23 @@ export function GlowbalOption3GlobeDemo() {
 
   function finishDemo() {
     setIsSubmitting(true);
+    const tour = continents;
+
+    if (globeRef.current) {
+      tour.forEach((continent, index) => {
+        window.setTimeout(() => {
+          globeRef.current?.pointOfView(
+            { lat: continent.lat, lng: continent.lng, altitude: 1.45 },
+            700,
+          );
+        }, index * 520);
+      });
+    }
+
     window.setTimeout(() => {
       setShowCompletion(true);
       setIsSubmitting(false);
-    }, 1700);
+    }, tour.length * 520 + 500);
   }
 
   function renderStepOptions() {
@@ -398,18 +411,18 @@ export function GlowbalOption3GlobeDemo() {
 
               <div className="relative flex w-full flex-1 items-center justify-center">
                 <div className="absolute inset-0 rounded-[32px] bg-[radial-gradient(circle,rgba(255,255,255,0.6),transparent_60%)]" />
-                <div className={`relative h-[520px] w-full max-w-[560px] overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.6),rgba(255,255,255,0.02)_55%)] ${isSubmitting ? 'animate-[spin_1.7s_ease-in-out]' : ''}`}>
+                <div className="relative h-[520px] w-full max-w-[560px] overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.6),rgba(255,255,255,0.02)_55%)]">
                   {mounted && GlobeComp ? (
                     <GlobeComp
                       ref={globeRef}
                       width={560}
                       height={520}
                       backgroundColor="rgba(0,0,0,0)"
-                      globeImageUrl="//unpkg.com/three-globe/example/img/earth-day.jpg"
-                      bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+                      showGlobe={false}
+                      showGraticules
                       showAtmosphere
-                      atmosphereColor="rgba(186,230,253,0.8)"
-                      atmosphereAltitude={0.13}
+                      atmosphereColor="rgba(186,230,253,0.95)"
+                      atmosphereAltitude={0.18}
                       polygonsData={highlightedCountries}
                       polygonCapColor={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
@@ -435,9 +448,9 @@ export function GlowbalOption3GlobeDemo() {
                       }}
                       polygonAltitude={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
-                        if (continentKey === currentNode.key) return 0.085;
-                        if (continentKey && highlightedContinents.has(continentKey)) return 0.04;
-                        return 0.004;
+                        if (continentKey === currentNode.key) return 0.095;
+                        if (continentKey && highlightedContinents.has(continentKey)) return 0.05;
+                        return 0.01;
                       }}
                       polygonsTransitionDuration={300}
                       pointsData={pointsData}
