@@ -351,6 +351,12 @@ export function GlowbalOption3GlobeDemo() {
       case 'goals':
         return (
           <div className="space-y-4">
+            <textarea
+              value={String(answers.goals ?? '')}
+              onChange={(event) => updateAnswer(event.target.value)}
+              placeholder="Type your own answer or generate one"
+              className="min-h-32 w-full rounded-[24px] border border-slate-200 bg-white px-5 py-4 text-base text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.05)] outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
+            />
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
@@ -375,17 +381,11 @@ export function GlowbalOption3GlobeDemo() {
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[radial-gradient(circle_at_top_left,rgba(255,61,154,0.10),transparent_20%),radial-gradient(circle_at_92%_8%,rgba(0,194,255,0.12),transparent_18%),linear-gradient(180deg,#f6f7ff_0%,#fff9fb_100%)] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl">
-        <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
-          <section className="relative overflow-hidden rounded-[36px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.68))] p-6 shadow-[0_28px_80px_rgba(125,125,255,0.12)] backdrop-blur-xl sm:p-8">
-            <div className="absolute -left-10 top-0 h-40 w-40 rounded-full bg-pink-200/30 blur-3xl" />
-            <div className="absolute right-0 top-16 h-44 w-44 rounded-full bg-cyan-200/35 blur-3xl" />
-
-            <div className="relative flex min-h-[780px] flex-col items-center justify-center">
+        <div className="grid items-start gap-6 lg:grid-cols-[1.16fr_0.84fr]">
+          <section className="relative overflow-visible p-0">
+            <div className="relative flex min-h-[680px] flex-col items-center justify-center overflow-visible lg:min-h-[760px]">
               <div className="relative flex w-full flex-1 items-center justify-center overflow-visible">
-                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.55),transparent_60%)]" />
-                <div className="pointer-events-none absolute inset-[12%] rounded-full border border-cyan-200/45 shadow-[0_0_0_1px_rgba(255,255,255,0.6),0_0_44px_rgba(125,211,252,0.14)]" />
-                <div className="pointer-events-none absolute inset-[17%] rounded-full border border-white/25" />
-                <div className="relative left-[-18%] h-[820px] w-[145%] overflow-visible lg:left-[-28%] lg:h-[920px] lg:w-[168%]">
+                <div className="relative left-[-26%] h-[860px] w-[155%] overflow-visible lg:left-[-34%] lg:h-[980px] lg:w-[176%]">
                   <SearchWorldSelector
                     selectedCountries={selectedCountries}
                     onToggleCountry={() => {}}
@@ -399,8 +399,8 @@ export function GlowbalOption3GlobeDemo() {
             </div>
           </section>
 
-          <section className="rounded-[36px] border border-white/70 bg-white/82 p-6 shadow-[0_28px_80px_rgba(255,105,180,0.10)] backdrop-blur-xl sm:p-8">
-            <div className="flex min-h-[780px] flex-col">
+          <section className="rounded-[32px] border border-white/70 bg-white/88 p-5 shadow-[0_24px_64px_rgba(255,105,180,0.10)] backdrop-blur-xl sm:p-6">
+            <div className="flex min-h-[620px] flex-col lg:min-h-[680px]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-pink-500">
@@ -437,12 +437,12 @@ export function GlowbalOption3GlobeDemo() {
                 </div>
               </div>
 
-              <h2 className="mt-6 max-w-[14ch] text-4xl font-semibold tracking-[-0.04em] text-slate-900 sm:text-5xl">
+              <h2 className="mt-5 max-w-[14ch] text-3xl font-semibold tracking-[-0.04em] text-slate-900 sm:text-4xl">
                 {activeStep.title}
               </h2>
-              <p className="mt-4 max-w-xl text-base leading-8 text-slate-600">{activeStep.description}</p>
+              <p className="mt-3 max-w-xl text-sm leading-7 text-slate-600 sm:text-base">{activeStep.description}</p>
 
-              <div className="mt-8">{renderStepOptions()}</div>
+              <div className="mt-6">{renderStepOptions()}</div>
             </div>
           </section>
         </div>
