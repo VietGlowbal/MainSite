@@ -186,11 +186,6 @@ export function GlowbalOption3GlobeDemo() {
     [countriesGeo, highlightedContinents],
   );
 
-  const activeCountries = useMemo(
-    () => countriesGeo.filter((feature) => classifyContinent(feature) === currentNode.key),
-    [countriesGeo, currentNode.key],
-  );
-
   const suggestedGoals = useMemo(() => {
     const rotated = [...goalIdeas.slice(goalSeed), ...goalIdeas.slice(0, goalSeed)];
     return rotated.slice(0, 15);
@@ -418,41 +413,46 @@ export function GlowbalOption3GlobeDemo() {
                       width={560}
                       height={520}
                       backgroundColor="rgba(0,0,0,0)"
-                      showGlobe={false}
+                      globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+                      bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+                      showGlobe
                       showGraticules
                       showAtmosphere
-                      atmosphereColor="rgba(186,230,253,0.95)"
-                      atmosphereAltitude={0.18}
-                      polygonsData={highlightedCountries}
+                      atmosphereColor="rgba(186,230,253,0.72)"
+                      atmosphereAltitude={0.14}
+                      polygonsData={countriesGeo}
                       polygonCapColor={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
-                        if (!continentKey) return 'rgba(255,255,255,0.14)';
+                        if (!continentKey) return 'rgba(255,255,255,0.02)';
                         const continent = continents.find((item) => item.key === continentKey);
-                        if (!continent) return 'rgba(255,255,255,0.14)';
+                        if (!continent) return 'rgba(255,255,255,0.02)';
                         if (continentKey === currentNode.key) return continent.color;
-                        if (highlightedContinents.has(continentKey)) return `${continent.color}D9`;
-                        return 'rgba(255,255,255,0.10)';
+                        if (highlightedContinents.has(continentKey)) return `${continent.color}B3`;
+                        return 'rgba(255,255,255,0.025)';
                       }}
                       polygonSideColor={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
                         const continent = continents.find((item) => item.key === continentKey);
-                        return continentKey && continent ? `${continent.color}88` : 'rgba(255,255,255,0.06)';
+                        if (!continentKey || !continent) return 'rgba(255,255,255,0.015)';
+                        if (continentKey === currentNode.key) return `${continent.color}E6`;
+                        if (highlightedContinents.has(continentKey)) return `${continent.color}66`;
+                        return 'rgba(255,255,255,0.015)';
                       }}
                       polygonStrokeColor={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
-                        if (!continentKey) return 'rgba(255,255,255,0.18)';
+                        if (!continentKey) return 'rgba(255,255,255,0.04)';
                         const continent = continents.find((item) => item.key === continentKey);
-                        if (continentKey === currentNode.key) return continent ? continent.color : 'rgba(15,23,42,0.3)';
-                        if (highlightedContinents.has(continentKey)) return continent ? `${continent.color}AA` : 'rgba(255,255,255,0.28)';
-                        return 'rgba(255,255,255,0.12)';
+                        if (continentKey === currentNode.key) return continent ? `${continent.color}F2` : 'rgba(15,23,42,0.3)';
+                        if (highlightedContinents.has(continentKey)) return continent ? `${continent.color}80` : 'rgba(255,255,255,0.18)';
+                        return 'rgba(255,255,255,0.035)';
                       }}
                       polygonAltitude={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
-                        if (continentKey === currentNode.key) return 0.095;
-                        if (continentKey && highlightedContinents.has(continentKey)) return 0.05;
-                        return 0.01;
+                        if (continentKey === currentNode.key) return 0.07;
+                        if (continentKey && highlightedContinents.has(continentKey)) return 0.03;
+                        return 0.002;
                       }}
-                      polygonsTransitionDuration={300}
+                      polygonsTransitionDuration={700}
                       pointsData={pointsData}
                       pointLat="lat"
                       pointLng="lng"
@@ -485,6 +485,16 @@ export function GlowbalOption3GlobeDemo() {
                       onGlobeReady={() => {
                         setGlobeReady(true);
                         if (!globeRef.current) return;
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        const material = (globeRef.current as any).globeMaterial?.();
+                        if (material) {
+                          material.transparent = true;
+                          material.opacity = 0.16;
+                          if (material.color?.set) material.color.set('#bfe6ff');
+                          if (material.emissive?.set) material.emissive.set('#7dd3fc');
+                          material.emissiveIntensity = 0.12;
+                          material.shininess = 0.9;
+                        }
                         globeRef.current.pointOfView({ lat: currentNode.lat, lng: currentNode.lng, altitude: 1.55 }, 0);
                       }}
                     />
