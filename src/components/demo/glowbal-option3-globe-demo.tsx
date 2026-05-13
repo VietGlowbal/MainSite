@@ -1,7 +1,6 @@
 'use client';
 
-import dynamic from 'next/dynamic';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
 import type { GlobeMethods } from 'react-globe.gl';
 import {
   onboardingSteps,
@@ -10,11 +9,6 @@ import {
   subjectFamilies,
   supportNeeds,
 } from '@/lib/onboarding-options';
-
-const Globe = dynamic(() => import('react-globe.gl').then((mod) => mod.default), {
-  ssr: false,
-  loading: () => <div className="h-[460px] w-[460px] rounded-full bg-white/40" />,
-});
 
 type StepKey = (typeof onboardingSteps)[number]['key'];
 type Answers = Partial<Record<StepKey, string | string[]>>;
@@ -58,11 +52,15 @@ function getInitialAnswers(): Answers {
 export function GlowbalOption3GlobeDemo() {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
+  const [GlobeComp, setGlobeComp] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [answers, setAnswers] = useState<Answers>(getInitialAnswers());
   const [activeIndex, setActiveIndex] = useState(0);
   const [globeReady, setGlobeReady] = useState(false);
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    setMounted(true);
+    import('react-globe.gl').then((mod) => setGlobeComp(() => mod.default as ComponentType<Record<string, unknown>>));
+  }, []);
 
   const activeStep = onboardingSteps[activeIndex];
   const currentNode = continents[activeIndex];
@@ -291,8 +289,8 @@ export function GlowbalOption3GlobeDemo() {
               <div className="relative flex w-full flex-1 items-center justify-center">
                 <div className="absolute inset-0 rounded-[32px] bg-[radial-gradient(circle,rgba(255,255,255,0.6),transparent_60%)]" />
                 <div className="relative h-[520px] w-full max-w-[560px] overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.6),rgba(255,255,255,0.02)_55%)]">
-                  {mounted ? (
-                    <Globe
+                  {mounted && GlobeComp ? (
+                    <GlobeComp
                       ref={globeRef}
                       width={560}
                       height={520}
@@ -337,7 +335,9 @@ export function GlowbalOption3GlobeDemo() {
                         globeRef.current.pointOfView({ lat: currentNode.lat, lng: currentNode.lng, altitude: 1.55 }, 0);
                       }}
                     />
-                  ) : null}
+                  ) : (
+                    <div className="h-[460px] w-full max-w-[560px] rounded-full bg-white/40" />
+                  )}
                 </div>
               </div>
 
