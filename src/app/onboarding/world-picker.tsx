@@ -529,6 +529,9 @@ type SearchWorldSelectorProps = {
   onClearCountries?: () => void;
   availableCountryNames?: string[];
   previewCountry?: string | null;
+  previewFocus?: { lat: number; lng: number; altitude?: number } | null;
+  railClassName?: string;
+  stageClassName?: string;
 };
 
 function normalizeCountryName(value: string) {
@@ -564,7 +567,7 @@ function getCountryFocus(country: string) {
   return COUNTRY_FOCUS_COORDS[normalizeCountryName(country)] ?? null;
 }
 
-export function SearchWorldSelector({ selectedCountries, onToggleCountry, availableCountryNames, previewCountry }: SearchWorldSelectorProps) {
+export function SearchWorldSelector({ selectedCountries, onToggleCountry, availableCountryNames, previewCountry, previewFocus, railClassName, stageClassName }: SearchWorldSelectorProps) {
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const globeBoxRef = useRef<HTMLDivElement>(null);
   const [globeSize, setGlobeSize] = useState({ width: 700, height: 820 });
@@ -628,7 +631,15 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
   }, [mounted]);
 
   useEffect(() => {
-    if (!previewCountry || !globeRef.current) return;
+    if (!globeRef.current) return;
+    if (previewFocus) {
+      globeRef.current.pointOfView(
+        { lat: previewFocus.lat, lng: previewFocus.lng, altitude: previewFocus.altitude ?? 1.58 },
+        650,
+      );
+      return;
+    }
+    if (!previewCountry) return;
     const presetFocus = getCountryFocus(previewCountry);
     if (presetFocus) {
       globeRef.current.pointOfView(
@@ -649,17 +660,17 @@ export function SearchWorldSelector({ selectedCountries, onToggleCountry, availa
     const lng = coords.reduce((sum, c) => sum + c[0], 0) / coords.length;
     const lat = coords.reduce((sum, c) => sum + c[1], 0) / coords.length;
     globeRef.current.pointOfView({ lat, lng, altitude: 1.58 }, 650);
-  }, [countriesGeo, previewCountry, previewFeatureName]);
+  }, [countriesGeo, previewCountry, previewFeatureName, previewFocus]);
 
   useEffect(() => {
-    if (previewCountry) return;
+    if (previewCountry || previewFocus) return;
     if (!globeRef.current) return;
     globeRef.current.pointOfView({ lat: 24, lng: 12, altitude: 1.72 }, 650);
-  }, [previewCountry]);
+  }, [previewCountry, previewFocus]);
 
   return (
-    <section className="glow-search-globe-rail lg:flex lg:h-full lg:w-full lg:flex-1 lg:items-start">
-      <div ref={globeBoxRef} className={`glow-search-globe-stage-large lg:-ml-40 xl:-ml-52 ${globeReady ? 'glow-search-globe-loaded' : 'glow-search-globe-loading'}`}>
+    <section className={`glow-search-globe-rail lg:flex lg:h-full lg:w-full lg:flex-1 lg:items-start ${railClassName ?? ''}`.trim()}>
+      <div ref={globeBoxRef} className={`${stageClassName ?? 'glow-search-globe-stage-large lg:-ml-40 xl:-ml-52'} ${globeReady ? 'glow-search-globe-loaded' : 'glow-search-globe-loading'}`.trim()}>
         {!globeReady && (
           <div className="glow-search-globe-loader" aria-hidden>
             <div className="glow-search-globe-loader-ring" />

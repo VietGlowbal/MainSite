@@ -56,13 +56,13 @@ const goalIdeas = [
 ];
 
 const stepContinents = [
-  { key: 'north-america', label: 'North America' },
-  { key: 'south-america', label: 'South America' },
-  { key: 'europe', label: 'Europe' },
-  { key: 'africa', label: 'Africa' },
-  { key: 'asia', label: 'Asia' },
-  { key: 'oceania', label: 'Oceania' },
-  { key: 'antarctica', label: 'Antarctica' },
+  { key: 'north-america', label: 'North America', lat: 45, lng: -100, altitude: 1.48 },
+  { key: 'south-america', label: 'South America', lat: -18, lng: -60, altitude: 1.5 },
+  { key: 'europe', label: 'Europe', lat: 52, lng: 16, altitude: 1.42 },
+  { key: 'africa', label: 'Africa', lat: 7, lng: 20, altitude: 1.48 },
+  { key: 'asia', label: 'Asia', lat: 30, lng: 95, altitude: 1.45 },
+  { key: 'oceania', label: 'Oceania', lat: -24, lng: 134, altitude: 1.5 },
+  { key: 'antarctica', label: 'Antarctica', lat: -77, lng: 25, altitude: 1.38 },
 ] as const;
 
 type ContinentKey = (typeof stepContinents)[number]['key'];
@@ -140,6 +140,7 @@ export function GlowbalOption3GlobeDemo() {
   const [goalSeed, setGoalSeed] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [tourFocus, setTourFocus] = useState<ContinentKey | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -158,6 +159,7 @@ export function GlowbalOption3GlobeDemo() {
 
   const activeStep = onboardingSteps[activeIndex];
   const currentContinent = stepContinents[activeIndex];
+  const currentFocus = tourFocus ? stepContinents.find((item) => item.key === tourFocus) ?? currentContinent : currentContinent;
 
   const completedStepIndexes = useMemo(
     () => onboardingSteps.flatMap((step, index) => {
@@ -194,6 +196,11 @@ export function GlowbalOption3GlobeDemo() {
     [countriesGeo, currentContinent.key],
   );
 
+  const previewFocus = useMemo(
+    () => ({ lat: currentFocus.lat, lng: currentFocus.lng, altitude: currentFocus.altitude }),
+    [currentFocus],
+  );
+
   const generatedGoal = useMemo(() => goalIdeas[goalSeed % goalIdeas.length], [goalSeed]);
 
   function updateAnswer(value: string | string[]) {
@@ -217,10 +224,17 @@ export function GlowbalOption3GlobeDemo() {
 
   function finishDemo() {
     setIsSubmitting(true);
+    stepContinents.forEach((continent, index) => {
+      window.setTimeout(() => {
+        setTourFocus(continent.key);
+      }, index * 520);
+    });
+
     window.setTimeout(() => {
       setShowCompletion(true);
       setIsSubmitting(false);
-    }, 1800);
+      setTourFocus(null);
+    }, stepContinents.length * 520 + 420);
   }
 
   function renderStepOptions() {
@@ -378,11 +392,14 @@ export function GlowbalOption3GlobeDemo() {
                 <div className="pointer-events-none absolute inset-0 rounded-[32px] bg-[radial-gradient(circle,rgba(255,255,255,0.6),transparent_60%)]" />
                 <div className="pointer-events-none absolute inset-[14%] rounded-full border border-cyan-200/55 shadow-[0_0_0_1px_rgba(255,255,255,0.72),0_0_38px_rgba(125,211,252,0.16)]" />
                 <div className="pointer-events-none absolute inset-[19%] rounded-full border border-white/30" />
-                <div className="relative h-[560px] w-full">
+                <div className="relative left-[-10%] h-[720px] w-[125%] overflow-visible lg:left-[-18%] lg:w-[150%]">
                   <SearchWorldSelector
                     selectedCountries={selectedCountries}
                     onToggleCountry={() => {}}
                     previewCountry={previewCountry}
+                    previewFocus={previewFocus}
+                    railClassName="h-full w-full overflow-visible"
+                    stageClassName="glow-search-globe-stage-large w-full overflow-visible"
                   />
                 </div>
               </div>
@@ -417,7 +434,7 @@ export function GlowbalOption3GlobeDemo() {
                       disabled={isSubmitting}
                       className="rounded-full bg-[linear-gradient(135deg,#ff4d8c,#ff92c7)] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(255,77,140,0.22)] transition hover:-translate-y-0.5 disabled:opacity-70"
                     >
-                      {isSubmitting ? 'Launching...' : 'Finish'}
+                      {isSubmitting ? 'Flying...' : 'Finish'}
                     </button>
                   ) : (
                     <button
