@@ -140,7 +140,7 @@ export function GlowbalOption3GlobeDemo() {
   const [goalSeed, setGoalSeed] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [tourFocus, setTourFocus] = useState<ContinentKey | null>(null);
+  const [finishSpinFocus, setFinishSpinFocus] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -159,7 +159,6 @@ export function GlowbalOption3GlobeDemo() {
 
   const activeStep = onboardingSteps[activeIndex];
   const currentContinent = stepContinents[activeIndex];
-  const currentFocus = tourFocus ? stepContinents.find((item) => item.key === tourFocus) ?? currentContinent : currentContinent;
 
   const completedStepIndexes = useMemo(
     () => onboardingSteps.flatMap((step, index) => {
@@ -197,8 +196,8 @@ export function GlowbalOption3GlobeDemo() {
   );
 
   const previewFocus = useMemo(
-    () => ({ lat: currentFocus.lat, lng: currentFocus.lng, altitude: currentFocus.altitude }),
-    [currentFocus],
+    () => finishSpinFocus ?? { lat: currentContinent.lat, lng: currentContinent.lng, altitude: currentContinent.altitude },
+    [currentContinent, finishSpinFocus],
   );
 
   const generatedGoal = useMemo(() => goalIdeas[goalSeed % goalIdeas.length], [goalSeed]);
@@ -224,17 +223,30 @@ export function GlowbalOption3GlobeDemo() {
 
   function finishDemo() {
     setIsSubmitting(true);
-    stepContinents.forEach((continent, index) => {
-      window.setTimeout(() => {
-        setTourFocus(continent.key);
-      }, index * 520);
-    });
+    const durationMs = 2400;
+    const start = typeof performance !== 'undefined' ? performance.now() : Date.now();
 
-    window.setTimeout(() => {
-      setShowCompletion(true);
-      setIsSubmitting(false);
-      setTourFocus(null);
-    }, stepContinents.length * 520 + 420);
+    function tick(now: number) {
+      const elapsed = now - start;
+      const progress = Math.min(elapsed / durationMs, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+
+      setFinishSpinFocus({
+        lat: 14 * Math.sin(eased * Math.PI * 1.35) - 6,
+        lng: -150 + eased * 390,
+        altitude: 1.34 + 0.06 * Math.cos(eased * Math.PI * 2),
+      });
+
+      if (progress < 1) {
+        window.requestAnimationFrame(tick);
+      } else {
+        setFinishSpinFocus(null);
+        setShowCompletion(true);
+        setIsSubmitting(false);
+      }
+    }
+
+    window.requestAnimationFrame(tick);
   }
 
   function renderStepOptions() {
