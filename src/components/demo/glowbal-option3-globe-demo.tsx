@@ -3,12 +3,15 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 import {
   onboardingSteps,
+  regions,
   studyLevels,
   subjectFamilies,
   supportNeeds,
 } from '@/lib/onboarding-options';
+import type { StudentProfile } from '@/lib/types';
 
 const SearchWorldSelector = dynamic(
   () => import('@/app/onboarding/world-picker').then((mod) => mod.SearchWorldSelector),
@@ -17,6 +20,7 @@ const SearchWorldSelector = dynamic(
 
 type StepKey = (typeof onboardingSteps)[number]['key'];
 type Answers = Partial<Record<StepKey, string | string[]>>;
+type Mode = 'demo' | 'live';
 
 type GeoFeature = {
   properties?: {
@@ -66,6 +70,8 @@ const stepContinents = [
 ] as const;
 
 type ContinentKey = (typeof stepContinents)[number]['key'];
+
+const ONBOARDING_DRAFT_KEY = 'glowbal-onboarding-draft';
 
 const continentAliases: Record<string, ContinentKey> = {
   europe: 'europe',
@@ -132,15 +138,87 @@ function getInitialAnswers(): Answers {
   };
 }
 
-export function GlowbalOption3GlobeDemo() {
+function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
+  const firstSupport = (initialProfile?.support_needs || '').split(', ').filter(Boolean)[0] || '';
+  const firstSubject = initialProfile?.target_subjects?.[0] || '';
+  const preferredCountries = initialProfile?.preferred_countries || [];
+  let regionAnswer = '';
+
+  if (preferredCountries.length > 0) {
+    const matchedRegion = regions.find((region) => region.countries.some((country) => preferredCountries.includes(country)));
+    regionAnswer = matchedRegion?.name === 'Europe'
+      ? 'Europe'
+      : matchedRegion?.name === 'UK & Ireland'
+        ? 'UK & Ireland'
+        : matchedRegion?.name === 'North America'
+          ? 'North America'
+          : matchedRegion?.name === 'Asia-Pacific'
+            ? 'Asia-Pacific'
+            : matchedRegion?.name === 'Middle East'
+              ? 'Middle East'
+              : '';
+  }
+
+  return {
+    study_level: initialProfile?.study_level || '',
+    subjects: firstSubject,
+    countries: regionAnswer,
+    budget: initialProfile?.budget_range || '',
+    campus: initialProfile?.campus_preferences || '',
+    support: firstSupport,
+    goals: initialProfile?.goals || '',
+  };
+}
+
+function mapCountries(answer: string) {
+  switch (answer) {
+    case 'UK & Ireland':
+      return ['United Kingdom', 'Ireland'];
+    case 'Europe':
+      return ['Netherlands', 'Germany', 'France', 'Sweden', 'Switzerland', 'Spain', 'Italy'];
+    case 'North America':
+      return ['United States', 'Canada'];
+    case 'Asia-Pacific':
+      return ['Singapore', 'Australia', 'New Zealand', 'Japan', 'South Korea', 'Hong Kong'];
+    case 'Middle East':
+      return ['United Arab Emirates', 'Qatar'];
+    default:
+      return [];
+  }
+}
+
+function answersToProfile(answers: Answers): StudentProfile {
+  return {
+    study_level: String(answers.study_level || '') || null,
+    target_subjects: answers.subjects ? [String(answers.subjects)] : [],
+    preferred_countries: answers.countries ? mapCountries(String(answers.countries)) : [],
+    budget_range: String(answers.budget || '') || null,
+    goals: String(answers.goals || '') || null,
+    career_interests: answers.subjects ? [String(answers.subjects)] : [],
+    campus_preferences: String(answers.campus || '') || null,
+    support_needs: String(answers.support || '') || null,
+  };
+}
+
+export function GlowbalOption3GlobeDemo({
+  initialProfile = null,
+  isSignedIn = false,
+  mode = 'demo',
+}: {
+  initialProfile?: StudentProfile | null;
+  isSignedIn?: boolean;
+  mode?: Mode;
+}) {
   const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const [countriesGeo, setCountriesGeo] = useState<GeoFeature[]>([]);
-  const [answers, setAnswers] = useState<Answers>(getInitialAnswers());
+  const [answers, setAnswers] = useState<Answers>(() => (mode === 'live' ? buildInitialAnswers(initialProfile) : getInitialAnswers()));
   const [activeIndex, setActiveIndex] = useState(0);
   const [goalSeed, setGoalSeed] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [finishSpinFocus, setFinishSpinFocus] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -156,6 +234,28 @@ export function GlowbalOption3GlobeDemo() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (mode !== 'live') return;
+    try {
+      const raw = window.localStorage.getItem(ONBOARDING_DRAFT_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { answers?: Answers; stepIndex?: number };
+      if (parsed.answers) setAnswers(parsed.answers);
+      if (typeof parsed.stepIndex === 'number') setActiveIndex(Math.max(0, Math.min(parsed.stepIndex, onboardingSteps.length - 1)));
+    } catch {
+      // ignore draft failures
+    }
+  }, [mode]);
+
+  useEffect(() => {
+    if (mode !== 'live') return;
+    try {
+      window.localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify({ answers, stepIndex: activeIndex }));
+    } catch {
+      // ignore draft failures
+    }
+  }, [activeIndex, answers, mode]);
 
   const activeStep = onboardingSteps[activeIndex];
   const currentContinent = stepContinents[activeIndex];
@@ -221,6 +321,50 @@ export function GlowbalOption3GlobeDemo() {
     }
   }
 
+  async function persistLiveOnboarding() {
+    if (!isSignedIn) {
+      router.push(`/auth?redirect=${encodeURIComponent('/onboarding?complete=1')}`);
+      return false;
+    }
+
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    if (userError || !userData.user) {
+      setMessage('Please sign in so we can save your profile.');
+      return false;
+    }
+
+    const profile = answersToProfile(answers);
+    const payload = {
+      user_id: userData.user.id,
+      study_level: profile.study_level || null,
+      target_subjects: profile.target_subjects || [],
+      preferred_countries: profile.preferred_countries || [],
+      budget_range: profile.budget_range || null,
+      academic_background: null,
+      goals: profile.goals || null,
+      career_interests: profile.career_interests || [],
+      campus_preferences: profile.campus_preferences || null,
+      support_needs: profile.support_needs || null,
+      onboarding_completed: true,
+      onboarding_completed_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabase.from('student_profiles').upsert(payload, { onConflict: 'user_id' });
+    if (error) {
+      setMessage(error.message);
+      return false;
+    }
+
+    try {
+      window.localStorage.removeItem(ONBOARDING_DRAFT_KEY);
+    } catch {
+      // ignore draft cleanup failures
+    }
+
+    return true;
+  }
+
   function finishDemo() {
     setIsSubmitting(true);
     const durationMs = 2400;
@@ -241,8 +385,15 @@ export function GlowbalOption3GlobeDemo() {
         window.requestAnimationFrame(tick);
       } else {
         setFinishSpinFocus(null);
-        setShowCompletion(true);
-        setIsSubmitting(false);
+        if (mode === 'live') {
+          void persistLiveOnboarding().then((ok) => {
+            if (ok) setShowCompletion(true);
+            setIsSubmitting(false);
+          });
+        } else {
+          setShowCompletion(true);
+          setIsSubmitting(false);
+        }
       }
     }
 
@@ -457,7 +608,7 @@ export function GlowbalOption3GlobeDemo() {
               <p className="mt-4 text-lg text-slate-600">Ready to go glowbal?</p>
               <button
                 type="button"
-                onClick={() => router.push('/universities')}
+                onClick={() => router.push(mode === 'live' ? '/onboarding/documents' : '/universities')}
                 className="mt-8 rounded-full bg-[linear-gradient(135deg,#00c2ff,#90e0ef)] px-8 py-3 text-base font-semibold text-white shadow-[0_16px_30px_rgba(0,194,255,0.22)] transition hover:-translate-y-0.5"
               >
                 yeah
@@ -465,6 +616,7 @@ export function GlowbalOption3GlobeDemo() {
             </div>
           </div>
         ) : null}
+        {message ? <p className="mt-4 text-center text-sm text-slate-600">{message}</p> : null}
       </div>
     </div>
   );
