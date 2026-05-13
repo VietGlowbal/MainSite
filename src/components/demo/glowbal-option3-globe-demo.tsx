@@ -351,12 +351,6 @@ export function GlowbalOption3GlobeDemo() {
       case 'goals':
         return (
           <div className="space-y-4">
-            <textarea
-              value={String(answers.goals ?? '')}
-              onChange={(event) => updateAnswer(event.target.value)}
-              placeholder="Tap generate to create a future goal"
-              className="min-h-44 w-full rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-base text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.05)] outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
-            />
             <div className="flex flex-wrap items-center gap-3">
               <button
                 type="button"
@@ -369,9 +363,6 @@ export function GlowbalOption3GlobeDemo() {
               >
                 {answers.goals ? 'Generate another response' : 'Generate a response'}
               </button>
-            </div>
-            <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 text-sm leading-7 text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-              {String(answers.goals ?? '').trim() || generatedGoal}
             </div>
           </div>
         );
@@ -389,22 +380,12 @@ export function GlowbalOption3GlobeDemo() {
             <div className="absolute -left-10 top-0 h-40 w-40 rounded-full bg-pink-200/30 blur-3xl" />
             <div className="absolute right-0 top-16 h-44 w-44 rounded-full bg-cyan-200/35 blur-3xl" />
 
-            <div className="relative flex min-h-[780px] flex-col items-center justify-between gap-6">
-              <div className="flex w-full items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm font-semibold text-slate-600">Glowbal</div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">7 continents · 7 questions</div>
-                </div>
-                <div className="rounded-full border border-slate-200 bg-white/85 px-4 py-2 text-sm font-medium text-slate-500">
-                  {currentContinent.label}
-                </div>
-              </div>
-
-              <div className="relative flex w-full flex-1 items-center justify-center overflow-hidden rounded-[32px]">
-                <div className="pointer-events-none absolute inset-0 rounded-[32px] bg-[radial-gradient(circle,rgba(255,255,255,0.6),transparent_60%)]" />
-                <div className="pointer-events-none absolute inset-[14%] rounded-full border border-cyan-200/55 shadow-[0_0_0_1px_rgba(255,255,255,0.72),0_0_38px_rgba(125,211,252,0.16)]" />
-                <div className="pointer-events-none absolute inset-[19%] rounded-full border border-white/30" />
-                <div className="relative left-[-10%] h-[720px] w-[125%] overflow-visible lg:left-[-18%] lg:w-[150%]">
+            <div className="relative flex min-h-[780px] flex-col items-center justify-center">
+              <div className="relative flex w-full flex-1 items-center justify-center overflow-visible">
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,rgba(255,255,255,0.55),transparent_60%)]" />
+                <div className="pointer-events-none absolute inset-[12%] rounded-full border border-cyan-200/45 shadow-[0_0_0_1px_rgba(255,255,255,0.6),0_0_44px_rgba(125,211,252,0.14)]" />
+                <div className="pointer-events-none absolute inset-[17%] rounded-full border border-white/25" />
+                <div className="relative left-[-18%] h-[820px] w-[145%] overflow-visible lg:left-[-28%] lg:h-[920px] lg:w-[168%]">
                   <SearchWorldSelector
                     selectedCountries={selectedCountries}
                     onToggleCountry={() => {}}
@@ -414,10 +395,6 @@ export function GlowbalOption3GlobeDemo() {
                     stageClassName="glow-search-globe-stage-large w-full overflow-visible"
                   />
                 </div>
-              </div>
-
-              <div className="w-full rounded-[24px] border border-white/70 bg-white/60 px-4 py-3 text-center text-sm text-slate-500 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-                This uses the same country-highlighting globe behaviour as search — it just fills automatically after each answer.
               </div>
             </div>
           </section>
