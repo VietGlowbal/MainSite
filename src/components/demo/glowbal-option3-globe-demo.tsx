@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import { useRouter } from 'next/navigation';
 import type { GlobeMethods } from 'react-globe.gl';
 import {
   onboardingSteps,
@@ -46,6 +47,26 @@ const continents: ContinentNode[] = [
 const budgetOptions = ['Under $15k', 'Up to $25k', 'Up to $50k', '$50k+'];
 const campusOptions = ['Big city', 'Campus town', 'Quiet / green', 'Flexible'];
 const geoJsonUrl = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
+const goalIdeas = [
+  'Build a global AI career with strong scholarship support.',
+  'Study computer science abroad and launch a startup one day.',
+  'Find a university that opens doors into product and innovation.',
+  'Move into a big international city and grow my confidence.',
+  'Get a practical degree that leads to strong job options worldwide.',
+  'Study somewhere exciting, modern, and internationally connected.',
+  'Find a university that balances affordability with strong outcomes.',
+  'Grow into a future engineer who can work on world-changing problems.',
+  'Build a career in finance or business with global mobility.',
+  'Study in a place where I can meet ambitious people from everywhere.',
+  'Discover the best-fit route into medicine or health science abroad.',
+  'Find a creative degree with strong industry links and real momentum.',
+  'Use university as a launchpad into a meaningful global career.',
+  'Study abroad somewhere that feels safe, energising, and full of opportunity.',
+  'Find a university where I can build skills, network, and long-term options.',
+  'Choose a path that helps me become independent and globally minded.',
+  'Study somewhere with strong internships and a clear career pipeline.',
+  'Build a future around technology, creativity, and international experience.',
+];
 
 const continentAliases: Record<string, string> = {
   europe: 'europe',
@@ -76,6 +97,7 @@ function getInitialAnswers(): Answers {
 }
 
 export function GlowbalOption3GlobeDemo() {
+  const router = useRouter();
   const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const [mounted, setMounted] = useState(false);
   const [GlobeComp, setGlobeComp] = useState<ComponentType<Record<string, unknown>> | null>(null);
@@ -83,6 +105,9 @@ export function GlowbalOption3GlobeDemo() {
   const [answers, setAnswers] = useState<Answers>(getInitialAnswers());
   const [activeIndex, setActiveIndex] = useState(0);
   const [globeReady, setGlobeReady] = useState(false);
+  const [goalSeed, setGoalSeed] = useState(0);
+  const [showCompletion, setShowCompletion] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -166,6 +191,11 @@ export function GlowbalOption3GlobeDemo() {
     [countriesGeo, currentNode.key],
   );
 
+  const suggestedGoals = useMemo(() => {
+    const rotated = [...goalIdeas.slice(goalSeed), ...goalIdeas.slice(0, goalSeed)];
+    return rotated.slice(0, 15);
+  }, [goalSeed]);
+
   function updateAnswer(value: string | string[]) {
     setAnswers((prev) => ({ ...prev, [activeStep.key]: value }));
   }
@@ -183,6 +213,14 @@ export function GlowbalOption3GlobeDemo() {
     if (activeIndex < onboardingSteps.length - 1) {
       window.setTimeout(goNext, 120);
     }
+  }
+
+  function finishDemo() {
+    setIsSubmitting(true);
+    window.setTimeout(() => {
+      setShowCompletion(true);
+      setIsSubmitting(false);
+    }, 1700);
   }
 
   function renderStepOptions() {
@@ -303,13 +341,34 @@ export function GlowbalOption3GlobeDemo() {
               placeholder="Build a global career in AI with strong scholarship support"
               className="min-h-44 w-full rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-base text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.05)] outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
             />
-            <button
-              type="button"
-              onClick={() => updateAnswer(String(answers.goals ?? '').trim() || 'Global career with strong opportunities')}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-500 transition hover:-translate-y-0.5 hover:text-slate-700"
-            >
-              Use sample answer
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => setGoalSeed((prev) => (prev + 1) % goalIdeas.length)}
+                className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-500 transition hover:-translate-y-0.5 hover:text-slate-700"
+              >
+                Generate more ideas
+              </button>
+              <button
+                type="button"
+                onClick={() => updateAnswer(suggestedGoals[0])}
+                className="rounded-full border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-medium text-pink-500 transition hover:-translate-y-0.5"
+              >
+                Use one for me
+              </button>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {suggestedGoals.map((idea) => (
+                <button
+                  key={idea}
+                  type="button"
+                  onClick={() => updateAnswer(idea)}
+                  className="rounded-[22px] border border-slate-200 bg-white px-4 py-4 text-left text-sm text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.04)] transition hover:-translate-y-0.5 hover:border-pink-200 hover:text-slate-800"
+                >
+                  {idea}
+                </button>
+              ))}
+            </div>
           </div>
         );
 
@@ -339,7 +398,7 @@ export function GlowbalOption3GlobeDemo() {
 
               <div className="relative flex w-full flex-1 items-center justify-center">
                 <div className="absolute inset-0 rounded-[32px] bg-[radial-gradient(circle,rgba(255,255,255,0.6),transparent_60%)]" />
-                <div className="relative h-[520px] w-full max-w-[560px] overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.6),rgba(255,255,255,0.02)_55%)]">
+                <div className={`relative h-[520px] w-full max-w-[560px] overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.6),rgba(255,255,255,0.02)_55%)] ${isSubmitting ? 'animate-[spin_1.7s_ease-in-out]' : ''}`}>
                   {mounted && GlobeComp ? (
                     <GlobeComp
                       ref={globeRef}
@@ -388,16 +447,16 @@ export function GlowbalOption3GlobeDemo() {
                       pointRadius={() => 0}
                       pointColor={(point: object) => (point as ContinentNode & { status: string }).color}
                       pointResolution={24}
-                      ringsData={[currentNode]}
+                      ringsData={[]}
                       ringLat="lat"
                       ringLng="lng"
                       ringColor={(ring: object) => {
                         const node = ring as ContinentNode;
                         return () => node.glow;
                       }}
-                      ringMaxRadius={() => 18}
-                      ringPropagationSpeed={() => 2.8}
-                      ringRepeatPeriod={() => 900}
+                      ringMaxRadius={() => 0}
+                      ringPropagationSpeed={() => 0}
+                      ringRepeatPeriod={() => 0}
                       labelsData={[]}
                       labelLat="lat"
                       labelLng="lng"
@@ -448,10 +507,11 @@ export function GlowbalOption3GlobeDemo() {
                   {activeStep.key === 'goals' ? (
                     <button
                       type="button"
-                      onClick={() => setAnswers(getInitialAnswers())}
-                      className="rounded-full bg-[linear-gradient(135deg,#ff4d8c,#ff92c7)] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(255,77,140,0.22)] transition hover:-translate-y-0.5"
+                      onClick={finishDemo}
+                      disabled={isSubmitting}
+                      className="rounded-full bg-[linear-gradient(135deg,#ff4d8c,#ff92c7)] px-6 py-3 text-sm font-semibold text-white shadow-[0_16px_30px_rgba(255,77,140,0.22)] transition hover:-translate-y-0.5 disabled:opacity-70"
                     >
-                      Reset demo
+                      {isSubmitting ? 'Launching...' : 'Finish'}
                     </button>
                   ) : (
                     <button
@@ -473,6 +533,25 @@ export function GlowbalOption3GlobeDemo() {
             </div>
           </section>
         </div>
+
+        {showCompletion ? (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
+            <div className="w-full max-w-xl rounded-[36px] border border-white/70 bg-white/92 p-8 text-center shadow-[0_30px_80px_rgba(15,23,42,0.22)]">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff4d8c,#00c2ff)] text-4xl text-white shadow-[0_16px_40px_rgba(255,77,140,0.24)]">
+                🌍
+              </div>
+              <h3 className="mt-6 text-4xl font-semibold tracking-[-0.04em] text-slate-900">You’re out of this world</h3>
+              <p className="mt-4 text-lg text-slate-600">Ready to go glowbal?</p>
+              <button
+                type="button"
+                onClick={() => router.push('/universities')}
+                className="mt-8 rounded-full bg-[linear-gradient(135deg,#00c2ff,#90e0ef)] px-8 py-3 text-base font-semibold text-white shadow-[0_16px_30px_rgba(0,194,255,0.22)] transition hover:-translate-y-0.5"
+              >
+                yeah
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   );
