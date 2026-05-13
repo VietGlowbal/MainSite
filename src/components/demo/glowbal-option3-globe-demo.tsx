@@ -381,11 +381,11 @@ export function GlowbalOption3GlobeDemo() {
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[radial-gradient(circle_at_top_left,rgba(255,61,154,0.10),transparent_20%),radial-gradient(circle_at_92%_8%,rgba(0,194,255,0.12),transparent_18%),linear-gradient(180deg,#f6f7ff_0%,#fff9fb_100%)] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl">
-        <div className="grid items-start gap-6 lg:grid-cols-[1.16fr_0.84fr]">
+        <div className="grid items-start gap-4 lg:grid-cols-[1.12fr_0.88fr] xl:gap-3">
           <section className="relative overflow-visible p-0">
             <div className="relative flex min-h-[680px] flex-col items-center justify-center overflow-visible lg:min-h-[760px]">
               <div className="relative flex w-full flex-1 items-center justify-center overflow-visible">
-                <div className="relative left-[-26%] h-[860px] w-[155%] overflow-visible lg:left-[-34%] lg:h-[980px] lg:w-[176%]">
+                <div className="relative left-[-14%] h-[860px] w-[155%] overflow-visible lg:left-[-18%] lg:h-[980px] lg:w-[176%] xl:left-[-16%]">
                   <SearchWorldSelector
                     selectedCountries={selectedCountries}
                     onToggleCountry={() => {}}
@@ -399,8 +399,8 @@ export function GlowbalOption3GlobeDemo() {
             </div>
           </section>
 
-          <section className="rounded-[32px] border border-white/70 bg-white/88 p-5 shadow-[0_24px_64px_rgba(255,105,180,0.10)] backdrop-blur-xl sm:p-6">
-            <div className="flex min-h-[620px] flex-col lg:min-h-[680px]">
+          <section className="rounded-[32px] border border-white/70 bg-white/88 p-5 shadow-[0_24px_64px_rgba(255,105,180,0.10)] backdrop-blur-xl sm:p-6 lg:min-h-[620px] xl:min-h-[600px]">
+            <div className="flex min-h-[560px] flex-col lg:min-h-[560px] xl:min-h-[540px]">
               <div className="flex items-start justify-between gap-4">
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-full bg-slate-50 px-4 py-2 text-[11px] font-bold uppercase tracking-[0.22em] text-pink-500">
