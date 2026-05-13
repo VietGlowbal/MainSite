@@ -122,12 +122,12 @@ function classifyContinent(feature: GeoFeature): ContinentKey | null {
 
 function getInitialAnswers(): Answers {
   return {
-    study_level: 'undergraduate',
-    subjects: 'Computer Science',
-    countries: 'North America',
-    budget: 'Up to $25k',
-    campus: 'Big city',
-    support: 'Scholarships and funding',
+    study_level: '',
+    subjects: '',
+    countries: '',
+    budget: '',
+    campus: '',
+    support: '',
     goals: '',
   };
 }
@@ -159,17 +159,18 @@ export function GlowbalOption3GlobeDemo() {
   const activeStep = onboardingSteps[activeIndex];
   const currentContinent = stepContinents[activeIndex];
 
-  const completedCount = useMemo(
-    () => onboardingSteps.filter((step) => {
+  const completedStepIndexes = useMemo(
+    () => onboardingSteps.flatMap((step, index) => {
       const value = answers[step.key];
-      return Array.isArray(value) ? value.length > 0 : Boolean(String(value ?? '').trim());
-    }).length,
+      const filled = Array.isArray(value) ? value.length > 0 : Boolean(String(value ?? '').trim());
+      return filled ? [index] : [];
+    }),
     [answers],
   );
 
   const litContinents = useMemo(
-    () => new Set(stepContinents.slice(0, Math.max(completedCount, activeIndex + 1)).map((item) => item.key)),
-    [activeIndex, completedCount],
+    () => new Set(completedStepIndexes.map((index) => stepContinents[index].key)),
+    [completedStepIndexes],
   );
 
   const selectedCountries = useMemo(
@@ -184,7 +185,12 @@ export function GlowbalOption3GlobeDemo() {
   );
 
   const previewCountry = useMemo(
-    () => countriesGeo.find((feature) => classifyContinent(feature) === currentContinent.key && getFeatureName(feature)) ? getFeatureName(countriesGeo.find((feature) => classifyContinent(feature) === currentContinent.key && getFeatureName(feature)) as GeoFeature) : null,
+    () => {
+      const match = countriesGeo.find(
+        (feature) => classifyContinent(feature) === currentContinent.key && getFeatureName(feature),
+      );
+      return match ? getFeatureName(match) : null;
+    },
     [countriesGeo, currentContinent.key],
   );
 
