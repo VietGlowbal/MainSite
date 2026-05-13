@@ -153,6 +153,19 @@ export function GlowbalOption3GlobeDemo() {
     [activeIndex, completedCount],
   );
 
+  const highlightedCountries = useMemo(
+    () => countriesGeo.filter((feature) => {
+      const continentKey = classifyContinent(feature);
+      return Boolean(continentKey && highlightedContinents.has(continentKey));
+    }),
+    [countriesGeo, highlightedContinents],
+  );
+
+  const activeCountries = useMemo(
+    () => countriesGeo.filter((feature) => classifyContinent(feature) === currentNode.key),
+    [countriesGeo, currentNode.key],
+  );
+
   function updateAnswer(value: string | string[]) {
     setAnswers((prev) => ({ ...prev, [activeStep.key]: value }));
   }
@@ -308,16 +321,7 @@ export function GlowbalOption3GlobeDemo() {
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[radial-gradient(circle_at_top_left,rgba(255,61,154,0.10),transparent_20%),radial-gradient(circle_at_92%_8%,rgba(0,194,255,0.12),transparent_18%),linear-gradient(180deg,#f6f7ff_0%,#fff9fb_100%)] px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl">
-        <div className="rounded-[32px] border border-white/70 bg-white/75 px-6 py-6 shadow-[0_20px_60px_rgba(29,78,216,0.08)] backdrop-blur-md sm:px-8">
-          <h1 className="max-w-3xl text-3xl font-semibold tracking-[-0.04em] text-slate-900 sm:text-5xl">
-            Real globe, lighter copy, all 7 onboarding questions.
-          </h1>
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-slate-600 sm:text-base">
-            The continent lights are the progress. Each question claims a continent as the user moves through the flow.
-          </p>
-        </div>
-
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
+        <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
           <section className="relative overflow-hidden rounded-[36px] border border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.82),rgba(255,255,255,0.68))] p-6 shadow-[0_28px_80px_rgba(125,125,255,0.12)] backdrop-blur-xl sm:p-8">
             <div className="absolute -left-10 top-0 h-40 w-40 rounded-full bg-pink-200/30 blur-3xl" />
             <div className="absolute right-0 top-16 h-44 w-44 rounded-full bg-cyan-200/35 blur-3xl" />
@@ -347,48 +351,54 @@ export function GlowbalOption3GlobeDemo() {
                       showAtmosphere
                       atmosphereColor="rgba(186,230,253,0.8)"
                       atmosphereAltitude={0.13}
-                      polygonsData={countriesGeo}
+                      polygonsData={highlightedCountries}
                       polygonCapColor={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
                         if (!continentKey) return 'rgba(255,255,255,0.14)';
                         const continent = continents.find((item) => item.key === continentKey);
                         if (!continent) return 'rgba(255,255,255,0.14)';
                         if (continentKey === currentNode.key) return continent.color;
-                        if (highlightedContinents.has(continentKey)) return `${continent.color}CC`;
+                        if (highlightedContinents.has(continentKey)) return `${continent.color}D9`;
                         return 'rgba(255,255,255,0.10)';
                       }}
-                      polygonSideColor={() => 'rgba(255,255,255,0.06)'}
+                      polygonSideColor={(feature: object) => {
+                        const continentKey = classifyContinent(feature as GeoFeature);
+                        const continent = continents.find((item) => item.key === continentKey);
+                        return continentKey && continent ? `${continent.color}88` : 'rgba(255,255,255,0.06)';
+                      }}
                       polygonStrokeColor={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
                         if (!continentKey) return 'rgba(255,255,255,0.18)';
-                        if (continentKey === currentNode.key) return 'rgba(15,23,42,0.3)';
-                        if (highlightedContinents.has(continentKey)) return 'rgba(255,255,255,0.28)';
+                        const continent = continents.find((item) => item.key === continentKey);
+                        if (continentKey === currentNode.key) return continent ? continent.color : 'rgba(15,23,42,0.3)';
+                        if (highlightedContinents.has(continentKey)) return continent ? `${continent.color}AA` : 'rgba(255,255,255,0.28)';
                         return 'rgba(255,255,255,0.12)';
                       }}
                       polygonAltitude={(feature: object) => {
                         const continentKey = classifyContinent(feature as GeoFeature);
-                        if (continentKey === currentNode.key) return 0.018;
-                        if (continentKey && highlightedContinents.has(continentKey)) return 0.01;
+                        if (continentKey === currentNode.key) return 0.085;
+                        if (continentKey && highlightedContinents.has(continentKey)) return 0.04;
                         return 0.004;
                       }}
+                      polygonsTransitionDuration={300}
                       pointsData={pointsData}
                       pointLat="lat"
                       pointLng="lng"
-                      pointAltitude="altitude"
-                      pointRadius="size"
+                      pointAltitude={() => 0}
+                      pointRadius={() => 0}
                       pointColor={(point: object) => (point as ContinentNode & { status: string }).color}
                       pointResolution={24}
-                      ringsData={ringsData}
+                      ringsData={[currentNode]}
                       ringLat="lat"
                       ringLng="lng"
                       ringColor={(ring: object) => {
                         const node = ring as ContinentNode;
                         return () => node.glow;
                       }}
-                      ringMaxRadius="maxR"
-                      ringPropagationSpeed="propagationSpeed"
-                      ringRepeatPeriod="repeatPeriod"
-                      labelsData={pointsData}
+                      ringMaxRadius={() => 18}
+                      ringPropagationSpeed={() => 2.8}
+                      ringRepeatPeriod={() => 900}
+                      labelsData={[]}
                       labelLat="lat"
                       labelLng="lng"
                       labelText="label"
@@ -413,7 +423,7 @@ export function GlowbalOption3GlobeDemo() {
               </div>
 
               <div className="w-full rounded-[24px] border border-white/70 bg-white/60 px-4 py-3 text-center text-sm text-slate-500 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-                The globe now carries the progress — each question lights up a full continent.
+                Each answer lights up every country in that continent.
               </div>
             </div>
           </section>
