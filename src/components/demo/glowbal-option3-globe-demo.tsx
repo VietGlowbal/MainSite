@@ -1,29 +1,22 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState, type ComponentType } from 'react';
+import dynamic from 'next/dynamic';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { GlobeMethods } from 'react-globe.gl';
 import {
   onboardingSteps,
-  regions,
   studyLevels,
   subjectFamilies,
   supportNeeds,
 } from '@/lib/onboarding-options';
 
+const SearchWorldSelector = dynamic(
+  () => import('@/app/onboarding/world-picker').then((mod) => mod.SearchWorldSelector),
+  { ssr: false, loading: () => <div className="h-full w-full rounded-full bg-white/40" /> },
+);
+
 type StepKey = (typeof onboardingSteps)[number]['key'];
 type Answers = Partial<Record<StepKey, string | string[]>>;
-
-type ContinentNode = {
-  key: string;
-  label: string;
-  lat: number;
-  lng: number;
-  altitude: number;
-  color: string;
-  glow: string;
-  stepKey: StepKey;
-};
 
 type GeoFeature = {
   properties?: {
@@ -38,19 +31,9 @@ type GeoFeature = {
   };
 };
 
-const continents: ContinentNode[] = [
-  { key: 'north-america', label: 'North America', lat: 47, lng: -100, altitude: 0.18, color: '#67e8f9', glow: 'rgba(103,232,249,0.55)', stepKey: 'study_level' },
-  { key: 'south-america', label: 'South America', lat: -16, lng: -58, altitude: 0.18, color: '#fbbf24', glow: 'rgba(251,191,36,0.5)', stepKey: 'subjects' },
-  { key: 'europe', label: 'Europe', lat: 52, lng: 16, altitude: 0.18, color: '#f472b6', glow: 'rgba(244,114,182,0.5)', stepKey: 'countries' },
-  { key: 'africa', label: 'Africa', lat: 5, lng: 20, altitude: 0.18, color: '#a3e635', glow: 'rgba(163,230,53,0.45)', stepKey: 'budget' },
-  { key: 'asia', label: 'Asia', lat: 30, lng: 95, altitude: 0.18, color: '#60a5fa', glow: 'rgba(96,165,250,0.5)', stepKey: 'campus' },
-  { key: 'oceania', label: 'Oceania', lat: -24, lng: 135, altitude: 0.18, color: '#2dd4bf', glow: 'rgba(45,212,191,0.48)', stepKey: 'support' },
-  { key: 'antarctica', label: 'Antarctica', lat: -78, lng: 20, altitude: 0.18, color: '#c4b5fd', glow: 'rgba(196,181,253,0.52)', stepKey: 'goals' },
-];
-
+const geoJsonUrl = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
 const budgetOptions = ['Under $15k', 'Up to $25k', 'Up to $50k', '$50k+'];
 const campusOptions = ['Big city', 'Campus town', 'Quiet / green', 'Flexible'];
-const geoJsonUrl = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
 const goalIdeas = [
   'Build a global AI career with strong scholarship support.',
   'Study computer science abroad and launch a startup one day.',
@@ -72,7 +55,19 @@ const goalIdeas = [
   'Build a future around technology, creativity, and international experience.',
 ];
 
-const continentAliases: Record<string, string> = {
+const stepContinents = [
+  { key: 'north-america', label: 'North America' },
+  { key: 'south-america', label: 'South America' },
+  { key: 'europe', label: 'Europe' },
+  { key: 'africa', label: 'Africa' },
+  { key: 'asia', label: 'Asia' },
+  { key: 'oceania', label: 'Oceania' },
+  { key: 'antarctica', label: 'Antarctica' },
+] as const;
+
+type ContinentKey = (typeof stepContinents)[number]['key'];
+
+const continentAliases: Record<string, ContinentKey> = {
   europe: 'europe',
   'north america': 'north-america',
   'south america': 'south-america',
@@ -82,34 +77,15 @@ const continentAliases: Record<string, string> = {
   antarctica: 'antarctica',
 };
 
-function classifyContinent(feature: GeoFeature) {
-  const raw = feature.properties?.CONTINENT || feature.properties?.continent;
-  if (raw) return continentAliases[String(raw).trim().toLowerCase()] ?? null;
-
-  const centroid = getFeatureCentroid(feature);
-  if (!centroid) return null;
-
-  const { lat, lng } = centroid;
-  if (lat < -55) return 'antarctica';
-  if (lng >= 110 && lat < 5) return 'oceania';
-  if (lng >= -20 && lng <= 55 && lat >= -35 && lat <= 37) return 'africa';
-  if (lng >= -12 && lng <= 45 && lat >= 35) return 'europe';
-  if (lng >= 25 && lng <= 180 && lat >= 0) return 'asia';
-  if (lng >= 110 && lat >= 5) return 'asia';
-  if (lng <= -30 && lat >= 12) return 'north-america';
-  if (lng <= -30 && lat < 12) return 'south-america';
-  if (lng > -30 && lng < 25 && lat >= 0) return 'europe';
-  if (lng > -30 && lng < 25 && lat < 0) return 'africa';
-  return null;
+function getFeatureName(feature: GeoFeature) {
+  return feature.properties?.NAME || feature.properties?.name || '';
 }
 
 function getFeatureCentroid(feature: GeoFeature) {
   if (!feature.geometry) return null;
-
   const coords = (feature.geometry.type === 'Polygon'
     ? feature.geometry.coordinates[0]
     : feature.geometry.coordinates[0]?.[0]) as number[][] | undefined;
-
   if (!coords?.length) return null;
 
   const total = coords.reduce(
@@ -121,6 +97,27 @@ function getFeatureCentroid(feature: GeoFeature) {
     lat: total.lat / coords.length,
     lng: total.lng / coords.length,
   };
+}
+
+function classifyContinent(feature: GeoFeature): ContinentKey | null {
+  const raw = feature.properties?.CONTINENT || feature.properties?.continent;
+  if (raw) return continentAliases[String(raw).trim().toLowerCase()] ?? null;
+
+  const centroid = getFeatureCentroid(feature);
+  if (!centroid) return null;
+  const { lat, lng } = centroid;
+
+  if (lat < -55) return 'antarctica';
+  if (lng >= 110 && lat < 5) return 'oceania';
+  if (lng >= -20 && lng <= 55 && lat >= -35 && lat <= 37) return 'africa';
+  if (lng >= -12 && lng <= 45 && lat >= 35) return 'europe';
+  if (lng >= 25 && lng <= 180 && lat >= 0) return 'asia';
+  if (lng >= 110 && lat >= 5) return 'asia';
+  if (lng <= -30 && lat >= 12) return 'north-america';
+  if (lng <= -30 && lat < 12) return 'south-america';
+  if (lng > -30 && lng < 25 && lat >= 0) return 'europe';
+  if (lng > -30 && lng < 25 && lat < 0) return 'africa';
+  return null;
 }
 
 function getInitialAnswers(): Answers {
@@ -137,21 +134,12 @@ function getInitialAnswers(): Answers {
 
 export function GlowbalOption3GlobeDemo() {
   const router = useRouter();
-  const globeRef = useRef<GlobeMethods | undefined>(undefined);
-  const [mounted, setMounted] = useState(false);
-  const [GlobeComp, setGlobeComp] = useState<ComponentType<Record<string, unknown>> | null>(null);
   const [countriesGeo, setCountriesGeo] = useState<GeoFeature[]>([]);
   const [answers, setAnswers] = useState<Answers>(getInitialAnswers());
   const [activeIndex, setActiveIndex] = useState(0);
-  const [globeReady, setGlobeReady] = useState(false);
   const [goalSeed, setGoalSeed] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-    import('react-globe.gl').then((mod) => setGlobeComp(() => mod.default as ComponentType<Record<string, unknown>>));
-  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,7 +157,8 @@ export function GlowbalOption3GlobeDemo() {
   }, []);
 
   const activeStep = onboardingSteps[activeIndex];
-  const currentNode = continents[activeIndex];
+  const currentContinent = stepContinents[activeIndex];
+
   const completedCount = useMemo(
     () => onboardingSteps.filter((step) => {
       const value = answers[step.key];
@@ -178,51 +167,25 @@ export function GlowbalOption3GlobeDemo() {
     [answers],
   );
 
-  useEffect(() => {
-    if (!globeReady || !globeRef.current) return;
-    globeRef.current.pointOfView(
-      { lat: currentNode.lat, lng: currentNode.lng, altitude: 1.55 },
-      900,
-    );
-    const controls = globeRef.current.controls();
-    controls.autoRotate = true;
-    controls.autoRotateSpeed = 0.18;
-    controls.enablePan = false;
-    controls.enableZoom = false;
-  }, [currentNode, globeReady]);
-
-  const pointsData = useMemo(
-    () => continents.map((continent, index) => ({
-      ...continent,
-      status: index < completedCount ? 'done' : index === activeIndex ? 'current' : 'upcoming',
-      size: index === activeIndex ? 0.7 : index < completedCount ? 0.52 : 0.38,
-    })),
+  const litContinents = useMemo(
+    () => new Set(stepContinents.slice(0, Math.max(completedCount, activeIndex + 1)).map((item) => item.key)),
     [activeIndex, completedCount],
   );
 
-  const ringsData = useMemo(
-    () => continents
-      .filter((_, index) => index <= activeIndex)
-      .map((continent, index) => ({
-        ...continent,
-        maxR: index === activeIndex ? 8.5 : 6.5,
-        propagationSpeed: index === activeIndex ? 1.5 : 1.1,
-        repeatPeriod: index === activeIndex ? 1100 : 1600,
-      })),
-    [activeIndex],
+  const selectedCountries = useMemo(
+    () => countriesGeo
+      .filter((feature) => {
+        const continent = classifyContinent(feature);
+        return Boolean(continent && litContinents.has(continent));
+      })
+      .map(getFeatureName)
+      .filter(Boolean),
+    [countriesGeo, litContinents],
   );
 
-  const highlightedContinents = useMemo(
-    () => new Set(continents.slice(0, Math.max(completedCount, activeIndex + 1)).map((continent) => continent.key)),
-    [activeIndex, completedCount],
-  );
-
-  const highlightedCountries = useMemo(
-    () => countriesGeo.filter((feature) => {
-      const continentKey = classifyContinent(feature);
-      return Boolean(continentKey && highlightedContinents.has(continentKey));
-    }),
-    [countriesGeo, highlightedContinents],
+  const previewCountry = useMemo(
+    () => countriesGeo.find((feature) => classifyContinent(feature) === currentContinent.key && getFeatureName(feature)) ? getFeatureName(countriesGeo.find((feature) => classifyContinent(feature) === currentContinent.key && getFeatureName(feature)) as GeoFeature) : null,
+    [countriesGeo, currentContinent.key],
   );
 
   const generatedGoal = useMemo(() => goalIdeas[goalSeed % goalIdeas.length], [goalSeed]);
@@ -248,23 +211,10 @@ export function GlowbalOption3GlobeDemo() {
 
   function finishDemo() {
     setIsSubmitting(true);
-    const tour = continents;
-
-    if (globeRef.current) {
-      tour.forEach((continent, index) => {
-        window.setTimeout(() => {
-          globeRef.current?.pointOfView(
-            { lat: continent.lat, lng: continent.lng, altitude: 1.45 },
-            700,
-          );
-        }, index * 520);
-      });
-    }
-
     window.setTimeout(() => {
       setShowCompletion(true);
       setIsSubmitting(false);
-    }, tour.length * 520 + 500);
+    }, 1800);
   }
 
   function renderStepOptions() {
@@ -272,37 +222,30 @@ export function GlowbalOption3GlobeDemo() {
       case 'study_level':
         return (
           <div className="grid gap-3 sm:grid-cols-2">
-            {studyLevels.map((level) => {
-              const selected = answers.study_level === level.value;
-              return (
-                <ChoiceCard
-                  key={level.value}
-                  title={level.label}
-                  subtitle=""
-                  selected={selected}
-                  onClick={() => chooseAndAdvance(level.value)}
-                />
-              );
-            })}
+            {studyLevels.map((level) => (
+              <ChoiceCard
+                key={level.value}
+                title={level.label}
+                subtitle=""
+                selected={answers.study_level === level.value}
+                onClick={() => chooseAndAdvance(level.value)}
+              />
+            ))}
           </div>
         );
 
       case 'subjects':
         return (
           <div className="grid gap-3 sm:grid-cols-2">
-            {subjectFamilies.map((family) => {
-              const primary = family.children[0];
-              const selected = answers.subjects === primary;
-              return (
-                <ChoiceCard
-                  key={family.key}
-                  title={family.label}
-                  subtitle={primary}
-                  selected={selected}
-                  onClick={() => chooseAndAdvance(primary)}
-                />
-              );
-            })}
+            {subjectFamilies.map((family) => (
+              <ChoiceCard
+                key={family.key}
+                title={family.label}
+                subtitle={family.children[0]}
+                selected={answers.subjects === family.children[0]}
+                onClick={() => chooseAndAdvance(family.children[0])}
+              />
+            ))}
           </div>
         );
 
@@ -316,18 +259,15 @@ export function GlowbalOption3GlobeDemo() {
               { label: 'Asia-Pacific', hint: 'Singapore, Australia, Japan' },
               { label: 'Middle East', hint: 'UAE, Qatar' },
               { label: 'Open to ideas', hint: 'Show best-fit places first' },
-            ].map((region) => {
-              const selected = answers.countries === region.label;
-              return (
-                <ChoiceCard
-                  key={region.label}
-                  title={region.label}
-                  subtitle={region.hint}
-                  selected={selected}
-                  onClick={() => chooseAndAdvance(region.label)}
-                />
-              );
-            })}
+            ].map((region) => (
+              <ChoiceCard
+                key={region.label}
+                title={region.label}
+                subtitle={region.hint}
+                selected={answers.countries === region.label}
+                onClick={() => chooseAndAdvance(region.label)}
+              />
+            ))}
           </div>
         );
 
@@ -382,7 +322,7 @@ export function GlowbalOption3GlobeDemo() {
             <textarea
               value={String(answers.goals ?? '')}
               onChange={(event) => updateAnswer(event.target.value)}
-              placeholder="Build a global career in AI with strong scholarship support"
+              placeholder="Tap generate to create a future goal"
               className="min-h-44 w-full rounded-[28px] border border-slate-200 bg-white px-5 py-4 text-base text-slate-700 shadow-[0_12px_30px_rgba(15,23,42,0.05)] outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
             />
             <div className="flex flex-wrap items-center gap-3">
@@ -397,16 +337,9 @@ export function GlowbalOption3GlobeDemo() {
               >
                 {answers.goals ? 'Generate another response' : 'Generate a response'}
               </button>
-              <button
-                type="button"
-                onClick={() => updateAnswer(generatedGoal)}
-                className="rounded-full border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-medium text-pink-500 transition hover:-translate-y-0.5"
-              >
-                Use current response
-              </button>
             </div>
             <div className="rounded-[24px] border border-slate-200 bg-white px-5 py-5 text-sm leading-7 text-slate-600 shadow-[0_8px_18px_rgba(15,23,42,0.04)]">
-              {String(answers.goals ?? '').trim() || 'Tap “Generate a response” to create a goal statement.'}
+              {String(answers.goals ?? '').trim() || generatedGoal}
             </div>
           </div>
         );
@@ -431,102 +364,25 @@ export function GlowbalOption3GlobeDemo() {
                   <div className="mt-1 text-xs uppercase tracking-[0.18em] text-slate-400">7 continents · 7 questions</div>
                 </div>
                 <div className="rounded-full border border-slate-200 bg-white/85 px-4 py-2 text-sm font-medium text-slate-500">
-                  {continents[activeIndex].label}
+                  {currentContinent.label}
                 </div>
               </div>
 
-              <div className="relative flex w-full flex-1 items-center justify-center">
-                <div className="absolute inset-0 rounded-[32px] bg-[radial-gradient(circle,rgba(255,255,255,0.6),transparent_60%)]" />
-                <div className="relative h-[520px] w-full max-w-[560px] overflow-hidden rounded-[32px] bg-[radial-gradient(circle_at_50%_40%,rgba(255,255,255,0.6),rgba(255,255,255,0.02)_55%)]">
-                  <div className="pointer-events-none absolute inset-[12%] rounded-full border border-cyan-200/60 shadow-[0_0_0_1px_rgba(255,255,255,0.7),0_0_42px_rgba(125,211,252,0.18)]" />
-                  <div className="pointer-events-none absolute inset-[17%] rounded-full border border-white/35" />
-                  {mounted && GlobeComp ? (
-                    <GlobeComp
-                      ref={globeRef}
-                      width={560}
-                      height={520}
-                      backgroundColor="rgba(0,0,0,0)"
-                      showGlobe={false}
-                      showGraticules
-                      showAtmosphere
-                      atmosphereColor="rgba(186,230,253,0.72)"
-                      atmosphereAltitude={0.14}
-                      polygonsData={countriesGeo}
-                      polygonCapColor={(feature: object) => {
-                        const continentKey = classifyContinent(feature as GeoFeature);
-                        if (!continentKey) return 'rgba(255,255,255,0.02)';
-                        const continent = continents.find((item) => item.key === continentKey);
-                        if (!continent) return 'rgba(255,255,255,0.02)';
-                        if (continentKey === currentNode.key) return `${continent.color}F2`;
-                        if (highlightedContinents.has(continentKey)) return `${continent.color}A6`;
-                        return 'rgba(255,255,255,0.015)';
-                      }}
-                      polygonSideColor={(feature: object) => {
-                        const continentKey = classifyContinent(feature as GeoFeature);
-                        const continent = continents.find((item) => item.key === continentKey);
-                        if (!continentKey || !continent) return 'rgba(255,255,255,0.015)';
-                        if (continentKey === currentNode.key) return `${continent.color}E6`;
-                        if (highlightedContinents.has(continentKey)) return `${continent.color}66`;
-                        return 'rgba(255,255,255,0.015)';
-                      }}
-                      polygonStrokeColor={(feature: object) => {
-                        const continentKey = classifyContinent(feature as GeoFeature);
-                        if (!continentKey) return 'rgba(255,255,255,0.04)';
-                        const continent = continents.find((item) => item.key === continentKey);
-                        if (continentKey === currentNode.key) return continent ? `${continent.color}F2` : 'rgba(15,23,42,0.3)';
-                        if (highlightedContinents.has(continentKey)) return continent ? `${continent.color}80` : 'rgba(255,255,255,0.18)';
-                        return 'rgba(255,255,255,0.035)';
-                      }}
-                      polygonAltitude={(feature: object) => {
-                        const continentKey = classifyContinent(feature as GeoFeature);
-                        if (continentKey === currentNode.key) return 0.1;
-                        if (continentKey && highlightedContinents.has(continentKey)) return 0.045;
-                        return 0.001;
-                      }}
-                      polygonsTransitionDuration={700}
-                      pointsData={pointsData}
-                      pointLat="lat"
-                      pointLng="lng"
-                      pointAltitude={() => 0}
-                      pointRadius={() => 0}
-                      pointColor={(point: object) => (point as ContinentNode & { status: string }).color}
-                      pointResolution={24}
-                      ringsData={[]}
-                      ringLat="lat"
-                      ringLng="lng"
-                      ringColor={(ring: object) => {
-                        const node = ring as ContinentNode;
-                        return () => node.glow;
-                      }}
-                      ringMaxRadius={() => 0}
-                      ringPropagationSpeed={() => 0}
-                      ringRepeatPeriod={() => 0}
-                      labelsData={[]}
-                      labelLat="lat"
-                      labelLng="lng"
-                      labelText="label"
-                      labelSize={() => 0.8}
-                      labelDotRadius={() => 0}
-                      labelColor={(label: object) => {
-                        const node = label as ContinentNode & { status: string };
-                        return node.key === currentNode.key ? '#0f172a' : 'rgba(15,23,42,0.56)';
-                      }}
-                      labelResolution={2}
-                      labelAltitude={() => 0.23}
-                      onGlobeReady={() => {
-                        setGlobeReady(true);
-                        if (!globeRef.current) return;
-                        globeRef.current.pointOfView({ lat: currentNode.lat, lng: currentNode.lng, altitude: 1.55 }, 0);
-                      }}
-                    />
-                  ) : (
-                    <div className="h-[460px] w-full max-w-[560px] rounded-full bg-white/40" />
-                  )}
+              <div className="relative flex w-full flex-1 items-center justify-center overflow-hidden rounded-[32px]">
+                <div className="pointer-events-none absolute inset-0 rounded-[32px] bg-[radial-gradient(circle,rgba(255,255,255,0.6),transparent_60%)]" />
+                <div className="pointer-events-none absolute inset-[14%] rounded-full border border-cyan-200/55 shadow-[0_0_0_1px_rgba(255,255,255,0.72),0_0_38px_rgba(125,211,252,0.16)]" />
+                <div className="pointer-events-none absolute inset-[19%] rounded-full border border-white/30" />
+                <div className="relative h-[560px] w-full">
+                  <SearchWorldSelector
+                    selectedCountries={selectedCountries}
+                    onToggleCountry={() => {}}
+                    previewCountry={previewCountry}
+                  />
                 </div>
               </div>
 
               <div className="w-full rounded-[24px] border border-white/70 bg-white/60 px-4 py-3 text-center text-sm text-slate-500 shadow-[0_10px_22px_rgba(15,23,42,0.04)]">
-                Each answer lights up every country in that continent.
+                This uses the same country-highlighting globe behaviour as search — it just fills automatically after each answer.
               </div>
             </div>
           </section>
@@ -568,6 +424,7 @@ export function GlowbalOption3GlobeDemo() {
                   )}
                 </div>
               </div>
+
               <h2 className="mt-6 max-w-[14ch] text-4xl font-semibold tracking-[-0.04em] text-slate-900 sm:text-5xl">
                 {activeStep.title}
               </h2>
