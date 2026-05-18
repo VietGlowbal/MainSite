@@ -2,6 +2,7 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeMatchResult } from '@/lib/matching';
 import { toExplorerUniversity } from '@/lib/explorer-utils';
+import { resolveWikiImages } from '@/lib/wiki-images';
 import type { ApplicationEntry } from '@/lib/explorer-context';
 import type { University } from '@/lib/types';
 import { UniversityExplorerClient } from './university-explorer-client';
@@ -67,6 +68,22 @@ export default async function UniversitiesPage() {
       is_saved: savedUniversityIds.includes(uni.id),
     });
   });
+
+  // Resolve Wikipedia thumbnail images for all universities
+  const wikiTitles = explorerUniversities
+    .map((u) => u.image_url)
+    .filter((url) => url.startsWith('__wiki__'))
+    .map((url) => url.replace('__wiki__', ''));
+
+  const wikiImages = await resolveWikiImages(wikiTitles);
+
+  // Inject resolved image URLs
+  for (const uni of explorerUniversities) {
+    if (uni.image_url.startsWith('__wiki__')) {
+      const title = uni.image_url.replace('__wiki__', '');
+      uni.image_url = wikiImages.get(title) ?? '';
+    }
+  }
 
   // Sort: best match first
   explorerUniversities.sort((a, b) => {

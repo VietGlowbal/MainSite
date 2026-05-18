@@ -98,8 +98,11 @@ function deriveTags(uni: University & { match_score: number | null; match_breakd
 }
 
 function buildUniversityImageUrl(uni: University) {
-  const query = encodeURIComponent(`${uni.name} university campus`);
-  return `https://source.unsplash.com/1200x800/?${query}`;
+  // Construct a Wikipedia REST API summary URL.
+  // The actual thumbnail will be resolved at fetch time in the server component.
+  // This stores the Wikipedia title so we can batch-resolve images.
+  const title = uni.name.replace(/\s+/g, '_');
+  return `__wiki__${title}`;
 }
 
 // ── Main converter ──────────────────────────────────────────────────────
