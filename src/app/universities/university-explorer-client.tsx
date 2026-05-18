@@ -1,7 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useScroll } from 'framer-motion';
 import {
@@ -14,8 +14,8 @@ import {
 import { FILTER_CATEGORIES } from '@/lib/university-data';
 import { MatchBadge } from '@/components/match-badge';
 
-const SearchWorldSelector = dynamic(
-  () => import('@/app/onboarding/world-picker').then((mod) => mod.SearchWorldSelector),
+const CompactGlobeDynamic = dynamic(
+  () => import('@/components/landing-globe').then((mod) => ({ default: mod.LandingGlobe })),
   { ssr: false },
 );
 
@@ -85,7 +85,7 @@ function QuizStickyBar() {
    FILTER BAR
 ───────────────────────────────────────────────────────────────────────── */
 
-function FilterBar() {
+function FilterBar({ detailedView, onToggleView }: { detailedView: boolean; onToggleView: () => void }) {
   const { activeFilter, setFilter, universities, selectedCountries, clearCountries } = useExplorer();
   const filteredCount = filterUniversities(universities, activeFilter, selectedCountries).length;
 
@@ -97,9 +97,23 @@ function FilterBar() {
             <p className="text-[0.68rem] font-semibold uppercase tracking-[0.24em] text-slate-400">Refine results</p>
             <h2 className="mt-1 text-lg font-semibold tracking-tight text-slate-900">Filter by what actually matters</h2>
           </div>
-          <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500">
-            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
-            <span>{filteredCount} {filteredCount === 1 ? 'university' : 'universities'} showing</span>
+          <div className="flex items-center gap-3">
+            {/* View toggle */}
+            <button
+              type="button"
+              onClick={onToggleView}
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold transition-all border ${
+                detailedView
+                  ? 'border-sky-200 bg-sky-50 text-sky-700'
+                  : 'border-slate-200 bg-white text-slate-600 hover:border-sky-200'
+              }`}
+            >
+              {detailedView ? '✦ Detailed' : '⊞ Simple'}
+            </button>
+            <div className="flex items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-sm text-slate-500">
+              <span className="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-400" />
+              <span>{filteredCount} {filteredCount === 1 ? 'university' : 'universities'}</span>
+            </div>
           </div>
         </div>
 
@@ -146,7 +160,123 @@ function FilterBar() {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   UNIVERSITY CARD
+   COMPACT GLOBE ROW (small globe + country chips)
+───────────────────────────────────────────────────────────────────────── */
+
+function CompactGlobeRow() {
+  const { selectedCountries, toggleCountry, clearCountries, universities } = useExplorer();
+  const availableCountryNames = Array.from(new Set(universities.map((u) => u.country))).sort();
+
+  return (
+    <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
+      {/* Small globe */}
+      <div className="shrink-0 rounded-full border border-slate-200 bg-slate-900/90 shadow-[0_0_30px_rgba(34,211,238,0.08)] overflow-hidden" style={{ width: 120, height: 120 }}>
+        <CompactGlobeDynamic theme="cosmos" size={120} rotateSpeed={0.3} />
+      </div>
+
+      {/* Country chips */}
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400 mb-2">Select countries to focus</p>
+        <div className="flex flex-wrap gap-2 max-h-[80px] overflow-y-auto">
+          {availableCountryNames.slice(0, 30).map((country) => {
+            const isSelected = selectedCountries.includes(country);
+            return (
+              <button
+                key={country}
+                type="button"
+                onClick={() => toggleCountry(country)}
+                className={`rounded-full px-3 py-1.5 text-xs font-semibold transition-all ${
+                  isSelected
+                    ? 'border border-cyan-200 bg-cyan-50 text-cyan-700 shadow-sm'
+                    : 'border border-slate-200 bg-white text-slate-500 hover:border-cyan-200 hover:text-slate-700'
+                }`}
+              >
+                {country}
+              </button>
+            );
+          })}
+          {selectedCountries.length > 0 && (
+            <button
+              type="button"
+              onClick={clearCountries}
+              className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-100 transition"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   UNIVERSITY CARD — SIMPLE (thumbnail + name/location/rank)
+───────────────────────────────────────────────────────────────────────── */
+
+function UniversityCardSimple({ university, index }: { university: ExplorerUniversity; index: number }) {
+  const { setView, isShortlisted, setPreviewCountry } = useExplorer();
+  const saved = isShortlisted(university.id);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25, delay: Math.min(index * 0.02, 0.4), ease: 'easeOut' }}
+      className="group relative overflow-hidden rounded-xl border border-white/80 bg-white shadow-[0_8px_20px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.1)] cursor-pointer"
+      onMouseEnter={() => setPreviewCountry(university.country)}
+      onMouseLeave={() => setPreviewCountry(null)}
+      onClick={() => setView('detail', university.id)}
+    >
+      {/* Thumbnail */}
+      <div className="relative h-28 w-full overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={university.image_url}
+          alt={university.name}
+          className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
+          onError={(event) => {
+            event.currentTarget.style.display = 'none';
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: `linear-gradient(180deg, transparent 30%, ${university.color}cc 100%)` }}
+        />
+        {saved && (
+          <span className="absolute top-2 right-2 rounded-full bg-emerald-500 px-2 py-0.5 text-[0.6rem] font-bold text-white">
+            ✓
+          </span>
+        )}
+        {university.rank && (
+          <span className="absolute top-2 left-2 rounded-full bg-slate-950/60 px-2 py-0.5 text-[0.6rem] font-semibold text-white backdrop-blur-sm">
+            {university.rank}
+          </span>
+        )}
+      </div>
+
+      {/* Info */}
+      <div className="px-3 py-2.5">
+        <h3 className="text-xs font-semibold text-slate-900 leading-tight line-clamp-2">{university.name}</h3>
+        <p className="mt-0.5 text-[0.65rem] text-slate-400 truncate">{university.emoji} {university.location}</p>
+        {university.match_score != null && (
+          <div className="mt-1.5 flex items-center gap-1">
+            <div className="h-1 flex-1 rounded-full bg-slate-100 overflow-hidden">
+              <div
+                className="h-full rounded-full bg-gradient-to-r from-pink-400 to-cyan-400"
+                style={{ width: `${university.match_score}%` }}
+              />
+            </div>
+            <span className="text-[0.6rem] font-bold text-pink-500">{university.match_score}%</span>
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   UNIVERSITY CARD — DETAILED
 ───────────────────────────────────────────────────────────────────────── */
 
 function UniversityCard({ university, index }: { university: ExplorerUniversity; index: number }) {
@@ -277,94 +407,39 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
 function UniversityGrid() {
   const { activeFilter, universities, selectedCountries } = useExplorer();
   const filtered = filterUniversities(universities, activeFilter, selectedCountries);
+  const [detailedView, setDetailedView] = useState(false);
 
   return (
     <div className="mx-auto max-w-7xl px-4 pb-16 pt-6 md:pt-8">
-      <div className="grid gap-6 lg:grid-cols-[minmax(420px,33vw)_minmax(0,1fr)] lg:items-start xl:gap-6">
-        <div className="overflow-visible lg:self-start lg:h-[100svh] lg:min-h-[100svh]">
-          <ExplorerRail />
-        </div>
-
-        <div>
-          <div className="pb-5 pt-2 md:pt-4">
-            <FilterBar />
-          </div>
-
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 2xl:grid-cols-3">
-            {filtered.map((university, i) => (
-              <UniversityCard key={university.id} university={university} index={i} />
-            ))}
-          </div>
-
-          {filtered.length === 0 && (
-            <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white/85 px-6 py-12 text-center shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur">
-              <p className="text-lg font-semibold text-slate-900">No universities in this orbit yet.</p>
-              <p className="mt-2 text-sm leading-6 text-slate-500">Try clearing a country, switching the subject lens, or widening your world view to uncover more options.</p>
-            </div>
-          )}
-        </div>
+      {/* Compact globe + country selector row */}
+      <div className="mb-6">
+        <CompactGlobeRow />
       </div>
-    </div>
-  );
-}
 
-function SearchGlobeRail() {
-  const { selectedCountries, toggleCountry, clearCountries, universities, previewCountry } = useExplorer();
-  const availableCountryNames = Array.from(new Set(universities.map((university) => university.country))).sort((a, b) => a.localeCompare(b));
-
-  return (
-    <SearchWorldSelector
-      selectedCountries={selectedCountries}
-      onToggleCountry={toggleCountry}
-      onClearCountries={clearCountries}
-      availableCountryNames={availableCountryNames}
-      previewCountry={previewCountry}
-    />
-  );
-}
-
-function ExplorerRail() {
-  const railRef = useRef<HTMLDivElement>(null);
-  const [railStyle, setRailStyle] = useState<CSSProperties | null>(null);
-
-  useEffect(() => {
-    function updateRailPosition() {
-      const node = railRef.current;
-      if (!node) return;
-
-      if (window.innerWidth < 1024) {
-        setRailStyle(null);
-        return;
-      }
-
-      const rect = node.getBoundingClientRect();
-      const top = 72;
-      setRailStyle({
-        position: 'fixed',
-        left: `${rect.left}px`,
-        top: `${top}px`,
-        width: `${rect.width}px`,
-        zIndex: 10,
-        maxHeight: `calc(100vh - ${top + 16}px)`,
-      });
-    }
-
-    updateRailPosition();
-    window.addEventListener('resize', updateRailPosition);
-    window.addEventListener('scroll', updateRailPosition, { passive: true });
-    return () => {
-      window.removeEventListener('resize', updateRailPosition);
-      window.removeEventListener('scroll', updateRailPosition);
-    };
-  }, []);
-
-  return (
-    <div ref={railRef} className="relative h-full min-h-[70vh] lg:min-h-[100svh]">
-      <div style={railStyle ?? undefined} className="flex h-full flex-col gap-4">
-        <div className="min-h-[360px] flex-1 overflow-visible">
-          <SearchGlobeRail />
-        </div>
+      {/* Filter bar */}
+      <div className="pb-5">
+        <FilterBar detailedView={detailedView} onToggleView={() => setDetailedView((v) => !v)} />
       </div>
+
+      {/* Full-width university grid */}
+      <div className={`grid gap-5 ${
+        detailedView
+          ? 'grid-cols-1 md:grid-cols-2 xl:grid-cols-3'
+          : 'grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6'
+      }`}>
+        {filtered.map((university, i) => (
+          detailedView
+            ? <UniversityCard key={university.id} university={university} index={i} />
+            : <UniversityCardSimple key={university.id} university={university} index={i} />
+        ))}
+      </div>
+
+      {filtered.length === 0 && (
+        <div className="mt-6 rounded-[2rem] border border-slate-200 bg-white/85 px-6 py-12 text-center shadow-[0_18px_48px_rgba(15,23,42,0.08)] backdrop-blur">
+          <p className="text-lg font-semibold text-slate-900">No universities in this orbit yet.</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Try clearing a country, switching the subject lens, or widening your world view to uncover more options.</p>
+        </div>
+      )}
     </div>
   );
 }
