@@ -27,13 +27,6 @@ export default async function AchieverApplyPage() {
     .select('id, name, country')
     .order('name');
 
-  // Get student profile for pre-filling
-  const { data: profile } = await supabase
-    .from('student_profiles')
-    .select('*')
-    .eq('user_id', user.id)
-    .maybeSingle();
-
   const displayName = user.user_metadata?.full_name ?? user.email?.split('@')[0] ?? '';
 
   return (
@@ -53,7 +46,6 @@ export default async function AchieverApplyPage() {
           userId={user.id}
           defaultDisplayName={displayName}
           universities={universities ?? []}
-          studentProfile={profile}
         />
       </div>
     </main>

@@ -8,6 +8,8 @@ const PROTECTED_ROUTES = [
   '/dashboard',
   '/my-universities',
   '/writer',
+  '/admin',
+  '/onboarding/complete',
 ];
 
 export async function proxy(request: NextRequest) {

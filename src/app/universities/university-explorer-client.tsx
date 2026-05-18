@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion, useScroll } from 'framer-motion';
@@ -231,6 +232,8 @@ type FilterState = {
   acceptance: 'all' | 'under_10' | '10_30' | 'over_30';
   type: 'all' | 'public' | 'private';
   campusSetting: 'all' | 'urban' | 'suburban' | 'rural';
+  scholarship: 'all' | 'available';
+  deadline: 'all' | 'open' | 'soon';
 };
 
 const DEFAULT_FILTERS: FilterState = {
@@ -241,7 +244,24 @@ const DEFAULT_FILTERS: FilterState = {
   acceptance: 'all',
   type: 'all',
   campusSetting: 'all',
+  scholarship: 'all',
+  deadline: 'all',
 };
+
+// Count how many user-set filters are active (compared to DEFAULT_FILTERS)
+function countActiveFilters(filters: FilterState): number {
+  let n = 0;
+  if (filters.quickFilter !== 'all') n += 1;
+  if (filters.countries.length > 0) n += filters.countries.length;
+  if (filters.qsRanking !== 'all') n += 1;
+  if (filters.tuition !== 'all') n += 1;
+  if (filters.acceptance !== 'all') n += 1;
+  if (filters.type !== 'all') n += 1;
+  if (filters.campusSetting !== 'all') n += 1;
+  if (filters.scholarship !== 'all') n += 1;
+  if (filters.deadline !== 'all') n += 1;
+  return n;
+}
 
 const REGIONS: Record<string, string[]> = {
   'North America': ['United States', 'Canada'],
@@ -312,10 +332,14 @@ function FilterSidebar({
     acceptance: false,
     type: false,
     campus: false,
+    scholarship: false,
+    deadline: false,
   });
   const [countrySearch, setCountrySearch] = useState('');
 
   const toggle = (key: keyof typeof open) => setOpen((p) => ({ ...p, [key]: !p[key] }));
+
+  const activeCount = countActiveFilters(filters);
 
   const matchedRegions = useMemo(() => {
     if (!countrySearch) return REGIONS;
@@ -333,11 +357,19 @@ function FilterSidebar({
   return (
     <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
       <div className="flex items-center justify-between mb-3 px-1">
-        <h3 className="text-sm font-semibold text-slate-900">Refine results</h3>
+        <h3 className="text-sm font-semibold text-slate-900 inline-flex items-center gap-2">
+          Refine results
+          {activeCount > 0 && (
+            <span className="rounded-full bg-pink-100 text-pink-600 px-1.5 py-0.5 text-[0.65rem] font-bold">
+              {activeCount}
+            </span>
+          )}
+        </h3>
         <button
           type="button"
           onClick={onReset}
-          className="text-xs text-pink-600 hover:underline"
+          disabled={activeCount === 0}
+          className="text-xs text-pink-600 hover:underline disabled:text-slate-300 disabled:no-underline disabled:cursor-not-allowed"
         >
           Clear all
         </button>
@@ -515,6 +547,47 @@ function FilterSidebar({
             />
           ))}
         </FilterSection>
+
+        {/* Scholarship availability */}
+        <FilterSection
+          title="Scholarship"
+          icon={<DollarIcon />}
+          isOpen={open.scholarship}
+          onToggle={() => toggle('scholarship')}
+        >
+          {([
+            { value: 'all', label: 'Any' },
+            { value: 'available', label: 'Scholarship available' },
+          ] as const).map((opt) => (
+            <RadioRow
+              key={opt.value}
+              label={opt.label}
+              checked={filters.scholarship === opt.value}
+              onClick={() => onChange({ ...filters, scholarship: opt.value })}
+            />
+          ))}
+        </FilterSection>
+
+        {/* Application deadline */}
+        <FilterSection
+          title="Application deadline"
+          icon={<ClockIcon />}
+          isOpen={open.deadline}
+          onToggle={() => toggle('deadline')}
+        >
+          {([
+            { value: 'all', label: 'Any' },
+            { value: 'open', label: 'Currently open' },
+            { value: 'soon', label: 'Closing in ≤ 60 days' },
+          ] as const).map((opt) => (
+            <RadioRow
+              key={opt.value}
+              label={opt.label}
+              checked={filters.deadline === opt.value}
+              onClick={() => onChange({ ...filters, deadline: opt.value })}
+            />
+          ))}
+        </FilterSection>
       </div>
 
       <button
@@ -683,7 +756,53 @@ function parseTuition(tuition: string | null | undefined): number | null {
   return num ? parseFloat(num) : null;
 }
 
-function UniversityCard({ university, index }: { university: ExplorerUniversity; index: number }) {
+/**
+ * Best-effort deadline parser. Universities often store deadlines as "Jan 15",
+ * "January 15, 2026", or just a month. We try Date.parse first, then fall back
+ * to mapping a month name to the upcoming occurrence.
+ */
+function parseDeadline(raw: string | null | undefined): Date | null {
+  if (!raw) return null;
+  const trimmed = raw.trim();
+  if (!trimmed || trimmed === '—') return null;
+
+  const direct = Date.parse(trimmed);
+  if (!Number.isNaN(direct)) return new Date(direct);
+
+  const months = [
+    'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+    'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
+  ];
+  const lower = trimmed.toLowerCase();
+  const monthIdx = months.findIndex((m) => lower.startsWith(m));
+  if (monthIdx === -1) return null;
+
+  const dayMatch = lower.match(/\b(\d{1,2})\b/);
+  const day = dayMatch ? parseInt(dayMatch[1], 10) : 15;
+
+  const now = new Date();
+  let year = now.getFullYear();
+  let candidate = new Date(year, monthIdx, day);
+  if (candidate.getTime() < now.getTime()) {
+    year += 1;
+    candidate = new Date(year, monthIdx, day);
+  }
+  return candidate;
+}
+
+function UniversityCard({
+  university,
+  index,
+  isCompared,
+  onToggleCompare,
+  canAddCompare,
+}: {
+  university: ExplorerUniversity;
+  index: number;
+  isCompared: boolean;
+  onToggleCompare: () => void;
+  canAddCompare: boolean;
+}) {
   const { isShortlisted, addToShortlist, removeFromShortlist, showToast, setView, isLoggedIn } = useExplorer();
   const router = useRouter();
   const saved = isShortlisted(university.id);
@@ -706,6 +825,20 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
     }
   };
 
+  const handleCompare = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!isCompared && !canAddCompare) {
+      showToast('You can compare up to 4 universities');
+      return;
+    }
+    onToggleCompare();
+  };
+
+  const handleViewDetails = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setView('detail', university.id);
+  };
+
   const acceptanceNum = parseAcceptanceRate(university.accept_rate);
   const acceptColor = acceptanceNum != null
     ? acceptanceNum < 10 ? 'text-emerald-600' : acceptanceNum < 30 ? 'text-amber-600' : 'text-red-500'
@@ -717,15 +850,21 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.5), ease: 'easeOut' }}
       onClick={() => setView('detail', university.id)}
-      className="group relative cursor-pointer overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)]"
+      className={`group relative cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] ${
+        isCompared ? 'border-pink-300 ring-2 ring-pink-200' : 'border-slate-200'
+      }`}
     >
       {/* Cover image */}
-      <div className="relative h-32 w-full overflow-hidden">
+      <div
+        className="relative h-32 w-full overflow-hidden"
+        style={{ background: `linear-gradient(135deg, ${university.color}, #1a1a2e)` }}
+      >
         {university.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={university.image_url}
             alt={university.name}
+            loading="lazy"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
             onError={(e) => {
               e.currentTarget.style.display = 'none';
@@ -734,13 +873,13 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
         ) : null}
         <div
           className="absolute inset-0"
-          style={{ background: `linear-gradient(180deg, transparent 30%, ${university.color}aa 100%)` }}
+          style={{ background: `linear-gradient(180deg, rgba(0,0,0,0.05) 0%, transparent 35%, ${university.color}cc 100%)` }}
         />
 
-        {/* "#N in the world" pill — top left */}
+        {/* QS rank pill — top left */}
         {university.qs_rank && (
           <span className="absolute left-3 top-3 rounded-full bg-white/95 px-2.5 py-1 text-[0.7rem] font-bold text-slate-800 shadow-sm backdrop-blur-sm">
-            #{university.qs_rank} in the world
+            {university.qs_rank <= 10 ? `#${university.qs_rank} in the world` : `QS #${university.qs_rank}`}
           </span>
         )}
 
@@ -749,6 +888,7 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
           type="button"
           onClick={handleSave}
           aria-label={saved ? 'Remove from saved' : 'Save university'}
+          title={saved ? 'Saved to My Universities — click to remove' : 'Save and track application progress'}
           className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-sm transition hover:scale-110 hover:text-pink-500 backdrop-blur-sm"
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill={saved ? '#ec4899' : 'none'} stroke={saved ? '#ec4899' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -828,6 +968,31 @@ function UniversityCard({ university, index }: { university: ExplorerUniversity;
             <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} />
           </div>
         )}
+
+        {/* CTA row */}
+        <div className="mt-3 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleViewDetails}
+            className="flex-1 rounded-full bg-slate-900 text-white text-xs font-semibold py-2 hover:bg-slate-700 transition"
+          >
+            View Details
+          </button>
+          <button
+            type="button"
+            onClick={handleCompare}
+            aria-pressed={isCompared}
+            aria-label={isCompared ? 'Remove from compare' : 'Add to compare'}
+            title={isCompared ? 'Remove from compare' : 'Add to compare'}
+            className={`flex h-8 w-8 items-center justify-center rounded-full border text-[0.7rem] font-bold transition ${
+              isCompared
+                ? 'bg-pink-500 border-pink-500 text-white'
+                : 'border-slate-200 text-slate-500 hover:border-pink-300 hover:text-pink-600'
+            }`}
+          >
+            {isCompared ? '✓' : '⇄'}
+          </button>
+        </div>
       </div>
     </motion.div>
   );
@@ -935,6 +1100,31 @@ function applyFilters(
     result = result.filter((u) => (u.type ?? '').toLowerCase().includes(filters.type));
   }
 
+  // Scholarship
+  if (filters.scholarship === 'available') {
+    result = result.filter((u) => {
+      const s = (u.scholarship ?? '').toLowerCase().trim();
+      if (!s) return false;
+      // Treat clearly negative phrases as not-available
+      if (s === '—' || s === 'none' || s === 'not available' || s === 'n/a') return false;
+      return true;
+    });
+  }
+
+  // Deadline (interprets the application_deadline string heuristically)
+  if (filters.deadline !== 'all') {
+    const now = new Date();
+    const monthMs = 1000 * 60 * 60 * 24 * 30;
+    result = result.filter((u) => {
+      const d = parseDeadline(u.application_deadline ?? null);
+      if (!d) return false;
+      if (filters.deadline === 'open') return d.getTime() >= now.getTime();
+      // 'soon' = within next 60 days
+      const diff = d.getTime() - now.getTime();
+      return diff >= 0 && diff <= 60 * 24 * 60 * 60 * 1000 + monthMs * 0;
+    });
+  }
+
   // Sort
   switch (sort) {
     case 'rank_asc':
@@ -957,6 +1147,398 @@ function applyFilters(
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   COMPACT STICKY SEARCH BAR (appears when scrolled past hero)
+───────────────────────────────────────────────────────────────────────── */
+
+function CompactSearchBar({
+  search,
+  onSearchChange,
+  activeCount,
+}: {
+  search: SearchState;
+  onSearchChange: (s: SearchState) => void;
+  activeCount: number;
+}) {
+  const { scrollY } = useScroll();
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    return scrollY.on('change', (y: number) => setVisible(y > 360));
+  }, [scrollY]);
+
+  return (
+    <motion.div
+      aria-hidden={!visible}
+      initial={false}
+      animate={{ y: visible ? 0 : -90, opacity: visible ? 1 : 0 }}
+      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      style={{ position: 'fixed', top: 60, left: 0, right: 0, zIndex: 30, pointerEvents: visible ? 'auto' : 'none' }}
+    >
+      <div className="mx-auto max-w-7xl px-4 md:px-6">
+        <div className="flex items-center gap-2 rounded-full border border-black/5 bg-white/95 px-3 py-2 shadow-[0_8px_24px_rgba(22,33,62,0.1)] backdrop-blur">
+          <span aria-hidden className="hidden md:flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-cyan-400/20 to-pink-400/20 text-base">
+            🌐
+          </span>
+          <div className="relative flex-1 min-w-0">
+            <SearchIcon />
+            <input
+              type="text"
+              placeholder="Search universities…"
+              value={search.name}
+              onChange={(e) => onSearchChange({ ...search, name: e.target.value })}
+              className="w-full rounded-full bg-transparent pl-10 pr-3 py-2 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+            />
+          </div>
+          <div className="hidden md:block h-6 w-px bg-slate-200" />
+          <div className="hidden md:block flex-1 min-w-0">
+            <select
+              value={search.program}
+              onChange={(e) => onSearchChange({ ...search, program: e.target.value })}
+              className="w-full bg-transparent text-sm text-slate-700 focus:outline-none cursor-pointer"
+            >
+              <option value="">Any program</option>
+              {PROGRAM_OPTIONS.map((p) => (
+                <option key={p} value={p}>{p}</option>
+              ))}
+            </select>
+          </div>
+          {activeCount > 0 && (
+            <span className="hidden sm:inline-flex items-center gap-1 rounded-full bg-pink-50 border border-pink-200 px-2 py-0.5 text-[0.7rem] font-semibold text-pink-700">
+              {activeCount} {activeCount === 1 ? 'filter' : 'filters'}
+            </span>
+          )}
+          <button
+            type="button"
+            className="inline-flex items-center justify-center gap-1 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-4 py-2 text-xs font-semibold text-white shadow-[0_6px_18px_rgba(255,77,140,0.3)]"
+          >
+            <SearchIconWhite />
+            <span className="hidden sm:inline">Search</span>
+          </button>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   ACTIVE FILTER CHIPS
+───────────────────────────────────────────────────────────────────────── */
+
+interface ActiveFilterChip {
+  key: string;
+  label: string;
+  remove: (
+    setFilters: React.Dispatch<React.SetStateAction<FilterState>>,
+    setSearch: React.Dispatch<React.SetStateAction<SearchState>>,
+  ) => void;
+}
+
+function buildActiveFilterChips(filters: FilterState, search: SearchState): ActiveFilterChip[] {
+  const chips: ActiveFilterChip[] = [];
+
+  if (search.name) {
+    chips.push({
+      key: 'search-name',
+      label: `Search: ${search.name}`,
+      remove: (_, setSearch) => setSearch((s) => ({ ...s, name: '' })),
+    });
+  }
+  if (search.location) {
+    chips.push({
+      key: 'search-location',
+      label: `Location: ${search.location}`,
+      remove: (_, setSearch) => setSearch((s) => ({ ...s, location: '' })),
+    });
+  }
+  if (search.program) {
+    chips.push({
+      key: 'search-program',
+      label: `Program: ${search.program}`,
+      remove: (_, setSearch) => setSearch((s) => ({ ...s, program: '' })),
+    });
+  }
+  if (filters.quickFilter !== 'all') {
+    const labels: Record<Exclude<FilterState['quickFilter'], 'all'>, string> = {
+      russell: 'Russell Group',
+      stem: 'STEM',
+      arts: 'Arts & Humanities',
+      top50: 'Global Top 50',
+    };
+    chips.push({
+      key: 'quick',
+      label: labels[filters.quickFilter],
+      remove: (setFilters) => setFilters((f) => ({ ...f, quickFilter: 'all' })),
+    });
+  }
+  for (const c of filters.countries) {
+    chips.push({
+      key: `country-${c}`,
+      label: c,
+      remove: (setFilters) =>
+        setFilters((f) => ({ ...f, countries: f.countries.filter((x) => x !== c) })),
+    });
+  }
+  if (filters.qsRanking !== 'all') {
+    const labels = { all: '', top50: 'Top 50', top100: 'Top 100', top200: 'Top 200' } as const;
+    chips.push({
+      key: 'qs',
+      label: `QS ${labels[filters.qsRanking]}`,
+      remove: (setFilters) => setFilters((f) => ({ ...f, qsRanking: 'all' })),
+    });
+  }
+  if (filters.tuition !== 'all') {
+    const labels = {
+      all: '',
+      under_20k: 'Under $20k',
+      '20k_40k': '$20k–$40k',
+      '40k_60k': '$40k–$60k',
+      over_60k: 'Over $60k',
+    } as const;
+    chips.push({
+      key: 'tuition',
+      label: `Tuition: ${labels[filters.tuition]}`,
+      remove: (setFilters) => setFilters((f) => ({ ...f, tuition: 'all' })),
+    });
+  }
+  if (filters.acceptance !== 'all') {
+    const labels = { all: '', under_10: '< 10%', '10_30': '10–30%', over_30: '> 30%' } as const;
+    chips.push({
+      key: 'acceptance',
+      label: `Acceptance: ${labels[filters.acceptance]}`,
+      remove: (setFilters) => setFilters((f) => ({ ...f, acceptance: 'all' })),
+    });
+  }
+  if (filters.type !== 'all') {
+    chips.push({
+      key: 'type',
+      label: filters.type === 'public' ? 'Public' : 'Private',
+      remove: (setFilters) => setFilters((f) => ({ ...f, type: 'all' })),
+    });
+  }
+  if (filters.scholarship !== 'all') {
+    chips.push({
+      key: 'scholarship',
+      label: 'Scholarship available',
+      remove: (setFilters) => setFilters((f) => ({ ...f, scholarship: 'all' })),
+    });
+  }
+  if (filters.deadline !== 'all') {
+    chips.push({
+      key: 'deadline',
+      label: filters.deadline === 'open' ? 'Deadline open' : 'Closing soon',
+      remove: (setFilters) => setFilters((f) => ({ ...f, deadline: 'all' })),
+    });
+  }
+  return chips;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   COMPARE BAR (floating, appears when 1+ universities are selected)
+───────────────────────────────────────────────────────────────────────── */
+
+function CompareBar({
+  universities,
+  onRemove,
+  onClear,
+  onOpen,
+}: {
+  universities: ExplorerUniversity[];
+  onRemove: (id: number) => void;
+  onClear: () => void;
+  onOpen: () => void;
+}) {
+  if (universities.length === 0) return null;
+  const canCompare = universities.length >= 2;
+
+  return (
+    <motion.div
+      initial={{ y: 80, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      exit={{ y: 80, opacity: 0 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-[min(96vw,52rem)]"
+    >
+      <div className="rounded-2xl border border-slate-200 bg-white/95 backdrop-blur shadow-[0_18px_40px_rgba(15,23,42,0.18)] p-3 flex items-center gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-[0.7rem] font-semibold uppercase tracking-wider text-slate-500">
+            Compare ({universities.length}/4)
+          </p>
+          <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {universities.map((u) => (
+              <button
+                key={u.id}
+                type="button"
+                onClick={() => onRemove(u.id)}
+                className="inline-flex items-center gap-1 rounded-full bg-pink-50 border border-pink-200 px-2 py-0.5 text-[0.7rem] font-medium text-pink-700 hover:bg-pink-100"
+                title={`Remove ${u.name}`}
+              >
+                <span className="truncate max-w-[160px]">{u.name}</span>
+                <span className="text-pink-400">×</span>
+              </button>
+            ))}
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onClear}
+          className="text-xs text-slate-500 hover:text-slate-900 transition"
+        >
+          Clear
+        </button>
+        <button
+          type="button"
+          onClick={onOpen}
+          disabled={!canCompare}
+          className="rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-4 py-2 text-xs font-semibold text-white shadow-[0_6px_18px_rgba(255,77,140,0.3)] disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Compare {canCompare ? `(${universities.length})` : '— pick 2+'}
+        </button>
+      </div>
+    </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   COMPARE MODAL — side-by-side comparison table
+───────────────────────────────────────────────────────────────────────── */
+
+function CompareModal({
+  universities,
+  onClose,
+}: {
+  universities: ExplorerUniversity[];
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKey);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = '';
+    };
+  }, [onClose]);
+
+  const rows: { label: string; render: (u: ExplorerUniversity) => React.ReactNode }[] = [
+    {
+      label: 'Country',
+      render: (u) => `${COUNTRY_FLAGS[u.country] ?? '🎓'} ${u.country}`,
+    },
+    {
+      label: 'QS Rank',
+      render: (u) => (u.qs_rank ? `#${u.qs_rank}` : '—'),
+    },
+    {
+      label: 'Acceptance',
+      render: (u) => u.accept_rate ?? '—',
+    },
+    {
+      label: 'Tuition (USD)',
+      render: (u) => u.tuition_usd ?? '—',
+    },
+    {
+      label: 'Living cost (USD)',
+      render: (u) => u.living_cost_usd ?? '—',
+    },
+    {
+      label: 'Match score',
+      render: (u) => (u.match_score != null ? `${u.match_score}%` : '—'),
+    },
+    {
+      label: 'Application deadline',
+      render: (u) => u.application_deadline ?? '—',
+    },
+    {
+      label: 'Scholarship',
+      render: (u) => u.scholarship ?? '—',
+    },
+    {
+      label: 'Best for',
+      render: (u) => u.best_for ?? '—',
+    },
+    {
+      label: 'Strengths',
+      render: (u) => u.strengths ?? '—',
+    },
+  ];
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-sm p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.96, y: 12 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.96, y: 12 }}
+        transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+        onClick={(e) => e.stopPropagation()}
+        className="relative w-full max-w-6xl max-h-[88vh] overflow-hidden rounded-2xl bg-white shadow-2xl flex flex-col"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Compare universities"
+      >
+        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">
+              Comparing {universities.length} universities
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Side-by-side stats to help you decide. Press Esc to close.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close comparison"
+            className="h-8 w-8 rounded-full text-slate-500 hover:bg-slate-100"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="overflow-auto flex-1">
+          <table className="w-full text-sm">
+            <thead className="bg-slate-50 sticky top-0 z-10">
+              <tr>
+                <th className="text-left px-4 py-3 font-semibold text-slate-600 w-44">Attribute</th>
+                {universities.map((u) => (
+                  <th key={u.id} className="text-left px-4 py-3 font-semibold text-slate-900 align-top min-w-[180px]">
+                    <div className="flex flex-col gap-1">
+                      <span className="line-clamp-2">{u.name}</span>
+                      <span className="text-xs font-normal text-slate-500">{u.location}</span>
+                    </div>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, i) => (
+                <tr key={row.label} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50/40'}>
+                  <td className="px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-500 align-top">
+                    {row.label}
+                  </td>
+                  {universities.map((u) => (
+                    <td key={u.id} className="px-4 py-3 text-slate-700 align-top">
+                      <span className="line-clamp-3">{row.render(u)}</span>
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    BROWSE VIEW (main layout)
 ───────────────────────────────────────────────────────────────────────── */
 
@@ -966,15 +1548,41 @@ function BrowseView() {
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortKey>('best_match');
   const [view, setView] = useState<'grid' | 'list'>('grid');
+  const [compareIds, setCompareIds] = useState<number[]>([]);
+  const [showCompare, setShowCompare] = useState(false);
 
   const filtered = useMemo(
     () => applyFilters(universities, filters, search, sort),
     [universities, filters, search, sort],
   );
 
+  const toggleCompare = (id: number) => {
+    setCompareIds((prev) => {
+      if (prev.includes(id)) return prev.filter((x) => x !== id);
+      if (prev.length >= 4) return prev; // max 4
+      return [...prev, id];
+    });
+  };
+
+  const clearCompare = () => setCompareIds([]);
+
+  const compareUniversities = useMemo(
+    () => compareIds
+      .map((id) => universities.find((u) => u.id === id))
+      .filter((u): u is ExplorerUniversity => u != null),
+    [compareIds, universities],
+  );
+
+  const activeFilterChips = useMemo(() => buildActiveFilterChips(filters, search), [filters, search]);
+
   return (
     <>
       <QuizStickyBar />
+      <CompactSearchBar
+        search={search}
+        onSearchChange={setSearch}
+        activeCount={countActiveFilters(filters)}
+      />
       <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
         {/* Hero */}
         <SearchHero search={search} onSearchChange={setSearch} />
@@ -1001,6 +1609,30 @@ function BrowseView() {
               onViewChange={setView}
             />
 
+            {/* Active filter chips */}
+            {activeFilterChips.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {activeFilterChips.map((chip) => (
+                  <button
+                    key={chip.key}
+                    type="button"
+                    onClick={() => chip.remove(setFilters, setSearch)}
+                    className="inline-flex items-center gap-1 rounded-full bg-pink-50 border border-pink-200 px-2.5 py-1 text-xs font-medium text-pink-700 hover:bg-pink-100 transition"
+                  >
+                    {chip.label}
+                    <span className="text-pink-400 hover:text-pink-700">×</span>
+                  </button>
+                ))}
+                <button
+                  type="button"
+                  onClick={() => { setFilters(DEFAULT_FILTERS); setSearch({ name: '', location: '', program: '' }); }}
+                  className="text-xs text-slate-500 hover:text-pink-600 underline underline-offset-2"
+                >
+                  Clear all
+                </button>
+              </div>
+            )}
+
             {filtered.length > 0 ? (
               <div className={
                 view === 'grid'
@@ -1008,7 +1640,14 @@ function BrowseView() {
                   : 'grid gap-4 grid-cols-1'
               }>
                 {filtered.map((u, i) => (
-                  <UniversityCard key={u.id} university={u} index={i} />
+                  <UniversityCard
+                    key={u.id}
+                    university={u}
+                    index={i}
+                    isCompared={compareIds.includes(u.id)}
+                    onToggleCompare={() => toggleCompare(u.id)}
+                    canAddCompare={compareIds.length < 4}
+                  />
                 ))}
               </div>
             ) : (
@@ -1027,6 +1666,24 @@ function BrowseView() {
           </div>
         </div>
       </div>
+
+      {/* Floating compare bar */}
+      <CompareBar
+        universities={compareUniversities}
+        onRemove={(id) => toggleCompare(id)}
+        onClear={clearCompare}
+        onOpen={() => setShowCompare(true)}
+      />
+
+      {/* Compare modal */}
+      <AnimatePresence>
+        {showCompare && compareUniversities.length >= 2 && (
+          <CompareModal
+            universities={compareUniversities}
+            onClose={() => setShowCompare(false)}
+          />
+        )}
+      </AnimatePresence>
     </>
   );
 }
@@ -1305,6 +1962,31 @@ function DetailView() {
                 )}
               </section>
             )}
+
+            {/* Achievers CTA */}
+            <section className="rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50/50 to-cyan-50/50 p-5">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">💬</div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Talk to someone who studied at {university.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500 leading-relaxed">
+                    Book a 1-on-1 session with a current student or alum for honest advice on applications, courses, and life on campus.
+                  </p>
+                  <Link
+                    href={`/achievers?university=${university.id}`}
+                    className="mt-3 inline-flex items-center gap-1 rounded-full border border-pink-300 bg-white px-4 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50 transition"
+                  >
+                    Find a mentor here
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+            </section>
           </div>
 
           <aside className="w-full shrink-0 md:w-72 lg:w-80">
@@ -1453,6 +2135,15 @@ function CampusIcon() {
       <path d="M2 22h20" />
       <path d="M3 22V8l9-6 9 6v14" />
       <path d="M9 22v-4h6v4" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
     </svg>
   );
 }

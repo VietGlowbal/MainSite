@@ -93,6 +93,41 @@ export function AchieverFilters({ achievers, filters, onFiltersChange }: Props) 
         </div>
       </div>
 
+      {/* Price range */}
+      <div>
+        <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Price (₫)</label>
+        <div className="mt-2 grid grid-cols-2 gap-2">
+          <input
+            type="number"
+            min={0}
+            step={50000}
+            placeholder="Min"
+            value={filters.min_price ?? ''}
+            onChange={(e) =>
+              onFiltersChange({
+                ...filters,
+                min_price: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
+            className="field text-xs py-2"
+          />
+          <input
+            type="number"
+            min={0}
+            step={50000}
+            placeholder="Max"
+            value={filters.max_price ?? ''}
+            onChange={(e) =>
+              onFiltersChange({
+                ...filters,
+                max_price: e.target.value ? Number(e.target.value) : undefined,
+              })
+            }
+            className="field text-xs py-2"
+          />
+        </div>
+      </div>
+
       {/* Enrolled toggle */}
       <div>
         <label className="text-xs font-medium text-slate-500 uppercase tracking-wider">Status</label>

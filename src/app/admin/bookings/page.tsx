@@ -1,27 +1,14 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { isAdmin } from '@/lib/auth-helpers';
 import { AdminBookingsClient } from './admin-bookings-client';
-
-async function isAdmin(userId: string): Promise<boolean> {
-  const adminIds = (process.env.ADMIN_USER_IDS ?? '').split(',').map((s) => s.trim());
-  if (adminIds.includes(userId)) return true;
-
-  const supabase = await createClient();
-  const { data } = await supabase
-    .from('student_profiles')
-    .select('is_admin')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  return data?.is_admin === true;
-}
 
 export default async function AdminBookingsPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect('/auth');
-  if (!(await isAdmin(user.id))) redirect('/dashboard');
+  if (!(await isAdmin(user.id))) redirect('/my-universities');
 
   // Get all bookings with related data
   const { data: bookings } = await supabase

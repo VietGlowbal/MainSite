@@ -3,11 +3,26 @@
 :root {
   --background: #F5F6FF;
   --foreground: #1A1A2E;
-  --glowbal-pink: #FF3D9A;
-  --glowbal-pink-hover: #e6007e;
-  --glowbal-pink-light: #ff85b3;
-  --glowbal-mint: #00C2FF;
-  --glowbal-mint-light: #90e0ef;
+
+  /* ── Brand tokens (single source of truth) ─────────────────────────── */
+  /* The "canonical" brand pink is #FF3D9A. Inline code historically used  */
+  /* #ff4d8c which is virtually identical; both alias to --brand-pink.    */
+  --brand-pink: #ff4d8c;
+  --brand-pink-strong: #FF3D9A;
+  --brand-pink-light: #ff85b3;
+  --brand-pink-hover: #e6007e;
+  --brand-cyan: #00b4d8;
+  --brand-cyan-strong: #00C2FF;
+  --brand-cyan-light: #90e0ef;
+  --brand-purple: #7B2FBE;
+  --brand-emerald: #10b981;
+
+  /* Legacy aliases — keep for back-compat with existing CSS classes */
+  --glowbal-pink: var(--brand-pink-strong);
+  --glowbal-pink-hover: var(--brand-pink-hover);
+  --glowbal-pink-light: var(--brand-pink-light);
+  --glowbal-mint: var(--brand-cyan-strong);
+  --glowbal-mint-light: var(--brand-cyan-light);
   --glowbal-silver: #6c757d;
   --glowbal-silver-light: #e9ecef;
   --glowbal-dark: #050D1F;
@@ -15,10 +30,10 @@
   --glowbal-white: #ffffff;
 
   /* Design system tokens */
-  --color-primary: #FF3D9A;
-  --color-primary-hover: #e6007e;
-  --color-secondary: #00C2FF;
-  --color-accent-purple: #7B2FBE;
+  --color-primary: var(--brand-pink-strong);
+  --color-primary-hover: var(--brand-pink-hover);
+  --color-secondary: var(--brand-cyan-strong);
+  --color-accent-purple: var(--brand-purple);
   --color-bg: #F5F6FF;
   --color-surface: #FFFFFF;
   --color-border: #E4E8FF;

@@ -35,13 +35,14 @@ type Props = {
   userId: string;
   defaultDisplayName: string;
   universities: { id: number; name: string; country: string }[];
-  studentProfile: Record<string, unknown> | null;
 };
 
-export function AchieverApplyForm({ userId, defaultDisplayName, universities, studentProfile }: Props) {
+export function AchieverApplyForm({ userId, defaultDisplayName, universities }: Props) {
   const router = useRouter();
   const [helpTopics, setHelpTopics] = useState<string[]>([]);
   const [languages, setLanguages] = useState<string[]>(['Vietnamese', 'English']);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -97,9 +98,31 @@ export function AchieverApplyForm({ userId, defaultDisplayName, universities, st
       return;
     }
 
+    // Upload avatar if provided
+    let avatarUrl: string | null = null;
+    if (avatarFile) {
+      const ext = avatarFile.name.split('.').pop()?.toLowerCase() ?? 'jpg';
+      const path = `${userId}/avatar-${Date.now()}.${ext}`;
+      const bucket = process.env.NEXT_PUBLIC_STORAGE_BUCKET || 'avatars';
+
+      const { error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(path, avatarFile, { upsert: true });
+
+      if (uploadError) {
+        setError(`Avatar upload failed: ${uploadError.message}`);
+        setSubmitting(false);
+        return;
+      }
+
+      const { data } = supabase.storage.from(bucket).getPublicUrl(path);
+      avatarUrl = data.publicUrl;
+    }
+
     const { error: insertError } = await supabase.from('achiever_profiles').insert({
       id: userId,
       display_name: values.display_name,
+      avatar_url: avatarUrl,
       university_id: Number(values.university_id),
       degree_level: values.degree_level,
       subject: values.subject,
@@ -159,6 +182,62 @@ export function AchieverApplyForm({ userId, defaultDisplayName, universities, st
         {errors.display_name && (
           <p className="text-xs text-red-500 mt-1">{errors.display_name.message}</p>
         )}
+      </div>
+
+      {/* Avatar upload */}
+      <div>
+        <label className="glow-label font-medium">Profile photo</label>
+        <p className="text-xs text-slate-400 mb-2">A clear headshot helps students trust you. Optional but strongly encouraged.</p>
+        <div className="flex items-center gap-4">
+          <div
+            className="h-20 w-20 rounded-full overflow-hidden flex items-center justify-center shrink-0"
+            style={{
+              background: avatarPreview ? 'transparent' : 'linear-gradient(135deg, var(--brand-pink), var(--brand-cyan))',
+              padding: avatarPreview ? 0 : 3,
+            }}
+          >
+            {avatarPreview ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={avatarPreview} alt="Preview" className="h-full w-full object-cover" />
+            ) : (
+              <div className="h-full w-full rounded-full bg-white flex items-center justify-center text-2xl">
+                📷
+              </div>
+            )}
+          </div>
+          <div className="flex flex-col gap-2">
+            <label className="glow-button-secondary text-xs px-4 py-2 cursor-pointer inline-flex">
+              {avatarFile ? 'Change photo' : 'Upload photo'}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  if (file.size > 5 * 1024 * 1024) {
+                    setError('Image must be smaller than 5MB');
+                    return;
+                  }
+                  setAvatarFile(file);
+                  setError(null);
+                  const reader = new FileReader();
+                  reader.onload = () => setAvatarPreview(reader.result as string);
+                  reader.readAsDataURL(file);
+                }}
+              />
+            </label>
+            {avatarFile && (
+              <button
+                type="button"
+                onClick={() => { setAvatarFile(null); setAvatarPreview(null); }}
+                className="text-xs text-slate-400 hover:text-red-500 transition self-start"
+              >
+                Remove
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* University */}

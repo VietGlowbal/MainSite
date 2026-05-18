@@ -306,10 +306,10 @@ export function OnboardingDocumentUpload() {
       {(cvUploaded || allUploadedFiles.length > 0) && !loading && (
         <div className="text-center pt-2">
           <a
-            href="/universities"
+            href="/onboarding/complete"
             className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-[var(--glowbal-pink)] to-[var(--glowbal-pink-light)] px-8 py-3 font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.24)] transition hover:shadow-[0_14px_32px_rgba(255,77,140,0.32)]"
           >
-            Continue to universities
+            Continue
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 12h14M12 5l7 7-7 7" />
             </svg>

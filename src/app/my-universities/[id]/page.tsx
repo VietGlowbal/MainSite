@@ -4,6 +4,7 @@ import type { ApplicationTask, University } from '@/lib/types';
 import { TaskList } from './task-list';
 import Link from 'next/link';
 import { UniversityGlobe } from './university-globe';
+import { AchieversAtUniversity } from '@/components/achievers/AchieversAtUniversity';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -94,19 +95,11 @@ export default async function UniversityTasksPage({ params }: Props) {
         {/* Tasks */}
         <TaskList tasks={(tasks ?? []) as ApplicationTask[]} userUniversityId={userUniversity.id} />
 
-        {/* Mentoring stub */}
-        <div className="border border-slate-200 rounded-2xl p-6 bg-slate-50/50">
-          <h3 className="font-bold text-slate-800 mb-1">Talk to someone who goes here</h3>
-          <p className="text-sm text-slate-500 mb-4">
-            Get real advice from current students and alumni at {university.name}.
-          </p>
-          <button
-            type="button"
-            className="border border-pink-300 text-pink-600 rounded-full px-6 py-2 text-sm font-semibold hover:bg-pink-50 transition-colors"
-          >
-            Notify me when mentors are available →
-          </button>
-        </div>
+        {/* Achievers at this university */}
+        <AchieversAtUniversity
+          universityId={university.id}
+          universityName={university.name}
+        />
       </div>
     </main>
   );

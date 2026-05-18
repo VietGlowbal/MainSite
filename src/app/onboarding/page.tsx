@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
-import { GlowbalOption3GlobeDemo } from '@/components/demo/glowbal-option3-globe-demo';
+import { GlowbalOption3GlobeDemo } from '@/components/onboarding/onboarding-globe-quiz';
 
 export default async function OnboardingPage() {
   const supabase = await createClient();
