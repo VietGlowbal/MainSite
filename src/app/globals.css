@@ -1743,3 +1743,76 @@ body {
     padding-bottom: calc(72px + env(safe-area-inset-bottom));
   }
 }
+
+/* ── Landing page star field animation ─────────────────────────────────── */
+
+.landing-stars {
+  overflow: hidden;
+}
+
+.landing-stars::before,
+.landing-stars::after {
+  content: '';
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  border-radius: 50%;
+  animation: landing-stars-spin 90s linear infinite;
+}
+
+.landing-stars::before {
+  background-image:
+    radial-gradient(1.5px 1.5px at 10% 15%, rgba(255,255,255,0.8), transparent),
+    radial-gradient(1px 1px at 25% 35%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1.5px 1.5px at 40% 8%, rgba(186,230,253,0.9), transparent),
+    radial-gradient(1px 1px at 55% 42%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(2px 2px at 68% 18%, rgba(34,211,238,0.7), transparent),
+    radial-gradient(1px 1px at 80% 55%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1.5px 1.5px at 92% 28%, rgba(244,114,182,0.7), transparent),
+    radial-gradient(1px 1px at 15% 62%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 35% 78%, rgba(34,211,238,0.6), transparent),
+    radial-gradient(1px 1px at 50% 88%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(2px 2px at 72% 72%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 88% 82%, rgba(186,230,253,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 5% 90%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 62% 95%, rgba(244,114,182,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 45% 55%, rgba(255,255,255,0.5), transparent);
+}
+
+.landing-stars::after {
+  animation-duration: 120s;
+  animation-direction: reverse;
+  background-image:
+    radial-gradient(1px 1px at 8% 22%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 22% 48%, rgba(34,211,238,0.6), transparent),
+    radial-gradient(1px 1px at 38% 12%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(2px 2px at 52% 65%, rgba(255,255,255,0.7), transparent),
+    radial-gradient(1px 1px at 65% 32%, rgba(186,230,253,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 78% 48%, rgba(244,114,182,0.6), transparent),
+    radial-gradient(1px 1px at 90% 15%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1.5px 1.5px at 12% 75%, rgba(34,211,238,0.5), transparent),
+    radial-gradient(1px 1px at 30% 92%, rgba(255,255,255,0.4), transparent),
+    radial-gradient(1.5px 1.5px at 58% 80%, rgba(255,255,255,0.6), transparent),
+    radial-gradient(1px 1px at 75% 90%, rgba(186,230,253,0.4), transparent),
+    radial-gradient(2px 2px at 42% 38%, rgba(255,255,255,0.5), transparent),
+    radial-gradient(1px 1px at 85% 65%, rgba(244,114,182,0.4), transparent);
+}
+
+@keyframes landing-stars-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Individual sparkle twinkle for scattered stars */
+@keyframes landing-star-twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-stars::before,
+  .landing-stars::after {
+    animation: none;
+  }
+}

@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { motion, useScroll } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
-import { SignOutButton } from '@/components/sign-out-button';
 
 const NAV_ITEMS = [
   { href: '/',               label: 'Home' },
@@ -182,16 +181,7 @@ function StickyHeader({ user }: { user: UserSummary | null }) {
               </Link>
             ))}
             {user ? (
-              <>
-                <NavAvatar name={user.name} avatarUrl={user.avatarUrl} />
-                <SignOutButton
-                  containerClassName="inline-flex"
-                  className="glowbal-nav-link transition hover:text-slate-900"
-                  redirectTo="/auth"
-                >
-                  Sign out
-                </SignOutButton>
-              </>
+              <NavAvatar name={user.name} avatarUrl={user.avatarUrl} />
             ) : (
               <Link href="/auth" className="glowbal-nav-link transition hover:text-slate-900">Sign in</Link>
             )}

@@ -90,8 +90,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
           </div>
 
           <div className="landing-globe relative flex items-center justify-center lg:justify-end">
-            <div className="absolute h-[30rem] w-[30rem] rounded-full border border-cyan-300/12 md:h-[40rem] md:w-[40rem] xl:h-[48rem] xl:w-[48rem]" />
-            <div className="absolute h-[36rem] w-[36rem] rounded-full border border-white/8 md:h-[48rem] md:w-[48rem] xl:h-[58rem] xl:w-[58rem]" />
+            <div className="landing-stars pointer-events-none absolute inset-0" aria-hidden />
             <div className="relative translate-x-[10%] rounded-full border border-white/10 bg-white/[0.03] p-4 shadow-[0_0_140px_rgba(34,211,238,0.14)] backdrop-blur-md md:translate-x-[14%] xl:translate-x-[18%]">
               <LandingGlobe theme="cosmos" size={700} rotateSpeed={0.26} />
             </div>
