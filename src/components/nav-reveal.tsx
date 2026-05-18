@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { href: '/',               label: 'Home' },
   { href: '/universities',   label: 'Search' },
   { href: '/my-universities', label: 'My Universities' },
-  { href: '/mentors',        label: 'Mentoring', comingSoon: true },
+  { href: '/achievers',      label: 'Achievers' },
 ];
 
 // Simple SVG icons for mobile nav — no emojis
@@ -25,7 +25,7 @@ const MOBILE_ICONS: Record<string, () => React.JSX.Element> = {
   '/':                IconHome,
   '/universities':    IconUniversities,
   '/my-universities': IconMyUnis,
-  '/mentors':         IconMentors,
+  '/achievers':       IconMentors,
   '/auth':            IconUser,
   '/profile':         IconUser,
 };
@@ -177,18 +177,9 @@ function StickyHeader({ user }: { user: UserSummary | null }) {
           {/* Desktop nav links */}
           <nav className="glowbal-nav hidden sm:flex items-center gap-2 text-sm text-slate-600">
             {(user ? NAV_ITEMS : NAV_ITEMS.filter((item) => item.href !== '/my-universities')).map((item) => (
-              'comingSoon' in item && item.comingSoon ? (
-                <span key={item.href} className="glowbal-nav-link text-slate-400 cursor-not-allowed flex items-center gap-1">
-                  {item.label}
-                  <span className="text-[10px] bg-pink-50 text-pink-500 px-1.5 py-0.5 rounded-full font-semibold">
-                    Soon
-                  </span>
-                </span>
-              ) : (
-                <Link key={item.href} href={item.href} className="glowbal-nav-link transition hover:text-slate-900">
-                  {item.label}
-                </Link>
-              )
+              <Link key={item.href} href={item.href} className="glowbal-nav-link transition hover:text-slate-900">
+                {item.label}
+              </Link>
             ))}
             {user ? (
               <>
