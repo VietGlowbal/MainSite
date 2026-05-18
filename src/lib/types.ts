@@ -75,6 +75,7 @@ export type University = {
   best_for?: string | null;
   weaknesses?: string | null;
   notes?: string | null;
+  image_url?: string | null;
 };
 
 export type UserUniversity = {

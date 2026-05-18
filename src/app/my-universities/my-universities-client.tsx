@@ -12,409 +12,368 @@ type Props = {
   allTasks: ApplicationTask[];
 };
 
-// ── Status config ────────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────
+   COUNTRY FLAGS
+───────────────────────────────────────────────────────────────────────── */
 
-const STATUS_OPTIONS: UserUniversity['status'][] = [
-  'interested', 'applying', 'applied', 'offer', 'rejected', 'enrolled',
-];
-
-const STATUS_CONFIG: Record<string, { label: string; pill: string; dot: string }> = {
-  interested: { label: 'Interested',  pill: 'bg-slate-100 text-slate-600 border-slate-200',   dot: 'bg-slate-400' },
-  applying:   { label: 'Applying',    pill: 'bg-amber-50 text-amber-700 border-amber-200',     dot: 'bg-amber-400' },
-  applied:    { label: 'Applied',     pill: 'bg-blue-50 text-blue-700 border-blue-200',        dot: 'bg-blue-500' },
-  offer:      { label: 'Offer',       pill: 'bg-emerald-50 text-emerald-700 border-emerald-200', dot: 'bg-emerald-500' },
-  rejected:   { label: 'Rejected',    pill: 'bg-red-50 text-red-600 border-red-200',           dot: 'bg-red-400' },
-  enrolled:   { label: 'Enrolled',    pill: 'bg-purple-50 text-purple-700 border-purple-200',  dot: 'bg-purple-500' },
+const COUNTRY_FLAGS: Record<string, string> = {
+  'United States': '🇺🇸', 'United Kingdom': '🇬🇧', Canada: '🇨🇦',
+  Australia: '🇦🇺', Germany: '🇩🇪', Netherlands: '🇳🇱', France: '🇫🇷',
+  Singapore: '🇸🇬', Japan: '🇯🇵', Switzerland: '🇨🇭', Ireland: '🇮🇪',
+  Sweden: '🇸🇪', Spain: '🇪🇸', Italy: '🇮🇹', 'South Korea': '🇰🇷',
+  'Hong Kong': '🇭🇰', 'New Zealand': '🇳🇿', 'United Arab Emirates': '🇦🇪',
+  Qatar: '🇶🇦', China: '🇨🇳', India: '🇮🇳',
 };
 
-// ── External support links per task category ─────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────
+   STAGE MAPPING — converts status to stage progression
+───────────────────────────────────────────────────────────────────────── */
 
-const SUPPORT_LINKS: Record<string, { label: string; url: string }[]> = {
-  research: [
-    { label: 'QS World Rankings', url: 'https://www.topuniversities.com/world-university-rankings' },
-    { label: 'Times Higher Education', url: 'https://www.timeshighereducation.com/world-university-rankings' },
-    { label: 'Uni Compare', url: 'https://www.universitycompare.com' },
-  ],
-  documents: [
-    { label: 'UCAS Personal Statement guide', url: 'https://www.ucas.com/undergraduate/applying-university/writing-personal-statement' },
-    { label: 'Common App essay tips', url: 'https://www.commonapp.org/apply/essay-prompts' },
-    { label: 'Glowbal AI Writer', url: null as unknown as string }, // internal — handled separately
-  ],
-  tests: [
-    { label: 'IELTS preparation', url: 'https://www.ielts.org/study-and-prepare' },
-    { label: 'TOEFL resources', url: 'https://www.ets.org/toefl/test-takers/ibt/prepare.html' },
-    { label: 'SAT practice (Khan Academy)', url: 'https://www.khanacademy.org/test-prep/sat' },
-    { label: 'GRE prep', url: 'https://www.ets.org/gre/test-takers/general/prepare.html' },
-  ],
-  deadlines: [
-    { label: 'UCAS key dates', url: 'https://www.ucas.com/undergraduate/applying-university/ucas-undergraduate-key-dates' },
-    { label: 'Common App deadlines', url: 'https://www.commonapp.org/apply/deadlines' },
-  ],
-  visits: [
-    { label: 'Book an open day (UCAS)', url: 'https://www.ucas.com/undergraduate/what-and-where-study/university-open-days' },
-    { label: 'Virtual campus tours', url: 'https://www.youvisit.com/collegesearch/' },
-  ],
-  general: [
-    { label: 'Student finance (UK)', url: 'https://www.gov.uk/student-finance' },
-    { label: 'Scholarship search', url: 'https://www.scholarshipportal.com' },
-    { label: 'Visa guidance', url: 'https://www.gov.uk/student-visa' },
-  ],
-};
+const STAGES = ['Shortlisted', 'Course chosen', 'SOP drafted', 'Mentor reviewed', 'Applied'] as const;
+type StageKey = typeof STAGES[number];
 
-const CATEGORY_ICONS: Record<string, string> = {
-  research: '🔍', documents: '📄', tests: '📝',
-  deadlines: '📅', visits: '🏫', general: '📌',
-};
-
-// ── Progress ring ────────────────────────────────────────────────────────────
-
-function ProgressRing({ completed, total, size = 40 }: { completed: number; total: number; size?: number }) {
-  const pct = total > 0 ? (completed / total) * 100 : 0;
-  const r = (size / 2) - 3;
-  const circumference = 2 * Math.PI * r;
-  const offset = circumference - (pct / 100) * circumference;
-  const cx = size / 2;
-
-  return (
-    <div className="relative shrink-0" style={{ width: size, height: size }}>
-      <svg className="-rotate-90" width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={cx} cy={cx} r={r} fill="none" stroke="#f1f5f9" strokeWidth="2.5" />
-        <circle cx={cx} cy={cx} r={r} fill="none"
-          stroke={pct >= 100 ? '#10b981' : '#ff4d8c'} strokeWidth="2.5" strokeLinecap="round"
-          strokeDasharray={circumference} strokeDashoffset={offset}
-          style={{ transition: 'stroke-dashoffset 0.4s ease' }}
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-bold text-slate-600">
-        {completed}/{total}
-      </span>
-    </div>
-  );
+function statusToStageIndex(status: string): number {
+  switch (status) {
+    case 'interested': return 0;
+    case 'applying': return 2;
+    case 'applied':
+    case 'offer':
+    case 'rejected':
+    case 'enrolled': return 5;
+    default: return 0;
+  }
 }
 
-// ── Inline deadline editor ───────────────────────────────────────────────────
+function statusToTabKey(status: string): 'not_started' | 'in_progress' | 'applied' | 'decided' {
+  switch (status) {
+    case 'interested': return 'not_started';
+    case 'applying': return 'in_progress';
+    case 'applied': return 'applied';
+    case 'offer':
+    case 'rejected':
+    case 'enrolled': return 'decided';
+    default: return 'not_started';
+  }
+}
 
-function DeadlineEditor({ taskId, current, onSave }: { taskId: number; current: string | null; onSave: (d: string | null) => void }) {
-  const [editing, setEditing] = useState(false);
-  const [value, setValue] = useState(current ?? '');
+/* ─────────────────────────────────────────────────────────────────────────
+   DEADLINE GROUPING
+───────────────────────────────────────────────────────────────────────── */
 
-  if (!editing) {
-    return (
-      <button
-        type="button"
-        onClick={() => setEditing(true)}
-        className={`text-xs tabular-nums transition hover:text-pink-600 ${current ? 'text-slate-700 font-medium' : 'text-slate-400 italic'}`}
-        title="Click to set deadline"
-      >
-        {current ? new Date(current).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : 'Set deadline'}
-      </button>
-    );
+type DeadlineItem = {
+  task: ApplicationTask;
+  university: University;
+  uuId: number;
+  daysUntil: number;
+};
+
+function groupDeadlines(items: DeadlineItem[]) {
+  const today: DeadlineItem[] = [];
+  const thisWeek: DeadlineItem[] = [];
+  const thisMonth: DeadlineItem[] = [];
+  const later: DeadlineItem[] = [];
+
+  for (const item of items) {
+    if (item.daysUntil < 0 || item.daysUntil === 0) today.push(item);
+    else if (item.daysUntil <= 7) thisWeek.push(item);
+    else if (item.daysUntil <= 30) thisMonth.push(item);
+    else later.push(item);
   }
 
+  return { today, thisWeek, thisMonth, later };
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   STATS (top row)
+───────────────────────────────────────────────────────────────────────── */
+
+function StatCard({
+  icon,
+  iconBg,
+  iconColor,
+  value,
+  label,
+}: {
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  value: string | number;
+  label: string;
+}) {
   return (
-    <div className="flex items-center gap-1">
-      <input
-        type="date"
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        className="rounded-lg border border-pink-200 bg-pink-50 px-2 py-0.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-pink-300"
-        autoFocus
-      />
-      <button type="button" onClick={() => { onSave(value || null); setEditing(false); }}
-        className="rounded-lg bg-pink-500 px-2 py-0.5 text-xs font-semibold text-white hover:bg-pink-600">✓</button>
-      <button type="button" onClick={() => setEditing(false)}
-        className="rounded-lg border border-slate-200 px-2 py-0.5 text-xs text-slate-500 hover:bg-slate-50">✕</button>
+    <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 shadow-[0_2px_8px_rgba(15,23,42,0.04)] flex items-center gap-3">
+      <div
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${iconBg} ${iconColor}`}
+      >
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-xl font-bold text-slate-900 leading-none">{value}</p>
+        <p className="mt-1 text-[0.7rem] text-slate-500 leading-tight">{label}</p>
+      </div>
     </div>
   );
 }
 
-// ── University row (expanded task panel) ─────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────
+   HORIZONTAL STAGE PROGRESS
+───────────────────────────────────────────────────────────────────────── */
 
-function UniversityRow({
-  uu, tasks, completedTasks, statuses,
-  onStatusChange, onToggleTask, onDeadlineChange,
+function StageProgress({ currentStageIndex }: { currentStageIndex: number }) {
+  return (
+    <div className="flex items-center justify-between w-full">
+      {STAGES.map((stage, i) => {
+        const isCompleted = i < currentStageIndex;
+        const isCurrent = i === currentStageIndex;
+        const isLast = i === STAGES.length - 1;
+        return (
+          <div key={stage} className="flex items-center flex-1 last:flex-none">
+            <div className="flex flex-col items-center gap-1.5">
+              <div
+                className={`flex h-6 w-6 items-center justify-center rounded-full transition-all ${
+                  isCompleted
+                    ? 'bg-emerald-500 text-white'
+                    : isCurrent
+                    ? 'bg-pink-500 text-white ring-4 ring-pink-100'
+                    : 'bg-slate-100 text-slate-300 border border-slate-200'
+                }`}
+              >
+                {isCompleted ? (
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
+                ) : (
+                  <div className={`h-2 w-2 rounded-full ${isCurrent ? 'bg-white' : 'bg-current'}`} />
+                )}
+              </div>
+              <p className={`text-[0.6rem] text-center leading-tight max-w-[60px] ${
+                isCompleted || isCurrent ? 'text-slate-700 font-medium' : 'text-slate-400'
+              }`}>
+                {stage}
+              </p>
+            </div>
+            {!isLast && (
+              <div className={`flex-1 h-[2px] mx-1 mb-5 ${
+                isCompleted ? 'bg-emerald-500' : 'bg-slate-200'
+              }`} />
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   UNIVERSITY APPLICATION CARD (main row)
+───────────────────────────────────────────────────────────────────────── */
+
+function UniversityApplicationCard({
+  uu,
+  tasks,
+  completedTasks,
+  onToggleTask,
 }: {
   uu: UUWithUni;
   tasks: ApplicationTask[];
   completedTasks: Set<number>;
-  statuses: Record<number, string>;
-  onStatusChange: (id: number, s: string) => void;
   onToggleTask: (id: number) => void;
-  onDeadlineChange: (taskId: number, d: string | null) => void;
 }) {
-  const [expanded, setExpanded] = useState(false);
-  const completed = tasks.filter((t) => completedTasks.has(t.id)).length;
-  const status = statuses[uu.id] ?? uu.status;
-  const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.interested;
+  const flag = COUNTRY_FLAGS[uu.university.country] ?? '🎓';
+  const stageIndex = statusToStageIndex(uu.status);
+  const incompleteTasks = tasks.filter((t) => !completedTasks.has(t.id));
 
-  // Next upcoming deadline
+  // Determine next step based on stage
+  const nextStepInfo = (() => {
+    if (uu.status === 'interested') return { label: 'Choose your preferred course', cta: 'Find Courses' };
+    if (stageIndex < 2) return { label: 'Draft your statement of purpose', cta: 'Start SOP' };
+    if (stageIndex < 3) return { label: 'Submit your application', cta: 'Submit Application' };
+    if (stageIndex < 4) return { label: 'Book your mentor review', cta: 'Book Review' };
+    return { label: 'Track your application', cta: 'View Status' };
+  })();
+
   const nextDeadline = tasks
     .filter((t) => t.deadline && !completedTasks.has(t.id))
     .sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''))[0]?.deadline ?? null;
 
-  const isOverdue = nextDeadline && new Date(nextDeadline) < new Date();
+  const wikiImage = (uu.university as University & { image_url?: string }).image_url;
 
   return (
-    <div className="glow-card p-0 overflow-hidden">
-      {/* ── Row header ── */}
-      <div className="flex items-center gap-4 px-5 py-4">
-        {/* Progress */}
-        <ProgressRing completed={completed} total={tasks.length} />
-
-        {/* Name + meta */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="text-sm font-semibold text-slate-900 truncate">{uu.university.name}</h3>
-            {uu.match_score != null && (
-              <span className="rounded-full bg-pink-50 border border-pink-200 px-2 py-0.5 text-[10px] font-semibold text-pink-600">
-                {uu.match_score}% match
-              </span>
-            )}
-          </div>
-          <div className="mt-0.5 flex items-center gap-3 flex-wrap">
-            <span className="text-xs text-slate-400">{uu.university.country}</span>
-            {uu.university.qs_rank && (
-              <span className="text-xs text-slate-400">QS #{uu.university.qs_rank}</span>
-            )}
-            {nextDeadline && (
-              <span className={`text-xs font-medium ${isOverdue ? 'text-red-500' : 'text-amber-600'}`}>
-                {isOverdue ? '⚠ Overdue: ' : '⏰ Next: '}
-                {new Date(nextDeadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Status pill */}
-        <select
-          value={status}
-          onChange={(e) => onStatusChange(uu.id, e.target.value)}
-          className={`rounded-full border px-3 py-1 text-xs font-semibold cursor-pointer ${cfg.pill}`}
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-          ))}
-        </select>
-
-        {/* Actions */}
-        <div className="flex items-center gap-2 shrink-0">
-          <Link
-            href={`/my-universities/${uu.id}/writer`}
-            className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-100 transition"
-          >
-            AI Writer
-          </Link>
+    <article className="rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] overflow-hidden">
+      <div className="grid lg:grid-cols-[120px_1fr_180px] gap-0">
+        {/* Image */}
+        <div className="relative h-32 lg:h-full overflow-hidden bg-slate-100">
+          {wikiImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={wikiImage}
+              alt={uu.university.name}
+              className="absolute inset-0 h-full w-full object-cover"
+              onError={(e) => { e.currentTarget.style.display = 'none'; }}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center bg-gradient-to-br from-pink-200 to-cyan-200">
+              <span className="text-4xl">🎓</span>
+            </div>
+          )}
           <button
             type="button"
-            onClick={() => setExpanded((v) => !v)}
-            className="rounded-full border border-black/5 bg-white/80 px-3 py-1.5 text-xs font-semibold text-slate-500 hover:text-slate-700 transition flex items-center gap-1"
+            className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-pink-500 shadow-sm backdrop-blur-sm"
+            aria-label="Saved"
           >
-            Tasks
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-              className={`transition-transform ${expanded ? 'rotate-180' : ''}`} aria-hidden>
-              <path d="M6 9l6 6 6-6" />
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="#ec4899" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
           </button>
         </div>
-      </div>
 
-      {/* ── Expanded task panel ── */}
-      {expanded && (
-        <div className="border-t border-black/[.04] bg-slate-50/60 px-5 py-4 space-y-3">
-          {tasks.length === 0 && (
-            <p className="text-sm text-slate-400 italic">No tasks yet — try removing and re-adding this university.</p>
-          )}
+        {/* Main content */}
+        <div className="px-4 py-4 space-y-3 lg:border-r lg:border-slate-100">
+          {/* Header: name, flag, ranking */}
+          <div>
+            <h3 className="text-base font-semibold text-slate-900">{uu.university.name}</h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {uu.notes ?? uu.university.best_for ?? 'Application in progress'}
+            </p>
+            <div className="mt-1.5 flex items-center gap-3 flex-wrap text-xs">
+              <span className="flex items-center gap-1 text-slate-600">
+                <span>{flag}</span>
+                <span>{uu.university.country}</span>
+              </span>
+              {uu.university.qs_rank && (
+                <span className="text-slate-500">· #{uu.university.qs_rank} QS World Ranking</span>
+              )}
+            </div>
+            <div className="mt-1.5 flex items-center gap-3 flex-wrap text-xs">
+              {nextDeadline && (
+                <span className="text-slate-600">
+                  <span className="font-semibold">Deadline:</span>{' '}
+                  {new Date(nextDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+              )}
+              {uu.match_score != null && (
+                <span className="rounded-full bg-pink-50 border border-pink-200 px-2 py-0.5 text-[0.65rem] font-bold text-pink-600">
+                  {uu.match_score}% Match
+                </span>
+              )}
+            </div>
+          </div>
 
-          {/* Group tasks by category */}
-          {Object.entries(
-            tasks.reduce<Record<string, ApplicationTask[]>>((acc, t) => {
-              (acc[t.category] ??= []).push(t);
-              return acc;
-            }, {})
-          ).map(([category, catTasks]) => (
-            <div key={category}>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                  {CATEGORY_ICONS[category]} {category}
+          {/* Stage progress */}
+          <div className="py-2">
+            <StageProgress currentStageIndex={stageIndex} />
+          </div>
+
+          {/* Tasks summary */}
+          {tasks.length > 0 && (
+            <div className="border-t border-slate-100 pt-3">
+              <div className="flex items-center justify-between mb-1.5">
+                <p className="text-[0.7rem] font-semibold text-slate-600">
+                  Tasks ({incompleteTasks.length})
                 </p>
-                {/* Support links for this category */}
-                <div className="flex items-center gap-2 flex-wrap justify-end">
-                  {(SUPPORT_LINKS[category] ?? []).map((link) =>
-                    link.url ? (
-                      <a key={link.label} href={link.url} target="_blank" rel="noopener noreferrer"
-                        className="text-[10px] font-semibold text-[#00b4d8] hover:underline underline-offset-2">
-                        {link.label} ↗
-                      </a>
-                    ) : (
-                      <Link key={link.label} href={`/my-universities/${uu.id}/writer`}
-                        className="text-[10px] font-semibold text-pink-500 hover:underline underline-offset-2">
-                        {link.label} →
-                      </Link>
-                    )
-                  )}
-                </div>
+                <Link
+                  href={`/my-universities/${uu.id}`}
+                  className="text-[0.7rem] font-semibold text-cyan-600 hover:underline"
+                >
+                  View all →
+                </Link>
               </div>
-
-              <div className="space-y-1.5">
-                {catTasks.map((task) => {
-                  const done = completedTasks.has(task.id);
-                  return (
-                    <div key={task.id} className={`flex items-start gap-3 rounded-xl border border-black/[.04] bg-white px-3 py-2.5 transition ${done ? 'opacity-50' : ''}`}>
-                      <input
-                        type="checkbox"
-                        checked={done}
-                        onChange={() => onToggleTask(task.id)}
-                        className="mt-0.5 rounded border-slate-300 text-pink-500 focus:ring-pink-300 shrink-0"
-                        aria-label={task.title}
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className={`text-sm ${done ? 'line-through text-slate-400' : 'text-slate-700 font-medium'}`}>
-                          {task.title}
-                        </p>
-                        {task.description && (
-                          <p className="mt-0.5 text-xs text-slate-400 leading-relaxed">{task.description}</p>
-                        )}
-                        {task.tips?.content && (
-                          <details className="mt-1">
-                            <summary className="text-[10px] font-semibold text-sky-500 cursor-pointer select-none">💡 Show tips</summary>
-                            <p className="mt-1 text-xs text-slate-500 leading-relaxed whitespace-pre-line">{task.tips.content}</p>
-                          </details>
-                        )}
-                      </div>
-                      <DeadlineEditor
-                        taskId={task.id}
-                        current={task.deadline ?? null}
-                        onSave={(d) => onDeadlineChange(task.id, d)}
-                      />
-                    </div>
-                  );
-                })}
+              <div className="flex flex-wrap gap-x-4 gap-y-1.5">
+                {incompleteTasks.slice(0, 3).map((task) => (
+                  <label
+                    key={task.id}
+                    className="flex items-center gap-1.5 cursor-pointer group"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={completedTasks.has(task.id)}
+                      onChange={() => onToggleTask(task.id)}
+                      className="rounded border-slate-300 text-pink-500 focus:ring-pink-300 h-3 w-3"
+                    />
+                    <span className="text-xs text-slate-600 group-hover:text-slate-900">
+                      {task.title}
+                    </span>
+                  </label>
+                ))}
               </div>
             </div>
-          ))}
+          )}
         </div>
-      )}
-    </div>
+
+        {/* Next Step panel */}
+        <div className="px-4 py-4 bg-slate-50/50 flex flex-col justify-between gap-3 lg:py-5">
+          <div>
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">Next Step</p>
+              <button
+                type="button"
+                aria-label="More options"
+                className="text-slate-400 hover:text-slate-600"
+              >
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="1" />
+                  <circle cx="19" cy="12" r="1" />
+                  <circle cx="5" cy="12" r="1" />
+                </svg>
+              </button>
+            </div>
+            <p className="text-sm font-medium text-slate-900 leading-snug">{nextStepInfo.label}</p>
+          </div>
+          <Link
+            href={uu.status === 'interested' ? '/universities' : `/my-universities/${uu.id}/writer`}
+            className="inline-flex items-center justify-center rounded-full border border-pink-200 bg-white px-4 py-2 text-xs font-semibold text-pink-600 hover:bg-pink-50 transition"
+          >
+            {nextStepInfo.cta}
+          </Link>
+        </div>
+      </div>
+    </article>
   );
 }
 
-// ── Comparison table ─────────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────
+   UPCOMING DEADLINES LIST
+───────────────────────────────────────────────────────────────────────── */
 
-function ComparisonTable({ userUniversities, statuses, onStatusChange }: {
-  userUniversities: UUWithUni[];
-  statuses: Record<number, string>;
-  onStatusChange: (id: number, s: string) => void;
+function DeadlineRow({
+  item,
+  badgeText,
+  badgeStyle,
+}: {
+  item: DeadlineItem;
+  badgeText: string;
+  badgeStyle: string;
 }) {
-  const fields: { key: keyof University; label: string }[] = [
-    { key: 'qs_rank',              label: 'QS Rank' },
-    { key: 'accept_rate',          label: 'Accept Rate' },
-    { key: 'tuition_usd',          label: 'Tuition (USD)' },
-    { key: 'living_cost_usd',      label: 'Living Cost' },
-    { key: 'admission_difficulty', label: 'Difficulty' },
-    { key: 'english_requirement',  label: 'English Req.' },
-    { key: 'application_deadline', label: 'Deadline' },
-    { key: 'scholarship',          label: 'Scholarships' },
-    { key: 'employability',        label: 'Employability' },
-    { key: 'best_for',             label: 'Best For' },
-  ];
-
+  const wikiImage = (item.university as University & { image_url?: string }).image_url;
   return (
-    <div className="overflow-x-auto rounded-2xl border border-black/[.05] bg-white/80 shadow-sm">
-      <table className="w-full text-sm border-collapse">
-        <thead>
-          <tr className="border-b border-black/[.05]">
-            <th className="sticky left-0 bg-white/95 backdrop-blur px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-slate-400 min-w-[140px]">
-              Field
-            </th>
-            {userUniversities.map((uu) => (
-              <th key={uu.id} className="px-4 py-3 text-left min-w-[180px]">
-                <div className="font-semibold text-slate-900 leading-snug">{uu.university.name}</div>
-                <div className="text-xs text-slate-400 font-normal mt-0.5">{uu.university.country}</div>
-                {uu.match_score != null && (
-                  <span className="mt-1 inline-block rounded-full bg-pink-50 border border-pink-200 px-2 py-0.5 text-[10px] font-semibold text-pink-600">
-                    {uu.match_score}% match
-                  </span>
-                )}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {/* Status row */}
-          <tr className="border-b border-black/[.04] bg-slate-50/40">
-            <td className="sticky left-0 bg-slate-50/80 backdrop-blur px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-slate-400">
-              Status
-            </td>
-            {userUniversities.map((uu) => {
-              const status = statuses[uu.id] ?? uu.status;
-              const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.interested;
-              return (
-                <td key={uu.id} className="px-4 py-2.5">
-                  <select
-                    value={status}
-                    onChange={(e) => onStatusChange(uu.id, e.target.value)}
-                    className={`rounded-full border px-2.5 py-1 text-xs font-semibold cursor-pointer ${cfg.pill}`}
-                  >
-                    {STATUS_OPTIONS.map((s) => (
-                      <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>
-                    ))}
-                  </select>
-                </td>
-              );
-            })}
-          </tr>
-
-          {fields.map(({ key, label }, i) => (
-            <tr key={key} className={`border-b border-black/[.04] ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
-              <td className="sticky left-0 bg-white/90 backdrop-blur px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-slate-400">
-                {label}
-              </td>
-              {userUniversities.map((uu) => {
-                const val = uu.university[key];
-                const display = val != null && val !== '' ? String(val) : '—';
-                return (
-                  <td key={uu.id} className="px-4 py-2.5 text-sm text-slate-700">
-                    {display}
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-
-          {/* Links row */}
-          <tr>
-            <td className="sticky left-0 bg-white/90 backdrop-blur px-4 py-2.5 text-xs font-semibold uppercase tracking-widest text-slate-400">
-              Apply
-            </td>
-            {userUniversities.map((uu) => (
-              <td key={uu.id} className="px-4 py-2.5">
-                <div className="flex flex-col gap-1">
-                  <a
-                    href={`https://www.google.com/search?q=${encodeURIComponent(uu.university.name + ' application portal')}`}
-                    target="_blank" rel="noopener noreferrer"
-                    className="text-xs font-semibold text-[#00b4d8] hover:underline underline-offset-2"
-                  >
-                    Application portal ↗
-                  </a>
-                  <Link
-                    href={`/my-universities/${uu.id}/writer`}
-                    className="text-xs font-semibold text-pink-500 hover:underline underline-offset-2"
-                  >
-                    AI Writer →
-                  </Link>
-                </div>
-              </td>
-            ))}
-          </tr>
-        </tbody>
-      </table>
+    <div className="flex items-center gap-3 py-2.5 border-b border-slate-100 last:border-0">
+      <div className="h-9 w-9 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+        {wikiImage ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={wikiImage} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+        ) : null}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-semibold text-slate-900 truncate">{item.task.title}</p>
+        <p className="text-[0.65rem] text-slate-500 truncate">{item.university.name}</p>
+      </div>
+      <div className="flex flex-col items-end gap-1 shrink-0">
+        <p className="text-[0.65rem] text-slate-400">
+          {item.task.deadline ? new Date(item.task.deadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : ''}
+        </p>
+        <span className={`rounded-full border px-2 py-0.5 text-[0.6rem] font-semibold ${badgeStyle}`}>
+          {badgeText}
+        </span>
+      </div>
     </div>
   );
 }
 
-// ── Timeline view ────────────────────────────────────────────────────────────
-
-function TimelineView({ userUniversities, tasks, completedTasks }: {
+function UpcomingDeadlines({
+  userUniversities,
+  tasks,
+  completedTasks,
+}: {
   userUniversities: UUWithUni[];
   tasks: ApplicationTask[];
   completedTasks: Set<number>;
@@ -425,85 +384,275 @@ function TimelineView({ userUniversities, tasks, completedTasks }: {
     return map;
   }, [userUniversities]);
 
-  const deadlines = tasks
-    .filter((t) => t.deadline && !completedTasks.has(t.id))
-    .sort((a, b) => (a.deadline ?? '').localeCompare(b.deadline ?? ''));
+  const items: DeadlineItem[] = useMemo(() => {
+    return tasks
+      .filter((t) => t.deadline && !completedTasks.has(t.id))
+      .map((t) => {
+        const uu = uuMap[t.user_university_id];
+        if (!uu) return null;
+        const date = new Date(t.deadline!);
+        const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        return {
+          task: t,
+          university: uu.university,
+          uuId: uu.id,
+          daysUntil,
+        };
+      })
+      .filter((x): x is DeadlineItem => x !== null)
+      .sort((a, b) => a.daysUntil - b.daysUntil);
+  }, [tasks, completedTasks, uuMap]);
 
-  // Group by month
-  const grouped: Record<string, (ApplicationTask & { universityName: string })[]> = {};
-  for (const task of deadlines) {
-    const date = new Date(task.deadline!);
-    const monthKey = date.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
-    if (!grouped[monthKey]) grouped[monthKey] = [];
-    const uu = uuMap[task.user_university_id];
-    grouped[monthKey].push({
-      ...task,
-      universityName: uu?.university.name ?? 'Unknown',
-    });
-  }
-
-  if (deadlines.length === 0) {
-    return (
-      <div className="glow-card text-center py-12 space-y-3">
-        <p className="text-3xl">📅</p>
-        <p className="text-slate-500 text-sm">No upcoming deadlines. Set deadlines on your tasks to see them here.</p>
-      </div>
-    );
-  }
+  const grouped = groupDeadlines(items);
 
   return (
-    <div className="space-y-6">
-      {Object.entries(grouped).map(([month, monthTasks]) => (
-        <div key={month}>
-          <p className="text-xs uppercase tracking-widest text-slate-400 font-semibold mb-3">{month}</p>
-          <div className="space-y-2">
-            {monthTasks.map((d) => {
-              const date = new Date(d.deadline!);
-              const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-              const urgency = daysUntil < 0 ? 'overdue' : daysUntil <= 7 ? 'urgent' : daysUntil <= 30 ? 'soon' : 'ok';
-              const urgencyStyles = {
-                overdue: 'bg-red-50 border-red-200 text-red-700',
-                urgent: 'bg-red-50 border-red-200 text-red-600',
-                soon: 'bg-amber-50 border-amber-200 text-amber-600',
-                ok: 'bg-emerald-50 border-emerald-200 text-emerald-600',
-              };
-
-              return (
-                <div key={d.id} className="flex items-center gap-4 p-3 bg-white rounded-xl border border-slate-100">
-                  <span className="text-sm font-mono text-slate-400 w-14 shrink-0">
-                    {date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
-                  </span>
-                  <span className="text-sm font-semibold text-slate-800 truncate">{d.universityName}</span>
-                  <span className="text-sm text-slate-500 truncate flex-1">{d.title}</span>
-                  <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold ${urgencyStyles[urgency]}`}>
-                    {urgency === 'overdue' ? 'Overdue' : urgency === 'urgent' ? `${daysUntil}d left` : urgency === 'soon' ? `${daysUntil}d` : `${daysUntil}d`}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-pink-500">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+          </span>
+          <h3 className="text-sm font-semibold text-slate-900">Upcoming Deadlines</h3>
         </div>
-      ))}
+        <button type="button" className="text-xs font-semibold text-cyan-600 hover:underline">
+          View All
+        </button>
+      </div>
+
+      {items.length === 0 ? (
+        <p className="text-xs text-slate-400 text-center py-6">No upcoming deadlines.</p>
+      ) : (
+        <div className="space-y-3">
+          {grouped.today.length > 0 && (
+            <div>
+              <p className="text-pink-500 text-[0.65rem] font-bold uppercase tracking-wider mb-1">Today</p>
+              {grouped.today.map((item) => (
+                <DeadlineRow key={item.task.id} item={item} badgeText="Due today" badgeStyle="border-red-200 bg-red-50 text-red-600" />
+              ))}
+            </div>
+          )}
+          {grouped.thisWeek.length > 0 && (
+            <div>
+              <p className="text-pink-500 text-[0.65rem] font-bold uppercase tracking-wider mb-1">This Week</p>
+              {grouped.thisWeek.map((item) => (
+                <DeadlineRow
+                  key={item.task.id}
+                  item={item}
+                  badgeText={`In ${item.daysUntil} day${item.daysUntil !== 1 ? 's' : ''}`}
+                  badgeStyle="border-amber-200 bg-amber-50 text-amber-600"
+                />
+              ))}
+            </div>
+          )}
+          {grouped.thisMonth.length > 0 && (
+            <div>
+              <p className="text-pink-500 text-[0.65rem] font-bold uppercase tracking-wider mb-1">This Month</p>
+              {grouped.thisMonth.map((item) => (
+                <DeadlineRow
+                  key={item.task.id}
+                  item={item}
+                  badgeText={`In ${item.daysUntil} days`}
+                  badgeStyle="border-slate-200 bg-slate-50 text-slate-600"
+                />
+              ))}
+            </div>
+          )}
+          {grouped.later.length > 0 && (
+            <div>
+              <p className="text-slate-400 text-[0.65rem] font-bold uppercase tracking-wider mb-1">Later</p>
+              {grouped.later.slice(0, 3).map((item) => (
+                <DeadlineRow
+                  key={item.task.id}
+                  item={item}
+                  badgeText={`In ${item.daysUntil} days`}
+                  badgeStyle="border-slate-200 bg-slate-50 text-slate-500"
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="mt-3 pt-3 border-t border-slate-100 text-center">
+        <button type="button" className="text-xs font-semibold text-cyan-600 hover:underline">
+          View Full Timeline →
+        </button>
+      </div>
     </div>
   );
 }
 
-// ── Main client component ────────────────────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────────────
+   NEXT BEST ACTION CARD
+───────────────────────────────────────────────────────────────────────── */
+
+function NextBestActionCard({
+  userUniversities,
+  tasks,
+  completedTasks,
+}: {
+  userUniversities: UUWithUni[];
+  tasks: ApplicationTask[];
+  completedTasks: Set<number>;
+}) {
+  // Find the most urgent next action: closest deadline among incomplete tasks
+  const uuMap = useMemo(() => {
+    const map: Record<number, UUWithUni> = {};
+    for (const uu of userUniversities) map[uu.id] = uu;
+    return map;
+  }, [userUniversities]);
+
+  const upcoming = useMemo(() => {
+    return tasks
+      .filter((t) => t.deadline && !completedTasks.has(t.id))
+      .map((t) => {
+        const uu = uuMap[t.user_university_id];
+        if (!uu) return null;
+        const date = new Date(t.deadline!);
+        const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        return { task: t, university: uu.university, uuId: uu.id, daysUntil };
+      })
+      .filter((x): x is { task: ApplicationTask; university: University; uuId: number; daysUntil: number } => x !== null)
+      .sort((a, b) => a.daysUntil - b.daysUntil)[0];
+  }, [tasks, completedTasks, uuMap]);
+
+  if (!upcoming) return null;
+
+  const wikiImage = (upcoming.university as University & { image_url?: string }).image_url;
+
+  return (
+    <div className="rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50/50 to-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+      <div className="flex items-center gap-2 mb-3">
+        <span className="text-pink-500">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M9 11.5L11.5 14L15.5 9.5L17 11L11.5 17L7.5 13L9 11.5Z" />
+            <circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" strokeWidth="1.5" />
+          </svg>
+        </span>
+        <h3 className="text-sm font-semibold text-slate-900">Next Best Action</h3>
+      </div>
+
+      <div className="flex items-start gap-3">
+        <div className="h-12 w-12 shrink-0 rounded-lg overflow-hidden bg-slate-100">
+          {wikiImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={wikiImage} alt="" className="h-full w-full object-cover" onError={(e) => { e.currentTarget.style.display = 'none'; }} />
+          ) : null}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-slate-900 leading-tight">{upcoming.task.title}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{upcoming.university.name}</p>
+          <p className="text-xs text-slate-500 mt-1">
+            Application deadline in{' '}
+            <span className="text-pink-600 font-semibold">
+              {upcoming.daysUntil < 0 ? 'overdue' : `${upcoming.daysUntil} days`}
+            </span>
+          </p>
+        </div>
+        <div className="text-2xl">📝</div>
+      </div>
+
+      <Link
+        href={`/my-universities/${upcoming.uuId}`}
+        className="mt-3 flex items-center justify-between w-full rounded-full bg-gradient-to-r from-pink-500 to-pink-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5"
+      >
+        Continue Application
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="5" y1="12" x2="19" y2="12" />
+          <polyline points="12 5 19 12 12 19" />
+        </svg>
+      </Link>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   HELP CTA CARD (sidebar bottom)
+───────────────────────────────────────────────────────────────────────── */
+
+function HelpCTACard() {
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-50 to-cyan-50/50 p-4 text-center">
+      <div className="text-3xl mb-2">📚</div>
+      <p className="text-xs font-semibold text-slate-900 leading-tight mb-1">
+        Need help with your<br />application?
+      </p>
+      <p className="text-[0.65rem] text-slate-500 leading-relaxed mb-3">
+        Book a 1:1 session with our<br />mentors and alumni.
+      </p>
+      <Link
+        href="/achievers"
+        className="inline-flex rounded-full border border-pink-300 bg-white px-3 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50 transition"
+      >
+        Book a Session
+      </Link>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   LEFT SIDEBAR NAV
+───────────────────────────────────────────────────────────────────────── */
+
+function LeftSidebar() {
+  const navItems = [
+    { icon: '♡', label: 'My Universities', href: '/my-universities', active: true },
+    { icon: '📋', label: 'Applications', href: '/my-universities' },
+    { icon: '✓', label: 'Tasks', href: '/my-universities' },
+    { icon: '📁', label: 'Documents', href: '/profile' },
+    { icon: '👥', label: 'Mentor Sessions', href: '/achievers' },
+    { icon: '🏆', label: 'Scholarships', href: '/universities' },
+    { icon: '👤', label: 'Profile', href: '/profile' },
+  ];
+
+  return (
+    <aside className="space-y-4">
+      <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+        <nav className="space-y-0.5">
+          {navItems.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                item.active
+                  ? 'bg-pink-50 text-pink-600 font-semibold'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span className="text-base">{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </nav>
+      </div>
+
+      <HelpCTACard />
+    </aside>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   MAIN CLIENT
+───────────────────────────────────────────────────────────────────────── */
+
+type TabKey = 'all' | 'not_started' | 'in_progress' | 'applied' | 'decided';
 
 export function MyUniversitiesClient({ userUniversities, allTasks }: Props) {
   const supabase = useMemo(() => createClient(), []);
-  const [view, setView] = useState<'tracker' | 'compare' | 'timeline'>('tracker');
-  const [statuses, setStatuses] = useState<Record<number, string>>(
-    Object.fromEntries(userUniversities.map((uu) => [uu.id, uu.status])),
-  );
+  const [tab, setTab] = useState<TabKey>('all');
+  const [sortBy, setSortBy] = useState<'deadline' | 'match' | 'name'>('deadline');
+  const [view] = useState<'list' | 'grid'>('list');
   const [completedTasks, setCompletedTasks] = useState<Set<number>>(
     new Set(allTasks.filter((t) => t.is_completed).map((t) => t.id)),
   );
-  const [taskDeadlines, setTaskDeadlines] = useState<Record<number, string | null>>(
-    Object.fromEntries(allTasks.map((t) => [t.id, t.deadline ?? null])),
-  );
   const [, startTransition] = useTransition();
 
+  // Tasks per university
   const tasksByUU = useMemo(() => {
     const map: Record<number, ApplicationTask[]> = {};
     for (const task of allTasks) {
@@ -512,138 +661,305 @@ export function MyUniversitiesClient({ userUniversities, allTasks }: Props) {
     return map;
   }, [allTasks]);
 
-  // Merge live deadlines into tasks
-  const tasksWithDeadlines = useMemo(() =>
-    allTasks.map((t) => ({ ...t, deadline: taskDeadlines[t.id] ?? t.deadline ?? null })),
-    [allTasks, taskDeadlines]
-  );
-
-  const tasksByUULive = useMemo(() => {
-    const map: Record<number, ApplicationTask[]> = {};
-    for (const task of tasksWithDeadlines) {
-      (map[task.user_university_id] ??= []).push(task);
+  // Tab counts
+  const tabCounts = useMemo(() => {
+    const counts: Record<TabKey, number> = { all: userUniversities.length, not_started: 0, in_progress: 0, applied: 0, decided: 0 };
+    for (const uu of userUniversities) {
+      counts[statusToTabKey(uu.status)]++;
     }
-    return map;
-  }, [tasksWithDeadlines]);
+    return counts;
+  }, [userUniversities]);
 
-  const handleStatusChange = async (uuId: number, newStatus: string) => {
-    setStatuses((prev) => ({ ...prev, [uuId]: newStatus }));
-    await supabase.from('user_universities')
-      .update({ status: newStatus, updated_at: new Date().toISOString() })
-      .eq('id', uuId);
-  };
+  // Filtered + sorted universities
+  const visibleUniversities = useMemo(() => {
+    let filtered = userUniversities;
+    if (tab !== 'all') {
+      filtered = filtered.filter((uu) => statusToTabKey(uu.status) === tab);
+    }
+
+    return [...filtered].sort((a, b) => {
+      if (sortBy === 'name') return a.university.name.localeCompare(b.university.name);
+      if (sortBy === 'match') return (b.match_score ?? 0) - (a.match_score ?? 0);
+      // deadline
+      const aTasks = tasksByUU[a.id] ?? [];
+      const bTasks = tasksByUU[b.id] ?? [];
+      const aDeadline = aTasks
+        .filter((t) => t.deadline && !completedTasks.has(t.id))
+        .sort((x, y) => (x.deadline ?? '').localeCompare(y.deadline ?? ''))[0]?.deadline ?? '9999';
+      const bDeadline = bTasks
+        .filter((t) => t.deadline && !completedTasks.has(t.id))
+        .sort((x, y) => (x.deadline ?? '').localeCompare(y.deadline ?? ''))[0]?.deadline ?? '9999';
+      return aDeadline.localeCompare(bDeadline);
+    });
+  }, [userUniversities, tab, sortBy, tasksByUU, completedTasks]);
+
+  // Stats
+  const totalTasks = allTasks.length;
+  const doneTasks = allTasks.filter((t) => completedTasks.has(t.id)).length;
+  const tasksRemaining = totalTasks - doneTasks;
+
+  const deadlinesThisMonth = useMemo(() => {
+    return allTasks.filter((t) => {
+      if (!t.deadline || completedTasks.has(t.id)) return false;
+      const date = new Date(t.deadline);
+      const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      return daysUntil >= 0 && daysUntil <= 30;
+    }).length;
+  }, [allTasks, completedTasks]);
+
+  const applicationsInProgress = userUniversities.filter((uu) => uu.status === 'applying' || uu.status === 'applied').length;
 
   const handleToggleTask = async (taskId: number) => {
     const isNowCompleted = !completedTasks.has(taskId);
     startTransition(() => {
       setCompletedTasks((prev) => {
         const next = new Set(prev);
-        if (isNowCompleted) next.add(taskId); else next.delete(taskId);
+        if (isNowCompleted) next.add(taskId);
+        else next.delete(taskId);
         return next;
       });
     });
-    await supabase.from('application_tasks')
+    await supabase
+      .from('application_tasks')
       .update({ is_completed: isNowCompleted, completed_at: isNowCompleted ? new Date().toISOString() : null })
       .eq('id', taskId);
   };
 
-  const handleDeadlineChange = async (taskId: number, deadline: string | null) => {
-    setTaskDeadlines((prev) => ({ ...prev, [taskId]: deadline }));
-    await supabase.from('application_tasks')
-      .update({ deadline })
-      .eq('id', taskId);
-  };
-
-  // Summary stats
-  const totalTasks = allTasks.length;
-  const doneTasks = allTasks.filter((t) => completedTasks.has(t.id)).length;
-  const overdueTasks = tasksWithDeadlines.filter(
-    (t) => t.deadline && !completedTasks.has(t.id) && new Date(t.deadline) < new Date()
-  ).length;
-
   if (userUniversities.length === 0) {
     return (
-      <div className="glow-card text-center py-16 space-y-4">
-        <p className="text-4xl" aria-hidden="true">🎓</p>
-        <p className="text-slate-500">No universities saved yet.</p>
-        <a href="/universities"
-          className="inline-flex rounded-full bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.24)]">
-          Browse universities
-        </a>
+      <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
+        <LeftSidebar />
+        <div className="rounded-2xl border border-slate-200 bg-white text-center py-16 space-y-4">
+          <p className="text-4xl" aria-hidden="true">🎓</p>
+          <p className="text-slate-500">No universities saved yet.</p>
+          <Link
+            href="/universities"
+            className="inline-flex rounded-full bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] px-6 py-3 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.24)]"
+          >
+            Browse universities
+          </Link>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-5">
-      {/* ── Summary bar ── */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {[
-          { label: 'Universities', value: userUniversities.length, color: 'text-slate-900' },
-          { label: 'Tasks done', value: `${doneTasks}/${totalTasks}`, color: 'text-pink-600' },
-          { label: 'Overdue', value: overdueTasks, color: overdueTasks > 0 ? 'text-red-500' : 'text-slate-900' },
-          { label: 'Offers', value: Object.values(statuses).filter((s) => s === 'offer').length, color: 'text-emerald-600' },
-        ].map((s) => (
-          <div key={s.label} className="glow-card py-4 text-center">
-            <p className={`text-2xl font-semibold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-slate-400 mt-0.5">{s.label}</p>
+    <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
+      {/* Left sidebar nav */}
+      <LeftSidebar />
+
+      <div className="space-y-5 min-w-0">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">My Universities</h1>
+            <p className="mt-1 text-sm text-slate-500">Track your applications and never miss a deadline.</p>
           </div>
-        ))}
-      </div>
-
-      {/* ── View toggle ── */}
-      <div className="flex items-center gap-2">
-        {(['tracker', 'compare', 'timeline'] as const).map((v) => (
-          <button key={v} type="button" onClick={() => setView(v)}
-            className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-              view === v
-                ? 'bg-pink-50 text-pink-600 border border-pink-200'
-                : 'bg-white/80 text-slate-500 border border-black/5 hover:text-slate-700'
-            }`}>
-            {v === 'tracker' ? 'Application Tracker' : v === 'compare' ? 'Compare Universities' : 'Timeline'}
-          </button>
-        ))}
-        <a href="/universities"
-          className="ml-auto rounded-full border border-black/5 bg-white/80 px-4 py-2 text-sm font-semibold text-slate-500 hover:text-slate-700 transition">
-          + Add university
-        </a>
-      </div>
-
-      {/* ── Tracker view ── */}
-      {view === 'tracker' && (
-        <div className="space-y-3">
-          {userUniversities.map((uu) => (
-            <UniversityRow
-              key={uu.id}
-              uu={uu}
-              tasks={tasksByUULive[uu.id] ?? []}
-              completedTasks={completedTasks}
-              statuses={statuses}
-              onStatusChange={handleStatusChange}
-              onToggleTask={handleToggleTask}
-              onDeadlineChange={handleDeadlineChange}
-            />
-          ))}
+          <Link
+            href="/universities"
+            className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:border-pink-200 hover:text-pink-600 transition"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <line x1="5" y1="12" x2="19" y2="12" />
+            </svg>
+            Add University
+          </Link>
         </div>
-      )}
 
-      {/* ── Compare view ── */}
-      {view === 'compare' && (
-        <ComparisonTable
-          userUniversities={userUniversities}
-          statuses={statuses}
-          onStatusChange={handleStatusChange}
-        />
-      )}
+        {/* Stats row */}
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-5">
+          <StatCard
+            value={userUniversities.length}
+            label="Universities Tracked"
+            iconBg="bg-cyan-50"
+            iconColor="text-cyan-600"
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
+                <path d="M6 12v5c3 3 9 3 12 0v-5" />
+              </svg>
+            }
+          />
+          <StatCard
+            value={deadlinesThisMonth}
+            label="Deadlines This Month"
+            iconBg="bg-pink-50"
+            iconColor="text-pink-600"
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                <line x1="16" y1="2" x2="16" y2="6" />
+                <line x1="8" y1="2" x2="8" y2="6" />
+                <line x1="3" y1="10" x2="21" y2="10" />
+              </svg>
+            }
+          />
+          <StatCard
+            value={tasksRemaining}
+            label="Tasks Remaining"
+            iconBg="bg-amber-50"
+            iconColor="text-amber-600"
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+                <polyline points="14 2 14 8 20 8" />
+                <line x1="16" y1="13" x2="8" y2="13" />
+                <line x1="16" y1="17" x2="8" y2="17" />
+              </svg>
+            }
+          />
+          <StatCard
+            value={1}
+            label="Mentor Review Pending"
+            iconBg="bg-emerald-50"
+            iconColor="text-emerald-600"
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                <circle cx="9" cy="7" r="4" />
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+              </svg>
+            }
+          />
+          <StatCard
+            value={applicationsInProgress}
+            label="Applications in Progress"
+            iconBg="bg-sky-50"
+            iconColor="text-sky-600"
+            icon={
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="22" y1="2" x2="11" y2="13" />
+                <polygon points="22 2 15 22 11 13 2 9 22 2" />
+              </svg>
+            }
+          />
+        </div>
 
-      {/* ── Timeline view ── */}
-      {view === 'timeline' && (
-        <TimelineView
-          userUniversities={userUniversities}
-          tasks={tasksWithDeadlines}
-          completedTasks={completedTasks}
-        />
-      )}
+        {/* Body: 2 columns */}
+        <div className="grid gap-5 lg:grid-cols-[320px_1fr]">
+          {/* Left column: Next Best Action + Upcoming Deadlines */}
+          <div className="space-y-4">
+            <NextBestActionCard
+              userUniversities={userUniversities}
+              tasks={allTasks}
+              completedTasks={completedTasks}
+            />
+            <UpcomingDeadlines
+              userUniversities={userUniversities}
+              tasks={allTasks}
+              completedTasks={completedTasks}
+            />
+          </div>
+
+          {/* Right column: Tabs + Cards */}
+          <div className="space-y-4 min-w-0">
+            {/* Tabs + sort */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <TabButton tab="all" current={tab} onClick={setTab} count={tabCounts.all} />
+              <TabButton tab="not_started" current={tab} onClick={setTab} count={tabCounts.not_started} label="Not Started" />
+              <TabButton tab="in_progress" current={tab} onClick={setTab} count={tabCounts.in_progress} label="In Progress" />
+              <TabButton tab="applied" current={tab} onClick={setTab} count={tabCounts.applied} label="Applied" />
+              <TabButton tab="decided" current={tab} onClick={setTab} count={tabCounts.decided} label="Decided" />
+
+              <div className="ml-auto flex items-center gap-2">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as 'deadline' | 'match' | 'name')}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-700 focus:outline-none focus:border-cyan-300 cursor-pointer"
+                >
+                  <option value="deadline">Sort by: Deadline</option>
+                  <option value="match">Sort by: Match</option>
+                  <option value="name">Sort by: Name</option>
+                </select>
+
+                <div className="hidden sm:flex rounded-full border border-slate-200 bg-white p-0.5">
+                  <button
+                    type="button"
+                    aria-label="List view"
+                    className={`rounded-full p-1.5 transition ${view === 'list' ? 'bg-pink-500 text-white' : 'text-slate-400'}`}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="8" y1="6" x2="21" y2="6" />
+                      <line x1="8" y1="12" x2="21" y2="12" />
+                      <line x1="8" y1="18" x2="21" y2="18" />
+                      <line x1="3" y1="6" x2="3.01" y2="6" />
+                      <line x1="3" y1="12" x2="3.01" y2="12" />
+                      <line x1="3" y1="18" x2="3.01" y2="18" />
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Grid view"
+                    className={`rounded-full p-1.5 transition ${view === 'grid' ? 'bg-pink-500 text-white' : 'text-slate-400'}`}
+                  >
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="3" y="3" width="7" height="7" />
+                      <rect x="14" y="3" width="7" height="7" />
+                      <rect x="14" y="14" width="7" height="7" />
+                      <rect x="3" y="14" width="7" height="7" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Application cards */}
+            <div className="space-y-3">
+              {visibleUniversities.length === 0 ? (
+                <div className="rounded-2xl border border-slate-200 bg-white text-center py-12">
+                  <p className="text-sm text-slate-500">No universities in this status.</p>
+                </div>
+              ) : (
+                visibleUniversities.map((uu) => (
+                  <UniversityApplicationCard
+                    key={uu.id}
+                    uu={uu}
+                    tasks={tasksByUU[uu.id] ?? []}
+                    completedTasks={completedTasks}
+                    onToggleTask={handleToggleTask}
+                  />
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   TAB BUTTON
+───────────────────────────────────────────────────────────────────────── */
+
+function TabButton({
+  tab,
+  current,
+  onClick,
+  count,
+  label,
+}: {
+  tab: TabKey;
+  current: TabKey;
+  onClick: (t: TabKey) => void;
+  count: number;
+  label?: string;
+}) {
+  const display = label ?? (tab === 'all' ? 'All' : tab);
+  const active = current === tab;
+  return (
+    <button
+      type="button"
+      onClick={() => onClick(tab)}
+      className={`relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition ${
+        active
+          ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)]'
+          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
+      }`}
+    >
+      {display} ({count})
+    </button>
   );
 }
