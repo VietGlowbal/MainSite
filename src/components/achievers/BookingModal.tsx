@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { AchieverWithUniversity, AchieverAvailability } from '@/types/achievers';
 import { createClient } from '@/lib/supabase/client';
 
@@ -25,6 +25,20 @@ export function BookingModal({ achiever, availability, onClose }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [paymentRef, setPaymentRef] = useState<string | null>(null);
+
+  // Close on Escape, lock body scroll while open
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', onKeyDown);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [onClose]);
 
   const bankName = process.env.NEXT_PUBLIC_GLOWBAL_BANK_NAME ?? 'VietcomBank';
   const bankAccount = process.env.NEXT_PUBLIC_GLOWBAL_BANK_ACCOUNT ?? '(Contact admin)';
@@ -100,7 +114,13 @@ export function BookingModal({ achiever, availability, onClose }: Props) {
   }
 
   return (
-    <div className="glow-modal-overlay" onClick={onClose}>
+    <div
+      className="glow-modal-overlay"
+      onClick={onClose}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="booking-modal-title"
+    >
       <div
         className="glow-modal-shell max-w-lg w-full max-h-[85vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
@@ -108,7 +128,7 @@ export function BookingModal({ achiever, availability, onClose }: Props) {
         {/* Header */}
         <div className="glow-modal-header">
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">
+            <h3 id="booking-modal-title" className="text-lg font-semibold text-slate-900">
               {state === 'success' ? 'Booking confirmed!' : 'Book a session'}
             </h3>
             <p className="text-sm text-slate-500">

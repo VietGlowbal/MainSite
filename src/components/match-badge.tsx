@@ -67,7 +67,7 @@ export function MatchBadge({ percentage, breakdown, size = 'sm' }: Props) {
       </button>
 
       {open && breakdown && (
-        <div className="absolute z-50 bottom-full mb-2 left-0 w-72 bg-white border border-slate-200 rounded-xl shadow-xl p-4 text-xs text-slate-700 animate-[fadeIn_0.2s_ease-out]">
+        <div className="absolute z-50 bottom-full mb-2 left-0 max-w-[calc(100vw-2rem)] w-72 bg-white border border-slate-200 rounded-xl shadow-xl p-4 text-xs text-slate-700 animate-[fadeIn_0.2s_ease-out]">
           <p className="font-semibold text-slate-900 mb-3">Match breakdown</p>
           {Object.entries(breakdown).map(([key, val]) => (
             <div key={key} className="flex items-start gap-2 mb-2 last:mb-0">

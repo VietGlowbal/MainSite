@@ -16,13 +16,27 @@ export default async function ProfilePage() {
 
   if (!user) redirect('/auth');
 
-  const [profileResult, documentsResult] = await Promise.all([
+  const [profileResult, documentsResult, statementsResult] = await Promise.all([
     supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
     supabase.from('uploaded_documents').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
+    supabase
+      .from('personal_statements')
+      .select('id, title, doc_type, updated_at, user_university_id, user_universities:user_universities!personal_statements_user_university_id_fkey(id, university:universities(name))')
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false }),
   ]);
 
   const profile = profileResult.data;
   const documents = (documentsResult.data ?? []) as UploadedDocument[];
+  type StatementRow = {
+    id: number;
+    title: string;
+    doc_type: string;
+    updated_at: string;
+    user_university_id: number | null;
+    user_universities: { id: number; university: { name: string } | null } | null;
+  };
+  const statements = (statementsResult.data ?? []) as unknown as StatementRow[];
 
   const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Student';
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
@@ -220,6 +234,38 @@ export default async function ProfilePage() {
 
               {documents.length === 0 && (
                 <p className="text-sm text-slate-400 italic">No documents uploaded yet.</p>
+              )}
+
+              {/* AI Writer drafts */}
+              {statements.length > 0 && (
+                <div className="space-y-2 border-t border-slate-100 pt-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400">AI Writer drafts</h3>
+                  <ul className="space-y-2">
+                    {statements.map((s) => (
+                      <li key={s.id} className="glow-muted-card text-sm flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-medium text-slate-900 truncate">{s.title}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">
+                            {s.user_universities?.university?.name ?? 'Universal draft'} ·{' '}
+                            Updated {new Date(s.updated_at).toLocaleDateString('en-GB')}
+                          </p>
+                        </div>
+                        {s.user_university_id ? (
+                          <Link
+                            href={`/my-universities/${s.user_university_id}/writer`}
+                            className="shrink-0 rounded-full border border-pink-200 bg-pink-50 px-2.5 py-1 text-xs font-semibold text-pink-600 hover:bg-pink-100 transition"
+                          >
+                            Edit
+                          </Link>
+                        ) : (
+                          <span className="shrink-0 rounded-full bg-purple-50 border border-purple-200 px-2 py-0.5 text-xs font-semibold text-purple-600">
+                            {s.doc_type === 'statement_of_purpose' ? 'SOP' : 'Statement'}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               )}
             </section>
           </div>
