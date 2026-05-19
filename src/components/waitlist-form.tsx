@@ -22,7 +22,7 @@ function SubmitButton() {
       className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF4D8C,#FF85B3)] px-6 py-3 font-semibold text-white shadow-[0_10px_24px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-70"
       disabled={pending}
     >
-      {pending ? 'Joining…' : 'Join the waitlist'}
+      {pending ? 'Joining…' : 'Reserve your spot'}
     </button>
   );
 }
@@ -55,11 +55,11 @@ export function WaitlistForm({
         </label>
 
         <label className="glow-label">
-          What are you hoping Glowbal helps with?
+          What are you hoping to study, and where?
           <textarea
             className="glow-input glow-textarea"
             name="notes"
-            placeholder="For example: choosing countries, comparing courses, figuring out fit..."
+            placeholder="For example: CS in the US, Business in the UK, anywhere in Europe..."
             rows={4}
             maxLength={500}
           />

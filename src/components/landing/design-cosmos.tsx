@@ -9,7 +9,11 @@ import type { WaitlistAction } from '@/lib/types';
 
 gsap.registerPlugin(useGSAP);
 
-const features = ['Explore universities worldwide', 'Shortlist the ones that fit', 'Move forward with less chaos'];
+const features = [
+  'Match with universities worldwide',
+  'Talk to students who got in',
+  'Apply with confidence',
+];
 
 export function DesignCosmos({ action }: { action: WaitlistAction }) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -38,10 +42,14 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
       {/* 3D rotating star field — covers entire page */}
       <div aria-hidden className="landing-stars-3d pointer-events-none fixed inset-0 z-0">
         <div className="landing-stars-3d-scene">
-          <div className="landing-stars-3d-layer landing-stars-3d-layer-near" />
-          <div className="landing-stars-3d-layer landing-stars-3d-layer-mid" />
           <div className="landing-stars-3d-layer landing-stars-3d-layer-far" />
+          <div className="landing-stars-3d-layer landing-stars-3d-layer-mid" />
+          <div className="landing-stars-3d-layer landing-stars-3d-layer-near" />
+          <div className="landing-stars-3d-layer landing-stars-3d-layer-twinkle" />
         </div>
+        <div className="landing-shooting-star" />
+        <div className="landing-shooting-star landing-shooting-star-2" />
+        <div className="landing-shooting-star landing-shooting-star-3" />
       </div>
 
       <div
@@ -66,12 +74,12 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
             </button>
 
             <h1 className="landing-title mt-6 text-5xl font-semibold leading-none tracking-[-0.05em] md:text-6xl lg:text-[5.5rem]">
-              Find your best-fit
-              <span className="glowbal-wordmark block">future abroad</span>
+              Your future
+              <span className="glowbal-wordmark block">is global</span>
             </h1>
 
             <p className="landing-subtitle mt-5 max-w-2xl text-base leading-8 text-white/70 md:text-xl">
-              Explore universities around the world, narrow your options calmly, and move from discovery to application with a lot less noise.
+              Glowbal is the calmer way to find, apply to, and get into universities anywhere in the world. Match with the right schools, learn from students who&apos;ve been there, and ship your application with less noise.
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -79,13 +87,13 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
                 href="/universities"
                 className="landing-cta inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff4d8c,#ff8fb8)] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
               >
-                Explore universities
+                Find your match
               </a>
               <a
                 href="#waitlist"
                 className="landing-cta inline-flex items-center justify-center rounded-full border border-white/12 bg-white/6 px-7 py-3.5 text-sm font-semibold text-white/88 backdrop-blur transition hover:bg-white/10"
               >
-                Join the waitlist
+                Get early access
               </a>
             </div>
 
@@ -109,10 +117,10 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
       <section id="waitlist" className="relative z-10 px-6 pb-16">
         <div className="landing-waitlist mx-auto grid max-w-5xl gap-8 rounded-[2rem] border border-white/10 bg-white/[0.05] p-8 backdrop-blur-xl md:grid-cols-[1fr_360px] md:p-10">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/85">Stay in the loop</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">Be first to try the calmer version of Glowbal.</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/85">Get early access</p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">Built for students who refuse to settle.</h2>
             <p className="mt-4 max-w-xl text-sm leading-7 text-white/64 md:text-base">
-              We&apos;re building a more playful, more focused way to explore global study options without the clutter that usually comes with it.
+              Real universities. Real students who got in. Real advice. Skip the agents, the noise, and the endless tabs. Glowbal is one place to find your future, anywhere on the map.
             </p>
           </div>
           <div style={{ '--glow-input-bg': 'rgba(255,255,255,0.06)', color: 'inherit' } as React.CSSProperties}>
