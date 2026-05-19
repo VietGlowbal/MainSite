@@ -35,16 +35,25 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
 
   return (
     <div ref={rootRef} className="relative overflow-x-hidden bg-[#06101f] text-white">
+      {/* 3D rotating star field — covers entire page */}
+      <div aria-hidden className="landing-stars-3d pointer-events-none fixed inset-0 z-0">
+        <div className="landing-stars-3d-scene">
+          <div className="landing-stars-3d-layer landing-stars-3d-layer-near" />
+          <div className="landing-stars-3d-layer landing-stars-3d-layer-mid" />
+          <div className="landing-stars-3d-layer landing-stars-3d-layer-far" />
+        </div>
+      </div>
+
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-0 z-0"
         style={{
           background:
-            'radial-gradient(circle at 18% 18%, rgba(34,211,238,0.14), transparent 28%), radial-gradient(circle at 78% 20%, rgba(244,114,182,0.12), transparent 22%), linear-gradient(180deg, #06101f 0%, #08172a 52%, #0b1d33 100%)',
+            'radial-gradient(circle at 18% 18%, rgba(34,211,238,0.14), transparent 28%), radial-gradient(circle at 78% 20%, rgba(244,114,182,0.12), transparent 22%), linear-gradient(180deg, rgba(6,16,31,0.6) 0%, rgba(8,23,42,0.7) 52%, rgba(11,29,51,0.8) 100%)',
         }}
       />
 
-      <section className="relative overflow-hidden px-6 pb-20 pt-24 md:pt-28">
+      <section className="relative z-10 overflow-hidden px-6 pb-20 pt-24 md:pt-28">
         <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(420px,1fr)] lg:items-center">
           <div className="relative z-10 max-w-3xl">
             <button
@@ -90,15 +99,14 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
           </div>
 
           <div className="landing-globe relative flex items-center justify-center lg:justify-end">
-            <div className="landing-stars pointer-events-none absolute inset-0" aria-hidden />
-            <div className="relative translate-x-[10%] rounded-full border border-white/10 bg-white/[0.03] p-4 shadow-[0_0_140px_rgba(34,211,238,0.14)] backdrop-blur-md md:translate-x-[14%] xl:translate-x-[18%]">
+            <div className="relative translate-x-[10%] md:translate-x-[14%] xl:translate-x-[18%]">
               <LandingGlobe theme="cosmos" size={700} rotateSpeed={0.26} />
             </div>
           </div>
         </div>
       </section>
 
-      <section id="waitlist" className="relative px-6 pb-16">
+      <section id="waitlist" className="relative z-10 px-6 pb-16">
         <div className="landing-waitlist mx-auto grid max-w-5xl gap-8 rounded-[2rem] border border-white/10 bg-white/[0.05] p-8 backdrop-blur-xl md:grid-cols-[1fr_360px] md:p-10">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/85">Stay in the loop</p>
