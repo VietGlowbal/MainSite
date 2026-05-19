@@ -3,6 +3,7 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { AppSidebar } from '@/components/layout/app-sidebar';
 import type { UserUniversity, ApplicationTask, University } from '@/lib/types';
 
 type UUWithUni = UserUniversity & { university: University };
@@ -173,11 +174,13 @@ function UniversityApplicationCard({
   tasks,
   completedTasks,
   onToggleTask,
+  onUnsave,
 }: {
   uu: UUWithUni;
   tasks: ApplicationTask[];
   completedTasks: Set<number>;
   onToggleTask: (id: number) => void;
+  onUnsave: (id: number) => void;
 }) {
   const flag = COUNTRY_FLAGS[uu.university.country] ?? '🎓';
   const stageIndex = statusToStageIndex(uu.status);
@@ -218,8 +221,15 @@ function UniversityApplicationCard({
           )}
           <button
             type="button"
-            className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-pink-500 shadow-sm backdrop-blur-sm"
-            aria-label="Saved"
+            onClick={(e) => {
+              e.stopPropagation();
+              if (confirm(`Remove ${uu.university.name} from your shortlist?`)) {
+                onUnsave(uu.id);
+              }
+            }}
+            className="absolute top-2 right-2 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-pink-500 shadow-sm backdrop-blur-sm hover:scale-110 transition"
+            aria-label="Remove from shortlist"
+            title="Remove from shortlist"
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="#ec4899" stroke="#ec4899" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -584,76 +594,14 @@ function NextBestActionCard({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   HELP CTA CARD (sidebar bottom)
-───────────────────────────────────────────────────────────────────────── */
-
-function HelpCTACard() {
-  return (
-    <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-50 to-cyan-50/50 p-4 text-center">
-      <div className="text-3xl mb-2">📚</div>
-      <p className="text-xs font-semibold text-slate-900 leading-tight mb-1">
-        Need help with your<br />application?
-      </p>
-      <p className="text-[0.65rem] text-slate-500 leading-relaxed mb-3">
-        Book a 1:1 session with our<br />mentors and alumni.
-      </p>
-      <Link
-        href="/achievers"
-        className="inline-flex rounded-full border border-pink-300 bg-white px-3 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50 transition"
-      >
-        Book a Session
-      </Link>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   LEFT SIDEBAR NAV
-───────────────────────────────────────────────────────────────────────── */
-
-function LeftSidebar() {
-  const navItems = [
-    { icon: '♡', label: 'My Universities', href: '/my-universities', active: true },
-    { icon: '🎓', label: 'Search', href: '/universities' },
-    { icon: '👥', label: 'Mentors', href: '/achievers' },
-    { icon: '📁', label: 'Documents', href: '/profile' },
-    { icon: '👤', label: 'Profile', href: '/profile' },
-  ];
-
-  return (
-    <aside className="space-y-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-        <nav className="space-y-0.5">
-          {navItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-                item.active
-                  ? 'bg-pink-50 text-pink-600 font-semibold'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <span className="text-base">{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-      </div>
-
-      <HelpCTACard />
-    </aside>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
    MAIN CLIENT
 ───────────────────────────────────────────────────────────────────────── */
 
 type TabKey = 'all' | 'not_started' | 'in_progress' | 'applied' | 'decided';
 
-export function MyUniversitiesClient({ userUniversities, allTasks }: Props) {
+export function MyUniversitiesClient({ userUniversities: initialUserUniversities, allTasks }: Props) {
   const supabase = useMemo(() => createClient(), []);
+  const [userUniversities, setUserUniversities] = useState(initialUserUniversities);
   const [tab, setTab] = useState<TabKey>('all');
   const [sortBy, setSortBy] = useState<'deadline' | 'match' | 'name'>('deadline');
   const [view] = useState<'list' | 'grid'>('list');
@@ -735,10 +683,16 @@ export function MyUniversitiesClient({ userUniversities, allTasks }: Props) {
       .eq('id', taskId);
   };
 
+  const handleUnsave = async (uuId: number) => {
+    // Optimistic remove
+    setUserUniversities((prev) => prev.filter((u) => u.id !== uuId));
+    await supabase.from('user_universities').delete().eq('id', uuId);
+  };
+
   if (userUniversities.length === 0) {
     return (
       <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
-        <LeftSidebar />
+        <AppSidebar />
         <div className="rounded-2xl border border-slate-200 bg-white text-center py-16 space-y-4">
           <p className="text-4xl" aria-hidden="true">🎓</p>
           <p className="text-slate-500">No universities saved yet.</p>
@@ -756,7 +710,7 @@ export function MyUniversitiesClient({ userUniversities, allTasks }: Props) {
   return (
     <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
       {/* Left sidebar nav */}
-      <LeftSidebar />
+      <AppSidebar />
 
       <div className="space-y-5 min-w-0">
         {/* Header */}
@@ -929,6 +883,7 @@ export function MyUniversitiesClient({ userUniversities, allTasks }: Props) {
                     tasks={tasksByUU[uu.id] ?? []}
                     completedTasks={completedTasks}
                     onToggleTask={handleToggleTask}
+                    onUnsave={handleUnsave}
                   />
                 ))
               )}

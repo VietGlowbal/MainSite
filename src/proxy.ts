@@ -70,13 +70,40 @@ export async function proxy(request: NextRequest) {
     }
 
     const url = request.nextUrl.clone();
-    url.pathname = '/universities';
+    url.pathname = '/my-universities';
     url.search = '';
     return NextResponse.redirect(url);
   }
 
-  // NOTE: Onboarding redirect temporarily disabled — users can navigate freely
-  // TODO: Re-enable once onboarding_completed flag is reliably set for all users
+  // Onboarding gate: signed-in users without a completed profile shouldn't
+  // see /my-universities/* or /profile until they finish onboarding.
+  // /universities and /achievers remain browseable so users can preview value.
+  const ONBOARDING_GATED = ['/my-universities', '/profile'];
+  const needsOnboardingCheck =
+    user &&
+    ONBOARDING_GATED.some((route) => pathname.startsWith(route)) &&
+    !pathname.startsWith('/onboarding');
+
+  if (needsOnboardingCheck) {
+    const { data: profile } = await supabase
+      .from('student_profiles')
+      .select('onboarding_completed, study_level, preferred_countries')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    const completed =
+      profile?.onboarding_completed ||
+      (profile?.study_level &&
+        Array.isArray(profile?.preferred_countries) &&
+        profile.preferred_countries.length > 0);
+
+    if (!completed) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/onboarding';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
+  }
 
   return response;
 }

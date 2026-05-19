@@ -8,6 +8,7 @@ import { PersonalInfoCard } from './personal-info-card';
 import Link from 'next/link';
 import type { UploadedDocument } from '@/lib/types';
 import { SignOutButton } from '@/components/sign-out-button';
+import { AppSidebar } from '@/components/layout/app-sidebar';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -42,8 +43,12 @@ export default async function ProfilePage() {
         hasProfile={!!profile}
       />
 
-      <main className="min-h-screen bg-transparent px-6 py-12 text-slate-800 md:px-10">
-        <div className="mx-auto max-w-5xl space-y-8">
+      <main className="min-h-screen bg-transparent px-4 py-6 text-slate-800 md:px-8 md:py-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
+            <AppSidebar />
+
+            <div className="space-y-8 min-w-0">
 
           {/* ── Hero card ── */}
           <section className="glow-card flex flex-col items-center gap-6 text-center sm:flex-row sm:text-left">
@@ -219,6 +224,8 @@ export default async function ProfilePage() {
             </section>
           </div>
 
+            </div>
+          </div>
         </div>
       </main>
     </>
