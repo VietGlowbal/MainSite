@@ -6,7 +6,7 @@ export function waitlistConfirmationEmail(firstName?: string): string {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>You're on the Glowbal waitlist</title>
+  <title>You're on the GLOWBAL waitlist</title>
 </head>
 <body style="margin:0;padding:0;background:linear-gradient(160deg,#fff0f6 0%,#f0f9ff 100%);font-family:'Helvetica Neue',Arial,sans-serif;color:#2b2d42;">
 
@@ -21,7 +21,7 @@ export function waitlistConfirmationEmail(firstName?: string): string {
               <table cellpadding="0" cellspacing="0">
                 <tr>
                   <td style="background:linear-gradient(135deg,#ff4d8c,#00b4d8);border-radius:999px;padding:10px 28px;">
-                    <span style="font-size:1.3rem;font-weight:800;color:#ffffff;letter-spacing:-0.01em;">Glowbal</span>
+                    <span style="font-size:1.3rem;font-weight:800;color:#ffffff;letter-spacing:0.06em;">GLOWBAL</span>
                   </td>
                 </tr>
               </table>
@@ -44,7 +44,7 @@ export function waitlistConfirmationEmail(firstName?: string): string {
                 You&rsquo;re on the list, ${name}
               </h1>
               <p style="margin:0 0 6px;font-size:1rem;color:#ff4d8c;font-weight:600;">
-                Welcome to Glowbal
+                Welcome to GLOWBAL
               </p>
 
               <!-- Divider -->
@@ -96,8 +96,8 @@ export function waitlistConfirmationEmail(firstName?: string): string {
           <!-- Footer -->
           <tr>
             <td align="center" style="padding-top:32px;">
-              <p style="margin:0;font-size:0.75rem;color:#cbd5e1;">© 2025 Glowbal · Student-first global guidance</p>
-              <p style="margin:6px 0 0;font-size:0.75rem;color:#cbd5e1;">You&rsquo;re receiving this because you joined the Glowbal waitlist.</p>
+              <p style="margin:0;font-size:0.75rem;color:#cbd5e1;">© 2025 GLOWBAL · Student-first global guidance</p>
+              <p style="margin:6px 0 0;font-size:0.75rem;color:#cbd5e1;">You&rsquo;re receiving this because you joined the GLOWBAL waitlist.</p>
             </td>
           </tr>
 

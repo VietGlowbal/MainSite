@@ -175,7 +175,7 @@ export const onboardingSteps = [
     title: 'Which parts of the world feel right for you?',
     description: 'Think globally, then narrow to the places that feel exciting or realistic.',
     visualTitle: 'Map your possibilities',
-    visualBody: 'Glowbal should help students think beyond defaults without feeling overwhelmed.',
+    visualBody: 'GLOWBAL should help students think beyond defaults without feeling overwhelmed.',
     accent: 'from-emerald-400/25 via-cyan-400/10 to-transparent',
   },
   {
@@ -209,7 +209,7 @@ export const onboardingSteps = [
     key: 'goals',
     eyebrow: 'Step 7',
     title: 'What kind of future are you trying to build?',
-    description: 'This helps Glowbal feel more personal and much less generic.',
+    description: 'This helps GLOWBAL feel more personal and much less generic.',
     visualTitle: 'Aim at something meaningful',
     visualBody: 'Students are not just choosing courses. They are choosing a direction for their life.',
     accent: 'from-cyan-300/25 via-white/5 to-transparent',

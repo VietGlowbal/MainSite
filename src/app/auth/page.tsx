@@ -50,7 +50,7 @@ export default function AuthPage() {
           </p>
 
           <div className="auth-aside-globe">
-            <LandingGlobe theme="cosmos" rotateSpeed={0.32} responsive />
+            <LandingGlobe theme="marble" rotateSpeed={0.32} responsive />
             <span className="auth-aside-halo" aria-hidden />
           </div>
 

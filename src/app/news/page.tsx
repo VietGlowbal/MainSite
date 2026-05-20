@@ -1,12 +1,12 @@
 import Link from 'next/link';
 
 export const metadata = {
-  title: 'Glowbal News',
+  title: 'GLOWBAL News',
   description: 'University admissions news, success stories, and platform updates.',
 };
 
 /**
- * Glowbal News — placeholder index.
+ * GLOWBAL News — placeholder index.
  * Real CMS-backed implementation will replace this. For now we ship a
  * branded "coming soon" so the nav link has a destination.
  */
@@ -17,7 +17,7 @@ export default function NewsPage() {
         <section className="glow-card text-center">
           <span className="glow-pill">Coming soon</span>
           <h1 className="mt-5 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
-            <span className="glowbal-wordmark">Glowbal News</span>
+            <span className="glowbal-wordmark">GLOWBAL News</span>
           </h1>
           <p className="mx-auto mt-3 max-w-xl text-slate-600 leading-7">
             University admissions intel, student stories, and product updates — all in one place.

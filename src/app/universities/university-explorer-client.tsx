@@ -50,65 +50,32 @@ const PROGRAM_OPTIONS = [
 const POPULAR_SEARCHES = ['Engineering', 'Business', 'Computer Science', 'Medicine', 'Arts', 'Data Science'];
 
 /* ─────────────────────────────────────────────────────────────────────────
-   QUIZ STICKY BAR — unchanged from original
+   IMPROVE YOUR SEARCH — replaces the old QuizStickyBar.
+   ────────────────────────────────────────────────────────────────────────
+   This is a small, optional, in-page pill that nudges users towards the
+   onboarding without ever taking over the page. It sits unobtrusively in
+   the page header area and is dismissable. The pop-up sticky bar that
+   used to scroll into view has been removed entirely — first-time
+   visitors are sent directly to the onboarding instead (see
+   FirstTimeOnboardingRedirect in the page file).
 ───────────────────────────────────────────────────────────────────────── */
 
-function QuizStickyBar() {
+function ImproveSearchPill() {
   const router = useRouter();
-  const { scrollY } = useScroll();
   const { isLoggedIn, hasProfile } = useExplorer();
-  const [visible, setVisible] = useState(false);
-
-  useEffect(() => {
-    if (isLoggedIn && hasProfile) return;
-    return scrollY.on('change', (y: number) => setVisible(y > 240));
-  }, [hasProfile, isLoggedIn, scrollY]);
-
   if (isLoggedIn && hasProfile) return null;
 
   return (
-    <motion.div
-      aria-hidden={!visible}
-      initial={false}
-      animate={{ y: visible ? 0 : -80, opacity: visible ? 1 : 0 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-      style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 40, pointerEvents: visible ? 'auto' : 'none' }}
+    <button
+      type="button"
+      onClick={() => router.push('/onboarding?from=search')}
+      title="Take the 60-second quiz so we can personalise your matches"
+      className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5 text-xs font-semibold text-pink-700 hover:bg-pink-100 transition"
     >
-      <div style={{ margin: '10px auto', maxWidth: '72rem', padding: '0 1.5rem' }}>
-        <div style={{
-          display: 'flex', alignItems: 'center', gap: '0.75rem',
-          borderRadius: '999px', border: '1px solid rgba(0,0,0,0.06)',
-          background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)',
-          boxShadow: '0 8px 24px rgba(22,33,62,0.1)', padding: '0.5rem 0.75rem 0.5rem 0.5rem',
-        }}>
-          <div style={{
-            width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            background: 'linear-gradient(135deg, #ff4d8c, #00b4d8)', color: 'white', fontSize: '1rem',
-          }}>✦</div>
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 600, color: 'rgb(15 23 42)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {isLoggedIn ? 'Complete the Glowbal quiz for personalised matches' : 'Take the Glowbal quiz to unlock personalised matches'}
-            </p>
-            <p style={{ margin: 0, fontSize: '0.72rem', color: 'rgb(100 116 139)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              Browse freely now — save and rank universities around your goals when you&apos;re ready.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => router.push('/onboarding')}
-            style={{
-              flexShrink: 0, borderRadius: '999px', border: 'none',
-              background: 'linear-gradient(135deg, #ff4d8c, #ff85b3)',
-              padding: '0.45rem 1rem', fontSize: '0.8rem', fontWeight: 700,
-              color: 'white', cursor: 'pointer', boxShadow: '0 4px 14px rgba(255,77,140,0.3)', whiteSpace: 'nowrap',
-            }}
-          >
-            {isLoggedIn ? 'Finish quiz' : 'Take quiz'}
-          </button>
-        </div>
-      </div>
-    </motion.div>
+      <span className="h-1.5 w-1.5 rounded-full bg-pink-500" aria-hidden />
+      Improve your searches
+      <span className="text-pink-400">→</span>
+    </button>
   );
 }
 
@@ -135,11 +102,11 @@ function SearchHero({
         {/* Globe */}
         <div className="shrink-0">
           <div
-            className="rounded-full bg-gradient-to-br from-cyan-500/20 to-pink-400/20 p-1 shadow-[0_0_40px_rgba(34,211,238,0.15)]"
+            className="rounded-full bg-gradient-to-br from-cyan-300/30 to-pink-300/30 p-1 shadow-[0_0_40px_rgba(34,211,238,0.18)]"
             style={{ width: 140, height: 140 }}
           >
-            <div className="rounded-full overflow-hidden bg-slate-900" style={{ width: '100%', height: '100%' }}>
-              <CompactGlobeDynamic theme="cosmos" size={132} rotateSpeed={0.4} />
+            <div className="rounded-full overflow-hidden bg-white" style={{ width: '100%', height: '100%' }}>
+              <CompactGlobeDynamic theme="marble" size={132} rotateSpeed={0.4} />
             </div>
           </div>
         </div>
@@ -213,6 +180,9 @@ function SearchHero({
                 {tag}
               </button>
             ))}
+            <div className="ml-auto">
+              <ImproveSearchPill />
+            </div>
           </div>
         </div>
       </div>
@@ -355,7 +325,19 @@ function FilterSidebar({
   }, [countrySearch]);
 
   return (
-    <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sticky top-20 max-h-[calc(100vh-6rem)] overflow-y-auto">
+    /*
+     * Sticky-but-not-scrollable sidebar. We keep it sticky to the top
+     * of the viewport so it stays in view, but instead of clamping the
+     * height with `overflow: auto` (which produces an awful nested
+     * scrollbar when sections are expanded), we let it grow naturally
+     * along with its contents. The page itself becomes scrollable, so
+     * users always scroll the *page* — never an inner panel.
+     *
+     * On tall expansions the sidebar can exceed the viewport. When
+     * that happens we simply unstick it (via the `align-self: start`
+     * default) so the user scrolls past it like a normal column.
+     */
+    <aside className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm self-start">
       <div className="flex items-center justify-between mb-3 px-1">
         <h3 className="text-sm font-semibold text-slate-900 inline-flex items-center gap-2">
           Refine results
@@ -413,7 +395,7 @@ function FilterSidebar({
             onChange={(e) => setCountrySearch(e.target.value)}
             className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:bg-white"
           />
-          <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+          <div className="space-y-1.5 pr-1">
             {Object.entries(matchedRegions).map(([region, countries]) => {
               const allRegionSelected = countries.every((c) => filters.countries.includes(c));
               return (
@@ -899,22 +881,27 @@ function UniversityCard({
 
       {/* Content */}
       <div className="px-4 pb-4 pt-2">
-        {/* Logo circle, half-overlapping the image */}
+        {/* Logo circle, half-overlapping the image. Uses the resolved
+            Wikidata logo when available, otherwise falls back to the
+            university's brand colour with rendered initials. */}
         <div className="-mt-8 mb-2">
           <div
-            className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-white bg-white shadow-md overflow-hidden"
-            style={{ background: university.color }}
+            className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-white shadow-md overflow-hidden"
+            style={{ background: university.logo_url ? '#fff' : university.color }}
           >
-            {university.image_url ? (
+            {university.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={university.image_url}
-                alt=""
-                className="h-full w-full object-cover"
+                src={university.logo_url}
+                alt={`${university.name} logo`}
+                loading="lazy"
+                className="h-full w-full object-contain p-1"
                 onError={(e) => {
-                  e.currentTarget.style.display = 'none';
+                  // Logo failed: replace with brand-coloured initials.
                   const parent = e.currentTarget.parentElement;
                   if (parent) {
+                    parent.style.background = university.color;
+                    e.currentTarget.remove();
                     const initials = university.name
                       .replace(/^(University of |The )/, '')
                       .split(' ')
@@ -922,10 +909,12 @@ function UniversityCard({
                       .join('')
                       .slice(0, 2)
                       .toUpperCase();
-                    parent.textContent = initials;
-                    parent.style.color = 'white';
-                    parent.style.fontWeight = '700';
-                    parent.style.fontSize = '0.7rem';
+                    const span = document.createElement('span');
+                    span.textContent = initials;
+                    span.style.color = 'white';
+                    span.style.fontWeight = '700';
+                    span.style.fontSize = '0.7rem';
+                    parent.appendChild(span);
                   }
                 }}
               />
@@ -1539,6 +1528,48 @@ function CompareModal({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   FIRST-TIME ONBOARDING REDIRECT
+   ────────────────────────────────────────────────────────────────────────
+   The first time a user lands on the search page, we send them to the
+   onboarding flow with `?from=search` so the onboarding shows a context
+   banner explaining how it improves results — and a clear "skip to
+   search" exit. The flag is stored in localStorage so we only do this
+   once per browser. Logged-in users who've already completed onboarding
+   are never redirected.
+───────────────────────────────────────────────────────────────────────── */
+
+const SEARCH_VISIT_FLAG = 'glowbal-search-visited';
+
+function FirstTimeOnboardingRedirect() {
+  const router = useRouter();
+  const { hasProfile } = useExplorer();
+
+  useEffect(() => {
+    if (hasProfile) return;
+    if (typeof window === 'undefined') return;
+
+    try {
+      const visited = window.localStorage.getItem(SEARCH_VISIT_FLAG);
+      if (visited) return;
+
+      // Honour an explicit "skip" flag set by the onboarding's skip button —
+      // we never want to bounce the user back if they just opted out.
+      if (window.sessionStorage.getItem('glowbal-onboarding-skipped') === '1') {
+        window.localStorage.setItem(SEARCH_VISIT_FLAG, '1');
+        return;
+      }
+
+      window.localStorage.setItem(SEARCH_VISIT_FLAG, '1');
+      router.replace('/onboarding?from=search');
+    } catch {
+      // localStorage might be disabled — quietly ignore.
+    }
+  }, [hasProfile, router]);
+
+  return null;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    BROWSE VIEW (main layout)
 ───────────────────────────────────────────────────────────────────────── */
 
@@ -1577,7 +1608,7 @@ function BrowseView() {
 
   return (
     <>
-      <QuizStickyBar />
+      <FirstTimeOnboardingRedirect />
       <CompactSearchBar
         search={search}
         onSearchChange={setSearch}
@@ -2206,6 +2237,7 @@ interface ExplorerClientProps {
   initialApplications: ApplicationEntry[];
   isLoggedIn: boolean;
   hasProfile: boolean;
+  wikiPairs?: Array<[string, string]>;
 }
 
 export function UniversityExplorerClient({
@@ -2214,10 +2246,62 @@ export function UniversityExplorerClient({
   initialApplications,
   isLoggedIn,
   hasProfile,
+  wikiPairs = [],
 }: ExplorerClientProps) {
+  const [universitiesWithImages, setUniversitiesWithImages] = useState<ExplorerUniversity[]>(universities);
+
+  /**
+   * Lazy imagery hydration. The server ships the page with no images so
+   * the response is instant, then we kick off a single batch request to
+   * /api/university-images and merge resolved campus + logo URLs into
+   * each university. The map cards re-render in place.
+   *
+   * If the request fails, the cards keep their gradient placeholder —
+   * no broken images, no jank.
+   */
+  useEffect(() => {
+    if (wikiPairs.length === 0) return;
+
+    let cancelled = false;
+    const ac = new AbortController();
+
+    fetch('/api/university-images', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(wikiPairs),
+      signal: ac.signal,
+    })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((imagery: Record<string, { campus: string | null; logo: string | null }> | null) => {
+        if (cancelled || !imagery) return;
+        setUniversitiesWithImages((prev) =>
+          prev.map((uni) => {
+            // Find the wiki title that produced this card. For now we
+            // re-derive it from the name to match server-side logic.
+            const title = uni.name.replace(/\s+/g, '_');
+            const resolved = imagery[title];
+            if (!resolved) return uni;
+            return {
+              ...uni,
+              image_url: resolved.campus ?? uni.image_url,
+              logo_url: resolved.logo ?? uni.logo_url,
+            };
+          }),
+        );
+      })
+      .catch(() => {
+        // Swallow — placeholder gradients remain in place.
+      });
+
+    return () => {
+      cancelled = true;
+      ac.abort();
+    };
+  }, [wikiPairs]);
+
   return (
     <UniversityExplorerProvider
-      initialUniversities={universities}
+      initialUniversities={universitiesWithImages}
       initialShortlist={initialShortlist}
       initialApplications={initialApplications}
       isLoggedIn={isLoggedIn}

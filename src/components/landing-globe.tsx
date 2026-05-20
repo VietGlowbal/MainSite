@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, forwardRef, useImperativeHandle, type ComponentType } from 'react';
 
-export type LandingGlobeTheme = 'cosmos' | 'bloom' | 'electric' | 'aurora' | 'journey';
+export type LandingGlobeTheme = 'cosmos' | 'bloom' | 'electric' | 'aurora' | 'journey' | 'marble' | 'daylight';
 
 export type LandingGlobeHandle = {
   flyTo: (lat: number, lng: number, altitude: number, duration?: number) => void;
@@ -21,11 +21,17 @@ type Props = {
 };
 
 const themeConfigs: Record<LandingGlobeTheme, { atmosphere: string; alt: number; texture: string }> = {
+  // Dark, deep-space — used only on the home page hero
   cosmos:   { atmosphere: 'rgba(56,189,248,0.42)',  alt: 0.22, texture: '//unpkg.com/three-globe/example/img/earth-night.jpg' },
-  bloom:    { atmosphere: 'rgba(255,150,180,0.42)', alt: 0.14, texture: '//unpkg.com/three-globe/example/img/earth-day.jpg' },
+  // Light/playful variants used everywhere else on the product
+  bloom:    { atmosphere: 'rgba(255,150,180,0.55)', alt: 0.22, texture: '//unpkg.com/three-globe/example/img/earth-day.jpg' },
   electric: { atmosphere: 'rgba(255,0,100,0.58)',   alt: 0.28, texture: '//unpkg.com/three-globe/example/img/earth-night.jpg' },
   aurora:   { atmosphere: 'rgba(100,255,180,0.48)', alt: 0.32, texture: '//unpkg.com/three-globe/example/img/earth-night.jpg' },
-  journey:  { atmosphere: 'rgba(186,230,253,0.45)', alt: 0.18, texture: '//unpkg.com/three-globe/example/img/earth-day.jpg' },
+  journey:  { atmosphere: 'rgba(186,230,253,0.58)', alt: 0.20, texture: '//unpkg.com/three-globe/example/img/earth-day.jpg' },
+  // True-colour Blue Marble — the "this looks like Earth" preset
+  marble:   { atmosphere: 'rgba(120,180,255,0.55)', alt: 0.22, texture: '//unpkg.com/three-globe/example/img/earth-blue-marble.jpg' },
+  // Soft daylight Earth — bright pastel feel that pairs with the GLOWBAL palette
+  daylight: { atmosphere: 'rgba(255,180,205,0.55)', alt: 0.20, texture: '//unpkg.com/three-globe/example/img/earth-day.jpg' },
 };
 
 export const LandingGlobe = forwardRef<LandingGlobeHandle, Props>(function LandingGlobe(

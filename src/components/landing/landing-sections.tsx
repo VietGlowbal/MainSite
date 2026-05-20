@@ -101,7 +101,7 @@ function BrandStatement() {
           <span className="cosmic-eyebrow">The vibe</span>
           <h2 className="mt-4 text-4xl font-semibold tracking-[-0.04em] text-white sm:text-5xl md:text-6xl">
             Go Glow.{' '}
-            <span className="glowbal-wordmark">Go Glowbal.</span>
+            <span className="glowbal-wordmark">Go GLOWBAL.</span>
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-base leading-8 text-white/72 md:text-lg">
             Find the best school. Land the highest scholarship. Actually get in.
@@ -280,7 +280,7 @@ function DemoVideo() {
       <div className="cosmic-container">
         <SectionTitle
           eyebrow="Demo"
-          title={<>See <span className="glowbal-wordmark">Glowbal</span> in motion.</>}
+          title={<>See <span className="glowbal-wordmark">GLOWBAL</span> in motion.</>}
           body="A 90-second walkthrough of the matcher, the Achievers, and the AI statement writer."
         />
 
@@ -320,7 +320,7 @@ function Mission() {
             <em className="cosmic-quote-em-2">without fear</em> — no matter
             where they&apos;re starting from.
           </p>
-          <div className="cosmic-mission-sig">— The Glowbal team</div>
+          <div className="cosmic-mission-sig">— The GLOWBAL team</div>
         </RevealCard>
       </div>
     </section>
@@ -347,7 +347,7 @@ const EXPERTS: Person[] = [
 ];
 
 const TEAM: Person[] = [
-  { name: 'Minh Pham',     role: 'Founder · ex-LSE',           bio: 'First-gen student. Built Glowbal so the next first-gen has it easier.', initials: 'MP', accent: 'pink' },
+  { name: 'Minh Pham',     role: 'Founder · ex-LSE',           bio: 'First-gen student. Built GLOWBAL so the next first-gen has it easier.', initials: 'MP', accent: 'pink' },
   { name: 'Kira Hoang',    role: 'Co-founder · Product',        bio: 'Designs the calm, opinionated UX that makes admissions feel doable.',  initials: 'KH', accent: 'aqua' },
   { name: 'Daniel Vu',     role: 'Co-founder · Engineering',    bio: 'Ships the matcher, the Achievers platform, and the AI writer.',         initials: 'DV', accent: 'navy' },
   { name: 'Yuki Sato',     role: 'Achievers community lead',     bio: 'Onboards the students who got in to share their playbooks.',           initials: 'YS', accent: 'red' },
@@ -390,7 +390,7 @@ function TeamBehindSection() {
     <section className="cosmic-section">
       <div className="cosmic-container">
         <SectionTitle
-          eyebrow="Team behind Glowbal"
+          eyebrow="Team behind GLOWBAL"
           title={<>Built by students who <span className="glowbal-wordmark">walked the path</span>.</>}
           body="A small team of first-gen and international graduates building what we wish we had."
         />
@@ -410,7 +410,7 @@ function TeamBehindSection() {
 
 const TESTIMONIALS = [
   {
-    quote: 'Glowbal made the whole process feel doable. I went from anxious browsing to a real shortlist in a single afternoon.',
+    quote: 'GLOWBAL made the whole process feel doable. I went from anxious browsing to a real shortlist in a single afternoon.',
     name: 'An Vo',
     detail: 'Now studying CS at TU Delft',
     initials: 'AV',
@@ -519,7 +519,7 @@ function ContactsFooter() {
               <ul className="mt-3 space-y-2 text-sm text-white/80">
                 <li><a href="/universities" className="cosmic-footer-link-plain">Search universities</a></li>
                 <li><a href="/achievers" className="cosmic-footer-link-plain">1-2-1 sessions</a></li>
-                <li><a href="/news" className="cosmic-footer-link-plain">Glowbal News</a></li>
+                <li><a href="/news" className="cosmic-footer-link-plain">GLOWBAL News</a></li>
                 <li><a href="#waitlist" className="cosmic-footer-link-plain">Join the waitlist</a></li>
               </ul>
             </div>
@@ -528,7 +528,7 @@ function ContactsFooter() {
           <div className="cosmic-footer-rule" aria-hidden />
 
           <div className="flex flex-col items-start justify-between gap-3 text-xs text-white/50 sm:flex-row sm:items-center">
-            <p>© {new Date().getFullYear()} Glowbal. Student-first global guidance.</p>
+            <p>© {new Date().getFullYear()} GLOWBAL. Student-first global guidance.</p>
             <p>Made with ☀️ + ✦ in HCMC</p>
           </div>
         </RevealCard>

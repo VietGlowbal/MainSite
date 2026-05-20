@@ -50,6 +50,7 @@ export interface ExplorerUniversity {
   reviews: number;
   description: string;
   image_url: string;
+  logo_url: string;
   stats: { students: string; staff: string; campuses: string };
   requirements: string[];
   reviewsData: { name: string; stars: number; text: string }[];
@@ -131,6 +132,7 @@ export function toExplorerUniversity(
     reviews: 0,
     description: uni.specific_insight ?? uni.strengths ?? '',
     image_url: buildUniversityImageUrl(uni),
+    logo_url: '', // Resolved server-side alongside campus image
     stats: {
       students: '—',
       staff: '—',

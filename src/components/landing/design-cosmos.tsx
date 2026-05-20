@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { LandingGlobe } from '@/components/landing-globe';
@@ -19,13 +19,47 @@ const features = [
 
 export function DesignCosmos({ action }: { action: WaitlistAction }) {
   const rootRef = useRef<HTMLDivElement>(null);
+  const waitlistRef = useRef<HTMLElement>(null);
   const pillClicks = useRef(0);
+  const [cosmosOpacity, setCosmosOpacity] = useState(1);
+  const [longContentOpacity, setLongContentOpacity] = useState(0);
 
   const handlePillClick = useCallback(() => {
     pillClicks.current += 1;
     if (pillClicks.current >= 5) {
       window.dispatchEvent(new CustomEvent('glowbal:reveal-nav'));
     }
+  }, []);
+
+  /**
+   * The deep-space backdrop is the visual signature of the home hero,
+   * but the rest of the site uses light surfaces. Once the user scrolls
+   * past the waitlist card we crossfade the cosmos out and a light
+   * gradient in, so the long-form sections sit on a surface that matches
+   * the rest of the product (search, profile, etc).
+   */
+  useEffect(() => {
+    function update() {
+      const target = waitlistRef.current;
+      if (!target) return;
+      const rect = target.getBoundingClientRect();
+      // Distance from the bottom of the waitlist card to the top of the viewport.
+      // Positive when the card has scrolled out of view above.
+      const scrolledPast = -rect.bottom;
+      // Crossfade across ~280px of scroll for a smooth handoff.
+      const fadeDistance = 280;
+      const t = Math.max(0, Math.min(1, scrolledPast / fadeDistance));
+      setCosmosOpacity(1 - t);
+      setLongContentOpacity(t);
+    }
+
+    update();
+    window.addEventListener('scroll', update, { passive: true });
+    window.addEventListener('resize', update);
+    return () => {
+      window.removeEventListener('scroll', update);
+      window.removeEventListener('resize', update);
+    };
   }, []);
 
   useGSAP(() => {
@@ -40,19 +74,42 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
   }, { scope: rootRef });
 
   return (
-    <div ref={rootRef} className="cosmos-root relative overflow-x-hidden bg-[#02060f] text-white">
+    <div
+      ref={rootRef}
+      className="cosmos-root relative overflow-x-hidden text-white"
+      style={{
+        background: '#02060f',
+      }}
+    >
       {/* Canvas-based deep space — stars, nebula, meteors */}
-      <div aria-hidden className="cosmic-bg-wrap pointer-events-none fixed inset-0 z-0">
+      <div
+        aria-hidden
+        className="cosmic-bg-wrap pointer-events-none fixed inset-0 z-0 transition-opacity duration-200"
+        style={{ opacity: cosmosOpacity }}
+      >
         <CosmicBackground />
       </div>
 
-      {/* Soft brand colour wash on top of the canvas */}
+      {/* Soft brand colour wash on top of the canvas (also fades with cosmos) */}
       <div
         aria-hidden
-        className="pointer-events-none fixed inset-0 z-0"
+        className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-200"
         style={{
+          opacity: cosmosOpacity,
           background:
             'radial-gradient(ellipse at 18% 12%, rgba(34,211,238,0.10), transparent 35%), radial-gradient(ellipse at 82% 18%, rgba(244,114,182,0.09), transparent 32%)',
+        }}
+      />
+
+      {/* Light-mode wash that mirrors the rest of the product. Fades in
+          as the cosmos fades out so the page feels like a single piece. */}
+      <div
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-0 transition-opacity duration-200"
+        style={{
+          opacity: longContentOpacity,
+          background:
+            'radial-gradient(ellipse at 60% 0%, #EEF0FF 0%, #F5F6FF 55%), linear-gradient(180deg, #F5F6FF 0%, #ffffff 80%)',
         }}
       />
 
@@ -75,7 +132,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
             </h1>
 
             <p className="landing-subtitle mx-auto mt-4 max-w-xl text-[0.95rem] leading-7 text-white/70 sm:text-base sm:leading-8 md:text-lg lg:mx-0 lg:max-w-2xl lg:text-xl">
-              Glowbal is the calmer way to find, apply to, and get into universities anywhere in the world. Match with the right schools, learn from students who&apos;ve been there, and ship your application with less noise.
+              <span className="glowbal-wordmark">GLOWBAL</span> is the calmer way to find, apply to, and get into universities anywhere in the world. Match with the right schools, learn from students who&apos;ve been there, and ship your application with less noise.
             </p>
 
             <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
@@ -116,7 +173,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
         </div>
       </section>
 
-      <section id="waitlist" className="relative z-10 px-5 pb-12 sm:px-6">
+      <section ref={waitlistRef} id="waitlist" className="relative z-10 px-5 pb-12 sm:px-6">
         <div className="landing-waitlist relative mx-auto grid max-w-5xl gap-7 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur-xl sm:rounded-[2rem] sm:p-8 md:grid-cols-[1fr_360px] md:gap-8 md:p-10">
           {/* Animated brand-gradient ring frames the join card so it pops as the
               key conversion point on the page. */}
@@ -125,7 +182,7 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/85 sm:text-xs sm:tracking-[0.24em]">Join our waitlist</p>
             <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl sm:tracking-[-0.04em]">
-              <span className="glowbal-wordmark">Glowbal</span> is in development —
+              <span className="glowbal-wordmark">GLOWBAL</span> is in development —
               be first in line.
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-7 text-white/64 sm:mt-4 md:text-base">
@@ -153,12 +210,14 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
         </div>
       </section>
 
-      {/* ── Long-form content ─────────────────────────────────────── */}
-      <div className="relative z-10">
+      {/* ── Long-form content ───────────────────────────────────────
+          Wrapped in a "light surface" zone so once the cosmos fades
+          out, the sections feel native to the rest of the site. */}
+      <div className="relative z-10 cosmos-light-zone">
         <LandingSections />
       </div>
 
-      <div className="relative z-10">
+      <div className="relative z-10 cosmos-light-zone">
         <ContactsFooter />
       </div>
     </div>

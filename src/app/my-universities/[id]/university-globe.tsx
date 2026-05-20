@@ -41,7 +41,7 @@ type Props = {
 export function UniversityGlobe({ country }: Props) {
   return (
     <div className="h-full w-full">
-      <LandingGlobe theme="journey" size={280} rotateSpeed={0.3} />
+      <LandingGlobe theme="marble" size={280} rotateSpeed={0.3} />
     </div>
   );
 }

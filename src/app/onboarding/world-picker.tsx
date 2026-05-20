@@ -188,9 +188,9 @@ function WorldGlobe({
           backgroundColor="rgba(0,0,0,0)"
           showGlobe={true}
           showAtmosphere={true}
-          atmosphereColor="rgba(186,230,253,0.6)"
-          atmosphereAltitude={0.12}
-          globeImageUrl="//unpkg.com/three-globe/example/img/earth-day.jpg"
+          atmosphereColor="rgba(255,180,205,0.55)"
+          atmosphereAltitude={0.20}
+          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
           onGlobeReady={handleGlobeReady}
           polygonsData={countriesGeo}
           pointsData={smallCountryPoints}

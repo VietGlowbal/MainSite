@@ -2,10 +2,13 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeMatchResult } from '@/lib/matching';
 import { toExplorerUniversity } from '@/lib/explorer-utils';
-import { resolveWikiImages } from '@/lib/wiki-images';
 import type { ApplicationEntry } from '@/lib/explorer-context';
 import type { University } from '@/lib/types';
 import { UniversityExplorerClient } from './university-explorer-client';
+
+// Re-render at most every 12 hours — the source data and Wikipedia
+// imagery rarely change, and ISR keeps the page snappy.
+export const revalidate = 43200;
 
 export default async function UniversitiesPage() {
   const supabase = await createClient();
@@ -69,22 +72,6 @@ export default async function UniversitiesPage() {
     });
   });
 
-  // Resolve Wikipedia thumbnail images for all universities
-  const wikiTitles = explorerUniversities
-    .map((u) => u.image_url)
-    .filter((url) => url.startsWith('__wiki__'))
-    .map((url) => url.replace('__wiki__', ''));
-
-  const wikiImages = await resolveWikiImages(wikiTitles);
-
-  // Inject resolved image URLs
-  for (const uni of explorerUniversities) {
-    if (uni.image_url.startsWith('__wiki__')) {
-      const title = uni.image_url.replace('__wiki__', '');
-      uni.image_url = wikiImages.get(title) ?? '';
-    }
-  }
-
   // Sort: best match first
   explorerUniversities.sort((a, b) => {
     if (a.match_score !== null && b.match_score !== null) {
@@ -93,6 +80,21 @@ export default async function UniversitiesPage() {
     return (a.qs_rank ?? 9999) - (b.qs_rank ?? 9999);
   });
 
+  // Strip the `__wiki__` prefix so the client knows which universities still
+  // need imagery resolved. The client lazily fetches `/api/university-images`
+  // and patches the cards in place once Wikipedia/Wikidata responds. This
+  // keeps the initial server render instant (no waiting on external APIs).
+  const wikiPairs: Array<[string, string]> = [];
+  for (const uni of explorerUniversities) {
+    if (uni.image_url.startsWith('__wiki__')) {
+      const title = uni.image_url.replace('__wiki__', '');
+      wikiPairs.push([title, uni.name]);
+      // Use a deterministic placeholder until the client resolves real imagery.
+      uni.image_url = '';
+      uni.logo_url = '';
+    }
+  }
+
   return (
     <UniversityExplorerClient
       universities={explorerUniversities}
@@ -100,6 +102,7 @@ export default async function UniversitiesPage() {
       initialApplications={initialApplications}
       isLoggedIn={!!user}
       hasProfile={!!profile}
+      wikiPairs={wikiPairs}
     />
   );
 }

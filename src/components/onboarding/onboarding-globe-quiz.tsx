@@ -605,7 +605,7 @@ export function GlowbalOption3GlobeDemo({
                 🌍
               </div>
               <h3 className="mt-6 text-4xl font-semibold tracking-[-0.04em] text-slate-900">You’re out of this world</h3>
-              <p className="mt-4 text-lg text-slate-600">Ready to go glowbal?</p>
+              <p className="mt-4 text-lg text-slate-600">Ready to go GLOWBAL?</p>
               <button
                 type="button"
                 onClick={() => router.push(mode === 'live' ? '/onboarding/documents' : '/universities')}

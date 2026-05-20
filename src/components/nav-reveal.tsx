@@ -25,7 +25,7 @@ const NAV_ITEMS = [
   { href: '/universities',    label: 'Search',        mobile: 'Search',   activeMatch: 'prefix' as const },
   { href: '/my-universities', label: 'Apply',         mobile: 'Apply',    activeMatch: 'prefix' as const, requiresAuth: true },
   { href: '/achievers',       label: '1-2-1 Sessions', mobile: '1-2-1',   activeMatch: 'prefix' as const },
-  { href: '/news',            label: 'Glowbal News',  mobile: 'News',     activeMatch: 'prefix' as const },
+  { href: '/news',            label: 'GLOWBAL News',  mobile: 'News',     activeMatch: 'prefix' as const },
 ];
 
 function isActive(pathname: string, item: { href: string; activeMatch: 'exact' | 'prefix' }) {

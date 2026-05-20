@@ -110,6 +110,11 @@ body {
   background-clip: text;
   color: transparent;
   animation: glowbal-brand-flow 14s ease-in-out infinite;
+  /* Brand identity now reads "GLOWBAL" — give the wordmark a bit
+     of breathing room and consistent capitalisation regardless of
+     whatever string callers pass in. */
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 @keyframes glowbal-brand-flow {
@@ -2710,6 +2715,204 @@ body:not(:has(.cosmos-root)) {
 
 @media (prefers-reduced-motion: reduce) {
   .cosmic-footer-shell::before { animation: none; }
+}
+
+/* ──────────────────────────────────────────────────────────────────────
+   COSMOS LIGHT ZONE
+   The home page hero is intentionally deep-space dark; the rest of the
+   site (search, profile, my universities, etc.) lives on a light
+   surface. When the user scrolls past the waitlist card we crossfade
+   the star canvas out and need the long-form content (mission, team,
+   testimonials, footer) to read on a light background — without
+   re-authoring every block. These overrides recolour the cosmic-*
+   primitives to feel native to the light theme.
+   ────────────────────────────────────────────────────────────────────── */
+
+.cosmos-light-zone {
+  color: rgb(15 23 42); /* slate-900 */
+}
+
+.cosmos-light-zone .cosmic-eyebrow {
+  border-color: rgba(15, 23, 42, 0.10);
+  background: rgba(255, 255, 255, 0.7);
+  color: rgb(219, 39, 119); /* pink-600 */
+  backdrop-filter: blur(8px);
+}
+
+.cosmos-light-zone .cosmic-h2,
+.cosmos-light-zone h2,
+.cosmos-light-zone h3,
+.cosmos-light-zone h4 { color: rgb(15 23 42); }
+
+.cosmos-light-zone p,
+.cosmos-light-zone li,
+.cosmos-light-zone span:not(.glowbal-wordmark):not(.cosmic-eyebrow):not(.cosmic-quote-em):not(.cosmic-quote-em-2):not(.cosmic-stat-value) {
+  color: inherit;
+}
+
+.cosmos-light-zone .cosmic-glass {
+  border-color: rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 24px 50px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(18px);
+  color: rgb(15 23 42);
+}
+
+.cosmos-light-zone .cosmic-stat-card,
+.cosmos-light-zone .cosmic-step-card,
+.cosmos-light-zone .cosmic-person-card,
+.cosmos-light-zone .cosmic-testimonial,
+.cosmos-light-zone .cosmic-mission-panel,
+.cosmos-light-zone .cosmic-footer-shell,
+.cosmos-light-zone .cosmic-video-shell {
+  border-color: rgba(15, 23, 42, 0.06);
+  background: rgba(255, 255, 255, 0.95);
+  color: rgb(15 23 42);
+  box-shadow: 0 20px 44px rgba(15, 23, 42, 0.08);
+}
+
+.cosmos-light-zone .cosmic-stat-card:hover,
+.cosmos-light-zone .cosmic-step-card:hover,
+.cosmos-light-zone .cosmic-person-card:hover,
+.cosmos-light-zone .cosmic-testimonial:hover {
+  border-color: rgba(255, 77, 140, 0.25);
+  box-shadow: 0 28px 56px rgba(15, 23, 42, 0.12);
+}
+
+.cosmos-light-zone .cosmic-stat-label,
+.cosmos-light-zone .cosmic-step-card p,
+.cosmos-light-zone .cosmic-person-bio,
+.cosmos-light-zone .cosmic-testimonial-quote,
+.cosmos-light-zone .cosmic-mission-quote,
+.cosmos-light-zone .cosmic-mission-sig {
+  color: rgb(71, 85, 105); /* slate-600 */
+}
+
+.cosmos-light-zone .cosmic-person-role,
+.cosmos-light-zone .cosmic-testimonial-detail,
+.cosmos-light-zone .cosmic-footer-label {
+  color: rgb(100, 116, 139); /* slate-500 */
+}
+
+.cosmos-light-zone .cosmic-step-num {
+  color: rgba(255, 77, 140, 0.55);
+}
+
+.cosmos-light-zone .cosmic-step-icon {
+  color: rgb(15 23 42);
+  background: linear-gradient(135deg, rgba(255,77,140,0.12), rgba(0,194,255,0.10));
+  border-color: rgba(15, 23, 42, 0.06);
+}
+
+.cosmos-light-zone .cosmic-cta-primary {
+  color: white;
+}
+
+.cosmos-light-zone .cosmic-cta-ghost {
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(15, 23, 42, 0.10);
+  color: rgb(15 23 42);
+}
+
+.cosmos-light-zone .cosmic-cta-ghost:hover {
+  background: rgba(255, 255, 255, 1);
+  border-color: rgba(255, 77, 140, 0.3);
+}
+
+.cosmos-light-zone .cosmic-footer-link,
+.cosmos-light-zone .cosmic-footer-link-plain {
+  color: rgb(71, 85, 105);
+}
+
+.cosmos-light-zone .cosmic-footer-link:hover,
+.cosmos-light-zone .cosmic-footer-link-plain:hover {
+  color: rgb(219, 39, 119);
+}
+
+.cosmos-light-zone .cosmic-footer-rule {
+  background: rgba(15, 23, 42, 0.08);
+}
+
+.cosmos-light-zone .cosmic-quote-mark {
+  color: rgba(255, 77, 140, 0.55);
+}
+
+.cosmos-light-zone .cosmic-video-frame {
+  background: rgba(15, 23, 42, 0.04);
+}
+
+.cosmos-light-zone .cosmic-video-poster {
+  background:
+    linear-gradient(135deg, rgba(255, 77, 140, 0.08), rgba(0, 194, 255, 0.08)),
+    rgba(15, 23, 42, 0.06);
+  color: rgb(15 23 42);
+}
+
+.cosmos-light-zone .cosmic-video-tag,
+.cosmos-light-zone .cosmic-video-title { color: rgb(15 23 42); }
+
+/* ──────────────────────────────────────────────────────────────────────
+   GLOWBAL skeletons — used by /universities/loading.tsx and any other
+   page that wants a branded loading state instead of a flat slate pulse.
+   ────────────────────────────────────────────────────────────────────── */
+
+@keyframes glowbal-skeleton-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes glowbal-skeleton-pulse {
+  0%, 100% { opacity: 0.7; }
+  50%      { opacity: 1; }
+}
+
+.glowbal-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(
+    90deg,
+    rgba(244, 247, 255, 0.95) 0%,
+    rgba(255, 230, 240, 0.85) 35%,
+    rgba(220, 245, 252, 0.85) 65%,
+    rgba(244, 247, 255, 0.95) 100%
+  );
+  background-size: 300% 100%;
+  animation: glowbal-skeleton-shimmer 2.4s ease-in-out infinite;
+}
+
+.glowbal-skeleton-shimmer {
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(135deg, rgba(255, 77, 140, 0.18), rgba(0, 194, 255, 0.18)),
+    linear-gradient(
+      90deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.05) 50%,
+      rgba(255, 255, 255, 0.4) 100%
+    );
+  background-size: 100% 100%, 200% 100%;
+  background-blend-mode: normal;
+  animation: glowbal-skeleton-shimmer 1.8s linear infinite;
+}
+
+.glowbal-skeleton-cta {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 77, 140, 0.7) 0%,
+    rgba(255, 133, 179, 0.7) 50%,
+    rgba(255, 77, 140, 0.7) 100%
+  );
+  background-size: 200% 100%;
+  animation: glowbal-skeleton-shimmer 1.6s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glowbal-skeleton,
+  .glowbal-skeleton-shimmer,
+  .glowbal-skeleton-cta {
+    animation: glowbal-skeleton-pulse 1.5s ease-in-out infinite;
+  }
 }
 
 /* ── Auth page ─────────────────────────────────────────────────────────── */

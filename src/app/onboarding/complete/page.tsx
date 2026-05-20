@@ -22,7 +22,7 @@ export default async function OnboardingCompletePage() {
           <div className="space-y-2">
             <span className="glow-pill">You&apos;re all set</span>
             <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-              Welcome to Glowbal
+              Welcome to GLOWBAL
             </h1>
             <p className="mt-2 text-slate-500 max-w-md mx-auto">
               We&apos;ve got everything we need to start matching you with the right universities.

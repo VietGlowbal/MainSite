@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'Glowbal',
+  title: 'GLOWBAL',
   description: 'Student-first global course and university guidance platform.',
 };
 
