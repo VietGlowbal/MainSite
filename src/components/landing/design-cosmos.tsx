@@ -5,6 +5,7 @@ import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { LandingGlobe } from '@/components/landing-globe';
 import { CosmicBackground } from '@/components/landing/cosmic-background';
+import { LandingSections, ContactsFooter } from '@/components/landing/landing-sections';
 import { WaitlistForm } from '@/components/waitlist-form';
 import type { WaitlistAction } from '@/lib/types';
 
@@ -115,22 +116,51 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
         </div>
       </section>
 
-      <section id="waitlist" className="relative z-10 px-5 pb-16 sm:px-6">
-        <div className="landing-waitlist mx-auto grid max-w-5xl gap-7 rounded-[1.75rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur-xl sm:rounded-[2rem] sm:p-8 md:grid-cols-[1fr_360px] md:gap-8 md:p-10">
+      <section id="waitlist" className="relative z-10 px-5 pb-12 sm:px-6">
+        <div className="landing-waitlist relative mx-auto grid max-w-5xl gap-7 overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur-xl sm:rounded-[2rem] sm:p-8 md:grid-cols-[1fr_360px] md:gap-8 md:p-10">
+          {/* Animated brand-gradient ring frames the join card so it pops as the
+              key conversion point on the page. */}
+          <span aria-hidden className="cosmic-waitlist-ring" />
+
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/85 sm:text-xs sm:tracking-[0.24em]">Get early access</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/85 sm:text-xs sm:tracking-[0.24em]">Join our waitlist</p>
             <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl sm:tracking-[-0.04em]">
-              Built for students who refuse to settle.
+              <span className="glowbal-wordmark">Glowbal</span> is in development —
+              be first in line.
             </h2>
             <p className="mt-3 max-w-xl text-sm leading-7 text-white/64 sm:mt-4 md:text-base">
-              Real universities. Real students who got in. Real advice. Skip the agents, the noise, and the endless tabs. Glowbal is one place to find your future, anywhere on the map.
+              Real universities. Real students who got in. Real advice.
+              Skip the agents, the noise, and the endless tabs. Add yourself
+              to the waitlist and we&apos;ll let you in as we open the doors.
             </p>
+
+            <ul className="mt-5 space-y-2 text-sm text-white/72">
+              <li className="flex items-center gap-2">
+                <span className="cosmic-waitlist-tick" /> Free for early users
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="cosmic-waitlist-tick" /> No spam — one welcome email, that&apos;s it
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="cosmic-waitlist-tick" /> Help shape the product as we build
+              </li>
+            </ul>
           </div>
+
           <div style={{ '--glow-input-bg': 'rgba(255,255,255,0.06)', color: 'inherit' } as React.CSSProperties}>
             <WaitlistForm action={action} />
           </div>
         </div>
       </section>
+
+      {/* ── Long-form content ─────────────────────────────────────── */}
+      <div className="relative z-10">
+        <LandingSections />
+      </div>
+
+      <div className="relative z-10">
+        <ContactsFooter />
+      </div>
     </div>
   );
 }

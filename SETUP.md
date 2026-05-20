@@ -1,4 +1,4 @@
-# Glowbal V2 — Developer Setup Guide
+# Glowbal — Developer Setup Guide
 
 ## 1. Environment Variables
 

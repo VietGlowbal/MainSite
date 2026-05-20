@@ -1,5 +1,5 @@
 -- ============================================================================
--- GLOWBAL V2 — FULL DATABASE SCHEMA
+-- GLOWBAL — FULL DATABASE SCHEMA
 -- Run this in the Supabase SQL Editor (Dashboard → SQL Editor → New Query)
 -- ============================================================================
 

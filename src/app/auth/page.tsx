@@ -1,31 +1,73 @@
 import { Suspense } from 'react';
 import { AuthForm } from './auth-form';
+import { LandingGlobe } from '@/components/landing-globe';
 
 function AuthFormFallback() {
   return (
-    <section className="glow-form-shell flex min-h-[520px] items-center justify-center">
-      <p className="text-sm text-slate-500">Loading sign-in…</p>
-    </section>
+    <div className="auth-card">
+      <div className="auth-skeleton" aria-hidden />
+      <p className="text-center text-sm text-slate-500">Loading sign-in…</p>
+    </div>
   );
 }
 
+const PERKS = [
+  {
+    title: 'Personal university matches',
+    body: 'Save your shortlist, track deadlines, and re-rank schools as your goals shift.',
+  },
+  {
+    title: 'Talk to Achievers',
+    body: 'Book 1-2-1 sessions with students who got into your dream universities.',
+  },
+  {
+    title: 'AI statement writer',
+    body: 'Turn rough notes into compelling personal statements — drafts saved to your profile.',
+  },
+];
+
 export default function AuthPage() {
   return (
-    <main className="min-h-screen bg-transparent px-6 py-16 md:px-10">
-      <div className="mx-auto grid max-w-5xl gap-8 lg:grid-cols-[1fr_0.9fr]">
-        <section className="rounded-[2rem] border border-black/5 bg-white/80 p-8 shadow-[0_12px_32px_rgba(22,33,62,0.06)] backdrop-blur">
-          <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1 text-sm font-semibold text-pink-600">
-            Auth foundation
-          </span>
-          <h1 className="mt-6 text-4xl font-semibold tracking-tight text-slate-900">
-            Create your Glowbal account
-          </h1>
-          <p className="mt-4 max-w-xl leading-7 text-slate-600">
-            We are wiring the real product flow now. Sign in will unlock onboarding,
-            profile persistence, saved options, and recommendation history.
-          </p>
-        </section>
+    <main className="auth-page">
+      {/* Decorative gradient/orbs in the page background */}
+      <div className="auth-page-bg" aria-hidden>
+        <span className="auth-orb auth-orb-pink" />
+        <span className="auth-orb auth-orb-aqua" />
+        <span className="auth-orb auth-orb-navy" />
+      </div>
 
+      <div className="auth-page-grid">
+        {/* ─────────── Aside (large screens) ─────────── */}
+        <aside className="auth-aside">
+          <span className="auth-eyebrow">Welcome back</span>
+          <h2 className="auth-aside-title">
+            Your future is{' '}
+            <span className="glowbal-wordmark">global.</span>
+          </h2>
+          <p className="auth-aside-body">
+            Glowbal is the calmer way to find, apply to, and get into universities
+            anywhere in the world. Sign in to pick up where you left off.
+          </p>
+
+          <div className="auth-aside-globe">
+            <LandingGlobe theme="cosmos" rotateSpeed={0.32} responsive />
+            <span className="auth-aside-halo" aria-hidden />
+          </div>
+
+          <ul className="auth-aside-perks">
+            {PERKS.map((perk) => (
+              <li key={perk.title} className="auth-aside-perk">
+                <span className="auth-aside-perk-dot" aria-hidden />
+                <div>
+                  <p className="auth-aside-perk-title">{perk.title}</p>
+                  <p className="auth-aside-perk-body">{perk.body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </aside>
+
+        {/* ─────────── Form column ─────────── */}
         <Suspense fallback={<AuthFormFallback />}>
           <AuthForm />
         </Suspense>

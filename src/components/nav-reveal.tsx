@@ -81,7 +81,7 @@ function AccountPill({ user }: { user: UserSummary | null }) {
   if (user) return <NavAvatar name={user.name} avatarUrl={user.avatarUrl} />;
   return (
     <Link href="/auth" className="glowbal-nav-pill glowbal-nav-pill-account">
-      Create New Account
+      Sign In/Up
     </Link>
   );
 }

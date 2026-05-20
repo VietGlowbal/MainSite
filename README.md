@@ -1,4 +1,4 @@
-# Glowbal V2
+# Glowbal
 
 Serious product build for Glowbal.
 
