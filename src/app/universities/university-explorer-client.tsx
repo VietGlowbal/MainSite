@@ -826,6 +826,32 @@ function UniversityCard({
     ? acceptanceNum < 10 ? 'text-emerald-600' : acceptanceNum < 30 ? 'text-amber-600' : 'text-red-500'
     : 'text-slate-400';
 
+  // Track per-URL failure flags. Using `useMemo` + a ref-keyed map keeps
+  // us out of "setState inside useEffect" territory; the failure state is
+  // tied to the specific URL string so a fresh hydration reset happens
+  // automatically.
+  const [failedUrls, setFailedUrls] = useState<Set<string>>(() => new Set());
+  const markFailed = (url: string) => {
+    if (!url) return;
+    setFailedUrls((prev) => {
+      if (prev.has(url)) return prev;
+      const next = new Set(prev);
+      next.add(url);
+      return next;
+    });
+  };
+
+  const showCoverImage = !!university.image_url && !failedUrls.has(university.image_url);
+  const showLogoImage = !!university.logo_url && !failedUrls.has(university.logo_url);
+
+  const initials = university.name
+    .replace(/^(University of |The )/, '')
+    .split(' ')
+    .map((w) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -836,21 +862,21 @@ function UniversityCard({
         isCompared ? 'border-pink-300 ring-2 ring-pink-200' : 'border-slate-200'
       }`}
     >
-      {/* Cover image */}
+      {/* Cover image — a photo of the city the university is in (e.g.
+          Cambridge, MA for Harvard). Falls back to the country brand
+          colour if image resolution fails. */}
       <div
         className="relative h-32 w-full overflow-hidden"
         style={{ background: `linear-gradient(135deg, ${university.color}, #1a1a2e)` }}
       >
-        {university.image_url ? (
+        {showCoverImage ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={university.image_url}
-            alt={university.name}
+            alt={`${university.location}`}
             loading="lazy"
             className="absolute inset-0 h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
+            onError={() => markFailed(university.image_url)}
           />
         ) : null}
         <div
@@ -887,41 +913,19 @@ function UniversityCard({
         <div className="-mt-8 mb-2">
           <div
             className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-white shadow-md overflow-hidden"
-            style={{ background: university.logo_url ? '#fff' : university.color }}
+            style={{ background: showLogoImage ? '#fff' : university.color }}
           >
-            {university.logo_url ? (
+            {showLogoImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={university.logo_url}
                 alt={`${university.name} logo`}
                 loading="lazy"
                 className="h-full w-full object-contain p-1"
-                onError={(e) => {
-                  // Logo failed: replace with brand-coloured initials.
-                  const parent = e.currentTarget.parentElement;
-                  if (parent) {
-                    parent.style.background = university.color;
-                    e.currentTarget.remove();
-                    const initials = university.name
-                      .replace(/^(University of |The )/, '')
-                      .split(' ')
-                      .map((w) => w[0])
-                      .join('')
-                      .slice(0, 2)
-                      .toUpperCase();
-                    const span = document.createElement('span');
-                    span.textContent = initials;
-                    span.style.color = 'white';
-                    span.style.fontWeight = '700';
-                    span.style.fontSize = '0.7rem';
-                    parent.appendChild(span);
-                  }
-                }}
+                onError={() => markFailed(university.logo_url)}
               />
             ) : (
-              <span className="text-white text-xs font-bold">
-                {university.name.replace(/^(University of |The )/, '').split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
-              </span>
+              <span className="text-white text-xs font-bold">{initials}</span>
             )}
           </div>
         </div>

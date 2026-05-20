@@ -1,29 +1,33 @@
 /**
- * University imagery resolver.
+ * GLOWBAL — university imagery resolver.
  *
- * For each university we want two pictures on the search/explorer cards:
- *   1. A "campus" image — the wide hero behind the card. Usually the lead
- *      photo of the Wikipedia article (a recognisable photo of the campus
- *      or main building).
- *   2. A "logo" image — the small circular badge floating over the cover.
- *      Universities almost always have an SVG logo on Wikipedia (linked
- *      from the infobox via the `P154` Wikidata property).
+ * Each university card needs *two* pictures:
+ *   1. A "campus" hero image — used as the wide background photo. We use
+ *      a photo of the **city/location** (e.g. Cambridge, Massachusetts
+ *      for Harvard) rather than the campus itself. Reasoning: a logo
+ *      sitting on top of a campus photo of the *same* university looks
+ *      visually noisy and redundant; a city photo gives the card real
+ *      sense of place and works much better with a logo overlay.
+ *   2. A "logo" image — small circular badge that overlaps the cover.
+ *      Universities almost always have an official logo on Wikidata.
  *
- * The strategy is a chain of free, no-key sources:
- *   1.  Wikipedia REST `summary` endpoint    → originalimage / thumbnail
- *   2.  Wikipedia MediaWiki `query` endpoint → pageimages (original) +
- *                                              pageprops (wikibase id)
- *   3.  Wikidata claims                      → P154 (logo) + P18 (image)
- *   4.  Logo by domain heuristic             → Clearbit / Google s2 favicon
- *      (last-resort, gives at least a recognisable mark)
+ * Resolution chain (each step is a fallback for the previous one):
  *
- * Everything is cached in-process per server instance and respects
- * `next.revalidate` so the browser path stays fast on hot pages.
+ *   LOGO
+ *     a. Curated Commons file map for top-tier universities
+ *     b. Wikidata P154 (logo image) → Commons thumbnail
+ *     c. Wikidata P158 (seal / insignia) → Commons thumbnail
+ *     d. Clearbit logo from a known domain
  *
- * The function exported below returns a Map keyed on the *encoded
- * Wikipedia title* the explorer-utils builder produces. That keeps the
- * old contract intact — `image_url` was just a campus image — while
- * adding `logo_url` alongside.
+ *   CAMPUS / CITY
+ *     a. Curated `name → city` map → Wikipedia summary of that city
+ *     b. Wikidata P131 (located in administrative entity) → city page
+ *     c. Wikidata P159 (HQ location) → that entity's image / city page
+ *     d. Wikipedia article's own original image (last resort — usually
+ *        the campus, which is the previous behaviour)
+ *
+ * Everything is cached in-process and respects `next.revalidate` so the
+ * route stays fast on warm requests.
  */
 
 type ResolvedImagery = {
@@ -31,7 +35,7 @@ type ResolvedImagery = {
   logo: string | null;
 };
 
-const CONCURRENCY = 8;
+const CONCURRENCY = 6;
 const CACHE = new Map<string, ResolvedImagery>();
 
 const WIKI_REST = 'https://en.wikipedia.org/api/rest_v1/page/summary/';
@@ -39,10 +43,12 @@ const WIKI_API = 'https://en.wikipedia.org/w/api.php';
 const COMMONS_API = 'https://commons.wikimedia.org/w/api.php';
 const WIKIDATA_API = 'https://www.wikidata.org/w/api.php';
 
-const REVALIDATE = 60 * 60 * 24 * 7; // 7 days — university imagery rarely changes
+const REVALIDATE = 60 * 60 * 24 * 7; // 7 days
 
-// Some universities don't have a Wikipedia article that matches their `name`
-// exactly; supply a small alias map so the most common ones still resolve.
+const UA_HEADER = { 'Api-User-Agent': 'glowbal-edu-platform/1.0' };
+
+// ── Aliases — when the university's display name doesn't match its
+// Wikipedia article title exactly. ──────────────────────────────────────
 const ALIASES: Record<string, string> = {
   MIT: 'Massachusetts Institute of Technology',
   Caltech: 'California Institute of Technology',
@@ -58,17 +64,186 @@ function aliasTitle(title: string): string {
   return ALIASES[normalised] ?? title;
 }
 
-/**
- * Build a Clearbit logo URL from a university's "homepage-ish" domain.
- * Clearbit's free logo API returns a transparent PNG. We fall back to it
- * when Wikipedia/Wikidata don't have a logo file, because it gives most
- * universities a recognisable mark instead of a placeholder gradient.
- *
- * The mapping below is *manually curated* for the ~50 universities we
- * actually ship today; for anything outside it we make a best-effort guess
- * by stripping common words and using a `.edu` / `.ac.uk` / `.edu.au`
- * suffix when the country is known.
- */
+// ── Curated city map ────────────────────────────────────────────────────
+//
+// The cover image on every card is a photo of the *city/location*, not
+// the university itself. This map is the most reliable way to pick a
+// photogenic, recognisable city photo — Wikidata's locator chains are
+// imperfect for things like "Cambridge, Massachusetts" vs "Cambridge".
+//
+// Format: <university name> → <Wikipedia article title for the city>.
+// Article titles include disambiguation (e.g. ", Massachusetts") to land
+// on the right page. Fallback resolution still runs if the title isn't
+// here.
+const CITY_HINTS: Record<string, string> = {
+  // ── United States ──────────────────────────────
+  'Massachusetts Institute of Technology': 'Cambridge, Massachusetts',
+  'Harvard University': 'Cambridge, Massachusetts',
+  'Stanford University': 'Stanford, California',
+  'Princeton University': 'Princeton, New Jersey',
+  'Yale University': 'New Haven, Connecticut',
+  'Columbia University': 'New York City',
+  'Cornell University': 'Ithaca, New York',
+  'Brown University': 'Providence, Rhode Island',
+  'University of Pennsylvania': 'Philadelphia',
+  'Johns Hopkins University': 'Baltimore',
+  'University of Chicago': 'Chicago',
+  'Northwestern University': 'Evanston, Illinois',
+  'New York University': 'New York City',
+  'California Institute of Technology': 'Pasadena, California',
+  'University of California, Berkeley': 'Berkeley, California',
+  'University of California, Los Angeles': 'Los Angeles',
+  'University of California, San Diego': 'San Diego',
+  'University of Michigan': 'Ann Arbor, Michigan',
+  'University of Washington': 'Seattle',
+  'Carnegie Mellon University': 'Pittsburgh',
+  'Duke University': 'Durham, North Carolina',
+  'Georgia Institute of Technology': 'Atlanta',
+
+  // ── United Kingdom ─────────────────────────────
+  'University of Oxford': 'Oxford',
+  'University of Cambridge': 'Cambridge',
+  'Imperial College London': 'London',
+  'University College London': 'London',
+  'London School of Economics': 'London',
+  "King's College London": 'London',
+  'University of Edinburgh': 'Edinburgh',
+  'University of Manchester': 'Manchester',
+  'University of Warwick': 'Coventry',
+  'University of Leeds': 'Leeds',
+  'University of Birmingham': 'Birmingham',
+  'University of Bath': 'Bath, Somerset',
+  'University of Bristol': 'Bristol',
+  'University of Glasgow': 'Glasgow',
+  'University of St Andrews': 'St Andrews',
+  'University of Sheffield': 'Sheffield',
+  'University of Nottingham': 'Nottingham',
+  'University of Southampton': 'Southampton',
+  'Royal College of Art': 'London',
+  'Queen Mary University of London': 'London',
+
+  // ── Canada ─────────────────────────────────────
+  'University of Toronto': 'Toronto',
+  'McGill University': 'Montreal',
+  'University of British Columbia': 'Vancouver',
+  'University of Alberta': 'Edmonton',
+  'University of Waterloo': 'Waterloo, Ontario',
+  'McMaster University': 'Hamilton, Ontario',
+
+  // ── Australia / NZ ─────────────────────────────
+  'University of Melbourne': 'Melbourne',
+  'University of Sydney': 'Sydney',
+  'Australian National University': 'Canberra',
+  'University of New South Wales': 'Sydney',
+  'University of Queensland': 'Brisbane',
+  'Monash University': 'Melbourne',
+  'University of Auckland': 'Auckland',
+
+  // ── Asia-Pacific ───────────────────────────────
+  'National University of Singapore': 'Singapore',
+  'Nanyang Technological University': 'Singapore',
+  'University of Tokyo': 'Tokyo',
+  'Kyoto University': 'Kyoto',
+  'Osaka University': 'Osaka',
+  'Tsinghua University': 'Beijing',
+  'Peking University': 'Beijing',
+  'University of Hong Kong': 'Hong Kong',
+  'Hong Kong University of Science and Technology': 'Hong Kong',
+  'Chinese University of Hong Kong': 'Hong Kong',
+  'Seoul National University': 'Seoul',
+  'KAIST': 'Daejeon',
+
+  // ── Europe ─────────────────────────────────────
+  'ETH Zurich': 'Zurich',
+  EPFL: 'Lausanne',
+  'Delft University of Technology': 'Delft',
+  'University of Amsterdam': 'Amsterdam',
+  'Technical University of Munich': 'Munich',
+  'Ludwig Maximilian University of Munich': 'Munich',
+  'Heidelberg University': 'Heidelberg',
+  'KU Leuven': 'Leuven',
+  'Sciences Po': 'Paris',
+  'Sorbonne University': 'Paris',
+  'PSL University': 'Paris',
+  'Trinity College Dublin': 'Dublin',
+  'KTH Royal Institute of Technology': 'Stockholm',
+  'Lund University': 'Lund',
+  'University of Copenhagen': 'Copenhagen',
+  'University of Helsinki': 'Helsinki',
+  'University of Oslo': 'Oslo',
+  'University of Vienna': 'Vienna',
+  'University of Barcelona': 'Barcelona',
+  'Pompeu Fabra University': 'Barcelona',
+  Politecnico: 'Milan',
+  'Polytechnic University of Milan': 'Milan',
+
+  // ── Middle East ────────────────────────────────
+  'Khalifa University': 'Abu Dhabi',
+  'New York University Abu Dhabi': 'Abu Dhabi',
+  'Qatar University': 'Doha',
+  'Hamad bin Khalifa University': 'Doha',
+};
+
+// ── Curated logo map ───────────────────────────────────────────────────
+//
+// Direct Wikimedia Commons file names for top universities — these are
+// the canonical brand logos as published by the institutions themselves.
+// Avoids depending on Wikidata having P154 set (it's surprisingly
+// inconsistent for older articles).
+const LOGO_HINTS: Record<string, string> = {
+  'Harvard University': 'Harvard_University_coat_of_arms.svg',
+  'Massachusetts Institute of Technology': 'MIT_logo.svg',
+  'Stanford University': 'Stanford_Cardinal_logo.svg',
+  'Princeton University': 'Princeton_seal.svg',
+  'Yale University': 'Yale_University_Shield_1.svg',
+  'Columbia University': 'Columbia_coat_of_arms_without_motto_ribbon.svg',
+  'Cornell University': 'Cornell_University_seal.svg',
+  'Brown University': 'Brown_University_coat_of_arms.svg',
+  'University of Pennsylvania': 'University_of_Pennsylvania_shield_with_banner.svg',
+  'University of Chicago': 'University_of_Chicago_shield.svg',
+  'Johns Hopkins University': 'Johns_Hopkins_University_seal.svg',
+  'New York University': 'NYU_logo.svg',
+  'California Institute of Technology': 'Seal_of_the_California_Institute_of_Technology.svg',
+  'University of California, Berkeley': 'Seal_of_University_of_California,_Berkeley.svg',
+  'University of California, Los Angeles': 'The_University_of_California_UCLA.svg',
+  'University of Michigan': 'University_of_Michigan_logo.svg',
+  'Carnegie Mellon University': 'Carnegie_Mellon_University_seal.svg',
+  'Duke University': 'Duke_University_seal.svg',
+
+  'University of Oxford': 'Oxford-University-Circlet.svg',
+  'University of Cambridge': 'University_of_Cambridge_coat_of_arms_official.svg',
+  'Imperial College London': 'Imperial_College_London_crest.svg',
+  'University College London': 'University_College_London_logo.svg',
+  'London School of Economics': 'London_School_of_Economics_coat_of_arms.svg',
+  "King's College London": "King's_College_London_logo.svg",
+  'University of Edinburgh': 'University_of_Edinburgh_ceremonial_roundel.svg',
+  'University of Manchester': 'University_of_Manchester.svg',
+  'University of Warwick': 'University_of_Warwick_coat_of_arms.svg',
+  'University of Leeds': 'University_of_Leeds_logo.svg',
+  'University of Birmingham': 'University_of_Birmingham_coat_of_arms.svg',
+  'University of Bath': 'University_of_Bath_coat_of_arms.svg',
+
+  'University of Toronto': 'Utoronto_coa.svg',
+  'McGill University': 'McGill_University_CoA.svg',
+  'University of British Columbia': 'The_University_of_British_Columbia-Logo.svg',
+
+  'University of Melbourne': 'University_of_Melbourne_logo.svg',
+  'University of Sydney': 'University_of_Sydney_coat_of_arms.svg',
+  'Australian National University': 'ANU_logo.svg',
+
+  'National University of Singapore': 'NUS_coat_of_arms.svg',
+  'Nanyang Technological University': 'Nanyang_Technological_University.svg',
+  'University of Tokyo': 'University_of_Tokyo_logo.svg',
+  'Kyoto University': 'Kyoto_University_emblem.svg',
+  'ETH Zurich': 'ETH_Zürich_Logo_black.svg',
+  EPFL: 'Logo_EPFL.svg',
+  'Delft University of Technology': 'Delft_University_of_Technology_logo.svg',
+  'Sciences Po': 'Sciences_Po.svg',
+  'Trinity College Dublin': 'Trinity_College_Dublin_Arms.svg',
+  'Royal College of Art': 'Royal_College_of_Art_logo.svg',
+};
+
+// ── Domain hints for Clearbit fallback ─────────────────────────────────
 const DOMAIN_HINTS: Record<string, string> = {
   'Massachusetts Institute of Technology': 'mit.edu',
   'Stanford University': 'stanford.edu',
@@ -97,7 +272,7 @@ const DOMAIN_HINTS: Record<string, string> = {
   'University of Tokyo': 'u-tokyo.ac.jp',
   'Kyoto University': 'kyoto-u.ac.jp',
   'ETH Zurich': 'ethz.ch',
-  'EPFL': 'epfl.ch',
+  EPFL: 'epfl.ch',
   'Delft University of Technology': 'tudelft.nl',
   'University of Amsterdam': 'uva.nl',
   'Sciences Po': 'sciencespo.fr',
@@ -113,31 +288,26 @@ const DOMAIN_HINTS: Record<string, string> = {
 };
 
 function guessDomain(name: string): string | null {
-  const direct = DOMAIN_HINTS[name];
-  if (direct) return direct;
-  const alias = ALIASES[name];
-  if (alias && DOMAIN_HINTS[alias]) return DOMAIN_HINTS[alias];
-  return null;
+  return DOMAIN_HINTS[name] ?? DOMAIN_HINTS[ALIASES[name] ?? ''] ?? null;
 }
 
 function clearbitLogoUrl(domain: string): string {
   return `https://logo.clearbit.com/${domain}`;
 }
 
-// ── Wikipedia / Commons fetchers ────────────────────────────────────────
+// ── Wikipedia / Commons fetchers ───────────────────────────────────────
 
-async function fetchWikiSummary(title: string): Promise<{ original?: string; thumb?: string; pageId?: number } | null> {
+async function fetchWikiSummary(title: string): Promise<{ original?: string; thumb?: string } | null> {
   try {
     const res = await fetch(`${WIKI_REST}${encodeURIComponent(title)}`, {
       next: { revalidate: REVALIDATE },
-      headers: { 'Api-User-Agent': 'glowbal-edu-platform/1.0' },
+      headers: UA_HEADER,
     });
     if (!res.ok) return null;
     const data = await res.json();
     return {
       original: data?.originalimage?.source,
       thumb: data?.thumbnail?.source,
-      pageId: data?.pageid,
     };
   } catch {
     return null;
@@ -152,13 +322,13 @@ async function fetchWikiPageInfo(title: string): Promise<{ original?: string; wi
       titles: title,
       prop: 'pageimages|pageprops',
       piprop: 'original|thumbnail',
-      pithumbsize: '800',
+      pithumbsize: '1200',
       origin: '*',
       redirects: '1',
     });
     const res = await fetch(`${WIKI_API}?${params.toString()}`, {
       next: { revalidate: REVALIDATE },
-      headers: { 'Api-User-Agent': 'glowbal-edu-platform/1.0' },
+      headers: UA_HEADER,
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -173,7 +343,7 @@ async function fetchWikiPageInfo(title: string): Promise<{ original?: string; wi
   }
 }
 
-async function fetchWikidataLogo(wikidataId: string): Promise<string | null> {
+async function fetchWikidataClaims(wikidataId: string): Promise<Record<string, unknown> | null> {
   try {
     const params = new URLSearchParams({
       action: 'wbgetentities',
@@ -184,29 +354,34 @@ async function fetchWikidataLogo(wikidataId: string): Promise<string | null> {
     });
     const res = await fetch(`${WIKIDATA_API}?${params.toString()}`, {
       next: { revalidate: REVALIDATE },
-      headers: { 'Api-User-Agent': 'glowbal-edu-platform/1.0' },
+      headers: UA_HEADER,
     });
     if (!res.ok) return null;
     const data = await res.json();
-    const claims = data?.entities?.[wikidataId]?.claims;
-    if (!claims) return null;
-
-    // P154 = "logo image", P41 = "flag image", P18 = "image"
-    const logoFile = claims.P154?.[0]?.mainsnak?.datavalue?.value
-      ?? claims.P158?.[0]?.mainsnak?.datavalue?.value;
-    if (!logoFile) return null;
-
-    return commonsImageUrl(String(logoFile), 320);
+    return data?.entities?.[wikidataId]?.claims ?? null;
   } catch {
     return null;
   }
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function readFirstImageClaim(claims: any, prop: string): string | null {
+  const claim = claims?.[prop]?.[0]?.mainsnak?.datavalue?.value;
+  return typeof claim === 'string' ? claim : null;
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function readFirstEntityIdClaim(claims: any, prop: string): string | null {
+  const value = claims?.[prop]?.[0]?.mainsnak?.datavalue?.value;
+  if (value && typeof value === 'object' && 'id' in value) {
+    return (value as { id: string }).id;
+  }
+  return null;
+}
+
 /**
- * Resolve a Commons file name (e.g. "Mit-logo.svg") to a renderable URL by
- * asking the Commons API for the file's thumbnail. PNG/JPG return their
- * source URL; SVGs are rendered to a 320px PNG which lets us avoid the
- * inline-SVG complexity in the browser.
+ * Resolve a Commons file name to a thumbnailed URL. SVGs render as PNG
+ * (via Commons), PNG/JPG come back as the original.
  */
 async function commonsImageUrl(fileName: string, width: number): Promise<string | null> {
   try {
@@ -218,10 +393,11 @@ async function commonsImageUrl(fileName: string, width: number): Promise<string 
       iiprop: 'url',
       iiurlwidth: String(width),
       origin: '*',
+      redirects: '1',
     });
     const res = await fetch(`${COMMONS_API}?${params.toString()}`, {
       next: { revalidate: REVALIDATE },
-      headers: { 'Api-User-Agent': 'glowbal-edu-platform/1.0' },
+      headers: UA_HEADER,
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -233,51 +409,120 @@ async function commonsImageUrl(fileName: string, width: number): Promise<string 
   }
 }
 
-// ── Per-university resolver ─────────────────────────────────────────────
+// Look up a Wikidata entity's English page title — used for chasing
+// "located in" pointers down to a renderable Wikipedia article.
+async function fetchEntitySitelink(entityId: string): Promise<string | null> {
+  try {
+    const params = new URLSearchParams({
+      action: 'wbgetentities',
+      format: 'json',
+      ids: entityId,
+      props: 'sitelinks',
+      sitefilter: 'enwiki',
+      origin: '*',
+    });
+    const res = await fetch(`${WIKIDATA_API}?${params.toString()}`, {
+      next: { revalidate: REVALIDATE },
+      headers: UA_HEADER,
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const sitelink = data?.entities?.[entityId]?.sitelinks?.enwiki?.title;
+    return typeof sitelink === 'string' ? sitelink : null;
+  } catch {
+    return null;
+  }
+}
+
+// ── Logo resolution ────────────────────────────────────────────────────
+
+async function resolveLogo(
+  displayName: string,
+  wikidataClaims: Record<string, unknown> | null,
+): Promise<string | null> {
+  // 1. Curated Commons file
+  const curatedFile = LOGO_HINTS[displayName] ?? LOGO_HINTS[ALIASES[displayName] ?? ''];
+  if (curatedFile) {
+    const url = await commonsImageUrl(curatedFile, 320);
+    if (url) return url;
+  }
+
+  // 2. Wikidata logo / seal claims
+  if (wikidataClaims) {
+    for (const prop of ['P154', 'P158', 'P8972']) {
+      const file = readFirstImageClaim(wikidataClaims, prop);
+      if (file) {
+        const url = await commonsImageUrl(file, 320);
+        if (url) return url;
+      }
+    }
+  }
+
+  // 3. Clearbit by domain
+  const domain = guessDomain(displayName);
+  if (domain) return clearbitLogoUrl(domain);
+
+  return null;
+}
+
+// ── City / location resolution ─────────────────────────────────────────
+
+async function resolveCityImage(
+  displayName: string,
+  wikidataClaims: Record<string, unknown> | null,
+): Promise<string | null> {
+  // 1. Curated city map → Wikipedia summary of the city
+  const curatedCity = CITY_HINTS[displayName] ?? CITY_HINTS[ALIASES[displayName] ?? ''];
+  if (curatedCity) {
+    const summary = await fetchWikiSummary(curatedCity);
+    const cityImage = summary?.original ?? summary?.thumb;
+    if (cityImage) return cityImage;
+  }
+
+  // 2. Wikidata P131 (located in admin entity) → enwiki article → image
+  if (wikidataClaims) {
+    for (const prop of ['P131', 'P159', 'P276']) {
+      const entityId = readFirstEntityIdClaim(wikidataClaims, prop);
+      if (!entityId) continue;
+      const sitelink = await fetchEntitySitelink(entityId);
+      if (!sitelink) continue;
+      const summary = await fetchWikiSummary(sitelink);
+      const img = summary?.original ?? summary?.thumb;
+      if (img) return img;
+    }
+  }
+
+  return null;
+}
+
+// ── Per-university resolver ────────────────────────────────────────────
 
 async function resolveOne(rawTitle: string, displayName: string): Promise<ResolvedImagery> {
   const cached = CACHE.get(rawTitle);
   if (cached) return cached;
 
   const title = aliasTitle(rawTitle);
+  const pageInfo = await fetchWikiPageInfo(title);
 
-  // Run summary + page-info in parallel; both can give us the campus image,
-  // and page-info gives us the wikidata ID needed for the logo.
-  const [summary, pageInfo] = await Promise.all([
-    fetchWikiSummary(title),
-    fetchWikiPageInfo(title),
+  const claims = pageInfo?.wikidataId ? await fetchWikidataClaims(pageInfo.wikidataId) : null;
+
+  // Logo + city in parallel
+  const [logo, cityImage] = await Promise.all([
+    resolveLogo(displayName, claims),
+    resolveCityImage(displayName, claims),
   ]);
 
-  // Campus: prefer the highest-res Wikipedia image we can get hold of.
-  const campus = pageInfo?.original ?? summary?.original ?? summary?.thumb ?? null;
-
-  // Logo: try Wikidata first, then a domain-based Clearbit fallback so
-  // every university card gets some kind of recognisable mark.
-  let logo: string | null = null;
-  if (pageInfo?.wikidataId) {
-    logo = await fetchWikidataLogo(pageInfo.wikidataId);
-  }
-  if (!logo) {
-    const domain = guessDomain(displayName) ?? guessDomain(title.replace(/_/g, ' '));
-    if (domain) logo = clearbitLogoUrl(domain);
-  }
+  // Campus = preferred city image, falling back to the Wikipedia article's
+  // own lead image (which is usually the campus).
+  const campus = cityImage ?? pageInfo?.original ?? null;
 
   const result: ResolvedImagery = { campus, logo };
   CACHE.set(rawTitle, result);
   return result;
 }
 
-// ── Public API ──────────────────────────────────────────────────────────
+// ── Public API ─────────────────────────────────────────────────────────
 
-/**
- * Resolve campus + logo imagery for a batch of universities.
- *
- * @param entries  Pairs of `[wikiTitle, displayName]` — wikiTitle is the
- *                 underscore-joined Wikipedia title used as the cache key,
- *                 displayName is the human-readable institution name used
- *                 to look up domain hints when Wikidata has no logo.
- * @returns        Map keyed on wikiTitle, with `campus` and `logo` URLs.
- */
 export async function resolveUniversityImagery(
   entries: Array<[string, string]>,
 ): Promise<Map<string, ResolvedImagery>> {
