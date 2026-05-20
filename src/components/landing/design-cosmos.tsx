@@ -4,6 +4,7 @@ import { useCallback, useRef } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { LandingGlobe } from '@/components/landing-globe';
+import { CosmicBackground } from '@/components/landing/cosmic-background';
 import { WaitlistForm } from '@/components/waitlist-form';
 import type { WaitlistAction } from '@/lib/types';
 
@@ -38,51 +39,45 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
   }, { scope: rootRef });
 
   return (
-    <div ref={rootRef} className="relative overflow-x-hidden bg-[#06101f] text-white">
-      {/* 3D rotating star field — covers entire page */}
-      <div aria-hidden className="landing-stars-3d pointer-events-none fixed inset-0 z-0">
-        <div className="landing-stars-3d-scene">
-          <div className="landing-stars-3d-layer landing-stars-3d-layer-far" />
-          <div className="landing-stars-3d-layer landing-stars-3d-layer-mid" />
-          <div className="landing-stars-3d-layer landing-stars-3d-layer-near" />
-          <div className="landing-stars-3d-layer landing-stars-3d-layer-twinkle" />
-        </div>
-        <div className="landing-shooting-star" />
-        <div className="landing-shooting-star landing-shooting-star-2" />
-        <div className="landing-shooting-star landing-shooting-star-3" />
+    <div ref={rootRef} className="cosmos-root relative overflow-x-hidden bg-[#02060f] text-white">
+      {/* Canvas-based deep space — stars, nebula, meteors */}
+      <div aria-hidden className="cosmic-bg-wrap pointer-events-none fixed inset-0 z-0">
+        <CosmicBackground />
       </div>
 
+      {/* Soft brand colour wash on top of the canvas */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 z-0"
+        className="pointer-events-none fixed inset-0 z-0"
         style={{
           background:
-            'radial-gradient(circle at 18% 18%, rgba(34,211,238,0.14), transparent 28%), radial-gradient(circle at 78% 20%, rgba(244,114,182,0.12), transparent 22%), linear-gradient(180deg, rgba(6,16,31,0.6) 0%, rgba(8,23,42,0.7) 52%, rgba(11,29,51,0.8) 100%)',
+            'radial-gradient(ellipse at 18% 12%, rgba(34,211,238,0.10), transparent 35%), radial-gradient(ellipse at 82% 18%, rgba(244,114,182,0.09), transparent 32%)',
         }}
       />
 
-      <section className="relative z-10 overflow-hidden px-6 pb-20 pt-24 md:pt-28">
-        <div className="mx-auto grid max-w-7xl gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(420px,1fr)] lg:items-center">
-          <div className="relative z-10 max-w-3xl">
+      <section className="relative z-10 px-5 pb-16 pt-20 sm:px-6 md:pt-24 lg:pb-20 lg:pt-28">
+        <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(380px,1fr)] lg:items-center lg:gap-10">
+          {/* ── Copy ─────────────────────────────────────────────── */}
+          <div className="relative z-10 max-w-3xl text-center lg:text-left">
             <button
               type="button"
               onClick={handlePillClick}
-              className="landing-pill inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-cyan-200 backdrop-blur"
+              className="landing-pill inline-flex items-center gap-2 rounded-full border border-white/12 bg-white/6 px-3.5 py-1.5 text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200 backdrop-blur sm:px-4 sm:py-2 sm:text-[11px] sm:tracking-[0.24em]"
             >
               <span className="h-2 w-2 rounded-full bg-emerald-400" />
               Early access
             </button>
 
-            <h1 className="landing-title mt-6 text-5xl font-semibold leading-none tracking-[-0.05em] md:text-6xl lg:text-[5.5rem]">
+            <h1 className="landing-title mt-5 text-[2.4rem] font-semibold leading-[1.05] tracking-[-0.04em] sm:text-5xl md:text-6xl lg:text-[5.25rem] lg:leading-none lg:tracking-[-0.05em] xl:text-[5.75rem]">
               Your future
               <span className="glowbal-wordmark block">is global</span>
             </h1>
 
-            <p className="landing-subtitle mt-5 max-w-2xl text-base leading-8 text-white/70 md:text-xl">
+            <p className="landing-subtitle mx-auto mt-4 max-w-xl text-[0.95rem] leading-7 text-white/70 sm:text-base sm:leading-8 md:text-lg lg:mx-0 lg:max-w-2xl lg:text-xl">
               Glowbal is the calmer way to find, apply to, and get into universities anywhere in the world. Match with the right schools, learn from students who&apos;ve been there, and ship your application with less noise.
             </p>
 
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-7 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
               <a
                 href="/universities"
                 className="landing-cta inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff4d8c,#ff8fb8)] px-7 py-3.5 text-sm font-semibold text-white shadow-[0_14px_34px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
@@ -97,29 +92,37 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
               </a>
             </div>
 
-            <div className="mt-10 flex flex-wrap gap-3">
+            <div className="mt-8 flex flex-wrap justify-center gap-2 sm:gap-3 lg:justify-start">
               {features.map((feature) => (
-                <div key={feature} className="landing-feature rounded-full border border-white/12 bg-white/[0.05] px-4 py-2.5 text-sm font-medium text-white/78 backdrop-blur-sm">
+                <div
+                  key={feature}
+                  className="landing-feature rounded-full border border-white/12 bg-white/[0.05] px-3.5 py-2 text-[0.78rem] font-medium text-white/78 backdrop-blur-sm sm:px-4 sm:py-2.5 sm:text-sm"
+                >
                   {feature}
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="landing-globe relative flex items-center justify-center lg:justify-end">
-            <div className="relative translate-x-[10%] md:translate-x-[14%] xl:translate-x-[18%]">
-              <LandingGlobe theme="cosmos" size={700} rotateSpeed={0.26} />
+          {/* ── Globe ─────────────────────────────────────────────── */}
+          <div className="landing-globe relative order-first flex items-center justify-center lg:order-none lg:justify-end">
+            <div className="cosmos-globe-stage">
+              {/* soft halo behind the globe so it feels suspended */}
+              <div className="cosmos-globe-halo" aria-hidden />
+              <LandingGlobe theme="cosmos" rotateSpeed={0.26} responsive />
             </div>
           </div>
         </div>
       </section>
 
-      <section id="waitlist" className="relative z-10 px-6 pb-16">
-        <div className="landing-waitlist mx-auto grid max-w-5xl gap-8 rounded-[2rem] border border-white/10 bg-white/[0.05] p-8 backdrop-blur-xl md:grid-cols-[1fr_360px] md:p-10">
+      <section id="waitlist" className="relative z-10 px-5 pb-16 sm:px-6">
+        <div className="landing-waitlist mx-auto grid max-w-5xl gap-7 rounded-[1.75rem] border border-white/10 bg-white/[0.05] p-6 backdrop-blur-xl sm:rounded-[2rem] sm:p-8 md:grid-cols-[1fr_360px] md:gap-8 md:p-10">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-cyan-200/85">Get early access</p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-[-0.04em] text-white">Built for students who refuse to settle.</h2>
-            <p className="mt-4 max-w-xl text-sm leading-7 text-white/64 md:text-base">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-cyan-200/85 sm:text-xs sm:tracking-[0.24em]">Get early access</p>
+            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em] text-white sm:text-3xl sm:tracking-[-0.04em]">
+              Built for students who refuse to settle.
+            </h2>
+            <p className="mt-3 max-w-xl text-sm leading-7 text-white/64 sm:mt-4 md:text-base">
               Real universities. Real students who got in. Real advice. Skip the agents, the noise, and the endless tabs. Glowbal is one place to find your future, anywhere on the map.
             </p>
           </div>

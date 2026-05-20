@@ -10,8 +10,14 @@ export type LandingGlobeHandle = {
 
 type Props = {
   theme?: LandingGlobeTheme;
+  /** Fixed pixel size. Ignored when `responsive` is true. */
   size?: number;
   rotateSpeed?: number;
+  /**
+   * When true, the globe sizes itself to its parent container
+   * (using ResizeObserver) and stays square. Useful for fluid layouts.
+   */
+  responsive?: boolean;
 };
 
 const themeConfigs: Record<LandingGlobeTheme, { atmosphere: string; alt: number; texture: string }> = {
@@ -23,18 +29,39 @@ const themeConfigs: Record<LandingGlobeTheme, { atmosphere: string; alt: number;
 };
 
 export const LandingGlobe = forwardRef<LandingGlobeHandle, Props>(function LandingGlobe(
-  { theme = 'cosmos', size = 500, rotateSpeed = 0.5 },
+  { theme = 'cosmos', size = 500, rotateSpeed = 0.5, responsive = false },
   ref,
 ) {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [GlobeComp, setGlobeComp] = useState<ComponentType<any> | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const globeRef = useRef<any>(undefined);
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const [measured, setMeasured] = useState<number>(size);
   const cfg = themeConfigs[theme];
 
   useEffect(() => {
     import('react-globe.gl').then((mod) => setGlobeComp(() => mod.default));
   }, []);
+
+  useEffect(() => {
+    if (!responsive) {
+      setMeasured(size);
+      return;
+    }
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const update = () => {
+      const rect = el.getBoundingClientRect();
+      const next = Math.max(160, Math.round(Math.min(rect.width, rect.height || rect.width)));
+      setMeasured(next);
+    };
+    update();
+    const ro = new ResizeObserver(update);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [responsive, size]);
 
   useImperativeHandle(ref, () => ({
     flyTo(lat, lng, altitude, duration = 1000) {
@@ -53,20 +80,29 @@ export const LandingGlobe = forwardRef<LandingGlobeHandle, Props>(function Landi
     controls.enableRotate = false;
   }
 
-  if (!GlobeComp) return <div style={{ width: size, height: size }} />;
+  // Outer wrapper keeps a square aspect ratio when responsive.
+  const wrapperStyle: React.CSSProperties = responsive
+    ? { width: '100%', aspectRatio: '1 / 1', display: 'block' }
+    : { width: size, height: size };
+
+  if (!GlobeComp) {
+    return <div ref={wrapRef} style={wrapperStyle} />;
+  }
 
   return (
-    <GlobeComp
-      ref={globeRef}
-      width={size}
-      height={size}
-      backgroundColor="rgba(0,0,0,0)"
-      showAtmosphere
-      atmosphereColor={cfg.atmosphere}
-      atmosphereAltitude={cfg.alt}
-      globeImageUrl={cfg.texture}
-      onGlobeReady={onReady}
-      enablePointerInteraction={false}
-    />
+    <div ref={wrapRef} style={wrapperStyle}>
+      <GlobeComp
+        ref={globeRef}
+        width={measured}
+        height={measured}
+        backgroundColor="rgba(0,0,0,0)"
+        showAtmosphere
+        atmosphereColor={cfg.atmosphere}
+        atmosphereAltitude={cfg.alt}
+        globeImageUrl={cfg.texture}
+        onGlobeReady={onReady}
+        enablePointerInteraction={false}
+      />
+    </div>
   );
 });
