@@ -739,6 +739,55 @@ function parseTuition(tuition: string | null | undefined): number | null {
 }
 
 /**
+ * Compact presentation of an acceptance-rate string for the stat row.
+ * The DB stores values like "14–18% overall; Engineering/Medicine
+ * competitive" — too noisy for a 3-column grid. We pick the first
+ * percentage and pair it with `~` if the original looks like a range
+ * ("4–5%", "10-15%"). The full string is shown as a tooltip on hover.
+ */
+function formatAcceptanceForCard(rate: string | null | undefined): string {
+  if (!rate) return '—';
+  const trimmed = rate.trim();
+  if (!trimmed || trimmed === '—') return '—';
+  // First "%" expression in the string — covers "5%", "14–18%", "4-5%".
+  const m = trimmed.match(/(\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)\s*%/);
+  if (m) return `${m[1]}–${m[2]}%`;
+  const single = trimmed.match(/(\d+(?:\.\d+)?)\s*%/);
+  if (single) return `${single[1]}%`;
+  return trimmed.length > 12 ? `${trimmed.slice(0, 11).trim()}…` : trimmed;
+}
+
+/**
+ * Compact tuition string for the stat row. Picks the first dollar /
+ * numeric value, prefixes with `$`, and condenses k-suffixes — so
+ * "42,000-65,000 USD" becomes "$42–65k", "59,320 (UG); ~$65,000"
+ * becomes "$59k", and "Free" stays as "Free".
+ */
+function formatTuitionForCard(tuition: string | null | undefined): string {
+  if (!tuition) return '—';
+  const trimmed = tuition.trim();
+  if (!trimmed || trimmed === '—') return '—';
+  if (/free/i.test(trimmed)) return 'Free';
+
+  // Pull the first run of numbers. We don't try to parse multi-currency
+  // mess — just show the first thousand-grouped or k-suffixed amount.
+  const cleaned = trimmed.replace(/[,]/g, '');
+  const range = cleaned.match(/(\d{3,6})\s*[–-]\s*(\d{3,6})/);
+  if (range) {
+    const lo = Math.round(parseInt(range[1], 10) / 1000);
+    const hi = Math.round(parseInt(range[2], 10) / 1000);
+    return `$${lo}–${hi}k`;
+  }
+  const single = cleaned.match(/(\d{3,6})/);
+  if (single) {
+    const n = parseInt(single[1], 10);
+    if (n >= 1000) return `$${Math.round(n / 1000)}k`;
+    return `$${n}`;
+  }
+  return trimmed.length > 10 ? `${trimmed.slice(0, 9).trim()}…` : trimmed;
+}
+
+/**
  * Best-effort deadline parser. Universities often store deadlines as "Jan 15",
  * "January 15, 2026", or just a month. We try Date.parse first, then fall back
  * to mapping a month name to the upcoming occurrence.
@@ -826,6 +875,15 @@ function UniversityCard({
     ? acceptanceNum < 10 ? 'text-emerald-600' : acceptanceNum < 30 ? 'text-amber-600' : 'text-red-500'
     : 'text-slate-400';
 
+  // The accept_rate / tuition_usd fields in the database are messy free-text
+  // ("14–18% overall; Engineering/Medicine competitive", "42,000-65,000 USD"
+  // and so on). For the small stat row we extract the *first numeric value*
+  // and present that compactly; the original string is kept as a tooltip so
+  // users who want the nuance can hover. This is what gives every card a
+  // consistent height.
+  const acceptDisplay = formatAcceptanceForCard(university.accept_rate);
+  const tuitionDisplay = formatTuitionForCard(university.tuition_usd);
+
   // Track per-URL failure flags. Using `useMemo` + a ref-keyed map keeps
   // us out of "setState inside useEffect" territory; the failure state is
   // tied to the specific URL string so a fresh hydration reset happens
@@ -858,7 +916,7 @@ function UniversityCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.03, 0.5), ease: 'easeOut' }}
       onClick={() => setView('detail', university.id)}
-      className={`group relative cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] ${
+      className={`group relative cursor-pointer overflow-hidden rounded-2xl border bg-white shadow-[0_4px_14px_rgba(15,23,42,0.06)] transition-all duration-200 hover:-translate-y-1 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] flex flex-col h-full ${
         isCompared ? 'border-pink-300 ring-2 ring-pink-200' : 'border-slate-200'
       }`}
     >
@@ -906,7 +964,7 @@ function UniversityCard({
       </div>
 
       {/* Content */}
-      <div className="px-4 pb-4 pt-2">
+      <div className="px-4 pb-4 pt-2 flex-1 flex flex-col">
         {/* Logo circle, half-overlapping the image. Uses the resolved
             Wikidata logo when available, otherwise falls back to the
             university's brand colour with rendered initials. */}
@@ -939,19 +997,21 @@ function UniversityCard({
           <span className="truncate">{university.location}</span>
         </p>
 
-        {/* 3-column stats */}
+        {/* 3-column stats — show compact numeric values. The full DB
+            string lives in the `title` attribute so power users can
+            still see the nuance on hover. */}
         <div className="mt-3 grid grid-cols-3 gap-1 border-t border-slate-100 pt-3">
           <div>
             <p className="text-[0.6rem] font-medium uppercase tracking-wider text-slate-400">QS Rank</p>
-            <p className="text-xs font-bold text-slate-900 mt-0.5">{university.qs_rank ?? '—'}</p>
+            <p className="text-xs font-bold text-slate-900 mt-0.5">{university.qs_rank ? `#${university.qs_rank}` : '—'}</p>
           </div>
-          <div>
-            <p className="text-[0.6rem] font-medium uppercase tracking-wider text-slate-400">Accept Rate</p>
-            <p className={`text-xs font-bold mt-0.5 ${acceptColor}`}>{university.accept_rate ?? '—'}</p>
+          <div title={university.accept_rate ?? undefined}>
+            <p className="text-[0.6rem] font-medium uppercase tracking-wider text-slate-400">Accept</p>
+            <p className={`text-xs font-bold mt-0.5 ${acceptColor}`}>{acceptDisplay}</p>
           </div>
-          <div>
+          <div title={university.tuition_usd ?? undefined}>
             <p className="text-[0.6rem] font-medium uppercase tracking-wider text-slate-400">Tuition</p>
-            <p className="text-xs font-bold text-slate-900 mt-0.5 truncate">{university.tuition_usd ?? '—'}</p>
+            <p className="text-xs font-bold text-slate-900 mt-0.5">{tuitionDisplay}</p>
           </div>
         </div>
 
@@ -962,8 +1022,8 @@ function UniversityCard({
           </div>
         )}
 
-        {/* CTA row */}
-        <div className="mt-3 flex items-center gap-2">
+        {/* CTA row — pinned to the bottom of the card so all cards line up. */}
+        <div className="mt-auto pt-3 flex items-center gap-2">
           <button
             type="button"
             onClick={handleViewDetails}
@@ -2280,9 +2340,12 @@ export function UniversityExplorerClient({
         if (cancelled || !imagery) return;
         setUniversitiesWithImages((prev) =>
           prev.map((uni) => {
-            // Find the wiki title that produced this card. For now we
-            // re-derive it from the name to match server-side logic.
-            const title = uni.name.replace(/\s+/g, '_');
+            // Re-derive the wiki title using the same algorithm as
+            // explorer-utils' buildUniversityImageUrl: strip trailing
+            // parenthetical acronyms ("(NUS)", "(Caltech)", etc.) before
+            // converting spaces to underscores.
+            const cleanName = uni.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+            const title = cleanName.replace(/\s+/g, '_');
             const resolved = imagery[title];
             if (!resolved) return uni;
             return {

@@ -99,10 +99,11 @@ function deriveTags(uni: University & { match_score: number | null; match_breakd
 }
 
 function buildUniversityImageUrl(uni: University) {
-  // Construct a Wikipedia REST API summary URL.
-  // The actual thumbnail will be resolved at fetch time in the server component.
-  // This stores the Wikipedia title so we can batch-resolve images.
-  const title = uni.name.replace(/\s+/g, '_');
+  // Strip trailing parenthetical acronyms (the database has names like
+  // "National University of Singapore (NUS)") so the title we send to
+  // Wikipedia matches the actual article.
+  const cleanName = uni.name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+  const title = cleanName.replace(/\s+/g, '_');
   return `__wiki__${title}`;
 }
 

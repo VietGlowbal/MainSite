@@ -64,6 +64,25 @@ function aliasTitle(title: string): string {
   return ALIASES[normalised] ?? title;
 }
 
+/**
+ * Strip trailing parenthetical acronyms / qualifiers — the database
+ * stores names like "National University of Singapore (NUS)" and
+ * "University College London (UCL)" so a direct hint-map lookup misses
+ * unless we normalise. Returns the cleaned name *and* the original.
+ */
+function nameWithoutParens(name: string): string {
+  return name.replace(/\s*\([^)]*\)\s*$/, '').trim();
+}
+
+/**
+ * Resolve a hint from a map by trying both the exact name and the
+ * paren-stripped variant. Used by every hint lookup to avoid duplicating
+ * the fallback logic everywhere.
+ */
+function lookupHint<T>(map: Record<string, T>, name: string): T | undefined {
+  return map[name] ?? map[nameWithoutParens(name)] ?? map[ALIASES[name] ?? ''] ?? map[ALIASES[nameWithoutParens(name)] ?? ''];
+}
+
 // ── Curated city map ────────────────────────────────────────────────────
 //
 // The cover image on every card is a photo of the *city/location*, not
@@ -151,7 +170,13 @@ const CITY_HINTS: Record<string, string> = {
   'Hong Kong University of Science and Technology': 'Hong Kong',
   'Chinese University of Hong Kong': 'Hong Kong',
   'Seoul National University': 'Seoul',
-  'KAIST': 'Daejeon',
+  KAIST: 'Daejeon',
+  'POSTECH': 'Pohang',
+  'Korea Advanced Institute of Science and Technology': 'Daejeon',
+  'Tokyo Institute of Technology': 'Tokyo',
+  'Indian Institute of Science': 'Bengaluru',
+  'Indian Institute of Technology Bombay': 'Mumbai',
+  'Indian Institute of Technology Delhi': 'New Delhi',
 
   // ── Europe ─────────────────────────────────────
   'ETH Zurich': 'Zurich',
@@ -165,6 +190,9 @@ const CITY_HINTS: Record<string, string> = {
   'Sciences Po': 'Paris',
   'Sorbonne University': 'Paris',
   'PSL University': 'Paris',
+  'Université Paris-Saclay': 'Paris',
+  'Paris-Saclay University': 'Paris',
+  'École Polytechnique': 'Palaiseau',
   'Trinity College Dublin': 'Dublin',
   'KTH Royal Institute of Technology': 'Stockholm',
   'Lund University': 'Lund',
@@ -176,6 +204,12 @@ const CITY_HINTS: Record<string, string> = {
   'Pompeu Fabra University': 'Barcelona',
   Politecnico: 'Milan',
   'Polytechnic University of Milan': 'Milan',
+  'Bocconi University': 'Milan',
+  'Erasmus University Rotterdam': 'Rotterdam',
+  'University of Geneva': 'Geneva',
+  'Charles University': 'Prague',
+  'University of Warsaw': 'Warsaw',
+  'University of Zurich': 'Zurich',
 
   // ── Middle East ────────────────────────────────
   'Khalifa University': 'Abu Dhabi',
@@ -184,66 +218,12 @@ const CITY_HINTS: Record<string, string> = {
   'Hamad bin Khalifa University': 'Doha',
 };
 
-// ── Curated logo map ───────────────────────────────────────────────────
-//
-// Direct Wikimedia Commons file names for top universities — these are
-// the canonical brand logos as published by the institutions themselves.
-// Avoids depending on Wikidata having P154 set (it's surprisingly
-// inconsistent for older articles).
-const LOGO_HINTS: Record<string, string> = {
-  'Harvard University': 'Harvard_University_coat_of_arms.svg',
-  'Massachusetts Institute of Technology': 'MIT_logo.svg',
-  'Stanford University': 'Stanford_Cardinal_logo.svg',
-  'Princeton University': 'Princeton_seal.svg',
-  'Yale University': 'Yale_University_Shield_1.svg',
-  'Columbia University': 'Columbia_coat_of_arms_without_motto_ribbon.svg',
-  'Cornell University': 'Cornell_University_seal.svg',
-  'Brown University': 'Brown_University_coat_of_arms.svg',
-  'University of Pennsylvania': 'University_of_Pennsylvania_shield_with_banner.svg',
-  'University of Chicago': 'University_of_Chicago_shield.svg',
-  'Johns Hopkins University': 'Johns_Hopkins_University_seal.svg',
-  'New York University': 'NYU_logo.svg',
-  'California Institute of Technology': 'Seal_of_the_California_Institute_of_Technology.svg',
-  'University of California, Berkeley': 'Seal_of_University_of_California,_Berkeley.svg',
-  'University of California, Los Angeles': 'The_University_of_California_UCLA.svg',
-  'University of Michigan': 'University_of_Michigan_logo.svg',
-  'Carnegie Mellon University': 'Carnegie_Mellon_University_seal.svg',
-  'Duke University': 'Duke_University_seal.svg',
-
-  'University of Oxford': 'Oxford-University-Circlet.svg',
-  'University of Cambridge': 'University_of_Cambridge_coat_of_arms_official.svg',
-  'Imperial College London': 'Imperial_College_London_crest.svg',
-  'University College London': 'University_College_London_logo.svg',
-  'London School of Economics': 'London_School_of_Economics_coat_of_arms.svg',
-  "King's College London": "King's_College_London_logo.svg",
-  'University of Edinburgh': 'University_of_Edinburgh_ceremonial_roundel.svg',
-  'University of Manchester': 'University_of_Manchester.svg',
-  'University of Warwick': 'University_of_Warwick_coat_of_arms.svg',
-  'University of Leeds': 'University_of_Leeds_logo.svg',
-  'University of Birmingham': 'University_of_Birmingham_coat_of_arms.svg',
-  'University of Bath': 'University_of_Bath_coat_of_arms.svg',
-
-  'University of Toronto': 'Utoronto_coa.svg',
-  'McGill University': 'McGill_University_CoA.svg',
-  'University of British Columbia': 'The_University_of_British_Columbia-Logo.svg',
-
-  'University of Melbourne': 'University_of_Melbourne_logo.svg',
-  'University of Sydney': 'University_of_Sydney_coat_of_arms.svg',
-  'Australian National University': 'ANU_logo.svg',
-
-  'National University of Singapore': 'NUS_coat_of_arms.svg',
-  'Nanyang Technological University': 'Nanyang_Technological_University.svg',
-  'University of Tokyo': 'University_of_Tokyo_logo.svg',
-  'Kyoto University': 'Kyoto_University_emblem.svg',
-  'ETH Zurich': 'ETH_Zürich_Logo_black.svg',
-  EPFL: 'Logo_EPFL.svg',
-  'Delft University of Technology': 'Delft_University_of_Technology_logo.svg',
-  'Sciences Po': 'Sciences_Po.svg',
-  'Trinity College Dublin': 'Trinity_College_Dublin_Arms.svg',
-  'Royal College of Art': 'Royal_College_of_Art_logo.svg',
-};
-
 // ── Domain hints for Clearbit fallback ─────────────────────────────────
+//
+// Clearbit's free /logo endpoint returns a transparent PNG given any
+// domain. It's surprisingly reliable across the higher-ed sector. We
+// keep an explicit map for big-name universities so the lookup is fast
+// and deterministic, and fall back to a generic guess when needed.
 const DOMAIN_HINTS: Record<string, string> = {
   'Massachusetts Institute of Technology': 'mit.edu',
   'Stanford University': 'stanford.edu',
@@ -276,23 +256,76 @@ const DOMAIN_HINTS: Record<string, string> = {
   'Delft University of Technology': 'tudelft.nl',
   'University of Amsterdam': 'uva.nl',
   'Sciences Po': 'sciencespo.fr',
+  'Université Paris-Saclay': 'universite-paris-saclay.fr',
+  'Paris-Saclay University': 'universite-paris-saclay.fr',
   'Trinity College Dublin': 'tcd.ie',
   'University of California, Berkeley': 'berkeley.edu',
   'University of California, Los Angeles': 'ucla.edu',
+  'University of California, San Diego': 'ucsd.edu',
   'Princeton University': 'princeton.edu',
   'Yale University': 'yale.edu',
   'Columbia University': 'columbia.edu',
   'Cornell University': 'cornell.edu',
   'Brown University': 'brown.edu',
+  'University of Pennsylvania': 'upenn.edu',
+  'Johns Hopkins University': 'jhu.edu',
+  'University of Chicago': 'uchicago.edu',
+  'Northwestern University': 'northwestern.edu',
+  'New York University': 'nyu.edu',
+  'California Institute of Technology': 'caltech.edu',
+  'University of Michigan': 'umich.edu',
+  'University of Washington': 'uw.edu',
+  'Carnegie Mellon University': 'cmu.edu',
+  'Duke University': 'duke.edu',
+  'Georgia Institute of Technology': 'gatech.edu',
   'Royal College of Art': 'rca.ac.uk',
+  'University of Bristol': 'bristol.ac.uk',
+  'University of Glasgow': 'gla.ac.uk',
+  'University of St Andrews': 'st-andrews.ac.uk',
+  'University of Sheffield': 'sheffield.ac.uk',
+  'University of Nottingham': 'nottingham.ac.uk',
+  'University of Southampton': 'southampton.ac.uk',
+  'Queen Mary University of London': 'qmul.ac.uk',
+  'University of Auckland': 'auckland.ac.nz',
+  'Monash University': 'monash.edu',
+  'University of Queensland': 'uq.edu.au',
+  'Tsinghua University': 'tsinghua.edu.cn',
+  'Peking University': 'pku.edu.cn',
+  'University of Hong Kong': 'hku.hk',
+  'Hong Kong University of Science and Technology': 'hkust.hk',
+  'Chinese University of Hong Kong': 'cuhk.edu.hk',
+  'Seoul National University': 'snu.ac.kr',
+  KAIST: 'kaist.ac.kr',
+  'Korea Advanced Institute of Science and Technology': 'kaist.ac.kr',
+  'Indian Institute of Science': 'iisc.ac.in',
+  'Bocconi University': 'unibocconi.it',
+  'Polytechnic University of Milan': 'polimi.it',
+  Politecnico: 'polimi.it',
+  'Technical University of Munich': 'tum.de',
+  'Ludwig Maximilian University of Munich': 'lmu.de',
+  'Heidelberg University': 'uni-heidelberg.de',
+  'KU Leuven': 'kuleuven.be',
+  'Sorbonne University': 'sorbonne-universite.fr',
+  'PSL University': 'psl.eu',
+  'École Polytechnique': 'polytechnique.edu',
+  'KTH Royal Institute of Technology': 'kth.se',
+  'Lund University': 'lunduniversity.lu.se',
+  'University of Copenhagen': 'ku.dk',
+  'University of Helsinki': 'helsinki.fi',
+  'University of Vienna': 'univie.ac.at',
 };
 
 function guessDomain(name: string): string | null {
-  return DOMAIN_HINTS[name] ?? DOMAIN_HINTS[ALIASES[name] ?? ''] ?? null;
+  return lookupHint(DOMAIN_HINTS, name) ?? null;
 }
 
-function clearbitLogoUrl(domain: string): string {
-  return `https://logo.clearbit.com/${domain}`;
+function faviconLogoUrl(domain: string): string {
+  // Google's free `s2/favicons` endpoint returns a 256px image of the
+  // domain's favicon — for universities that's almost always the
+  // institution's wordmark/crest. We used to use `logo.clearbit.com`
+  // but Clearbit shut down their public API on Dec 1 2025, so we
+  // picked the most reliable no-auth alternative.
+  return `https://www.google.com/s2/favicons?sz=128&domain=${domain}`;
 }
 
 // ── Wikipedia / Commons fetchers ───────────────────────────────────────
@@ -440,14 +473,9 @@ async function resolveLogo(
   displayName: string,
   wikidataClaims: Record<string, unknown> | null,
 ): Promise<string | null> {
-  // 1. Curated Commons file
-  const curatedFile = LOGO_HINTS[displayName] ?? LOGO_HINTS[ALIASES[displayName] ?? ''];
-  if (curatedFile) {
-    const url = await commonsImageUrl(curatedFile, 320);
-    if (url) return url;
-  }
-
-  // 2. Wikidata logo / seal claims
+  // 1. Wikidata logo / seal claims, resolved through Commons. This is
+  //    the highest-quality source — institutions self-publish their
+  //    canonical brand mark here.
   if (wikidataClaims) {
     for (const prop of ['P154', 'P158', 'P8972']) {
       const file = readFirstImageClaim(wikidataClaims, prop);
@@ -458,28 +486,31 @@ async function resolveLogo(
     }
   }
 
-  // 3. Clearbit by domain
+  // 2. Google's `s2/favicons` endpoint as a last-resort fallback. For
+  //    universities the favicon is almost always the institution's
+  //    wordmark or crest, which renders fine in the 48px circle on the
+  //    card. Free, no API key, served by Google's CDN.
   const domain = guessDomain(displayName);
-  if (domain) return clearbitLogoUrl(domain);
+  if (domain) return faviconLogoUrl(domain);
 
   return null;
 }
 
-// ── City / location resolution ─────────────────────────────────────────
-
-async function resolveCityImage(
+// Override resolveCityImage so it also uses lookupHint (handles
+// "(NUS)" / "(UCL)" / "(Caltech)" suffixes consistently).
+async function resolveCityImageV2(
   displayName: string,
   wikidataClaims: Record<string, unknown> | null,
 ): Promise<string | null> {
   // 1. Curated city map → Wikipedia summary of the city
-  const curatedCity = CITY_HINTS[displayName] ?? CITY_HINTS[ALIASES[displayName] ?? ''];
+  const curatedCity = lookupHint(CITY_HINTS, displayName);
   if (curatedCity) {
     const summary = await fetchWikiSummary(curatedCity);
     const cityImage = summary?.original ?? summary?.thumb;
     if (cityImage) return cityImage;
   }
 
-  // 2. Wikidata P131 (located in admin entity) → enwiki article → image
+  // 2. Wikidata "located in" / HQ / coordinates → linked enwiki page
   if (wikidataClaims) {
     for (const prop of ['P131', 'P159', 'P276']) {
       const entityId = readFirstEntityIdClaim(wikidataClaims, prop);
@@ -509,7 +540,7 @@ async function resolveOne(rawTitle: string, displayName: string): Promise<Resolv
   // Logo + city in parallel
   const [logo, cityImage] = await Promise.all([
     resolveLogo(displayName, claims),
-    resolveCityImage(displayName, claims),
+    resolveCityImageV2(displayName, claims),
   ]);
 
   // Campus = preferred city image, falling back to the Wikipedia article's
