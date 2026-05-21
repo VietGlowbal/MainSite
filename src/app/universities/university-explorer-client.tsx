@@ -971,7 +971,7 @@ function UniversityCard({
         <div className="-mt-8 mb-2">
           <div
             className="flex h-12 w-12 items-center justify-center rounded-full border-4 border-white shadow-md overflow-hidden"
-            style={{ background: showLogoImage ? '#fff' : university.color }}
+            style={{ background: showLogoImage ? '#fff' : university.color, zIndex: 1,}}
           >
             {showLogoImage ? (
               // eslint-disable-next-line @next/next/no-img-element
