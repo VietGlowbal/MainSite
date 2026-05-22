@@ -2070,7 +2070,7 @@ function DetailView() {
                     Book a 1-on-1 session with a current student or alum for honest advice on applications, courses, and life on campus.
                   </p>
                   <Link
-                    href={`/achievers?university=${university.id}`}
+                    href={`/mentors?university=${university.id}`}
                     className="mt-3 inline-flex items-center gap-1 rounded-full border border-pink-300 bg-white px-4 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50 transition"
                   >
                     Find a mentor here

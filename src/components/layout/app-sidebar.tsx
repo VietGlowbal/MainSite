@@ -31,7 +31,7 @@ const ITEMS: NavItem[] = [
   },
   {
     label: 'Mentors',
-    href: '/achievers',
+    href: '/mentors',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -73,10 +73,10 @@ function HelpCard() {
         Need help with your<br />application?
       </p>
       <p className="text-[0.65rem] text-slate-500 leading-relaxed mb-3">
-        Book a 1:1 session with our<br />mentors and alumni.
+        Book a mentorship session with<br />our mentors and alumni.
       </p>
       <Link
-        href="/achievers"
+        href="/mentors"
         className="inline-flex rounded-full border border-pink-300 bg-white px-3 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50 transition"
       >
         Book a Session

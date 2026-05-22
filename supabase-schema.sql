@@ -1,6 +1,7 @@
 -- ============================================================================
 -- GLOWBAL — FULL DATABASE SCHEMA
--- Run this in the Supabase SQL Editor (Dashboard → SQL Editor → New Query)
+-- Run this in the Supabase SQL Editor (Dashboard → SQL Editor → New Query).
+-- Safe to re-run: every object guards with `if not exists` / `do $$` blocks.
 -- ============================================================================
 
 -- ── 1. Universities table (imported from CSV) ──────────────────────────────
@@ -41,43 +42,106 @@ create table if not exists public.universities (
 
 alter table public.universities enable row level security;
 
--- Authenticated users can read universities
-create policy "Authenticated users can read universities"
-  on public.universities for select
-  to authenticated
-  using (true);
-
--- Service role has full access
-create policy "Service role full access to universities"
-  on public.universities for all
-  to service_role
-  using (true)
-  with check (true);
-
-
--- ── 2. Extend student_profiles with onboarding tracking ────────────────────
-
--- Add onboarding_completed columns (safe to run multiple times)
 do $$
 begin
   if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'student_profiles'
-      and column_name = 'onboarding_completed'
+    select 1 from pg_policies
+    where schemaname='public' and tablename='universities'
+      and policyname='Authenticated users can read universities'
   ) then
-    alter table public.student_profiles
-      add column onboarding_completed boolean not null default false;
+    create policy "Authenticated users can read universities"
+      on public.universities for select
+      to authenticated
+      using (true);
   end if;
 
   if not exists (
-    select 1 from information_schema.columns
-    where table_schema = 'public'
-      and table_name = 'student_profiles'
-      and column_name = 'onboarding_completed_at'
+    select 1 from pg_policies
+    where schemaname='public' and tablename='universities'
+      and policyname='Service role full access to universities'
   ) then
-    alter table public.student_profiles
-      add column onboarding_completed_at timestamptz;
+    create policy "Service role full access to universities"
+      on public.universities for all
+      to service_role
+      using (true)
+      with check (true);
+  end if;
+end $$;
+
+
+-- ── 2. Student profiles ────────────────────────────────────────────────────
+-- Created here so a fresh project bootstraps cleanly. Existing setups keep
+-- their data because of `if not exists`. The optional columns are added as
+-- separate `do $$` blocks below so they're safe to re-run after early adopters
+-- already had the table.
+
+create table if not exists public.student_profiles (
+  id                       bigserial primary key,
+  user_id                  uuid not null unique references auth.users(id) on delete cascade,
+  study_level              text,
+  target_subjects          text[],
+  preferred_countries      text[],
+  budget_range             text,
+  academic_background      text,
+  grades_summary           jsonb,
+  goals                    text,
+  career_interests         text[],
+  campus_preferences       text,
+  support_needs            text,
+  profile_summary          text,
+  bio                      text,
+  location                 text,
+  nationality              text,
+  achievements             jsonb default '[]'::jsonb,
+  skills                   text[] default '{}',
+  onboarding_completed     boolean not null default false,
+  onboarding_completed_at  timestamptz,
+  is_admin                 boolean not null default false,
+  created_at               timestamptz not null default now(),
+  updated_at               timestamptz not null default now()
+);
+
+alter table public.student_profiles enable row level security;
+
+-- Schema patch for projects that created student_profiles before some of
+-- these columns existed. Each guard is a no-op on a fresh DB.
+do $$
+begin
+  if not exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='student_profiles' and column_name='onboarding_completed') then
+    alter table public.student_profiles add column onboarding_completed boolean not null default false;
+  end if;
+
+  if not exists (select 1 from information_schema.columns
+                 where table_schema='public' and table_name='student_profiles' and column_name='onboarding_completed_at') then
+    alter table public.student_profiles add column onboarding_completed_at timestamptz;
+  end if;
+end $$;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='student_profiles'
+      and policyname='Users manage own profile'
+  ) then
+    create policy "Users manage own profile"
+      on public.student_profiles for all
+      to authenticated
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='student_profiles'
+      and policyname='Service role full access to student_profiles'
+  ) then
+    create policy "Service role full access to student_profiles"
+      on public.student_profiles for all
+      to service_role
+      using (true)
+      with check (true);
   end if;
 end $$;
 
@@ -100,11 +164,20 @@ create table if not exists public.user_universities (
 
 alter table public.user_universities enable row level security;
 
-create policy "Users manage own university list"
-  on public.user_universities for all
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='user_universities'
+      and policyname='Users manage own university list'
+  ) then
+    create policy "Users manage own university list"
+      on public.user_universities for all
+      to authenticated
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
+end $$;
 
 
 -- ── 4. Application tasks ───────────────────────────────────────────────────
@@ -126,30 +199,39 @@ create table if not exists public.application_tasks (
 
 alter table public.application_tasks enable row level security;
 
-create policy "Users manage own tasks"
-  on public.application_tasks for all
-  to authenticated
-  using (
-    exists (
-      select 1 from public.user_universities uu
-      where uu.id = application_tasks.user_university_id
-        and uu.user_id = auth.uid()
-    )
-  )
-  with check (
-    exists (
-      select 1 from public.user_universities uu
-      where uu.id = application_tasks.user_university_id
-        and uu.user_id = auth.uid()
-    )
-  );
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='application_tasks'
+      and policyname='Users manage own tasks'
+  ) then
+    create policy "Users manage own tasks"
+      on public.application_tasks for all
+      to authenticated
+      using (
+        exists (
+          select 1 from public.user_universities uu
+          where uu.id = application_tasks.user_university_id
+            and uu.user_id = auth.uid()
+        )
+      )
+      with check (
+        exists (
+          select 1 from public.user_universities uu
+          where uu.id = application_tasks.user_university_id
+            and uu.user_id = auth.uid()
+        )
+      );
+  end if;
+end $$;
 
 
 -- ── 5. Task templates (seeded defaults) ────────────────────────────────────
 
 create table if not exists public.task_templates (
   id                      bigserial primary key,
-  title                   text not null,
+  title                   text not null unique,
   description             text,
   category                text not null default 'general',
   relative_deadline_days  int not null default -30,   -- negative = before app deadline
@@ -157,20 +239,53 @@ create table if not exists public.task_templates (
   tips                    jsonb
 );
 
+-- Make `title` unique on databases that pre-date the constraint above.
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'task_templates_title_key'
+  ) then
+    -- Only add the constraint if there are no duplicates first.
+    if not exists (
+      select 1 from public.task_templates
+      group by title having count(*) > 1
+    ) then
+      alter table public.task_templates add constraint task_templates_title_key unique (title);
+    end if;
+  end if;
+end $$;
+
 alter table public.task_templates enable row level security;
 
-create policy "Authenticated users can read task templates"
-  on public.task_templates for select
-  to authenticated
-  using (true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='task_templates'
+      and policyname='Authenticated users can read task templates'
+  ) then
+    create policy "Authenticated users can read task templates"
+      on public.task_templates for select
+      to authenticated
+      using (true);
+  end if;
 
-create policy "Service role full access to task templates"
-  on public.task_templates for all
-  to service_role
-  using (true)
-  with check (true);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='task_templates'
+      and policyname='Service role full access to task templates'
+  ) then
+    create policy "Service role full access to task templates"
+      on public.task_templates for all
+      to service_role
+      using (true)
+      with check (true);
+  end if;
+end $$;
 
--- Seed default templates
+-- Seed default templates. The `unique(title)` lets `on conflict do nothing`
+-- skip duplicates so this seed is fully idempotent.
 insert into public.task_templates (title, description, category, relative_deadline_days, sort_order, tips) values
   ('Research course details', 'Look up entry requirements, modules, and course structure on the university website.', 'research', -120, 1,
    '{"content": "Start by reading the official course page. Note down specific modules that interest you — mentioning these in your personal statement shows genuine engagement. Check if the course is accredited by relevant professional bodies."}'::jsonb),
@@ -207,7 +322,7 @@ insert into public.task_templates (title, description, category, relative_deadli
 
   ('Accept or decline offer', 'Review your offers and make your final decision.', 'deadlines', 60, 12,
    '{"content": "Compare offers side by side: course content, location, cost, scholarship, and gut feeling. If you have multiple offers, you may be able to negotiate financial aid. Respond before the deadline — late responses may forfeit your place."}'::jsonb)
-on conflict do nothing;
+on conflict (title) do nothing;
 
 
 -- ── 6. Personal statements (AI writer drafts) ─────────────────────────────
@@ -228,11 +343,20 @@ create table if not exists public.personal_statements (
 
 alter table public.personal_statements enable row level security;
 
-create policy "Users manage own statements"
-  on public.personal_statements for all
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='personal_statements'
+      and policyname='Users manage own statements'
+  ) then
+    create policy "Users manage own statements"
+      on public.personal_statements for all
+      to authenticated
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
+end $$;
 
 
 -- ── 7. Indexes for performance ─────────────────────────────────────────────
@@ -241,3 +365,4 @@ create index if not exists idx_user_universities_user_id on public.user_universi
 create index if not exists idx_application_tasks_uu_id on public.application_tasks(user_university_id);
 create index if not exists idx_personal_statements_user_id on public.personal_statements(user_id);
 create index if not exists idx_universities_country on public.universities(country);
+create index if not exists idx_student_profiles_user_id on public.student_profiles(user_id);

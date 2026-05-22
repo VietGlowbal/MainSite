@@ -267,7 +267,7 @@ function UniversityApplicationCard({
                 </span>
               )}
               <Link
-                href={`/achievers?university=${uu.university_id}`}
+                href={`/mentors?university=${uu.university_id}`}
                 className="inline-flex items-center gap-1 text-cyan-600 hover:text-cyan-700 hover:underline transition"
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

@@ -4,13 +4,10 @@
 --   - uploaded_documents (CV/SOP upload, profile + onboarding)
 --   - student_profiles columns: bio, location, nationality, achievements, skills
 --
--- Drops tables that were queried but should be removed (dashboard cleanup):
---   - recommendation_runs and saved_options were referenced by the old
---     /dashboard page; that page now redirects, so we don't need them.
---
--- The personal_statements table is already in supabase-schema.sql.
+-- The personal_statements table is in supabase-schema.sql.
 -- The waitlist_signups table is in supabase-waitlist.sql.
--- Run AFTER supabase-schema.sql.
+--
+-- Run AFTER supabase-schema.sql. Safe to re-run.
 -- ============================================================================
 
 -- ── 1. Uploaded documents (CV / SOP / other) ───────────────────────────────
@@ -28,23 +25,40 @@ create table if not exists public.uploaded_documents (
 
 alter table public.uploaded_documents enable row level security;
 
-create policy "Users manage own documents"
-  on public.uploaded_documents for all
-  to authenticated
-  using (auth.uid() = user_id)
-  with check (auth.uid() = user_id);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='uploaded_documents'
+      and policyname='Users manage own documents'
+  ) then
+    create policy "Users manage own documents"
+      on public.uploaded_documents for all
+      to authenticated
+      using (auth.uid() = user_id)
+      with check (auth.uid() = user_id);
+  end if;
 
-create policy "Service role full access to uploaded_documents"
-  on public.uploaded_documents for all
-  to service_role
-  using (true)
-  with check (true);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='uploaded_documents'
+      and policyname='Service role full access to uploaded_documents'
+  ) then
+    create policy "Service role full access to uploaded_documents"
+      on public.uploaded_documents for all
+      to service_role
+      using (true)
+      with check (true);
+  end if;
+end $$;
 
 create index if not exists idx_uploaded_documents_user_id on public.uploaded_documents(user_id);
 create index if not exists idx_uploaded_documents_type on public.uploaded_documents(user_id, type);
 
 
 -- ── 2. Extend student_profiles with profile-page columns ───────────────────
+-- (These columns are now part of the canonical student_profiles definition
+-- in supabase-schema.sql — these guards exist for older databases.)
 
 do $$
 begin
@@ -83,7 +97,6 @@ begin
     alter table public.student_profiles add column skills text[] default '{}';
   end if;
 
-  -- profile_summary is referenced in types but not always present
   if not exists (
     select 1 from information_schema.columns
     where table_schema = 'public' and table_name = 'student_profiles' and column_name = 'profile_summary'
@@ -91,7 +104,6 @@ begin
     alter table public.student_profiles add column profile_summary text;
   end if;
 
-  -- grades_summary is referenced but optional
   if not exists (
     select 1 from information_schema.columns
     where table_schema = 'public' and table_name = 'student_profiles' and column_name = 'grades_summary'
@@ -101,11 +113,11 @@ begin
 end $$;
 
 
--- ── 3. Storage policies for student-documents bucket ───────────────────────
--- Run after creating the bucket in Supabase Dashboard → Storage.
--- Bucket name: student-documents (private)
+-- ── 3. Storage policies for the student-documents and avatars buckets ─────
+-- Create the buckets in Supabase Dashboard → Storage before running:
+--   • student-documents (private)
+--   • avatars (public read)
 
--- Allow authenticated users to upload to their own folder
 do $$
 begin
   if not exists (
@@ -150,7 +162,7 @@ begin
       );
   end if;
 
-  -- Same set of policies for the avatars bucket (public read, authenticated write)
+  -- Avatars bucket policies (public read, authenticated write)
   if not exists (
     select 1 from pg_policies
     where schemaname = 'storage' and tablename = 'objects'
