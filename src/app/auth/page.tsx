@@ -17,8 +17,8 @@ const PERKS = [
     body: 'Save your shortlist, track deadlines, and re-rank schools as your goals shift.',
   },
   {
-    title: 'Talk to Achievers',
-    body: 'Book 1-2-1 sessions with students who got into your dream universities.',
+    title: 'Connect with Mentors',
+    body: 'Book mentorship sessions with students who got into your dream universities.',
   },
   {
     title: 'AI statement writer',

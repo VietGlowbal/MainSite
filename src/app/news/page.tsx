@@ -25,7 +25,7 @@ export default function NewsPage() {
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3">
             <Link href="/universities" className="glow-button-primary">Explore universities</Link>
-            <Link href="/achievers" className="glow-button-secondary">Find an Achiever</Link>
+            <Link href="/mentors" className="glow-button-secondary">Find a mentor</Link>
           </div>
         </section>
       </div>

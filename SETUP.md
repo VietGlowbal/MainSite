@@ -124,3 +124,75 @@ The app runs at `http://localhost:3000`.
 6. **My Universities** (`/my-universities`) — saved universities + application roadmap
 7. **AI Writer** (`/my-universities/[id]/writer`) — personal statement editor with AI feedback
 8. **Profile** (`/profile`) — view/edit profile, documents, achievements
+
+
+---
+
+## 7. Mentorship Hub Setup (`/mentors`)
+
+The Mentorship Hub adds a real, paid 1:1 booking flow on top of the existing
+mentor profiles. To run it end-to-end you need three things in place:
+
+### 7a. Run the migration
+
+In the Supabase SQL Editor, run **`supabase-mentorship.sql`** after the existing
+`supabase-global-station.sql` migration. It:
+
+- Adds verification fields (legal name, DoB, CV/transcript/etc. storage keys)
+  and multi-currency hourly pricing to `achiever_profiles`.
+- Creates a `mentor_availability_slots` table for the calendar-style
+  booking flow.
+- Extends `bookings` with currency, Stripe IDs, and help-request prompts.
+- Adds storage policies for the private `mentor-documents` bucket.
+
+### 7b. Storage buckets
+
+Create two buckets in Supabase → Storage:
+
+| Bucket | Visibility | Used for |
+| --- | --- | --- |
+| `mentor-documents` | Private | CV, acceptance letter, transcript, student card |
+| `avatars` | Public | Mentor profile photos |
+
+The migration installs the right RLS policies; you only need to create the
+buckets if they don't exist yet.
+
+### 7c. Stripe configuration
+
+Mentor bookings are charged via Stripe Checkout. Add these to `.env.local`:
+
+```bash
+STRIPE_SECRET_KEY=sk_test_xxx
+STRIPE_WEBHOOK_SECRET=whsec_xxx
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=pk_test_xxx
+NEXT_PUBLIC_SITE_URL=https://your-domain.tld
+```
+
+Then register the webhook in the Stripe Dashboard:
+
+- URL: `https://your-domain.tld/api/mentorship/webhook`
+- Events: `checkout.session.completed`, `checkout.session.expired`,
+  `charge.refunded`
+
+For local development use the Stripe CLI:
+
+```bash
+stripe listen --forward-to localhost:3000/api/mentorship/webhook
+```
+
+The CLI prints a `whsec_…` secret — paste it into `STRIPE_WEBHOOK_SECRET` in
+`.env.local`.
+
+### 7d. Optional integrations to wire up
+
+- **Stripe Connect payouts** — `achiever_profiles.stripe_account_id` is
+  already in the schema. Add a Connect onboarding flow when you're ready to
+  pay mentors automatically; until then, payouts are tracked in the admin
+  bookings page and can be transferred manually.
+- **Video provider** — defaults to Jitsi Meet (no API key needed). Override
+  `MEETING_BASE_URL` in `.env.local` to use your own room namespace, or
+  replace `generateMeetingLink` in `src/lib/meetings.ts` with a Zoom / Google
+  Meet API integration.
+- **Resend** — booking confirmation emails use the same `RESEND_API_KEY`
+  that powers the waitlist. If it's missing the webhook still confirms the
+  booking and updates the database — emails just get logged and skipped.

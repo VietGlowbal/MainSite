@@ -14,7 +14,7 @@ import { createClient } from '@/lib/supabase/client';
  *   ┌────────────────────────────────────────────────────────┐
  *   │  ▰▰▰  thin animated brand gradient strip  ▰▰▰          │
  *   ├────────────────────────────────────────────────────────┤
- *   │ [Logo]   Home  Search  Apply  1-2-1 Sessions ...       │
+ *   │ [Logo]   Home  Search  Apply  Mentorship ...           │
  *   └────────────────────────────────────────────────────────┘
  *
  * The active item gets a filled gradient pill; the rest are outlined pills.
@@ -24,7 +24,7 @@ const NAV_ITEMS = [
   { href: '/',                label: 'Home',          mobile: 'Home',     activeMatch: 'exact' as const },
   { href: '/universities',    label: 'Search',        mobile: 'Search',   activeMatch: 'prefix' as const },
   { href: '/my-universities', label: 'Apply',         mobile: 'Apply',    activeMatch: 'prefix' as const, requiresAuth: true },
-  { href: '/achievers',       label: '1-2-1 Sessions', mobile: '1-2-1',   activeMatch: 'prefix' as const },
+  { href: '/mentors',         label: 'Mentorship',     mobile: 'Mentors',  activeMatch: 'prefix' as const },
   { href: '/news',            label: 'GLOWBAL News',  mobile: 'News',     activeMatch: 'prefix' as const },
 ];
 
@@ -45,7 +45,7 @@ const MOBILE_ICONS: Record<string, () => React.JSX.Element> = {
   '/':                IconHome,
   '/universities':    IconSearch,
   '/my-universities': IconApply,
-  '/achievers':       IconSession,
+  '/mentors':         IconSession,
   '/news':            IconNews,
   '/auth':            IconUser,
   '/profile':         IconUser,

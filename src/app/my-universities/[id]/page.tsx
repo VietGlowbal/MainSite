@@ -4,7 +4,7 @@ import type { ApplicationTask, University } from '@/lib/types';
 import { TaskList } from './task-list';
 import Link from 'next/link';
 import { UniversityGlobe } from './university-globe';
-import { AchieversAtUniversity } from '@/components/achievers/AchieversAtUniversity';
+import { MentorsAtUniversity } from '@/components/mentorship/MentorsAtUniversity';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -95,8 +95,8 @@ export default async function UniversityTasksPage({ params }: Props) {
         {/* Tasks */}
         <TaskList tasks={(tasks ?? []) as ApplicationTask[]} userUniversityId={userUniversity.id} />
 
-        {/* Achievers at this university */}
-        <AchieversAtUniversity
+        {/* Mentors at this university */}
+        <MentorsAtUniversity
           universityId={university.id}
           universityName={university.name}
         />

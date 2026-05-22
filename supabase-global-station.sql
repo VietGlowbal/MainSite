@@ -1,12 +1,15 @@
 -- ============================================================================
 -- GLOWBAL — GLOBAL STATION: ACHIEVER MENTOR MARKETPLACE
--- Migration SQL — Run AFTER supabase-schema.sql
--- Run in Supabase SQL Editor (Dashboard → SQL Editor → New Query)
+-- Migration SQL — Run AFTER supabase-schema.sql.
+-- Run in Supabase SQL Editor (Dashboard → SQL Editor → New Query).
+-- Safe to re-run.
 -- ============================================================================
 
 -- ── 1. Add is_admin column to student_profiles ─────────────────────────────
+-- (student_profiles is now created in supabase-schema.sql with is_admin
+-- already on the table, but we keep this guard so older databases catch up.)
 
-do $
+do $$
 begin
   if not exists (
     select 1 from information_schema.columns
@@ -17,7 +20,7 @@ begin
     alter table public.student_profiles
       add column is_admin boolean not null default false;
   end if;
-end $;
+end $$;
 
 
 -- ── 2. Achiever Profiles ───────────────────────────────────────────────────
@@ -45,31 +48,54 @@ create table if not exists public.achiever_profiles (
 
 alter table public.achiever_profiles enable row level security;
 
--- SELECT: authenticated users can read approved profiles; achievers can read their own
-create policy "Anyone can read approved achiever profiles"
-  on public.achiever_profiles for select
-  to authenticated
-  using (status = 'approved' or id = auth.uid());
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='achiever_profiles'
+      and policyname='Anyone can read approved achiever profiles'
+  ) then
+    create policy "Anyone can read approved achiever profiles"
+      on public.achiever_profiles for select
+      to authenticated
+      using (status = 'approved' or id = auth.uid());
+  end if;
 
--- INSERT: authenticated users can create their own profile
-create policy "Users can create own achiever profile"
-  on public.achiever_profiles for insert
-  to authenticated
-  with check (id = auth.uid());
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='achiever_profiles'
+      and policyname='Users can create own achiever profile'
+  ) then
+    create policy "Users can create own achiever profile"
+      on public.achiever_profiles for insert
+      to authenticated
+      with check (id = auth.uid());
+  end if;
 
--- UPDATE: achievers can update own row (except admin-managed columns)
-create policy "Achievers can update own profile"
-  on public.achiever_profiles for update
-  to authenticated
-  using (id = auth.uid())
-  with check (id = auth.uid());
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='achiever_profiles'
+      and policyname='Achievers can update own profile'
+  ) then
+    create policy "Achievers can update own profile"
+      on public.achiever_profiles for update
+      to authenticated
+      using (id = auth.uid())
+      with check (id = auth.uid());
+  end if;
 
--- Service role full access (for admin operations)
-create policy "Service role full access to achiever_profiles"
-  on public.achiever_profiles for all
-  to service_role
-  using (true)
-  with check (true);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='achiever_profiles'
+      and policyname='Service role full access to achiever_profiles'
+  ) then
+    create policy "Service role full access to achiever_profiles"
+      on public.achiever_profiles for all
+      to service_role
+      using (true)
+      with check (true);
+  end if;
+end $$;
 
 
 -- ── 3. Achiever Availability ───────────────────────────────────────────────
@@ -86,42 +112,72 @@ create table if not exists public.achiever_availability (
 
 alter table public.achiever_availability enable row level security;
 
--- SELECT: authenticated users can read active slots for approved achievers
-create policy "Read active availability for approved achievers"
-  on public.achiever_availability for select
-  to authenticated
-  using (
-    is_active = true and exists (
-      select 1 from public.achiever_profiles ap
-      where ap.id = achiever_availability.achiever_id
-        and ap.status = 'approved'
-    )
-    or achiever_id = auth.uid()
-  );
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='achiever_availability'
+      and policyname='Read active availability for approved achievers'
+  ) then
+    create policy "Read active availability for approved achievers"
+      on public.achiever_availability for select
+      to authenticated
+      using (
+        is_active = true and exists (
+          select 1 from public.achiever_profiles ap
+          where ap.id = achiever_availability.achiever_id
+            and ap.status = 'approved'
+        )
+        or achiever_id = auth.uid()
+      );
+  end if;
 
--- INSERT/UPDATE/DELETE: only the achiever themselves
-create policy "Achievers manage own availability"
-  on public.achiever_availability for insert
-  to authenticated
-  with check (achiever_id = auth.uid());
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='achiever_availability'
+      and policyname='Achievers manage own availability'
+  ) then
+    create policy "Achievers manage own availability"
+      on public.achiever_availability for insert
+      to authenticated
+      with check (achiever_id = auth.uid());
+  end if;
 
-create policy "Achievers update own availability"
-  on public.achiever_availability for update
-  to authenticated
-  using (achiever_id = auth.uid())
-  with check (achiever_id = auth.uid());
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='achiever_availability'
+      and policyname='Achievers update own availability'
+  ) then
+    create policy "Achievers update own availability"
+      on public.achiever_availability for update
+      to authenticated
+      using (achiever_id = auth.uid())
+      with check (achiever_id = auth.uid());
+  end if;
 
-create policy "Achievers delete own availability"
-  on public.achiever_availability for delete
-  to authenticated
-  using (achiever_id = auth.uid());
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='achiever_availability'
+      and policyname='Achievers delete own availability'
+  ) then
+    create policy "Achievers delete own availability"
+      on public.achiever_availability for delete
+      to authenticated
+      using (achiever_id = auth.uid());
+  end if;
 
--- Service role full access
-create policy "Service role full access to achiever_availability"
-  on public.achiever_availability for all
-  to service_role
-  using (true)
-  with check (true);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='achiever_availability'
+      and policyname='Service role full access to achiever_availability'
+  ) then
+    create policy "Service role full access to achiever_availability"
+      on public.achiever_availability for all
+      to service_role
+      using (true)
+      with check (true);
+  end if;
+end $$;
 
 
 -- ── 4. Bookings ────────────────────────────────────────────────────────────
@@ -150,30 +206,53 @@ create table if not exists public.bookings (
 
 alter table public.bookings enable row level security;
 
--- SELECT: both parties can see their own bookings
-create policy "Users can read own bookings"
-  on public.bookings for select
-  to authenticated
-  using (applicant_id = auth.uid() or achiever_id = auth.uid());
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='bookings'
+      and policyname='Users can read own bookings'
+  ) then
+    create policy "Users can read own bookings"
+      on public.bookings for select
+      to authenticated
+      using (applicant_id = auth.uid() or achiever_id = auth.uid());
+  end if;
 
--- INSERT: authenticated users, applicant_id must be themselves
-create policy "Users can create bookings as applicant"
-  on public.bookings for insert
-  to authenticated
-  with check (applicant_id = auth.uid());
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='bookings'
+      and policyname='Users can create bookings as applicant'
+  ) then
+    create policy "Users can create bookings as applicant"
+      on public.bookings for insert
+      to authenticated
+      with check (applicant_id = auth.uid());
+  end if;
 
--- UPDATE: limited updates by each party
-create policy "Users can update own bookings"
-  on public.bookings for update
-  to authenticated
-  using (applicant_id = auth.uid() or achiever_id = auth.uid());
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='bookings'
+      and policyname='Users can update own bookings'
+  ) then
+    create policy "Users can update own bookings"
+      on public.bookings for update
+      to authenticated
+      using (applicant_id = auth.uid() or achiever_id = auth.uid());
+  end if;
 
--- Service role full access (for admin operations)
-create policy "Service role full access to bookings"
-  on public.bookings for all
-  to service_role
-  using (true)
-  with check (true);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='bookings'
+      and policyname='Service role full access to bookings'
+  ) then
+    create policy "Service role full access to bookings"
+      on public.bookings for all
+      to service_role
+      using (true)
+      with check (true);
+  end if;
+end $$;
 
 
 -- ── 5. Session Reviews ─────────────────────────────────────────────────────
@@ -191,37 +270,54 @@ create table if not exists public.session_reviews (
 
 alter table public.session_reviews enable row level security;
 
--- SELECT: all authenticated users can read visible reviews
-create policy "Authenticated users can read visible reviews"
-  on public.session_reviews for select
-  to authenticated
-  using (is_visible = true);
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='session_reviews'
+      and policyname='Authenticated users can read visible reviews'
+  ) then
+    create policy "Authenticated users can read visible reviews"
+      on public.session_reviews for select
+      to authenticated
+      using (is_visible = true);
+  end if;
 
--- INSERT: reviewer must be the applicant of a completed booking
-create policy "Applicants can review completed bookings"
-  on public.session_reviews for insert
-  to authenticated
-  with check (
-    reviewer_id = auth.uid()
-    and exists (
-      select 1 from public.bookings b
-      where b.id = session_reviews.booking_id
-        and b.applicant_id = auth.uid()
-        and b.status = 'completed'
-    )
-  );
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='session_reviews'
+      and policyname='Applicants can review completed bookings'
+  ) then
+    create policy "Applicants can review completed bookings"
+      on public.session_reviews for insert
+      to authenticated
+      with check (
+        reviewer_id = auth.uid()
+        and exists (
+          select 1 from public.bookings b
+          where b.id = session_reviews.booking_id
+            and b.applicant_id = auth.uid()
+            and b.status = 'completed'
+        )
+      );
+  end if;
 
--- Service role full access (for admin moderation)
-create policy "Service role full access to session_reviews"
-  on public.session_reviews for all
-  to service_role
-  using (true)
-  with check (true);
+  if not exists (
+    select 1 from pg_policies
+    where schemaname='public' and tablename='session_reviews'
+      and policyname='Service role full access to session_reviews'
+  ) then
+    create policy "Service role full access to session_reviews"
+      on public.session_reviews for all
+      to service_role
+      using (true)
+      with check (true);
+  end if;
+end $$;
 
 
 -- ── 6. Triggers & Functions ────────────────────────────────────────────────
 
--- Function: update achiever stats after a review is inserted
 create or replace function public.update_achiever_stats()
 returns trigger
 language plpgsql
@@ -247,14 +343,12 @@ begin
 end;
 $$;
 
--- Trigger: fire after review insert
 drop trigger if exists trg_update_achiever_stats on public.session_reviews;
 create trigger trg_update_achiever_stats
   after insert on public.session_reviews
   for each row
   execute function public.update_achiever_stats();
 
--- Function: update booking updated_at
 create or replace function public.update_booking_updated_at()
 returns trigger
 language plpgsql
@@ -265,7 +359,6 @@ begin
 end;
 $$;
 
--- Trigger: fire before booking update
 drop trigger if exists trg_update_booking_updated_at on public.bookings;
 create trigger trg_update_booking_updated_at
   before update on public.bookings

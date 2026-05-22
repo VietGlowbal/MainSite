@@ -84,8 +84,8 @@ export function BookingsDashboardClient({ bookings, userId }: { bookings: Bookin
         <div className="glow-card text-center py-12">
           <p className="text-slate-500">No {tab} sessions.</p>
           {tab === 'upcoming' && (
-            <Link href="/achievers" className="glow-button-primary text-sm px-5 py-2.5 mt-4 inline-flex">
-              Find an Achiever
+            <Link href="/mentors" className="glow-button-primary text-sm px-5 py-2.5 mt-4 inline-flex">
+              Find a mentor
             </Link>
           )}
         </div>

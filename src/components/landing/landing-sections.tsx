@@ -23,6 +23,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { motion, useInView, useReducedMotion } from 'framer-motion';
+import Link from 'next/link';
 
 /* ─────────────────────────────────────────────────────────────────────
    Reusable bits
@@ -234,7 +235,7 @@ const STEPS = [
   {
     n: '03',
     title: 'Apply with confidence',
-    body: 'Talk to Achievers who got in, sharpen your statements with our AI writer, and ship it.',
+    body: 'Connect with mentors who got in, sharpen your statements with our AI writer, and ship it.',
     icon: (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
@@ -518,7 +519,7 @@ function ContactsFooter() {
               <p className="cosmic-footer-label">Explore</p>
               <ul className="mt-3 space-y-2 text-sm text-white/80">
                 <li><a href="/universities" className="cosmic-footer-link-plain">Search universities</a></li>
-                <li><a href="/achievers" className="cosmic-footer-link-plain">1-2-1 sessions</a></li>
+                <li><Link href="/mentors" className="cosmic-footer-link-plain">Mentorship hub</Link></li>
                 <li><a href="/news" className="cosmic-footer-link-plain">GLOWBAL News</a></li>
                 <li><a href="#waitlist" className="cosmic-footer-link-plain">Join the waitlist</a></li>
               </ul>

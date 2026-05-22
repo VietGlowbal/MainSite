@@ -77,7 +77,7 @@ export async function proxy(request: NextRequest) {
 
   // Onboarding gate: signed-in users without a completed profile shouldn't
   // see /my-universities/* or /profile until they finish onboarding.
-  // /universities and /achievers remain browseable so users can preview value.
+  // /universities and /mentors remain browseable so users can preview value.
   const ONBOARDING_GATED = ['/my-universities', '/profile'];
   const needsOnboardingCheck =
     user &&

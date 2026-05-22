@@ -41,10 +41,10 @@ export default async function OnboardingCompletePage() {
                   Book a 1-on-1 session with current students and alumni at your target universities. Real advice, no fluff.
                 </p>
                 <Link
-                  href="/achievers"
+                  href="/mentors"
                   className="mt-3 inline-flex items-center gap-1 rounded-full border border-pink-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50 transition"
                 >
-                  Browse Achievers →
+                  Browse mentors →
                 </Link>
               </div>
             </div>
