@@ -1,16 +1,13 @@
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { isAdmin } from '@/lib/auth-helpers';
 import { AdminBookingsClient } from './admin-bookings-client';
 
+/**
+ * Bookings & payments console. The /admin layout already verifies the
+ * caller is an admin and renders the page header + tabs.
+ */
 export default async function AdminBookingsPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) redirect('/auth');
-  if (!(await isAdmin(user.id))) redirect('/my-universities');
-
-  // Get all bookings with related data
   const { data: bookings } = await supabase
     .from('bookings')
     .select(`
@@ -22,17 +19,16 @@ export default async function AdminBookingsPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <main className="min-h-screen bg-transparent px-6 py-16 md:px-10">
-      <div className="mx-auto max-w-5xl space-y-8">
-        <div>
-          <span className="glow-pill">Admin</span>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">
-            Bookings & Payments
-          </h1>
-        </div>
-
-        <AdminBookingsClient bookings={bookings ?? []} />
+    <section className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
+          Bookings & payments
+        </h2>
+        <p className="text-sm text-slate-500">
+          Confirm bank transfers, cancel stale bookings, and watch revenue.
+        </p>
       </div>
-    </main>
+      <AdminBookingsClient bookings={bookings ?? []} />
+    </section>
   );
 }

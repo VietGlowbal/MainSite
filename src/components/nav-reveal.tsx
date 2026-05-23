@@ -95,6 +95,33 @@ function AccountPill({ user }: { user: UserSummary | null }) {
   );
 }
 
+function AdminPill() {
+  return (
+    <Link
+      href="/admin"
+      className="glowbal-nav-pill glowbal-nav-pill-admin"
+      aria-label="Admin console"
+      title="Admin console"
+    >
+      <svg
+        width="14"
+        height="14"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        aria-hidden
+      >
+        <path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6z" />
+        <path d="M9 12l2 2 4-4" />
+      </svg>
+      <span>Admin</span>
+    </Link>
+  );
+}
+
 // ── Mobile bottom bar ────────────────────────────────────────────────────────
 function MobileNav({ user }: { user: UserSummary | null }) {
   const pathname = usePathname();
@@ -157,7 +184,7 @@ function MobileNav({ user }: { user: UserSummary | null }) {
 }
 
 // ── Main sticky header ───────────────────────────────────────────────────────
-type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean };
+type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean; isAdmin?: boolean };
 
 function StickyHeader({ user }: { user: UserSummary | null }) {
   const pathname = usePathname();
@@ -216,6 +243,7 @@ function StickyHeader({ user }: { user: UserSummary | null }) {
           </nav>
 
           <div className="glowbal-header-account">
+            {user?.isAdmin && <AdminPill />}
             <AccountPill user={user} />
           </div>
         </div>
@@ -249,18 +277,26 @@ export function NavReveal() {
       // Best-effort fetch of the mentor profile flag. RLS-safe — anyone
       // can read their own row. We don't block the header on this; the
       // pill simply appears after the request resolves.
-      const { data: mentor } = await supabase
-        .from('achiever_profiles')
-        .select('id')
-        .eq('id', authUser.id)
-        .maybeSingle();
+      const [mentorResult, adminResult] = await Promise.all([
+        supabase
+          .from('achiever_profiles')
+          .select('id')
+          .eq('id', authUser.id)
+          .maybeSingle(),
+        // Admin status is checked server-side so the env-based bootstrap
+        // list (ADMIN_USER_IDS) keeps working without exposing it.
+        fetch('/api/admin/check', { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : { isAdmin: false }))
+          .catch(() => ({ isAdmin: false })) as Promise<{ isAdmin: boolean }>,
+      ]);
       setUser({
         name:
           (authUser.user_metadata?.full_name as string | undefined) ||
           authUser.email?.split('@')[0] ||
           'Profile',
         avatarUrl: authUser.user_metadata?.avatar_url as string | undefined,
-        isMentor: !!mentor,
+        isMentor: !!mentorResult.data,
+        isAdmin: adminResult.isAdmin === true,
       });
     }
 
