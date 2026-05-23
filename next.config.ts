@@ -5,6 +5,19 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Force the canonical custom domain. Anyone landing on the raw
+  // *.vercel.app hostname gets a permanent redirect to glowbal-education.com,
+  // so the URL bar always reads the brand domain.
+  async redirects() {
+    return [
+      {
+        source: '/:path*',
+        has: [{ type: 'host', value: 'main-site-seven-opal.vercel.app' }],
+        destination: 'https://glowbal-education.com/:path*',
+        permanent: true,
+      },
+    ];
+  },
   images: {
     remotePatterns: [
       // Wikipedia / Wikimedia thumbnails — used for university card cover images

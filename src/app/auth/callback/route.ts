@@ -1,8 +1,23 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ * Resolve the canonical site URL once. We prefer NEXT_PUBLIC_SITE_URL so
+ * production deploys always redirect users to the custom domain instead of
+ * the *.vercel.app hostname they may have arrived on. Falls back to the
+ * request origin in dev.
+ */
+function canonicalOrigin(requestOrigin: string): string {
+  let v = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, '');
+  if (v && !/^https?:\/\//i.test(v)) {
+    v = `${v.startsWith('localhost') ? 'http' : 'https'}://${v}`;
+  }
+  return v || requestOrigin;
+}
+
 export async function GET(request: Request) {
-  const { searchParams, origin } = new URL(request.url);
+  const { searchParams, origin: requestOrigin } = new URL(request.url);
+  const origin = canonicalOrigin(requestOrigin);
   const code = searchParams.get('code');
   const next = searchParams.get('next');
   const safeNext = next?.startsWith('/') ? next : null;
