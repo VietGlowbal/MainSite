@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "seed:mentors": "node --env-file=.env.local scripts/seed-mentors.mjs",
+    "seed:mentors:cleanup": "node --env-file=.env.local scripts/seed-mentors.mjs --cleanup"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

@@ -65,6 +65,18 @@ const ITEMS: NavItem[] = [
   },
 ];
 
+const MENTOR_DASHBOARD_ITEM: NavItem = {
+  label: 'Mentor dashboard',
+  href: '/dashboard/mentor',
+  icon: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2 4 7v10l8 5 8-5V7l-8-5z" />
+      <path d="M4 7l8 5 8-5" />
+      <path d="M12 22V12" />
+    </svg>
+  ),
+};
+
 function HelpCard() {
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-50 to-cyan-50/50 p-4 text-center">
@@ -88,15 +100,20 @@ function HelpCard() {
 /**
  * Shared sidebar nav for the signed-in app shell.
  * Highlights the active item based on the current pathname.
+ *
+ * Pass `isMentor` from the parent server component so we can show a
+ * "Mentor dashboard" link for users who already have a mentor profile.
  */
-export function AppSidebar() {
+export function AppSidebar({ isMentor = false }: { isMentor?: boolean } = {}) {
   const pathname = usePathname();
+
+  const items = isMentor ? [...ITEMS, MENTOR_DASHBOARD_ITEM] : ITEMS;
 
   return (
     <aside className="hidden lg:block space-y-4">
       <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
         <nav className="space-y-0.5">
-          {ITEMS.map((item) => {
+          {items.map((item) => {
             const active =
               pathname === item.href ||
               (item.href !== '/' && pathname.startsWith(item.href));

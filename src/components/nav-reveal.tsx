@@ -28,6 +28,14 @@ const NAV_ITEMS = [
   { href: '/news',            label: 'GLOWBAL News',  mobile: 'News',     activeMatch: 'prefix' as const },
 ];
 
+// Extra item shown only to users who have a mentor profile (any status).
+const MENTOR_DASHBOARD_ITEM = {
+  href: '/dashboard/mentor',
+  label: 'Mentor hub',
+  mobile: 'Mentor',
+  activeMatch: 'prefix' as const,
+};
+
 function isActive(pathname: string, item: { href: string; activeMatch: 'exact' | 'prefix' }) {
   if (item.activeMatch === 'exact') return pathname === item.href;
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -49,6 +57,7 @@ const MOBILE_ICONS: Record<string, () => React.JSX.Element> = {
   '/news':            IconNews,
   '/auth':            IconUser,
   '/profile':         IconUser,
+  '/dashboard/mentor': IconSession,
 };
 
 // ── Rotating avatar ring ─────────────────────────────────────────────────────
@@ -99,10 +108,12 @@ function MobileNav({ user }: { user: UserSummary | null }) {
   const initials = user?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '';
 
   // Show a curated 4-item subset on mobile + the account/profile slot.
-  const baseItems = (user
-    ? NAV_ITEMS
-    : NAV_ITEMS.filter((item) => !item.requiresAuth)
-  ).slice(0, 4);
+  // Mentors get the mentor hub swapped in for the "News" slot so they can
+  // jump straight to their dashboard without a desktop.
+  const baseList = user ? NAV_ITEMS : NAV_ITEMS.filter((item) => !item.requiresAuth);
+  const baseItems = user?.isMentor
+    ? [...baseList.slice(0, 3), MENTOR_DASHBOARD_ITEM]
+    : baseList.slice(0, 4);
 
   const allItems = [
     ...baseItems,
@@ -146,7 +157,7 @@ function MobileNav({ user }: { user: UserSummary | null }) {
 }
 
 // ── Main sticky header ───────────────────────────────────────────────────────
-type UserSummary = { name: string; avatarUrl?: string };
+type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean };
 
 function StickyHeader({ user }: { user: UserSummary | null }) {
   const pathname = usePathname();
@@ -170,7 +181,8 @@ function StickyHeader({ user }: { user: UserSummary | null }) {
     });
   }, [scrollY]);
 
-  const visibleItems = user ? NAV_ITEMS : NAV_ITEMS.filter((i) => !i.requiresAuth);
+  const baseItems = user ? NAV_ITEMS : NAV_ITEMS.filter((i) => !i.requiresAuth);
+  const visibleItems = user?.isMentor ? [...baseItems, MENTOR_DASHBOARD_ITEM] : baseItems;
 
   return (
     <motion.header
@@ -229,22 +241,35 @@ export function NavReveal() {
     window.addEventListener('glowbal:reveal-nav', onReveal);
 
     const supabase = createClient();
-    supabase.auth.getUser().then(({ data }) => {
-      if (data.user) setUser({
-        name: data.user.user_metadata?.full_name || data.user.email?.split('@')[0] || 'Profile',
-        avatarUrl: data.user.user_metadata?.avatar_url,
+    async function loadUser(authUser: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null) {
+      if (!authUser) {
+        setUser(null);
+        return;
+      }
+      // Best-effort fetch of the mentor profile flag. RLS-safe — anyone
+      // can read their own row. We don't block the header on this; the
+      // pill simply appears after the request resolves.
+      const { data: mentor } = await supabase
+        .from('achiever_profiles')
+        .select('id')
+        .eq('id', authUser.id)
+        .maybeSingle();
+      setUser({
+        name:
+          (authUser.user_metadata?.full_name as string | undefined) ||
+          authUser.email?.split('@')[0] ||
+          'Profile',
+        avatarUrl: authUser.user_metadata?.avatar_url as string | undefined,
+        isMentor: !!mentor,
       });
+    }
+
+    supabase.auth.getUser().then(({ data }) => {
+      loadUser(data.user ?? null);
     });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session?.user) {
-        setUser({
-          name: session.user.user_metadata?.full_name || session.user.email?.split('@')[0] || 'Profile',
-          avatarUrl: session.user.user_metadata?.avatar_url,
-        });
-      } else {
-        setUser(null);
-      }
+      loadUser(session?.user ?? null);
     });
 
     return () => {

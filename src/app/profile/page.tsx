@@ -9,6 +9,7 @@ import Link from 'next/link';
 import type { UploadedDocument } from '@/lib/types';
 import { SignOutButton } from '@/components/sign-out-button';
 import { AppSidebar } from '@/components/layout/app-sidebar';
+import { getMentorSummary } from '@/lib/mentor-status';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -16,7 +17,7 @@ export default async function ProfilePage() {
 
   if (!user) redirect('/auth');
 
-  const [profileResult, documentsResult, statementsResult] = await Promise.all([
+  const [profileResult, documentsResult, statementsResult, mentorSummary] = await Promise.all([
     supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
     supabase.from('uploaded_documents').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase
@@ -24,6 +25,7 @@ export default async function ProfilePage() {
       .select('id, title, doc_type, updated_at, user_university_id, user_universities:user_universities!personal_statements_user_university_id_fkey(id, university:universities(name))')
       .eq('user_id', user.id)
       .order('updated_at', { ascending: false }),
+    getMentorSummary(),
   ]);
 
   const profile = profileResult.data;
@@ -60,7 +62,7 @@ export default async function ProfilePage() {
       <main className="min-h-screen bg-transparent px-4 py-6 text-slate-800 md:px-8 md:py-8">
         <div className="mx-auto max-w-7xl">
           <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
-            <AppSidebar />
+            <AppSidebar isMentor={!!mentorSummary} />
 
             <div className="space-y-8 min-w-0">
 
@@ -76,6 +78,14 @@ export default async function ProfilePage() {
                 <p className="mt-3 text-sm leading-relaxed text-slate-600 max-w-prose">{profile.bio}</p>
               )}
               <div className="mt-4 flex flex-wrap gap-2">
+                {mentorSummary && (
+                  <Link
+                    href="/dashboard/mentor"
+                    className="inline-flex items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-3 py-1.5 text-xs font-semibold text-white shadow-[0_6px_18px_rgba(255,77,140,0.22)] transition hover:-translate-y-0.5"
+                  >
+                    {mentorSummary.status === 'approved' ? '✨ Mentor dashboard' : `Mentor application: ${mentorSummary.status}`}
+                  </Link>
+                )}
                 <SignOutButton className="glow-button-secondary text-xs px-3 py-1.5" />
                 <button
                   className="glow-button-secondary text-xs px-3 py-1.5"
