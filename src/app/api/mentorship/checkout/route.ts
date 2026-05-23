@@ -219,19 +219,33 @@ export async function POST(request: NextRequest) {
           mentor_id: mentor.id,
         },
       },
-      // Auto-expire after 30 min so we don't leave the slot held forever.
-      expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+      // Auto-expire after ~31 min so we don't leave the slot held forever.
+      // Stripe rejects expires_at values that aren't strictly more than
+      // 30 minutes ahead, so we add a 60-second safety margin to absorb
+      // clock drift and request latency.
+      expires_at: Math.floor(Date.now() / 1000) + 31 * 60,
     });
   } catch (err) {
-    console.error('[checkout] Stripe error', err);
+    // Surface the real Stripe error message so the booking modal can show
+    // something actionable instead of the generic catch-all. We still log
+    // the full error for the server-side trail.
+    const stripeErr = err as { message?: string; code?: string; param?: string };
+    const detail =
+      stripeErr?.message ||
+      (typeof err === 'string' ? err : 'unknown Stripe error');
+    console.error('[checkout] Stripe error', {
+      message: stripeErr?.message,
+      code: stripeErr?.code,
+      param: stripeErr?.param,
+    });
     // Roll back the booking and slot.
-    await admin.from('bookings').update({ status: 'cancelled', cancelled_by: 'admin', cancellation_reason: 'Stripe checkout init failed' }).eq('id', booking.id);
+    await admin.from('bookings').update({ status: 'cancelled', cancelled_by: 'admin', cancellation_reason: `Stripe checkout init failed: ${detail}` }).eq('id', booking.id);
     await admin
       .from('mentor_availability_slots')
       .update({ status: 'open', hold_expires_at: null })
       .eq('id', input.slot_id);
     return NextResponse.json(
-      { error: 'Could not start the payment. Please try again.' },
+      { error: `Payment setup failed: ${detail}` },
       { status: 502 },
     );
   }
