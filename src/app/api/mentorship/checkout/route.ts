@@ -180,11 +180,43 @@ export async function POST(request: NextRequest) {
   }
 
   // Create the Stripe Checkout Session.
+  // Stripe rejects success/cancel URLs without an explicit scheme, so we
+  // normalise the base URL: strip any trailing slash, prepend https:// if
+  // it's missing, and fall back to the request origin when the env var
+  // isn't set. On Vercel, VERCEL_URL is the deployment hostname without a
+  // scheme, which is the most common reason this used to break.
+  function normaliseBaseUrl(raw: string): string {
+    let v = raw.trim();
+    if (!v) return '';
+    // Drop trailing slashes so we don't end up with `//path`.
+    v = v.replace(/\/+$/, '');
+    // Add scheme if missing. localhost stays http, everything else is https.
+    if (!/^https?:\/\//i.test(v)) {
+      v = `${v.startsWith('localhost') ? 'http' : 'https'}://${v}`;
+    }
+    return v;
+  }
+
   const baseUrl =
-    process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+    normaliseBaseUrl(
+      process.env.NEXT_PUBLIC_SITE_URL ||
+        process.env.VERCEL_URL ||
+        new URL(request.url).origin,
+    ) || 'https://localhost:3000';
 
   let stripeSession;
   try {
+    // One-line diagnostic so we can tell at-a-glance whether the dev server
+    // actually has the Stripe env vars loaded. Lengths only — never values.
+    if (!process.env.STRIPE_SECRET_KEY) {
+      console.warn(
+        '[checkout] STRIPE_SECRET_KEY not visible to this process. ' +
+          'Restart `npm run dev` after editing .env.local. ' +
+          `Visible vars: SUPABASE_URL=${!!process.env.NEXT_PUBLIC_SUPABASE_URL}, ` +
+          `SERVICE_ROLE=${!!process.env.SUPABASE_SERVICE_ROLE_KEY}, ` +
+          `WEBHOOK_SECRET=${!!process.env.STRIPE_WEBHOOK_SECRET}`,
+      );
+    }
     const stripe = getStripe();
     stripeSession = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -238,6 +270,10 @@ export async function POST(request: NextRequest) {
       code: stripeErr?.code,
       param: stripeErr?.param,
     });
+    // If it's the env-var problem, swap the copy for a clearer hint.
+    const friendly = detail.includes('STRIPE_SECRET_KEY is not set')
+      ? 'Stripe is not configured for this environment. If you just added STRIPE_SECRET_KEY to .env.local, stop and restart `npm run dev`.'
+      : `Payment setup failed: ${detail}`;
     // Roll back the booking and slot.
     await admin.from('bookings').update({ status: 'cancelled', cancelled_by: 'admin', cancellation_reason: `Stripe checkout init failed: ${detail}` }).eq('id', booking.id);
     await admin
@@ -245,7 +281,7 @@ export async function POST(request: NextRequest) {
       .update({ status: 'open', hold_expires_at: null })
       .eq('id', input.slot_id);
     return NextResponse.json(
-      { error: `Payment setup failed: ${detail}` },
+      { error: friendly },
       { status: 502 },
     );
   }
