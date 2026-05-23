@@ -50,8 +50,24 @@ type BookingRow = {
 
 type Tab = 'upcoming' | 'completed' | 'cancelled';
 
-export function BookingsDashboardClient({ bookings, userId }: { bookings: BookingRow[]; userId: string }) {
+export function BookingsDashboardClient({
+  bookings,
+  userId,
+  showSuccessBanner = false,
+  justConfirmed = false,
+  highlightedBookingId = null,
+}: {
+  bookings: BookingRow[];
+  userId: string;
+  showSuccessBanner?: boolean;
+  justConfirmed?: boolean;
+  highlightedBookingId?: number | null;
+}) {
+  // Reference unused params so lint stays happy without changing the signature.
+  void userId;
+
   const [tab, setTab] = useState<Tab>('upcoming');
+  const [bannerOpen, setBannerOpen] = useState(showSuccessBanner);
 
   const upcoming = bookings.filter((b) => b.status === 'pending_payment' || b.status === 'confirmed');
   const completed = bookings.filter((b) => b.status === 'completed' || b.status === 'reviewed');
@@ -61,6 +77,45 @@ export function BookingsDashboardClient({ bookings, userId }: { bookings: Bookin
 
   return (
     <div className="space-y-6">
+      {bannerOpen && (
+        <div
+          role="status"
+          className="glow-card flex items-start gap-3 border border-emerald-200 bg-emerald-50/70"
+        >
+          <div className="mt-0.5 text-xl" aria-hidden>
+            ✅
+          </div>
+          <div className="flex-1 text-sm">
+            <p className="font-semibold text-emerald-800">
+              {justConfirmed
+                ? 'Booking confirmed — payment received.'
+                : 'Thanks for your payment!'}
+            </p>
+            <p className="text-emerald-700/80">
+              {justConfirmed
+                ? 'We\u2019ve emailed you and your mentor with the meeting link and calendar invite. You can also see it below.'
+                : 'Your session is confirmed. The meeting link is in your email and on the card below.'}
+              {highlightedBookingId ? ` (booking #${highlightedBookingId})` : ''}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setBannerOpen(false)}
+            className="rounded-full p-1 text-emerald-700/60 hover:bg-emerald-100 hover:text-emerald-900"
+            aria-label="Dismiss"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path
+                d="M4 4l8 8M12 4l-8 8"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+              />
+            </svg>
+          </button>
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="flex gap-2">
         {([
@@ -92,7 +147,12 @@ export function BookingsDashboardClient({ bookings, userId }: { bookings: Bookin
       ) : (
         <div className="space-y-4">
           {current.map((booking) => (
-            <article key={booking.id} className="glow-card space-y-3">
+            <article
+              key={booking.id}
+              className={`glow-card space-y-3 ${
+                booking.id === highlightedBookingId ? 'ring-2 ring-emerald-300' : ''
+              }`}
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-center gap-3">
                   {/* Avatar */}

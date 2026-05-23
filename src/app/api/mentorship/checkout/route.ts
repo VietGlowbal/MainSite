@@ -223,7 +223,11 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       customer_email: user.email,
       client_reference_id: String(booking.id),
-      success_url: `${baseUrl}/dashboard/bookings/${booking.id}?status=success`,
+      // Land on the bookings list (which exists, unlike /dashboard/bookings/[id])
+      // and pass the Stripe session id so we can confirm + email as a fallback
+      // when the webhook hasn't fired yet. {CHECKOUT_SESSION_ID} is replaced
+      // by Stripe at redirect time.
+      success_url: `${baseUrl}/dashboard/bookings?status=success&session_id={CHECKOUT_SESSION_ID}&booking=${booking.id}`,
       cancel_url: `${baseUrl}/mentors/${mentor.id}?status=cancelled&booking=${booking.id}`,
       line_items: [
         {

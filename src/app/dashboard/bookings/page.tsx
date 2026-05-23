@@ -2,18 +2,43 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { AppSidebar } from '@/components/layout/app-sidebar';
 import { BookingsDashboardClient } from './bookings-client';
+import { confirmBookingBySessionId } from '@/lib/mentorship/confirm-booking';
 
-export default async function BookingsPage() {
+type Props = {
+  searchParams: Promise<{
+    status?: string;
+    session_id?: string;
+    booking?: string;
+  }>;
+};
+
+export default async function BookingsPage({ searchParams }: Props) {
+  const params = await searchParams;
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
     redirect('/auth?redirect=/dashboard/bookings');
   }
 
+  // Fallback path for when Stripe redirects here after a successful payment
+  // but the webhook hasn't (or can't) fire — confirm the booking and trigger
+  // the mentor + mentee emails. Idempotent: re-running with the same
+  // session id is a no-op once the booking is already 'confirmed'.
+  let justConfirmed = false;
+  if (params.status === 'success' && params.session_id) {
+    const result = await confirmBookingBySessionId(params.session_id);
+    if (result.ok && result.status === 'confirmed') {
+      justConfirmed = true;
+    }
+  }
+
   const { data: bookings } = await supabase
     .from('bookings')
-    .select(`
+    .select(
+      `
       *,
       achiever:achiever_profiles!bookings_achiever_id_fkey (
         id,
@@ -23,9 +48,12 @@ export default async function BookingsPage() {
           name
         )
       )
-    `)
+    `,
+    )
     .eq('applicant_id', user.id)
     .order('scheduled_at', { ascending: false });
+
+  const highlightedBookingId = params.booking ? Number(params.booking) : null;
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
@@ -41,7 +69,13 @@ export default async function BookingsPage() {
               </p>
             </div>
 
-            <BookingsDashboardClient bookings={bookings ?? []} userId={user.id} />
+            <BookingsDashboardClient
+              bookings={bookings ?? []}
+              userId={user.id}
+              showSuccessBanner={params.status === 'success'}
+              justConfirmed={justConfirmed}
+              highlightedBookingId={highlightedBookingId}
+            />
           </div>
         </div>
       </div>
