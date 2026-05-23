@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import { Geist_Mono, Outfit } from 'next/font/google';
+import { Analytics } from '@vercel/analytics/next';
+import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NavReveal } from '@/components/nav-reveal';
 import './globals.css';
 
@@ -31,6 +33,8 @@ export default function RootLayout({
       <body className="min-h-full overflow-x-hidden bg-white text-slate-800 flex flex-col glowbal-site-shell">
         <NavReveal />
         <div className="flex-1 min-h-0">{children}</div>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
