@@ -601,8 +601,12 @@ export function GlowbalOption3GlobeDemo({
         {showCompletion ? (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/45 px-4 backdrop-blur-sm">
             <div className="w-full max-w-xl rounded-[36px] border border-white/70 bg-white/92 p-8 text-center shadow-[0_30px_80px_rgba(15,23,42,0.22)]">
-              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff4d8c,#00c2ff)] text-4xl text-white shadow-[0_16px_40px_rgba(255,77,140,0.24)]">
-                🌍
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-[linear-gradient(135deg,#ff4d8c,#00c2ff)] text-white shadow-[0_16px_40px_rgba(255,77,140,0.24)]">
+                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="2" y1="12" x2="22" y2="12" />
+                  <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                </svg>
               </div>
               <h3 className="mt-6 text-4xl font-semibold tracking-[-0.04em] text-slate-900">You’re out of this world</h3>
               <p className="mt-4 text-lg text-slate-600">Ready to go GLOWBAL?</p>

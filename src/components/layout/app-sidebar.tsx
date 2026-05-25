@@ -80,7 +80,12 @@ const MENTOR_DASHBOARD_ITEM: NavItem = {
 function HelpCard() {
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-50 to-cyan-50/50 p-4 text-center">
-      <div className="text-3xl mb-2">📚</div>
+      <div className="text-3xl mb-2 flex items-center justify-center">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-600">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        </svg>
+      </div>
       <p className="text-xs font-semibold text-slate-900 leading-tight mb-1">
         Need help with your<br />application?
       </p>

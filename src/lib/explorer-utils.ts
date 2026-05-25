@@ -10,6 +10,8 @@ export interface ExplorerUniversity {
   // Core fields from Supabase `universities` table
   id: number;
   name: string;
+  /** Native-language name, e.g. "Alma Mater Studiorum – Università di Bologna". */
+  local_name?: string | null;
   country: string;
   type?: string | null;
   qs_rank?: number | null;
@@ -110,7 +112,15 @@ function buildUniversityImageUrl(uni: University) {
 // ── Main converter ──────────────────────────────────────────────────────
 
 export function toExplorerUniversity(
-  uni: University & { match_score: number | null; match_breakdown?: MatchBreakdown | null; is_saved: boolean },
+  uni: University & {
+    match_score: number | null;
+    match_breakdown?: MatchBreakdown | null;
+    is_saved: boolean;
+    /** Pre-resolved campus image URL (when the column has been seeded). */
+    image_url?: string | null;
+    /** Pre-resolved logo URL (when the column has been seeded). */
+    logo_url?: string | null;
+  },
 ): ExplorerUniversity {
   const rank = uni.qs_rank ? `#${uni.qs_rank} QS` : uni.the_rank ? `#${uni.the_rank} THE` : '';
 
@@ -120,6 +130,16 @@ export function toExplorerUniversity(
   if (uni.standardized_test) reqs.push(uni.standardized_test);
   if (uni.admission_difficulty) reqs.push(`Difficulty: ${uni.admission_difficulty}`);
   if (reqs.length === 0) reqs.push('See university website for requirements');
+
+  // Image precedence:
+  //   1. Stored URL on the university row (populated by the seed script)
+  //   2. `__wiki__` placeholder for the runtime resolver to fill in
+  //
+  // Logo follows the same pattern. When stored imagery is present we never
+  // hit Wikipedia at request time, which is the whole point of the seed
+  // script.
+  const storedImage = (uni.image_url ?? '').trim();
+  const storedLogo = (uni.logo_url ?? '').trim();
 
   return {
     ...uni,
@@ -132,8 +152,8 @@ export function toExplorerUniversity(
     rating: uni.match_score != null ? Math.round((uni.match_score / 100) * 50) / 10 : 4.5,
     reviews: 0,
     description: uni.specific_insight ?? uni.strengths ?? '',
-    image_url: buildUniversityImageUrl(uni),
-    logo_url: '', // Resolved server-side alongside campus image
+    image_url: storedImage || buildUniversityImageUrl(uni),
+    logo_url: storedLogo || '',
     stats: {
       students: '—',
       staff: '—',

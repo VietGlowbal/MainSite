@@ -3582,3 +3582,146 @@ body:not(:has(.cosmos-root)) {
 @media (prefers-reduced-motion: reduce) {
   .auth-confirm-title { animation: none; }
 }
+
+
+/* ── Glowbal RangeSlider (universities filter sidebar) ─────────────────
+   Native <input type="range"> styled with a pink filled track + matching
+   thumb. The fill covers the segment between
+   `--glowbal-slider-from` and `--glowbal-slider-to`, which both wrappers
+   set inline. Single-thumb sliders set `from: 0%`. Dual-thumb sliders
+   render their fill via a separate <span> overlay (see below) so the
+   two transparent <input>s can sit on top with only their thumbs
+   visible. */
+
+.glowbal-range-input {
+  height: 20px;
+}
+
+.glowbal-range-input::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: 999px;
+  background: linear-gradient(
+    to right,
+    rgb(226 232 240) 0%,
+    rgb(226 232 240) var(--glowbal-slider-from, 0%),
+    var(--brand-pink-strong) var(--glowbal-slider-from, 0%),
+    var(--brand-pink-strong) var(--glowbal-slider-to, 0%),
+    rgb(226 232 240) var(--glowbal-slider-to, 0%),
+    rgb(226 232 240) 100%
+  );
+}
+
+.glowbal-range-input::-moz-range-track {
+  height: 4px;
+  border-radius: 999px;
+  background: rgb(226 232 240);
+}
+
+.glowbal-range-input::-moz-range-progress {
+  height: 4px;
+  border-radius: 999px;
+  background: var(--brand-pink-strong);
+}
+
+.glowbal-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -6px; /* (thumb 16 - track 4) / 2 */
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 3px solid var(--brand-pink-strong);
+  box-shadow: 0 2px 6px rgb(255 61 154 / 0.32);
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.glowbal-range-input::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.glowbal-range-input::-moz-range-thumb {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 3px solid var(--brand-pink-strong);
+  box-shadow: 0 2px 6px rgb(255 61 154 / 0.32);
+  cursor: pointer;
+}
+
+.glowbal-range-input:focus {
+  outline: none;
+}
+
+.glowbal-range-input:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgb(255 61 154 / 0.18);
+}
+
+/* ── Dual-thumb range slider ──────────────────────────────────────────
+   Two stacked transparent <input type="range"> elements whose only
+   visible parts are the pink-bordered thumbs. The pink filled segment
+   is rendered via the `.glowbal-dual-range-fill` span sibling, so the
+   inputs themselves keep transparent tracks and don't paint over the
+   highlight. Pointer events fall through track regions to whichever
+   input is closer (z-index swaps when a thumb is past the midpoint). */
+
+.glowbal-dual-range-fill {
+  background: var(--brand-pink-strong);
+}
+
+.glowbal-dual-range-input {
+  height: 20px;
+  pointer-events: none; /* default — thumbs re-enable below */
+}
+
+.glowbal-dual-range-input::-webkit-slider-runnable-track {
+  height: 4px;
+  background: transparent;
+  border-radius: 999px;
+}
+
+.glowbal-dual-range-input::-moz-range-track {
+  height: 4px;
+  background: transparent;
+  border-radius: 999px;
+}
+
+.glowbal-dual-range-input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  pointer-events: auto;
+  margin-top: -6px;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 3px solid var(--brand-pink-strong);
+  box-shadow: 0 2px 6px rgb(255 61 154 / 0.32);
+  cursor: pointer;
+  transition: transform 150ms ease, box-shadow 150ms ease;
+}
+
+.glowbal-dual-range-input::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.glowbal-dual-range-input::-moz-range-thumb {
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #ffffff;
+  border: 3px solid var(--brand-pink-strong);
+  box-shadow: 0 2px 6px rgb(255 61 154 / 0.32);
+  cursor: pointer;
+}
+
+.glowbal-dual-range-input:focus {
+  outline: none;
+}
+
+.glowbal-dual-range-input:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 0 4px rgb(255 61 154 / 0.18);
+}

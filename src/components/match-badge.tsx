@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import type { MatchBreakdown } from '@/lib/matching';
+import { GlobeIcon, BookIcon, DollarIcon } from '@/components/icons';
 
 interface Props {
   percentage: number | null;
@@ -9,13 +10,13 @@ interface Props {
   size?: 'sm' | 'md';
 }
 
-const icons: Record<string, string> = {
-  country: '🌍',
-  subjects: '📚',
-  budget: '💰',
-  level: '🎓',
-  environment: '🏙️',
-  support: '🤝',
+const iconComponents: Record<string, React.ComponentType<{ className?: string; size?: number }>> = {
+  country: GlobeIcon,
+  subjects: BookIcon,
+  budget: DollarIcon,
+  level: BookIcon, // Reuse book for level
+  environment: GlobeIcon, // Reuse globe for environment
+  support: BookIcon, // Reuse book for support
 };
 
 export function MatchBadge({ percentage, breakdown, size = 'sm' }: Props) {
@@ -69,20 +70,25 @@ export function MatchBadge({ percentage, breakdown, size = 'sm' }: Props) {
       {open && breakdown && (
         <div className="absolute z-50 bottom-full mb-2 left-0 max-w-[calc(100vw-2rem)] w-72 bg-white border border-slate-200 rounded-xl shadow-xl p-4 text-xs text-slate-700 animate-[fadeIn_0.2s_ease-out]">
           <p className="font-semibold text-slate-900 mb-3">Match breakdown</p>
-          {Object.entries(breakdown).map(([key, val]) => (
-            <div key={key} className="flex items-start gap-2 mb-2 last:mb-0">
-              <span className="shrink-0">{icons[key] ?? '•'}</span>
-              <div className="flex-1">
-                <div className="flex items-center gap-1">
-                  <span className={val.score === val.max ? 'text-emerald-600 font-medium' : val.score > 0 ? 'text-amber-600 font-medium' : 'text-red-500 font-medium'}>
-                    {val.score === val.max ? '✓' : val.score > 0 ? '~' : '✗'}
-                  </span>
-                  <span className="text-slate-500">{val.score}/{val.max}</span>
+          {Object.entries(breakdown).map(([key, val]) => {
+            const IconComponent = iconComponents[key];
+            return (
+              <div key={key} className="flex items-start gap-2 mb-2 last:mb-0">
+                <span className="shrink-0 text-slate-400">
+                  {IconComponent ? <IconComponent size={14} /> : '•'}
+                </span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-1">
+                    <span className={val.score === val.max ? 'text-emerald-600 font-medium' : val.score > 0 ? 'text-amber-600 font-medium' : 'text-red-500 font-medium'}>
+                      {val.score === val.max ? '✓' : val.score > 0 ? '~' : '✗'}
+                    </span>
+                    <span className="text-slate-500">{val.score}/{val.max}</span>
+                  </div>
+                  <span className="text-slate-600">{val.reason}</span>
                 </div>
-                <span className="text-slate-600">{val.reason}</span>
               </div>
-            </div>
-          ))}
+            );
+          })}
           <style>{`
             @keyframes fadeIn {
               from { opacity: 0; transform: translateY(4px); }

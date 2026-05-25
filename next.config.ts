@@ -29,8 +29,13 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '*.supabase.in' },
       // OAuth provider avatars (Google profile pictures)
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
-      // Fallback Unsplash CDN (occasionally referenced)
+      // Unsplash CDNs — used as a fallback when two universities resolve
+      // to the same Wikipedia city image (see seed-university-images.mjs).
       { protocol: 'https', hostname: 'images.unsplash.com' },
+      { protocol: 'https', hostname: 'source.unsplash.com' },
+      // Google favicons — used as a no-key logo fallback for universities
+      // whose Wikidata logo claims are missing.
+      { protocol: 'https', hostname: 'www.google.com' },
     ],
   },
 };

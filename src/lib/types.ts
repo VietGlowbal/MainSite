@@ -76,6 +76,8 @@ export type University = {
   weaknesses?: string | null;
   notes?: string | null;
   image_url?: string | null;
+  logo_url?: string | null;
+  images_resolved_at?: string | null;
 };
 
 export type UserUniversity = {
