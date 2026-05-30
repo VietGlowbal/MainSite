@@ -42,6 +42,46 @@ export type StudentProfile = {
   onboarding_completed_at?: string | null;
   created_at?: string;
   updated_at?: string;
+  // Extended profile fields
+  phone?: string | null;
+  date_of_birth?: string | null;
+  current_institution?: string | null;
+  current_qualification?: string | null;
+  predicted_grades?: string | null;
+  graduation_year?: number | null;
+  preferred_cities?: string[] | null;
+  study_mode_preference?: string | null;
+  target_intake?: string | null;
+  application_cycle_year?: number | null;
+};
+
+export type WorkExperience = {
+  id: string;
+  user_id: string;
+  company: string;
+  role: string;
+  employment_type?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  is_current?: boolean | null;
+  description?: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type EnglishTestScore = {
+  id: string;
+  user_id: string;
+  test_type: string;
+  overall_score?: number | null;
+  listening_score?: number | null;
+  reading_score?: number | null;
+  writing_score?: number | null;
+  speaking_score?: number | null;
+  test_date?: string | null;
+  expiry_date?: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
 export type University = {

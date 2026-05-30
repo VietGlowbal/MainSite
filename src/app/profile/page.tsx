@@ -18,6 +18,9 @@ export default async function ProfilePage() {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
     getMentorSummary(),
+    supabase.from('course_applications').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('work_experiences').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('english_test_scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
   ]);
 
   const profile = profileResult.data;
