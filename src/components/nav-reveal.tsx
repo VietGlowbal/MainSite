@@ -327,12 +327,16 @@ function DesktopSidebar({ user }: { user: UserSummary | null }) {
 
 // ── Main nav controller ──────────────────────────────────────────────────────
 export function NavReveal() {
+  const pathname = usePathname();
   const [revealed, setRevealed] = useState(() => {
     if (typeof window === 'undefined') return false;
     const isLanding = window.location.pathname === '/';
     return !isLanding || localStorage.getItem('glowbal-nav-revealed') === 'true';
   });
   const [user, setUser] = useState<UserSummary | null>(null);
+
+  // Hide nav on home page regardless of revealed state
+  const isHomePage = pathname === '/';
 
   useEffect(() => {
     function onReveal() {
@@ -387,7 +391,7 @@ export function NavReveal() {
     };
   }, []);
 
-  if (!revealed) return null;
+  if (!revealed || isHomePage) return null;
 
   return (
     <>

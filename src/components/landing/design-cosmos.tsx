@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { LandingGlobe } from '@/components/landing-globe';
@@ -21,15 +22,16 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
   const rootRef = useRef<HTMLDivElement>(null);
   const waitlistRef = useRef<HTMLElement>(null);
   const pillClicks = useRef(0);
+  const router = useRouter();
   const [cosmosOpacity, setCosmosOpacity] = useState(1);
   const [longContentOpacity, setLongContentOpacity] = useState(0);
 
   const handlePillClick = useCallback(() => {
     pillClicks.current += 1;
     if (pillClicks.current >= 5) {
-      window.dispatchEvent(new CustomEvent('glowbal:reveal-nav'));
+      router.push('/universities');
     }
-  }, []);
+  }, [router]);
 
   /**
    * The deep-space backdrop is the visual signature of the home hero,
