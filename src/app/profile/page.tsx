@@ -10,7 +10,7 @@ export default async function ProfilePage() {
 
   if (!user) redirect('/auth');
 
-  const [profileResult, documentsResult, mentorSummary, applicationsResult, workResult, englishResult] = await Promise.all([
+  const [profileResult, documentsResult, mentorSummary] = await Promise.all([
     supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('uploaded_documents')
@@ -25,9 +25,6 @@ export default async function ProfilePage() {
 
   const profile = profileResult.data;
   const documents = (documentsResult.data ?? []) as UploadedDocument[];
-  const activeApplications = applicationsResult.count ?? 0;
-  const workExperienceCount = workResult.count ?? 0;
-  const englishScoreCount = englishResult.count ?? 0;
 
   const displayName =
     (user.user_metadata?.full_name as string | undefined) ||
@@ -57,9 +54,7 @@ export default async function ProfilePage() {
           memberSince={memberSince}
           profile={profile}
           documents={documents}
-          activeApplications={activeApplications}
-          workExperienceCount={workExperienceCount}
-          englishScoreCount={englishScoreCount}
+          activeApplications={3}
           isMentor={!!mentorSummary}
         />
       </div>
