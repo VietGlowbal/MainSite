@@ -6,9 +6,8 @@ import { ProfileAvatar } from './profile-avatar';
 import { PersonalInfoCard } from './personal-info-card';
 import Link from 'next/link';
 import type { UploadedDocument } from '@/lib/types';
-import { SignOutButton } from '@/components/sign-out-button';
-import { AppSidebar } from '@/components/layout/app-sidebar';
 import { getMentorSummary } from '@/lib/mentor-status';
+import { ProfileClient } from './profile-client';
 
 export default async function ProfilePage() {
   const supabase = await createClient();
@@ -16,35 +15,35 @@ export default async function ProfilePage() {
 
   if (!user) redirect('/auth');
 
-  const [profileResult, documentsResult, statementsResult, mentorSummary] = await Promise.all([
+  const [profileResult, documentsResult, mentorSummary] = await Promise.all([
     supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
-    supabase.from('uploaded_documents').select('*').eq('user_id', user.id).order('created_at', { ascending: false }),
     supabase
-      .from('personal_statements')
-      .select('id, title, doc_type, updated_at, user_university_id, user_universities:user_universities!personal_statements_user_university_id_fkey(id, university:universities(name))')
+      .from('uploaded_documents')
+      .select('*')
       .eq('user_id', user.id)
-      .order('updated_at', { ascending: false }),
+      .order('created_at', { ascending: false }),
     getMentorSummary(),
   ]);
 
   const profile = profileResult.data;
   const documents = (documentsResult.data ?? []) as UploadedDocument[];
-  type StatementRow = {
-    id: number;
-    title: string;
-    doc_type: string;
-    updated_at: string;
-    user_university_id: number | null;
-    user_universities: { id: number; university: { name: string } | null } | null;
-  };
-  const statements = (statementsResult.data ?? []) as unknown as StatementRow[];
 
-  const displayName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Student';
+  const displayName =
+    (user.user_metadata?.full_name as string | undefined) ||
+    user.email?.split('@')[0] ||
+    'Student';
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
-  const initials = displayName.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase();
+  const initials = displayName
+    .split(' ')
+    .map((w: string) => w[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
 
-  const cvDocs = documents.filter((d) => d.type === 'cv');
-  const sopDocs = documents.filter((d) => d.type === 'statement_of_purpose');
+  const memberSince = new Date(user.created_at).toLocaleDateString('en-GB', {
+    month: 'long',
+    year: 'numeric',
+  });
 
   // Calculate profile completion
   const completionChecks = [
