@@ -30,9 +30,9 @@ export default function RootLayout({
       lang="en"
       className={`${outfit.variable} ${geistMono.variable} h-full overflow-x-hidden bg-white antialiased`}
     >
-      <body className="min-h-full overflow-x-hidden bg-white text-slate-800 flex flex-col glowbal-site-shell">
+      <body className="min-h-full overflow-x-hidden bg-white text-slate-800 glowbal-site-shell">
         <NavReveal />
-        <div className="flex-1 min-h-0">{children}</div>
+        <main className="glowbal-main-content">{children}</main>
         <Analytics />
         <SpeedInsights />
       </body>

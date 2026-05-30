@@ -9,7 +9,9 @@
     "lint": "eslint",
     "seed:mentors": "node --env-file=.env.local scripts/seed-mentors.mjs",
     "seed:mentors:cleanup": "node --env-file=.env.local scripts/seed-mentors.mjs --cleanup",
-    "seed:university-images": "node --env-file=.env.local scripts/seed-university-images.mjs"
+    "seed:university-images": "node --env-file=.env.local scripts/seed-university-images.mjs",
+    "seed:apply": "node --env-file=.env.local scripts/seed-apply-system.mjs",
+    "seed:apply:cleanup": "node --env-file=.env.local scripts/seed-apply-system.mjs --cleanup"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

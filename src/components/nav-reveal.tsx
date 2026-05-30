@@ -184,72 +184,49 @@ function MobileNav({ user }: { user: UserSummary | null }) {
   );
 }
 
-// ── Main sticky header ───────────────────────────────────────────────────────
+// ── Desktop sidebar ──────────────────────────────────────────────────────────
 type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean; isAdmin?: boolean };
 
-function StickyHeader({ user }: { user: UserSummary | null }) {
+function DesktopSidebar({ user }: { user: UserSummary | null }) {
   const pathname = usePathname();
-  const { scrollY } = useScroll();
-  const [visible, setVisible] = useState(true);
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    let lastY = 0;
-    return scrollY.on('change', (y: number) => {
-      const delta = y - lastY;
-      if (y < 80) {
-        setVisible(true);
-        setScrolled(false);
-      } else {
-        setScrolled(true);
-        if (delta > 4) setVisible(false);
-        else if (delta < -4) setVisible(true);
-      }
-      lastY = y;
-    });
-  }, [scrollY]);
 
   const baseItems = user ? NAV_ITEMS : NAV_ITEMS.filter((i) => !i.requiresAuth);
   const visibleItems = user?.isMentor ? [...baseItems, MENTOR_DASHBOARD_ITEM] : baseItems;
 
   return (
-    <motion.header
-      animate={{ y: visible ? 0 : -120, opacity: visible ? 1 : 0 }}
-      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-      className="glowbal-header"
-      data-scrolled={scrolled || undefined}
-    >
+    <aside className="glowbal-sidebar hidden md:flex">
       {/* Animated brand gradient strip (pink → red → aqua → navy) */}
-      <div className="glowbal-brand-strip" aria-hidden />
+      <div className="glowbal-brand-strip-vertical" aria-hidden />
 
-      <div className={`glowbal-header-inner${scrolled ? ' is-scrolled' : ''}`}>
-        <div className="glowbal-header-shell">
-          <Link href="/" aria-label="Glowbal home" className="glowbal-header-logo">
+      <div className="glowbal-sidebar-inner">
+        <div className="glowbal-sidebar-header">
+          <Link href="/" aria-label="Glowbal home" className="glowbal-sidebar-logo">
             <GlowbalLogo height={32} />
           </Link>
+        </div>
 
-          <nav className="glowbal-nav-tabs hidden md:flex" aria-label="Primary">
-            {visibleItems.map((item) => {
-              const active = isActive(pathname, item);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`glowbal-nav-pill${active ? ' glowbal-nav-pill-active' : ''}`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+        <nav className="glowbal-sidebar-nav" aria-label="Primary">
+          {visibleItems.map((item) => {
+            const active = isActive(pathname, item);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`glowbal-sidebar-item${active ? ' glowbal-sidebar-item-active' : ''}`}
+              >
+                <span className="glowbal-sidebar-item-icon">{MOBILE_ICONS[item.href] ? MOBILE_ICONS[item.href]() : <IconHome />}</span>
+                <span className="glowbal-sidebar-item-label">{item.label}</span>
+              </Link>
+            );
+          })}
+        </nav>
 
-          <div className="glowbal-header-account">
-            {user?.isAdmin && <AdminPill />}
-            <AccountPill user={user} />
-          </div>
+        <div className="glowbal-sidebar-footer">
+          {user?.isAdmin && <AdminPill />}
+          <AccountPill user={user} />
         </div>
       </div>
-    </motion.header>
+    </aside>
   );
 }
 
@@ -319,9 +296,7 @@ export function NavReveal() {
 
   return (
     <>
-      <StickyHeader user={user} />
-      {/* Spacer so page content doesn't sit under the fixed header */}
-      <div style={{ height: 88 }} aria-hidden />
+      <DesktopSidebar user={user} />
       <MobileNav user={user} />
     </>
   );
