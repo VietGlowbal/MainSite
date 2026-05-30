@@ -3024,11 +3024,10 @@ function DetailRightRail({
             onClick={onApply}
             className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2"
           >
-            Apply Now
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
             </svg>
+            Find a Course
           </button>
           <button
             type="button"
@@ -3044,12 +3043,18 @@ function DetailRightRail({
             </svg>
             {saved ? 'Saved to My Universities' : 'Save to My Universities'}
           </button>
+          <a
+            href="/apply"
+            className="block w-full text-center text-xs font-medium text-slate-500 hover:text-pink-600 transition"
+          >
+            Already have a course link? Paste it here →
+          </a>
           {website ? (
             <a
               href={website}
               target="_blank"
               rel="noopener noreferrer"
-              className="block w-full text-center text-xs text-slate-500 hover:text-pink-600"
+              className="block w-full text-center text-xs text-slate-400 hover:text-pink-600"
             >
               Visit official website ↗
             </a>
@@ -3356,11 +3361,10 @@ function DetailViewBody({
             onClick={handleApply}
             className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
           >
-            Apply Now
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <line x1="5" y1="12" x2="19" y2="12" />
-              <polyline points="12 5 19 12 12 19" />
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" />
             </svg>
+            Find a Course
           </button>
         </div>
       </section>
