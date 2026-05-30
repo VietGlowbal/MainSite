@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { AppSidebar } from '@/components/layout/app-sidebar';
 import type {
   CourseApplication,
   ShortlistedUniversity,
@@ -581,11 +580,6 @@ export function ApplyDashboard({ applications, shortlisted, upcomingDeadlines, o
 
   return (
     <div className="flex gap-6">
-      {/* Left nav sidebar */}
-      <div className="w-52 shrink-0">
-        <AppSidebar />
-      </div>
-
       {/* Main content */}
       <div className="min-w-0 flex-1 space-y-6">
         {/* Page header */}

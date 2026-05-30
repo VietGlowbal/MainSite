@@ -196,7 +196,7 @@ export default async function ApplicationPage({
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
-      <div className="mx-auto max-w-7xl">
+      <div className="w-full">
         <ApplicationWorkspaceView workspace={workspace} />
       </div>
     </main>
