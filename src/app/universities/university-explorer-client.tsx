@@ -1,6 +1,7 @@
 'use client';
 
 import dynamic from 'next/dynamic';
+import Link from 'next/link';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -3019,6 +3020,18 @@ function DetailRightRail({
         </dl>
 
         <div className="mt-5 space-y-2">
+          {university.id === 97 ? (
+            <Link
+              href="/universities/vinuni"
+              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)] px-5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.32)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 focus-visible:ring-offset-2"
+            >
+              Explore VinUni Full Experience
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </Link>
+          ) : null}
           <button
             type="button"
             onClick={onApply}
