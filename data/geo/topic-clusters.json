@@ -1,0 +1,602 @@
+[
+  {
+    "id": "cluster-computer-science-comparison-for-vietnamese-under",
+    "title": "Computer Science Comparison for Vietnamese undergraduate applicant",
+    "slug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "UK vs Australia vs Canada for Vietnamese students studying Computer Science?",
+    "relatedQuestions": [
+      "UK vs Australia vs Canada for Vietnamese students studying Computer Science?",
+      "How should Vietnamese students compare course content between Computer Science and Software Engineering abroad?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Multi-country",
+    "subject": "Computer Science",
+    "recommendedPageType": "comparison",
+    "action": "create-new-page",
+    "priorityScore": 26,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-computer-science-comparison-for-vietnamese-un",
+    "title": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
+    "slug": "uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What are the best UK universities for Vietnamese students who want software engineering careers?",
+    "relatedQuestions": [
+      "What are the best UK universities for Vietnamese students who want software engineering careers?",
+      "What are the best UK universities for Vietnamese students interested in AI and machine learning?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Computer Science",
+    "recommendedPageType": "ranking",
+    "action": "create-new-page",
+    "priorityScore": 26,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-best-uk-computer-science-degrees-for-vietnamese-",
+    "title": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
+    "slug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+    "primaryQuestion": "What are the best UK Computer Science degrees for Vietnamese students in 2027?",
+    "relatedQuestions": [
+      "What are the best UK Computer Science degrees for Vietnamese students in 2027?",
+      "Best UK Computer Science degrees for Vietnamese students who want strong internships"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Computer Science",
+    "recommendedPageType": "ranking",
+    "action": "create-new-page",
+    "priorityScore": 25,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-cost-guide-for-vietnamese-undergraduate-appli",
+    "title": "UK Cost Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What are the best affordable universities in the UK for international students?",
+    "relatedQuestions": [
+      "What are the best affordable universities in the UK for international students?",
+      "How much should Vietnamese families budget for a UK undergraduate degree in 2027?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "General",
+    "recommendedPageType": "cost",
+    "action": "create-new-page",
+    "priorityScore": 24,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-data-science-scholarship-guide-for-vietnamese",
+    "title": "UK Data Science Scholarship Guide for Vietnamese master's applicant",
+    "slug": "uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
+    "primaryQuestion": "What scholarships can Vietnamese master's students get in UK Data Science programmes?",
+    "relatedQuestions": [
+      "What scholarships can Vietnamese master's students get in UK Data Science programmes?",
+      "Which UK scholarships are realistic for Vietnamese master’s students in Data Science?"
+    ],
+    "studentSegment": "Vietnamese master's applicant",
+    "targetCountry": "UK",
+    "subject": "Data Science",
+    "recommendedPageType": "scholarship",
+    "action": "create-new-page",
+    "priorityScore": 24,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-computer-science-scholarship-guide-for-vietna",
+    "title": "UK Computer Science Scholarship Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-computer-science-scholarship-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "Which UK universities offer scholarships for Vietnamese Computer Science students?",
+    "relatedQuestions": [
+      "Which UK universities offer scholarships for Vietnamese Computer Science students?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Computer Science",
+    "recommendedPageType": "scholarship",
+    "action": "create-new-page",
+    "priorityScore": 14,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-guide-for-vietnamese-undergraduate-applicant",
+    "title": "Guide for Vietnamese undergraduate applicant",
+    "slug": "guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "How do I choose reach, target, and safety universities as a Vietnamese student?",
+    "relatedQuestions": [
+      "How do I choose reach, target, and safety universities as a Vietnamese student?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Multi-country",
+    "subject": "General",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 14,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-computer-science-cost-guide-for-vietnamese-un",
+    "title": "UK Computer Science Cost Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-computer-science-cost-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "How much does it cost to study Computer Science in the UK as a Vietnamese student?",
+    "relatedQuestions": [
+      "How much does it cost to study Computer Science in the UK as a Vietnamese student?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Computer Science",
+    "recommendedPageType": "cost",
+    "action": "create-new-page",
+    "priorityScore": 13,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-medicine-guide-for-vietnamese-undergraduate-appl",
+    "title": "Medicine Guide for Vietnamese undergraduate applicant",
+    "slug": "medicine-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "How do Vietnamese students build a safe university list for Medicine abroad?",
+    "relatedQuestions": [
+      "How do Vietnamese students build a safe university list for Medicine abroad?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Multi-country",
+    "subject": "Medicine",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 13,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-data-science-comparison-for-vietnamese-master",
+    "title": "UK Data Science Comparison for Vietnamese master's applicant",
+    "slug": "uk-data-science-comparison-for-vietnamese-master-s-applicant",
+    "primaryQuestion": "What are the best UK Data Science master's programmes for Vietnamese students in 2027?",
+    "relatedQuestions": [
+      "What are the best UK Data Science master's programmes for Vietnamese students in 2027?"
+    ],
+    "studentSegment": "Vietnamese master's applicant",
+    "targetCountry": "UK",
+    "subject": "Data Science",
+    "recommendedPageType": "ranking",
+    "action": "create-new-page",
+    "priorityScore": 13,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-scholarship-guide-for-vietnamese-undergraduate-a",
+    "title": "Scholarship Guide for Vietnamese undergraduate applicant",
+    "slug": "scholarship-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "How should Vietnamese students compare scholarships across UK, Australia, and Canada?",
+    "relatedQuestions": [
+      "How should Vietnamese students compare scholarships across UK, Australia, and Canada?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Multi-country",
+    "subject": "General",
+    "recommendedPageType": "scholarship",
+    "action": "create-new-page",
+    "priorityScore": 13,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-computer-science-guide-for-vietnamese-undergr",
+    "title": "UK Computer Science Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-computer-science-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What IELTS score do Vietnamese students need for top UK Computer Science universities?",
+    "relatedQuestions": [
+      "What IELTS score do Vietnamese students need for top UK Computer Science universities?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Computer Science",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-computer-science-guide-for-vietnamese-undergr",
+    "title": "UK Computer Science Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-computer-science-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "How can Vietnamese students compare UK Computer Science courses by teaching style and employability?",
+    "relatedQuestions": [
+      "How can Vietnamese students compare UK Computer Science courses by teaching style and employability?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Computer Science",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-business-scholarship-guide-for-vietnamese-mas",
+    "title": "UK Business Scholarship Guide for Vietnamese master's applicant",
+    "slug": "uk-business-scholarship-guide-for-vietnamese-master-s-applicant",
+    "primaryQuestion": "Which UK Business schools are best for Vietnamese students who need scholarships?",
+    "relatedQuestions": [
+      "Which UK Business schools are best for Vietnamese students who need scholarships?"
+    ],
+    "studentSegment": "Vietnamese master's applicant",
+    "targetCountry": "UK",
+    "subject": "Business",
+    "recommendedPageType": "scholarship",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-engineering-cost-guide-for-vietnamese-undergr",
+    "title": "UK Engineering Cost Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-engineering-cost-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What are the cheapest UK universities for Vietnamese engineering students?",
+    "relatedQuestions": [
+      "What are the cheapest UK universities for Vietnamese engineering students?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Engineering",
+    "recommendedPageType": "cost",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-data-science-comparison-for-vietnamese-master-s-",
+    "title": "Data Science Comparison for Vietnamese master's applicant",
+    "slug": "data-science-comparison-for-vietnamese-master-s-applicant",
+    "primaryQuestion": "Canada vs UK for Vietnamese students who want Data Science jobs?",
+    "relatedQuestions": [
+      "Canada vs UK for Vietnamese students who want Data Science jobs?"
+    ],
+    "studentSegment": "Vietnamese master's applicant",
+    "targetCountry": "Multi-country",
+    "subject": "Data Science",
+    "recommendedPageType": "comparison",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-australia-computer-science-comparison-for-vietna",
+    "title": "Australia Computer Science Comparison for Vietnamese undergraduate applicant",
+    "slug": "australia-computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "Which universities in Australia are best for Vietnamese Computer Science students on a budget?",
+    "relatedQuestions": [
+      "Which universities in Australia are best for Vietnamese Computer Science students on a budget?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Australia",
+    "subject": "Computer Science",
+    "recommendedPageType": "ranking",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-canada-business-comparison-for-vietnamese-master",
+    "title": "Canada Business Comparison for Vietnamese master's applicant",
+    "slug": "canada-business-comparison-for-vietnamese-master-s-applicant",
+    "primaryQuestion": "What are the best Canadian universities for Vietnamese students applying to Business analytics?",
+    "relatedQuestions": [
+      "What are the best Canadian universities for Vietnamese students applying to Business analytics?"
+    ],
+    "studentSegment": "Vietnamese master's applicant",
+    "targetCountry": "Canada",
+    "subject": "Business",
+    "recommendedPageType": "ranking",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-us-guide-for-vietnamese-undergraduate-applicant",
+    "title": "US Guide for Vietnamese undergraduate applicant",
+    "slug": "us-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "Which US universities are realistic target options for Vietnamese students with strong grades but limited budget?",
+    "relatedQuestions": [
+      "Which US universities are realistic target options for Vietnamese students with strong grades but limited budget?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "US",
+    "subject": "General",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-europe-engineering-comparison-for-vietnamese-und",
+    "title": "Europe Engineering Comparison for Vietnamese undergraduate applicant",
+    "slug": "europe-engineering-comparison-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "Which European countries are best for Vietnamese students who want English-taught Engineering degrees?",
+    "relatedQuestions": [
+      "Which European countries are best for Vietnamese students who want English-taught Engineering degrees?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Europe",
+    "subject": "Engineering",
+    "recommendedPageType": "ranking",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-guide-for-vietnamese-undergraduate-applicant",
+    "title": "UK Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What are the visa proof-of-funds rules Vietnamese students should plan for when applying to the UK?",
+    "relatedQuestions": [
+      "What are the visa proof-of-funds rules Vietnamese students should plan for when applying to the UK?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "General",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-data-science-guide-for-vietnamese-master-s-ap",
+    "title": "UK Data Science Guide for Vietnamese master's applicant",
+    "slug": "uk-data-science-guide-for-vietnamese-master-s-applicant",
+    "primaryQuestion": "Which UK universities have the strongest industry links for Vietnamese Data Science students?",
+    "relatedQuestions": [
+      "Which UK universities have the strongest industry links for Vietnamese Data Science students?"
+    ],
+    "studentSegment": "Vietnamese master's applicant",
+    "targetCountry": "UK",
+    "subject": "Data Science",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-guide-for-vietnamese-undergraduate-applicant",
+    "title": "UK Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "How do Vietnamese students evaluate graduate outcomes when choosing a UK university?",
+    "relatedQuestions": [
+      "How do Vietnamese students evaluate graduate outcomes when choosing a UK university?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "General",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-business-comparison-for-vietnamese-master-s-a",
+    "title": "UK Business Comparison for Vietnamese master's applicant",
+    "slug": "uk-business-comparison-for-vietnamese-master-s-applicant",
+    "primaryQuestion": "Which UK universities are strongest for Vietnamese students interested in fintech and Business?",
+    "relatedQuestions": [
+      "Which UK universities are strongest for Vietnamese students interested in fintech and Business?"
+    ],
+    "studentSegment": "Vietnamese master's applicant",
+    "targetCountry": "UK",
+    "subject": "Business",
+    "recommendedPageType": "ranking",
+    "action": "create-new-page",
+    "priorityScore": 12,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-design-guide-for-vietnamese-undergraduate-app",
+    "title": "UK Design Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-design-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What portfolio expectations do UK Design universities have for Vietnamese students?",
+    "relatedQuestions": [
+      "What portfolio expectations do UK Design universities have for Vietnamese students?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Design",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-cost-guide-for-vietnamese-parent-of-undergrad",
+    "title": "UK Cost Guide for Vietnamese parent of undergraduate applicant",
+    "slug": "uk-cost-guide-for-vietnamese-parent-of-undergraduate-applicant",
+    "primaryQuestion": "How do Vietnamese parents compare total study costs across UK cities?",
+    "relatedQuestions": [
+      "How do Vietnamese parents compare total study costs across UK cities?"
+    ],
+    "studentSegment": "Vietnamese parent of undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "General",
+    "recommendedPageType": "cost",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-medicine-cost-guide-for-vietnamese-undergraduate",
+    "title": "Medicine Cost Guide for Vietnamese undergraduate applicant",
+    "slug": "medicine-cost-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What are the most affordable pathways into Medicine for Vietnamese students outside the UK?",
+    "relatedQuestions": [
+      "What are the most affordable pathways into Medicine for Vietnamese students outside the UK?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Multi-country",
+    "subject": "Medicine",
+    "recommendedPageType": "cost",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-guide-for-vietnamese-undergraduate-applicant",
+    "title": "UK Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What documents do Vietnamese students need before applying to UK universities?",
+    "relatedQuestions": [
+      "What documents do Vietnamese students need before applying to UK universities?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "General",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-data-science-cost-guide-for-vietnamese-underg",
+    "title": "UK Data Science Cost Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-data-science-cost-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "Which affordable UK universities are best for Vietnamese Data Science applicants?",
+    "relatedQuestions": [
+      "Which affordable UK universities are best for Vietnamese Data Science applicants?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Data Science",
+    "recommendedPageType": "cost",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-scholarship-guide-for-vietnamese-undergraduat",
+    "title": "UK Scholarship Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-scholarship-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "How should Vietnamese students compare scholarships in the UK, Canada, and Australia?",
+    "relatedQuestions": [
+      "How should Vietnamese students compare scholarships in the UK, Canada, and Australia?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "General",
+    "recommendedPageType": "scholarship",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-canada-business-comparison-for-vietnamese-underg",
+    "title": "Canada Business Comparison for Vietnamese undergraduate applicant",
+    "slug": "canada-business-comparison-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What are the best Business analytics programmes in Canada for Vietnamese students?",
+    "relatedQuestions": [
+      "What are the best Business analytics programmes in Canada for Vietnamese students?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Canada",
+    "subject": "Business",
+    "recommendedPageType": "ranking",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-engineering-guide-for-vietnamese-undergraduat",
+    "title": "UK Engineering Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-engineering-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "Which UK universities are safest target options for Vietnamese students applying to Engineering?",
+    "relatedQuestions": [
+      "Which UK universities are safest target options for Vietnamese students applying to Engineering?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Engineering",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-europe-design-guide-for-vietnamese-undergraduate",
+    "title": "Europe Design Guide for Vietnamese undergraduate applicant",
+    "slug": "europe-design-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What are the best European countries for Vietnamese Design students who want English-taught courses?",
+    "relatedQuestions": [
+      "What are the best European countries for Vietnamese Design students who want English-taught courses?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Europe",
+    "subject": "Design",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-computer-science-guide-for-vietnamese-undergradu",
+    "title": "Computer Science Guide for Vietnamese undergraduate applicant",
+    "slug": "computer-science-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "How do Vietnamese students compare Computer Science and Software Engineering degrees abroad?",
+    "relatedQuestions": [
+      "How do Vietnamese students compare Computer Science and Software Engineering degrees abroad?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Multi-country",
+    "subject": "Computer Science",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  },
+  {
+    "id": "cluster-uk-medicine-guide-for-vietnamese-undergraduate-a",
+    "title": "UK Medicine Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-medicine-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What should Vietnamese students check before choosing a UK university for Medicine?",
+    "relatedQuestions": [
+      "What should Vietnamese students check before choosing a UK university for Medicine?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "Medicine",
+    "recommendedPageType": "guide",
+    "action": "create-new-page",
+    "priorityScore": 11,
+    "createdAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T22:45:28.261Z"
+  }
+]

@@ -10,7 +10,13 @@
     "seed:mentors": "node --env-file=.env.local scripts/seed-mentors.mjs",
     "seed:mentors:cleanup": "node --env-file=.env.local scripts/seed-mentors.mjs --cleanup",
     "seed:university-images": "node --env-file=.env.local scripts/seed-university-images.mjs",
-    "test:extraction": "node --env-file=.env.local scripts/test-course-extraction.mjs"
+    "test:extraction": "node --env-file=.env.local scripts/test-course-extraction.mjs",
+    "geo:questions": "tsx scripts/geo/generateQuestions.ts",
+    "geo:cluster": "tsx scripts/geo/clusterQuestions.ts",
+    "geo:draft": "tsx scripts/geo/generateDraftPage.ts",
+    "geo:quality": "tsx scripts/geo/qualityCheck.ts",
+    "geo:metadata": "tsx scripts/geo/generateMetadata.ts",
+    "geo:pr": "tsx scripts/geo/createContentPR.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -39,6 +45,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "tsx": "^4.20.6"
   }
 }

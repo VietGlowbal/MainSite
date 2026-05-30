@@ -1,0 +1,30 @@
+name: GEO Content Pipeline
+
+on:
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+
+jobs:
+  geo-content:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Generate student questions
+        run: npm run geo:questions
+      - name: Cluster questions
+        run: npm run geo:cluster
+      - name: Generate draft pages
+        run: npm run geo:draft
+      - name: Run quality checks
+        run: npm run geo:quality
+      - name: Generate metadata
+        run: npm run geo:metadata
+      - name: Create Pull Request
+        run: npm run geo:pr

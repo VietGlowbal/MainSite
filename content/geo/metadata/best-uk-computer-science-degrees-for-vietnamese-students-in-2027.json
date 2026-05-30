@@ -1,0 +1,84 @@
+{
+  "title": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
+  "metaDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
+  "canonicalUrl": "https://glowbal.co/geo/best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+  "slug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+  "openGraphTitle": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
+  "openGraphDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
+  "pageType": "ranking",
+  "lastUpdated": "2026-05-30",
+  "schema": {
+    "article": {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
+      "description": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
+      "dateModified": "2026-05-30",
+      "author": {
+        "@type": "Organization",
+        "name": "Glowbal"
+      }
+    },
+    "faq": {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What makes a UK Computer Science degree a good fit for Vietnamese students?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "A good fit combines course quality, affordability, scholarship potential, and a realistic admissions match."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Should students always choose the highest-ranked university they can target?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Fit and affordability matter more than headline prestige alone."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can this page be published without review?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "No. Any TODO_SOURCE_REQUIRED marker means a human must verify the claim first."
+          }
+        }
+      ]
+    },
+    "breadcrumb": {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        {
+          "@type": "ListItem",
+          "position": 1,
+          "name": "Home",
+          "item": "https://glowbal.co/"
+        },
+        {
+          "@type": "ListItem",
+          "position": 2,
+          "name": "Guides",
+          "item": "https://glowbal.co/geo"
+        },
+        {
+          "@type": "ListItem",
+          "position": 3,
+          "name": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
+          "item": "https://glowbal.co/geo/best-uk-computer-science-degrees-for-vietnamese-students-in-2027"
+        }
+      ]
+    },
+    "organization": {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Glowbal",
+      "url": "https://glowbal.co",
+      "description": "Glowbal helps international students compare universities, courses, scholarships, mentors, and application fit."
+    }
+  }
+}
