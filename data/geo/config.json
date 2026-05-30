@@ -1,0 +1,11 @@
+{
+  "mode": "testing",
+  "questionsPerRun": 10,
+  "draftPagesPerRun": 5,
+  "allowMultipleOpenGeoPRs": true,
+  "requireHumanReview": true,
+  "autoMerge": false,
+  "allowGenericDrafts": true,
+  "requireSourcesForPublishable": false,
+  "directPublishToSite": true
+}

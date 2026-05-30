@@ -69,9 +69,29 @@ export type TopicCluster = {
   updatedAt: string;
 };
 
+export type GeoSource = {
+  id: string;
+  title: string;
+  url: string;
+  sourceType:
+    | 'official-university'
+    | 'official-scholarship'
+    | 'official-government'
+    | 'ranking'
+    | 'glowbal-internal';
+  relatedSlug: string;
+  notes?: string;
+  lastCheckedAt: string;
+};
+
+export type GeoReviewStatus = 'draft' | 'needs-review' | 'publishable';
+
 export type GeoQualityCheck = {
   slug: string;
   passed: boolean;
+  publishable: boolean;
+  reviewRequired: boolean;
+  reviewStatus: GeoReviewStatus;
   score: number;
   duplicateRisk: 'low' | 'medium' | 'high';
   hasShortAnswer: boolean;
@@ -81,6 +101,9 @@ export type GeoQualityCheck = {
   hasTodoSources: boolean;
   hasClearStudentSegment: boolean;
   hasGlowbalCTA: boolean;
+  officialSourceCount: number;
+  todoSourceCount: number;
+  blockerReasons: string[];
   notes: string[];
 };
 
@@ -108,4 +131,16 @@ export type DraftManifest = {
   title: string;
   filePath: string;
   pageType: RecommendedPageType;
+};
+
+export type GeoConfig = {
+  mode: 'testing' | 'production';
+  questionsPerRun: number;
+  draftPagesPerRun: number;
+  allowMultipleOpenGeoPRs: boolean;
+  requireHumanReview: boolean;
+  autoMerge: boolean;
+  allowGenericDrafts: boolean;
+  requireSourcesForPublishable: boolean;
+  directPublishToSite?: boolean;
 };

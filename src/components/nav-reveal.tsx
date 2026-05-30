@@ -232,47 +232,6 @@ function LanguageSwitcher() {
   );
 }
 
-// ── Mobile Language Button (floating) ────────────────────────────────────────
-function MobileLanguageButton() {
-  const [language, setLanguage] = useState<'en' | 'vi'>(() => {
-    if (typeof window === 'undefined') return 'en';
-    return (localStorage.getItem('glowbal-language') as 'en' | 'vi') || 'en';
-  });
-
-  useEffect(() => {
-    const handleLanguageChange = (e: CustomEvent<{ language: 'en' | 'vi' }>) => {
-      setLanguage(e.detail.language);
-    };
-    window.addEventListener('glowbal:language-change' as any, handleLanguageChange);
-    return () => {
-      window.removeEventListener('glowbal:language-change' as any, handleLanguageChange);
-    };
-  }, []);
-
-  const toggleLanguage = () => {
-    const newLang = language === 'en' ? 'vi' : 'en';
-    setLanguage(newLang);
-    localStorage.setItem('glowbal-language', newLang);
-    window.dispatchEvent(new CustomEvent('glowbal:language-change', { detail: { language: newLang } }));
-  };
-
-  return (
-    <button
-      onClick={toggleLanguage}
-      className="glowbal-mobile-language-button md:hidden"
-      aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
-      title={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
-    >
-      <span className="glowbal-mobile-language-flag">
-        {language === 'en' ? '🇬🇧' : '🇻🇳'}
-      </span>
-      <span className="glowbal-mobile-language-text">
-        {language === 'en' ? 'EN' : 'VI'}
-      </span>
-    </button>
-  );
-}
-
 // ── Desktop sidebar ──────────────────────────────────────────────────────────
 type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean; isAdmin?: boolean };
 
@@ -396,7 +355,6 @@ export function NavReveal() {
     <>
       <DesktopSidebar user={user} />
       <MobileNav user={user} />
-      <MobileLanguageButton />
     </>
   );
 }
