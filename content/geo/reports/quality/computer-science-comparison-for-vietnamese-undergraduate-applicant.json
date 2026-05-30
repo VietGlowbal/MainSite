@@ -1,0 +1,25 @@
+{
+  "slug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+  "passed": false,
+  "publishable": false,
+  "reviewRequired": true,
+  "reviewStatus": "needs-review",
+  "score": 64,
+  "duplicateRisk": "high",
+  "hasShortAnswer": true,
+  "hasMethodology": true,
+  "hasFaqs": true,
+  "hasSources": true,
+  "hasTodoSources": true,
+  "hasClearStudentSegment": true,
+  "hasGlowbalCTA": true,
+  "officialSourceCount": 0,
+  "todoSourceCount": 3,
+  "blockerReasons": [
+    "High duplicate risk."
+  ],
+  "notes": [
+    "High duplicate risk against an existing page.",
+    "Contains TODO_SOURCE_REQUIRED markers and requires human review."
+  ]
+}

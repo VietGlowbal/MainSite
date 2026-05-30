@@ -814,7 +814,7 @@ function BottomCta({ isLoggedIn }: { isLoggedIn: boolean }) {
             <ArrowRight />
           </a>
           <Link
-            href={isLoggedIn ? '/my-universities' : '/auth'}
+            href={isLoggedIn ? '/apply' : '/auth'}
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/40 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
           >
             {isLoggedIn ? 'Open my shortlist' : 'Sign in to save VinUni'}

@@ -59,7 +59,7 @@ export default async function OnboardingCompletePage() {
               See your university matches
             </Link>
             <Link
-              href="/my-universities"
+              href="/apply"
               className="glow-button-secondary text-sm px-6 py-3"
             >
               Go to dashboard

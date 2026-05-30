@@ -16,7 +16,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth?redirect=/admin');
-  if (!(await isAdmin(user.id))) redirect('/my-universities');
+  if (!(await isAdmin(user.id))) redirect('/apply');
 
   return (
     <main className="min-h-screen bg-transparent px-6 py-12 md:px-10">

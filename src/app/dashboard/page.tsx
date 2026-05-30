@@ -8,6 +8,6 @@ export default async function DashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (!user) redirect('/auth?redirect=/my-universities');
-  redirect('/my-universities');
+  if (!user) redirect('/auth?redirect=/apply');
+  redirect('/apply');
 }
