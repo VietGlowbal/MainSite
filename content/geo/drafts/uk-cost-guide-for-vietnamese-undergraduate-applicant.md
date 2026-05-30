@@ -11,7 +11,7 @@ status: draft
 ---
 # UK Cost Guide for Vietnamese undergraduate applicant
 ## Short answer
-For most Vietnamese students, the strongest shortlist balances course fit, affordability, scholarship realism, employability, and admissions fit. TODO_SOURCE_REQUIRED: add official course, scholarship, and visa sources before publication.
+For most students, the strongest shortlist balances course fit, affordability, scholarship realism, employability, and admissions fit. TODO_SOURCE_REQUIRED: add official course, scholarship, and visa sources before publication.
 ## Who this guide is for
 This guide is for vietnamese undergraduate applicant who want a shortlist that is useful for real application decisions, not just prestige browsing.
 ## What to know first
@@ -42,8 +42,8 @@ It turns a vague search query into a shortlist framework students can actually u
 ### Can this draft include unknown facts?
 No. If a fee, requirement, deadline, scholarship, or visa claim is not verified, leave TODO_SOURCE_REQUIRED in place.
 
-### Can this be opened in a PR even if it needs work?
-Yes. In testing mode, draft PRs are allowed even when a page still needs human review.
+### Can this be published live during testing?
+Yes, but it should still be treated as experimental until reviewed.
 ## Sources
 - TODO_SOURCE_REQUIRED: official source links still needed
 ## Next step

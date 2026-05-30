@@ -12,10 +12,11 @@
     "targetCountry": "Multi-country",
     "subject": "Computer Science",
     "recommendedPageType": "comparison",
-    "action": "create-new-page",
+    "existingPageSlug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 26,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-computer-science-comparison-for-vietnamese-un",
@@ -30,10 +31,11 @@
     "targetCountry": "UK",
     "subject": "Computer Science",
     "recommendedPageType": "ranking",
-    "action": "create-new-page",
+    "existingPageSlug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 26,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-best-uk-computer-science-degrees-for-vietnamese-",
@@ -48,10 +50,11 @@
     "targetCountry": "UK",
     "subject": "Computer Science",
     "recommendedPageType": "ranking",
-    "action": "create-new-page",
+    "existingPageSlug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+    "action": "update-existing-page",
     "priorityScore": 25,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-cost-guide-for-vietnamese-undergraduate-appli",
@@ -66,10 +69,11 @@
     "targetCountry": "UK",
     "subject": "General",
     "recommendedPageType": "cost",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 24,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-data-science-scholarship-guide-for-vietnamese",
@@ -84,10 +88,49 @@
     "targetCountry": "UK",
     "subject": "Data Science",
     "recommendedPageType": "scholarship",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
+    "action": "update-existing-page",
     "priorityScore": 24,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
+  },
+  {
+    "id": "cluster-australia-computer-science-comparison-for-vietna",
+    "title": "Australia Computer Science Comparison for Vietnamese undergraduate applicant",
+    "slug": "australia-computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "Which universities in Australia are best for Vietnamese Computer Science students on a budget?",
+    "relatedQuestions": [
+      "Which universities in Australia are best for Vietnamese Computer Science students on a budget?",
+      "Which Australian universities offer the best value for Vietnamese Computer Science students?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Australia",
+    "subject": "Computer Science",
+    "recommendedPageType": "ranking",
+    "existingPageSlug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
+    "priorityScore": 23,
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
+  },
+  {
+    "id": "cluster-uk-guide-for-vietnamese-undergraduate-applicant",
+    "title": "UK Guide for Vietnamese undergraduate applicant",
+    "slug": "uk-guide-for-vietnamese-undergraduate-applicant",
+    "primaryQuestion": "What documents do Vietnamese students need before applying to UK universities?",
+    "relatedQuestions": [
+      "What documents do Vietnamese students need before applying to UK universities?",
+      "What documents do Vietnamese students need for UK postgraduate applications?"
+    ],
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "General",
+    "recommendedPageType": "guide",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
+    "priorityScore": 22,
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-computer-science-scholarship-guide-for-vietna",
@@ -101,10 +144,11 @@
     "targetCountry": "UK",
     "subject": "Computer Science",
     "recommendedPageType": "scholarship",
-    "action": "create-new-page",
+    "existingPageSlug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 14,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-guide-for-vietnamese-undergraduate-applicant",
@@ -118,10 +162,11 @@
     "targetCountry": "Multi-country",
     "subject": "General",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 14,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-computer-science-cost-guide-for-vietnamese-un",
@@ -135,10 +180,11 @@
     "targetCountry": "UK",
     "subject": "Computer Science",
     "recommendedPageType": "cost",
-    "action": "create-new-page",
+    "existingPageSlug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 13,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-medicine-guide-for-vietnamese-undergraduate-appl",
@@ -152,10 +198,11 @@
     "targetCountry": "Multi-country",
     "subject": "Medicine",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 13,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-data-science-comparison-for-vietnamese-master",
@@ -169,10 +216,11 @@
     "targetCountry": "UK",
     "subject": "Data Science",
     "recommendedPageType": "ranking",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
+    "action": "update-existing-page",
     "priorityScore": 13,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-scholarship-guide-for-vietnamese-undergraduate-a",
@@ -186,10 +234,11 @@
     "targetCountry": "Multi-country",
     "subject": "General",
     "recommendedPageType": "scholarship",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 13,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-computer-science-guide-for-vietnamese-undergr",
@@ -203,10 +252,11 @@
     "targetCountry": "UK",
     "subject": "Computer Science",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-computer-science-guide-for-vietnamese-undergr",
@@ -220,10 +270,11 @@
     "targetCountry": "UK",
     "subject": "Computer Science",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-business-scholarship-guide-for-vietnamese-mas",
@@ -237,10 +288,11 @@
     "targetCountry": "UK",
     "subject": "Business",
     "recommendedPageType": "scholarship",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
+    "action": "update-existing-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-engineering-cost-guide-for-vietnamese-undergr",
@@ -254,10 +306,11 @@
     "targetCountry": "UK",
     "subject": "Engineering",
     "recommendedPageType": "cost",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-data-science-comparison-for-vietnamese-master-s-",
@@ -271,27 +324,11 @@
     "targetCountry": "Multi-country",
     "subject": "Data Science",
     "recommendedPageType": "comparison",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
+    "action": "update-existing-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
-  },
-  {
-    "id": "cluster-australia-computer-science-comparison-for-vietna",
-    "title": "Australia Computer Science Comparison for Vietnamese undergraduate applicant",
-    "slug": "australia-computer-science-comparison-for-vietnamese-undergraduate-applicant",
-    "primaryQuestion": "Which universities in Australia are best for Vietnamese Computer Science students on a budget?",
-    "relatedQuestions": [
-      "Which universities in Australia are best for Vietnamese Computer Science students on a budget?"
-    ],
-    "studentSegment": "Vietnamese undergraduate applicant",
-    "targetCountry": "Australia",
-    "subject": "Computer Science",
-    "recommendedPageType": "ranking",
-    "action": "create-new-page",
-    "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-canada-business-comparison-for-vietnamese-master",
@@ -307,8 +344,8 @@
     "recommendedPageType": "ranking",
     "action": "create-new-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-us-guide-for-vietnamese-undergraduate-applicant",
@@ -322,10 +359,11 @@
     "targetCountry": "US",
     "subject": "General",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-europe-engineering-comparison-for-vietnamese-und",
@@ -341,8 +379,8 @@
     "recommendedPageType": "ranking",
     "action": "create-new-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-guide-for-vietnamese-undergraduate-applicant",
@@ -356,10 +394,11 @@
     "targetCountry": "UK",
     "subject": "General",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-data-science-guide-for-vietnamese-master-s-ap",
@@ -373,10 +412,11 @@
     "targetCountry": "UK",
     "subject": "Data Science",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
+    "action": "update-existing-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-guide-for-vietnamese-undergraduate-applicant",
@@ -390,10 +430,11 @@
     "targetCountry": "UK",
     "subject": "General",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-business-comparison-for-vietnamese-master-s-a",
@@ -409,8 +450,8 @@
     "recommendedPageType": "ranking",
     "action": "create-new-page",
     "priorityScore": 12,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-design-guide-for-vietnamese-undergraduate-app",
@@ -424,10 +465,11 @@
     "targetCountry": "UK",
     "subject": "Design",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-cost-guide-for-vietnamese-parent-of-undergrad",
@@ -441,10 +483,11 @@
     "targetCountry": "UK",
     "subject": "General",
     "recommendedPageType": "cost",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-medicine-cost-guide-for-vietnamese-undergraduate",
@@ -458,27 +501,11 @@
     "targetCountry": "Multi-country",
     "subject": "Medicine",
     "recommendedPageType": "cost",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
-  },
-  {
-    "id": "cluster-uk-guide-for-vietnamese-undergraduate-applicant",
-    "title": "UK Guide for Vietnamese undergraduate applicant",
-    "slug": "uk-guide-for-vietnamese-undergraduate-applicant",
-    "primaryQuestion": "What documents do Vietnamese students need before applying to UK universities?",
-    "relatedQuestions": [
-      "What documents do Vietnamese students need before applying to UK universities?"
-    ],
-    "studentSegment": "Vietnamese undergraduate applicant",
-    "targetCountry": "UK",
-    "subject": "General",
-    "recommendedPageType": "guide",
-    "action": "create-new-page",
-    "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-data-science-cost-guide-for-vietnamese-underg",
@@ -492,10 +519,11 @@
     "targetCountry": "UK",
     "subject": "Data Science",
     "recommendedPageType": "cost",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-scholarship-guide-for-vietnamese-undergraduat",
@@ -509,10 +537,11 @@
     "targetCountry": "UK",
     "subject": "General",
     "recommendedPageType": "scholarship",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-canada-business-comparison-for-vietnamese-underg",
@@ -528,8 +557,8 @@
     "recommendedPageType": "ranking",
     "action": "create-new-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-engineering-guide-for-vietnamese-undergraduat",
@@ -543,10 +572,11 @@
     "targetCountry": "UK",
     "subject": "Engineering",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-europe-design-guide-for-vietnamese-undergraduate",
@@ -560,10 +590,11 @@
     "targetCountry": "Europe",
     "subject": "Design",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-computer-science-guide-for-vietnamese-undergradu",
@@ -577,10 +608,11 @@
     "targetCountry": "Multi-country",
     "subject": "Computer Science",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "cluster-uk-medicine-guide-for-vietnamese-undergraduate-a",
@@ -594,9 +626,10 @@
     "targetCountry": "UK",
     "subject": "Medicine",
     "recommendedPageType": "guide",
-    "action": "create-new-page",
+    "existingPageSlug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "action": "update-existing-page",
     "priorityScore": 11,
-    "createdAt": "2026-05-30T22:45:28.261Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "createdAt": "2026-05-30T23:24:14.539Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   }
 ]

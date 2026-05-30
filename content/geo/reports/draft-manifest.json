@@ -1,10 +1,42 @@
 [
   {
-    "generatedAt": "2026-05-30T23:21:37.578Z",
+    "generatedAt": "2026-05-30T23:24:14.810Z",
+    "clusterId": "cluster-computer-science-comparison-for-vietnamese-under",
+    "slug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "title": "Computer Science Comparison for Vietnamese undergraduate applicant",
+    "filePath": "content/geo/drafts/computer-science-comparison-for-vietnamese-undergraduate-applicant.md",
+    "pageType": "comparison"
+  },
+  {
+    "generatedAt": "2026-05-30T23:24:14.810Z",
+    "clusterId": "cluster-uk-computer-science-comparison-for-vietnamese-un",
+    "slug": "uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
+    "title": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
+    "filePath": "content/geo/drafts/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant.md",
+    "pageType": "ranking"
+  },
+  {
+    "generatedAt": "2026-05-30T23:24:14.810Z",
     "clusterId": "cluster-best-uk-computer-science-degrees-for-vietnamese-",
     "slug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
     "title": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
     "filePath": "content/geo/drafts/best-uk-computer-science-degrees-for-vietnamese-students-in-2027.md",
     "pageType": "ranking"
+  },
+  {
+    "generatedAt": "2026-05-30T23:24:14.810Z",
+    "clusterId": "cluster-uk-cost-guide-for-vietnamese-undergraduate-appli",
+    "slug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
+    "title": "UK Cost Guide for Vietnamese undergraduate applicant",
+    "filePath": "content/geo/drafts/uk-cost-guide-for-vietnamese-undergraduate-applicant.md",
+    "pageType": "cost"
+  },
+  {
+    "generatedAt": "2026-05-30T23:24:14.810Z",
+    "clusterId": "cluster-uk-data-science-scholarship-guide-for-vietnamese",
+    "slug": "uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
+    "title": "UK Data Science Scholarship Guide for Vietnamese master's applicant",
+    "filePath": "content/geo/drafts/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant.md",
+    "pageType": "scholarship"
   }
 ]

@@ -11,7 +11,7 @@
     "source": "manual",
     "status": "drafted",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T23:21:37.578Z"
+    "updatedAt": "2026-05-30T23:24:14.810Z"
   },
   {
     "id": "sq-2026-05-30-002",
@@ -25,7 +25,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-003",
@@ -39,7 +39,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-004",
@@ -53,7 +53,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-005",
@@ -65,9 +65,9 @@
     "funnelStage": "early-research",
     "importanceScore": 10,
     "source": "manual",
-    "status": "clustered",
+    "status": "drafted",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.810Z"
   },
   {
     "id": "sq-2026-05-30-006",
@@ -81,7 +81,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-007",
@@ -93,9 +93,9 @@
     "funnelStage": "early-research",
     "importanceScore": 9,
     "source": "manual",
-    "status": "clustered",
+    "status": "drafted",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.810Z"
   },
   {
     "id": "sq-2026-05-30-008",
@@ -107,9 +107,9 @@
     "funnelStage": "shortlisting",
     "importanceScore": 9,
     "source": "manual",
-    "status": "clustered",
+    "status": "drafted",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.810Z"
   },
   {
     "id": "sq-2026-05-30-009",
@@ -123,7 +123,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-010",
@@ -135,9 +135,9 @@
     "funnelStage": "application",
     "importanceScore": 9,
     "source": "manual",
-    "status": "clustered",
+    "status": "drafted",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.810Z"
   },
   {
     "id": "sq-2026-05-30-011",
@@ -151,7 +151,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-012",
@@ -165,7 +165,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-013",
@@ -179,7 +179,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-014",
@@ -193,7 +193,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-015",
@@ -207,7 +207,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-016",
@@ -221,7 +221,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-017",
@@ -235,7 +235,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-018",
@@ -249,7 +249,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-019",
@@ -263,7 +263,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-020",
@@ -277,7 +277,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-021",
@@ -289,9 +289,9 @@
     "funnelStage": "shortlisting",
     "importanceScore": 9,
     "source": "manual",
-    "status": "clustered",
+    "status": "drafted",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.810Z"
   },
   {
     "id": "sq-2026-05-30-022",
@@ -305,7 +305,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-023",
@@ -319,7 +319,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-024",
@@ -333,7 +333,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-025",
@@ -345,9 +345,9 @@
     "funnelStage": "early-research",
     "importanceScore": 8,
     "source": "manual",
-    "status": "clustered",
+    "status": "drafted",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.810Z"
   },
   {
     "id": "sq-2026-05-30-026",
@@ -361,7 +361,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-027",
@@ -375,7 +375,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-028",
@@ -389,7 +389,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-029",
@@ -403,7 +403,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30-030",
@@ -417,7 +417,7 @@
     "source": "manual",
     "status": "clustered",
     "createdAt": "2026-05-30T22:28:00.000Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z"
+    "updatedAt": "2026-05-30T23:24:14.539Z"
   },
   {
     "id": "sq-2026-05-30t22-45-27-986z-best-uk-computer-scienc",
@@ -426,7 +426,7 @@
     "source": "ai-generated",
     "status": "drafted",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T23:21:37.578Z",
+    "updatedAt": "2026-05-30T23:24:14.810Z",
     "studentSegment": "Vietnamese undergraduate applicant",
     "targetCountry": "UK",
     "subject": "Computer Science",
@@ -440,7 +440,7 @@
     "source": "ai-generated",
     "status": "clustered",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z",
     "studentSegment": "Vietnamese undergraduate applicant",
     "targetCountry": "UK",
     "subject": "Data Science",
@@ -454,7 +454,7 @@
     "source": "ai-generated",
     "status": "clustered",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z",
     "studentSegment": "Vietnamese undergraduate applicant",
     "targetCountry": "UK",
     "subject": "General",
@@ -468,7 +468,7 @@
     "source": "ai-generated",
     "status": "clustered",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z",
     "studentSegment": "Vietnamese undergraduate applicant",
     "targetCountry": "Canada",
     "subject": "Business",
@@ -480,9 +480,9 @@
     "question": "How much should Vietnamese families budget for a UK undergraduate degree in 2027?",
     "importanceScore": 7,
     "source": "ai-generated",
-    "status": "clustered",
+    "status": "drafted",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T23:24:14.810Z",
     "studentSegment": "Vietnamese undergraduate applicant",
     "targetCountry": "UK",
     "subject": "General",
@@ -496,7 +496,7 @@
     "source": "ai-generated",
     "status": "clustered",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z",
     "studentSegment": "Vietnamese undergraduate applicant",
     "targetCountry": "UK",
     "subject": "Engineering",
@@ -510,7 +510,7 @@
     "source": "ai-generated",
     "status": "clustered",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z",
     "studentSegment": "Vietnamese undergraduate applicant",
     "targetCountry": "Europe",
     "subject": "Design",
@@ -524,7 +524,7 @@
     "source": "ai-generated",
     "status": "clustered",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z",
     "studentSegment": "Vietnamese undergraduate applicant",
     "targetCountry": "Multi-country",
     "subject": "Computer Science",
@@ -536,9 +536,9 @@
     "question": "Which UK scholarships are realistic for Vietnamese master’s students in Data Science?",
     "importanceScore": 7,
     "source": "ai-generated",
-    "status": "clustered",
+    "status": "drafted",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T23:24:14.810Z",
     "studentSegment": "Vietnamese master's applicant",
     "targetCountry": "UK",
     "subject": "Data Science",
@@ -552,11 +552,39 @@
     "source": "ai-generated",
     "status": "clustered",
     "createdAt": "2026-05-30T22:45:27.986Z",
-    "updatedAt": "2026-05-30T22:45:28.261Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z",
     "studentSegment": "Vietnamese undergraduate applicant",
     "targetCountry": "UK",
     "subject": "Medicine",
     "intent": "general",
     "funnelStage": "shortlisting"
+  },
+  {
+    "id": "sq-2026-05-30t23-24-14-304z-which-australian-univer",
+    "question": "Which Australian universities offer the best value for Vietnamese Computer Science students?",
+    "importanceScore": 7,
+    "source": "ai-generated",
+    "status": "clustered",
+    "createdAt": "2026-05-30T23:24:14.304Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z",
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "Australia",
+    "subject": "Computer Science",
+    "intent": "compare",
+    "funnelStage": "shortlisting"
+  },
+  {
+    "id": "sq-2026-05-30t23-24-14-304z-what-documents-do-vietn",
+    "question": "What documents do Vietnamese students need for UK postgraduate applications?",
+    "importanceScore": 7,
+    "source": "ai-generated",
+    "status": "clustered",
+    "createdAt": "2026-05-30T23:24:14.304Z",
+    "updatedAt": "2026-05-30T23:24:14.539Z",
+    "studentSegment": "Vietnamese undergraduate applicant",
+    "targetCountry": "UK",
+    "subject": "General",
+    "intent": "application",
+    "funnelStage": "application"
   }
 ]

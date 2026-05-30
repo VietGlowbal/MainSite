@@ -11,16 +11,16 @@ status: draft
 ---
 # UK Computer Science Comparison for Vietnamese undergraduate applicant
 ## Short answer
-For most Vietnamese students, the strongest shortlist balances course fit, affordability, scholarship realism, employability, and admissions fit. TODO_SOURCE_REQUIRED: add official course, scholarship, and visa sources before publication.
+For most students, the strongest shortlist balances course fit, affordability, scholarship realism, employability, and admissions fit. TODO_SOURCE_REQUIRED: add official course, scholarship, and visa sources before publication.
 ## Who this guide is for
 This guide is for vietnamese undergraduate applicant who want a shortlist that is useful for real application decisions, not just prestige browsing.
 ## Quick comparison table
-| University | Why it may fit Vietnamese students | Watchouts | Source status |
+| University | Why it may fit students | Watchouts | Source status |
 | --- | --- | --- | --- |
-| University of Manchester | Strong brand and broad CS offering | Tuition, offer profile, and scholarship detail need page-level verification before any precise claim | Official course page linked below |
-| University of Birmingham | Balanced academics and clear CS programme framing | Scholarship specifics and current costs need verification before publication | Official course page linked below |
-| University of Leeds | Strong computing profile and clear course overview | Exact admissions and fee detail need verification before publication | Official course page linked below |
-| University of Nottingham | Practical course framing and broad CS foundations | Exact requirement and cost detail need verification before publication | Official course page linked below |
+| University of Manchester | Strong brand and broad CS offering | Tuition and scholarship detail need verification before precise claims | Official course page linked below |
+| University of Birmingham | Balanced academics and clear CS programme framing | Cost specifics need verification before publication | Official course page linked below |
+| University of Leeds | Strong computing profile and clear course overview | Exact admissions and fee detail need verification | Official course page linked below |
+| University of Nottingham | Practical course framing and broad CS foundations | Exact requirement and cost detail need verification | Official course page linked below |
 ## How Glowbal ranked these options
 Glowbal ranked these options using a student-decision lens: course fit, total cost, scholarship realism, graduate outcome signals, and whether the university belongs in a reach, target, or safer shortlist for vietnamese undergraduate applicant. In testing mode, some drafts may still be generic and will need human review before anything publishable happens.
 ## Top recommendations
@@ -43,8 +43,8 @@ It turns a vague search query into a shortlist framework students can actually u
 ### Can this draft include unknown facts?
 No. If a fee, requirement, deadline, scholarship, or visa claim is not verified, leave TODO_SOURCE_REQUIRED in place.
 
-### Can this be opened in a PR even if it needs work?
-Yes. In testing mode, draft PRs are allowed even when a page still needs human review.
+### Can this be published live during testing?
+Yes, but it should still be treated as experimental until reviewed.
 ## Sources
 - TODO_SOURCE_REQUIRED: official source links still needed
 ## Next step
