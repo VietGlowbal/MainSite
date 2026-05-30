@@ -1,32 +1,9 @@
 'use client';
 
-/**
- * AuthForm
- * ────────
- * Reimagined sign-in / sign-up flow that matches the team's design ref:
- *
- *   ▰▰▰  animated brand gradient strip
- *   WELCOME BACK TO [Glowbal logo]
- *
- *   ┌──────────────── Sign In with G ────────────────┐  (gradient-ringed pill)
- *
- *   [Email]    Enter your email or phone number
- *   [Password] Enter your password
- *
- *   ────────────── OR ──────────────
- *   ┌── Create New Account ────────────────┐  (sits on a brand-gradient bar)
- *
- * Visually impressive without being noisy: animated brand gradient on the
- * key surfaces, big confident type, calm form rows, and an optional aside
- * with the rotating Glowbal globe + a glowing testimonial badge so the
- * page is anchored in the brand world.
- */
-
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
-import { GlowbalLogo } from '@/components/glowbal-logo';
 
 type Mode = 'login' | 'signup';
 
@@ -115,6 +92,8 @@ export function AuthForm() {
   const [loading, setLoading] = useState(false);
   const [emailSent, setEmailSent] = useState(false);
   const [sentTo, setSentTo] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   const redirectPath = useMemo(() => {
     const raw = searchParams.get('redirect');
@@ -170,10 +149,13 @@ export function AuthForm() {
     }
   };
 
-  const heading = mode === 'login' ? 'Welcome back to' : 'Welcome to';
+  const heading = mode === 'login' ? 'Welcome back 👋' : 'Create your account';
+  const subheading = mode === 'login' 
+    ? 'Sign in to continue your journey.' 
+    : 'Join thousands of students finding their dream university.';
 
   return (
-    <div className="auth-card">
+    <div className="auth-form-card">
       <AnimatePresence mode="wait">
         {emailSent ? (
           <EnvelopeSent key="confirm" email={sentTo} />
@@ -185,152 +167,177 @@ export function AuthForm() {
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
-            {/* Heading + logo */}
-            <div className="auth-heading">
-              <h1 className="auth-heading-text">
-                {heading.split(' ').map((word, i) => (
-                  <span key={i}>{word} </span>
-                ))}
-                <span className="auth-heading-logo">
-                  <GlowbalLogo height={48} alt="Glowbal" />
-                </span>
-              </h1>
+            {/* Heading */}
+            <div className="auth-form-header">
+              <h2 className="auth-form-title">{heading}</h2>
+              <p className="auth-form-subtitle">{subheading}</p>
             </div>
 
-            {/* Mode toggle */}
-            <div className="auth-mode-toggle" role="tablist" aria-label="Sign in mode">
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === 'login'}
-                className={`auth-mode-pill${mode === 'login' ? ' is-active' : ''}`}
-                onClick={() => { setMode('login'); setError(null); }}
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                role="tab"
-                aria-selected={mode === 'signup'}
-                className={`auth-mode-pill${mode === 'signup' ? ' is-active' : ''}`}
-                onClick={() => { setMode('signup'); setError(null); }}
-              >
-                Create account
-              </button>
-            </div>
-
-            {/* Google CTA — gradient-ringed pill */}
+            {/* Google CTA */}
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="auth-google-pill"
-              aria-label={mode === 'login' ? 'Sign in with Google' : 'Sign up with Google'}
+              className="auth-google-button"
+              aria-label={mode === 'login' ? 'Continue with Google' : 'Sign up with Google'}
             >
-              <span className="auth-google-pill-inner">
-                <span className="auth-google-pill-text">
-                  {mode === 'login' ? 'Sign in with' : 'Sign up with'}
-                </span>
-                <GoogleMark />
-              </span>
+              <GoogleMark />
+              <span>Continue with Google</span>
             </button>
 
-            {/* Form rows — pink pill label + outlined input */}
-            <form onSubmit={handleSubmit} className="auth-fields">
+            {/* Divider */}
+            <div className="auth-divider">
+              <span className="auth-divider-line" />
+              <span className="auth-divider-text">OR</span>
+              <span className="auth-divider-line" />
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSubmit} className="auth-form">
               <AnimatePresence initial={false}>
                 {mode === 'signup' && (
                   <motion.div
                     key="fullname"
-                    className="auth-row"
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: 'auto' }}
                     exit={{ opacity: 0, height: 0 }}
                     transition={{ duration: 0.25 }}
                     style={{ overflow: 'hidden' }}
                   >
-                    <span className="auth-row-label">Full name</span>
-                    <input
-                      type="text"
-                      value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
-                      placeholder="Enter your full name"
-                      className="auth-row-input"
-                    />
+                    <div className="auth-input-group">
+                      <label htmlFor="fullname" className="auth-label">Full name</label>
+                      <input
+                        id="fullname"
+                        type="text"
+                        value={fullName}
+                        onChange={(e) => setFullName(e.target.value)}
+                        placeholder="Enter your full name"
+                        className="auth-input"
+                        required={mode === 'signup'}
+                      />
+                    </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              <div className="auth-row">
-                <span className="auth-row-label">Email</span>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your Email or Phone Number here"
-                  className="auth-row-input"
-                  required
-                />
-              </div>
-
-              <div className="auth-row">
-                <span className="auth-row-label">Password</span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your Password here"
-                  className="auth-row-input"
-                  required
-                  minLength={6}
-                />
-              </div>
-
-              {mode === 'login' ? (
-                <div className="auth-forgot-row">
-                  <button type="button" className="auth-forgot-link">Forgot password?</button>
+              <div className="auth-input-group">
+                <label htmlFor="email" className="auth-label">Email address</label>
+                <div className="auth-input-wrapper">
+                  <svg className="auth-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="auth-input auth-input-with-icon"
+                    required
+                  />
                 </div>
-              ) : null}
+              </div>
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="auth-submit"
-              >
-                {loading
-                  ? 'Working…'
-                  : mode === 'login'
-                  ? 'Sign in'
-                  : 'Create my account'}
-              </button>
+              <div className="auth-input-group">
+                <label htmlFor="password" className="auth-label">Password</label>
+                <div className="auth-input-wrapper">
+                  <svg className="auth-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  <input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="auth-input auth-input-with-icon"
+                    required
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="auth-password-toggle"
+                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
+                        <line x1="1" y1="1" x2="23" y2="23" />
+                      </svg>
+                    ) : (
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                        <circle cx="12" cy="12" r="3" />
+                      </svg>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {mode === 'login' && (
+                <div className="auth-form-options">
+                  <label className="auth-checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="auth-checkbox"
+                    />
+                    <span>Remember me</span>
+                  </label>
+                  <button type="button" className="auth-forgot-link">
+                    Forgot password?
+                  </button>
+                </div>
+              )}
 
               {error && (
-                <motion.p
+                <motion.div
                   className="auth-error"
                   role="alert"
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                 >
                   {error}
-                </motion.p>
+                </motion.div>
               )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="auth-submit-button"
+              >
+                {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
+              </button>
+
+              <div className="auth-secure-notice">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                <span>Your data is secure and encrypted</span>
+              </div>
             </form>
+
+            {/* Switch mode */}
+            <div className="auth-switch-mode">
+              <span className="auth-switch-text">
+                {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}
+              </span>
+              <button
+                type="button"
+                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); }}
+                className="auth-switch-button"
+              >
+                {mode === 'login' ? 'Create account' : 'Sign in'}
+              </button>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* OR / Create New Account bar — sits on the animated brand gradient */}
-      {!emailSent && (
-        <div className="auth-bottom-bar">
-          <div className="auth-or-text">OR</div>
-          <button
-            type="button"
-            onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); }}
-            className="auth-bottom-pill"
-          >
-            {mode === 'login' ? 'Create New Account' : 'I already have an account'}
-          </button>
-        </div>
-      )}
     </div>
   );
 }

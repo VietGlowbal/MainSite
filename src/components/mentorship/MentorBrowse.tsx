@@ -12,7 +12,9 @@ const POPULAR_TOPICS = [
   'Visa & accommodation',
   'Scholarship strategy',
   'Course choice',
-  'Life abroad',
+  'Career advice',
+  'Studying abroad',
+  'Course choice',
 ];
 
 const DEFAULT_LANGUAGES = [
@@ -24,6 +26,8 @@ const DEFAULT_LANGUAGES = [
   'German',
   'Japanese',
   'Korean',
+  'Arabic',
+  'Portuguese',
 ];
 
 type Props = {
@@ -124,103 +128,112 @@ export function MentorBrowse({ mentors, initialUniversityId, initialSlotsByMento
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* HERO — search bar + steps */}
-      <section className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white/95 px-5 py-6 shadow-[0_12px_32px_rgba(22,33,62,0.06)] backdrop-blur md:px-8 md:py-7">
+      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/60 bg-gradient-to-br from-white via-pink-50/30 to-purple-50/20 px-6 py-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] backdrop-blur md:px-10 md:py-10">
         <span
           aria-hidden
-          className="pointer-events-none absolute -top-24 -right-20 h-64 w-64 rounded-full opacity-50 blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(255,77,140,0.18), transparent 60%)' }}
+          className="pointer-events-none absolute -top-32 -right-24 h-80 w-80 rounded-full opacity-40 blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(255,77,140,0.25), transparent 70%)' }}
         />
         <span
           aria-hidden
-          className="pointer-events-none absolute -bottom-28 -left-16 h-72 w-72 rounded-full opacity-40 blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.16), transparent 60%)' }}
+          className="pointer-events-none absolute -bottom-32 -left-20 h-96 w-96 rounded-full opacity-30 blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.2), transparent 70%)' }}
         />
 
-        <div className="relative space-y-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <span className="glow-pill">Mentorship Hub</span>
-              <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
-                Meet a mentor who&rsquo;s walked the path
+        <div className="relative space-y-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-2xl">
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl lg:text-[2.75rem] lg:leading-tight">
+                Find the right mentor for your journey
               </h1>
-              <p className="mt-1 max-w-xl text-sm text-slate-500">
-                Browse current students and recent grads at your dream universities. Pick a time, share what you want help with, and book a real video session.
+              <p className="mt-3 text-base leading-relaxed text-slate-600 md:text-lg">
+                Connect with current students and recent graduates from top universities
               </p>
             </div>
             <Link
               href="/mentors/apply"
-              className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-pink-300 bg-white/80 px-4 py-2 text-sm font-semibold text-pink-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-pink-50 sm:self-end"
+              className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border-2 border-pink-500 bg-white px-5 py-2.5 text-sm font-semibold text-pink-600 shadow-sm transition hover:bg-pink-50 hover:shadow-md sm:self-start"
             >
-              <span aria-hidden>✨</span>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
               Become a mentor
             </Link>
           </div>
 
           {/* Search inputs */}
-          <div className="grid gap-2 lg:grid-cols-[1.4fr_1fr_1fr_auto]">
+          <div className="grid gap-3 md:grid-cols-[2fr_1.2fr_1.2fr_auto]">
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <SearchIcon size={16} />
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <SearchIcon size={18} />
               </span>
               <input
                 type="text"
-                placeholder="Search by mentor, university, or topic"
+                placeholder="Search by mentor name, university or topic"
                 value={filters.query ?? ''}
                 onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value || undefined }))}
-                className="w-full rounded-full border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-4 text-sm text-slate-700 placeholder:text-slate-400 shadow-sm transition focus:border-pink-400 focus:outline-none focus:ring-4 focus:ring-pink-100"
               />
             </div>
 
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <MapPinIcon size={16} />
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <MapPinIcon size={18} />
               </span>
               <select
                 value={filters.country ?? ''}
                 onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value || undefined }))}
-                className="w-full appearance-none rounded-full border border-slate-200 bg-white py-3 pl-10 pr-9 text-sm text-slate-700 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-12 pr-10 text-sm text-slate-700 shadow-sm transition focus:border-pink-400 focus:outline-none focus:ring-4 focus:ring-pink-100"
               >
                 <option value="">Any location</option>
                 {allCountries.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden>▼</span>
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs" aria-hidden>▼</span>
             </div>
 
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <CalendarIcon size={16} />
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <CalendarIcon size={18} />
               </span>
               <input
                 type="date"
                 value={filters.available_from ?? ''}
                 min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setFilters((f) => ({ ...f, available_from: e.target.value || undefined }))}
-                className="w-full rounded-full border border-slate-200 bg-white py-3 pl-10 pr-3 text-sm text-slate-700 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-4 text-sm text-slate-700 shadow-sm transition focus:border-pink-400 focus:outline-none focus:ring-4 focus:ring-pink-100"
               />
             </div>
 
             <button
               type="button"
               onClick={() => setShowAllFilters((s) => !s)}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-pink-300 hover:bg-pink-50"
             >
-              {showAllFilters ? 'Hide filters' : 'More filters'}
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              {showAllFilters ? 'Less' : 'Filters'}
+              {Object.keys(filters).filter(k => !['query', 'country', 'available_from'].includes(k)).length > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-[0.65rem] font-bold text-white">
+                  {Object.keys(filters).filter(k => !['query', 'country', 'available_from'].includes(k)).length}
+                </span>
+              )}
             </button>
           </div>
 
           {/* Popular topic chips */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-700">Popular help with:</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-600">Popular help with:</span>
             {POPULAR_TOPICS.map((topic) => (
               <button
                 key={topic}
                 type="button"
                 onClick={() => setFilters((f) => ({ ...f, query: topic }))}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-pink-200 hover:text-pink-600"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-pink-300 hover:bg-pink-50 hover:text-pink-700 hover:shadow"
               >
                 {topic}
               </button>
