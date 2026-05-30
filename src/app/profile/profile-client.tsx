@@ -224,84 +224,6 @@ const SIDEBAR_NAV = [
   { label: 'Settings', href: '/profile', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg> },
 ];
 
-function ProfileSidebar({
-  displayName,
-  initials,
-  avatarUrl,
-}: {
-  displayName: string;
-  initials: string;
-  avatarUrl?: string;
-}) {
-  return (
-    <aside className="hidden lg:flex w-52 shrink-0 flex-col gap-1">
-      <nav className="space-y-0.5">
-        {SIDEBAR_NAV.map((item) => {
-          const active = typeof window !== 'undefined'
-            ? window.location.pathname === item.href
-            : item.label === 'Profile';
-          return (
-            <Link
-              key={item.label}
-              href={item.href}
-              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-                item.label === 'Profile'
-                  ? 'bg-pink-50 text-pink-600 font-semibold'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <span>{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Upgrade card */}
-      <div className="rounded-2xl border border-pink-200 bg-gradient-to-br from-pink-50 to-white p-4 text-center">
-        <div className="flex justify-center mb-2">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#FF3D9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-          </svg>
-        </div>
-        <p className="text-xs font-bold text-slate-900 mb-1">You&apos;re on Free</p>
-        <p className="text-[10px] text-slate-500 leading-relaxed mb-3">Unlock all tools, unlimited applications and mentor sessions.</p>
-        <button type="button" className="w-full rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] py-2 text-[11px] font-semibold text-white shadow-[0_4px_12px_rgba(255,77,140,0.25)]">
-          Upgrade now
-        </button>
-      </div>
-
-      {/* Language + user */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-3 space-y-3">
-        <div className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2">
-          <div className="flex items-center gap-2">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
-              <circle cx="12" cy="12" r="10" /><line x1="2" y1="12" x2="22" y2="12" /><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-            </svg>
-            <span className="text-xs text-slate-700">English</span>
-          </div>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400"><polyline points="6 9 12 15 18 9" /></svg>
-        </div>
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-pink-500 to-blue-500 text-white text-xs font-bold">
-            {avatarUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={avatarUrl} alt={displayName} className="h-full w-full rounded-full object-cover" />
-            ) : (
-              initials
-            )}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs font-semibold text-slate-900 truncate">{displayName.split(' ')[0]} L.</p>
-            <Link href="/profile" className="text-[10px] text-slate-400 hover:text-pink-600">View profile</Link>
-          </div>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300"><polyline points="9 18 15 12 9 6" /></svg>
-        </div>
-      </div>
-    </aside>
-  );
-}
-
 /* ─────────────────────────────────────────────────────────────────────────
    USER CARD
 ───────────────────────────────────────────────────────────────────────── */
@@ -677,10 +599,7 @@ export function ProfileClient({
   isMentor,
 }: Props) {
   return (
-    <div className="flex gap-5">
-      {/* Left sidebar */}
-      <ProfileSidebar displayName={displayName} initials={initials} avatarUrl={avatarUrl} />
-
+    <div className="w-full">
       {/* Main content */}
       <div className="min-w-0 flex-1 space-y-5">
         {/* Page title */}

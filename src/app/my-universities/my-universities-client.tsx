@@ -3,7 +3,6 @@
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { AppSidebar } from '@/components/layout/app-sidebar';
 import type { UserUniversity, ApplicationTask, University } from '@/lib/types';
 
 type UUWithUni = UserUniversity & { university: University };
@@ -691,8 +690,7 @@ export function MyUniversitiesClient({ userUniversities: initialUserUniversities
 
   if (userUniversities.length === 0) {
     return (
-      <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
-        <AppSidebar />
+      <div className="w-full">
         <div className="rounded-2xl border border-slate-200 bg-white text-center py-16 space-y-4">
           <p className="text-4xl" aria-hidden="true">🎓</p>
           <p className="text-slate-500">No universities saved yet.</p>
@@ -708,10 +706,7 @@ export function MyUniversitiesClient({ userUniversities: initialUserUniversities
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
-      {/* Left sidebar nav */}
-      <AppSidebar />
-
+    <div className="w-full">
       <div className="space-y-5 min-w-0">
         {/* Header */}
         <div className="flex items-start justify-between gap-3 flex-wrap">
