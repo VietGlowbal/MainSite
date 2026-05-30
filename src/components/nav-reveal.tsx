@@ -137,25 +137,21 @@ function MobileNav({ user }: { user: UserSummary | null }) {
 
   const initials = user?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '';
 
-  // Show a curated 4-item subset on mobile + the account/profile slot.
-  // Mentors get the mentor hub swapped in for the "News" slot so they can
-  // jump straight to their dashboard without a desktop.
-  const baseList = user ? NAV_ITEMS : NAV_ITEMS.filter((item) => !item.requiresAuth);
-  const baseItems = user?.isMentor
-    ? [...baseList.slice(0, 3), MENTOR_DASHBOARD_ITEM]
-    : baseList.slice(0, 4);
-
-  const allItems = [
-    ...baseItems,
-    user ? { href: '/profile', label: 'Profile', mobile: 'Profile' } : { href: '/auth', label: 'Sign in', mobile: 'Sign in' },
+  // Mobile nav shows exactly 4 app-like buttons: Search, Apply, Mentors, Profile
+  const mobileItems = [
+    { href: '/universities', label: 'Search', mobile: 'Search', icon: IconSearch },
+    { href: '/apply', label: 'Apply', mobile: 'Apply', icon: IconApply },
+    { href: '/mentors', label: 'Mentors', mobile: 'Mentors', icon: IconSession },
+    user 
+      ? { href: '/profile', label: 'Profile', mobile: 'Profile', icon: IconUser, isProfile: true }
+      : { href: '/auth', label: 'Sign in', mobile: 'Sign in', icon: IconUser, isProfile: false },
   ];
 
   return (
     <nav className="glowbal-mobile-nav" aria-label="Mobile navigation">
-      {allItems.map((item) => {
+      {mobileItems.map((item) => {
         const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
-        const isProfile = item.href === '/profile' && !!user;
-        const Icon = MOBILE_ICONS[item.href] ?? IconUser;
+        const Icon = item.icon;
 
         return (
           <Link
@@ -163,7 +159,7 @@ function MobileNav({ user }: { user: UserSummary | null }) {
             href={item.href}
             className={`glowbal-mobile-nav-item${active ? ' glowbal-mobile-nav-item-active' : ''}`}
           >
-            {isProfile ? (
+            {item.isProfile && user ? (
               <div
                 className="glowbal-mobile-nav-avatar"
                 style={{ background: `linear-gradient(${deg}deg, #ff4d8c, #ff3b3b, #00b4d8, #1e2a78)` }}
