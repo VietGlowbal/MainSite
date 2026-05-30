@@ -9,7 +9,7 @@
 export default function Loading() {
   return (
     <main className="min-h-screen bg-transparent text-slate-800">
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
+      <div className="w-full px-4 py-6 md:px-6 md:py-8">
         {/* Hero skeleton — split layout matching the redesigned hero */}
         <section className="rounded-[2rem] border border-black/5 bg-white px-6 py-7 shadow-[0_12px_32px_rgba(22,33,62,0.06)] md:px-9 md:py-9">
           <div className="grid items-center gap-6 md:grid-cols-[1.1fr_0.9fr]">

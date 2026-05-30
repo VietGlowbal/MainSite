@@ -44,7 +44,7 @@ export default async function MentorsBrowsePage({ searchParams }: Props) {
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 md:px-8 md:py-16">
-      <div className="mx-auto max-w-7xl">
+      <div className="w-full">
         <MentorBrowse
           mentors={mentors}
           initialUniversityId={initialUniversityId}

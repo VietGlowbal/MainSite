@@ -235,29 +235,27 @@ function ProfileSidebar({
 }) {
   return (
     <aside className="hidden lg:flex w-52 shrink-0 flex-col gap-1">
-      <div className="flex-1 rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] p-2">
-        <nav className="space-y-0.5">
-          {SIDEBAR_NAV.map((item) => {
-            const active = typeof window !== 'undefined'
-              ? window.location.pathname === item.href
-              : item.label === 'Profile';
-            return (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
-                  item.label === 'Profile'
-                    ? 'bg-pink-50 text-pink-600 font-semibold'
-                    : 'text-slate-600 hover:bg-slate-50'
-                }`}
-              >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
+      <nav className="space-y-0.5">
+        {SIDEBAR_NAV.map((item) => {
+          const active = typeof window !== 'undefined'
+            ? window.location.pathname === item.href
+            : item.label === 'Profile';
+          return (
+            <Link
+              key={item.label}
+              href={item.href}
+              className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                item.label === 'Profile'
+                  ? 'bg-pink-50 text-pink-600 font-semibold'
+                  : 'text-slate-600 hover:bg-slate-50'
+              }`}
+            >
+              <span>{item.icon}</span>
+              <span>{item.label}</span>
+            </Link>
+          );
+        })}
+      </nav>
 
       {/* Upgrade card */}
       <div className="rounded-2xl border border-pink-200 bg-gradient-to-br from-pink-50 to-white p-4 text-center">

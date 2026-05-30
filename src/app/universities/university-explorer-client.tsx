@@ -2214,7 +2214,7 @@ function BrowseView() {
   return (
     <>
       <FirstTimeOnboardingRedirect />
-      <div className="mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-8">
+      <div className="w-full px-4 py-6 md:px-6 md:py-8">
         {/* Hero */}
         <SearchHero
           search={search}
@@ -3308,7 +3308,7 @@ function DetailViewBody({
   };
 
   return (
-    <div className="mx-auto max-w-7xl px-4 pb-12 md:px-6">
+    <div className="w-full px-4 pb-12 md:px-6">
       {/* Slim back / share / save bar */}
       <DetailHeaderBar
         saved={saved}

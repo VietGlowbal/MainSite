@@ -531,7 +531,7 @@ export function GlowbalOption3GlobeDemo({
 
   return (
     <div className="min-h-[calc(100vh-73px)] bg-[radial-gradient(circle_at_top_left,rgba(255,61,154,0.10),transparent_20%),radial-gradient(circle_at_92%_8%,rgba(0,194,255,0.12),transparent_18%),linear-gradient(180deg,#f6f7ff_0%,#fff9fb_100%)] px-4 py-8 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-7xl">
+      <div className="w-full">
         <div className="grid items-start gap-4 lg:grid-cols-[1.12fr_0.88fr] xl:gap-3">
           <section className="relative overflow-visible p-0">
             <div className="relative flex min-h-[680px] flex-col items-center justify-center overflow-visible lg:min-h-[760px]">
