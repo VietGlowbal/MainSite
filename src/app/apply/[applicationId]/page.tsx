@@ -41,6 +41,13 @@ async function fetchApplicationWorkspace(applicationId: string, userId: string):
     return null;
   }
   
+  // Fetch scholarships (stored as support resources)
+  const { data: scholarships } = await supabase
+    .from('support_resources')
+    .select('*')
+    .eq('application_id', applicationId)
+    .eq('resource_type', 'scholarship');
+  
   // Transform to frontend format
   const transformedApplication = {
     id: application.id,
@@ -70,6 +77,7 @@ async function fetchApplicationWorkspace(applicationId: string, userId: string):
     sourceConfidence: application.source_confidence,
     createdAt: application.created_at,
     updatedAt: application.updated_at,
+    scholarships: scholarships || [],
   };
   
   const transformedStages = stages.map(stage => {

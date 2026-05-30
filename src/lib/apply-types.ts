@@ -52,6 +52,14 @@ export type CourseApplication = {
   sourceConfidence: 'high' | 'medium' | 'low';
   createdAt: string;
   updatedAt: string;
+  
+  scholarships?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    url?: string;
+    confidence: 'high' | 'medium' | 'low';
+  }>;
 };
 
 export type StageStatus = 'not_started' | 'in_progress' | 'completed' | 'blocked' | 'not_applicable';

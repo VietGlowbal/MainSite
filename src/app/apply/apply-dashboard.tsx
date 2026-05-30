@@ -53,8 +53,10 @@ function methodBadge(method?: string) {
 function ImportBar() {
   const [url, setUrl] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!url.trim()) {
       setError('Please paste a course URL first.');
@@ -63,10 +65,43 @@ function ImportBar() {
     try {
       new URL(url);
       setError('');
-      // Phase 2: navigate to import flow
-      alert('AI import coming in Phase 2! URL: ' + url);
-    } catch {
+      setSuccess('');
+      setLoading(true);
+
+      // Call the AI extraction API
+      const response = await fetch('/api/applications/extract', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseUrl: url }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (response.status === 409 && data.existingApplicationId) {
+          setError('You\'ve already imported this course.');
+          // Optionally redirect to the existing application
+          setTimeout(() => {
+            window.location.href = `/apply/${data.existingApplicationId}`;
+          }, 2000);
+        } else {
+          setError(data.error || 'Failed to import course. Please try again.');
+        }
+        return;
+      }
+
+      // Success!
+      setSuccess(`✓ ${data.summary.courseName} imported successfully! Found ${data.summary.tasksCreated} tasks and ${data.summary.scholarshipsFound} scholarships.`);
+      setUrl('');
+      
+      // Redirect to the new application after a short delay
+      setTimeout(() => {
+        window.location.href = `/apply/${data.applicationId}`;
+      }, 2000);
+    } catch (err) {
       setError('This doesn\'t look like a valid URL. Please paste the official course page link.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -74,26 +109,52 @@ function ImportBar() {
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
       <form onSubmit={handleSubmit} className="flex items-center gap-3">
         <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-pink-50">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF3D9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
-            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
-          </svg>
+          {loading ? (
+            <svg className="animate-spin h-5 w-5 text-pink-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          ) : (
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#FF3D9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
+              <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />
+            </svg>
+          )}
         </div>
         <input
           type="url"
           value={url}
-          onChange={(e) => { setUrl(e.target.value); setError(''); }}
+          onChange={(e) => { setUrl(e.target.value); setError(''); setSuccess(''); }}
           placeholder="Paste a university course page URL (e.g. https://www.example.ac.uk/courses/...)"
           className="min-w-0 flex-1 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 outline-none transition focus:border-pink-400 focus:bg-white focus:ring-2 focus:ring-pink-100"
+          disabled={loading}
         />
         <button
           type="submit"
-          className="shrink-0 inline-flex h-10 items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
+          disabled={loading}
+          className="shrink-0 inline-flex h-10 items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
-          Build my checklist
+          {loading ? 'Analyzing...' : 'Build my checklist'}
         </button>
       </form>
-      {error && <p className="mt-2 text-xs text-red-500">{error}</p>}
+      {error && (
+        <div className="mt-2 flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 p-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+            <circle cx="12" cy="12" r="10" />
+            <line x1="12" y1="8" x2="12" y2="12" />
+            <line x1="12" y1="16" x2="12.01" y2="16" />
+          </svg>
+          <p className="text-xs text-red-600">{error}</p>
+        </div>
+      )}
+      {success && (
+        <div className="mt-2 flex items-start gap-2 rounded-lg bg-green-50 border border-green-200 p-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0">
+            <polyline points="20 6 9 17 4 12" />
+          </svg>
+          <p className="text-xs text-green-600">{success}</p>
+        </div>
+      )}
       <p className="mt-2 flex items-start gap-1.5 text-xs text-slate-500">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-slate-400" aria-hidden>
           <circle cx="12" cy="12" r="10" />
