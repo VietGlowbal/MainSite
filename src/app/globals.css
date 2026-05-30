@@ -3853,6 +3853,24 @@ body:not(:has(.cosmos-root)) {
   border-radius: 0 2px 2px 0;
 }
 
+/* Special styling for admin nav item */
+.glowbal-sidebar-item[href="/admin"] {
+  background: linear-gradient(135deg, rgba(30, 42, 120, 0.12), rgba(15, 23, 42, 0.08));
+  color: var(--brand-navy);
+  font-weight: 600;
+}
+
+.glowbal-sidebar-item[href="/admin"]:hover {
+  background: linear-gradient(135deg, rgba(30, 42, 120, 0.18), rgba(15, 23, 42, 0.12));
+  color: var(--brand-navy-deep);
+}
+
+.glowbal-sidebar-item[href="/admin"].glowbal-sidebar-item-active {
+  background: linear-gradient(135deg, rgba(30, 42, 120, 0.25), rgba(15, 23, 42, 0.15));
+  color: var(--brand-navy-deep);
+  box-shadow: 0 4px 12px rgba(30, 42, 120, 0.2);
+}
+
 .glowbal-sidebar-item-icon {
   display: flex;
   align-items: center;
@@ -3878,10 +3896,62 @@ body:not(:has(.cosmos-root)) {
   margin-top: auto;
 }
 
-.glowbal-sidebar-footer .glowbal-nav-pill-admin {
+/* Language Switcher */
+.glowbal-language-switcher {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
   width: 100%;
+  padding: 0.7rem 1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  color: rgb(71, 85, 105);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.glowbal-language-switcher:hover {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.12);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.06);
+}
+
+.glowbal-language-icon {
+  display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 0.65rem 1rem;
+  flex-shrink: 0;
+  color: rgb(100, 116, 139);
+}
+
+.glowbal-language-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1;
+  color: rgb(51, 65, 85);
+}
+
+.glowbal-language-flag {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.glowbal-language-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: rgb(148, 163, 184);
+  transition: transform 200ms ease;
+}
+
+.glowbal-language-switcher:hover .glowbal-language-arrow {
+  transform: translateY(1px);
 }
 
 .glowbal-sidebar-footer .glowbal-nav-pill-account {
@@ -3914,6 +3984,49 @@ body:not(:has(.cosmos-root)) {
     margin-left: 0;
     padding-bottom: calc(70px + env(safe-area-inset-bottom));
   }
+}
+
+/* Mobile Language Button (floating) */
+.glowbal-mobile-language-button {
+  position: fixed;
+  bottom: calc(70px + env(safe-area-inset-bottom) + 1rem);
+  right: 1rem;
+  z-index: 45;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  color: rgb(71, 85, 105);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.glowbal-mobile-language-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.16);
+  background: rgba(255, 255, 255, 1);
+}
+
+.glowbal-mobile-language-button:active {
+  transform: translateY(0);
+}
+
+.glowbal-mobile-language-flag {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.glowbal-mobile-language-text {
+  letter-spacing: 0.05em;
+  color: rgb(51, 65, 85);
 }
 
 /* Add padding to pages on mobile to account for bottom nav */

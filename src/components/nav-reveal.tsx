@@ -48,6 +48,7 @@ function IconApply()   { return <svg width="20" height="20" viewBox="0 0 24 24" 
 function IconSession() { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>; }
 function IconNews()    { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8z"/></svg>; }
 function IconUser()    { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>; }
+function IconAdmin()   { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6z"/><path d="M9 12l2 2 4-4"/></svg>; }
 
 const MOBILE_ICONS: Record<string, () => React.JSX.Element> = {
   '/':                IconHome,
@@ -59,6 +60,7 @@ const MOBILE_ICONS: Record<string, () => React.JSX.Element> = {
   '/auth':            IconUser,
   '/profile':         IconUser,
   '/dashboard/mentor': IconSession,
+  '/admin':           IconAdmin,
 };
 
 // ── Rotating avatar ring ─────────────────────────────────────────────────────
@@ -184,6 +186,98 @@ function MobileNav({ user }: { user: UserSummary | null }) {
   );
 }
 
+// ── Language Switcher ────────────────────────────────────────────────────────
+function LanguageSwitcher() {
+  const [language, setLanguage] = useState<'en' | 'vi'>(() => {
+    if (typeof window === 'undefined') return 'en';
+    return (localStorage.getItem('glowbal-language') as 'en' | 'vi') || 'en';
+  });
+
+  const toggleLanguage = () => {
+    const newLang = language === 'en' ? 'vi' : 'en';
+    setLanguage(newLang);
+    localStorage.setItem('glowbal-language', newLang);
+    // Trigger a custom event that other components can listen to
+    window.dispatchEvent(new CustomEvent('glowbal:language-change', { detail: { language: newLang } }));
+  };
+
+  return (
+    <button
+      onClick={toggleLanguage}
+      className="glowbal-language-switcher"
+      aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
+      title={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
+    >
+      <span className="glowbal-language-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <path d="M2 12h20" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+      </span>
+      <span className="glowbal-language-label">
+        {language === 'en' ? (
+          <>
+            <span className="glowbal-language-flag">🇬🇧</span>
+            <span>English</span>
+          </>
+        ) : (
+          <>
+            <span className="glowbal-language-flag">🇻🇳</span>
+            <span>Tiếng Việt</span>
+          </>
+        )}
+      </span>
+      <span className="glowbal-language-arrow">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </span>
+    </button>
+  );
+}
+
+// ── Mobile Language Button (floating) ────────────────────────────────────────
+function MobileLanguageButton() {
+  const [language, setLanguage] = useState<'en' | 'vi'>(() => {
+    if (typeof window === 'undefined') return 'en';
+    return (localStorage.getItem('glowbal-language') as 'en' | 'vi') || 'en';
+  });
+
+  useEffect(() => {
+    const handleLanguageChange = (e: CustomEvent<{ language: 'en' | 'vi' }>) => {
+      setLanguage(e.detail.language);
+    };
+    window.addEventListener('glowbal:language-change' as any, handleLanguageChange);
+    return () => {
+      window.removeEventListener('glowbal:language-change' as any, handleLanguageChange);
+    };
+  }, []);
+
+  const toggleLanguage = () => {
+    const newLang = language === 'en' ? 'vi' : 'en';
+    setLanguage(newLang);
+    localStorage.setItem('glowbal-language', newLang);
+    window.dispatchEvent(new CustomEvent('glowbal:language-change', { detail: { language: newLang } }));
+  };
+
+  return (
+    <button
+      onClick={toggleLanguage}
+      className="glowbal-mobile-language-button md:hidden"
+      aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
+      title={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
+    >
+      <span className="glowbal-mobile-language-flag">
+        {language === 'en' ? '🇬🇧' : '🇻🇳'}
+      </span>
+      <span className="glowbal-mobile-language-text">
+        {language === 'en' ? 'EN' : 'VI'}
+      </span>
+    </button>
+  );
+}
+
 // ── Desktop sidebar ──────────────────────────────────────────────────────────
 type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean; isAdmin?: boolean };
 
@@ -191,7 +285,12 @@ function DesktopSidebar({ user }: { user: UserSummary | null }) {
   const pathname = usePathname();
 
   const baseItems = user ? NAV_ITEMS : NAV_ITEMS.filter((i) => !i.requiresAuth);
-  const visibleItems = user?.isMentor ? [...baseItems, MENTOR_DASHBOARD_ITEM] : baseItems;
+  let visibleItems = user?.isMentor ? [...baseItems, MENTOR_DASHBOARD_ITEM] : baseItems;
+  
+  // Add admin link to navigation if user is admin
+  if (user?.isAdmin) {
+    visibleItems = [...visibleItems, { href: '/admin', label: 'Admin', mobile: 'Admin', activeMatch: 'prefix' as const }];
+  }
 
   return (
     <aside className="glowbal-sidebar hidden md:flex">
@@ -222,7 +321,7 @@ function DesktopSidebar({ user }: { user: UserSummary | null }) {
         </nav>
 
         <div className="glowbal-sidebar-footer">
-          {user?.isAdmin && <AdminPill />}
+          <LanguageSwitcher />
           <AccountPill user={user} />
         </div>
       </div>
@@ -298,6 +397,7 @@ export function NavReveal() {
     <>
       <DesktopSidebar user={user} />
       <MobileNav user={user} />
+      <MobileLanguageButton />
     </>
   );
 }
