@@ -65,78 +65,89 @@ export function PersonalInfoCard({ userId, initialData }: Props) {
   };
 
   return (
-    <section className="glow-card space-y-1">
-      <div className="flex items-center justify-between pb-3">
-        <h2 className="text-xl font-semibold text-slate-900">Personal information</h2>
-        {saving && <span className="text-xs text-slate-400">Saving…</span>}
-      </div>
-
-      {FIELDS.map((field) => (
-        <div key={field.key} className="profile-info-row group">
-          <span className="profile-info-label shrink-0">{field.label}</span>
-
-          {editing === field.key ? (
-            <div className="flex flex-1 items-start gap-2 justify-end">
-              {field.multiline ? (
-                <textarea
-                  className="glow-input text-sm flex-1"
-                  style={{ minHeight: '4rem', resize: 'vertical' }}
-                  value={draft}
-                  onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
-                  autoFocus
-                />
-              ) : (
-                <input
-                  className="glow-input text-sm flex-1"
-                  value={draft}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
-                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
-                    if (e.key === 'Enter') saveEdit(field.key);
-                    if (e.key === 'Escape') cancelEdit();
-                  }}
-                  autoFocus
-                />
-              )}
-              <div className="flex gap-1 shrink-0 pt-1">
-                <button
-                  type="button"
-                  onClick={() => saveEdit(field.key)}
-                  className="rounded-lg bg-pink-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-pink-600 transition-colors"
-                >
-                  Save
-                </button>
-                <button
-                  type="button"
-                  onClick={cancelEdit}
-                  className="rounded-lg border border-black/8 px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-50 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => startEdit(field.key)}
-              className="profile-info-value text-right hover:text-pink-500 transition-colors cursor-pointer group-hover:underline decoration-dotted underline-offset-2"
-              title={`Edit ${field.label}`}
-            >
-              {values[field.key] || <span className="text-slate-300 italic">Add {field.label.toLowerCase()}</span>}
-            </button>
-          )}
+    <section className="profile-info-card">
+      <div className="profile-card-header">
+        <div className="profile-card-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+          </svg>
         </div>
-      ))}
-
-      {/* Email — read only */}
-      <div className="profile-info-row">
-        <span className="profile-info-label">Email</span>
-        <span className="profile-info-value text-slate-400">{initialData.email}</span>
+        <div>
+          <h2 className="profile-card-title">Personal information</h2>
+          <p className="profile-card-subtitle">Your basic details and contact info</p>
+        </div>
+        {saving && <span className="text-xs text-slate-400 ml-auto">Saving…</span>}
       </div>
 
-      {/* Member since — read only */}
-      <div className="profile-info-row">
-        <span className="profile-info-label">Member since</span>
-        <span className="profile-info-value">{initialData.memberSince}</span>
+      <div className="profile-info-list">
+        {FIELDS.map((field) => (
+          <div key={field.key} className="profile-info-item">
+            <span className="profile-info-label">{field.label}</span>
+
+            {editing === field.key ? (
+              <div className="flex flex-1 items-start gap-2 justify-end">
+                {field.multiline ? (
+                  <textarea
+                    className="glow-input text-sm flex-1"
+                    style={{ minHeight: '4rem', resize: 'vertical' }}
+                    value={draft}
+                    onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => setDraft(e.target.value)}
+                    autoFocus
+                  />
+                ) : (
+                  <input
+                    className="glow-input text-sm flex-1"
+                    value={draft}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDraft(e.target.value)}
+                    onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                      if (e.key === 'Enter') saveEdit(field.key);
+                      if (e.key === 'Escape') cancelEdit();
+                    }}
+                    autoFocus
+                  />
+                )}
+                <div className="flex gap-1 shrink-0 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => saveEdit(field.key)}
+                    className="rounded-lg bg-pink-500 px-2.5 py-1 text-xs font-semibold text-white hover:bg-pink-600 transition-colors"
+                  >
+                    Save
+                  </button>
+                  <button
+                    type="button"
+                    onClick={cancelEdit}
+                    className="rounded-lg border border-black/8 px-2.5 py-1 text-xs text-slate-500 hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => startEdit(field.key)}
+                className="profile-info-value hover:text-pink-500 transition-colors cursor-pointer"
+                title={`Edit ${field.label}`}
+              >
+                {values[field.key] || <span className="text-slate-300 italic">Add {field.label.toLowerCase()}</span>}
+              </button>
+            )}
+          </div>
+        ))}
+
+        {/* Email — read only */}
+        <div className="profile-info-item">
+          <span className="profile-info-label">Email</span>
+          <span className="profile-info-value text-slate-400">{initialData.email}</span>
+        </div>
+
+        {/* Member since — read only */}
+        <div className="profile-info-item">
+          <span className="profile-info-label">Member since</span>
+          <span className="profile-info-value">{initialData.memberSince}</span>
+        </div>
       </div>
     </section>
   );

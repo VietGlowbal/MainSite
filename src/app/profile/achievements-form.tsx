@@ -62,10 +62,17 @@ export function AchievementsForm({ userId, initialAchievements, initialSkills }:
   };
 
   return (
-    <section className="glow-card space-y-8">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-900">Achievements &amp; skills</h2>
-        <p className="mt-1 text-sm text-slate-500">Showcase what makes you stand out.</p>
+    <section className="profile-info-card">
+      <div className="profile-card-header">
+        <div className="profile-card-icon profile-card-icon-purple">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z" />
+          </svg>
+        </div>
+        <div>
+          <h2 className="profile-card-title">Achievements &amp; skills</h2>
+          <p className="profile-card-subtitle">Showcase what makes you stand out</p>
+        </div>
       </div>
 
       {/* ── Achievements ── */}
@@ -75,9 +82,12 @@ export function AchievementsForm({ userId, initialAchievements, initialSkills }:
           <button
             type="button"
             onClick={addAchievement}
-            className="glow-button-secondary text-xs px-3 py-1.5"
+            className="profile-edit-button"
           >
-            + Add
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Add
           </button>
         </div>
 
@@ -161,7 +171,7 @@ export function AchievementsForm({ userId, initialAchievements, initialSkills }:
 
       {/* ── Save ── */}
       <div className="flex items-center gap-4 pt-2">
-        <button className="glow-button-primary" type="button" onClick={handleSave} disabled={saving}>
+        <button className="profile-improve-button" type="button" onClick={handleSave} disabled={saving}>
           {saving ? 'Saving…' : 'Save achievements & skills'}
         </button>
         {message && <p className="text-sm text-slate-500">{message}</p>}

@@ -12,7 +12,9 @@ const POPULAR_TOPICS = [
   'Visa & accommodation',
   'Scholarship strategy',
   'Course choice',
-  'Life abroad',
+  'Career advice',
+  'Studying abroad',
+  'Course choice',
 ];
 
 const DEFAULT_LANGUAGES = [
@@ -24,6 +26,8 @@ const DEFAULT_LANGUAGES = [
   'German',
   'Japanese',
   'Korean',
+  'Arabic',
+  'Portuguese',
 ];
 
 type Props = {
@@ -124,103 +128,112 @@ export function MentorBrowse({ mentors, initialUniversityId, initialSlotsByMento
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* HERO — search bar + steps */}
-      <section className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white/95 px-5 py-6 shadow-[0_12px_32px_rgba(22,33,62,0.06)] backdrop-blur md:px-8 md:py-7">
+      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200/60 bg-gradient-to-br from-white via-pink-50/30 to-purple-50/20 px-6 py-8 shadow-[0_8px_30px_rgba(0,0,0,0.04)] backdrop-blur md:px-10 md:py-10">
         <span
           aria-hidden
-          className="pointer-events-none absolute -top-24 -right-20 h-64 w-64 rounded-full opacity-50 blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(255,77,140,0.18), transparent 60%)' }}
+          className="pointer-events-none absolute -top-32 -right-24 h-80 w-80 rounded-full opacity-40 blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(255,77,140,0.25), transparent 70%)' }}
         />
         <span
           aria-hidden
-          className="pointer-events-none absolute -bottom-28 -left-16 h-72 w-72 rounded-full opacity-40 blur-3xl"
-          style={{ background: 'radial-gradient(circle, rgba(34,211,238,0.16), transparent 60%)' }}
+          className="pointer-events-none absolute -bottom-32 -left-20 h-96 w-96 rounded-full opacity-30 blur-3xl"
+          style={{ background: 'radial-gradient(circle, rgba(139,92,246,0.2), transparent 70%)' }}
         />
 
-        <div className="relative space-y-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <span className="glow-pill">Mentorship Hub</span>
-              <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 md:text-3xl">
-                Meet a mentor who&rsquo;s walked the path
+        <div className="relative space-y-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="max-w-2xl">
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl lg:text-[2.75rem] lg:leading-tight">
+                Find the right mentor for your journey
               </h1>
-              <p className="mt-1 max-w-xl text-sm text-slate-500">
-                Browse current students and recent grads at your dream universities. Pick a time, share what you want help with, and book a real video session.
+              <p className="mt-3 text-base leading-relaxed text-slate-600 md:text-lg">
+                Connect with current students and recent graduates from top universities
               </p>
             </div>
             <Link
               href="/mentors/apply"
-              className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border border-pink-300 bg-white/80 px-4 py-2 text-sm font-semibold text-pink-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-pink-50 sm:self-end"
+              className="inline-flex shrink-0 items-center gap-2 self-start rounded-full border-2 border-pink-500 bg-white px-5 py-2.5 text-sm font-semibold text-pink-600 shadow-sm transition hover:bg-pink-50 hover:shadow-md sm:self-start"
             >
-              <span aria-hidden>✨</span>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
               Become a mentor
             </Link>
           </div>
 
           {/* Search inputs */}
-          <div className="grid gap-2 lg:grid-cols-[1.4fr_1fr_1fr_auto]">
+          <div className="grid gap-3 md:grid-cols-[2fr_1.2fr_1.2fr_auto]">
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <SearchIcon size={16} />
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <SearchIcon size={18} />
               </span>
               <input
                 type="text"
-                placeholder="Search by mentor, university, or topic"
+                placeholder="Search by mentor name, university or topic"
                 value={filters.query ?? ''}
                 onChange={(e) => setFilters((f) => ({ ...f, query: e.target.value || undefined }))}
-                className="w-full rounded-full border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-4 text-sm text-slate-700 placeholder:text-slate-400 shadow-sm transition focus:border-pink-400 focus:outline-none focus:ring-4 focus:ring-pink-100"
               />
             </div>
 
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <MapPinIcon size={16} />
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <MapPinIcon size={18} />
               </span>
               <select
                 value={filters.country ?? ''}
                 onChange={(e) => setFilters((f) => ({ ...f, country: e.target.value || undefined }))}
-                className="w-full appearance-none rounded-full border border-slate-200 bg-white py-3 pl-10 pr-9 text-sm text-slate-700 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                className="h-12 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-12 pr-10 text-sm text-slate-700 shadow-sm transition focus:border-pink-400 focus:outline-none focus:ring-4 focus:ring-pink-100"
               >
                 <option value="">Any location</option>
                 {allCountries.map((c) => (
                   <option key={c} value={c}>{c}</option>
                 ))}
               </select>
-              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden>▼</span>
+              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 text-xs" aria-hidden>▼</span>
             </div>
 
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
-                <CalendarIcon size={16} />
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
+                <CalendarIcon size={18} />
               </span>
               <input
                 type="date"
                 value={filters.available_from ?? ''}
                 min={new Date().toISOString().slice(0, 10)}
                 onChange={(e) => setFilters((f) => ({ ...f, available_from: e.target.value || undefined }))}
-                className="w-full rounded-full border border-slate-200 bg-white py-3 pl-10 pr-3 text-sm text-slate-700 focus:border-cyan-300 focus:outline-none focus:ring-2 focus:ring-cyan-100"
+                className="h-12 w-full rounded-xl border border-slate-200 bg-white pl-12 pr-4 text-sm text-slate-700 shadow-sm transition focus:border-pink-400 focus:outline-none focus:ring-4 focus:ring-pink-100"
               />
             </div>
 
             <button
               type="button"
               onClick={() => setShowAllFilters((s) => !s)}
-              className="inline-flex items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-cyan-300"
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-xl border-2 border-slate-200 bg-white px-5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-pink-300 hover:bg-pink-50"
             >
-              {showAllFilters ? 'Hide filters' : 'More filters'}
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              {showAllFilters ? 'Less' : 'Filters'}
+              {Object.keys(filters).filter(k => !['query', 'country', 'available_from'].includes(k)).length > 0 && (
+                <span className="flex h-5 w-5 items-center justify-center rounded-full bg-pink-500 text-[0.65rem] font-bold text-white">
+                  {Object.keys(filters).filter(k => !['query', 'country', 'available_from'].includes(k)).length}
+                </span>
+              )}
             </button>
           </div>
 
           {/* Popular topic chips */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-700">Popular help with:</span>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="text-xs font-bold uppercase tracking-wide text-slate-600">Popular help with:</span>
             {POPULAR_TOPICS.map((topic) => (
               <button
                 key={topic}
                 type="button"
                 onClick={() => setFilters((f) => ({ ...f, query: topic }))}
-                className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs text-slate-500 transition hover:border-pink-200 hover:text-pink-600"
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-sm transition hover:border-pink-300 hover:bg-pink-50 hover:text-pink-700 hover:shadow"
               >
                 {topic}
               </button>
@@ -229,8 +242,8 @@ export function MentorBrowse({ mentors, initialUniversityId, initialSlotsByMento
 
           {/* Expanded filter rail */}
           {showAllFilters && (
-            <div className="grid gap-4 rounded-2xl border border-slate-100 bg-white/80 p-4 sm:grid-cols-2 lg:grid-cols-4">
-              <FilterBlock label="University">
+            <div className="grid gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4">
+              <FilterBlock label="Expertise">
                 <select
                   value={filters.university_id ?? ''}
                   onChange={(e) =>
@@ -239,7 +252,7 @@ export function MentorBrowse({ mentors, initialUniversityId, initialSlotsByMento
                       university_id: e.target.value ? Number(e.target.value) : undefined,
                     }))
                   }
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100"
                 >
                   <option value="">All universities</option>
                   {allUniversities.map((u) => (
@@ -250,7 +263,7 @@ export function MentorBrowse({ mentors, initialUniversityId, initialSlotsByMento
 
               <FilterBlock label="Languages">
                 <div className="flex flex-wrap gap-1.5">
-                  {allLanguages.slice(0, 8).map((lang) => {
+                  {allLanguages.slice(0, 6).map((lang) => {
                     const active = filters.languages?.includes(lang);
                     return (
                       <button
@@ -263,10 +276,10 @@ export function MentorBrowse({ mentors, initialUniversityId, initialSlotsByMento
                             return { ...f, languages: next.length > 0 ? next : undefined };
                           })
                         }
-                        className={`rounded-full border px-2.5 py-1 text-xs transition ${
+                        className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
                           active
-                            ? 'border-cyan-300 bg-cyan-50 text-cyan-700'
-                            : 'border-slate-200 bg-white text-slate-500 hover:border-cyan-200'
+                            ? 'border-pink-400 bg-pink-50 text-pink-700 shadow-sm'
+                            : 'border-slate-200 bg-white text-slate-600 hover:border-pink-200 hover:bg-pink-50/50'
                         }`}
                       >
                         {lang}
@@ -276,21 +289,21 @@ export function MentorBrowse({ mentors, initialUniversityId, initialSlotsByMento
                 </div>
               </FilterBlock>
 
-              <FilterBlock label="Status">
-                <div className="flex gap-1.5">
+              <FilterBlock label="Availability">
+                <div className="flex flex-col gap-1.5">
                   {[
                     { v: undefined, label: 'Any' },
-                    { v: true, label: 'Currently studying' },
+                    { v: true, label: 'Current student' },
                     { v: false, label: 'Alumni' },
                   ].map((opt) => (
                     <button
                       key={opt.label}
                       type="button"
                       onClick={() => setFilters((f) => ({ ...f, currently_enrolled: opt.v as boolean | undefined }))}
-                      className={`rounded-full border px-2.5 py-1 text-xs transition ${
+                      className={`rounded-lg border px-3 py-2 text-xs font-medium transition ${
                         filters.currently_enrolled === opt.v
-                          ? 'border-pink-300 bg-pink-50 text-pink-600'
-                          : 'border-slate-200 bg-white text-slate-500 hover:border-pink-200'
+                          ? 'border-pink-400 bg-pink-50 text-pink-700 shadow-sm'
+                          : 'border-slate-200 bg-white text-slate-600 hover:border-pink-200 hover:bg-pink-50/50'
                       }`}
                     >
                       {opt.label}
@@ -299,78 +312,129 @@ export function MentorBrowse({ mentors, initialUniversityId, initialSlotsByMento
                 </div>
               </FilterBlock>
 
-              <FilterBlock label="Sort by">
+              <FilterBlock label="Price">
                 <select
                   value={filters.sort ?? 'rating'}
                   onChange={(e) =>
                     setFilters((f) => ({ ...f, sort: e.target.value as MentorBrowseFilters['sort'] }))
                   }
-                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-cyan-300 focus:outline-none"
+                  className="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm shadow-sm transition focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100"
                 >
-                  <option value="rating">Top rated</option>
-                  <option value="newest">Newest mentors</option>
-                  <option value="price_asc">Price: low → high</option>
-                  <option value="price_desc">Price: high → low</option>
+                  <option value="rating">Best match</option>
+                  <option value="newest">Newest</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
                 </select>
               </FilterBlock>
             </div>
           )}
 
-          {/* Stepper */}
-          <div className="grid gap-3 rounded-2xl border border-slate-100 bg-white/80 p-3 sm:grid-cols-3">
-            <Step
-              num="1"
-              title="Find your university"
-              done={stepStatus.location}
-              hint="Pick a country or specific school above"
-            />
-            <Step
-              num="2"
-              title="Choose a time"
-              done={stepStatus.time}
-              hint="Mentors share a calendar with open slots"
-            />
-            <Step
-              num="3"
-              title="Choose a mentor"
-              done={stepStatus.mentor}
-              hint={`${results.length} mentor${results.length === 1 ? '' : 's'} match your search`}
-            />
+          {/* How it works stepper */}
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+            <h3 className="mb-4 text-sm font-bold text-slate-900">How it works</h3>
+            <div className="grid gap-4 sm:grid-cols-3">
+              <Step
+                num="1"
+                title="Find your mentor"
+                done={stepStatus.location}
+                hint="Search by university or topic"
+                icon={
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                }
+              />
+              <Step
+                num="2"
+                title="Choose a time"
+                done={stepStatus.time}
+                hint="Pick a time that works for you"
+                icon={
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                }
+              />
+              <Step
+                num="3"
+                title="Book & connect"
+                done={stepStatus.mentor}
+                hint={`${results.length} mentor${results.length === 1 ? '' : 's'} available`}
+                icon={
+                  <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                }
+              />
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Results */}
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-slate-600">
-          <span className="font-semibold text-slate-900">{results.length}</span> mentor{results.length === 1 ? '' : 's'} found
-        </p>
-        {Object.keys(filters).length > 0 && (
-          <button
-            type="button"
-            onClick={() => setFilters({})}
-            className="text-xs font-semibold text-pink-600 hover:underline"
-          >
-            Clear all filters
-          </button>
-        )}
+      {/* Results header with stats */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-2xl font-bold text-slate-900">
+            {results.length} mentor{results.length === 1 ? '' : 's'} found
+          </p>
+          <p className="text-sm text-slate-500">
+            {filters.university_id && 'at your selected university'}
+            {filters.country && !filters.university_id && `in ${filters.country}`}
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {Object.keys(filters).length > 0 && (
+            <button
+              type="button"
+              onClick={() => setFilters({})}
+              className="inline-flex items-center gap-2 text-sm font-semibold text-pink-600 transition hover:text-pink-700"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+              Clear all
+            </button>
+          )}
+          <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12" />
+            </svg>
+            <span className="text-xs font-medium text-slate-600">
+              Sort by: {filters.sort === 'newest' ? 'Newest' : filters.sort === 'price_asc' ? 'Price ↑' : filters.sort === 'price_desc' ? 'Price ↓' : 'Best match'}
+            </span>
+          </div>
+        </div>
       </div>
 
       {results.length === 0 ? (
-        <div className="rounded-3xl border border-dashed border-slate-200 bg-white/80 p-12 text-center">
-          <p className="text-lg font-semibold text-slate-700">No mentors match your search</p>
+        <div className="rounded-3xl border-2 border-dashed border-slate-200 bg-slate-50/50 p-16 text-center">
+          <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100">
+            <svg className="h-8 w-8 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <p className="text-xl font-bold text-slate-700">No mentors found</p>
           <p className="mt-2 text-sm text-slate-500">
-            Try widening the country or removing the date filter — or invite a mentor at your school.
+            Try adjusting your filters or search for a different university
           </p>
-          <Link
-            href="/mentors/apply"
-            className="mt-4 inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-4 py-2 text-sm font-semibold text-white shadow-[0_8px_18px_rgba(255,77,140,0.22)]"
-          >
-            Become a mentor
-          </Link>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+            <button
+              type="button"
+              onClick={() => setFilters({})}
+              className="inline-flex items-center gap-2 rounded-lg border-2 border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-slate-300"
+            >
+              Clear filters
+            </button>
+            <Link
+              href="/mentors/apply"
+              className="inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-pink-500 to-purple-500 px-4 py-2 text-sm font-semibold text-white shadow-lg transition hover:shadow-xl"
+            >
+              Become a mentor
+            </Link>
+          </div>
         </div>
       ) : (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {results.map((m) => (
             <MentorCard key={m.id} mentor={m} />
           ))}
@@ -383,7 +447,7 @@ export function MentorBrowse({ mentors, initialUniversityId, initialSlotsByMento
 function FilterBlock({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="mb-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-slate-500">
+      <p className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-600">
         {label}
       </p>
       {children}
@@ -391,24 +455,38 @@ function FilterBlock({ label, children }: { label: string; children: React.React
   );
 }
 
-function Step({ num, title, done, hint }: { num: string; title: string; done: boolean; hint: string }) {
+function Step({ num, title, done, hint, icon }: { num: string; title: string; done: boolean; hint: string; icon: React.ReactNode }) {
   return (
     <div
-      className={`flex items-start gap-3 rounded-xl border p-3 transition ${
-        done ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-200 bg-white'
+      className={`flex items-start gap-3 rounded-xl border-2 p-4 transition ${
+        done 
+          ? 'border-emerald-400 bg-emerald-50' 
+          : 'border-slate-200 bg-white'
       }`}
     >
       <span
-        className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-bold ${
-          done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-sm font-bold transition ${
+          done 
+            ? 'bg-emerald-500 text-white' 
+            : 'bg-slate-100 text-slate-500'
         }`}
         aria-hidden
       >
-        {done ? '✓' : num}
+        {done ? (
+          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+          </svg>
+        ) : (
+          <span className="opacity-60">{icon}</span>
+        )}
       </span>
-      <div className="min-w-0">
-        <p className={`text-sm font-semibold ${done ? 'text-emerald-700' : 'text-slate-700'}`}>{title}</p>
-        <p className="mt-0.5 text-xs text-slate-500">{hint}</p>
+      <div className="min-w-0 flex-1">
+        <p className={`text-sm font-bold ${done ? 'text-emerald-900' : 'text-slate-700'}`}>
+          {title}
+        </p>
+        <p className={`mt-0.5 text-xs ${done ? 'text-emerald-600' : 'text-slate-500'}`}>
+          {hint}
+        </p>
       </div>
     </div>
   );

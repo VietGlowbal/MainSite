@@ -683,8 +683,30 @@ export function ApplicationWorkspaceView({ workspace }: { workspace: Application
     return map;
   });
 
-  const handleTaskToggle = (taskId: string, newStatus: TaskStatus) => {
+  const handleTaskToggle = async (taskId: string, newStatus: TaskStatus) => {
+    // Optimistically update UI
     setTaskStates((prev) => ({ ...prev, [taskId]: newStatus }));
+    
+    // Persist to database
+    try {
+      const response = await fetch(`/api/applications/${application.id}/tasks/${taskId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      
+      if (!response.ok) {
+        // Revert on error
+        const task = stages.flatMap(s => s.tasks ?? []).find(t => t.id === taskId);
+        setTaskStates((prev) => ({ ...prev, [taskId]: task?.status ?? 'not_started' }));
+        console.error('Failed to update task');
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+      // Revert on error
+      const task = stages.flatMap(s => s.tasks ?? []).find(t => t.id === taskId);
+      setTaskStates((prev) => ({ ...prev, [taskId]: task?.status ?? 'not_started' }));
+    }
   };
 
   const activeStage = stages.find((s) => s.id === activeStageId);
