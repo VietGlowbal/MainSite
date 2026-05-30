@@ -92,8 +92,6 @@ export default async function ProfilePage() {
                 </div>
               </div>
 
-              </div>
-
               {/* Profile Strength Card */}
               <div className="profile-strength-card">
                 <div className="profile-strength-header">
@@ -160,7 +158,6 @@ export default async function ProfilePage() {
                   </button>
                 )}
               </div>
-            </section>
             </section>
 
             {/* Info Cards Grid */}
@@ -229,8 +226,6 @@ export default async function ProfilePage() {
               initialSkills={profile?.skills ?? []}
             />
 
-            />
-
             {/* Documents Section */}
             <div className="profile-cards-grid">
               <section className="profile-info-card">
@@ -267,8 +262,6 @@ export default async function ProfilePage() {
                     <h2 className="profile-card-title">Your documents</h2>
                     <p className="profile-card-subtitle">{documents.length} file{documents.length !== 1 ? 's' : ''} uploaded</p>
                   </div>
-                </div>
-
                 </div>
 
                 {cvDocs.length > 0 && (
@@ -315,8 +308,6 @@ export default async function ProfilePage() {
                       ))}
                     </div>
                   </div>
-                )}
-
                 )}
 
                 {statements.length > 0 && (
