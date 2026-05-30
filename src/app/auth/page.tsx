@@ -33,8 +33,8 @@ const FEATURES = [
         <line x1="3" y1="10" x2="21" y2="10" />
       </svg>
     ),
-    title: 'Stay organised & never miss a deadline',
-    description: 'Track your applications, documents, and key dates in one place.',
+    title: 'Connect with Mentors',
+    description: 'Book mentorship sessions with students who got into your dream universities.',
   },
   {
     icon: (

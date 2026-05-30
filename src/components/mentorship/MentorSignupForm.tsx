@@ -90,7 +90,7 @@ type Props = {
   universities: { id: number; name: string; country: string }[];
 };
 
-type StepKey = 'basics' | 'profile' | 'review';
+type StepKey = 'identity' | 'documents' | 'profile' | 'pricing' | 'availability' | 'review';
 
 export function MentorSignupForm({ userId, defaultDisplayName, universities }: Props) {
   const router = useRouter();
@@ -139,10 +139,13 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
   const [currency, setCurrency] = useState<Currency>('USD');
   const [hourlyRateMajor, setHourlyRateMajor] = useState<string>('25'); // major units (25.00)
 
+  // ── Step 5: availability slots (ISO strings) ──────────────────────────
+  const [availabilitySlots, setAvailabilitySlots] = useState<string[]>([]); // ISO of starts_at
+
   // ── Submission ─────────────────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<StepKey>('basics');
+  const [step, setStep] = useState<StepKey>('identity');
 
   const filteredUniversities = useMemo(() => {
     if (!universitySearch) return universities.slice(0, 30);
@@ -224,9 +227,6 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
 
   // ── Step validation gates ──────────────────────────────────────────────
 
-  // Step 1 ("basics") covers identity + at least one verification document.
-  // We only require ONE doc up front so signup feels light; admins can ask
-  // for more during manual review.
   const identityComplete =
     displayName.trim().length >= 2 &&
     legalName.trim().length >= 2 &&
@@ -234,15 +234,12 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
     universityId !== null;
 
   const documentsComplete =
-    !!docKeys.cv ||
-    !!docKeys.acceptance_letter ||
-    !!docKeys.transcript ||
+    !!docKeys.cv &&
+    !!docKeys.acceptance_letter &&
+    !!docKeys.transcript &&
     !!docKeys.student_card;
 
-  const basicsComplete = identityComplete && documentsComplete;
-
-  // Step 2 ("profile") covers profile content + pricing in one screen.
-  const profileContentComplete =
+  const profileComplete =
     subject.trim().length >= 2 &&
     bio.trim().length >= 20 &&
     topics.length >= 1 &&
@@ -254,9 +251,7 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
     return Number.isFinite(n) && n > 0;
   })();
 
-  const profileComplete = profileContentComplete && pricingComplete;
-
-  const allValid = basicsComplete && profileComplete;
+  const allValid = identityComplete && documentsComplete && profileComplete && pricingComplete;
 
   // ── Submit ────────────────────────────────────────────────────────────
 
@@ -283,10 +278,10 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
       help_topics: topics,
       strengths,
       languages,
-      cv_storage_key: docKeys.cv ?? null,
-      acceptance_letter_storage_key: docKeys.acceptance_letter ?? null,
-      transcript_storage_key: docKeys.transcript ?? null,
-      student_card_storage_key: docKeys.student_card ?? null,
+      cv_storage_key: docKeys.cv,
+      acceptance_letter_storage_key: docKeys.acceptance_letter,
+      transcript_storage_key: docKeys.transcript,
+      student_card_storage_key: docKeys.student_card,
       hourly_rate_amount: toSmallestUnits(Number(hourlyRateMajor), currency),
       hourly_rate_currency: currency,
     };
@@ -304,8 +299,20 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
       return;
     }
 
-    // Mentors set their availability slots from the dashboard once
-    // approved — no need to collect them at signup time.
+    // After the profile exists, push the availability slots in one batch.
+    if (availabilitySlots.length > 0) {
+      try {
+        await fetch('/api/mentorship/slots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            slots: availabilitySlots.map((iso) => ({ starts_at: iso, duration_mins: 60 })),
+          }),
+        });
+      } catch (err) {
+        console.warn('Could not save initial availability', err);
+      }
+    }
 
     setSubmitting(false);
     router.push('/mentors/apply/success');
@@ -313,15 +320,21 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
 
   // ── Render helpers ─────────────────────────────────────────────────────
 
-  const stepOrder: StepKey[] = ['basics', 'profile', 'review'];
+  const stepOrder: StepKey[] = ['identity', 'documents', 'profile', 'pricing', 'availability', 'review'];
   const stepLabels: Record<StepKey, string> = {
-    basics: 'Basics',
-    profile: 'Profile & pricing',
+    identity: 'Identity',
+    documents: 'Documents',
+    profile: 'Profile',
+    pricing: 'Pricing',
+    availability: 'Availability',
     review: 'Review',
   };
   const stepDone: Record<StepKey, boolean> = {
-    basics: basicsComplete,
+    identity: identityComplete,
+    documents: documentsComplete,
     profile: profileComplete,
+    pricing: pricingComplete,
+    availability: true, // optional
     review: false,
   };
 
@@ -362,11 +375,11 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
         </div>
       )}
 
-      {/* Basics: identity + at least one verification document */}
-      {step === 'basics' && (
+      {/* Identity */}
+      {step === 'identity' && (
         <Section
           title="Tell us who you are"
-          description="A few quick details for verification. Only your display name and university show up publicly."
+          description="These four fields are required for verification. Only your display name and university show up publicly."
         >
           <Field label="Display name (shown publicly)" required>
             <input
@@ -430,33 +443,41 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
             )}
           </Field>
 
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/60 p-4">
-            <p className="text-sm font-semibold text-slate-900">Verification document <span className="text-pink-500">*</span></p>
-            <p className="mt-1 text-xs text-slate-500">
-              Upload at least one document so our team can verify you. Any of the four below works — we&rsquo;ll ask for more later if needed. Max 10&nbsp;MB each.
-            </p>
-            <div className="mt-3 grid gap-3">
-              {(['cv', 'acceptance_letter', 'transcript', 'student_card'] as DocumentSlot[]).map((slot) => (
-                <DocumentField
-                  key={slot}
-                  slot={slot}
-                  fileName={docNames[slot]}
-                  uploading={docUploading === slot}
-                  onChange={(file) => uploadDocument(slot, file)}
-                  onClear={() => {
-                    setDocKeys((p) => ({ ...p, [slot]: null }));
-                    setDocNames((p) => ({ ...p, [slot]: null }));
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-
-          <FooterNav onNext={() => setStep('profile')} disabled={!basicsComplete} />
+          <FooterNav onNext={() => setStep('documents')} disabled={!identityComplete} />
         </Section>
       )}
 
-      {/* Profile + pricing on one screen */}
+      {/* Documents */}
+      {step === 'documents' && (
+        <Section
+          title="Verification documents"
+          description="We review every mentor manually. These four documents are stored privately and only seen by Glowbal admins."
+        >
+          <div className="grid gap-3">
+            {(['cv', 'acceptance_letter', 'transcript', 'student_card'] as DocumentSlot[]).map((slot) => (
+              <DocumentField
+                key={slot}
+                slot={slot}
+                fileName={docNames[slot]}
+                uploading={docUploading === slot}
+                onChange={(file) => uploadDocument(slot, file)}
+                onClear={() => {
+                  setDocKeys((p) => ({ ...p, [slot]: null }));
+                  setDocNames((p) => ({ ...p, [slot]: null }));
+                }}
+              />
+            ))}
+          </div>
+
+          <FooterNav
+            onPrev={() => setStep('identity')}
+            onNext={() => setStep('profile')}
+            disabled={!documentsComplete}
+          />
+        </Section>
+      )}
+
+      {/* Profile */}
       {step === 'profile' && (
         <Section
           title="Build your mentor profile"
@@ -531,8 +552,8 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
             <Field label="Study start year">
               <input
                 type="number"
-                min={1900}
-                max={2100}
+                min={1980}
+                max={2050}
                 value={studyStartYear}
                 onChange={(e) => setStudyStartYear(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="e.g. 2021"
@@ -542,8 +563,8 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
             <Field label={currentlyEnrolled ? 'Expected graduation year' : 'Graduation year'}>
               <input
                 type="number"
-                min={1900}
-                max={2100}
+                min={1980}
+                max={2050}
                 value={graduationYear}
                 onChange={(e) => setGraduationYear(e.target.value === '' ? '' : Number(e.target.value))}
                 placeholder="e.g. 2025"
@@ -686,12 +707,17 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
               </button>
             </div>
           </Field>
+
+          <FooterNav
+            onPrev={() => setStep('documents')}
+            onNext={() => setStep('pricing')}
+            disabled={!profileComplete}
+          />
         </Section>
       )}
 
-      {/* Pricing is rendered as a second card under the profile content so
-          everything that mentees care about lives on one step. */}
-      {step === 'profile' && (
+      {/* Pricing */}
+      {step === 'pricing' && (
         <Section
           title="Set your hourly rate"
           description="You keep 90% of your hourly rate. Glowbal adds a 10% service fee on top, charged to the mentee."
@@ -743,14 +769,29 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
             </p>
           </Field>
 
-          <p className="text-xs text-slate-500">
-            You can add availability slots from your mentor dashboard once you&rsquo;re approved.
-          </p>
+          <FooterNav
+            onPrev={() => setStep('profile')}
+            onNext={() => setStep('availability')}
+            disabled={!pricingComplete}
+          />
+        </Section>
+      )}
+
+      {/* Availability */}
+      {step === 'availability' && (
+        <Section
+          title="Pick your free times"
+          description="Click any future date to add 1-hour slots. You can change these any time from your dashboard."
+        >
+          <MonthlyAvailabilityPicker
+            slots={availabilitySlots}
+            onSlotsChange={setAvailabilitySlots}
+          />
 
           <FooterNav
-            onPrev={() => setStep('basics')}
+            onPrev={() => setStep('pricing')}
             onNext={() => setStep('review')}
-            disabled={!profileComplete}
+            disabled={false}
           />
         </Section>
       )}
@@ -774,6 +815,7 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
             languages={languages}
             currency={currency}
             hourlyMajor={Number(hourlyRateMajor)}
+            slotCount={availabilitySlots.length}
           />
 
           <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-xs text-slate-500">
@@ -784,7 +826,7 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              onClick={() => setStep('profile')}
+              onClick={() => setStep('pricing')}
               className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-pink-200"
             >
               Back
@@ -947,6 +989,161 @@ function DocumentField({
   );
 }
 
+// ── Monthly availability picker ─────────────────────────────────────────────
+
+const TIME_SLOTS = ['09:00', '11:00', '14:00', '16:00', '18:00', '20:00'];
+
+function MonthlyAvailabilityPicker({
+  slots,
+  onSlotsChange,
+}: {
+  slots: string[];
+  onSlotsChange: (s: string[]) => void;
+}) {
+  const [viewMonth, setViewMonth] = useState<Date>(new Date());
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [customTime, setCustomTime] = useState<string>('10:00');
+
+  const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
+  const monthEnd = new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 0);
+  const cells: (Date | null)[] = [];
+  const lead = (monthStart.getDay() + 6) % 7;
+  for (let i = 0; i < lead; i++) cells.push(null);
+  for (let d = 1; d <= monthEnd.getDate(); d++) cells.push(new Date(viewMonth.getFullYear(), viewMonth.getMonth(), d));
+  while (cells.length % 7 !== 0) cells.push(null);
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+
+  function dateKey(d: Date) { return d.toISOString().slice(0, 10); }
+
+  function slotsOnDate(key: string): string[] {
+    return slots.filter((iso) => iso.startsWith(key));
+  }
+
+  function toggleSlot(date: string, time: string) {
+    const iso = new Date(`${date}T${time}:00`).toISOString();
+    if (slots.includes(iso)) {
+      onSlotsChange(slots.filter((s) => s !== iso));
+    } else {
+      onSlotsChange([...slots, iso]);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-3">
+        <button
+          type="button"
+          onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
+          className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
+          aria-label="Previous month"
+        >
+          ←
+        </button>
+        <p className="text-sm font-semibold text-slate-900">
+          {viewMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+        </p>
+        <button
+          type="button"
+          onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
+          className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
+          aria-label="Next month"
+        >
+          →
+        </button>
+      </div>
+
+      <div className="grid grid-cols-7 gap-1.5 text-center text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">
+        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
+          <div key={d}>{d}</div>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-7 gap-1.5">
+        {cells.map((cell, i) => {
+          if (!cell) return <div key={`e-${i}`} className="h-10" />;
+          const key = dateKey(cell);
+          const isPast = key < todayKey;
+          const cellSlots = slotsOnDate(key);
+          const active = selectedDate === key;
+          return (
+            <button
+              key={key}
+              type="button"
+              disabled={isPast}
+              onClick={() => setSelectedDate(active ? null : key)}
+              className={`relative flex h-10 items-center justify-center rounded-xl border text-xs font-semibold transition ${
+                isPast
+                  ? 'border-transparent text-slate-300'
+                  : active
+                  ? 'border-pink-300 bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white'
+                  : cellSlots.length > 0
+                  ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                  : 'border-slate-200 bg-white text-slate-700 hover:border-pink-200'
+              }`}
+            >
+              {cell.getDate()}
+              {cellSlots.length > 0 && !active && (
+                <span className="absolute bottom-1 right-1 text-[0.6rem]">{cellSlots.length}</span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedDate && (
+        <div className="rounded-2xl border border-slate-100 bg-white p-4">
+          <p className="text-sm font-semibold text-slate-900">
+            {new Date(`${selectedDate}T00:00:00`).toLocaleDateString(undefined, {
+              weekday: 'long', day: 'numeric', month: 'long',
+            })}
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">Pick the times you&rsquo;re free.</p>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {TIME_SLOTS.map((t) => {
+              const iso = new Date(`${selectedDate}T${t}:00`).toISOString();
+              const active = slots.includes(iso);
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => toggleSlot(selectedDate, t)}
+                  className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                    active
+                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                      : 'border-slate-200 bg-white text-slate-600 hover:border-pink-200'
+                  }`}
+                >
+                  {t}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-3 flex items-center gap-2">
+            <input
+              type="time"
+              value={customTime}
+              onChange={(e) => setCustomTime(e.target.value)}
+              className="field max-w-[140px]"
+            />
+            <button
+              type="button"
+              onClick={() => toggleSlot(selectedDate, customTime)}
+              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200"
+            >
+              Add custom time
+            </button>
+          </div>
+        </div>
+      )}
+
+      <p className="text-xs text-slate-500">
+        Total slots added: <strong>{slots.length}</strong>. You can add or remove slots at any time from your mentor dashboard.
+      </p>
+    </div>
+  );
+}
+
 // ── Review summary ──────────────────────────────────────────────────────────
 
 function ReviewPanel(props: {
@@ -962,6 +1159,7 @@ function ReviewPanel(props: {
   languages: string[];
   currency: Currency;
   hourlyMajor: number;
+  slotCount: number;
 }) {
   const total = toSmallestUnits(props.hourlyMajor, props.currency);
   return (
@@ -971,11 +1169,12 @@ function ReviewPanel(props: {
       <Row label="DOB" value={props.dob} muted />
       <Row label="University" value={props.university} />
       <Row label="Programme" value={`${props.degreeLevel} · ${props.subject}`} />
-      <Row label="Documents" value={`${props.documentsCount} of 4 uploaded`} />
+      <Row label="Documents" value={`${props.documentsCount} / 4 uploaded`} />
       <Row label="Topics" value={props.topics.join(', ') || '—'} />
       <Row label="Strengths" value={props.strengths.join(', ') || '—'} />
       <Row label="Languages" value={props.languages.join(', ') || '—'} />
       <Row label="Hourly rate" value={formatMoney(total, props.currency)} />
+      <Row label="Initial slots" value={`${props.slotCount} added`} />
     </div>
   );
 }

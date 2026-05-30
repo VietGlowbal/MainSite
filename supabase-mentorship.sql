@@ -352,32 +352,3 @@ begin
       );
   end if;
 end $$;
-
-
--- ── 6. Relax legacy session_price_vnd constraints ──────────────────────────
--- The original schema defined session_price_vnd as NOT NULL with a
--- `>= 100000` check. The mentorship hub uses multi-currency
--- hourly_rate_amount/hourly_rate_currency, so for non-VND mentors we
--- have nothing meaningful to put in the legacy column. Drop the check
--- and allow NULL so new sign-ups don't hit
--- "achiever_profiles_session_price_vnd_check" violations.
-do $$
-begin
-  if exists (
-    select 1 from information_schema.table_constraints
-    where table_schema = 'public'
-      and table_name = 'achiever_profiles'
-      and constraint_name = 'achiever_profiles_session_price_vnd_check'
-  ) then
-    alter table public.achiever_profiles
-      drop constraint achiever_profiles_session_price_vnd_check;
-  end if;
-
-  -- Make the column nullable so the API can omit it for non-VND mentors.
-  alter table public.achiever_profiles
-    alter column session_price_vnd drop not null;
-exception
-  when undefined_column then
-    -- Column was already removed — nothing to do.
-    null;
-end $$;

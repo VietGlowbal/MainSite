@@ -23,7 +23,7 @@ import { createClient } from '@/lib/supabase/client';
 const NAV_ITEMS = [
   { href: '/',                label: 'Home',          mobile: 'Home',     activeMatch: 'exact' as const },
   { href: '/universities',    label: 'Search',        mobile: 'Search',   activeMatch: 'prefix' as const },
-  { href: '/apply',           label: 'Apply',         mobile: 'Apply',    activeMatch: 'prefix' as const, requiresAuth: true },
+  { href: '/my-universities', label: 'Apply',         mobile: 'Apply',    activeMatch: 'prefix' as const, requiresAuth: true },
   { href: '/mentors',         label: 'Mentorship',     mobile: 'Mentors',  activeMatch: 'prefix' as const },
   { href: '/news',            label: 'GLOWBAL News',  mobile: 'News',     activeMatch: 'prefix' as const },
 ];
@@ -54,7 +54,6 @@ const MOBILE_ICONS: Record<string, () => React.JSX.Element> = {
   '/':                IconHome,
   '/universities':    IconSearch,
   '/my-universities': IconApply,
-  '/apply':           IconApply,
   '/mentors':         IconSession,
   '/news':            IconNews,
   '/auth':            IconUser,

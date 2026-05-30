@@ -16,28 +16,24 @@ import { isSupportedCurrency } from '@/lib/mentors';
  */
 
 const SignupSchema = z.object({
-  // Core required pieces — name, university, dob.
+  // 7 required pieces — name, university, dob, cv, acceptance letter,
+  // transcript, student card.
   display_name: z.string().min(2).max(120),
   legal_name: z.string().min(2).max(160),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
   university_id: z.number().int().positive(),
 
-  // Verification docs are now optional at signup — admins can request more
-  // during review. We just require at least one proof-of-enrollment file
-  // (any of the four slots) further down in the handler.
-  cv_storage_key: z.string().min(1).nullable().optional(),
-  acceptance_letter_storage_key: z.string().min(1).nullable().optional(),
-  transcript_storage_key: z.string().min(1).nullable().optional(),
-  student_card_storage_key: z.string().min(1).nullable().optional(),
+  cv_storage_key: z.string().min(1),
+  acceptance_letter_storage_key: z.string().min(1),
+  transcript_storage_key: z.string().min(1),
+  student_card_storage_key: z.string().min(1),
 
   // Mentor profile content
   avatar_url: z.string().url().nullable().optional(),
   degree_level: z.enum(['undergraduate', 'masters', 'phd', 'alumni']),
   subject: z.string().min(2).max(120),
-  // Year bounds are wide on purpose — alumni can be decades out and PhDs
-  // sometimes start very late. We only sanity-check the date of birth.
-  graduation_year: z.number().int().min(1900).max(2100).nullable().optional(),
-  study_start_year: z.number().int().min(1900).max(2100).nullable().optional(),
+  graduation_year: z.number().int().min(1980).max(2050).nullable().optional(),
+  study_start_year: z.number().int().min(1980).max(2050).nullable().optional(),
   currently_enrolled: z.boolean(),
 
   bio: z.string().min(20).max(800),
@@ -60,18 +56,8 @@ export async function POST(request: NextRequest) {
 
   const parsed = SignupSchema.safeParse(body);
   if (!parsed.success) {
-    // Surface the first validation issue so the client can show something
-    // more useful than "Invalid signup". Falls back to the generic message
-    // if zod gave us nothing (shouldn't happen).
-    const flat = parsed.error.flatten();
-    const firstFieldErr = Object.entries(flat.fieldErrors).find(
-      ([, msgs]) => Array.isArray(msgs) && msgs.length > 0,
-    );
-    const message = firstFieldErr
-      ? `${firstFieldErr[0]}: ${firstFieldErr[1]![0]}`
-      : flat.formErrors[0] ?? 'Invalid signup';
     return NextResponse.json(
-      { error: message, details: flat },
+      { error: 'Invalid signup', details: parsed.error.flatten() },
       { status: 400 },
     );
   }
@@ -108,21 +94,6 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  // Require at least one verification document. Admins can request more
-  // during the manual review step.
-  const verificationDocs = [
-    input.cv_storage_key,
-    input.acceptance_letter_storage_key,
-    input.transcript_storage_key,
-    input.student_card_storage_key,
-  ].filter((k): k is string => Boolean(k));
-  if (verificationDocs.length === 0) {
-    return NextResponse.json(
-      { error: 'Upload at least one verification document so we can review your application.' },
-      { status: 400 },
-    );
-  }
-
   // Map currency-specific minimum hourly rate to surface clear errors.
   const minByCurrency: Record<string, number> = {
     USD: 500, // $5.00
@@ -135,18 +106,6 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-
-  // The legacy `session_price_vnd` column has a NOT NULL + `>= 100000`
-  // check constraint. We're moving to multi-currency `hourly_rate_amount`,
-  // so we synthesize a VND-equivalent that satisfies the floor without
-  // affecting any new pricing logic. If the mentor is pricing in VND we
-  // copy the value through (clamped to the minimum); otherwise we use a
-  // safe placeholder of 100,000 ₫.
-  const LEGACY_VND_MIN = 100000;
-  const sessionPriceVnd =
-    input.hourly_rate_currency === 'VND'
-      ? Math.max(input.hourly_rate_amount, LEGACY_VND_MIN)
-      : LEGACY_VND_MIN;
 
   const { error: insertErr } = await supabase.from('achiever_profiles').insert({
     id: user.id,
@@ -167,14 +126,15 @@ export async function POST(request: NextRequest) {
     // Multi-currency
     hourly_rate_amount: input.hourly_rate_amount,
     hourly_rate_currency: input.hourly_rate_currency,
-    // Legacy VND fields — kept satisfied for the existing check constraint.
-    session_price_vnd: sessionPriceVnd,
+    // Legacy VND fields — best-effort copy for compatibility.
+    session_price_vnd:
+      input.hourly_rate_currency === 'VND' ? input.hourly_rate_amount : 0,
     session_duration_mins: 60,
-    // Documents (any subset is fine now)
-    cv_storage_key: input.cv_storage_key ?? null,
-    acceptance_letter_storage_key: input.acceptance_letter_storage_key ?? null,
-    transcript_storage_key: input.transcript_storage_key ?? null,
-    student_card_storage_key: input.student_card_storage_key ?? null,
+    // Documents
+    cv_storage_key: input.cv_storage_key,
+    acceptance_letter_storage_key: input.acceptance_letter_storage_key,
+    transcript_storage_key: input.transcript_storage_key,
+    student_card_storage_key: input.student_card_storage_key,
     status: 'pending',
   });
 

@@ -3355,6 +3355,89 @@ function DetailViewBody({
                 Start your application today and take the next step toward your future.
               </p>
             </div>
+
+            {university.description && <p className="leading-7 text-slate-600">{university.description}</p>}
+
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {[
+                { label: 'Tuition (USD)', value: university.tuition_usd ?? '—', icon: '💰' },
+                { label: 'Living Cost', value: university.living_cost_usd ?? '—', icon: '🏠' },
+                { label: 'Acceptance', value: university.accept_rate ?? '—', icon: '📈' },
+              ].map((s) => (
+                <div key={s.label} className="glow-muted-card text-center">
+                  <span className="text-2xl">{s.icon}</span>
+                  <p className="mt-1.5 text-base font-semibold text-slate-900">{s.value}</p>
+                  <p className="text-xs text-slate-400">{s.label}</p>
+                </div>
+              ))}
+            </div>
+
+            <section>
+              <h3 className="text-lg font-semibold text-slate-900">Entry Requirements</h3>
+              <ul className="mt-3 space-y-2">
+                {university.requirements.map((req) => (
+                  <li key={req} className="glow-muted-card flex items-start gap-3 text-sm text-slate-600">
+                    <span className="mt-0.5 text-[#00b4d8] font-bold shrink-0">✓</span>
+                    {req}
+                  </li>
+                ))}
+              </ul>
+            </section>
+
+            {(university.strengths || university.industry_connections || university.employability) && (
+              <section className="glow-card space-y-3">
+                <h3 className="text-lg font-semibold text-slate-900">About this University</h3>
+                {university.strengths && (
+                  <div className="profile-info-row">
+                    <span className="profile-info-label">Strengths</span>
+                    <span className="profile-info-value text-sm max-w-xs text-right">{university.strengths}</span>
+                  </div>
+                )}
+                {university.industry_connections && (
+                  <div className="profile-info-row">
+                    <span className="profile-info-label">Industry Links</span>
+                    <span className="profile-info-value text-sm max-w-xs text-right">{university.industry_connections}</span>
+                  </div>
+                )}
+                {university.employability && (
+                  <div className="profile-info-row">
+                    <span className="profile-info-label">Employability</span>
+                    <span className="profile-info-value text-sm max-w-xs text-right">{university.employability}</span>
+                  </div>
+                )}
+                {university.best_for && (
+                  <div className="profile-info-row">
+                    <span className="profile-info-label">Best For</span>
+                    <span className="profile-info-value text-sm max-w-xs text-right">{university.best_for}</span>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {/* Achievers CTA */}
+            <section className="rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50/50 to-cyan-50/50 p-5">
+              <div className="flex items-start gap-3">
+                <div className="text-2xl">💬</div>
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-base font-semibold text-slate-900">
+                    Talk to someone who studied at {university.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500 leading-relaxed">
+                    Book a 1-on-1 session with a current student or alum for honest advice on applications, courses, and life on campus.
+                  </p>
+                  <Link
+                    href={`/mentors?university=${university.id}`}
+                    className="mt-3 inline-flex items-center gap-1 rounded-full border border-pink-300 bg-white px-4 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50 transition"
+                  >
+                    Find a mentor here
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                      <polyline points="12 5 19 12 12 19" />
+                    </svg>
+                  </Link>
+                </div>
+              </div>
+            </section>
           </div>
           <button
             type="button"
