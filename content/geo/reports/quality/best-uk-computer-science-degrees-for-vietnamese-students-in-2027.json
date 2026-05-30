@@ -1,16 +1,19 @@
 {
   "slug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
   "passed": true,
-  "score": 95,
+  "publishable": true,
+  "reviewRequired": false,
+  "score": 100,
   "duplicateRisk": "low",
   "hasShortAnswer": true,
   "hasMethodology": true,
   "hasFaqs": true,
   "hasSources": true,
-  "hasTodoSources": true,
+  "hasTodoSources": false,
   "hasClearStudentSegment": true,
   "hasGlowbalCTA": true,
-  "notes": [
-    "Contains TODO_SOURCE_REQUIRED markers and requires human review."
-  ]
+  "officialSourceCount": 6,
+  "todoSourceCount": 0,
+  "blockerReasons": [],
+  "notes": []
 }

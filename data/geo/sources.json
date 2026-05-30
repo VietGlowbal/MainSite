@@ -1,0 +1,56 @@
+[
+  {
+    "id": "src-birmingham-cs-bsc",
+    "title": "University of Birmingham — Computer Science BSc official course page",
+    "url": "https://www.birmingham.ac.uk/study/undergraduate/subjects/computer-science-courses/computer-science-bsc",
+    "sourceType": "official-university",
+    "relatedSlug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+    "notes": "Use for course overview and programme framing only unless specific claims are quoted.",
+    "lastCheckedAt": "2026-05-30T22:51:47.359Z"
+  },
+  {
+    "id": "src-manchester-cs-bsc",
+    "title": "University of Manchester — BSc Computer Science official course page",
+    "url": "https://www.manchester.ac.uk/study/undergraduate/courses/2026/00560/bsc-computer-science/",
+    "sourceType": "official-university",
+    "relatedSlug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+    "notes": "Validated via live fetch redirecting to 2026 entry page.",
+    "lastCheckedAt": "2026-05-30T22:50:49.758Z"
+  },
+  {
+    "id": "src-leeds-cs-bsc",
+    "title": "University of Leeds — Computer Science BSc official course page",
+    "url": "https://courses.leeds.ac.uk/3260/computer-science-bsc",
+    "sourceType": "official-university",
+    "relatedSlug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+    "notes": "Validated from Leeds site search result.",
+    "lastCheckedAt": "2026-05-30T22:51:48.004Z"
+  },
+  {
+    "id": "src-nottingham-cs-bsc",
+    "title": "University of Nottingham — Computer Science BSc (Hons) official course page",
+    "url": "https://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-BSc-Hons.html",
+    "sourceType": "official-university",
+    "relatedSlug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+    "notes": "Use for course overview and structure, not unsourced performance claims.",
+    "lastCheckedAt": "2026-05-30T22:50:49.921Z"
+  },
+  {
+    "id": "src-uk-student-visa",
+    "title": "UK Government — Student visa guidance",
+    "url": "https://www.gov.uk/student-visa",
+    "sourceType": "official-government",
+    "relatedSlug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+    "notes": "Use for visa eligibility and proof-of-funds framing.",
+    "lastCheckedAt": "2026-05-30T22:50:49.838Z"
+  },
+  {
+    "id": "src-uk-graduate-visa",
+    "title": "UK Government — Graduate visa guidance",
+    "url": "https://www.gov.uk/graduate-visa",
+    "sourceType": "official-government",
+    "relatedSlug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
+    "notes": "Use for post-study work guidance only.",
+    "lastCheckedAt": "2026-05-30T22:50:49.659Z"
+  }
+]

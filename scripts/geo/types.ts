@@ -69,9 +69,26 @@ export type TopicCluster = {
   updatedAt: string;
 };
 
+export type GeoSource = {
+  id: string;
+  title: string;
+  url: string;
+  sourceType:
+    | 'official-university'
+    | 'official-scholarship'
+    | 'official-government'
+    | 'ranking'
+    | 'glowbal-internal';
+  relatedSlug: string;
+  notes?: string;
+  lastCheckedAt: string;
+};
+
 export type GeoQualityCheck = {
   slug: string;
   passed: boolean;
+  publishable: boolean;
+  reviewRequired: boolean;
   score: number;
   duplicateRisk: 'low' | 'medium' | 'high';
   hasShortAnswer: boolean;
@@ -81,6 +98,9 @@ export type GeoQualityCheck = {
   hasTodoSources: boolean;
   hasClearStudentSegment: boolean;
   hasGlowbalCTA: boolean;
+  officialSourceCount: number;
+  todoSourceCount: number;
+  blockerReasons: string[];
   notes: string[];
 };
 
