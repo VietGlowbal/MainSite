@@ -75,8 +75,6 @@ export function AchievementsForm({ userId, initialAchievements, initialSkills }:
         </div>
       </div>
 
-      </div>
-
       {/* ── Achievements ── */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">

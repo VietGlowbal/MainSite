@@ -81,8 +81,6 @@ export function PersonalInfoCard({ userId, initialData }: Props) {
       </div>
 
       <div className="profile-info-list">
-
-      <div className="profile-info-list">
         {FIELDS.map((field) => (
           <div key={field.key} className="profile-info-item">
             <span className="profile-info-label">{field.label}</span>
