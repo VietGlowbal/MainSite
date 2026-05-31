@@ -9,6 +9,31 @@
 -- - Official source links
 -- - Real-time progress tracking
 -- - Cleaner UI data flow
+-- 
+-- WARNING: This script will DROP old application tables!
+-- Make sure you have a backup if you have production data.
+-- ============================================================================
+
+-- ============================================================================
+-- DROP OLD TABLES
+-- ============================================================================
+-- Remove old fragmented application tables
+
+DROP TABLE IF EXISTS public.application_events CASCADE;
+DROP TABLE IF EXISTS public.application_tasks CASCADE;
+DROP TABLE IF EXISTS public.application_stages CASCADE;
+DROP TABLE IF EXISTS public.course_applications CASCADE;
+DROP TABLE IF EXISTS public.extracted_requirements CASCADE;
+DROP TABLE IF EXISTS public.support_resources CASCADE;
+DROP TABLE IF EXISTS public.user_universities CASCADE;
+DROP TABLE IF EXISTS public.task_templates CASCADE;
+
+-- Drop old functions and triggers if they exist
+DROP TRIGGER IF EXISTS trigger_update_application_progress ON public.application_tasks CASCADE;
+DROP TRIGGER IF EXISTS trigger_update_stage_status ON public.application_tasks CASCADE;
+DROP FUNCTION IF EXISTS update_application_progress() CASCADE;
+DROP FUNCTION IF EXISTS update_stage_status() CASCADE;
+
 -- ============================================================================
 
 -- ============================================================================
@@ -130,7 +155,7 @@ END $$;
 -- Main Apply workspace record.
 -- Links user → course → university → status → progress → match score.
 
-CREATE TABLE IF NOT EXISTS public.course_applications_v2 (
+CREATE TABLE IF NOT EXISTS public.course_applications (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
   -- References
@@ -188,10 +213,10 @@ CREATE TABLE IF NOT EXISTS public.course_applications_v2 (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_course_applications_v2_user_id ON public.course_applications_v2(user_id);
-CREATE INDEX idx_course_applications_v2_course_id ON public.course_applications_v2(course_id);
-CREATE INDEX idx_course_applications_v2_status ON public.course_applications_v2(status);
-CREATE INDEX idx_course_applications_v2_deadline ON public.course_applications_v2(deadline);
+CREATE INDEX idx_course_applications_user_id ON public.course_applications(user_id);
+CREATE INDEX idx_course_applications_course_id ON public.course_applications(course_id);
+CREATE INDEX idx_course_applications_status ON public.course_applications(status);
+CREATE INDEX idx_course_applications_deadline ON public.course_applications(deadline);
 
 -- ============================================================================
 -- 5. APPLICATION STAGES
@@ -199,10 +224,10 @@ CREATE INDEX idx_course_applications_v2_deadline ON public.course_applications_v
 -- Dynamic journey pipeline.
 -- Supports 5-8 stages depending on course requirements.
 
-CREATE TABLE IF NOT EXISTS public.application_stages_v2 (
+CREATE TABLE IF NOT EXISTS public.application_stages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  application_id UUID NOT NULL REFERENCES public.course_applications_v2(id) ON DELETE CASCADE,
+  application_id UUID NOT NULL REFERENCES public.course_applications(id) ON DELETE CASCADE,
   
   -- Stage info
   name TEXT NOT NULL,
@@ -237,19 +262,19 @@ CREATE TABLE IF NOT EXISTS public.application_stages_v2 (
   UNIQUE(application_id, slug)
 );
 
-CREATE INDEX idx_application_stages_v2_application_id ON public.application_stages_v2(application_id);
-CREATE INDEX idx_application_stages_v2_order ON public.application_stages_v2(application_id, order_num);
+CREATE INDEX idx_application_stages_application_id ON public.application_stages(application_id);
+CREATE INDEX idx_application_stages_order ON public.application_stages(application_id, order_num);
 
 -- ============================================================================
 -- 6. APPLICATION TASKS V2
 -- ============================================================================
 -- Unified task table with action buttons.
 
-CREATE TABLE IF NOT EXISTS public.application_tasks_v2 (
+CREATE TABLE IF NOT EXISTS public.application_tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  application_id UUID NOT NULL REFERENCES public.course_applications_v2(id) ON DELETE CASCADE,
-  stage_id UUID REFERENCES public.application_stages_v2(id) ON DELETE CASCADE,
+  application_id UUID NOT NULL REFERENCES public.course_applications(id) ON DELETE CASCADE,
+  stage_id UUID REFERENCES public.application_stages(id) ON DELETE CASCADE,
   
   -- Task info
   title TEXT NOT NULL,
@@ -316,9 +341,9 @@ CREATE TABLE IF NOT EXISTS public.application_tasks_v2 (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
-CREATE INDEX idx_application_tasks_v2_application_id ON public.application_tasks_v2(application_id);
-CREATE INDEX idx_application_tasks_v2_stage_id ON public.application_tasks_v2(stage_id);
-CREATE INDEX idx_application_tasks_v2_status ON public.application_tasks_v2(status);
+CREATE INDEX idx_application_tasks_application_id ON public.application_tasks(application_id);
+CREATE INDEX idx_application_tasks_stage_id ON public.application_tasks(stage_id);
+CREATE INDEX idx_application_tasks_status ON public.application_tasks(status);
 
 -- ============================================================================
 -- 7. APPLICATION REQUIREMENTS
@@ -328,7 +353,7 @@ CREATE INDEX idx_application_tasks_v2_status ON public.application_tasks_v2(stat
 CREATE TABLE IF NOT EXISTS public.application_requirements (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  application_id UUID NOT NULL REFERENCES public.course_applications_v2(id) ON DELETE CASCADE,
+  application_id UUID NOT NULL REFERENCES public.course_applications(id) ON DELETE CASCADE,
   course_id UUID REFERENCES public.courses(id) ON DELETE SET NULL,
   
   -- Requirement type
@@ -381,7 +406,7 @@ CREATE INDEX idx_application_requirements_type ON public.application_requirement
 CREATE TABLE IF NOT EXISTS public.application_sources (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  application_id UUID REFERENCES public.course_applications_v2(id) ON DELETE CASCADE,
+  application_id UUID REFERENCES public.course_applications(id) ON DELETE CASCADE,
   course_id UUID REFERENCES public.courses(id) ON DELETE CASCADE,
   university_id BIGINT REFERENCES public.universities(id) ON DELETE SET NULL,
   
@@ -441,7 +466,7 @@ CREATE INDEX idx_application_sources_type ON public.application_sources(source_t
 CREATE TABLE IF NOT EXISTS public.application_match_analyses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  application_id UUID NOT NULL REFERENCES public.course_applications_v2(id) ON DELETE CASCADE,
+  application_id UUID NOT NULL REFERENCES public.course_applications(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   
   -- Profile version tracking
@@ -492,7 +517,7 @@ CREATE INDEX idx_application_match_analyses_status ON public.application_match_a
 CREATE TABLE IF NOT EXISTS public.application_recommendations (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  application_id UUID NOT NULL REFERENCES public.course_applications_v2(id) ON DELETE CASCADE,
+  application_id UUID NOT NULL REFERENCES public.course_applications(id) ON DELETE CASCADE,
   
   -- Recommendation type
   recommendation_type TEXT NOT NULL
@@ -536,7 +561,7 @@ CREATE INDEX idx_application_recommendations_type ON public.application_recommen
 CREATE TABLE IF NOT EXISTS public.application_events (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   
-  application_id UUID NOT NULL REFERENCES public.course_applications_v2(id) ON DELETE CASCADE,
+  application_id UUID NOT NULL REFERENCES public.course_applications(id) ON DELETE CASCADE,
   user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
   
   -- Event details
@@ -557,9 +582,9 @@ CREATE INDEX idx_application_events_created_at ON public.application_events(crea
 
 -- Enable RLS on all tables
 ALTER TABLE public.courses ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.course_applications_v2 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.application_stages_v2 ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.application_tasks_v2 ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.course_applications ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.application_stages ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.application_tasks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.application_requirements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.application_sources ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.application_match_analyses ENABLE ROW LEVEL SECURITY;
@@ -574,70 +599,70 @@ CREATE POLICY "Authenticated users can insert courses" ON public.courses
   FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 
 -- Course Applications: Users can only see their own
-CREATE POLICY "Users can view their own applications" ON public.course_applications_v2
+CREATE POLICY "Users can view their own applications" ON public.course_applications
   FOR SELECT USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can insert their own applications" ON public.course_applications_v2
+CREATE POLICY "Users can insert their own applications" ON public.course_applications
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
-CREATE POLICY "Users can update their own applications" ON public.course_applications_v2
+CREATE POLICY "Users can update their own applications" ON public.course_applications
   FOR UPDATE USING (auth.uid() = user_id);
 
-CREATE POLICY "Users can delete their own applications" ON public.course_applications_v2
+CREATE POLICY "Users can delete their own applications" ON public.course_applications
   FOR DELETE USING (auth.uid() = user_id);
 
 -- Application Stages: Users can see stages for their applications
-CREATE POLICY "Users can view stages for their applications" ON public.application_stages_v2
+CREATE POLICY "Users can view stages for their applications" ON public.application_stages
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
-      WHERE id = application_stages_v2.application_id
+      SELECT 1 FROM public.course_applications
+      WHERE id = application_stages.application_id
       AND user_id = auth.uid()
     )
   );
 
-CREATE POLICY "Users can insert stages for their applications" ON public.application_stages_v2
+CREATE POLICY "Users can insert stages for their applications" ON public.application_stages
   FOR INSERT WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
-      WHERE id = application_stages_v2.application_id
+      SELECT 1 FROM public.course_applications
+      WHERE id = application_stages.application_id
       AND user_id = auth.uid()
     )
   );
 
-CREATE POLICY "Users can update stages for their applications" ON public.application_stages_v2
+CREATE POLICY "Users can update stages for their applications" ON public.application_stages
   FOR UPDATE USING (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
-      WHERE id = application_stages_v2.application_id
+      SELECT 1 FROM public.course_applications
+      WHERE id = application_stages.application_id
       AND user_id = auth.uid()
     )
   );
 
 -- Application Tasks: Users can see tasks for their applications
-CREATE POLICY "Users can view tasks for their applications" ON public.application_tasks_v2
+CREATE POLICY "Users can view tasks for their applications" ON public.application_tasks
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
-      WHERE id = application_tasks_v2.application_id
+      SELECT 1 FROM public.course_applications
+      WHERE id = application_tasks.application_id
       AND user_id = auth.uid()
     )
   );
 
-CREATE POLICY "Users can insert tasks for their applications" ON public.application_tasks_v2
+CREATE POLICY "Users can insert tasks for their applications" ON public.application_tasks
   FOR INSERT WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
-      WHERE id = application_tasks_v2.application_id
+      SELECT 1 FROM public.course_applications
+      WHERE id = application_tasks.application_id
       AND user_id = auth.uid()
     )
   );
 
-CREATE POLICY "Users can update tasks for their applications" ON public.application_tasks_v2
+CREATE POLICY "Users can update tasks for their applications" ON public.application_tasks
   FOR UPDATE USING (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
-      WHERE id = application_tasks_v2.application_id
+      SELECT 1 FROM public.course_applications
+      WHERE id = application_tasks.application_id
       AND user_id = auth.uid()
     )
   );
@@ -646,7 +671,7 @@ CREATE POLICY "Users can update tasks for their applications" ON public.applicat
 CREATE POLICY "Users can view requirements for their applications" ON public.application_requirements
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
+      SELECT 1 FROM public.course_applications
       WHERE id = application_requirements.application_id
       AND user_id = auth.uid()
     )
@@ -657,7 +682,7 @@ CREATE POLICY "Users can view sources for their applications" ON public.applicat
   FOR SELECT USING (
     application_id IS NULL OR
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
+      SELECT 1 FROM public.course_applications
       WHERE id = application_sources.application_id
       AND user_id = auth.uid()
     )
@@ -674,7 +699,7 @@ CREATE POLICY "Users can insert their own match analyses" ON public.application_
 CREATE POLICY "Users can view recommendations for their applications" ON public.application_recommendations
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
+      SELECT 1 FROM public.course_applications
       WHERE id = application_recommendations.application_id
       AND user_id = auth.uid()
     )
@@ -683,7 +708,7 @@ CREATE POLICY "Users can view recommendations for their applications" ON public.
 CREATE POLICY "Users can update recommendations for their applications" ON public.application_recommendations
   FOR UPDATE USING (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
+      SELECT 1 FROM public.course_applications
       WHERE id = application_recommendations.application_id
       AND user_id = auth.uid()
     )
@@ -693,7 +718,7 @@ CREATE POLICY "Users can update recommendations for their applications" ON publi
 CREATE POLICY "Users can view events for their applications" ON public.application_events
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
+      SELECT 1 FROM public.course_applications
       WHERE id = application_events.application_id
       AND user_id = auth.uid()
     )
@@ -702,7 +727,7 @@ CREATE POLICY "Users can view events for their applications" ON public.applicati
 CREATE POLICY "Users can insert events for their applications" ON public.application_events
   FOR INSERT WITH CHECK (
     EXISTS (
-      SELECT 1 FROM public.course_applications_v2
+      SELECT 1 FROM public.course_applications
       WHERE id = application_events.application_id
       AND user_id = auth.uid()
     )
@@ -722,16 +747,16 @@ DECLARE
 BEGIN
   -- Count total required tasks
   SELECT COUNT(*) INTO total_required_tasks
-  FROM application_tasks_v2 t
-  JOIN application_stages_v2 s ON t.stage_id = s.id
+  FROM application_tasks t
+  JOIN application_stages s ON t.stage_id = s.id
   WHERE t.application_id = NEW.application_id
   AND s.is_required = TRUE
   AND t.status != 'not_applicable';
   
   -- Count completed required tasks
   SELECT COUNT(*) INTO completed_required_tasks
-  FROM application_tasks_v2 t
-  JOIN application_stages_v2 s ON t.stage_id = s.id
+  FROM application_tasks t
+  JOIN application_stages s ON t.stage_id = s.id
   WHERE t.application_id = NEW.application_id
   AND s.is_required = TRUE
   AND t.status = 'completed';
@@ -744,7 +769,7 @@ BEGIN
   END IF;
   
   -- Update application
-  UPDATE course_applications_v2
+  UPDATE course_applications
   SET progress_percentage = new_progress,
       updated_at = NOW()
   WHERE id = NEW.application_id;
@@ -755,7 +780,7 @@ $$ LANGUAGE plpgsql;
 
 -- Trigger to update progress when tasks change
 CREATE TRIGGER trigger_update_application_progress
-AFTER INSERT OR UPDATE OF status ON application_tasks_v2
+AFTER INSERT OR UPDATE OF status ON application_tasks
 FOR EACH ROW
 EXECUTE FUNCTION update_application_progress();
 
@@ -774,7 +799,7 @@ BEGIN
     COUNT(*) FILTER (WHERE status = 'completed'),
     COUNT(*) FILTER (WHERE status = 'in_progress')
   INTO total_tasks, completed_tasks, in_progress_tasks
-  FROM application_tasks_v2
+  FROM application_tasks
   WHERE stage_id = NEW.stage_id
   AND status != 'not_applicable';
   
@@ -790,7 +815,7 @@ BEGIN
   END IF;
   
   -- Update stage
-  UPDATE application_stages_v2
+  UPDATE application_stages
   SET status = new_status,
       updated_at = NOW(),
       started_at = CASE 
@@ -809,7 +834,7 @@ $$ LANGUAGE plpgsql;
 
 -- Trigger to update stage status when tasks change
 CREATE TRIGGER trigger_update_stage_status
-AFTER INSERT OR UPDATE OF status ON application_tasks_v2
+AFTER INSERT OR UPDATE OF status ON application_tasks
 FOR EACH ROW
 EXECUTE FUNCTION update_stage_status();
 
@@ -818,9 +843,9 @@ EXECUTE FUNCTION update_stage_status();
 -- ============================================================================
 
 COMMENT ON TABLE public.courses IS 'Course catalog - separates course facts from user applications';
-COMMENT ON TABLE public.course_applications_v2 IS 'Main Apply workspace record - links user to course with status and progress';
-COMMENT ON TABLE public.application_stages_v2 IS 'Dynamic journey pipeline stages';
-COMMENT ON TABLE public.application_tasks_v2 IS 'Unified task table with action buttons';
+COMMENT ON TABLE public.course_applications IS 'Main Apply workspace record - links user to course with status and progress';
+COMMENT ON TABLE public.application_stages IS 'Dynamic journey pipeline stages';
+COMMENT ON TABLE public.application_tasks IS 'Unified task table with action buttons';
 COMMENT ON TABLE public.application_requirements IS 'Extracted requirements with student status tracking';
 COMMENT ON TABLE public.application_sources IS 'Official links with validation status';
 COMMENT ON TABLE public.application_match_analyses IS 'Match scoring with breakdown and recommendations';
