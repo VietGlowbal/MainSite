@@ -29,6 +29,27 @@ export type ExtractedCourseData = {
   logoUrl?: string;
   sourceConfidence: 'high' | 'medium' | 'low';
 
+  // Match scoring (populated after user profile analysis)
+  matchScore?: number;
+  maxPossibleMatch?: number;
+  matchAnalysis?: {
+    strengths: string[];
+    gaps: string[];
+    recommendations: string[];
+  };
+
+  // Dynamic links
+  officialLinks?: {
+    coursePage?: string;
+    entryRequirements?: string;
+    howToApply?: string;
+    tuitionFees?: string;
+    scholarships?: string;
+    accommodation?: string;
+    studentSupport?: string;
+    admissionsTests?: string;
+  };
+
   // Extracted stages with tasks
   stages: ExtractedStage[];
 
@@ -79,6 +100,131 @@ export async function extractCourseData(
   const extractedData = await extractWithAI(courseUrl, pageContent, apiKey, model);
 
   return extractedData;
+}
+
+/**
+ * Analyze user profile against course requirements and calculate match score
+ */
+export async function analyzeUserMatch(
+  courseData: ExtractedCourseData,
+  userProfile: {
+    academicBackground?: string;
+    cv?: string;
+    statementOfPurpose?: string;
+    testScores?: string;
+    workExperience?: string;
+  },
+  apiKey: string,
+  model: string = 'gpt-4o-mini'
+): Promise<{
+  matchScore: number;
+  maxPossibleMatch: number;
+  matchAnalysis: {
+    strengths: string[];
+    gaps: string[];
+    recommendations: string[];
+  };
+}> {
+  const systemPrompt = `You are an expert university admissions counselor. Analyze how well a student's profile matches a course's requirements.
+
+Provide:
+1. **matchScore** (0-100): Current match based on their profile
+2. **maxPossibleMatch** (0-100): Maximum achievable match if they address all gaps
+3. **matchAnalysis**:
+   - strengths: What makes them a good fit (3-5 points)
+   - gaps: What's missing or weak (2-4 points)
+   - recommendations: Specific actions to improve match (3-5 actionable items)
+
+Be realistic but encouraging. Consider:
+- Academic qualifications vs requirements
+- Relevant experience and skills
+- Statement quality and motivation
+- Test scores if applicable
+- Overall profile strength
+
+Respond with JSON only.`;
+
+  const userPrompt = `Analyze this student's match for the course:
+
+**Course**: ${courseData.courseName} at ${courseData.universityName}
+**Entry Requirements**: ${courseData.entryRequirementsSummary || 'Not specified'}
+**English Requirements**: ${courseData.englishRequirementsSummary || 'Not specified'}
+**Subject**: ${courseData.subject || 'Not specified'}
+
+**Student Profile**:
+${userProfile.academicBackground ? `Academic Background: ${userProfile.academicBackground}` : ''}
+${userProfile.testScores ? `Test Scores: ${userProfile.testScores}` : ''}
+${userProfile.workExperience ? `Work Experience: ${userProfile.workExperience}` : ''}
+${userProfile.cv ? `CV Summary: ${userProfile.cv.substring(0, 1000)}` : ''}
+${userProfile.statementOfPurpose ? `Statement of Purpose: ${userProfile.statementOfPurpose.substring(0, 1000)}` : ''}
+
+Respond with JSON matching this schema:
+{
+  "matchScore": number (0-100),
+  "maxPossibleMatch": number (0-100),
+  "matchAnalysis": {
+    "strengths": string[],
+    "gaps": string[],
+    "recommendations": string[]
+  }
+}`;
+
+  try {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature: 0.4,
+        max_tokens: 1500,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('OpenAI API error for match analysis');
+      // Return default values if analysis fails
+      return {
+        matchScore: 70,
+        maxPossibleMatch: 85,
+        matchAnalysis: {
+          strengths: ['Profile under review'],
+          gaps: ['Complete your profile for detailed analysis'],
+          recommendations: ['Upload your CV and statement of purpose'],
+        },
+      };
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content;
+
+    if (!content) {
+      throw new Error('No response from AI');
+    }
+
+    const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const matchData = JSON.parse(cleaned);
+
+    return matchData;
+  } catch (error) {
+    console.error('Match analysis error:', error);
+    // Return default values
+    return {
+      matchScore: 70,
+      maxPossibleMatch: 85,
+      matchAnalysis: {
+        strengths: ['Profile under review'],
+        gaps: ['Complete your profile for detailed analysis'],
+        recommendations: ['Upload your CV and statement of purpose'],
+      },
+    };
+  }
 }
 
 /**
@@ -152,7 +298,17 @@ Extract the following information from the course page:
    - entryRequirementsSummary: Brief summary of academic requirements (e.g., "AAA at A-Level or equivalent")
    - englishRequirementsSummary: English language requirements (e.g., "IELTS 6.5 overall")
 
-3. **Application Stages & Tasks**:
+3. **Official Links** (extract or infer from the page):
+   - coursePage: Main course page URL
+   - entryRequirements: Link to entry requirements page
+   - howToApply: Link to application process page
+   - tuitionFees: Link to fees information
+   - scholarships: Link to scholarships/funding page
+   - accommodation: Link to accommodation info
+   - studentSupport: Link to student support services
+   - admissionsTests: Link to admissions test info (if applicable)
+
+4. **Application Stages & Tasks**:
    Create 5-7 stages with specific tasks for THIS course. Base tasks on the actual requirements found on the page.
    
    Standard stages:
@@ -169,8 +325,9 @@ Extract the following information from the course page:
    - Prioritized (high/medium/low)
    - Typed as required/recommended/optional/risk
    - Include supportToolType where relevant (sop_maximiser, interview_prep, mentor, test_prep, profile_review)
+   - Include sourceUrl for tasks that reference specific pages
 
-4. **Scholarships**:
+5. **Scholarships**:
    Extract any scholarships mentioned on the page or commonly available for this course/university.
    Include:
    - name: Scholarship name
@@ -179,7 +336,7 @@ Extract the following information from the course page:
    - deadline: Deadline if mentioned
    - url: Link to scholarship page if available
 
-5. **Confidence Level**:
+6. **Confidence Level**:
    - "high": Most information found and verified
    - "medium": Some information found, some inferred
    - "low": Limited information, mostly inferred
@@ -202,6 +359,16 @@ Return JSON matching this schema:
   "entryRequirementsSummary": string | null,
   "englishRequirementsSummary": string | null,
   "sourceConfidence": "high" | "medium" | "low",
+  "officialLinks": {
+    "coursePage": string | null,
+    "entryRequirements": string | null,
+    "howToApply": string | null,
+    "tuitionFees": string | null,
+    "scholarships": string | null,
+    "accommodation": string | null,
+    "studentSupport": string | null,
+    "admissionsTests": string | null
+  },
   "stages": [
     {
       "name": string,
