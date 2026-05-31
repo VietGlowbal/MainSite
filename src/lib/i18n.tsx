@@ -94,3 +94,11 @@ export function useLanguage(): LanguageContextValue {
 export function useT() {
   return useLanguage().t;
 }
+
+/**
+ * Tiny client island for translating a static UI string from a server
+ * component: <T k="Save" />. Uses the same dictionary as t().
+ */
+export function T({ k, vars }: { k: string; vars?: Record<string, string | number> }) {
+  return <>{useLanguage().t(k, vars)}</>;
+}
