@@ -24,7 +24,6 @@ function statusBadge(status: CourseApplication['status'], deadline?: string) {
   if (status === 'submitted') return { label: 'Submitted', color: 'bg-blue-100 text-blue-700' };
   if (status === 'offer_received') return { label: 'Offer received', color: 'bg-green-100 text-green-700' };
   if (status === 'rejected') return { label: 'Rejected', color: 'bg-red-100 text-red-700' };
-  if (status === 'accepted') return { label: 'Accepted', color: 'bg-emerald-100 text-emerald-700' };
   if (status === 'interview') return { label: 'Interview', color: 'bg-purple-100 text-purple-700' };
 
   if (deadline) {

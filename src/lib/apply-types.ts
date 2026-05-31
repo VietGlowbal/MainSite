@@ -148,6 +148,10 @@ export type CourseApplication = {
   intake?: string;
   country?: string;
   countryFlag?: string;
+  applicationMethod?: string;
+  applicationCode?: string;
+  imageUrl?: string;
+  nextAction?: string;
   status: CourseApplicationStatus;
   currentStageId?: string;
   progressPercentage: number;
@@ -330,4 +334,12 @@ export type UpcomingDeadline = {
   universityName: string;
   applicationId: string;
   daysLeft: number;
+};
+
+export type ShortlistedUniversity = {
+  id: string;
+  universityName: string;
+  country?: string;
+  countryFlag?: string;
+  courseSearchUrl?: string;
 };
