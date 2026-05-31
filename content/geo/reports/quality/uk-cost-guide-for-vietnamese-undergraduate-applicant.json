@@ -4,7 +4,7 @@
   "publishable": false,
   "reviewRequired": true,
   "reviewStatus": "needs-review",
-  "score": 88,
+  "score": 90,
   "duplicateRisk": "low",
   "hasShortAnswer": true,
   "hasMethodology": true,
@@ -14,7 +14,7 @@
   "hasClearStudentSegment": true,
   "hasGlowbalCTA": true,
   "officialSourceCount": 0,
-  "todoSourceCount": 6,
+  "todoSourceCount": 5,
   "blockerReasons": [],
   "notes": [
     "Contains TODO_SOURCE_REQUIRED markers and requires human review."
