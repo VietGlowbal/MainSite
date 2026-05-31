@@ -1,80 +1,26 @@
+// ============================================================================
+// APPLY SYSTEM V2 TYPES
+// ============================================================================
+// Updated types matching the new clean database schema
+
 export type CourseApplicationStatus =
-  | 'course_imported'
-  | 'plan_generated'
+  | 'researching'
+  | 'shortlisted'
   | 'preparing'
-  | 'ready_to_submit'
+  | 'ready_to_apply'
   | 'submitted'
   | 'interview'
   | 'offer_received'
-  | 'accepted'
   | 'rejected'
-  | 'withdrawn';
+  | 'withdrawn'
+  | 'archived';
 
-export type ApplicationMethod =
-  | 'UCAS'
-  | 'Direct Apply'
-  | 'Common App'
-  | 'University Portal'
-  | 'Other';
-
-export type CourseApplication = {
-  id: string;
-  userId: string;
-  universityId?: string;
-
-  universityName: string;
-  courseName: string;
-  courseUrl: string;
-
-  degreeLevel?: string;
-  subject?: string;
-  studyMode?: string;
-  intake?: string;
-  countryFlag?: string;
-  country?: string;
-
-  applicationMethod?: ApplicationMethod;
-  applicationCode?: string;
-
-  deadline?: string;
-  tuitionFee?: string;
-  entryRequirementsSummary?: string;
-  englishRequirementsSummary?: string;
-
-  status: CourseApplicationStatus;
-  progressPercentage: number;
-  matchScore?: number;
-
-  imageUrl?: string;
-  logoUrl?: string;
-
-  nextAction?: string;
-  sourceConfidence: 'high' | 'medium' | 'low';
-  createdAt: string;
-  updatedAt: string;
-  
-  scholarships?: Array<{
-    id: string;
-    title: string;
-    description?: string;
-    url?: string;
-    confidence: 'high' | 'medium' | 'low';
-  }>;
-};
-
-export type StageStatus = 'not_started' | 'in_progress' | 'completed' | 'blocked' | 'not_applicable';
-
-export type ApplicationStage = {
-  id: string;
-  applicationId: string;
-  name: string;
-  order: number;
-  description?: string;
-  status: StageStatus;
-  isRequired: boolean;
-  icon?: string;
-  tasks?: ApplicationWorkspaceTask[];
-};
+export type StageStatus = 
+  | 'not_started' 
+  | 'in_progress' 
+  | 'completed' 
+  | 'blocked' 
+  | 'not_applicable';
 
 export type TaskStatus =
   | 'not_started'
@@ -84,73 +30,290 @@ export type TaskStatus =
   | 'blocked'
   | 'not_applicable';
 
-export type TaskType = 'required' | 'recommended' | 'optional' | 'risk';
-export type TaskPriority = 'high' | 'medium' | 'low';
-export type SupportToolType = 'sop_maximiser' | 'interview_prep' | 'mentor' | 'test_prep' | 'profile_review';
+export type TaskType = 
+  | 'research'
+  | 'eligibility'
+  | 'document'
+  | 'profile'
+  | 'scholarship'
+  | 'mentor'
+  | 'external_link'
+  | 'deadline'
+  | 'submission'
+  | 'general';
 
-export type ApplicationWorkspaceTask = {
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export type TaskActionType =
+  | 'internal_route'
+  | 'external_url'
+  | 'upload_document'
+  | 'open_modal'
+  | 'book_mentor'
+  | 'recalculate_match'
+  | 'none';
+
+export type RequirementType =
+  | 'academic'
+  | 'english'
+  | 'document'
+  | 'portfolio'
+  | 'test'
+  | 'interview'
+  | 'work_experience'
+  | 'visa'
+  | 'funding'
+  | 'other';
+
+export type RequirementStatus =
+  | 'unknown'
+  | 'met'
+  | 'partially_met'
+  | 'not_met'
+  | 'needs_review';
+
+export type SourceType =
+  | 'course_page'
+  | 'entry_requirements'
+  | 'how_to_apply'
+  | 'tuition_fees'
+  | 'scholarships'
+  | 'visa'
+  | 'department'
+  | 'contact'
+  | 'admissions_test'
+  | 'accommodation'
+  | 'student_support'
+  | 'other';
+
+export type ValidationStatus =
+  | 'unchecked'
+  | 'valid'
+  | 'broken'
+  | 'redirected'
+  | 'needs_review';
+
+export type RecommendationType =
+  | 'tip'
+  | 'warning'
+  | 'next_action'
+  | 'mentor'
+  | 'scholarship'
+  | 'document'
+  | 'profile_improvement';
+
+// ============================================================================
+// CORE ENTITIES
+// ============================================================================
+
+export type Course = {
   id: string;
-  applicationId: string;
-  stageId: string;
-
-  title: string;
-  description?: string;
-  dueDate?: string;
-
-  priority: TaskPriority;
-  type: TaskType;
-  status: TaskStatus;
-
-  sourceUrl?: string;
-  supportToolType?: SupportToolType;
-  confidence: 'high' | 'medium' | 'low';
-
-  notes?: string;
-  createdBy: 'ai' | 'user';
+  universityId?: number;
+  universityName?: string;
+  courseName: string;
+  courseUrl: string;
+  degreeLevel?: string;
+  subject?: string;
+  studyMode?: string;
+  duration?: string;
+  intake?: string;
+  country?: string;
+  city?: string;
+  tuitionFeeText?: string;
+  tuitionFeeMin?: number;
+  tuitionFeeMax?: number;
+  tuitionCurrency?: string;
+  entryRequirementsSummary?: string;
+  englishRequirementsSummary?: string;
+  applicationMethod?: string;
+  applicationCode?: string;
+  sourceConfidence: number;
+  extractionStatus: string;
+  lastExtractedAt?: string;
   createdAt: string;
   updatedAt: string;
 };
 
-export type KeyFact = {
-  value: string;
-  confidence: 'high' | 'medium' | 'low';
-  sourceUrl?: string;
-  label?: string;
-};
-
-export type ApplicationKeyFacts = {
-  deadline?: KeyFact;
-  tuitionFee?: KeyFact;
-  applicationMethod?: KeyFact;
-  entryRequirements?: KeyFact;
-  englishRequirements?: KeyFact;
-  matchScore?: number;
-  matchLabel?: string;
-};
-
-export type ApplicationWorkspace = {
-  application: CourseApplication;
-  keyFacts: ApplicationKeyFacts;
-  stages: ApplicationStage[];
-};
-
-export type ShortlistedUniversity = {
+export type CourseApplication = {
   id: string;
-  universityId: string;
+  userId: string;
+  courseId?: string;
+  universityId?: number;
   universityName: string;
-  country: string;
+  courseName: string;
+  courseUrl?: string;
+  degreeLevel?: string;
+  subject?: string;
+  studyMode?: string;
+  intake?: string;
+  country?: string;
   countryFlag?: string;
-  imageUrl?: string;
-  logoUrl?: string;
-  courseSearchUrl?: string;
+  status: CourseApplicationStatus;
+  currentStageId?: string;
+  progressPercentage: number;
+  deadline?: string;
+  deadlineSource?: string;
+  deadlineConfidence?: number;
+  importedFromUrl?: string;
+  importStatus: string;
+  aiSummary?: string;
+  userNotes?: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
-export type UpcomingDeadline = {
-  date: string;
-  label: string;
-  universityName: string;
+export type ApplicationStage = {
+  id: string;
   applicationId: string;
-  daysLeft: number;
+  name: string;
+  slug: string;
+  description?: string;
+  orderNum: number;
+  status: StageStatus;
+  isRequired: boolean;
+  icon?: string;
+  whyThisMatters?: string;
+  aiGenerated: boolean;
+  confidence: number;
+  startedAt?: string;
+  completedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  tasks?: ApplicationTask[];
+};
+
+export type ApplicationTask = {
+  id: string;
+  applicationId: string;
+  stageId?: string;
+  title: string;
+  description?: string;
+  taskType: TaskType;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate?: string;
+  actionLabel?: string;
+  actionType?: TaskActionType;
+  actionTarget?: string;
+  sourceUrl?: string;
+  confidence: number;
+  sortOrder: number;
+  completedAt?: string;
+  createdBy: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApplicationRequirement = {
+  id: string;
+  applicationId: string;
+  courseId?: string;
+  requirementType: RequirementType;
+  title?: string;
+  requirementText: string;
+  isMandatory: boolean;
+  studentStatus: RequirementStatus;
+  sourceUrl?: string;
+  sourceId?: string;
+  confidence: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApplicationSource = {
+  id: string;
+  applicationId?: string;
+  courseId?: string;
+  universityId?: number;
+  sourceType: SourceType;
+  title: string;
+  url: string;
+  description?: string;
+  displayPriority: number;
+  isOfficial: boolean;
+  confidence: number;
+  validationStatus: ValidationStatus;
+  lastCheckedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApplicationMatchAnalysis = {
+  id: string;
+  applicationId: string;
+  userId: string;
+  profileVersion: number;
+  currentMatchScore: number;
+  maxPossibleMatchScore?: number;
+  scoreLabel?: string;
+  maxScoreLabel?: string;
+  academicScore?: number;
+  englishScore?: number;
+  experienceScore?: number;
+  documentScore?: number;
+  fitScore?: number;
+  strengths?: string[];
+  weaknesses?: string[];
+  improvementActions?: any[];
+  explanation?: string;
+  maxPossibleExplanation?: string;
+  modelName?: string;
+  promptVersion?: string;
+  analysisStatus: string;
+  createdAt: string;
+};
+
+export type ApplicationRecommendation = {
+  id: string;
+  applicationId: string;
+  recommendationType: RecommendationType;
+  title: string;
+  body?: string;
+  priority: TaskPriority;
+  actionLabel?: string;
+  actionType?: string;
+  actionTarget?: string;
+  confidence: number;
+  isDismissed: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ApplicationEvent = {
+  id: string;
+  applicationId: string;
+  userId?: string;
+  eventType: string;
+  eventLabel?: string;
+  metadata?: any;
+  createdAt: string;
+};
+
+// ============================================================================
+// VIEW MODELS FOR UI
+// ============================================================================
+
+export type ApplicationWorkspaceView = {
+  application: CourseApplication;
+  course?: Course;
+  stages: ApplicationStage[];
+  activeStage?: ApplicationStage;
+  requirements: ApplicationRequirement[];
+  sources: ApplicationSource[];
+  matchAnalysis?: ApplicationMatchAnalysis;
+  recommendations: ApplicationRecommendation[];
+  metrics: {
+    deadline?: {
+      date: string;
+      daysLeft: number;
+      label: string;
+    };
+    progress: number;
+    currentMatch?: number;
+    maxPossibleMatch?: number;
+    requirementsMet: number;
+    requirementsTotal: number;
+  };
 };
 
 export type ApplicationOverview = {
@@ -159,4 +322,12 @@ export type ApplicationOverview = {
   offersReceived: number;
   tasksCompleted: number;
   totalTasks: number;
+};
+
+export type UpcomingDeadline = {
+  date: string;
+  label: string;
+  universityName: string;
+  applicationId: string;
+  daysLeft: number;
 };
