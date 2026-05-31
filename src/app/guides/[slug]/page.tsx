@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { getGeoGuide, listGeoGuides, listRelatedGeoGuides } from '@/lib/geo-content';
+import { NewsletterCard } from '@/components/news/news-page-client';
 
 function slugify(value: string) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').replace(/-{2,}/g, '-');
@@ -21,6 +22,14 @@ const accentClasses: Record<string, string> = {
   amber: 'bg-amber-50 text-amber-700',
   emerald: 'bg-emerald-50 text-emerald-700',
 };
+
+const tagPalette = [
+  'bg-emerald-100 text-emerald-700',
+  'bg-blue-100 text-blue-700',
+  'bg-violet-100 text-violet-700',
+  'bg-amber-100 text-amber-700',
+  'bg-cyan-100 text-cyan-700',
+];
 
 export async function generateStaticParams() {
   return listGeoGuides().map((guide) => ({ slug: guide.slug }));
@@ -67,12 +76,26 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
               <span>•</span>
               <span>{guide.readingTimeMinutes} min read</span>
               <span>•</span>
-              <span>By Glowbal Editorial Team</span>
+              <span className="inline-flex items-center gap-1.5">
+                By Glowbal Editorial Team
+                <svg className="h-4 w-4 text-cyan-500" viewBox="0 0 24 24" fill="currentColor" aria-label="Verified">
+                  <path d="m12 1.6 2.3 2.05 3.05-.36 1.27 2.8 2.8 1.27-.36 3.05L23.4 12l-2.05 2.3.36 3.05-2.8 1.27-1.27 2.8-3.05-.36L12 22.4l-2.3-2.05-3.05.36-1.27-2.8-2.8-1.27.36-3.05L.6 12l2.05-2.3-.36-3.05 2.8-1.27L6.36 2.6l3.05.36L12 1.6Z" />
+                  <path d="m8.4 12 2.4 2.4 4.8-4.8" fill="none" stroke="#fff" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </span>
             </div>
-            <div className="flex flex-wrap gap-3 text-sm">
-              <button className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-slate-600">Save</button>
-              <button className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-slate-600">Share</button>
-              <button className="rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-slate-600">•••</button>
+            <div className="flex flex-wrap items-center gap-2.5 text-sm">
+              <button className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-slate-600 transition hover:border-slate-300">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><path d="M6 3h12a1 1 0 0 1 1 1v17l-7-4-7 4V4a1 1 0 0 1 1-1Z" /></svg>
+                Save
+              </button>
+              <button className="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-slate-600 transition hover:border-slate-300">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="m8.6 13.5 6.8 4M15.4 6.5l-6.8 4" /></svg>
+                Share
+              </button>
+              <button aria-label="More actions" className="flex h-[42px] w-[42px] items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition hover:border-slate-300">
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6" /><circle cx="12" cy="12" r="1.6" /><circle cx="19" cy="12" r="1.6" /></svg>
+              </button>
             </div>
           </div>
 
@@ -81,8 +104,8 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
 
           {guide.tags.length > 0 ? (
             <div className="mt-5 flex flex-wrap gap-2">
-              {guide.tags.map((tag) => (
-                <span key={tag} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600">{tag}</span>
+              {guide.tags.map((tag, index) => (
+                <span key={tag} className={`rounded-full px-3 py-1.5 text-sm font-medium ${tagPalette[index % tagPalette.length]}`}>{tag}</span>
               ))}
             </div>
           ) : null}
@@ -173,14 +196,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
             <Link href="/news" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-pink-600">View all articles <span aria-hidden>→</span></Link>
           </section>
 
-          <section className="rounded-[1.8rem] border border-pink-100 bg-[linear-gradient(135deg,rgba(255,77,140,0.12),rgba(0,180,216,0.08))] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-            <h2 className="text-lg font-semibold text-slate-900">Stay updated</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">Get the latest study abroad tips, scholarships and guides straight to your inbox.</p>
-            <div className="mt-4 flex gap-2">
-              <input className="min-w-0 flex-1 rounded-2xl border border-white/80 bg-white px-4 py-3 text-sm outline-none" placeholder="Enter your email" />
-              <button className="rounded-2xl bg-pink-500 px-4 py-3 text-sm font-semibold text-white">Subscribe</button>
-            </div>
-          </section>
+          <NewsletterCard />
         </aside>
       </div>
     </main>
