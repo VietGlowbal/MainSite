@@ -1,8 +1,8 @@
 'use client';
 
+import React, { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
 import { HoverPrefetchLink } from '@/components/hover-prefetch-link';
 import { useLanguage } from '@/lib/i18n';
 import type { GeoGuide } from '@/lib/geo-content';
@@ -425,11 +425,11 @@ export default function NewsPageClient({ guides, topics }: Props) {
 
 export function NewsletterCard() {
   const { t } = useLanguage();
-  const [email, setEmail] = React.useState('');
-  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [message, setMessage] = React.useState('');
+  const [email, setEmail] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!email || !email.includes('@')) {

@@ -1,8 +1,8 @@
 'use client';
 
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useState, useMemo } from 'react';
 import type { GeoGuide } from '@/lib/geo-content';
 
 // Icon components
@@ -85,11 +85,10 @@ export function GuidesClient({ allGuides, topics }: GuidesClientProps) {
   }, [allGuides]);
 
   const [email, setEmail] = useState('');
+  const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [subscribeMessage, setSubscribeMessage] = useState('');
 
-  const [subscribeStatus, setSubscribeStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [subscribeMessage, setSubscribeMessage] = React.useState('');
-
-  const handleSubscribe = async (e: React.FormEvent) => {
+  const handleSubscribe = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     
     if (!email || !email.includes('@')) {
