@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { AppSidebar } from '@/components/layout/app-sidebar';
 import type {
   ApplicationWorkspace,
   ApplicationStage,
@@ -233,11 +232,36 @@ function StagePipeline({
   stages,
   activeStageId,
   onSelectStage,
+  applicationId,
 }: {
   stages: ApplicationStage[];
   activeStageId: string;
   onSelectStage: (id: string) => void;
+  applicationId: string;
 }) {
+  const handleStageClick = async (stageId: string, currentStatus: StageStatus) => {
+    // Select the stage
+    onSelectStage(stageId);
+    
+    // If the stage is not started, mark it as in_progress
+    if (currentStatus === 'not_started') {
+      try {
+        const response = await fetch(`/api/applications/${applicationId}/stages/${stageId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'in_progress' }),
+        });
+        
+        if (response.ok) {
+          // Refresh the page to show updated status
+          window.location.reload();
+        }
+      } catch (error) {
+        console.error('Error updating stage status:', error);
+      }
+    }
+  };
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
       <div className="flex items-center justify-between mb-4">
@@ -258,7 +282,7 @@ function StagePipeline({
             <button
               key={stage.id}
               type="button"
-              onClick={() => onSelectStage(stage.id)}
+              onClick={() => handleStageClick(stage.id, stage.status)}
               className={`flex min-w-[80px] flex-col items-center gap-2 rounded-xl p-2.5 transition ${
                 isActive
                   ? 'bg-pink-50'
@@ -363,12 +387,31 @@ function StageDetail({
   stage,
   tasks,
   onTaskToggle,
+  applicationId,
 }: {
   stage: ApplicationStage;
   tasks: ApplicationWorkspaceTask[];
   onTaskToggle: (id: string, status: TaskStatus) => void;
+  applicationId: string;
 }) {
   const [subNav, setSubNav] = useState<SubNav>('overview');
+
+  const handleMarkComplete = async () => {
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/stages/${stage.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' }),
+      });
+      
+      if (response.ok) {
+        // Refresh the page to show updated status
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Error marking stage as complete:', error);
+    }
+  };
 
   const subnav: { key: SubNav; label: string }[] = [
     { key: 'overview', label: 'Overview' },
@@ -427,9 +470,20 @@ function StageDetail({
               </div>
               <button
                 type="button"
-                className="mt-4 inline-flex h-9 items-center gap-2 rounded-full border border-pink-300 bg-white px-4 text-xs font-semibold text-pink-600 transition hover:bg-pink-50"
+                onClick={handleMarkComplete}
+                disabled={stage.status === 'completed'}
+                className="mt-4 inline-flex h-9 items-center gap-2 rounded-full border border-pink-300 bg-white px-4 text-xs font-semibold text-pink-600 transition hover:bg-pink-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Mark section as complete
+                {stage.status === 'completed' ? (
+                  <>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Section completed
+                  </>
+                ) : (
+                  'Mark section as complete'
+                )}
               </button>
             </div>
           )}
@@ -713,11 +767,6 @@ export function ApplicationWorkspaceView({ workspace }: { workspace: Application
 
   return (
     <div className="flex gap-6">
-      {/* Left sidebar */}
-      <div className="w-52 shrink-0">
-        <AppSidebar />
-      </div>
-
       {/* Main content */}
       <div className="min-w-0 flex-1 space-y-4">
         {/* Breadcrumb */}
@@ -740,6 +789,7 @@ export function ApplicationWorkspaceView({ workspace }: { workspace: Application
           stages={stages}
           activeStageId={activeStageId}
           onSelectStage={setActiveStageId}
+          applicationId={application.id}
         />
 
         {/* Active stage detail */}
@@ -751,6 +801,7 @@ export function ApplicationWorkspaceView({ workspace }: { workspace: Application
               status: taskStates[t.id] ?? t.status,
             }))}
             onTaskToggle={handleTaskToggle}
+            applicationId={application.id}
           />
         )}
 
