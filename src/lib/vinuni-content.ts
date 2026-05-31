@@ -414,3 +414,147 @@ export const vinuniFaq = [
 ];
 
 export const VINUNI_UNIVERSITY_ID = 97;
+
+// ──────────────────────────────────────────────────────────────────
+//  AACC — VinUniversity's holistic admission rubric
+//  (Ability · Aspirations · Creativity · Commitment)
+// ──────────────────────────────────────────────────────────────────
+
+export type AaccPillarKey = 'ability' | 'aspirations' | 'creativity' | 'commitment';
+
+export type AaccPillar = {
+  key: AaccPillarKey;
+  name: string;
+  nameVi: string;
+  accent: 'pink' | 'cyan' | 'purple' | 'emerald';
+  description: string;
+  indicators: string[];
+};
+
+export const VINUNI_AACC_PILLARS: readonly AaccPillar[] = [
+  {
+    key: 'ability',
+    name: 'Outstanding Ability',
+    nameVi: 'Năng lực Vượt trội',
+    accent: 'pink',
+    description:
+      'Exceptional capabilities in academics or other skills that strongly predict future success.',
+    indicators: [
+      'High GPA, SAT/AP scores or National Exam marks',
+      'National or international competition results',
+      'Sharp analytical, problem-solving and English skills',
+      'Excellence in sports, arts or technical areas',
+    ],
+  },
+  {
+    key: 'aspirations',
+    name: 'Aspirations',
+    nameVi: 'Khát vọng',
+    accent: 'purple',
+    description:
+      'A deep understanding of societal challenges and a powerful drive to solve them.',
+    indicators: [
+      'Ambitious but realistic goals that push boundaries',
+      'Desire to lift others out of poverty or disadvantage',
+      'Stepping up to volunteer, lead and inspire others',
+      'Meaningful, purpose-driven hobbies',
+    ],
+  },
+  {
+    key: 'creativity',
+    name: 'Creativity',
+    nameVi: 'Sáng tạo',
+    accent: 'cyan',
+    description:
+      'A unique mindset characterised by high curiosity, adaptability and openness to novel solutions.',
+    indicators: [
+      'Critical, divergent thinking ("outside the box")',
+      'Digging for root causes rather than waiting for answers',
+      'Healthy norm-breaking for positive change',
+      'Sharp, logical debating and articulation',
+    ],
+  },
+  {
+    key: 'commitment',
+    name: 'Commitment',
+    nameVi: 'Cam kết',
+    accent: 'emerald',
+    description:
+      'Unwavering belief in one’s potential, backed by mental and physical grit to achieve goals.',
+    indicators: [
+      'Resilience when tasks get tough',
+      'Perseverance — staying loyal to promises and projects',
+      'Determination — pouring 100% effort into top outcomes',
+      'Long-term track record on hard goals',
+    ],
+  },
+] as const;
+
+export const vinuniSopGuidance = {
+  intro:
+    'VinUni reads every Statement of Purpose through the AACC lens. The strongest essays do not name the four pillars explicitly — they prove each one with specific, lived evidence. Aim for 600–900 words.',
+  structure: [
+    'Opening hook — a moment, scene or question that frames who you are',
+    'Defining story — the experience that sharpened your direction',
+    'Pillar evidence — concrete examples mapped to Ability, Aspirations, Creativity, Commitment',
+    'Why VinUni — the specific programs, faculty, labs or partnerships that fit your trajectory',
+    'Forward vision — what you will build, and the impact you intend',
+  ],
+  lengthGuide: '600–900 words. Specificity and verifiable evidence beat polished generalities.',
+  pillarTips: {
+    ability: {
+      prompts: [
+        'Which result of yours is hardest to fake? (rank, score, prize, published work)',
+        'Where did you out-perform expectations — and what did it cost you?',
+      ],
+      examples: [
+        'Top-3 national informatics olympiad, Silver IMO, 1580 SAT, IELTS 8.5, AP Calc BC 5.',
+        'Solo-led a 4-week project that shipped an app used by 1,200 classmates.',
+      ],
+      pitfalls: [
+        'Listing scores without context — pair each result with the obstacle it overcame.',
+        'Claiming "I am a hard worker" instead of showing the evidence trail.',
+      ],
+    },
+    aspirations: {
+      prompts: [
+        'Which problem hurts you to watch — and what would you do about it given resources?',
+        'Whose life do you want to change in 10 years, and how?',
+      ],
+      examples: [
+        'After teaching English in my mother’s home village, I want to build low-cost adaptive learning for under-resourced provinces.',
+      ],
+      pitfalls: [
+        '"I want to be successful" is not an aspiration. Name the people, the problem, the impact.',
+        'Avoid copy-pasted slogans. Aspirations must feel rooted in your own story.',
+      ],
+    },
+    creativity: {
+      prompts: [
+        'When did you reject the obvious answer and find a better one?',
+        'What constraint forced you to invent your own method?',
+      ],
+      examples: [
+        'Re-designed our debate club’s judging rubric after noticing systematic bias against quiet speakers — adoption rate hit 100% the next semester.',
+      ],
+      pitfalls: [
+        '"I love thinking creatively" is filler. Show a moment of original synthesis.',
+        'Beware of confusing "weird" with "creative" — original means useful, not random.',
+      ],
+    },
+    commitment: {
+      prompts: [
+        'What did you keep doing after it stopped being fun?',
+        'What setback shook you, and how did you come back from it?',
+      ],
+      examples: [
+        'Failed my first national exam in year 10. Built a 18-month study plan, kept it for 78 weeks, scored top decile in year 12.',
+      ],
+      pitfalls: [
+        'Listing many activities for a few months each signals breadth, not commitment — pick 1–2 with multi-year arcs.',
+        'Avoid generic phrases like "I never give up". Show the data: weeks, hours, outcomes.',
+      ],
+    },
+  },
+} as const;
+
