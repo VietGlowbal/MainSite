@@ -4,6 +4,7 @@ import { Geist_Mono, Outfit } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NavReveal } from '@/components/nav-reveal';
+import { LanguageProvider } from '@/lib/i18n';
 import './globals.css';
 
 const outfit = Outfit({
@@ -44,8 +45,10 @@ export default function RootLayout({
       className={`${outfit.variable} ${geistMono.variable} h-full overflow-x-hidden bg-white antialiased`}
     >
       <body className="min-h-full overflow-x-hidden bg-white text-slate-800 glowbal-site-shell">
-        <NavReveal />
-        <main className="glowbal-main-content">{children}</main>
+        <LanguageProvider>
+          <NavReveal />
+          <main className="glowbal-main-content">{children}</main>
+        </LanguageProvider>
         <Analytics />
         <SpeedInsights />
       </body>

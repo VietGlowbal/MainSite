@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 import { HoverPrefetchLink } from '@/components/hover-prefetch-link';
+import { useLanguage } from '@/lib/i18n';
 import type { GeoGuide } from '@/lib/geo-content';
 
 type Props = {
@@ -154,6 +155,7 @@ function HeroIllustration() {
 ───────────────────────────────────────────────────────────────────────── */
 
 export default function NewsPageClient({ guides, topics }: Props) {
+  const { t } = useLanguage();
   const [query, setQuery] = useState('');
   const [activeTopic, setActiveTopic] = useState('All topics');
   const [view, setView] = useState<'grid' | 'list'>('grid');
@@ -187,13 +189,13 @@ export default function NewsPageClient({ guides, topics }: Props) {
         <section className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/90 px-6 py-7 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:px-10 md:py-9">
           <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-fuchsia-500">Glowbal News &amp; Guides</p>
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-fuchsia-500">{t('Glowbal News & Guides')}</p>
               <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-slate-900 md:text-6xl md:leading-[1.05]">
-                Insights to help you study abroad{' '}
-                <span className="bg-[linear-gradient(110deg,#ff4d8c,#ff2d7e)] bg-clip-text text-transparent">smarter</span>
+                {t('Insights to help you study abroad')}{' '}
+                <span className="bg-[linear-gradient(110deg,#ff4d8c,#ff2d7e)] bg-clip-text text-transparent">{t('smarter')}</span>
               </h1>
               <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
-                Expert insights, real student stories, and practical guides to help you plan, apply, and succeed.
+                {t('Expert insights, real student stories, and practical guides to help you plan, apply, and succeed.')}
               </p>
 
               <div className="mt-7 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
@@ -202,12 +204,12 @@ export default function NewsPageClient({ guides, topics }: Props) {
                   <input
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Search articles, topics or universities..."
+                    placeholder={t('Search articles, topics or universities...')}
                     className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
                   />
                 </label>
                 <button className="flex min-h-14 items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 shadow-sm">
-                  <span>{activeTopic}</span>
+                  <span>{t(activeTopic)}</span>
                   <svg className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                 </button>
               </div>
@@ -234,13 +236,13 @@ export default function NewsPageClient({ guides, topics }: Props) {
                 )}
               >
                 <TopicIcon topic={topic} className="h-4 w-4" />
-                {topic}
+                {t(topic)}
               </button>
             );
           })}
           {overflowTopics.length > 0 ? (
             <button type="button" className="ml-auto inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-600 hover:border-slate-300">
-              More
+              {t('More')}
               <svg className="h-4 w-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
             </button>
           ) : null}
@@ -254,15 +256,15 @@ export default function NewsPageClient({ guides, topics }: Props) {
                 <div className="grid gap-6 lg:grid-cols-[0.95fr_1.15fr] lg:items-center">
                   <div className="relative aspect-[5/4] overflow-hidden rounded-[1.5rem] bg-slate-100">
                     <Image src={featured.heroImage} alt={featured.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 40vw" />
-                    <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-pink-500">Featured</div>
+                    <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-pink-500">{t('Featured')}</div>
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
                       <span>{formatDate(featured.publishedAt)}</span>
                       <span>•</span>
-                      <span>{featured.readingTimeMinutes} min read</span>
+                      <span>{t('{minutes} min read', { minutes: featured.readingTimeMinutes })}</span>
                       <span>•</span>
-                      <span className="font-medium text-cyan-700">{featured.topic}</span>
+                      <span className="font-medium text-cyan-700">{t(featured.topic)}</span>
                     </div>
                     <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 md:text-[3.15rem] md:leading-[1.08]">
                       <Link href={`/guides/${featured.slug}`} className="hover:text-pink-600">{featured.title}</Link>
@@ -275,10 +277,10 @@ export default function NewsPageClient({ guides, topics }: Props) {
                     </div>
                     <div className="mt-6 flex flex-wrap items-center gap-4">
                       <Link href={`/guides/${featured.slug}`} className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(110deg,#ff4d8c,#ff3b3b,#00c8e6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_28px_rgba(255,77,140,0.24)] transition hover:-translate-y-0.5">
-                        Read full guide <span aria-hidden>→</span>
+                        {t('Read full guide')} <span aria-hidden>→</span>
                       </Link>
                       <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600 hover:border-slate-300">
-                        <BookmarkIcon className="h-4 w-4" /> Save for later
+                        <BookmarkIcon className="h-4 w-4" /> {t('Save for later')}
                       </button>
                     </div>
                   </div>
@@ -290,12 +292,12 @@ export default function NewsPageClient({ guides, topics }: Props) {
             <section>
               <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
-                  <h3 className="text-2xl font-semibold tracking-tight text-slate-900">Latest articles</h3>
-                  <p className="mt-1 text-sm text-slate-500">Fresh insights and expert advice</p>
+                  <h3 className="text-2xl font-semibold tracking-tight text-slate-900">{t('Latest articles')}</h3>
+                  <p className="mt-1 text-sm text-slate-500">{t('Fresh insights and expert advice')}</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600">
-                    Latest first
+                    {t('Latest first')}
                     <svg className="h-3.5 w-3.5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6" /></svg>
                   </button>
                   <div className="flex items-center gap-1 rounded-full border border-slate-200 bg-white p-1">
@@ -321,7 +323,7 @@ export default function NewsPageClient({ guides, topics }: Props) {
 
               {cards.length === 0 ? (
                 <div className="rounded-[1.6rem] border border-dashed border-slate-300 bg-white/80 p-8 text-slate-600">
-                  No articles match that search yet.
+                  {t('No articles match that search yet.')}
                 </div>
               ) : view === 'grid' ? (
                 <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-4">
@@ -329,19 +331,19 @@ export default function NewsPageClient({ guides, topics }: Props) {
                     <article key={guide.slug} className="group flex flex-col overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-1 hover:shadow-[0_28px_70px_rgba(15,23,42,0.10)]">
                       <div className="relative aspect-[16/11] bg-slate-100">
                         <Image src={guide.heroImage} alt={guide.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 22vw" />
-                        <span className={classNames('absolute bottom-3 left-3 rounded-full px-2.5 py-1 text-[11px] font-semibold', topicBadge(guide.topic))}>{guide.topic}</span>
+                        <span className={classNames('absolute bottom-3 left-3 rounded-full px-2.5 py-1 text-[11px] font-semibold', topicBadge(guide.topic))}>{t(guide.topic)}</span>
                       </div>
                       <div className="flex flex-1 flex-col p-4">
-                        <div className="text-xs text-slate-500">{formatDate(guide.publishedAt)} • {guide.readingTimeMinutes} min read</div>
+                        <div className="text-xs text-slate-500">{formatDate(guide.publishedAt)} • {t('{minutes} min read', { minutes: guide.readingTimeMinutes })}</div>
                         <h4 className="mt-2 text-[15px] font-semibold leading-6 tracking-tight text-slate-900">
                           <Link href={`/guides/${guide.slug}`} className="break-words hover:text-pink-600">{guide.title}</Link>
                         </h4>
                         <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{guide.excerpt}</p>
                         <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
                           <button className="inline-flex items-center gap-1.5 font-medium text-slate-500 hover:text-pink-600">
-                            <BookmarkIcon className="h-4 w-4" /> Save
+                            <BookmarkIcon className="h-4 w-4" /> {t('Save')}
                           </button>
-                          <Link href={`/guides/${guide.slug}`} className="font-medium text-pink-600 opacity-0 transition group-hover:opacity-100">Read →</Link>
+                          <Link href={`/guides/${guide.slug}`} className="font-medium text-pink-600 opacity-0 transition group-hover:opacity-100">{t('Read')} →</Link>
                         </div>
                       </div>
                     </article>
@@ -353,18 +355,18 @@ export default function NewsPageClient({ guides, topics }: Props) {
                     <article key={guide.slug} className="flex gap-4 overflow-hidden rounded-[1.5rem] border border-white/80 bg-white/95 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-0.5">
                       <div className="relative aspect-[4/3] w-44 shrink-0 overflow-hidden rounded-[1.1rem] bg-slate-100">
                         <Image src={guide.heroImage} alt={guide.title} fill className="object-cover" sizes="176px" />
-                        <span className={classNames('absolute bottom-2 left-2 rounded-full px-2.5 py-1 text-[11px] font-semibold', topicBadge(guide.topic))}>{guide.topic}</span>
+                        <span className={classNames('absolute bottom-2 left-2 rounded-full px-2.5 py-1 text-[11px] font-semibold', topicBadge(guide.topic))}>{t(guide.topic)}</span>
                       </div>
                       <div className="flex min-w-0 flex-1 flex-col justify-center">
-                        <div className="text-xs text-slate-500">{formatDate(guide.publishedAt)} • {guide.readingTimeMinutes} min read</div>
+                        <div className="text-xs text-slate-500">{formatDate(guide.publishedAt)} • {t('{minutes} min read', { minutes: guide.readingTimeMinutes })}</div>
                         <h4 className="mt-1.5 text-lg font-semibold leading-7 tracking-tight text-slate-900">
                           <Link href={`/guides/${guide.slug}`} className="hover:text-pink-600">{guide.title}</Link>
                         </h4>
                         <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-slate-600">{guide.excerpt}</p>
                         <div className="mt-3 flex items-center gap-4 text-sm">
-                          <Link href={`/guides/${guide.slug}`} className="font-medium text-pink-600 hover:text-pink-700">Read article →</Link>
+                          <Link href={`/guides/${guide.slug}`} className="font-medium text-pink-600 hover:text-pink-700">{t('Read article')} →</Link>
                           <button className="inline-flex items-center gap-1.5 font-medium text-slate-500 hover:text-pink-600">
-                            <BookmarkIcon className="h-4 w-4" /> Save
+                            <BookmarkIcon className="h-4 w-4" /> {t('Save')}
                           </button>
                         </div>
                       </div>
@@ -376,7 +378,7 @@ export default function NewsPageClient({ guides, topics }: Props) {
               {cards.length > 0 ? (
                 <div className="mt-8 flex justify-center">
                   <Link href="/guides" className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-white px-6 py-3 text-sm font-semibold text-pink-600 shadow-sm transition hover:bg-pink-50">
-                    View all articles
+                    {t('View all articles')}
                   </Link>
                 </div>
               ) : null}
@@ -387,8 +389,8 @@ export default function NewsPageClient({ guides, topics }: Props) {
           <aside className="space-y-5">
             <section className="rounded-[1.8rem] border border-white/80 bg-white/95 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
               <div className="mb-4 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-slate-900">Trending now</h3>
-                <Link href="/guides" className="text-sm font-medium text-pink-600">View all</Link>
+                <h3 className="text-lg font-semibold text-slate-900">{t('Trending now')}</h3>
+                <Link href="/guides" className="text-sm font-medium text-pink-600">{t('View all')}</Link>
               </div>
               <div className="space-y-4">
                 {trending.map((guide, index) => (
@@ -398,7 +400,7 @@ export default function NewsPageClient({ guides, topics }: Props) {
                       <div className="text-sm font-semibold leading-6 text-slate-900 group-hover:text-pink-600">{guide.title}</div>
                       <div className="mt-1 flex items-center gap-1.5 text-xs text-slate-500">
                         <ClockIcon className="h-3.5 w-3.5" />
-                        {formatDate(guide.publishedAt)} • {guide.readingTimeMinutes} min read
+                        {formatDate(guide.publishedAt)} • {t('{minutes} min read', { minutes: guide.readingTimeMinutes })}
                       </div>
                     </div>
                     <div className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100">
@@ -422,6 +424,7 @@ export default function NewsPageClient({ guides, topics }: Props) {
 ───────────────────────────────────────────────────────────────────────── */
 
 export function NewsletterCard() {
+  const { t } = useLanguage();
   return (
     <section className="relative overflow-hidden rounded-[1.8rem] border border-pink-100 bg-[linear-gradient(135deg,rgba(255,77,140,0.12),rgba(0,180,216,0.08))] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
       <div className="pointer-events-none absolute -right-3 -top-3 text-3xl opacity-80" aria-hidden>✦</div>
@@ -430,13 +433,13 @@ export function NewsletterCard() {
           <svg className="h-6 w-6 text-pink-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="5" width="18" height="14" rx="2" /><path d="m3 7 9 6 9-6" /></svg>
         </div>
         <div>
-          <h3 className="text-lg font-semibold text-slate-900">Stay updated</h3>
-          <p className="mt-1 text-sm leading-6 text-slate-600">Get the latest study abroad tips, scholarships and guides straight to your inbox.</p>
+          <h3 className="text-lg font-semibold text-slate-900">{t('Stay updated')}</h3>
+          <p className="mt-1 text-sm leading-6 text-slate-600">{t('Get the latest study abroad tips, scholarships and guides straight to your inbox.')}</p>
         </div>
       </div>
       <div className="mt-4 flex gap-2">
-        <input className="min-w-0 flex-1 rounded-2xl border border-white/80 bg-white px-4 py-3 text-sm outline-none" placeholder="Enter your email" />
-        <button className="rounded-2xl bg-pink-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-pink-600">Subscribe</button>
+        <input className="min-w-0 flex-1 rounded-2xl border border-white/80 bg-white px-4 py-3 text-sm outline-none" placeholder={t('Enter your email')} />
+        <button className="rounded-2xl bg-pink-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-pink-600">{t('Subscribe')}</button>
       </div>
     </section>
   );
