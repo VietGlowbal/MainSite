@@ -19,6 +19,22 @@
 -- ============================================================================
 -- Remove old fragmented application tables
 
+-- Drop old functions and triggers first (if they exist)
+DO $$ 
+BEGIN
+  -- Drop triggers if they exist
+  DROP TRIGGER IF EXISTS trigger_update_application_progress ON public.application_tasks;
+  DROP TRIGGER IF EXISTS trigger_update_stage_status ON public.application_tasks;
+EXCEPTION
+  WHEN undefined_table THEN NULL;
+  WHEN undefined_object THEN NULL;
+END $$;
+
+-- Drop functions
+DROP FUNCTION IF EXISTS update_application_progress() CASCADE;
+DROP FUNCTION IF EXISTS update_stage_status() CASCADE;
+
+-- Now drop tables
 DROP TABLE IF EXISTS public.application_events CASCADE;
 DROP TABLE IF EXISTS public.application_tasks CASCADE;
 DROP TABLE IF EXISTS public.application_stages CASCADE;
@@ -27,12 +43,6 @@ DROP TABLE IF EXISTS public.extracted_requirements CASCADE;
 DROP TABLE IF EXISTS public.support_resources CASCADE;
 DROP TABLE IF EXISTS public.user_universities CASCADE;
 DROP TABLE IF EXISTS public.task_templates CASCADE;
-
--- Drop old functions and triggers if they exist
-DROP TRIGGER IF EXISTS trigger_update_application_progress ON public.application_tasks CASCADE;
-DROP TRIGGER IF EXISTS trigger_update_stage_status ON public.application_tasks CASCADE;
-DROP FUNCTION IF EXISTS update_application_progress() CASCADE;
-DROP FUNCTION IF EXISTS update_stage_status() CASCADE;
 
 -- ============================================================================
 
