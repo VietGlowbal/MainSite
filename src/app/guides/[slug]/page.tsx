@@ -124,7 +124,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
             </section>
           ) : null}
 
-          <article className="prose prose-slate mt-10 max-w-none prose-headings:scroll-mt-24 prose-headings:text-slate-900 prose-h2:mt-12 prose-h2:text-[2rem] prose-h2:font-semibold prose-h3:text-xl prose-p:text-[1.08rem] prose-p:leading-8 prose-a:text-cyan-700" >
+          <article className="geo-article mt-10">
             <ReactMarkdown
               remarkPlugins={[remarkGfm]}
               components={{
@@ -132,6 +132,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
                   const flattened = Array.isArray(children) ? children.join(' ') : String(children);
                   return <h2 id={slugify(flattened)}>{children}</h2>;
                 },
+                table: ({ children }) => <div className="geo-table-wrap"><table>{children}</table></div>,
               }}
             >
               {guide.content}

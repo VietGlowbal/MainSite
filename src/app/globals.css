@@ -697,6 +697,109 @@ body {
   margin: 0 auto;
 }
 
+/* ── Editorial article typography (GLOWBAL News / guides) ──────────────── */
+/* Tailwind's preflight resets heading sizes, so long-form markdown needs an
+   explicit type scale. This stands in for @tailwindcss/typography and keeps
+   the guide body readable and on-brand. */
+.geo-article {
+  color: #334155;
+  font-size: 1.05rem;
+  line-height: 1.85;
+}
+.geo-article > * + * { margin-top: 1.15rem; }
+.geo-article h2 {
+  scroll-margin-top: 6rem;
+  margin-top: 2.75rem;
+  margin-bottom: 0.25rem;
+  font-size: 1.7rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: #0f172a;
+}
+.geo-article h3 {
+  scroll-margin-top: 6rem;
+  margin-top: 1.9rem;
+  font-size: 1.22rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+.geo-article h4 {
+  margin-top: 1.5rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1e293b;
+}
+.geo-article p { color: #475569; }
+.geo-article a {
+  color: #0e7490;
+  font-weight: 500;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-color: rgba(14, 116, 144, 0.35);
+}
+.geo-article a:hover { color: #be185d; text-decoration-color: rgba(190, 24, 93, 0.5); }
+.geo-article strong { color: #0f172a; font-weight: 650; }
+.geo-article ul, .geo-article ol { padding-left: 1.4rem; }
+.geo-article ul { list-style: disc; }
+.geo-article ol { list-style: decimal; }
+.geo-article li { margin-top: 0.5rem; padding-left: 0.25rem; }
+.geo-article li::marker { color: #ec4899; }
+.geo-article blockquote {
+  border-left: 3px solid #f9a8d4;
+  background: rgba(255, 77, 140, 0.05);
+  border-radius: 0 0.75rem 0.75rem 0;
+  padding: 0.75rem 1.25rem;
+  color: #475569;
+  font-style: italic;
+}
+.geo-article code {
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  font-size: 0.9em;
+  color: #be185d;
+}
+.geo-article pre {
+  background: #0f172a;
+  color: #e2e8f0;
+  border-radius: 1rem;
+  padding: 1.1rem 1.25rem;
+  overflow-x: auto;
+}
+.geo-article pre code { background: transparent; border: 0; color: inherit; padding: 0; }
+.geo-article hr { margin: 2.5rem 0; border: 0; border-top: 1px solid #e2e8f0; }
+.geo-article img { border-radius: 1rem; }
+
+/* Tables — used by the comparison guides */
+.geo-article .geo-table-wrap { overflow-x: auto; margin-top: 1.5rem; }
+.geo-article table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.95rem;
+  border: 1px solid #e9edf5;
+  border-radius: 1rem;
+  overflow: hidden;
+}
+.geo-article thead th {
+  background: #f8fafc;
+  text-align: left;
+  font-weight: 600;
+  color: #0f172a;
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #e9edf5;
+}
+.geo-article tbody td {
+  padding: 0.85rem 1rem;
+  vertical-align: top;
+  color: #475569;
+  border-bottom: 1px solid #f1f5f9;
+}
+.geo-article tbody tr:last-child td { border-bottom: 0; }
+.geo-article tbody tr:nth-child(even) td { background: #fcfdff; }
+
 .app-grid-two {
   display: grid;
   gap: 2rem;

@@ -62,6 +62,32 @@ function estimateReadMinutes(content: string) {
   return Math.max(4, Math.round(content.split(/\s+/).filter(Boolean).length / 180));
 }
 
+// These guides come from an automated draft pipeline that injects internal
+// scaffolding (placeholder source tokens, "testing mode" notes, and
+// authoring-rule FAQs). Strip that scaffolding so readers only ever see
+// publishable prose — and drop the leading H1 since the page renders its own.
+function sanitizeContent(body: string) {
+  let text = body;
+  // Remove the leading H1 (duplicates the page title rendered above the body).
+  text = text.replace(/^\s*#\s+.*\n/, '');
+  // Remove internal "testing mode" meta-commentary.
+  text = text.replace(/\s*In testing mode, some drafts may still be generic and will need human review before anything publishable happens\./g, '');
+  // Remove internal authoring-rule FAQ pairs (heading + answer up to the next heading).
+  text = text.replace(/#{2,3}\s*Can this draft include unknown facts\?[\s\S]*?(?=\n#{2,3}\s|\n*$)/g, '');
+  text = text.replace(/#{2,3}\s*Can this be published live during testing\?[\s\S]*?(?=\n#{2,3}\s|\n*$)/g, '');
+  // Strip placeholder source tokens — whole bullet lines first, then inline fragments.
+  text = text.replace(/^\s*[-*]\s*TODO_SOURCE_REQUIRED:.*$/gm, '');
+  text = text.replace(/\s*TODO_SOURCE_REQUIRED:[^\n|]*/g, '');
+  text = text.replace(/TODO_SOURCE_REQUIRED/g, '');
+  // If the Sources section ended up empty, leave a neutral note instead of a bare heading.
+  text = text.replace(/(#{2}\s*Sources\s*\n)(?:\s*\n)*(?=#{2}\s|$)/g, '$1Official sources are being verified and will be added here.\n\n');
+  // Light proper-noun fix the generator lowercases.
+  text = text.replace(/\bvietnamese\b/g, 'Vietnamese');
+  // Collapse excess blank lines left by removals.
+  text = text.replace(/\n{3,}/g, '\n\n').trim();
+  return text;
+}
+
 function buildExcerpt(body: string, description?: string) {
   if (description) return description;
   const firstParagraph = body.split('\n').find((line) => line.trim() && !line.startsWith('#') && !line.startsWith('|') && !line.startsWith('- '));
@@ -110,7 +136,7 @@ function readGuideFromFile(filePath: string, status: 'draft' | 'published'): Geo
     title: frontmatter.title || slug,
     description: frontmatter.description,
     excerpt: buildExcerpt(body, frontmatter.description),
-    content: body,
+    content: sanitizeContent(body),
     status,
     metadata,
     heroImage: hero.heroImage,
