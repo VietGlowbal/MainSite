@@ -17,7 +17,7 @@ const topicIcons: Record<string, string> = {
   'Student life': '◎',
   'Visas & immigration': '✈',
   Universities: '⌂',
-  Career: '▣',
+  Careers: '↗',
 };
 
 function formatDate(value: string) {
@@ -35,7 +35,7 @@ export default function NewsPageClient({ guides, topics }: Props) {
   const filteredGuides = useMemo(() => {
     return guides.filter((guide) => {
       const matchesTopic = activeTopic === 'All topics' || guide.topic === activeTopic;
-      const haystack = `${guide.title} ${guide.excerpt} ${guide.topic}`.toLowerCase();
+      const haystack = `${guide.title} ${guide.excerpt} ${guide.topic} ${guide.tags.join(' ')}`.toLowerCase();
       const matchesQuery = query.trim().length === 0 || haystack.includes(query.toLowerCase());
       return matchesTopic && matchesQuery;
     });
@@ -49,24 +49,23 @@ export default function NewsPageClient({ guides, topics }: Props) {
       return topicWeight(b) - topicWeight(a) || b.readingTimeMinutes - a.readingTimeMinutes || b.publishedAt.localeCompare(a.publishedAt);
     })
     .slice(0, 5);
-  const popularGuides = [...guides].slice(0, 3);
 
   return (
     <main className="app-page-shell">
-      <div className="app-page-container space-y-8">
-        <section className="overflow-hidden rounded-[2rem] border border-white/70 bg-white/75 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur md:p-8">
-          <div className="grid gap-8 lg:grid-cols-[1.55fr_0.85fr] lg:items-center">
+      <div className="app-page-container space-y-6">
+        <section className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/90 px-6 py-7 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:px-8 md:py-9">
+          <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
             <div>
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-cyan-600">Glowbal editorial</p>
-              <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
-                <span className="glowbal-wordmark">Glowbal</span> News &amp; Guides
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-fuchsia-500">Glowbal News &amp; Guides</p>
+              <h1 className="mt-4 max-w-2xl text-4xl font-semibold tracking-tight text-slate-900 md:text-6xl md:leading-[1.05]">
+                Insights to help you study abroad <span className="glowbal-wordmark">smarter</span>
               </h1>
               <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">
-                Expert insights, real student stories, and generated study-abroad guides to help students stay ahead of the curve.
+                Expert insights, real student stories, and practical guides to help you plan, apply, and succeed.
               </p>
 
-              <div className="mt-6 flex flex-col gap-3 md:flex-row">
-                <label className="group flex min-h-14 flex-1 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-cyan-300 focus-within:shadow-[0_0_0_4px_rgba(34,211,238,0.12)]">
+              <div className="mt-7 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+                <label className="group flex min-h-14 items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 shadow-sm transition focus-within:border-cyan-300 focus-within:shadow-[0_0_0_4px_rgba(34,211,238,0.12)]">
                   <svg className="h-5 w-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
                   <input
                     value={query}
@@ -75,36 +74,35 @@ export default function NewsPageClient({ guides, topics }: Props) {
                     className="w-full bg-transparent text-sm text-slate-700 outline-none placeholder:text-slate-400"
                   />
                 </label>
-                <div className="flex min-h-14 items-center rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 shadow-sm md:min-w-44">
-                  {activeTopic}
-                </div>
+                <button className="flex min-h-14 items-center justify-between rounded-2xl border border-slate-200 bg-white px-4 text-sm font-medium text-slate-600 shadow-sm">
+                  <span>{activeTopic}</span>
+                  <span>⌄</span>
+                </button>
               </div>
             </div>
 
-            <div className="relative hidden min-h-[230px] items-center justify-center lg:flex">
-              <div className="absolute inset-0 rounded-[2rem] bg-[radial-gradient(circle_at_30%_30%,rgba(255,77,140,0.14),transparent_26%),radial-gradient(circle_at_75%_35%,rgba(0,180,216,0.18),transparent_24%),radial-gradient(circle_at_58%_82%,rgba(30,42,120,0.12),transparent_26%)]" />
-              <div className="relative flex h-48 w-48 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#dff5ff,#9dd6ff_48%,#2f6bff_70%,#1e2a78_100%)] shadow-[0_24px_50px_rgba(30,42,120,0.18)]">
-                <div className="absolute inset-5 rounded-full border border-white/30" />
+            <div className="relative hidden min-h-[240px] items-center justify-center lg:flex">
+              <div className="absolute inset-0 rounded-[2rem] bg-[radial-gradient(circle_at_30%_30%,rgba(255,77,140,0.12),transparent_24%),radial-gradient(circle_at_75%_35%,rgba(0,180,216,0.18),transparent_25%),radial-gradient(circle_at_58%_82%,rgba(125,95,255,0.12),transparent_24%)]" />
+              <div className="relative flex h-56 w-56 items-center justify-center rounded-full bg-[radial-gradient(circle_at_35%_30%,#e7efff,#a9c4ff_48%,#5f76ff_70%,#635bff_100%)] shadow-[0_28px_60px_rgba(88,86,214,0.18)]">
+                <div className="absolute inset-4 rounded-full border border-white/35" />
                 <div className="absolute inset-10 rounded-full border border-white/20" />
-                <div className="h-28 w-28 rounded-full bg-white/18 blur-2xl" />
+                <span className="text-[5rem]">🌍</span>
               </div>
-              {['🎓', '📘', '📝', '🧳'].map((emoji, index) => (
-                <div
-                  key={emoji}
-                  className="absolute flex h-14 w-14 items-center justify-center rounded-full border border-white/80 bg-white text-xl shadow-lg"
-                  style={{
-                    top: ['10%', '58%', '16%', '58%'][index],
-                    left: ['6%', '18%', '76%', '80%'][index],
-                  }}
-                >
-                  {emoji}
+              {[
+                { emoji: '🎓', top: '12%', left: '12%' },
+                { emoji: '📘', top: '58%', left: '18%' },
+                { emoji: '📝', top: '16%', left: '80%' },
+                { emoji: '💼', top: '60%', left: '82%' },
+              ].map((item) => (
+                <div key={item.emoji} className="absolute flex h-16 w-16 items-center justify-center rounded-full border border-white/85 bg-white text-2xl shadow-lg" style={{ top: item.top, left: item.left }}>
+                  {item.emoji}
                 </div>
               ))}
             </div>
           </div>
         </section>
 
-        <div className="flex flex-wrap gap-3">
+        <section className="flex flex-wrap gap-3 rounded-[1.6rem] border border-white/80 bg-white/80 p-3 shadow-[0_20px_60px_rgba(15,23,42,0.05)]">
           {topics.map((topic) => {
             const active = activeTopic === topic;
             return (
@@ -116,7 +114,7 @@ export default function NewsPageClient({ guides, topics }: Props) {
                   'inline-flex items-center gap-2 rounded-full border px-4 py-3 text-sm font-medium transition',
                   active
                     ? 'border-pink-200 bg-pink-50 text-pink-600 shadow-[0_8px_24px_rgba(255,77,140,0.14)]'
-                    : 'border-white/80 bg-white/85 text-slate-600 hover:border-slate-200 hover:text-slate-900'
+                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:text-slate-900'
                 )}
               >
                 <span>{topicIcons[topic] ?? '•'}</span>
@@ -124,16 +122,16 @@ export default function NewsPageClient({ guides, topics }: Props) {
               </button>
             );
           })}
-        </div>
+        </section>
 
-        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="space-y-8">
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="space-y-6">
             {featured ? (
-              <section className="overflow-hidden rounded-[2rem] border border-white/75 bg-white/90 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-5">
-                <div className="grid gap-6 lg:grid-cols-[1.05fr_1.35fr] lg:items-center">
-                  <div className="relative overflow-hidden rounded-[1.6rem] bg-slate-100 aspect-[16/11]">
-                    <Image src={featured.heroImage} alt={featured.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 44vw" />
-                    <div className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-pink-500">Featured article</div>
+              <section className="rounded-[2rem] border border-white/80 bg-white/95 p-4 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-5">
+                <div className="grid gap-6 lg:grid-cols-[0.95fr_1.15fr] lg:items-center">
+                  <div className="relative overflow-hidden rounded-[1.5rem] bg-slate-100 aspect-[5/4]">
+                    <Image src={featured.heroImage} alt={featured.title} fill className="object-cover" sizes="(max-width: 1024px) 100vw, 40vw" />
+                    <div className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-pink-500">Featured</div>
                   </div>
                   <div>
                     <div className="flex flex-wrap items-center gap-3 text-sm text-slate-500">
@@ -141,17 +139,22 @@ export default function NewsPageClient({ guides, topics }: Props) {
                       <span>•</span>
                       <span>{featured.readingTimeMinutes} min read</span>
                       <span>•</span>
-                      <span>{featured.topic}</span>
+                      <span className="font-medium text-cyan-700">{featured.topic}</span>
                     </div>
-                    <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+                    <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900 md:text-[3.15rem] md:leading-[1.08]">
                       <Link href={`/guides/${featured.slug}`} className="hover:text-pink-600">{featured.title}</Link>
                     </h2>
                     <p className="mt-4 max-w-2xl text-lg leading-8 text-slate-600">{featured.excerpt}</p>
+                    <div className="mt-5 flex flex-wrap gap-2">
+                      {featured.tags.slice(0, 4).map((tag) => (
+                        <span key={tag} className="rounded-full bg-slate-100 px-3 py-1.5 text-sm font-medium text-slate-600">{tag}</span>
+                      ))}
+                    </div>
                     <div className="mt-6 flex flex-wrap items-center gap-4">
                       <Link href={`/guides/${featured.slug}`} className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(110deg,#ff4d8c,#ff3b3b,#00c8e6)] px-5 py-3 text-sm font-semibold text-white shadow-[0_16px_28px_rgba(255,77,140,0.24)] transition hover:-translate-y-0.5">
                         Read full guide <span aria-hidden>→</span>
                       </Link>
-                      <span className="text-sm text-slate-500">{featured.status === 'published' ? 'Published live' : 'Draft live for testing'}</span>
+                      <button className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-medium text-slate-600">Save for later</button>
                     </div>
                   </div>
                 </div>
@@ -162,8 +165,9 @@ export default function NewsPageClient({ guides, topics }: Props) {
               <div className="mb-5 flex items-center justify-between gap-4">
                 <div>
                   <h3 className="text-2xl font-semibold tracking-tight text-slate-900">Latest articles</h3>
-                  <p className="mt-1 text-sm text-slate-500">{filteredGuides.length} articles matching your view</p>
+                  <p className="mt-1 text-sm text-slate-500">Fresh insights and expert advice</p>
                 </div>
+                <button className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600">Latest first</button>
               </div>
 
               {filteredGuides.length === 0 ? (
@@ -171,22 +175,22 @@ export default function NewsPageClient({ guides, topics }: Props) {
                   No articles match that search yet.
                 </div>
               ) : (
-                <div className="grid gap-5 md:grid-cols-2 2xl:grid-cols-3">
+                <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
                   {(featured ? latest : filteredGuides).map((guide) => (
-                    <article key={guide.slug} className="overflow-hidden rounded-[1.75rem] border border-white/80 bg-white/90 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-1">
+                    <article key={guide.slug} className="overflow-hidden rounded-[1.6rem] border border-white/80 bg-white/95 shadow-[0_20px_60px_rgba(15,23,42,0.06)] transition hover:-translate-y-1">
                       <div className="relative aspect-[16/10] bg-slate-100">
                         <Image src={guide.heroImage} alt={guide.title} fill className="object-cover" sizes="(max-width: 768px) 100vw, 33vw" />
-                        <span className="absolute left-4 top-4 rounded-full bg-white/90 px-3 py-1 text-xs font-semibold text-cyan-700">{guide.topic}</span>
+                        <span className="absolute left-4 top-4 rounded-full bg-white/92 px-3 py-1 text-xs font-semibold text-cyan-700">{guide.topic}</span>
                       </div>
                       <div className="p-5">
                         <div className="text-sm text-slate-500">{formatDate(guide.publishedAt)} • {guide.readingTimeMinutes} min read</div>
-                        <h4 className="mt-3 line-clamp-2 text-xl font-semibold tracking-tight text-slate-900">
-                          <Link href={`/guides/${guide.slug}`} className="hover:text-pink-600">{guide.title}</Link>
+                        <h4 className="mt-3 min-h-[5.75rem] text-xl font-semibold leading-8 tracking-tight text-slate-900">
+                          <Link href={`/guides/${guide.slug}`} className="hover:text-pink-600 break-words">{guide.title}</Link>
                         </h4>
-                        <p className="mt-3 line-clamp-3 text-sm leading-7 text-slate-600">{guide.excerpt}</p>
+                        <p className="mt-3 min-h-[5.5rem] text-sm leading-7 text-slate-600">{guide.excerpt}</p>
                         <div className="mt-4 flex items-center justify-between text-sm">
                           <Link href={`/guides/${guide.slug}`} className="font-medium text-slate-900 hover:text-pink-600">Read article</Link>
-                          <span className="text-slate-400">{guide.status === 'published' ? 'published' : 'draft live'}</span>
+                          <span className="text-slate-400">Save</span>
                         </div>
                       </div>
                     </article>
@@ -197,14 +201,17 @@ export default function NewsPageClient({ guides, topics }: Props) {
           </div>
 
           <aside className="space-y-5">
-            <section className="rounded-[1.8rem] border border-white/80 bg-white/90 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-              <h3 className="text-lg font-semibold text-slate-900">Trending now</h3>
-              <div className="mt-4 space-y-4">
+            <section className="rounded-[1.8rem] border border-white/80 bg-white/95 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-slate-900">Trending now</h3>
+                <Link href="/guides" className="text-sm font-medium text-pink-600">View all</Link>
+              </div>
+              <div className="space-y-4">
                 {trending.map((guide, index) => (
-                  <Link key={guide.slug} href={`/guides/${guide.slug}`} className="grid grid-cols-[24px_minmax(0,1fr)_72px] items-center gap-3">
-                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-pink-500 text-xs font-semibold text-white">{index + 1}</div>
+                  <Link key={guide.slug} href={`/guides/${guide.slug}`} className="grid grid-cols-[24px_minmax(0,1fr)_72px] items-start gap-3">
+                    <div className="mt-1 flex h-6 w-6 items-center justify-center rounded-full bg-pink-500 text-xs font-semibold text-white">{index + 1}</div>
                     <div>
-                      <div className="line-clamp-2 text-sm font-medium text-slate-900">{guide.title}</div>
+                      <div className="text-sm font-semibold leading-6 text-slate-900">{guide.title}</div>
                       <div className="mt-1 text-xs text-slate-500">{formatDate(guide.publishedAt)} • {guide.readingTimeMinutes} min read</div>
                     </div>
                     <div className="relative aspect-square overflow-hidden rounded-2xl bg-slate-100">
@@ -217,29 +224,11 @@ export default function NewsPageClient({ guides, topics }: Props) {
 
             <section className="rounded-[1.8rem] border border-pink-100 bg-[linear-gradient(135deg,rgba(255,77,140,0.12),rgba(0,180,216,0.08))] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
               <h3 className="text-lg font-semibold text-slate-900">Stay updated</h3>
-              <p className="mt-2 text-sm leading-6 text-slate-600">Get the latest study abroad tips, scholarship news and fresh guides straight to your inbox.</p>
+              <p className="mt-2 text-sm leading-6 text-slate-600">Get the latest study abroad tips, scholarships and guides straight to your inbox.</p>
               <div className="mt-4 flex gap-2">
                 <input className="min-w-0 flex-1 rounded-2xl border border-white/80 bg-white px-4 py-3 text-sm outline-none" placeholder="Enter your email" />
                 <button className="rounded-2xl bg-pink-500 px-4 py-3 text-sm font-semibold text-white">Subscribe</button>
               </div>
-            </section>
-
-            <section className="rounded-[1.8rem] border border-white/80 bg-white/90 p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
-              <h3 className="text-lg font-semibold text-slate-900">Popular guides</h3>
-              <div className="mt-4 space-y-4">
-                {popularGuides.map((guide) => (
-                  <Link key={guide.slug} href={`/guides/${guide.slug}`} className="flex items-center gap-3">
-                    <div className="relative h-14 w-14 overflow-hidden rounded-2xl bg-slate-100">
-                      <Image src={guide.heroImage} alt={guide.title} fill className="object-cover" sizes="56px" />
-                    </div>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-slate-900">{guide.title}</div>
-                      <div className="mt-1 text-xs text-slate-500">{guide.topic}</div>
-                    </div>
-                  </Link>
-                ))}
-              </div>
-              <Link href="/guides" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-pink-600">Explore all guides <span aria-hidden>→</span></Link>
             </section>
           </aside>
         </div>
