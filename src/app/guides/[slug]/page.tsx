@@ -55,7 +55,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const related = listRelatedGeoGuides(guide.slug, guide.topic, 3);
 
   return (
-    <main className="app-page-shell">
+    <main className="app-page-shell" data-no-auto-translate>
       <div className="app-page-container grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-8">
           <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-slate-500">
