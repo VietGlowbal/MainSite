@@ -183,7 +183,7 @@ export default function NewsPageClient({ guides, topics }: Props) {
   const cards = featured ? latest : filteredGuides;
 
   return (
-    <main className="app-page-shell">
+    <main className="app-page-shell" data-no-auto-translate>
       <div className="mx-auto w-full max-w-[84rem] space-y-6">
         {/* HERO */}
         <section className="overflow-hidden rounded-[2rem] border border-white/80 bg-white/90 px-6 py-7 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:px-10 md:py-9">
