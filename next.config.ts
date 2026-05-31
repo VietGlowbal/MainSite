@@ -5,6 +5,11 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Tree-shake large UI libraries so routes only bundle the bits they use
+  // instead of importing the whole package barrel.
+  experimental: {
+    optimizePackageImports: ['framer-motion', 'gsap', '@gsap/react'],
+  },
   // Force the canonical custom domain. Anyone landing on the raw
   // *.vercel.app hostname gets a permanent redirect to glowbal-education.com,
   // so the URL bar always reads the brand domain.

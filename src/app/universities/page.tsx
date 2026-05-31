@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeMatchResult } from '@/lib/matching';
@@ -10,9 +11,25 @@ import { UniversityExplorerClient } from './university-explorer-client';
 // imagery rarely change, and ISR keeps the page snappy.
 export const revalidate = 43200;
 
+// The full universities list is identical for every visitor, so cache it in
+// Next's Data Cache instead of re-querying Supabase on each request. This
+// keeps the largest query off the critical path (improving TTFB); only the
+// per-user match scoring below stays dynamic.
+const getAllUniversities = unstable_cache(
+  async (): Promise<University[]> => {
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from('universities')
+      .select('*')
+      .order('qs_rank', { ascending: true, nullsFirst: false });
+    return (data ?? []) as University[];
+  },
+  ['all-universities'],
+  { revalidate: 43200, tags: ['universities'] },
+);
+
 export default async function UniversitiesPage() {
   const supabase = await createClient();
-  const adminSupabase = createAdminClient();
 
   const {
     data: { user },
@@ -55,14 +72,11 @@ export default async function UniversitiesPage() {
       }));
   }
 
-  // Fetch all universities
-  const { data: universities } = await adminSupabase
-    .from('universities')
-    .select('*')
-    .order('qs_rank', { ascending: true, nullsFirst: false });
+  // Fetch all universities (served from the Data Cache when warm)
+  const universities = await getAllUniversities();
 
   // Compute match scores and convert to explorer format
-  const explorerUniversities = (universities ?? []).map((uni: University) => {
+  const explorerUniversities = universities.map((uni: University) => {
     const matchResult = profile ? computeMatchResult(profile, uni) : null;
     return toExplorerUniversity({
       ...uni,

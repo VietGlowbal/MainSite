@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+import { HoverPrefetchLink } from '@/components/hover-prefetch-link';
 import type { MentorWithUniversity } from '@/types/mentorship';
 import { formatMoney } from '@/lib/currency';
 import { MentorAvatar, StarRating } from './mentor-icons';
@@ -33,7 +33,7 @@ export function MentorCard({ mentor }: { mentor: MentorWithUniversity }) {
   const isTopRated = Number(mentor.avg_rating) >= 4.5 && mentor.total_sessions >= 3;
 
   return (
-    <Link
+    <HoverPrefetchLink
       href={`/mentors/${mentor.id}`}
       className="group relative block rounded-3xl border border-black/5 bg-white/95 p-5 shadow-[0_12px_32px_rgba(22,33,62,0.06)] backdrop-blur transition hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(22,33,62,0.12)]"
     >
@@ -135,6 +135,6 @@ export function MentorCard({ mentor }: { mentor: MentorWithUniversity }) {
           </span>
         </div>
       </div>
-    </Link>
+    </HoverPrefetchLink>
   );
 }

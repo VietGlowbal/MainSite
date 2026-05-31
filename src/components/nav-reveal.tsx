@@ -3,9 +3,38 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, useScroll } from 'framer-motion';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
+
+/**
+ * Scroll-driven gradient angle for the avatar ring.
+ *
+ * This used to rely on framer-motion's `useScroll`, which pulled the whole
+ * framer-motion bundle into the global navigation — and therefore every
+ * non-home page. A passive, rAF-throttled scroll listener does the same job
+ * with zero dependencies, keeping framer-motion off the critical path.
+ */
+function useScrollDeg() {
+  const [deg, setDeg] = useState(135);
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        setDeg((window.scrollY / 2) % 360);
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+  return deg;
+}
 
 /**
  * Navigation
@@ -64,12 +93,7 @@ const MOBILE_ICONS: Record<string, () => React.JSX.Element> = {
 
 // ── Rotating avatar ring ─────────────────────────────────────────────────────
 function NavAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
-  const { scrollY } = useScroll();
-  const [deg, setDeg] = useState(135);
-
-  useEffect(() => {
-    return scrollY.on('change', (y: number) => setDeg((y / 2) % 360));
-  }, [scrollY]);
+  const deg = useScrollDeg();
 
   const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
@@ -89,15 +113,17 @@ function NavAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
 }
 
 function AccountPill({ user }: { user: UserSummary | null }) {
+  const { t } = useLanguage();
   if (user) return <NavAvatar name={user.name} avatarUrl={user.avatarUrl} />;
   return (
     <Link href="/auth" className="glowbal-nav-pill glowbal-nav-pill-account">
-      Sign In/Up
+      {t('Sign In/Up')}
     </Link>
   );
 }
 
 function AdminPill() {
+  const { t } = useLanguage();
   return (
     <Link
       href="/admin"
@@ -119,7 +145,7 @@ function AdminPill() {
         <path d="M12 2L4 6v6c0 5 3.5 9.5 8 10 4.5-.5 8-5 8-10V6z" />
         <path d="M9 12l2 2 4-4" />
       </svg>
-      <span>Admin</span>
+      <span>{t('Admin')}</span>
     </Link>
   );
 }
@@ -127,12 +153,8 @@ function AdminPill() {
 // ── Mobile bottom bar ────────────────────────────────────────────────────────
 function MobileNav({ user }: { user: UserSummary | null }) {
   const pathname = usePathname();
-  const { scrollY } = useScroll();
-  const [deg, setDeg] = useState(135);
-
-  useEffect(() => {
-    return scrollY.on('change', (y: number) => setDeg((y / 2) % 360));
-  }, [scrollY]);
+  const deg = useScrollDeg();
+  const { t } = useLanguage();
 
   const initials = user?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '';
 
@@ -173,7 +195,7 @@ function MobileNav({ user }: { user: UserSummary | null }) {
             ) : (
               <span className="glowbal-mobile-nav-icon"><Icon /></span>
             )}
-            <span className="glowbal-mobile-nav-label">{item.mobile}</span>
+            <span className="glowbal-mobile-nav-label">{t(item.mobile)}</span>
           </Link>
         );
       })}
@@ -183,18 +205,7 @@ function MobileNav({ user }: { user: UserSummary | null }) {
 
 // ── Language Switcher ────────────────────────────────────────────────────────
 function LanguageSwitcher() {
-  const [language, setLanguage] = useState<'en' | 'vi'>(() => {
-    if (typeof window === 'undefined') return 'en';
-    return (localStorage.getItem('glowbal-language') as 'en' | 'vi') || 'en';
-  });
-
-  const toggleLanguage = () => {
-    const newLang = language === 'en' ? 'vi' : 'en';
-    setLanguage(newLang);
-    localStorage.setItem('glowbal-language', newLang);
-    // Trigger a custom event that other components can listen to
-    window.dispatchEvent(new CustomEvent('glowbal:language-change', { detail: { language: newLang } }));
-  };
+  const { lang: language, toggle: toggleLanguage } = useLanguage();
 
   return (
     <button
@@ -237,6 +248,7 @@ type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean; isAdm
 
 function DesktopSidebar({ user }: { user: UserSummary | null }) {
   const pathname = usePathname();
+  const { t } = useLanguage();
 
   const baseItems = user ? NAV_ITEMS : NAV_ITEMS.filter((i) => !i.requiresAuth);
   let visibleItems = user?.isMentor ? [...baseItems, MENTOR_DASHBOARD_ITEM] : baseItems;
@@ -268,7 +280,7 @@ function DesktopSidebar({ user }: { user: UserSummary | null }) {
                 className={`glowbal-sidebar-item${active ? ' glowbal-sidebar-item-active' : ''}`}
               >
                 <span className="glowbal-sidebar-item-icon">{MOBILE_ICONS[item.href] ? MOBILE_ICONS[item.href]() : <IconHome />}</span>
-                <span className="glowbal-sidebar-item-label">{item.label}</span>
+                <span className="glowbal-sidebar-item-label">{t(item.label)}</span>
               </Link>
             );
           })}

@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
+import { HoverPrefetchLink } from '@/components/hover-prefetch-link';
 import { createClient } from '@/lib/supabase/client';
 import type { UserUniversity, ApplicationTask, University } from '@/lib/types';
 
@@ -578,7 +579,7 @@ function NextBestActionCard({
         <div className="text-2xl">📝</div>
       </div>
 
-      <Link
+      <HoverPrefetchLink
         href={`/my-universities/${upcoming.uuId}`}
         className="mt-3 flex items-center justify-between w-full rounded-full bg-gradient-to-r from-pink-500 to-pink-400 px-4 py-2.5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5"
       >
@@ -587,7 +588,7 @@ function NextBestActionCard({
           <line x1="5" y1="12" x2="19" y2="12" />
           <polyline points="12 5 19 12 12 19" />
         </svg>
-      </Link>
+      </HoverPrefetchLink>
     </div>
   );
 }
