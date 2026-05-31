@@ -9,10 +9,10 @@ import { analyzeUserMatch } from '@/lib/ai/course-extractor';
  */
 export async function POST(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id: applicationId } = await params;
+    const { id: applicationId } = await context.params;
     
     const supabase = await createClient();
     
