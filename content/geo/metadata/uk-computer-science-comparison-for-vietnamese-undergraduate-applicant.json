@@ -1,14 +1,14 @@
 {
-  "title": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
+  "title": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
   "metaDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
-  "canonicalUrl": "https://glowbal-education.com/guides/best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
-  "slug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
-  "openGraphTitle": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
+  "canonicalUrl": "https://glowbal-education.com/guides/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
+  "slug": "uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
+  "openGraphTitle": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
   "openGraphDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
   "pageType": "ranking",
   "topic": "Universities",
-  "heroImage": "/generated/news/best-uk-computer-science-degrees-for-vietnamese-students-in-2027.png",
-  "heroImagePrompt": "Editorial hero image for a study abroad news article titled \"Best UK Computer Science Degrees for Vietnamese Students in 2027\". Show Vietnamese undergraduate applicant exploring UK higher education themes. Include visual cues for universities, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
+  "heroImage": "/generated/news/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant.png",
+  "heroImagePrompt": "Editorial hero image for a study abroad news article titled \"UK Computer Science Comparison for Vietnamese undergraduate applicant\". Show Vietnamese undergraduate applicant exploring UK higher education themes. Include visual cues for universities, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
   "heroImageStyle": "ai",
   "readingTimeMinutes": 4,
   "lastUpdated": "2026-05-30",
@@ -16,11 +16,11 @@
     "article": {
       "@context": "https://schema.org",
       "@type": "Article",
-      "headline": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
+      "headline": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
       "description": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
       "dateModified": "2026-05-30",
       "image": [
-        "https://glowbal-education.com/generated/news/best-uk-computer-science-degrees-for-vietnamese-students-in-2027.png"
+        "https://glowbal-education.com/generated/news/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant.png"
       ],
       "author": {
         "@type": "Organization",
@@ -76,8 +76,8 @@
         {
           "@type": "ListItem",
           "position": 3,
-          "name": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
-          "item": "https://glowbal-education.com/guides/best-uk-computer-science-degrees-for-vietnamese-students-in-2027"
+          "name": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
+          "item": "https://glowbal-education.com/guides/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant"
         }
       ]
     },

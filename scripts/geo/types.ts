@@ -115,6 +115,11 @@ export type GeoPageMetadata = {
   openGraphTitle: string;
   openGraphDescription: string;
   pageType: string;
+  topic?: string;
+  heroImage?: string;
+  heroImagePrompt?: string;
+  heroImageStyle?: 'ai' | 'svg-fallback';
+  readingTimeMinutes?: number;
   lastUpdated: string;
   schema: {
     article?: Record<string, unknown>;

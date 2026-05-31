@@ -18,7 +18,8 @@
     "geo:metadata": "tsx scripts/geo/generateMetadata.ts",
     "geo:pr": "tsx scripts/geo/createContentPR.ts",
     "geo:sources": "tsx scripts/geo/fetchSources.ts",
-    "geo:check": "npm run geo:quality && tsc -p geo.tsconfig.json --noEmit"
+    "geo:images": "tsx scripts/geo/generateImages.ts",
+    "geo:check": "npm run geo:quality && npm run geo:images && tsc -p geo.tsconfig.json --noEmit"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

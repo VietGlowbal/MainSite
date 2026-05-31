@@ -1,14 +1,14 @@
 {
-  "title": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
-  "metaDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
-  "canonicalUrl": "https://glowbal-education.com/guides/best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
-  "slug": "best-uk-computer-science-degrees-for-vietnamese-students-in-2027",
-  "openGraphTitle": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
-  "openGraphDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
-  "pageType": "ranking",
-  "topic": "Universities",
-  "heroImage": "/generated/news/best-uk-computer-science-degrees-for-vietnamese-students-in-2027.png",
-  "heroImagePrompt": "Editorial hero image for a study abroad news article titled \"Best UK Computer Science Degrees for Vietnamese Students in 2027\". Show Vietnamese undergraduate applicant exploring UK higher education themes. Include visual cues for universities, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
+  "title": "UK Data Science Scholarship Guide for Vietnamese master's applicant",
+  "metaDescription": "A Glowbal draft guide for vietnamese master's applicant comparing Data Science options in UK.",
+  "canonicalUrl": "https://glowbal-education.com/guides/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
+  "slug": "uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
+  "openGraphTitle": "UK Data Science Scholarship Guide for Vietnamese master's applicant",
+  "openGraphDescription": "A Glowbal draft guide for vietnamese master's applicant comparing Data Science options in UK.",
+  "pageType": "guide",
+  "topic": "Scholarships",
+  "heroImage": "/generated/news/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant.png",
+  "heroImagePrompt": "Editorial hero image for a study abroad news article titled \"UK Data Science Scholarship Guide for Vietnamese master's applicant\". Show Vietnamese master's applicant exploring UK higher education themes. Include visual cues for scholarships, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
   "heroImageStyle": "ai",
   "readingTimeMinutes": 4,
   "lastUpdated": "2026-05-30",
@@ -16,11 +16,11 @@
     "article": {
       "@context": "https://schema.org",
       "@type": "Article",
-      "headline": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
-      "description": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
+      "headline": "UK Data Science Scholarship Guide for Vietnamese master's applicant",
+      "description": "A Glowbal draft guide for vietnamese master's applicant comparing Data Science options in UK.",
       "dateModified": "2026-05-30",
       "image": [
-        "https://glowbal-education.com/generated/news/best-uk-computer-science-degrees-for-vietnamese-students-in-2027.png"
+        "https://glowbal-education.com/generated/news/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant.png"
       ],
       "author": {
         "@type": "Organization",
@@ -76,8 +76,8 @@
         {
           "@type": "ListItem",
           "position": 3,
-          "name": "Best UK Computer Science Degrees for Vietnamese Students in 2027",
-          "item": "https://glowbal-education.com/guides/best-uk-computer-science-degrees-for-vietnamese-students-in-2027"
+          "name": "UK Data Science Scholarship Guide for Vietnamese master's applicant",
+          "item": "https://glowbal-education.com/guides/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant"
         }
       ]
     },
