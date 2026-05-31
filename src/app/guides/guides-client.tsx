@@ -86,10 +86,42 @@ export function GuidesClient({ allGuides, topics }: GuidesClientProps) {
 
   const [email, setEmail] = useState('');
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const [subscribeStatus, setSubscribeStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [subscribeMessage, setSubscribeMessage] = React.useState('');
+
+  const handleSubscribe = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement newsletter subscription
-    console.log('Subscribe:', email);
+    
+    if (!email || !email.includes('@')) {
+      setSubscribeStatus('error');
+      setSubscribeMessage('Please enter a valid email address');
+      return;
+    }
+
+    setSubscribeStatus('loading');
+    setSubscribeMessage('');
+
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'guides_page' }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubscribeStatus('success');
+        setSubscribeMessage(data.alreadySubscribed ? 'You\'re already subscribed!' : 'Successfully subscribed! Check your email.');
+        setEmail('');
+      } else {
+        setSubscribeStatus('error');
+        setSubscribeMessage(data.error || 'Something went wrong. Please try again.');
+      }
+    } catch (error) {
+      setSubscribeStatus('error');
+      setSubscribeMessage('Failed to subscribe. Please try again.');
+    }
   };
 
   return (
@@ -298,15 +330,22 @@ export function GuidesClient({ allGuides, topics }: GuidesClientProps) {
                   placeholder="Enter your email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100"
+                  disabled={subscribeStatus === 'loading' || subscribeStatus === 'success'}
+                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 disabled:opacity-50"
                   required
                 />
                 <button
                   type="submit"
-                  className="w-full rounded-lg bg-gradient-to-r from-pink-600 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:from-pink-700 hover:to-pink-600"
+                  disabled={subscribeStatus === 'loading' || subscribeStatus === 'success'}
+                  className="w-full rounded-lg bg-gradient-to-r from-pink-600 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:from-pink-700 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Subscribe
+                  {subscribeStatus === 'loading' ? 'Subscribing...' : subscribeStatus === 'success' ? '✓ Subscribed' : 'Subscribe'}
                 </button>
+                {subscribeMessage && (
+                  <p className={`text-xs ${subscribeStatus === 'error' ? 'text-red-600' : 'text-green-600'}`}>
+                    {subscribeMessage}
+                  </p>
+                )}
               </form>
             </div>
 

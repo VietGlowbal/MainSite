@@ -425,6 +425,44 @@ export default function NewsPageClient({ guides, topics }: Props) {
 
 export function NewsletterCard() {
   const { t } = useLanguage();
+  const [email, setEmail] = React.useState('');
+  const [status, setStatus] = React.useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = React.useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !email.includes('@')) {
+      setStatus('error');
+      setMessage('Please enter a valid email address');
+      return;
+    }
+
+    setStatus('loading');
+    setMessage('');
+
+    try {
+      const response = await fetch('/api/newsletter/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, source: 'news_page' }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setStatus('success');
+        setMessage(data.alreadySubscribed ? 'You\'re already subscribed!' : 'Successfully subscribed! Check your email.');
+        setEmail('');
+      } else {
+        setStatus('error');
+        setMessage(data.error || 'Something went wrong. Please try again.');
+      }
+    } catch (error) {
+      setStatus('error');
+      setMessage('Failed to subscribe. Please try again.');
+    }
+  };
   return (
     <section className="relative overflow-hidden rounded-[1.8rem] border border-pink-100 bg-[linear-gradient(135deg,rgba(255,77,140,0.12),rgba(0,180,216,0.08))] p-5 shadow-[0_20px_60px_rgba(15,23,42,0.06)]">
       <div className="pointer-events-none absolute -right-3 -top-3 text-3xl opacity-80" aria-hidden>✦</div>
@@ -437,10 +475,31 @@ export function NewsletterCard() {
           <p className="mt-1 text-sm leading-6 text-slate-600">{t('Get the latest study abroad tips, scholarships and guides straight to your inbox.')}</p>
         </div>
       </div>
-      <div className="mt-4 flex gap-2">
-        <input className="min-w-0 flex-1 rounded-2xl border border-white/80 bg-white px-4 py-3 text-sm outline-none" placeholder={t('Enter your email')} />
-        <button className="rounded-2xl bg-pink-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-pink-600">{t('Subscribe')}</button>
-      </div>
+      <form onSubmit={handleSubmit} className="mt-4">
+        <div className="flex gap-2">
+          <input 
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={status === 'loading' || status === 'success'}
+            className="min-w-0 flex-1 rounded-2xl border border-white/80 bg-white px-4 py-3 text-sm outline-none disabled:opacity-50" 
+            placeholder={t('Enter your email')}
+            required
+          />
+          <button 
+            type="submit"
+            disabled={status === 'loading' || status === 'success'}
+            className="rounded-2xl bg-pink-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {status === 'loading' ? t('Subscribing...') : status === 'success' ? t('✓ Subscribed') : t('Subscribe')}
+          </button>
+        </div>
+        {message && (
+          <p className={`mt-2 text-xs ${status === 'error' ? 'text-red-600' : 'text-green-600'}`}>
+            {message}
+          </p>
+        )}
+      </form>
     </section>
   );
 }

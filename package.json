@@ -19,7 +19,8 @@
     "geo:pr": "tsx scripts/geo/createContentPR.ts",
     "geo:sources": "tsx scripts/geo/fetchSources.ts",
     "geo:images": "tsx scripts/geo/generateImages.ts",
-    "geo:check": "npm run geo:quality && npm run geo:images && tsc -p geo.tsconfig.json --noEmit"
+    "geo:check": "npm run geo:quality && npm run geo:images && tsc -p geo.tsconfig.json --noEmit",
+    "notify-newsletter": "tsx scripts/notify-newsletter.ts"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
