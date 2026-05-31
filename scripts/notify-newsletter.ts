@@ -25,14 +25,14 @@ interface Args {
 
 function parseArgs(): Args {
   const args = process.argv.slice(2);
-  const parsed: Partial<Args> = {};
+  const parsed: Record<string, string> = {};
 
   for (let i = 0; i < args.length; i += 2) {
     const key = args[i].replace('--', '');
     const value = args[i + 1];
     
     if (key && value) {
-      parsed[key as keyof Args] = value;
+      parsed[key] = value;
     }
   }
 
@@ -47,7 +47,13 @@ function parseArgs(): Args {
     process.exit(1);
   }
 
-  return parsed as Args;
+  return {
+    type: parsed.type as 'guide' | 'news',
+    slug: parsed.slug,
+    title: parsed.title,
+    url: parsed.url,
+    excerpt: parsed.excerpt,
+  };
 }
 
 async function main() {
