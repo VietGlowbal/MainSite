@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { University } from '@/lib/types';
@@ -13,8 +13,11 @@ import {
   vinuniCareer,
   vinuniCampusLife,
   vinuniFaq,
+  VINUNI_AACC_PILLARS,
+  vinuniSopGuidance,
   type College,
   type Scholarship,
+  type AaccPillarKey,
 } from '@/lib/vinuni-content';
 
 type Props = {
@@ -30,6 +33,7 @@ const SECTIONS = [
   { id: 'admissions', label: 'Admissions' },
   { id: 'career', label: 'Career' },
   { id: 'campus', label: 'Campus Life' },
+  { id: 'sop', label: 'SOP fit' },
   { id: 'faq', label: 'FAQ' },
 ];
 
@@ -76,6 +80,7 @@ export function VinUniProfileClient({
       <AdmissionsSection />
       <CareerSection />
       <CampusLifeSection />
+      <SopAaccSection isLoggedIn={isLoggedIn} />
       <FaqSection />
       <BottomCta isLoggedIn={isLoggedIn} />
     </main>
@@ -874,4 +879,592 @@ function ArrowRight() {
       <polyline points="12 5 19 12 12 19" />
     </svg>
   );
+}
+
+// ──────────────────────────────────────────────────────────────────
+//  §6 SOP AACC analyzer
+// ──────────────────────────────────────────────────────────────────
+
+type AaccPillarResult = {
+  score: number;
+  strengths: string[];
+  gaps: string[];
+  evidenceQuotes: string[];
+};
+
+type AaccAnalysis = {
+  overall: {
+    score: number;
+    verdict: 'strong-fit' | 'promising' | 'needs-work' | 'misaligned';
+    summary: string;
+  };
+  pillars: Record<AaccPillarKey, AaccPillarResult>;
+  topRecommendations: { id: string; pillar: AaccPillarKey; action: string; rationale: string }[];
+  redFlags?: string[];
+};
+
+const VERDICT_LABEL: Record<AaccAnalysis['overall']['verdict'], { label: string; tone: string }> = {
+  'strong-fit': { label: 'Strong fit', tone: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
+  promising: { label: 'Promising', tone: 'bg-cyan-100 text-cyan-700 border-cyan-200' },
+  'needs-work': { label: 'Needs work', tone: 'bg-amber-100 text-amber-800 border-amber-200' },
+  misaligned: { label: 'Misaligned', tone: 'bg-rose-100 text-rose-700 border-rose-200' },
+};
+
+const PILLAR_ACCENT: Record<AaccPillarKey, { ring: string; chip: string; bar: string; text: string }> = {
+  ability: {
+    ring: 'ring-pink-200',
+    chip: 'bg-pink-50 text-pink-700 border-pink-200',
+    bar: 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)]',
+    text: 'text-pink-700',
+  },
+  aspirations: {
+    ring: 'ring-purple-200',
+    chip: 'bg-purple-50 text-purple-700 border-purple-200',
+    bar: 'bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)]',
+    text: 'text-purple-700',
+  },
+  creativity: {
+    ring: 'ring-cyan-200',
+    chip: 'bg-cyan-50 text-cyan-700 border-cyan-200',
+    bar: 'bg-[linear-gradient(135deg,#00C2FF,#90e0ef)]',
+    text: 'text-cyan-700',
+  },
+  commitment: {
+    ring: 'ring-emerald-200',
+    chip: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    bar: 'bg-[linear-gradient(135deg,#10b981,#00C2FF)]',
+    text: 'text-emerald-700',
+  },
+};
+
+const MIN_SOP_CHARS = 200;
+
+function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const [mode, setMode] = useState<'idle' | 'yes' | 'no'>('idle');
+  const [sopText, setSopText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<AaccAnalysis | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  const charCount = sopText.trim().length;
+  const canAnalyze = charCount >= MIN_SOP_CHARS && !loading;
+
+  async function handleAnalyze() {
+    setLoading(true);
+    setError(null);
+    setResult(null);
+    try {
+      const res = await fetch('/api/ai/analyze-statement-aacc', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: sopText }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data?.error || 'Unable to analyse right now.');
+      } else {
+        setResult(data as AaccAnalysis);
+      }
+    } catch {
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <section id="sop" className="scroll-mt-20">
+      <div className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-20">
+        <SectionHeading
+          eyebrow="06 · AACC fit"
+          title="Stress-test your SOP against VinUni's AACC rubric"
+          subtitle="VinUni evaluates every applicant on four pillars — Ability, Aspirations, Creativity, Commitment. See how your Statement of Purpose stacks up."
+        />
+
+        {/* Idle: ask Yes/No */}
+        {mode === 'idle' ? (
+          <div className="mt-10 overflow-hidden rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_10px_30px_rgba(15,23,42,0.06)] md:p-10">
+            <p className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">
+              Do you have a Statement of Purpose (SOP) yet?
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              Either way, we’ve got you. We’ll either analyse your draft or coach you to write one.
+            </p>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={() => setMode('yes')}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-7 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(255,77,140,0.32)] transition hover:-translate-y-0.5"
+              >
+                Yes — analyze it
+                <ArrowRight />
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode('no')}
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border-2 border-slate-300 bg-white px-7 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:bg-slate-50"
+              >
+                No — show me how to write one
+              </button>
+            </div>
+          </div>
+        ) : null}
+
+        {/* Yes flow */}
+        {mode === 'yes' ? (
+          <div className="mt-10 space-y-6">
+            <SopBackToggle onChange={setMode} />
+            {!isLoggedIn ? (
+              <div className="rounded-3xl border border-pink-200 bg-pink-50/60 p-8 text-center shadow-[0_10px_28px_rgba(255,77,140,0.12)]">
+                <h3 className="text-lg font-semibold text-slate-900">Sign in to analyze your SOP</h3>
+                <p className="mt-2 text-sm text-slate-700">
+                  Analysis runs against your private account. Sign in to securely send your draft to the AACC reviewer.
+                </p>
+                <Link
+                  href="/auth?redirect=/universities/vinuni"
+                  className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
+                >
+                  Sign in to continue
+                  <ArrowRight />
+                </Link>
+              </div>
+            ) : (
+              <>
+                <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_4px_14px_rgba(15,23,42,0.04)] md:p-8">
+                  <label htmlFor="sop-textarea" className="text-sm font-semibold text-slate-900">
+                    Paste your Statement of Purpose
+                  </label>
+                  <p className="mt-1 text-xs text-slate-500">
+                    Minimum {MIN_SOP_CHARS} characters. The text is sent only to OpenAI for this analysis — not stored.
+                  </p>
+                  <textarea
+                    ref={textareaRef}
+                    id="sop-textarea"
+                    value={sopText}
+                    onChange={(e) => setSopText(e.target.value)}
+                    placeholder="Paste your full SOP here…"
+                    className="mt-4 block min-h-[280px] w-full rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm leading-relaxed text-slate-800 outline-none transition focus:border-pink-300 focus:bg-white focus:ring-4 focus:ring-pink-100"
+                  />
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                    <span>
+                      {charCount} / {MIN_SOP_CHARS}+ characters
+                      {charCount > 0 && charCount < MIN_SOP_CHARS ? ' · keep going' : ''}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleAnalyze}
+                      disabled={!canAnalyze}
+                      className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.28)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none disabled:hover:translate-y-0"
+                    >
+                      {loading ? 'Analyzing…' : 'Analyze with AACC'}
+                      {!loading ? <ArrowRight /> : null}
+                    </button>
+                  </div>
+                </div>
+
+                {error ? (
+                  <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-700">
+                    {error}
+                  </div>
+                ) : null}
+
+                {loading ? <AaccSkeleton /> : null}
+                {result ? <AaccResult analysis={result} onTryAgain={() => { setResult(null); setError(null); textareaRef.current?.focus(); }} /> : null}
+              </>
+            )}
+          </div>
+        ) : null}
+
+        {/* No flow */}
+        {mode === 'no' ? (
+          <div className="mt-10 space-y-6">
+            <SopBackToggle onChange={setMode} />
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_4px_14px_rgba(15,23,42,0.04)] md:p-8">
+              <p className="text-sm text-slate-700 md:text-base">{vinuniSopGuidance.intro}</p>
+              <p className="mt-3 text-xs font-semibold uppercase tracking-wider text-pink-600">
+                {vinuniSopGuidance.lengthGuide}
+              </p>
+            </div>
+
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_4px_14px_rgba(15,23,42,0.04)] md:p-8">
+              <h3 className="text-base font-semibold text-slate-900">Suggested structure</h3>
+              <ol className="mt-4 space-y-2.5">
+                {vinuniSopGuidance.structure.map((s, i) => (
+                  <li key={s} className="flex items-start gap-3 text-sm text-slate-700">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-pink-100 text-xs font-semibold text-pink-700">
+                      {i + 1}
+                    </span>
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+
+            <div className="space-y-3">
+              {VINUNI_AACC_PILLARS.map((p) => (
+                <PillarGuideAccordion key={p.key} pillar={p} />
+              ))}
+            </div>
+
+            <div className="rounded-3xl border border-pink-200 bg-pink-50/60 p-6 text-center md:p-8">
+              <h3 className="text-lg font-semibold text-slate-900">Drafted something already?</h3>
+              <p className="mt-2 text-sm text-slate-700">
+                Run it through the AACC analyzer whenever you’re ready.
+              </p>
+              <button
+                type="button"
+                onClick={() => setMode('yes')}
+                className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
+              >
+                I have a draft — analyze it
+                <ArrowRight />
+              </button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function SopBackToggle({ onChange }: { onChange: (mode: 'idle' | 'yes' | 'no') => void }) {
+  return (
+    <button
+      type="button"
+      onClick={() => onChange('idle')}
+      className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-pink-600"
+    >
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </svg>
+      Change my answer
+    </button>
+  );
+}
+
+function PillarGuideAccordion({
+  pillar,
+}: {
+  pillar: (typeof VINUNI_AACC_PILLARS)[number];
+}) {
+  const [open, setOpen] = useState(false);
+  const accent = PILLAR_ACCENT[pillar.key];
+  const tips = vinuniSopGuidance.pillarTips[pillar.key];
+  return (
+    <div className={`overflow-hidden rounded-2xl border border-slate-200 bg-white ring-1 ${accent.ring}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-expanded={open}
+        className="flex w-full items-start gap-4 p-5 text-left md:p-6"
+      >
+        <div className={`h-10 w-10 shrink-0 rounded-xl ${accent.bar}`} aria-hidden />
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <h4 className="text-base font-semibold text-slate-900">{pillar.name}</h4>
+            <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${accent.chip}`}>
+              {pillar.nameVi}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-slate-600">{pillar.description}</p>
+        </div>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2.5"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden
+          className={`mt-1 shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+      </button>
+      {open ? (
+        <div className="space-y-5 border-t border-slate-100 bg-slate-50/60 p-5 md:p-6">
+          <div>
+            <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              Writing prompts
+            </h5>
+            <ul className="mt-2 space-y-1.5">
+              {tips.prompts.map((t) => (
+                <li key={t} className="flex items-start gap-2 text-sm text-slate-700">
+                  <span className={`mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full ${accent.bar}`} />
+                  <span>{t}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Examples</h5>
+            <ul className="mt-2 space-y-2">
+              {tips.examples.map((e) => (
+                <li key={e} className="rounded-xl border border-slate-200 bg-white p-3 text-sm italic text-slate-700">
+                  “{e}”
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h5 className="text-xs font-semibold uppercase tracking-wider text-rose-600">Common pitfalls</h5>
+            <ul className="mt-2 space-y-1.5">
+              {tips.pitfalls.map((p) => (
+                <li key={p} className="flex items-start gap-2 text-sm text-slate-700">
+                  <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-rose-400" />
+                  <span>{p}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <h5 className="text-xs font-semibold uppercase tracking-wider text-slate-500">Indicators VinUni rewards</h5>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {pillar.indicators.map((i) => (
+                <span key={i} className={`rounded-full border px-3 py-1 text-xs font-semibold ${accent.chip}`}>
+                  {i}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function AaccSkeleton() {
+  return (
+    <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
+      <div className="flex animate-pulse flex-col gap-4">
+        <div className="h-6 w-1/3 rounded-full bg-slate-100" />
+        <div className="h-4 w-2/3 rounded-full bg-slate-100" />
+        <div className="grid gap-3 md:grid-cols-2">
+          <div className="h-40 rounded-2xl bg-slate-100" />
+          <div className="h-40 rounded-2xl bg-slate-100" />
+          <div className="h-40 rounded-2xl bg-slate-100" />
+          <div className="h-40 rounded-2xl bg-slate-100" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AaccResult({ analysis, onTryAgain }: { analysis: AaccAnalysis; onTryAgain: () => void }) {
+  const verdict = VERDICT_LABEL[analysis.overall.verdict] ?? VERDICT_LABEL.promising;
+  return (
+    <div className="space-y-6">
+      {/* Overall */}
+      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-[0_10px_30px_rgba(15,23,42,0.06)]">
+        <div className="grid gap-6 p-6 md:grid-cols-[180px_1fr] md:p-8">
+          <ScoreDial value={analysis.overall.score} label="Overall AACC" />
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full border px-3 py-1 text-xs font-semibold ${verdict.tone}`}>
+                {verdict.label}
+              </span>
+              <span className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+                VinUni AACC verdict
+              </span>
+            </div>
+            <p className="mt-3 text-base text-slate-800 md:text-lg">{analysis.overall.summary}</p>
+          </div>
+        </div>
+      </div>
+
+      {/* 4 pillars */}
+      <div className="grid gap-4 md:grid-cols-2">
+        {VINUNI_AACC_PILLARS.map((p) => (
+          <PillarResultCard key={p.key} pillar={p} result={analysis.pillars[p.key]} />
+        ))}
+      </div>
+
+      {/* Recommendations */}
+      {analysis.topRecommendations?.length ? (
+        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_4px_14px_rgba(15,23,42,0.04)] md:p-8">
+          <h3 className="text-base font-semibold text-slate-900">Top recommendations</h3>
+          <ol className="mt-4 space-y-3">
+            {analysis.topRecommendations.map((r, i) => {
+              const accent = PILLAR_ACCENT[r.pillar] ?? PILLAR_ACCENT.ability;
+              const pillarMeta = VINUNI_AACC_PILLARS.find((p) => p.key === r.pillar);
+              return (
+                <li key={r.id ?? i} className="flex items-start gap-3">
+                  <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-slate-900 text-xs font-semibold text-white">
+                    {i + 1}
+                  </span>
+                  <div className="flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={`rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${accent.chip}`}>
+                        {pillarMeta?.name ?? r.pillar}
+                      </span>
+                      <p className="text-sm font-semibold text-slate-900">{r.action}</p>
+                    </div>
+                    {r.rationale ? (
+                      <p className="mt-1 text-sm text-slate-600">{r.rationale}</p>
+                    ) : null}
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+      ) : null}
+
+      {/* Red flags */}
+      {analysis.redFlags?.length ? (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-5">
+          <h4 className="text-sm font-semibold text-rose-700">Red flags to address</h4>
+          <ul className="mt-2 space-y-1">
+            {analysis.redFlags.map((f) => (
+              <li key={f} className="text-sm text-rose-700">· {f}</li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={onTryAgain}
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full border-2 border-pink-500 bg-white px-6 text-sm font-semibold text-pink-600 transition hover:bg-pink-50"
+        >
+          Edit & re-analyze
+        </button>
+        <Link
+          href="/mentors"
+          className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.28)] transition hover:-translate-y-0.5"
+        >
+          Book a VinUni mentor to deepen this
+          <ArrowRight />
+        </Link>
+      </div>
+      <p className="text-xs text-slate-500">
+        Analysis is AI-generated guidance, not an admissions decision. VinUni admissions reads the full application in context.
+      </p>
+    </div>
+  );
+}
+
+function PillarResultCard({
+  pillar,
+  result,
+}: {
+  pillar: (typeof VINUNI_AACC_PILLARS)[number];
+  result: AaccPillarResult | undefined;
+}) {
+  const accent = PILLAR_ACCENT[pillar.key];
+  if (!result) {
+    return (
+      <div className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_14px_rgba(15,23,42,0.04)] ring-1 ${accent.ring}`}>
+        <div className="flex items-center gap-3">
+          <div className={`h-10 w-10 shrink-0 rounded-xl ${accent.bar}`} aria-hidden />
+          <h4 className="text-base font-semibold text-slate-900">{pillar.name}</h4>
+        </div>
+        <p className="mt-3 text-sm text-slate-500">No data returned for this pillar.</p>
+      </div>
+    );
+  }
+  return (
+    <div className={`rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_14px_rgba(15,23,42,0.04)] ring-1 ${accent.ring} md:p-6`}>
+      <div className="flex items-start gap-3">
+        <div className={`h-10 w-10 shrink-0 rounded-xl ${accent.bar}`} aria-hidden />
+        <div className="flex-1">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <h4 className="text-base font-semibold text-slate-900">{pillar.name}</h4>
+            <span className={`text-lg font-semibold tabular-nums ${accent.text}`}>
+              {result.score}/100
+            </span>
+          </div>
+          <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className={`h-full rounded-full ${accent.bar}`} style={{ width: `${clamp(result.score, 0, 100)}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {result.strengths?.length ? (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-emerald-700">Strengths</p>
+          <ul className="mt-1.5 space-y-1">
+            {result.strengths.map((s) => (
+              <li key={s} className="flex items-start gap-2 text-sm text-slate-700">
+                <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-500" />
+                <span>{s}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {result.gaps?.length ? (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-amber-700">Gaps</p>
+          <ul className="mt-1.5 space-y-1">
+            {result.gaps.map((g) => (
+              <li key={g} className="flex items-start gap-2 text-sm text-slate-700">
+                <span className="mt-1.5 inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-500" />
+                <span>{g}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+
+      {result.evidenceQuotes?.length ? (
+        <div className="mt-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">From your SOP</p>
+          <ul className="mt-1.5 space-y-1.5">
+            {result.evidenceQuotes.map((q) => (
+              <li key={q} className="rounded-xl border border-slate-100 bg-slate-50/70 p-3 text-sm italic text-slate-700">
+                “{q}”
+              </li>
+            ))}
+          </ul>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function ScoreDial({ value, label }: { value: number; label: string }) {
+  const v = clamp(value, 0, 100);
+  const circumference = 2 * Math.PI * 44;
+  const offset = circumference * (1 - v / 100);
+  return (
+    <div className="grid place-items-center">
+      <div className="relative h-32 w-32">
+        <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
+          <circle cx="50" cy="50" r="44" fill="none" stroke="#f1f5f9" strokeWidth="10" />
+          <circle
+            cx="50"
+            cy="50"
+            r="44"
+            fill="none"
+            stroke="url(#aacc-grad)"
+            strokeWidth="10"
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+          />
+          <defs>
+            <linearGradient id="aacc-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#FF3D9A" />
+              <stop offset="100%" stopColor="#7B2FBE" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div className="absolute inset-0 grid place-items-center">
+          <span className="text-3xl font-semibold tabular-nums text-slate-900">{v}</span>
+        </div>
+      </div>
+      <p className="mt-2 text-xs font-semibold uppercase tracking-wider text-slate-500">{label}</p>
+    </div>
+  );
+}
+
+function clamp(value: number, min: number, max: number) {
+  if (Number.isNaN(value)) return min;
+  return Math.max(min, Math.min(max, value));
 }
