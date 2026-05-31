@@ -1,51 +1,68 @@
 ---
-title: UK Computer Science Comparison for Vietnamese undergraduate applicant
-description: A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.
+title: Building a UK Computer Science Shortlist (and UCAS Plan) for Vietnamese Students
+description: How Vietnamese applicants can turn four strong UK Computer Science programmes into a balanced UCAS shortlist — with real fees, entry requirements, and a step-by-step plan.
 slug: uk-computer-science-comparison-for-vietnamese-undergraduate-applicant
 pageType: ranking
 studentSegment: Vietnamese undergraduate applicant
 targetCountry: UK
 subject: Computer Science
-lastUpdated: 2026-05-30
+lastUpdated: 2026-05-31
 status: draft
 ---
-# UK Computer Science Comparison for Vietnamese undergraduate applicant
+# Building a UK Computer Science Shortlist (and UCAS Plan) for Vietnamese Students
 ## Short answer
-For most students, the strongest shortlist balances course fit, affordability, scholarship realism, employability, and admissions fit. TODO_SOURCE_REQUIRED: add official course, scholarship, and visa sources before publication.
+UCAS lets you make up to five undergraduate choices, so the goal is not to find one "best" Computer Science course — it is to build a balanced list of **reach, target, and safer** options. For Vietnamese students, Manchester, Birmingham, Leeds, and Nottingham are a solid backbone you can arrange by how hard the offer is and how much the course costs.
+
 ## Who this guide is for
-This guide is for vietnamese undergraduate applicant who want a shortlist that is useful for real application decisions, not just prestige browsing.
+This is for Vietnamese applicants planning a UK Computer Science application through [UCAS](https://www.ucas.com/), who want a concrete way to turn a list of universities into five well-chosen entries.
+
 ## Quick comparison table
-| University | Why it may fit students | Watchouts | Source status |
-| --- | --- | --- | --- |
-| University of Manchester | Strong brand and broad CS offering | Tuition and scholarship detail need verification before precise claims | Official course page linked below |
-| University of Birmingham | Balanced academics and clear CS programme framing | Cost specifics need verification before publication | Official course page linked below |
-| University of Leeds | Strong computing profile and clear course overview | Exact admissions and fee detail need verification | Official course page linked below |
-| University of Nottingham | Practical course framing and broad CS foundations | Exact requirement and cost detail need verification | Official course page linked below |
+Use the offer column to place each university in your reach/target/safer tiers. International figures; unconfirmed 2026 fees are flagged.
+
+| University | Typical A-level offer | International tuition (per year) | English (IELTS) | Suggested tier* |
+| --- | --- | --- | --- | --- |
+| Manchester | A\*A\*A incl. A\* Maths | £37,800 (2026/27) | 7.0 (no band < 6.5) | Reach |
+| Birmingham | A\*AA incl. A Maths | Not yet published (2026) | 6.0 (no band < 5.5) | Target |
+| Nottingham | A\*AA (AAA with A in CS) | £33,000 (2026/27) | 6.0–6.5 (check course) | Target |
+| Leeds | AAA incl. Maths | To be confirmed (2026) | 6.0 (no band < 5.5) | Safer |
+
+\*Tiers are relative to a strong applicant predicted A\*AA–AAA; adjust to your own predicted grades.
+
 ## How Glowbal ranked these options
-Glowbal ranked these options using a student-decision lens: course fit, total cost, scholarship realism, graduate outcome signals, and whether the university belongs in a reach, target, or safer shortlist for vietnamese undergraduate applicant. In testing mode, some drafts may still be generic and will need human review before anything publishable happens.
+We sort these four by **offer difficulty** so they map cleanly onto a UCAS strategy. Manchester's A\*A\*A (with A\* in Maths) makes it a genuine reach for most applicants; Birmingham and Nottingham sit as realistic targets; Leeds' AAA makes it the safer anchor. Cost is the second sort key — note that Manchester (£37,800) and Nottingham (£33,000) have confirmed 2026/27 international fees, while Birmingham and Leeds had not published theirs at the time of writing.
+
 ## Top recommendations
-1. **Start with fit, not prestige.**
-2. **Compare course structure, not just the university name.**
-3. **Pressure-test affordability early.**
-4. **Check career signals like placements, modules, and employer links.**
-5. **Use Glowbal to compare options side by side and build a reach/target/safer shortlist.**
+1. **Spread your five choices across tiers** — ideally one or two reaches, two or three targets, and one safer option, rather than five lookalikes.
+2. **Anchor the list with a course you are confident of getting** so you always have a strong insurance choice.
+3. **Write one Personal Statement that fits all five** — UCAS sends the same statement to every choice, so keep it about Computer Science broadly, not one university.
+4. **Check English deadlines early** — Manchester's IELTS 7.0 can take extra preparation time; book the test well before the UCAS deadline.
+5. **Budget for the whole degree, not year one** — multiply the annual fee by three and add living costs before you commit.
+
 ## Best options by student type
-- **Brand-focused student:** keep ambitious options, but do not skip realistic backups.
-- **Budget-sensitive student:** compare total cost and scholarship realism before prestige.
-- **Career-focused student:** prioritise course content, practical projects, and employer-facing opportunities.
-- **Student needing clarity fast:** use Glowbal to build 3 reach, 3 target, and 3 safer options.
+- **Predicted A\*A\*A:** Manchester as a reach, Nottingham/Birmingham as targets, Leeds as the safer anchor.
+- **Predicted A\*AA–AAA:** Nottingham, Birmingham, and Leeds as targets; add a higher reach (e.g., Imperial or UCL) if you want one.
+- **Budget-led:** lead with Nottingham's confirmed fee and keep the unconfirmed options as backups until their fees publish.
+- **Placement-focused:** prioritise the year-in-industry routes at Nottingham and Leeds.
+
 ## How to choose
-Do not choose a university on ranking position alone. Students usually make better decisions when they compare course content, scholarship realism, city cost, and admissions fit together. Glowbal should feel like the decision engine that makes those tradeoffs legible.
+Place each university in a tier using the offer column, then sanity-check cost and English requirements. Confirm the live international fee, the exact offer, and the IELTS requirement on each official course page before you lock your five. A balanced list beats five ambitious ones — and Glowbal can build that balance for you in minutes.
+
 ## FAQs
-### What makes this page useful for students?
-It turns a vague search query into a shortlist framework students can actually use.
+### How many UCAS choices should be Computer Science?
+You can mix subjects, but most applicants keep all five close (CS, or CS with AI/software engineering) so a single Personal Statement fits naturally.
 
-### Can this draft include unknown facts?
-No. If a fee, requirement, deadline, scholarship, or visa claim is not verified, leave TODO_SOURCE_REQUIRED in place.
+### What if a university hasn't published its international fee yet?
+Keep it on your list but treat the fee as provisional. Birmingham and Leeds had not confirmed 2026 international Computer Science fees at the time of writing — budget conservatively and confirm in your offer.
 
-### Can this be published live during testing?
-Yes, but it should still be treated as experimental until reviewed.
+### Can Glowbal turn this into my five UCAS choices?
+Yes. Upload your profile and we will propose a balanced reach/target/safer set based on your predicted grades and budget.
+
 ## Sources
-- TODO_SOURCE_REQUIRED: official source links still needed
+- UCAS — [Undergraduate applications and choices](https://www.ucas.com/)
+- University of Manchester — [BSc Computer Science (2026 entry)](https://www.manchester.ac.uk/study/undergraduate/courses/2026/00560/bsc-computer-science/)
+- University of Nottingham — [Undergraduate tuition fees 2026/27](https://www.nottingham.ac.uk/fees/tuitionfees/202627/undergraduate.aspx) and [Computer Science BSc (Hons)](https://www.nottingham.ac.uk/studywithus/ugstudy/courses/UG/Computer-Science-BSc-Hons.html)
+- University of Birmingham — [Computer Science BSc](https://www.birmingham.ac.uk/study/undergraduate/subjects/computer-science-courses/computer-science-bsc)
+- University of Leeds — [Computer Science BSc](https://courses.leeds.ac.uk/3260/computer-science-bsc)
+
 ## Next step
-Upload your profile to Glowbal to get 3 reach, 3 target, and 3 safer university options.
+Upload your profile to Glowbal to get 3 reach, 3 target, and 3 safer university options matched to your grades and budget.
