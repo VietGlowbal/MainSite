@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
+import { HoverPrefetchLink } from '@/components/hover-prefetch-link';
 import type { GeoGuide } from '@/lib/geo-content';
 
 type Props = {
@@ -333,7 +334,7 @@ export default function NewsPageClient({ guides, topics }: Props) {
                       <div className="flex flex-1 flex-col p-4">
                         <div className="text-xs text-slate-500">{formatDate(guide.publishedAt)} • {guide.readingTimeMinutes} min read</div>
                         <h4 className="mt-2 text-[15px] font-semibold leading-6 tracking-tight text-slate-900">
-                          <Link href={`/guides/${guide.slug}`} className="break-words hover:text-pink-600">{guide.title}</Link>
+                          <HoverPrefetchLink href={`/guides/${guide.slug}`} className="break-words hover:text-pink-600">{guide.title}</HoverPrefetchLink>
                         </h4>
                         <p className="mt-2 line-clamp-3 text-sm leading-6 text-slate-600">{guide.excerpt}</p>
                         <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 text-sm">
@@ -357,7 +358,7 @@ export default function NewsPageClient({ guides, topics }: Props) {
                       <div className="flex min-w-0 flex-1 flex-col justify-center">
                         <div className="text-xs text-slate-500">{formatDate(guide.publishedAt)} • {guide.readingTimeMinutes} min read</div>
                         <h4 className="mt-1.5 text-lg font-semibold leading-7 tracking-tight text-slate-900">
-                          <Link href={`/guides/${guide.slug}`} className="hover:text-pink-600">{guide.title}</Link>
+                          <HoverPrefetchLink href={`/guides/${guide.slug}`} className="hover:text-pink-600">{guide.title}</HoverPrefetchLink>
                         </h4>
                         <p className="mt-1.5 line-clamp-2 text-sm leading-6 text-slate-600">{guide.excerpt}</p>
                         <div className="mt-3 flex items-center gap-4 text-sm">

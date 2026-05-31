@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import ReactDOM from 'react-dom';
 import { Geist_Mono, Outfit } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
@@ -8,11 +9,16 @@ import './globals.css';
 const outfit = Outfit({
   variable: '--font-geist-sans',
   subsets: ['latin'],
+  display: 'swap',
 });
 
+// The mono font is only used on a few admin/error screens, so don't pay the
+// preload cost on every page — it still loads on demand when actually used.
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {
@@ -25,6 +31,13 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Warm up connections to the CDNs that serve LCP imagery, so image-heavy
+  // routes don't pay full DNS + TLS latency on first paint. React hoists
+  // these hints into <head>.
+  ReactDOM.preconnect('https://upload.wikimedia.org', { crossOrigin: 'anonymous' });
+  ReactDOM.preconnect('https://images.unsplash.com', { crossOrigin: 'anonymous' });
+  ReactDOM.prefetchDNS('https://lh3.googleusercontent.com');
+
   return (
     <html
       lang="en"

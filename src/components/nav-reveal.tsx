@@ -3,9 +3,37 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { motion, useScroll } from 'framer-motion';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { createClient } from '@/lib/supabase/client';
+
+/**
+ * Scroll-driven gradient angle for the avatar ring.
+ *
+ * This used to rely on framer-motion's `useScroll`, which pulled the whole
+ * framer-motion bundle into the global navigation — and therefore every
+ * non-home page. A passive, rAF-throttled scroll listener does the same job
+ * with zero dependencies, keeping framer-motion off the critical path.
+ */
+function useScrollDeg() {
+  const [deg, setDeg] = useState(135);
+  useEffect(() => {
+    let raf = 0;
+    const onScroll = () => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = 0;
+        setDeg((window.scrollY / 2) % 360);
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => {
+      window.removeEventListener('scroll', onScroll);
+      if (raf) cancelAnimationFrame(raf);
+    };
+  }, []);
+  return deg;
+}
 
 /**
  * Navigation
@@ -64,12 +92,7 @@ const MOBILE_ICONS: Record<string, () => React.JSX.Element> = {
 
 // ── Rotating avatar ring ─────────────────────────────────────────────────────
 function NavAvatar({ name, avatarUrl }: { name: string; avatarUrl?: string }) {
-  const { scrollY } = useScroll();
-  const [deg, setDeg] = useState(135);
-
-  useEffect(() => {
-    return scrollY.on('change', (y: number) => setDeg((y / 2) % 360));
-  }, [scrollY]);
+  const deg = useScrollDeg();
 
   const initials = name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase();
 
@@ -127,12 +150,7 @@ function AdminPill() {
 // ── Mobile bottom bar ────────────────────────────────────────────────────────
 function MobileNav({ user }: { user: UserSummary | null }) {
   const pathname = usePathname();
-  const { scrollY } = useScroll();
-  const [deg, setDeg] = useState(135);
-
-  useEffect(() => {
-    return scrollY.on('change', (y: number) => setDeg((y / 2) % 360));
-  }, [scrollY]);
+  const deg = useScrollDeg();
 
   const initials = user?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '';
 
