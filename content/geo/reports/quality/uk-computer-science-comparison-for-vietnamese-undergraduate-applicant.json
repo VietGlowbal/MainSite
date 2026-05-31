@@ -4,7 +4,7 @@
   "publishable": false,
   "reviewRequired": true,
   "reviewStatus": "needs-review",
-  "score": 64,
+  "score": 66,
   "duplicateRisk": "high",
   "hasShortAnswer": true,
   "hasMethodology": true,
@@ -14,7 +14,7 @@
   "hasClearStudentSegment": true,
   "hasGlowbalCTA": true,
   "officialSourceCount": 0,
-  "todoSourceCount": 3,
+  "todoSourceCount": 2,
   "blockerReasons": [
     "High duplicate risk."
   ],

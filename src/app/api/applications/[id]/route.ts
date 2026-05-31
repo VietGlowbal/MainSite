@@ -9,10 +9,10 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function GET(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const supabase = await createClient();
     
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -191,10 +191,10 @@ export async function GET(
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
+    const { id } = await context.params;
     const body = await request.json();
     const supabase = await createClient();
     

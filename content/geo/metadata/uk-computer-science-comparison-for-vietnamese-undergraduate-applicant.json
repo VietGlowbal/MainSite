@@ -1,17 +1,17 @@
 {
-  "title": "Building a UK Computer Science Shortlist (and UCAS Plan) for Vietnamese Students",
-  "metaDescription": "Turn four strong UK Computer Science programmes into a balanced UCAS shortlist — with real fees, entry requirements and a reach/target/safer plan.",
+  "title": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
+  "metaDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
   "canonicalUrl": "https://glowbal-education.com/guides/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
   "slug": "uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
-  "openGraphTitle": "Building a UK Computer Science Shortlist (and UCAS Plan) for Vietnamese Students",
-  "openGraphDescription": "Turn four strong UK Computer Science programmes into a balanced UCAS shortlist — with real fees, entry requirements and a reach/target/safer plan.",
+  "openGraphTitle": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
+  "openGraphDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
   "pageType": "ranking",
   "topic": "Universities",
   "heroImage": "/generated/news/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant.png",
   "heroImagePrompt": "Editorial hero image for a study abroad news article titled \"UK Computer Science Comparison for Vietnamese undergraduate applicant\". Show Vietnamese undergraduate applicant exploring UK higher education themes. Include visual cues for universities, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
   "heroImageStyle": "ai",
   "readingTimeMinutes": 4,
-  "keyTakeaway": "UCAS gives you five choices, so build a balanced reach/target/safer list rather than chasing one best course. Sort Manchester, Birmingham, Nottingham and Leeds by offer difficulty.",
+  "keyTakeaway": "For vietnamese undergraduate applicant, the best computer science choice in UK usually comes from balancing fit, cost, outcomes, and execution — not chasing prestige alone.",
   "tags": [
     "Universities",
     "Computer Science",
@@ -100,14 +100,14 @@
       "title": "Next step"
     }
   ],
-  "lastUpdated": "2026-05-30",
+  "lastUpdated": "2026-05-31",
   "schema": {
     "article": {
       "@context": "https://schema.org",
       "@type": "Article",
       "headline": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
       "description": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
-      "dateModified": "2026-05-30",
+      "dateModified": "2026-05-31",
       "image": [
         "https://glowbal-education.com/generated/news/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant.png"
       ],
@@ -125,23 +125,23 @@
           "name": "What makes this page useful for students?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "It turns a vague search query into a shortlist framework students can actually use."
+            "text": "It turns a vague search query into a shortlist framework students can actually use — comparing fit, cost, and outcomes side by side."
           }
         },
         {
           "@type": "Question",
-          "name": "Can this draft include unknown facts?",
+          "name": "How should I use this shortlist?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "No. If a fee, requirement, deadline, scholarship, or visa claim is not verified, leave TODO_SOURCE_REQUIRED in place."
+            "text": "Treat it as a starting point: confirm the latest tuition, entry requirements, and deadlines on each official course page before you apply."
           }
         },
         {
           "@type": "Question",
-          "name": "Can this be published live during testing?",
+          "name": "Where can I get personalised options?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Yes, but it should still be treated as experimental until reviewed."
+            "text": "Upload your profile to Glowbal and we will build a reach, target, and safer shortlist tailored to your grades and budget."
           }
         }
       ]

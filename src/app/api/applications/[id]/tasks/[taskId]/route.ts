@@ -8,10 +8,10 @@ import { createClient } from '@/lib/supabase/server';
  */
 export async function PATCH(
   request: Request,
-  { params }: { params: Promise<{ id: string; taskId: string }> }
+  context: { params: Promise<{ id: string; taskId: string }> }
 ) {
   try {
-    const { id: applicationId, taskId } = await params;
+    const { id: applicationId, taskId } = await context.params;
     const body = await request.json();
     const supabase = await createClient();
     

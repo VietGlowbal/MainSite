@@ -5,7 +5,6 @@ import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NavReveal } from '@/components/nav-reveal';
 import { LanguageProvider } from '@/lib/i18n';
-import { DomTranslator } from '@/lib/dom-translate';
 import './globals.css';
 
 const outfit = Outfit({
@@ -49,7 +48,6 @@ export default function RootLayout({
         <LanguageProvider>
           <NavReveal />
           <main className="glowbal-main-content">{children}</main>
-          <DomTranslator />
         </LanguageProvider>
         <Analytics />
         <SpeedInsights />
