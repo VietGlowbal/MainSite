@@ -9,10 +9,10 @@ import { analyzeUserMatch } from '@/lib/ai/course-extractor';
  */
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const applicationId = params.id;
+    const { id: applicationId } = await params;
     
     const supabase = await createClient();
     
@@ -73,6 +73,9 @@ export async function POST(
       entryRequirementsSummary: application.courses?.entry_requirements_summary,
       englishRequirementsSummary: application.courses?.english_requirements_summary,
       subject: application.subject,
+      sourceConfidence: 'medium' as const,
+      stages: [],
+      scholarships: [],
     };
     
     // Build user profile for match analysis
