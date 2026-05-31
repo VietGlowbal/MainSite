@@ -11,6 +11,95 @@
   "heroImagePrompt": "Editorial hero image for a study abroad news article titled \"UK Data Science Scholarship Guide for Vietnamese master's applicant\". Show Vietnamese master's applicant exploring UK higher education themes. Include visual cues for scholarships, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
   "heroImageStyle": "ai",
   "readingTimeMinutes": 4,
+  "keyTakeaway": "For vietnamese master's applicant, the best data science choice in UK usually comes from balancing fit, cost, outcomes, and execution — not chasing prestige alone.",
+  "tags": [
+    "Scholarships",
+    "Data Science",
+    "Vietnamese master's applicant",
+    "UK 2027 entry"
+  ],
+  "supportCards": [
+    {
+      "title": "Funding opportunities",
+      "description": "Shortlist scholarships that are genuinely realistic for vietnamese master's applicant.",
+      "icon": "/generated/news/support/default/funding.svg",
+      "accent": "emerald"
+    },
+    {
+      "title": "Eligibility fit",
+      "description": "Filter options by academic profile, English score, and course alignment.",
+      "icon": "/generated/news/support/default/merit.svg",
+      "accent": "pink"
+    },
+    {
+      "title": "Application timing",
+      "description": "Sequence scholarship prep early so funding and admissions work together.",
+      "icon": "/generated/news/support/default/strategy.svg",
+      "accent": "violet"
+    }
+  ],
+  "supportAssets": [
+    {
+      "kind": "icon",
+      "label": "funding",
+      "assetPath": "/generated/news/support/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant/funding.svg",
+      "prompt": "Supporting icon for scholarships article UI in Glowbal's editorial system."
+    },
+    {
+      "kind": "icon",
+      "label": "merit",
+      "assetPath": "/generated/news/support/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant/merit.svg",
+      "prompt": "Supporting icon for scholarships article UI in Glowbal's editorial system."
+    },
+    {
+      "kind": "icon",
+      "label": "strategy",
+      "assetPath": "/generated/news/support/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant/strategy.svg",
+      "prompt": "Supporting icon for scholarships article UI in Glowbal's editorial system."
+    }
+  ],
+  "toc": [
+    {
+      "id": "short-answer",
+      "title": "Short answer"
+    },
+    {
+      "id": "who-this-guide-is-for",
+      "title": "Who this guide is for"
+    },
+    {
+      "id": "what-to-know-first",
+      "title": "What to know first"
+    },
+    {
+      "id": "glowbal-s-approach",
+      "title": "Glowbal's approach"
+    },
+    {
+      "id": "step-by-step-guidance",
+      "title": "Step-by-step guidance"
+    },
+    {
+      "id": "best-options-by-student-type",
+      "title": "Best options by student type"
+    },
+    {
+      "id": "how-to-choose",
+      "title": "How to choose"
+    },
+    {
+      "id": "faqs",
+      "title": "FAQs"
+    },
+    {
+      "id": "sources",
+      "title": "Sources"
+    },
+    {
+      "id": "next-step",
+      "title": "Next step"
+    }
+  ],
   "lastUpdated": "2026-05-30",
   "schema": {
     "article": {

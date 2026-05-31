@@ -11,6 +11,95 @@
   "heroImagePrompt": "Editorial hero image for a study abroad news article titled \"UK Computer Science Comparison for Vietnamese undergraduate applicant\". Show Vietnamese undergraduate applicant exploring UK higher education themes. Include visual cues for universities, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
   "heroImageStyle": "ai",
   "readingTimeMinutes": 4,
+  "keyTakeaway": "For vietnamese undergraduate applicant, the best computer science choice in UK usually comes from balancing fit, cost, outcomes, and execution — not chasing prestige alone.",
+  "tags": [
+    "Universities",
+    "Computer Science",
+    "Vietnamese undergraduate applicant",
+    "UK 2027 entry"
+  ],
+  "supportCards": [
+    {
+      "title": "Globally recognised degrees",
+      "description": "Compare institutions in UK that signal quality to employers and families.",
+      "icon": "/generated/news/support/default/global-recognition.svg",
+      "accent": "violet"
+    },
+    {
+      "title": "Strong career outcomes",
+      "description": "Prioritise course structures that translate into employability and progression.",
+      "icon": "/generated/news/support/default/career-outcomes.svg",
+      "accent": "cyan"
+    },
+    {
+      "title": "Innovation & research",
+      "description": "Look for modern teaching, project work, and credible academic depth.",
+      "icon": "/generated/news/support/default/innovation.svg",
+      "accent": "pink"
+    }
+  ],
+  "supportAssets": [
+    {
+      "kind": "icon",
+      "label": "career outcomes",
+      "assetPath": "/generated/news/support/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant/career-outcomes.svg",
+      "prompt": "Supporting icon for universities article UI in Glowbal's editorial system."
+    },
+    {
+      "kind": "icon",
+      "label": "global recognition",
+      "assetPath": "/generated/news/support/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant/global-recognition.svg",
+      "prompt": "Supporting icon for universities article UI in Glowbal's editorial system."
+    },
+    {
+      "kind": "icon",
+      "label": "innovation",
+      "assetPath": "/generated/news/support/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant/innovation.svg",
+      "prompt": "Supporting icon for universities article UI in Glowbal's editorial system."
+    }
+  ],
+  "toc": [
+    {
+      "id": "short-answer",
+      "title": "Short answer"
+    },
+    {
+      "id": "who-this-guide-is-for",
+      "title": "Who this guide is for"
+    },
+    {
+      "id": "quick-comparison-table",
+      "title": "Quick comparison table"
+    },
+    {
+      "id": "how-glowbal-ranked-these-options",
+      "title": "How Glowbal ranked these options"
+    },
+    {
+      "id": "top-recommendations",
+      "title": "Top recommendations"
+    },
+    {
+      "id": "best-options-by-student-type",
+      "title": "Best options by student type"
+    },
+    {
+      "id": "how-to-choose",
+      "title": "How to choose"
+    },
+    {
+      "id": "faqs",
+      "title": "FAQs"
+    },
+    {
+      "id": "sources",
+      "title": "Sources"
+    },
+    {
+      "id": "next-step",
+      "title": "Next step"
+    }
+  ],
   "lastUpdated": "2026-05-30",
   "schema": {
     "article": {

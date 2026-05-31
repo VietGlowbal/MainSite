@@ -1,6 +1,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
+export type GeoSupportCard = {
+  title: string;
+  description: string;
+  icon: string;
+  accent: 'pink' | 'cyan' | 'violet' | 'amber' | 'emerald';
+};
+
+export type GeoSupportAsset = {
+  kind: 'icon' | 'badge' | 'illustration';
+  label: string;
+  assetPath: string;
+  prompt: string;
+};
+
 export type GeoGuide = {
   slug: string;
   title: string;
@@ -14,6 +28,11 @@ export type GeoGuide = {
   topic: string;
   readingTimeMinutes: number;
   publishedAt: string;
+  tags: string[];
+  keyTakeaway?: string;
+  supportCards: GeoSupportCard[];
+  supportAssets: GeoSupportAsset[];
+  toc: Array<{ id: string; title: string }>;
 };
 
 const repoRoot = process.cwd();
@@ -58,7 +77,7 @@ function inferTopic(frontmatter: Record<string, string>, body: string, metadata?
   if (title.includes('scholarship')) return 'Scholarships';
   if (title.includes('visa') || title.includes('immigration')) return 'Visas & immigration';
   if (title.includes('student life') || title.includes('accommodation') || title.includes('part-time')) return 'Student life';
-  if (title.includes('career') || title.includes('employ')) return 'Career';
+  if (title.includes('career') || title.includes('employ')) return 'Careers';
   if (title.includes('cost') || title.includes('application') || title.includes('admission') || title.includes('sop')) return 'Applications';
   if (pageType === 'ranking' || pageType === 'comparison' || title.includes('university') || title.includes('degree') || title.includes('comparison') || title.includes('guide') || title.includes('computer science')) return 'Universities';
   if (bodyText.includes('visa') || bodyText.includes('immigration')) return 'Visas & immigration';
@@ -99,6 +118,11 @@ function readGuideFromFile(filePath: string, status: 'draft' | 'published'): Geo
     topic: inferTopic(frontmatter, body, metadata),
     readingTimeMinutes: typeof metadata?.readingTimeMinutes === 'number' ? metadata.readingTimeMinutes : estimateReadMinutes(body),
     publishedAt: frontmatter.lastUpdated || new Date().toISOString().slice(0, 10),
+    tags: Array.isArray(metadata?.tags) ? (metadata.tags as string[]) : [],
+    keyTakeaway: typeof metadata?.keyTakeaway === 'string' ? metadata.keyTakeaway : undefined,
+    supportCards: Array.isArray(metadata?.supportCards) ? (metadata.supportCards as GeoSupportCard[]) : [],
+    supportAssets: Array.isArray(metadata?.supportAssets) ? (metadata.supportAssets as GeoSupportAsset[]) : [],
+    toc: Array.isArray(metadata?.toc) ? (metadata.toc as Array<{ id: string; title: string }>) : [],
   };
 }
 
@@ -127,4 +151,8 @@ export function getGeoGuide(slug: string) {
 
 export function listGeoTopics() {
   return ['All topics', ...new Set(listGeoGuides().map((guide) => guide.topic))];
+}
+
+export function listRelatedGeoGuides(currentSlug: string, topic: string, limit = 3) {
+  return listGeoGuides().filter((guide) => guide.slug !== currentSlug).sort((a, b) => Number(b.topic === topic) - Number(a.topic === topic) || b.readingTimeMinutes - a.readingTimeMinutes).slice(0, limit);
 }

@@ -18,6 +18,7 @@ export const paths = {
   qualityDir: path.join(repoRoot, 'content/geo/reports/quality'),
   templatesDir: path.join(repoRoot, 'templates/geo'),
   publicNewsImagesDir: path.join(repoRoot, 'public/generated/news'),
+  publicSupportDir: path.join(repoRoot, 'public/generated/news/support'),
 };
 
 const defaultConfig: GeoConfig = {
@@ -70,7 +71,7 @@ export function inferTopic(frontmatter: Record<string, string>, body: string) {
   if (title.includes('scholarship')) return 'Scholarships';
   if (title.includes('visa') || title.includes('immigration')) return 'Visas & immigration';
   if (title.includes('student life') || title.includes('accommodation') || title.includes('part-time')) return 'Student life';
-  if (title.includes('career') || title.includes('employ')) return 'Career';
+  if (title.includes('career') || title.includes('employ')) return 'Careers';
   if (title.includes('cost') || title.includes('application') || title.includes('admission') || title.includes('sop')) return 'Applications';
   if (pageType === 'ranking' || pageType === 'comparison' || title.includes('university') || title.includes('degree') || title.includes('comparison') || title.includes('guide') || title.includes('computer science')) return 'Universities';
   if (bodyText.includes('visa') || bodyText.includes('immigration')) return 'Visas & immigration';
@@ -81,6 +82,9 @@ export function buildHeroImagePrompt(frontmatter: Record<string, string>, topic:
   const country = frontmatter.targetCountry && frontmatter.targetCountry !== 'Multi-country' ? frontmatter.targetCountry : 'international';
   const studentSegment = frontmatter.studentSegment ?? 'international students';
   return `Editorial hero image for a study abroad news article titled "${title}". Show ${studentSegment} exploring ${country} higher education themes. Include visual cues for ${topic.toLowerCase()}, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.`;
+}
+export function buildSupportVisualPrompt(title: string, label: string, topic: string) {
+  return `Supporting visual asset for the Glowbal article "${title}". Create a clean premium editorial ${label.toLowerCase()} about ${topic.toLowerCase()}, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language.`;
 }
 export function writeFallbackNewsImage(slug: string, title: string, topic: string, country?: string) {
   ensureDir(paths.publicNewsImagesDir);
@@ -127,5 +131,24 @@ export function writeFallbackNewsImage(slug: string, title: string, topic: strin
   <text x="947" y="587" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="700" fill="white">Read full guide</text>
 </svg>`;
   fs.writeFileSync(path.join(paths.publicNewsImagesDir, `${slug}.svg`), svg, 'utf8');
+}
+export function writeSupportAssetSvg(slug: string, key: string, label: string, topic: string, accent: string, glyph: string) {
+  ensureDir(path.join(paths.publicSupportDir, slug));
+  const svg = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="grad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${accent}" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.35"/>
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="64" fill="#ffffff"/>
+  <rect x="20" y="20" width="216" height="216" rx="52" fill="url(#grad)"/>
+  <circle cx="128" cy="116" r="58" fill="#ffffff" fill-opacity="0.92"/>
+  <text x="128" y="136" text-anchor="middle" font-family="Arial, sans-serif" font-size="56" font-weight="700" fill="#1e2a78">${escapeXml(glyph)}</text>
+  <text x="128" y="188" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="700" fill="#1e2a78">${escapeXml(label)}</text>
+  <text x="128" y="212" text-anchor="middle" font-family="Arial, sans-serif" font-size="11" font-weight="500" fill="#54627a">${escapeXml(topic)}</text>
+</svg>`;
+  fs.writeFileSync(path.join(paths.publicSupportDir, slug, `${key}.svg`), svg, 'utf8');
 }
 function escapeXml(value: string) { return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }

@@ -107,6 +107,20 @@ export type GeoQualityCheck = {
   notes: string[];
 };
 
+export type GeoSupportCard = {
+  title: string;
+  description: string;
+  icon: string;
+  accent: 'pink' | 'cyan' | 'violet' | 'amber' | 'emerald';
+};
+
+export type GeoSupportAsset = {
+  kind: 'icon' | 'badge' | 'illustration';
+  label: string;
+  assetPath: string;
+  prompt: string;
+};
+
 export type GeoPageMetadata = {
   title: string;
   metaDescription: string;
@@ -120,6 +134,11 @@ export type GeoPageMetadata = {
   heroImagePrompt?: string;
   heroImageStyle?: 'ai' | 'svg-fallback';
   readingTimeMinutes?: number;
+  keyTakeaway?: string;
+  tags?: string[];
+  supportCards?: GeoSupportCard[];
+  supportAssets?: GeoSupportAsset[];
+  toc?: Array<{ id: string; title: string }>;
   lastUpdated: string;
   schema: {
     article?: Record<string, unknown>;

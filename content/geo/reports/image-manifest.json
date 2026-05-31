@@ -5,7 +5,27 @@
     "topic": "Universities",
     "prompt": "Editorial hero image for a study abroad news article titled \"Best UK Computer Science Degrees for Vietnamese Students in 2027\". Show Vietnamese undergraduate applicant exploring UK higher education themes. Include visual cues for universities, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
     "imagePath": "/generated/news/best-uk-computer-science-degrees-for-vietnamese-students-in-2027.png",
-    "imageStyle": "ai"
+    "imageStyle": "ai",
+    "supportAssets": [
+      {
+        "kind": "icon",
+        "label": "Global recognition",
+        "assetPath": "/generated/news/support/best-uk-computer-science-degrees-for-vietnamese-students-in-2027/global-recognition.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"Best UK Computer Science Degrees for Vietnamese Students in 2027\". Create a clean premium editorial global recognition about universities, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Career outcomes",
+        "assetPath": "/generated/news/support/best-uk-computer-science-degrees-for-vietnamese-students-in-2027/career-outcomes.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"Best UK Computer Science Degrees for Vietnamese Students in 2027\". Create a clean premium editorial career outcomes about universities, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Innovation",
+        "assetPath": "/generated/news/support/best-uk-computer-science-degrees-for-vietnamese-students-in-2027/innovation.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"Best UK Computer Science Degrees for Vietnamese Students in 2027\". Create a clean premium editorial innovation about universities, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      }
+    ]
   },
   {
     "slug": "computer-science-comparison-for-vietnamese-undergraduate-applicant",
@@ -13,7 +33,27 @@
     "topic": "Universities",
     "prompt": "Editorial hero image for a study abroad news article titled \"Computer Science Comparison for Vietnamese undergraduate applicant\". Show Vietnamese undergraduate applicant exploring international higher education themes. Include visual cues for universities, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
     "imagePath": "/generated/news/computer-science-comparison-for-vietnamese-undergraduate-applicant.png",
-    "imageStyle": "ai"
+    "imageStyle": "ai",
+    "supportAssets": [
+      {
+        "kind": "icon",
+        "label": "Global recognition",
+        "assetPath": "/generated/news/support/computer-science-comparison-for-vietnamese-undergraduate-applicant/global-recognition.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"Computer Science Comparison for Vietnamese undergraduate applicant\". Create a clean premium editorial global recognition about universities, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Career outcomes",
+        "assetPath": "/generated/news/support/computer-science-comparison-for-vietnamese-undergraduate-applicant/career-outcomes.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"Computer Science Comparison for Vietnamese undergraduate applicant\". Create a clean premium editorial career outcomes about universities, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Innovation",
+        "assetPath": "/generated/news/support/computer-science-comparison-for-vietnamese-undergraduate-applicant/innovation.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"Computer Science Comparison for Vietnamese undergraduate applicant\". Create a clean premium editorial innovation about universities, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      }
+    ]
   },
   {
     "slug": "uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
@@ -21,7 +61,27 @@
     "topic": "Universities",
     "prompt": "Editorial hero image for a study abroad news article titled \"UK Computer Science Comparison for Vietnamese undergraduate applicant\". Show Vietnamese undergraduate applicant exploring UK higher education themes. Include visual cues for universities, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
     "imagePath": "/generated/news/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant.png",
-    "imageStyle": "ai"
+    "imageStyle": "ai",
+    "supportAssets": [
+      {
+        "kind": "icon",
+        "label": "Global recognition",
+        "assetPath": "/generated/news/support/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant/global-recognition.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"UK Computer Science Comparison for Vietnamese undergraduate applicant\". Create a clean premium editorial global recognition about universities, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Career outcomes",
+        "assetPath": "/generated/news/support/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant/career-outcomes.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"UK Computer Science Comparison for Vietnamese undergraduate applicant\". Create a clean premium editorial career outcomes about universities, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Innovation",
+        "assetPath": "/generated/news/support/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant/innovation.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"UK Computer Science Comparison for Vietnamese undergraduate applicant\". Create a clean premium editorial innovation about universities, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      }
+    ]
   },
   {
     "slug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
@@ -29,7 +89,27 @@
     "topic": "Applications",
     "prompt": "Editorial hero image for a study abroad news article titled \"UK Cost Guide for Vietnamese undergraduate applicant\". Show Vietnamese undergraduate applicant exploring UK higher education themes. Include visual cues for applications, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
     "imagePath": "/generated/news/uk-cost-guide-for-vietnamese-undergraduate-applicant.png",
-    "imageStyle": "ai"
+    "imageStyle": "ai",
+    "supportAssets": [
+      {
+        "kind": "icon",
+        "label": "Planning",
+        "assetPath": "/generated/news/support/uk-cost-guide-for-vietnamese-undergraduate-applicant/planning.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"UK Cost Guide for Vietnamese undergraduate applicant\". Create a clean premium editorial planning about applications, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Documents",
+        "assetPath": "/generated/news/support/uk-cost-guide-for-vietnamese-undergraduate-applicant/documents.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"UK Cost Guide for Vietnamese undergraduate applicant\". Create a clean premium editorial documents about applications, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Deadlines",
+        "assetPath": "/generated/news/support/uk-cost-guide-for-vietnamese-undergraduate-applicant/deadlines.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"UK Cost Guide for Vietnamese undergraduate applicant\". Create a clean premium editorial deadlines about applications, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      }
+    ]
   },
   {
     "slug": "uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant",
@@ -37,6 +117,26 @@
     "topic": "Scholarships",
     "prompt": "Editorial hero image for a study abroad news article titled \"UK Data Science Scholarship Guide for Vietnamese master's applicant\". Show Vietnamese master's applicant exploring UK higher education themes. Include visual cues for scholarships, academic ambition, international study, and premium but trustworthy education guidance. Clean modern magazine style, bright natural lighting, polished realistic illustration, no text, no watermark.",
     "imagePath": "/generated/news/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant.png",
-    "imageStyle": "ai"
+    "imageStyle": "ai",
+    "supportAssets": [
+      {
+        "kind": "icon",
+        "label": "Funding",
+        "assetPath": "/generated/news/support/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant/funding.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"UK Data Science Scholarship Guide for Vietnamese master's applicant\". Create a clean premium editorial funding about scholarships, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Merit fit",
+        "assetPath": "/generated/news/support/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant/merit.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"UK Data Science Scholarship Guide for Vietnamese master's applicant\". Create a clean premium editorial merit fit about scholarships, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      },
+      {
+        "kind": "icon",
+        "label": "Strategy",
+        "assetPath": "/generated/news/support/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant/strategy.svg",
+        "prompt": "Supporting visual asset for the Glowbal article \"UK Data Science Scholarship Guide for Vietnamese master's applicant\". Create a clean premium editorial strategy about scholarships, suitable for UI cards and article support visuals. No text, no watermark, simple modern brand language."
+      }
+    ]
   }
 ]
