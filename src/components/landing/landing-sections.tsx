@@ -488,11 +488,11 @@ function ContactsFooter() {
               <p className="cosmic-footer-label">Reach us</p>
               <ul className="mt-3 space-y-2 text-sm text-white/80">
                 <li>
-                  <a href="https://facebook.com/glowbal" target="_blank" rel="noreferrer" className="cosmic-footer-link">
+                  <a href="https://www.facebook.com/glowbal.education" target="_blank" rel="noreferrer" className="cosmic-footer-link">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
                       <path d="M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.49-3.89 3.78-3.89 1.09 0 2.24.2 2.24.2v2.46h-1.26c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12z"/>
                     </svg>
-                    facebook.com/glowbal
+                    facebook.com/glowbal.education
                   </a>
                 </li>
                 <li>
