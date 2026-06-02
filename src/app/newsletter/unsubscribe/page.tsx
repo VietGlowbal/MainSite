@@ -1,9 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 
-export default function UnsubscribePage() {
+function UnsubscribeForm() {
   const searchParams = useSearchParams();
   const emailParam = searchParams.get('email');
   
@@ -128,5 +128,26 @@ export default function UnsubscribePage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function UnsubscribePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-white to-cyan-50 px-4 py-16">
+        <div className="mx-auto max-w-md">
+          <div className="rounded-2xl border border-slate-200 bg-white p-8 shadow-lg">
+            <div className="mb-6 text-center">
+              <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-pink-100">
+                <div className="h-8 w-8 animate-pulse rounded-full bg-pink-300"></div>
+              </div>
+              <h1 className="text-2xl font-bold text-slate-900">Loading...</h1>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <UnsubscribeForm />
+    </Suspense>
   );
 }
