@@ -100,14 +100,14 @@
       "title": "Next step"
     }
   ],
-  "lastUpdated": "2026-06-02",
+  "lastUpdated": "2026-06-03",
   "schema": {
     "article": {
       "@context": "https://schema.org",
       "@type": "Article",
       "headline": "UK Cost Guide for Vietnamese undergraduate applicant",
       "description": "A Glowbal draft guide for vietnamese undergraduate applicant comparing General options in UK.",
-      "dateModified": "2026-06-02",
+      "dateModified": "2026-06-03",
       "image": [
         "https://glowbal-education.com/generated/news/uk-cost-guide-for-vietnamese-undergraduate-applicant.png"
       ],
