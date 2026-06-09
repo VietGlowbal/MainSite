@@ -139,7 +139,24 @@ export async function POST(request: NextRequest) {
   });
 
   if (insertErr) {
-    return NextResponse.json({ error: insertErr.message }, { status: 500 });
+    // The legacy `session_price_vnd` column historically carried a
+    // `>= 100000` check constraint. Mentors pricing in USD/GBP send 0 here,
+    // which trips that constraint until the supabase-mentorship.sql migration
+    // is applied. Surface a clear, actionable message instead of the raw error.
+    console.error('Mentor signup insert failed', insertErr);
+    if (insertErr.code === '23514' && insertErr.message.includes('session_price_vnd')) {
+      return NextResponse.json(
+        {
+          error:
+            'Mentor signups are temporarily unavailable due to a database update. Please try again shortly.',
+        },
+        { status: 503 },
+      );
+    }
+    return NextResponse.json(
+      { error: 'Could not submit your application. Please try again.' },
+      { status: 500 },
+    );
   }
 
   return NextResponse.json({ ok: true });

@@ -83,6 +83,36 @@ begin
   end if;
 end $$;
 
+-- ── Relax the legacy session_price_vnd column ──────────────────────────────
+-- Pricing now lives in hourly_rate_amount / hourly_rate_currency. The original
+-- base-table definition had `session_price_vnd int not null check (>= 100000)`.
+-- New mentors signing up in USD/GBP send session_price_vnd = 0 (and even VND
+-- mentors may be below 100,000), which violated that check and made the
+-- INSERT in /api/mentorship/signup fail with a 500 — so the application could
+-- never be submitted. We drop the obsolete check and allow a 0/NULL default.
+do $$
+declare
+  ck record;
+begin
+  for ck in
+    select con.conname
+    from pg_constraint con
+    join pg_class rel on rel.oid = con.conrelid
+    join pg_namespace nsp on nsp.oid = rel.relnamespace
+    where nsp.nspname = 'public'
+      and rel.relname = 'achiever_profiles'
+      and con.contype = 'c'
+      and pg_get_constraintdef(con.oid) ilike '%session_price_vnd%'
+  loop
+    execute format('alter table public.achiever_profiles drop constraint %I', ck.conname);
+  end loop;
+
+  -- Make the legacy column optional with a sensible default so old code paths
+  -- that still reference it keep working.
+  alter table public.achiever_profiles alter column session_price_vnd drop not null;
+  alter table public.achiever_profiles alter column session_price_vnd set default 0;
+end $$;
+
 -- Backfill hourly_rate_amount from legacy session_price_vnd where missing.
 -- session_price_vnd was per-session; if duration was 60min it equals hourly.
 -- We treat it as VND hourly (round to 1000-đồng) when no amount is set.
