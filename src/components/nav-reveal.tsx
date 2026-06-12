@@ -243,6 +243,25 @@ function LanguageSwitcher() {
   );
 }
 
+// ── Mobile language button ───────────────────────────────────────────────────
+// Floating pill above the bottom nav so mobile users can switch language too —
+// the desktop switcher lives in the sidebar, which is hidden on mobile.
+function MobileLanguageButton() {
+  const { lang: language, toggle: toggleLanguage } = useLanguage();
+
+  return (
+    <button
+      onClick={toggleLanguage}
+      className="glowbal-mobile-language-button md:hidden"
+      aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
+      title={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
+    >
+      <span className="glowbal-mobile-language-flag">{language === 'en' ? '🇬🇧' : '🇻🇳'}</span>
+      <span className="glowbal-mobile-language-text">{language === 'en' ? 'EN' : 'VI'}</span>
+    </button>
+  );
+}
+
 // ── Desktop sidebar ──────────────────────────────────────────────────────────
 type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean; isAdmin?: boolean };
 
@@ -367,6 +386,7 @@ export function NavReveal() {
     <>
       <DesktopSidebar user={user} />
       <MobileNav user={user} />
+      <MobileLanguageButton />
     </>
   );
 }

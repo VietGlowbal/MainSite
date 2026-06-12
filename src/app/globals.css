@@ -5285,6 +5285,41 @@ body:not(:has(.cosmos-root)) {
   color: rgb(51, 65, 85);
 }
 
+/* Floating language toggle for the landing page (sits over the dark cosmic
+   hero, where the global nav + its switcher are hidden). */
+.glowbal-landing-language-toggle {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 1rem);
+  right: 1rem;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 0.85rem;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 200ms ease;
+}
+
+.glowbal-landing-language-toggle:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.4);
+  transform: translateY(-1px);
+}
+
+.glowbal-landing-language-flag {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
 /* Add padding to pages on mobile to account for bottom nav */
 @media (max-width: 639px) {
   .app-page-shell,
