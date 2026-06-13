@@ -8,9 +8,32 @@ import { LandingGlobe } from '@/components/landing-globe';
 import { CosmicBackground } from '@/components/landing/cosmic-background';
 import { LandingSections, ContactsFooter } from '@/components/landing/landing-sections';
 import { WaitlistForm } from '@/components/waitlist-form';
+import { useLanguage } from '@/lib/i18n';
 import type { WaitlistAction } from '@/lib/types';
 
 gsap.registerPlugin(useGSAP);
+
+/**
+ * The global nav (and its language switcher) is hidden on the landing page, so
+ * a first-time visitor at "/" would otherwise have no way to switch language.
+ * This floating toggle sits over the cosmic hero on every breakpoint and reuses
+ * the same `useLanguage` state as the rest of the site.
+ */
+function LandingLanguageToggle() {
+  const { lang, toggle } = useLanguage();
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      className="glowbal-landing-language-toggle"
+      aria-label={`Switch to ${lang === 'en' ? 'Vietnamese' : 'English'}`}
+      title={`Switch to ${lang === 'en' ? 'Vietnamese' : 'English'}`}
+    >
+      <span className="glowbal-landing-language-flag">{lang === 'en' ? '🇬🇧' : '🇻🇳'}</span>
+      <span>{lang === 'en' ? 'EN' : 'VI'}</span>
+    </button>
+  );
+}
 
 const features = [
   'Match with universities worldwide',
@@ -83,6 +106,8 @@ export function DesignCosmos({ action }: { action: WaitlistAction }) {
         background: '#02060f',
       }}
     >
+      <LandingLanguageToggle />
+
       {/* Canvas-based deep space — stars, nebula, meteors */}
       <div
         aria-hidden

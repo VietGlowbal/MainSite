@@ -30,6 +30,27 @@ import { translations as dictionary } from '@/lib/i18n-dictionary';
 const SKIP_TAGS = new Set([
   'SCRIPT', 'STYLE', 'NOSCRIPT', 'CODE', 'PRE', 'TEXTAREA', 'SVG', 'PATH', 'OPTION', 'SELECT',
 ]);
+
+// Routes that render private user data — names, emails, application details,
+// uploaded document names, transcript/passport info, admin records, etc.
+// Whole-page machine translation is DISABLED here so that no PII is ever
+// forwarded to the translation service (/api/translate → OpenAI). These pages
+// still localise their chrome/labels via the static dictionary (t()) and any
+// explicit <AutoTranslate> the developer opted in to — and personal data like
+// a user's name or email should never be translated anyway.
+const PII_ROUTE_PREFIXES = [
+  '/profile',
+  '/apply',
+  '/dashboard',
+  '/admin',
+  '/onboarding',
+  '/my-universities',
+  '/auth',
+];
+
+function isPiiRoute(pathname: string): boolean {
+  return PII_ROUTE_PREFIXES.some((p) => pathname === p || pathname.startsWith(`${p}/`));
+}
 const LS_KEY = 'glowbal-mt-cache-vi';
 const HAS_LETTER = /\p{L}/u;
 
@@ -104,6 +125,8 @@ export function DomTranslator() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    // Never machine-translate pages that render private user data.
+    if (isPiiRoute(pathname)) return;
     loadCache();
     const root = document.querySelector('main.glowbal-main-content');
     if (!root) return;
