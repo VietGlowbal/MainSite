@@ -10,7 +10,9 @@ import { useLanguage } from '@/lib/i18n';
  * is only ever sent to the translation service once.
  */
 
-const LS_KEY = 'glowbal-mt-cache-vi';
+// Keep in sync with the key in dom-translate.tsx (they share this cache).
+// Bumped to v2 to discard pre-existing rough/PII-tainted client caches.
+const LS_KEY = 'glowbal-mt-cache-vi-v2';
 const memory = new Map<string, string>();
 let loaded = false;
 
@@ -27,7 +29,12 @@ function loadCache() {
 
 function persist() {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify(Object.fromEntries(memory)));
+    // DomTranslator shares this storage key. Merge with whatever is already
+    // there before writing so the two writers never clobber each other's
+    // entries (ours win on conflict — they're the same en→vi mapping anyway).
+    const raw = localStorage.getItem(LS_KEY);
+    const existing = raw ? (JSON.parse(raw) as Record<string, string>) : {};
+    localStorage.setItem(LS_KEY, JSON.stringify({ ...existing, ...Object.fromEntries(memory) }));
   } catch {
     /* storage full/unavailable — keep in-memory only */
   }
