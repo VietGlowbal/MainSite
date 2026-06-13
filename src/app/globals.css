@@ -5275,6 +5275,11 @@ body:not(:has(.cosmos-root)) {
   transform: translateY(0);
 }
 
+.glowbal-mobile-language-button:focus-visible {
+  outline: 2px solid rgba(15, 23, 42, 0.55);
+  outline-offset: 2px;
+}
+
 .glowbal-mobile-language-flag {
   font-size: 1.1rem;
   line-height: 1;
@@ -5313,6 +5318,11 @@ body:not(:has(.cosmos-root)) {
   background: rgba(255, 255, 255, 0.2);
   border-color: rgba(255, 255, 255, 0.4);
   transform: translateY(-1px);
+}
+
+.glowbal-landing-language-toggle:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 0.85);
+  outline-offset: 3px;
 }
 
 .glowbal-landing-language-flag {
