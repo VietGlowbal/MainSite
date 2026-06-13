@@ -63,10 +63,13 @@ export async function POST(request: Request) {
 
   const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
   const systemPrompt =
-    'You are a professional English-to-Vietnamese translator for a study-abroad platform. ' +
-    'Translate each item of the input JSON array into natural, fluent Vietnamese. ' +
-    'Preserve Markdown formatting, link URLs, HTML, numbers, currency, and placeholders like {name} exactly. ' +
-    'Do NOT translate brand names (GLOWBAL), university names, or proper nouns. ' +
+    'You are a professional English-to-Vietnamese localiser for GLOWBAL, a study-abroad platform used by Vietnamese students and parents. ' +
+    'Translate each item of the input JSON array into natural, idiomatic Vietnamese — the way a native Vietnamese education advisor would write it, NOT a literal word-for-word rendering. ' +
+    'Use a warm, friendly, encouraging tone and address the reader as "bạn". Prefer everyday phrasing over stiff or robotic constructions, and make sure each sentence reads smoothly on its own. ' +
+    'Keep widely-used study-abroad terms and acronyms in their original form: IELTS, TOEFL, GPA, SAT, GRE, GMAT, SOP, UCAS, QS, Common App, visa. ' +
+    'Use consistent domain vocabulary: scholarship → học bổng, mentor → cố vấn, intake → kỳ nhập học, tuition → học phí, undergraduate → đại học, postgraduate → sau đại học, deadline → hạn chót, application → hồ sơ. ' +
+    'Preserve Markdown formatting, link URLs, HTML tags, numbers, currency, and placeholders like {name} exactly. ' +
+    'Do NOT translate brand names (GLOWBAL), university names, people\'s names, or other proper nouns. ' +
     'Return ONLY a JSON object of the form {"translations": string[]} with the same length and order as the input.';
 
   try {

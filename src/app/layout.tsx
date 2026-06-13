@@ -49,9 +49,9 @@ export default function RootLayout({
         <LanguageProvider>
           <NavReveal />
           <main className="glowbal-main-content">{children}</main>
-          {/* Whole-page machine translation for any text not covered by the
-              static dictionary or t()/AutoTranslate. Runs only when Vietnamese
-              is active; English stays the zero-cost default. */}
+          {/* Whole-page translation for any text not covered by the static
+              dictionary or t()/AutoTranslate. Only calls /api/translate when
+              Vietnamese is active; English stays the zero-cost default. */}
           <DomTranslator />
         </LanguageProvider>
         <Analytics />

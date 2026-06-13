@@ -209,6 +209,7 @@ function LanguageSwitcher() {
 
   return (
     <button
+      type="button"
       onClick={toggleLanguage}
       className="glowbal-language-switcher"
       aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
@@ -251,6 +252,7 @@ function MobileLanguageButton() {
 
   return (
     <button
+      type="button"
       onClick={toggleLanguage}
       className="glowbal-mobile-language-button md:hidden"
       aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
