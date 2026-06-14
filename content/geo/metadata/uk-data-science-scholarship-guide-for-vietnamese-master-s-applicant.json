@@ -100,14 +100,14 @@
       "title": "Next step"
     }
   ],
-  "lastUpdated": "2026-06-13",
+  "lastUpdated": "2026-06-14",
   "schema": {
     "article": {
       "@context": "https://schema.org",
       "@type": "Article",
       "headline": "UK Data Science Scholarship Guide for Vietnamese master's applicant",
       "description": "A Glowbal draft guide for vietnamese master's applicant comparing Data Science options in UK.",
-      "dateModified": "2026-06-13",
+      "dateModified": "2026-06-14",
       "image": [
         "https://glowbal-education.com/generated/news/uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant.png"
       ],
