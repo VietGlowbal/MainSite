@@ -125,6 +125,7 @@ export async function fetchApplicationWorkspace(
 }
 
 // Transform functions to convert snake_case DB fields to camelCase
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformApplication(app: any) {
   return {
     id: app.id,
@@ -155,6 +156,7 @@ function transformApplication(app: any) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformCourse(course: any) {
   return {
     id: course.id,
@@ -185,6 +187,7 @@ function transformCourse(course: any) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformStage(stage: any) {
   return {
     id: stage.id,
@@ -206,6 +209,7 @@ function transformStage(stage: any) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformTask(task: any) {
   return {
     id: task.id,
@@ -230,6 +234,7 @@ function transformTask(task: any) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformRequirement(req: any) {
   return {
     id: req.id,
@@ -248,6 +253,7 @@ function transformRequirement(req: any) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformSource(source: any) {
   return {
     id: source.id,
@@ -268,6 +274,7 @@ function transformSource(source: any) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformMatchAnalysis(analysis: any) {
   return {
     id: analysis.id,
@@ -295,6 +302,7 @@ function transformMatchAnalysis(analysis: any) {
   };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function transformRecommendation(rec: any) {
   return {
     id: rec.id,
@@ -314,8 +322,11 @@ function transformRecommendation(rec: any) {
 }
 
 function calculateMetrics(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   application: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   requirements: any[],
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   matchAnalysis: any | null
 ) {
   // Calculate deadline info

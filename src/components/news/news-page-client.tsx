@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { HoverPrefetchLink } from '@/components/hover-prefetch-link';
 import { useLanguage } from '@/lib/i18n';
 import type { GeoGuide } from '@/lib/geo-content';
 
@@ -458,7 +457,7 @@ export function NewsletterCard() {
         setStatus('error');
         setMessage(data.error || 'Something went wrong. Please try again.');
       }
-    } catch (error) {
+    } catch {
       setStatus('error');
       setMessage('Failed to subscribe. Please try again.');
     }

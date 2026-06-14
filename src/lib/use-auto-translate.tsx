@@ -74,16 +74,22 @@ export function useAutoTranslate(text: string | null | undefined): string {
   useEffect(() => {
     let cancelled = false;
     if (lang !== 'vi' || !source.trim()) {
-      setValue(source);
-      return;
+      queueMicrotask(() => {
+        if (!cancelled) setValue(source);
+      });
+      return () => { cancelled = true; };
     }
     loadCache();
     const cached = memory.get(source);
     if (cached !== undefined) {
-      setValue(cached);
-      return;
+      queueMicrotask(() => {
+        if (!cancelled) setValue(cached);
+      });
+      return () => { cancelled = true; };
     }
-    setValue(source); // show English until the translation resolves
+    queueMicrotask(() => {
+      if (!cancelled) setValue(source); // show English until the translation resolves
+    });
     translate(source).then((out) => {
       if (!cancelled) setValue(out);
     });

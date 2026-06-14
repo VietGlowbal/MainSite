@@ -96,7 +96,7 @@ function ImportBar() {
       setTimeout(() => {
         window.location.href = `/apply/${data.applicationId}`;
       }, 2000);
-    } catch (err) {
+    } catch {
       setError('This doesn\'t look like a valid URL. Please paste the official course page link.');
     } finally {
       setLoading(false);

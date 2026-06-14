@@ -27,13 +27,13 @@ const CATEGORY_COLORS: Record<string, string> = {
   general: 'bg-slate-50 border-slate-200 text-slate-600',
 };
 
-export function TaskList({ tasks, userUniversityId }: Props) {
+export function TaskList({ tasks }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [completedTasks, setCompletedTasks] = useState<Set<number>>(
     new Set(tasks.filter((t) => t.is_completed).map((t) => t.id)),
   );
   const [expandedTask, setExpandedTask] = useState<number | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const completed = tasks.filter((t) => completedTasks.has(t.id)).length;
   const pct = tasks.length > 0 ? Math.round((completed / tasks.length) * 100) : 0;

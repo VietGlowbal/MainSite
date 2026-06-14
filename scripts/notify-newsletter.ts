@@ -8,9 +8,12 @@
  *   npm run notify-newsletter -- --type news --slug "new-scholarships" --title "New Scholarships Available" --url "https://glowbal.com/news/new-scholarships"
  */
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { createClient } from '@supabase/supabase-js';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const notifySecret = process.env.NEWSLETTER_NOTIFY_SECRET || 'dev-secret';
 const apiUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000';

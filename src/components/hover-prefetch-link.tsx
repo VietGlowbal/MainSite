@@ -15,7 +15,7 @@ import { useState, type ComponentProps } from 'react';
  */
 type Props = ComponentProps<typeof Link>;
 
-export function HoverPrefetchLink({ prefetch, onMouseEnter, onFocus, ...props }: Props) {
+export function HoverPrefetchLink({ onMouseEnter, onFocus, ...props }: Props) {
   const [active, setActive] = useState(false);
 
   return (

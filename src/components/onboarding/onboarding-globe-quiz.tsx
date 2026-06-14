@@ -241,8 +241,11 @@ export function GlowbalOption3GlobeDemo({
       const raw = window.localStorage.getItem(ONBOARDING_DRAFT_KEY);
       if (!raw) return;
       const parsed = JSON.parse(raw) as { answers?: Answers; stepIndex?: number };
-      if (parsed.answers) setAnswers(parsed.answers);
-      if (typeof parsed.stepIndex === 'number') setActiveIndex(Math.max(0, Math.min(parsed.stepIndex, onboardingSteps.length - 1)));
+      // Use queueMicrotask to avoid synchronous setState in effect body
+      queueMicrotask(() => {
+        if (parsed.answers) setAnswers(parsed.answers);
+        if (typeof parsed.stepIndex === 'number') setActiveIndex(Math.max(0, Math.min(parsed.stepIndex, onboardingSteps.length - 1)));
+      });
     } catch {
       // ignore draft failures
     }
@@ -300,6 +303,7 @@ export function GlowbalOption3GlobeDemo({
     [currentContinent, finishSpinFocus],
   );
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const generatedGoal = useMemo(() => goalIdeas[goalSeed % goalIdeas.length], [goalSeed]);
 
   function updateAnswer(value: string | string[]) {

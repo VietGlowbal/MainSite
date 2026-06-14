@@ -78,7 +78,8 @@ function guessWebsite(uni: ExplorerUniversity): string | null {
  * Once we add an `apply_url` / `programs_url` column on the
  * universities table, swap the body of this helper to read those.
  */
-function buildExternalActionUrl(uni: ExplorerUniversity, kind: 'apply' | 'programs'): string {
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function _buildExternalActionUrl(uni: ExplorerUniversity, kind: 'apply' | 'programs'): string {
   const keywords =
     kind === 'apply'
       ? 'admissions application'
@@ -610,12 +611,12 @@ function DetailRightRail({
             </svg>
             {saved ? 'Saved to My Universities' : 'Save to My Universities'}
           </button>
-          <a
+          <Link
             href="/apply"
             className="block w-full text-center text-xs font-medium text-slate-500 hover:text-pink-600 transition"
           >
             Already have a course link? Paste it here →
-          </a>
+          </Link>
           {website ? (
             <a
               href={website}

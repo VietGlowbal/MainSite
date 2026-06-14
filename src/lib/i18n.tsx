@@ -1,5 +1,6 @@
 'use client';
 
+import React from 'react';
 import {
   createContext,
   useCallback,
@@ -42,7 +43,10 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const stored = (localStorage.getItem(STORAGE_KEY) as Lang | null) ?? 'en';
-    if (stored === 'vi') setLangState('vi');
+    if (stored === 'vi') {
+      // Use startTransition to avoid synchronous setState in effect body
+      React.startTransition(() => setLangState('vi'));
+    }
     document.documentElement.lang = stored;
   }, []);
 

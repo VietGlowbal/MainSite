@@ -258,7 +258,7 @@ export type ApplicationMatchAnalysis = {
   fitScore?: number;
   strengths?: string[];
   weaknesses?: string[];
-  improvementActions?: any[];
+  improvementActions?: { title?: string; description?: string; priority?: string }[];
   explanation?: string;
   maxPossibleExplanation?: string;
   modelName?: string;
@@ -289,7 +289,7 @@ export type ApplicationEvent = {
   userId?: string;
   eventType: string;
   eventLabel?: string;
-  metadata?: any;
+  metadata?: Record<string, unknown>;
   createdAt: string;
 };
 

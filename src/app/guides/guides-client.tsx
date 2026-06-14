@@ -117,7 +117,7 @@ export function GuidesClient({ allGuides, topics }: GuidesClientProps) {
         setSubscribeStatus('error');
         setSubscribeMessage(data.error || 'Something went wrong. Please try again.');
       }
-    } catch (error) {
+    } catch {
       setSubscribeStatus('error');
       setSubscribeMessage('Failed to subscribe. Please try again.');
     }

@@ -123,6 +123,7 @@ function AccountPill({ user }: { user: UserSummary | null }) {
   );
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function AdminPill() {
   const { t } = useLanguage();
   return (

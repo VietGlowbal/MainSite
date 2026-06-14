@@ -80,11 +80,11 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const page = Object.values(pages)[0] as any;
+    const page = Object.values(pages)[0] as { images?: { title: string }[] };
     const imageFiles = page.images || [];
 
     // Filter for likely city/landscape photos (exclude logos, flags, maps, icons)
-    const photoFiles = imageFiles.filter((img: any) => {
+    const photoFiles = imageFiles.filter((img: { title: string }) => {
       const title = img.title.toLowerCase();
       return (
         (title.includes('.jpg') || title.includes('.jpeg') || title.includes('.png')) &&
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Step 3: Get image URLs for the filtered photos (limit to 5)
-    const imagePromises = photoFiles.slice(0, 5).map(async (img: any) => {
+    const imagePromises = photoFiles.slice(0, 5).map(async (img: { title: string }) => {
       const infoUrl = new URL('https://en.wikipedia.org/w/api.php');
       infoUrl.searchParams.set('action', 'query');
       infoUrl.searchParams.set('format', 'json');
@@ -114,7 +114,7 @@ export async function GET(request: NextRequest) {
       const infoPages = infoData.query?.pages;
       if (!infoPages) return null;
 
-      const infoPage = Object.values(infoPages)[0] as any;
+      const infoPage = Object.values(infoPages)[0] as { imageinfo?: { url: string; width: number; height: number }[] };
       const imageInfo = infoPage.imageinfo?.[0];
 
       if (!imageInfo) return null;

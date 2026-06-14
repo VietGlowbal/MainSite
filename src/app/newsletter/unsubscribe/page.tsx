@@ -1,6 +1,7 @@
 'use client';
 
 import React, { Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
 function UnsubscribeForm() {
@@ -39,7 +40,7 @@ function UnsubscribeForm() {
         setStatus('error');
         setMessage(data.error || 'Something went wrong. Please try again.');
       }
-    } catch (error) {
+    } catch {
       setStatus('error');
       setMessage('Failed to unsubscribe. Please try again.');
     }
@@ -58,7 +59,7 @@ function UnsubscribeForm() {
             </div>
             <h1 className="text-2xl font-bold text-slate-900">Unsubscribe from Newsletter</h1>
             <p className="mt-2 text-sm text-slate-600">
-              We're sorry to see you go. You can unsubscribe from our newsletter below.
+              We&apos;re sorry to see you go. You can unsubscribe from our newsletter below.
             </p>
           </div>
 
@@ -67,14 +68,14 @@ function UnsubscribeForm() {
               <div className="mb-2 text-4xl">✓</div>
               <p className="font-semibold text-green-900">{message}</p>
               <p className="mt-2 text-sm text-green-700">
-                You won't receive any more emails from us.
+                You won&apos;t receive any more emails from us.
               </p>
-              <a
+              <Link
                 href="/"
                 className="mt-4 inline-block rounded-lg bg-pink-500 px-6 py-2 text-sm font-semibold text-white transition hover:bg-pink-600"
               >
                 Return to Homepage
-              </a>
+              </Link>
             </div>
           ) : (
             <form onSubmit={handleUnsubscribe} className="space-y-4">
@@ -110,9 +111,9 @@ function UnsubscribeForm() {
 
               <p className="text-center text-xs text-slate-500">
                 Changed your mind?{' '}
-                <a href="/" className="text-pink-600 hover:text-pink-700">
+                <Link href="/" className="text-pink-600 hover:text-pink-700">
                   Go back to homepage
-                </a>
+                </Link>
               </p>
             </form>
           )}
@@ -120,7 +121,7 @@ function UnsubscribeForm() {
 
         <div className="mt-6 text-center text-sm text-slate-600">
           <p>
-            If you're having trouble unsubscribing, please contact us at{' '}
+            If you&apos;re having trouble unsubscribing, please contact us at{' '}
             <a href="mailto:hello@glowbal.com" className="text-pink-600 hover:text-pink-700">
               hello@glowbal.com
             </a>

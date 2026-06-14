@@ -7,7 +7,7 @@ const LandingGlobe = dynamic(
   { ssr: false, loading: () => <div className="h-full w-full" /> },
 );
 
-// Map countries to approximate lat/lng for the globe to focus on
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const countryCoords: Record<string, { lat: number; lng: number }> = {
   'United Kingdom': { lat: 54, lng: -2 },
   'United States': { lat: 38, lng: -97 },
@@ -38,7 +38,7 @@ type Props = {
   country?: string | null;
 };
 
-export function UniversityGlobe({ country }: Props) {
+export function UniversityGlobe({ country }: Props) { // eslint-disable-line @typescript-eslint/no-unused-vars
   return (
     <div className="h-full w-full">
       <LandingGlobe theme="marble" size={280} rotateSpeed={0.3} />

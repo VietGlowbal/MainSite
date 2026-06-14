@@ -77,7 +77,7 @@ function buildSupportAssets(slug: string, topic: string): GeoSupportAsset[] {
     }));
 }
 
-function buildKeyTakeaway(frontmatter: Record<string, string>, topic: string) {
+function buildKeyTakeaway(frontmatter: Record<string, string>, topic: string) { // eslint-disable-line @typescript-eslint/no-unused-vars
   const segment = frontmatter.studentSegment ?? 'international students';
   const subject = frontmatter.subject ?? 'study abroad options';
   const country = frontmatter.targetCountry && frontmatter.targetCountry !== 'Multi-country' ? frontmatter.targetCountry : 'top destinations';

@@ -31,7 +31,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
 ───────────────────────────────────────────────────────────────────────── */
 
 const STAGES = ['Shortlisted', 'Course chosen', 'SOP drafted', 'Mentor reviewed', 'Applied'] as const;
-type StageKey = typeof STAGES[number];
+type _StageKey = typeof STAGES[number]; // eslint-disable-line @typescript-eslint/no-unused-vars
 
 function statusToStageIndex(status: string): number {
   switch (status) {
@@ -400,6 +400,7 @@ function UpcomingDeadlines({
   tasks: ApplicationTask[];
   completedTasks: Set<number>;
 }) {
+  const [now] = useState(() => Date.now());
   const uuMap = useMemo(() => {
     const map: Record<number, UUWithUni> = {};
     for (const uu of userUniversities) map[uu.id] = uu;
@@ -413,7 +414,7 @@ function UpcomingDeadlines({
         const uu = uuMap[t.user_university_id];
         if (!uu) return null;
         const date = new Date(t.deadline!);
-        const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        const daysUntil = Math.ceil((date.getTime() - now) / (1000 * 60 * 60 * 24));
         return {
           task: t,
           university: uu.university,
@@ -423,7 +424,7 @@ function UpcomingDeadlines({
       })
       .filter((x): x is DeadlineItem => x !== null)
       .sort((a, b) => a.daysUntil - b.daysUntil);
-  }, [tasks, completedTasks, uuMap]);
+  }, [tasks, completedTasks, uuMap, now]);
 
   const grouped = groupDeadlines(items);
 
@@ -523,6 +524,7 @@ function NextBestActionCard({
   completedTasks: Set<number>;
 }) {
   // Find the most urgent next action: closest deadline among incomplete tasks
+  const [now] = useState(() => Date.now());
   const uuMap = useMemo(() => {
     const map: Record<number, UUWithUni> = {};
     for (const uu of userUniversities) map[uu.id] = uu;
@@ -536,12 +538,12 @@ function NextBestActionCard({
         const uu = uuMap[t.user_university_id];
         if (!uu) return null;
         const date = new Date(t.deadline!);
-        const daysUntil = Math.ceil((date.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+        const daysUntil = Math.ceil((date.getTime() - now) / (1000 * 60 * 60 * 24));
         return { task: t, university: uu.university, uuId: uu.id, daysUntil };
       })
       .filter((x): x is { task: ApplicationTask; university: University; uuId: number; daysUntil: number } => x !== null)
       .sort((a, b) => a.daysUntil - b.daysUntil)[0];
-  }, [tasks, completedTasks, uuMap]);
+  }, [tasks, completedTasks, uuMap, now]);
 
   if (!upcoming) return null;
 

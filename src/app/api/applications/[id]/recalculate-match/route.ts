@@ -96,7 +96,7 @@ export async function POST(
     );
     
     // Store new match analysis
-    const { data: newAnalysis, error: analysisError } = await supabase
+    const { error: analysisError } = await supabase
       .from('application_match_analyses')
       .insert({
         application_id: applicationId,

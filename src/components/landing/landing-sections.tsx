@@ -149,7 +149,10 @@ function CountUp({ to, suffix = '' }: { to: number; suffix?: string }) {
 
   useEffect(() => {
     if (!inView || reduce) {
-      if (reduce) setDisplay(to);
+      if (reduce) {
+        // Use queueMicrotask to avoid synchronous setState in effect body
+        queueMicrotask(() => setDisplay(to));
+      }
       return;
     }
     let raf = 0;

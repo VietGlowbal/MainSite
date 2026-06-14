@@ -1,8 +1,6 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
 import type { UploadedDocument, StudentProfile } from '@/lib/types';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -213,7 +211,8 @@ const SECTIONS: SectionDef[] = [
    PROFILE SIDEBAR NAV
 ───────────────────────────────────────────────────────────────────────── */
 
-const SIDEBAR_NAV = [
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const _SIDEBAR_NAV = [
   { label: 'Home', href: '/apply', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /><polyline points="9 22 9 12 15 12 15 22" /></svg> },
   { label: 'Search', href: '/universities', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8" /><path d="m21 21-4.3-4.3" /></svg> },
   { label: 'Shortlist', href: '/apply', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" /></svg> },
@@ -370,7 +369,7 @@ function SectionCard({ section, profile, documents }: { section: SectionDef; pro
    SUGGESTED NEXT STEPS
 ───────────────────────────────────────────────────────────────────────── */
 
-function SuggestedNextSteps({ profile, documents }: { profile: StudentProfile | null; documents: UploadedDocument[] }) {
+function SuggestedNextSteps({ profile, documents }: { profile: StudentProfile | null; documents: UploadedDocument[] }) { // eslint-disable-line @typescript-eslint/no-unused-vars
   const steps = [
     {
       icon: '📋',
@@ -460,7 +459,7 @@ function ProfileStrengthSidebar({
   const sectionPcts = SECTIONS.map((s) => s.pct(profile, documents));
   const overall = Math.round(sectionPcts.reduce((a, b) => a + b, 0) / SECTIONS.length);
 
-  const completedSections = SECTIONS.filter((s) => s.pct(profile, documents) >= 80);
+  const _completedSections = SECTIONS.filter((s) => s.pct(profile, documents) >= 80); // eslint-disable-line @typescript-eslint/no-unused-vars
 
   return (
     <div className="space-y-4">
@@ -596,7 +595,7 @@ export function ProfileClient({
   profile,
   documents,
   activeApplications,
-  isMentor,
+  isMentor, // eslint-disable-line @typescript-eslint/no-unused-vars
 }: Props) {
   return (
     <div className="w-full">

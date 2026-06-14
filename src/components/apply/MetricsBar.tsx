@@ -20,7 +20,7 @@ type Props = {
 };
 
 export function MetricsBar({ metrics, entryRequirements }: Props) {
-  const { deadline, progress, currentMatch, maxPossibleMatch, requirementsMet, requirementsTotal } = metrics;
+  const { deadline, progress, currentMatch, maxPossibleMatch } = metrics;
 
   return (
     <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">

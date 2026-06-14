@@ -226,7 +226,6 @@ async function findUserByEmail(email) {
   // The admin API supports filtering by email via listUsers with a search.
   // We page through up to a few hundred entries — plenty for a seed script.
   let page = 1;
-  // eslint-disable-next-line no-constant-condition
   while (true) {
     const { data, error } = await supabase.auth.admin.listUsers({
       page,

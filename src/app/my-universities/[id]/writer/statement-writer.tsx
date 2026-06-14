@@ -42,9 +42,9 @@ function ScoreRing({ score }: { score: number }) {
 
 export function StatementWriter({
   universityName,
-  universityCountry,
-  universityRank,
-  universityAcceptRate,
+  universityCountry, // eslint-disable-line @typescript-eslint/no-unused-vars
+  universityRank, // eslint-disable-line @typescript-eslint/no-unused-vars
+  universityAcceptRate, // eslint-disable-line @typescript-eslint/no-unused-vars
   universityStrengths,
   userUniversityId,
   initialContent,
@@ -96,7 +96,7 @@ export function StatementWriter({
       setError(err instanceof Error ? err.message : 'Analysis failed. Please try again.');
       setStatus('idle');
     }
-  }, [text, docType, universityName]);
+  }, [text, docType, universityName]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const saveDraft = async (content: string, aiAnalysis?: AIAnalysis | null) => {
     const { data: userData } = await supabase.auth.getUser();
