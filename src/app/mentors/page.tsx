@@ -1,6 +1,7 @@
 import { getApprovedMentors } from '@/lib/mentors';
 import { createClient } from '@/lib/supabase/server';
 import { MentorBrowse } from '@/components/mentorship/MentorBrowse';
+import { JourneySteps } from '@/components/JourneySteps';
 
 type Props = {
   searchParams: Promise<{ university?: string; country?: string; date?: string }>;
@@ -45,6 +46,7 @@ export default async function MentorsBrowsePage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-transparent px-4 py-10 md:px-8 md:py-16">
       <div className="w-full">
+        <JourneySteps activeStep={5} />
         <MentorBrowse
           mentors={mentors}
           initialUniversityId={initialUniversityId}

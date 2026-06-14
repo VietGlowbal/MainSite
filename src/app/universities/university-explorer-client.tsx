@@ -13,6 +13,7 @@ import {
 } from '@/lib/explorer-context';
 import { MatchBadge } from '@/components/match-badge';
 import { Button, EmptyState, DualRangeSlider } from '@/components/ui';
+import { JourneySteps } from '@/components/JourneySteps';
 import { FadeInImage } from './fade-in-image';
 import { COUNTRY_FLAGS } from './explorer-constants';
 
@@ -2191,6 +2192,8 @@ function BrowseView() {
     <>
       <FirstTimeOnboardingRedirect />
       <div className="w-full px-4 py-6 md:px-6 md:py-8">
+        {/* Journey steps */}
+        <JourneySteps activeStep={1} />
         {/* Hero */}
         <SearchHero
           search={search}

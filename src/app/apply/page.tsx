@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { ApplyDashboard } from './apply-dashboard';
+import { JourneySteps } from '@/components/JourneySteps';
 import type { CourseApplication, ApplicationOverview, ShortlistedUniversity, UpcomingDeadline } from '@/lib/apply-types';
 
 async function fetchApplications(userId: string): Promise<CourseApplication[]> {
@@ -129,6 +130,7 @@ export default async function ApplyPage() {
   return (
     <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
       <div className="w-full">
+        <JourneySteps activeStep={3} />
         <ApplyDashboard
           applications={applications}
           shortlisted={shortlisted}
