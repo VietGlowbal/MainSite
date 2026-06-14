@@ -19,7 +19,7 @@ export default async function ScholarshipsPage() {
     .not('status', 'in', '("rejected","withdrawn","archived")')
     .order('created_at', { ascending: false });
 
-  // Fetch any existing scholarship resources already saved
+  // Fetch any existing scholarship sources already saved
   const appIds = (applications ?? []).map((a) => a.id);
   let existingScholarships: Array<{
     id: string;
@@ -32,12 +32,15 @@ export default async function ScholarshipsPage() {
 
   if (appIds.length > 0) {
     const { data: resources } = await supabase
-      .from('support_resources')
+      .from('application_sources')
       .select('id, application_id, title, description, url, confidence')
       .in('application_id', appIds)
-      .eq('resource_type', 'scholarship');
+      .eq('source_type', 'scholarships');
 
-    existingScholarships = resources ?? [];
+    existingScholarships = (resources ?? []).map((r) => ({
+      ...r,
+      confidence: String(r.confidence ?? 0.7),
+    }));
   }
 
   return (

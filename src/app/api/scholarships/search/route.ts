@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   // Fetch user's applications
   let query = supabase
     .from('course_applications')
-    .select('id, university_name, course_name, degree_level, subject, country, intake, deadline, tuition_fee')
+    .select('id, university_name, course_name, degree_level, subject, country, intake, deadline')
     .eq('user_id', user.id)
     .not('status', 'in', '("rejected","withdrawn","archived")');
 
@@ -97,7 +97,7 @@ Return JSON: { "scholarships": [...] }`;
   const coursesDescription = applications
     .map(
       (app) =>
-        `- ${app.course_name} at ${app.university_name} (${app.degree_level || 'Degree'}, ${app.subject || 'unspecified subject'}, ${app.country || 'unspecified country'}, intake: ${app.intake || 'unspecified'}, tuition: ${app.tuition_fee || 'unknown'}) [appId: ${app.id}]`,
+        `- ${app.course_name} at ${app.university_name} (${app.degree_level || 'Degree'}, ${app.subject || 'unspecified subject'}, ${app.country || 'unspecified country'}, intake: ${app.intake || 'unspecified'}) [appId: ${app.id}]`,
     )
     .join('\n');
 

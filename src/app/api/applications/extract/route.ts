@@ -2,6 +2,17 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { extractCourseData } from '@/lib/ai/course-extractor';
 
+/** Map extractor task types to V2 DB task_type enum */
+function mapTaskType(extractedType: string): string {
+  const map: Record<string, string> = {
+    required: 'document',
+    recommended: 'general',
+    optional: 'general',
+    risk: 'deadline',
+  };
+  return map[extractedType] || 'general';
+}
+
 /**
  * POST /api/applications/extract
  * 
@@ -102,17 +113,18 @@ export async function POST(request: Request) {
         intake: extractedData.intake,
         country: extractedData.country,
         country_flag: extractedData.countryFlag,
-        application_method: extractedData.applicationMethod,
-        application_code: extractedData.applicationCode,
-        deadline: extractedData.deadline,
-        tuition_fee: extractedData.tuitionFee,
-        entry_requirements_summary: extractedData.entryRequirementsSummary,
-        english_requirements_summary: extractedData.englishRequirementsSummary,
-        image_url: extractedData.imageUrl,
-        logo_url: extractedData.logoUrl,
-        status: 'plan_generated',
+        deadline: extractedData.deadline || null,
+        imported_from_url: courseUrl,
+        import_status: 'complete',
+        status: 'preparing',
         progress_percentage: 0,
-        source_confidence: extractedData.sourceConfidence,
+        ai_summary: [
+          extractedData.applicationMethod && `Method: ${extractedData.applicationMethod}`,
+          extractedData.applicationCode && `Code: ${extractedData.applicationCode}`,
+          extractedData.tuitionFee && `Tuition: ${extractedData.tuitionFee}`,
+          extractedData.entryRequirementsSummary && `Entry: ${extractedData.entryRequirementsSummary}`,
+          extractedData.englishRequirementsSummary && `English: ${extractedData.englishRequirementsSummary}`,
+        ].filter(Boolean).join(' | ') || null,
       })
       .select()
       .single();
@@ -129,10 +141,13 @@ export async function POST(request: Request) {
     const stagesWithTasks = extractedData.stages.map(stage => ({
       application_id: application.id,
       name: stage.name,
+      slug: stage.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
       order_num: stage.order,
       description: stage.description,
       status: 'not_started' as const,
       is_required: stage.isRequired,
+      ai_generated: true,
+      confidence: 0.8,
     }));
     
     const { data: createdStages, error: stagesError } = await supabase
@@ -154,18 +169,18 @@ export async function POST(request: Request) {
         const createdStage = createdStages[i];
         
         if (createdStage && stage.tasks.length > 0) {
-          const tasks = stage.tasks.map(task => ({
+          const tasks = stage.tasks.map((task, idx) => ({
             application_id: application.id,
             stage_id: createdStage.id,
             title: task.title,
             description: task.description,
-            due_date: task.dueDate,
+            due_date: task.dueDate || null,
             priority: task.priority,
-            type: task.type,
+            task_type: mapTaskType(task.type),
             status: 'not_started' as const,
             source_url: task.sourceUrl,
-            support_tool_type: task.supportToolType,
-            confidence: task.confidence,
+            confidence: task.confidence === 'high' ? 0.9 : task.confidence === 'medium' ? 0.7 : 0.5,
+            sort_order: idx,
             created_by: 'ai' as const,
           }));
           
@@ -184,39 +199,33 @@ export async function POST(request: Request) {
       }
     }
     
-    // Store scholarships as support resources
+    // Store scholarships as application_sources
     if (extractedData.scholarships.length > 0) {
-      const scholarshipResources = extractedData.scholarships.map(scholarship => ({
+      const scholarshipSources = extractedData.scholarships.map(scholarship => ({
         application_id: application.id,
-        resource_type: 'scholarship',
+        source_type: 'scholarships' as const,
         title: scholarship.name,
-        description: scholarship.eligibility 
-          ? `${scholarship.amount || 'Amount not specified'} - ${scholarship.eligibility}${scholarship.deadline ? ` - Deadline: ${scholarship.deadline}` : ''}`
-          : scholarship.amount || 'Scholarship opportunity',
-        url: scholarship.url,
-        confidence: scholarship.confidence,
+        description: [
+          scholarship.amount,
+          scholarship.eligibility,
+          scholarship.deadline ? `Deadline: ${scholarship.deadline}` : null,
+        ].filter(Boolean).join(' · ') || 'Scholarship opportunity',
+        url: scholarship.url || `https://www.google.com/search?q=${encodeURIComponent(scholarship.name + ' scholarship')}`,
+        confidence: scholarship.confidence === 'high' ? 0.9 : scholarship.confidence === 'medium' ? 0.7 : 0.5,
+        is_official: true,
       }));
       
       const { error: scholarshipsError } = await supabase
-        .from('support_resources')
-        .insert(scholarshipResources);
+        .from('application_sources')
+        .insert(scholarshipSources);
       
       if (scholarshipsError) {
-        console.error('Error creating scholarship resources:', scholarshipsError);
+        console.error('Error creating scholarship sources:', scholarshipsError);
       }
     }
     
-    // Calculate initial progress and next action
+    // Calculate initial progress
     const totalTasks = extractedData.stages.reduce((sum, stage) => sum + stage.tasks.length, 0);
-    const nextAction = extractedData.stages[0]?.tasks[0]?.title || 'Start researching the course';
-    
-    await supabase
-      .from('course_applications')
-      .update({ 
-        next_action: nextAction,
-        progress_percentage: 0,
-      })
-      .eq('id', application.id);
     
     return NextResponse.json({ 
       success: true,
