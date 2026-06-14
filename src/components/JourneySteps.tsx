@@ -94,7 +94,7 @@ const STEPS = [
     number: 4,
     title: 'Fund',
     description: 'Plan your finances and explore funding',
-    href: '/apply',
+    href: '/scholarships',
     icon: FundIcon,
     bgColor: 'bg-emerald-500',
     lineColor: 'bg-emerald-400',
