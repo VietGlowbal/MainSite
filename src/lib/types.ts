@@ -120,6 +120,68 @@ export type University = {
   images_resolved_at?: string | null;
 };
 
+// ── Scholarships ────────────────────────────────────────────────────────────
+// Backed by public.scholarships + public.scholarship_universities
+// (see supabase-scholarships.sql). Scholarships are NOT 1:1 with a university:
+// `scope` distinguishes school-specific awards from country / consortium /
+// provider programmes. The Zod schema + FUNDING_TYPES live in ./scholarships.
+export type ScholarshipScope = 'university' | 'country' | 'consortium' | 'provider';
+export type ScholarshipStatus = 'draft' | 'published' | 'archived';
+export type ScholarshipFundingType =
+  | 'merit'
+  | 'need'
+  | 'leadership'
+  | 'research'
+  | 'sport'
+  | 'diversity'
+  | 'regional'
+  | 'field-specific'
+  | 'full-ride'
+  | 'partial'
+  | 'travel'
+  | 'other';
+
+export type Scholarship = {
+  id: number;
+  name: string;
+  slug?: string | null;
+  scope: ScholarshipScope;
+  country?: string | null;
+  provider?: string | null;
+  funding_type: ScholarshipFundingType[];
+  coverage?: string | null;
+  amount_min?: number | null;
+  amount_max?: number | null;
+  amount_currency?: string | null;
+  slots?: number | null;
+  slots_text?: string | null;
+  eligibility?: string | null;
+  applies_to_text?: string | null;
+  conditions?: string | null;
+  insight?: string | null;
+  deadline_date?: string | null; // ISO date (yyyy-mm-dd)
+  deadline_text?: string | null;
+  source_url?: string | null;
+  source_lang?: 'en' | 'vi' | 'mixed' | null;
+  ranking_note?: string | null;
+  raw?: Record<string, unknown> | null;
+  status: ScholarshipStatus;
+  source_key?: string | null;
+  created_at?: string;
+  updated_at?: string;
+  // Hydrated via the join table when fetched with universities.
+  universities?: University[];
+};
+
+export type ScholarshipUniversity = {
+  scholarship_id: number;
+  university_id: number;
+  match_score?: number | null;
+  match_method?: 'exact' | 'alias' | 'ilike' | 'manual' | null;
+  confirmed: boolean;
+  created_at?: string;
+};
+
 export type UserUniversity = {
   id: number;
   user_id: string;

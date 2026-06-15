@@ -1,0 +1,22 @@
+{
+  "_comment": "Hand-maintained alias map consumed by scripts/seed-scholarships.mjs. Keys are lowercase, diacritics-stripped aliases as they appear in the source CSV's 'Trường áp dụng' column; values are the canonical university name as stored in public.universities.name. Add entries here whenever a scholarship's school name lands in data/scholarships.unmatched.json. Matching is normalized (lowercased, punctuation-insensitive), so 'UCL' and 'ucl' are equivalent.",
+  "ucl": "University College London",
+  "imperial": "Imperial College London",
+  "imperial college": "Imperial College London",
+  "oxford": "University of Oxford",
+  "cambridge": "University of Cambridge",
+  "mit": "Massachusetts Institute of Technology",
+  "nus": "National University of Singapore",
+  "ntu": "Nanyang Technological University",
+  "hku": "University of Hong Kong",
+  "hkust": "Hong Kong University of Science and Technology",
+  "epfl": "Ecole Polytechnique Federale de Lausanne",
+  "eth": "ETH Zurich",
+  "eth zurich": "ETH Zurich",
+  "ubc": "University of British Columbia",
+  "anu": "Australian National University",
+  "tcd": "Trinity College Dublin",
+  "uva": "University of Amsterdam",
+  "tu delft": "Delft University of Technology",
+  "kaist": "Korea Advanced Institute of Science and Technology"
+}
