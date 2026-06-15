@@ -31,8 +31,18 @@ CREATE TABLE IF NOT EXISTS work_experiences (
 
 ALTER TABLE work_experiences ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "work_experiences_owner" ON work_experiences
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+-- Postgres has no `CREATE POLICY IF NOT EXISTS`, so guard with a DO block.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'work_experiences'
+      AND policyname = 'work_experiences_owner'
+  ) THEN
+    CREATE POLICY "work_experiences_owner" ON work_experiences
+      FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;
 
 -- ── english_test_scores ───────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS english_test_scores (
@@ -52,5 +62,15 @@ CREATE TABLE IF NOT EXISTS english_test_scores (
 
 ALTER TABLE english_test_scores ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY IF NOT EXISTS "english_test_scores_owner" ON english_test_scores
-  FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+-- Postgres has no `CREATE POLICY IF NOT EXISTS`, so guard with a DO block.
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'english_test_scores'
+      AND policyname = 'english_test_scores_owner'
+  ) THEN
+    CREATE POLICY "english_test_scores_owner" ON english_test_scores
+      FOR ALL USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+  END IF;
+END $$;

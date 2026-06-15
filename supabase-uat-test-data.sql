@@ -48,6 +48,81 @@
 create extension if not exists pgcrypto;  -- for crypt() / gen_salt()
 
 -- ============================================================================
+-- PRE-FLIGHT — ENSURE REQUIRED SCHEMA  (profile extensions)
+-- ----------------------------------------------------------------------------
+-- These columns/tables come from supabase-profile-extensions.sql. If that
+-- migration was never applied — or aborted partway (an older copy used the
+-- invalid `CREATE POLICY IF NOT EXISTS` and rolled the whole script back) —
+-- the inserts further down fail with "column ... does not exist". We add them
+-- here idempotently so this seed is self-sufficient on a partially-migrated
+-- database. Every statement is a no-op when the object already exists.
+-- ============================================================================
+
+alter table public.student_profiles
+  add column if not exists phone                  text,
+  add column if not exists date_of_birth          date,
+  add column if not exists current_institution    text,
+  add column if not exists current_qualification  text,
+  add column if not exists predicted_grades       text,
+  add column if not exists graduation_year        integer,
+  add column if not exists preferred_cities       text[],
+  add column if not exists study_mode_preference  text,
+  add column if not exists target_intake          text,
+  add column if not exists application_cycle_year integer,
+  add column if not exists profile_version        integer default 1;
+
+create table if not exists public.work_experiences (
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  company          text not null,
+  role             text not null,
+  employment_type  text,
+  start_date       date,
+  end_date         date,
+  is_current       boolean not null default false,
+  description      text,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+alter table public.work_experiences enable row level security;
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public'
+      and tablename='work_experiences' and policyname='work_experiences_owner'
+  ) then
+    create policy "work_experiences_owner" on public.work_experiences
+      for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+end $$;
+
+create table if not exists public.english_test_scores (
+  id               uuid primary key default gen_random_uuid(),
+  user_id          uuid not null references auth.users(id) on delete cascade,
+  test_type        text not null,
+  overall_score    numeric,
+  listening_score  numeric,
+  reading_score    numeric,
+  writing_score    numeric,
+  speaking_score   numeric,
+  test_date        date,
+  expiry_date      date,
+  created_at       timestamptz not null default now(),
+  updated_at       timestamptz not null default now()
+);
+alter table public.english_test_scores enable row level security;
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies where schemaname='public'
+      and tablename='english_test_scores' and policyname='english_test_scores_owner'
+  ) then
+    create policy "english_test_scores_owner" on public.english_test_scores
+      for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+  end if;
+end $$;
+
+-- ============================================================================
 -- SECTION 0 — CLEANUP  (run on its own to tear UAT data down)
 -- ----------------------------------------------------------------------------
 -- Deleting the auth.users rows cascades to: student_profiles, achiever_profiles,
