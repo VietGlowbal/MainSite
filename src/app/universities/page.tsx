@@ -2,7 +2,8 @@ import { unstable_cache } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeMatchResult } from '@/lib/matching';
-import { toExplorerUniversity } from '@/lib/explorer-utils';
+import { toExplorerUniversity, type UniversityScholarship } from '@/lib/explorer-utils';
+import { getPublishedScholarships } from '@/lib/scholarships-data';
 import type { ApplicationEntry } from '@/lib/explorer-context';
 import type { University } from '@/lib/types';
 import { UniversityExplorerClient } from './university-explorer-client';
@@ -72,18 +73,46 @@ export default async function UniversitiesPage() {
       }));
   }
 
-  // Fetch all universities (served from the Data Cache when warm)
-  const universities = await getAllUniversities();
+  // Fetch all universities + curated scholarships (both served from the Data
+  // Cache when warm).
+  const [universities, scholarships] = await Promise.all([
+    getAllUniversities(),
+    getPublishedScholarships(),
+  ]);
+
+  // Index scholarships by the universities they're linked to, so each detail
+  // view can show "Scholarships available here" without an extra query.
+  const scholarshipsByUni = new Map<number, UniversityScholarship[]>();
+  for (const s of scholarships) {
+    const slim: UniversityScholarship = {
+      id: s.id,
+      name: s.name,
+      scope: s.scope,
+      fundingType: s.funding_type,
+      amountLabel: s.amountLabel,
+      coverage: s.coverage,
+      eligibility: s.eligibility,
+      deadlineLabel: s.deadlineLabel,
+      sourceUrl: s.source_url,
+    };
+    for (const uid of s.universityIds) {
+      const list = scholarshipsByUni.get(uid);
+      if (list) list.push(slim);
+      else scholarshipsByUni.set(uid, [slim]);
+    }
+  }
 
   // Compute match scores and convert to explorer format
   const explorerUniversities = universities.map((uni: University) => {
     const matchResult = profile ? computeMatchResult(profile, uni) : null;
-    return toExplorerUniversity({
+    const explorer = toExplorerUniversity({
       ...uni,
       match_score: matchResult?.percentage ?? null,
       match_breakdown: matchResult?.breakdown ?? null,
       is_saved: savedUniversityIds.includes(uni.id),
     });
+    explorer.scholarships = scholarshipsByUni.get(uni.id) ?? [];
+    return explorer;
   });
 
   // Sort: best match first
