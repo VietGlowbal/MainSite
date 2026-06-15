@@ -1,7 +1,12 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getPublishedScholarships } from '@/lib/scholarships-data';
 import { JourneySteps } from '@/components/JourneySteps';
-import { ScholarshipDashboard } from './scholarship-dashboard';
+import { ScholarshipDirectoryClient } from './scholarship-directory-client';
+
+// The published scholarship list is cached in scholarships-data.ts (12h); the
+// per-user personalization below stays dynamic. Mirrors universities/page.tsx.
+export const revalidate = 43200;
 
 export default async function ScholarshipsPage() {
   const supabase = await createClient();
@@ -11,16 +16,39 @@ export default async function ScholarshipsPage() {
 
   if (!user) redirect('/auth');
 
-  // Fetch user's active applications for the scholarship search
-  const { data: applications } = await supabase
-    .from('course_applications')
-    .select('id, university_name, course_name, degree_level, subject, country, country_flag, intake, deadline, status')
-    .eq('user_id', user.id)
-    .not('status', 'in', '("rejected","withdrawn","archived")')
-    .order('created_at', { ascending: false });
+  // Curated directory (cached, identical for everyone) + per-user signals in parallel.
+  const [scholarships, savedResult, applicationsResult] = await Promise.all([
+    getPublishedScholarships(),
+    supabase
+      .from('user_universities')
+      .select('university_id, universities(country)')
+      .eq('user_id', user.id),
+    supabase
+      .from('course_applications')
+      .select('id, university_name, course_name, degree_level, subject, country, country_flag, intake, deadline, status')
+      .eq('user_id', user.id)
+      .not('status', 'in', '("rejected","withdrawn","archived")')
+      .order('created_at', { ascending: false }),
+  ]);
 
-  // Fetch any existing scholarship sources already saved
-  const appIds = (applications ?? []).map((a) => a.id);
+  // Personalization keys: saved university ids + their countries.
+  const savedRows = (savedResult.data ?? []) as Array<{
+    university_id: number;
+    universities: { country: string | null } | { country: string | null }[] | null;
+  }>;
+  const savedUniversityIds = savedRows.map((r) => r.university_id);
+  const savedCountries = [
+    ...new Set(
+      savedRows
+        .map((r) => (Array.isArray(r.universities) ? r.universities[0]?.country : r.universities?.country))
+        .filter((c): c is string => !!c),
+    ),
+  ];
+
+  const applications = applicationsResult.data ?? [];
+
+  // Scholarships extracted earlier during course import (for the AI tab).
+  const appIds = applications.map((a) => a.id);
   let existingScholarships: Array<{
     id: string;
     application_id: string;
@@ -47,8 +75,11 @@ export default async function ScholarshipsPage() {
     <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
       <div className="mx-auto w-full max-w-6xl">
         <JourneySteps activeStep={4} />
-        <ScholarshipDashboard
-          applications={applications ?? []}
+        <ScholarshipDirectoryClient
+          scholarships={scholarships}
+          savedUniversityIds={savedUniversityIds}
+          savedCountries={savedCountries}
+          applications={applications}
           existingScholarships={existingScholarships}
         />
       </div>
