@@ -49,6 +49,14 @@ export const FUNDING_TYPE_LABELS: Record<(typeof FUNDING_TYPES)[number], string>
   other: 'Other',
 };
 
+/** Scope labels (English source; the i18n layer translates to VI). */
+export const SCHOLARSHIP_SCOPE_LABELS: Record<(typeof SCHOLARSHIP_SCOPES)[number], string> = {
+  university: 'University-specific',
+  country: 'Country / government',
+  consortium: 'Consortium',
+  provider: 'Foundation / provider',
+};
+
 /**
  * Validates a cleaned scholarship record (the persisted column shape, plus the
  * transport-only `applies_to_candidates` the loader resolves to university IDs).

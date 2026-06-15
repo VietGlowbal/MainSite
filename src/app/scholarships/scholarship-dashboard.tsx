@@ -145,13 +145,10 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">Scholarships</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          AI-powered scholarship search matched to your course applications. We find funding you&apos;re eligible for — including exclusive opportunities.
-        </p>
-      </div>
+      {/* Tab intro (the page shell owns the <h1>) */}
+      <p className="text-sm text-slate-500">
+        AI-powered scholarship search matched to your course applications. We find funding you&apos;re eligible for — including exclusive opportunities.
+      </p>
 
       {/* Applications selector */}
       {applications.length === 0 ? (

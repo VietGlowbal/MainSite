@@ -521,6 +521,155 @@ export const translations: Record<string, string> = {
   Processed: 'Đã xử lý',
   Pending: 'Đang chờ',
 
+  // ── Scholarships directory ───────────────────────────────────────────────
+  'Browse curated scholarships and find funding you can apply for.':
+    'Khám phá danh mục học bổng được tuyển chọn và tìm nguồn tài trợ bạn có thể ứng tuyển.',
+  Directory: 'Danh mục',
+  'Match my courses (AI)': 'Khớp khóa học (AI)',
+  'For you': 'Dành cho bạn',
+  'Matched to your saved universities': 'Phù hợp với trường bạn đã lưu',
+  'Search scholarships by name': 'Tìm học bổng theo tên',
+  Scope: 'Loại hình',
+  'Funding type': 'Loại học bổng',
+  Country: 'Quốc gia',
+  'All countries': 'Tất cả quốc gia',
+  'Clear filters': 'Xóa bộ lọc',
+  'No scholarships match these filters': 'Không có học bổng nào khớp bộ lọc',
+  Relevance: 'Liên quan',
+  'Name (A–Z)': 'Tên (A–Z)',
+  'Official link': 'Trang chính thức',
+  'Applicable universities': 'Trường áp dụng',
+  Coverage: 'Giá trị học bổng',
+  Eligibility: 'Đối tượng',
+  Conditions: 'Điều kiện ứng tuyển',
+  Insight: 'Phân tích',
+  Slots: 'Số suất',
+  'Ranking / acceptance': 'Xếp hạng / tỷ lệ trúng tuyển',
+  Provider: 'Đơn vị tài trợ',
+  // Scope labels (match SCHOLARSHIP_SCOPE_LABELS in src/lib/scholarships.ts)
+  'University-specific': 'Theo trường',
+  'Country / government': 'Theo quốc gia / chính phủ',
+  Consortium: 'Liên minh trường',
+  'Foundation / provider': 'Quỹ / tổ chức tài trợ',
+  // Funding-type labels (match FUNDING_TYPE_LABELS in src/lib/scholarships.ts)
+  'Merit-based': 'Theo thành tích',
+  'Need-based': 'Theo nhu cầu tài chính',
+  Leadership: 'Lãnh đạo',
+  Research: 'Nghiên cứu',
+  Sport: 'Thể thao',
+  'Diversity & inclusion': 'Đa dạng & hòa nhập',
+  'Regional / government': 'Khu vực / chính phủ',
+  'Field-specific': 'Theo ngành',
+  'Full ride': 'Toàn phần',
+  Partial: 'Bán phần',
+  'Travel / mobility': 'Đi lại / trao đổi',
+  Other: 'Khác',
+
+  // ── Onboarding (quiz) ─────────────────────────────────────────────────────
+  // Rendered via t() in onboarding-single-page.tsx (the page opts out of the
+  // DOM auto-translator). Reuses existing keys: Undergraduate, Postgraduate,
+  // Engineering, Business, Computer Science, Medicine, Big city, Campus town,
+  // Quiet / green, Flexible.
+  'GLOWBAL · onboarding': 'GLOWBAL · onboarding',
+  'Skip to search': 'Bỏ qua, tới tìm kiếm',
+  "Tell us about you. We'll do the rest.": 'Kể cho chúng tôi về bạn. Phần còn lại để chúng tôi lo.',
+  'A 60-second detour will sharpen your search.': 'Một phút trả lời sẽ giúp tìm kiếm của bạn chính xác hơn.',
+  'Filling in these questions lets': 'Việc trả lời những câu hỏi này giúp',
+  'rank universities by how well they fit your subject, budget, country preference, and goals. You can skip any time — your search will just be more generic until you do.':
+    'xếp hạng các trường theo mức độ phù hợp với ngành học, ngân sách, quốc gia mong muốn và mục tiêu của bạn. Bạn có thể bỏ qua bất cứ lúc nào — kết quả tìm kiếm sẽ chung chung hơn cho đến khi bạn điền.',
+  "Seven short questions. They tune the matcher so the universities you see actually fit you. Skip any you're not sure about — every answer makes the search better, none are required.":
+    'Bảy câu hỏi ngắn. Chúng tinh chỉnh công cụ ghép cặp để các trường bạn thấy thực sự phù hợp với bạn. Câu nào chưa chắc thì cứ bỏ qua — mỗi câu trả lời đều giúp tìm kiếm tốt hơn, không câu nào bắt buộc.',
+  'Pick at least one answer to save a personalised match.': 'Chọn ít nhất một câu trả lời để lưu kết quả phù hợp được cá nhân hóa.',
+  'Looking great — {completed}/{total} answered.': 'Tuyệt vời — đã trả lời {completed}/{total}.',
+  'All set. Save your profile to unlock matches.': 'Đã xong. Lưu hồ sơ để mở khóa các trường phù hợp.',
+  'Skip for now': 'Bỏ qua',
+  'Saving…': 'Đang lưu…',
+  'Save & see matches': 'Lưu & xem kết quả phù hợp',
+  'Sign in & save': 'Đăng nhập & lưu',
+  'Please sign in so we can save your profile.': 'Vui lòng đăng nhập để chúng tôi lưu hồ sơ của bạn.',
+  "A sentence or two about the future you're building toward.": 'Một hai câu về tương lai bạn đang hướng tới.',
+
+  // Questions (title + body)
+  'What level are you aiming for?': 'Bạn đang hướng tới bậc học nào?',
+  'Start with the path you are actually planning now.': 'Bắt đầu từ con đường bạn đang thực sự dự định.',
+  'Which subject worlds pull you in?': 'Lĩnh vực nào thu hút bạn?',
+  'Pick the broad theme — you can refine specific courses later.':
+    'Chọn nhóm ngành lớn — bạn có thể tinh chỉnh khóa học cụ thể sau.',
+  'Which parts of the world feel right?': 'Khu vực nào trên thế giới hợp với bạn?',
+  'Think globally, then narrow it down to places that excite you.':
+    'Nghĩ rộng toàn cầu, rồi thu hẹp về những nơi khiến bạn hào hứng.',
+  'What budget feels realistic?': 'Ngân sách nào là phù hợp với bạn?',
+  'A strong shortlist should be ambitious, but still within reach.':
+    'Một danh sách tốt nên đủ tham vọng nhưng vẫn trong tầm với.',
+  'What kind of environment suits you?': 'Môi trường nào hợp với bạn?',
+  'Course fit matters, but so does where you will actually live.':
+    'Khóa học phù hợp rất quan trọng, nhưng nơi bạn sẽ sống cũng vậy.',
+  'Where do you most want support?': 'Bạn cần hỗ trợ nhất ở đâu?',
+  'No judgement — pick the area where guidance would help most.':
+    'Không phán xét — chọn mảng mà sự hướng dẫn sẽ giúp bạn nhiều nhất.',
+  'What kind of future are you building?': 'Bạn đang xây dựng một tương lai như thế nào?',
+  'Speak in your own words — even one sentence helps us match you.':
+    'Hãy nói theo cách của bạn — chỉ một câu cũng giúp chúng tôi ghép cặp tốt hơn.',
+
+  // Study level (missing one)
+  PhD: 'Tiến sĩ',
+
+  // Subject families + first two children (shown as hints)
+  Technology: 'Công nghệ',
+  'Arts & Creative': 'Nghệ thuật & Sáng tạo',
+  'Social Sciences': 'Khoa học Xã hội',
+  'Health and Science': 'Sức khỏe & Khoa học',
+  'Software Engineering': 'Kỹ thuật Phần mềm',
+  'Mechanical Engineering': 'Kỹ thuật Cơ khí',
+  'Civil Engineering': 'Kỹ thuật Xây dựng',
+  'Business Management': 'Quản trị Kinh doanh',
+  Finance: 'Tài chính',
+  Drama: 'Sân khấu',
+  Music: 'Âm nhạc',
+  Psychology: 'Tâm lý học',
+  Politics: 'Chính trị học',
+  Biology: 'Sinh học',
+
+  // Regions + hints
+  'UK & Ireland': 'Anh & Ireland',
+  Europe: 'Châu Âu',
+  'North America': 'Bắc Mỹ',
+  'Asia-Pacific': 'Châu Á - Thái Bình Dương',
+  'Middle East': 'Trung Đông',
+  'Open to ideas': 'Cởi mở với những ý tưởng',
+  'United Kingdom, Ireland': 'Vương quốc Anh, Ireland',
+  'Germany, France, Netherlands': 'Đức, Pháp, Hà Lan',
+  'United States, Canada': 'Hoa Kỳ, Canada',
+  'Singapore, Australia, Japan': 'Singapore, Úc, Nhật Bản',
+  'UAE, Qatar': 'UAE, Qatar',
+  'Show best-fit places first': 'Hiện những nơi phù hợp nhất trước',
+
+  // Budget
+  'Under $15k': 'Dưới $15k',
+  'Up to $25k': 'Tối đa $25k',
+  'Up to $50k': 'Tối đa $50k',
+  '$50k+': 'Trên $50k',
+
+  // Support needs
+  'Applications and deadlines': 'Hồ sơ và thời hạn',
+  'Choosing the right country': 'Chọn đúng quốc gia',
+  'Budget / affordability': 'Ngân sách / khả năng chi trả',
+  'Confidence and direction': 'Sự tự tin và định hướng',
+  'Scholarships and funding': 'Học bổng và tài trợ',
+  'Parents / family alignment': 'Đồng thuận với cha mẹ / gia đình',
+
+  // Goal ideas
+  'Build a global AI career with strong scholarship support.':
+    'Xây dựng sự nghiệp AI toàn cầu với sự hỗ trợ học bổng vững chắc.',
+  'Study computer science abroad and launch a startup one day.':
+    'Du học ngành khoa học máy tính và một ngày nào đó khởi nghiệp.',
+  'Find a university that opens doors into product and innovation.':
+    'Tìm một trường mở ra cánh cửa vào lĩnh vực sản phẩm và đổi mới.',
+  'Move into a big international city and grow my confidence.':
+    'Chuyển đến một thành phố lớn và phát triển sự tự tin.',
+  'Get a practical degree that leads to strong job options worldwide.':
+    'Có một tấm bằng thực tiễn dẫn tới nhiều cơ hội việc làm tốt trên toàn cầu.',
+
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',
   'Tiếng Việt': 'Tiếng Việt',

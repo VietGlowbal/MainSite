@@ -29,6 +29,7 @@ import {
   subjectFamilies,
   supportNeeds,
 } from '@/lib/onboarding-options';
+import { useT } from '@/lib/i18n';
 import type { StudentProfile } from '@/lib/types';
 
 const LightGlobe = dynamic(
@@ -152,6 +153,7 @@ export function OnboardingSinglePage({
   isSignedIn?: boolean;
 }) {
   const router = useRouter();
+  const t = useT();
   const searchParams = useSearchParams();
   const fromSearch = searchParams.get('from') === 'search';
 
@@ -269,7 +271,8 @@ export function OnboardingSinglePage({
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden">
+    // Localised explicitly via t() below, so opt out of the DOM auto-translator.
+    <div className="relative min-h-screen overflow-hidden" data-no-auto-translate>
       {/* Soft brand background — same pink/aqua wash as the rest of the site */}
       <div
         aria-hidden
@@ -292,38 +295,35 @@ export function OnboardingSinglePage({
         <div className="relative">
           <div className="flex items-center gap-2 mb-4">
             <span className="text-[0.7rem] font-bold uppercase tracking-[0.2em] text-pink-600">
-              GLOWBAL · onboarding
+              {t('GLOWBAL · onboarding')}
             </span>
             <button
               type="button"
               onClick={skip}
               className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-pink-600 transition"
             >
-              Skip to search
+              {t('Skip to search')}
               <span aria-hidden>→</span>
             </button>
           </div>
 
           <h1 className="text-3xl font-semibold tracking-[-0.04em] text-slate-900 md:text-5xl">
-            Tell us about you. We&apos;ll do the rest.
+            {t("Tell us about you. We'll do the rest.")}
           </h1>
 
           {fromSearch ? (
             <div className="mt-5 rounded-2xl border border-pink-100 bg-pink-50/60 p-4 text-sm text-slate-700">
               <p className="font-semibold text-pink-700">
-                A 60-second detour will sharpen your search.
+                {t('A 60-second detour will sharpen your search.')}
               </p>
               <p className="mt-1 leading-relaxed">
-                Filling in these questions lets <span className="glowbal-wordmark">GLOWBAL</span> rank
-                universities by how well they fit your subject, budget, country preference, and goals.
-                You can skip any time — your search will just be more generic until you do.
+                {t('Filling in these questions lets')} <span className="glowbal-wordmark">GLOWBAL</span>{' '}
+                {t('rank universities by how well they fit your subject, budget, country preference, and goals. You can skip any time — your search will just be more generic until you do.')}
               </p>
             </div>
           ) : (
             <p className="mt-3 max-w-2xl text-base leading-7 text-slate-600">
-              Seven short questions. They tune the matcher so the universities you see
-              actually fit you. Skip any you&apos;re not sure about — every answer makes
-              the search better, none are required.
+              {t("Seven short questions. They tune the matcher so the universities you see actually fit you. Skip any you're not sure about — every answer makes the search better, none are required.")}
             </p>
           )}
 
@@ -365,7 +365,7 @@ export function OnboardingSinglePage({
                 <Choice
                   key={family.key}
                   label={family.label}
-                  hint={family.children.slice(0, 2).join(' · ')}
+                  hint={family.children.slice(0, 2).map((c) => t(c)).join(' · ')}
                   selected={answers.subjects === family.children[0]}
                   onClick={() => update('subjects', family.children[0])}
                 />
@@ -435,20 +435,25 @@ export function OnboardingSinglePage({
             <textarea
               value={answers.goals}
               onChange={(e) => update('goals', e.target.value)}
-              placeholder="A sentence or two about the future you're building toward."
+              placeholder={t("A sentence or two about the future you're building toward.")}
               className="min-h-32 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-base text-slate-800 shadow-sm outline-none transition focus:border-pink-300 focus:ring-4 focus:ring-pink-100"
             />
             <div className="mt-3 flex flex-wrap gap-2">
-              {goalIdeas.map((idea) => (
-                <button
-                  type="button"
-                  key={idea}
-                  onClick={() => update('goals', idea)}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 hover:border-pink-200 hover:text-pink-600 transition"
-                >
-                  {idea.slice(0, 60)}{idea.length > 60 ? '…' : ''}
-                </button>
-              ))}
+              {goalIdeas.map((idea) => {
+                // Display + insert the Vietnamese version so the textarea matches
+                // what the user clicked (goals is free-text, so storing VI is fine).
+                const label = t(idea);
+                return (
+                  <button
+                    type="button"
+                    key={idea}
+                    onClick={() => update('goals', label)}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-500 hover:border-pink-200 hover:text-pink-600 transition"
+                  >
+                    {label.slice(0, 60)}{label.length > 60 ? '…' : ''}
+                  </button>
+                );
+              })}
             </div>
           </QuestionCard>
 
@@ -457,30 +462,30 @@ export function OnboardingSinglePage({
             <div className="rounded-2xl border border-slate-200 bg-white/95 backdrop-blur p-3 flex flex-wrap items-center gap-3 shadow-[0_18px_40px_rgba(15,23,42,0.10)]">
               <p className="text-sm text-slate-600 flex-1 min-w-[180px]">
                 {completed === 0
-                  ? 'Pick at least one answer to save a personalised match.'
+                  ? t('Pick at least one answer to save a personalised match.')
                   : completed < QUESTIONS.length
-                    ? `Looking great — ${completed}/${QUESTIONS.length} answered.`
-                    : 'All set. Save your profile to unlock matches.'}
+                    ? t('Looking great — {completed}/{total} answered.', { completed, total: QUESTIONS.length })
+                    : t('All set. Save your profile to unlock matches.')}
               </p>
               <button
                 type="button"
                 onClick={skip}
                 className="rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-600 hover:border-slate-300"
               >
-                Skip for now
+                {t('Skip for now')}
               </button>
               <button
                 type="submit"
                 disabled={submitting || completed === 0}
                 className="rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.3)] disabled:opacity-50 disabled:cursor-not-allowed transition hover:-translate-y-0.5"
               >
-                {submitting ? 'Saving…' : isSignedIn ? 'Save & see matches' : 'Sign in & save'}
+                {submitting ? t('Saving…') : isSignedIn ? t('Save & see matches') : t('Sign in & save')}
               </button>
             </div>
           </div>
 
           {message ? (
-            <p className="text-center text-sm text-pink-600">{message}</p>
+            <p className="text-center text-sm text-pink-600">{t(message)}</p>
           ) : null}
         </form>
       </div>
@@ -499,6 +504,7 @@ function QuestionCard({
   answered: boolean;
   children: React.ReactNode;
 }) {
+  const t = useT();
   return (
     <section
       id={`q-${q.key}`}
@@ -514,9 +520,9 @@ function QuestionCard({
         >
           {answered ? '✓' : q.n}
         </span>
-        <h2 className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">{q.title}</h2>
+        <h2 className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">{t(q.title)}</h2>
       </header>
-      <p className="ml-10 mb-5 text-sm text-slate-600 leading-relaxed">{q.body}</p>
+      <p className="ml-10 mb-5 text-sm text-slate-600 leading-relaxed">{t(q.body)}</p>
       <div className="ml-10">{children}</div>
     </section>
   );
@@ -533,6 +539,7 @@ function Choice({
   selected: boolean;
   onClick: () => void;
 }) {
+  const t = useT();
   return (
     <button
       type="button"
@@ -544,8 +551,8 @@ function Choice({
           : 'border-slate-200 bg-white text-slate-700 hover:border-pink-200 hover:bg-pink-50/40'
       }`}
     >
-      <div className="font-semibold tracking-tight">{label}</div>
-      {hint ? <div className="mt-0.5 text-xs text-slate-500">{hint}</div> : null}
+      <div className="font-semibold tracking-tight">{t(label)}</div>
+      {hint ? <div className="mt-0.5 text-xs text-slate-500">{t(hint)}</div> : null}
     </button>
   );
 }
