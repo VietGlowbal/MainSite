@@ -6,6 +6,19 @@ import type { MatchBreakdown } from '@/lib/matching';
 
 // ── Extended university type for the explorer ───────────────────────────
 
+/** Slim, client-safe shape of a curated scholarship linked to a university. */
+export interface UniversityScholarship {
+  id: number;
+  name: string;
+  scope: string;
+  fundingType: string[];
+  amountLabel: string | null;
+  coverage: string | null;
+  eligibility: string | null;
+  deadlineLabel: string | null;
+  sourceUrl: string | null;
+}
+
 export interface ExplorerUniversity {
   // Core fields from Supabase `universities` table
   id: number;
@@ -56,6 +69,9 @@ export interface ExplorerUniversity {
   stats: { students: string; staff: string; campuses: string };
   requirements: string[];
   reviewsData: { name: string; stars: number; text: string }[];
+
+  /** Curated scholarships linked to this university (published only). */
+  scholarships: UniversityScholarship[];
 }
 
 // ── Country mappings ────────────────────────────────────────────────────
@@ -161,5 +177,6 @@ export function toExplorerUniversity(
     },
     requirements: reqs,
     reviewsData: [],
+    scholarships: [],
   };
 }

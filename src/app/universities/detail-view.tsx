@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useExplorer, type ExplorerUniversity } from '@/lib/explorer-context';
+import type { UniversityScholarship } from '@/lib/explorer-utils';
+import { FUNDING_TYPE_LABELS } from '@/lib/scholarships';
+import { AutoTranslate } from '@/lib/use-auto-translate';
 import { FadeInImage } from './fade-in-image';
 import { COUNTRY_FLAGS } from './explorer-constants';
 
@@ -354,9 +357,11 @@ function DetailHero({
 function DetailTabs({
   active,
   onChange,
+  scholarshipCount = 0,
 }: {
   active: DetailTab;
   onChange: (tab: DetailTab) => void;
+  scholarshipCount?: number;
 }) {
   return (
     <div className="rounded-2xl border border-slate-200 bg-white shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
@@ -381,6 +386,11 @@ function DetailTabs({
               <span className="inline-flex items-center gap-1.5">
                 <DetailTabIcon tab={tab.key} />
                 {tab.label}
+                {tab.key === 'tuition' && scholarshipCount > 0 ? (
+                  <span className="ml-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-pink-100 px-1 text-[10px] font-bold text-pink-600">
+                    {scholarshipCount}
+                  </span>
+                ) : null}
               </span>
               {isActive ? (
                 <span
@@ -881,7 +891,11 @@ function DetailViewBody({
 
       {/* Tabs */}
       <div className="mt-4">
-        <DetailTabs active={activeTab} onChange={setActiveTab} />
+        <DetailTabs
+          active={activeTab}
+          onChange={setActiveTab}
+          scholarshipCount={university.scholarships.length}
+        />
       </div>
 
       {/* Body */}
@@ -889,6 +903,8 @@ function DetailViewBody({
         <div className="min-w-0 space-y-5">
           {activeTab === 'overview' ? (
             <DetailOverviewBody university={university} programs={programs} />
+          ) : activeTab === 'tuition' ? (
+            <DetailFundingBody university={university} />
           ) : (
             <DetailComingSoonPanel tab={activeTab} />
           )}
@@ -1394,6 +1410,125 @@ function CampusGallery({ university }: { university: ExplorerUniversity }) {
           ) : null}
         </div>
       ))}
+    </div>
+  );
+}
+
+/**
+ * Tuition & Costs tab — real content: cost summary + the curated scholarships
+ * linked to this university (from public.scholarships via the universities page).
+ */
+function DetailFundingBody({ university }: { university: ExplorerUniversity }) {
+  const scholarships = university.scholarships ?? [];
+  const legacyNote =
+    university.scholarship && !/none|n\/a|^—$/i.test(university.scholarship.trim())
+      ? university.scholarship
+      : null;
+
+  return (
+    <div className="space-y-5">
+      {/* Cost summary */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
+        <h3 className="text-sm font-semibold text-slate-900">Tuition &amp; costs</h3>
+        <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {[
+            { label: 'Tuition (Intl.)', value: university.tuition_usd },
+            { label: 'Living cost', value: university.living_cost_usd },
+            { label: 'Acceptance rate', value: university.accept_rate },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-xl bg-slate-50 px-3 py-2 text-center">
+              <p className="text-sm font-semibold text-slate-900">{stat.value || '—'}</p>
+              <p className="text-[11px] text-slate-400">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+        {legacyNote && (
+          <p className="mt-3 text-sm leading-relaxed text-slate-600">
+            <span className="font-semibold text-slate-700">Scholarship note: </span>
+            <AutoTranslate text={legacyNote} />
+          </p>
+        )}
+      </section>
+
+      {/* Curated scholarships linked to this university */}
+      <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="text-sm font-semibold text-slate-900">
+            Scholarships available here{scholarships.length > 0 ? ` (${scholarships.length})` : ''}
+          </h3>
+          <Link href="/scholarships" className="text-xs font-medium text-pink-600 hover:text-pink-700">
+            Browse all →
+          </Link>
+        </div>
+
+        {scholarships.length === 0 ? (
+          <p className="mt-3 text-sm text-slate-500">
+            No curated scholarships are linked to this university yet. Explore the full directory for
+            country and provider scholarships you may be eligible for.
+          </p>
+        ) : (
+          <div className="mt-3 space-y-3">
+            {scholarships.map((s) => (
+              <ScholarshipMiniCard key={s.id} scholarship={s} />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
+function ScholarshipMiniCard({ scholarship: s }: { scholarship: UniversityScholarship }) {
+  return (
+    <div className="rounded-xl border border-slate-100 bg-slate-50/60 p-4">
+      <div className="flex items-start justify-between gap-2">
+        <h4 className="text-sm font-semibold text-slate-900">{s.name}</h4>
+        {s.amountLabel && (
+          <span className="shrink-0 text-sm font-bold text-slate-900">{s.amountLabel}</span>
+        )}
+      </div>
+
+      {s.fundingType.length > 0 && (
+        <div className="mt-1.5 flex flex-wrap gap-1">
+          {s.fundingType.slice(0, 3).map((ft) => (
+            <span
+              key={ft}
+              className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-medium text-slate-600"
+            >
+              {FUNDING_TYPE_LABELS[ft as keyof typeof FUNDING_TYPE_LABELS] ?? ft}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {!s.amountLabel && s.coverage && (
+        <AutoTranslate as="p" className="mt-1.5 text-xs text-slate-600 line-clamp-1" text={s.coverage} />
+      )}
+      {s.eligibility && (
+        <AutoTranslate
+          as="p"
+          className="mt-1.5 text-xs leading-relaxed text-slate-500 line-clamp-2"
+          text={s.eligibility}
+        />
+      )}
+
+      <div className="mt-2 flex items-center justify-between">
+        {s.deadlineLabel ? (
+          <span className="text-[10px] text-slate-400">Deadline: {s.deadlineLabel}</span>
+        ) : (
+          <span />
+        )}
+        {s.sourceUrl && (
+          <a
+            href={s.sourceUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[11px] font-medium text-pink-600 hover:text-pink-700"
+          >
+            Official link →
+          </a>
+        )}
+      </div>
     </div>
   );
 }
