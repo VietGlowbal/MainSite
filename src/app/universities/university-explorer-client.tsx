@@ -944,33 +944,138 @@ function formatAcceptanceForCard(rate: string | null | undefined): string {
 }
 
 /**
+ * Parse a free-text tuition string into a numeric USD figure (major units).
+ * Returns a {lo, hi} range, the sentinel 'free', or null when nothing is parseable.
+ * Mirrors the number-extraction in formatTuitionForCard — do NOT use parseTuition()
+ * above, which strips every separator and would fuse "42,000-65,000" into one number.
+ */
+function parseTuitionRange(
+  tuition: string | null | undefined,
+): { lo: number; hi: number } | 'free' | null {
+  if (!tuition) return null;
+  const trimmed = tuition.trim();
+  if (!trimmed || trimmed === '—') return null;
+  if (/free/i.test(trimmed)) return 'free';
+  const cleaned = trimmed.replace(/[,]/g, '');
+  const range = cleaned.match(/(\d{3,6})\s*[–-]\s*(\d{3,6})/);
+  if (range) return { lo: parseInt(range[1], 10), hi: parseInt(range[2], 10) };
+  const single = cleaned.match(/(\d{3,6})/);
+  if (single) {
+    const n = parseInt(single[1], 10);
+    return { lo: n, hi: n };
+  }
+  return null;
+}
+
+/** "$X" for a single major-unit USD amount, condensing thousands to a k-suffix. */
+function formatUsdOne(n: number): string {
+  return n >= 1000 ? `${Math.round(n / 1000)}k` : `${Math.round(n)}`;
+}
+
+/**
+ * Compact "$" presentation of a USD amount (major units): "$42–65k", "$343", "$0".
+ * A range where both ends are ≥ 1000 shares a single trailing "k" ("$42–65k").
+ */
+function formatUsdCompact(lo: number, hi?: number): string {
+  if (hi != null && hi !== lo) {
+    if (lo >= 1000 && hi >= 1000) return `$${Math.round(lo / 1000)}–${Math.round(hi / 1000)}k`;
+    return `$${formatUsdOne(lo)}–${formatUsdOne(hi)}`;
+  }
+  return `$${formatUsdOne(lo)}`;
+}
+
+/**
  * Compact tuition string for the stat row. Picks the first dollar /
  * numeric value, prefixes with `$`, and condenses k-suffixes — so
  * "42,000-65,000 USD" becomes "$42–65k", "59,320 (UG); ~$65,000"
  * becomes "$59k", and "Free" stays as "Free".
  */
 function formatTuitionForCard(tuition: string | null | undefined): string {
+  const parsed = parseTuitionRange(tuition);
+  if (parsed === 'free') return 'Free';
+  if (parsed) return formatUsdCompact(parsed.lo, parsed.hi);
+  // Unparseable: show short non-numeric text as-is, otherwise an em dash.
   if (!tuition) return '—';
   const trimmed = tuition.trim();
   if (!trimmed || trimmed === '—') return '—';
-  if (/free/i.test(trimmed)) return 'Free';
-
-  // Pull the first run of numbers. We don't try to parse multi-currency
-  // mess — just show the first thousand-grouped or k-suffixed amount.
-  const cleaned = trimmed.replace(/[,]/g, '');
-  const range = cleaned.match(/(\d{3,6})\s*[–-]\s*(\d{3,6})/);
-  if (range) {
-    const lo = Math.round(parseInt(range[1], 10) / 1000);
-    const hi = Math.round(parseInt(range[2], 10) / 1000);
-    return `$${lo}–${hi}k`;
-  }
-  const single = cleaned.match(/(\d{3,6})/);
-  if (single) {
-    const n = parseInt(single[1], 10);
-    if (n >= 1000) return `$${Math.round(n / 1000)}k`;
-    return `$${n}`;
-  }
   return trimmed.length > 10 ? `${trimmed.slice(0, 9).trim()}…` : trimmed;
+}
+
+/**
+ * Highest tuition-coverage percentage in a free-text coverage string, e.g.
+ * "100% tuition" → 100, "80%–90% tuition" → 90, "50%, 60% or 70% tuition" → 70.
+ * Falls back to 100 for full-ride funding when no number is present; null = no signal.
+ */
+function parseCoveragePercent(
+  coverage: string | null | undefined,
+  fundingType: string[] | null | undefined,
+): number | null {
+  const text = (coverage ?? '').trim();
+  if (text) {
+    const pcts = [...text.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].map((m) => parseFloat(m[1]));
+    const valid = pcts.filter((p) => p > 0 && p <= 100);
+    if (valid.length) return Math.max(...valid);
+  }
+  if ((fundingType ?? []).includes('full-ride')) return 100;
+  return null;
+}
+
+/**
+ * Approximate FX rates to USD for display-only net-tuition estimates. Static and
+ * intentionally rough — scholarship awards are competitive estimates anyway, and we
+ * only need order-of-magnitude correctness to avoid wildly misleading figures.
+ */
+const USD_PER: Record<string, number> = {
+  USD: 1,
+  EUR: 1.08,
+  GBP: 1.27,
+  AUD: 0.66,
+  CAD: 0.73,
+  SGD: 0.74,
+  CHF: 1.12,
+  VND: 0.00004,
+};
+
+function amountToUsd(amount: number, currency: string | null | undefined): number | null {
+  const rate = USD_PER[(currency ?? 'USD').toUpperCase()];
+  return rate == null ? null : amount * rate;
+}
+
+/**
+ * Tuition after the single best (largest-reduction) curated scholarship. A parseable
+ * coverage percentage scales the tuition; otherwise the scholarship's cash amount
+ * (converted to USD) is subtracted. Returns null when there's nothing to discount —
+ * no parseable tuition, tuition already free, or no scholarship that reduces it.
+ */
+function computeNetTuition(
+  university: ExplorerUniversity,
+): { netLo: number; netHi: number; scholarshipName: string } | null {
+  const range = parseTuitionRange(university.tuition_usd);
+  if (range === null || range === 'free') return null;
+
+  let best: { netLo: number; netHi: number; scholarshipName: string } | null = null;
+  for (const s of university.scholarships ?? []) {
+    let netLo: number;
+    let netHi: number;
+
+    const pct = parseCoveragePercent(s.coverage, s.fundingType);
+    if (pct != null) {
+      const factor = 1 - pct / 100;
+      netLo = range.lo * factor;
+      netHi = range.hi * factor;
+    } else {
+      const amount = s.amountMax ?? s.amountMin;
+      if (amount == null) continue;
+      const amtUsd = amountToUsd(amount, s.amountCurrency);
+      if (amtUsd == null) continue;
+      netLo = Math.max(0, range.lo - amtUsd);
+      netHi = Math.max(0, range.hi - amtUsd);
+    }
+
+    if (netHi >= range.hi) continue; // didn't actually reduce the bill
+    if (!best || netHi < best.netHi) best = { netLo, netHi, scholarshipName: s.name };
+  }
+  return best;
 }
 
 /**
@@ -1189,6 +1294,7 @@ function UniversityRow({
   const flag = COUNTRY_FLAGS[university.country] ?? '🎓';
   const acceptDisplay = formatAcceptanceForCard(university.accept_rate);
   const tuitionDisplay = formatTuitionForCard(university.tuition_usd);
+  const netTuition = computeNetTuition(university);
   const cardTags = useMemo(() => deriveCardTags(university, 3), [university]);
   const blurb =
     (university.specific_insight ?? '') ||
@@ -1289,7 +1395,7 @@ function UniversityRow({
       </div>
 
       {/* RIGHT — Stats + actions */}
-      <div className="flex shrink-0 flex-col justify-between gap-3 md:w-56 md:border-l md:border-slate-100 md:pl-4">
+      <div className="flex shrink-0 flex-col justify-between gap-3 md:w-64 md:border-l md:border-slate-100 md:pl-4">
         <dl className="space-y-2">
           <div className="flex items-center justify-between gap-3 text-xs">
             <dt className="text-slate-500">QS Ranking</dt>
@@ -1309,18 +1415,38 @@ function UniversityRow({
               {acceptDisplay}
             </dd>
           </div>
-          <div className="flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-start justify-between gap-3 text-xs">
             <dt className="text-slate-500">Tuition (Intl.)</dt>
             <dd
-              className="font-bold text-slate-900"
-              title={university.tuition_usd ?? undefined}
+              className="flex flex-col items-end leading-tight"
+              title={
+                netTuition
+                  ? `Tuition after ${netTuition.scholarshipName}`
+                  : university.tuition_usd ?? undefined
+              }
             >
-              {tuitionDisplay === 'Free' || tuitionDisplay === '—'
-                ? tuitionDisplay
-                : `$${tuitionDisplay}`}
-              {tuitionDisplay !== '—' && tuitionDisplay !== 'Free' ? (
-                <span className="ml-0.5 text-[0.65rem] font-medium text-slate-400">/yr</span>
-              ) : null}
+              {netTuition ? (
+                <>
+                  <span className="font-bold text-slate-900">
+                    {netTuition.netHi <= 0
+                      ? 'Free'
+                      : formatUsdCompact(netTuition.netLo, netTuition.netHi)}
+                    {netTuition.netHi > 0 ? (
+                      <span className="ml-0.5 text-[0.65rem] font-medium text-slate-400">/yr</span>
+                    ) : null}
+                  </span>
+                  <span className="mt-0.5 text-[0.65rem] font-medium text-slate-400">
+                    <span className="line-through">{tuitionDisplay}</span> after scholarship
+                  </span>
+                </>
+              ) : (
+                <span className="font-bold text-slate-900">
+                  {tuitionDisplay}
+                  {tuitionDisplay !== '—' && tuitionDisplay !== 'Free' ? (
+                    <span className="ml-0.5 text-[0.65rem] font-medium text-slate-400">/yr</span>
+                  ) : null}
+                </span>
+              )}
             </dd>
           </div>
         </dl>
@@ -1391,6 +1517,7 @@ function UniversityCardCompact({
   const flag = COUNTRY_FLAGS[university.country] ?? '🎓';
   const cardTags = useMemo(() => deriveCardTags(university, 2), [university]);
   const tuitionDisplay = formatTuitionForCard(university.tuition_usd);
+  const netTuition = computeNetTuition(university);
   const hasMatch = university.match_score != null;
 
   // Same image-fade pattern as UniversityRow — see comment there.
@@ -1471,13 +1598,21 @@ function UniversityCardCompact({
           {hasMatch ? (
             <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} size="sm" />
           ) : (
-            <span className="text-slate-500">
+            <span
+              className="text-slate-500"
+              title={netTuition ? `Tuition after ${netTuition.scholarshipName}` : undefined}
+            >
               <span className="text-slate-400">Tuition</span>{' '}
               <span className="font-bold text-slate-900">
-                {tuitionDisplay === 'Free' || tuitionDisplay === '—'
-                  ? tuitionDisplay
-                  : `$${tuitionDisplay}`}
+                {netTuition
+                  ? netTuition.netHi <= 0
+                    ? 'Free'
+                    : formatUsdCompact(netTuition.netLo, netTuition.netHi)
+                  : tuitionDisplay}
               </span>
+              {netTuition ? (
+                <span className="ml-1 text-slate-400 line-through">{tuitionDisplay}</span>
+              ) : null}
             </span>
           )}
           <button
@@ -1625,15 +1760,11 @@ function applyFilters(
     result = result.filter((u) => (u.type ?? '').toLowerCase().includes(filters.type));
   }
 
-  // Scholarship
+  // Scholarship — only universities with at least one curated scholarship linked.
+  // (The legacy free-text `scholarship` note exists for nearly every university, so it
+  // can't drive this filter; the curated `scholarships` array is the real signal.)
   if (filters.scholarship === 'available') {
-    result = result.filter((u) => {
-      const s = (u.scholarship ?? '').toLowerCase().trim();
-      if (!s) return false;
-      // Treat clearly negative phrases as not-available
-      if (s === '—' || s === 'none' || s === 'not available' || s === 'n/a') return false;
-      return true;
-    });
+    result = result.filter((u) => (u.scholarships ?? []).length > 0);
   }
 
   // Deadline (interprets the application_deadline string heuristically)

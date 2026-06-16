@@ -13,6 +13,9 @@ export interface UniversityScholarship {
   scope: string;
   fundingType: string[];
   amountLabel: string | null;
+  amountMin: number | null;
+  amountMax: number | null;
+  amountCurrency: string | null;
   coverage: string | null;
   eligibility: string | null;
   deadlineLabel: string | null;
