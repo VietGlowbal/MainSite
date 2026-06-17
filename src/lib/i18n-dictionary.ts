@@ -313,6 +313,15 @@ export const translations: Record<string, string> = {
   'University Portal': 'Cổng thông tin của trường',
   'QS Ranking': 'Xếp hạng QS',
   'Tuition (Intl.)': 'Học phí (Quốc tế)',
+  'after scholarship': 'sau học bổng',
+  '/yr': '/năm',
+  'What are your real admission odds?': 'Cơ hội đỗ thật sự của bạn là bao nhiêu?',
+  "Tell us what and where you want to study — we'll match you with universities and scholarships that fit.":
+    'Cho chúng tôi biết bạn muốn học ngành gì và ở đâu — chúng tôi sẽ gợi ý trường và học bổng phù hợp.',
+  'See my odds': 'Xem cơ hội của tôi',
+  'Choose a destination': 'Chọn bến đỗ',
+  'Free to explore — sign in to save your matches':
+    'Khám phá miễn phí — đăng nhập để lưu kết quả phù hợp',
   'Verified student': 'Sinh viên đã xác minh',
   'Need help?': 'Cần trợ giúp?',
   'Get expert guidance from current students and admissions mentors.':

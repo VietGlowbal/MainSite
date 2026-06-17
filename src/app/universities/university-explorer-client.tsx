@@ -68,10 +68,9 @@ const POPULAR_SEARCH_CHIPS: Array<{ label: string }> = [
    ────────────────────────────────────────────────────────────────────────
    This is a small, optional, in-page pill that nudges users towards the
    onboarding without ever taking over the page. It sits unobtrusively in
-   the page header area and is dismissable. The pop-up sticky bar that
-   used to scroll into view has been removed entirely — first-time
-   visitors are sent directly to the onboarding instead (see
-   FirstTimeOnboardingRedirect in the page file).
+   the page header area and is dismissable. Discovery is now led by the
+   HookBand at the top of the page (whose CTA hands off to onboarding),
+   so first-time visitors are no longer auto-redirected.
 ───────────────────────────────────────────────────────────────────────── */
 
 function ImproveSearchPill() {
@@ -256,6 +255,93 @@ function SearchHero({
           <ImproveSearchPill />
         </div>
       </div>
+    </section>
+  );
+}
+
+/**
+ * HookBand — the finful-style landing hook that sits at the very top of the
+ * page. Leads with a bold, personal admission-odds question, then an
+ * interactive teaser (subject + destination) and a CTA that hands off to
+ * `onStartMatch` (onboarding for new visitors, instant matches for profiled
+ * users). Headline / subline / CTA are single text nodes so the DOM
+ * translator can swap them via the i18n dictionary.
+ */
+function HookBand({
+  countries,
+  onStartMatch,
+}: {
+  countries: string[];
+  onStartMatch: (subject: string, country: string) => void;
+}) {
+  const [subject, setSubject] = useState('');
+  const [country, setCountry] = useState('');
+
+  return (
+    <section className="relative mb-6 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#FF3D9A,#FF85B3,#19B8D8)] px-6 py-9 shadow-[0_18px_44px_rgba(255,61,154,0.25)] md:px-12 md:py-12">
+      {/* Soft decorative glows */}
+      <span aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
+      <span aria-hidden className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+
+      <div className="relative z-10 max-w-2xl">
+        <h2 className="text-[2rem] font-semibold leading-[1.05] tracking-tight text-white md:text-[3rem]">
+          What are your real admission odds?
+        </h2>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/85 md:text-base">
+          Tell us what and where you want to study — we&apos;ll match you with universities and scholarships that fit.
+        </p>
+      </div>
+
+      {/* Interactive teaser: subject + destination + CTA */}
+      <div className="relative z-10 mt-6 flex flex-col gap-2 rounded-[1.5rem] bg-white/15 p-2 backdrop-blur-md sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <select
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            aria-label="Subject or field"
+            className="w-full cursor-pointer appearance-none rounded-full bg-white/95 py-3 pl-4 pr-9 text-sm font-medium text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <option value="">Select a subject or field</option>
+            {PROGRAM_OPTIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          <ChevronIcon />
+        </div>
+        <div className="relative flex-1">
+          <select
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            aria-label="Destination"
+            className="w-full cursor-pointer appearance-none rounded-full bg-white/95 py-3 pl-4 pr-9 text-sm font-medium text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <option value="">Choose a destination</option>
+            {countries.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <ChevronIcon />
+        </div>
+        <button
+          type="button"
+          onClick={() => onStartMatch(subject, country)}
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-pink-600 shadow-sm transition hover:bg-pink-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          See my odds
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </button>
+      </div>
+
+      <p className="relative z-10 mt-3 text-xs text-white/80">
+        Free to explore — sign in to save your matches
+      </p>
     </section>
   );
 }
@@ -969,26 +1055,23 @@ function parseTuitionRange(
 
 /** "$X" for a single major-unit USD amount, condensing thousands to a k-suffix. */
 function formatUsdOne(n: number): string {
-  return n >= 1000 ? `${Math.round(n / 1000)}k` : `${Math.round(n)}`;
+  return Math.round(n).toLocaleString('en-US'); // 62000 -> "62,000"
 }
 
 /**
- * Compact "$" presentation of a USD amount (major units): "$42–65k", "$343", "$0".
- * A range where both ends are ≥ 1000 shares a single trailing "k" ("$42–65k").
+ * "$" presentation of a USD amount (major units) as full, thousands-separated
+ * numbers: "$62,000", "$41,000–45,000", "$343", "$0".
  */
 function formatUsdCompact(lo: number, hi?: number): string {
-  if (hi != null && hi !== lo) {
-    if (lo >= 1000 && hi >= 1000) return `$${Math.round(lo / 1000)}–${Math.round(hi / 1000)}k`;
-    return `$${formatUsdOne(lo)}–${formatUsdOne(hi)}`;
-  }
+  if (hi != null && hi !== lo) return `$${formatUsdOne(lo)}–${formatUsdOne(hi)}`;
   return `$${formatUsdOne(lo)}`;
 }
 
 /**
- * Compact tuition string for the stat row. Picks the first dollar /
- * numeric value, prefixes with `$`, and condenses k-suffixes — so
- * "42,000-65,000 USD" becomes "$42–65k", "59,320 (UG); ~$65,000"
- * becomes "$59k", and "Free" stays as "Free".
+ * Tuition string for the stat row. Picks the first dollar / numeric value,
+ * prefixes with `$`, and shows full thousands-separated numbers — so
+ * "42,000-65,000 USD" becomes "$42,000–65,000", "59,320 (UG); ~$65,000"
+ * becomes "$59,320", and "Free" stays as "Free".
  */
 function formatTuitionForCard(tuition: string | null | undefined): string {
   const parsed = parseTuitionRange(tuition);
@@ -1395,9 +1478,9 @@ function UniversityRow({
       </div>
 
       {/* RIGHT — Stats + actions */}
-      <div className="flex shrink-0 flex-col justify-between gap-3 md:w-64 md:border-l md:border-slate-100 md:pl-4">
+      <div className="flex shrink-0 flex-col justify-between gap-3 md:w-80 md:border-l md:border-slate-100 md:pl-4">
         <dl className="space-y-2">
-          <div className="flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center justify-between gap-3 text-sm">
             <dt className="text-slate-500">QS Ranking</dt>
             <dd
               className="font-bold text-slate-900"
@@ -1406,7 +1489,7 @@ function UniversityRow({
               {university.qs_rank ? `#${university.qs_rank}` : '—'}
             </dd>
           </div>
-          <div className="flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center justify-between gap-3 text-sm">
             <dt className="text-slate-500">Acceptance Rate</dt>
             <dd
               className="font-bold text-slate-900"
@@ -1415,7 +1498,7 @@ function UniversityRow({
               {acceptDisplay}
             </dd>
           </div>
-          <div className="flex items-start justify-between gap-3 text-xs">
+          <div className="flex items-start justify-between gap-3 text-sm">
             <dt className="text-slate-500">Tuition (Intl.)</dt>
             <dd
               className="flex flex-col items-end leading-tight"
@@ -1427,15 +1510,15 @@ function UniversityRow({
             >
               {netTuition ? (
                 <>
-                  <span className="font-bold text-slate-900">
+                  <span className="text-base font-bold text-rose-600">
                     {netTuition.netHi <= 0
                       ? 'Free'
                       : formatUsdCompact(netTuition.netLo, netTuition.netHi)}
                     {netTuition.netHi > 0 ? (
-                      <span className="ml-0.5 text-[0.65rem] font-medium text-slate-400">/yr</span>
+                      <span className="ml-0.5 text-xs font-medium text-rose-400">/yr</span>
                     ) : null}
                   </span>
-                  <span className="mt-0.5 text-[0.65rem] font-medium text-slate-400">
+                  <span className="mt-0.5 text-xs font-medium text-slate-400">
                     <span className="line-through">{tuitionDisplay}</span> after scholarship
                   </span>
                 </>
@@ -1443,7 +1526,7 @@ function UniversityRow({
                 <span className="font-bold text-slate-900">
                   {tuitionDisplay}
                   {tuitionDisplay !== '—' && tuitionDisplay !== 'Free' ? (
-                    <span className="ml-0.5 text-[0.65rem] font-medium text-slate-400">/yr</span>
+                    <span className="ml-0.5 text-xs font-medium text-slate-400">/yr</span>
                   ) : null}
                 </span>
               )}
@@ -1603,7 +1686,7 @@ function UniversityCardCompact({
               title={netTuition ? `Tuition after ${netTuition.scholarshipName}` : undefined}
             >
               <span className="text-slate-400">Tuition</span>{' '}
-              <span className="font-bold text-slate-900">
+              <span className={netTuition ? 'font-bold text-rose-600' : 'font-bold text-slate-900'}>
                 {netTuition
                   ? netTuition.netHi <= 0
                     ? 'Free'
@@ -2238,53 +2321,13 @@ function CompareMetricRow({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   FIRST-TIME ONBOARDING REDIRECT
-   ────────────────────────────────────────────────────────────────────────
-   The first time a user lands on the search page, we send them to the
-   onboarding flow with `?from=search` so the onboarding shows a context
-   banner explaining how it improves results — and a clear "skip to
-   search" exit. The flag is stored in localStorage so we only do this
-   once per browser. Logged-in users who've already completed onboarding
-   are never redirected.
-───────────────────────────────────────────────────────────────────────── */
-
-const SEARCH_VISIT_FLAG = 'glowbal-search-visited';
-
-function FirstTimeOnboardingRedirect() {
-  const router = useRouter();
-  const { hasProfile } = useExplorer();
-
-  useEffect(() => {
-    if (hasProfile) return;
-    if (typeof window === 'undefined') return;
-
-    try {
-      const visited = window.localStorage.getItem(SEARCH_VISIT_FLAG);
-      if (visited) return;
-
-      // Honour an explicit "skip" flag set by the onboarding's skip button —
-      // we never want to bounce the user back if they just opted out.
-      if (window.sessionStorage.getItem('glowbal-onboarding-skipped') === '1') {
-        window.localStorage.setItem(SEARCH_VISIT_FLAG, '1');
-        return;
-      }
-
-      window.localStorage.setItem(SEARCH_VISIT_FLAG, '1');
-      router.replace('/onboarding?from=search');
-    } catch {
-      // localStorage might be disabled — quietly ignore.
-    }
-  }, [hasProfile, router]);
-
-  return null;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
    BROWSE VIEW (main layout)
 ───────────────────────────────────────────────────────────────────────── */
 
 function BrowseView() {
-  const { universities } = useExplorer();
+  const { universities, hasProfile } = useExplorer();
+  const router = useRouter();
+  const resultsRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState<SearchState>({ name: '', location: '', program: '' });
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortKey>('best_match');
@@ -2318,10 +2361,37 @@ function BrowseView() {
 
   const activeFilterChips = useMemo(() => buildActiveFilterChips(filters, search), [filters, search]);
 
+  // Destination options for the hook teaser — the countries actually present
+  // in the loaded data, de-duped and alphabetised.
+  const countryOptions = useMemo(
+    () => [...new Set(universities.map((u) => u.country))].sort(),
+    [universities],
+  );
+
+  // Hook CTA: profiled users get instant filtered matches; everyone else is
+  // funnelled into onboarding (which leads to sign-in). The chosen subject /
+  // country ride along as query params for optional onboarding prefill.
+  const onStartMatch = (subject: string, country: string) => {
+    setSearch((s) => ({
+      ...s,
+      program: subject || s.program,
+      location: country || s.location,
+    }));
+    if (!hasProfile) {
+      const p = new URLSearchParams({ from: 'search' });
+      if (subject) p.set('subject', subject);
+      if (country) p.set('country', country);
+      router.push(`/onboarding?${p.toString()}`);
+    } else {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <>
-      <FirstTimeOnboardingRedirect />
       <div className="w-full px-4 py-6 md:px-6 md:py-8">
+        {/* Landing hook — finful-style admission-odds question + teaser */}
+        <HookBand countries={countryOptions} onStartMatch={onStartMatch} />
         {/* Journey steps */}
         <JourneySteps activeStep={1} />
         {/* Hero */}
@@ -2344,7 +2414,7 @@ function BrowseView() {
           />
 
           {/* Main column */}
-          <div className="space-y-5">
+          <div ref={resultsRef} className="space-y-5 scroll-mt-6">
             <ResultsBar
               totalCount={filtered.length}
               compareCount={compareIds.length}
