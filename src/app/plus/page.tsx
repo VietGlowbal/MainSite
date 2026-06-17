@@ -1,13 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import {
-  PLUS_PACKAGES,
-  PLUS_BENEFITS,
-  FREE_FEATURES,
-  getPaymentLink,
-  type PlusPackage,
-} from '@/lib/plus';
+import { PLUS_PACKAGES, PLUS_BENEFITS, FREE_FEATURES, type PlusPackage } from '@/lib/plus';
+import { SubscribeButton } from '@/components/plus/subscribe-button';
 
 export const metadata: Metadata = {
   title: 'GlowBal Plus | Unlock your full scholarship plan',
@@ -15,30 +10,14 @@ export const metadata: Metadata = {
     'Upgrade to GlowBal Plus for more AI application strategies, full scholarship details, a document checklist, and priority student-supporter access.',
 };
 
-type UserLite = { id: string; email: string | null };
+export default async function PlusPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
+  const { welcome } = await searchParams;
+  const isWelcome = welcome === '1';
 
-/**
- * Build the subscribe href for a package:
- *  - signed out → send to sign-up, returning to /plus
- *  - signed in  → the Stripe payment link with the user attached via
- *    client_reference_id (so activation can be reconciled) + prefilled email
- *  - link missing → null (button renders disabled)
- */
-function buildHref(pkg: PlusPackage, user: UserLite | null): string | null {
-  if (!user) return '/auth?mode=signup&redirect=/plus';
-  const link = getPaymentLink(pkg);
-  if (!link) return null;
-  try {
-    const url = new URL(link);
-    url.searchParams.set('client_reference_id', user.id);
-    if (user.email) url.searchParams.set('prefilled_email', user.email);
-    return url.toString();
-  } catch {
-    return null;
-  }
-}
-
-export default async function PlusPage() {
   const supabase = await createClient();
   const {
     data: { user },
@@ -49,18 +28,28 @@ export default async function PlusPage() {
   if (user) {
     const { data: profile } = await supabase
       .from('student_profiles')
-      .select('plus_status, plus_plan, plus_expires_at')
+      .select('plus_status, plus_plan')
       .eq('user_id', user.id)
       .maybeSingle();
     isPlus = !!profile?.plus_status;
     planLabel = profile?.plus_plan ?? null;
   }
 
-  const userLite: UserLite | null = user ? { id: user.id, email: user.email ?? null } : null;
-
   return (
     <main className="min-h-screen bg-[linear-gradient(180deg,#FBFBFF,#ffffff)] px-5 py-14 sm:px-6">
       <div className="mx-auto max-w-6xl">
+        {isWelcome ? (
+          <div className="mx-auto mb-8 flex max-w-3xl flex-col items-center gap-3 rounded-3xl border border-pink-100 bg-white px-6 py-5 text-center shadow-[0_12px_30px_rgba(30,40,80,0.05)] sm:flex-row sm:justify-between sm:text-left">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">🎉 You’re all set!</p>
+              <p className="text-sm text-slate-500">Get the most from GlowBal with Plus — or keep exploring for free.</p>
+            </div>
+            <Link href="/universities" className="shrink-0 text-sm font-semibold text-slate-500 transition hover:text-slate-900">
+              Maybe later — see my matches →
+            </Link>
+          </div>
+        ) : null}
+
         <div className="mx-auto max-w-3xl text-center">
           <span className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">
             GlowBal Plus
@@ -85,7 +74,7 @@ export default async function PlusPage() {
         {/* Packages */}
         <div className="mt-12 grid items-stretch gap-5 lg:grid-cols-3">
           {PLUS_PACKAGES.map((pkg) => (
-            <PackageCard key={pkg.id} pkg={pkg} href={buildHref(pkg, userLite)} />
+            <PackageCard key={pkg.id} pkg={pkg} signedIn={!!user} />
           ))}
         </div>
 
@@ -117,7 +106,7 @@ export default async function PlusPage() {
   );
 }
 
-function PackageCard({ pkg, href }: { pkg: PlusPackage; href: string | null }) {
+function PackageCard({ pkg, signedIn }: { pkg: PlusPackage; signedIn: boolean }) {
   const highlighted = pkg.highlighted;
   return (
     <div
@@ -149,22 +138,7 @@ function PackageCard({ pkg, href }: { pkg: PlusPackage; href: string | null }) {
         </div>
       </div>
 
-      {href ? (
-        <a
-          href={href}
-          className={`mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition ${
-            highlighted
-              ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white shadow-[0_12px_28px_rgba(255,77,140,0.3)] hover:-translate-y-0.5'
-              : 'border border-slate-200 bg-white text-slate-700 hover:border-pink-300 hover:text-pink-600'
-          }`}
-        >
-          Subscribe now
-        </a>
-      ) : (
-        <span className="mt-6 inline-flex cursor-not-allowed items-center justify-center rounded-full border border-slate-200 bg-slate-50 px-6 py-3 text-sm font-semibold text-slate-400">
-          Available soon
-        </span>
-      )}
+      <SubscribeButton plan={pkg.id} signedIn={signedIn} highlighted={highlighted} />
 
       <div className="mt-6 rounded-2xl bg-pink-50 px-4 py-3 text-center">
         <span className="text-2xl font-bold text-pink-600">{pkg.aiCredits}</span>
@@ -183,10 +157,12 @@ function PackageCard({ pkg, href }: { pkg: PlusPackage; href: string | null }) {
         ))}
       </ul>
 
-      <p className="mt-5 text-center text-xs text-slate-400">
-        Need an account first?{' '}
-        <Link href="/auth?mode=signup&redirect=/plus" className="font-semibold text-pink-600">Sign up free</Link>
-      </p>
+      {!signedIn ? (
+        <p className="mt-5 text-center text-xs text-slate-400">
+          Need an account first?{' '}
+          <Link href="/auth?mode=signup&redirect=/plus" className="font-semibold text-pink-600">Sign up free</Link>
+        </p>
+      ) : null}
     </div>
   );
 }

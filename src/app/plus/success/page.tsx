@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getStripe } from '@/lib/stripe';
 import { getPlusPackage, computeExpiry } from '@/lib/plus';
 
 export const metadata: Metadata = {
@@ -13,21 +14,19 @@ export const metadata: Metadata = {
 /**
  * Post-payment landing for GlowBal Plus.
  *
- * Each Stripe payment link is configured to redirect here with ?plan=<id>
- * after a successful payment. We activate the plan for the signed-in user:
- * flip plus_status, set the plan + expiry, top up AI strategy credits, and
- * record a row in plus_subscriptions.
+ * Stripe Checkout redirects here with ?plan=<id>&session_id=<cs_...>. We
+ * verify the session with Stripe (paid + belongs to this user) before
+ * activating, so the page can't be used to self-grant Plus. Activation tops up
+ * AI credits, sets the plan + expiry, and records a plus_subscriptions row.
  *
- * Activation is idempotent against a page refresh: if the same plan is already
- * active and unexpired we don't re-grant. (A Stripe webhook keyed on the
- * checkout session is the hardening path for production reconciliation.)
+ * Idempotent via stripe_reference: a refresh (same session) won't re-grant.
  */
 export default async function PlusSuccessPage({
   searchParams,
 }: {
   searchParams: Promise<{ plan?: string; session_id?: string }>;
 }) {
-  const { plan } = await searchParams;
+  const { plan, session_id: sessionId } = await searchParams;
   const pkg = getPlusPackage(plan);
 
   const supabase = await createClient();
@@ -36,56 +35,77 @@ export default async function PlusSuccessPage({
   } = await supabase.auth.getUser();
 
   if (!user) {
-    const back = `/plus/success${plan ? `?plan=${encodeURIComponent(plan)}` : ''}`;
+    const back = `/plus/success?${new URLSearchParams({
+      ...(plan ? { plan } : {}),
+      ...(sessionId ? { session_id: sessionId } : {}),
+    }).toString()}`;
     redirect(`/auth?redirect=${encodeURIComponent(back)}`);
   }
 
-  let state: 'activated' | 'already' | 'unknown_plan' = 'unknown_plan';
+  let state: 'activated' | 'already' | 'unverified' = 'unverified';
 
-  if (pkg) {
-    const admin = createAdminClient();
-    const { data: profile } = await admin
-      .from('student_profiles')
-      .select('plus_status, plus_plan, plus_expires_at, ai_strategy_credits')
-      .eq('user_id', user.id)
-      .maybeSingle();
+  if (pkg && sessionId) {
+    // 1. Verify the payment with Stripe.
+    let paid = false;
+    try {
+      const stripe = getStripe();
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      paid =
+        (session.payment_status === 'paid' || session.status === 'complete') &&
+        session.client_reference_id === user.id;
+    } catch (err) {
+      console.error('[plus/success] could not verify session', err);
+    }
 
-    const stillActive =
-      !!profile?.plus_status &&
-      !!profile?.plus_expires_at &&
-      new Date(profile.plus_expires_at).getTime() > Date.now();
+    if (paid) {
+      const admin = createAdminClient();
 
-    if (stillActive && profile?.plus_plan === pkg.id) {
-      state = 'already';
-    } else {
-      const startedAt = new Date().toISOString();
-      const expiresAt = computeExpiry(pkg.durationMonths);
-      const newCredits = (profile?.ai_strategy_credits ?? 0) + pkg.aiCredits;
+      // 2. Idempotency — has this exact session already been recorded?
+      const { data: existing } = await admin
+        .from('plus_subscriptions')
+        .select('id')
+        .eq('stripe_reference', sessionId)
+        .maybeSingle();
 
-      await admin.from('student_profiles').upsert(
-        {
+      if (existing) {
+        state = 'already';
+      } else {
+        const { data: profile } = await admin
+          .from('student_profiles')
+          .select('ai_strategy_credits')
+          .eq('user_id', user.id)
+          .maybeSingle();
+
+        const startedAt = new Date().toISOString();
+        const expiresAt = computeExpiry(pkg.durationMonths);
+        const newCredits = (profile?.ai_strategy_credits ?? 0) + pkg.aiCredits;
+
+        await admin.from('student_profiles').upsert(
+          {
+            user_id: user.id,
+            plus_status: true,
+            plus_plan: pkg.id,
+            plus_started_at: startedAt,
+            plus_expires_at: expiresAt,
+            ai_strategy_credits: newCredits,
+          },
+          { onConflict: 'user_id' },
+        );
+
+        await admin.from('plus_subscriptions').insert({
           user_id: user.id,
-          plus_status: true,
-          plus_plan: pkg.id,
-          plus_started_at: startedAt,
-          plus_expires_at: expiresAt,
-          ai_strategy_credits: newCredits,
-        },
-        { onConflict: 'user_id' },
-      );
+          plan: pkg.id,
+          price_label: pkg.priceLabel,
+          ai_credits: pkg.aiCredits,
+          duration_months: pkg.durationMonths,
+          stripe_reference: sessionId,
+          status: 'active',
+          started_at: startedAt,
+          expires_at: expiresAt,
+        });
 
-      await admin.from('plus_subscriptions').insert({
-        user_id: user.id,
-        plan: pkg.id,
-        price_label: pkg.priceLabel,
-        ai_credits: pkg.aiCredits,
-        duration_months: pkg.durationMonths,
-        status: 'active',
-        started_at: startedAt,
-        expires_at: expiresAt,
-      });
-
-      state = 'activated';
+        state = 'activated';
+      }
     }
   }
 
@@ -96,12 +116,12 @@ export default async function PlusSuccessPage({
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
         </span>
 
-        {state === 'unknown_plan' ? (
+        {state === 'unverified' ? (
           <>
-            <h1 className="mt-5 text-2xl font-semibold text-slate-900">Payment received</h1>
+            <h1 className="mt-5 text-2xl font-semibold text-slate-900">Confirming your payment…</h1>
             <p className="mt-3 text-sm leading-7 text-slate-600">
-              Thanks for your payment. We couldn’t match it to a specific plan
-              automatically — if your Plus features don’t appear shortly, contact{' '}
+              We couldn’t confirm this payment automatically yet. If you completed
+              checkout and Plus doesn’t appear shortly, contact{' '}
               <a href="mailto:hello@glowbal.com" className="font-semibold text-pink-600">hello@glowbal.com</a>.
             </p>
           </>

@@ -12,11 +12,15 @@
 
 export type PlusPlanId = 'plus-6m' | 'plus-12m' | 'plus-24m';
 
+export const PLUS_CURRENCY = 'vnd'; // zero-decimal in Stripe: unit_amount === VND
+
 export type PlusPackage = {
   id: PlusPlanId;
   /** Subtitle under the plan name, e.g. "12 months". */
   durationLabel: string;
   durationMonths: number;
+  /** Charge amount in VND (Stripe zero-decimal: passed straight as unit_amount). */
+  amountVnd: number;
   /** Total price shown large, e.g. "948,000đ". */
   priceLabel: string;
   /** Effective monthly price, e.g. "79,000đ/mo". */
@@ -31,8 +35,6 @@ export type PlusPackage = {
   aiCredits: number;
   /** Highlight the middle "best value" card. */
   highlighted: boolean;
-  /** Env var holding this package's Stripe payment link. */
-  paymentLinkEnv: string;
 };
 
 export const PLUS_PACKAGES: PlusPackage[] = [
@@ -40,16 +42,17 @@ export const PLUS_PACKAGES: PlusPackage[] = [
     id: 'plus-6m',
     durationLabel: '6 months',
     durationMonths: 6,
+    amountVnd: 594000,
     priceLabel: '594,000đ',
     perMonthLabel: '99,000đ/mo',
     aiCredits: 30,
     highlighted: false,
-    paymentLinkEnv: 'STRIPE_PLUS_LINK_6M',
   },
   {
     id: 'plus-12m',
     durationLabel: '12 months',
     durationMonths: 12,
+    amountVnd: 948000,
     priceLabel: '948,000đ',
     perMonthLabel: '79,000đ/mo',
     originalPriceLabel: '1,188,000đ',
@@ -57,12 +60,12 @@ export const PLUS_PACKAGES: PlusPackage[] = [
     bonusLabel: '+1 month free',
     aiCredits: 100,
     highlighted: true,
-    paymentLinkEnv: 'STRIPE_PLUS_LINK_12M',
   },
   {
     id: 'plus-24m',
     durationLabel: '24 months',
     durationMonths: 24,
+    amountVnd: 1656000,
     priceLabel: '1,656,000đ',
     perMonthLabel: '69,000đ/mo',
     originalPriceLabel: '2,376,000đ',
@@ -70,7 +73,6 @@ export const PLUS_PACKAGES: PlusPackage[] = [
     bonusLabel: '+2 months free',
     aiCredits: 250,
     highlighted: false,
-    paymentLinkEnv: 'STRIPE_PLUS_LINK_24M',
   },
 ];
 
@@ -93,12 +95,6 @@ export const FREE_FEATURES = [
 
 export function getPlusPackage(id: string | null | undefined): PlusPackage | null {
   return PLUS_PACKAGES.find((p) => p.id === id) ?? null;
-}
-
-/** Resolve a package's Stripe payment link from env (server-only usage). */
-export function getPaymentLink(pkg: PlusPackage): string | null {
-  const link = process.env[pkg.paymentLinkEnv];
-  return link && link.trim() ? link.trim() : null;
 }
 
 /** Compute an ISO expiry `months` from `from` (defaults to now). */
