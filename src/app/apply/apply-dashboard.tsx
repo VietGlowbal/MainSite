@@ -8,6 +8,7 @@ import type {
   UpcomingDeadline,
   ApplicationOverview,
 } from '@/lib/apply-types';
+import { StatementFeedbackModal } from '@/components/statement/StatementFeedbackModal';
 
 /* ─────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -476,9 +477,15 @@ function MentorCard() {
   );
 }
 
-function ImproveCard() {
+function ImproveCard({ onOpenSop, sopEnabled }: { onOpenSop: () => void; sopEnabled: boolean }) {
   const tools = [
-    { label: 'SOP Maximiser', desc: 'Improve your statement', icon: '📝' },
+    {
+      label: 'SOP Maximiser',
+      desc: 'Improve your statement',
+      icon: '📝',
+      onClick: sopEnabled ? onOpenSop : undefined,
+      disabled: !sopEnabled,
+    },
     { label: 'Interview Prep', desc: 'Practice & get ready', icon: '🎤' },
     { label: 'Profile Review', desc: 'Get expert feedback', icon: '👤' },
   ];
@@ -496,7 +503,10 @@ function ImproveCard() {
           <button
             key={t.label}
             type="button"
-            className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center transition hover:bg-pink-50 hover:border-pink-200"
+            onClick={t.onClick}
+            disabled={t.disabled}
+            title={t.disabled ? 'Add an application first' : undefined}
+            className="flex flex-col items-center gap-1.5 rounded-xl border border-slate-100 bg-slate-50 p-2.5 text-center transition hover:bg-pink-50 hover:border-pink-200 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-slate-50 disabled:hover:border-slate-100"
           >
             <span className="text-xl">{t.icon}</span>
             <span className="text-[10px] font-semibold text-slate-700 leading-tight">{t.label}</span>
@@ -576,6 +586,15 @@ export function ApplyDashboard({ applications, shortlisted, upcomingDeadlines, o
   const completedApps = applications.filter((a) =>
     ['submitted', 'offer_received', 'accepted', 'rejected', 'withdrawn'].includes(a.status)
   );
+
+  // SOP feedback tool targets the soonest-deadline active application.
+  const sopTarget =
+    [...activeApps].sort((a, b) => {
+      if (!a.deadline) return 1;
+      if (!b.deadline) return -1;
+      return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
+    })[0] ?? applications[0];
+  const [sopOpen, setSopOpen] = useState(false);
 
   return (
     <div className="flex gap-6">
@@ -664,9 +683,18 @@ export function ApplyDashboard({ applications, shortlisted, upcomingDeadlines, o
         <OverviewCard overview={overview} />
         <DeadlinesCard deadlines={upcomingDeadlines} />
         <MentorCard />
-        <ImproveCard />
+        <ImproveCard onOpenSop={() => setSopOpen(true)} sopEnabled={Boolean(sopTarget)} />
         <TrialBanner />
       </div>
+
+      {sopOpen && sopTarget && (
+        <StatementFeedbackModal
+          applicationId={sopTarget.id}
+          targetName={`${sopTarget.courseName} · ${sopTarget.universityName}`}
+          contextNote={sopTarget.aiSummary}
+          onClose={() => setSopOpen(false)}
+        />
+      )}
     </div>
   );
 }

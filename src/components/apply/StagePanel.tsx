@@ -14,9 +14,10 @@ type Props = {
   totalStages: number;
   onTaskToggle: (taskId: string, newStatus: 'completed' | 'not_started') => void;
   onTaskAction: (task: ApplicationTask) => void;
+  onStatementFeedback?: (task: ApplicationTask) => void;
 };
 
-export function StagePanel({ stage, stageNumber, totalStages, onTaskToggle, onTaskAction }: Props) {
+export function StagePanel({ stage, stageNumber, totalStages, onTaskToggle, onTaskAction, onStatementFeedback }: Props) {
   const tasks = stage.tasks || [];
 
   return (
@@ -62,6 +63,7 @@ export function StagePanel({ stage, stageNumber, totalStages, onTaskToggle, onTa
                   task={task}
                   onToggle={onTaskToggle}
                   onAction={onTaskAction}
+                  onStatementFeedback={onStatementFeedback}
                 />
               ))}
             </div>

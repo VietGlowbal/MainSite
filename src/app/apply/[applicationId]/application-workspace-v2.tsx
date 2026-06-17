@@ -13,6 +13,8 @@ import { JourneyPipeline } from '@/components/apply/JourneyPipeline';
 import { StagePanel } from '@/components/apply/StagePanel';
 import { ProgressSidebar } from '@/components/apply/ProgressSidebar';
 import { NavigationButtons } from '@/components/apply/NavigationButtons';
+import { StatementFeedbackModal } from '@/components/statement/StatementFeedbackModal';
+import { isStatementTask } from '@/components/statement/is-statement-task';
 
 type Props = {
   workspace: ApplicationWorkspaceView;
@@ -28,6 +30,9 @@ export function ApplicationWorkspaceV2({ workspace }: Props) {
   // Find current stage
   const activeStage = stages.find(s => s.id === activeStageId) || stages[0];
   const activeStageIndex = stages.findIndex(s => s.id === activeStageId);
+
+  // AI statement-feedback modal
+  const [statementModalOpen, setStatementModalOpen] = useState(false);
 
   // Handle task toggle
   const handleTaskToggle = async (taskId: string, newStatus: 'completed' | 'not_started') => {
@@ -49,6 +54,12 @@ export function ApplicationWorkspaceV2({ workspace }: Props) {
 
   // Handle task action button click
   const handleTaskAction = (task: ApplicationTask) => {
+    // Statement-related tasks open the AI feedback tool in-context.
+    if (isStatementTask(task)) {
+      setStatementModalOpen(true);
+      return;
+    }
+
     if (!task.actionType || !task.actionTarget) return;
 
     switch (task.actionType) {
@@ -119,6 +130,7 @@ export function ApplicationWorkspaceV2({ workspace }: Props) {
             totalStages={stages.length}
             onTaskToggle={handleTaskToggle}
             onTaskAction={handleTaskAction}
+            onStatementFeedback={() => setStatementModalOpen(true)}
           />
         )}
 
@@ -142,6 +154,15 @@ export function ApplicationWorkspaceV2({ workspace }: Props) {
           sources={sources}
         />
       </div>
+
+      {statementModalOpen && (
+        <StatementFeedbackModal
+          applicationId={application.id}
+          targetName={`${application.courseName} · ${application.universityName}`}
+          contextNote={workspace.course?.entryRequirementsSummary ?? application.aiSummary}
+          onClose={() => setStatementModalOpen(false)}
+        />
+      )}
     </div>
   );
 }
