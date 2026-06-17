@@ -10,7 +10,7 @@ export default async function ProfilePage() {
 
   if (!user) redirect('/auth');
 
-  const [profileResult, documentsResult, mentorSummary] = await Promise.all([
+  const [profileResult, documentsResult, mentorSummary, appsCountResult] = await Promise.all([
     supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('uploaded_documents')
@@ -19,12 +19,11 @@ export default async function ProfilePage() {
       .order('created_at', { ascending: false }),
     getMentorSummary(),
     supabase.from('course_applications').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase.from('work_experiences').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
-    supabase.from('english_test_scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
   ]);
 
   const profile = profileResult.data;
   const documents = (documentsResult.data ?? []) as UploadedDocument[];
+  const activeApplications = appsCountResult.count ?? 0;
 
   const displayName =
     (user.user_metadata?.full_name as string | undefined) ||
@@ -54,8 +53,10 @@ export default async function ProfilePage() {
           memberSince={memberSince}
           profile={profile}
           documents={documents}
-          activeApplications={3}
+          activeApplications={activeApplications}
           isMentor={!!mentorSummary}
+          plusStatus={!!profile?.plus_status}
+          plusPlan={profile?.plus_plan ?? null}
         />
       </div>
     </main>
