@@ -763,7 +763,7 @@ function PlusSection() {
                   </li>
                 ))}
               </ul>
-              <Link href="/scholarships" className="mt-6 inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(255,77,140,0.3)] transition hover:-translate-y-0.5">
+              <Link href="/plus" className="mt-6 inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(255,77,140,0.3)] transition hover:-translate-y-0.5">
                 Unlock my full scholarship plan
               </Link>
             </div>
@@ -853,7 +853,7 @@ function FinalCTASection({ action }: { action: WaitlistAction }) {
 /* ── 14. Footer ──────────────────────────────────────────────────────────── */
 
 const FOOTER_COLS = [
-  { title: 'Product', links: [['Find universities', '/universities'], ['Find scholarships', '/scholarships'], ['AI strategy', '#how-it-works'], ['Student supporters', '/mentors'], ['GlowBal Plus', '#plus']] },
+  { title: 'Product', links: [['Find universities', '/universities'], ['Find scholarships', '/scholarships'], ['AI strategy', '#how-it-works'], ['Student supporters', '/mentors'], ['GlowBal Plus', '/plus']] },
   { title: 'Company', links: [['About', '#team'], ['Team', '#team'], ['Student stories', '/news'], ['Contact', 'mailto:hello@glowbal.com']] },
   { title: 'Legal', links: [['Privacy Policy', '/privacy'], ['Terms of Service', '/terms']] },
 ];
