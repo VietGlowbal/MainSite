@@ -6,11 +6,13 @@
 'use client';
 
 import type { ApplicationTask } from '@/lib/apply-types';
+import { isStatementTask } from '@/components/statement/is-statement-task';
 
 type Props = {
   task: ApplicationTask;
   onToggle: (taskId: string, newStatus: 'completed' | 'not_started') => void;
   onAction: (task: ApplicationTask) => void;
+  onStatementFeedback?: (task: ApplicationTask) => void;
 };
 
 // Task type icons
@@ -50,9 +52,10 @@ const taskIcons: Record<string, React.JSX.Element> = {
   ),
 };
 
-export function TaskItem({ task, onToggle, onAction }: Props) {
+export function TaskItem({ task, onToggle, onAction, onStatementFeedback }: Props) {
   const isCompleted = task.status === 'completed';
   const icon = taskIcons[task.taskType] || taskIcons.general;
+  const showStatementCta = !isCompleted && Boolean(onStatementFeedback) && isStatementTask(task);
 
   return (
     <div className={`flex items-start gap-3 rounded-xl border p-4 transition ${
@@ -106,17 +109,30 @@ export function TaskItem({ task, onToggle, onAction }: Props) {
       </div>
 
       {/* Action button */}
-      {task.actionLabel && task.actionType && !isCompleted && (
+      {showStatementCta ? (
         <button
           type="button"
-          onClick={() => onAction(task)}
-          className="shrink-0 inline-flex h-8 items-center gap-1.5 rounded-full border border-pink-300 bg-white px-3 text-xs font-semibold text-pink-600 transition hover:bg-pink-50"
+          onClick={() => onStatementFeedback?.(task)}
+          className="shrink-0 inline-flex h-8 items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-3 text-xs font-semibold text-white shadow-[0_4px_12px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5"
         >
-          {task.actionLabel}
-          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="9 18 15 12 9 6" />
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3l1.9 5.8a2 2 0 0 0 1.3 1.3L21 12l-5.8 1.9a2 2 0 0 0-1.3 1.3L12 21l-1.9-5.8a2 2 0 0 0-1.3-1.3L3 12l5.8-1.9a2 2 0 0 0 1.3-1.3z" />
           </svg>
+          Get AI feedback
         </button>
+      ) : (
+        task.actionLabel && task.actionType && !isCompleted && (
+          <button
+            type="button"
+            onClick={() => onAction(task)}
+            className="shrink-0 inline-flex h-8 items-center gap-1.5 rounded-full border border-pink-300 bg-white px-3 text-xs font-semibold text-pink-600 transition hover:bg-pink-50"
+          >
+            {task.actionLabel}
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          </button>
+        )
       )}
     </div>
   );

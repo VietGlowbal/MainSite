@@ -2,7 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { computeMatchResult } from '@/lib/matching';
 import type { University, StudentProfile } from '@/lib/types';
-import { StatementWriter } from './statement-writer';
+import { StatementWriter } from '@/components/statement/StatementWriter';
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -79,12 +79,9 @@ export default async function WriterPage({ params }: Props) {
       </header>
 
       <StatementWriter
-        universityName={university.name}
-        universityCountry={university.country}
-        universityRank={university.qs_rank}
-        universityAcceptRate={university.accept_rate}
-        universityStrengths={university.strengths}
-        userUniversityId={userUniversity.id}
+        saveTarget={{ kind: 'university', userUniversityId: userUniversity.id }}
+        targetName={university.name}
+        contextNote={university.strengths}
         initialContent={existingDraft?.content ?? ''}
         initialAnalysis={existingDraft?.ai_analysis ?? null}
         statementId={existingDraft?.id ?? null}
