@@ -84,7 +84,9 @@ export function AuthForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [mode, setMode] = useState<Mode>('login');
+  const [mode, setMode] = useState<Mode>(
+    searchParams.get('mode') === 'signup' ? 'signup' : 'login',
+  );
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -139,7 +141,14 @@ export function AuthForm() {
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        router.push(redirectPath ?? '/profile');
+        // Full navigation when a redirect is set: it may point at a route
+        // handler (e.g. /api/home/save-university) that 302s onward, which the
+        // client router doesn't follow on its own.
+        if (redirectPath) {
+          window.location.assign(redirectPath);
+          return;
+        }
+        router.push('/profile');
         router.refresh();
       }
     } catch (err) {

@@ -374,7 +374,7 @@ function ScholarshipPreviewSection() {
                 <p className="mt-1 text-xs font-medium text-slate-500">{s.level}</p>
                 <p className="mt-3 flex-1 text-sm leading-6 text-slate-600">{s.summary}</p>
                 <Link
-                  href="/auth"
+                  href="/auth?mode=signup&redirect=/scholarships"
                   className="mt-5 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-pink-300 hover:text-pink-600"
                 >
                   Unlock details

@@ -258,7 +258,9 @@ function LoginGate({
     };
   }, [onClose]);
 
-  const goAuth = () => router.push('/auth');
+  const dest = university ? `/api/home/save-university?u=${university.id}` : '/universities';
+  const goSignup = () => router.push(`/auth?mode=signup&redirect=${encodeURIComponent(dest)}`);
+  const goLogin = () => router.push(`/auth?mode=login&redirect=${encodeURIComponent(dest)}`);
 
   return (
     <div
@@ -295,14 +297,14 @@ function LoginGate({
         <div className="mt-6 flex flex-col gap-2.5">
           <button
             type="button"
-            onClick={goAuth}
+            onClick={goSignup}
             className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
           >
             Create free profile
           </button>
           <button
             type="button"
-            onClick={goAuth}
+            onClick={goLogin}
             className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50"
           >
             I already have an account
