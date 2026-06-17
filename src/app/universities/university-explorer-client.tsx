@@ -1519,7 +1519,7 @@ function UniversityRow({
                     ) : null}
                   </span>
                   <span className="mt-0.5 text-xs font-medium text-slate-400">
-                    <span className="line-through">{tuitionDisplay}</span> after scholarship
+                    <span className="line-through">{tuitionDisplay}</span> before scholarship
                   </span>
                 </>
               ) : (
