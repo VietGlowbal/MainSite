@@ -911,7 +911,7 @@ function SiteFooter() {
 
 export function HomeLanding({ action }: { action: WaitlistAction }) {
   return (
-    <div className="min-h-screen bg-white text-slate-800">
+    <div className="home-landing-root min-h-screen bg-white text-slate-800">
       <SiteHeader />
       <main>
         <Hero />

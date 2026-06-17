@@ -5000,6 +5000,13 @@ body:not(:has(.cosmos-root)) {
   .glowbal-main-content {
     margin-left: 240px;
   }
+
+  /* The homepage hides the sidebar (it ships its own header), so the
+     240px sidebar offset would leave dead space on the left. Drop it
+     whenever the full-bleed landing is the content. */
+  .glowbal-main-content:has(.home-landing-root) {
+    margin-left: 0;
+  }
 }
 
 /* ── Sidebar ─────────────────────────────────────────────────────────────── */
