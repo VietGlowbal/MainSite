@@ -1,8 +1,29 @@
-import { DesignCosmos } from '@/components/landing/design-cosmos';
+import type { Metadata } from 'next';
+import { HomeLanding } from '@/components/landing/home/home-landing';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/send-email';
 import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
 import type { WaitlistState } from '@/lib/types';
+
+export const metadata: Metadata = {
+  title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
+  description:
+    'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
+  keywords: [
+    'study abroad scholarships',
+    'university scholarships',
+    'international student scholarships',
+    'find universities abroad',
+    'AI scholarship application strategy',
+    'study abroad support',
+    'scholarships for Vietnamese students',
+    'global university search',
+  ],
+};
+
+// The landing roster (team) rarely changes; ISR keeps the page prerendered
+// while letting the cached Supabase team query refresh in the background.
+export const revalidate = 43200;
 
 async function joinWaitlist(_prevState: WaitlistState, formData: FormData): Promise<WaitlistState> {
   'use server';
@@ -52,5 +73,5 @@ async function joinWaitlist(_prevState: WaitlistState, formData: FormData): Prom
 }
 
 export default function Home() {
-  return <DesignCosmos action={joinWaitlist} />;
+  return <HomeLanding action={joinWaitlist} />;
 }
