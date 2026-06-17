@@ -68,10 +68,9 @@ const POPULAR_SEARCH_CHIPS: Array<{ label: string }> = [
    ────────────────────────────────────────────────────────────────────────
    This is a small, optional, in-page pill that nudges users towards the
    onboarding without ever taking over the page. It sits unobtrusively in
-   the page header area and is dismissable. The pop-up sticky bar that
-   used to scroll into view has been removed entirely — first-time
-   visitors are sent directly to the onboarding instead (see
-   FirstTimeOnboardingRedirect in the page file).
+   the page header area and is dismissable. Discovery is now led by the
+   HookBand at the top of the page (whose CTA hands off to onboarding),
+   so first-time visitors are no longer auto-redirected.
 ───────────────────────────────────────────────────────────────────────── */
 
 function ImproveSearchPill() {
@@ -256,6 +255,93 @@ function SearchHero({
           <ImproveSearchPill />
         </div>
       </div>
+    </section>
+  );
+}
+
+/**
+ * HookBand — the finful-style landing hook that sits at the very top of the
+ * page. Leads with a bold, personal admission-odds question, then an
+ * interactive teaser (subject + destination) and a CTA that hands off to
+ * `onStartMatch` (onboarding for new visitors, instant matches for profiled
+ * users). Headline / subline / CTA are single text nodes so the DOM
+ * translator can swap them via the i18n dictionary.
+ */
+function HookBand({
+  countries,
+  onStartMatch,
+}: {
+  countries: string[];
+  onStartMatch: (subject: string, country: string) => void;
+}) {
+  const [subject, setSubject] = useState('');
+  const [country, setCountry] = useState('');
+
+  return (
+    <section className="relative mb-6 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#FF3D9A,#FF85B3,#19B8D8)] px-6 py-9 shadow-[0_18px_44px_rgba(255,61,154,0.25)] md:px-12 md:py-12">
+      {/* Soft decorative glows */}
+      <span aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
+      <span aria-hidden className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
+
+      <div className="relative z-10 max-w-2xl">
+        <h2 className="text-[2rem] font-semibold leading-[1.05] tracking-tight text-white md:text-[3rem]">
+          What are your real admission odds?
+        </h2>
+        <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/85 md:text-base">
+          Tell us what and where you want to study — we&apos;ll match you with universities and scholarships that fit.
+        </p>
+      </div>
+
+      {/* Interactive teaser: subject + destination + CTA */}
+      <div className="relative z-10 mt-6 flex flex-col gap-2 rounded-[1.5rem] bg-white/15 p-2 backdrop-blur-md sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <select
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            aria-label="Subject or field"
+            className="w-full cursor-pointer appearance-none rounded-full bg-white/95 py-3 pl-4 pr-9 text-sm font-medium text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <option value="">Select a subject or field</option>
+            {PROGRAM_OPTIONS.map((p) => (
+              <option key={p} value={p}>
+                {p}
+              </option>
+            ))}
+          </select>
+          <ChevronIcon />
+        </div>
+        <div className="relative flex-1">
+          <select
+            value={country}
+            onChange={(e) => setCountry(e.target.value)}
+            aria-label="Destination"
+            className="w-full cursor-pointer appearance-none rounded-full bg-white/95 py-3 pl-4 pr-9 text-sm font-medium text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+          >
+            <option value="">Choose a destination</option>
+            {countries.map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
+          </select>
+          <ChevronIcon />
+        </div>
+        <button
+          type="button"
+          onClick={() => onStartMatch(subject, country)}
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-pink-600 shadow-sm transition hover:bg-pink-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        >
+          See my odds
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <line x1="5" y1="12" x2="19" y2="12" />
+            <polyline points="12 5 19 12 12 19" />
+          </svg>
+        </button>
+      </div>
+
+      <p className="relative z-10 mt-3 text-xs text-white/80">
+        Free to explore — sign in to save your matches
+      </p>
     </section>
   );
 }
@@ -944,33 +1030,135 @@ function formatAcceptanceForCard(rate: string | null | undefined): string {
 }
 
 /**
- * Compact tuition string for the stat row. Picks the first dollar /
- * numeric value, prefixes with `$`, and condenses k-suffixes — so
- * "42,000-65,000 USD" becomes "$42–65k", "59,320 (UG); ~$65,000"
- * becomes "$59k", and "Free" stays as "Free".
+ * Parse a free-text tuition string into a numeric USD figure (major units).
+ * Returns a {lo, hi} range, the sentinel 'free', or null when nothing is parseable.
+ * Mirrors the number-extraction in formatTuitionForCard — do NOT use parseTuition()
+ * above, which strips every separator and would fuse "42,000-65,000" into one number.
  */
-function formatTuitionForCard(tuition: string | null | undefined): string {
-  if (!tuition) return '—';
+function parseTuitionRange(
+  tuition: string | null | undefined,
+): { lo: number; hi: number } | 'free' | null {
+  if (!tuition) return null;
   const trimmed = tuition.trim();
-  if (!trimmed || trimmed === '—') return '—';
-  if (/free/i.test(trimmed)) return 'Free';
-
-  // Pull the first run of numbers. We don't try to parse multi-currency
-  // mess — just show the first thousand-grouped or k-suffixed amount.
+  if (!trimmed || trimmed === '—') return null;
+  if (/free/i.test(trimmed)) return 'free';
   const cleaned = trimmed.replace(/[,]/g, '');
   const range = cleaned.match(/(\d{3,6})\s*[–-]\s*(\d{3,6})/);
-  if (range) {
-    const lo = Math.round(parseInt(range[1], 10) / 1000);
-    const hi = Math.round(parseInt(range[2], 10) / 1000);
-    return `$${lo}–${hi}k`;
-  }
+  if (range) return { lo: parseInt(range[1], 10), hi: parseInt(range[2], 10) };
   const single = cleaned.match(/(\d{3,6})/);
   if (single) {
     const n = parseInt(single[1], 10);
-    if (n >= 1000) return `$${Math.round(n / 1000)}k`;
-    return `$${n}`;
+    return { lo: n, hi: n };
   }
+  return null;
+}
+
+/** "$X" for a single major-unit USD amount, condensing thousands to a k-suffix. */
+function formatUsdOne(n: number): string {
+  return Math.round(n).toLocaleString('en-US'); // 62000 -> "62,000"
+}
+
+/**
+ * "$" presentation of a USD amount (major units) as full, thousands-separated
+ * numbers: "$62,000", "$41,000–45,000", "$343", "$0".
+ */
+function formatUsdCompact(lo: number, hi?: number): string {
+  if (hi != null && hi !== lo) return `$${formatUsdOne(lo)}–${formatUsdOne(hi)}`;
+  return `$${formatUsdOne(lo)}`;
+}
+
+/**
+ * Tuition string for the stat row. Picks the first dollar / numeric value,
+ * prefixes with `$`, and shows full thousands-separated numbers — so
+ * "42,000-65,000 USD" becomes "$42,000–65,000", "59,320 (UG); ~$65,000"
+ * becomes "$59,320", and "Free" stays as "Free".
+ */
+function formatTuitionForCard(tuition: string | null | undefined): string {
+  const parsed = parseTuitionRange(tuition);
+  if (parsed === 'free') return 'Free';
+  if (parsed) return formatUsdCompact(parsed.lo, parsed.hi);
+  // Unparseable: show short non-numeric text as-is, otherwise an em dash.
+  if (!tuition) return '—';
+  const trimmed = tuition.trim();
+  if (!trimmed || trimmed === '—') return '—';
   return trimmed.length > 10 ? `${trimmed.slice(0, 9).trim()}…` : trimmed;
+}
+
+/**
+ * Highest tuition-coverage percentage in a free-text coverage string, e.g.
+ * "100% tuition" → 100, "80%–90% tuition" → 90, "50%, 60% or 70% tuition" → 70.
+ * Falls back to 100 for full-ride funding when no number is present; null = no signal.
+ */
+function parseCoveragePercent(
+  coverage: string | null | undefined,
+  fundingType: string[] | null | undefined,
+): number | null {
+  const text = (coverage ?? '').trim();
+  if (text) {
+    const pcts = [...text.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].map((m) => parseFloat(m[1]));
+    const valid = pcts.filter((p) => p > 0 && p <= 100);
+    if (valid.length) return Math.max(...valid);
+  }
+  if ((fundingType ?? []).includes('full-ride')) return 100;
+  return null;
+}
+
+/**
+ * Approximate FX rates to USD for display-only net-tuition estimates. Static and
+ * intentionally rough — scholarship awards are competitive estimates anyway, and we
+ * only need order-of-magnitude correctness to avoid wildly misleading figures.
+ */
+const USD_PER: Record<string, number> = {
+  USD: 1,
+  EUR: 1.08,
+  GBP: 1.27,
+  AUD: 0.66,
+  CAD: 0.73,
+  SGD: 0.74,
+  CHF: 1.12,
+  VND: 0.00004,
+};
+
+function amountToUsd(amount: number, currency: string | null | undefined): number | null {
+  const rate = USD_PER[(currency ?? 'USD').toUpperCase()];
+  return rate == null ? null : amount * rate;
+}
+
+/**
+ * Tuition after the single best (largest-reduction) curated scholarship. A parseable
+ * coverage percentage scales the tuition; otherwise the scholarship's cash amount
+ * (converted to USD) is subtracted. Returns null when there's nothing to discount —
+ * no parseable tuition, tuition already free, or no scholarship that reduces it.
+ */
+function computeNetTuition(
+  university: ExplorerUniversity,
+): { netLo: number; netHi: number; scholarshipName: string } | null {
+  const range = parseTuitionRange(university.tuition_usd);
+  if (range === null || range === 'free') return null;
+
+  let best: { netLo: number; netHi: number; scholarshipName: string } | null = null;
+  for (const s of university.scholarships ?? []) {
+    let netLo: number;
+    let netHi: number;
+
+    const pct = parseCoveragePercent(s.coverage, s.fundingType);
+    if (pct != null) {
+      const factor = 1 - pct / 100;
+      netLo = range.lo * factor;
+      netHi = range.hi * factor;
+    } else {
+      const amount = s.amountMax ?? s.amountMin;
+      if (amount == null) continue;
+      const amtUsd = amountToUsd(amount, s.amountCurrency);
+      if (amtUsd == null) continue;
+      netLo = Math.max(0, range.lo - amtUsd);
+      netHi = Math.max(0, range.hi - amtUsd);
+    }
+
+    if (netHi >= range.hi) continue; // didn't actually reduce the bill
+    if (!best || netHi < best.netHi) best = { netLo, netHi, scholarshipName: s.name };
+  }
+  return best;
 }
 
 /**
@@ -1189,6 +1377,7 @@ function UniversityRow({
   const flag = COUNTRY_FLAGS[university.country] ?? '🎓';
   const acceptDisplay = formatAcceptanceForCard(university.accept_rate);
   const tuitionDisplay = formatTuitionForCard(university.tuition_usd);
+  const netTuition = computeNetTuition(university);
   const cardTags = useMemo(() => deriveCardTags(university, 3), [university]);
   const blurb =
     (university.specific_insight ?? '') ||
@@ -1289,9 +1478,9 @@ function UniversityRow({
       </div>
 
       {/* RIGHT — Stats + actions */}
-      <div className="flex shrink-0 flex-col justify-between gap-3 md:w-56 md:border-l md:border-slate-100 md:pl-4">
+      <div className="flex shrink-0 flex-col justify-between gap-3 md:w-80 md:border-l md:border-slate-100 md:pl-4">
         <dl className="space-y-2">
-          <div className="flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center justify-between gap-3 text-sm">
             <dt className="text-slate-500">QS Ranking</dt>
             <dd
               className="font-bold text-slate-900"
@@ -1300,7 +1489,7 @@ function UniversityRow({
               {university.qs_rank ? `#${university.qs_rank}` : '—'}
             </dd>
           </div>
-          <div className="flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-center justify-between gap-3 text-sm">
             <dt className="text-slate-500">Acceptance Rate</dt>
             <dd
               className="font-bold text-slate-900"
@@ -1309,18 +1498,38 @@ function UniversityRow({
               {acceptDisplay}
             </dd>
           </div>
-          <div className="flex items-center justify-between gap-3 text-xs">
+          <div className="flex items-start justify-between gap-3 text-sm">
             <dt className="text-slate-500">Tuition (Intl.)</dt>
             <dd
-              className="font-bold text-slate-900"
-              title={university.tuition_usd ?? undefined}
+              className="flex flex-col items-end leading-tight"
+              title={
+                netTuition
+                  ? `Tuition after ${netTuition.scholarshipName}`
+                  : university.tuition_usd ?? undefined
+              }
             >
-              {tuitionDisplay === 'Free' || tuitionDisplay === '—'
-                ? tuitionDisplay
-                : `$${tuitionDisplay}`}
-              {tuitionDisplay !== '—' && tuitionDisplay !== 'Free' ? (
-                <span className="ml-0.5 text-[0.65rem] font-medium text-slate-400">/yr</span>
-              ) : null}
+              {netTuition ? (
+                <>
+                  <span className="text-base font-bold text-rose-600">
+                    {netTuition.netHi <= 0
+                      ? 'Free'
+                      : formatUsdCompact(netTuition.netLo, netTuition.netHi)}
+                    {netTuition.netHi > 0 ? (
+                      <span className="ml-0.5 text-xs font-medium text-rose-400">/yr</span>
+                    ) : null}
+                  </span>
+                  <span className="mt-0.5 text-xs font-medium text-slate-400">
+                    <span className="line-through">{tuitionDisplay}</span> after scholarship
+                  </span>
+                </>
+              ) : (
+                <span className="font-bold text-slate-900">
+                  {tuitionDisplay}
+                  {tuitionDisplay !== '—' && tuitionDisplay !== 'Free' ? (
+                    <span className="ml-0.5 text-xs font-medium text-slate-400">/yr</span>
+                  ) : null}
+                </span>
+              )}
             </dd>
           </div>
         </dl>
@@ -1391,6 +1600,7 @@ function UniversityCardCompact({
   const flag = COUNTRY_FLAGS[university.country] ?? '🎓';
   const cardTags = useMemo(() => deriveCardTags(university, 2), [university]);
   const tuitionDisplay = formatTuitionForCard(university.tuition_usd);
+  const netTuition = computeNetTuition(university);
   const hasMatch = university.match_score != null;
 
   // Same image-fade pattern as UniversityRow — see comment there.
@@ -1471,13 +1681,21 @@ function UniversityCardCompact({
           {hasMatch ? (
             <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} size="sm" />
           ) : (
-            <span className="text-slate-500">
+            <span
+              className="text-slate-500"
+              title={netTuition ? `Tuition after ${netTuition.scholarshipName}` : undefined}
+            >
               <span className="text-slate-400">Tuition</span>{' '}
-              <span className="font-bold text-slate-900">
-                {tuitionDisplay === 'Free' || tuitionDisplay === '—'
-                  ? tuitionDisplay
-                  : `$${tuitionDisplay}`}
+              <span className={netTuition ? 'font-bold text-rose-600' : 'font-bold text-slate-900'}>
+                {netTuition
+                  ? netTuition.netHi <= 0
+                    ? 'Free'
+                    : formatUsdCompact(netTuition.netLo, netTuition.netHi)
+                  : tuitionDisplay}
               </span>
+              {netTuition ? (
+                <span className="ml-1 text-slate-400 line-through">{tuitionDisplay}</span>
+              ) : null}
             </span>
           )}
           <button
@@ -1625,15 +1843,11 @@ function applyFilters(
     result = result.filter((u) => (u.type ?? '').toLowerCase().includes(filters.type));
   }
 
-  // Scholarship
+  // Scholarship — only universities with at least one curated scholarship linked.
+  // (The legacy free-text `scholarship` note exists for nearly every university, so it
+  // can't drive this filter; the curated `scholarships` array is the real signal.)
   if (filters.scholarship === 'available') {
-    result = result.filter((u) => {
-      const s = (u.scholarship ?? '').toLowerCase().trim();
-      if (!s) return false;
-      // Treat clearly negative phrases as not-available
-      if (s === '—' || s === 'none' || s === 'not available' || s === 'n/a') return false;
-      return true;
-    });
+    result = result.filter((u) => (u.scholarships ?? []).length > 0);
   }
 
   // Deadline (interprets the application_deadline string heuristically)
@@ -2107,53 +2321,13 @@ function CompareMetricRow({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   FIRST-TIME ONBOARDING REDIRECT
-   ────────────────────────────────────────────────────────────────────────
-   The first time a user lands on the search page, we send them to the
-   onboarding flow with `?from=search` so the onboarding shows a context
-   banner explaining how it improves results — and a clear "skip to
-   search" exit. The flag is stored in localStorage so we only do this
-   once per browser. Logged-in users who've already completed onboarding
-   are never redirected.
-───────────────────────────────────────────────────────────────────────── */
-
-const SEARCH_VISIT_FLAG = 'glowbal-search-visited';
-
-function FirstTimeOnboardingRedirect() {
-  const router = useRouter();
-  const { hasProfile } = useExplorer();
-
-  useEffect(() => {
-    if (hasProfile) return;
-    if (typeof window === 'undefined') return;
-
-    try {
-      const visited = window.localStorage.getItem(SEARCH_VISIT_FLAG);
-      if (visited) return;
-
-      // Honour an explicit "skip" flag set by the onboarding's skip button —
-      // we never want to bounce the user back if they just opted out.
-      if (window.sessionStorage.getItem('glowbal-onboarding-skipped') === '1') {
-        window.localStorage.setItem(SEARCH_VISIT_FLAG, '1');
-        return;
-      }
-
-      window.localStorage.setItem(SEARCH_VISIT_FLAG, '1');
-      router.replace('/onboarding?from=search');
-    } catch {
-      // localStorage might be disabled — quietly ignore.
-    }
-  }, [hasProfile, router]);
-
-  return null;
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
    BROWSE VIEW (main layout)
 ───────────────────────────────────────────────────────────────────────── */
 
 function BrowseView() {
-  const { universities } = useExplorer();
+  const { universities, hasProfile } = useExplorer();
+  const router = useRouter();
+  const resultsRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState<SearchState>({ name: '', location: '', program: '' });
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
   const [sort, setSort] = useState<SortKey>('best_match');
@@ -2187,10 +2361,37 @@ function BrowseView() {
 
   const activeFilterChips = useMemo(() => buildActiveFilterChips(filters, search), [filters, search]);
 
+  // Destination options for the hook teaser — the countries actually present
+  // in the loaded data, de-duped and alphabetised.
+  const countryOptions = useMemo(
+    () => [...new Set(universities.map((u) => u.country))].sort(),
+    [universities],
+  );
+
+  // Hook CTA: profiled users get instant filtered matches; everyone else is
+  // funnelled into onboarding (which leads to sign-in). The chosen subject /
+  // country ride along as query params for optional onboarding prefill.
+  const onStartMatch = (subject: string, country: string) => {
+    setSearch((s) => ({
+      ...s,
+      program: subject || s.program,
+      location: country || s.location,
+    }));
+    if (!hasProfile) {
+      const p = new URLSearchParams({ from: 'search' });
+      if (subject) p.set('subject', subject);
+      if (country) p.set('country', country);
+      router.push(`/onboarding?${p.toString()}`);
+    } else {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   return (
     <>
-      <FirstTimeOnboardingRedirect />
       <div className="w-full px-4 py-6 md:px-6 md:py-8">
+        {/* Landing hook — finful-style admission-odds question + teaser */}
+        <HookBand countries={countryOptions} onStartMatch={onStartMatch} />
         {/* Journey steps */}
         <JourneySteps activeStep={1} />
         {/* Hero */}
@@ -2213,7 +2414,7 @@ function BrowseView() {
           />
 
           {/* Main column */}
-          <div className="space-y-5">
+          <div ref={resultsRef} className="space-y-5 scroll-mt-6">
             <ResultsBar
               totalCount={filtered.length}
               compareCount={compareIds.length}
