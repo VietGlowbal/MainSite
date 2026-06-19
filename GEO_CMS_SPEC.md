@@ -162,14 +162,19 @@ edits if we guard on `source='pipeline'`.
   create / update / delete, so edits appear within seconds without a redeploy.
 - `sitemap.ts` is async and includes DB-published slugs.
 
-## 9. Backfill / migration plan
+## 9. Backfill / migration (Phase 3 — partially DONE in this PR)
 
-One-off `scripts/geo/import-files-to-db.ts`:
-1. Read every file via the existing `geo-content.ts` parser.
-2. `upsert` into `geo_articles` (slug as the key), `status='published'` for
-   files currently under `content/geo/published`, else `draft`.
-3. Map metadata sidecar → `meta`.
-4. Verify counts, then flip the read path (Phase 2).
+Shipped: an admin-triggered **"Import from files"** button on `/admin/news`
+(`POST /api/admin/news/import`) that reads every legacy markdown guide via the
+existing parser and **upserts** it into `geo_articles` keyed by slug, as
+`source='pipeline'`, preserving `status`, metadata → `meta`, and hero image.
+`upsertArticleBySlug` **never clobbers** an admin-authored row
+(`source='manual'`) — those return `skipped`, so human edits always win.
+
+Still to do (Phase 3 cont.): a headless `geo:sync-db` script the GitHub Actions
+pipeline calls in place of the `git commit` step, reusing the same
+`upsertArticleBySlug` semantics. (Not wired into the live workflow yet — it
+needs the Supabase service-role secret added to the Action.)
 
 ## 10. Multi-article linking / GEO hosting (Phase 4)
 
@@ -198,8 +203,8 @@ One-off `scripts/geo/import-files-to-db.ts`:
 2. **Phase 2 (this PR)** — DB read path (DB-first, file-fallback) + ISR +
    on-demand revalidation. Articles created/published in the CMS now appear on
    the live `/news` and `/guides` pages.
-3. **Phase 3** — point the GEO pipeline at the DB (`geo:sync-db` upsert by
-   slug); add a one-off backfill of the existing files.
+3. **Phase 3 (partly this PR)** — admin "Import from files" backfill shipped;
+   remaining: a headless `geo:sync-db` step in the GitHub Actions pipeline.
 4. **Phase 4** — link graph UI, topic hubs, schema.org output, Storage uploads.
 
 > Phases 1–2 are backwards-compatible: with no DB rows, the site renders exactly

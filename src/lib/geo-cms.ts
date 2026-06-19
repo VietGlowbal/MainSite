@@ -163,3 +163,57 @@ export async function deleteArticle(id: string): Promise<void> {
   const { error } = await admin.from(TABLE).delete().eq('id', id);
   if (error) throw new Error(error.message);
 }
+
+export type UpsertOutcome = 'created' | 'updated' | 'skipped';
+
+/**
+ * Insert or update an article keyed by slug. Used by the file backfill and
+ * (later) the GEO pipeline. A row that an admin has authored/edited
+ * (source='manual') is never clobbered by an automated upsert — those return
+ * 'skipped' so human edits always win.
+ */
+export async function upsertArticleBySlug(
+  input: GeoArticleInput & { slug: string },
+  source: GeoArticleSource,
+): Promise<UpsertOutcome> {
+  const admin = createAdminClient();
+  const { data: existing, error: lookupErr } = await admin
+    .from(TABLE)
+    .select('id, source')
+    .eq('slug', input.slug)
+    .maybeSingle();
+  if (lookupErr) throw new Error(lookupErr.message);
+
+  const body = input.body ?? '';
+  const fields = {
+    title: (input.title ?? input.slug).trim(),
+    description: input.description ?? null,
+    excerpt: input.excerpt ?? null,
+    key_takeaway: input.key_takeaway ?? null,
+    body,
+    topic: input.topic?.trim() || 'All topics',
+    tags: input.tags ?? [],
+    hero_image: input.hero_image ?? null,
+    hero_image_style: input.hero_image_style ?? null,
+    reading_time_minutes: input.reading_time_minutes ?? estimateReadMinutes(body),
+    meta: input.meta ?? {},
+    status: input.status ?? 'draft',
+  };
+
+  if (existing) {
+    // Don't overwrite an admin's manual work with an automated import.
+    if ((existing as { source: GeoArticleSource }).source === 'manual') return 'skipped';
+    const { error } = await admin.from(TABLE).update(fields).eq('id', (existing as { id: string }).id);
+    if (error) throw new Error(error.message);
+    return 'updated';
+  }
+
+  const { error } = await admin.from(TABLE).insert({
+    slug: input.slug,
+    source,
+    published_at: fields.status === 'published' ? new Date().toISOString() : null,
+    ...fields,
+  });
+  if (error) throw new Error(error.message);
+  return 'created';
+}

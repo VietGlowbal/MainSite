@@ -39,6 +39,23 @@ export function AdminNewsClient({ articles }: { articles: ArticleRow[] }) {
   const [items, setItems] = useState(articles);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  async function importFromFiles() {
+    setImporting(true);
+    setError(null);
+    setNotice(null);
+    const res = await fetch('/api/admin/news/import', { method: 'POST' });
+    const data = await res.json().catch(() => null);
+    setImporting(false);
+    if (!res.ok || !data) {
+      setError(data?.error ?? 'Import failed');
+      return;
+    }
+    setNotice(`Imported ${data.total} file article(s): ${data.created} created, ${data.updated} updated, ${data.skipped} skipped.`);
+    router.refresh();
+  }
 
   async function patchStatus(id: string, status: GeoArticleStatus) {
     setBusy(id);
@@ -77,13 +94,27 @@ export function AdminNewsClient({ articles }: { articles: ArticleRow[] }) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm text-slate-500">{items.length} article{items.length === 1 ? '' : 's'}</p>
-        <Link href="/admin/news/new" className="glow-button-primary text-sm">
-          New article
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            disabled={importing}
+            onClick={importFromFiles}
+            title="Import the legacy markdown guides (content/geo) into the database"
+            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+          >
+            {importing ? 'Importing…' : 'Import from files'}
+          </button>
+          <Link href="/admin/news/new" className="glow-button-primary text-sm">
+            New article
+          </Link>
+        </div>
       </div>
 
       {error ? (
         <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>
+      ) : null}
+      {notice ? (
+        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{notice}</p>
       ) : null}
 
       {items.length === 0 ? (

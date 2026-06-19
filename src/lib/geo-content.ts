@@ -263,6 +263,14 @@ async function getPublishedDbGuide(slug: string): Promise<GeoGuide | null> {
   }
 }
 
+/**
+ * The legacy markdown guides (drafts + published) as parsed GeoGuides.
+ * Used by the CMS "import from files" backfill to seed the DB.
+ */
+export function listLegacyFileGuides(): GeoGuide[] {
+  return listFileGuides().sort(sortNewestFirst);
+}
+
 // ── Public API: DB-first, file-fallback (DB wins by slug) ────────────────────
 export async function listGeoGuides(): Promise<GeoGuide[]> {
   const [fileGuides, dbGuides] = await Promise.all([
