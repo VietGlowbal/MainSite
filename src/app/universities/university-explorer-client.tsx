@@ -2471,11 +2471,14 @@ function CategoryTabs({
                 between the active tab and the results panel, so the open-bottom
                 tab reads as one continuous shape with the panel below. It
                 overlaps the panel's top border by 2px to erase the seam under
-                the tab. Hidden on the stacked (mobile) layout. */}
+                the tab. The -2px insets line its side borders up with the tab's
+                own borders (absolute children are positioned against the tab's
+                padding box, i.e. inside its 2px border). Hidden on the stacked
+                (mobile) layout. */}
             {isActive && (
               <span
                 aria-hidden
-                className={`absolute inset-x-0 top-full hidden h-3.5 border-x-2 ${style.flowBorder} ${style.activeBg} sm:block`}
+                className={`absolute -left-0.5 -right-0.5 top-full hidden h-3.5 border-x-2 ${style.flowBorder} ${style.activeBg} sm:block`}
               />
             )}
           </button>
@@ -2670,6 +2673,15 @@ function BrowseView() {
   const displayed = admissionUnlocked ? groups[activeCategory] : filtered;
   // Visual tokens for the active bucket — drives the connected results panel.
   const activeStyle = CATEGORY_STYLE[activeCategory];
+  // Flatten the panel's top corner on the side the active edge-tab sits, so its
+  // straight outer border runs unbroken into the panel. The middle tab keeps
+  // both corners rounded. sm+ only — the mobile stack stays fully rounded.
+  const activePanelCorner =
+    activeCategory === 'reach'
+      ? 'sm:rounded-tl-none'
+      : activeCategory === 'safe'
+      ? 'sm:rounded-tr-none'
+      : '';
 
   const toggleCompare = (id: number) => {
     setCompareIds((prev) => {
@@ -2852,7 +2864,7 @@ function BrowseView() {
                   onChange={setActiveCategory}
                 />
                 <div
-                  className={`relative mt-3 space-y-5 rounded-2xl border-2 p-4 sm:p-5 ${activeStyle.flowBorder} ${activeStyle.flowBg}`}
+                  className={`relative mt-3 space-y-5 rounded-2xl border-2 p-4 sm:p-5 ${activeStyle.flowBorder} ${activeStyle.flowBg} ${activePanelCorner}`}
                 >
                   <CategoryBanner category={activeCategory} embedded />
                   {resultsBody}
