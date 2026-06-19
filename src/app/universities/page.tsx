@@ -2,11 +2,31 @@ import { unstable_cache } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { computeMatchResult } from '@/lib/matching';
+import {
+  classifyAdmissionFit,
+  computeProfileStrength,
+  computeUniversitySelectivity,
+  type ProfileStrengthSignals,
+} from '@/lib/admission-fit';
 import { toExplorerUniversity, type UniversityScholarship } from '@/lib/explorer-utils';
 import { getPublishedScholarships } from '@/lib/scholarships-data';
 import type { ApplicationEntry } from '@/lib/explorer-context';
 import type { University } from '@/lib/types';
 import { UniversityExplorerClient } from './university-explorer-client';
+
+/**
+ * Normalise an English test result to a 0–1 proficiency, used as one input to
+ * the applicant's profile-strength score.
+ */
+function normaliseEnglishScore(testType: string | null, overall: number | null): number | null {
+  if (overall == null) return null;
+  const t = (testType ?? '').toLowerCase();
+  if (t.includes('toefl')) return Math.min(overall / 120, 1);
+  if (t.includes('pte')) return Math.min(overall / 90, 1);
+  if (t.includes('duolingo')) return Math.min(overall / 160, 1);
+  // Default to IELTS-style 0–9 banding.
+  return Math.min(overall / 9, 1);
+}
 
 // Re-render at most every 12 hours — the source data and Wikipedia
 // imagery rarely change, and ISR keeps the page snappy.
@@ -41,16 +61,67 @@ export default async function UniversitiesPage() {
   let savedUniversityIds: number[] = [];
   let initialApplications: ApplicationEntry[] = [];
 
+  // Admission-fit (Reach / Recommended / Safe) gating + strength signals.
+  let admissionUnlocked = false;
+  let profileStrength: ReturnType<typeof computeProfileStrength> | null = null;
+
   if (user) {
-    const [profileResult, savedResult] = await Promise.all([
-      supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase
-        .from('user_universities')
-        .select('id, university_id, status, added_at')
-        .eq('user_id', user.id),
-    ]);
+    const [profileResult, savedResult, docsResult, statementsResult, englishResult, workResult] =
+      await Promise.all([
+        supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+        supabase
+          .from('user_universities')
+          .select('id, university_id, status, added_at')
+          .eq('user_id', user.id),
+        // Strength / unlock signals — kept lean (no heavy columns).
+        supabase.from('uploaded_documents').select('type').eq('user_id', user.id),
+        supabase.from('personal_statements').select('doc_type, ai_analysis').eq('user_id', user.id),
+        supabase.from('english_test_scores').select('test_type, overall_score').eq('user_id', user.id),
+        supabase.from('work_experiences').select('id').eq('user_id', user.id),
+      ]);
     profile = profileResult.data;
     const savedRows = savedResult.data ?? [];
+
+    // ── Build profile-strength signals ────────────────────────────────────
+    const docs = (docsResult.data ?? []) as Array<{ type: string | null }>;
+    const statements = (statementsResult.data ?? []) as Array<{
+      doc_type: string | null;
+      ai_analysis: { score?: number } | null;
+    }>;
+    const englishScores = (englishResult.data ?? []) as Array<{
+      test_type: string | null;
+      overall_score: number | null;
+    }>;
+    const workCount = (workResult.data ?? []).length;
+
+    const hasCv = docs.some((d) => (d.type ?? '').toLowerCase().includes('cv'));
+    // A statement counts if uploaded as a document OR drafted in-app.
+    const hasStatement =
+      docs.some((d) => /statement|sop|purpose/i.test(d.type ?? '')) || statements.length > 0;
+
+    const statementScore = statements.reduce<number | null>((best, s) => {
+      const score = s.ai_analysis?.score;
+      if (typeof score !== 'number') return best;
+      return best == null ? score : Math.max(best, score);
+    }, null);
+
+    const englishLevel = englishScores.reduce<number | null>((best, s) => {
+      const lvl = normaliseEnglishScore(s.test_type, s.overall_score);
+      if (lvl == null) return best;
+      return best == null ? lvl : Math.max(best, lvl);
+    }, null);
+
+    const signals: ProfileStrengthSignals = {
+      hasCv,
+      hasStatement,
+      statementScore,
+      englishLevel,
+      workExperienceCount: workCount,
+    };
+
+    // Grouping unlocks once the applicant has uploaded a CV or a statement.
+    admissionUnlocked = hasCv || hasStatement;
+    profileStrength = computeProfileStrength(profile, signals);
     savedUniversityIds = savedRows.map((r: { university_id: number }) => r.university_id);
 
     // Build initial applications from user_universities with active statuses
@@ -106,6 +177,7 @@ export default async function UniversitiesPage() {
   }
 
   // Compute match scores and convert to explorer format
+  const strengthScore = profileStrength?.score ?? null;
   const explorerUniversities = universities.map((uni: University) => {
     const matchResult = profile ? computeMatchResult(profile, uni) : null;
     const explorer = toExplorerUniversity({
@@ -115,6 +187,12 @@ export default async function UniversitiesPage() {
       is_saved: savedUniversityIds.includes(uni.id),
     });
     explorer.scholarships = scholarshipsByUni.get(uni.id) ?? [];
+    // Reach / Recommended / Safe — only once grouping is unlocked, otherwise
+    // we don't leak a classification before the CV / statement is in.
+    explorer.admission =
+      admissionUnlocked && strengthScore != null
+        ? classifyAdmissionFit(strengthScore, uni, computeUniversitySelectivity(uni))
+        : null;
     return explorer;
   });
 
@@ -148,6 +226,8 @@ export default async function UniversitiesPage() {
       initialApplications={initialApplications}
       isLoggedIn={!!user}
       hasProfile={!!profile}
+      admissionUnlocked={admissionUnlocked}
+      profileStrength={profileStrength?.score ?? null}
       wikiPairs={wikiPairs}
     />
   );

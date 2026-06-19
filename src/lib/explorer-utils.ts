@@ -3,6 +3,7 @@
 
 import type { University } from '@/lib/types';
 import type { MatchBreakdown } from '@/lib/matching';
+import type { AdmissionFit } from '@/lib/admission-fit';
 
 // ── Extended university type for the explorer ───────────────────────────
 
@@ -57,6 +58,10 @@ export interface ExplorerUniversity {
   match_score: number | null;
   match_breakdown: MatchBreakdown | null;
   is_saved: boolean;
+
+  /** Reach / Recommended / Safe classification for the signed-in applicant.
+   *  Null until they've unlocked grouping by uploading a CV or statement. */
+  admission: AdmissionFit | null;
 
   // Visual fields for the explorer UI (derived from data)
   emoji: string;
@@ -163,6 +168,7 @@ export function toExplorerUniversity(
   return {
     ...uni,
     match_breakdown: uni.match_breakdown ?? null,
+    admission: null,
     emoji: COUNTRY_EMOJIS[uni.country] ?? '🎓',
     color: COUNTRY_COLORS[uni.country] ?? '#1a3a6c',
     tags: deriveTags(uni),
