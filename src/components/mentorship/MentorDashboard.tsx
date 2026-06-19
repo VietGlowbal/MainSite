@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import type {
   MentorProfile,
   MentorshipBooking,
@@ -183,7 +183,9 @@ function AvailabilityTab({
 }) {
   const [slots, setSlots] = useState<MentorAvailabilitySlot[]>(initialSlots);
   const [viewMonth, setViewMonth] = useState<Date>(new Date());
-  const [activeDate, setActiveDate] = useState<string | null>(null);
+  // Multi-select: mark several days, then add the same time(s) to all of them
+  // in one go (Calendly-style) instead of editing one day at a time.
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [customTime, setCustomTime] = useState('10:00');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -197,33 +199,58 @@ function AvailabilityTab({
   for (let d = 1; d <= monthEnd.getDate(); d++) cells.push(new Date(viewMonth.getFullYear(), viewMonth.getMonth(), d));
   while (cells.length % 7 !== 0) cells.push(null);
 
+  // Local YYYY-MM-DD key (not UTC) so the calendar matches the mentor's
+  // timezone — important for Vietnam (UTC+7).
   function dateKey(d: Date) {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   }
 
-  function slotsOnDate(key: string): MentorAvailabilitySlot[] {
-    return slots
-      .filter((s) => {
-        const d = new Date(s.starts_at);
-        return dateKey(d) === key;
-      })
-      .sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime());
+  function isoFor(date: string, time: string) {
+    return new Date(`${date}T${time}:00`).toISOString();
   }
 
-  async function addSlot(date: string, time: string) {
-    setError(null);
-    const iso = new Date(`${date}T${time}:00`).toISOString();
-    if (slots.some((s) => s.starts_at === iso)) return;
+  function slotAt(date: string, time: string): MentorAvailabilitySlot | undefined {
+    const t = new Date(isoFor(date, time)).getTime();
+    return slots.find((s) => new Date(s.starts_at).getTime() === t);
+  }
 
+  function countOnDate(key: string): number {
+    return slots.filter((s) => dateKey(new Date(s.starts_at)) === key).length;
+  }
+
+  function dayHasBooked(key: string): boolean {
+    return slots.some(
+      (s) => dateKey(new Date(s.starts_at)) === key && (s.status === 'booked' || s.status === 'held'),
+    );
+  }
+
+  function toggleDay(key: string) {
+    setSelectedDates((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  }
+
+  function allSelectedHave(time: string) {
+    return selectedDates.length > 0 && selectedDates.every((date) => !!slotAt(date, time));
+  }
+
+  // Add one time to every selected day that doesn't already have it — a single
+  // batched POST to /api/mentorship/slots.
+  async function addTimeToSelected(time: string) {
+    if (selectedDates.length === 0) return;
+    const wanted = selectedDates
+      .filter((date) => !slotAt(date, time))
+      .map((date) => isoFor(date, time));
+    if (wanted.length === 0) return;
+
+    setError(null);
     setBusy(true);
     const res = await fetch('/api/mentorship/slots', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slots: [{ starts_at: iso, duration_mins: 60 }] }),
+      body: JSON.stringify({ slots: wanted.map((iso) => ({ starts_at: iso, duration_mins: 60 })) }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? 'Could not add slot');
+      setError(body.error ?? 'Could not add slots');
       setBusy(false);
       return;
     }
@@ -247,10 +274,26 @@ function AvailabilityTab({
   }
 
   const todayKey = dateKey(new Date());
-  const activeSlots = activeDate ? slotsOnDate(activeDate) : [];
+
+  // All slots grouped by day for the summary list.
+  const grouped = useMemo(() => {
+    const map = new Map<string, MentorAvailabilitySlot[]>();
+    for (const s of slots) {
+      const key = dateKey(new Date(s.starts_at));
+      const arr = map.get(key) ?? [];
+      arr.push(s);
+      map.set(key, arr);
+    }
+    return [...map.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, arr]) => ({
+        key,
+        items: arr.sort((a, b) => new Date(a.starts_at).getTime() - new Date(b.starts_at).getTime()),
+      }));
+  }, [slots]);
 
   return (
-    <Section title="Your monthly availability" description="Tap a future date, then add or remove 1-hour slots. Slots tied to confirmed bookings are locked.">
+    <Section title="Your monthly availability" description="Tap one or more future days, then add the times you're free to all of them at once. Slots tied to confirmed bookings are locked.">
       {error && (
         <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error}
@@ -291,21 +334,22 @@ function AvailabilityTab({
           if (!c) return <div key={`e-${i}`} className="h-12" />;
           const key = dateKey(c);
           const isPast = key < todayKey;
-          const cellSlots = slotsOnDate(key);
-          const active = activeDate === key;
-          const hasBooked = cellSlots.some((s) => s.status === 'booked' || s.status === 'held');
+          const count = countOnDate(key);
+          const selected = selectedDates.includes(key);
+          const hasBooked = dayHasBooked(key);
           return (
             <button
               key={key}
               type="button"
               disabled={isPast}
-              onClick={() => setActiveDate(active ? null : key)}
+              onClick={() => toggleDay(key)}
+              aria-pressed={selected}
               className={`relative flex h-12 flex-col items-center justify-center rounded-xl border text-xs font-semibold transition ${
                 isPast
                   ? 'border-transparent text-slate-300'
-                  : active
+                  : selected
                   ? 'border-pink-300 bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white'
-                  : cellSlots.length > 0
+                  : count > 0
                   ? hasBooked
                     ? 'border-purple-200 bg-purple-50 text-purple-700'
                     : 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -313,93 +357,114 @@ function AvailabilityTab({
               }`}
             >
               <span>{c.getDate()}</span>
-              {cellSlots.length > 0 && (
-                <span className="text-[0.55rem] font-normal opacity-80">{cellSlots.length}</span>
+              {count > 0 && (
+                <span className="text-[0.55rem] font-normal opacity-80">{count}</span>
               )}
             </button>
           );
         })}
       </div>
 
-      {activeDate && (
-        <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-4">
-          <p className="text-sm font-semibold text-slate-900">
-            {new Date(`${activeDate}T00:00:00`).toLocaleDateString(undefined, {
-              weekday: 'long', day: 'numeric', month: 'long',
-            })}
-          </p>
-
-          {activeSlots.length > 0 && (
-            <div className="space-y-1.5">
-              {activeSlots.map((s) => {
-                const start = new Date(s.starts_at);
-                const end = new Date(s.ends_at);
-                const locked = s.status === 'booked' || s.status === 'held';
+      {/* Add times to the selected day(s) */}
+      <div className="space-y-3 rounded-2xl border border-slate-100 bg-white p-4">
+        {selectedDates.length === 0 ? (
+          <p className="text-xs text-slate-500">Select one or more days above to add times.</p>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-slate-900">
+                Add times to {selectedDates.length} selected day{selectedDates.length === 1 ? '' : 's'}
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedDates([])}
+                className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {TIME_PRESETS.map((t) => {
+                const active = allSelectedHave(t);
                 return (
-                  <div
-                    key={s.id}
-                    className={`flex items-center justify-between rounded-xl border px-3 py-2 text-sm ${
-                      locked ? 'border-purple-100 bg-purple-50/60' : 'border-emerald-100 bg-emerald-50/60'
+                  <button
+                    key={t}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => addTimeToSelected(t)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition disabled:opacity-50 ${
+                      active
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-200 bg-white text-slate-700 hover:border-pink-200'
                     }`}
                   >
-                    <span className="font-medium text-slate-700">
-                      {start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                      {' – '}
-                      {end.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                    <span className="flex items-center gap-2 text-xs">
-                      {locked ? (
-                        <span className="font-semibold text-purple-700">Booked</span>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => removeSlot(s.id)}
-                          disabled={busy}
-                          className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-500"
-                          aria-label="Remove slot"
-                        >
-                          <CloseIcon size={14} />
-                        </button>
-                      )}
-                    </span>
-                  </div>
+                    {active ? '✓ ' : '+ '}{t}
+                  </button>
                 );
               })}
             </div>
-          )}
-
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Quick add</p>
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {TIME_PRESETS.map((t) => (
-                <button
-                  key={t}
-                  type="button"
-                  disabled={busy}
-                  onClick={() => addSlot(activeDate, t)}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-pink-200 disabled:opacity-50"
-                >
-                  + {t}
-                </button>
-              ))}
+            <div className="flex items-center gap-2">
+              <input
+                type="time"
+                value={customTime}
+                onChange={(e) => setCustomTime(e.target.value)}
+                className="field max-w-[140px]"
+              />
+              <button
+                type="button"
+                disabled={busy}
+                onClick={() => addTimeToSelected(customTime)}
+                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200 disabled:opacity-50"
+              >
+                Add custom time
+              </button>
             </div>
-          </div>
+          </>
+        )}
+      </div>
 
-          <div className="flex items-center gap-2">
-            <input
-              type="time"
-              value={customTime}
-              onChange={(e) => setCustomTime(e.target.value)}
-              className="field max-w-[140px]"
-            />
-            <button
-              type="button"
-              disabled={busy}
-              onClick={() => addSlot(activeDate, customTime)}
-              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200"
-            >
-              Add custom time
-            </button>
+      {/* Summary of all open/booked slots, grouped by day */}
+      {grouped.length > 0 && (
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">Your availability</p>
+          <div className="mt-3 space-y-2.5">
+            {grouped.map(({ key, items }) => (
+              <div key={key} className="rounded-xl border border-slate-100 bg-white p-3">
+                <p className="text-sm font-semibold text-slate-800">
+                  {new Date(`${key}T00:00:00`).toLocaleDateString(undefined, {
+                    weekday: 'short', day: 'numeric', month: 'short',
+                  })}
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {items.map((s) => {
+                    const start = new Date(s.starts_at);
+                    const locked = s.status === 'booked' || s.status === 'held';
+                    const time = start.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                    return locked ? (
+                      <span
+                        key={s.id}
+                        className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-purple-50 px-2.5 py-1 text-xs font-semibold text-purple-700"
+                        title="Booked — can't be removed"
+                      >
+                        {time} · Booked
+                      </span>
+                    ) : (
+                      <button
+                        key={s.id}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => removeSlot(s.id)}
+                        className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:border-red-200 hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+                        title="Remove this time"
+                      >
+                        {time}
+                        <CloseIcon size={11} />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}

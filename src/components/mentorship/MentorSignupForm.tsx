@@ -1010,6 +1010,13 @@ function DocumentField({
 
 const TIME_SLOTS = ['09:00', '11:00', '14:00', '16:00', '18:00', '20:00'];
 
+// Local YYYY-MM-DD key. We deliberately use the browser's local date parts
+// (not toISOString, which is UTC) so the calendar matches what the mentor
+// sees — critical for Vietnam (UTC+7), where a UTC key is a day behind.
+function localDateKey(d: Date) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
 function MonthlyAvailabilityPicker({
   slots,
   onSlotsChange,
@@ -1018,7 +1025,9 @@ function MonthlyAvailabilityPicker({
   onSlotsChange: (s: string[]) => void;
 }) {
   const [viewMonth, setViewMonth] = useState<Date>(new Date());
-  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  // Multi-select: the mentor can mark several days, then apply times to all of
+  // them at once (Calendly-style), rather than editing one day at a time.
+  const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [customTime, setCustomTime] = useState<string>('10:00');
 
   const monthStart = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
@@ -1029,22 +1038,60 @@ function MonthlyAvailabilityPicker({
   for (let d = 1; d <= monthEnd.getDate(); d++) cells.push(new Date(viewMonth.getFullYear(), viewMonth.getMonth(), d));
   while (cells.length % 7 !== 0) cells.push(null);
 
-  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayKey = localDateKey(new Date());
 
-  function dateKey(d: Date) { return d.toISOString().slice(0, 10); }
-
-  function slotsOnDate(key: string): string[] {
-    return slots.filter((iso) => iso.startsWith(key));
+  function countOnDate(key: string): number {
+    return slots.filter((iso) => localDateKey(new Date(iso)) === key).length;
   }
 
-  function toggleSlot(date: string, time: string) {
-    const iso = new Date(`${date}T${time}:00`).toISOString();
-    if (slots.includes(iso)) {
-      onSlotsChange(slots.filter((s) => s !== iso));
+  function toggleDay(key: string) {
+    setSelectedDates((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  }
+
+  function isoFor(date: string, time: string) {
+    return new Date(`${date}T${time}:00`).toISOString();
+  }
+
+  // Whether every currently-selected day already has this time.
+  function allSelectedHave(time: string) {
+    return selectedDates.length > 0 && selectedDates.every((date) => slots.includes(isoFor(date, time)));
+  }
+
+  // Toggle a time across all selected days: if they all already have it, clear
+  // it from each; otherwise add it wherever it's missing.
+  function applyTimeToSelected(time: string) {
+    if (selectedDates.length === 0) return;
+    const targets = selectedDates.map((date) => isoFor(date, time));
+    if (targets.every((iso) => slots.includes(iso))) {
+      const drop = new Set(targets);
+      onSlotsChange(slots.filter((iso) => !drop.has(iso)));
     } else {
-      onSlotsChange([...slots, iso]);
+      const next = new Set(slots);
+      for (const iso of targets) next.add(iso);
+      onSlotsChange([...next]);
     }
   }
+
+  function removeSlot(iso: string) {
+    onSlotsChange(slots.filter((s) => s !== iso));
+  }
+
+  // All chosen availability, grouped by day for the summary list.
+  const grouped = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const iso of slots) {
+      const key = localDateKey(new Date(iso));
+      const arr = map.get(key) ?? [];
+      arr.push(iso);
+      map.set(key, arr);
+    }
+    return [...map.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([key, isos]) => ({
+        key,
+        isos: isos.sort((a, b) => new Date(a).getTime() - new Date(b).getTime()),
+      }));
+  }, [slots]);
 
   return (
     <div className="space-y-4">
@@ -1070,6 +1117,10 @@ function MonthlyAvailabilityPicker({
         </button>
       </div>
 
+      <p className="text-xs text-slate-500">
+        Tap one or more days, then add the times you&rsquo;re free below. Selected days turn pink; days with saved times show a count.
+      </p>
+
       <div className="grid grid-cols-7 gap-1.5 text-center text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
           <div key={d}>{d}</div>
@@ -1079,83 +1130,128 @@ function MonthlyAvailabilityPicker({
       <div className="grid grid-cols-7 gap-1.5">
         {cells.map((cell, i) => {
           if (!cell) return <div key={`e-${i}`} className="h-10" />;
-          const key = dateKey(cell);
+          const key = localDateKey(cell);
           const isPast = key < todayKey;
-          const cellSlots = slotsOnDate(key);
-          const active = selectedDate === key;
+          const count = countOnDate(key);
+          const selected = selectedDates.includes(key);
           return (
             <button
               key={key}
               type="button"
               disabled={isPast}
-              onClick={() => setSelectedDate(active ? null : key)}
+              onClick={() => toggleDay(key)}
+              aria-pressed={selected}
               className={`relative flex h-10 items-center justify-center rounded-xl border text-xs font-semibold transition ${
                 isPast
                   ? 'border-transparent text-slate-300'
-                  : active
+                  : selected
                   ? 'border-pink-300 bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white'
-                  : cellSlots.length > 0
+                  : count > 0
                   ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
                   : 'border-slate-200 bg-white text-slate-700 hover:border-pink-200'
               }`}
             >
               {cell.getDate()}
-              {cellSlots.length > 0 && !active && (
-                <span className="absolute bottom-1 right-1 text-[0.6rem]">{cellSlots.length}</span>
+              {count > 0 && (
+                <span className="absolute bottom-1 right-1 text-[0.6rem]">{count}</span>
               )}
             </button>
           );
         })}
       </div>
 
-      {selectedDate && (
-        <div className="rounded-2xl border border-slate-100 bg-white p-4">
-          <p className="text-sm font-semibold text-slate-900">
-            {new Date(`${selectedDate}T00:00:00`).toLocaleDateString(undefined, {
-              weekday: 'long', day: 'numeric', month: 'long',
-            })}
+      {/* Apply times to whichever days are selected */}
+      <div className="rounded-2xl border border-slate-100 bg-white p-4">
+        {selectedDates.length === 0 ? (
+          <p className="text-xs text-slate-500">Select one or more days above to add times.</p>
+        ) : (
+          <>
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-semibold text-slate-900">
+                Add times to {selectedDates.length} selected day{selectedDates.length === 1 ? '' : 's'}
+              </p>
+              <button
+                type="button"
+                onClick={() => setSelectedDates([])}
+                className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+              >
+                Clear selection
+              </button>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-1.5">
+              {TIME_SLOTS.map((t) => {
+                const active = allSelectedHave(t);
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    onClick={() => applyTimeToSelected(t)}
+                    className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                      active
+                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
+                        : 'border-slate-200 bg-white text-slate-600 hover:border-pink-200'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                );
+              })}
+            </div>
+            <div className="mt-3 flex items-center gap-2">
+              <input
+                type="time"
+                value={customTime}
+                onChange={(e) => setCustomTime(e.target.value)}
+                className="field max-w-[140px]"
+              />
+              <button
+                type="button"
+                onClick={() => applyTimeToSelected(customTime)}
+                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200"
+              >
+                Add custom time
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* Summary of everything chosen, grouped by day */}
+      {grouped.length > 0 && (
+        <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
+          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+            Your availability — {slots.length} slot{slots.length === 1 ? '' : 's'} across {grouped.length} day{grouped.length === 1 ? '' : 's'}
           </p>
-          <p className="mt-0.5 text-xs text-slate-500">Pick the times you&rsquo;re free.</p>
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {TIME_SLOTS.map((t) => {
-              const iso = new Date(`${selectedDate}T${t}:00`).toISOString();
-              const active = slots.includes(iso);
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => toggleSlot(selectedDate, t)}
-                  className={`rounded-full border px-3 py-1.5 text-xs transition ${
-                    active
-                      ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-pink-200'
-                  }`}
-                >
-                  {t}
-                </button>
-              );
-            })}
-          </div>
-          <div className="mt-3 flex items-center gap-2">
-            <input
-              type="time"
-              value={customTime}
-              onChange={(e) => setCustomTime(e.target.value)}
-              className="field max-w-[140px]"
-            />
-            <button
-              type="button"
-              onClick={() => toggleSlot(selectedDate, customTime)}
-              className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200"
-            >
-              Add custom time
-            </button>
+          <div className="mt-3 space-y-2.5">
+            {grouped.map(({ key, isos }) => (
+              <div key={key} className="rounded-xl border border-slate-100 bg-white p-3">
+                <p className="text-sm font-semibold text-slate-800">
+                  {new Date(`${key}T00:00:00`).toLocaleDateString(undefined, {
+                    weekday: 'short', day: 'numeric', month: 'short',
+                  })}
+                </p>
+                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                  {isos.map((iso) => (
+                    <button
+                      key={iso}
+                      type="button"
+                      onClick={() => removeSlot(iso)}
+                      className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
+                      title="Remove this time"
+                    >
+                      {new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                      <CloseIcon size={11} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       )}
 
       <p className="text-xs text-slate-500">
-        Total slots added: <strong>{slots.length}</strong>. You can add or remove slots at any time from your mentor dashboard.
+        You can change all of this any time from your mentor dashboard.
       </p>
     </div>
   );
