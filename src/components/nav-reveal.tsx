@@ -248,23 +248,127 @@ function LanguageSwitcher() {
   );
 }
 
-// ── Mobile language button ───────────────────────────────────────────────────
-// Floating pill above the bottom nav so mobile users can switch language too —
-// the desktop switcher lives in the sidebar, which is hidden on mobile.
-function MobileLanguageButton() {
-  const { lang: language, toggle: toggleLanguage } = useLanguage();
+// ── Mobile top bar + hamburger drawer ────────────────────────────────────────
+// The bottom nav only has room for 4 primary destinations. The hamburger
+// surfaces everything else (Scholarships, GLOWBAL News, Mentor hub, Admin) plus
+// the language switch, mirroring the desktop sidebar's secondary links. Mobile
+// only — hidden from md upward where the full sidebar is visible.
+function MobileTopBar({ user }: { user: UserSummary | null }) {
+  const pathname = usePathname();
+  const { t, lang: language, toggle: toggleLanguage } = useLanguage();
+  const [open, setOpen] = useState(false);
+
+  // Lock body scroll while the drawer is open.
+  useEffect(() => {
+    if (!open) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [open]);
+
+  // Pages not already reachable from the bottom nav (Search/Apply/Mentors/Profile).
+  const drawerItems: { href: string; label: string; icon: () => React.JSX.Element }[] = [
+    { href: '/', label: 'Home', icon: IconHome },
+    { href: '/scholarships', label: 'Scholarships', icon: IconApply },
+    { href: '/news', label: 'GLOWBAL News', icon: IconNews },
+  ];
+  if (user?.isMentor) {
+    drawerItems.push({ href: '/dashboard/mentor', label: 'Mentor hub', icon: IconSession });
+  }
+  if (user?.isAdmin) {
+    drawerItems.push({ href: '/admin', label: 'Admin', icon: IconAdmin });
+  }
 
   return (
-    <button
-      type="button"
-      onClick={toggleLanguage}
-      className="glowbal-mobile-language-button md:hidden"
-      aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
-      title={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
-    >
-      <span className="glowbal-mobile-language-flag">{language === 'en' ? '🇬🇧' : '🇻🇳'}</span>
-      <span className="glowbal-mobile-language-text">{language === 'en' ? 'EN' : 'VI'}</span>
-    </button>
+    <>
+      <header className="glowbal-mobile-topbar md:hidden">
+        <Link href="/" aria-label="Glowbal home" className="glowbal-mobile-topbar-logo">
+          <GlowbalLogo height={26} />
+        </Link>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="glowbal-mobile-menu-button"
+          aria-label="Open menu"
+          aria-expanded={open}
+          aria-haspopup="dialog"
+        >
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+      </header>
+
+      {open && (
+        <div className="glowbal-mobile-drawer-overlay md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+          <button
+            type="button"
+            className="glowbal-mobile-drawer-scrim"
+            aria-label="Close menu"
+            onClick={() => setOpen(false)}
+          />
+          <div className="glowbal-mobile-drawer">
+            <div className="glowbal-mobile-drawer-header">
+              <GlowbalLogo height={28} />
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="glowbal-mobile-drawer-close"
+                aria-label="Close menu"
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <nav className="glowbal-mobile-drawer-nav" aria-label="More navigation">
+              {drawerItems.map((item) => {
+                const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => setOpen(false)}
+                    className={`glowbal-mobile-drawer-item${active ? ' glowbal-mobile-drawer-item-active' : ''}`}
+                  >
+                    <span className="glowbal-mobile-drawer-item-icon"><Icon /></span>
+                    <span>{t(item.label)}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="glowbal-mobile-drawer-footer">
+              <button
+                type="button"
+                onClick={toggleLanguage}
+                className="glowbal-mobile-drawer-lang"
+                aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
+              >
+                <span className="glowbal-mobile-drawer-item-icon">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                    <circle cx="12" cy="12" r="10" />
+                    <path d="M2 12h20" />
+                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+                  </svg>
+                </span>
+                <span>
+                  {language === 'en' ? '🇬🇧 English' : '🇻🇳 Tiếng Việt'}
+                </span>
+                <span className="glowbal-mobile-drawer-lang-hint">{language === 'en' ? 'EN' : 'VI'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
@@ -448,8 +552,8 @@ export function NavReveal() {
   return (
     <>
       <DesktopSidebar user={user} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
+      <MobileTopBar user={user} />
       <MobileNav user={user} />
-      <MobileLanguageButton />
     </>
   );
 }
