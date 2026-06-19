@@ -2,13 +2,28 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { MentorSignupForm } from '@/components/mentorship/MentorSignupForm';
 
-export default async function MentorApplyPage() {
+export default async function MentorApplyPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ quick_signup?: string; quick_SignUp?: string }>;
+}) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
     redirect('/auth?redirect=/mentors/apply');
   }
+
+  // Fast-track ("quick signup"): a token-gated link we share with people we
+  // already know would make good mentors. The link carries a secret value
+  // (?quick_signup=<token>) that must match MENTOR_QUICK_SIGNUP_TOKEN. When it
+  // matches, the applicant skips the document-evidence step — but the profile
+  // is still created as 'pending' for admin review. A plain ?quick_SignUp=true
+  // with no/incorrect token does NOT unlock the fast-track.
+  const sp = await searchParams;
+  const providedToken = sp.quick_signup ?? sp.quick_SignUp ?? '';
+  const expectedToken = process.env.MENTOR_QUICK_SIGNUP_TOKEN ?? '';
+  const quickSignup = expectedToken.length > 0 && providedToken === expectedToken;
 
   // If they already have a mentor profile, send them to their dashboard.
   const { data: existing } = await supabase
@@ -41,7 +56,10 @@ export default async function MentorApplyPage() {
           </h1>
           <p className="mt-2 max-w-xl text-sm text-slate-500">
             Share your experience, set your hourly rate, and earn money helping applicants
-            get into your university. We verify every mentor manually.
+            get into your university.{' '}
+            {quickSignup
+              ? 'You’ve been invited via a fast-track link, so you can skip the document-evidence step.'
+              : 'We verify every mentor manually.'}
           </p>
         </div>
 
@@ -49,6 +67,8 @@ export default async function MentorApplyPage() {
           userId={user.id}
           defaultDisplayName={displayName}
           universities={universities ?? []}
+          quickSignup={quickSignup}
+          quickSignupToken={quickSignup ? providedToken : null}
         />
       </div>
     </main>

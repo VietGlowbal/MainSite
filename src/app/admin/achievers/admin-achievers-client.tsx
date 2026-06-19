@@ -16,6 +16,7 @@ type Application = {
   session_duration_mins: number;
   status: AchieverStatus;
   created_at: string;
+  quick_signup?: boolean | null;
   university: { id: number; name: string; country: string } | null;
 };
 
@@ -84,7 +85,14 @@ export function AdminAchieversClient({ applications }: { applications: Applicati
                     Applied {new Date(app.created_at).toLocaleDateString()}
                   </p>
                 </div>
-                <StatusBadge status={app.status} />
+                <div className="flex flex-col items-end gap-1.5">
+                  <StatusBadge status={app.status} />
+                  {app.quick_signup ? (
+                    <span className="inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
+                      Fast-track · no documents
+                    </span>
+                  ) : null}
+                </div>
               </div>
 
               {/* Expandable details */}

@@ -88,11 +88,21 @@ type Props = {
   userId: string;
   defaultDisplayName: string;
   universities: { id: number; name: string; country: string }[];
+  /** Fast-track flow: hide the document step (validated server-side). */
+  quickSignup?: boolean;
+  /** Secret token forwarded to the signup API to authorise the fast-track. */
+  quickSignupToken?: string | null;
 };
 
 type StepKey = 'identity' | 'documents' | 'profile' | 'pricing' | 'availability' | 'review';
 
-export function MentorSignupForm({ userId, defaultDisplayName, universities }: Props) {
+export function MentorSignupForm({
+  userId,
+  defaultDisplayName,
+  universities,
+  quickSignup = false,
+  quickSignupToken = null,
+}: Props) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
@@ -234,10 +244,11 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
     universityId !== null;
 
   const documentsComplete =
-    !!docKeys.cv &&
-    !!docKeys.acceptance_letter &&
-    !!docKeys.transcript &&
-    !!docKeys.student_card;
+    quickSignup ||
+    (!!docKeys.cv &&
+      !!docKeys.acceptance_letter &&
+      !!docKeys.transcript &&
+      !!docKeys.student_card);
 
   const profileComplete =
     subject.trim().length >= 2 &&
@@ -284,6 +295,7 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
       student_card_storage_key: docKeys.student_card,
       hourly_rate_amount: toSmallestUnits(Number(hourlyRateMajor), currency),
       hourly_rate_currency: currency,
+      quick_signup_token: quickSignupToken,
     };
 
     const res = await fetch('/api/mentorship/signup', {
@@ -320,7 +332,9 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
 
   // ── Render helpers ─────────────────────────────────────────────────────
 
-  const stepOrder: StepKey[] = ['identity', 'documents', 'profile', 'pricing', 'availability', 'review'];
+  const stepOrder: StepKey[] = quickSignup
+    ? ['identity', 'profile', 'pricing', 'availability', 'review']
+    : ['identity', 'documents', 'profile', 'pricing', 'availability', 'review'];
   const stepLabels: Record<StepKey, string> = {
     identity: 'Identity',
     documents: 'Documents',
@@ -443,7 +457,7 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
             )}
           </Field>
 
-          <FooterNav onNext={() => setStep('documents')} disabled={!identityComplete} />
+          <FooterNav onNext={() => setStep(quickSignup ? 'profile' : 'documents')} disabled={!identityComplete} />
         </Section>
       )}
 
@@ -709,7 +723,7 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
           </Field>
 
           <FooterNav
-            onPrev={() => setStep('documents')}
+            onPrev={() => setStep(quickSignup ? 'identity' : 'documents')}
             onNext={() => setStep('pricing')}
             disabled={!profileComplete}
           />
@@ -809,6 +823,7 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
             university={selectedUni?.name ?? '—'}
             degreeLevel={degreeLevel}
             subject={subject}
+            quickSignup={quickSignup}
             documentsCount={Object.values(docKeys).filter(Boolean).length}
             topics={topics}
             strengths={strengths}
@@ -819,7 +834,9 @@ export function MentorSignupForm({ userId, defaultDisplayName, universities }: P
           />
 
           <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-xs text-slate-500">
-            By submitting, you confirm that all documents are genuine and that you&rsquo;ll respect mentee privacy.
+            {quickSignup
+              ? 'By submitting, you confirm the details above are accurate and that you’ll respect mentee privacy. '
+              : 'By submitting, you confirm that all documents are genuine and that you’ll respect mentee privacy. '}
             Glowbal will email you within 48 hours with the outcome.
           </div>
 
@@ -1153,6 +1170,7 @@ function ReviewPanel(props: {
   university: string;
   degreeLevel: DegreeLevel;
   subject: string;
+  quickSignup: boolean;
   documentsCount: number;
   topics: string[];
   strengths: string[];
@@ -1169,7 +1187,10 @@ function ReviewPanel(props: {
       <Row label="DOB" value={props.dob} muted />
       <Row label="University" value={props.university} />
       <Row label="Programme" value={`${props.degreeLevel} · ${props.subject}`} />
-      <Row label="Documents" value={`${props.documentsCount} / 4 uploaded`} />
+      <Row
+        label="Documents"
+        value={props.quickSignup ? 'Fast-track — not required' : `${props.documentsCount} / 4 uploaded`}
+      />
       <Row label="Topics" value={props.topics.join(', ') || '—'} />
       <Row label="Strengths" value={props.strengths.join(', ') || '—'} />
       <Row label="Languages" value={props.languages.join(', ') || '—'} />
