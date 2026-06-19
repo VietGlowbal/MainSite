@@ -8,13 +8,35 @@ import { ScholarshipDirectoryClient } from './scholarship-directory-client';
 // per-user personalization below stays dynamic. Mirrors universities/page.tsx.
 export const revalidate = 43200;
 
-export default async function ScholarshipsPage() {
+type Props = {
+  // Optional ?university=<id> deep-link from a university detail page, used to
+  // scope the directory to scholarships applicable to that university.
+  searchParams: Promise<{ university?: string }>;
+};
+
+export default async function ScholarshipsPage({ searchParams }: Props) {
+  const params = await searchParams;
+  const parsedFocusId = params.university ? Number.parseInt(params.university, 10) : NaN;
+  const focusUniversityId = Number.isFinite(parsedFocusId) ? parsedFocusId : null;
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect('/auth');
+
+  // When deep-linked from a university page, resolve its name so the directory
+  // can show a "scholarships for {name}" context even if none are linked yet.
+  let focusUniversity: { id: number; name: string } | null = null;
+  if (focusUniversityId != null) {
+    const { data } = await supabase
+      .from('universities')
+      .select('id, name')
+      .eq('id', focusUniversityId)
+      .maybeSingle();
+    if (data) focusUniversity = { id: data.id, name: data.name };
+  }
 
   // Curated directory (cached, identical for everyone) + per-user signals in parallel.
   const [scholarships, savedResult, applicationsResult] = await Promise.all([
@@ -81,6 +103,7 @@ export default async function ScholarshipsPage() {
           savedCountries={savedCountries}
           applications={applications}
           existingScholarships={existingScholarships}
+          focusUniversity={focusUniversity}
         />
       </div>
     </main>

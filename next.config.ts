@@ -41,6 +41,10 @@ const nextConfig: NextConfig = {
       // Google favicons — used as a no-key logo fallback for universities
       // whose Wikidata logo claims are missing.
       { protocol: 'https', hostname: 'www.google.com' },
+      // Google Drive thumbnails — team photos stored as Drive links are
+      // rewritten to drive.google.com/thumbnail (see normalizeDriveImageUrl);
+      // the endpoint redirects to lh3.googleusercontent.com (already allowed).
+      { protocol: 'https', hostname: 'drive.google.com' },
       // VinUni press / partner imagery host — used for VinUniversity logo
       // and campus photography on /universities/vinuni.
       { protocol: 'https', hostname: 'unicons.vn' },

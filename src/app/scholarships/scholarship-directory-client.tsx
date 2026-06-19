@@ -41,6 +41,8 @@ type Props = {
   savedCountries: string[];
   applications: Application[];
   existingScholarships: ExistingScholarship[];
+  // Set when deep-linked from a university detail page (?university=<id>).
+  focusUniversity?: { id: number; name: string } | null;
 };
 
 type SortKey = 'relevance' | 'deadline' | 'name';
@@ -51,6 +53,7 @@ export function ScholarshipDirectoryClient({
   savedCountries,
   applications,
   existingScholarships,
+  focusUniversity = null,
 }: Props) {
   const { t } = useLanguage();
   const [tab, setTab] = useState<'directory' | 'ai'>('directory');
@@ -62,6 +65,17 @@ export function ScholarshipDirectoryClient({
   const [country, setCountry] = useState<string>('all');
   const [sort, setSort] = useState<SortKey>('relevance');
   const [selected, setSelected] = useState<DirectoryScholarship | null>(null);
+
+  // Deep-link focus: scope the directory to one university's scholarships.
+  const [focusActive, setFocusActive] = useState(true);
+  const focusIds = useMemo(() => {
+    if (!focusUniversity) return null;
+    const set = new Set<number>();
+    for (const s of scholarships) if (s.universityIds.includes(focusUniversity.id)) set.add(s.id);
+    return set;
+  }, [scholarships, focusUniversity]);
+  const focusHasMatches = !!focusIds && focusIds.size > 0;
+  const focusFilterOn = focusActive && focusHasMatches;
 
   // Personalization: which scholarships match the user's saved universities.
   const matchedIds = useMemo(() => {
@@ -91,6 +105,7 @@ export function ScholarshipDirectoryClient({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const rows = scholarships.filter((s) => {
+      if (focusFilterOn && focusIds && !focusIds.has(s.id)) return false;
       if (q && !s.name.toLowerCase().includes(q)) return false;
       if (scope !== 'all' && s.scope !== scope) return false;
       if (country !== 'all' && s.country !== country) return false;
@@ -111,7 +126,7 @@ export function ScholarshipDirectoryClient({
       return a.name.localeCompare(b.name);
     });
     return rows;
-  }, [scholarships, query, scope, country, funding, sort, matchedIds]);
+  }, [scholarships, query, scope, country, funding, sort, matchedIds, focusFilterOn, focusIds]);
 
   const toggleFunding = (ft: string) =>
     setFunding((prev) => {
@@ -246,6 +261,30 @@ export function ScholarshipDirectoryClient({
               )}
             </div>
           </Card>
+
+          {/* University focus chip (deep-linked from a university page) */}
+          {focusUniversity && focusActive && (
+            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-pink-200 bg-pink-50/70 px-3 py-2 text-sm">
+              {focusHasMatches ? (
+                <span className="font-medium text-pink-700">
+                  {t('Showing scholarships for {name}', { name: focusUniversity.name })}
+                </span>
+              ) : (
+                <span className="text-slate-600">
+                  {t('No scholarships are linked to {name} yet — showing the full directory.', {
+                    name: focusUniversity.name,
+                  })}
+                </span>
+              )}
+              <button
+                type="button"
+                onClick={() => setFocusActive(false)}
+                className="ml-auto text-xs font-medium text-pink-600 hover:text-pink-700"
+              >
+                {focusHasMatches ? t('Show all') : t('Dismiss')}
+              </button>
+            </div>
+          )}
 
           {/* Personalized note */}
           {sort === 'relevance' && matchedIds.size > 0 && !hasActiveFilters && (

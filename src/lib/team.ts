@@ -15,6 +15,24 @@
 import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
 
+/**
+ * Team photos are sometimes stored as Google Drive *share* links
+ * (`drive.google.com/file/d/<ID>/view`), which `next/image` can't render — that
+ * URL is an HTML viewer page, not an image, so it throws "Invalid src prop".
+ * Rewrite any Drive link to the thumbnail endpoint, which returns a real image
+ * (and redirects to googleusercontent for delivery). Non-Drive URLs pass
+ * through untouched. The file must be shared "anyone with the link".
+ */
+export function normalizeDriveImageUrl(url: string | null): string | null {
+  if (!url || !/drive\.google\.com/i.test(url)) return url;
+  const id =
+    url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/)?.[1] ??
+    url.match(/[?&]id=([a-zA-Z0-9_-]+)/)?.[1] ??
+    url.match(/\/d\/([a-zA-Z0-9_-]+)/)?.[1] ??
+    null;
+  return id ? `https://drive.google.com/thumbnail?id=${id}&sz=w1000` : url;
+}
+
 export type TeamAchievementCategory =
   | 'scholarship'
   | 'mentoring'
@@ -82,8 +100,10 @@ export const getTeamMembers = unstable_cache(
     }
 
     const members = data as unknown as TeamMember[];
-    // Order each member's achievements by display_order for stable rendering.
     for (const m of members) {
+      // Drive share links can't be rendered by next/image — normalize them.
+      m.photo_url = normalizeDriveImageUrl(m.photo_url);
+      // Order each member's achievements by display_order for stable rendering.
       m.achievements = (m.achievements ?? []).sort(
         (a, b) => a.display_order - b.display_order,
       );
