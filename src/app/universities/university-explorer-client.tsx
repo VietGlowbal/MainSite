@@ -2446,10 +2446,10 @@ function CategoryTabs({
             aria-selected={isActive}
             type="button"
             onClick={() => onChange(cat)}
-            className={`relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left transition ${
+            className={`relative flex items-center gap-3 rounded-2xl px-4 py-3 text-left transition ${
               isActive
-                ? `${style.activeBg} ${style.flowBorder} border-2`
-                : 'border border-slate-200 hover:border-slate-300'
+                ? `z-10 ${style.activeBg} ${style.flowBorder} border-2 sm:rounded-b-none sm:border-b-0`
+                : 'border border-slate-200 bg-white hover:border-slate-300'
             }`}
           >
             <span
@@ -2467,14 +2467,15 @@ function CategoryTabs({
                 {meta.tagline} · <span className="font-semibold text-slate-700">{counts[cat]}</span>
               </span>
             </span>
-            {/* Downward connector: a tinted diamond that bridges the gap to the
-                results panel below so the active tab visually flows into it.
-                Hidden on stacked (mobile) layout where it would point at the
-                next tab instead of the panel. */}
+            {/* Bridge: a tinted strip with side borders only that fills the gap
+                between the active tab and the results panel, so the open-bottom
+                tab reads as one continuous shape with the panel below. It
+                overlaps the panel's top border by 2px to erase the seam under
+                the tab. Hidden on the stacked (mobile) layout. */}
             {isActive && (
               <span
                 aria-hidden
-                className={`absolute -bottom-[8px] left-1/2 hidden h-3.5 w-3.5 -translate-x-1/2 rotate-45 border-b-2 border-r-2 ${style.flowBorder} ${style.activeBg} sm:block`}
+                className={`absolute inset-x-0 top-full hidden h-3.5 border-x-2 ${style.flowBorder} ${style.activeBg} sm:block`}
               />
             )}
           </button>
@@ -2851,7 +2852,7 @@ function BrowseView() {
                   onChange={setActiveCategory}
                 />
                 <div
-                  className={`relative mt-2 space-y-5 rounded-2xl border-2 p-4 sm:p-5 ${activeStyle.flowBorder} ${activeStyle.flowBg}`}
+                  className={`relative mt-3 space-y-5 rounded-2xl border-2 p-4 sm:p-5 ${activeStyle.flowBorder} ${activeStyle.flowBg}`}
                 >
                   <CategoryBanner category={activeCategory} embedded />
                   {resultsBody}
