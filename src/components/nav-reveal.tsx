@@ -278,7 +278,7 @@ function MobileTopBar({ user }: { user: UserSummary | null }) {
 
   return (
     <>
-      <header className="glowbal-mobile-topbar md:hidden">
+      <header className="glowbal-mobile-topbar">
         <Link href="/" aria-label="Glowbal home" className="glowbal-mobile-topbar-logo">
           <GlowbalLogo height={26} />
         </Link>
@@ -299,7 +299,7 @@ function MobileTopBar({ user }: { user: UserSummary | null }) {
       </header>
 
       {open && (
-        <div className="glowbal-mobile-drawer-overlay md:hidden" role="dialog" aria-modal="true" aria-label="Menu">
+        <div className="glowbal-mobile-drawer-overlay" role="dialog" aria-modal="true" aria-label="Menu">
           <button
             type="button"
             className="glowbal-mobile-drawer-scrim"
@@ -391,7 +391,7 @@ function DesktopSidebar({
   }
 
   return (
-    <aside className={`glowbal-sidebar hidden md:flex${collapsed ? ' is-collapsed' : ''}`}>
+    <aside className={`glowbal-sidebar${collapsed ? ' is-collapsed' : ''}`}>
       {/* Animated brand gradient strip (pink → red → aqua → navy) */}
       <div className="glowbal-brand-strip-vertical" aria-hidden />
 
