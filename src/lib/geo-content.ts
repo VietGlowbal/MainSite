@@ -294,6 +294,58 @@ export async function listGeoTopics(): Promise<string[]> {
   return ['All topics', ...new Set(guides.map((guide) => guide.topic))];
 }
 
+/**
+ * Related guides drawn from the explicit GEO graph (geo_article_links) rather
+ * than the topic heuristic. Returns published targets in link-weight order.
+ * Empty array on any miss so callers can fall back to the heuristic.
+ */
+export async function listLinkedPublishedGuides(
+  slug: string,
+  relations: Array<'related' | 'cluster' | 'prerequisite' | 'next' | 'cites'>,
+  limit = 3,
+): Promise<GeoGuide[]> {
+  try {
+    const admin = createAdminClient();
+    const { data: fromRow } = await admin
+      .from('geo_articles')
+      .select('id')
+      .eq('slug', slug)
+      .eq('status', 'published')
+      .maybeSingle();
+    if (!fromRow) return [];
+
+    let query = admin
+      .from('geo_article_links')
+      .select('to_article_id, relation, weight')
+      .eq('from_article_id', (fromRow as { id: string }).id);
+    if (relations.length) query = query.in('relation', relations);
+    const { data: links } = await query.order('weight', { ascending: false });
+    if (!links?.length) return [];
+
+    const toIds = (links as Array<{ to_article_id: string }>).map((l) => l.to_article_id);
+    const { data: targets } = await admin
+      .from('geo_articles')
+      .select(`id, ${ARTICLE_COLUMNS}`)
+      .in('id', toIds)
+      .eq('status', 'published');
+    if (!targets?.length) return [];
+
+    const byId = new Map<string, GeoGuide>();
+    for (const row of targets as Array<GeoArticleRow & { id: string }>) {
+      byId.set(row.id, mapRowToGuide(row));
+    }
+    // Preserve the link (weight) ordering.
+    const ordered: GeoGuide[] = [];
+    for (const link of links as Array<{ to_article_id: string }>) {
+      const guide = byId.get(link.to_article_id);
+      if (guide && !ordered.includes(guide)) ordered.push(guide);
+    }
+    return ordered.slice(0, limit);
+  } catch {
+    return [];
+  }
+}
+
 export async function listRelatedGeoGuides(currentSlug: string, topic: string, limit = 3): Promise<GeoGuide[]> {
   const guides = await listGeoGuides();
   return guides

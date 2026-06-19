@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { GeoArticle, GeoArticleStatus } from '@/lib/geo-cms';
+import { ArticleLinksEditor } from './article-links-editor';
 
 const TOPICS = [
   'All topics',
@@ -18,6 +19,8 @@ const TOPICS = [
 type EditorProps = {
   /** Existing article when editing; undefined when creating. */
   article?: GeoArticle;
+  /** Other articles available as link targets (edit mode only). */
+  candidates?: Array<{ id: string; title: string; slug: string }>;
 };
 
 function slugify(input: string): string {
@@ -31,7 +34,7 @@ function slugify(input: string): string {
     .slice(0, 80);
 }
 
-export function ArticleEditor({ article }: EditorProps) {
+export function ArticleEditor({ article, candidates = [] }: EditorProps) {
   const router = useRouter();
   const isEdit = Boolean(article);
 
@@ -220,6 +223,10 @@ export function ArticleEditor({ article }: EditorProps) {
               />
             ) : null}
           </div>
+
+          {isEdit && article ? (
+            <ArticleLinksEditor articleId={article.id} candidates={candidates} />
+          ) : null}
         </div>
 
         {/* Sidebar */}

@@ -2,7 +2,8 @@ import Image from 'next/image';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getGeoGuide, listGeoGuides, listRelatedGeoGuides } from '@/lib/geo-content';
+import { getGeoGuide, listGeoGuides, listLinkedPublishedGuides, listRelatedGeoGuides } from '@/lib/geo-content';
+import type { GeoGuide } from '@/lib/geo-content';
 import { NewsletterCard } from '@/components/news/news-page-client';
 import { T } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
@@ -32,6 +33,47 @@ const tagPalette = [
 // on-demand and cached; this also revalidates on a 5-minute window.
 export const revalidate = 300;
 
+const SITE_URL = 'https://glowbal.co';
+
+/** schema.org JSON-LD: Article + Breadcrumb (+ FAQ passthrough), wired to the
+ *  GEO graph via relatedLink — explicit structure for AI search engines. */
+function buildGuideJsonLd(guide: GeoGuide, related: GeoGuide[]) {
+  const url = `${SITE_URL}/guides/${guide.slug}`;
+  const image = guide.heroImage
+    ? (guide.heroImage.startsWith('http') ? guide.heroImage : `${SITE_URL}${guide.heroImage}`)
+    : undefined;
+
+  const graph: Record<string, unknown>[] = [
+    {
+      '@type': 'Article',
+      headline: guide.title,
+      description: guide.description || guide.excerpt,
+      ...(image ? { image: [image] } : {}),
+      datePublished: guide.publishedAt,
+      dateModified: guide.publishedAt,
+      author: { '@type': 'Organization', name: 'GLOWBAL', url: SITE_URL },
+      publisher: { '@type': 'Organization', name: 'GLOWBAL', url: SITE_URL },
+      mainEntityOfPage: url,
+      ...(guide.tags.length ? { keywords: guide.tags.join(', ') } : {}),
+      ...(related.length ? { relatedLink: related.map((r) => `${SITE_URL}/guides/${r.slug}`) } : {}),
+    },
+    {
+      '@type': 'BreadcrumbList',
+      itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'GLOWBAL News', item: `${SITE_URL}/news` },
+        { '@type': 'ListItem', position: 2, name: guide.topic, item: `${SITE_URL}/news` },
+        { '@type': 'ListItem', position: 3, name: guide.title, item: url },
+      ],
+    },
+  ];
+
+  // Pass through a pipeline/admin-supplied FAQ schema block if present.
+  const faq = (guide.metadata as { schema?: { faq?: Record<string, unknown> } } | undefined)?.schema?.faq;
+  if (faq && typeof faq === 'object') graph.push(faq);
+
+  return { '@context': 'https://schema.org', '@graph': graph };
+}
+
 export async function generateStaticParams() {
   const guides = await listGeoGuides();
   return guides.map((guide) => ({ slug: guide.slug }));
@@ -57,10 +99,22 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
   const { slug } = await params;
   const guide = await getGeoGuide(slug);
   if (!guide) notFound();
-  const related = await listRelatedGeoGuides(guide.slug, guide.topic, 3);
+
+  // Prefer the explicit GEO graph (editor-curated links); fall back to the
+  // topic heuristic when an article has no outgoing edges yet.
+  const linked = await listLinkedPublishedGuides(guide.slug, ['related', 'next', 'cluster'], 3);
+  const related = linked.length ? linked : await listRelatedGeoGuides(guide.slug, guide.topic, 3);
+
+  const jsonLd = buildGuideJsonLd(guide, related);
 
   return (
     <main className="app-page-shell" data-no-auto-translate>
+      <script
+        type="application/ld+json"
+        // Structured data helps AI search + Google understand and surface the
+        // article and its place in the GEO graph.
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <div className="app-page-container grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-8">
           <nav className="mb-6 flex flex-wrap items-center gap-2 text-sm text-slate-500">

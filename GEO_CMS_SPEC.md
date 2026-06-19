@@ -1,7 +1,8 @@
 # GLOWBAL News CMS — Design Spec
 
-Status: **Phases 1–2 implemented** (this PR). Phases 3–4 are designed below but
-not yet built.
+Status: **Phases 1–4 implemented** (this PR), except the headless pipeline
+`geo:sync-db` step (Phase 3 cont.), which is designed but not wired into the
+GitHub Action yet.
 
 ## 1. Goal
 
@@ -176,16 +177,23 @@ pipeline calls in place of the `git commit` step, reusing the same
 `upsertArticleBySlug` semantics. (Not wired into the live workflow yet — it
 needs the Supabase service-role secret added to the Action.)
 
-## 10. Multi-article linking / GEO hosting (Phase 4)
+## 10. Multi-article linking / GEO hosting (Phase 4 — DONE in this PR)
 
-- Link-management UI in the editor (pick related articles, set relation +
-  weight) writing to `geo_article_links`.
-- Topic **hub pages** generated from `cluster` edges — strong internal linking
-  is a primary GEO signal.
-- Emit schema.org `Article` + `FAQPage` + `BreadcrumbList` from `meta.schema`,
-  and `cites` edges as references, so AI crawlers get explicit structure.
-- Optional: move hero/support assets to Supabase Storage so image upload happens
-  in-editor rather than via the pipeline's filesystem writes.
+- **Link-management UI**: the editor (edit mode) has a "Linked articles (GEO
+  graph)" panel — pick a target article + relation
+  (`related`/`cluster`/`next`/`prerequisite`/`cites`), add/remove edges, save.
+  Backed by `GET`/`PUT /api/admin/news/:id/links` and
+  `listLinksForArticle` / `replaceArticleLinks`.
+- **Public usage**: `/guides/[slug]` "Related articles" now prefers the explicit
+  graph (`listLinkedPublishedGuides`, weight-ordered) and falls back to the
+  topic heuristic when an article has no edges yet.
+- **schema.org**: each article page emits JSON-LD (`Article` + `BreadcrumbList`,
+  plus a passthrough `FAQPage` from `meta.schema.faq`), with `relatedLink`
+  pointing at the linked guides — explicit structure for AI search.
+
+Remaining Phase 4 nice-to-haves (not in this PR): dedicated topic **hub pages**
+rendered from `cluster` edges, and moving hero/support image uploads to Supabase
+Storage so they happen in-editor rather than via the pipeline's filesystem.
 
 ## 11. Security
 
@@ -205,7 +213,8 @@ needs the Supabase service-role secret added to the Action.)
    the live `/news` and `/guides` pages.
 3. **Phase 3 (partly this PR)** — admin "Import from files" backfill shipped;
    remaining: a headless `geo:sync-db` step in the GitHub Actions pipeline.
-4. **Phase 4** — link graph UI, topic hubs, schema.org output, Storage uploads.
+4. **Phase 4 (this PR)** — link-graph editor + API, graph-driven related rails,
+   schema.org JSON-LD. Remaining: topic hub pages + Storage image uploads.
 
 > Phases 1–2 are backwards-compatible: with no DB rows, the site renders exactly
 > the file-based content it does today; the DB layer only ever *adds* or

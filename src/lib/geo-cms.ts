@@ -164,6 +164,57 @@ export async function deleteArticle(id: string): Promise<void> {
   if (error) throw new Error(error.message);
 }
 
+// ── Article-to-article links (the GEO graph) ─────────────────────────────────
+export type GeoLinkRelation = 'related' | 'cluster' | 'prerequisite' | 'next' | 'cites';
+export const GEO_LINK_RELATIONS: GeoLinkRelation[] = ['related', 'cluster', 'prerequisite', 'next', 'cites'];
+
+export type GeoArticleLink = {
+  to_article_id: string;
+  relation: GeoLinkRelation;
+  weight: number;
+};
+
+/** Outgoing edges from one article, strongest first. */
+export async function listLinksForArticle(fromId: string): Promise<GeoArticleLink[]> {
+  const admin = createAdminClient();
+  const { data, error } = await admin
+    .from('geo_article_links')
+    .select('to_article_id, relation, weight')
+    .eq('from_article_id', fromId)
+    .order('weight', { ascending: false });
+  if (error) throw new Error(error.message);
+  return (data ?? []) as GeoArticleLink[];
+}
+
+/** Replace the full set of outgoing edges for an article (delete + insert). */
+export async function replaceArticleLinks(fromId: string, links: GeoArticleLink[]): Promise<void> {
+  const admin = createAdminClient();
+  const { error: delErr } = await admin.from('geo_article_links').delete().eq('from_article_id', fromId);
+  if (delErr) throw new Error(delErr.message);
+
+  // De-dupe by (to, relation), drop self-links, default weight.
+  const seen = new Set<string>();
+  const rows = links
+    .filter((l) => l.to_article_id && l.to_article_id !== fromId)
+    .filter((l) => {
+      const key = `${l.to_article_id}:${l.relation}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
+    .map((l) => ({
+      from_article_id: fromId,
+      to_article_id: l.to_article_id,
+      relation: l.relation,
+      weight: Number.isFinite(l.weight) ? l.weight : 0,
+    }));
+
+  if (rows.length) {
+    const { error } = await admin.from('geo_article_links').insert(rows);
+    if (error) throw new Error(error.message);
+  }
+}
+
 export type UpsertOutcome = 'created' | 'updated' | 'skipped';
 
 /**

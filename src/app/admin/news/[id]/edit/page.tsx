@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getArticleById } from '@/lib/geo-cms';
+import { getArticleById, listArticlesForAdmin } from '@/lib/geo-cms';
 import { ArticleEditor } from '../../article-editor';
 
 /**
@@ -11,5 +11,11 @@ export default async function EditArticlePage({ params }: { params: Promise<{ id
   const article = await getArticleById(id);
   if (!article) notFound();
 
-  return <ArticleEditor article={article} />;
+  // Other articles available as link targets in the GEO graph editor.
+  const all = await listArticlesForAdmin();
+  const candidates = all
+    .filter((a) => a.id !== id)
+    .map((a) => ({ id: a.id, title: a.title, slug: a.slug }));
+
+  return <ArticleEditor article={article} candidates={candidates} />;
 }
