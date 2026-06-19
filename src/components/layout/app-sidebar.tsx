@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -105,7 +106,24 @@ const MENTOR_DASHBOARD_ITEM: NavItem = {
   ),
 };
 
-function HelpCard() {
+function HelpCard({ isExpanded }: { isExpanded: boolean }) {
+  if (!isExpanded) {
+    return (
+      <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-50 to-cyan-50/50 p-2 flex items-center justify-center">
+        <Link
+          href="/mentors"
+          className="flex items-center justify-center"
+          title="Need help with your application?"
+        >
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-pink-600">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          </svg>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-50 to-cyan-50/50 p-4 text-center">
       <div className="text-3xl mb-2 flex items-center justify-center">
@@ -136,15 +154,40 @@ function HelpCard() {
  *
  * Pass `isMentor` from the parent server component so we can show a
  * "Mentor dashboard" link for users who already have a mentor profile.
+ * 
+ * Features a collapsible/expandable toggle for desktop views.
  */
 export function AppSidebar({ isMentor = false }: { isMentor?: boolean } = {}) {
   const pathname = usePathname();
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const items = isMentor ? [...ITEMS, MENTOR_DASHBOARD_ITEM] : ITEMS;
 
   return (
-    <aside className="hidden lg:block space-y-4">
-      <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
+    <aside className={`hidden lg:block space-y-4 transition-all duration-300 ${isExpanded ? 'w-64' : 'w-20'}`}>
+      <div className="rounded-2xl border border-slate-200 bg-white p-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)] relative">
+        {/* Toggle Button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="absolute -right-3 top-4 z-10 flex h-6 w-6 items-center justify-center rounded-full border border-slate-200 bg-white shadow-sm hover:bg-slate-50 transition-colors"
+          title={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+          aria-label={isExpanded ? 'Collapse sidebar' : 'Expand sidebar'}
+        >
+          <svg 
+            width="12" 
+            height="12" 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round"
+            className={`text-slate-600 transition-transform duration-300 ${isExpanded ? '' : 'rotate-180'}`}
+          >
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+
         <nav className="space-y-0.5">
           {items.map((item) => {
             const active =
@@ -154,21 +197,22 @@ export function AppSidebar({ isMentor = false }: { isMentor?: boolean } = {}) {
               <Link
                 key={item.label}
                 href={item.href}
-                className={`flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm transition ${
+                className={`flex items-center ${isExpanded ? 'gap-2.5' : 'justify-center'} rounded-lg px-3 py-2 text-sm transition ${
                   active
                     ? 'bg-pink-50 text-pink-600 font-semibold'
                     : 'text-slate-600 hover:bg-slate-50'
                 }`}
+                title={!isExpanded ? item.label : undefined}
               >
-                <span>{item.icon}</span>
-                <span>{item.label}</span>
+                <span className="flex-shrink-0">{item.icon}</span>
+                {isExpanded && <span>{item.label}</span>}
               </Link>
             );
           })}
         </nav>
       </div>
 
-      <HelpCard />
+      <HelpCard isExpanded={isExpanded} />
     </aside>
   );
 }
