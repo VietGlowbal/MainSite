@@ -26,20 +26,20 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
 
   if (!user) redirect('/auth');
 
-  // When deep-linked from a university page, resolve its name so the directory
-  // can show a "scholarships for {name}" context even if none are linked yet.
-  let focusUniversity: { id: number; name: string } | null = null;
+  // When deep-linked from a university page, resolve its name + country so the
+  // directory can split into "scholarships at {name}" and "others in {country}".
+  let focusUniversity: { id: number; name: string; country: string | null } | null = null;
   if (focusUniversityId != null) {
     const { data } = await supabase
       .from('universities')
-      .select('id, name')
+      .select('id, name, country')
       .eq('id', focusUniversityId)
       .maybeSingle();
-    if (data) focusUniversity = { id: data.id, name: data.name };
+    if (data) focusUniversity = { id: data.id, name: data.name, country: data.country };
   }
 
   // Curated directory (cached, identical for everyone) + per-user signals in parallel.
-  const [scholarships, savedResult, applicationsResult] = await Promise.all([
+  const [scholarships, savedResult, applicationsResult, savedScholarshipsResult] = await Promise.all([
     getPublishedScholarships(),
     supabase
       .from('user_universities')
@@ -51,7 +51,10 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
       .eq('user_id', user.id)
       .not('status', 'in', '("rejected","withdrawn","archived")')
       .order('created_at', { ascending: false }),
+    supabase.from('user_scholarships').select('scholarship_id').eq('user_id', user.id),
   ]);
+
+  const savedScholarshipIds = (savedScholarshipsResult.data ?? []).map((r) => r.scholarship_id as number);
 
   // Personalization keys: saved university ids + their countries.
   const savedRows = (savedResult.data ?? []) as Array<{
@@ -104,6 +107,7 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
           applications={applications}
           existingScholarships={existingScholarships}
           focusUniversity={focusUniversity}
+          savedScholarshipIds={savedScholarshipIds}
         />
       </div>
     </main>

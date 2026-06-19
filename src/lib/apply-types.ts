@@ -343,3 +343,16 @@ export type ShortlistedUniversity = {
   countryFlag?: string;
   courseSearchUrl?: string;
 };
+
+// A scholarship the user saved (from the scholarships directory), trimmed to
+// what the Apply page needs to nest it under an application / shortlisted uni.
+export type SavedScholarshipLite = {
+  id: number;            // user_scholarships.id
+  scholarshipId: number;
+  name: string;
+  scope: string | null;
+  amountLabel: string | null;
+  deadlineLabel: string | null;
+  sourceUrl: string | null;
+  universityId: number | null;
+};

@@ -239,6 +239,16 @@ export const translations: Record<string, string> = {
     'Chưa có học bổng nào được liên kết với {name} — đang hiển thị toàn bộ danh mục.',
   'Show all': 'Hiển thị tất cả',
   Dismiss: 'Bỏ qua',
+  'Funding picked for {name}': 'Tài trợ được chọn cho {name}',
+  'Show all scholarships': 'Hiển thị tất cả học bổng',
+  'Scholarships at {name}': 'Học bổng tại {name}',
+  'Other scholarships in {country}': 'Học bổng khác tại {country}',
+  'Other scholarships': 'Học bổng khác',
+  'Continue to Apply': 'Tiếp tục nộp đơn',
+  '{count} scholarship(s) saved': 'Đã lưu {count} học bổng',
+  Achievability: 'Khả năng đạt được',
+  'Just saved': 'Vừa lưu',
+  'Open scholarship': 'Mở học bổng',
 
   // ── Mentors ────────────────────────────────────────────────────────────--
   'Mentorship Hub': 'Trung tâm Cố vấn',
