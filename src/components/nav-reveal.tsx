@@ -271,11 +271,11 @@ function MobileTopBar({ user }: { user: UserSummary | null }) {
   // Pages not already reachable from the bottom nav (Search/Apply/Mentors/Profile).
   const drawerItems: { href: string; label: string; icon: () => React.JSX.Element }[] = [
     { href: '/', label: 'Home', icon: IconHome },
-    { href: '/scholarships', label: 'Scholarships', icon: IconApply },
+    { href: '/scholarships', label: 'Scholarships', icon: IconScholarship },
     { href: '/news', label: 'GLOWBAL News', icon: IconNews },
   ];
   if (user?.isMentor) {
-    drawerItems.push({ href: '/dashboard/mentor', label: 'Mentor hub', icon: IconSession });
+    drawerItems.push({ href: '/dashboard/mentor', label: 'Mentor hub', icon: IconMentorHub });
   }
   if (user?.isAdmin) {
     drawerItems.push({ href: '/admin', label: 'Admin', icon: IconAdmin });
