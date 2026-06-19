@@ -5140,7 +5140,7 @@ body:not(:has(.cosmos-root)) {
   padding-right: 0.5rem;
 }
 
-.glowbal-sidebar.is-collapsed .glowbal-language-label,
+.glowbal-sidebar.is-collapsed .glowbal-language-text,
 .glowbal-sidebar.is-collapsed .glowbal-language-arrow,
 .glowbal-sidebar.is-collapsed .glowbal-nav-account-label {
   display: none;
@@ -5391,6 +5391,12 @@ body:not(:has(.cosmos-root)) {
 .glowbal-mobile-language-text {
   letter-spacing: 0.05em;
   color: rgb(51, 65, 85);
+}
+
+@media (min-width: 768px) {
+  .glowbal-mobile-language-button {
+    display: none !important;
+  }
 }
 
 /* Floating language toggle for the landing page (sits over the dark cosmic

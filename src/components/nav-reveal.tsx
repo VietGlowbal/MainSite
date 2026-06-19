@@ -230,12 +230,12 @@ function LanguageSwitcher() {
         {language === 'en' ? (
           <>
             <span className="glowbal-language-flag">🇬🇧</span>
-            <span>English</span>
+            <span className="glowbal-language-text">English</span>
           </>
         ) : (
           <>
             <span className="glowbal-language-flag">🇻🇳</span>
-            <span>Tiếng Việt</span>
+            <span className="glowbal-language-text">Tiếng Việt</span>
           </>
         )}
       </span>
