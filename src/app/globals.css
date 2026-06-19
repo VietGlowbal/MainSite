@@ -5138,8 +5138,21 @@ body:not(:has(.cosmos-root)) {
 /* Footer: keep the icons, drop the labels so they fit the rail. */
 .glowbal-sidebar.is-collapsed .glowbal-language-switcher {
   justify-content: center;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding: 0.5rem;
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.glowbal-sidebar.is-collapsed .glowbal-language-switcher:hover {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: transparent;
+  box-shadow: none;
+  transform: none;
+}
+
+.glowbal-sidebar.is-collapsed .glowbal-language-flag {
+  font-size: 1.45rem;
 }
 
 .glowbal-sidebar.is-collapsed .glowbal-language-text,
