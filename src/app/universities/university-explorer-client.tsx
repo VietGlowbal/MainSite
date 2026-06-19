@@ -11,6 +11,11 @@ import {
   type ApplicationEntry,
 } from '@/lib/explorer-context';
 import { MatchBadge } from '@/components/match-badge';
+import {
+  ADMISSION_CATEGORY_META,
+  ADMISSION_CATEGORY_ORDER,
+  type AdmissionCategory,
+} from '@/lib/admission-fit';
 import { Button, EmptyState, DualRangeSlider } from '@/components/ui';
 import { JourneySteps } from '@/components/JourneySteps';
 import { FadeInImage } from './fade-in-image';
@@ -1467,9 +1472,12 @@ function UniversityRow({
           </div>
         ) : null}
 
-        {hasMatch ? (
-          <div className="mt-1 flex items-center gap-2">
-            <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} size="sm" />
+        {(hasMatch || university.admission) ? (
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            {hasMatch ? (
+              <MatchBadge percentage={university.match_score} breakdown={university.match_breakdown} size="sm" />
+            ) : null}
+            {university.admission ? <AdmissionChip admission={university.admission} /> : null}
             {matchReason ? (
               <span className="line-clamp-1 text-[0.7rem] text-slate-400">{matchReason}</span>
             ) : null}
@@ -1648,6 +1656,12 @@ function UniversityCardCompact({
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
           </svg>
         </button>
+        {/* Reach / Recommended / Safe — bottom-left overlay */}
+        {university.admission ? (
+          <span className="absolute bottom-2.5 left-2.5">
+            <AdmissionChip admission={university.admission} />
+          </span>
+        ) : null}
       </div>
 
       {/* Body */}
@@ -2321,11 +2335,243 @@ function CompareMetricRow({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   ADMISSION FIT — Reach / Recommended / Safe grouping
+   ────────────────────────────────────────────────────────────────────────
+   The signed-in applicant uploads a CV or statement of purpose to unlock a
+   personalised split of results into three admission buckets. Each bucket is
+   driven by the applicant's profile-strength score vs. each university's
+   selectivity (see src/lib/admission-fit.ts).
+───────────────────────────────────────────────────────────────────────── */
+
+/** Per-category visual tokens shared by the tab bar, banner and card chips. */
+const CATEGORY_STYLE: Record<
+  AdmissionCategory,
+  { text: string; activeBg: string; activeBorder: string; chip: string; dot: string; icon: React.ReactNode }
+> = {
+  reach: {
+    text: 'text-violet-700',
+    activeBg: 'bg-violet-50',
+    activeBorder: 'border-violet-300 ring-2 ring-violet-200',
+    chip: 'bg-violet-50 text-violet-700 border-violet-200',
+    dot: 'bg-violet-500',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M3 17l6-6 4 4 8-8" /><path d="M21 7v6h-6" />
+      </svg>
+    ),
+  },
+  recommended: {
+    text: 'text-pink-600',
+    activeBg: 'bg-pink-50',
+    activeBorder: 'border-pink-300 ring-2 ring-pink-200',
+    chip: 'bg-pink-50 text-pink-600 border-pink-200',
+    dot: 'bg-pink-500',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+      </svg>
+    ),
+  },
+  safe: {
+    text: 'text-emerald-600',
+    activeBg: 'bg-emerald-50',
+    activeBorder: 'border-emerald-300 ring-2 ring-emerald-200',
+    chip: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    dot: 'bg-emerald-500',
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" />
+      </svg>
+    ),
+  },
+};
+
+/** Small per-card chip reaffirming a university's admission bucket. */
+function AdmissionChip({ admission }: { admission: NonNullable<ExplorerUniversity['admission']> }) {
+  const meta = ADMISSION_CATEGORY_META[admission.category];
+  const style = CATEGORY_STYLE[admission.category];
+  const label = meta.label.replace(' universities', '');
+  return (
+    <span
+      className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[0.7rem] font-semibold ${style.chip}`}
+      title={`${label} — about ${admission.probability}% estimated admission chance for your profile`}
+    >
+      <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} aria-hidden />
+      {label} · {admission.probability}%
+    </span>
+  );
+}
+
+/** The three-up tab bar (Reach / Recommended / Safe) with live counts. */
+function CategoryTabs({
+  counts,
+  active,
+  onChange,
+}: {
+  counts: Record<AdmissionCategory, number>;
+  active: AdmissionCategory;
+  onChange: (c: AdmissionCategory) => void;
+}) {
+  return (
+    <div
+      role="tablist"
+      aria-label="Admission categories"
+      className="grid gap-3 sm:grid-cols-3"
+    >
+      {ADMISSION_CATEGORY_ORDER.map((cat) => {
+        const meta = ADMISSION_CATEGORY_META[cat];
+        const style = CATEGORY_STYLE[cat];
+        const isActive = cat === active;
+        return (
+          <button
+            key={cat}
+            role="tab"
+            aria-selected={isActive}
+            type="button"
+            onClick={() => onChange(cat)}
+            className={`flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 text-left transition ${
+              isActive ? `${style.activeBg} ${style.activeBorder}` : 'border-slate-200 hover:border-slate-300'
+            }`}
+          >
+            <span
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
+                isActive ? `${style.activeBg} ${style.text}` : 'bg-slate-50 text-slate-400'
+              }`}
+            >
+              {style.icon}
+            </span>
+            <span className="min-w-0">
+              <span className={`block text-sm font-semibold ${isActive ? style.text : 'text-slate-800'}`}>
+                {meta.label}
+              </span>
+              <span className="block text-xs text-slate-500">
+                {meta.tagline} · <span className="font-semibold text-slate-700">{counts[cat]}</span>
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/** Contextual banner describing the active category (mirrors the mockup). */
+function CategoryBanner({ category }: { category: AdmissionCategory }) {
+  const meta = ADMISSION_CATEGORY_META[category];
+  const style = CATEGORY_STYLE[category];
+  return (
+    <div className={`flex items-start gap-4 rounded-2xl border border-slate-200 p-4 ${style.activeBg}`}>
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white ${style.text}`}>
+        {style.icon}
+      </span>
+      <div className="min-w-0">
+        <p className={`text-sm font-semibold ${style.text}`}>{meta.label}</p>
+        <p className="mt-0.5 text-sm leading-relaxed text-slate-600">{meta.description}</p>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Locked state shown until the applicant uploads a CV or statement. Without a
+ * document we can't reliably gauge their profile strength, so grouping stays
+ * gated behind an upload CTA.
+ */
+function MatchUnlockPanel() {
+  const { isLoggedIn } = useExplorer();
+  const router = useRouter();
+  const href = isLoggedIn ? '/profile/documents' : '/auth?next=/profile/documents';
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-pink-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50/40 p-6">
+      {/* Ghost preview of the three tabs behind a soft veil */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-6 top-6 grid gap-3 opacity-40 blur-[2px] sm:grid-cols-3">
+        {ADMISSION_CATEGORY_ORDER.map((cat) => (
+          <div key={cat} className="h-16 rounded-2xl border border-slate-200 bg-white" />
+        ))}
+      </div>
+      <div className="relative mx-auto max-w-xl pt-20 text-center sm:pt-24">
+        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-pink-100 text-pink-600">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </span>
+        <h3 className="text-lg font-semibold text-slate-900">
+          Unlock your Reach, Recommended &amp; Safe matches
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          Upload your CV or statement of purpose and we&apos;ll read your grades, experience and
+          writing to group these universities by how likely you are to get in — plus where coaching
+          could turn a reach into an offer.
+        </p>
+        <div className="mt-5 flex flex-wrap items-center justify-center gap-3">
+          <Button variant="primary" onClick={() => router.push(href)}>
+            Upload CV or statement
+          </Button>
+          <Button variant="secondary" onClick={() => router.push('/profile')}>
+            Complete your profile
+          </Button>
+        </div>
+        <p className="mt-3 text-xs text-slate-400">
+          Your documents stay private — they&apos;re only used to personalise your matches.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/** Minimum universities we try to keep in each admission bucket. */
+const MIN_PER_BUCKET = 5;
+
+/**
+ * Partition universities into Reach / Recommended / Safe, guaranteeing at least
+ * `min` per bucket where the data allows — so users always have options at,
+ * below and above their level. The per-uni margin-based category sets the
+ * natural boundaries; when a bucket is short we shift the boundary to borrow
+ * the nearest universities (ordered by admission probability) from a neighbour.
+ * Returns a category-by-id map so callers can preserve their own sort order.
+ */
+function assignAdmissionBuckets(
+  items: ExplorerUniversity[],
+  min: number,
+): Map<number, AdmissionCategory> {
+  const result = new Map<number, AdmissionCategory>();
+  const n = items.length;
+  if (n === 0) return result;
+
+  // Hardest (lowest admission probability) first → the Reach end of the
+  // spectrum. Category is monotonic in probability, so the natural buckets are
+  // already contiguous along this axis; we only need to move the two cut points.
+  const sorted = [...items].sort(
+    (a, b) => (a.admission?.probability ?? 0) - (b.admission?.probability ?? 0),
+  );
+
+  let b1 = sorted.findIndex((u) => u.admission?.category !== 'reach');
+  if (b1 === -1) b1 = n;
+  let b2 = sorted.findIndex((u) => u.admission?.category === 'safe');
+  if (b2 === -1) b2 = n;
+
+  // Enforce minimums only when there are enough universities to honour them;
+  // for tiny sets we fall back to the natural split (still ordered correctly).
+  const eff = Math.min(min, Math.floor(n / 3));
+  if (eff > 0) {
+    b1 = Math.min(Math.max(b1, eff), n - 2 * eff);
+    b2 = Math.min(Math.max(b2, b1 + eff), n - eff);
+  } else {
+    b2 = Math.max(b1, b2);
+  }
+
+  sorted.forEach((u, i) => {
+    result.set(u.id, i < b1 ? 'reach' : i < b2 ? 'recommended' : 'safe');
+  });
+  return result;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    BROWSE VIEW (main layout)
 ───────────────────────────────────────────────────────────────────────── */
 
 function BrowseView() {
-  const { universities, hasProfile } = useExplorer();
+  const { universities, hasProfile, admissionUnlocked } = useExplorer();
   const router = useRouter();
   const resultsRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState<SearchState>({ name: '', location: '', program: '' });
@@ -2336,11 +2582,52 @@ function BrowseView() {
   const [view, setView] = useState<'grid' | 'list'>('list');
   const [compareIds, setCompareIds] = useState<number[]>([]);
   const [showCompare, setShowCompare] = useState(false);
+  // The selected admission tab — the SINGLE source of truth. The tab bar, the
+  // info banner and the results list all read this one value directly, so the
+  // banner can never disagree with the highlighted tab.
+  const [activeCategory, setActiveCategory] = useState<AdmissionCategory>('recommended');
 
   const filtered = useMemo(
     () => applyFilters(universities, filters, search, sort),
     [universities, filters, search, sort],
   );
+
+  // Split the (already filtered + sorted) results into admission buckets,
+  // guaranteeing at least MIN_PER_BUCKET in each where the data allows so users
+  // always see options at, below and above their level. Counts are computed
+  // from the full filtered set, so they stay stable across tab switches.
+  const groups = useMemo(() => {
+    const g: Record<AdmissionCategory, ExplorerUniversity[]> = {
+      reach: [],
+      recommended: [],
+      safe: [],
+    };
+    if (!admissionUnlocked) return g;
+    const items = filtered.filter((u) => u.admission);
+    const catById = assignAdmissionBuckets(items, MIN_PER_BUCKET);
+    // Iterate `filtered` (not the probability-sorted set) so each bucket keeps
+    // the user's chosen sort order. Clone only when the displayed bucket
+    // differs from the uni's natural category, so its chip stays consistent.
+    for (const u of filtered) {
+      const cat = catById.get(u.id);
+      if (!cat) continue;
+      g[cat].push(
+        cat === u.admission?.category
+          ? u
+          : { ...u, admission: { ...u.admission!, category: cat } },
+      );
+    }
+    return g;
+  }, [filtered, admissionUnlocked]);
+
+  const categoryCounts = useMemo(
+    () => ({ reach: groups.reach.length, recommended: groups.recommended.length, safe: groups.safe.length }),
+    [groups],
+  );
+
+  // What the results grid renders: the selected bucket when grouping is
+  // unlocked, otherwise the plain filtered list.
+  const displayed = admissionUnlocked ? groups[activeCategory] : filtered;
 
   const toggleCompare = (id: number) => {
     setCompareIds((prev) => {
@@ -2415,8 +2702,22 @@ function BrowseView() {
 
           {/* Main column */}
           <div ref={resultsRef} className="space-y-5 scroll-mt-6">
+            {/* Reach / Recommended / Safe grouping — gated on CV/SOP upload */}
+            {admissionUnlocked ? (
+              <>
+                <CategoryTabs
+                  counts={categoryCounts}
+                  active={activeCategory}
+                  onChange={setActiveCategory}
+                />
+                <CategoryBanner category={activeCategory} />
+              </>
+            ) : (
+              <MatchUnlockPanel />
+            )}
+
             <ResultsBar
-              totalCount={filtered.length}
+              totalCount={displayed.length}
               compareCount={compareIds.length}
               sort={sort}
               onSortChange={setSort}
@@ -2451,7 +2752,7 @@ function BrowseView() {
               </div>
             )}
 
-            {filtered.length > 0 ? (
+            {displayed.length > 0 ? (
               <div
                 className={
                   view === 'grid'
@@ -2459,7 +2760,7 @@ function BrowseView() {
                     : 'flex flex-col gap-3'
                 }
               >
-                {filtered.map((u, i) => (
+                {displayed.map((u, i) => (
                   <UniversityCard
                     key={u.id}
                     university={u}
@@ -2813,7 +3114,11 @@ function useUniversityUrlSync() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const lastWrittenRef = useRef<string | null>(null);
+  // Initialise to '' (the browse-view URL state) so the first mount doesn't
+  // fire a spurious `router.replace` — that soft navigation can bounce the
+  // route through its loading boundary and remount the explorer, wiping
+  // in-component state such as the selected admission tab.
+  const lastWrittenRef = useRef<string>('');
 
   // URL → state. If the URL says `?u=42` and we're not currently viewing
   // university 42, switch to it.
@@ -2880,6 +3185,8 @@ interface ExplorerClientProps {
   initialApplications: ApplicationEntry[];
   isLoggedIn: boolean;
   hasProfile: boolean;
+  admissionUnlocked: boolean;
+  profileStrength: number | null;
   wikiPairs?: Array<[string, string]>;
 }
 
@@ -2889,6 +3196,8 @@ export function UniversityExplorerClient({
   initialApplications,
   isLoggedIn,
   hasProfile,
+  admissionUnlocked,
+  profileStrength,
   wikiPairs = [],
 }: ExplorerClientProps) {
   const [universitiesWithImages, setUniversitiesWithImages] = useState<ExplorerUniversity[]>(universities);
@@ -2952,6 +3261,8 @@ export function UniversityExplorerClient({
       initialApplications={initialApplications}
       isLoggedIn={isLoggedIn}
       hasProfile={hasProfile}
+      admissionUnlocked={admissionUnlocked}
+      profileStrength={profileStrength}
     >
       <Suspense fallback={null}>
         <ExplorerContent />

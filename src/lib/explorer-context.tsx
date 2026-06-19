@@ -75,6 +75,10 @@ export interface ExplorerActions {
   universities: ExplorerUniversity[];
   isLoggedIn: boolean;
   hasProfile: boolean;
+  /** Whether Reach/Recommended/Safe grouping is unlocked (CV or SOP uploaded). */
+  admissionUnlocked: boolean;
+  /** Applicant strength score (0–100) backing the grouping, when available. */
+  profileStrength: number | null;
 }
 
 // ── Filter helper ───────────────────────────────────────────────────────
@@ -110,6 +114,8 @@ interface ProviderProps {
   initialApplications: ApplicationEntry[];
   isLoggedIn: boolean;
   hasProfile: boolean;
+  admissionUnlocked: boolean;
+  profileStrength: number | null;
 }
 
 export function UniversityExplorerProvider({
@@ -119,6 +125,8 @@ export function UniversityExplorerProvider({
   initialApplications,
   isLoggedIn,
   hasProfile,
+  admissionUnlocked,
+  profileStrength,
 }: ProviderProps) {
   const supabase = useMemo(() => createClient(), []);
   const [activeView, setActiveView] =
@@ -377,6 +385,8 @@ export function UniversityExplorerProvider({
     showToast,
     isLoggedIn,
     hasProfile,
+    admissionUnlocked,
+    profileStrength,
   };
 
   return (
