@@ -4999,6 +4999,13 @@ body:not(:has(.cosmos-root)) {
 @media (min-width: 768px) {
   .glowbal-main-content {
     margin-left: 240px;
+    transition: margin-left 240ms ease;
+  }
+
+  /* When the sidebar is collapsed to its icon rail, reclaim the freed
+     space so content isn't left with a dead 240px gutter. */
+  body.glowbal-sidebar-collapsed .glowbal-main-content {
+    margin-left: 76px;
   }
 
   /* The homepage hides the sidebar (it ships its own header), so the
@@ -5023,6 +5030,12 @@ body:not(:has(.cosmos-root)) {
   border-right: 1px solid rgba(15, 23, 42, 0.08);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
+  transition: width 240ms ease;
+}
+
+/* Collapsed (icon-rail) state — toggled via the in-sidebar button. */
+.glowbal-sidebar.is-collapsed {
+  width: 76px;
 }
 
 .glowbal-brand-strip-vertical {
@@ -5051,9 +5064,92 @@ body:not(:has(.cosmos-root)) {
 }
 
 .glowbal-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   padding: 0.5rem 0.75rem 1.5rem;
   border-bottom: 1px solid rgba(15, 23, 42, 0.06);
   margin-bottom: 1rem;
+}
+
+/* Collapse / expand toggle button. */
+.glowbal-sidebar-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.95);
+  color: rgb(71, 85, 105);
+  cursor: pointer;
+  transition: background 200ms ease, border-color 200ms ease, color 200ms ease;
+}
+
+.glowbal-sidebar-toggle:hover {
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.12);
+  color: rgb(15, 23, 42);
+}
+
+.glowbal-sidebar-toggle-icon {
+  transition: transform 240ms ease;
+}
+
+.glowbal-sidebar-toggle-icon.is-collapsed {
+  transform: rotate(180deg);
+}
+
+/* ── Collapsed-state tweaks ──────────────────────────────────────────────── */
+.glowbal-sidebar.is-collapsed .glowbal-sidebar-inner {
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+}
+
+/* Hide the wordmark when collapsed; center the toggle in the header. */
+.glowbal-sidebar.is-collapsed .glowbal-sidebar-header {
+  justify-content: center;
+}
+
+.glowbal-sidebar.is-collapsed .glowbal-sidebar-logo {
+  display: none;
+}
+
+/* Nav items shrink to centered icons. */
+.glowbal-sidebar.is-collapsed .glowbal-sidebar-item {
+  justify-content: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.glowbal-sidebar.is-collapsed .glowbal-sidebar-item-label {
+  display: none;
+}
+
+.glowbal-sidebar.is-collapsed .glowbal-sidebar-item:hover {
+  transform: none;
+}
+
+/* Footer: keep the icons, drop the labels so they fit the rail. */
+.glowbal-sidebar.is-collapsed .glowbal-language-switcher {
+  justify-content: center;
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
+}
+
+.glowbal-sidebar.is-collapsed .glowbal-language-label,
+.glowbal-sidebar.is-collapsed .glowbal-language-arrow,
+.glowbal-sidebar.is-collapsed .glowbal-nav-account-label {
+  display: none;
+}
+
+.glowbal-sidebar.is-collapsed .glowbal-sidebar-footer .glowbal-nav-pill-account,
+.glowbal-sidebar.is-collapsed .glowbal-sidebar-footer .glowbal-nav-account {
+  padding-left: 0.5rem;
+  padding-right: 0.5rem;
 }
 
 .glowbal-sidebar-logo {
