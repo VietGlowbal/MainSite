@@ -2519,6 +2519,53 @@ function MatchUnlockPanel() {
   );
 }
 
+/** Minimum universities we try to keep in each admission bucket. */
+const MIN_PER_BUCKET = 5;
+
+/**
+ * Partition universities into Reach / Recommended / Safe, guaranteeing at least
+ * `min` per bucket where the data allows — so users always have options at,
+ * below and above their level. The per-uni margin-based category sets the
+ * natural boundaries; when a bucket is short we shift the boundary to borrow
+ * the nearest universities (ordered by admission probability) from a neighbour.
+ * Returns a category-by-id map so callers can preserve their own sort order.
+ */
+function assignAdmissionBuckets(
+  items: ExplorerUniversity[],
+  min: number,
+): Map<number, AdmissionCategory> {
+  const result = new Map<number, AdmissionCategory>();
+  const n = items.length;
+  if (n === 0) return result;
+
+  // Hardest (lowest admission probability) first → the Reach end of the
+  // spectrum. Category is monotonic in probability, so the natural buckets are
+  // already contiguous along this axis; we only need to move the two cut points.
+  const sorted = [...items].sort(
+    (a, b) => (a.admission?.probability ?? 0) - (b.admission?.probability ?? 0),
+  );
+
+  let b1 = sorted.findIndex((u) => u.admission?.category !== 'reach');
+  if (b1 === -1) b1 = n;
+  let b2 = sorted.findIndex((u) => u.admission?.category === 'safe');
+  if (b2 === -1) b2 = n;
+
+  // Enforce minimums only when there are enough universities to honour them;
+  // for tiny sets we fall back to the natural split (still ordered correctly).
+  const eff = Math.min(min, Math.floor(n / 3));
+  if (eff > 0) {
+    b1 = Math.min(Math.max(b1, eff), n - 2 * eff);
+    b2 = Math.min(Math.max(b2, b1 + eff), n - eff);
+  } else {
+    b2 = Math.max(b1, b2);
+  }
+
+  sorted.forEach((u, i) => {
+    result.set(u.id, i < b1 ? 'reach' : i < b2 ? 'recommended' : 'safe');
+  });
+  return result;
+}
+
 /* ─────────────────────────────────────────────────────────────────────────
    BROWSE VIEW (main layout)
 ───────────────────────────────────────────────────────────────────────── */
@@ -2536,15 +2583,18 @@ function BrowseView() {
   const [compareIds, setCompareIds] = useState<number[]>([]);
   const [showCompare, setShowCompare] = useState(false);
   const [activeCategory, setActiveCategory] = useState<AdmissionCategory>('recommended');
+  // Whether the user has explicitly chosen a tab (so we stop auto-defaulting).
+  const [categoryPicked, setCategoryPicked] = useState(false);
 
   const filtered = useMemo(
     () => applyFilters(universities, filters, search, sort),
     [universities, filters, search, sort],
   );
 
-  // Split the (already filtered + sorted) results into admission buckets.
-  // Counts stay stable across tab switches since they're computed from the
-  // full filtered set, not the active tab.
+  // Split the (already filtered + sorted) results into admission buckets,
+  // guaranteeing at least MIN_PER_BUCKET in each where the data allows so users
+  // always see options at, below and above their level. Counts are computed
+  // from the full filtered set, so they stay stable across tab switches.
   const groups = useMemo(() => {
     const g: Record<AdmissionCategory, ExplorerUniversity[]> = {
       reach: [],
@@ -2552,8 +2602,19 @@ function BrowseView() {
       safe: [],
     };
     if (!admissionUnlocked) return g;
+    const items = filtered.filter((u) => u.admission);
+    const catById = assignAdmissionBuckets(items, MIN_PER_BUCKET);
+    // Iterate `filtered` (not the probability-sorted set) so each bucket keeps
+    // the user's chosen sort order. Clone only when the displayed bucket
+    // differs from the uni's natural category, so its chip stays consistent.
     for (const u of filtered) {
-      if (u.admission) g[u.admission.category].push(u);
+      const cat = catById.get(u.id);
+      if (!cat) continue;
+      g[cat].push(
+        cat === u.admission?.category
+          ? u
+          : { ...u, admission: { ...u.admission!, category: cat } },
+      );
     }
     return g;
   }, [filtered, admissionUnlocked]);
@@ -2563,13 +2624,19 @@ function BrowseView() {
     [groups],
   );
 
-  // If the selected bucket is empty (e.g. after a filter change) fall back to
-  // the first non-empty bucket so the user never lands on a blank tab. Derived
-  // rather than stored, so we don't need a state-syncing effect.
+  // Resolve which bucket is shown. An explicit tab click always sticks (so the
+  // banner never snaps back). Before the user has picked, we default to the
+  // first non-empty bucket so the initial view is never blank.
   const effectiveCategory = useMemo(() => {
+    if (categoryPicked) return activeCategory;
     if (!admissionUnlocked || categoryCounts[activeCategory] > 0) return activeCategory;
     return ADMISSION_CATEGORY_ORDER.find((c) => categoryCounts[c] > 0) ?? activeCategory;
-  }, [admissionUnlocked, categoryCounts, activeCategory]);
+  }, [categoryPicked, admissionUnlocked, categoryCounts, activeCategory]);
+
+  const handlePickCategory = (c: AdmissionCategory) => {
+    setActiveCategory(c);
+    setCategoryPicked(true);
+  };
 
   // What the results grid actually renders: the active bucket when grouping is
   // unlocked, otherwise the plain filtered list.
@@ -2654,7 +2721,7 @@ function BrowseView() {
                 <CategoryTabs
                   counts={categoryCounts}
                   active={effectiveCategory}
-                  onChange={setActiveCategory}
+                  onChange={handlePickCategory}
                 />
                 <CategoryBanner category={effectiveCategory} />
               </>
