@@ -7,6 +7,7 @@ const TABS = [
   { href: '/admin', label: 'Overview', match: 'exact' as const },
   { href: '/admin/achievers', label: 'Mentor applications', match: 'prefix' as const },
   { href: '/admin/bookings', label: 'Bookings & payments', match: 'prefix' as const },
+  { href: '/admin/news', label: 'News & GEO', match: 'prefix' as const },
   { href: '/admin/users', label: 'Users', match: 'prefix' as const },
 ];
 
