@@ -58,10 +58,10 @@ export default async function BookingsPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
       <div className="w-full">
-        <div className="grid gap-6 lg:grid-cols-[200px_1fr]">
+        <div className="flex gap-6">
           <AppSidebar />
 
-          <div className="space-y-6 min-w-0">
+          <div className="flex-1 space-y-6 min-w-0">
             <div>
               <h1 className="text-2xl font-bold tracking-tight text-slate-900">My bookings</h1>
               <p className="mt-1 text-sm text-slate-500">
