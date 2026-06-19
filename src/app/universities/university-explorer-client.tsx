@@ -2586,8 +2586,6 @@ function BrowseView() {
   // info banner and the results list all read this one value directly, so the
   // banner can never disagree with the highlighted tab.
   const [activeCategory, setActiveCategory] = useState<AdmissionCategory>('recommended');
-  // Whether the user has explicitly chosen a tab (so we stop auto-defaulting).
-  const [categoryPicked, setCategoryPicked] = useState(false);
 
   const filtered = useMemo(
     () => applyFilters(universities, filters, search, sort),
@@ -2627,23 +2625,9 @@ function BrowseView() {
     [groups],
   );
 
-  // Resolve which bucket is shown. An explicit tab click always sticks (so the
-  // banner never snaps back). Before the user has picked, we default to the
-  // first non-empty bucket so the initial view is never blank.
-  const effectiveCategory = useMemo(() => {
-    if (categoryPicked) return activeCategory;
-    if (!admissionUnlocked || categoryCounts[activeCategory] > 0) return activeCategory;
-    return ADMISSION_CATEGORY_ORDER.find((c) => categoryCounts[c] > 0) ?? activeCategory;
-  }, [categoryPicked, admissionUnlocked, categoryCounts, activeCategory]);
-
-  const handlePickCategory = (c: AdmissionCategory) => {
-    setActiveCategory(c);
-    setCategoryPicked(true);
-  };
-
   // What the results grid renders: the selected bucket when grouping is
   // unlocked, otherwise the plain filtered list.
-  const displayed = admissionUnlocked ? groups[effectiveCategory] : filtered;
+  const displayed = admissionUnlocked ? groups[activeCategory] : filtered;
 
   const toggleCompare = (id: number) => {
     setCompareIds((prev) => {
@@ -2723,10 +2707,10 @@ function BrowseView() {
               <>
                 <CategoryTabs
                   counts={categoryCounts}
-                  active={effectiveCategory}
-                  onChange={handlePickCategory}
+                  active={activeCategory}
+                  onChange={setActiveCategory}
                 />
-                <CategoryBanner category={effectiveCategory} />
+                <CategoryBanner category={activeCategory} />
               </>
             ) : (
               <MatchUnlockPanel />

@@ -14,6 +14,19 @@ export type PlusPlanId = 'plus-6m' | 'plus-12m' | 'plus-24m';
 
 export const PLUS_CURRENCY = 'vnd'; // zero-decimal in Stripe: unit_amount === VND
 
+/**
+ * Facebook (Messenger) chat link for the "Not sure? Chat with our in-house
+ * team" CTA on the payment page. TODO: replace the placeholder with the real
+ * GlowBal Messenger/page URL before shipping.
+ */
+export const GLOWBAL_FB_CHAT_URL = 'https://www.facebook.com/messages/t/1091699360701390';
+
+/**
+ * Free statement-of-purpose AI analyses a non-Plus user gets before being
+ * prompted to upgrade. Enforced server-side in /api/ai/analyze-statement.
+ */
+export const FREE_SOP_ANALYSES = 3;
+
 export type PlusPackage = {
   id: PlusPlanId;
   /** Subtitle under the plan name, e.g. "12 months". */

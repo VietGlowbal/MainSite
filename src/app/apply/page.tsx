@@ -220,12 +220,15 @@ export default async function ApplyPage({ searchParams }: Props) {
   if (!user) redirect('/auth');
 
   const applications = await fetchApplications(user.id);
-  const [overview, savedScholarshipsByUniversity, matchByApplicationId, shortlisted] = await Promise.all([
-    calculateOverview(applications),
-    fetchSavedScholarshipsByUniversity(user.id),
-    fetchMatchScores(applications.map((a) => a.id)),
-    fetchShortlisted(user.id, applications),
-  ]);
+  const [overview, savedScholarshipsByUniversity, matchByApplicationId, shortlisted, profileResult] =
+    await Promise.all([
+      calculateOverview(applications),
+      fetchSavedScholarshipsByUniversity(user.id),
+      fetchMatchScores(applications.map((a) => a.id)),
+      fetchShortlisted(user.id, applications),
+      supabase.from('student_profiles').select('plus_status').eq('user_id', user.id).maybeSingle(),
+    ]);
+  const isPlus = !!profileResult.data?.plus_status;
   const upcomingDeadlines = calculateUpcomingDeadlines(applications);
 
   return (
@@ -240,6 +243,7 @@ export default async function ApplyPage({ searchParams }: Props) {
           savedScholarshipsByUniversity={savedScholarshipsByUniversity}
           matchByApplicationId={matchByApplicationId}
           focusUniversityId={focusUniversityId}
+          isPlus={isPlus}
         />
       </div>
     </main>

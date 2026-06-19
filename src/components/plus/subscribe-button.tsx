@@ -14,10 +14,12 @@ export function SubscribeButton({
   plan,
   signedIn,
   highlighted,
+  applicationId,
 }: {
   plan: PlusPlanId;
   signedIn: boolean;
   highlighted: boolean;
+  applicationId?: string | null;
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -31,7 +33,8 @@ export function SubscribeButton({
 
   async function subscribe() {
     if (!signedIn) {
-      router.push('/auth?mode=signup&redirect=/plus');
+      const redirect = `/plus${applicationId ? `?application=${applicationId}` : ''}`;
+      router.push(`/auth?mode=signup&redirect=${encodeURIComponent(redirect)}`);
       return;
     }
     setLoading(true);
@@ -40,7 +43,7 @@ export function SubscribeButton({
       const res = await fetch('/api/plus/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan, applicationId: applicationId ?? undefined }),
       });
       const data = await res.json();
       if (!res.ok || !data.checkout_url) {

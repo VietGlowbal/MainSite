@@ -179,12 +179,14 @@ function ApplicationCard({
   score,
   scholarships,
   highlighted,
+  isPlus,
   t,
 }: {
   app: CourseApplication;
   score: number;
   scholarships: SavedScholarshipLite[];
   highlighted: boolean;
+  isPlus: boolean;
   t: (en: string, vars?: Record<string, string | number>) => string;
 }) {
   const badge = statusBadge(app.status, app.deadline);
@@ -194,10 +196,14 @@ function ApplicationCard({
     ? new Date(app.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : null;
 
+  // Plus subscribers go straight to the workspace; everyone else hits the
+  // payment page first (carrying this application so we can return to it).
+  const href = isPlus ? `/apply/${app.id}` : `/plus?application=${app.id}`;
+
   return (
     <div className={highlighted ? 'rounded-2xl ring-2 ring-pink-400 ring-offset-2' : ''}>
     <Link
-      href={`/apply/${app.id}`}
+      href={href}
       className="group flex items-stretch gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:shadow-[0_6px_20px_rgba(15,23,42,0.08)] hover:-translate-y-0.5"
     >
       {/* University image */}
@@ -644,12 +650,12 @@ function TrialBanner() {
       <p className="text-xs text-slate-600 leading-relaxed mb-3">
         You&apos;re on a free trial. Unlock all tools and mentor support.
       </p>
-      <button
-        type="button"
+      <Link
+        href="/plus"
         className="w-full inline-flex h-9 items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-xs font-semibold text-white shadow-[0_4px_12px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5"
       >
         Upgrade Now
-      </button>
+      </Link>
       <p className="mt-2 text-center text-[10px] text-slate-400">Trial ends in 6 days</p>
     </div>
   );
@@ -690,6 +696,7 @@ type Props = {
   savedScholarshipsByUniversity: Record<number, SavedScholarshipLite[]>;
   matchByApplicationId: Record<string, number>;
   focusUniversityId: number | null;
+  isPlus: boolean;
 };
 
 export function ApplyDashboard({
@@ -700,6 +707,7 @@ export function ApplyDashboard({
   savedScholarshipsByUniversity,
   matchByApplicationId,
   focusUniversityId,
+  isPlus,
 }: Props) {
   const { t } = useLanguage();
   const scholarshipsFor = (universityId: number | null | undefined) =>
@@ -761,6 +769,7 @@ export function ApplyDashboard({
                   score={matchByApplicationId[app.id] ?? app.progressPercentage}
                   scholarships={scholarshipsFor(app.universityId)}
                   highlighted={focusUniversityId != null && app.universityId === focusUniversityId}
+                  isPlus={isPlus}
                   t={t}
                 />
               ))}
@@ -808,6 +817,7 @@ export function ApplyDashboard({
                   score={matchByApplicationId[app.id] ?? app.progressPercentage}
                   scholarships={scholarshipsFor(app.universityId)}
                   highlighted={false}
+                  isPlus={isPlus}
                   t={t}
                 />
               ))}
