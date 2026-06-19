@@ -23,10 +23,15 @@ const SignupSchema = z.object({
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
   university_id: z.number().int().positive(),
 
-  cv_storage_key: z.string().min(1),
-  acceptance_letter_storage_key: z.string().min(1),
-  transcript_storage_key: z.string().min(1),
-  student_card_storage_key: z.string().min(1),
+  // Documents are required for the standard flow but optional for a
+  // token-authorised quick signup (validated below).
+  cv_storage_key: z.string().min(1).nullish(),
+  acceptance_letter_storage_key: z.string().min(1).nullish(),
+  transcript_storage_key: z.string().min(1).nullish(),
+  student_card_storage_key: z.string().min(1).nullish(),
+
+  // Secret fast-track token (matched against MENTOR_QUICK_SIGNUP_TOKEN).
+  quick_signup_token: z.string().nullish(),
 
   // Mentor profile content
   avatar_url: z.string().url().nullable().optional(),
@@ -72,6 +77,27 @@ export async function POST(request: NextRequest) {
       { error: 'Date of birth looks invalid' },
       { status: 400 },
     );
+  }
+
+  // Fast-track ("quick signup"): only valid when the client presents the
+  // secret token matching MENTOR_QUICK_SIGNUP_TOKEN. A forged or absent token
+  // falls back to the standard flow, which requires all four documents below.
+  const expectedToken = process.env.MENTOR_QUICK_SIGNUP_TOKEN ?? '';
+  const isQuickSignup =
+    expectedToken.length > 0 && input.quick_signup_token === expectedToken;
+
+  if (!isQuickSignup) {
+    const missingDocs =
+      !input.cv_storage_key ||
+      !input.acceptance_letter_storage_key ||
+      !input.transcript_storage_key ||
+      !input.student_card_storage_key;
+    if (missingDocs) {
+      return NextResponse.json(
+        { error: 'All four verification documents are required.' },
+        { status: 400 },
+      );
+    }
   }
 
   const supabase = await createClient();
@@ -130,12 +156,15 @@ export async function POST(request: NextRequest) {
     session_price_vnd:
       input.hourly_rate_currency === 'VND' ? input.hourly_rate_amount : 0,
     session_duration_mins: 60,
-    // Documents
-    cv_storage_key: input.cv_storage_key,
-    acceptance_letter_storage_key: input.acceptance_letter_storage_key,
-    transcript_storage_key: input.transcript_storage_key,
-    student_card_storage_key: input.student_card_storage_key,
+    // Documents (null for a fast-track signup)
+    cv_storage_key: input.cv_storage_key ?? null,
+    acceptance_letter_storage_key: input.acceptance_letter_storage_key ?? null,
+    transcript_storage_key: input.transcript_storage_key ?? null,
+    student_card_storage_key: input.student_card_storage_key ?? null,
     status: 'pending',
+    // Only set on the fast-track path so standard signups don't depend on the
+    // supabase-mentor-quick-signup.sql migration having been applied yet.
+    ...(isQuickSignup ? { quick_signup: true } : {}),
   });
 
   if (insertErr) {
