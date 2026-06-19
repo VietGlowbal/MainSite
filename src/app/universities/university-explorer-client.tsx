@@ -2522,9 +2522,6 @@ function MatchUnlockPanel() {
 /** Minimum universities we try to keep in each admission bucket. */
 const MIN_PER_BUCKET = 5;
 
-/** sessionStorage key persisting the selected Reach/Recommended/Safe tab. */
-const FIT_CATEGORY_KEY = 'glowbal:fit-category';
-
 /**
  * Partition universities into Reach / Recommended / Safe, guaranteeing at least
  * `min` per bucket where the data allows — so users always have options at,
@@ -2585,25 +2582,10 @@ function BrowseView() {
   const [view, setView] = useState<'grid' | 'list'>('list');
   const [compareIds, setCompareIds] = useState<number[]>([]);
   const [showCompare, setShowCompare] = useState(false);
-  // Selected admission tab. Lazy-initialised from sessionStorage so the choice
-  // survives any remount of the explorer (e.g. a soft navigation bouncing
-  // through the route's loading boundary) instead of snapping back to the
-  // default — which was the "tab flicks back to Recommended" bug.
-  const [activeCategory, setActiveCategory] = useState<AdmissionCategory>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = window.sessionStorage.getItem(FIT_CATEGORY_KEY);
-      if (saved === 'reach' || saved === 'recommended' || saved === 'safe') {
-        return saved;
-      }
-    }
-    return 'recommended';
-  });
-
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.sessionStorage.setItem(FIT_CATEGORY_KEY, activeCategory);
-    }
-  }, [activeCategory]);
+  // The selected admission tab — the SINGLE source of truth. The tab bar, the
+  // info banner and the results list all read this one value directly, so the
+  // banner can never disagree with the highlighted tab.
+  const [activeCategory, setActiveCategory] = useState<AdmissionCategory>('recommended');
 
   const filtered = useMemo(
     () => applyFilters(universities, filters, search, sort),
@@ -2643,18 +2625,9 @@ function BrowseView() {
     [groups],
   );
 
-  // The selected tab is the single source of truth. We only redirect the
-  // *display* when the chosen bucket is genuinely empty (rare, thanks to the
-  // 5-per-bucket minimum) so the user never lands on a blank list — this never
-  // overrides a non-empty selection, so a clicked tab always sticks.
-  const effectiveCategory = useMemo(() => {
-    if (!admissionUnlocked || categoryCounts[activeCategory] > 0) return activeCategory;
-    return ADMISSION_CATEGORY_ORDER.find((c) => categoryCounts[c] > 0) ?? activeCategory;
-  }, [admissionUnlocked, categoryCounts, activeCategory]);
-
-  // What the results grid actually renders: the active bucket when grouping is
+  // What the results grid renders: the selected bucket when grouping is
   // unlocked, otherwise the plain filtered list.
-  const displayed = admissionUnlocked ? groups[effectiveCategory] : filtered;
+  const displayed = admissionUnlocked ? groups[activeCategory] : filtered;
 
   const toggleCompare = (id: number) => {
     setCompareIds((prev) => {
@@ -2734,10 +2707,10 @@ function BrowseView() {
               <>
                 <CategoryTabs
                   counts={categoryCounts}
-                  active={effectiveCategory}
+                  active={activeCategory}
                   onChange={setActiveCategory}
                 />
-                <CategoryBanner category={effectiveCategory} />
+                <CategoryBanner category={activeCategory} />
               </>
             ) : (
               <MatchUnlockPanel />
