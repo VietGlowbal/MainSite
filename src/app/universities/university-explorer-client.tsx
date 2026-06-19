@@ -2346,7 +2346,18 @@ function CompareMetricRow({
 /** Per-category visual tokens shared by the tab bar, banner and card chips. */
 const CATEGORY_STYLE: Record<
   AdmissionCategory,
-  { text: string; activeBg: string; activeBorder: string; chip: string; dot: string; icon: React.ReactNode }
+  {
+    text: string;
+    activeBg: string;
+    activeBorder: string;
+    chip: string;
+    dot: string;
+    // Tokens for the "connected" results panel that flows out of the active
+    // tab: a soft tinted gradient background and a matching solid border.
+    flowBg: string;
+    flowBorder: string;
+    icon: React.ReactNode;
+  }
 > = {
   reach: {
     text: 'text-violet-700',
@@ -2354,6 +2365,8 @@ const CATEGORY_STYLE: Record<
     activeBorder: 'border-violet-300 ring-2 ring-violet-200',
     chip: 'bg-violet-50 text-violet-700 border-violet-200',
     dot: 'bg-violet-500',
+    flowBg: 'bg-gradient-to-b from-violet-50 to-white',
+    flowBorder: 'border-violet-200',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M3 17l6-6 4 4 8-8" /><path d="M21 7v6h-6" />
@@ -2366,6 +2379,8 @@ const CATEGORY_STYLE: Record<
     activeBorder: 'border-pink-300 ring-2 ring-pink-200',
     chip: 'bg-pink-50 text-pink-600 border-pink-200',
     dot: 'bg-pink-500',
+    flowBg: 'bg-gradient-to-b from-pink-50 to-white',
+    flowBorder: 'border-pink-200',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -2378,6 +2393,8 @@ const CATEGORY_STYLE: Record<
     activeBorder: 'border-emerald-300 ring-2 ring-emerald-200',
     chip: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     dot: 'bg-emerald-500',
+    flowBg: 'bg-gradient-to-b from-emerald-50 to-white',
+    flowBorder: 'border-emerald-200',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
         <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /><path d="M9 12l2 2 4-4" />
@@ -2429,13 +2446,15 @@ function CategoryTabs({
             aria-selected={isActive}
             type="button"
             onClick={() => onChange(cat)}
-            className={`flex items-center gap-3 rounded-2xl border bg-white px-4 py-3 text-left transition ${
-              isActive ? `${style.activeBg} ${style.activeBorder}` : 'border-slate-200 hover:border-slate-300'
+            className={`relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-left transition ${
+              isActive
+                ? `${style.activeBg} ${style.flowBorder} border-2`
+                : 'border border-slate-200 hover:border-slate-300'
             }`}
           >
             <span
               className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${
-                isActive ? `${style.activeBg} ${style.text}` : 'bg-slate-50 text-slate-400'
+                isActive ? `bg-white ${style.text}` : 'bg-slate-50 text-slate-400'
               }`}
             >
               {style.icon}
@@ -2448,6 +2467,16 @@ function CategoryTabs({
                 {meta.tagline} · <span className="font-semibold text-slate-700">{counts[cat]}</span>
               </span>
             </span>
+            {/* Downward connector: a tinted diamond that bridges the gap to the
+                results panel below so the active tab visually flows into it.
+                Hidden on stacked (mobile) layout where it would point at the
+                next tab instead of the panel. */}
+            {isActive && (
+              <span
+                aria-hidden
+                className={`absolute -bottom-[8px] left-1/2 hidden h-3.5 w-3.5 -translate-x-1/2 rotate-45 border-b-2 border-r-2 ${style.flowBorder} ${style.activeBg} sm:block`}
+              />
+            )}
           </button>
         );
       })}
@@ -2455,13 +2484,23 @@ function CategoryTabs({
   );
 }
 
-/** Contextual banner describing the active category (mirrors the mockup). */
-function CategoryBanner({ category }: { category: AdmissionCategory }) {
+/**
+ * Contextual banner describing the active category (mirrors the mockup).
+ * `embedded` drops the banner's own border/background for use inside the
+ * connected results panel, which already supplies the category tint.
+ */
+function CategoryBanner({ category, embedded = false }: { category: AdmissionCategory; embedded?: boolean }) {
   const meta = ADMISSION_CATEGORY_META[category];
   const style = CATEGORY_STYLE[category];
   return (
-    <div className={`flex items-start gap-4 rounded-2xl border border-slate-200 p-4 ${style.activeBg}`}>
-      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white ${style.text}`}>
+    <div
+      className={
+        embedded
+          ? 'flex items-start gap-4'
+          : `flex items-start gap-4 rounded-2xl border border-slate-200 p-4 ${style.activeBg}`
+      }
+    >
+      <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white shadow-sm ${style.text}`}>
         {style.icon}
       </span>
       <div className="min-w-0">
@@ -2628,6 +2667,8 @@ function BrowseView() {
   // What the results grid renders: the selected bucket when grouping is
   // unlocked, otherwise the plain filtered list.
   const displayed = admissionUnlocked ? groups[activeCategory] : filtered;
+  // Visual tokens for the active bucket — drives the connected results panel.
+  const activeStyle = CATEGORY_STYLE[activeCategory];
 
   const toggleCompare = (id: number) => {
     setCompareIds((prev) => {
@@ -2674,6 +2715,103 @@ function BrowseView() {
     }
   };
 
+  // Shared results region (sort bar + active filter chips + the cards grid or
+  // empty state). Rendered inside the tinted "flow" panel when admission
+  // grouping is unlocked, and on its own otherwise — so the markup stays in
+  // one place for both layouts.
+  const resultsBody = (
+    <>
+      <ResultsBar
+        totalCount={displayed.length}
+        compareCount={compareIds.length}
+        sort={sort}
+        onSortChange={setSort}
+        view={view}
+        onViewChange={setView}
+        onOpenCompare={() => {
+          if (compareIds.length >= 2) setShowCompare(true);
+        }}
+      />
+
+      {/* Active filter chips */}
+      {activeFilterChips.length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          {activeFilterChips.map((chip) => (
+            <button
+              key={chip.key}
+              type="button"
+              onClick={() => chip.remove(setFilters, setSearch)}
+              className="inline-flex items-center gap-1 rounded-full bg-pink-50 border border-pink-200 px-2.5 py-1 text-xs font-medium text-pink-700 hover:bg-pink-100 transition"
+            >
+              {chip.label}
+              <span className="text-pink-400 hover:text-pink-700">×</span>
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => { setFilters(DEFAULT_FILTERS); setSearch({ name: '', location: '', program: '' }); }}
+            className="text-xs text-slate-500 hover:text-pink-600 underline underline-offset-2"
+          >
+            Clear all
+          </button>
+        </div>
+      )}
+
+      {displayed.length > 0 ? (
+        <div
+          className={
+            view === 'grid'
+              ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+              : 'flex flex-col gap-3'
+          }
+        >
+          {displayed.map((u, i) => (
+            <UniversityCard
+              key={u.id}
+              university={u}
+              index={i}
+              isCompared={compareIds.includes(u.id)}
+              onToggleCompare={() => toggleCompare(u.id)}
+              canAddCompare={compareIds.length < 4}
+              variant={view}
+            />
+          ))}
+        </div>
+      ) : (
+        <EmptyState
+          icon={
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="2" y1="12" x2="22" y2="12" />
+              <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+            </svg>
+          }
+          title="No matches yet — let's widen the search"
+          description="Your filters might be a little tight. Try clearing one or two and we'll show universities across more countries and price ranges."
+          action={
+            <Button
+              variant="primary"
+              onClick={() => {
+                setFilters(DEFAULT_FILTERS);
+                setSearch({ name: '', location: '', program: '' });
+              }}
+            >
+              Reset filters
+            </Button>
+          }
+          secondaryAction={
+            <Button
+              variant="secondary"
+              onClick={() => setFilters({ ...filters, countries: [] })}
+            >
+              Clear country filter
+            </Button>
+          }
+        />
+      )}
+    </>
+  );
+
   return (
     <>
       <div className="w-full px-4 py-6 md:px-6 md:py-8">
@@ -2702,107 +2840,28 @@ function BrowseView() {
 
           {/* Main column */}
           <div ref={resultsRef} className="space-y-5 scroll-mt-6">
-            {/* Reach / Recommended / Safe grouping — gated on CV/SOP upload */}
+            {/* Reach / Recommended / Safe grouping — gated on CV/SOP upload.
+                When unlocked, the active tab's tint flows into a connected
+                panel that wraps the banner + results, mirroring the mockup. */}
             {admissionUnlocked ? (
-              <>
+              <div>
                 <CategoryTabs
                   counts={categoryCounts}
                   active={activeCategory}
                   onChange={setActiveCategory}
                 />
-                <CategoryBanner category={activeCategory} />
-              </>
-            ) : (
-              <MatchUnlockPanel />
-            )}
-
-            <ResultsBar
-              totalCount={displayed.length}
-              compareCount={compareIds.length}
-              sort={sort}
-              onSortChange={setSort}
-              view={view}
-              onViewChange={setView}
-              onOpenCompare={() => {
-                if (compareIds.length >= 2) setShowCompare(true);
-              }}
-            />
-
-            {/* Active filter chips */}
-            {activeFilterChips.length > 0 && (
-              <div className="flex flex-wrap items-center gap-2">
-                {activeFilterChips.map((chip) => (
-                  <button
-                    key={chip.key}
-                    type="button"
-                    onClick={() => chip.remove(setFilters, setSearch)}
-                    className="inline-flex items-center gap-1 rounded-full bg-pink-50 border border-pink-200 px-2.5 py-1 text-xs font-medium text-pink-700 hover:bg-pink-100 transition"
-                  >
-                    {chip.label}
-                    <span className="text-pink-400 hover:text-pink-700">×</span>
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => { setFilters(DEFAULT_FILTERS); setSearch({ name: '', location: '', program: '' }); }}
-                  className="text-xs text-slate-500 hover:text-pink-600 underline underline-offset-2"
+                <div
+                  className={`relative mt-2 space-y-5 rounded-2xl border-2 p-4 sm:p-5 ${activeStyle.flowBorder} ${activeStyle.flowBg}`}
                 >
-                  Clear all
-                </button>
-              </div>
-            )}
-
-            {displayed.length > 0 ? (
-              <div
-                className={
-                  view === 'grid'
-                    ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
-                    : 'flex flex-col gap-3'
-                }
-              >
-                {displayed.map((u, i) => (
-                  <UniversityCard
-                    key={u.id}
-                    university={u}
-                    index={i}
-                    isCompared={compareIds.includes(u.id)}
-                    onToggleCompare={() => toggleCompare(u.id)}
-                    canAddCompare={compareIds.length < 4}
-                    variant={view}
-                  />
-                ))}
+                  <CategoryBanner category={activeCategory} embedded />
+                  {resultsBody}
+                </div>
               </div>
             ) : (
-              <EmptyState
-                icon={
-                  <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
-                    <circle cx="12" cy="12" r="10" />
-                    <line x1="2" y1="12" x2="22" y2="12" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                }
-                title="No matches yet — let's widen the search"
-                description="Your filters might be a little tight. Try clearing one or two and we'll show universities across more countries and price ranges."
-                action={
-                  <Button
-                    variant="primary"
-                    onClick={() => {
-                      setFilters(DEFAULT_FILTERS);
-                      setSearch({ name: '', location: '', program: '' });
-                    }}
-                  >
-                    Reset filters
-                  </Button>
-                }
-                secondaryAction={
-                  <Button
-                    variant="secondary"
-                    onClick={() => setFilters({ ...filters, countries: [] })}
-                  >
-                    Clear country filter
-                  </Button>
-                }
-              />
+              <>
+                <MatchUnlockPanel />
+                {resultsBody}
+              </>
             )}
           </div>
         </div>

@@ -272,9 +272,22 @@ export function DomTranslator() {
     const observer = new MutationObserver((records) => {
       if (suppress) return;
       // Ignore mutations that are purely our own attribute noise.
-      const meaningful = records.some(
-        (r) => r.type === 'childList' || r.type === 'characterData',
-      );
+      let meaningful = false;
+      for (const r of records) {
+        if (r.type === 'characterData') {
+          // React rewrote this text node in place (e.g. switching the active
+          // Reach/Recommended/Safe banner reuses the same node). Our cached
+          // "original" English is now stale — if we don't refresh it, the next
+          // pass would "restore" the old copy over the new text, making the UI
+          // appear to revert after the debounce. Re-snapshot the live value as
+          // the new source of truth.
+          const target = r.target as Text;
+          if (original.has(target)) original.set(target, target.nodeValue ?? '');
+          meaningful = true;
+        } else if (r.type === 'childList') {
+          meaningful = true;
+        }
+      }
       if (meaningful) schedule();
     });
 
