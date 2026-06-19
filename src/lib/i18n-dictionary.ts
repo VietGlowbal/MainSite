@@ -249,6 +249,12 @@ export const translations: Record<string, string> = {
   Achievability: 'Khả năng đạt được',
   'Just saved': 'Vừa lưu',
   'Open scholarship': 'Mở học bổng',
+  'Not sure? Chat with our in-house team for more info':
+    'Chưa chắc chắn? Trò chuyện với đội ngũ của chúng tôi để biết thêm thông tin',
+  'Continue with limited plan →': 'Tiếp tục với gói giới hạn →',
+  'Unlock the full application plan to keep building this application.':
+    'Mở khóa kế hoạch nộp đơn đầy đủ để tiếp tục xây dựng hồ sơ này.',
+  'Continue to your application →': 'Tiếp tục đến hồ sơ của bạn →',
 
   // ── Mentors ────────────────────────────────────────────────────────────--
   'Mentorship Hub': 'Trung tâm Cố vấn',

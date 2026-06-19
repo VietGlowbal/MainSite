@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import type { ApplicationWorkspaceView, ApplicationTask } from '@/lib/apply-types';
 import { ApplicationHeader } from '@/components/apply/ApplicationHeader';
 import { MetricsBar } from '@/components/apply/MetricsBar';
@@ -31,8 +32,10 @@ export function ApplicationWorkspaceV2({ workspace }: Props) {
   const activeStage = stages.find(s => s.id === activeStageId) || stages[0];
   const activeStageIndex = stages.findIndex(s => s.id === activeStageId);
 
-  // AI statement-feedback modal
-  const [statementModalOpen, setStatementModalOpen] = useState(false);
+  // AI statement-feedback modal — auto-opens when arriving via the payment
+  // page's "Continue with limited plan" link (/apply/[id]?sop=1).
+  const searchParams = useSearchParams();
+  const [statementModalOpen, setStatementModalOpen] = useState(() => searchParams.get('sop') === '1');
 
   // Handle task toggle
   const handleTaskToggle = async (taskId: string, newStatus: 'completed' | 'not_started') => {
