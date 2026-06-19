@@ -2522,6 +2522,9 @@ function MatchUnlockPanel() {
 /** Minimum universities we try to keep in each admission bucket. */
 const MIN_PER_BUCKET = 5;
 
+/** sessionStorage key persisting the selected Reach/Recommended/Safe tab. */
+const FIT_CATEGORY_KEY = 'glowbal:fit-category';
+
 /**
  * Partition universities into Reach / Recommended / Safe, guaranteeing at least
  * `min` per bucket where the data allows — so users always have options at,
@@ -2582,9 +2585,25 @@ function BrowseView() {
   const [view, setView] = useState<'grid' | 'list'>('list');
   const [compareIds, setCompareIds] = useState<number[]>([]);
   const [showCompare, setShowCompare] = useState(false);
-  const [activeCategory, setActiveCategory] = useState<AdmissionCategory>('recommended');
-  // Whether the user has explicitly chosen a tab (so we stop auto-defaulting).
-  const [categoryPicked, setCategoryPicked] = useState(false);
+  // Selected admission tab. Lazy-initialised from sessionStorage so the choice
+  // survives any remount of the explorer (e.g. a soft navigation bouncing
+  // through the route's loading boundary) instead of snapping back to the
+  // default — which was the "tab flicks back to Recommended" bug.
+  const [activeCategory, setActiveCategory] = useState<AdmissionCategory>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = window.sessionStorage.getItem(FIT_CATEGORY_KEY);
+      if (saved === 'reach' || saved === 'recommended' || saved === 'safe') {
+        return saved;
+      }
+    }
+    return 'recommended';
+  });
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.sessionStorage.setItem(FIT_CATEGORY_KEY, activeCategory);
+    }
+  }, [activeCategory]);
 
   const filtered = useMemo(
     () => applyFilters(universities, filters, search, sort),
@@ -2624,19 +2643,14 @@ function BrowseView() {
     [groups],
   );
 
-  // Resolve which bucket is shown. An explicit tab click always sticks (so the
-  // banner never snaps back). Before the user has picked, we default to the
-  // first non-empty bucket so the initial view is never blank.
+  // The selected tab is the single source of truth. We only redirect the
+  // *display* when the chosen bucket is genuinely empty (rare, thanks to the
+  // 5-per-bucket minimum) so the user never lands on a blank list — this never
+  // overrides a non-empty selection, so a clicked tab always sticks.
   const effectiveCategory = useMemo(() => {
-    if (categoryPicked) return activeCategory;
     if (!admissionUnlocked || categoryCounts[activeCategory] > 0) return activeCategory;
     return ADMISSION_CATEGORY_ORDER.find((c) => categoryCounts[c] > 0) ?? activeCategory;
-  }, [categoryPicked, admissionUnlocked, categoryCounts, activeCategory]);
-
-  const handlePickCategory = (c: AdmissionCategory) => {
-    setActiveCategory(c);
-    setCategoryPicked(true);
-  };
+  }, [admissionUnlocked, categoryCounts, activeCategory]);
 
   // What the results grid actually renders: the active bucket when grouping is
   // unlocked, otherwise the plain filtered list.
@@ -2721,7 +2735,7 @@ function BrowseView() {
                 <CategoryTabs
                   counts={categoryCounts}
                   active={effectiveCategory}
-                  onChange={handlePickCategory}
+                  onChange={setActiveCategory}
                 />
                 <CategoryBanner category={effectiveCategory} />
               </>
@@ -3127,7 +3141,11 @@ function useUniversityUrlSync() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const pathname = usePathname();
-  const lastWrittenRef = useRef<string | null>(null);
+  // Initialise to '' (the browse-view URL state) so the first mount doesn't
+  // fire a spurious `router.replace` — that soft navigation can bounce the
+  // route through its loading boundary and remount the explorer, wiping
+  // in-component state such as the selected admission tab.
+  const lastWrittenRef = useRef<string>('');
 
   // URL → state. If the URL says `?u=42` and we're not currently viewing
   // university 42, switch to it.
