@@ -1,8 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { isAdmin } from '@/lib/auth-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { createArticle, listArticlesForAdmin } from '@/lib/geo-cms';
+
+/** Refresh the public pages that render GEO articles after a mutation. */
+function revalidateArticle(slug?: string) {
+  revalidatePath('/news');
+  revalidatePath('/guides');
+  if (slug) revalidatePath(`/guides/${slug}`);
+}
 
 /**
  * Admin GEO News CMS API (collection).
@@ -61,6 +69,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const article = await createArticle(parsed.data, guard.user.id);
+    revalidateArticle(article.slug);
     return NextResponse.json({ article }, { status: 201 });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 400 });

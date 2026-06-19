@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export type GeoSupportCard = {
   title: string;
@@ -156,7 +157,8 @@ function sortNewestFirst(a: GeoGuide, b: GeoGuide) {
   return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime() || a.title.localeCompare(b.title);
 }
 
-export function listGeoGuides() {
+// ── File-based readers (legacy source) ──────────────────────────────────────
+function listFileGuides(): GeoGuide[] {
   const guides: GeoGuide[] = [];
   for (const [dirPath, status] of [[publishedDir, 'published'], [draftsDir, 'draft']] as const) {
     if (!fs.existsSync(dirPath)) continue;
@@ -164,10 +166,10 @@ export function listGeoGuides() {
       if (file.endsWith('.md')) guides.push(readGuideFromFile(path.join(dirPath, file), status));
     }
   }
-  return guides.sort(sortNewestFirst);
+  return guides;
 }
 
-export function getGeoGuide(slug: string) {
+function getFileGuide(slug: string): GeoGuide | null {
   const publishedPath = path.join(publishedDir, `${slug}.md`);
   if (fs.existsSync(publishedPath)) return readGuideFromFile(publishedPath, 'published');
   const draftPath = path.join(draftsDir, `${slug}.md`);
@@ -175,10 +177,119 @@ export function getGeoGuide(slug: string) {
   return null;
 }
 
-export function listGeoTopics() {
-  return ['All topics', ...new Set(listGeoGuides().map((guide) => guide.topic))];
+// ── DB-backed readers (canonical CMS source) ────────────────────────────────
+// The CMS (supabase-geo-cms.sql) is the canonical store. We surface only
+// PUBLISHED rows to the public site. Any failure (no env at build time,
+// table not migrated yet) degrades gracefully to the file source so the
+// site — and `next build` without Supabase env — keep working.
+
+type GeoArticleRow = {
+  slug: string;
+  title: string;
+  description: string | null;
+  excerpt: string | null;
+  key_takeaway: string | null;
+  body: string;
+  topic: string;
+  tags: string[] | null;
+  hero_image: string | null;
+  hero_image_style: 'ai' | 'svg-fallback' | null;
+  reading_time_minutes: number | null;
+  meta: Record<string, unknown> | null;
+  published_at: string | null;
+  updated_at: string;
+};
+
+function mapRowToGuide(row: GeoArticleRow): GeoGuide {
+  const metadata = row.meta ?? undefined;
+  const body = sanitizeContent(row.body ?? '');
+  const hero = row.hero_image
+    ? {
+        heroImage: row.hero_image,
+        heroImageStyle: row.hero_image_style ?? (row.hero_image.endsWith('.svg') ? 'svg-fallback' as const : 'ai' as const),
+      }
+    : resolveHeroImage(row.slug, metadata);
+  return {
+    slug: row.slug,
+    title: row.title || row.slug,
+    description: row.description ?? undefined,
+    excerpt: row.excerpt || buildExcerpt(row.body ?? '', row.description ?? undefined),
+    content: body,
+    status: 'published',
+    metadata,
+    heroImage: hero.heroImage,
+    heroImageStyle: hero.heroImageStyle,
+    topic: row.topic || 'All topics',
+    readingTimeMinutes: row.reading_time_minutes ?? estimateReadMinutes(row.body ?? ''),
+    publishedAt: (row.published_at ?? row.updated_at).slice(0, 10),
+    tags: Array.isArray(row.tags) ? row.tags : [],
+    keyTakeaway: row.key_takeaway ?? undefined,
+    supportCards: Array.isArray(metadata?.supportCards) ? (metadata!.supportCards as GeoSupportCard[]) : [],
+    supportAssets: Array.isArray(metadata?.supportAssets) ? (metadata!.supportAssets as GeoSupportAsset[]) : [],
+    toc: Array.isArray(metadata?.toc) ? (metadata!.toc as Array<{ id: string; title: string }>) : [],
+  };
 }
 
-export function listRelatedGeoGuides(currentSlug: string, topic: string, limit = 3) {
-  return listGeoGuides().filter((guide) => guide.slug !== currentSlug).sort((a, b) => Number(b.topic === topic) - Number(a.topic === topic) || b.readingTimeMinutes - a.readingTimeMinutes).slice(0, limit);
+const ARTICLE_COLUMNS =
+  'slug, title, description, excerpt, key_takeaway, body, topic, tags, hero_image, hero_image_style, reading_time_minutes, meta, published_at, updated_at';
+
+async function listPublishedDbGuides(): Promise<GeoGuide[]> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('geo_articles')
+      .select(ARTICLE_COLUMNS)
+      .eq('status', 'published');
+    if (error || !data) return [];
+    return (data as GeoArticleRow[]).map(mapRowToGuide);
+  } catch {
+    return [];
+  }
+}
+
+async function getPublishedDbGuide(slug: string): Promise<GeoGuide | null> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('geo_articles')
+      .select(ARTICLE_COLUMNS)
+      .eq('slug', slug)
+      .eq('status', 'published')
+      .maybeSingle();
+    if (error || !data) return null;
+    return mapRowToGuide(data as GeoArticleRow);
+  } catch {
+    return null;
+  }
+}
+
+// ── Public API: DB-first, file-fallback (DB wins by slug) ────────────────────
+export async function listGeoGuides(): Promise<GeoGuide[]> {
+  const [fileGuides, dbGuides] = await Promise.all([
+    Promise.resolve(listFileGuides()),
+    listPublishedDbGuides(),
+  ]);
+  const bySlug = new Map<string, GeoGuide>();
+  for (const guide of fileGuides) bySlug.set(guide.slug, guide);
+  for (const guide of dbGuides) bySlug.set(guide.slug, guide); // DB is canonical
+  return [...bySlug.values()].sort(sortNewestFirst);
+}
+
+export async function getGeoGuide(slug: string): Promise<GeoGuide | null> {
+  const dbGuide = await getPublishedDbGuide(slug);
+  if (dbGuide) return dbGuide;
+  return getFileGuide(slug);
+}
+
+export async function listGeoTopics(): Promise<string[]> {
+  const guides = await listGeoGuides();
+  return ['All topics', ...new Set(guides.map((guide) => guide.topic))];
+}
+
+export async function listRelatedGeoGuides(currentSlug: string, topic: string, limit = 3): Promise<GeoGuide[]> {
+  const guides = await listGeoGuides();
+  return guides
+    .filter((guide) => guide.slug !== currentSlug)
+    .sort((a, b) => Number(b.topic === topic) - Number(a.topic === topic) || b.readingTimeMinutes - a.readingTimeMinutes)
+    .slice(0, limit);
 }

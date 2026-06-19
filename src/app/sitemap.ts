@@ -1,7 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { listGeoGuides } from '@/lib/geo-content';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://glowbal.co';
   const staticRoutes: MetadataRoute.Sitemap = [
     '',
@@ -16,7 +16,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: route === '' ? 1 : 0.7,
   }));
 
-  const guideRoutes: MetadataRoute.Sitemap = listGeoGuides().map((guide) => ({
+  const guides = await listGeoGuides();
+  const guideRoutes: MetadataRoute.Sitemap = guides.map((guide) => ({
     url: `${baseUrl}/guides/${guide.slug}`,
     lastModified: new Date(),
     changeFrequency: 'daily',

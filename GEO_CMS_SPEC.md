@@ -1,7 +1,7 @@
 # GLOWBAL News CMS — Design Spec
 
-Status: **Phase 1 scaffolded** (this PR). Later phases are designed below but not
-yet built.
+Status: **Phases 1–2 implemented** (this PR). Phases 3–4 are designed below but
+not yet built.
 
 ## 1. Goal
 
@@ -148,15 +148,19 @@ A `geo:sync-db` upsert keeps the pipeline idempotent: re-runs update existing
 rows by slug instead of creating duplicates, and never clobber an admin's manual
 edits if we guard on `source='pipeline'`.
 
-## 8. Read-path cutover (Phase 2)
+## 8. Read-path cutover (Phase 2 — DONE in this PR)
 
-- Add DB-backed readers alongside the file readers in a `geo-content` facade:
-  `listGeoGuides` / `getGeoGuide` first try the DB, fall back to files during
-  transition.
-- Switch `/news` and `/guides/[slug]` to ISR (`export const revalidate = …`)
-  and call `revalidatePath('/news')` + `revalidatePath('/guides/[slug]')` from
-  the publish/edit API so changes appear within seconds without a full redeploy.
-- `sitemap.ts` reads published slugs from the DB.
+- `src/lib/geo-content.ts` now reads **DB-first, file-fallback**: `listGeoGuides`
+  / `getGeoGuide` / `listGeoTopics` / `listRelatedGeoGuides` are async and merge
+  published `geo_articles` rows over the legacy file guides (DB wins by slug).
+  Any DB failure (no env at build, table not migrated) degrades gracefully to
+  files, so `next build` without Supabase env still works.
+- `/news`, `/guides`, and `/guides/[slug]` are ISR (`export const revalidate =
+  300`); `generateStaticParams` enumerates DB + file slugs and new slugs render
+  on-demand.
+- The admin API calls `revalidatePath('/news' | '/guides' | '/guides/:slug')` on
+  create / update / delete, so edits appear within seconds without a redeploy.
+- `sitemap.ts` is async and includes DB-published slugs.
 
 ## 9. Backfill / migration plan
 
@@ -190,11 +194,14 @@ One-off `scripts/geo/import-files-to-db.ts`:
 ## 12. Phased rollout
 
 1. **Phase 1 (this PR)** — schema + RLS, admin CMS list + editor + CRUD API,
-   admin tab. Public site still renders from files; the CMS writes to the DB.
-2. **Phase 2** — DB read path + ISR + on-demand revalidation; backfill existing
-   files.
-3. **Phase 3** — point the GEO pipeline at the DB (`geo:sync-db`).
+   admin tab.
+2. **Phase 2 (this PR)** — DB read path (DB-first, file-fallback) + ISR +
+   on-demand revalidation. Articles created/published in the CMS now appear on
+   the live `/news` and `/guides` pages.
+3. **Phase 3** — point the GEO pipeline at the DB (`geo:sync-db` upsert by
+   slug); add a one-off backfill of the existing files.
 4. **Phase 4** — link graph UI, topic hubs, schema.org output, Storage uploads.
 
-> Phase 1 is intentionally additive: it does **not** change what the live site
-> renders, so it can ship safely before the read-path cutover.
+> Phases 1–2 are backwards-compatible: with no DB rows, the site renders exactly
+> the file-based content it does today; the DB layer only ever *adds* or
+> *overrides* by slug.

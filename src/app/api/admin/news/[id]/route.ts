@@ -1,8 +1,16 @@
 import { NextResponse, type NextRequest } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { isAdmin } from '@/lib/auth-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { deleteArticle, getArticleById, updateArticle } from '@/lib/geo-cms';
+
+/** Refresh the public pages that render GEO articles after a mutation. */
+function revalidateArticle(slug?: string) {
+  revalidatePath('/news');
+  revalidatePath('/guides');
+  if (slug) revalidatePath(`/guides/${slug}`);
+}
 
 /**
  * Admin GEO News CMS API (single article).
@@ -64,6 +72,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
   try {
     const article = await updateArticle(id, parsed.data);
+    revalidateArticle(article.slug);
     return NextResponse.json({ article });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 400 });
@@ -76,7 +85,9 @@ export async function DELETE(_request: NextRequest, { params }: { params: Promis
 
   const { id } = await params;
   try {
+    const existing = await getArticleById(id);
     await deleteArticle(id);
+    revalidateArticle(existing?.slug);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 500 });

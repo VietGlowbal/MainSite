@@ -28,13 +28,18 @@ const tagPalette = [
   'bg-cyan-100 text-cyan-700',
 ];
 
+// Articles published after build (or edited in the CMS) are rendered
+// on-demand and cached; this also revalidates on a 5-minute window.
+export const revalidate = 300;
+
 export async function generateStaticParams() {
-  return listGeoGuides().map((guide) => ({ slug: guide.slug }));
+  const guides = await listGeoGuides();
+  return guides.map((guide) => ({ slug: guide.slug }));
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
-  const guide = getGeoGuide(slug);
+  const guide = await getGeoGuide(slug);
   if (!guide) return {};
   const md = guide.metadata as { title?: string; metaDescription?: string; heroImage?: string } | undefined;
   return {
@@ -50,9 +55,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
 export default async function GuidePage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
-  const guide = getGeoGuide(slug);
+  const guide = await getGeoGuide(slug);
   if (!guide) notFound();
-  const related = listRelatedGeoGuides(guide.slug, guide.topic, 3);
+  const related = await listRelatedGeoGuides(guide.slug, guide.topic, 3);
 
   return (
     <main className="app-page-shell" data-no-auto-translate>
