@@ -14,6 +14,9 @@ import { getPlusPackage, PLUS_CURRENCY } from '@/lib/plus';
  */
 const BodySchema = z.object({
   plan: z.enum(['plus-6m', 'plus-12m', 'plus-24m']),
+  // Optional course_applications.id (uuid) when the checkout was started from
+  // the Apply funnel, so the success page can return the user to it.
+  applicationId: z.string().uuid().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -43,6 +46,8 @@ export async function POST(request: NextRequest) {
   }
 
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL ?? new URL(request.url).origin;
+  const applicationId = parsed.data.applicationId;
+  const appParam = applicationId ? `&application=${applicationId}` : '';
 
   try {
     const stripe = getStripe();
@@ -51,8 +56,8 @@ export async function POST(request: NextRequest) {
       payment_method_types: ['card'],
       customer_email: user.email,
       client_reference_id: user.id,
-      success_url: `${baseUrl}/plus/success?plan=${pkg.id}&session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${baseUrl}/plus?status=cancelled`,
+      success_url: `${baseUrl}/plus/success?plan=${pkg.id}&session_id={CHECKOUT_SESSION_ID}${appParam}`,
+      cancel_url: `${baseUrl}/plus?status=cancelled${applicationId ? `&application=${applicationId}` : ''}`,
       line_items: [
         {
           price_data: {
@@ -71,6 +76,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         ai_credits: String(pkg.aiCredits),
         duration_months: String(pkg.durationMonths),
+        ...(applicationId ? { application_id: applicationId } : {}),
       },
     });
 

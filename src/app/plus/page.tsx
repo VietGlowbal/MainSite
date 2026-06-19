@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { PLUS_PACKAGES, PLUS_BENEFITS, FREE_FEATURES, type PlusPackage } from '@/lib/plus';
+import { PLUS_PACKAGES, PLUS_BENEFITS, FREE_FEATURES, GLOWBAL_FB_CHAT_URL, type PlusPackage } from '@/lib/plus';
 import { SubscribeButton } from '@/components/plus/subscribe-button';
 
 export const metadata: Metadata = {
@@ -13,10 +13,11 @@ export const metadata: Metadata = {
 export default async function PlusPage({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string }>;
+  searchParams: Promise<{ welcome?: string; application?: string }>;
 }) {
-  const { welcome } = await searchParams;
+  const { welcome, application } = await searchParams;
   const isWelcome = welcome === '1';
+  const applicationId = application ?? null;
 
   const supabase = await createClient();
   const {
@@ -62,6 +63,20 @@ export default async function PlusPage({
             details, a document checklist, and priority student-supporter access.
             Designed to help you apply with a clearer, stronger strategy.
           </p>
+
+          {applicationId ? (
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <p className="text-sm font-medium text-slate-700">
+                Unlock the full application plan to keep building this application.
+              </p>
+              <Link
+                href={`/apply/${applicationId}?sop=1`}
+                className="text-sm font-semibold text-slate-500 underline-offset-2 transition hover:text-slate-900 hover:underline"
+              >
+                Continue with limited plan →
+              </Link>
+            </div>
+          ) : null}
         </div>
 
         {isPlus ? (
@@ -74,8 +89,21 @@ export default async function PlusPage({
         {/* Packages */}
         <div className="mt-12 grid items-stretch gap-5 lg:grid-cols-3">
           {PLUS_PACKAGES.map((pkg) => (
-            <PackageCard key={pkg.id} pkg={pkg} signedIn={!!user} />
+            <PackageCard key={pkg.id} pkg={pkg} signedIn={!!user} applicationId={applicationId} />
           ))}
+        </div>
+
+        {/* Talk-to-a-human CTA */}
+        <div className="mx-auto mt-8 max-w-2xl text-center">
+          <a
+            href={GLOWBAL_FB_CHAT_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_4px_14px_rgba(30,40,80,0.05)] transition hover:border-pink-300 hover:text-pink-600"
+          >
+            <span aria-hidden>💬</span>
+            Not sure? Chat with our in-house team for more info
+          </a>
         </div>
 
         {/* Free tier reference */}
@@ -106,8 +134,17 @@ export default async function PlusPage({
   );
 }
 
-function PackageCard({ pkg, signedIn }: { pkg: PlusPackage; signedIn: boolean }) {
+function PackageCard({
+  pkg,
+  signedIn,
+  applicationId,
+}: {
+  pkg: PlusPackage;
+  signedIn: boolean;
+  applicationId: string | null;
+}) {
   const highlighted = pkg.highlighted;
+  const signupRedirect = `/plus${applicationId ? `?application=${applicationId}` : ''}`;
   return (
     <div
       className={`relative flex flex-col rounded-3xl border bg-white p-7 ${
@@ -138,7 +175,7 @@ function PackageCard({ pkg, signedIn }: { pkg: PlusPackage; signedIn: boolean })
         </div>
       </div>
 
-      <SubscribeButton plan={pkg.id} signedIn={signedIn} highlighted={highlighted} />
+      <SubscribeButton plan={pkg.id} signedIn={signedIn} highlighted={highlighted} applicationId={applicationId} />
 
       <div className="mt-6 rounded-2xl bg-pink-50 px-4 py-3 text-center">
         <span className="text-2xl font-bold text-pink-600">{pkg.aiCredits}</span>
@@ -160,7 +197,7 @@ function PackageCard({ pkg, signedIn }: { pkg: PlusPackage; signedIn: boolean })
       {!signedIn ? (
         <p className="mt-5 text-center text-xs text-slate-400">
           Need an account first?{' '}
-          <Link href="/auth?mode=signup&redirect=/plus" className="font-semibold text-pink-600">Sign up free</Link>
+          <Link href={`/auth?mode=signup&redirect=${encodeURIComponent(signupRedirect)}`} className="font-semibold text-pink-600">Sign up free</Link>
         </p>
       ) : null}
     </div>

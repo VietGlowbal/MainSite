@@ -24,10 +24,11 @@ export const metadata: Metadata = {
 export default async function PlusSuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ plan?: string; session_id?: string }>;
+  searchParams: Promise<{ plan?: string; session_id?: string; application?: string }>;
 }) {
-  const { plan, session_id: sessionId } = await searchParams;
+  const { plan, session_id: sessionId, application } = await searchParams;
   const pkg = getPlusPackage(plan);
+  const applicationId = application ?? null;
 
   const supabase = await createClient();
   const {
@@ -139,9 +140,15 @@ export default async function PlusSuccessPage({
         )}
 
         <div className="mt-7 flex flex-col gap-2.5">
-          <Link href="/scholarships" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5">
-            Explore scholarships
-          </Link>
+          {applicationId ? (
+            <Link href={`/apply/${applicationId}`} className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5">
+              Continue to your application →
+            </Link>
+          ) : (
+            <Link href="/scholarships" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5">
+              Explore scholarships
+            </Link>
+          )}
           <Link href="/universities" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
             Go to my universities
           </Link>
