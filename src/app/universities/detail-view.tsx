@@ -256,115 +256,132 @@ function SectionNav({ items }: { items: { id: string; label: string }[] }) {
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   RIGHT RAIL — At a glance + actions + why students choose
+   AT-A-GLANCE CIRCLES — clickable stat badges that jump to a detail section
 ───────────────────────────────────────────────────────────────────────── */
 
-function DetailRightRail({
-  university,
-  saved,
-  onSave,
-  onFindCourse,
-  whyBullets,
-  website,
-  founded,
-}: {
-  university: ExplorerUniversity;
-  saved: boolean;
-  onSave: () => void;
-  onFindCourse: () => void;
-  whyBullets: string[];
-  website: string | null;
-  founded: number | null;
-}) {
-  const glanceItems: Array<{ label: string; value: string }> = [
-    { label: 'QS World Ranking', value: university.qs_rank ? `#${university.qs_rank}` : '—' },
-    { label: 'Acceptance rate', value: university.accept_rate ?? '—' },
-    { label: 'Tuition (intl.)', value: university.tuition_usd ?? '—' },
-    { label: 'Living cost', value: university.living_cost_usd ?? '—' },
-  ];
-  if (founded) glanceItems.push({ label: 'Founded', value: String(founded) });
+/**
+ * Compact a verbose money/stat string into something that fits inside a small
+ * circle. Pulls the leading currency symbol and the first one or two numbers
+ * and abbreviates thousands to "k" — e.g.
+ *   "€10,000–15,000/yr ≈ $11,000–17,000" → "€10k–15k"
+ *   "$57,054"                            → "$57k"
+ * Falls back to a clamped version of the original when it can't parse a number.
+ */
+function compactAmount(value: string): string {
+  const currency = value.match(/[$€£¥₫]/)?.[0] ?? '';
+  const nums = (value.match(/\d[\d,]*/g) ?? [])
+    .map((s) => Number(s.replace(/,/g, '')))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (nums.length === 0) return value.length > 8 ? `${value.slice(0, 7)}…` : value;
+  const k = (n: number) => (n >= 1000 ? `${Math.round(n / 1000)}k` : `${n}`);
+  if (nums.length >= 2) return `${currency}${k(nums[0])}–${k(nums[1])}`;
+  return `${currency}${k(nums[0])}`;
+}
+
+function GlanceCircles({ university, website }: { university: ExplorerUniversity; website: string | null }) {
+  const circles: Array<{ value: string; full: string; label: string; href: string }> = [];
+  if (university.qs_rank) {
+    circles.push({
+      value: `#${university.qs_rank}`,
+      full: `#${university.qs_rank} QS World Ranking`,
+      label: 'QS Ranking',
+      href: '#rankings',
+    });
+  }
+  if (university.tuition_usd) {
+    circles.push({
+      value: compactAmount(university.tuition_usd),
+      full: university.tuition_usd,
+      label: 'Tuition fee',
+      href: '#funding',
+    });
+  }
+  if (circles.length === 0) return null;
 
   return (
-    <div className="space-y-5 lg:sticky lg:top-16">
-      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
-        <h3 className="text-base font-semibold text-slate-900">At a glance</h3>
-        <dl className="mt-4 space-y-3">
-          {glanceItems.map((item) => (
-            <div key={item.label} className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3 last:border-0 last:pb-0">
-              <dt className="text-xs text-slate-500">{item.label}</dt>
-              <dd className="text-right text-sm font-semibold text-slate-900" title={item.value}><span className="line-clamp-1">{item.value}</span></dd>
-            </div>
-          ))}
-        </dl>
-
-        <div className="mt-5 space-y-2">
-          {university.id === 97 ? (
-            <Link
-              href="/universities/vinuni"
-              className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)] px-5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.32)] transition hover:-translate-y-0.5"
-            >
-              Explore VinUni Full Experience
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-            </Link>
-          ) : null}
-          <button
-            type="button"
-            onClick={onFindCourse}
-            className="inline-flex h-11 w-full items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2"
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>
-            Find a Course
-          </button>
-          <button
-            type="button"
-            onClick={onSave}
-            className={`inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border-2 border-pink-500 px-5 text-sm font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2 ${
-              saved ? 'bg-pink-50 text-pink-600 hover:bg-pink-100' : 'bg-white text-pink-600 hover:bg-pink-50'
-            }`}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill={saved ? '#ec4899' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-            </svg>
-            {saved ? 'Saved to My Universities' : 'Save to My Universities'}
-          </button>
-          {website ? (
-            <a href={website} target="_blank" rel="noopener noreferrer" className="block w-full text-center text-xs text-slate-400 hover:text-pink-600">
-              Visit official website ↗
-            </a>
-          ) : null}
-        </div>
-      </div>
-
-      {whyBullets.length >= 3 ? (
-        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
-          <h3 className="text-base font-semibold text-slate-900">Why students choose {shortName(university.name)}</h3>
-          <ul className="mt-3 space-y-2.5">
-            {whyBullets.map((bullet, i) => (
-              <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
-                <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
-                </span>
-                <span>{bullet}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {/* Talk to a mentor */}
-      <div className="rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50/60 to-cyan-50/50 p-5">
-        <h3 className="text-base font-semibold text-slate-900">Talk to someone who studied here</h3>
-        <p className="mt-1 text-sm leading-relaxed text-slate-500">
-          Book a 1-on-1 with a current student or alum for honest advice on applications and campus life.
-        </p>
-        <Link
-          href={`/mentors?university=${university.id}`}
-          className="mt-3 inline-flex items-center gap-1 rounded-full border border-pink-300 bg-white px-4 py-1.5 text-xs font-semibold text-pink-600 transition hover:bg-pink-50"
+    <div className="flex flex-wrap items-center justify-center gap-6 py-1 sm:justify-start sm:gap-10">
+      {circles.map((c) => (
+        <a
+          key={c.label}
+          href={c.href}
+          title={c.full}
+          aria-label={`${c.label} ${c.value} — jump to details`}
+          className="group flex h-32 w-32 flex-col items-center justify-center rounded-full border-2 border-pink-200 bg-gradient-to-br from-pink-50 to-white text-center shadow-[0_8px_22px_rgba(255,77,140,0.16)] transition hover:-translate-y-1 hover:border-pink-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2 sm:h-36 sm:w-36"
         >
-          Find a mentor
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
-        </Link>
-      </div>
+          <span className="px-2 text-2xl font-bold leading-tight text-pink-600 sm:text-[1.7rem]">{c.value}</span>
+          <span className="mt-1 px-3 text-xs font-medium text-slate-600">{c.label}</span>
+        </a>
+      ))}
+      {website ? (
+        <a
+          href={website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs font-medium text-slate-400 transition hover:text-pink-600"
+        >
+          Visit official website ↗
+        </a>
+      ) : null}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SCHOLARSHIP BANNER — full-width CTA to this university's scholarships
+───────────────────────────────────────────────────────────────────────── */
+
+function ScholarshipBanner({ university }: { university: ExplorerUniversity }) {
+  return (
+    <Link
+      href={`/scholarships?university=${university.id}`}
+      className="group relative flex items-center justify-between gap-4 overflow-hidden rounded-2xl bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-7 shadow-[0_10px_28px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5 focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2 md:px-8 md:py-8"
+    >
+      <span aria-hidden className="pointer-events-none absolute -right-4 -top-6 text-[6.5rem] opacity-20 transition group-hover:scale-110">🎓</span>
+      <span className="relative text-lg font-bold leading-snug text-white md:text-2xl">
+        Are you interested? Let&apos;s discover scholarship for this uni
+      </span>
+      <span aria-hidden className="relative shrink-0 text-2xl font-bold text-white transition group-hover:translate-x-1 md:text-3xl">→</span>
+    </Link>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   RELOCATED CARDS — moved out of the old right rail into the main column
+───────────────────────────────────────────────────────────────────────── */
+
+function WhyChooseCard({ university, whyBullets }: { university: ExplorerUniversity; whyBullets: string[] }) {
+  if (whyBullets.length < 3) return null;
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_14px_rgba(15,23,42,0.04)]">
+      <h3 className="text-base font-semibold text-slate-900">Why students choose {shortName(university.name)}</h3>
+      <ul className="mt-3 grid gap-2.5 sm:grid-cols-2">
+        {whyBullets.map((bullet, i) => (
+          <li key={i} className="flex items-start gap-2.5 text-sm text-slate-600">
+            <span className="mt-0.5 inline-flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+            </span>
+            <span>{bullet}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function MentorCard({ university }: { university: ExplorerUniversity }) {
+  return (
+    <div className="rounded-2xl border border-pink-100 bg-gradient-to-br from-pink-50/60 to-cyan-50/50 p-5">
+      <h3 className="text-base font-semibold text-slate-900">Talk to someone who studied here</h3>
+      <p className="mt-1 text-sm leading-relaxed text-slate-500">
+        Book a 1-on-1 with a current student or alum for honest advice on applications and campus life.
+      </p>
+      <Link
+        href={`/mentors?university=${university.id}`}
+        className="mt-3 inline-flex items-center gap-1 rounded-full border border-pink-300 bg-white px-4 py-1.5 text-xs font-semibold text-pink-600 transition hover:bg-pink-50"
+      >
+        Find a mentor
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+      </Link>
     </div>
   );
 }
@@ -693,7 +710,6 @@ function DetailViewBody({
     window.scrollTo({ top: 0, behavior: 'instant' });
   }, [selectedUniversityId]);
 
-  const founded = useMemo(() => (university ? extractFoundedYear(university) : null), [university]);
   const website = useMemo(() => (university ? guessWebsite(university) : null), [university]);
   const whyBullets = useMemo(() => (university ? deriveWhyBullets(university) : []), [university]);
 
@@ -767,25 +783,17 @@ function DetailViewBody({
         <SectionNav items={navItems} />
       </div>
 
-      <div className="mt-5 grid gap-6 lg:grid-cols-[1fr_360px]">
-        <div className="min-w-0 space-y-5">
-          <AboutSection university={university} />
-          <AdmissionsSection university={university} />
-          <FundingSection university={university} />
-          {hasCareers ? <CareersSection university={university} /> : null}
-          {hasRankings ? <RankingsSection university={university} /> : null}
-          <LocationSection university={university} />
-        </div>
-
-        <DetailRightRail
-          university={university}
-          saved={saved}
-          onSave={handleSave}
-          onFindCourse={handleFindCourse}
-          whyBullets={whyBullets}
-          website={website}
-          founded={founded}
-        />
+      <div className="mt-5 space-y-5">
+        <AboutSection university={university} />
+        <GlanceCircles university={university} website={website} />
+        <ScholarshipBanner university={university} />
+        <AdmissionsSection university={university} />
+        <FundingSection university={university} />
+        {hasCareers ? <CareersSection university={university} /> : null}
+        {hasRankings ? <RankingsSection university={university} /> : null}
+        <LocationSection university={university} />
+        <WhyChooseCard university={university} whyBullets={whyBullets} />
+        <MentorCard university={university} />
       </div>
 
       {/* Bottom CTA */}
@@ -796,6 +804,15 @@ function DetailViewBody({
             <p className="mt-1 text-sm text-slate-500">Find a course on the university&apos;s site, then save it to your plan and build your application.</p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
+            {university.id === 97 ? (
+              <Link
+                href="/universities/vinuni"
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.32)] transition hover:-translate-y-0.5"
+              >
+                Explore VinUni Full Experience
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" /></svg>
+              </Link>
+            ) : null}
             <button
               type="button"
               onClick={handleFindCourse}

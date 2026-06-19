@@ -230,6 +230,15 @@ export const translations: Record<string, string> = {
   Rankings: 'Xếp hạng',
   Reviews: 'Đánh giá',
   'Find a mentor here': 'Tìm cố vấn tại đây',
+  'Tuition fee': 'Học phí',
+  'Visit official website ↗': 'Truy cập trang web chính thức ↗',
+  "Are you interested? Let's discover scholarship for this uni":
+    'Bạn có quan tâm không? Cùng khám phá học bổng cho trường này',
+  'Showing scholarships for {name}': 'Đang hiển thị học bổng cho {name}',
+  'No scholarships are linked to {name} yet — showing the full directory.':
+    'Chưa có học bổng nào được liên kết với {name} — đang hiển thị toàn bộ danh mục.',
+  'Show all': 'Hiển thị tất cả',
+  Dismiss: 'Bỏ qua',
 
   // ── Mentors ────────────────────────────────────────────────────────────--
   'Mentorship Hub': 'Trung tâm Cố vấn',
