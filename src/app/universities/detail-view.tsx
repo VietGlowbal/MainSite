@@ -338,7 +338,7 @@ function ScholarshipBanner({ university }: { university: ExplorerUniversity }) {
     >
       <span aria-hidden className="pointer-events-none absolute -right-4 -top-6 text-[6.5rem] opacity-20 transition group-hover:scale-110">🎓</span>
       <span className="relative text-lg font-bold leading-snug text-white md:text-2xl">
-        Are you interested? Let&apos;s discover scholarship for this uni
+        Are you interested? Let&apos;s discover scholarship for this university!
       </span>
       <span aria-hidden className="relative shrink-0 text-2xl font-bold text-white transition group-hover:translate-x-1 md:text-3xl">→</span>
     </Link>
