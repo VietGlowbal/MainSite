@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Badge, Button, Card, EmptyState } from '@/components/ui';
+import { createClient } from '@/lib/supabase/client';
 import { useLanguage } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
 import {
@@ -42,7 +44,9 @@ type Props = {
   applications: Application[];
   existingScholarships: ExistingScholarship[];
   // Set when deep-linked from a university detail page (?university=<id>).
-  focusUniversity?: { id: number; name: string } | null;
+  focusUniversity?: { id: number; name: string; country: string | null } | null;
+  // Scholarship ids already in the user's saved bucket (user_scholarships).
+  savedScholarshipIds?: number[];
 };
 
 type SortKey = 'relevance' | 'deadline' | 'name';
@@ -54,9 +58,71 @@ export function ScholarshipDirectoryClient({
   applications,
   existingScholarships,
   focusUniversity = null,
+  savedScholarshipIds = [],
 }: Props) {
   const { t } = useLanguage();
+  const router = useRouter();
+  const supabase = useMemo(() => createClient(), []);
   const [tab, setTab] = useState<'directory' | 'ai'>('directory');
+
+  // Saved-scholarship bucket (persists to user_scholarships + user_universities).
+  const [savedIds, setSavedIds] = useState<Set<number>>(() => new Set(savedScholarshipIds));
+  const [lastSavedUniversityId, setLastSavedUniversityId] = useState<number | null>(focusUniversity?.id ?? null);
+
+  const toggleSave = async (s: DirectoryScholarship) => {
+    const universityId = focusUniversity?.id ?? s.universityIds[0] ?? null;
+    const willSave = !savedIds.has(s.id);
+    setSavedIds((prev) => {
+      const next = new Set(prev);
+      if (willSave) next.add(s.id);
+      else next.delete(s.id);
+      return next;
+    });
+    if (willSave && universityId != null) setLastSavedUniversityId(universityId);
+
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth');
+        return;
+      }
+      if (willSave) {
+        // Save the scholarship to the bucket...
+        await supabase
+          .from('user_scholarships')
+          .upsert(
+            { user_id: user.id, scholarship_id: s.id, university_id: universityId },
+            { onConflict: 'user_id,scholarship_id', ignoreDuplicates: true },
+          );
+        // ...and idempotently add its university to My Universities.
+        if (universityId != null) {
+          await supabase
+            .from('user_universities')
+            .upsert(
+              { user_id: user.id, university_id: universityId, status: 'interested' },
+              { onConflict: 'user_id,university_id', ignoreDuplicates: true },
+            );
+        }
+      } else {
+        await supabase.from('user_scholarships').delete().eq('user_id', user.id).eq('scholarship_id', s.id);
+      }
+    } catch {
+      // Revert optimistic update on failure.
+      setSavedIds((prev) => {
+        const next = new Set(prev);
+        if (willSave) next.delete(s.id);
+        else next.add(s.id);
+        return next;
+      });
+    }
+  };
+
+  const goToApply = () => {
+    const focus = focusUniversity?.id ?? lastSavedUniversityId;
+    router.push(focus != null ? `/apply?focus=${focus}` : '/apply');
+  };
 
   // Filters
   const [query, setQuery] = useState('');
@@ -66,7 +132,7 @@ export function ScholarshipDirectoryClient({
   const [sort, setSort] = useState<SortKey>('relevance');
   const [selected, setSelected] = useState<DirectoryScholarship | null>(null);
 
-  // Deep-link focus: scope the directory to one university's scholarships.
+  // Deep-link focus: split the directory into "at this university" + "same country".
   const [focusActive, setFocusActive] = useState(true);
   const focusIds = useMemo(() => {
     if (!focusUniversity) return null;
@@ -75,7 +141,6 @@ export function ScholarshipDirectoryClient({
     return set;
   }, [scholarships, focusUniversity]);
   const focusHasMatches = !!focusIds && focusIds.size > 0;
-  const focusFilterOn = focusActive && focusHasMatches;
 
   // Personalization: which scholarships match the user's saved universities.
   const matchedIds = useMemo(() => {
@@ -105,7 +170,6 @@ export function ScholarshipDirectoryClient({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     const rows = scholarships.filter((s) => {
-      if (focusFilterOn && focusIds && !focusIds.has(s.id)) return false;
       if (q && !s.name.toLowerCase().includes(q)) return false;
       if (scope !== 'all' && s.scope !== scope) return false;
       if (country !== 'all' && s.country !== country) return false;
@@ -126,7 +190,26 @@ export function ScholarshipDirectoryClient({
       return a.name.localeCompare(b.name);
     });
     return rows;
-  }, [scholarships, query, scope, country, funding, sort, matchedIds, focusFilterOn, focusIds]);
+  }, [scholarships, query, scope, country, funding, sort, matchedIds]);
+
+  // When deep-linked from a university, split the filtered list into two sections.
+  const sectioned = !!focusUniversity && focusActive && focusHasMatches;
+  const focusCountry = focusUniversity?.country ?? null;
+  const sectionAtUni = useMemo(
+    () => (sectioned && focusIds ? filtered.filter((s) => focusIds.has(s.id)) : []),
+    [sectioned, focusIds, filtered],
+  );
+  const sectionSameCountry = useMemo(
+    () =>
+      sectioned && focusCountry
+        ? filtered.filter(
+            (s) =>
+              !focusIds!.has(s.id) &&
+              (s.country === focusCountry || s.universityCountries.includes(focusCountry)),
+          )
+        : [],
+    [sectioned, focusCountry, focusIds, filtered],
+  );
 
   const toggleFunding = (ft: string) =>
     setFunding((prev) => {
@@ -142,6 +225,22 @@ export function ScholarshipDirectoryClient({
     setFunding(new Set());
     setCountry('all');
   };
+
+  const renderGrid = (items: DirectoryScholarship[]) => (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {items.map((s) => (
+        <ScholarshipDirectoryCard
+          key={s.id}
+          scholarship={s}
+          matched={matchedIds.has(s.id)}
+          saved={savedIds.has(s.id)}
+          onOpen={() => setSelected(s)}
+          onToggleSave={() => toggleSave(s)}
+          t={t}
+        />
+      ))}
+    </div>
+  );
 
   return (
     <div className="space-y-6">
@@ -262,68 +361,127 @@ export function ScholarshipDirectoryClient({
             </div>
           </Card>
 
-          {/* University focus chip (deep-linked from a university page) */}
-          {focusUniversity && focusActive && (
-            <div className="flex flex-wrap items-center gap-2 rounded-xl border border-pink-200 bg-pink-50/70 px-3 py-2 text-sm">
-              {focusHasMatches ? (
-                <span className="font-medium text-pink-700">
-                  {t('Showing scholarships for {name}', { name: focusUniversity.name })}
-                </span>
-              ) : (
-                <span className="text-slate-600">
-                  {t('No scholarships are linked to {name} yet — showing the full directory.', {
-                    name: focusUniversity.name,
-                  })}
-                </span>
+          {sectioned ? (
+            /* Deep-linked from a university → two labelled sections. */
+            <div className="space-y-8">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs text-slate-500">
+                  {t('Funding picked for {name}', { name: focusUniversity!.name })}
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setFocusActive(false)}
+                  className="shrink-0 text-xs font-medium text-pink-600 hover:text-pink-700"
+                >
+                  {t('Show all scholarships')}
+                </button>
+              </div>
+
+              <section>
+                <SectionBanner>{t('Scholarships at {name}', { name: focusUniversity!.name })}</SectionBanner>
+                {renderGrid(sectionAtUni)}
+              </section>
+
+              {sectionSameCountry.length > 0 && (
+                <section>
+                  <SectionBanner>
+                    {focusCountry
+                      ? t('Other scholarships in {country}', { country: focusCountry })
+                      : t('Other scholarships')}
+                  </SectionBanner>
+                  {renderGrid(sectionSameCountry)}
+                </section>
               )}
-              <button
-                type="button"
-                onClick={() => setFocusActive(false)}
-                className="ml-auto text-xs font-medium text-pink-600 hover:text-pink-700"
-              >
-                {focusHasMatches ? t('Show all') : t('Dismiss')}
-              </button>
             </div>
-          )}
-
-          {/* Personalized note */}
-          {sort === 'relevance' && matchedIds.size > 0 && !hasActiveFilters && (
-            <p className="flex items-center gap-2 text-xs font-medium text-pink-600">
-              <span className="inline-block h-2 w-2 rounded-full bg-pink-500" />
-              {t('Matched to your saved universities')}
-            </p>
-          )}
-
-          {/* Results */}
-          {filtered.length === 0 ? (
-            <EmptyState
-              icon="🔍"
-              title={t('No scholarships match these filters')}
-              action={
-                hasActiveFilters ? (
-                  <Button variant="secondary" onClick={clearFilters}>
-                    {t('Clear filters')}
-                  </Button>
-                ) : undefined
-              }
-            />
           ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {filtered.map((s) => (
-                <ScholarshipDirectoryCard
-                  key={s.id}
-                  scholarship={s}
-                  matched={matchedIds.has(s.id)}
-                  onOpen={() => setSelected(s)}
-                  t={t}
+            <>
+              {/* Focus uni had no linked scholarships → note + full directory. */}
+              {focusUniversity && focusActive && !focusHasMatches && (
+                <div className="flex flex-wrap items-center gap-2 rounded-xl border border-pink-200 bg-pink-50/70 px-3 py-2 text-sm">
+                  <span className="text-slate-600">
+                    {t('No scholarships are linked to {name} yet — showing the full directory.', {
+                      name: focusUniversity.name,
+                    })}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFocusActive(false)}
+                    className="ml-auto text-xs font-medium text-pink-600 hover:text-pink-700"
+                  >
+                    {t('Dismiss')}
+                  </button>
+                </div>
+              )}
+
+              {/* Personalized note */}
+              {sort === 'relevance' && matchedIds.size > 0 && !hasActiveFilters && (
+                <p className="flex items-center gap-2 text-xs font-medium text-pink-600">
+                  <span className="inline-block h-2 w-2 rounded-full bg-pink-500" />
+                  {t('Matched to your saved universities')}
+                </p>
+              )}
+
+              {/* Results */}
+              {filtered.length === 0 ? (
+                <EmptyState
+                  icon="🔍"
+                  title={t('No scholarships match these filters')}
+                  action={
+                    hasActiveFilters ? (
+                      <Button variant="secondary" onClick={clearFilters}>
+                        {t('Clear filters')}
+                      </Button>
+                    ) : undefined
+                  }
                 />
-              ))}
-            </div>
+              ) : (
+                renderGrid(filtered)
+              )}
+            </>
           )}
         </>
       )}
 
-      {selected && <ScholarshipDetailModal scholarship={selected} onClose={() => setSelected(null)} t={t} />}
+      {selected && (
+        <ScholarshipDetailModal
+          scholarship={selected}
+          saved={savedIds.has(selected.id)}
+          onToggleSave={() => toggleSave(selected)}
+          onClose={() => setSelected(null)}
+          t={t}
+        />
+      )}
+
+      {/* Sticky "Continue to Apply" bar — appears once anything is saved. */}
+      {savedIds.size > 0 && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
+          <div className="pointer-events-auto flex items-center gap-4 rounded-full border border-pink-200 bg-white/95 py-2 pl-5 pr-2 shadow-[0_10px_30px_rgba(255,77,140,0.25)] backdrop-blur">
+            <span className="text-sm font-semibold text-slate-700">
+              {t('{count} scholarship(s) saved', { count: savedIds.size })}
+            </span>
+            <button
+              type="button"
+              onClick={goToApply}
+              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(255,77,140,0.3)] transition hover:-translate-y-0.5"
+            >
+              {t('Continue to Apply')}
+              <span aria-hidden>→</span>
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SECTION BANNER
+───────────────────────────────────────────────────────────────────────── */
+
+function SectionBanner({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="mb-4 inline-flex items-center rounded-lg bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-4 py-2 text-sm font-bold text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)]">
+      {children}
     </div>
   );
 }
@@ -363,12 +521,16 @@ type Translate = (en: string, vars?: Record<string, string | number>) => string;
 function ScholarshipDirectoryCard({
   scholarship: s,
   matched,
+  saved,
   onOpen,
+  onToggleSave,
   t,
 }: {
   scholarship: DirectoryScholarship;
   matched: boolean;
+  saved: boolean;
   onOpen: () => void;
+  onToggleSave: () => void;
   t: Translate;
 }) {
   return (
@@ -429,17 +591,41 @@ function ScholarshipDirectoryCard({
       )}
 
       {/* Footer */}
-      <div className="mt-auto flex items-center justify-between border-t border-slate-50 pt-2">
-        {s.deadlineLabel ? (
-          <span className="text-[10px] text-slate-400">
-            {t('Deadline')}: {s.deadlineLabel}
-          </span>
-        ) : (
-          <span />
-        )}
-        <span className="text-[11px] font-medium text-pink-600">{t('View details')} →</span>
+      <div className="mt-auto border-t border-slate-50 pt-2">
+        <div className="flex items-center justify-between">
+          {s.deadlineLabel ? (
+            <span className="text-[10px] text-slate-400">
+              {t('Deadline')}: {s.deadlineLabel}
+            </span>
+          ) : (
+            <span />
+          )}
+          <span className="text-[11px] font-medium text-pink-600">{t('View details')} →</span>
+        </div>
+        <button
+          type="button"
+          aria-pressed={saved}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSave();
+          }}
+          className={`mt-2.5 inline-flex h-9 w-full items-center justify-center gap-1.5 rounded-full border-2 border-pink-500 px-4 text-xs font-semibold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 ${
+            saved ? 'bg-pink-50 text-pink-600 hover:bg-pink-100' : 'bg-white text-pink-600 hover:bg-pink-50'
+          }`}
+        >
+          <HeartIcon filled={saved} />
+          {saved ? t('Saved to My Universities') : t('Save to My Universities')}
+        </button>
       </div>
     </Card>
+  );
+}
+
+function HeartIcon({ filled }: { filled: boolean }) {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill={filled ? '#ec4899' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+    </svg>
   );
 }
 
@@ -449,10 +635,14 @@ function ScholarshipDirectoryCard({
 
 function ScholarshipDetailModal({
   scholarship: s,
+  saved,
+  onToggleSave,
   onClose,
   t,
 }: {
   scholarship: DirectoryScholarship;
+  saved: boolean;
+  onToggleSave: () => void;
   onClose: () => void;
   t: Translate;
 }) {
@@ -490,9 +680,9 @@ function ScholarshipDetailModal({
         </button>
 
         {/* Header */}
-        <div className="pr-10">
+        <div className="-mx-1 -mt-1 mb-1 rounded-2xl bg-[linear-gradient(135deg,#FFE4F1,#F3E8FF)] px-4 py-3 pr-10">
           <h2 className="text-lg font-bold text-slate-900">{s.name}</h2>
-          <p className="mt-1 text-sm text-slate-400">
+          <p className="mt-1 text-sm text-slate-500">
             {s.countryFlag && <span className="mr-1">{s.countryFlag}</span>}
             {[s.provider, s.country].filter(Boolean).join(' · ') || t(SCHOLARSHIP_SCOPE_LABELS[s.scope])}
           </p>
@@ -557,19 +747,30 @@ function ScholarshipDetailModal({
           </div>
         )}
 
-        {/* Official link */}
-        {s.source_url && (
-          <div className="mt-6">
+        {/* Actions */}
+        <div className="mt-6 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            aria-pressed={saved}
+            onClick={onToggleSave}
+            className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border-2 border-pink-500 px-5 text-sm font-semibold transition ${
+              saved ? 'bg-pink-50 text-pink-600 hover:bg-pink-100' : 'bg-white text-pink-600 hover:bg-pink-50'
+            }`}
+          >
+            <HeartIcon filled={saved} />
+            {saved ? t('Saved to My Universities') : t('Save to My Universities')}
+          </button>
+          {s.source_url && (
             <a
               href={s.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-full bg-slate-900 px-5 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"
+              className="inline-flex h-11 items-center gap-2 rounded-full bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-700"
             >
               {t('Official link')} <span aria-hidden>→</span>
             </a>
-          </div>
-        )}
+          )}
+        </div>
       </Card>
     </div>
   );

@@ -7,7 +7,9 @@ import type {
   ShortlistedUniversity,
   UpcomingDeadline,
   ApplicationOverview,
+  SavedScholarshipLite,
 } from '@/lib/apply-types';
+import { useLanguage } from '@/lib/i18n';
 import { StatementFeedbackModal } from '@/components/statement/StatementFeedbackModal';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -172,7 +174,19 @@ function ImportBar() {
    APPLICATION CARD
 ───────────────────────────────────────────────────────────────────────── */
 
-function ApplicationCard({ app }: { app: CourseApplication }) {
+function ApplicationCard({
+  app,
+  score,
+  scholarships,
+  highlighted,
+  t,
+}: {
+  app: CourseApplication;
+  score: number;
+  scholarships: SavedScholarshipLite[];
+  highlighted: boolean;
+  t: (en: string, vars?: Record<string, string | number>) => string;
+}) {
   const badge = statusBadge(app.status, app.deadline);
   const methodClass = methodBadge(app.applicationMethod);
 
@@ -181,6 +195,7 @@ function ApplicationCard({ app }: { app: CourseApplication }) {
     : null;
 
   return (
+    <div className={highlighted ? 'rounded-2xl ring-2 ring-pink-400 ring-offset-2' : ''}>
     <Link
       href={`/apply/${app.id}`}
       className="group flex items-stretch gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:shadow-[0_6px_20px_rgba(15,23,42,0.08)] hover:-translate-y-0.5"
@@ -206,8 +221,14 @@ function ApplicationCard({ app }: { app: CourseApplication }) {
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col justify-between gap-3 p-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
+        <div className="flex items-start gap-3">
+          <ScoreRing value={score} label={t('Achievability')} />
+          <div className="min-w-0 flex-1">
+            {highlighted && (
+              <span className="mb-1 inline-flex items-center gap-1 rounded-full bg-pink-100 px-2 py-0.5 text-[10px] font-bold text-pink-600">
+                ✓ {t('Just saved')}
+              </span>
+            )}
             <h3 className="text-base font-semibold text-slate-900 leading-snug">{app.courseName}</h3>
             <p className="mt-0.5 text-sm text-slate-500">
               {app.countryFlag} {app.universityName}
@@ -297,6 +318,77 @@ function ApplicationCard({ app }: { app: CourseApplication }) {
         </svg>
       </div>
     </Link>
+
+      {/* Saved scholarships nested under this application */}
+      {scholarships.length > 0 && (
+        <div className="mt-2 space-y-2 pl-4 sm:pl-8">
+          {scholarships.map((sc) => (
+            <ScholarshipNestedRow key={sc.id} sc={sc} t={t} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   SCORE RING + NESTED SCHOLARSHIP ROW
+───────────────────────────────────────────────────────────────────────── */
+
+function ScoreRing({ value, label }: { value: number; label: string }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const r = 18;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  return (
+    <div className="flex shrink-0 flex-col items-center">
+      <svg width="48" height="48" viewBox="0 0 48 48" aria-hidden>
+        <circle cx="24" cy="24" r={r} fill="none" stroke="#FCE7F3" strokeWidth="5" />
+        <circle
+          cx="24"
+          cy="24"
+          r={r}
+          fill="none"
+          stroke="#FF3D9A"
+          strokeWidth="5"
+          strokeLinecap="round"
+          strokeDasharray={`${dash} ${circ}`}
+          transform="rotate(-90 24 24)"
+        />
+        <text x="24" y="25" textAnchor="middle" dominantBaseline="middle" className="fill-slate-900 text-[11px] font-bold">
+          {pct}%
+        </text>
+      </svg>
+      <span className="mt-0.5 text-[9px] font-medium uppercase tracking-wide text-slate-400">{label}</span>
+    </div>
+  );
+}
+
+function ScholarshipNestedRow({
+  sc,
+  t,
+}: {
+  sc: SavedScholarshipLite;
+  t: (en: string, vars?: Record<string, string | number>) => string;
+}) {
+  const inner = (
+    <>
+      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-pink-100 text-sm">🎓</span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-semibold text-slate-700">{sc.name}</p>
+        {sc.amountLabel && <p className="truncate text-[11px] text-slate-500">{sc.amountLabel}</p>}
+      </div>
+      {sc.deadlineLabel && <span className="shrink-0 text-[10px] text-slate-400">{sc.deadlineLabel}</span>}
+    </>
+  );
+  const className =
+    'flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50/60 px-4 py-2.5 transition hover:border-pink-200 hover:bg-white';
+  return sc.sourceUrl ? (
+    <a href={sc.sourceUrl} target="_blank" rel="noopener noreferrer" className={className} title={t('Open scholarship')}>
+      {inner}
+    </a>
+  ) : (
+    <div className={className}>{inner}</div>
   );
 }
 
@@ -304,8 +396,17 @@ function ApplicationCard({ app }: { app: CourseApplication }) {
    SHORTLISTED UNIVERSITY ROW
 ───────────────────────────────────────────────────────────────────────── */
 
-function ShortlistedRow({ uni }: { uni: ShortlistedUniversity }) {
+function ShortlistedRow({
+  uni,
+  scholarships,
+  t,
+}: {
+  uni: ShortlistedUniversity;
+  scholarships: SavedScholarshipLite[];
+  t: (en: string, vars?: Record<string, string | number>) => string;
+}) {
   return (
+    <div>
     <div className="flex items-center gap-4 rounded-xl border border-slate-100 bg-slate-50/60 p-4 transition hover:bg-white hover:border-slate-200">
       <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-slate-200 bg-white shadow-sm text-lg">
         {uni.countryFlag ?? '🏫'}
@@ -343,6 +444,15 @@ function ShortlistedRow({ uni }: { uni: ShortlistedUniversity }) {
           </svg>
         </button>
       </div>
+    </div>
+
+      {scholarships.length > 0 && (
+        <div className="mt-2 space-y-2 pl-4 sm:pl-8">
+          {scholarships.map((sc) => (
+            <ScholarshipNestedRow key={sc.id} sc={sc} t={t} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -577,9 +687,23 @@ type Props = {
   shortlisted: ShortlistedUniversity[];
   upcomingDeadlines: UpcomingDeadline[];
   overview: ApplicationOverview;
+  savedScholarshipsByUniversity: Record<number, SavedScholarshipLite[]>;
+  matchByApplicationId: Record<string, number>;
+  focusUniversityId: number | null;
 };
 
-export function ApplyDashboard({ applications, shortlisted, upcomingDeadlines, overview }: Props) {
+export function ApplyDashboard({
+  applications,
+  shortlisted,
+  upcomingDeadlines,
+  overview,
+  savedScholarshipsByUniversity,
+  matchByApplicationId,
+  focusUniversityId,
+}: Props) {
+  const { t } = useLanguage();
+  const scholarshipsFor = (universityId: number | null | undefined) =>
+    universityId != null ? savedScholarshipsByUniversity[universityId] ?? [] : [];
   const activeApps = applications.filter((a) =>
     !['submitted', 'offer_received', 'accepted', 'rejected', 'withdrawn'].includes(a.status)
   );
@@ -631,7 +755,14 @@ export function ApplyDashboard({ applications, shortlisted, upcomingDeadlines, o
           {activeApps.length > 0 ? (
             <div className="space-y-3">
               {activeApps.map((app) => (
-                <ApplicationCard key={app.id} app={app} />
+                <ApplicationCard
+                  key={app.id}
+                  app={app}
+                  score={matchByApplicationId[app.id] ?? app.progressPercentage}
+                  scholarships={scholarshipsFor(app.universityId)}
+                  highlighted={focusUniversityId != null && app.universityId === focusUniversityId}
+                  t={t}
+                />
               ))}
             </div>
           ) : (
@@ -652,7 +783,7 @@ export function ApplyDashboard({ applications, shortlisted, upcomingDeadlines, o
               <div className="divide-y divide-slate-100 p-3">
                 {shortlisted.map((uni) => (
                   <div key={uni.id} className="py-1 first:pt-0 last:pb-0">
-                    <ShortlistedRow uni={uni} />
+                    <ShortlistedRow uni={uni} scholarships={scholarshipsFor(Number(uni.id))} t={t} />
                   </div>
                 ))}
               </div>
@@ -671,7 +802,14 @@ export function ApplyDashboard({ applications, shortlisted, upcomingDeadlines, o
             <h2 className="mb-3 text-base font-semibold text-slate-900">Submitted / Completed</h2>
             <div className="space-y-3">
               {completedApps.map((app) => (
-                <ApplicationCard key={app.id} app={app} />
+                <ApplicationCard
+                  key={app.id}
+                  app={app}
+                  score={matchByApplicationId[app.id] ?? app.progressPercentage}
+                  scholarships={scholarshipsFor(app.universityId)}
+                  highlighted={false}
+                  t={t}
+                />
               ))}
             </div>
           </section>
