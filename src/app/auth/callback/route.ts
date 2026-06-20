@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 /**
  * Resolve the canonical site URL once. We prefer NEXT_PUBLIC_SITE_URL so
@@ -33,6 +34,38 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        // Capture the phone number collected at sign-up. It rides along in user
+        // metadata (set during signUp) because there's no session to write the
+        // profile until the email link is clicked. Backfill it onto the profile
+        // once, here, the first time we have a session. Best-effort.
+        const metaPhone = (user.user_metadata?.phone as string | undefined)?.trim();
+        if (metaPhone) {
+          try {
+            const admin = createAdminClient();
+            const { data: existing } = await admin
+              .from('student_profiles')
+              .select('phone')
+              .eq('user_id', user.id)
+              .maybeSingle();
+            if (!existing?.phone) {
+              const now = new Date().toISOString();
+              await admin.from('student_profiles').upsert(
+                {
+                  user_id: user.id,
+                  phone: metaPhone,
+                  marketing_consent: true,
+                  marketing_consent_at: now,
+                  marketing_consent_source: 'signup',
+                  updated_at: now,
+                },
+                { onConflict: 'user_id' },
+              );
+            }
+          } catch {
+            /* non-fatal — the number is still on the auth user's metadata */
+          }
+        }
+
         if (safeNext) {
           return NextResponse.redirect(`${origin}${safeNext}`);
         }
