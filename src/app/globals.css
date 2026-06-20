@@ -4045,6 +4045,25 @@ body:not(:has(.cosmos-root)) {
   gap: 1.25rem;
 }
 
+/* Sign-up has four fields — lay them out 2×2 on wider screens so the card
+   stays compact and doesn't force scrolling. The non-field rows (error,
+   submit, secure notice) span the full width. Falls back to the single
+   column on phones, where two columns would be too cramped. */
+@media (min-width: 640px) {
+  .auth-form--signup {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.1rem 1rem;
+    align-items: start;
+  }
+
+  .auth-form--signup > .auth-error,
+  .auth-form--signup > .auth-submit-button,
+  .auth-form--signup > .auth-secure-notice {
+    grid-column: 1 / -1;
+  }
+}
+
 .auth-input-group {
   display: flex;
   flex-direction: column;
