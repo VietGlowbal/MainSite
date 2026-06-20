@@ -4243,6 +4243,13 @@ body:not(:has(.cosmos-root)) {
   text-decoration: underline;
 }
 
+.auth-input-hint {
+  margin-top: 0.4rem;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: rgb(100 116 139);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .auth-globe-wrapper::before,
   .auth-feature-item {
