@@ -3806,44 +3806,43 @@ body:not(:has(.cosmos-root)) {
 
 .auth-feature-item {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
-  padding: 1rem;
-  border-radius: 1rem;
-  background: rgba(255, 255, 255, 0.7);
-  border: 1px solid rgba(15, 23, 42, 0.06);
-  backdrop-filter: blur(10px);
-  transition: all 200ms ease;
+  padding: 1.1rem 1.25rem;
+  border-radius: 1.1rem;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.05);
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.05);
+  transition: box-shadow 200ms ease, transform 200ms ease;
 }
 
 .auth-feature-item:hover {
-  background: rgba(255, 255, 255, 0.9);
-  border-color: rgba(255, 77, 140, 0.2);
-  transform: translateX(4px);
+  box-shadow: 0 12px 30px rgba(255, 61, 154, 0.12);
+  transform: translateY(-2px);
 }
 
 .auth-feature-icon {
   flex-shrink: 0;
-  width: 40px;
-  height: 40px;
+  width: 48px;
+  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 0.75rem;
-  background: linear-gradient(135deg, rgba(255, 77, 140, 0.1), rgba(25, 184, 216, 0.1));
-  color: var(--brand-pink);
+  border-radius: 0.9rem;
+  background: rgba(255, 61, 154, 0.1);
+  color: var(--brand-pink-strong);
 }
 
 .auth-feature-title {
-  margin: 0 0 0.25rem;
-  font-size: 0.95rem;
+  margin: 0 0 0.15rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: rgb(15 23 42);
 }
 
 .auth-feature-description {
   margin: 0;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   line-height: 1.5;
   color: rgb(100 116 139);
 }
