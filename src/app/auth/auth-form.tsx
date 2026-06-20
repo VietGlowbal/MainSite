@@ -224,7 +224,7 @@ export function AuthForm() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="auth-form">
+            <form onSubmit={handleSubmit} className={`auth-form${mode === 'signup' ? ' auth-form--signup' : ''}`}>
               <AnimatePresence initial={false}>
                 {mode === 'signup' && (
                   <motion.div
