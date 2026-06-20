@@ -6,9 +6,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
 
 type Mode = 'login' | 'signup';
-// Sign-up is a guarded, multi-step flow: collect credentials, then verify a
-// phone number via SMS one-time code before the account can proceed.
-type SignupStep = 'credentials' | 'phone' | 'otp';
 
 function GoogleMark() {
   return (
@@ -100,10 +97,8 @@ export function AuthForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
 
-  // Phone-verification sub-flow (sign-up only).
-  const [signupStep, setSignupStep] = useState<SignupStep>('credentials');
+  // Phone number collected at sign-up (stored, not verified).
   const [phone, setPhone] = useState('');
-  const [otp, setOtp] = useState('');
 
   const redirectPath = useMemo(() => {
     const raw = searchParams.get('redirect');
@@ -129,20 +124,6 @@ export function AuthForm() {
     }
   };
 
-  // Send the authenticated user on their way once sign-up (incl. phone
-  // verification) or sign-in completes.
-  const finishAuthed = (defaultPath: string) => {
-    if (redirectPath) {
-      // Full navigation when a redirect is set: it may point at a route
-      // handler (e.g. /api/home/save-university) that 302s onward, which the
-      // client router doesn't follow on its own.
-      window.location.assign(redirectPath);
-      return;
-    }
-    router.push(defaultPath);
-    router.refresh();
-  };
-
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setLoading(true);
@@ -153,32 +134,44 @@ export function AuthForm() {
           email,
           password,
           options: {
-            data: { full_name: fullName },
+            // Capture the phone number on the user from the start. It's stored,
+            // not verified — kept in user metadata so it's available even
+            // before the profile row exists (e.g. while email is unconfirmed).
+            data: { full_name: fullName, phone, marketing_consent: true },
             emailRedirectTo: buildCallbackUrl(),
           },
         });
         if (signUpError) throw signUpError;
 
-        // We need an authenticated session to attach + verify the phone number
-        // (auth.updateUser → verifyOtp). signUp only returns one when email
-        // confirmation is disabled; otherwise try an immediate password
-        // sign-in. If the project still requires email confirmation there's no
-        // session to gate on, so fall back to the email-confirmation screen.
-        let session = data.session;
-        if (!session) {
-          const { data: pw } = await supabase.auth.signInWithPassword({ email, password });
-          session = pw.session;
+        // If email confirmation is disabled, signUp returns a session — persist
+        // the number + consent to the profile now. Otherwise it stays safely in
+        // user metadata until the profile is created during onboarding.
+        if (data.session) {
+          try {
+            await fetch('/api/profile/phone', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phone }),
+            });
+          } catch {
+            /* non-fatal */
+          }
         }
-        if (!session) {
-          setSentTo(email);
-          setEmailSent(true);
-          return;
-        }
-        setSignupStep('phone');
+
+        setSentTo(email);
+        setEmailSent(true);
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) throw signInError;
-        finishAuthed('/profile');
+        // Full navigation when a redirect is set: it may point at a route
+        // handler (e.g. /api/home/save-university) that 302s onward, which the
+        // client router doesn't follow on its own.
+        if (redirectPath) {
+          window.location.assign(redirectPath);
+          return;
+        }
+        router.push('/profile');
+        router.refresh();
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
@@ -187,196 +180,16 @@ export function AuthForm() {
     }
   };
 
-  // Step 2 — attach the phone to the (now authenticated) account, which sends
-  // the SMS one-time code via Supabase native phone auth.
-  const handleSendCode = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const { error: updateError } = await supabase.auth.updateUser({ phone });
-      if (updateError) throw updateError;
-      setOtp('');
-      setSignupStep('otp');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send the code. Check the number and try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Step 3 — verify the SMS code, then persist the verified number + implicit
-  // marketing consent to the profile before continuing.
-  const handleVerifyCode = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setLoading(true);
-    setError(null);
-    try {
-      const { error: verifyError } = await supabase.auth.verifyOtp({
-        phone,
-        token: otp,
-        type: 'phone_change',
-      });
-      if (verifyError) throw verifyError;
-
-      // Best-effort: store the verified number + consent. A failure here
-      // shouldn't trap a user who has already verified, so we don't block on it.
-      try {
-        await fetch('/api/profile/phone', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone }),
-        });
-      } catch {
-        /* non-fatal */
-      }
-
-      finishAuthed('/onboarding');
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'That code didn’t match. Try again.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleResendCode = async () => {
-    setError(null);
-    const { error: resendError } = await supabase.auth.updateUser({ phone });
-    if (resendError) setError(resendError.message);
-  };
-
   const heading = mode === 'login' ? 'Welcome back 👋' : 'Create your account';
   const subheading = mode === 'login' 
     ? 'Sign in to continue your journey.' 
     : 'Join thousands of students finding their dream university.';
-
-  const phoneStep = (
-    <motion.div
-      key="phone"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -16 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="auth-form-header">
-        <h2 className="auth-form-title">Verify your phone 🔒</h2>
-        <p className="auth-form-subtitle">
-          Add a second layer of security. We’ll text a 6-digit code to confirm it’s really you.
-        </p>
-      </div>
-
-      <form onSubmit={handleSendCode} className="auth-form">
-        <div className="auth-input-group">
-          <label htmlFor="phone" className="auth-label">Phone number</label>
-          <div className="auth-input-wrapper">
-            <svg className="auth-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
-            </svg>
-            <input
-              id="phone"
-              type="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              placeholder="+44 7700 900000"
-              className="auth-input auth-input-with-icon"
-              autoComplete="tel"
-              required
-            />
-          </div>
-          <p className="auth-input-hint">
-            Include your country code (e.g. +44). We’ll also use this for important account updates and occasional offers.
-          </p>
-        </div>
-
-        {error && (
-          <motion.div className="auth-error" role="alert" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
-            {error}
-          </motion.div>
-        )}
-
-        <button type="submit" disabled={loading} className="auth-submit-button">
-          {loading ? 'Sending code…' : 'Send code'}
-        </button>
-
-        <div className="auth-secure-notice">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
-          <span>Standard message &amp; data rates may apply</span>
-        </div>
-      </form>
-    </motion.div>
-  );
-
-  const otpStep = (
-    <motion.div
-      key="otp"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -16 }}
-      transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-    >
-      <div className="auth-form-header">
-        <h2 className="auth-form-title">Enter the code</h2>
-        <p className="auth-form-subtitle">
-          We sent a 6-digit code to <strong>{phone}</strong>.
-        </p>
-      </div>
-
-      <form onSubmit={handleVerifyCode} className="auth-form">
-        <div className="auth-input-group">
-          <label htmlFor="otp" className="auth-label">Verification code</label>
-          <input
-            id="otp"
-            type="text"
-            inputMode="numeric"
-            autoComplete="one-time-code"
-            value={otp}
-            onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            placeholder="••••••"
-            className="auth-input"
-            maxLength={6}
-            required
-          />
-        </div>
-
-        {error && (
-          <motion.div className="auth-error" role="alert" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }}>
-            {error}
-          </motion.div>
-        )}
-
-        <button type="submit" disabled={loading || otp.length < 6} className="auth-submit-button">
-          {loading ? 'Verifying…' : 'Verify & continue'}
-        </button>
-
-        <div className="auth-switch-mode">
-          <button type="button" onClick={handleResendCode} className="auth-switch-button">
-            Resend code
-          </button>
-          <span className="auth-switch-text">·</span>
-          <button
-            type="button"
-            onClick={() => { setError(null); setOtp(''); setSignupStep('phone'); }}
-            className="auth-switch-button"
-          >
-            Change number
-          </button>
-        </div>
-      </form>
-    </motion.div>
-  );
 
   return (
     <div className="auth-form-card">
       <AnimatePresence mode="wait">
         {emailSent ? (
           <EnvelopeSent key="confirm" email={sentTo} />
-        ) : mode === 'signup' && signupStep === 'phone' ? (
-          phoneStep
-        ) : mode === 'signup' && signupStep === 'otp' ? (
-          otpStep
         ) : (
           <motion.div
             key="form"
@@ -495,6 +308,41 @@ export function AuthForm() {
                 </div>
               </div>
 
+              <AnimatePresence initial={false}>
+                {mode === 'signup' && (
+                  <motion.div
+                    key="phone"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="auth-input-group">
+                      <label htmlFor="phone" className="auth-label">Phone number</label>
+                      <div className="auth-input-wrapper">
+                        <svg className="auth-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" />
+                        </svg>
+                        <input
+                          id="phone"
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value)}
+                          placeholder="+44 7700 900000"
+                          className="auth-input auth-input-with-icon"
+                          autoComplete="tel"
+                          required={mode === 'signup'}
+                        />
+                      </div>
+                      <p className="auth-input-hint">
+                        Include your country code (e.g. +44). We’ll use this for account updates and occasional offers.
+                      </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               {mode === 'login' && (
                 <div className="auth-form-options">
                   <label className="auth-checkbox-label">
@@ -547,7 +395,7 @@ export function AuthForm() {
               </span>
               <button
                 type="button"
-                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); setSignupStep('credentials'); }}
+                onClick={() => { setMode(mode === 'login' ? 'signup' : 'login'); setError(null); }}
                 className="auth-switch-button"
               >
                 {mode === 'login' ? 'Create account' : 'Sign in'}
