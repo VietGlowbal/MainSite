@@ -112,6 +112,11 @@ export function MentorSignupForm({
   const [dob, setDob] = useState('');
   const [universityId, setUniversityId] = useState<number | null>(null);
   const [universitySearch, setUniversitySearch] = useState('');
+  // "My university isn't listed" path — the applicant types a name + country
+  // and we create (or match) the university server-side on submit.
+  const [addingCustomUni, setAddingCustomUni] = useState(false);
+  const [customUniName, setCustomUniName] = useState('');
+  const [customUniCountry, setCustomUniCountry] = useState('');
 
   // ── Step 2: documents (storage keys) ───────────────────────────────────
   const [docKeys, setDocKeys] = useState<Record<DocumentSlot, string | null>>({
@@ -237,11 +242,17 @@ export function MentorSignupForm({
 
   // ── Step validation gates ──────────────────────────────────────────────
 
+  // A typed-in university counts once both its name and country are filled.
+  const customUniValid =
+    addingCustomUni &&
+    customUniName.trim().length >= 2 &&
+    customUniCountry.trim().length >= 2;
+
   const identityComplete =
     displayName.trim().length >= 2 &&
     legalName.trim().length >= 2 &&
     dob.length === 10 &&
-    universityId !== null;
+    (universityId !== null || customUniValid);
 
   const documentsComplete =
     quickSignup ||
@@ -278,7 +289,13 @@ export function MentorSignupForm({
       display_name: displayName.trim(),
       legal_name: legalName.trim(),
       date_of_birth: dob,
-      university_id: universityId!,
+      // Either an existing university id, or a typed-in name + country that the
+      // server will match-or-create. Exactly one of these is populated.
+      university_id: universityId,
+      custom_university_name:
+        universityId === null && customUniValid ? customUniName.trim() : null,
+      custom_university_country:
+        universityId === null && customUniValid ? customUniCountry.trim() : null,
       avatar_url: avatarUrl,
       degree_level: degreeLevel,
       subject: subject.trim(),
@@ -425,35 +442,92 @@ export function MentorSignupForm({
             />
           </Field>
           <Field label="University" required>
-            <input
-              type="text"
-              placeholder="Search by name or country"
-              value={universitySearch}
-              onChange={(e) => setUniversitySearch(e.target.value)}
-              className="field"
-            />
-            <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-100">
-              {filteredUniversities.map((u) => (
+            {!addingCustomUni ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Search by name or country"
+                  value={universitySearch}
+                  onChange={(e) => setUniversitySearch(e.target.value)}
+                  className="field"
+                />
+                <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-100">
+                  {filteredUniversities.map((u) => (
+                    <button
+                      type="button"
+                      key={u.id}
+                      onClick={() => setUniversityId(u.id)}
+                      className={`flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm last:border-b-0 transition ${
+                        universityId === u.id ? 'bg-pink-50/70 text-pink-700' : 'hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{u.name}</span>
+                      <span className="text-xs text-slate-400">{u.country}</span>
+                    </button>
+                  ))}
+                  {filteredUniversities.length === 0 && (
+                    <p className="px-3 py-3 text-sm text-slate-400">No universities match.</p>
+                  )}
+                </div>
+                {selectedUni && (
+                  <p className="mt-2 text-xs text-emerald-600">
+                    Selected: <strong>{selectedUni.name}</strong> ({selectedUni.country})
+                  </p>
+                )}
                 <button
                   type="button"
-                  key={u.id}
-                  onClick={() => setUniversityId(u.id)}
-                  className={`flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm last:border-b-0 transition ${
-                    universityId === u.id ? 'bg-pink-50/70 text-pink-700' : 'hover:bg-slate-50'
-                  }`}
+                  onClick={() => {
+                    setAddingCustomUni(true);
+                    setUniversityId(null);
+                    // Pre-fill the name with whatever they were searching for.
+                    setCustomUniName(universitySearch.trim());
+                  }}
+                  className="mt-2 text-xs font-semibold text-pink-600 hover:text-pink-700"
                 >
-                  <span>{u.name}</span>
-                  <span className="text-xs text-slate-400">{u.country}</span>
+                  Can&rsquo;t find your university? Add it manually
                 </button>
-              ))}
-              {filteredUniversities.length === 0 && (
-                <p className="px-3 py-3 text-sm text-slate-400">No universities match.</p>
-              )}
-            </div>
-            {selectedUni && (
-              <p className="mt-2 text-xs text-emerald-600">
-                Selected: <strong>{selectedUni.name}</strong> ({selectedUni.country})
-              </p>
+              </>
+            ) : (
+              <>
+                <p className="text-xs text-slate-500">
+                  Tell us your university and country — we&rsquo;ll add it to GlowBal so other
+                  students can find you. (It&rsquo;s reviewed by our team alongside your application.)
+                </p>
+                <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                  <input
+                    type="text"
+                    placeholder="University name"
+                    value={customUniName}
+                    onChange={(e) => setCustomUniName(e.target.value)}
+                    maxLength={160}
+                    className="field"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Country"
+                    value={customUniCountry}
+                    onChange={(e) => setCustomUniCountry(e.target.value)}
+                    maxLength={120}
+                    className="field"
+                  />
+                </div>
+                {customUniValid && (
+                  <p className="mt-2 text-xs text-emerald-600">
+                    Adding: <strong>{customUniName.trim()}</strong> ({customUniCountry.trim()})
+                  </p>
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAddingCustomUni(false);
+                    setCustomUniName('');
+                    setCustomUniCountry('');
+                  }}
+                  className="mt-2 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                >
+                  ← Back to the university list
+                </button>
+              </>
             )}
           </Field>
 
@@ -820,7 +894,10 @@ export function MentorSignupForm({
             displayName={displayName}
             legalName={legalName}
             dob={dob}
-            university={selectedUni?.name ?? '—'}
+            university={
+              selectedUni?.name ??
+              (customUniValid ? `${customUniName.trim()} (new — pending review)` : '—')
+            }
             degreeLevel={degreeLevel}
             subject={subject}
             quickSignup={quickSignup}
