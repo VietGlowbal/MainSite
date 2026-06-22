@@ -13,7 +13,7 @@
 
 import type { SearchProvider, SearchParams, SearchResult } from './search-provider-interface';
 import { constructSearchQuery, extractDomain, normalizeUrl, validateDomain } from './search-provider-interface';
-import { openai } from '@/lib/ai/openai-client';
+import { openai, isOpenAIConfigured } from '@/lib/ai/openai-client';
 import { z } from 'zod';
 
 /**
@@ -110,8 +110,17 @@ export class TavilySearchProvider implements SearchProvider {
         return [];
       }
       
-      // Step 3: Use AI to rank and filter results
-      const rankedResults = await this.rankWithAI(filteredResults, params);
+      // Step 3: Rank/clean results.
+      // AI ranking adds latency (an OpenAI call) that doesn't fit within
+      // Vercel Hobby's 10s function limit, so it's opt-in via ENABLE_AI_RANKING.
+      // When disabled (default), we use Tavily's own relevance scoring after
+      // the quality filtering above — fast and reliable.
+      const useAiRanking =
+        process.env.ENABLE_AI_RANKING === 'true' && isOpenAIConfigured();
+
+      const rankedResults = useAiRanking
+        ? await this.rankWithAI(filteredResults, params)
+        : this.simpleRank(filteredResults);
       
       // Step 4: Deduplicate by normalized URL
       const deduplicatedResults = this.deduplicateResults(rankedResults);
@@ -123,6 +132,20 @@ export class TavilySearchProvider implements SearchProvider {
       console.error('Tavily search failed:', error);
       return []; // Graceful failure - return empty array
     }
+  }
+
+  /**
+   * Convert filtered Tavily results into SearchResult[] using Tavily's own
+   * relevance score (no AI call). Used when AI ranking is disabled.
+   */
+  private simpleRank(results: TavilySearchResult[]): SearchResult[] {
+    return results.slice(0, 10).map(r => ({
+      title: r.title,
+      url: r.url,
+      snippet: r.content ? r.content.slice(0, 200) : undefined,
+      domain: extractDomain(r.url) || '',
+      confidence: Math.min(r.score ?? 0.7, 1.0),
+    }));
   }
   
   /**
