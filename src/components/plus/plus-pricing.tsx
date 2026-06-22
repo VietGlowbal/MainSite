@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   PLUS_PACKAGES,
   PLUS_COMPARISON,
@@ -15,7 +15,6 @@ import {
   type ComparisonValue,
   type PlanColumn,
 } from '@/lib/plus';
-import { SubscribeButton } from '@/components/plus/subscribe-button';
 
 /**
  * PlusPricing — the interactive heart of the /plus page.
@@ -97,14 +96,58 @@ function PackageCard({
   signedIn: boolean;
   applicationId: string | null;
 }) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const highlighted = pkg.highlighted;
-  const signupRedirect = `/plus${applicationId ? `?application=${applicationId}` : ''}`;
+
+  // The whole card is the button: selecting it starts checkout (signed in) or
+  // sends the user to sign up first (returning to /plus afterwards).
+  async function select() {
+    if (loading) return;
+    if (!signedIn) {
+      const redirect = `/plus${applicationId ? `?application=${applicationId}` : ''}`;
+      router.push(`/auth?mode=signup&redirect=${encodeURIComponent(redirect)}`);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch('/api/plus/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ plan: pkg.id, currency, applicationId: applicationId ?? undefined }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.checkout_url) {
+        throw new Error(data.error ?? 'Could not start checkout');
+      }
+      window.location.assign(data.checkout_url as string);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setLoading(false);
+    }
+  }
+
+  const ctaLabel = loading ? 'Starting checkout…' : signedIn ? 'Choose this plan' : 'Sign up & choose';
+
   return (
     <div
-      className={`relative flex flex-col rounded-3xl border bg-white p-7 ${
+      role="button"
+      tabIndex={0}
+      aria-label={`Select GlowBal Plus ${pkg.name} — ${formatPlanPrice(pkg.amountVnd, currency)}`}
+      aria-busy={loading}
+      onClick={select}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          select();
+        }
+      }}
+      className={`group relative flex cursor-pointer flex-col rounded-3xl border bg-white p-7 outline-none transition-all duration-200 hover:-translate-y-1.5 focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2 ${
         highlighted
-          ? 'border-2 border-pink-300 shadow-[0_24px_56px_rgba(255,77,140,0.18)] lg:-mt-3 lg:mb-3'
-          : 'border-slate-200 shadow-[0_12px_30px_rgba(30,40,80,0.05)]'
+          ? 'border-2 border-pink-300 shadow-[0_24px_56px_rgba(255,77,140,0.18)] hover:shadow-[0_30px_64px_rgba(255,77,140,0.26)] lg:-mt-3 lg:mb-3'
+          : 'border-slate-200 shadow-[0_12px_30px_rgba(30,40,80,0.05)] hover:border-pink-200 hover:shadow-[0_22px_48px_rgba(30,40,80,0.12)]'
       }`}
     >
       {highlighted ? (
@@ -125,13 +168,19 @@ function PackageCard({
         </div>
       </div>
 
-      <SubscribeButton
-        plan={pkg.id}
-        currency={currency}
-        signedIn={signedIn}
-        highlighted={highlighted}
-        applicationId={applicationId}
-      />
+      {/* Visual CTA — the click is handled by the whole card, so this is a
+          styled cue rather than a separate interactive control. */}
+      <span
+        aria-hidden
+        className={`mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition ${
+          highlighted
+            ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white shadow-[0_12px_28px_rgba(255,77,140,0.3)]'
+            : 'border border-slate-200 bg-white text-slate-700 group-hover:border-pink-300 group-hover:text-pink-600'
+        } ${loading ? 'opacity-60' : ''}`}
+      >
+        {ctaLabel}
+      </span>
+      {error ? <p className="mt-2 text-center text-xs text-rose-600">{error}</p> : null}
 
       <div className="mt-6 rounded-2xl bg-pink-50 px-4 py-3 text-center">
         <span className="text-2xl font-bold text-pink-600">{pkg.aiCredits}</span>
@@ -149,13 +198,7 @@ function PackageCard({
 
       {!signedIn ? (
         <p className="mt-5 text-center text-xs text-slate-400">
-          Need an account first?{' '}
-          <Link
-            href={`/auth?mode=signup&redirect=${encodeURIComponent(signupRedirect)}`}
-            className="font-semibold text-pink-600"
-          >
-            Sign up free
-          </Link>
+          No account yet? Selecting a plan signs you up first — it&rsquo;s free to start.
         </p>
       ) : null}
     </div>
