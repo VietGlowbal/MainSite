@@ -102,10 +102,21 @@ export default async function PlusPage({
           </a>
         </div>
 
-        {/* Free tier reference */}
-        <div className="mx-auto mt-10 max-w-2xl rounded-3xl border border-slate-200 bg-white p-6">
-          <p className="text-sm font-semibold text-slate-900">Free plan</p>
-          <p className="mt-1 text-sm text-slate-500">Everything you need to start — no payment required.</p>
+        {/* Free tier — the whole box is a link that continues into the app
+            for free, with the same hover-lift cue as the paid tiers. */}
+        <Link
+          href="/universities"
+          className="group mx-auto mt-10 block max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 outline-none transition-all duration-200 hover:-translate-y-1 hover:border-pink-200 hover:shadow-[0_22px_48px_rgba(30,40,80,0.12)] focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Continue with the Free plan</p>
+              <p className="mt-1 text-sm text-slate-500">Everything you need to start — no payment required.</p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold text-pink-600 transition group-hover:translate-x-0.5">
+              Continue free →
+            </span>
+          </div>
           <ul className="mt-4 grid gap-2 sm:grid-cols-2">
             {FREE_FEATURES.map((f) => (
               <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
@@ -113,7 +124,7 @@ export default async function PlusPage({
               </li>
             ))}
           </ul>
-        </div>
+        </Link>
 
         <div className="mx-auto mt-8 flex max-w-2xl flex-col items-center gap-2 text-center text-xs text-slate-400">
           <p className="inline-flex items-center gap-1.5">
