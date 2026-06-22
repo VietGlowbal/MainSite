@@ -7,6 +7,14 @@ import { getTeamMembers, splitTeam, type TeamMember } from '@/lib/team';
 import { Reveal } from './reveal';
 import { SiteHeader } from './site-header';
 import { UniversitySearch } from './university-search';
+import { HeroGlobe } from './hero-globe';
+
+/**
+ * Sections kept in code for future use but hidden from the current home flow.
+ * Flip to `true` to re-enable the Problem, University-search, AI-strategy,
+ * Testimonial and Plus sections (and the legacy hero mockup).
+ */
+const SHOW_LEGACY_SECTIONS: boolean = false;
 
 /**
  * HomeLanding — the product-led GlowBal landing page (spec Phase 1).
@@ -121,9 +129,9 @@ function Hero() {
           </p>
         </div>
 
-        {/* Product mockup preview */}
+        {/* Hero visual — spinning globe (legacy product mockup kept for future use) */}
         <Reveal className="relative" y={32}>
-          <HeroMockup />
+          {SHOW_LEGACY_SECTIONS ? <HeroMockup /> : <HeroGlobe />}
         </Reveal>
       </div>
     </section>
@@ -194,19 +202,45 @@ const STATS = [
 function StatsStrip() {
   return (
     <section className="mx-auto max-w-7xl px-5 sm:px-6">
-      <Reveal className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(30,40,80,0.06)] sm:p-8">
+      <Reveal className="rounded-[2rem] bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] p-6 shadow-[0_18px_40px_rgba(255,77,140,0.30)] sm:p-8">
         <div className="grid grid-cols-2 gap-6 lg:grid-cols-4">
           {STATS.map((s) => (
             <div key={s.label} className="text-center">
-              <div className="text-2xl font-bold tracking-tight text-slate-900 sm:text-3xl">{s.value}</div>
-              <div className="mt-1 text-sm text-slate-500">{s.label}</div>
+              <div className="text-2xl font-bold tracking-tight text-white sm:text-3xl">{s.value}</div>
+              <div className="mt-1 text-sm text-white/85">{s.label}</div>
             </div>
           ))}
         </div>
-        <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-slate-500">
+        <p className="mx-auto mt-6 max-w-3xl text-center text-sm text-white/90">
           From choosing your dream university to preparing your application,
           GlowBal helps you move from confusion to a clear study-abroad plan.
         </p>
+      </Reveal>
+    </section>
+  );
+}
+
+/* ── Product demo (reserved slot for the recorded walkthrough) ───────────── */
+
+function DemoVideoSection() {
+  return (
+    <section className="mx-auto max-w-7xl px-5 py-20 sm:px-6">
+      <SectionHeading
+        eyebrow="Product demo"
+        title="See GlowBal in action"
+        body="A short walkthrough of how GlowBal takes you from a dream university to a clear scholarship plan."
+      />
+      <Reveal className="mt-12" y={28}>
+        <div className="relative mx-auto aspect-video w-full max-w-4xl overflow-hidden rounded-[2rem] border border-slate-200 bg-[linear-gradient(135deg,#FFF1F7,#EFFBFF)] shadow-[0_24px_60px_rgba(30,40,80,0.10)]">
+          <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 text-center">
+            <span className="flex h-16 w-16 items-center justify-center rounded-full bg-white/85 text-pink-600 shadow-[0_10px_24px_rgba(255,77,140,0.25)]">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden>
+                <path d="M8 5v14l11-7z" />
+              </svg>
+            </span>
+            <p className="text-sm font-semibold text-slate-600">Product demo — coming soon</p>
+          </div>
+        </div>
       </Reveal>
     </section>
   );
@@ -916,17 +950,25 @@ export function HomeLanding({ action }: { action: WaitlistAction }) {
       <main>
         <Hero />
         <StatsStrip />
-        <ProblemSection />
+        <DemoVideoSection />
         <HowItWorksSection />
-        <UniversitySearchSection />
         <ScholarshipPreviewSection />
-        <AIStrategySection />
         <SupporterSection />
         <TeamSection />
-        <TestimonialSection />
-        <PlusSection />
         <FAQSection />
         <FinalCTASection action={action} />
+
+        {/* Sections kept for future use — hidden from the current flow.
+            Flip SHOW_LEGACY_SECTIONS to re-enable. */}
+        {SHOW_LEGACY_SECTIONS && (
+          <>
+            <ProblemSection />
+            <UniversitySearchSection />
+            <AIStrategySection />
+            <TestimonialSection />
+            <PlusSection />
+          </>
+        )}
       </main>
       <SiteFooter />
     </div>

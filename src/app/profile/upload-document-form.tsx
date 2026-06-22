@@ -1,6 +1,7 @@
 'use client';
 
 import { FormEvent, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 type DocType = 'cv' | 'statement_of_purpose';
@@ -12,6 +13,7 @@ const DOC_TYPES: { value: DocType; label: string; hint: string }[] = [
 
 export function UploadDocumentForm() {
   const supabase = useMemo(() => createClient(), []);
+  const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [docType, setDocType] = useState<DocType>('cv');
   const [message, setMessage] = useState<string | null>(null);
@@ -65,11 +67,18 @@ export function UploadDocumentForm() {
       setMessage(insertError.message);
       setIsError(true);
     } else {
-      setMessage('Uploaded successfully.');
+      setMessage('Uploaded successfully. Taking you back to your matches…');
       setFile(null);
       // reset file input
       const input = document.getElementById('doc-file-input') as HTMLInputElement | null;
       if (input) input.value = '';
+      // Send the user back to the university search they came from. refresh()
+      // lets the universities server component recompute match data now that a
+      // document exists.
+      setTimeout(() => {
+        router.push('/universities');
+        router.refresh();
+      }, 900);
     }
 
     setLoading(false);

@@ -51,6 +51,8 @@ const regionOptions = [
   { label: 'Open to ideas', hint: 'Show best-fit places first' },
 ];
 
+// Every question is single-choice: the user picks their best option (and can
+// revisit onboarding later to try different answers).
 type Answers = {
   study_level: string;
   subjects: string;
@@ -75,9 +77,13 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
   if (!initialProfile) return { ...EMPTY_ANSWERS };
 
   // Reverse-map the saved profile back into the question shape so users
-  // see their previous answers when they revisit onboarding.
-  const firstSupport = (initialProfile.support_needs || '').split(', ').filter(Boolean)[0] || '';
+  // see their previous answers when they revisit onboarding. Stored values may
+  // be comma-joined from older data, so take the first option for each.
+  const firstSupport = (initialProfile.support_needs || '').split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
   const firstSubject = initialProfile.target_subjects?.[0] || '';
+  const firstStudyLevel = (initialProfile.study_level || '').split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
+  const firstCampus = (initialProfile.campus_preferences || '').split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
+
   const preferredCountries = initialProfile.preferred_countries || [];
   let region = '';
   if (preferredCountries.length) {
@@ -89,11 +95,11 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
   }
 
   return {
-    study_level: initialProfile.study_level || '',
+    study_level: firstStudyLevel,
     subjects: firstSubject,
     countries: region,
     budget: initialProfile.budget_range || '',
-    campus: initialProfile.campus_preferences || '',
+    campus: firstCampus,
     support: firstSupport,
     goals: initialProfile.goals || '',
   };

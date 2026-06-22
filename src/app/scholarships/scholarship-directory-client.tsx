@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Badge, Button, Card, EmptyState } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
+import { getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
 import { useLanguage } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
 import {
@@ -57,13 +58,34 @@ export function ScholarshipDirectoryClient({
   savedCountries,
   applications,
   existingScholarships,
-  focusUniversity = null,
+  focusUniversity: focusUniversityProp = null,
   savedScholarshipIds = [],
 }: Props) {
   const { t } = useLanguage();
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [tab, setTab] = useState<'directory' | 'ai'>('directory');
+
+  // The chosen university that scopes this page. Seeded from the ?university=
+  // param (focusUniversityProp); when absent we restore the last-chosen one
+  // from localStorage so it survives navigation (Universities → News →
+  // Scholarships). When the param IS present we cache it for future visits.
+  const [focusUniversity, setFocusUniversityState] =
+    useState<{ id: number; name: string; country: string | null } | null>(focusUniversityProp);
+  useEffect(() => {
+    if (focusUniversityProp) {
+      setFocusUniversity({
+        id: focusUniversityProp.id,
+        name: focusUniversityProp.name,
+        country: focusUniversityProp.country ?? '',
+      });
+    } else {
+      const cached = getFocusUniversity();
+      if (cached) setFocusUniversityState(cached);
+    }
+    // Run once on mount; the param is fixed for the page's lifetime.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Saved-scholarship bucket (persists to user_scholarships + user_universities).
   const [savedIds, setSavedIds] = useState<Set<number>>(() => new Set(savedScholarshipIds));

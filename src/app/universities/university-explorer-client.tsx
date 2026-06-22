@@ -17,6 +17,7 @@ import {
   type AdmissionCategory,
 } from '@/lib/admission-fit';
 import { Button, EmptyState, DualRangeSlider } from '@/components/ui';
+import { getCompareIds as readCompareIds, setCompareIds as writeCompareIds } from '@/lib/selection-cache';
 import { JourneySteps } from '@/components/JourneySteps';
 import { FadeInImage } from './fade-in-image';
 import { COUNTRY_FLAGS } from './explorer-constants';
@@ -81,17 +82,26 @@ const POPULAR_SEARCH_CHIPS: Array<{ label: string }> = [
 function ImproveSearchPill() {
   const router = useRouter();
   const { isLoggedIn, hasProfile } = useExplorer();
-  if (isLoggedIn && hasProfile) return null;
+  // Profiled users get a clear "change my answers" entry point so they can
+  // revisit onboarding and see how different choices change their matches;
+  // everyone else is nudged to take the quiz in the first place.
+  const personalised = isLoggedIn && hasProfile;
 
   return (
     <button
       type="button"
       onClick={() => router.push('/onboarding?from=search')}
-      title="Take the 60-second quiz so we can personalise your matches"
-      className="inline-flex items-center gap-2 rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5 text-xs font-semibold text-pink-700 hover:bg-pink-100 transition"
+      title={
+        personalised
+          ? 'Change your onboarding answers to see different matches'
+          : 'Take the 60-second quiz so we can personalise your matches'
+      }
+      className="inline-flex items-center gap-2 rounded-full border border-pink-300 bg-pink-50 px-3.5 py-1.5 text-xs font-semibold text-pink-700 shadow-sm hover:bg-pink-100 transition"
     >
-      <span className="h-1.5 w-1.5 rounded-full bg-pink-500" aria-hidden />
-      Improve your searches
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+        <path d="M12 20h9" /><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" />
+      </svg>
+      {personalised ? 'Change my answers' : 'Improve your searches'}
       <span className="text-pink-400">→</span>
     </button>
   );
@@ -2610,11 +2620,185 @@ function assignAdmissionBuckets(
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   PAGINATION + GUEST GATING
+───────────────────────────────────────────────────────────────────────── */
+
+/** Results per page for logged-in users. */
+const PAGE_SIZE = 10;
+/** Universities a logged-out visitor sees before the login gate. */
+const GUEST_VISIBLE = 6;
+
+const AUTH_REDIRECT = `/auth?redirect=${encodeURIComponent('/universities')}`;
+
+/**
+ * Windowed page list: always show the first and last page, plus the current
+ * page and its immediate neighbours, with `'ellipsis'` filling the gaps.
+ * e.g. (current 4, total 9) → [1, 'ellipsis', 3, 4, 5, 'ellipsis', 9].
+ */
+function buildPageItems(current: number, total: number): (number | 'ellipsis')[] {
+  const items: (number | 'ellipsis')[] = [];
+  for (let p = 1; p <= total; p++) {
+    if (p === 1 || p === total || (p >= current - 1 && p <= current + 1)) {
+      items.push(p);
+    } else if (items[items.length - 1] !== 'ellipsis') {
+      items.push('ellipsis');
+    }
+  }
+  return items;
+}
+
+function Pagination({
+  page,
+  pageCount,
+  onChange,
+}: {
+  page: number;
+  pageCount: number;
+  onChange: (page: number) => void;
+}) {
+  if (pageCount <= 1) return null;
+  const items = buildPageItems(page, pageCount);
+  const arrow = 'flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-pink-200 hover:text-pink-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-600';
+  return (
+    <nav className="flex flex-wrap items-center justify-center gap-2 pt-6" aria-label="Pagination">
+      <button type="button" className={arrow} onClick={() => onChange(page - 1)} disabled={page <= 1} aria-label="Previous page">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
+      </button>
+      {items.map((item, i) =>
+        item === 'ellipsis' ? (
+          <span key={`e-${i}`} className="px-1 text-sm text-slate-400 select-none">…</span>
+        ) : (
+          <button
+            key={item}
+            type="button"
+            onClick={() => onChange(item)}
+            aria-current={item === page ? 'page' : undefined}
+            className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
+              item === page
+                ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white shadow-[0_6px_16px_rgba(255,77,140,0.3)]'
+                : 'border border-slate-200 bg-white text-slate-600 hover:border-pink-200 hover:text-pink-600'
+            }`}
+          >
+            {item}
+          </button>
+        ),
+      )}
+      <button type="button" className={arrow} onClick={() => onChange(page + 1)} disabled={page >= pageCount} aria-label="Next page">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
+      </button>
+    </nav>
+  );
+}
+
+/**
+ * Login gate shown beneath the teaser list for guests: a few blurred ghost
+ * cards behind a soft veil + a sign-in CTA. Mirrors MatchUnlockPanel's pattern.
+ */
+function GuestListGate({ remaining, total }: { remaining: number; total: number }) {
+  const router = useRouter();
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-pink-200 bg-gradient-to-br from-pink-50 via-white to-cyan-50/40 p-6">
+      {/* Ghost preview of more results behind a soft veil */}
+      <div aria-hidden className="pointer-events-none absolute inset-x-6 top-6 grid gap-3 opacity-40 blur-[2px]">
+        {[0, 1, 2].map((i) => (
+          <div key={i} className="h-16 rounded-2xl border border-slate-200 bg-white" />
+        ))}
+      </div>
+      <div className="relative mx-auto max-w-xl pt-24 text-center sm:pt-28">
+        <span className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-pink-100 text-pink-600">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+          </svg>
+        </span>
+        <h3 className="text-lg font-semibold text-slate-900">
+          {remaining} more {remaining === 1 ? 'university' : 'universities'} are waiting
+        </h3>
+        <p className="mt-2 text-sm leading-relaxed text-slate-600">
+          Log in to browse all {total} matches, open full profiles and discover the scholarships
+          you qualify for — it&apos;s free, and it helps us tailor results to you.
+        </p>
+        <div className="mt-5">
+          <Button variant="primary" onClick={() => router.push(AUTH_REDIRECT)}>
+            Log in to see all universities
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Modal shown when a guest tries to open a university profile or scholarship
+ * CTA. Driven by `loginGateOpen` in the explorer context.
+ */
+function LoginGateModal() {
+  const { loginGateOpen, closeLoginGate } = useExplorer();
+  const router = useRouter();
+  return (
+    <AnimatePresence>
+      {loginGateOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm"
+          onClick={closeLoginGate}
+        >
+          <motion.div
+            initial={{ scale: 0.96, y: 12 }}
+            animate={{ scale: 1, y: 0 }}
+            exit={{ scale: 0.96, y: 12 }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            onClick={(e) => e.stopPropagation()}
+            className="relative w-full max-w-md rounded-[2rem] border border-slate-200 bg-white p-8 text-center shadow-[0_24px_64px_rgba(15,23,42,0.18)]"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Log in to continue"
+          >
+            <button
+              type="button"
+              onClick={closeLoginGate}
+              aria-label="Close"
+              className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+            </button>
+            <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-pink-100 text-pink-600">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+            </span>
+            <h2 className="text-xl font-semibold tracking-tight text-slate-900">Log in to keep exploring</h2>
+            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+              Create a free account to open full university profiles, discover scholarships and
+              unlock your personalised matches.
+            </p>
+            <div className="mt-6 flex flex-col items-center gap-2">
+              <Button variant="primary" onClick={() => router.push(AUTH_REDIRECT)}>
+                Log in or sign up
+              </Button>
+              <button
+                type="button"
+                onClick={closeLoginGate}
+                className="text-sm font-medium text-slate-500 transition hover:text-slate-700"
+              >
+                Maybe later
+              </button>
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    BROWSE VIEW (main layout)
 ───────────────────────────────────────────────────────────────────────── */
 
 function BrowseView() {
-  const { universities, hasProfile, admissionUnlocked } = useExplorer();
+  const { universities, hasProfile, admissionUnlocked, isLoggedIn } = useExplorer();
   const router = useRouter();
   const resultsRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState<SearchState>({ name: '', location: '', program: '' });
@@ -2623,17 +2807,38 @@ function BrowseView() {
   // Default to list view to match the redesigned mockup. Users who prefer
   // the dense grid layout can toggle from the ResultsBar.
   const [view, setView] = useState<'grid' | 'list'>('list');
-  const [compareIds, setCompareIds] = useState<number[]>([]);
+  // Hydrate the Compare list from localStorage (lazy initializer — the same
+  // client-state pattern the onboarding form uses) and persist it on change,
+  // so the selection survives navigation.
+  const [compareIds, setCompareIds] = useState<number[]>(() => readCompareIds());
   const [showCompare, setShowCompare] = useState(false);
+  useEffect(() => {
+    writeCompareIds(compareIds);
+  }, [compareIds]);
   // The selected admission tab — the SINGLE source of truth. The tab bar, the
   // info banner and the results list all read this one value directly, so the
   // banner can never disagree with the highlighted tab.
   const [activeCategory, setActiveCategory] = useState<AdmissionCategory>('recommended');
+  // Current results page (logged-in users only — guests get a teaser, not a pager).
+  const [page, setPage] = useState(1);
 
   const filtered = useMemo(
     () => applyFilters(universities, filters, search, sort),
     [universities, filters, search, sort],
   );
+
+  // Any change to the result set drops the user back to page 1. Done during
+  // render (React's "adjust state when inputs change" pattern) rather than in
+  // an effect, so there's no extra commit / cascading render.
+  const resultKey = useMemo(
+    () => JSON.stringify([filters, search, sort, activeCategory]),
+    [filters, search, sort, activeCategory],
+  );
+  const [prevResultKey, setPrevResultKey] = useState(resultKey);
+  if (resultKey !== prevResultKey) {
+    setPrevResultKey(resultKey);
+    setPage(1);
+  }
 
   // Split the (already filtered + sorted) results into admission buckets,
   // guaranteeing at least MIN_PER_BUCKET in each where the data allows so users
@@ -2671,6 +2876,23 @@ function BrowseView() {
   // What the results grid renders: the selected bucket when grouping is
   // unlocked, otherwise the plain filtered list.
   const displayed = admissionUnlocked ? groups[activeCategory] : filtered;
+
+  // ── Pagination & guest gating ──────────────────────────────────────────
+  // Logged-in users page through results PAGE_SIZE at a time. Guests see only
+  // the first GUEST_VISIBLE universities; the rest sit behind a login gate (we
+  // need accounts to train the matcher) and there is no pager for them.
+  const pageCount = Math.max(1, Math.ceil(displayed.length / PAGE_SIZE));
+  // Clamp in case the result set shrank before the page state caught up.
+  const currentPage = Math.min(page, pageCount);
+  const visibleItems = isLoggedIn
+    ? displayed.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE)
+    : displayed.slice(0, GUEST_VISIBLE);
+  const hiddenCount = isLoggedIn ? 0 : Math.max(0, displayed.length - GUEST_VISIBLE);
+
+  const goToPage = (p: number) => {
+    setPage(Math.min(Math.max(1, p), pageCount));
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   // Visual tokens for the active bucket — drives the connected results panel.
   const activeStyle = CATEGORY_STYLE[activeCategory];
   // Flatten the panel's top corner on the side the active edge-tab sits, so its
@@ -2771,25 +2993,32 @@ function BrowseView() {
       )}
 
       {displayed.length > 0 ? (
-        <div
-          className={
-            view === 'grid'
-              ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
-              : 'flex flex-col gap-3'
-          }
-        >
-          {displayed.map((u, i) => (
-            <UniversityCard
-              key={u.id}
-              university={u}
-              index={i}
-              isCompared={compareIds.includes(u.id)}
-              onToggleCompare={() => toggleCompare(u.id)}
-              canAddCompare={compareIds.length < 4}
-              variant={view}
-            />
-          ))}
-        </div>
+        <>
+          <div
+            className={
+              view === 'grid'
+                ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
+                : 'flex flex-col gap-3'
+            }
+          >
+            {visibleItems.map((u, i) => (
+              <UniversityCard
+                key={u.id}
+                university={u}
+                index={i}
+                isCompared={compareIds.includes(u.id)}
+                onToggleCompare={() => toggleCompare(u.id)}
+                canAddCompare={compareIds.length < 4}
+                variant={view}
+              />
+            ))}
+          </div>
+          {isLoggedIn ? (
+            <Pagination page={currentPage} pageCount={pageCount} onChange={goToPage} />
+          ) : hiddenCount > 0 ? (
+            <GuestListGate remaining={hiddenCount} total={displayed.length} />
+          ) : null}
+        </>
       ) : (
         <EmptyState
           icon={
@@ -2872,7 +3101,9 @@ function BrowseView() {
               </div>
             ) : (
               <>
-                <MatchUnlockPanel />
+                {/* The CV-upload unlock is a post-login concept; guests see the
+                    login gate beneath the teaser list instead of this panel. */}
+                {isLoggedIn ? <MatchUnlockPanel /> : null}
                 {resultsBody}
               </>
             )}
@@ -3247,6 +3478,7 @@ function ExplorerContent() {
         </AnimatePresence>
       </main>
       <ToastNotification />
+      <LoginGateModal />
     </div>
   );
 }

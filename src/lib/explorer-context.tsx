@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { setFocusUniversity } from '@/lib/selection-cache';
 import {
   APPLICATION_STAGES,
   type FilterCategory,
@@ -58,10 +59,15 @@ export interface ExplorerState {
   shortlist: number[]; // university IDs
   applications: ApplicationEntry[];
   toast: { message: string; visible: boolean } | null;
+  /** Whether the "log in to continue" gate modal is showing (guest-only). */
+  loginGateOpen: boolean;
 }
 
 export interface ExplorerActions {
   setView: (view: ExplorerState['activeView'], universityId?: number) => void;
+  /** Open the login gate — used to funnel guests toward signing in. */
+  requireLogin: () => void;
+  closeLoginGate: () => void;
   setFilter: (filter: FilterCategory) => void;
   toggleCountry: (country: string) => void;
   clearCountries: () => void;
@@ -138,19 +144,30 @@ export function UniversityExplorerProvider({
   const [shortlist, setShortlist] = useState<number[]>(initialShortlist);
   const [applications, setApplications] = useState<ApplicationEntry[]>(initialApplications);
   const [toast, setToast] = useState<ExplorerState['toast']>(null);
+  const [loginGateOpen, setLoginGateOpen] = useState(false);
 
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ── Actions ─────────────────────────────────────────────────────────
 
+  const requireLogin = useCallback(() => setLoginGateOpen(true), []);
+  const closeLoginGate = useCallback(() => setLoginGateOpen(false), []);
+
   const setView = useCallback(
     (view: ExplorerState['activeView'], universityId?: number) => {
+      // Opening a university profile (and the scholarship CTA inside it) is
+      // gated behind login — guests get the sign-in prompt instead. We collect
+      // user data to train the matcher, so anonymous browsing stops at the list.
+      if (view === 'detail' && !isLoggedIn) {
+        setLoginGateOpen(true);
+        return;
+      }
       setActiveView(view);
       setSelectedUniversityId(
         view === 'detail' && universityId != null ? universityId : null,
       );
     },
-    [],
+    [isLoggedIn],
   );
 
   const setFilter = useCallback((filter: FilterCategory) => {
@@ -176,12 +193,17 @@ export function UniversityExplorerProvider({
         return [...prev, id];
       });
 
+      // Remember the chosen university so other pages (e.g. /scholarships) can
+      // restore this focus after the user navigates away (see selection-cache).
+      const chosen = initialUniversities.find((u) => u.id === id);
+      if (chosen) {
+        setFocusUniversity({ id: chosen.id, name: chosen.name, country: chosen.country });
+      }
+
       if (!isLoggedIn) return;
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
-
-      const uni = initialUniversities.find((u) => u.id === id);
 
       // Persist to Supabase
       const { data: inserted } = await supabase
@@ -191,7 +213,7 @@ export function UniversityExplorerProvider({
             user_id: userData.user.id,
             university_id: id,
             status: 'interested',
-            match_score: uni?.match_score ?? null,
+            match_score: chosen?.match_score ?? null,
           },
           { onConflict: 'user_id,university_id' },
         )
@@ -371,8 +393,11 @@ export function UniversityExplorerProvider({
     shortlist,
     applications,
     toast,
+    loginGateOpen,
     universities: initialUniversities,
     setView,
+    requireLogin,
+    closeLoginGate,
     setFilter,
     toggleCountry,
     clearCountries,
