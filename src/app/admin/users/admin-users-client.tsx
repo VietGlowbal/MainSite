@@ -10,6 +10,7 @@ type AdminUser = {
   created_at: string;
   last_sign_in_at: string | null;
   is_admin: boolean;
+  is_coordinator: boolean;
   onboarding_completed: boolean;
   mentor_status: string | null;
   mentor_name: string | null;
@@ -220,12 +221,13 @@ export function AdminUsersClient() {
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap gap-1">
                         {u.is_admin && <Badge tone="pink">Admin</Badge>}
+                        {u.is_coordinator && <Badge tone="sky">Coordinator</Badge>}
                         {u.mentor_status && (
                           <Badge tone={u.mentor_status === 'approved' ? 'emerald' : 'amber'}>
                             Mentor · {u.mentor_status}
                           </Badge>
                         )}
-                        {!u.is_admin && !u.mentor_status && (
+                        {!u.is_admin && !u.is_coordinator && !u.mentor_status && (
                           <span className="text-xs text-slate-400">Student</span>
                         )}
                       </div>
@@ -291,11 +293,18 @@ function SummaryCard({
   );
 }
 
-function Badge({ children, tone }: { children: React.ReactNode; tone: 'pink' | 'emerald' | 'amber' }) {
+function Badge({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone: 'pink' | 'emerald' | 'amber' | 'sky';
+}) {
   const styles: Record<typeof tone, string> = {
     pink: 'border-pink-200 bg-pink-50 text-pink-700',
     emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
     amber: 'border-amber-200 bg-amber-50 text-amber-700',
+    sky: 'border-sky-200 bg-sky-50 text-sky-700',
   };
   return (
     <span className={`inline-flex rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${styles[tone]}`}>
