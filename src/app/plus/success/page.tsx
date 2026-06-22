@@ -4,7 +4,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getStripe } from '@/lib/stripe';
-import { getPlusPackage, computeExpiry } from '@/lib/plus';
+import { getPlusPackage, computeExpiry, formatChargedAmount, isDisplayCurrency } from '@/lib/plus';
 
 export const metadata: Metadata = {
   title: 'Welcome to GlowBal Plus',
@@ -48,12 +48,19 @@ export default async function PlusSuccessPage({
   if (pkg && sessionId) {
     // 1. Verify the payment with Stripe.
     let paid = false;
+    // What was actually charged, for the audit record. Falls back to the plan
+    // name if the session didn't report an amount/currency.
+    let chargedLabel = `GlowBal Plus ${pkg.name}`;
     try {
       const stripe = getStripe();
       const session = await stripe.checkout.sessions.retrieve(sessionId);
       paid =
         (session.payment_status === 'paid' || session.status === 'complete') &&
         session.client_reference_id === user.id;
+      const sessionCurrency = (session.currency ?? '').toUpperCase();
+      if (session.amount_total != null && isDisplayCurrency(sessionCurrency)) {
+        chargedLabel = formatChargedAmount(session.amount_total, sessionCurrency);
+      }
     } catch (err) {
       console.error('[plus/success] could not verify session', err);
     }
@@ -96,7 +103,7 @@ export default async function PlusSuccessPage({
         await admin.from('plus_subscriptions').insert({
           user_id: user.id,
           plan: pkg.id,
-          price_label: pkg.priceLabel,
+          price_label: chargedLabel,
           ai_credits: pkg.aiCredits,
           duration_months: pkg.durationMonths,
           stripe_reference: sessionId,

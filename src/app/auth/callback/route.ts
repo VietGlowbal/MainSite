@@ -39,30 +39,34 @@ export async function GET(request: Request) {
         // profile until the email link is clicked. Backfill it onto the profile
         // once, here, the first time we have a session. Best-effort.
         const metaPhone = (user.user_metadata?.phone as string | undefined)?.trim();
-        if (metaPhone) {
+        // DOB rides along the same way (YYYY-MM-DD) and is backfilled onto the
+        // contact record here the first time we have a session.
+        const metaDob = (user.user_metadata?.date_of_birth as string | undefined)?.trim();
+        if (metaPhone || metaDob) {
           try {
             const admin = createAdminClient();
             const { data: existing } = await admin
               .from('student_profiles')
-              .select('phone')
+              .select('phone, date_of_birth')
               .eq('user_id', user.id)
               .maybeSingle();
-            if (!existing?.phone) {
-              const now = new Date().toISOString();
-              await admin.from('student_profiles').upsert(
-                {
-                  user_id: user.id,
-                  phone: metaPhone,
-                  marketing_consent: true,
-                  marketing_consent_at: now,
-                  marketing_consent_source: 'signup',
-                  updated_at: now,
-                },
-                { onConflict: 'user_id' },
-              );
+            const now = new Date().toISOString();
+            const patch: Record<string, unknown> = { user_id: user.id, updated_at: now };
+            if (metaPhone && !existing?.phone) {
+              patch.phone = metaPhone;
+              patch.marketing_consent = true;
+              patch.marketing_consent_at = now;
+              patch.marketing_consent_source = 'signup';
+            }
+            if (metaDob && /^\d{4}-\d{2}-\d{2}$/.test(metaDob) && !existing?.date_of_birth) {
+              patch.date_of_birth = metaDob;
+            }
+            // Only write if there's something new beyond the keys we always set.
+            if (Object.keys(patch).length > 2) {
+              await admin.from('student_profiles').upsert(patch, { onConflict: 'user_id' });
             }
           } catch {
-            /* non-fatal — the number is still on the auth user's metadata */
+            /* non-fatal — the values are still on the auth user's metadata */
           }
         }
 
