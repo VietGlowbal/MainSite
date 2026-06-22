@@ -155,6 +155,7 @@ export type CourseApplication = {
   status: CourseApplicationStatus;
   currentStageId?: string;
   progressPercentage: number;
+  parseStatus?: 'pending' | 'processing' | 'complete' | 'timeout' | 'failed';
   deadline?: string;
   deadlineSource?: string;
   deadlineConfidence?: number;

@@ -149,6 +149,30 @@ export function ProgressSidebar({
         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
           <h3 className="text-sm font-semibold text-slate-900 mb-3">Official links</h3>
           
+          {/* Source Attribution Notice - Task 23.2 */}
+          <div className="mb-3 rounded-lg border border-blue-100 bg-blue-50/50 px-3 py-2">
+            <div className="flex items-start gap-2">
+              <svg 
+                width="14" 
+                height="14" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="currentColor" 
+                strokeWidth="2" 
+                strokeLinecap="round" 
+                strokeLinejoin="round"
+                className="mt-0.5 shrink-0 text-blue-500"
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="16" x2="12" y2="12" />
+                <line x1="12" y1="8" x2="12.01" y2="8" />
+              </svg>
+              <p className="text-[11px] leading-relaxed text-blue-700">
+                Information extracted from official university pages
+              </p>
+            </div>
+          </div>
+          
           <div className="space-y-2">
             {topSources.map((source) => (
               <a
@@ -158,14 +182,21 @@ export function ProgressSidebar({
                 rel="noopener noreferrer"
                 className="flex items-center justify-between rounded-lg border border-slate-100 bg-slate-50/60 p-2.5 text-xs font-medium text-slate-700 transition hover:bg-white hover:border-slate-200"
               >
-                <span>{source.title}</span>
-                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
+                <span className="line-clamp-1">{source.title}</span>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="shrink-0 text-slate-400">
                   <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
                   <polyline points="15 3 21 3 21 9" />
                   <line x1="10" y1="14" x2="21" y2="3" />
                 </svg>
               </a>
             ))}
+          </div>
+          
+          {/* Disclaimer - Task 23.2 */}
+          <div className="mt-3 rounded-lg border border-amber-100 bg-amber-50/50 px-3 py-2">
+            <p className="text-[10px] leading-relaxed text-amber-800">
+              Please verify all details with the official university page
+            </p>
           </div>
 
           {sources.length > 4 && (

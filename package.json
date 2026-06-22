@@ -15,6 +15,12 @@
     "seed:scholarships:publish": "node --env-file=.env.local scripts/seed-scholarships.mjs --status=published",
     "seed:university-images": "node --env-file=.env.local scripts/seed-university-images.mjs",
     "test:extraction": "node --env-file=.env.local scripts/test-course-extraction.mjs",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:ui": "vitest --ui",
+    "test:checkpoint": "vitest run src/__tests__/checkpoint-phase1.test.ts",
+    "verify:phase1": "node --env-file=.env.local scripts/verify-phase1-checkpoint.mjs",
+    "check:migrations": "node --env-file=.env.local scripts/check-migrations.mjs",
     "geo:questions": "tsx scripts/geo/generateQuestions.ts",
     "geo:cluster": "tsx scripts/geo/clusterQuestions.ts",
     "geo:draft": "tsx scripts/geo/generateDraftPage.ts",
@@ -24,7 +30,8 @@
     "geo:sources": "tsx scripts/geo/fetchSources.ts",
     "geo:images": "tsx scripts/geo/generateImages.ts",
     "geo:check": "npm run geo:quality && npm run geo:images && tsc -p geo.tsconfig.json --noEmit",
-    "notify-newsletter": "tsx scripts/notify-newsletter.ts"
+    "notify-newsletter": "tsx scripts/notify-newsletter.ts",
+    "worker:dev": "node --env-file=.env.local scripts/course-parse-worker.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",
@@ -36,6 +43,7 @@
     "framer-motion": "^12.38.0",
     "gsap": "^3.15.0",
     "next": "16.2.3",
+    "openai": "6.44.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "react-globe.gl": "^2.37.1",
@@ -48,14 +56,20 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^6.0.2",
+    "@vitest/ui": "^4.1.9",
     "babel-plugin-react-compiler": "1.0.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.3",
+    "jsdom": "^29.1.1",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.9"
   }
 }
