@@ -1168,7 +1168,13 @@ export function CourseSearchSessionModal({
                         {/* View Official Course Directory Fallback Link */}
                         <div className="pt-2 text-center">
                           <a
-                            href={`https://${universityDomain}`}
+                            href={
+                              universityDomain
+                                ? `https://${universityDomain}`
+                                : `https://www.google.com/search?q=${encodeURIComponent(
+                                    `${universityName} ${formData.courseSubject} courses`.trim()
+                                  )}`
+                            }
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 text-xs text-slate-500 transition-colors hover:text-slate-700"

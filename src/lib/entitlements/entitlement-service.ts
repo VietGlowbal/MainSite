@@ -126,7 +126,9 @@ export async function getUserEntitlement(userId: string): Promise<UserEntitlemen
   // Get plan limits
   const limits = PLAN_LIMITS[plan];
   
-  // Get current usage for course searches (only count complete sessions this month)
+  // Get current usage for course searches this month.
+  // Only count complete sessions that actually returned results — a search
+  // that returns 0 results should not consume the user's quota.
   const now = new Date();
   const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   
@@ -135,6 +137,7 @@ export async function getUserEntitlement(userId: string): Promise<UserEntitlemen
     .select('*', { count: 'exact', head: true })
     .eq('user_id', userId)
     .eq('status', 'complete')
+    .gt('result_count', 0)
     .gte('created_at', firstOfMonth.toISOString());
   
   if (searchError) {
