@@ -34,6 +34,8 @@ export interface CourseSearchSessionResponse {
  * Individual course search result
  */
 export interface CourseSearchResult {
+  /** ID of the stored row in course_search_session_results (used to add to Apply) */
+  id: string;
   universityId: number;
   courseName: string;
   courseUrl: string;
@@ -318,13 +320,40 @@ export async function POST(request: Request) {
           }
         }
         
-        // Update session status to complete
         const adminSupabase = createAdminClient();
+
+        // Re-fetch the stored result rows so the response carries their DB ids.
+        // The frontend passes these ids to /api/apply-shortlist/add-courses,
+        // which looks them up by (session_id, id) — without real ids the add
+        // request fails Zod validation with a 400 "Invalid request".
+        const { data: storedRows } = await adminSupabase
+          .from('course_search_session_results')
+          .select('*')
+          .eq('session_id', sessionId)
+          .order('rank', { ascending: true });
+
+        const storedResults: CourseSearchResult[] = (storedRows || []).map((row) => ({
+          id: row.id,
+          universityId: row.university_id,
+          courseName: row.course_name,
+          courseUrl: row.course_url,
+          sourceDomain: row.source_domain,
+          snippet: row.snippet,
+          degreeLevel: row.degree_level,
+          duration: row.duration,
+          tuitionFeeText: row.tuition_fee_text,
+          confidenceLabel: row.confidence_label,
+          sourceConfidence: row.source_confidence,
+          rank: row.rank,
+          sourceType: row.source_type,
+        }));
+        
+        // Update session status to complete
         await adminSupabase
           .from('course_search_sessions')
           .update({
             status: 'complete',
-            result_count: finalResults.length,
+            result_count: storedResults.length,
             completed_at: new Date().toISOString(),
             provider_name: usedWebSearch ? 'tavily' : null,
             search_strategy: usedWebSearch ? 'cached+web' : 'cached',
@@ -370,7 +399,7 @@ export async function POST(request: Request) {
         return {
           sessionId,
           status: 'complete' as const,
-          results: finalResults,
+          results: storedResults,
           usage: usageData,
         };
       })();

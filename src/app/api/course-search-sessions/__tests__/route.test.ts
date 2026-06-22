@@ -57,6 +57,12 @@ describe('POST /api/course-search-sessions - Task 8.3', () => {
     mockFrom.mockReturnValue({ 
       insert: mockInsert,
       update: mockUpdate,
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }),
+      }),
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
     });
   });
 
@@ -365,7 +371,12 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
     mockFrom.mockReturnValue({ 
       insert: mockInsert,
       update: mockUpdate,
-      select: mockSelect,
+      order: vi.fn().mockResolvedValue({ data: [], error: null }),
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          order: vi.fn().mockResolvedValue({ data: [], error: null }),
+        }),
+      }),
     });
   });
 
@@ -570,28 +581,37 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
       coursesAdded: 0,
     });
 
-    // Mock session creation - need to set up full chain
+    // Mock session creation chain
     const mockSessionSingle = vi.fn().mockReturnValue({ data: { id: mockSessionId }, error: null });
     const mockSessionSelect = vi.fn().mockReturnValue({ single: mockSessionSingle });
     const mockSessionInsert = vi.fn().mockReturnValue({ select: mockSessionSelect });
-    
-    // Mock from() to return different chains for different table calls
-    let fromCallCount = 0;
+
     mockFrom.mockImplementation((table: string) => {
-      fromCallCount++;
-      if (fromCallCount === 1) {
-        // First call is session creation (insert)
-        return { 
-          insert: mockSessionInsert,
-          update: mockUpdate,
-          select: mockSelect,
+      if (table === 'course_search_session_results') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({ data: [], error: null }),
+            }),
+          }),
         };
       }
-      // Subsequent calls use default mocks
-      return { 
-        insert: mockInsert,
+      if (table === 'universities') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              single: vi.fn().mockResolvedValue({
+                data: { id: 3, name: 'Example University' },
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      // course_search_sessions: insert (creation) + update (completion)
+      return {
+        insert: mockSessionInsert,
         update: mockUpdate,
-        select: mockSelect,
       };
     });
 
@@ -603,21 +623,6 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
       strategy: 'cached',
     });
     vi.mocked(storeCachedResults).mockResolvedValue(true);
-
-    // Mock university lookup for web search
-    mockSelect.mockReturnValueOnce({
-      eq: vi.fn().mockReturnValue({
-        single: vi.fn().mockResolvedValue({
-          data: {
-            id: 3,
-            name: 'Example University',
-            primary_domain: 'example.edu',
-            course_discovery_url: 'https://example.edu/courses',
-          },
-          error: null,
-        }),
-      }),
-    });
 
     // Mock web search also returning no results
     const { getSearchProvider } = await import('@/lib/search-providers');
@@ -704,6 +709,42 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
       strategy: 'cached',
     });
     vi.mocked(storeCachedResults).mockResolvedValue(true);
+
+    // Re-fetch of stored results returns the one stored row (with its DB id)
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'course_search_session_results') {
+        return {
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              order: vi.fn().mockResolvedValue({
+                data: [
+                  {
+                    id: 'row-1',
+                    university_id: 4,
+                    course_name: 'MSc Data Science',
+                    course_url: 'https://uni4.edu/data-science',
+                    source_domain: 'uni4.edu',
+                    snippet: 'Advanced data science program',
+                    degree_level: 'postgraduate',
+                    duration: '1 year',
+                    tuition_fee_text: '£12,000',
+                    confidence_label: 'Good match',
+                    source_confidence: 0.8,
+                    rank: 1,
+                    source_type: 'cached',
+                  },
+                ],
+                error: null,
+              }),
+            }),
+          }),
+        };
+      }
+      return {
+        insert: mockInsert,
+        update: mockUpdate,
+      };
+    });
 
     const request = createMockRequest(requestBody);
 

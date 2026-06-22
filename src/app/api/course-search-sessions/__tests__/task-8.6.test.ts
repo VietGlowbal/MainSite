@@ -138,6 +138,7 @@ describe('Task 8.6: Store results and update session status', () => {
       const mockUpdate = vi.fn().mockReturnThis();
       mockAdminSupabase.from.mockReturnValue({
         update: mockUpdate,
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
         eq: mockEq,
       });
       mockUpdate.mockResolvedValue({ data: null, error: null });
@@ -257,6 +258,7 @@ describe('Task 8.6: Store results and update session status', () => {
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({ data: null, error: null }),
         update: mockUpdate,
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
       });
       mockUpdate.mockReturnValue({ eq: mockEq });
 
@@ -316,9 +318,16 @@ describe('Task 8.6: Store results and update session status', () => {
               error: null,
             }),
           };
+        } else if (table === 'course_search_session_results') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
         } else if (table === 'course_search_sessions') {
           return {
             update: mockUpdate,
+            order: vi.fn().mockResolvedValue({ data: [], error: null }),
             eq: mockEq,
           };
         }
@@ -355,6 +364,7 @@ describe('Task 8.6: Store results and update session status', () => {
           error: null,
         }),
         update: mockUpdate,
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
         eq: mockEq,
       });
 
@@ -430,9 +440,16 @@ describe('Task 8.6: Store results and update session status', () => {
               error: null,
             }),
           };
+        } else if (table === 'course_search_session_results') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            order: vi.fn().mockResolvedValue({ data: [], error: null }),
+          };
         } else if (table === 'course_search_sessions') {
           return {
             update: mockUpdate,
+            order: vi.fn().mockResolvedValue({ data: [], error: null }),
             eq: mockEq,
           };
         }
@@ -468,6 +485,7 @@ describe('Task 8.6: Store results and update session status', () => {
           error: null,
         }),
         update: mockUpdate,
+        order: vi.fn().mockResolvedValue({ data: [], error: null }),
         eq: mockEq,
       });
 
