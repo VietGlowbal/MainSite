@@ -66,6 +66,14 @@ const MENTOR_DASHBOARD_ITEM = {
   activeMatch: 'prefix' as const,
 };
 
+// Extra item shown only to users with the coordinator role.
+const COORDINATOR_ITEM = {
+  href: '/coordinator',
+  label: 'Coordinator',
+  mobile: 'Coordinator',
+  activeMatch: 'prefix' as const,
+};
+
 function isActive(pathname: string, item: { href: string; activeMatch: 'exact' | 'prefix' }) {
   if (item.activeMatch === 'exact') return pathname === item.href;
   return pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -81,6 +89,7 @@ function IconMentorHub()    { return <svg width="20" height="20" viewBox="0 0 24
 function IconNews()         { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 22h16a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2H8a2 2 0 0 0-2 2v16a2 2 0 0 1-2 2Zm0 0a2 2 0 0 1-2-2v-9c0-1.1.9-2 2-2h2"/><path d="M18 14h-8"/><path d="M15 18h-5"/><path d="M10 6h8v4h-8V6Z"/></svg>; }
 function IconUser()         { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>; }
 function IconAdmin()        { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2A1 1 0 0 1 20 6v7z"/><path d="m9 12 2 2 4-4"/></svg>; }
+function IconCoordinator()  { return <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg>; }
 function IconUserGuest()    { return <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>; }
 
 const SIDEBAR_ICONS: Record<string, () => React.JSX.Element> = {
@@ -94,6 +103,7 @@ const SIDEBAR_ICONS: Record<string, () => React.JSX.Element> = {
   '/profile':         IconUser,
   '/dashboard/mentor': IconMentorHub,
   '/admin':           IconAdmin,
+  '/coordinator':     IconCoordinator,
 };
 
 // ── Rotating avatar ring ─────────────────────────────────────────────────────
@@ -272,6 +282,9 @@ function MobileTopBar({ user }: { user: UserSummary | null }) {
   if (user?.isMentor) {
     drawerItems.push({ href: '/dashboard/mentor', label: 'Mentor hub', icon: IconMentorHub });
   }
+  if (user?.isCoordinator) {
+    drawerItems.push({ href: '/coordinator', label: 'Coordinator', icon: IconCoordinator });
+  }
   if (user?.isAdmin) {
     drawerItems.push({ href: '/admin', label: 'Admin', icon: IconAdmin });
   }
@@ -368,7 +381,7 @@ function MobileTopBar({ user }: { user: UserSummary | null }) {
 }
 
 // ── Desktop sidebar ──────────────────────────────────────────────────────────
-type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean; isAdmin?: boolean };
+type UserSummary = { name: string; avatarUrl?: string; isMentor?: boolean; isAdmin?: boolean; isCoordinator?: boolean };
 
 function DesktopSidebar({
   user,
@@ -384,6 +397,11 @@ function DesktopSidebar({
 
   const baseItems = user ? NAV_ITEMS : NAV_ITEMS.filter((i) => !i.requiresAuth);
   let visibleItems = user?.isMentor ? [...baseItems, MENTOR_DASHBOARD_ITEM] : baseItems;
+
+  // Add coordinator link to navigation if user has the coordinator role
+  if (user?.isCoordinator) {
+    visibleItems = [...visibleItems, COORDINATOR_ITEM];
+  }
 
   // Add admin link to navigation if user is admin
   if (user?.isAdmin) {
@@ -505,7 +523,7 @@ export function NavReveal() {
       // Best-effort fetch of the mentor profile flag. RLS-safe — anyone
       // can read their own row. We don't block the header on this; the
       // pill simply appears after the request resolves.
-      const [mentorResult, adminResult] = await Promise.all([
+      const [mentorResult, adminResult, coordinatorResult] = await Promise.all([
         supabase
           .from('achiever_profiles')
           .select('id')
@@ -516,6 +534,11 @@ export function NavReveal() {
         fetch('/api/admin/check', { cache: 'no-store' })
           .then((r) => (r.ok ? r.json() : { isAdmin: false }))
           .catch(() => ({ isAdmin: false })) as Promise<{ isAdmin: boolean }>,
+        // Coordinator status — same server-side pattern as admin so the
+        // COORDINATOR_USER_IDS env bootstrap keeps working.
+        fetch('/api/coordinator/check', { cache: 'no-store' })
+          .then((r) => (r.ok ? r.json() : { isCoordinator: false }))
+          .catch(() => ({ isCoordinator: false })) as Promise<{ isCoordinator: boolean }>,
       ]);
       setUser({
         name:
@@ -525,6 +548,7 @@ export function NavReveal() {
         avatarUrl: authUser.user_metadata?.avatar_url as string | undefined,
         isMentor: !!mentorResult.data,
         isAdmin: adminResult.isAdmin === true,
+        isCoordinator: coordinatorResult.isCoordinator === true,
       });
     }
 
