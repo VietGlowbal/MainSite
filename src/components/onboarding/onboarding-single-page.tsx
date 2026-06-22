@@ -51,29 +51,25 @@ const regionOptions = [
   { label: 'Open to ideas', hint: 'Show best-fit places first' },
 ];
 
-// Most questions are multi-select (the student can be open to several
-// options), so those fields are arrays. Budget stays single-choice and goals
-// is free text.
+// Every question is single-choice: the user picks their best option (and can
+// revisit onboarding later to try different answers).
 type Answers = {
-  study_level: string[];
-  subjects: string[];
-  countries: string[];
+  study_level: string;
+  subjects: string;
+  countries: string;
   budget: string;
-  campus: string[];
-  support: string[];
+  campus: string;
+  support: string;
   goals: string;
 };
 
-// The questions that accept multiple selections (everything except budget/goals).
-type MultiKey = 'study_level' | 'subjects' | 'countries' | 'campus' | 'support';
-
 const EMPTY_ANSWERS: Answers = {
-  study_level: [],
-  subjects: [],
-  countries: [],
+  study_level: '',
+  subjects: '',
+  countries: '',
   budget: '',
-  campus: [],
-  support: [],
+  campus: '',
+  support: '',
   goals: '',
 };
 
@@ -81,29 +77,30 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
   if (!initialProfile) return { ...EMPTY_ANSWERS };
 
   // Reverse-map the saved profile back into the question shape so users
-  // see their previous answers when they revisit onboarding. Multi-select
-  // fields are restored to the full set of values they previously chose.
-  const support = (initialProfile.support_needs || '').split(', ').map((s) => s.trim()).filter(Boolean);
-  const subjects = initialProfile.target_subjects || [];
-  const studyLevel = (initialProfile.study_level || '').split(',').map((s) => s.trim()).filter(Boolean);
-  const campus = (initialProfile.campus_preferences || '').split(',').map((s) => s.trim()).filter(Boolean);
+  // see their previous answers when they revisit onboarding. Stored values may
+  // be comma-joined from older data, so take the first option for each.
+  const firstSupport = (initialProfile.support_needs || '').split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
+  const firstSubject = initialProfile.target_subjects?.[0] || '';
+  const firstStudyLevel = (initialProfile.study_level || '').split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
+  const firstCampus = (initialProfile.campus_preferences || '').split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
 
-  // Map saved countries back to every region the user expressed interest in.
   const preferredCountries = initialProfile.preferred_countries || [];
-  const countries = regionOptions
-    .map((r) => r.label)
-    .filter((label) => {
-      const inRegion = mapRegionToCountries(label);
-      return inRegion.length > 0 && inRegion.some((c) => preferredCountries.includes(c));
-    });
+  let region = '';
+  if (preferredCountries.length) {
+    if (preferredCountries.some((c) => ['United Kingdom', 'Ireland'].includes(c))) region = 'UK & Ireland';
+    else if (preferredCountries.some((c) => ['United States', 'Canada'].includes(c))) region = 'North America';
+    else if (preferredCountries.some((c) => ['Singapore', 'Australia', 'New Zealand', 'Japan', 'South Korea', 'Hong Kong'].includes(c))) region = 'Asia-Pacific';
+    else if (preferredCountries.some((c) => ['United Arab Emirates', 'Qatar'].includes(c))) region = 'Middle East';
+    else region = 'Europe';
+  }
 
   return {
-    study_level: studyLevel,
-    subjects,
-    countries,
+    study_level: firstStudyLevel,
+    subjects: firstSubject,
+    countries: region,
     budget: initialProfile.budget_range || '',
-    campus,
-    support,
+    campus: firstCampus,
+    support: firstSupport,
     goals: initialProfile.goals || '',
   };
 }
@@ -120,17 +117,15 @@ function mapRegionToCountries(region: string): string[] {
 }
 
 function answersToProfile(a: Answers): StudentProfile {
-  // Flatten every chosen region into a de-duped country list.
-  const preferred_countries = [...new Set(a.countries.flatMap(mapRegionToCountries))];
   return {
-    study_level: a.study_level.join(', ') || null,
-    target_subjects: a.subjects,
-    preferred_countries,
+    study_level: a.study_level || null,
+    target_subjects: a.subjects ? [a.subjects] : [],
+    preferred_countries: mapRegionToCountries(a.countries),
     budget_range: a.budget || null,
     goals: a.goals || null,
-    career_interests: a.subjects,
-    campus_preferences: a.campus.join(', ') || null,
-    support_needs: a.support.join(', ') || null,
+    career_interests: a.subjects ? [a.subjects] : [],
+    campus_preferences: a.campus || null,
+    support_needs: a.support || null,
   };
 }
 
@@ -185,17 +180,7 @@ export function OnboardingSinglePage({
       if (!parsed.answers) return base;
       const merged = { ...base };
       for (const k of Object.keys(EMPTY_ANSWERS) as Array<keyof Answers>) {
-        const draftVal = parsed.answers[k];
-        if (draftVal == null) continue;
-        const cur = merged[k];
-        const baseEmpty = Array.isArray(cur) ? cur.length === 0 : !cur;
-        const draftHasValue = Array.isArray(draftVal) ? draftVal.length > 0 : !!draftVal;
-        // Only restore a field the saved profile left empty. Cast for the
-        // dynamic-key write: TS can't reconcile the mixed string | string[]
-        // value types across an arbitrary key otherwise.
-        if (baseEmpty && draftHasValue) {
-          (merged as Record<keyof Answers, string | string[]>)[k] = draftVal;
-        }
+        if (!merged[k] && parsed.answers[k]) merged[k] = parsed.answers[k];
       }
       return merged;
     } catch {
@@ -216,27 +201,13 @@ export function OnboardingSinglePage({
     }
   }, [answers]);
 
-  // Computed completion (out of 7) — a question counts as answered when its
-  // field holds a non-empty array (multi-select) or a non-empty string.
+  // Computed completion (out of 7)
   const completed = useMemo(() => {
-    return Object.values(answers).filter((v) =>
-      Array.isArray(v) ? v.length > 0 : Boolean(v && v.trim().length > 0),
-    ).length;
+    return (Object.values(answers) as string[]).filter((v) => v && v.trim().length > 0).length;
   }, [answers]);
 
   function update<K extends keyof Answers>(key: K, value: Answers[K]) {
     setAnswers((p) => ({ ...p, [key]: value }));
-  }
-
-  // Multi-select toggle: add the value if absent, remove it if already chosen.
-  function toggle(key: MultiKey, value: string) {
-    setAnswers((p) => {
-      const current = p[key];
-      const next = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value];
-      return { ...p, [key]: next };
-    });
   }
 
   function skip() {
@@ -379,45 +350,45 @@ export function OnboardingSinglePage({
         {/* ── Form ────────────────────────────────────────────── */}
         <form ref={formRef} onSubmit={submit} className="mt-10 space-y-8">
 
-          {/* Q1 — study level (multi-select) */}
-          <QuestionCard q={QUESTIONS[0]} answered={answers.study_level.length > 0} multi>
+          {/* Q1 — study level */}
+          <QuestionCard q={QUESTIONS[0]} answered={!!answers.study_level}>
             <div className="grid gap-3 sm:grid-cols-3">
               {studyLevels.map((level) => (
                 <Choice
                   key={level.value}
                   label={level.label}
-                  selected={answers.study_level.includes(level.value)}
-                  onClick={() => toggle('study_level', level.value)}
+                  selected={answers.study_level === level.value}
+                  onClick={() => update('study_level', level.value)}
                 />
               ))}
             </div>
           </QuestionCard>
 
-          {/* Q2 — subject worlds (multi-select) */}
-          <QuestionCard q={QUESTIONS[1]} answered={answers.subjects.length > 0} multi>
+          {/* Q2 — subject worlds */}
+          <QuestionCard q={QUESTIONS[1]} answered={!!answers.subjects}>
             <div className="grid gap-3 sm:grid-cols-2 md:grid-cols-3">
               {subjectFamilies.map((family) => (
                 <Choice
                   key={family.key}
                   label={family.label}
                   hint={family.children.slice(0, 2).map((c) => t(c)).join(' · ')}
-                  selected={answers.subjects.includes(family.children[0])}
-                  onClick={() => toggle('subjects', family.children[0])}
+                  selected={answers.subjects === family.children[0]}
+                  onClick={() => update('subjects', family.children[0])}
                 />
               ))}
             </div>
           </QuestionCard>
 
-          {/* Q3 — region (multi-select) */}
-          <QuestionCard q={QUESTIONS[2]} answered={answers.countries.length > 0} multi>
+          {/* Q3 — region */}
+          <QuestionCard q={QUESTIONS[2]} answered={!!answers.countries}>
             <div className="grid gap-3 sm:grid-cols-2">
               {regionOptions.map((region) => (
                 <Choice
                   key={region.label}
                   label={region.label}
                   hint={region.hint}
-                  selected={answers.countries.includes(region.label)}
-                  onClick={() => toggle('countries', region.label)}
+                  selected={answers.countries === region.label}
+                  onClick={() => update('countries', region.label)}
                 />
               ))}
             </div>
@@ -437,29 +408,29 @@ export function OnboardingSinglePage({
             </div>
           </QuestionCard>
 
-          {/* Q5 — campus (multi-select) */}
-          <QuestionCard q={QUESTIONS[4]} answered={answers.campus.length > 0} multi>
+          {/* Q5 — campus */}
+          <QuestionCard q={QUESTIONS[4]} answered={!!answers.campus}>
             <div className="grid gap-3 sm:grid-cols-4">
               {campusOptions.map((option) => (
                 <Choice
                   key={option}
                   label={option}
-                  selected={answers.campus.includes(option)}
-                  onClick={() => toggle('campus', option)}
+                  selected={answers.campus === option}
+                  onClick={() => update('campus', option)}
                 />
               ))}
             </div>
           </QuestionCard>
 
-          {/* Q6 — support (multi-select) */}
-          <QuestionCard q={QUESTIONS[5]} answered={answers.support.length > 0} multi>
+          {/* Q6 — support */}
+          <QuestionCard q={QUESTIONS[5]} answered={!!answers.support}>
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               {supportNeeds.map((need) => (
                 <Choice
                   key={need}
                   label={need}
-                  selected={answers.support.includes(need)}
-                  onClick={() => toggle('support', need)}
+                  selected={answers.support === need}
+                  onClick={() => update('support', need)}
                 />
               ))}
             </div>
@@ -533,12 +504,10 @@ export function OnboardingSinglePage({
 function QuestionCard({
   q,
   answered,
-  multi = false,
   children,
 }: {
   q: typeof QUESTIONS[number];
   answered: boolean;
-  multi?: boolean;
   children: React.ReactNode;
 }) {
   const t = useT();
@@ -547,7 +516,7 @@ function QuestionCard({
       id={`q-${q.key}`}
       className="rounded-3xl border border-slate-200 bg-white/90 backdrop-blur p-6 md:p-8 shadow-[0_12px_30px_rgba(15,23,42,0.04)]"
     >
-      <header className="flex flex-wrap items-center gap-3 mb-3">
+      <header className="flex items-center gap-3 mb-3">
         <span
           className={`flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition ${
             answered
@@ -558,11 +527,6 @@ function QuestionCard({
           {answered ? '✓' : q.n}
         </span>
         <h2 className="text-xl font-semibold tracking-tight text-slate-900 md:text-2xl">{t(q.title)}</h2>
-        {multi ? (
-          <span className="rounded-full bg-pink-50 px-2.5 py-0.5 text-[0.7rem] font-semibold text-pink-600">
-            {t('Choose all that apply')}
-          </span>
-        ) : null}
       </header>
       <p className="ml-10 mb-5 text-sm text-slate-600 leading-relaxed">{t(q.body)}</p>
       <div className="ml-10">{children}</div>
