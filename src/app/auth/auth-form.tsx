@@ -99,6 +99,11 @@ export function AuthForm() {
 
   // Phone number collected at sign-up (stored, not verified).
   const [phone, setPhone] = useState('');
+  // Date of birth collected at sign-up, persisted to the contact (profile) record.
+  const [dob, setDob] = useState('');
+
+  // Latest selectable DOB is today — no future birthdays.
+  const todayDate = useMemo(() => new Date().toISOString().slice(0, 10), []);
 
   const redirectPath = useMemo(() => {
     const raw = searchParams.get('redirect');
@@ -134,28 +139,32 @@ export function AuthForm() {
           email,
           password,
           options: {
-            // Capture the phone number on the user from the start. It's stored,
-            // not verified — kept in user metadata so it's available even
-            // before the profile row exists (e.g. while email is unconfirmed).
-            data: { full_name: fullName, phone, marketing_consent: true },
+            // Capture the phone number + date of birth on the user from the
+            // start. They're stored (DOB is not verified) — kept in user
+            // metadata so they're available even before the profile row exists
+            // (e.g. while email is unconfirmed).
+            data: { full_name: fullName, phone, date_of_birth: dob, marketing_consent: true },
             emailRedirectTo: buildCallbackUrl(),
           },
         });
         if (signUpError) throw signUpError;
 
         // If email confirmation is disabled, signUp returns a session — persist
-        // the number + consent to the profile now. Otherwise it stays safely in
-        // user metadata until the profile is created during onboarding.
+        // the number + DOB + consent to the contact record now. Otherwise they
+        // stay safely in user metadata until the auth callback backfills them.
         if (data.session) {
-          try {
-            await fetch('/api/profile/phone', {
+          await Promise.allSettled([
+            fetch('/api/profile/phone', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ phone }),
-            });
-          } catch {
-            /* non-fatal */
-          }
+            }),
+            fetch('/api/profile/dob', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ date_of_birth: dob }),
+            }),
+          ]);
         }
 
         setSentTo(email);
@@ -338,6 +347,41 @@ export function AuthForm() {
                       <p className="auth-input-hint">
                         Include your country code (e.g. +44). We’ll use this for account updates and occasional offers.
                       </p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <AnimatePresence initial={false}>
+                {mode === 'signup' && (
+                  <motion.div
+                    key="dob"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.25 }}
+                    style={{ overflow: 'hidden' }}
+                  >
+                    <div className="auth-input-group">
+                      <label htmlFor="dob" className="auth-label">Date of birth</label>
+                      <div className="auth-input-wrapper">
+                        <svg className="auth-input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                          <line x1="16" y1="2" x2="16" y2="6" />
+                          <line x1="8" y1="2" x2="8" y2="6" />
+                          <line x1="3" y1="10" x2="21" y2="10" />
+                        </svg>
+                        <input
+                          id="dob"
+                          type="date"
+                          value={dob}
+                          onChange={(e) => setDob(e.target.value)}
+                          max={todayDate}
+                          className="auth-input auth-input-with-icon"
+                          autoComplete="bday"
+                          required={mode === 'signup'}
+                        />
+                      </div>
                     </div>
                   </motion.div>
                 )}
