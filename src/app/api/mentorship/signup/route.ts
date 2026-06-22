@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { isSupportedCurrency } from '@/lib/mentors';
 
 /**
@@ -21,7 +22,11 @@ const SignupSchema = z.object({
   display_name: z.string().min(2).max(120),
   legal_name: z.string().min(2).max(160),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Use YYYY-MM-DD'),
-  university_id: z.number().int().positive(),
+  // Either pick an existing university (id) OR type in a new one. The refine
+  // below guarantees exactly one of these paths is satisfied.
+  university_id: z.number().int().positive().nullish(),
+  custom_university_name: z.string().min(2).max(160).nullish(),
+  custom_university_country: z.string().min(2).max(120).nullish(),
 
   // Documents are required for the standard flow but optional for a
   // token-authorised quick signup (validated below).
@@ -49,7 +54,59 @@ const SignupSchema = z.object({
   // Pricing
   hourly_rate_amount: z.number().int().positive(),
   hourly_rate_currency: z.string().refine(isSupportedCurrency, 'Currency must be USD, GBP or VND'),
-});
+}).refine(
+  (d) =>
+    (d.university_id != null) ||
+    (!!d.custom_university_name && !!d.custom_university_country),
+  { message: 'Pick a university or add your own (name + country).' },
+);
+
+/**
+ * Match an existing university by (case-insensitive) name, or create a new one.
+ * Used when a mentor types in a university that isn't in our list yet. New rows
+ * are tagged so the team can review/enrich them — we insert with a `source`
+ * marker when that column exists, falling back to a bare insert so signups keep
+ * working even before the supabase-university-source.sql migration is applied.
+ */
+async function resolveCustomUniversity(
+  name: string,
+  country: string,
+): Promise<number | null> {
+  const admin = createAdminClient();
+
+  const findByName = async () => {
+    const { data } = await admin
+      .from('universities')
+      .select('id')
+      .ilike('name', name)
+      .limit(1)
+      .maybeSingle();
+    return data?.id ?? null;
+  };
+
+  const existing = await findByName();
+  if (existing != null) return existing;
+
+  // Try a tagged insert first; if the `source` column doesn't exist yet, retry
+  // with just the required columns.
+  let created = await admin
+    .from('universities')
+    .insert({ name, country, source: 'mentor_signup' })
+    .select('id')
+    .single();
+  if (created.error) {
+    created = await admin
+      .from('universities')
+      .insert({ name, country })
+      .select('id')
+      .single();
+  }
+  if (created.data?.id != null) return created.data.id;
+
+  // An insert can still fail if a concurrent signup created the same name
+  // (unique-name index) — fall back to re-selecting it.
+  return findByName();
+}
 
 export async function POST(request: NextRequest) {
   let body: unknown;
@@ -133,13 +190,29 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  // Resolve the university: an explicit id wins; otherwise match-or-create the
+  // typed-in university so we always store a valid FK.
+  let universityId = input.university_id ?? null;
+  if (universityId == null && input.custom_university_name && input.custom_university_country) {
+    universityId = await resolveCustomUniversity(
+      input.custom_university_name.trim(),
+      input.custom_university_country.trim(),
+    );
+  }
+  if (universityId == null) {
+    return NextResponse.json(
+      { error: 'Could not save your university. Please try again.' },
+      { status: 400 },
+    );
+  }
+
   const { error: insertErr } = await supabase.from('achiever_profiles').insert({
     id: user.id,
     display_name: input.display_name,
     legal_name: input.legal_name,
     date_of_birth: input.date_of_birth,
     avatar_url: input.avatar_url ?? null,
-    university_id: input.university_id,
+    university_id: universityId,
     degree_level: input.degree_level,
     subject: input.subject,
     graduation_year: input.graduation_year ?? null,
