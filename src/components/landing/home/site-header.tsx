@@ -15,10 +15,11 @@ import { useLanguage } from '@/lib/i18n';
  */
 const NAV_LINKS = [
   { href: '#how-it-works', label: 'How it works' },
-  { href: '#universities', label: 'Universities' },
+  // The in-page university-search section is hidden from the current flow, so
+  // this points at the full explorer route instead of a (now-absent) anchor.
+  { href: '/universities', label: 'Universities' },
   { href: '#scholarships', label: 'Scholarships' },
   { href: '#team', label: 'Team' },
-  { href: '#plus', label: 'Plus' },
   { href: '#faq', label: 'FAQ' },
 ];
 
