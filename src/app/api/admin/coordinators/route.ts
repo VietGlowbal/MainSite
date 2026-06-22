@@ -2,16 +2,17 @@ import { NextResponse } from 'next/server';
 import { isAdmin } from '@/lib/auth-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import type { CoordinatorLink, CoordinatorLinkStats } from '@/lib/types';
+import type { AmbassadorLink, AmbassadorLinkStats } from '@/lib/types';
 
 /**
- * Admin coordinator overview.
+ * Admin ambassador overview.
  *
- *   GET /api/admin/coordinators → list every coordinator link with its owner
- *                                 and aggregate visit stats.
+ *   GET /api/admin/coordinators → list every ambassador link with its owning
+ *                                 coordinator and aggregate visit stats.
  *
  * Assigning/revoking the coordinator role itself goes through
- * PATCH /api/admin/users (is_coordinator), which also provisions the link.
+ * PATCH /api/admin/users (is_coordinator). Ambassador links are created by the
+ * coordinator from /coordinator.
  */
 
 async function requireAdmin() {
@@ -30,34 +31,34 @@ export async function GET() {
 
   const [{ data: links }, { data: stats }, { data: usersPage }] = await Promise.all([
     admin
-      .from('coordinator_links')
-      .select('id, coordinator_id, code, label, is_active, created_at, updated_at')
+      .from('ambassador_links')
+      .select('id, coordinator_id, ambassador_name, code, is_active, created_at, updated_at')
       .order('created_at', { ascending: false }),
-    admin.from('coordinator_link_stats').select('*'),
+    admin.from('ambassador_link_stats').select('*'),
     admin.auth.admin.listUsers({ page: 1, perPage: 200 }),
   ]);
 
   const statByLink = new Map(
-    ((stats ?? []) as CoordinatorLinkStats[]).map((s) => [s.link_id, s]),
+    ((stats ?? []) as AmbassadorLinkStats[]).map((s) => [s.link_id, s]),
   );
   const userById = new Map((usersPage?.users ?? []).map((u) => [u.id, u]));
 
-  const coordinators = ((links ?? []) as CoordinatorLink[]).map((link) => {
+  const ambassadors = ((links ?? []) as AmbassadorLink[]).map((link) => {
     const stat = statByLink.get(link.id);
     const u = userById.get(link.coordinator_id);
     return {
       coordinator_id: link.coordinator_id,
       link_id: link.id,
       code: link.code,
-      label: link.label ?? null,
+      ambassador_name: link.ambassador_name,
       is_active: link.is_active,
-      full_name: (u?.user_metadata?.full_name as string | undefined) ?? null,
-      email: u?.email ?? null,
+      coordinator_name: (u?.user_metadata?.full_name as string | undefined) ?? null,
+      coordinator_email: u?.email ?? null,
       total_visits: Number(stat?.total_visits ?? 0),
       unique_visitors: Number(stat?.unique_visitors ?? 0),
       last_visit_at: stat?.last_visit_at ?? null,
     };
   });
 
-  return NextResponse.json({ coordinators });
+  return NextResponse.json({ ambassadors });
 }

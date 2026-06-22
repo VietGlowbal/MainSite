@@ -1,11 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server';
-import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
-import type { SupabaseClient } from '@supabase/supabase-js';
 import { isAdmin } from '@/lib/auth-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { slugify } from '@/lib/geo-cms';
 
 /**
  * Admin user-management API.
@@ -84,49 +81,6 @@ const PatchSchema = z
     message: 'Nothing to update',
   });
 
-/**
- * Ensure the coordinator has an active share link. Reactivates an existing
- * link, or creates one with a unique slug derived from their name/email.
- */
-async function ensureCoordinatorLink(admin: SupabaseClient, userId: string) {
-  const { data: existing } = await admin
-    .from('coordinator_links')
-    .select('id')
-    .eq('coordinator_id', userId)
-    .limit(1)
-    .maybeSingle();
-
-  if (existing) {
-    await admin
-      .from('coordinator_links')
-      .update({ is_active: true })
-      .eq('id', existing.id);
-    return;
-  }
-
-  // Derive a readable base slug from the user's name (fall back to email/uuid).
-  const { data } = await admin.auth.admin.getUserById(userId);
-  const name =
-    (data.user?.user_metadata?.full_name as string | undefined) ??
-    data.user?.email?.split('@')[0] ??
-    'coordinator';
-  const base = slugify(name) || 'coordinator';
-
-  // Resolve slug collisions with a short random suffix.
-  let code = base;
-  for (let attempt = 0; attempt < 5; attempt += 1) {
-    const { data: taken } = await admin
-      .from('coordinator_links')
-      .select('id')
-      .eq('code', code)
-      .maybeSingle();
-    if (!taken) break;
-    code = `${base}-${randomUUID().slice(0, 4)}`;
-  }
-
-  await admin.from('coordinator_links').insert({ coordinator_id: userId, code });
-}
-
 export async function PATCH(request: NextRequest) {
   const guard = await requireAdmin();
   if (guard.error) return NextResponse.json({ error: guard.error }, { status: guard.status });
@@ -167,12 +121,12 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  // Keep the share link in sync with coordinator status.
-  if (is_coordinator === true) {
-    await ensureCoordinatorLink(admin, user_id);
-  } else if (is_coordinator === false) {
+  // Revoking the role stops all of that coordinator's ambassador links
+  // (history is kept). Granting it does nothing extra — the coordinator
+  // creates their own ambassador links from /coordinator.
+  if (is_coordinator === false) {
     await admin
-      .from('coordinator_links')
+      .from('ambassador_links')
       .update({ is_active: false })
       .eq('coordinator_id', user_id);
   }

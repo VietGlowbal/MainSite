@@ -21,10 +21,10 @@ export default async function CoordinatorLayout({ children }: { children: ReactN
         <header className="space-y-3">
           <span className="glow-pill">Coordinator</span>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900">
-            Your share link
+            Ambassadors
           </h1>
           <p className="text-sm text-slate-500">
-            Share your personal link — every visit it drives is tracked here.
+            Create a share link for each ambassador and track how much traffic each one drives.
           </p>
         </header>
 
