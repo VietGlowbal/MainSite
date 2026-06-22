@@ -9,6 +9,7 @@ const TABS = [
   { href: '/admin/bookings', label: 'Bookings & payments', match: 'prefix' as const },
   { href: '/admin/news', label: 'News & GEO', match: 'prefix' as const },
   { href: '/admin/users', label: 'Users', match: 'prefix' as const },
+  { href: '/admin/coordinators', label: 'Coordinators', match: 'prefix' as const },
 ];
 
 export function AdminTabs() {
