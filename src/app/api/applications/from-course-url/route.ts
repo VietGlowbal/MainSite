@@ -92,19 +92,20 @@ export async function POST(request: Request) {
     }
     
     // 5. Get university domain if universityId provided
-    let primaryDomain: string | null = null;
+    const primaryDomain: string | null = null;
     let universityName: string | null = null;
     let universityData = null;
     
     if (universityId) {
       const { data: uni, error: uniError } = await supabase
         .from('universities')
-        .select('id, name, primary_domain')
+        .select('id, name')
         .eq('id', universityId)
         .single();
       
       if (!uniError && uni) {
-        primaryDomain = uni.primary_domain;
+        // `universities` has no domain column; URL validation runs without a
+        // domain restriction.
         universityName = uni.name;
         universityData = uni;
       }

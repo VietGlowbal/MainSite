@@ -970,20 +970,25 @@ export function ApplyDashboard({
           const supabase = createClient();
           const { data, error } = await supabase
             .from('universities')
-            .select('name, primary_domain')
+            .select('name')
             .eq('id', courseSearchUniversityId)
             .single();
           
           if (!error && data) {
             setUniversityDetails({
               name: data.name,
-              domain: data.primary_domain || '',
+              // `universities` has no domain column; domain-restricted search is
+              // optional and the search API falls back to a generic search.
+              domain: '',
             });
           } else {
             console.error('Failed to fetch university details:', error);
+            // Still open the modal with a minimal context so the button works.
+            setUniversityDetails({ name: 'this university', domain: '' });
           }
         } catch (err) {
           console.error('Error fetching university details:', err);
+          setUniversityDetails({ name: 'this university', domain: '' });
         }
       };
       

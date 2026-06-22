@@ -234,11 +234,13 @@ export async function POST(request: Request) {
         
         // Task 8.5 - Execute AI search if insufficient cached results
         if (!cachedResults.sufficientResults) {
-          // Fetch university information for domain-restricted search
+          // Fetch university information for domain-restricted search.
+          // `universities` has no domain columns, so these stay undefined and
+          // the provider falls back to a generic (non-domain-restricted) search.
           const adminSupabase = createAdminClient();
           const { data: university } = await adminSupabase
             .from('universities')
-            .select('name, primary_domain, course_discovery_url')
+            .select('name')
             .eq('id', universityId)
             .single();
           
@@ -250,8 +252,8 @@ export async function POST(request: Request) {
               const webResults = await searchProvider.search({
                 query: query.trim(),
                 universityName: university.name,
-                primaryDomain: university.primary_domain || undefined,
-                courseDiscoveryUrl: university.course_discovery_url || undefined,
+                primaryDomain: undefined,
+                courseDiscoveryUrl: undefined,
                 maxResults: 10,
                 studyLevel: studyLevel || undefined,
               });

@@ -358,18 +358,10 @@ export async function POST(request: NextRequest) {
         };
       });
 
-    // Task 13.5: Validate course URLs before creating applications
-    // Fetch university domain for validation
-    let universityDomain: string | null = null;
-    if (session.university_id) {
-      const { data: university } = await supabase
-        .from('universities')
-        .select('primary_domain')
-        .eq('id', session.university_id)
-        .single();
-      
-      universityDomain = university?.primary_domain || null;
-    }
+    // Task 13.5: Validate course URLs before creating applications.
+    // `universities` has no domain column, so URL validation runs without a
+    // domain restriction (still checks URL format / non-course-page patterns).
+    const universityDomain: string | null = null;
 
     // Validate all URLs in toCreate
     const { valid: validCourses, invalid: invalidCourses } = await batchValidateCourseUrls(
