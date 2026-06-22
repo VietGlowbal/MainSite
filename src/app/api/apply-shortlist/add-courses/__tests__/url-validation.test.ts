@@ -128,15 +128,14 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.5: URL Validation', ()
       reason: "Domain 'www.stanford.edu' does not match expected university domain 'ox.ac.uk'",
     });
 
-    // Verify batchValidateCourseUrls was called (domain is null since the
-    // universities table has no domain column)
+    // Verify batchValidateCourseUrls was called with the university's domain
     expect(batchValidateCourseUrls).toHaveBeenCalledWith(
       expect.arrayContaining([
         expect.objectContaining({ course_url: 'https://www.ox.ac.uk/courses/cs' }),
         expect.objectContaining({ course_url: 'https://www.ox.ac.uk/files/math.pdf' }),
         expect.objectContaining({ course_url: 'https://www.stanford.edu/courses/bio' }),
       ]),
-      null
+      'ox.ac.uk'
     );
   });
 

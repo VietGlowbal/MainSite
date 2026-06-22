@@ -968,22 +968,32 @@ export function ApplyDashboard({
       const fetchUniversityDetails = async () => {
         try {
           const supabase = createClient();
+          // Try to read primary_domain; tolerate the column not existing yet.
+          const withDomain = await supabase
+            .from('universities')
+            .select('name, primary_domain')
+            .eq('id', courseSearchUniversityId)
+            .single();
+
+          if (!withDomain.error && withDomain.data) {
+            setUniversityDetails({
+              name: withDomain.data.name,
+              domain: withDomain.data.primary_domain || '',
+            });
+            return;
+          }
+
+          // Fall back to name only (e.g. before the domain migration is applied).
           const { data, error } = await supabase
             .from('universities')
             .select('name')
             .eq('id', courseSearchUniversityId)
             .single();
-          
+
           if (!error && data) {
-            setUniversityDetails({
-              name: data.name,
-              // `universities` has no domain column; domain-restricted search is
-              // optional and the search API falls back to a generic search.
-              domain: '',
-            });
+            setUniversityDetails({ name: data.name, domain: '' });
           } else {
             console.error('Failed to fetch university details:', error);
-            // Still open the modal with a minimal context so the button works.
             setUniversityDetails({ name: 'this university', domain: '' });
           }
         } catch (err) {

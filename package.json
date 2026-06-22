@@ -31,7 +31,8 @@
     "geo:images": "tsx scripts/geo/generateImages.ts",
     "geo:check": "npm run geo:quality && npm run geo:images && tsc -p geo.tsconfig.json --noEmit",
     "notify-newsletter": "tsx scripts/notify-newsletter.ts",
-    "worker:dev": "node --env-file=.env.local scripts/course-parse-worker.mjs"
+    "worker:dev": "node --env-file=.env.local scripts/course-parse-worker.mjs",
+    "backfill:domains": "node --env-file=.env.local scripts/backfill-university-domains.mjs"
   },
   "dependencies": {
     "@gsap/react": "^2.1.2",

@@ -242,26 +242,44 @@ export async function POST(request: Request) {
         
         // Task 8.5 - Execute AI search if insufficient cached results
         if (!cachedResults.sufficientResults) {
-          // Fetch university information for domain-restricted search.
-          // `universities` has no domain columns, so these stay undefined and
-          // the provider falls back to a generic (non-domain-restricted) search.
+          // Fetch university info for a domain-restricted ("site:") web search.
+          // Try to read primary_domain; tolerate the column not existing yet so
+          // an un-migrated DB still works (just without domain restriction).
           const adminSupabase = createAdminClient();
-          const { data: university } = await adminSupabase
+          let universityName: string | null = null;
+          let primaryDomain: string | undefined = undefined;
+          let courseDiscoveryUrl: string | undefined = undefined;
+
+          const withDomain = await adminSupabase
             .from('universities')
-            .select('name')
+            .select('name, primary_domain, course_discovery_url')
             .eq('id', universityId)
             .single();
+
+          if (!withDomain.error && withDomain.data) {
+            universityName = withDomain.data.name;
+            primaryDomain = withDomain.data.primary_domain || undefined;
+            courseDiscoveryUrl = withDomain.data.course_discovery_url || undefined;
+          } else {
+            // Column may not exist yet — fall back to name only.
+            const nameOnly = await adminSupabase
+              .from('universities')
+              .select('name')
+              .eq('id', universityId)
+              .single();
+            universityName = nameOnly.data?.name ?? null;
+          }
           
-          if (university) {
+          if (universityName) {
             try {
               // Task 26.2: Graceful degradation if provider unavailable
               const searchProvider = getSearchProvider();
               
               const webResults = await searchProvider.search({
                 query: query.trim(),
-                universityName: university.name,
-                primaryDomain: undefined,
-                courseDiscoveryUrl: undefined,
+                universityName,
+                primaryDomain,
+                courseDiscoveryUrl,
                 maxResults: 10,
                 studyLevel: studyLevel || undefined,
               });

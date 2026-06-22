@@ -359,9 +359,19 @@ export async function POST(request: NextRequest) {
       });
 
     // Task 13.5: Validate course URLs before creating applications.
-    // `universities` has no domain column, so URL validation runs without a
-    // domain restriction (still checks URL format / non-course-page patterns).
-    const universityDomain: string | null = null;
+    // Look up the university's official domain (if the column exists) so the
+    // validator can enforce on-domain URLs; otherwise validate without it.
+    let universityDomain: string | null = null;
+    if (session.university_id) {
+      const withDomain = await supabase
+        .from('universities')
+        .select('primary_domain')
+        .eq('id', session.university_id)
+        .single();
+      if (!withDomain.error && withDomain.data) {
+        universityDomain = withDomain.data.primary_domain || null;
+      }
+    }
 
     // Validate all URLs in toCreate
     const { valid: validCourses, invalid: invalidCourses } = await batchValidateCourseUrls(

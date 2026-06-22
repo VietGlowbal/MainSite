@@ -92,27 +92,37 @@ export async function POST(request: Request) {
     }
     
     // 5. Get university domain if universityId provided
-    const primaryDomain: string | null = null;
     let universityName: string | null = null;
     let universityData = null;
+    let domain: string | null = null;
     
     if (universityId) {
-      const { data: uni, error: uniError } = await supabase
+      const withDomain = await supabase
         .from('universities')
-        .select('id, name')
+        .select('id, name, primary_domain')
         .eq('id', universityId)
         .single();
       
-      if (!uniError && uni) {
-        // `universities` has no domain column; URL validation runs without a
-        // domain restriction.
-        universityName = uni.name;
-        universityData = uni;
+      if (!withDomain.error && withDomain.data) {
+        universityName = withDomain.data.name;
+        universityData = withDomain.data;
+        domain = withDomain.data.primary_domain || null;
+      } else {
+        // primary_domain column may not exist yet — fall back to name only.
+        const { data: uni } = await supabase
+          .from('universities')
+          .select('id, name')
+          .eq('id', universityId)
+          .single();
+        if (uni) {
+          universityName = uni.name;
+          universityData = uni;
+        }
       }
     }
     
-    // 6. Validate URL
-    const validationResult = await validateCourseUrl(courseUrl, primaryDomain);
+    // 6. Validate URL (against the official domain when known)
+    const validationResult = await validateCourseUrl(courseUrl, domain);
     
     if (!validationResult.isValid) {
       return NextResponse.json(
