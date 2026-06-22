@@ -738,9 +738,9 @@ function DetailViewBody({
     }
   };
 
-  // "Find a Course" ALWAYS opens the university's course search.
+  // Navigate to Apply page with university context and open course search modal
   const handleFindCourse = () => {
-    window.open(buildCourseSearchUrl(university), '_blank', 'noopener,noreferrer');
+    router.push(`/apply?universityId=${university.id}&openCourseSearch=true`);
   };
 
   const handleShare = async () => {
@@ -801,7 +801,7 @@ function DetailViewBody({
         <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
           <div>
             <h3 className="text-base font-semibold text-slate-900 md:text-lg">Ready to study at {shortName(university.name)}?</h3>
-            <p className="mt-1 text-sm text-slate-500">Find a course on the university&apos;s site, then save it to your plan and build your application.</p>
+            <p className="mt-1 text-sm text-slate-500">Search for courses and start building your application with GlowBal&apos;s AI-powered course selector.</p>
           </div>
           <div className="flex shrink-0 flex-wrap gap-2">
             {university.id === 97 ? (
@@ -819,7 +819,7 @@ function DetailViewBody({
               className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>
-              Find a Course
+              View courses at this university
             </button>
             <Link href="/apply" className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:border-pink-300 hover:text-pink-600">
               Paste a course link

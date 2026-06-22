@@ -125,6 +125,7 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
     deadline: app.deadline,
     status: app.status,
     progressPercentage: app.progress_percentage,
+    parseStatus: app.parse_status,
     imageUrl: app.image_url,
     nextAction: app.next_action,
     importStatus: app.import_status,
@@ -204,7 +205,12 @@ function calculateUpcomingDeadlines(applications: CourseApplication[]): Upcoming
 type Props = {
   // ?focus=<universityId> — set when arriving from the scholarships "Continue
   // to Apply" flow, to highlight the application/uni the student funneled toward.
-  searchParams: Promise<{ focus?: string }>;
+  // ?universityId=<id>&openCourseSearch=true — triggers CourseSearchSessionModal
+  searchParams: Promise<{ 
+    focus?: string;
+    universityId?: string;
+    openCourseSearch?: string;
+  }>;
 };
 
 export default async function ApplyPage({ searchParams }: Props) {
@@ -212,12 +218,58 @@ export default async function ApplyPage({ searchParams }: Props) {
   const parsedFocus = params.focus ? Number.parseInt(params.focus, 10) : NaN;
   const focusUniversityId = Number.isFinite(parsedFocus) ? parsedFocus : null;
 
+  // Extract course search trigger params
+  const parsedUniversityId = params.universityId ? Number.parseInt(params.universityId, 10) : NaN;
+  const courseSearchUniversityId = Number.isFinite(parsedUniversityId) ? parsedUniversityId : null;
+  const openCourseSearch = params.openCourseSearch === 'true';
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect('/auth');
+  // Task 6.2: Allow logged-out users to access the Apply page
+  // Authentication is required only when trying to add courses, not for navigation or search
+  // If user is logged out but wants to search courses, allow them to continue
+
+  // Task 6.2: Allow logged-out users to access the Apply page
+  // Authentication is required only when trying to add courses, not for navigation or search
+  // If user is logged out but wants to search courses, allow them to continue
+  
+  // If user is logged out and NOT trying to open course search, redirect to auth
+  if (!user && !openCourseSearch) {
+    redirect('/auth');
+  }
+  
+  // If user is logged out but wants to search, allow page access with empty state
+  if (!user) {
+    return (
+      <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
+        <div className="w-full">
+          <JourneySteps activeStep={3} />
+          <ApplyDashboard
+            applications={[]}
+            shortlisted={[]}
+            upcomingDeadlines={[]}
+            overview={{
+              activeApplications: 0,
+              submitted: 0,
+              offersReceived: 0,
+              tasksCompleted: 0,
+              totalTasks: 0,
+            }}
+            savedScholarshipsByUniversity={{}}
+            matchByApplicationId={{}}
+            focusUniversityId={focusUniversityId}
+            isPlus={false}
+            courseSearchUniversityId={courseSearchUniversityId}
+            openCourseSearch={openCourseSearch}
+            isLoggedOut={true}
+          />
+        </div>
+      </main>
+    );
+  }
 
   const applications = await fetchApplications(user.id);
   const [overview, savedScholarshipsByUniversity, matchByApplicationId, shortlisted, profileResult] =
@@ -244,6 +296,8 @@ export default async function ApplyPage({ searchParams }: Props) {
           matchByApplicationId={matchByApplicationId}
           focusUniversityId={focusUniversityId}
           isPlus={isPlus}
+          courseSearchUniversityId={courseSearchUniversityId}
+          openCourseSearch={openCourseSearch}
         />
       </div>
     </main>

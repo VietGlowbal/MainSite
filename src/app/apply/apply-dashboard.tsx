@@ -1,7 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/client';
 import type {
   CourseApplication,
   ShortlistedUniversity,
@@ -11,6 +13,9 @@ import type {
 } from '@/lib/apply-types';
 import { useLanguage } from '@/lib/i18n';
 import { StatementFeedbackModal } from '@/components/statement/StatementFeedbackModal';
+import { UpgradePromptModal } from '@/components/upgrade-prompt-modal';
+import { CourseSearchSessionModal } from '@/components/course-search-session-modal';
+import { getPartialDataBadge, getMissingFieldsDisplay } from '@/lib/partial-data-helper';
 
 /* ─────────────────────────────────────────────────────────────────────────
    HELPERS
@@ -56,6 +61,8 @@ function ImportBar() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState('');
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeData, setUpgradeData] = useState<{ currentUsage: number; currentLimit: number } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,8 +76,9 @@ function ImportBar() {
       setSuccess('');
       setLoading(true);
 
-      // Call the AI extraction API
-      const response = await fetch('/api/applications/extract', {
+      // Call the manual paste endpoint (Task 19.2)
+      // This is the fallback/manual entry point for single-course addition
+      const response = await fetch('/api/applications/from-course-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ courseUrl: url }),
@@ -79,28 +87,38 @@ function ImportBar() {
       const data = await response.json();
 
       if (!response.ok) {
-        if (response.status === 409 && data.existingApplicationId) {
-          setError('You\'ve already imported this course.');
-          // Optionally redirect to the existing application
-          setTimeout(() => {
-            window.location.href = `/apply/${data.existingApplicationId}`;
-          }, 2000);
-        } else {
-          setError(data.error || 'Failed to import course. Please try again.');
+        // Handle duplicate (409)
+        if (response.status === 409 && data.duplicate) {
+          setError('This course is already in your shortlist.');
+          return;
         }
+        
+        // Task 20.2: Handle quota limit (403) with upgrade modal
+        if (response.status === 403 && data.upgradeRequired) {
+          setUpgradeData({
+            currentUsage: data.usage?.coursesAdded || 0,
+            currentLimit: data.usage?.courseAddLimit || 5,
+          });
+          setShowUpgradeModal(true);
+          return;
+        }
+        
+        // Other errors
+        setError(data.error || 'Failed to add course. Please try again.');
         return;
       }
 
       // Success!
-      setSuccess(`✓ ${data.summary.courseName} imported successfully! Found ${data.summary.tasksCreated} tasks and ${data.summary.scholarshipsFound} scholarships.`);
+      setSuccess(`✓ Course added to your shortlist! Building checklist in background...`);
       setUrl('');
       
-      // Redirect to the new application after a short delay
+      // Refresh the page to show the new application
       setTimeout(() => {
-        window.location.href = `/apply/${data.applicationId}`;
-      }, 2000);
+        window.location.reload();
+      }, 1500);
     } catch {
-      setError('This doesn\'t look like a valid URL. Please paste the official course page link.');
+      // Task 22.1: URL validation error - user-friendly message
+      setError('This doesn\'t appear to be a valid course page. Double-check the URL.');
     } finally {
       setLoading(false);
     }
@@ -135,7 +153,7 @@ function ImportBar() {
           disabled={loading}
           className="shrink-0 inline-flex h-10 items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0"
         >
-          {loading ? 'Analyzing...' : 'Build my checklist'}
+          {loading ? 'Adding...' : 'Add course'}
         </button>
       </form>
       {error && (
@@ -161,11 +179,19 @@ function ImportBar() {
           <circle cx="12" cy="12" r="10" />
           <path d="M12 16v-4M12 8h.01" />
         </svg>
-        Use the official course page from the university website. We&apos;ll create a personalised application plan for you.
-        <button type="button" className="ml-1 shrink-0 font-semibold text-pink-600 hover:text-pink-700 transition">
-          How it works
-        </button>
+        Paste the official course page URL. We&apos;ll parse the course details and build your application checklist in the background.
       </p>
+      
+      {/* Task 20.2: Upgrade modal for manual paste course limit */}
+      {showUpgradeModal && upgradeData && (
+        <UpgradePromptModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          limitType="courses"
+          currentUsage={upgradeData.currentUsage}
+          currentLimit={upgradeData.currentLimit}
+        />
+      )}
     </div>
   );
 }
@@ -181,6 +207,8 @@ function ApplicationCard({
   highlighted,
   isPlus,
   t,
+  parseStatus,
+  onRetryParse,
 }: {
   app: CourseApplication;
   score: number;
@@ -188,13 +216,106 @@ function ApplicationCard({
   highlighted: boolean;
   isPlus: boolean;
   t: (en: string, vars?: Record<string, string | number>) => string;
+  parseStatus?: { parseStatus: string; progressPercentage: number };
+  onRetryParse?: (applicationId: string) => void;
 }) {
   const badge = statusBadge(app.status, app.deadline);
   const methodClass = methodBadge(app.applicationMethod);
+  const [retrying, setRetrying] = useState(false);
 
   const deadlineDisplay = app.deadline
     ? new Date(app.deadline).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
     : null;
+
+  // Use polled status if available, otherwise fall back to app's parseStatus
+  const currentParseStatus = parseStatus?.parseStatus || app.parseStatus;
+  const currentProgress = parseStatus?.progressPercentage ?? app.progressPercentage;
+
+  // Determine parse status display
+  const getParseStatusDisplay = () => {
+    if (!currentParseStatus || currentParseStatus === 'complete') {
+      return null;
+    }
+
+    switch (currentParseStatus) {
+      case 'processing':
+      case 'pending':
+        return {
+          icon: (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#FF3D9A" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="animate-spin">
+              <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+            </svg>
+          ),
+          text: 'Building checklist...',
+          color: 'text-pink-600',
+          bgColor: 'bg-pink-50',
+          borderColor: 'border-pink-200',
+        };
+      case 'timeout':
+        // Task 22.1: Parsing timeout - user-friendly message
+        return {
+          icon: (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          ),
+          text: 'Parsing is taking longer than expected. Your application will be created with partial data.',
+          color: 'text-amber-600',
+          bgColor: 'bg-amber-50',
+          borderColor: 'border-amber-200',
+          showRetry: true,
+        };
+      case 'failed':
+        // Task 22.1: Parsing failure - user-friendly message
+        return {
+          icon: (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="9" y2="15" />
+              <line x1="9" y1="9" x2="15" y2="15" />
+            </svg>
+          ),
+          text: 'We couldn\'t parse this course page. You can still use this application and add details manually.',
+          color: 'text-red-600',
+          bgColor: 'bg-red-50',
+          borderColor: 'border-red-200',
+          showRetry: true,
+        };
+      default:
+        return null;
+    }
+  };
+
+  const parseStatusDisplay = getParseStatusDisplay();
+
+  const handleRetry = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    
+    if (!onRetryParse || retrying) return;
+    
+    setRetrying(true);
+    try {
+      const response = await fetch(`/api/applications/${app.id}/retry-parse`, {
+        method: 'POST',
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        alert(data.error || 'Failed to retry parsing');
+        setRetrying(false);
+        return;
+      }
+
+      // Call parent callback to resume polling
+      onRetryParse(app.id);
+    } catch (error) {
+      console.error('Retry failed:', error);
+      alert('Failed to retry parsing. Please try again.');
+      setRetrying(false);
+    }
+  };
 
   // Plus subscribers go straight to the workspace; everyone else hits the
   // payment page first (carrying this application so we can return to it).
@@ -239,6 +360,31 @@ function ApplicationCard({
             <p className="mt-0.5 text-sm text-slate-500">
               {app.countryFlag} {app.universityName}
             </p>
+            
+            {/* Task 23.1: Source domain and official page link */}
+            {app.courseUrl && (
+              <div className="mt-1 flex items-center gap-2">
+                <span className="text-xs text-slate-400">
+                  {new URL(app.courseUrl).hostname}
+                </span>
+                <span className="text-slate-300">·</span>
+                <a
+                  href={app.courseUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs font-semibold text-pink-600 hover:text-pink-700 inline-flex items-center gap-1"
+                >
+                  View official page
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+                    <polyline points="15 3 21 3 21 9" />
+                    <line x1="10" y1="14" x2="21" y2="3" />
+                  </svg>
+                </a>
+              </div>
+            )}
+            
             <div className="mt-2 flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
               {app.degreeLevel && (
                 <span className="inline-flex items-center gap-1">
@@ -283,6 +429,76 @@ function ApplicationCard({
                 </span>
               )}
             </div>
+            
+            {/* Parse Status Indicator */}
+            {parseStatusDisplay && (
+              <div className={`mt-2 flex items-start gap-2 rounded-lg border p-2 ${parseStatusDisplay.bgColor} ${parseStatusDisplay.borderColor}`}>
+                <div className="shrink-0 mt-0.5">{parseStatusDisplay.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-medium ${parseStatusDisplay.color}`}>
+                    {parseStatusDisplay.text}
+                  </p>
+                  {(currentParseStatus === 'processing' || currentParseStatus === 'pending') && currentProgress > 0 && currentProgress < 100 && (
+                    <div className="mt-1.5">
+                      <div className="h-1 w-full overflow-hidden rounded-full bg-white/50">
+                        <div
+                          className="h-full rounded-full bg-pink-500 transition-all duration-300"
+                          style={{ width: `${currentProgress}%` }}
+                        />
+                      </div>
+                      <p className="mt-0.5 text-[10px] text-slate-500">{currentProgress}% complete</p>
+                    </div>
+                  )}
+                  {parseStatusDisplay.showRetry && !retrying && (
+                    <button
+                      type="button"
+                      onClick={handleRetry}
+                      className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-pink-600 hover:text-pink-700 transition"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <polyline points="23 4 23 10 17 10" />
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+                      </svg>
+                      Retry parsing
+                    </button>
+                  )}
+                  {retrying && (
+                    <p className="mt-1.5 text-[10px] text-slate-500">Retrying...</p>
+                  )}
+                </div>
+              </div>
+            )}
+          
+          {/* Task 25.2: Partial Data Badge - Show when 2+ key fields missing */}
+          {(() => {
+            const partialBadge = getPartialDataBadge(app);
+            if (!partialBadge || parseStatusDisplay) return null; // Don't show if parse status is displaying
+            
+            const missingFields = getMissingFieldsDisplay(app);
+            
+            return (
+              <div className={`mt-2 flex items-start gap-2 rounded-lg border p-2 ${partialBadge.bgColor} ${partialBadge.borderColor}`}>
+                <div className="shrink-0 mt-0.5">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#F59E0B" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
+                    <line x1="12" y1="9" x2="12" y2="13" />
+                    <line x1="12" y1="17" x2="12.01" y2="17" />
+                  </svg>
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className={`text-xs font-medium ${partialBadge.color}`}>
+                    {partialBadge.text}
+                  </p>
+                  <p className="mt-1 text-[10px] text-amber-700">
+                    Missing: {missingFields.join(', ')}
+                  </p>
+                  <p className="mt-1 text-[10px] text-amber-600">
+                    Check the official course page to add these details manually.
+                  </p>
+                </div>
+              </div>
+            );
+          })()}
           </div>
 
           {/* Deadline + status + progress */}
@@ -298,12 +514,12 @@ function ApplicationCard({
             <div className="mt-3">
               <div className="flex items-center justify-end gap-2 mb-1">
                 <p className="text-xs text-slate-500">Progress</p>
-                <p className="text-xs font-semibold text-slate-700">{app.progressPercentage}%</p>
+                <p className="text-xs font-semibold text-slate-700">{currentProgress}%</p>
               </div>
               <div className="h-1.5 w-32 overflow-hidden rounded-full bg-slate-100">
                 <div
                   className="h-full rounded-full bg-[linear-gradient(90deg,#FF3D9A,#FF85B3)] transition-all"
-                  style={{ width: `${app.progressPercentage}%` }}
+                  style={{ width: `${currentProgress}%` }}
                 />
               </div>
             </div>
@@ -697,6 +913,9 @@ type Props = {
   matchByApplicationId: Record<string, number>;
   focusUniversityId: number | null;
   isPlus: boolean;
+  courseSearchUniversityId: number | null;
+  openCourseSearch: boolean;
+  isLoggedOut?: boolean; // Task 6.2: Support logged-out users accessing via CTA
 };
 
 export function ApplyDashboard({
@@ -708,8 +927,238 @@ export function ApplyDashboard({
   matchByApplicationId,
   focusUniversityId,
   isPlus,
+  courseSearchUniversityId,
+  openCourseSearch,
+  isLoggedOut = false, // Task 6.2: Default to false for backward compatibility
 }: Props) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { t } = useLanguage();
+  
+  // State for CourseSearchSessionModal
+  const [isCourseSearchOpen, setIsCourseSearchOpen] = useState(false);
+  const [universityContext, setUniversityContext] = useState<number | null>(null);
+  const [universityDetails, setUniversityDetails] = useState<{
+    name: string;
+    domain: string;
+  } | null>(null);
+
+  // State for parse status polling
+  const [parseStatuses, setParseStatuses] = useState<Record<string, {
+    parseStatus: string;
+    progressPercentage: number;
+  }>>({});
+
+  // State for simple toast notifications (Task 17.3)
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  // Simple toast helper function
+  const showSimpleToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 5000); // Auto-dismiss after 5 seconds
+  };
+
+  // Handle initial course search trigger from query params
+  useEffect(() => {
+    if (openCourseSearch && courseSearchUniversityId) {
+      setUniversityContext(courseSearchUniversityId);
+      setIsCourseSearchOpen(true);
+      
+      // Fetch university details
+      const fetchUniversityDetails = async () => {
+        try {
+          const supabase = createClient();
+          const { data, error } = await supabase
+            .from('universities')
+            .select('name, primary_domain')
+            .eq('id', courseSearchUniversityId)
+            .single();
+          
+          if (!error && data) {
+            setUniversityDetails({
+              name: data.name,
+              domain: data.primary_domain || '',
+            });
+          } else {
+            console.error('Failed to fetch university details:', error);
+          }
+        } catch (err) {
+          console.error('Error fetching university details:', err);
+        }
+      };
+      
+      fetchUniversityDetails();
+      
+      // Clear the openCourseSearch query param from URL after modal opens
+      // This prevents the modal from reopening on page refresh
+      const params = new URLSearchParams(searchParams?.toString() || '');
+      params.delete('openCourseSearch');
+      
+      // Preserve other query params like universityId and focus
+      const newUrl = params.toString() ? `?${params.toString()}` : '/apply';
+      router.replace(newUrl, { scroll: false });
+    }
+  }, [openCourseSearch, courseSearchUniversityId, router, searchParams]);
+
+  // Task 17.3: Post-login course addition flow
+  // Check sessionStorage for pendingCourseAddition and automatically add courses after login
+  useEffect(() => {
+    const handlePostLoginCourseAddition = async () => {
+      // Only run this once on mount
+      const pendingDataStr = sessionStorage.getItem('pendingCourseAddition');
+      
+      if (!pendingDataStr) {
+        return;
+      }
+
+      try {
+        const pendingData = JSON.parse(pendingDataStr);
+        
+        // Validate data structure
+        if (!pendingData.sessionId || !pendingData.selectedResultIds || !Array.isArray(pendingData.selectedResultIds)) {
+          console.error('Invalid pendingCourseAddition data:', pendingData);
+          sessionStorage.removeItem('pendingCourseAddition');
+          return;
+        }
+
+        // Optional: Check timestamp for expiry (e.g., data older than 1 hour)
+        if (pendingData.timestamp) {
+          const dataAge = Date.now() - pendingData.timestamp;
+          const oneHour = 60 * 60 * 1000;
+          if (dataAge > oneHour) {
+            console.log('Pending course addition data expired');
+            sessionStorage.removeItem('pendingCourseAddition');
+            return;
+          }
+        }
+
+        console.log('Processing post-login course addition:', {
+          sessionId: pendingData.sessionId,
+          courseCount: pendingData.selectedResultIds.length,
+        });
+
+        // Call add-courses API
+        const response = await fetch('/api/apply-shortlist/add-courses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sessionId: pendingData.sessionId,
+            selectedResultIds: pendingData.selectedResultIds,
+          }),
+        });
+
+        const data = await response.json();
+
+        // Clear sessionStorage after processing (success or failure)
+        sessionStorage.removeItem('pendingCourseAddition');
+
+        if (!response.ok) {
+          console.error('Failed to add courses after login:', data);
+          // Show error toast
+          showSimpleToast(`Failed to add courses: ${data.error || 'Unknown error'}`, 'error');
+          return;
+        }
+
+        // Success - show toast and refresh page
+        const addedCount = data.applicationsCreated?.length || 0;
+        const skippedCount = data.skippedDuplicates?.length || 0;
+        
+        let message = '';
+        if (addedCount > 0 && skippedCount > 0) {
+          message = `${addedCount} course${addedCount > 1 ? 's' : ''} added to your Apply list (${skippedCount} already existed)`;
+        } else if (addedCount > 0) {
+          message = `${addedCount} course${addedCount > 1 ? 's' : ''} added to your Apply list`;
+        } else if (skippedCount > 0) {
+          message = `All ${skippedCount} course${skippedCount > 1 ? 's were' : ' was'} already in your Apply list`;
+        } else {
+          message = 'Courses processed';
+        }
+
+        showSimpleToast(message, 'success');
+
+        // Refresh the page to show new applications
+        router.refresh();
+      } catch (error) {
+        console.error('Error processing post-login course addition:', error);
+        sessionStorage.removeItem('pendingCourseAddition');
+        showSimpleToast('Failed to add courses after login', 'error');
+      }
+    };
+
+    handlePostLoginCourseAddition();
+  }, []); // Empty deps - only run once on mount
+
+  // Poll parse status for applications that are being processed
+  useEffect(() => {
+    const processingApps = applications.filter(
+      app => app.parseStatus === 'processing' || app.parseStatus === 'pending'
+    );
+
+    if (processingApps.length === 0) {
+      return;
+    }
+
+    const pollParseStatus = async () => {
+      try {
+        const statusPromises = processingApps.map(async (app) => {
+          const response = await fetch(`/api/applications/${app.id}/parse-status`);
+          if (!response.ok) {
+            console.error(`Failed to fetch parse status for ${app.id}`);
+            return null;
+          }
+          const data = await response.json();
+          return { id: app.id, ...data };
+        });
+
+        const results = await Promise.all(statusPromises);
+        const newStatuses: Record<string, any> = {};
+        
+        for (const result of results) {
+          if (result) {
+            newStatuses[result.id] = {
+              parseStatus: result.parseStatus,
+              progressPercentage: result.progressPercentage,
+            };
+          }
+        }
+
+        setParseStatuses(prev => ({ ...prev, ...newStatuses }));
+
+        // Check if any applications completed - if so, refresh the page
+        const anyCompleted = results.some(
+          r => r && (r.parseStatus === 'complete' || r.parseStatus === 'failed' || r.parseStatus === 'timeout')
+        );
+        
+        if (anyCompleted) {
+          // Refresh the page data to get updated application states
+          router.refresh();
+        }
+      } catch (error) {
+        console.error('Error polling parse status:', error);
+      }
+    };
+
+    // Initial poll
+    pollParseStatus();
+
+    // Poll every 3 seconds while processing
+    const intervalId = setInterval(pollParseStatus, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [applications, router]);
+
+  // Handle retry parsing
+  const handleRetryParse = (applicationId: string) => {
+    // Mark application as processing in local state to resume polling
+    setParseStatuses(prev => ({
+      ...prev,
+      [applicationId]: {
+        parseStatus: 'processing',
+        progressPercentage: 0,
+      },
+    }));
+  };
+
   const scholarshipsFor = (universityId: number | null | undefined) =>
     universityId != null ? savedScholarshipsByUniversity[universityId] ?? [] : [];
   const activeApps = applications.filter((a) =>
@@ -728,14 +1177,92 @@ export function ApplyDashboard({
     })[0] ?? applications[0];
   const [sopOpen, setSopOpen] = useState(false);
 
+  const handleCloseCourseSearch = () => {
+    setIsCourseSearchOpen(false);
+    setUniversityContext(null);
+  };
+
+  // Task 20.3: Fetch and display usage indicators
+  const [usageInfo, setUsageInfo] = useState<{
+    coursesAdded: number;
+    courseAddLimit: number;
+    plan: string;
+  } | null>(null);
+
+  // Fetch usage info on mount
+  useEffect(() => {
+    const fetchUsageInfo = async () => {
+      try {
+        const response = await fetch('/api/entitlements/usage');
+        if (response.ok) {
+          const data = await response.json();
+          setUsageInfo({
+            coursesAdded: data.coursesAdded || 0,
+            courseAddLimit: data.courseAddLimit || 5,
+            plan: data.plan || 'free',
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching usage info:', error);
+      }
+    };
+
+    fetchUsageInfo();
+  }, []);
+
+  // Format usage display for header
+  const formatUsageForHeader = () => {
+    if (!usageInfo) return null;
+    
+    if (usageInfo.courseAddLimit >= 999999) {
+      return 'Unlimited courses';
+    }
+    
+    const remaining = usageInfo.courseAddLimit - usageInfo.coursesAdded;
+    if (remaining <= 2 && usageInfo.plan === 'free') {
+      return (
+        <span className="text-amber-600">
+          {usageInfo.coursesAdded} / {usageInfo.courseAddLimit} courses used
+        </span>
+      );
+    }
+    
+    return `${usageInfo.coursesAdded} / ${usageInfo.courseAddLimit} courses`;
+  };
+
   return (
     <div className="flex gap-6">
       {/* Main content */}
       <div className="min-w-0 flex-1 space-y-6">
-        {/* Page header */}
+        {/* Task 20.3: Page header with usage indicator */}
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">My Applications</h1>
-          <p className="mt-1 text-sm text-slate-500">Track and manage all your university course applications in one place.</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-bold text-slate-900">My Applications</h1>
+              <p className="mt-1 text-sm text-slate-500">Track and manage all your university course applications in one place.</p>
+            </div>
+            {usageInfo && (
+              <div className="flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-4 py-2.5">
+                <svg 
+                  width="16" 
+                  height="16" 
+                  viewBox="0 0 24 24" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="2" 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round"
+                  className="text-slate-500"
+                >
+                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+                  <circle cx="12" cy="7" r="4" />
+                </svg>
+                <span className="text-sm font-medium text-slate-700">
+                  {formatUsageForHeader()}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* URL import bar */}
@@ -771,6 +1298,8 @@ export function ApplyDashboard({
                   highlighted={focusUniversityId != null && app.universityId === focusUniversityId}
                   isPlus={isPlus}
                   t={t}
+                  parseStatus={parseStatuses[app.id]}
+                  onRetryParse={handleRetryParse}
                 />
               ))}
             </div>
@@ -819,6 +1348,8 @@ export function ApplyDashboard({
                   highlighted={false}
                   isPlus={isPlus}
                   t={t}
+                  parseStatus={parseStatuses[app.id]}
+                  onRetryParse={handleRetryParse}
                 />
               ))}
             </div>
@@ -843,6 +1374,69 @@ export function ApplyDashboard({
           onClose={() => setSopOpen(false)}
         />
       )}
+
+      {/* CourseSearchSessionModal */}
+      {isCourseSearchOpen && universityContext && universityDetails && (
+        <CourseSearchSessionModal
+          isOpen={isCourseSearchOpen}
+          onClose={handleCloseCourseSearch}
+          universityId={universityContext}
+          universityName={universityDetails.name}
+          universityDomain={universityDetails.domain}
+        />
+      )}
+
+      {/* Simple toast notification (Task 17.3) */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-2 fade-in duration-300">
+          <div className={`flex items-start gap-3 rounded-2xl border p-4 shadow-[0_8px_24px_rgba(15,23,42,0.12)] ${
+            toast.type === 'success' 
+              ? 'border-green-200 bg-white' 
+              : 'border-red-200 bg-white'
+          }`}>
+            {toast.type === 'success' ? (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-green-100">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10B981" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
+              </div>
+            ) : (
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-100">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10" />
+                  <line x1="12" y1="8" x2="12" y2="12" />
+                  <line x1="12" y1="16" x2="12.01" y2="16" />
+                </svg>
+              </div>
+            )}
+            <div className="flex-1">
+              <p className={`text-sm font-semibold ${
+                toast.type === 'success' ? 'text-green-900' : 'text-red-900'
+              }`}>
+                {toast.type === 'success' ? 'Success' : 'Error'}
+              </p>
+              <p className="mt-0.5 text-sm text-slate-600 leading-snug">
+                {toast.message}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setToast(null)}
+              className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-600"
+              aria-label="Dismiss"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+   END OF ApplyDashboard COMPONENT
+───────────────────────────────────────────────────────────────────────── */
