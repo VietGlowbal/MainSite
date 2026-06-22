@@ -471,20 +471,20 @@ describe('Task 8.6: Store results and update session status', () => {
         eq: mockEq,
       });
 
-      // Mock slow cached search (exceeds 8s timeout)
+      // Mock slow cached search (exceeds the 25s search budget)
       vi.mocked(searchCachedCourses).mockImplementation(
-        () => new Promise((resolve) => setTimeout(resolve, 9000))
+        () => new Promise((resolve) => setTimeout(resolve, 30000))
       );
 
       mockUpdate.mockReturnValue({ eq: mockEq });
 
-      // Use fake timers so the 8s search timeout fires instantly and
+      // Use fake timers so the search timeout fires instantly and
       // deterministically (otherwise the test would exceed vitest's timeout).
       vi.useFakeTimers();
       try {
         const responsePromise = POST(mockRequest);
-        // Advance past the route's 8s SEARCH_TIMEOUT, flushing microtasks.
-        await vi.advanceTimersByTimeAsync(8001);
+        // Advance past the route's SEARCH_TIMEOUT (25s), flushing microtasks.
+        await vi.advanceTimersByTimeAsync(25001);
         const response = await responsePromise;
 
         // Should return 408 timeout

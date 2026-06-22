@@ -81,7 +81,7 @@ export class TavilySearchProvider implements SearchProvider {
   
   private apiKey: string;
   private tavilyTimeout = 5000; // 5s Tavily timeout
-  private aiTimeout = 30000; // 30s OpenAI timeout
+  private aiTimeout = 15000; // 15s OpenAI ranking timeout (bounded so it can't hang the request)
   
   constructor() {
     this.apiKey = process.env.TAVILY_API_KEY || '';
@@ -148,7 +148,7 @@ export class TavilySearchProvider implements SearchProvider {
         body: JSON.stringify({
           query: searchQuery,
           search_depth: 'basic',
-          max_results: 20, // Get more results for AI filtering
+          max_results: 10, // Enough for AI filtering while keeping ranking fast
           include_answer: false,
           include_domains: params.primaryDomain ? [params.primaryDomain] : undefined,
         }),
