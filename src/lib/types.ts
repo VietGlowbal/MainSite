@@ -242,3 +242,40 @@ export type AIAnalysis = {
   suggestions: AISuggestion[];
   checklist: AIChecklistItem[];
 };
+
+// ── Coordinator role + affiliate-style visit tracking ───────────────────────
+// Backed by public.coordinator_links + public.coordinator_visits and the
+// public.coordinator_link_stats view (see supabase-coordinator.sql).
+export type CoordinatorLink = {
+  id: string;
+  coordinator_id: string;
+  code: string;
+  label?: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CoordinatorVisit = {
+  id: string;
+  link_id: string;
+  coordinator_id: string;
+  visitor_id: string;
+  is_unique: boolean;
+  visited_at: string;
+  landing_path?: string | null;
+  referrer?: string | null;
+  user_agent?: string | null;
+  ip_hash?: string | null;
+  utm: Record<string, string>;
+};
+
+export type CoordinatorLinkStats = {
+  link_id: string;
+  coordinator_id: string;
+  code: string;
+  is_active: boolean;
+  total_visits: number;
+  unique_visitors: number;
+  last_visit_at: string | null;
+};

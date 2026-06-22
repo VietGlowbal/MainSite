@@ -37,3 +37,38 @@ export async function isAdmin(userId?: string): Promise<boolean> {
 
   return data?.is_admin === true;
 }
+
+/**
+ * Check whether the current user (or a given userId) is a coordinator.
+ *
+ * Mirrors {@link isAdmin}: coordinator status is granted either via the
+ * comma-separated COORDINATOR_USER_IDS env var (bootstrap without a DB write)
+ * or the student_profiles row having is_coordinator = true.
+ */
+export async function isCoordinator(userId?: string): Promise<boolean> {
+  const supabase = await createClient();
+
+  let id = userId;
+  if (!id) {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return false;
+    id = user.id;
+  }
+
+  // Env-based coordinator list (no DB write required to bootstrap)
+  const envCoordinators = (process.env.COORDINATOR_USER_IDS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  if (envCoordinators.includes(id)) return true;
+
+  // DB-based coordinator flag
+  const { data } = await supabase
+    .from('student_profiles')
+    .select('is_coordinator')
+    .eq('user_id', id)
+    .maybeSingle();
+
+  return data?.is_coordinator === true;
+}
