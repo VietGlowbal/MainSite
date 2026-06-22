@@ -2,14 +2,14 @@
 
 import { useEffect, useMemo, useState } from 'react';
 
-type Coordinator = {
+type Ambassador = {
   coordinator_id: string;
   link_id: string;
   code: string;
-  label: string | null;
+  ambassador_name: string;
   is_active: boolean;
-  full_name: string | null;
-  email: string | null;
+  coordinator_name: string | null;
+  coordinator_email: string | null;
   total_visits: number;
   unique_visitors: number;
   last_visit_at: string | null;
@@ -24,7 +24,7 @@ type AdminUser = {
 
 type LoadState =
   | { kind: 'loading' }
-  | { kind: 'ready'; coordinators: Coordinator[] }
+  | { kind: 'ready'; ambassadors: Ambassador[]; users: AdminUser[] }
   | { kind: 'error'; message: string };
 
 function formatDate(value: string | null) {
@@ -34,7 +34,6 @@ function formatDate(value: string | null) {
 
 export function AdminCoordinatorsClient() {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
-  const [users, setUsers] = useState<AdminUser[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -43,24 +42,23 @@ export function AdminCoordinatorsClient() {
   async function load() {
     setState({ kind: 'loading' });
     try {
-      const [coordRes, usersRes] = await Promise.all([
+      const [ambRes, usersRes] = await Promise.all([
         fetch('/api/admin/coordinators', { cache: 'no-store' }),
         fetch('/api/admin/users', { cache: 'no-store' }),
       ]);
-      if (!coordRes.ok) {
-        const body = (await coordRes.json().catch(() => ({}))) as { error?: string };
-        throw new Error(body.error ?? `Request failed (${coordRes.status})`);
+      if (!ambRes.ok) {
+        const body = (await ambRes.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `Request failed (${ambRes.status})`);
       }
-      const coordBody = (await coordRes.json()) as { coordinators: Coordinator[] };
+      const ambBody = (await ambRes.json()) as { ambassadors: Ambassador[] };
       const usersBody = usersRes.ok
         ? ((await usersRes.json()) as { users: AdminUser[] })
         : { users: [] };
-      setUsers(usersBody.users);
-      setState({ kind: 'ready', coordinators: coordBody.coordinators });
+      setState({ kind: 'ready', ambassadors: ambBody.ambassadors, users: usersBody.users });
     } catch (err) {
       setState({
         kind: 'error',
-        message: err instanceof Error ? err.message : 'Failed to load coordinators.',
+        message: err instanceof Error ? err.message : 'Failed to load.',
       });
     }
   }
@@ -91,9 +89,8 @@ export function AdminCoordinatorsClient() {
   }
 
   async function copyLink(code: string) {
-    const url = `${window.location.origin}/c/${code}`;
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(`${window.location.origin}/c/${code}`);
       setCopied(code);
       setTimeout(() => setCopied(null), 1800);
     } catch {
@@ -101,10 +98,16 @@ export function AdminCoordinatorsClient() {
     }
   }
 
+  const coordinators = useMemo(
+    () => (state.kind === 'ready' ? state.users.filter((u) => u.is_coordinator) : []),
+    [state],
+  );
+
   const assignable = useMemo(() => {
+    if (state.kind !== 'ready') return [];
     const q = query.trim().toLowerCase();
     if (!q) return [];
-    return users
+    return state.users
       .filter((u) => !u.is_coordinator)
       .filter(
         (u) =>
@@ -113,10 +116,10 @@ export function AdminCoordinatorsClient() {
           u.id.toLowerCase().includes(q),
       )
       .slice(0, 6);
-  }, [users, query]);
+  }, [state, query]);
 
   if (state.kind === 'loading') {
-    return <p className="text-sm text-slate-400">Loading coordinators…</p>;
+    return <p className="text-sm text-slate-400">Loading…</p>;
   }
   if (state.kind === 'error') {
     return (
@@ -133,36 +136,26 @@ export function AdminCoordinatorsClient() {
     );
   }
 
-  const active = state.coordinators.filter((c) => c.is_active);
-  const totalVisits = active.reduce((sum, c) => sum + c.total_visits, 0);
+  const activeAmbassadors = state.ambassadors.filter((a) => a.is_active);
+  const totalVisits = state.ambassadors.reduce((s, a) => s + a.total_visits, 0);
 
   return (
     <div className="space-y-5">
       <div className="grid gap-3 sm:grid-cols-3">
-        <SummaryCard label="Active coordinators" value={active.length} tone="pink" />
-        <SummaryCard label="Total visits driven" value={totalVisits} tone="sky" />
-        <SummaryCard
-          label="Unique visitors"
-          value={active.reduce((s, c) => s + c.unique_visitors, 0)}
-        />
+        <SummaryCard label="Coordinators" value={coordinators.length} tone="pink" />
+        <SummaryCard label="Active ambassadors" value={activeAmbassadors.length} tone="sky" />
+        <SummaryCard label="Total visits driven" value={totalVisits} />
       </div>
 
-      {/* Assign role */}
-      <div className="glow-card-tight space-y-3">
-        <p className="text-sm font-semibold text-slate-700">Make someone a coordinator</p>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search a user by name, email, or ID"
-          className="glow-input w-full max-w-md text-sm"
-        />
-        {query.trim() && (
-          <div className="space-y-1">
-            {assignable.length === 0 ? (
-              <p className="text-xs text-slate-400">No matching non-coordinator users.</p>
-            ) : (
-              assignable.map((u) => (
+      {/* Coordinator role management */}
+      <div className="glow-card-tight space-y-4">
+        <div className="space-y-2">
+          <p className="text-sm font-semibold text-slate-700">Coordinators</p>
+          {coordinators.length === 0 ? (
+            <p className="text-xs text-slate-400">No coordinators yet.</p>
+          ) : (
+            <div className="space-y-1">
+              {coordinators.map((u) => (
                 <div
                   key={u.id}
                   className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2"
@@ -176,16 +169,56 @@ export function AdminCoordinatorsClient() {
                   <button
                     type="button"
                     disabled={busy === u.id}
-                    onClick={() => void setCoordinator(u.id, true)}
-                    className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-pink-300 hover:text-pink-600 disabled:opacity-50"
+                    onClick={() => void setCoordinator(u.id, false)}
+                    className="shrink-0 rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
                   >
-                    Make coordinator
+                    Revoke
                   </button>
                 </div>
-              ))
-            )}
-          </div>
-        )}
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="space-y-2 border-t border-slate-100 pt-3">
+          <p className="text-sm font-semibold text-slate-700">Make someone a coordinator</p>
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search a user by name, email, or ID"
+            className="glow-input w-full max-w-md text-sm"
+          />
+          {query.trim() && (
+            <div className="space-y-1">
+              {assignable.length === 0 ? (
+                <p className="text-xs text-slate-400">No matching non-coordinator users.</p>
+              ) : (
+                assignable.map((u) => (
+                  <div
+                    key={u.id}
+                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2"
+                  >
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium text-slate-900">
+                        {u.full_name ?? '—'}
+                      </div>
+                      <div className="truncate text-xs text-slate-500">{u.email ?? u.id}</div>
+                    </div>
+                    <button
+                      type="button"
+                      disabled={busy === u.id}
+                      onClick={() => void setCoordinator(u.id, true)}
+                      className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-pink-300 hover:text-pink-600 disabled:opacity-50"
+                    >
+                      Make coordinator
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {error && (
@@ -194,91 +227,71 @@ export function AdminCoordinatorsClient() {
         </p>
       )}
 
-      {/* Coordinators table */}
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white/90">
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wider text-slate-500">
-            <tr className="border-b border-slate-200">
-              <th className="px-4 py-3">Coordinator</th>
-              <th className="px-4 py-3">Link</th>
-              <th className="px-4 py-3 text-right">Visits</th>
-              <th className="px-4 py-3 text-right">Unique</th>
-              <th className="px-4 py-3">Last visit</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {state.coordinators.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">
-                  No coordinators yet.
-                </td>
+      {/* Ambassadors oversight (read-only) */}
+      <div className="space-y-2">
+        <p className="text-sm font-semibold text-slate-700">All ambassadors</p>
+        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white/90">
+          <table className="w-full text-sm">
+            <thead className="text-left text-xs uppercase tracking-wider text-slate-500">
+              <tr className="border-b border-slate-200">
+                <th className="px-4 py-3">Ambassador</th>
+                <th className="px-4 py-3">Coordinator</th>
+                <th className="px-4 py-3">Link</th>
+                <th className="px-4 py-3 text-right">Visits</th>
+                <th className="px-4 py-3 text-right">Unique</th>
+                <th className="px-4 py-3">Last visit</th>
+                <th className="px-4 py-3 text-right">Link</th>
               </tr>
-            ) : (
-              state.coordinators.map((c) => {
-                const isBusy = busy === c.coordinator_id;
-                return (
+            </thead>
+            <tbody>
+              {state.ambassadors.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
+                    No ambassadors yet.
+                  </td>
+                </tr>
+              ) : (
+                state.ambassadors.map((a) => (
                   <tr
-                    key={c.link_id}
+                    key={a.link_id}
                     className={`border-b border-slate-100 last:border-0 ${
-                      c.is_active ? '' : 'opacity-50'
+                      a.is_active ? '' : 'opacity-50'
                     }`}
                   >
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">{c.full_name ?? '—'}</div>
-                      <div className="text-xs text-slate-500">{c.email ?? c.coordinator_id}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <code className="text-xs text-slate-600">/c/{c.code}</code>
-                      {!c.is_active && (
-                        <span className="ml-2 text-[0.65rem] uppercase text-slate-400">
-                          revoked
-                        </span>
+                    <td className="px-4 py-3 font-medium text-slate-900">
+                      {a.ambassador_name}
+                      {!a.is_active && (
+                        <span className="ml-2 text-[0.65rem] uppercase text-slate-400">paused</span>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-900">
-                      {c.total_visits}
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-600">{c.unique_visitors}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">
-                      {formatDate(c.last_visit_at)}
+                      {a.coordinator_name ?? a.coordinator_email ?? a.coordinator_id}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => void copyLink(c.code)}
-                          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
-                        >
-                          {copied === c.code ? 'Copied!' : 'Copy link'}
-                        </button>
-                        {c.is_active ? (
-                          <button
-                            type="button"
-                            disabled={isBusy}
-                            onClick={() => void setCoordinator(c.coordinator_id, false)}
-                            className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                          >
-                            Revoke
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            disabled={isBusy}
-                            onClick={() => void setCoordinator(c.coordinator_id, true)}
-                            className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-pink-300 hover:text-pink-600 disabled:opacity-50"
-                          >
-                            Restore
-                          </button>
-                        )}
-                      </div>
+                      <code className="text-xs text-slate-600">/c/{a.code}</code>
+                    </td>
+                    <td className="px-4 py-3 text-right font-semibold text-slate-900">
+                      {a.total_visits}
+                    </td>
+                    <td className="px-4 py-3 text-right text-slate-600">{a.unique_visitors}</td>
+                    <td className="px-4 py-3 text-xs text-slate-500">
+                      {formatDate(a.last_visit_at)}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => void copyLink(a.code)}
+                        className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
+                      >
+                        {copied === a.code ? 'Copied!' : 'Copy'}
+                      </button>
                     </td>
                   </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
   );

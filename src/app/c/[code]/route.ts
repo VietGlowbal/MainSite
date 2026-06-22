@@ -36,7 +36,7 @@ export async function GET(
   const admin = createAdminClient();
 
   const { data: link } = await admin
-    .from('coordinator_links')
+    .from('ambassador_links')
     .select('id, coordinator_id, is_active')
     .eq('code', code)
     .eq('is_active', true)
@@ -84,12 +84,12 @@ export async function GET(
   after(async () => {
     // First time this visitor hits this link → counts as a unique visitor.
     const { count } = await admin
-      .from('coordinator_visits')
+      .from('ambassador_visits')
       .select('id', { count: 'exact', head: true })
       .eq('link_id', linkId)
       .eq('visitor_id', visitorId);
 
-    await admin.from('coordinator_visits').insert({
+    await admin.from('ambassador_visits').insert({
       link_id: linkId,
       coordinator_id: coordinatorId,
       visitor_id: visitorId,

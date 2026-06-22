@@ -243,20 +243,21 @@ export type AIAnalysis = {
   checklist: AIChecklistItem[];
 };
 
-// ── Coordinator role + affiliate-style visit tracking ───────────────────────
-// Backed by public.coordinator_links + public.coordinator_visits and the
-// public.coordinator_link_stats view (see supabase-coordinator.sql).
-export type CoordinatorLink = {
+// ── Coordinator role + ambassador (đại sứ) link tracking ────────────────────
+// One coordinator owns a share link (/c/<code>) per media ambassador. Backed by
+// public.ambassador_links + public.ambassador_visits and the
+// public.ambassador_link_stats view (see supabase-coordinator.sql).
+export type AmbassadorLink = {
   id: string;
   coordinator_id: string;
+  ambassador_name: string;
   code: string;
-  label?: string | null;
   is_active: boolean;
   created_at: string;
   updated_at: string;
 };
 
-export type CoordinatorVisit = {
+export type AmbassadorVisit = {
   id: string;
   link_id: string;
   coordinator_id: string;
@@ -270,10 +271,11 @@ export type CoordinatorVisit = {
   utm: Record<string, string>;
 };
 
-export type CoordinatorLinkStats = {
+export type AmbassadorLinkStats = {
   link_id: string;
   coordinator_id: string;
   code: string;
+  ambassador_name: string;
   is_active: boolean;
   total_visits: number;
   unique_visitors: number;
