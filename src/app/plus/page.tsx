@@ -1,8 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { PLUS_PACKAGES, PLUS_BENEFITS, FREE_FEATURES, GLOWBAL_FB_CHAT_URL, type PlusPackage } from '@/lib/plus';
-import { SubscribeButton } from '@/components/plus/subscribe-button';
+import { FREE_FEATURES, GLOWBAL_FB_CHAT_URL } from '@/lib/plus';
+import { PlusPricing } from '@/components/plus/plus-pricing';
 
 export const metadata: Metadata = {
   title: 'GlowBal Plus | Unlock your full scholarship plan',
@@ -86,12 +86,8 @@ export default async function PlusPage({
           </div>
         ) : null}
 
-        {/* Packages */}
-        <div className="mt-12 grid items-stretch gap-5 lg:grid-cols-3">
-          {PLUS_PACKAGES.map((pkg) => (
-            <PackageCard key={pkg.id} pkg={pkg} signedIn={!!user} applicationId={applicationId} />
-          ))}
-        </div>
+        {/* Currency switcher + tier cards + Free-vs-paid comparison */}
+        <PlusPricing signedIn={!!user} applicationId={applicationId} />
 
         {/* Talk-to-a-human CTA */}
         <div className="mx-auto mt-8 max-w-2xl text-center">
@@ -125,81 +121,13 @@ export default async function PlusPage({
             Payments are processed securely by Stripe.
           </p>
           <p>
-            Prices in VND. GlowBal helps you discover opportunities and prepare
-            stronger applications; it does not guarantee scholarship outcomes.
+            Choose your currency above — you’ll be charged in the currency you
+            select; conversions from VND are approximate. GlowBal helps you
+            discover opportunities and prepare stronger applications; it does not
+            guarantee scholarship outcomes.
           </p>
         </div>
       </div>
     </main>
-  );
-}
-
-function PackageCard({
-  pkg,
-  signedIn,
-  applicationId,
-}: {
-  pkg: PlusPackage;
-  signedIn: boolean;
-  applicationId: string | null;
-}) {
-  const highlighted = pkg.highlighted;
-  const signupRedirect = `/plus${applicationId ? `?application=${applicationId}` : ''}`;
-  return (
-    <div
-      className={`relative flex flex-col rounded-3xl border bg-white p-7 ${
-        highlighted
-          ? 'border-2 border-pink-300 shadow-[0_24px_56px_rgba(255,77,140,0.18)] lg:-mt-3 lg:mb-3'
-          : 'border-slate-200 shadow-[0_12px_30px_rgba(30,40,80,0.05)]'
-      }`}
-    >
-      {highlighted ? (
-        <span className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-4 py-1 text-[11px] font-bold uppercase tracking-wide text-white">
-          Best value
-        </span>
-      ) : null}
-
-      <div className="text-center">
-        <h2 className="text-lg font-semibold text-slate-900">GlowBal Plus</h2>
-        <p className="text-sm text-slate-500">{pkg.durationLabel}</p>
-
-        <div className="mt-4">
-          <div className="text-3xl font-bold tracking-tight text-slate-900">{pkg.priceLabel}</div>
-          <div className="mt-1 text-sm text-slate-500">{pkg.perMonthLabel}</div>
-          {pkg.originalPriceLabel ? (
-            <div className="mt-1 text-xs text-slate-400">
-              <span className="line-through">{pkg.originalPriceLabel}</span>
-              {pkg.saveLabel ? <span className="ml-2 font-semibold text-emerald-600">{pkg.saveLabel}</span> : null}
-            </div>
-          ) : null}
-        </div>
-      </div>
-
-      <SubscribeButton plan={pkg.id} signedIn={signedIn} highlighted={highlighted} applicationId={applicationId} />
-
-      <div className="mt-6 rounded-2xl bg-pink-50 px-4 py-3 text-center">
-        <span className="text-2xl font-bold text-pink-600">{pkg.aiCredits}</span>
-        <span className="ml-1 text-sm font-medium text-pink-600">AI strategy credits</span>
-      </div>
-
-      {pkg.bonusLabel ? (
-        <p className="mt-3 text-center text-xs font-semibold text-emerald-600">{pkg.bonusLabel}</p>
-      ) : null}
-
-      <ul className="mt-5 space-y-2.5 text-sm text-slate-600">
-        {PLUS_BENEFITS.map((b) => (
-          <li key={b} className="flex items-start gap-2">
-            <span className="mt-0.5 text-pink-500">✓</span>{b}
-          </li>
-        ))}
-      </ul>
-
-      {!signedIn ? (
-        <p className="mt-5 text-center text-xs text-slate-400">
-          Need an account first?{' '}
-          <Link href={`/auth?mode=signup&redirect=${encodeURIComponent(signupRedirect)}`} className="font-semibold text-pink-600">Sign up free</Link>
-        </p>
-      ) : null}
-    </div>
   );
 }

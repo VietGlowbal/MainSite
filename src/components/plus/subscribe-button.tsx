@@ -2,21 +2,24 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import type { PlusPlanId } from '@/lib/plus';
+import type { PlusPlanId, DisplayCurrency } from '@/lib/plus';
 
 /**
  * SubscribeButton — kicks off a GlowBal Plus checkout.
  *
- * Signed-in users POST to /api/plus/checkout and are redirected to Stripe.
- * Signed-out users are sent to sign-up first, returning to /plus.
+ * Signed-in users POST to /api/plus/checkout (with the chosen currency) and are
+ * redirected to Stripe. Signed-out users are sent to sign-up first, returning
+ * to /plus.
  */
 export function SubscribeButton({
   plan,
+  currency,
   signedIn,
   highlighted,
   applicationId,
 }: {
   plan: PlusPlanId;
+  currency: DisplayCurrency;
   signedIn: boolean;
   highlighted: boolean;
   applicationId?: string | null;
@@ -43,7 +46,7 @@ export function SubscribeButton({
       const res = await fetch('/api/plus/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan, applicationId: applicationId ?? undefined }),
+        body: JSON.stringify({ plan, currency, applicationId: applicationId ?? undefined }),
       });
       const data = await res.json();
       if (!res.ok || !data.checkout_url) {

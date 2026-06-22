@@ -65,6 +65,11 @@ function formatDocDate(iso: string): string {
 }
 
 const PLAN_LABELS: Record<string, string> = {
+  // Current feature tiers
+  'plus-starter': 'Starter plan',
+  'plus-pro': 'Pro plan',
+  'plus-premium': 'Premium plan',
+  // Legacy duration-based plans (kept so existing subscribers still read nicely)
   'plus-6m': '6-month plan',
   'plus-12m': '12-month plan',
   'plus-24m': '24-month plan',

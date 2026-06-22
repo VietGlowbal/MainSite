@@ -50,8 +50,8 @@ create table if not exists public.plus_subscriptions (
 
   user_id         uuid not null references auth.users(id) on delete cascade,
 
-  plan            text not null,             -- 'plus-6m' | 'plus-12m' | 'plus-24m'
-  price_label     text,                      -- display string captured at purchase
+  plan            text not null,             -- 'plus-starter' | 'plus-pro' | 'plus-premium' (legacy: 'plus-6m'/'12m'/'24m')
+  price_label     text,                      -- charged amount (currency-aware) captured at purchase
   ai_credits      int not null default 0,    -- credits granted by this purchase
   duration_months int not null default 0,
 
