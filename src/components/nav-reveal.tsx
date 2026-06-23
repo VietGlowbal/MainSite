@@ -556,8 +556,25 @@ export function NavReveal() {
       loadUser(data.user ?? null);
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       loadUser(session?.user ?? null);
+
+      // Record a login once per browser session. @supabase/ssr fires
+      // INITIAL_SESSION (not SIGNED_IN) when restoring a session, so this only
+      // logs on an actual sign-in; the sessionStorage flag guards against
+      // SIGNED_IN repeats from token refreshes / multiple tabs. Best-effort.
+      try {
+        if (event === 'SIGNED_IN' && session?.user) {
+          if (sessionStorage.getItem('gb_login_logged') !== '1') {
+            sessionStorage.setItem('gb_login_logged', '1');
+            fetch('/api/auth/login-event', { method: 'POST' }).catch(() => {});
+          }
+        } else if (event === 'SIGNED_OUT') {
+          sessionStorage.removeItem('gb_login_logged');
+        }
+      } catch {
+        /* sessionStorage unavailable — skip login logging */
+      }
     });
 
     return () => {
