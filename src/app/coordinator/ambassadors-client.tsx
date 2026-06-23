@@ -10,6 +10,7 @@ type Ambassador = {
   is_active: boolean;
   total_visits: number;
   unique_visitors: number;
+  referred_users: number;
   last_visit_at: string | null;
 };
 
@@ -199,6 +200,7 @@ export function AmbassadorsClient() {
               <th className="px-4 py-3">Link</th>
               <th className="px-4 py-3 text-right">Visits</th>
               <th className="px-4 py-3 text-right">Unique</th>
+              <th className="px-4 py-3 text-right">Referred</th>
               <th className="px-4 py-3">Last visit</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
@@ -206,7 +208,7 @@ export function AmbassadorsClient() {
           <tbody>
             {state.ambassadors.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
                   No ambassadors yet. Add one above to get a shareable link.
                 </td>
               </tr>
@@ -233,6 +235,9 @@ export function AmbassadorsClient() {
                       {a.total_visits}
                     </td>
                     <td className="px-4 py-3 text-right text-slate-600">{a.unique_visitors}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-600">
+                      {a.referred_users}
+                    </td>
                     <td className="px-4 py-3 text-xs text-slate-500">
                       {formatDate(a.last_visit_at)}
                     </td>

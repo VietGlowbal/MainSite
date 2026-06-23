@@ -56,6 +56,7 @@ export async function GET() {
       coordinator_email: u?.email ?? null,
       total_visits: Number(stat?.total_visits ?? 0),
       unique_visitors: Number(stat?.unique_visitors ?? 0),
+      referred_users: Number(stat?.referred_users ?? 0),
       last_visit_at: stat?.last_visit_at ?? null,
     };
   });

@@ -94,7 +94,26 @@ create index if not exists idx_ambassador_visits_coordinator
 create index if not exists idx_ambassador_visits_visitor
   on public.ambassador_visits(link_id, visitor_id);
 
+-- ── 5b. Referral attribution (one ambassador per referred user, last-touch) ──
+-- A user who arrives via /c/<code> and then signs up / logs in is attributed to
+-- the ambassador link. user_id is the PK so an upsert overwrites the previous
+-- attribution (last-touch) and "referred users" = a simple row count per link.
+create table if not exists public.ambassador_referrals (
+  user_id         uuid primary key references auth.users(id) on delete cascade,
+  link_id         uuid not null references public.ambassador_links(id) on delete cascade,
+  coordinator_id  uuid not null references auth.users(id) on delete cascade,
+  referred_at     timestamptz not null default now(),
+  updated_at      timestamptz not null default now()
+);
+
+create index if not exists idx_ambassador_referrals_link
+  on public.ambassador_referrals(link_id);
+create index if not exists idx_ambassador_referrals_coordinator
+  on public.ambassador_referrals(coordinator_id);
+
 -- ── 6. Aggregate view (per ambassador) ───────────────────────────────────────
+-- Scalar subqueries (not joins) so adding referred_users can't multiply the
+-- visit counts via a cartesian product across the two child tables.
 drop view if exists public.coordinator_link_stats;
 create or replace view public.ambassador_link_stats as
 select
@@ -103,19 +122,19 @@ select
   l.code,
   l.ambassador_name,
   l.is_active,
-  count(v.id)                  as total_visits,
-  count(distinct v.visitor_id) as unique_visitors,
-  max(v.visited_at)            as last_visit_at
-from public.ambassador_links l
-left join public.ambassador_visits v on v.link_id = l.id
-group by l.id, l.coordinator_id, l.code, l.ambassador_name, l.is_active;
+  (select count(*)                  from public.ambassador_visits v    where v.link_id = l.id) as total_visits,
+  (select count(distinct v.visitor_id) from public.ambassador_visits v where v.link_id = l.id) as unique_visitors,
+  (select max(v.visited_at)         from public.ambassador_visits v    where v.link_id = l.id) as last_visit_at,
+  (select count(*)                  from public.ambassador_referrals r where r.link_id = l.id) as referred_users
+from public.ambassador_links l;
 
 -- ── 7. Row-level security ────────────────────────────────────────────────────
 -- Writes go through the service-role admin client (bypasses RLS); ownership is
 -- enforced in code. The SELECT policies are defense-in-depth so a coordinator
 -- can only ever read their own rows via the user-bound client.
-alter table public.ambassador_links  enable row level security;
-alter table public.ambassador_visits enable row level security;
+alter table public.ambassador_links     enable row level security;
+alter table public.ambassador_visits    enable row level security;
+alter table public.ambassador_referrals enable row level security;
 
 -- Drop legacy v1 policy names (they carried over onto the renamed tables).
 drop policy if exists "Service role full access to coordinator_links"  on public.ambassador_links;
@@ -141,6 +160,16 @@ create policy "Service role full access to ambassador_visits"
 drop policy if exists "Coordinators read own ambassador_visits" on public.ambassador_visits;
 create policy "Coordinators read own ambassador_visits"
   on public.ambassador_visits as permissive for select
+  to authenticated using (auth.uid() = coordinator_id);
+
+drop policy if exists "Service role full access to ambassador_referrals" on public.ambassador_referrals;
+create policy "Service role full access to ambassador_referrals"
+  on public.ambassador_referrals as permissive for all
+  to service_role using (true) with check (true);
+
+drop policy if exists "Coordinators read own ambassador_referrals" on public.ambassador_referrals;
+create policy "Coordinators read own ambassador_referrals"
+  on public.ambassador_referrals as permissive for select
   to authenticated using (auth.uid() = coordinator_id);
 
 -- ── 8. updated_at trigger ────────────────────────────────────────────────────

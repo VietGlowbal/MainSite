@@ -45,6 +45,7 @@ export async function GET() {
     ...a,
     total_visits: Number(a.total_visits ?? 0),
     unique_visitors: Number(a.unique_visitors ?? 0),
+    referred_users: Number(a.referred_users ?? 0),
   }));
   return NextResponse.json({ ambassadors });
 }

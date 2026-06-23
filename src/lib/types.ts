@@ -280,4 +280,21 @@ export type AmbassadorLinkStats = {
   total_visits: number;
   unique_visitors: number;
   last_visit_at: string | null;
+  // Distinct users attributed to this link (signed up / authenticated via it).
+  referred_users: number;
+};
+
+export type AmbassadorReferral = {
+  user_id: string;
+  link_id: string;
+  coordinator_id: string;
+  referred_at: string;
+  updated_at: string;
+};
+
+export type LoginEvent = {
+  id: string;
+  user_id: string;
+  occurred_at: string;
+  source?: string | null;
 };

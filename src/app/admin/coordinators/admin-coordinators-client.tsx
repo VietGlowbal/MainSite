@@ -12,6 +12,7 @@ type Ambassador = {
   coordinator_email: string | null;
   total_visits: number;
   unique_visitors: number;
+  referred_users: number;
   last_visit_at: string | null;
 };
 
@@ -239,6 +240,7 @@ export function AdminCoordinatorsClient() {
                 <th className="px-4 py-3">Link</th>
                 <th className="px-4 py-3 text-right">Visits</th>
                 <th className="px-4 py-3 text-right">Unique</th>
+                <th className="px-4 py-3 text-right">Referred</th>
                 <th className="px-4 py-3">Last visit</th>
                 <th className="px-4 py-3 text-right">Link</th>
               </tr>
@@ -246,7 +248,7 @@ export function AdminCoordinatorsClient() {
             <tbody>
               {state.ambassadors.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
+                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-400">
                     No ambassadors yet.
                   </td>
                 </tr>
@@ -274,6 +276,9 @@ export function AdminCoordinatorsClient() {
                       {a.total_visits}
                     </td>
                     <td className="px-4 py-3 text-right text-slate-600">{a.unique_visitors}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-emerald-600">
+                      {a.referred_users}
+                    </td>
                     <td className="px-4 py-3 text-xs text-slate-500">
                       {formatDate(a.last_visit_at)}
                     </td>
