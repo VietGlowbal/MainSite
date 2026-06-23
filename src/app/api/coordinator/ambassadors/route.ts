@@ -48,20 +48,20 @@ export async function GET() {
     referred_users: Number(a.referred_users ?? 0),
   }));
 
-  // Logins by this coordinator's referred users, per day (powers the
-  // "Total logins through links" box + 30-day chart).
-  const { data: loginDaily } = await admin
-    .from('coordinator_login_daily')
-    .select('day, login_count')
+  // Sign-ups (referred users) per day for this coordinator — powers the
+  // "Total sign-ups through links" box + 30-day chart.
+  const { data: signupDaily } = await admin
+    .from('coordinator_referral_daily')
+    .select('day, signup_count')
     .eq('coordinator_id', guard.user!.id);
 
-  const logins_by_day = (loginDaily ?? []).map((r) => ({
+  const signups_by_day = (signupDaily ?? []).map((r) => ({
     day: r.day as string,
-    count: Number(r.login_count ?? 0),
+    count: Number(r.signup_count ?? 0),
   }));
   const summary = {
-    total_logins: logins_by_day.reduce((s, r) => s + r.count, 0),
-    logins_by_day,
+    total_signups: signups_by_day.reduce((s, r) => s + r.count, 0),
+    signups_by_day,
   };
 
   return NextResponse.json({ ambassadors, summary });

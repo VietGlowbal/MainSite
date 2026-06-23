@@ -23,19 +23,6 @@ select user_id, count(*) as login_count
 from public.login_events
 group by user_id;
 
--- Logins by referred users, per coordinator per day. Powers the coordinator
--- dashboard's "Total logins through links" box + 30-day chart.
--- NOTE: depends on public.ambassador_referrals (supabase-coordinator.sql) — run
--- that migration first. Day is bucketed in Vietnam time (Asia/Ho_Chi_Minh).
-create or replace view public.coordinator_login_daily as
-select
-  r.coordinator_id,
-  (e.occurred_at at time zone 'Asia/Ho_Chi_Minh')::date as day,
-  count(*)                                              as login_count
-from public.login_events e
-join public.ambassador_referrals r on r.user_id = e.user_id
-group by r.coordinator_id, (e.occurred_at at time zone 'Asia/Ho_Chi_Minh')::date;
-
 alter table public.login_events enable row level security;
 
 -- Writes go through the service-role admin client (the login-event API);
