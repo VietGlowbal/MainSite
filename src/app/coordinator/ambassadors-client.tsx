@@ -14,17 +14,16 @@ type Ambassador = {
   last_visit_at: string | null;
 };
 
-type LoginSummary = {
-  total_logins: number;
-  logins_by_day: { day: string; count: number }[];
+type DashboardSummary = {
+  signups_by_day: { day: string; count: number }[];
 };
 
 type LoadState =
   | { kind: 'loading' }
-  | { kind: 'ready'; ambassadors: Ambassador[]; summary: LoginSummary }
+  | { kind: 'ready'; ambassadors: Ambassador[]; summary: DashboardSummary }
   | { kind: 'error'; message: string };
 
-const EMPTY_SUMMARY: LoginSummary = { total_logins: 0, logins_by_day: [] };
+const EMPTY_SUMMARY: DashboardSummary = { signups_by_day: [] };
 
 function formatDate(value: string | null) {
   if (!value) return '—';
@@ -52,7 +51,7 @@ export function AmbassadorsClient() {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
-      const body = (await res.json()) as { ambassadors: Ambassador[]; summary?: LoginSummary };
+      const body = (await res.json()) as { ambassadors: Ambassador[]; summary?: DashboardSummary };
       setState({ kind: 'ready', ambassadors: body.ambassadors, summary: body.summary ?? EMPTY_SUMMARY });
     } catch (err) {
       setState({
@@ -131,25 +130,26 @@ export function AmbassadorsClient() {
   }
 
   const totals = useMemo(() => {
-    if (state.kind !== 'ready') return { active: 0, visits: 0, uniques: 0 };
+    if (state.kind !== 'ready') return { active: 0, visits: 0, uniques: 0, referred: 0 };
     return state.ambassadors.reduce(
       (acc, a) => ({
         active: acc.active + (a.is_active ? 1 : 0),
         visits: acc.visits + a.total_visits,
         uniques: acc.uniques + a.unique_visitors,
+        referred: acc.referred + a.referred_users,
       }),
-      { active: 0, visits: 0, uniques: 0 },
+      { active: 0, visits: 0, uniques: 0, referred: 0 },
     );
   }, [state]);
 
-  // Last-30-days login series (zero-filled), built from the daily summary.
-  // Day keys are bucketed in Vietnam time to match the coordinator_login_daily
+  // Last-30-days sign-up series (zero-filled), built from the daily summary.
+  // Day keys are bucketed in Vietnam time to match the coordinator_referral_daily
   // view (Asia/Ho_Chi_Minh). VN has no DST, so stepping 24h yields consecutive
   // VN calendar days. en-CA formats as YYYY-MM-DD.
-  const loginChart = useMemo(() => {
+  const signupChart = useMemo(() => {
     const byDay = new Map<string, number>();
     if (state.kind === 'ready') {
-      for (const r of state.summary.logins_by_day) byDay.set(r.day.slice(0, 10), r.count);
+      for (const r of state.summary.signups_by_day) byDay.set(r.day.slice(0, 10), r.count);
     }
     const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
     const series: { date: string; count: number }[] = [];
@@ -185,7 +185,7 @@ export function AmbassadorsClient() {
         <StatCard label="Active ambassadors" value={totals.active} tone="pink" />
         <StatCard label="Total visits" value={totals.visits} tone="sky" />
         <StatCard label="Unique visitors" value={totals.uniques} />
-        <StatCard label="Total logins through links" value={state.summary.total_logins} tone="emerald" />
+        <StatCard label="Total sign-ups through links" value={totals.referred} tone="emerald" />
       </div>
 
       {/* Add ambassador */}
@@ -300,24 +300,24 @@ export function AmbassadorsClient() {
         </table>
       </div>
 
-      {/* Logins by day */}
+      {/* Sign-ups by day */}
       <section className="glow-card space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">Logins by day (last 30 days)</h2>
-        {state.summary.total_logins === 0 ? (
-          <p className="text-sm text-slate-500">No logins through your links yet.</p>
+        <h2 className="text-lg font-semibold text-slate-900">Sign-ups by day (last 30 days)</h2>
+        {totals.referred === 0 ? (
+          <p className="text-sm text-slate-500">No sign-ups through your links yet.</p>
         ) : (
           <div className="space-y-1.5">
-            {loginChart.series.map((b) => (
+            {signupChart.series.map((b) => (
               <div key={b.date} className="flex items-center gap-3 text-xs">
                 <span className="w-16 shrink-0 text-slate-400">{b.date.slice(5)}</span>
                 <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-100">
                   <div
                     className="h-full rounded-full bg-emerald-400"
-                    style={{ width: `${(b.count / loginChart.max) * 100}%` }}
+                    style={{ width: `${(b.count / signupChart.max) * 100}%` }}
                   />
                 </div>
                 <span className="w-20 shrink-0 text-right text-slate-500">
-                  {b.count} login{b.count === 1 ? '' : 's'}
+                  {b.count} sign-up{b.count === 1 ? '' : 's'}
                 </span>
               </div>
             ))}

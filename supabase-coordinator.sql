@@ -128,6 +128,19 @@ select
   (select count(*)                  from public.ambassador_referrals r where r.link_id = l.id) as referred_users
 from public.ambassador_links l;
 
+-- ── 6b. Sign-ups (referred users) per coordinator per day ────────────────────
+-- Powers the coordinator dashboard's "Total sign-ups through links" box (sum)
+-- + 30-day chart. Day is bucketed in Vietnam time (Asia/Ho_Chi_Minh).
+-- Supersedes the old login-based coordinator_login_daily view.
+drop view if exists public.coordinator_login_daily;
+create or replace view public.coordinator_referral_daily as
+select
+  coordinator_id,
+  (referred_at at time zone 'Asia/Ho_Chi_Minh')::date as day,
+  count(*)                                             as signup_count
+from public.ambassador_referrals
+group by coordinator_id, (referred_at at time zone 'Asia/Ho_Chi_Minh')::date;
+
 -- ── 7. Row-level security ────────────────────────────────────────────────────
 -- Writes go through the service-role admin client (bypasses RLS); ownership is
 -- enforced in code. The SELECT policies are defense-in-depth so a coordinator
