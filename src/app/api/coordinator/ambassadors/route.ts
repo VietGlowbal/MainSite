@@ -47,7 +47,24 @@ export async function GET() {
     unique_visitors: Number(a.unique_visitors ?? 0),
     referred_users: Number(a.referred_users ?? 0),
   }));
-  return NextResponse.json({ ambassadors });
+
+  // Logins by this coordinator's referred users, per day (powers the
+  // "Total logins through links" box + 30-day chart).
+  const { data: loginDaily } = await admin
+    .from('coordinator_login_daily')
+    .select('day, login_count')
+    .eq('coordinator_id', guard.user!.id);
+
+  const logins_by_day = (loginDaily ?? []).map((r) => ({
+    day: r.day as string,
+    count: Number(r.login_count ?? 0),
+  }));
+  const summary = {
+    total_logins: logins_by_day.reduce((s, r) => s + r.count, 0),
+    logins_by_day,
+  };
+
+  return NextResponse.json({ ambassadors, summary });
 }
 
 const PostSchema = z.object({

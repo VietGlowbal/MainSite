@@ -14,10 +14,17 @@ type Ambassador = {
   last_visit_at: string | null;
 };
 
+type LoginSummary = {
+  total_logins: number;
+  logins_by_day: { day: string; count: number }[];
+};
+
 type LoadState =
   | { kind: 'loading' }
-  | { kind: 'ready'; ambassadors: Ambassador[] }
+  | { kind: 'ready'; ambassadors: Ambassador[]; summary: LoginSummary }
   | { kind: 'error'; message: string };
+
+const EMPTY_SUMMARY: LoginSummary = { total_logins: 0, logins_by_day: [] };
 
 function formatDate(value: string | null) {
   if (!value) return '—';
@@ -45,8 +52,8 @@ export function AmbassadorsClient() {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
-      const body = (await res.json()) as { ambassadors: Ambassador[] };
-      setState({ kind: 'ready', ambassadors: body.ambassadors });
+      const body = (await res.json()) as { ambassadors: Ambassador[]; summary?: LoginSummary };
+      setState({ kind: 'ready', ambassadors: body.ambassadors, summary: body.summary ?? EMPTY_SUMMARY });
     } catch (err) {
       setState({
         kind: 'error',
@@ -100,6 +107,7 @@ export function AmbassadorsClient() {
       if (state.kind === 'ready') {
         setState({
           kind: 'ready',
+          summary: state.summary,
           ambassadors: state.ambassadors.map((a) =>
             a.link_id === linkId ? { ...a, is_active: next } : a,
           ),
@@ -134,6 +142,25 @@ export function AmbassadorsClient() {
     );
   }, [state]);
 
+  // Last-30-days login series (zero-filled), built from the daily summary.
+  // Day keys are bucketed in Vietnam time to match the coordinator_login_daily
+  // view (Asia/Ho_Chi_Minh). VN has no DST, so stepping 24h yields consecutive
+  // VN calendar days. en-CA formats as YYYY-MM-DD.
+  const loginChart = useMemo(() => {
+    const byDay = new Map<string, number>();
+    if (state.kind === 'ready') {
+      for (const r of state.summary.logins_by_day) byDay.set(r.day.slice(0, 10), r.count);
+    }
+    const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const series: { date: string; count: number }[] = [];
+    const now = Date.now();
+    for (let i = 29; i >= 0; i -= 1) {
+      const key = fmt.format(new Date(now - i * 86_400_000));
+      series.push({ date: key, count: byDay.get(key) ?? 0 });
+    }
+    return { series, max: Math.max(1, ...series.map((s) => s.count)) };
+  }, [state]);
+
   if (state.kind === 'loading') {
     return <p className="text-sm text-slate-400">Loading ambassadors…</p>;
   }
@@ -154,10 +181,11 @@ export function AmbassadorsClient() {
 
   return (
     <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard label="Active ambassadors" value={totals.active} tone="pink" />
         <StatCard label="Total visits" value={totals.visits} tone="sky" />
         <StatCard label="Unique visitors" value={totals.uniques} />
+        <StatCard label="Total logins through links" value={state.summary.total_logins} tone="emerald" />
       </div>
 
       {/* Add ambassador */}
@@ -271,6 +299,31 @@ export function AmbassadorsClient() {
           </tbody>
         </table>
       </div>
+
+      {/* Logins by day */}
+      <section className="glow-card space-y-4">
+        <h2 className="text-lg font-semibold text-slate-900">Logins by day (last 30 days)</h2>
+        {state.summary.total_logins === 0 ? (
+          <p className="text-sm text-slate-500">No logins through your links yet.</p>
+        ) : (
+          <div className="space-y-1.5">
+            {loginChart.series.map((b) => (
+              <div key={b.date} className="flex items-center gap-3 text-xs">
+                <span className="w-16 shrink-0 text-slate-400">{b.date.slice(5)}</span>
+                <div className="h-3 flex-1 overflow-hidden rounded-full bg-slate-100">
+                  <div
+                    className="h-full rounded-full bg-emerald-400"
+                    style={{ width: `${(b.count / loginChart.max) * 100}%` }}
+                  />
+                </div>
+                <span className="w-20 shrink-0 text-right text-slate-500">
+                  {b.count} login{b.count === 1 ? '' : 's'}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 }
@@ -282,10 +335,16 @@ function StatCard({
 }: {
   label: string;
   value: number;
-  tone?: 'slate' | 'pink' | 'sky';
+  tone?: 'slate' | 'pink' | 'sky' | 'emerald';
 }) {
   const toneClass =
-    tone === 'pink' ? 'text-pink-600' : tone === 'sky' ? 'text-sky-600' : 'text-slate-900';
+    tone === 'pink'
+      ? 'text-pink-600'
+      : tone === 'sky'
+        ? 'text-sky-600'
+        : tone === 'emerald'
+          ? 'text-emerald-600'
+          : 'text-slate-900';
   return (
     <div className="glow-card-tight">
       <p className="text-sm text-slate-500">{label}</p>
