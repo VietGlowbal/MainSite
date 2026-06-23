@@ -135,36 +135,23 @@ export function AuthForm() {
     setError(null);
     try {
       if (mode === 'signup') {
-        const { data, error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            // Capture the phone number + date of birth on the user from the
-            // start. They're stored (DOB is not verified) — kept in user
-            // metadata so they're available even before the profile row exists
-            // (e.g. while email is unconfirmed).
-            data: { full_name: fullName, phone, date_of_birth: dob, marketing_consent: true },
-            emailRedirectTo: buildCallbackUrl(),
-          },
+        // Sign up via our own route so the confirmation email is sent through
+        // Resend (Supabase's built-in email is rate-limited on the free tier).
+        const res = await fetch('/api/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email,
+            password,
+            full_name: fullName,
+            phone,
+            date_of_birth: dob,
+            next: redirectPath ?? undefined,
+          }),
         });
-        if (signUpError) throw signUpError;
-
-        // If email confirmation is disabled, signUp returns a session — persist
-        // the number + DOB + consent to the contact record now. Otherwise they
-        // stay safely in user metadata until the auth callback backfills them.
-        if (data.session) {
-          await Promise.allSettled([
-            fetch('/api/profile/phone', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ phone }),
-            }),
-            fetch('/api/profile/dob', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ date_of_birth: dob }),
-            }),
-          ]);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error ?? 'Could not create your account.');
         }
 
         setSentTo(email);
