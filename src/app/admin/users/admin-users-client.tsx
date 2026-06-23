@@ -14,6 +14,7 @@ type AdminUser = {
   onboarding_completed: boolean;
   mentor_status: string | null;
   mentor_name: string | null;
+  login_count: number;
 };
 
 type LoadState =
@@ -196,13 +197,14 @@ export function AdminUsersClient() {
               <th className="px-4 py-3">Onboarded</th>
               <th className="px-4 py-3">Joined</th>
               <th className="px-4 py-3">Last sign-in</th>
+              <th className="px-4 py-3 text-right">Logins</th>
               <th className="px-4 py-3 text-right">Actions</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-400">
+                <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
                   No users match.
                 </td>
               </tr>
@@ -242,6 +244,9 @@ export function AdminUsersClient() {
                     <td className="px-4 py-3 text-xs text-slate-500">{formatDate(u.created_at)}</td>
                     <td className="px-4 py-3 text-xs text-slate-500">
                       {formatDate(u.last_sign_in_at)}
+                    </td>
+                    <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700">
+                      {u.login_count}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex justify-end gap-2">
