@@ -23,8 +23,6 @@ type LoadState =
   | { kind: 'ready'; ambassadors: Ambassador[]; summary: DashboardSummary }
   | { kind: 'error'; message: string };
 
-const EMPTY_SUMMARY: DashboardSummary = { signups_by_day: [] };
-
 function formatDate(value: string | null) {
   if (!value) return '—';
   return new Date(value).toLocaleDateString();
@@ -51,8 +49,21 @@ export function AmbassadorsClient() {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
-      const body = (await res.json()) as { ambassadors: Ambassador[]; summary?: DashboardSummary };
-      setState({ kind: 'ready', ambassadors: body.ambassadors, summary: body.summary ?? EMPTY_SUMMARY });
+      const body = (await res.json()) as {
+        ambassadors?: Ambassador[];
+        summary?: { signups_by_day?: { day: string; count: number }[] };
+      };
+      // Normalise defensively: during a deploy the client and API can briefly
+      // be different versions, so never assume the response shape.
+      setState({
+        kind: 'ready',
+        ambassadors: Array.isArray(body.ambassadors) ? body.ambassadors : [],
+        summary: {
+          signups_by_day: Array.isArray(body.summary?.signups_by_day)
+            ? body.summary!.signups_by_day!
+            : [],
+        },
+      });
     } catch (err) {
       setState({
         kind: 'error',
@@ -148,9 +159,10 @@ export function AmbassadorsClient() {
   // VN calendar days. en-CA formats as YYYY-MM-DD.
   const signupChart = useMemo(() => {
     const byDay = new Map<string, number>();
-    if (state.kind === 'ready') {
-      for (const r of state.summary.signups_by_day) byDay.set(r.day.slice(0, 10), r.count);
-    }
+    const days = state.kind === 'ready' && Array.isArray(state.summary.signups_by_day)
+      ? state.summary.signups_by_day
+      : [];
+    for (const r of days) byDay.set(r.day.slice(0, 10), r.count);
     const fmt = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
     const series: { date: string; count: number }[] = [];
     const now = Date.now();
