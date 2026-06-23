@@ -1,6 +1,15 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { captureReferral, REF_COOKIE } from '@/lib/referrals';
+
+/** Redirect that also clears the referral cookie once it's been captured. */
+function redirectClearingRef(url: string): NextResponse {
+  const res = NextResponse.redirect(url);
+  res.cookies.set(REF_COOKIE, '', { path: '/', maxAge: 0 });
+  return res;
+}
 
 /**
  * Resolve the canonical site URL once. We prefer NEXT_PUBLIC_SITE_URL so
@@ -34,6 +43,17 @@ export async function GET(request: Request) {
       } = await supabase.auth.getUser();
 
       if (user) {
+        // Referral attribution (last-touch): credit the ambassador whose link
+        // this visitor last came through before authenticating. Best-effort.
+        try {
+          const refCode = (await cookies()).get(REF_COOKIE)?.value;
+          if (refCode) {
+            await captureReferral(createAdminClient(), user.id, refCode);
+          }
+        } catch {
+          /* non-fatal — never block auth on attribution */
+        }
+
         // Capture the phone number collected at sign-up. It rides along in user
         // metadata (set during signUp) because there's no session to write the
         // profile until the email link is clicked. Backfill it onto the profile
@@ -67,7 +87,7 @@ export async function GET(request: Request) {
         }
 
         if (safeNext) {
-          return NextResponse.redirect(`${origin}${safeNext}`);
+          return redirectClearingRef(`${origin}${safeNext}`);
         }
 
         const { data: profile } = await supabase
@@ -84,9 +104,9 @@ export async function GET(request: Request) {
           (profile?.study_level && profile?.preferred_countries?.length > 0);
 
         if (hasCompletedOnboarding) {
-          return NextResponse.redirect(`${origin}/universities`);
+          return redirectClearingRef(`${origin}/universities`);
         }
-        return NextResponse.redirect(`${origin}/onboarding`);
+        return redirectClearingRef(`${origin}/onboarding`);
       }
 
       return NextResponse.redirect(`${origin}/onboarding`);

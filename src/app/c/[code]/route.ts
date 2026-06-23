@@ -1,6 +1,7 @@
 import { after, NextResponse, type NextRequest } from 'next/server';
 import { createHash, randomUUID } from 'node:crypto';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { REF_COOKIE } from '@/lib/referrals';
 
 /**
  * Coordinator share-link tracker.
@@ -61,6 +62,16 @@ export async function GET(
       maxAge: COOKIE_MAX_AGE,
     });
   }
+
+  // Referral attribution cookie — overwritten every visit (last-touch). Read
+  // when the visitor later signs up / logs in to credit this ambassador.
+  response.cookies.set(REF_COOKIE, code, {
+    httpOnly: true,
+    sameSite: 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: COOKIE_MAX_AGE,
+  });
 
   // Don't count obvious bots/crawlers — just redirect them.
   const userAgent = request.headers.get('user-agent') ?? '';

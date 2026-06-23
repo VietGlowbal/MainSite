@@ -49,10 +49,18 @@ export async function GET() {
     .from('achiever_profiles')
     .select('id, status, display_name');
 
+  // Per-user login counts (Supabase only exposes last_sign_in_at, not a count).
+  const { data: loginCounts } = await admin
+    .from('user_login_counts')
+    .select('user_id, login_count');
+
   const profileByUser = new Map(
     (profiles ?? []).map((p) => [p.user_id, p]),
   );
   const mentorByUser = new Map((mentors ?? []).map((m) => [m.id, m]));
+  const loginCountByUser = new Map(
+    (loginCounts ?? []).map((r) => [r.user_id, Number(r.login_count ?? 0)]),
+  );
 
   const users = usersPage.users.map((u) => ({
     id: u.id,
@@ -66,6 +74,7 @@ export async function GET() {
     onboarding_completed: profileByUser.get(u.id)?.onboarding_completed === true,
     mentor_status: mentorByUser.get(u.id)?.status ?? null,
     mentor_name: mentorByUser.get(u.id)?.display_name ?? null,
+    login_count: loginCountByUser.get(u.id) ?? 0,
   }));
 
   return NextResponse.json({ users });
