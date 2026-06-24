@@ -135,12 +135,13 @@ export class TavilySearchProvider implements SearchProvider {
       }
       
       // Step 3: Rank/clean results.
-      // AI ranking adds latency (an OpenAI call) that doesn't fit within
-      // Vercel Hobby's 10s function limit, so it's opt-in via ENABLE_AI_RANKING.
-      // When disabled (default), we use Tavily's own relevance scoring after
-      // the quality filtering above — fast and reliable.
+      // AI ranking (an OpenAI call) re-ranks results, rejects non-course pages,
+      // and extracts degree level / duration / tuition. It needs latency
+      // headroom (Vercel Pro), so it runs by default whenever OpenAI is
+      // configured. Set ENABLE_AI_RANKING=false to force the fast Tavily-only
+      // path (e.g. on Hobby or to cut OpenAI usage).
       const useAiRanking =
-        process.env.ENABLE_AI_RANKING === 'true' && isOpenAIConfigured();
+        isOpenAIConfigured() && process.env.ENABLE_AI_RANKING !== 'false';
 
       const rankedResults = useAiRanking
         ? await this.rankWithAI(filteredResults, params)
@@ -195,7 +196,7 @@ export class TavilySearchProvider implements SearchProvider {
         body: JSON.stringify({
           query: searchQuery,
           search_depth: 'basic',
-          max_results: 10, // Enough for AI filtering while keeping ranking fast
+          max_results: 20, // More candidates for the AI ranker to filter from
           include_answer: false,
           include_domains: params.primaryDomain ? [params.primaryDomain] : undefined,
         }),

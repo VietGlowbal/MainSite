@@ -7,9 +7,9 @@ import { getSearchProvider } from '@/lib/search-providers';
 import type { SearchResult } from '@/lib/search-providers';
 import { courseSearchSessionLimiter, applyRateLimit } from '@/lib/rate-limiter';
 
-// Vercel Hobby caps serverless functions at 10s. Keep the search budget under
-// that so we return a clean response before the platform kills the function.
-export const maxDuration = 10;
+// Vercel Pro allows long-running functions (up to 300s). Give the synchronous
+// search (cached lookup + Tavily web search + AI ranking) comfortable headroom.
+export const maxDuration = 60;
 export const runtime = 'nodejs';
 
 /**
@@ -199,9 +199,9 @@ export async function POST(request: Request) {
     
     sessionId = session.id; // Assign to function-scoped variable
     
-    // Synchronous search budget. Must stay under the Vercel function limit
-    // (10s on Hobby) so we return before the platform aborts the request.
-    const SEARCH_TIMEOUT_MS = 9000;
+    // Synchronous search budget. Comfortably exceeds Tavily (5s) + AI ranking
+    // (15s) + DB writes; well within the 60s Vercel Pro function limit.
+    const SEARCH_TIMEOUT_MS = 30000;
     
     try {
       // Create a promise that rejects after timeout
