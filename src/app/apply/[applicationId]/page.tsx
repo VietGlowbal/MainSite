@@ -21,18 +21,33 @@ export default async function ApplicationPage({
 
   if (!workspace) notFound();
 
-  // Plus gating for the match-insights improvement features.
-  const { data: profile } = await supabase
-    .from('student_profiles')
-    .select('plus_status')
-    .eq('user_id', user.id)
-    .maybeSingle();
+  // Plus gating + which inputs the user already has, so the match-insights panel
+  // can guide them to upload what's missing instead of scoring an empty 0%.
+  const [{ data: profile }, { data: docs }] = await Promise.all([
+    supabase
+      .from('student_profiles')
+      .select('plus_status, academic_background, grades_summary')
+      .eq('user_id', user.id)
+      .maybeSingle(),
+    supabase
+      .from('uploaded_documents')
+      .select('document_type')
+      .eq('user_id', user.id)
+      .eq('is_active', true),
+  ]);
+
   const isPlus = Boolean(profile?.plus_status);
+  const essayTypes = ['statement_of_purpose', 'personal_statement', 'sop', 'statement'];
+  const matchInputs = {
+    cv: (docs ?? []).some((d) => d.document_type === 'cv'),
+    essay: (docs ?? []).some((d) => essayTypes.includes(d.document_type)),
+    academic: Boolean(profile?.academic_background || profile?.grades_summary),
+  };
 
   return (
     <main className="min-h-screen bg-slate-50 px-4 py-6 md:px-8 md:py-8">
       <div className="w-full">
-        <ApplicationWorkspaceV2 workspace={workspace} isPlus={isPlus} />
+        <ApplicationWorkspaceV2 workspace={workspace} isPlus={isPlus} matchInputs={matchInputs} />
       </div>
     </main>
   );
