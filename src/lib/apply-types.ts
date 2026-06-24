@@ -30,7 +30,7 @@ export type TaskStatus =
   | 'blocked'
   | 'not_applicable';
 
-export type TaskType = 
+export type TaskType =
   | 'research'
   | 'eligibility'
   | 'document'
@@ -40,7 +40,8 @@ export type TaskType =
   | 'external_link'
   | 'deadline'
   | 'submission'
-  | 'general';
+  | 'general'
+  | 'improvement';
 
 export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
 
@@ -205,6 +206,10 @@ export type ApplicationTask = {
   sortOrder: number;
   completedAt?: string;
   createdBy: string;
+  /** Pillar this task improves (for 'improvement' tasks). */
+  pillar?: string;
+  /** Estimated match-score uplift when completed (for 'improvement' tasks). */
+  estimatedUplift?: number;
   createdAt: string;
   updatedAt: string;
 };
@@ -265,6 +270,11 @@ export type ApplicationMatchAnalysis = {
   modelName?: string;
   promptVersion?: string;
   analysisStatus: string;
+  /** Five-pillar breakdown (PillarKey → PillarBreakdown). Untyped here to avoid
+   *  a circular import; the panel narrows it via @/lib/match-insights. */
+  pillars?: Record<string, unknown>;
+  confidence?: number;
+  inputsPresent?: { profile: boolean; cv: boolean; essay: boolean; activities: boolean };
   createdAt: string;
 };
 
