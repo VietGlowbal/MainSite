@@ -22,3 +22,5 @@ export type { TrustStripItem } from './trust-strip';
 
 export { RangeSlider, DualRangeSlider } from './slider';
 export type { RangeSliderProps, DualRangeSliderProps } from './slider';
+
+export { Pagination } from './pagination';

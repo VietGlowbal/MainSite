@@ -49,6 +49,8 @@ const nextConfig: NextConfig = {
       // and campus photography on /universities/vinuni.
       { protocol: 'https', hostname: 'unicons.vn' },
       { protocol: 'https', hostname: 'vinuni.edu.vn' },
+      // Profile photos referenced from seeded/imported data.
+      { protocol: 'https', hostname: 'lapslie.com' },
     ],
   },
 };

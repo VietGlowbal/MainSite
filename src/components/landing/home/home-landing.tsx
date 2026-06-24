@@ -115,7 +115,7 @@ function Hero() {
 
           <p className="mx-auto mt-5 max-w-xl text-base leading-7 text-slate-600 sm:text-lg lg:mx-0">
             Explore 10,000+ universities, discover 2,000+ scholarships worth over
-            $500,000, and build your application strategy with AI and real
+            over $150,000,000, and build your application strategy with AI and real
             student supporters around the world.
           </p>
 

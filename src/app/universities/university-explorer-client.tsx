@@ -16,7 +16,7 @@ import {
   ADMISSION_CATEGORY_ORDER,
   type AdmissionCategory,
 } from '@/lib/admission-fit';
-import { Button, EmptyState, DualRangeSlider } from '@/components/ui';
+import { Button, EmptyState, DualRangeSlider, Pagination } from '@/components/ui';
 import { getCompareIds as readCompareIds, setCompareIds as writeCompareIds } from '@/lib/selection-cache';
 import { JourneySteps } from '@/components/JourneySteps';
 import { FadeInImage } from './fade-in-image';
@@ -159,7 +159,7 @@ function SearchHero({
   onShowAllPrograms: () => void;
 }) {
   return (
-    <section className="relative overflow-hidden rounded-[2rem] border border-black/5 bg-white px-6 py-7 shadow-[0_12px_32px_rgba(22,33,62,0.06)] md:px-9 md:py-9">
+    <section className="relative overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#FF3D9A,#FF85B3,#19B8D8)] px-6 py-7 shadow-[0_18px_44px_rgba(255,61,154,0.25)] md:px-9 md:py-9">
       {/* Globe — absolutely positioned so it sits behind the title and
           the search bar. The hero's `overflow-hidden` clips its bottom
           edge; the search bar's higher z-index hides what little spills
@@ -169,14 +169,14 @@ function SearchHero({
       {/* Title row — left-aligned, sized so it doesn't reach into the
           globe's column on lg+. Stays above the globe via z-index. */}
       <div className="relative z-10 max-w-xl">
-        <h1 className="text-[2.1rem] font-semibold leading-[1.05] tracking-tight text-slate-900 md:text-[2.6rem]">
+        <h1 className="text-[2.1rem] font-semibold leading-[1.05] tracking-tight text-white md:text-[2.6rem]">
           Find the university
           <br />
-          <span className="bg-[linear-gradient(135deg,#FF3D9A,#FF85B3,#19B8D8)] bg-clip-text text-transparent">
+          <span className="text-white">
             that&apos;s right for you
           </span>
         </h1>
-        <p className="mt-3 max-w-md text-sm text-slate-500">
+        <p className="mt-3 max-w-md text-sm text-white/85">
           Explore 10,000+ universities worldwide and find your perfect fit.
         </p>
       </div>
@@ -231,7 +231,7 @@ function SearchHero({
       {/* Popular searches — single line with horizontal overflow. No
           icons — keeps the row clean and lets the chip text breathe. */}
       <div className="relative z-10 mt-4 flex items-center gap-3">
-        <span className="shrink-0 text-xs font-semibold text-slate-700">
+        <span className="shrink-0 text-xs font-semibold text-white">
           Popular searches:
         </span>
         <div className="flex flex-1 items-center gap-2 overflow-x-auto whitespace-nowrap pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
@@ -270,93 +270,6 @@ function SearchHero({
           <ImproveSearchPill />
         </div>
       </div>
-    </section>
-  );
-}
-
-/**
- * HookBand — the finful-style landing hook that sits at the very top of the
- * page. Leads with a bold, personal admission-odds question, then an
- * interactive teaser (subject + destination) and a CTA that hands off to
- * `onStartMatch` (onboarding for new visitors, instant matches for profiled
- * users). Headline / subline / CTA are single text nodes so the DOM
- * translator can swap them via the i18n dictionary.
- */
-function HookBand({
-  countries,
-  onStartMatch,
-}: {
-  countries: string[];
-  onStartMatch: (subject: string, country: string) => void;
-}) {
-  const [subject, setSubject] = useState('');
-  const [country, setCountry] = useState('');
-
-  return (
-    <section className="relative mb-6 overflow-hidden rounded-[2rem] bg-[linear-gradient(135deg,#FF3D9A,#FF85B3,#19B8D8)] px-6 py-9 shadow-[0_18px_44px_rgba(255,61,154,0.25)] md:px-12 md:py-12">
-      {/* Soft decorative glows */}
-      <span aria-hidden className="pointer-events-none absolute -right-16 -top-16 h-56 w-56 rounded-full bg-white/20 blur-3xl" />
-      <span aria-hidden className="pointer-events-none absolute -bottom-24 left-1/3 h-56 w-56 rounded-full bg-white/10 blur-3xl" />
-
-      <div className="relative z-10 max-w-2xl">
-        <h2 className="text-[2rem] font-semibold leading-[1.05] tracking-tight text-white md:text-[3rem]">
-          What are your real admission odds?
-        </h2>
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-white/85 md:text-base">
-          Tell us what and where you want to study — we&apos;ll match you with universities and scholarships that fit.
-        </p>
-      </div>
-
-      {/* Interactive teaser: subject + destination + CTA */}
-      <div className="relative z-10 mt-6 flex flex-col gap-2 rounded-[1.5rem] bg-white/15 p-2 backdrop-blur-md sm:flex-row sm:items-center">
-        <div className="relative flex-1">
-          <select
-            value={subject}
-            onChange={(e) => setSubject(e.target.value)}
-            aria-label="Subject or field"
-            className="w-full cursor-pointer appearance-none rounded-full bg-white/95 py-3 pl-4 pr-9 text-sm font-medium text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            <option value="">Select a subject or field</option>
-            {PROGRAM_OPTIONS.map((p) => (
-              <option key={p} value={p}>
-                {p}
-              </option>
-            ))}
-          </select>
-          <ChevronIcon />
-        </div>
-        <div className="relative flex-1">
-          <select
-            value={country}
-            onChange={(e) => setCountry(e.target.value)}
-            aria-label="Destination"
-            className="w-full cursor-pointer appearance-none rounded-full bg-white/95 py-3 pl-4 pr-9 text-sm font-medium text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-          >
-            <option value="">Choose a destination</option>
-            {countries.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-          <ChevronIcon />
-        </div>
-        <button
-          type="button"
-          onClick={() => onStartMatch(subject, country)}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-pink-600 shadow-sm transition hover:bg-pink-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        >
-          See my odds
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <line x1="5" y1="12" x2="19" y2="12" />
-            <polyline points="12 5 19 12 12 19" />
-          </svg>
-        </button>
-      </div>
-
-      <p className="relative z-10 mt-3 text-xs text-white/80">
-        Free to explore — sign in to save your matches
-      </p>
     </section>
   );
 }
@@ -2631,66 +2544,6 @@ const GUEST_VISIBLE = 6;
 const AUTH_REDIRECT = `/auth?redirect=${encodeURIComponent('/universities')}`;
 
 /**
- * Windowed page list: always show the first and last page, plus the current
- * page and its immediate neighbours, with `'ellipsis'` filling the gaps.
- * e.g. (current 4, total 9) → [1, 'ellipsis', 3, 4, 5, 'ellipsis', 9].
- */
-function buildPageItems(current: number, total: number): (number | 'ellipsis')[] {
-  const items: (number | 'ellipsis')[] = [];
-  for (let p = 1; p <= total; p++) {
-    if (p === 1 || p === total || (p >= current - 1 && p <= current + 1)) {
-      items.push(p);
-    } else if (items[items.length - 1] !== 'ellipsis') {
-      items.push('ellipsis');
-    }
-  }
-  return items;
-}
-
-function Pagination({
-  page,
-  pageCount,
-  onChange,
-}: {
-  page: number;
-  pageCount: number;
-  onChange: (page: number) => void;
-}) {
-  if (pageCount <= 1) return null;
-  const items = buildPageItems(page, pageCount);
-  const arrow = 'flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-pink-200 hover:text-pink-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-600';
-  return (
-    <nav className="flex flex-wrap items-center justify-center gap-2 pt-6" aria-label="Pagination">
-      <button type="button" className={arrow} onClick={() => onChange(page - 1)} disabled={page <= 1} aria-label="Previous page">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
-      </button>
-      {items.map((item, i) =>
-        item === 'ellipsis' ? (
-          <span key={`e-${i}`} className="px-1 text-sm text-slate-400 select-none">…</span>
-        ) : (
-          <button
-            key={item}
-            type="button"
-            onClick={() => onChange(item)}
-            aria-current={item === page ? 'page' : undefined}
-            className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
-              item === page
-                ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white shadow-[0_6px_16px_rgba(255,77,140,0.3)]'
-                : 'border border-slate-200 bg-white text-slate-600 hover:border-pink-200 hover:text-pink-600'
-            }`}
-          >
-            {item}
-          </button>
-        ),
-      )}
-      <button type="button" className={arrow} onClick={() => onChange(page + 1)} disabled={page >= pageCount} aria-label="Next page">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>
-      </button>
-    </nav>
-  );
-}
-
-/**
  * Login gate shown beneath the teaser list for guests: a few blurred ghost
  * cards behind a soft veil + a sign-in CTA. Mirrors MatchUnlockPanel's pattern.
  */
@@ -2798,8 +2651,7 @@ function LoginGateModal() {
 ───────────────────────────────────────────────────────────────────────── */
 
 function BrowseView() {
-  const { universities, hasProfile, admissionUnlocked, isLoggedIn } = useExplorer();
-  const router = useRouter();
+  const { universities, admissionUnlocked, isLoggedIn } = useExplorer();
   const resultsRef = useRef<HTMLDivElement>(null);
   const [search, setSearch] = useState<SearchState>({ name: '', location: '', program: '' });
   const [filters, setFilters] = useState<FilterState>(DEFAULT_FILTERS);
@@ -2924,32 +2776,6 @@ function BrowseView() {
 
   const activeFilterChips = useMemo(() => buildActiveFilterChips(filters, search), [filters, search]);
 
-  // Destination options for the hook teaser — the countries actually present
-  // in the loaded data, de-duped and alphabetised.
-  const countryOptions = useMemo(
-    () => [...new Set(universities.map((u) => u.country))].sort(),
-    [universities],
-  );
-
-  // Hook CTA: profiled users get instant filtered matches; everyone else is
-  // funnelled into onboarding (which leads to sign-in). The chosen subject /
-  // country ride along as query params for optional onboarding prefill.
-  const onStartMatch = (subject: string, country: string) => {
-    setSearch((s) => ({
-      ...s,
-      program: subject || s.program,
-      location: country || s.location,
-    }));
-    if (!hasProfile) {
-      const p = new URLSearchParams({ from: 'search' });
-      if (subject) p.set('subject', subject);
-      if (country) p.set('country', country);
-      router.push(`/onboarding?${p.toString()}`);
-    } else {
-      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
-
   // Shared results region (sort bar + active filter chips + the cards grid or
   // empty state). Rendered inside the tinted "flow" panel when admission
   // grouping is unlocked, and on its own otherwise — so the markup stays in
@@ -3057,8 +2883,6 @@ function BrowseView() {
   return (
     <>
       <div className="w-full px-4 py-6 md:px-6 md:py-8">
-        {/* Landing hook — finful-style admission-odds question + teaser */}
-        <HookBand countries={countryOptions} onStartMatch={onStartMatch} />
         {/* Journey steps */}
         <JourneySteps activeStep={1} />
         {/* Hero */}

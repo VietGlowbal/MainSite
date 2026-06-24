@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Badge, Button, Card, EmptyState } from '@/components/ui';
+import { Badge, Button, Card, EmptyState, Pagination } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
 import { useLanguage } from '@/lib/i18n';
@@ -154,6 +154,10 @@ export function ScholarshipDirectoryClient({
   const [sort, setSort] = useState<SortKey>('relevance');
   const [selected, setSelected] = useState<DirectoryScholarship | null>(null);
 
+  // Pagination for the full directory: 9 cards per page (3 columns × 3 rows).
+  const [page, setPage] = useState(1);
+  const resultsTopRef = useRef<HTMLDivElement>(null);
+
   // Deep-link focus: split the directory into "at this university" + "same country".
   const [focusActive, setFocusActive] = useState(true);
   const focusIds = useMemo(() => {
@@ -213,6 +217,21 @@ export function ScholarshipDirectoryClient({
     });
     return rows;
   }, [scholarships, query, scope, country, funding, sort, matchedIds]);
+
+  // Reset to the first page whenever the result set changes (filters/search/sort).
+  useEffect(() => setPage(1), [query, scope, country, funding, sort]);
+
+  const SCHOLARSHIPS_PER_PAGE = 9; // 3 columns × 3 rows
+  const pageCount = Math.max(1, Math.ceil(filtered.length / SCHOLARSHIPS_PER_PAGE));
+  const currentPage = Math.min(page, pageCount);
+  const paged = filtered.slice(
+    (currentPage - 1) * SCHOLARSHIPS_PER_PAGE,
+    currentPage * SCHOLARSHIPS_PER_PAGE,
+  );
+  const goToPage = (p: number) => {
+    setPage(p);
+    resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
 
   // When deep-linked from a university, split the filtered list into two sections.
   const sectioned = !!focusUniversity && focusActive && focusHasMatches;
@@ -457,7 +476,10 @@ export function ScholarshipDirectoryClient({
                   }
                 />
               ) : (
-                renderGrid(filtered)
+                <div ref={resultsTopRef} className="scroll-mt-4">
+                  {renderGrid(paged)}
+                  <Pagination page={currentPage} pageCount={pageCount} onChange={goToPage} />
+                </div>
               )}
             </>
           )}

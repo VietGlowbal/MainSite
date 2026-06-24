@@ -174,9 +174,11 @@ function buildHeaderMap(headerRow) {
     else if (k.includes('loai hoc bong') || k.includes('merit based') || k.includes('merit')) map.funding_raw ??= i;
     else if (k.includes('doi tuong')) map.eligibility ??= i;
     else if (k.includes('truong ap dung')) map.applies_to_raw ??= i;
+    else if (k.includes('nationalit')) map.eligible_nationalities ??= i;
+    else if (k === 'degree' || k.includes('degree')) map.degree ??= i;
     else if (k.includes('thong tin') || k.includes('range tien')) map.value_raw ??= i;
     else if (k.includes('dieu kien')) map.conditions ??= i;
-    else if (k.includes('thoi gian')) map.timing_raw ??= i;
+    else if (k.includes('thoi gian') || k.includes('deadline')) map.timing_raw ??= i;
     else if (k.includes('insight')) map.insight ??= i;
     else if (k.includes('ten hoc bong') || k === 'ten' || k.includes('name')) map.name ??= i;
   });
@@ -377,6 +379,8 @@ function buildRecord(row, hmap) {
   const valueRaw = get('value_raw');
   const slotsRaw = get('slots_raw');
   const timingRaw = get('timing_raw');
+  const degree = get('degree');
+  const nationalities = get('eligible_nationalities');
 
   const { scope, candidates } = detectScope(name, appliesToText);
   const funding = normalizeFunding(fundingRaw);
@@ -396,6 +400,9 @@ function buildRecord(row, hmap) {
   if (droppedUrl) raw.source_url_original = droppedUrl;
   if (fundingRaw && funding.length === 0) raw.funding_type_original = fundingRaw;
   if (fundingRaw && (funding.length > 1 || funding[0] === 'other')) raw.funding_type_original = fundingRaw;
+  // New source columns with no dedicated DB column — preserved in `raw` (no data loss).
+  if (degree) raw.degree = degree;
+  if (nationalities) raw.eligible_nationalities = nationalities;
 
   return {
     source_key: sourceKey,
@@ -424,6 +431,23 @@ function buildRecord(row, hmap) {
     // Transport-only: resolved to university IDs by the loader.
     applies_to_candidates: candidates,
   };
+}
+
+// ── 4a. Audience filter (eligible_nationalities) ─────────────────────────────
+// Keep only scholarships a Vietnamese applicant can apply to:
+//   • "All Nationalities" (incl. "… except X") — kept UNLESS the except-clause
+//     names Vietnam.
+//   • a specific country list — kept only if it includes Vietnam.
+// Everything else (e.g. "Không tìm thấy", country lists without Vietnam) is
+// dropped. Only enforced when the source CSV actually has the column.
+function passesNationalityFilter(v) {
+  const s = stripDiacritics(String(v || '').toLowerCase()).trim();
+  if (!s) return false; // blank when the column is present = garbage
+  if (s.startsWith('all nationalities')) {
+    const i = s.indexOf('except');
+    return i === -1 || !/viet ?nam/.test(s.slice(i)); // keep unless VN is excluded
+  }
+  return /viet ?nam/.test(s); // specific list: keep only if VN is in it
 }
 
 // ── 5. Lightweight validation (Zod lives in src/lib/scholarships.ts) ─────────
@@ -455,15 +479,20 @@ async function main() {
   const header = rows[0];
   const hmap = buildHeaderMap(header);
   const dataRows = rows.slice(1);
+  const hasNationalityCol = hmap.eligible_nationalities != null;
 
   let droppedEmpty = 0;
   let droppedDupes = 0;
+  let droppedNationality = 0;
   const seen = new Set();
   const records = [];
 
   for (const row of dataRows) {
     const rec = buildRecord(row, hmap);
     if (!rec) { droppedEmpty++; continue; }
+    if (hasNationalityCol && !passesNationalityFilter(rec.raw.eligible_nationalities)) {
+      droppedNationality++; continue;
+    }
     const dedupeKey = `${normKey(rec.name)}|${normKey(rec.source_url || '')}`;
     if (seen.has(dedupeKey)) { droppedDupes++; continue; }
     seen.add(dedupeKey);
@@ -489,6 +518,9 @@ async function main() {
   console.log('Scholarships cleaned:');
   console.log(`  input rows (excl. header): ${dataRows.length}`);
   console.log(`  dropped empty:             ${droppedEmpty}`);
+  if (hasNationalityCol) {
+    console.log(`  dropped (nationality):     ${droppedNationality}`);
+  }
   console.log(`  dropped duplicates:        ${droppedDupes}`);
   console.log(`  written:                   ${records.length}`);
   console.log(`  by scope:                  ${JSON.stringify(byScope)}`);
