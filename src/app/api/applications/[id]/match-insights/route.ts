@@ -153,6 +153,21 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   if (insErr) {
     console.error('[match-insights] store failed', insErr);
+    // The pillars/confidence/inputs_present columns come from
+    // supabase-match-insights.sql. If they're missing, Postgres raises an
+    // undefined_column (42703) error — surface a clear, actionable message
+    // instead of a generic 500 so it's obvious the migration must be applied.
+    const needsMigration =
+      insErr.code === '42703' || /pillars|confidence|inputs_present/i.test(insErr.message ?? '');
+    if (needsMigration) {
+      return NextResponse.json(
+        {
+          error:
+            'Match Insights needs a one-time database update. Run supabase-match-insights.sql in the Supabase SQL editor, then try again.',
+        },
+        { status: 503 },
+      );
+    }
     return NextResponse.json({ error: 'Could not save the analysis.' }, { status: 500 });
   }
 
