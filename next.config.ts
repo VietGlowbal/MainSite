@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // Keep the PDF text-extraction lib (bundles its own pdf.js) out of the
+  // server bundle so it loads reliably from node_modules at runtime.
+  serverExternalPackages: ['unpdf'],
   // Tree-shake large UI libraries so routes only bundle the bits they use
   // instead of importing the whole package barrel.
   experimental: {

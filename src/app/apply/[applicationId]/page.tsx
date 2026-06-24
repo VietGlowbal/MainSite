@@ -29,18 +29,14 @@ export default async function ApplicationPage({
       .select('plus_status, academic_background, grades_summary')
       .eq('user_id', user.id)
       .maybeSingle(),
-    supabase
-      .from('uploaded_documents')
-      .select('document_type')
-      .eq('user_id', user.id)
-      .eq('is_active', true),
+    supabase.from('uploaded_documents').select('type').eq('user_id', user.id),
   ]);
 
   const isPlus = Boolean(profile?.plus_status);
   const essayTypes = ['statement_of_purpose', 'personal_statement', 'sop', 'statement'];
   const matchInputs = {
-    cv: (docs ?? []).some((d) => d.document_type === 'cv'),
-    essay: (docs ?? []).some((d) => essayTypes.includes(d.document_type)),
+    cv: (docs ?? []).some((d) => d.type === 'cv'),
+    essay: (docs ?? []).some((d) => essayTypes.includes(d.type)),
     academic: Boolean(profile?.academic_background || profile?.grades_summary),
   };
 
