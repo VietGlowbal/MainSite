@@ -284,7 +284,9 @@ export function ScholarshipDirectoryClient({
   );
 
   return (
-    <div className="space-y-6">
+    // Extra bottom padding when the floating "Continue to Apply" bar is shown,
+    // so it doesn't overlap the pagination control at the end of the list.
+    <div className={`space-y-6 ${savedIds.size > 0 ? 'pb-28' : ''}`}>
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">{t('Scholarships')}</h1>
