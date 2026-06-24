@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Keep Tailwind's automatic source detection out of the `data/` directory.
+   It holds large CSV/JSON data files (no Tailwind classes to extract), and
+   scanning them is both wasteful and prone to file-lock crashes on Windows
+   when a CSV is open in Excel (Turbopack panic: os error 32). */
+@source not "../../data";
+
 :root {
   --background: #F5F6FF;
   --foreground: #1A1A2E;
