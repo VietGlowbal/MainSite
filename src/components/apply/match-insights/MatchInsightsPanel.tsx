@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import {
   MATCH_PILLARS,
   PILLAR_ORDER,
@@ -35,16 +36,20 @@ function scoreToneClass(score: number): string {
   return 'text-rose-500';
 }
 
+export type MatchInputs = { cv: boolean; essay: boolean; academic: boolean };
+
 export function MatchInsightsPanel({
   applicationId,
   analysis,
   isPlus,
   improvementTasks,
+  inputs = { cv: false, essay: false, academic: false },
 }: {
   applicationId: string;
   analysis: MatchInsightsData;
   isPlus: boolean;
   improvementTasks: ImprovementTaskLite[];
+  inputs?: MatchInputs;
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -57,6 +62,7 @@ export function MatchInsightsPanel({
     [analysis?.pillars],
   );
   const hasAnalysis = PILLAR_ORDER.some((k) => pillars[k]);
+  const hasAnyInput = inputs.cv || inputs.essay || inputs.academic;
 
   // Uplift from completed improvement tasks, per pillar → a projected score.
   const upliftByPillar = useMemo(() => {
@@ -148,19 +154,32 @@ export function MatchInsightsPanel({
       {error ? <p className="mt-3 rounded-xl bg-rose-50 px-3 py-2 text-xs text-rose-600">{error}</p> : null}
 
       {!hasAnalysis ? (
-        <div className="mt-5 flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-10 text-center">
-          <p className="max-w-sm text-sm text-slate-500">
-            Get an AI breakdown of how you match this course across five areas — with a clear score and
-            the exact steps to raise it.
+        <div className="mt-5 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-4 py-6">
+          <p className="mx-auto max-w-md text-center text-sm text-slate-500">
+            We’ll score how you match this course across five areas — but first add the documents below
+            so the score reflects the real you (not an empty 0%).
           </p>
-          <button
-            type="button"
-            onClick={runAnalysis}
-            disabled={busy}
-            className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5 disabled:opacity-60"
-          >
-            {busy ? 'Analysing your match…' : 'Analyse my match'}
-          </button>
+
+          <ul className="mx-auto mt-4 max-w-md space-y-2">
+            <InputRow done={inputs.cv} label="Your CV / résumé" href="/profile/documents" cta="Upload CV" />
+            <InputRow done={inputs.essay} label="Your personal statement / essay" href="/profile/documents" cta="Upload essay" />
+            <InputRow done={inputs.academic} label="Your grades & academic background" href="/profile/academic" cta="Add grades" />
+          </ul>
+
+          <div className="mt-5 flex flex-col items-center gap-2">
+            <button
+              type="button"
+              onClick={runAnalysis}
+              disabled={busy || !hasAnyInput}
+              title={hasAnyInput ? undefined : 'Add your CV, essay or grades first'}
+              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {busy ? 'Analysing your match…' : 'Analyse my match'}
+            </button>
+            {!hasAnyInput ? (
+              <p className="text-xs text-slate-400">Add at least one of the above to get a score.</p>
+            ) : null}
+          </div>
         </div>
       ) : (
         <>
@@ -208,7 +227,12 @@ export function MatchInsightsPanel({
                     <div className="h-full rounded-full bg-slate-400" style={{ width: `${confidence}%` }} />
                   </div>
                   {confidence < 60 ? (
-                    <p className="mt-1 text-[11px] text-slate-400">Add your CV &amp; essay for a more accurate score.</p>
+                    <p className="mt-1 text-[11px] text-slate-400">
+                      <Link href="/profile/documents" className="font-semibold text-pink-500 hover:underline">
+                        Add your CV &amp; essay
+                      </Link>{' '}
+                      for a more accurate score.
+                    </p>
                   ) : null}
                 </div>
               ) : null}
@@ -238,5 +262,33 @@ export function MatchInsightsPanel({
         </>
       )}
     </section>
+  );
+}
+
+function InputRow({ done, label, href, cta }: { done: boolean; label: string; href: string; cta: string }) {
+  return (
+    <li className="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white px-3 py-2">
+      <span className="flex items-center gap-2 text-sm text-slate-700">
+        <span
+          className={`flex h-5 w-5 items-center justify-center rounded-full text-[11px] font-bold ${
+            done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
+          }`}
+          aria-hidden
+        >
+          {done ? '✓' : ''}
+        </span>
+        {label}
+      </span>
+      {done ? (
+        <span className="shrink-0 text-xs font-semibold text-emerald-600">Added</span>
+      ) : (
+        <Link
+          href={href}
+          className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-pink-600 transition hover:border-pink-300"
+        >
+          {cta}
+        </Link>
+      )}
+    </li>
   );
 }

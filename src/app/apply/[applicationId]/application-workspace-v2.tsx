@@ -6,7 +6,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
 import type { ApplicationWorkspaceView, ApplicationTask } from '@/lib/apply-types';
 import { ApplicationHeader } from '@/components/apply/ApplicationHeader';
 import { MetricsBar } from '@/components/apply/MetricsBar';
@@ -18,12 +17,19 @@ import { StatementFeedbackModal } from '@/components/statement/StatementFeedback
 import { isStatementTask } from '@/components/statement/is-statement-task';
 import { MatchInsightsPanel } from '@/components/apply/match-insights/MatchInsightsPanel';
 
+type MatchInputs = { cv: boolean; essay: boolean; academic: boolean };
+
 type Props = {
   workspace: ApplicationWorkspaceView;
   isPlus?: boolean;
+  matchInputs?: MatchInputs;
 };
 
-export function ApplicationWorkspaceV2({ workspace, isPlus = false }: Props) {
+export function ApplicationWorkspaceV2({
+  workspace,
+  isPlus = false,
+  matchInputs = { cv: false, essay: false, academic: false },
+}: Props) {
   const { application, stages, metrics, sources, recommendations } = workspace;
   
   // Find initial active stage
@@ -34,10 +40,10 @@ export function ApplicationWorkspaceV2({ workspace, isPlus = false }: Props) {
   const activeStage = stages.find(s => s.id === activeStageId) || stages[0];
   const activeStageIndex = stages.findIndex(s => s.id === activeStageId);
 
-  // AI statement-feedback modal — auto-opens when arriving via the payment
-  // page's "Continue with limited plan" link (/apply/[id]?sop=1).
-  const searchParams = useSearchParams();
-  const [statementModalOpen, setStatementModalOpen] = useState(() => searchParams.get('sop') === '1');
+  // AI statement-feedback modal — only opens when the user explicitly asks for
+  // it (e.g. the "Get AI feedback" CTA on a statement task), never automatically
+  // on opening a course.
+  const [statementModalOpen, setStatementModalOpen] = useState(false);
 
   // Handle task toggle
   const handleTaskToggle = async (taskId: string, newStatus: 'completed' | 'not_started') => {
@@ -131,6 +137,7 @@ export function ApplicationWorkspaceV2({ workspace, isPlus = false }: Props) {
           analysis={workspace.matchAnalysis}
           isPlus={isPlus}
           improvementTasks={improvementTasks}
+          inputs={matchInputs}
         />
 
         {/* Journey Pipeline */}

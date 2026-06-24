@@ -205,7 +205,6 @@ function ApplicationCard({
   score,
   scholarships,
   highlighted,
-  isPlus,
   t,
   parseStatus,
   onRetryParse,
@@ -214,7 +213,6 @@ function ApplicationCard({
   score: number;
   scholarships: SavedScholarshipLite[];
   highlighted: boolean;
-  isPlus: boolean;
   t: (en: string, vars?: Record<string, string | number>) => string;
   parseStatus?: { parseStatus: string; progressPercentage: number };
   onRetryParse?: (applicationId: string) => void;
@@ -317,9 +315,10 @@ function ApplicationCard({
     }
   };
 
-  // Plus subscribers go straight to the workspace; everyone else hits the
-  // payment page first (carrying this application so we can return to it).
-  const href = isPlus ? `/apply/${app.id}` : `/plus?application=${app.id}`;
+  // Opening a course always goes to its workspace. Premium features inside
+  // (e.g. match-insights improvement tasks) are gated there for non-Plus users,
+  // so there's no need to bounce anyone through the payment page first.
+  const href = `/apply/${app.id}`;
 
   return (
     <div className={highlighted ? 'rounded-2xl ring-2 ring-pink-400 ring-offset-2' : ''}>
@@ -912,7 +911,6 @@ type Props = {
   savedScholarshipsByUniversity: Record<number, SavedScholarshipLite[]>;
   matchByApplicationId: Record<string, number>;
   focusUniversityId: number | null;
-  isPlus: boolean;
   courseSearchUniversityId: number | null;
   openCourseSearch: boolean;
   isLoggedOut?: boolean; // Task 6.2: Support logged-out users accessing via CTA
@@ -926,7 +924,6 @@ export function ApplyDashboard({
   savedScholarshipsByUniversity,
   matchByApplicationId,
   focusUniversityId,
-  isPlus,
   courseSearchUniversityId,
   openCourseSearch,
   isLoggedOut = false, // Task 6.2: Default to false for backward compatibility
@@ -1311,7 +1308,6 @@ export function ApplyDashboard({
                   score={matchByApplicationId[app.id] ?? app.progressPercentage}
                   scholarships={scholarshipsFor(app.universityId)}
                   highlighted={focusUniversityId != null && app.universityId === focusUniversityId}
-                  isPlus={isPlus}
                   t={t}
                   parseStatus={parseStatuses[app.id]}
                   onRetryParse={handleRetryParse}
@@ -1361,7 +1357,6 @@ export function ApplyDashboard({
                   score={matchByApplicationId[app.id] ?? app.progressPercentage}
                   scholarships={scholarshipsFor(app.universityId)}
                   highlighted={false}
-                  isPlus={isPlus}
                   t={t}
                   parseStatus={parseStatuses[app.id]}
                   onRetryParse={handleRetryParse}

@@ -76,12 +76,32 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     .select('document_type, parsed_text')
     .eq('user_id', user.id)
     .eq('is_active', true);
+  // Document types as actually stored by our upload flows.
+  const ESSAY_TYPES = ['statement_of_purpose', 'personal_statement', 'sop', 'statement'];
   const cvText = documents?.find((d) => d.document_type === 'cv')?.parsed_text ?? undefined;
   const essayText =
-    documents?.find((d) => d.document_type === 'sop' || d.document_type === 'statement')?.parsed_text ??
-    undefined;
+    documents?.find((d) => ESSAY_TYPES.includes(d.document_type))?.parsed_text ?? undefined;
 
   const achievements: string[] = Array.isArray(profile?.achievements) ? profile.achievements : [];
+
+  // Don't burn an AI call (or store a misleading 0%) when there's nothing to
+  // assess — guide the user to add their documents first.
+  const hasAnyInput = Boolean(
+    cvText ||
+      essayText ||
+      profile?.academic_background ||
+      profile?.grades_summary ||
+      achievements.length > 0,
+  );
+  if (!hasAnyInput) {
+    return NextResponse.json(
+      {
+        error: 'Add your CV, personal statement or grades first so we can score your match.',
+        needsInputs: true,
+      },
+      { status: 422 },
+    );
+  }
 
   let insights;
   try {
