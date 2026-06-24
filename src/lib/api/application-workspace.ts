@@ -229,6 +229,8 @@ function transformTask(task: any) {
     sortOrder: task.sort_order,
     completedAt: task.completed_at,
     createdBy: task.created_by,
+    pillar: task.pillar ?? undefined,
+    estimatedUplift: task.estimated_uplift ?? undefined,
     createdAt: task.created_at,
     updatedAt: task.updated_at,
   };
@@ -298,6 +300,9 @@ function transformMatchAnalysis(analysis: any) {
     modelName: analysis.model_name,
     promptVersion: analysis.prompt_version,
     analysisStatus: analysis.analysis_status,
+    pillars: analysis.pillars ?? undefined,
+    confidence: analysis.confidence ?? undefined,
+    inputsPresent: analysis.inputs_present ?? undefined,
     createdAt: analysis.created_at,
   };
 }

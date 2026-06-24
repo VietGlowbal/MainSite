@@ -16,12 +16,14 @@ import { ProgressSidebar } from '@/components/apply/ProgressSidebar';
 import { NavigationButtons } from '@/components/apply/NavigationButtons';
 import { StatementFeedbackModal } from '@/components/statement/StatementFeedbackModal';
 import { isStatementTask } from '@/components/statement/is-statement-task';
+import { MatchInsightsPanel } from '@/components/apply/match-insights/MatchInsightsPanel';
 
 type Props = {
   workspace: ApplicationWorkspaceView;
+  isPlus?: boolean;
 };
 
-export function ApplicationWorkspaceV2({ workspace }: Props) {
+export function ApplicationWorkspaceV2({ workspace, isPlus = false }: Props) {
   const { application, stages, metrics, sources, recommendations } = workspace;
   
   // Find initial active stage
@@ -105,6 +107,11 @@ export function ApplicationWorkspaceV2({ workspace }: Props) {
   const allTasks = stages.flatMap(s => s.tasks || []);
   const completedTasks = allTasks.filter(t => t.status === 'completed').length;
 
+  // Improvement tasks feed the projected match score in the insights panel.
+  const improvementTasks = allTasks
+    .filter(t => t.taskType === 'improvement')
+    .map(t => ({ pillar: t.pillar, estimatedUplift: t.estimatedUplift, status: t.status }));
+
   return (
     <div className="flex gap-6">
       {/* Main content */}
@@ -113,9 +120,17 @@ export function ApplicationWorkspaceV2({ workspace }: Props) {
         <ApplicationHeader application={application} />
 
         {/* Metrics */}
-        <MetricsBar 
+        <MetricsBar
           metrics={metrics}
           entryRequirements={workspace.course?.entryRequirementsSummary}
+        />
+
+        {/* Match insights — five-pillar score, radar, and improvements */}
+        <MatchInsightsPanel
+          applicationId={application.id}
+          analysis={workspace.matchAnalysis}
+          isPlus={isPlus}
+          improvementTasks={improvementTasks}
         />
 
         {/* Journey Pipeline */}
