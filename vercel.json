@@ -1,6 +1,10 @@
 {
   "crons": [
     {
+      "path": "/api/cron/process-parse-jobs",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/university-images",
       "schedule": "0 3 * * *"
     },
