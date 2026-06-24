@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { analyzeCourseMatchInsights } from '@/lib/ai/match-insights';
+import { extractDocumentText } from '@/lib/ai/document-text';
 import {
   weightedScore,
   matchLabel,
@@ -18,6 +20,9 @@ import {
  * application; Plus users can re-run on demand. Stores the result on
  * application_match_analyses (pillars + aggregates) and returns it.
  */
+export const runtime = 'nodejs';
+export const maxDuration = 60;
+
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id: applicationId } = await context.params;
   const supabase = await createClient();
@@ -70,22 +75,54 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     }
   }
 
-  // Candidate documents (CV + statement/essay).
+  // Candidate documents (CV + statement/essay). NB: the table columns are
+  // `type` (not document_type) and the file text is extracted on demand —
+  // nothing pre-populates it. We read it once and cache it back to parsed_text.
+  const admin = createAdminClient();
   const { data: documents } = await supabase
     .from('uploaded_documents')
-    .select('document_type, parsed_text')
-    .eq('user_id', user.id)
-    .eq('is_active', true);
+    .select('id, type, storage_key, mime_type, parsed_text')
+    .eq('user_id', user.id);
+
   // Document types as actually stored by our upload flows.
   const ESSAY_TYPES = ['statement_of_purpose', 'personal_statement', 'sop', 'statement'];
-  const cvText = documents?.find((d) => d.document_type === 'cv')?.parsed_text ?? undefined;
-  const essayText =
-    documents?.find((d) => ESSAY_TYPES.includes(d.document_type))?.parsed_text ?? undefined;
+
+  type DocRow = {
+    id: string;
+    type: string;
+    storage_key: string;
+    mime_type: string | null;
+    parsed_text: string | null;
+  };
+  const docs = (documents ?? []) as DocRow[];
+
+  // Get a document's text from the cache, or extract it from storage and cache it.
+  async function textFor(doc: DocRow | undefined): Promise<string | undefined> {
+    if (!doc) return undefined;
+    if (doc.parsed_text && doc.parsed_text.trim()) return doc.parsed_text;
+    const text = await extractDocumentText(admin, doc.storage_key, doc.mime_type);
+    if (text) {
+      await admin.from('uploaded_documents').update({ parsed_text: text }).eq('id', doc.id);
+      return text;
+    }
+    return undefined;
+  }
+
+  const cvDoc = docs.find((d) => d.type === 'cv');
+  const essayDoc = docs.find((d) => ESSAY_TYPES.includes(d.type));
+  const cvText = await textFor(cvDoc);
+  const essayText = await textFor(essayDoc);
+
+  // A document was uploaded but we couldn't read its text (e.g. a scanned image
+  // PDF or a .docx). We tell the AI so it doesn't claim "no CV provided".
+  const notes: string[] = [];
+  if (cvDoc && !cvText) notes.push('The candidate uploaded a CV, but its text could not be extracted (it may be a scanned image or an unsupported format).');
+  if (essayDoc && !essayText) notes.push('The candidate uploaded a statement/essay, but its text could not be extracted.');
 
   const achievements: string[] = Array.isArray(profile?.achievements) ? profile.achievements : [];
 
-  // Don't burn an AI call (or store a misleading 0%) when there's nothing to
-  // assess — guide the user to add their documents first.
+  // Don't burn an AI call (or store a misleading 0%) when there's genuinely
+  // nothing readable to assess — guide the user instead.
   const hasAnyInput = Boolean(
     cvText ||
       essayText ||
@@ -94,9 +131,12 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       achievements.length > 0,
   );
   if (!hasAnyInput) {
+    const couldntRead = (cvDoc || essayDoc) ? true : false;
     return NextResponse.json(
       {
-        error: 'Add your CV, personal statement or grades first so we can score your match.',
+        error: couldntRead
+          ? 'We couldn’t read your uploaded document — try a text-based PDF (not a scan) or add your grades, then re-analyse.'
+          : 'Add your CV, personal statement or grades first so we can score your match.',
         needsInputs: true,
       },
       { status: 422 },
@@ -125,6 +165,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       },
       cvText,
       essayText,
+      notes,
       apiKey,
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     });

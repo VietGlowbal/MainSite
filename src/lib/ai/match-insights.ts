@@ -86,7 +86,13 @@ Respond with VALID JSON ONLY (no markdown, no commentary) matching exactly:
 }`;
 }
 
-function buildUserPrompt(course: MatchCourseInput, profile: MatchProfileInput, cvText?: string, essayText?: string): string {
+function buildUserPrompt(
+  course: MatchCourseInput,
+  profile: MatchProfileInput,
+  cvText?: string,
+  essayText?: string,
+  notes?: string[],
+): string {
   const parts: string[] = [];
   parts.push(`COURSE: ${course.courseName} at ${course.universityName}`);
   if (course.degreeLevel) parts.push(`Level: ${course.degreeLevel}`);
@@ -105,6 +111,10 @@ function buildUserPrompt(course: MatchCourseInput, profile: MatchProfileInput, c
 
   parts.push(`\nCV / RESUME TEXT:\n${cvText ? cvText.slice(0, 6000) : '(no CV provided)'}`);
   parts.push(`\nESSAY / STATEMENT TEXT:\n${essayText ? essayText.slice(0, 6000) : '(no essay provided)'}`);
+
+  if (notes && notes.length > 0) {
+    parts.push(`\nIMPORTANT NOTES:\n${notes.map((n) => `- ${n}`).join('\n')}`);
+  }
 
   parts.push('\nScore the match now. Respond with JSON only.');
   return parts.join('\n');
@@ -163,10 +173,12 @@ export async function analyzeCourseMatchInsights(args: {
   profile: MatchProfileInput;
   cvText?: string;
   essayText?: string;
+  /** Caveats for the model, e.g. "a CV was uploaded but couldn't be read". */
+  notes?: string[];
   apiKey: string;
   model?: string;
 }): Promise<MatchInsights> {
-  const { course, profile, cvText, essayText, apiKey, model = 'gpt-4o-mini' } = args;
+  const { course, profile, cvText, essayText, notes, apiKey, model = 'gpt-4o-mini' } = args;
 
   const inputsPresent: MatchInputsPresent = {
     profile: Boolean(profile.academicBackground || profile.grades || profile.testScores),
@@ -182,7 +194,7 @@ export async function analyzeCourseMatchInsights(args: {
       model,
       messages: [
         { role: 'system', content: buildSystemPrompt() },
-        { role: 'user', content: buildUserPrompt(course, profile, cvText, essayText) },
+        { role: 'user', content: buildUserPrompt(course, profile, cvText, essayText, notes) },
       ],
       temperature: 0.3,
       max_tokens: 3000,
