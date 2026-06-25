@@ -426,11 +426,17 @@ function FilterSidebar({
   onChange,
   totalCount,
   onReset,
+  bare = false,
+  onApply,
 }: {
   filters: FilterState;
   onChange: (f: FilterState) => void;
   totalCount: number;
   onReset: () => void;
+  /** Drop the card chrome so it sits flush inside the mobile filter sheet. */
+  bare?: boolean;
+  /** Wires the "Show N results" button (e.g. to close the mobile sheet). */
+  onApply?: () => void;
 }) {
   const [open, setOpen] = useState({
     location: false,
@@ -487,7 +493,7 @@ function FilterSidebar({
       : filters.campusSetting.charAt(0).toUpperCase() + filters.campusSetting.slice(1);
 
   return (
-    <aside className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_14px_rgba(15,23,42,0.04)] self-start">
+    <aside className={bare ? '' : 'rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_4px_14px_rgba(15,23,42,0.04)] self-start'}>
       <div className="mb-2 flex items-center justify-between">
         <h3 className="inline-flex items-center gap-2 text-sm font-semibold text-slate-900">
           Refine your search
@@ -725,7 +731,7 @@ function FilterSidebar({
         />
       </SidebarSection>
 
-      <Button variant="primary" fullWidth className="mt-5">
+      <Button variant="primary" fullWidth className="mt-5" onClick={onApply}>
         Show {totalCount.toLocaleString()} results
       </Button>
     </aside>
@@ -2663,6 +2669,8 @@ function BrowseView() {
   // so the selection survives navigation.
   const [compareIds, setCompareIds] = useState<number[]>(() => readCompareIds());
   const [showCompare, setShowCompare] = useState(false);
+  // Mobile filters live in a bottom-sheet so they don't eat vertical space.
+  const [filtersOpen, setFiltersOpen] = useState(false);
   useEffect(() => {
     writeCompareIds(compareIds);
   }, [compareIds]);
@@ -2894,16 +2902,38 @@ function BrowseView() {
 
         {/* Body: sidebar + results */}
         <div className="mt-6 grid gap-6 lg:grid-cols-[260px_1fr]">
-          {/* Sidebar */}
-          <FilterSidebar
-            filters={filters}
-            onChange={setFilters}
-            totalCount={filtered.length}
-            onReset={() => setFilters(DEFAULT_FILTERS)}
-          />
+          {/* Sidebar — desktop only; mobile uses the bottom-sheet below. */}
+          <div className="hidden lg:block">
+            <FilterSidebar
+              filters={filters}
+              onChange={setFilters}
+              totalCount={filtered.length}
+              onReset={() => setFilters(DEFAULT_FILTERS)}
+            />
+          </div>
 
           {/* Main column */}
           <div ref={resultsRef} className="space-y-5 scroll-mt-6">
+            {/* Mobile filters trigger */}
+            <button
+              type="button"
+              onClick={() => setFiltersOpen(true)}
+              className="flex w-full items-center justify-between gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-700 shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition hover:border-pink-300 lg:hidden"
+            >
+              <span className="inline-flex items-center gap-2">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                  <line x1="4" y1="21" x2="4" y2="14" /><line x1="4" y1="10" x2="4" y2="3" /><line x1="12" y1="21" x2="12" y2="12" /><line x1="12" y1="8" x2="12" y2="3" /><line x1="20" y1="21" x2="20" y2="16" /><line x1="20" y1="12" x2="20" y2="3" /><line x1="1" y1="14" x2="7" y2="14" /><line x1="9" y1="8" x2="15" y2="8" /><line x1="17" y1="16" x2="23" y2="16" />
+                </svg>
+                Filters
+                {countActiveFilters(filters) > 0 ? (
+                  <span className="rounded-full bg-pink-100 px-1.5 py-0.5 text-[0.65rem] font-bold text-pink-600">
+                    {countActiveFilters(filters)}
+                  </span>
+                ) : null}
+              </span>
+              <span className="text-xs font-medium text-slate-400">{filtered.length} results</span>
+            </button>
+
             {/* Reach / Recommended / Safe grouping — gated on CV/SOP upload.
                 When unlocked, the active tab's tint flows into a connected
                 panel that wraps the banner + results, mirroring the mockup. */}
@@ -2955,6 +2985,40 @@ function BrowseView() {
           />
         )}
       </AnimatePresence>
+
+      {/* Mobile filter bottom-sheet */}
+      {filtersOpen && (
+        <div className="fixed inset-0 z-[60] lg:hidden" role="dialog" aria-modal="true" aria-label="Filters">
+          <div
+            className="absolute inset-0 bg-slate-900/50 backdrop-blur-sm"
+            onClick={() => setFiltersOpen(false)}
+            aria-hidden
+          />
+          <div className="absolute inset-x-0 bottom-0 top-16 flex flex-col rounded-t-3xl bg-white shadow-[0_-12px_40px_rgba(15,23,42,0.18)]">
+            <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+              <h2 className="text-base font-semibold text-slate-900">Filters</h2>
+              <button
+                type="button"
+                onClick={() => setFiltersOpen(false)}
+                aria-label="Close filters"
+                className="flex h-8 w-8 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-4 py-3 pb-8">
+              <FilterSidebar
+                filters={filters}
+                onChange={setFilters}
+                totalCount={filtered.length}
+                onReset={() => setFilters(DEFAULT_FILTERS)}
+                bare
+                onApply={() => setFiltersOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
