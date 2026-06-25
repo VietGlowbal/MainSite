@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
+import type { User } from '@supabase/supabase-js';
 import { isAdmin } from '@/lib/auth-helpers';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -30,13 +31,23 @@ export async function GET() {
 
   const admin = createAdminClient();
 
-  // Auth users (paginated; first 200 is plenty for the admin dashboard).
-  const { data: usersPage, error: listErr } = await admin.auth.admin.listUsers({
-    page: 1,
-    perPage: 200,
-  });
-  if (listErr) {
-    return NextResponse.json({ error: listErr.message }, { status: 500 });
+  // Fetch ALL auth users by walking every page — the dashboard must never
+  // silently drop accounts. A fixed first-page cap would hide the oldest
+  // users (including the earliest admins) once the base grows past it.
+  const authUsers: User[] = [];
+  let page = 1;
+  // Loop guard: 50 pages × 1000 = 50k users, far beyond any realistic base.
+  for (let i = 0; i < 50; i++) {
+    const { data, error: listErr } = await admin.auth.admin.listUsers({
+      page,
+      perPage: 1000,
+    });
+    if (listErr) {
+      return NextResponse.json({ error: listErr.message }, { status: 500 });
+    }
+    authUsers.push(...data.users);
+    if (!data.nextPage) break; // null once there are no more pages
+    page = data.nextPage;
   }
 
   // Join with student_profiles so we can show is_admin + onboarding status.
@@ -62,7 +73,7 @@ export async function GET() {
     (loginCounts ?? []).map((r) => [r.user_id, Number(r.login_count ?? 0)]),
   );
 
-  const users = usersPage.users.map((u) => ({
+  const users = authUsers.map((u) => ({
     id: u.id,
     email: u.email ?? null,
     full_name: (u.user_metadata?.full_name as string | undefined) ?? null,
