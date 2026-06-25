@@ -173,29 +173,41 @@ function toDirectoryScholarship(row: ScholarshipRow): DirectoryScholarship {
   };
 }
 
+// Supabase/PostgREST caps a single response at "Max rows" (default 1000), so the
+// full published set (2877+ rows) must be paged in with .range() until exhausted —
+// a bare .limit() can't exceed a server-side hard cap.
+const SCHOLARSHIPS_PAGE_SIZE = 1000;
+const SCHOLARSHIPS_SELECT = `id, name, slug, scope, country, provider, funding_type, coverage,
+   amount_min, amount_max, amount_currency, slots, slots_text,
+   eligibility, applies_to_text, conditions, insight,
+   deadline_date, deadline_text, source_url, source_lang, ranking_note, status,
+   scholarship_universities (
+     university_id, match_score, confirmed,
+     universities ( id, name, country, logo_url )
+   )`;
+
 const getPublishedScholarshipsCached = unstable_cache(
   async (): Promise<DirectoryScholarship[]> => {
     const admin = createAdminClient();
-    const { data, error } = await admin
-      .from('scholarships')
-      .select(
-        `id, name, slug, scope, country, provider, funding_type, coverage,
-         amount_min, amount_max, amount_currency, slots, slots_text,
-         eligibility, applies_to_text, conditions, insight,
-         deadline_date, deadline_text, source_url, source_lang, ranking_note, status,
-         scholarship_universities (
-           university_id, match_score, confirmed,
-           universities ( id, name, country, logo_url )
-         )`,
-      )
-      .eq('status', 'published')
-      .order('name', { ascending: true });
+    const rows: ScholarshipRow[] = [];
+    for (let from = 0; ; from += SCHOLARSHIPS_PAGE_SIZE) {
+      const { data, error } = await admin
+        .from('scholarships')
+        .select(SCHOLARSHIPS_SELECT)
+        .eq('status', 'published')
+        .order('name', { ascending: true })
+        .order('id', { ascending: true }) // unique tiebreaker → stable paging across batches
+        .range(from, from + SCHOLARSHIPS_PAGE_SIZE - 1);
 
-    if (error) {
-      console.error('getPublishedScholarships failed:', error.message);
-      return [];
+      if (error) {
+        console.error('getPublishedScholarships failed:', error.message);
+        break; // return whatever was fetched so far rather than dropping everything
+      }
+      const batch = (data ?? []) as unknown as ScholarshipRow[];
+      rows.push(...batch);
+      if (batch.length < SCHOLARSHIPS_PAGE_SIZE) break; // last (short) batch → done
     }
-    return ((data ?? []) as unknown as ScholarshipRow[]).map(toDirectoryScholarship);
+    return rows.map(toDirectoryScholarship);
   },
   ['published-scholarships'],
   { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
