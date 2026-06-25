@@ -1,6 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Pagination } from '@/components/ui/pagination';
+
+const USERS_PER_PAGE = 10;
 
 type AdminUser = {
   id: string;
@@ -33,6 +36,7 @@ export function AdminUsersClient() {
   const [filter, setFilter] = useState<'all' | 'admins' | 'mentors'>('all');
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
 
   async function load() {
     setState({ kind: 'loading' });
@@ -130,6 +134,22 @@ export function AdminUsersClient() {
     });
   }, [state, filter, query]);
 
+  // Drop back to page 1 whenever the result set changes (filter/search), using
+  // React's "adjust state during render" pattern so there's no extra commit.
+  const resultKey = `${filter}|${query}`;
+  const [prevResultKey, setPrevResultKey] = useState(resultKey);
+  if (resultKey !== prevResultKey) {
+    setPrevResultKey(resultKey);
+    setPage(1);
+  }
+
+  const pageCount = Math.max(1, Math.ceil(filtered.length / USERS_PER_PAGE));
+  const currentPage = Math.min(page, pageCount); // clamp if the list shrank
+  const paged = filtered.slice(
+    (currentPage - 1) * USERS_PER_PAGE,
+    currentPage * USERS_PER_PAGE,
+  );
+
   if (state.kind === 'loading') {
     return <p className="text-sm text-slate-400">Loading users…</p>;
   }
@@ -209,7 +229,7 @@ export function AdminUsersClient() {
                 </td>
               </tr>
             ) : (
-              filtered.map((u) => {
+              paged.map((u) => {
                 const isBusy = busy === u.id;
                 return (
                   <tr key={u.id} className="border-b border-slate-100 last:border-0">
@@ -275,6 +295,16 @@ export function AdminUsersClient() {
           </tbody>
         </table>
       </div>
+
+      {filtered.length > 0 && (
+        <div className="flex flex-col items-center gap-2">
+          <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
+          <p className="text-xs text-slate-400">
+            Showing {(currentPage - 1) * USERS_PER_PAGE + 1}–
+            {Math.min(currentPage * USERS_PER_PAGE, filtered.length)} of {filtered.length}
+          </p>
+        </div>
+      )}
     </div>
   );
 }
