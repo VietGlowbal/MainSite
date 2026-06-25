@@ -37,7 +37,7 @@ export default function Icon() {
             cx="16"
             cy="16"
             r="14"
-            stroke="#3b82f6"
+            stroke="#FF3D9A"
             strokeWidth="2"
             fill="none"
           />
@@ -47,7 +47,7 @@ export default function Icon() {
             cy="16"
             rx="5"
             ry="14"
-            stroke="#3b82f6"
+            stroke="#FF3D9A"
             strokeWidth="1.5"
             fill="none"
           />
@@ -56,7 +56,7 @@ export default function Icon() {
             cy="16"
             rx="9"
             ry="14"
-            stroke="#3b82f6"
+            stroke="#FF3D9A"
             strokeWidth="1"
             fill="none"
             opacity="0.6"
@@ -67,7 +67,7 @@ export default function Icon() {
             cy="16"
             rx="14"
             ry="5"
-            stroke="#3b82f6"
+            stroke="#FF3D9A"
             strokeWidth="1.5"
             fill="none"
           />
@@ -76,7 +76,7 @@ export default function Icon() {
             cy="16"
             rx="14"
             ry="9"
-            stroke="#3b82f6"
+            stroke="#FF3D9A"
             strokeWidth="1"
             fill="none"
             opacity="0.6"
@@ -87,7 +87,7 @@ export default function Icon() {
             y1="16"
             x2="30"
             y2="16"
-            stroke="#3b82f6"
+            stroke="#FF3D9A"
             strokeWidth="1.5"
           />
         </svg>

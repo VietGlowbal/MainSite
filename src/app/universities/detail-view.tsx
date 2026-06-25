@@ -229,28 +229,95 @@ function DetailHero({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
-   IN-PAGE SECTION NAV (replaces the old tabs)
+   STICKY ACTION TOOLBAR (section links + page actions, under the hero)
 ───────────────────────────────────────────────────────────────────────── */
 
-function SectionNav({ items }: { items: { id: string; label: string }[] }) {
-  if (items.length <= 1) return null;
+function DetailToolbar({
+  items,
+  website,
+  saved,
+  onSave,
+  onShare,
+  onFindCourse,
+}: {
+  items: { id: string; label: string }[];
+  website: string | null;
+  saved: boolean;
+  onSave: () => void;
+  onShare: () => void;
+  onFindCourse: () => void;
+}) {
   return (
     <nav
-      aria-label="University sections"
-      className="sticky top-2 z-20 rounded-2xl border border-slate-200 bg-white/90 shadow-[0_4px_14px_rgba(15,23,42,0.04)] backdrop-blur"
+      aria-label="University sections and actions"
+      className="sticky top-2 z-30 rounded-2xl border border-slate-200 bg-white/95 shadow-[0_6px_18px_rgba(15,23,42,0.06)] backdrop-blur"
     >
-      <ul className="flex items-center gap-1 overflow-x-auto px-3 py-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {items.map((it) => (
-          <li key={it.id}>
+      <div className="flex flex-col gap-2 p-2 lg:flex-row lg:items-center">
+        {/* Section anchor links */}
+        {items.length > 1 ? (
+          <ul className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {items.map((it) => (
+              <li key={it.id}>
+                <a
+                  href={`#${it.id}`}
+                  className="block shrink-0 whitespace-nowrap rounded-full px-3 py-1.5 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+                >
+                  {it.label}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="flex-1" />
+        )}
+
+        {/* Page actions */}
+        <div className="flex shrink-0 items-center gap-1.5 overflow-x-auto px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <button
+            type="button"
+            onClick={onShare}
+            aria-label="Share"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+          >
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" />
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" /><line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            onClick={onSave}
+            aria-pressed={saved}
+            className={`inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full px-3.5 text-sm font-semibold transition ${
+              saved ? 'bg-pink-50 text-pink-700 hover:bg-pink-100' : 'border border-slate-200 bg-white text-slate-700 hover:border-pink-300 hover:text-pink-600'
+            }`}
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill={saved ? '#ec4899' : 'none'} stroke={saved ? '#ec4899' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            {saved ? 'Saved' : 'Save'}
+          </button>
+          {website ? (
             <a
-              href={`#${it.id}`}
-              className="block shrink-0 whitespace-nowrap rounded-full px-3.5 py-2 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+              href={website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3.5 text-sm font-semibold text-slate-700 transition hover:border-pink-300 hover:text-pink-600"
             >
-              {it.label}
+              Official site
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
             </a>
-          </li>
-        ))}
-      </ul>
+          ) : null}
+          <button
+            type="button"
+            onClick={onFindCourse}
+            className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-4 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5"
+          >
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M22 10v6M2 10l10-5 10 5-10 5z" /><path d="M6 12v5c3 3 9 3 12 0v-5" /></svg>
+            View courses
+          </button>
+        </div>
+      </div>
     </nav>
   );
 }
@@ -780,7 +847,14 @@ function DetailViewBody({
       <DetailHero university={university} saved={saved} onToggleSave={handleSave} />
 
       <div className="mt-4">
-        <SectionNav items={navItems} />
+        <DetailToolbar
+          items={navItems}
+          website={website}
+          saved={saved}
+          onSave={handleSave}
+          onShare={handleShare}
+          onFindCourse={handleFindCourse}
+        />
       </div>
 
       <div className="mt-5 space-y-5">
