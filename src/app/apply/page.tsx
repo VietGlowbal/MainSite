@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { ApplyDashboard } from './apply-dashboard';
-import { JourneySteps } from '@/components/JourneySteps';
 import { getPublishedScholarships } from '@/lib/scholarships-data';
 import { COUNTRY_FLAGS } from '@/app/universities/explorer-constants';
 import type {
@@ -246,7 +245,6 @@ export default async function ApplyPage({ searchParams }: Props) {
     return (
       <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
         <div className="w-full">
-          <JourneySteps activeStep={3} />
           <ApplyDashboard
             applications={[]}
             shortlisted={[]}
@@ -283,7 +281,6 @@ export default async function ApplyPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
       <div className="w-full">
-        <JourneySteps activeStep={3} />
         <ApplyDashboard
           applications={applications}
           shortlisted={shortlisted}

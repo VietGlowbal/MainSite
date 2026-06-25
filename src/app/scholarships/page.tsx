@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getPublishedScholarships } from '@/lib/scholarships-data';
-import { JourneySteps } from '@/components/JourneySteps';
 import { ScholarshipDirectoryClient } from './scholarship-directory-client';
 
 // The published scholarship list is cached in scholarships-data.ts (12h); the
@@ -99,7 +98,6 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
   return (
     <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
       <div className="mx-auto w-full max-w-6xl">
-        <JourneySteps activeStep={4} />
         <ScholarshipDirectoryClient
           scholarships={scholarships}
           savedUniversityIds={savedUniversityIds}

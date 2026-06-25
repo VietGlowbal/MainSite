@@ -1,5 +1,4 @@
 import Link from 'next/link';
-import { JourneySteps } from '@/components/JourneySteps';
 
 const GUIDE_STEPS = [
   {
@@ -67,7 +66,6 @@ export default function HowItWorksPage() {
   return (
     <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
       <div className="mx-auto max-w-3xl">
-        <JourneySteps activeStep={2} />
 
         {/* Page header */}
         <div className="mb-8 text-center">
