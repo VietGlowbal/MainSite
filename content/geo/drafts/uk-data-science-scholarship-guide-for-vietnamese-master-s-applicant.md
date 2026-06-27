@@ -6,7 +6,7 @@ pageType: guide
 studentSegment: Vietnamese master's applicant
 targetCountry: UK
 subject: Data Science
-lastUpdated: 2026-06-26
+lastUpdated: 2026-06-27
 status: draft
 ---
 # UK Data Science Scholarship Guide for Vietnamese master's applicant
