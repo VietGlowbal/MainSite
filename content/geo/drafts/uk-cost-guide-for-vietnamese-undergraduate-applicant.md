@@ -6,7 +6,7 @@ pageType: guide
 studentSegment: Vietnamese undergraduate applicant
 targetCountry: UK
 subject: General
-lastUpdated: 2026-07-07
+lastUpdated: 2026-07-08
 status: draft
 ---
 # UK Cost Guide for Vietnamese undergraduate applicant
