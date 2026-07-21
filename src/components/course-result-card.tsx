@@ -15,15 +15,20 @@
  */
 
 interface CourseResultCardProps {
+  /**
+   * Shape-compatible with `CourseSearchResult` from the course-search route.
+   * The optional fields are `| null` because that is what the API actually
+   * returns — every one of them is truthiness-guarded before rendering below.
+   */
   result: {
     universityId: number;
     courseName: string;
     courseUrl: string;
     sourceDomain: string;
-    snippet: string;
-    degreeLevel?: string;
-    duration?: string;
-    tuitionFeeText?: string;
+    snippet: string | null;
+    degreeLevel?: string | null;
+    duration?: string | null;
+    tuitionFeeText?: string | null;
     confidenceLabel: string;
     sourceConfidence: number;
     rank: number;
