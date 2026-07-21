@@ -37,14 +37,39 @@
   --color-gb-neutral-50: #fafafa;
   --color-gb-neutral-0: #ffffff;
 
+  /* ── Brand ramp — rose ───────────────────────────────────────────────────
+     600 is confirmed from Figma ("Colors/Rose/600" on the updated Page trường
+     frames) and is the CTA / primary-button fill throughout the mockups. It is
+     exactly Tailwind's rose-600, so the surrounding steps below are taken from
+     that ramp — they are consistent, but only 600 is design-confirmed.
+
+     OPEN QUESTION for the designer: is rose the brand, or is it the "Reach"
+     tier colour that also happens to be used for CTAs? The answer decides
+     whether --color-gb-tier-reach-* below should alias the brand ramp or stay
+     independent. */
+  --color-gb-brand-50: #fff1f2;
+  --color-gb-brand-100: #ffe4e6;
+  --color-gb-brand-300: #fda4af;
+  --color-gb-brand-500: #f43f5e;
+  --color-gb-brand-600: #e11d48; /* Figma: Colors/Rose/600 — CONFIRMED */
+  --color-gb-brand-700: #be123c;
+
+  /* ── Admission-tier palette — CONFIRMED from Figma ───────────────────────
+     Not decoration: these encode the reach / recommend / safe classification
+     that src/lib/admission-fit.ts already computes, and the redesign promotes
+     it to the primary way of navigating the universities page (a three-card
+     selector at the top, plus a badge on every card).
+
+     Reach is a solid fill with white text; recommend and safe are tinted
+     badges (dark text on a pale background). */
+  --color-gb-tier-reach: #e11d48; /* Figma: Colors/Rose/600 */
+  --color-gb-tier-recommend: #2563eb; /* Figma: Colors/Blue/600 */
+  --color-gb-tier-recommend-bg: #eff6ff; /* Figma: Colors/Blue/50 */
+  --color-gb-tier-safe: #15803d; /* Figma: Colors/Green/700 */
+  --color-gb-tier-safe-bg: #f0fdf4; /* Figma: Colors/Green/50 */
+
   /* Figma "Colors/Yellow/400" — the ratings-badge star. */
   --color-gb-yellow-400: #facc15;
-
-  /* ── Brand ramp — PLACEHOLDER (today's pink), names FINAL ────────────── */
-  --color-gb-brand-300: #ff85b3;
-  --color-gb-brand-500: #ff4d8c;
-  --color-gb-brand-600: #ff3d9a;
-  --color-gb-brand-700: #e6007e;
 
   /* ── Spacing — FINAL ─────────────────────────────────────────────────────
      NOT Tailwind's default 4px scale: sm is 6 and lg is 12. Always use these
@@ -129,10 +154,20 @@
   --gb-border-primary: var(--color-gb-neutral-300);
   --gb-border-secondary: var(--color-gb-neutral-200);
 
-  /* Brand — follows the placeholder ramp above until Figma binds one. */
+  /* Brand */
   --gb-brand: var(--color-gb-brand-600);
   --gb-brand-hover: var(--color-gb-brand-700);
+  --gb-brand-subtle: var(--color-gb-brand-50);
   --gb-on-brand: var(--color-gb-neutral-0);
+
+  /* Admission tiers. `-on-` is the text colour to use against the matching
+     surface, so a badge only ever needs a pair. */
+  --gb-tier-reach-surface: var(--color-gb-tier-reach);
+  --gb-tier-reach-on: var(--color-gb-neutral-0);
+  --gb-tier-recommend-surface: var(--color-gb-tier-recommend-bg);
+  --gb-tier-recommend-on: var(--color-gb-tier-recommend);
+  --gb-tier-safe-surface: var(--color-gb-tier-safe-bg);
+  --gb-tier-safe-on: var(--color-gb-tier-safe);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -166,5 +201,14 @@
   /* bg-brand, text-brand, text-on-brand */
   --color-brand: var(--gb-brand);
   --color-brand-hover: var(--gb-brand-hover);
+  --color-brand-subtle: var(--gb-brand-subtle);
   --color-on-brand: var(--gb-on-brand);
+
+  /* Tier badges: pair bg-tier-<t> with text-on-tier-<t>. */
+  --color-tier-reach: var(--gb-tier-reach-surface);
+  --color-on-tier-reach: var(--gb-tier-reach-on);
+  --color-tier-recommend: var(--gb-tier-recommend-surface);
+  --color-on-tier-recommend: var(--gb-tier-recommend-on);
+  --color-tier-safe: var(--gb-tier-safe-surface);
+  --color-on-tier-safe: var(--gb-tier-safe-on);
 }

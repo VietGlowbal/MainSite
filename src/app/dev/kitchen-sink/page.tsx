@@ -27,7 +27,8 @@ export default function KitchenSinkPage() {
     <main className="mx-auto max-w-gb-desktop bg-surface p-gb-4xl text-fg">
       <h1 className="font-display text-gb-display-md">GLOWBAL design tokens</h1>
       <p className="mt-gb-md text-gb-md text-fg-tertiary">
-        Extracted from Figma. Brand values are placeholders until the ramp is bound.
+        Extracted from Figma. Neutrals, spacing, radius, type and the tier palette are
+        confirmed; only the brand steps either side of 600 are inferred from the rose ramp.
       </p>
 
       <Section title="Neutral ramp">
@@ -38,12 +39,31 @@ export default function KitchenSinkPage() {
         </div>
       </Section>
 
-      <Section title="Brand ramp (placeholder)">
+      <Section title="Brand ramp (rose — 600 confirmed from Figma)">
         <div className="flex flex-wrap gap-gb-md">
-          <Swatch name="brand-300" className="bg-gb-brand-300" />
-          <Swatch name="brand-500" className="bg-gb-brand-500" />
-          <Swatch name="brand-600" className="bg-gb-brand-600" />
-          <Swatch name="brand-700" className="bg-gb-brand-700" />
+          <Swatch name="50" className="bg-gb-brand-50 border border-line" />
+          <Swatch name="100" className="bg-gb-brand-100" />
+          <Swatch name="300" className="bg-gb-brand-300" />
+          <Swatch name="500" className="bg-gb-brand-500" />
+          <Swatch name="600" className="bg-gb-brand-600" />
+          <Swatch name="700" className="bg-gb-brand-700" />
+        </div>
+      </Section>
+
+      <Section title="Admission tiers">
+        <p className="mb-gb-lg text-gb-sm text-fg-tertiary">
+          Encodes the reach / recommend / safe classification from admission-fit.ts.
+        </p>
+        <div className="flex flex-wrap gap-gb-md">
+          <span className="rounded-gb-full bg-tier-reach px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-reach">
+            Reach Universities
+          </span>
+          <span className="rounded-gb-full bg-tier-recommend px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-recommend">
+            Recommend Universities
+          </span>
+          <span className="rounded-gb-full bg-tier-safe px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-safe">
+            Safe Universities
+          </span>
         </div>
       </Section>
 

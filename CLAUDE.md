@@ -44,7 +44,15 @@ Nguồn thật là `src/styles/tokens.css` (trích từ Figma variables). **Khô
 - **Container:** max-width desktop 1280, padding 32
 - **Shadow:** `shadow-xs` = `0 1px 2px #0000000d`
 
-⚠️ **Brand color CHƯA chốt.** Ba nguồn đang mâu thuẫn: tài liệu ghi navy+teal, codebase là pink `#ff4d8c` + cyan `#00b4d8`, Figma variables còn là purple mặc định của Untitled UI (`#6941c6`) trong khi mockup render ra hồng/crimson tô tay. Token brand trong `tokens.css` hiện là **placeholder** dùng giá trị pink hiện tại. Tên token đã final; chỉ giá trị chờ designer bind ramp brand thành Figma variable.
+- **Brand:** **rose `#E11D48`** (Figma `Colors/Rose/600`) — màu CTA/nút primary. Các bậc còn lại của ramp lấy theo thang rose của Tailwind, chỉ 600 là design-confirmed.
+- **Tier admission (đã chốt):** encode phân loại reach/recommend/safe mà `src/lib/admission-fit.ts` đang tính. Thiết kế mới nâng nó thành trục điều hướng chính của trang trường (3 ô chọn ở đầu trang + badge trên từng card).
+  - Reach — nền `#E11D48`, chữ trắng
+  - Recommend — nền `#EFF6FF`, chữ `#2563EB`
+  - Safe — nền `#F0FDF4`, chữ `#15803D`
+
+⚠️ **Hai câu còn treo với designer:**
+1. Rose là **brand**, hay chỉ là màu tier "Reach" tiện tay dùng cho CTA? Nếu là (2) thì brand vẫn chưa có.
+2. Frame Home (`104:7113`) **vẫn còn** brand tím mặc định của Untitled UI (`#6941c6`). Designer mới bind palette ở các frame "Page trường" mới nhất — cần dọn nốt cho đồng bộ.
 
 ### CSS quarantine
 
