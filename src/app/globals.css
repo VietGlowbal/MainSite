@@ -6,6 +6,10 @@
    when a CSV is open in Excel (Turbopack panic: os error 32). */
 @source not "../../data";
 
+/* Design tokens extracted from Figma. Must come after the Tailwind import so
+   its @theme blocks merge into the generated theme. See src/styles/tokens.css. */
+@import "../styles/tokens.css";
+
 :root {
   --background: #F5F6FF;
   --foreground: #1A1A2E;
@@ -21,7 +25,6 @@
   --brand-cyan-strong: #00C2FF;
   --brand-cyan-light: #90e0ef;
   --brand-purple: #7B2FBE;
-  --brand-emerald: #10b981;
 
   /* Extended brand palette — used in animated gradients across the app.
      Order matters: pink → red → aqua → navy gives the warm-to-cool sweep. */
@@ -39,74 +42,60 @@
       var(--brand-red) 28%,
       var(--brand-aqua) 62%,
       var(--brand-navy) 100%);
-  --brand-gradient-soft:
-    linear-gradient(110deg,
-      rgba(255, 77, 140, 0.16) 0%,
-      rgba(255, 59, 59, 0.14) 28%,
-      rgba(0, 200, 230, 0.16) 62%,
-      rgba(30, 42, 120, 0.18) 100%);
-
-  /* Legacy aliases — keep for back-compat with existing CSS classes */
+  /* Legacy aliases — still referenced by the 425 unlayered class rules below.
+     They disappear as those screens are rebuilt against src/styles/tokens.css. */
   --glowbal-pink: var(--brand-pink-strong);
-  --glowbal-pink-hover: var(--brand-pink-hover);
   --glowbal-pink-light: var(--brand-pink-light);
   --glowbal-mint: var(--brand-cyan-strong);
   --glowbal-mint-light: var(--brand-cyan-light);
-  --glowbal-silver: #6c757d;
-  --glowbal-silver-light: #e9ecef;
-  --glowbal-dark: #050D1F;
-  --glowbal-dark-alt: #0D1B35;
-  --glowbal-white: #ffffff;
 
-  /* Design system tokens */
-  --color-primary: var(--brand-pink-strong);
-  --color-primary-hover: var(--brand-pink-hover);
-  --color-secondary: var(--brand-cyan-strong);
-  --color-accent-purple: var(--brand-purple);
   --color-bg: #F5F6FF;
-  --color-surface: #FFFFFF;
-  --color-border: #E4E8FF;
-  --color-text: #1A1A2E;
-  --color-muted: #8892B0;
-  --color-dark-bg: #050D1F;
-  --color-dark-surface: #0D1B35;
-  --radius-card: 16px;
-  --radius-button: 9999px;
-  --radius-input: 12px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Inter (body) and Bricolage Grotesque (display), bound in layout.tsx.
+     `font-display` is the utility for headings at display-xs..display-xl. */
+  --font-sans: var(--font-gb-sans);
+  --font-display: var(--font-gb-display);
+  --font-mono: var(--font-gb-mono);
 }
 
-* {
-  box-sizing: border-box;
+/* These are the only bare-element rules in this file. Everything else below is
+   class-scoped, so putting these two in @layer base is safe: it stops them
+   out-ranking Tailwind utilities on <html>/<body> without touching the cascade
+   for the 425 legacy class rules.
+
+   `* { box-sizing }` is gone — Tailwind Preflight already sets it on
+   *, ::before, ::after inside @layer base.
+
+   NOTE: layout.tsx previously carried `bg-white` on <html> and <body>. Those
+   were inert while `body {}` was unlayered; once it moved here the utility
+   would have won and flipped the page background to white. They were removed
+   in the same commit. Do not reintroduce them. */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    background: var(--background);
+  }
+
+  body {
+    background-color: var(--color-bg);
+    color: var(--foreground);
+    font-family: var(--font-gb-sans), Arial, Helvetica, sans-serif;
+    background-image:
+      radial-gradient(ellipse at 60% 0%, #EEF0FF 0%, transparent 55%),
+      radial-gradient(circle at 15% 50%, rgb(255 77 140 / 0.04), transparent 25%),
+      radial-gradient(circle at 85% 30%, rgb(0 194 255 / 0.05), transparent 25%);
+    background-attachment: fixed;
+  }
 }
 
-html {
-  scroll-behavior: smooth;
-  background: var(--background);
-}
-
-body {
-  background: var(--color-bg);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
-  background-color: var(--color-bg);
-  background-image:
-    radial-gradient(ellipse at 60% 0%, #EEF0FF 0%, transparent 55%),
-    radial-gradient(circle at 15% 50%, rgb(255 77 140 / 0.04), transparent 25%),
-    radial-gradient(circle at 85% 30%, rgb(0 194 255 / 0.05), transparent 25%);
-  background-attachment: fixed;
-}
-
-.glowbal-site-shell {
-  min-height: 100vh;
-  background-color: var(--color-bg);
-}
+/* `.glowbal-site-shell` was declared here and again near the sidebar rules.
+   Both applied; they have been merged into the single declaration further
+   down (search for "site shell"). The mobile padding-bottom override in the
+   max-width:767px block is unaffected. */
 
 .glowbal-wordmark {
   background: var(--brand-gradient);
@@ -235,10 +224,11 @@ body {
   animation: globe-pulse 8s ease-in-out infinite;
 }
 
-@keyframes globe-pulse {
-  0%, 100% { transform: scale(1); opacity: 0.08; }
-  50% { transform: scale(1.05); opacity: 0.12; }
-}
+/* NOTE: `globe-pulse` was declared twice with different values. The later
+   declaration (line ~3880, opacity .6/.8) already won for BOTH consumers, so
+   the shadowed copy that used to sit here has been deleted — removing it
+   changes nothing. If the subtler .08/.12 pulse was the intent for the
+   onboarding globe, that is a deliberate visual fix, not a Phase 0 cleanup. */
 
 .onboarding-question-card {
   animation: card-enter 500ms cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -5018,9 +5008,11 @@ body:not(:has(.cosmos-root)) {
 
 /* ── Desktop Sidebar Layout ──────────────────────────────────────────────── */
 
+/* site shell — merged from the two former declarations. */
 .glowbal-site-shell {
   display: flex;
   min-height: 100vh;
+  background-color: var(--color-bg);
 }
 
 .glowbal-main-content {

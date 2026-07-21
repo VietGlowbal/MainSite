@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import ReactDOM from 'react-dom';
-import { Geist_Mono, Outfit } from 'next/font/google';
+import { Bricolage_Grotesque, Geist_Mono, Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NavReveal } from '@/components/nav-reveal';
@@ -9,16 +9,27 @@ import { LanguageProvider } from '@/lib/i18n';
 import { DomTranslator } from '@/lib/dom-translate';
 import './globals.css';
 
-const outfit = Outfit({
-  variable: '--font-geist-sans',
-  subsets: ['latin'],
+// Body face, per the Figma variable "Font family/font-family-body".
+// The 'vietnamese' subset matters: the app is bilingual EN/VI and the previous
+// font only loaded 'latin', so accented Vietnamese fell back to Arial.
+const inter = Inter({
+  variable: '--font-gb-sans',
+  subsets: ['latin', 'vietnamese'],
+  display: 'swap',
+});
+
+// Display face, per "Font family/font-family-display". Used for display-xs
+// through display-xl headings, which carry letter-spacing -2 in the design.
+const bricolage = Bricolage_Grotesque({
+  variable: '--font-gb-display',
+  subsets: ['latin', 'vietnamese'],
   display: 'swap',
 });
 
 // The mono font is only used on a few admin/error screens, so don't pay the
 // preload cost on every page — it still loads on demand when actually used.
 const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+  variable: '--font-gb-mono',
   subsets: ['latin'],
   display: 'swap',
   preload: false,
@@ -44,9 +55,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${geistMono.variable} h-full overflow-x-hidden bg-white antialiased`}
+      className={`${inter.variable} ${bricolage.variable} ${geistMono.variable} h-full overflow-x-hidden antialiased`}
     >
-      <body className="min-h-full overflow-x-hidden bg-white text-slate-800 glowbal-site-shell">
+      {/* No `bg-white` here: `body {}` now lives in @layer base (globals.css),
+          so a utility would out-rank it and flip the page background from
+          #F5F6FF to white. The background belongs to the base layer. */}
+      <body className="min-h-full overflow-x-hidden text-slate-800 glowbal-site-shell">
         <LanguageProvider>
           <NavReveal />
           <main className="glowbal-main-content">{children}</main>
