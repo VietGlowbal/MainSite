@@ -51,6 +51,13 @@ export interface CourseSearchResult {
 }
 
 /**
+ * A result while it is still in flight — collected from the cache and the web
+ * provider, ranked and deduplicated, but not yet persisted. `id` is assigned by
+ * the insert into course_search_session_results, so it does not exist yet.
+ */
+type PendingCourseSearchResult = Omit<CourseSearchResult, 'id'>;
+
+/**
  * POST /api/course-search-sessions
  * 
  * Create a new course search session for AI-powered course discovery.
@@ -213,7 +220,7 @@ export async function POST(request: Request) {
       
       // Create the actual search promise
       const searchPromise = (async () => {
-        const results: any[] = [];
+        const results: PendingCourseSearchResult[] = [];
         let usedWebSearch = false;
         
         // Task 8.4 - Check cached courses first
@@ -224,12 +231,16 @@ export async function POST(request: Request) {
           maxResults: 10,
         });
         
-        // Add cached results to final results
+        // Add cached results to final results.
+        // The cache row allows a null universityId/sourceDomain, but the API
+        // contract does not. The lookup above is already scoped to
+        // `universityId`, so falling back to it is correct rather than merely
+        // convenient; sourceDomain falls back to the URL's host.
         results.push(...cachedResults.results.map(r => ({
-          universityId: r.universityId,
+          universityId: r.universityId ?? universityId,
           courseName: r.courseName,
           courseUrl: r.courseUrl,
-          sourceDomain: r.sourceDomain,
+          sourceDomain: r.sourceDomain ?? hostnameOf(r.courseUrl),
           snippet: r.snippet,
           degreeLevel: r.degreeLevel,
           duration: r.duration,
@@ -510,6 +521,18 @@ function getConfidenceLabelFromScore(score: number): ConfidenceLabel {
  * - Normalize trailing slashes
  * - Lowercase host
  */
+/**
+ * Best-effort hostname for a course URL, used when a cached row has no stored
+ * source domain. Returns '' for an unparseable URL rather than throwing.
+ */
+function hostnameOf(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
 function normalizeUrl(url: string): string {
   try {
     const urlObj = new URL(url);
@@ -545,9 +568,9 @@ function normalizeUrl(url: string): string {
  * Helper: Deduplicate results by normalized URL
  * Keeps the first occurrence of each unique URL
  */
-function deduplicateResultsByUrl(results: any[]): any[] {
+function deduplicateResultsByUrl(results: PendingCourseSearchResult[]): PendingCourseSearchResult[] {
   const seen = new Set<string>();
-  const unique: any[] = [];
+  const unique: PendingCourseSearchResult[] = [];
   
   for (const result of results) {
     const normalized = normalizeUrl(result.courseUrl);
@@ -566,7 +589,7 @@ function deduplicateResultsByUrl(results: any[]): any[] {
  */
 async function storeWebSearchResults(
   sessionId: string,
-  results: any[]
+  results: PendingCourseSearchResult[]
 ): Promise<boolean> {
   const supabase = createAdminClient();
   

@@ -958,10 +958,10 @@ export function ApplyDashboard({
   // Handle initial course search trigger from query params
   useEffect(() => {
     if (openCourseSearch && courseSearchUniversityId) {
-      setUniversityContext(courseSearchUniversityId);
-      setIsCourseSearchOpen(true);
-      
-      // Fetch university details
+      // The modal below renders only once universityContext, universityDetails
+      // and isCourseSearchOpen are all set, so opening it is deferred until the
+      // details resolve. Setting them synchronously here would just trigger an
+      // extra render pass that displays nothing.
       const fetchUniversityDetails = async () => {
         try {
           const supabase = createClient();
@@ -998,9 +998,12 @@ export function ApplyDashboard({
           setUniversityDetails({ name: 'this university', domain: '' });
         }
       };
-      
-      fetchUniversityDetails();
-      
+
+      void fetchUniversityDetails().then(() => {
+        setUniversityContext(courseSearchUniversityId);
+        setIsCourseSearchOpen(true);
+      });
+
       // Clear the openCourseSearch query param from URL after modal opens
       // This prevents the modal from reopening on page refresh
       const params = new URLSearchParams(searchParams?.toString() || '');
@@ -1123,7 +1126,7 @@ export function ApplyDashboard({
         });
 
         const results = await Promise.all(statusPromises);
-        const newStatuses: Record<string, any> = {};
+        const newStatuses: Record<string, { parseStatus: string; progressPercentage: number }> = {};
         
         for (const result of results) {
           if (result) {
