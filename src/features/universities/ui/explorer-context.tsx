@@ -16,30 +16,11 @@ import {
   type FilterCategory,
 } from '@/lib/university-data';
 import { type ExplorerUniversity } from '@/lib/explorer-utils';
+// Country normalisation lives in the domain layer (pure + unit-tested):
+// src/features/universities/domain/country.ts
+import { countriesMatch } from '@/features/universities/domain';
 
 export type { ExplorerUniversity };
-
-function normalizeCountryName(value: string) {
-  return value
-    .trim()
-    .toLowerCase()
-    .replace(/united states of america/g, 'united states')
-    .replace(/u s a/g, 'united states')
-    .replace(/u s/g, 'united states')
-    .replace(/&/g, 'and')
-    .replace(/[^a-z0-9]+/g, ' ')
-    .replace(/\busa\b/g, 'united states')
-    .replace(/\bus\b/g, 'united states')
-    .replace(/\buk\b/g, 'united kingdom')
-    .replace(/\bu a e\b/g, 'united arab emirates')
-    .replace(/\bhk\b/g, 'hong kong')
-    .replace(/\s+/g, ' ')
-    .trim();
-}
-
-function countriesMatch(left: string, right: string) {
-  return normalizeCountryName(left) === normalizeCountryName(right);
-}
 
 // ── Interfaces ──────────────────────────────────────────────────────────
 
