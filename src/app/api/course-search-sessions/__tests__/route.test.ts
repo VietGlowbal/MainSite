@@ -81,7 +81,7 @@ describe('POST /api/course-search-sessions - Task 8.3', () => {
     vi.mocked(searchCachedCourses).mockResolvedValue({
       results: [],
       sufficientResults: true,
-      strategy: 'cached',
+      usedCache: true,
     });
     vi.mocked(storeCachedResults).mockResolvedValue(true);
     
@@ -440,12 +440,15 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
           duration: '3 years',
           tuitionFeeText: '£9,250/year',
           confidenceLabel: 'Checked recently' as const,
+          id: 'cached-result-1',
+          sourceType: 'cached' as const,
+          lastExtractedAt: '2026-01-01T00:00:00.000Z',
           sourceConfidence: 0.95,
           rank: 1,
         },
       ],
       sufficientResults: true,
-      strategy: 'cached',
+      usedCache: true,
     });
     vi.mocked(storeCachedResults).mockResolvedValue(true);
 
@@ -523,12 +526,15 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
           duration: '4 years',
           tuitionFeeText: '£9,250/year',
           confidenceLabel: 'Checked recently' as const,
+          id: 'cached-result-1',
+          sourceType: 'cached' as const,
+          lastExtractedAt: '2026-01-01T00:00:00.000Z',
           sourceConfidence: 0.9,
           rank: 1,
         },
       ],
       sufficientResults: true,
-      strategy: 'cached',
+      usedCache: true,
     });
     vi.mocked(storeCachedResults).mockResolvedValue(true);
 
@@ -620,7 +626,7 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
     vi.mocked(searchCachedCourses).mockResolvedValue({
       results: [],
       sufficientResults: false,
-      strategy: 'cached',
+      usedCache: true,
     });
     vi.mocked(storeCachedResults).mockResolvedValue(true);
 
@@ -701,12 +707,15 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
           duration: '1 year',
           tuitionFeeText: '£12,000',
           confidenceLabel: 'Good match' as const,
+          id: 'cached-result-1',
+          sourceType: 'cached' as const,
+          lastExtractedAt: '2026-01-01T00:00:00.000Z',
           sourceConfidence: 0.8,
           rank: 1,
         },
       ],
       sufficientResults: true,
-      strategy: 'cached',
+      usedCache: true,
     });
     vi.mocked(storeCachedResults).mockResolvedValue(true);
 

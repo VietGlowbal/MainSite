@@ -1,0 +1,29 @@
+{
+  // Strangler-fig strictness. The legacy tree (src/app, src/lib, scripts) keeps
+  // the base config; every directory created during the FSD migration is
+  // typechecked under the stricter flags below from the moment it exists.
+  //
+  // Run via `npm run typecheck:strict`. Do NOT widen `include` to cover legacy
+  // paths — the point is that new code never inherits old debt.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true,
+    "verbatimModuleSyntax": true,
+    "exactOptionalPropertyTypes": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noEmit": true,
+    "incremental": false,
+    "tsBuildInfoFile": ".strict.tsbuildinfo"
+  },
+  "include": [
+    "next-env.d.ts",
+    "src/features/**/*.ts",
+    "src/features/**/*.tsx",
+    "src/shared/**/*.ts",
+    "src/shared/**/*.tsx",
+    "src/server/**/*.ts",
+    "src/server/**/*.tsx"
+  ],
+  "exclude": ["node_modules"]
+}
