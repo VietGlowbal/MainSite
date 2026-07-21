@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/server/db/server';
 
 /**
  * Check whether the current user (or a given userId) is an admin.
