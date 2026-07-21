@@ -123,19 +123,19 @@ function parseGradeText(raw: string): number | null {
   // GPA, e.g. "3.8", "GPA 3.6/4.0", "3.9 / 4.3"
   const gpa = text.match(/(\d(?:\.\d{1,2}))\s*(?:\/\s*(\d(?:\.\d)?))?/);
   if (gpa) {
-    const value = parseFloat(gpa[1]);
+    const value = parseFloat(gpa[1] ?? "");
     const scale = gpa[2] ? parseFloat(gpa[2]) : value <= 4.0 ? 4.0 : value <= 4.3 ? 4.3 : null;
     if (scale && value <= scale) return clamp(value / scale, 0, 1);
   }
 
   // Percentage, e.g. "85%"
   const pct = text.match(/(\d{1,3})\s*%/);
-  if (pct) return clamp(parseInt(pct[1], 10) / 100, 0, 1);
+  if (pct?.[1]) return clamp(parseInt(pct[1], 10) / 100, 0, 1);
 
   // IB diploma total, e.g. "IB 38", "predicted 42" (range 24–45)
   const ib = text.match(/\b(?:ib[^\d]*)?(2[4-9]|3\d|4[0-5])\b/i);
   if (ib && /ib|diploma|\/45|points/i.test(text)) {
-    return clamp((parseInt(ib[1], 10) - 24) / (45 - 24), 0, 1);
+    return clamp((parseInt(ib[1] ?? "24", 10) - 24) / (45 - 24), 0, 1);
   }
 
   // A-levels, e.g. "A*AA", "AAB", "A* A B". Only when the text looks like a
@@ -258,7 +258,7 @@ export function computeProfileStrength(
 function parsePercent(value: string | null | undefined): number | null {
   if (!value) return null;
   const m = value.match(/(\d+(?:\.\d+)?)\s*%/);
-  return m ? parseFloat(m[1]) : null;
+  return m?.[1] ? parseFloat(m[1]) : null;
 }
 
 /** Map a QS rank to a 0–100 selectivity contribution (piecewise, smoothed). */
