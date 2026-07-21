@@ -1,6 +1,8 @@
 import { unstable_cache } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
+import { getUniversityQueries, type UniversityListItem } from '@/features/universities/api';
+import { getScholarshipQueries } from '@/features/scholarships/api';
+import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import { computeMatchResult } from '@/lib/matching';
 import {
   classifyAdmissionFit,
@@ -9,9 +11,7 @@ import {
   type ProfileStrengthSignals,
 } from '@/lib/admission-fit';
 import { toExplorerUniversity, type UniversityScholarship } from '@/lib/explorer-utils';
-import { getPublishedScholarships } from '@/lib/scholarships-data';
 import type { ApplicationEntry } from '@/lib/explorer-context';
-import type { University } from '@/lib/types';
 import { UniversityExplorerClient } from './university-explorer-client';
 
 /**
@@ -36,17 +36,42 @@ export const revalidate = 43200;
 // Next's Data Cache instead of re-querying Supabase on each request. This
 // keeps the largest query off the critical path (improving TTFB); only the
 // per-user match scoring below stays dynamic.
+//
+// The query itself now goes through the universities repository rather than
+// building a Supabase client inline. Same cache key, TTL and tag, so this is
+// behaviour-neutral — but the data access is behind a port, which is what lets
+// Track A switch this page to real pagination without touching the page shell.
 const getAllUniversities = unstable_cache(
-  async (): Promise<University[]> => {
-    const admin = createAdminClient();
-    const { data } = await admin
-      .from('universities')
-      .select('*')
-      .order('qs_rank', { ascending: true, nullsFirst: false });
-    return (data ?? []) as University[];
-  },
+  async (): Promise<UniversityListItem[]> => getUniversityQueries().listAllForLegacyExplorer(),
   ['all-universities'],
-  { revalidate: 43200, tags: ['universities'] },
+  { revalidate: CACHE_TTL_LONG, tags: [CACHE_TAGS.universities] },
+);
+
+/**
+ * Scholarships that are linked to a university, grouped by university id.
+ *
+ * This replaces a `getPublishedScholarships()` call that pulled all 2,877+
+ * published rows — with a nested `scholarship_universities -> universities`
+ * join, paged 1,000 at a time — purely to build this Map. Country-, provider-
+ * and consortium-scope awards have no university link, so they never appeared
+ * in the Map; fetching them was pure waste.
+ *
+ * Returns entries rather than a Map because the Data Cache serializes through
+ * JSON, and a Map does not survive that round trip.
+ */
+const getScholarshipsByUniversity = unstable_cache(
+  async (): Promise<Array<[number, UniversityScholarship[]]>> => {
+    const universities = await getUniversityQueries().listAllForLegacyExplorer();
+    const byId = await getScholarshipQueries().byUniversityIds(universities.map((u) => u.id));
+    return [...byId.entries()];
+  },
+  ['scholarships-by-university'],
+  {
+    revalidate: CACHE_TTL_LONG,
+    // Depends on both tables: a new university can gain links, and a
+    // scholarship edit changes what is attached.
+    tags: [CACHE_TAGS.universities, CACHE_TAGS.scholarships],
+  },
 );
 
 export default async function UniversitiesPage() {
@@ -144,41 +169,20 @@ export default async function UniversitiesPage() {
       }));
   }
 
-  // Fetch all universities + curated scholarships (both served from the Data
-  // Cache when warm).
-  const [universities, scholarships] = await Promise.all([
+  // Universities + the scholarships linked to them (both from the Data Cache
+  // when warm).
+  const [universities, scholarshipEntries] = await Promise.all([
     getAllUniversities(),
-    getPublishedScholarships(),
+    getScholarshipsByUniversity(),
   ]);
 
   // Index scholarships by the universities they're linked to, so each detail
   // view can show "Scholarships available here" without an extra query.
-  const scholarshipsByUni = new Map<number, UniversityScholarship[]>();
-  for (const s of scholarships) {
-    const slim: UniversityScholarship = {
-      id: s.id,
-      name: s.name,
-      scope: s.scope,
-      fundingType: s.funding_type,
-      amountLabel: s.amountLabel,
-      amountMin: s.amount_min,
-      amountMax: s.amount_max,
-      amountCurrency: s.amount_currency,
-      coverage: s.coverage,
-      eligibility: s.eligibility,
-      deadlineLabel: s.deadlineLabel,
-      sourceUrl: s.source_url,
-    };
-    for (const uid of s.universityIds) {
-      const list = scholarshipsByUni.get(uid);
-      if (list) list.push(slim);
-      else scholarshipsByUni.set(uid, [slim]);
-    }
-  }
+  const scholarshipsByUni = new Map<number, UniversityScholarship[]>(scholarshipEntries);
 
   // Compute match scores and convert to explorer format
   const strengthScore = profileStrength?.score ?? null;
-  const explorerUniversities = universities.map((uni: University) => {
+  const explorerUniversities = universities.map((uni: UniversityListItem) => {
     const matchResult = profile ? computeMatchResult(profile, uni) : null;
     const explorer = toExplorerUniversity({
       ...uni,

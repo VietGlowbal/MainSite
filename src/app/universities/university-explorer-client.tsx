@@ -19,6 +19,15 @@ import {
 import { Button, EmptyState, DualRangeSlider, Pagination } from '@/components/ui';
 import { getCompareIds as readCompareIds, setCompareIds as writeCompareIds } from '@/lib/selection-cache';
 import { TID, testId } from '@/shared/lib';
+import {
+  computeNetTuition,
+  formatAcceptanceForCard,
+  formatTuitionForCard,
+  formatUsdCompact,
+  parseAcceptanceRate,
+  parseDeadline,
+  parseTuition,
+} from '@/features/universities/domain';
 import { FadeInImage } from './fade-in-image';
 import { COUNTRY_FLAGS } from './explorer-constants';
 
@@ -927,202 +936,7 @@ function ResultsBar({
    UNIVERSITY CARD (matches demo design)
 ───────────────────────────────────────────────────────────────────────── */
 
-function parseAcceptanceRate(rate: string | null | undefined): number | null {
-  if (!rate) return null;
-  const match = rate.match(/(\d+(\.\d+)?)/);
-  return match ? parseFloat(match[1]) : null;
-}
-
-function parseTuition(tuition: string | null | undefined): number | null {
-  if (!tuition) return null;
-  const num = tuition.replace(/[^0-9.]/g, '');
-  return num ? parseFloat(num) : null;
-}
-
-/**
- * Compact presentation of an acceptance-rate string for the stat row.
- * The DB stores values like "14–18% overall; Engineering/Medicine
- * competitive" — too noisy for a 3-column grid. We pick the first
- * percentage and pair it with `~` if the original looks like a range
- * ("4–5%", "10-15%"). The full string is shown as a tooltip on hover.
- */
-function formatAcceptanceForCard(rate: string | null | undefined): string {
-  if (!rate) return '—';
-  const trimmed = rate.trim();
-  if (!trimmed || trimmed === '—') return '—';
-  // First "%" expression in the string — covers "5%", "14–18%", "4-5%".
-  const m = trimmed.match(/(\d+(?:\.\d+)?)\s*[–-]\s*(\d+(?:\.\d+)?)\s*%/);
-  if (m) return `${m[1]}–${m[2]}%`;
-  const single = trimmed.match(/(\d+(?:\.\d+)?)\s*%/);
-  if (single) return `${single[1]}%`;
-  return trimmed.length > 12 ? `${trimmed.slice(0, 11).trim()}…` : trimmed;
-}
-
-/**
- * Parse a free-text tuition string into a numeric USD figure (major units).
- * Returns a {lo, hi} range, the sentinel 'free', or null when nothing is parseable.
- * Mirrors the number-extraction in formatTuitionForCard — do NOT use parseTuition()
- * above, which strips every separator and would fuse "42,000-65,000" into one number.
- */
-function parseTuitionRange(
-  tuition: string | null | undefined,
-): { lo: number; hi: number } | 'free' | null {
-  if (!tuition) return null;
-  const trimmed = tuition.trim();
-  if (!trimmed || trimmed === '—') return null;
-  if (/free/i.test(trimmed)) return 'free';
-  const cleaned = trimmed.replace(/[,]/g, '');
-  const range = cleaned.match(/(\d{3,6})\s*[–-]\s*(\d{3,6})/);
-  if (range) return { lo: parseInt(range[1], 10), hi: parseInt(range[2], 10) };
-  const single = cleaned.match(/(\d{3,6})/);
-  if (single) {
-    const n = parseInt(single[1], 10);
-    return { lo: n, hi: n };
-  }
-  return null;
-}
-
-/** "$X" for a single major-unit USD amount, condensing thousands to a k-suffix. */
-function formatUsdOne(n: number): string {
-  return Math.round(n).toLocaleString('en-US'); // 62000 -> "62,000"
-}
-
-/**
- * "$" presentation of a USD amount (major units) as full, thousands-separated
- * numbers: "$62,000", "$41,000–45,000", "$343", "$0".
- */
-function formatUsdCompact(lo: number, hi?: number): string {
-  if (hi != null && hi !== lo) return `$${formatUsdOne(lo)}–${formatUsdOne(hi)}`;
-  return `$${formatUsdOne(lo)}`;
-}
-
-/**
- * Tuition string for the stat row. Picks the first dollar / numeric value,
- * prefixes with `$`, and shows full thousands-separated numbers — so
- * "42,000-65,000 USD" becomes "$42,000–65,000", "59,320 (UG); ~$65,000"
- * becomes "$59,320", and "Free" stays as "Free".
- */
-function formatTuitionForCard(tuition: string | null | undefined): string {
-  const parsed = parseTuitionRange(tuition);
-  if (parsed === 'free') return 'Free';
-  if (parsed) return formatUsdCompact(parsed.lo, parsed.hi);
-  // Unparseable: show short non-numeric text as-is, otherwise an em dash.
-  if (!tuition) return '—';
-  const trimmed = tuition.trim();
-  if (!trimmed || trimmed === '—') return '—';
-  return trimmed.length > 10 ? `${trimmed.slice(0, 9).trim()}…` : trimmed;
-}
-
-/**
- * Highest tuition-coverage percentage in a free-text coverage string, e.g.
- * "100% tuition" → 100, "80%–90% tuition" → 90, "50%, 60% or 70% tuition" → 70.
- * Falls back to 100 for full-ride funding when no number is present; null = no signal.
- */
-function parseCoveragePercent(
-  coverage: string | null | undefined,
-  fundingType: string[] | null | undefined,
-): number | null {
-  const text = (coverage ?? '').trim();
-  if (text) {
-    const pcts = [...text.matchAll(/(\d+(?:\.\d+)?)\s*%/g)].map((m) => parseFloat(m[1]));
-    const valid = pcts.filter((p) => p > 0 && p <= 100);
-    if (valid.length) return Math.max(...valid);
-  }
-  if ((fundingType ?? []).includes('full-ride')) return 100;
-  return null;
-}
-
-/**
- * Approximate FX rates to USD for display-only net-tuition estimates. Static and
- * intentionally rough — scholarship awards are competitive estimates anyway, and we
- * only need order-of-magnitude correctness to avoid wildly misleading figures.
- */
-const USD_PER: Record<string, number> = {
-  USD: 1,
-  EUR: 1.08,
-  GBP: 1.27,
-  AUD: 0.66,
-  CAD: 0.73,
-  SGD: 0.74,
-  CHF: 1.12,
-  VND: 0.00004,
-};
-
-function amountToUsd(amount: number, currency: string | null | undefined): number | null {
-  const rate = USD_PER[(currency ?? 'USD').toUpperCase()];
-  return rate == null ? null : amount * rate;
-}
-
-/**
- * Tuition after the single best (largest-reduction) curated scholarship. A parseable
- * coverage percentage scales the tuition; otherwise the scholarship's cash amount
- * (converted to USD) is subtracted. Returns null when there's nothing to discount —
- * no parseable tuition, tuition already free, or no scholarship that reduces it.
- */
-function computeNetTuition(
-  university: ExplorerUniversity,
-): { netLo: number; netHi: number; scholarshipName: string } | null {
-  const range = parseTuitionRange(university.tuition_usd);
-  if (range === null || range === 'free') return null;
-
-  let best: { netLo: number; netHi: number; scholarshipName: string } | null = null;
-  for (const s of university.scholarships ?? []) {
-    let netLo: number;
-    let netHi: number;
-
-    const pct = parseCoveragePercent(s.coverage, s.fundingType);
-    if (pct != null) {
-      const factor = 1 - pct / 100;
-      netLo = range.lo * factor;
-      netHi = range.hi * factor;
-    } else {
-      const amount = s.amountMax ?? s.amountMin;
-      if (amount == null) continue;
-      const amtUsd = amountToUsd(amount, s.amountCurrency);
-      if (amtUsd == null) continue;
-      netLo = Math.max(0, range.lo - amtUsd);
-      netHi = Math.max(0, range.hi - amtUsd);
-    }
-
-    if (netHi >= range.hi) continue; // didn't actually reduce the bill
-    if (!best || netHi < best.netHi) best = { netLo, netHi, scholarshipName: s.name };
-  }
-  return best;
-}
-
-/**
- * Best-effort deadline parser. Universities often store deadlines as "Jan 15",
- * "January 15, 2026", or just a month. We try Date.parse first, then fall back
- * to mapping a month name to the upcoming occurrence.
- */
-function parseDeadline(raw: string | null | undefined): Date | null {
-  if (!raw) return null;
-  const trimmed = raw.trim();
-  if (!trimmed || trimmed === '—') return null;
-
-  const direct = Date.parse(trimmed);
-  if (!Number.isNaN(direct)) return new Date(direct);
-
-  const months = [
-    'jan', 'feb', 'mar', 'apr', 'may', 'jun',
-    'jul', 'aug', 'sep', 'oct', 'nov', 'dec',
-  ];
-  const lower = trimmed.toLowerCase();
-  const monthIdx = months.findIndex((m) => lower.startsWith(m));
-  if (monthIdx === -1) return null;
-
-  const dayMatch = lower.match(/\b(\d{1,2})\b/);
-  const day = dayMatch ? parseInt(dayMatch[1], 10) : 15;
-
-  const now = new Date();
-  let year = now.getFullYear();
-  let candidate = new Date(year, monthIdx, day);
-  if (candidate.getTime() < now.getTime()) {
-    year += 1;
-    candidate = new Date(year, monthIdx, day);
-  }
-  return candidate;
-}
+/* Money, deadline and rate parsers now live in the domain layer:   src/features/universities/domain. They are pure, unit-tested, and must   survive the UI rewrite — do not reimplement them here. */
 
 /**
  * Build a one-line "why this match" reason from the breakdown. Picks the
@@ -1306,7 +1120,7 @@ function UniversityRow({
   const flag = COUNTRY_FLAGS[university.country] ?? '🎓';
   const acceptDisplay = formatAcceptanceForCard(university.accept_rate);
   const tuitionDisplay = formatTuitionForCard(university.tuition_usd);
-  const netTuition = computeNetTuition(university);
+  const netTuition = computeNetTuition(university.tuition_usd, university.scholarships);
   const cardTags = useMemo(() => deriveCardTags(university, 3), [university]);
   const blurb =
     (university.specific_insight ?? '') ||
@@ -1534,7 +1348,7 @@ function UniversityCardCompact({
   const flag = COUNTRY_FLAGS[university.country] ?? '🎓';
   const cardTags = useMemo(() => deriveCardTags(university, 2), [university]);
   const tuitionDisplay = formatTuitionForCard(university.tuition_usd);
-  const netTuition = computeNetTuition(university);
+  const netTuition = computeNetTuition(university.tuition_usd, university.scholarships);
   const hasMatch = university.match_score != null;
 
   // Same image-fade pattern as UniversityRow — see comment there.
