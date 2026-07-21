@@ -1,4 +1,16 @@
 import { vi } from 'vitest';
+import type { NextRequest } from 'next/server';
+
+/**
+ * Build a plain `Request` typed as `NextRequest`.
+ *
+ * The route handlers are declared to take `NextRequest`, but only ever touch
+ * the standard Fetch surface (`.json()`, `.headers`). A plain `Request` is
+ * therefore correct at runtime; the cast just satisfies the declared type.
+ */
+export function makeRequest(url: string, init?: RequestInit): NextRequest {
+  return new Request(url, init) as unknown as NextRequest;
+}
 
 /**
  * Shared test helpers for the add-courses route tests.

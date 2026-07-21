@@ -35,7 +35,7 @@ vi.mock('@/lib/entitlements/entitlement-service', () => ({
 
 import { createClient } from '@/lib/supabase/server';
 import { batchValidateCourseUrls } from '@/lib/course-search/url-validator';
-import { buildAddCoursesSupabase } from './test-helpers';
+import { buildAddCoursesSupabase, makeRequest } from './test-helpers';
 
 describe('POST /api/apply-shortlist/add-courses - Task 13.5: URL Validation', () => {
   const mockUserId = 'user-123';
@@ -99,7 +99,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.5: URL Validation', ()
       ],
     });
 
-    const request = new Request('http://localhost:3000/api/apply-shortlist/add-courses', {
+    const request = makeRequest('http://localhost:3000/api/apply-shortlist/add-courses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -168,7 +168,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.5: URL Validation', ()
       invalid: [],
     });
 
-    const request = new Request('http://localhost:3000/api/apply-shortlist/add-courses', {
+    const request = makeRequest('http://localhost:3000/api/apply-shortlist/add-courses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -217,7 +217,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.5: URL Validation', ()
       invalid: [],
     });
 
-    const request = new Request('http://localhost:3000/api/apply-shortlist/add-courses', {
+    const request = makeRequest('http://localhost:3000/api/apply-shortlist/add-courses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
