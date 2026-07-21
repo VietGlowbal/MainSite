@@ -1,0 +1,10 @@
+/**
+ * Design-system primitives, mapped to the Untitled UI / Simple Design System
+ * kit the Figma file is built on (Buttons/Button, Badge, Pagination, ...).
+ *
+ * Rules for anything added here:
+ *  - tokens only, no raw hex (enforced by eslint.config.mjs)
+ *  - no feature/app/server imports — shared/ is a leaf
+ *  - no legacy class names (.glowbal-*, .auth-*, ...); see CLAUDE.md
+ */
+export {};
