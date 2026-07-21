@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
+import { TID, testId } from '@/shared/lib';
 
 /**
  * Scroll-driven gradient angle for the avatar ring.
@@ -409,7 +410,7 @@ function DesktopSidebar({
   }
 
   return (
-    <aside className={`glowbal-sidebar${collapsed ? ' is-collapsed' : ''}`}>
+    <aside className={`glowbal-sidebar${collapsed ? ' is-collapsed' : ''}`} {...testId(TID.navHeader)}>
       {/* Animated brand gradient strip (pink → red → aqua → navy) */}
       <div className="glowbal-brand-strip-vertical" aria-hidden />
 

@@ -18,6 +18,7 @@ import {
 } from '@/lib/admission-fit';
 import { Button, EmptyState, DualRangeSlider, Pagination } from '@/components/ui';
 import { getCompareIds as readCompareIds, setCompareIds as writeCompareIds } from '@/lib/selection-cache';
+import { TID, testId } from '@/shared/lib';
 import { FadeInImage } from './fade-in-image';
 import { COUNTRY_FLAGS } from './explorer-constants';
 
@@ -191,6 +192,7 @@ function SearchHero({
             value={search.name}
             onChange={(e) => onSearchChange({ ...search, name: e.target.value })}
             className="w-full rounded-full bg-transparent py-2.5 pl-9 pr-3 text-sm text-slate-700 placeholder:text-slate-400 focus:outline-none"
+            {...testId(TID.uniSearchInput)}
           />
         </div>
         <div className="relative flex items-center md:border-r md:border-slate-100 md:pr-1">
@@ -1325,6 +1327,7 @@ function UniversityRow({
       className={`group relative flex cursor-pointer flex-col gap-4 overflow-hidden rounded-[1.5rem] border bg-white p-3 shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition-shadow duration-200 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] md:flex-row md:p-4 ${
         isCompared ? 'border-pink-300 ring-2 ring-pink-200' : 'border-slate-200/80'
       }`}
+      {...testId(TID.uniCard)}
     >
       {/* LEFT — Cover image */}
       <div
@@ -1368,6 +1371,7 @@ function UniversityRow({
             onClick={handleSave}
             aria-label={saved ? 'Remove from saved' : 'Save university'}
             title={saved ? 'Saved to My Universities — click to remove' : 'Save and track application progress'}
+            {...testId(TID.uniCardSaveButton)}
             className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-400 transition hover:scale-110 hover:border-pink-300 hover:text-pink-500"
           >
             <svg width="14" height="14" viewBox="0 0 24 24" fill={saved ? '#ec4899' : 'none'} stroke={saved ? '#ec4899' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -1541,6 +1545,7 @@ function UniversityCardCompact({
       className={`group relative flex cursor-pointer flex-col overflow-hidden rounded-[1.25rem] border bg-white shadow-[0_4px_14px_rgba(15,23,42,0.04)] transition-shadow duration-200 hover:shadow-[0_12px_28px_rgba(15,23,42,0.08)] ${
         isCompared ? 'border-pink-300 ring-2 ring-pink-200' : 'border-slate-200/80'
       }`}
+      {...testId(TID.uniCard)}
     >
       {/* Cover */}
       <div
@@ -1573,6 +1578,7 @@ function UniversityCardCompact({
           onClick={handleSave}
           aria-label={saved ? 'Remove from saved' : 'Save university'}
           className="absolute right-2.5 top-2.5 flex h-7 w-7 items-center justify-center rounded-full bg-white/95 text-slate-500 shadow-sm backdrop-blur-sm transition hover:scale-110 hover:text-pink-500"
+          {...testId(TID.uniCardSaveButton)}
         >
           <svg width="13" height="13" viewBox="0 0 24 24" fill={saved ? '#ec4899' : 'none'} stroke={saved ? '#ec4899' : 'currentColor'} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
@@ -2825,6 +2831,7 @@ function BrowseView() {
                 ? 'grid gap-4 sm:grid-cols-2 xl:grid-cols-3'
                 : 'flex flex-col gap-3'
             }
+            {...testId(TID.uniResultsGrid)}
           >
             {visibleItems.map((u, i) => (
               <UniversityCard
@@ -2839,7 +2846,9 @@ function BrowseView() {
             ))}
           </div>
           {isLoggedIn ? (
-            <Pagination page={currentPage} pageCount={pageCount} onChange={goToPage} />
+            <div {...testId(TID.uniPagination)}>
+              <Pagination page={currentPage} pageCount={pageCount} onChange={goToPage} />
+            </div>
           ) : hiddenCount > 0 ? (
             <GuestListGate remaining={hiddenCount} total={displayed.length} />
           ) : null}
@@ -3072,6 +3081,7 @@ function ToastNotification() {
       className="fixed bottom-6 right-6 z-50 max-w-sm rounded-2xl border border-black/[.05] bg-white/95 px-5 py-4 shadow-[0_12px_32px_rgba(22,33,62,0.12)] backdrop-blur animate-[slideUp_0.3s_ease-out]"
       role="status"
       aria-live="polite"
+      {...testId(TID.toast)}
     >
       <p className="text-sm font-semibold text-slate-800">{toast.message}</p>
       <style>{`
@@ -3293,7 +3303,7 @@ function ExplorerContent() {
             </motion.div>
           )}
           {activeView === 'detail' && (
-            <motion.div key="detail" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }}>
+            <motion.div key="detail" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.2 }} {...testId(TID.uniDetailPanel)}>
               <DetailView />
             </motion.div>
           )}

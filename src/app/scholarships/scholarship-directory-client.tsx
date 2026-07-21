@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Badge, Button, Card, EmptyState, Pagination } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
+import { TID, testId } from '@/shared/lib';
 import { useLanguage } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
 import {
@@ -268,7 +269,7 @@ export function ScholarshipDirectoryClient({
   };
 
   const renderGrid = (items: DirectoryScholarship[]) => (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" {...testId(TID.scholarshipList)}>
       {items.map((s) => (
         <ScholarshipDirectoryCard
           key={s.id}
@@ -580,7 +581,14 @@ function ScholarshipDirectoryCard({
   t: Translate;
 }) {
   return (
-    <Card size="md" padding="md" interactive className="group relative flex cursor-pointer flex-col" onClick={onOpen}>
+    <Card
+      size="md"
+      padding="md"
+      interactive
+      className="group relative flex cursor-pointer flex-col"
+      onClick={onOpen}
+      {...testId(TID.scholarshipCard)}
+    >
       {/* Save heart — top-right corner, matching the university cards */}
       <button
         type="button"
