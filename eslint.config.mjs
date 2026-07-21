@@ -33,8 +33,10 @@ const ADMIN_CLIENT_DEBT = [
   'src/app/page.tsx',
   'src/app/admin/page.tsx',
   'src/app/plus/success/page.tsx',
-  'src/app/universities/page.tsx',
   'src/app/universities/vinuni/page.tsx',
+  // Removed: src/app/universities/page.tsx — now goes through the universities
+  // repository (src/features/universities/api) instead of building an admin
+  // client inline. This is what shrinking the list looks like.
 ];
 
 /** Route handlers are server-side by definition — /api and the two outside it. */
