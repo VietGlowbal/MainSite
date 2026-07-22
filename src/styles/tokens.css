@@ -7,13 +7,13 @@
    three tiers: primitive -> semantic -> utility.
 
    STATUS
-     Neutrals, spacing, radius, type scale, shadows, containers  -> FINAL.
-     Brand ramp                                                  -> PLACEHOLDER.
+     Everything below -> FINAL.
 
-   The brand variables in Figma are still Untitled UI's default purple
-   (#6941c6 / #7f56d9 / #9e77ed) while the mockups are hand-painted pink, so
-   the designer has not bound a real brand ramp yet. The names below are final;
-   only the four --color-gb-brand-* values change when they do (see P0-12).
+   Note on the brand ramp: rose #e11d48 was confirmed as GLOWBAL's primary
+   brand by the product owner on 2026-07-22. It is NOT yet bound as a Figma
+   variable — get_variable_defs still returns Untitled UI's default purple
+   (#6941c6), because the mockups paint the CTA fill by hand. So do not
+   "correct" this file against a variable dump; the dump is the stale one.
 
    RULES
      - This file is the single source of truth for values. Do not hard-code a
@@ -37,16 +37,17 @@
   --color-gb-neutral-50: #fafafa;
   --color-gb-neutral-0: #ffffff;
 
-  /* ── Brand ramp — rose ───────────────────────────────────────────────────
-     600 is confirmed from Figma ("Colors/Rose/600" on the updated Page trường
-     frames) and is the CTA / primary-button fill throughout the mockups. It is
-     exactly Tailwind's rose-600, so the surrounding steps below are taken from
-     that ramp — they are consistent, but only 600 is design-confirmed.
+  /* Pure black. NOT part of the ramp the designer published — the desktop top
+     nav (Figma 104:7114) is filled with unbound #000000 rather than the ramp's
+     darkest step #171717. Recorded here so components stay literal-free; worth
+     asking the designer whether the bar is meant to be neutral-950 instead. */
+  --color-gb-neutral-1000: #000000;
 
-     OPEN QUESTION for the designer: is rose the brand, or is it the "Reach"
-     tier colour that also happens to be used for CTAs? The answer decides
-     whether --color-gb-tier-reach-* below should alias the brand ramp or stay
-     independent. */
+  /* ── Brand ramp — rose ───────────────────────────────────────────────────
+     600 is GLOWBAL's primary brand, confirmed 2026-07-22, and is the CTA /
+     primary-button fill throughout the mockups. It is exactly Tailwind's
+     rose-600, so the surrounding steps are taken from that ramp — consistent,
+     but only 600 is design-confirmed. */
   --color-gb-brand-50: #fff1f2;
   --color-gb-brand-100: #ffe4e6;
   --color-gb-brand-300: #fda4af;
@@ -61,7 +62,12 @@
      selector at the top, plus a badge on every card).
 
      Reach is a solid fill with white text; recommend and safe are tinted
-     badges (dark text on a pale background). */
+     badges (dark text on a pale background).
+
+     Reach resolves to the same rose as the brand today, but it is deliberately
+     NOT an alias of it. The two mean different things: brand is identity,
+     reach is a risk classification sitting next to blue and green. A rebrand
+     must not silently repaint the tier scale. */
   --color-gb-tier-reach: #e11d48; /* Figma: Colors/Rose/600 */
   --color-gb-tier-recommend: #2563eb; /* Figma: Colors/Blue/600 */
   --color-gb-tier-recommend-bg: #eff6ff; /* Figma: Colors/Blue/50 */
@@ -124,6 +130,12 @@
   --shadow-gb-xs: 0 1px 2px #0000000d;
   --shadow-gb-lg: 0 4px 6px -2px #00000008, 0 12px 16px -4px #00000014;
 
+  /* Figma "Shadows/shadow-xs-skeuomorphic" — the drop shadow above plus two
+     inner shadows that give Untitled UI buttons their slight bevel. Every
+     Buttons/Button instance in the design carries it. */
+  --shadow-gb-xs-skeuomorphic: 0 1px 2px #0000000d, inset 0 -2px 0 #0000000d,
+    inset 0 0 0 1px #0000002e;
+
   /* ── Containers — FINAL ──────────────────────────────────────────────── */
   --container-gb-sm: 480px;
   --container-gb-xl: 768px;
@@ -149,10 +161,18 @@
   --gb-bg-primary-hover: var(--color-gb-neutral-50);
   --gb-bg-secondary: var(--color-gb-neutral-50);
   --gb-bg-tertiary: var(--color-gb-neutral-900);
+  /* The dark top-nav bar on the marketing pages. */
+  --gb-bg-inverse-strong: var(--color-gb-neutral-1000);
 
   /* Figma Colors/Border/* */
   --gb-border-primary: var(--color-gb-neutral-300);
   --gb-border-secondary: var(--color-gb-neutral-200);
+
+  /* Layout constants that more than one file has to agree on.
+     Figma "Full-width header navigation" is 375x64: 12px + a 40px icon button
+     + 12px. The header is fixed, so both the header itself and the page-content
+     offset in globals.css read this. */
+  --gb-header-mobile: 64px;
 
   /* Brand */
   --gb-brand: var(--color-gb-brand-600);
@@ -187,6 +207,7 @@
   --color-surface-hover: var(--gb-bg-primary-hover); /* Figma bg-primary_hover */
   --color-surface-muted: var(--gb-bg-secondary); /* Figma bg-secondary */
   --color-surface-inverse: var(--gb-bg-tertiary); /* Figma bg-tertiary */
+  --color-surface-inverse-strong: var(--gb-bg-inverse-strong);
 
   /* text-fg, text-fg-secondary, text-fg-tertiary, text-fg-muted */
   --color-fg: var(--gb-text-primary); /* Figma text-primary (900) */
