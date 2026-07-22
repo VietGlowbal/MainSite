@@ -4,7 +4,6 @@ import { Bricolage_Grotesque, Geist_Mono, Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NavReveal } from '@/components/nav-reveal';
-import { MobileTabBar } from '@/components/mobile-tab-bar';
 import { LanguageProvider } from '@/lib/i18n';
 import { DomTranslator } from '@/lib/dom-translate';
 import './globals.css';
@@ -64,8 +63,6 @@ export default function RootLayout({
         <LanguageProvider>
           <NavReveal />
           <main className="glowbal-main-content">{children}</main>
-          {/* Native-app-style bottom nav on mobile (hidden on md+). */}
-          <MobileTabBar />
           {/* Whole-page translation for any text not covered by the static
               dictionary or t()/AutoTranslate. Only calls /api/translate when
               Vietnamese is active; English stays the zero-cost default. */}
