@@ -1,12 +1,63 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
 import { TID, testId } from '@/shared/lib';
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Persisted nav preferences
+   ────────────────────────────────────────────────────────────────────────
+   These live in localStorage, which the server cannot see. Reading them in a
+   useState initializer (the previous approach) made the server and the client
+   render different markup, and React responds to a hydration mismatch by
+   discarding the server HTML and re-rendering the whole tree on the client —
+   so SSR was being thrown away on every page except the landing page.
+
+   useSyncExternalStore is the primitive for exactly this: it takes a separate
+   server snapshot, so the first client render provably matches the server, and
+   React re-reads the real value immediately afterwards.
+───────────────────────────────────────────────────────────────────────── */
+
+const NAV_PREF_EVENT = 'glowbal:nav-pref-changed';
+
+function subscribeToNavPrefs(onChange: () => void) {
+  // `storage` covers changes from other tabs; the custom event covers writes
+  // made by this tab, which `storage` deliberately does not fire for.
+  window.addEventListener('storage', onChange);
+  window.addEventListener(NAV_PREF_EVENT, onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener(NAV_PREF_EVENT, onChange);
+  };
+}
+
+function readFlag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === 'true';
+  } catch {
+    // Private mode / storage blocked — fall back to the default.
+    return false;
+  }
+}
+
+function writeFlag(key: string, value: boolean) {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch {
+    /* storage blocked — the change still applies for this session */
+  }
+  window.dispatchEvent(new Event(NAV_PREF_EVENT));
+}
+
+/** A boolean localStorage flag, hydration-safe (server snapshot is always false). */
+function useNavPrefFlag(key: string): boolean {
+  const getSnapshot = useCallback(() => readFlag(key), [key]);
+  return useSyncExternalStore(subscribeToNavPrefs, getSnapshot, () => false);
+}
 
 /**
  * Scroll-driven gradient angle for the avatar ring.
@@ -473,23 +524,24 @@ function DesktopSidebar({
 // ── Main nav controller ──────────────────────────────────────────────────────
 export function NavReveal() {
   const pathname = usePathname();
-  const [revealed, setRevealed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const isLanding = window.location.pathname === '/';
-    return !isLanding || localStorage.getItem('glowbal-nav-revealed') === 'true';
-  });
   const [user, setUser] = useState<UserSummary | null>(null);
-
-  // Sidebar starts expanded; collapsing to an icon rail is an explicit,
-  // remembered user choice. Mirror the `revealed` pattern above and read the
-  // stored preference in the initializer (localStorage is client-only).
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('glowbal-sidebar-collapsed') === 'true';
-  });
 
   // Hide nav on home page regardless of revealed state
   const isHomePage = pathname === '/';
+
+  /*
+   * The reveal gate only ever mattered for the landing page: everywhere else
+   * the nav is always shown, and `pathname` is known during SSR. So the server
+   * renders the correct markup directly, and the only genuinely client-known
+   * bits — the stored preferences — come from useNavPrefFlag, whose server
+   * snapshot matches the server render by construction.
+   */
+
+  // Landing page only: hidden until revealed, which persists across visits.
+  const revealedOnLanding = useNavPrefFlag('glowbal-nav-revealed');
+
+  // Sidebar starts expanded; collapsing to an icon rail is a remembered choice.
+  const collapsed = useNavPrefFlag('glowbal-sidebar-collapsed');
 
   // Reflect the collapsed state onto <body> so the CSS-driven main-content
   // margin shrinks in step with the sidebar instead of leaving dead space.
@@ -501,17 +553,14 @@ export function NavReveal() {
   }, [collapsed]);
 
   function toggleCollapsed() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem('glowbal-sidebar-collapsed', String(next));
-      return next;
-    });
+    // Write-through: localStorage is the source of truth, and the notify makes
+    // useSyncExternalStore re-read it.
+    writeFlag('glowbal-sidebar-collapsed', !collapsed);
   }
 
   useEffect(() => {
     function onReveal() {
-      setRevealed(true);
-      localStorage.setItem('glowbal-nav-revealed', 'true');
+      writeFlag('glowbal-nav-revealed', true);
     }
     window.addEventListener('glowbal:reveal-nav', onReveal);
 
@@ -584,7 +633,9 @@ export function NavReveal() {
     };
   }, []);
 
-  if (!revealed || isHomePage) return null;
+  // Non-landing pages always show the nav, and the server knows that, so the
+  // first client render matches the server HTML exactly.
+  if (isHomePage && !revealedOnLanding) return null;
 
   return (
     <>

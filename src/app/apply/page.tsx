@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { ApplyDashboard } from './apply-dashboard';
-import { getPublishedScholarships } from '@/lib/scholarships-data';
+import { getScholarshipQueries } from '@/features/scholarships/api';
 import { COUNTRY_FLAGS } from '@/app/universities/explorer-constants';
 import type {
   CourseApplication,
@@ -18,17 +18,30 @@ const INACTIVE_STATUSES = ['submitted', 'offer_received', 'accepted', 'rejected'
 /**
  * Saved scholarships (user_scholarships) grouped by the university they were
  * saved under, so the dashboard can nest them under the matching application or
- * shortlisted university. Reuses getPublishedScholarships() for display labels.
+ * shortlisted university.
+ *
+ * This used to call getPublishedScholarships() to build a lookup map, which
+ * meant every render of this page pulled all 2,877 published rows (~5.3 MB
+ * across 3 round trips, measured at ~2.7s) to label at most a few dozen saved
+ * ones — 84% of the page's total query time. It now fetches exactly the ids the
+ * user actually saved.
  */
 async function fetchSavedScholarshipsByUniversity(userId: string): Promise<Record<number, SavedScholarshipLite[]>> {
   const supabase = await createClient();
-  const [{ data: savedRows }, published] = await Promise.all([
-    supabase.from('user_scholarships').select('id, scholarship_id, university_id').eq('user_id', userId),
-    getPublishedScholarships(),
-  ]);
-  const byId = new Map(published.map((s) => [s.id, s]));
+  const { data: savedRows } = await supabase
+    .from('user_scholarships')
+    .select('id, scholarship_id, university_id')
+    .eq('user_id', userId);
+
+  const rows = savedRows ?? [];
+  if (rows.length === 0) return {};
+
+  const byId = await getScholarshipQueries().byIds(
+    rows.map((r) => r.scholarship_id as number),
+  );
+
   const grouped: Record<number, SavedScholarshipLite[]> = {};
-  for (const row of savedRows ?? []) {
+  for (const row of rows) {
     const s = byId.get(row.scholarship_id as number);
     if (!s || row.university_id == null) continue;
     (grouped[row.university_id as number] ??= []).push({
@@ -38,7 +51,7 @@ async function fetchSavedScholarshipsByUniversity(userId: string): Promise<Recor
       scope: s.scope,
       amountLabel: s.amountLabel,
       deadlineLabel: s.deadlineLabel,
-      sourceUrl: s.source_url,
+      sourceUrl: s.sourceUrl,
       universityId: row.university_id as number,
     });
   }

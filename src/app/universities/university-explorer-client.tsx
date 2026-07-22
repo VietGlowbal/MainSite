@@ -2382,12 +2382,17 @@ function GuestListGate({ remaining, total }: { remaining: number; total: number 
             <rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" />
           </svg>
         </span>
+        {/* Built as single template strings rather than mixed JSX text and
+            expressions. A text node that both sits next to an interpolation and
+            wraps across a source line is serialized inconsistently between the
+            server and client bundles — the server drops the leading space,
+            which React reports as a hydration mismatch and then re-renders the
+            whole tree on the client. One text node per element avoids it. */}
         <h3 className="text-lg font-semibold text-slate-900">
-          {remaining} more {remaining === 1 ? 'university' : 'universities'} are waiting
+          {`${remaining} more ${remaining === 1 ? 'university' : 'universities'} are waiting`}
         </h3>
         <p className="mt-2 text-sm leading-relaxed text-slate-600">
-          Log in to browse all {total} matches, open full profiles and discover the scholarships
-          you qualify for — it&apos;s free, and it helps us tailor results to you.
+          {`Log in to browse all ${total} matches, open full profiles and discover the scholarships you qualify for — it’s free, and it helps us tailor results to you.`}
         </p>
         <div className="mt-5">
           <Button variant="primary" onClick={() => router.push(AUTH_REDIRECT)}>
