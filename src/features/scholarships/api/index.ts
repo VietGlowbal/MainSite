@@ -31,6 +31,7 @@ export type {
   Page,
   ScholarshipFacets,
   ScholarshipForUniversity,
+  ScholarshipLabel,
   ScholarshipListQuery,
   ScholarshipQueries,
   ScholarshipUniversityLite,

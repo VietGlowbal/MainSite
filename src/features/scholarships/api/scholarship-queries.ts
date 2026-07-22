@@ -66,7 +66,26 @@ export interface ScholarshipQueries {
 
   getById(id: number): Promise<DirectoryScholarship | null>;
 
+  /**
+   * Look up a specific set of scholarships by id.
+   *
+   * Exists so callers that need display labels for a handful of saved
+   * scholarships stop pulling the entire published table to build a lookup
+   * map. Returns a Map for O(1) joining; unknown ids are simply absent.
+   */
+  byIds(ids: number[]): Promise<Map<number, ScholarshipLabel>>;
+
   facets(): Promise<ScholarshipFacets>;
+}
+
+/** The subset of a scholarship needed to render it as a saved/linked chip. */
+export interface ScholarshipLabel {
+  id: number;
+  name: string;
+  scope: DirectoryScholarship['scope'];
+  amountLabel: string | null;
+  deadlineLabel: string | null;
+  sourceUrl: string | null;
 }
 
 export type { DirectoryScholarship, ScholarshipUniversityLite };

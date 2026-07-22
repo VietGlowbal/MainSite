@@ -6,6 +6,7 @@ import {
   SCHOLARSHIP_PAGE_SIZE_MAX,
   type ScholarshipFacets,
   type ScholarshipForUniversity,
+  type ScholarshipLabel,
   type ScholarshipListQuery,
   type ScholarshipQueries,
 } from './scholarship-queries';
@@ -154,6 +155,49 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
   async getById(id: number): Promise<DirectoryScholarship | null> {
     const all = await getPublishedScholarships();
     return all.find((s) => s.id === id) ?? null;
+  }
+
+  async byIds(ids: number[]): Promise<Map<number, ScholarshipLabel>> {
+    const out = new Map<number, ScholarshipLabel>();
+    if (ids.length === 0) return out;
+
+    // Deduplicate: the same scholarship can be saved under several universities.
+    const unique = [...new Set(ids)];
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('scholarships')
+      .select(
+        'id, name, scope, amount_min, amount_max, amount_currency, deadline_date, deadline_text, source_url',
+      )
+      .in('id', unique);
+
+    if (error) {
+      console.error('ScholarshipRepository.byIds failed:', error.message);
+      return out;
+    }
+
+    for (const row of (data ?? []) as Array<{
+      id: number;
+      name: string;
+      scope: DirectoryScholarship['scope'];
+      amount_min: number | null;
+      amount_max: number | null;
+      amount_currency: string | null;
+      deadline_date: string | null;
+      deadline_text: string | null;
+      source_url: string | null;
+    }>) {
+      out.set(row.id, {
+        id: row.id,
+        name: row.name,
+        scope: row.scope,
+        amountLabel: formatAmount(row.amount_min, row.amount_max, row.amount_currency),
+        deadlineLabel: formatDeadline(row.deadline_date, row.deadline_text),
+        sourceUrl: row.source_url,
+      });
+    }
+    return out;
   }
 
   async facets(): Promise<ScholarshipFacets> {
