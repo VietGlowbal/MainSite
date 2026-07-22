@@ -7,4 +7,5 @@
  *  - no feature/app/server imports — shared/ is a leaf
  *  - no legacy class names (.glowbal-*, .auth-*, ...); see CLAUDE.md
  */
-export {};
+export { MobileNav } from './mobile-nav';
+export type { MobileNavAction, MobileNavItem } from './mobile-nav';

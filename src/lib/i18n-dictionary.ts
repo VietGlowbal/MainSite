@@ -31,6 +31,11 @@ export const translations: Record<string, string> = {
   'Sign in': 'Đăng nhập',
   'Sign out': 'Đăng xuất',
   'Search universities': 'Tìm trường đại học',
+  Coordinator: 'Điều phối viên',
+  // Mobile hamburger sheet. "Plan your studies" is the designer's CTA copy.
+  Menu: 'Menu',
+  'Close menu': 'Đóng menu',
+  'Plan your studies': 'Lập kế hoạch du học',
 
   // ── Common actions / labels ──────────────────────────────────────────────
   Save: 'Lưu',

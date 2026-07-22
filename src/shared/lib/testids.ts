@@ -20,6 +20,10 @@ export const TID = {
   /** Top navigation bar. Named for the redesign's header, not today's sidebar. */
   navHeader: 'nav-header',
   navProfileLink: 'nav-profile-link',
+  /** Hamburger button. Mobile only — the header collapses below `md`. */
+  navMobileToggle: 'nav-mobile-toggle',
+  /** Full-screen sheet the hamburger opens. Absent from the DOM when closed. */
+  navMobileSheet: 'nav-mobile-sheet',
 
   // ── Auth ──────────────────────────────────────────────────────────────
   authEmailInput: 'auth-email',
