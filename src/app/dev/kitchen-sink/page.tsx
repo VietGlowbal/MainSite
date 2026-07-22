@@ -1,4 +1,6 @@
 import { notFound } from 'next/navigation';
+import { GlowbalLogo } from '@/components/glowbal-logo';
+import { Button, TopNav } from '@/shared/ui';
 
 /**
  * Design-system reference page. Development only.
@@ -126,17 +128,49 @@ export default function KitchenSinkPage() {
         <div className="flex flex-wrap gap-gb-3xl">
           <div className="rounded-gb-xl bg-surface p-gb-xl shadow-gb-xs">shadow-gb-xs</div>
           <div className="rounded-gb-xl bg-surface p-gb-xl shadow-gb-lg">shadow-gb-lg</div>
+          <div className="rounded-gb-xl bg-surface p-gb-xl shadow-gb-xs-skeuomorphic">
+            shadow-gb-xs-skeuomorphic
+          </div>
         </div>
       </Section>
 
-      <Section title="Primitives (src/shared/ui)">
-        <p className="text-gb-sm text-fg-muted">
-          Empty until Track B builds them. Add each component here in every variant.
-        </p>
+      <Section title="Button">
+        <div className="flex flex-wrap items-center gap-gb-lg">
+          <Button>Primary sm</Button>
+          <Button size="md">Primary md</Button>
+          <Button variant="secondary">Secondary sm</Button>
+          <Button variant="secondary" size="md">
+            Secondary md
+          </Button>
+          <Button disabled>Disabled</Button>
+        </div>
+        <div className="mt-gb-lg flex flex-wrap items-center gap-gb-lg rounded-gb-md bg-surface-inverse-strong p-gb-lg">
+          <Button variant="secondary-on-dark">Secondary on dark</Button>
+          <Button>Primary on dark</Button>
+        </div>
+      </Section>
+
+      <Section title="TopNav (desktop — hidden below md)">
+        <TopNav
+          logo={<GlowbalLogo height={28} />}
+          items={DEMO_NAV_ITEMS}
+          secondaryAction={{ href: '/auth', label: 'Đăng nhập' }}
+          primaryAction={{ href: '/apply', label: 'Lập kế hoạch Du học' }}
+        />
       </Section>
     </main>
   );
 }
+
+/** The five labels on Figma node 104:7114. Reference only — the real nav is
+ *  wired from navItemsFor() in nav-reveal.tsx. */
+const DEMO_NAV_ITEMS = [
+  { href: '/about', label: 'Về chúng tôi' },
+  { href: '/ai-strategy', label: 'AI lên chiến lược' },
+  { href: '/apply', label: 'Lập kế hoạch du học' },
+  { href: '/mentors', label: 'Tìm cố vấn' },
+  { href: '/news', label: 'Blog' },
+];
 
 const NEUTRALS = [
   { name: '950', className: 'bg-gb-neutral-950' },

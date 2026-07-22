@@ -5296,13 +5296,13 @@ body:not(:has(.cosmos-root)) {
 
 /* ── Mobile header offset ────────────────────────────────────────────────── */
 /* The mobile header lives in src/shared/ui/mobile-nav.tsx and is fixed, so page
-   content has to clear it: 12px padding + a 48px icon button + 12px padding =
-   72px, plus the notch inset. tests/e2e/mobile-nav.spec.ts asserts the two stay
-   in step. The home landing renders no global nav (it ships its own header), so
-   it keeps its full-bleed top. */
+   content has to clear it. --gb-header-mobile (tokens.css) is the one place
+   that height is written down; tests/e2e/mobile-nav.spec.ts asserts the header
+   and this offset agree. The home landing renders no global nav (it ships its
+   own header), so it keeps its full-bleed top. */
 @media (max-width: 767px) {
   .glowbal-main-content {
-    padding-top: calc(env(safe-area-inset-top) + 72px);
+    padding-top: calc(env(safe-area-inset-top) + var(--gb-header-mobile));
   }
 
   .glowbal-main-content:has(.home-landing-root) {
