@@ -4942,8 +4942,12 @@ body:not(:has(.cosmos-root)) {
 
   /* The homepage hides the sidebar (it ships its own header), so the
      240px sidebar offset would leave dead space on the left. Drop it
-     whenever the full-bleed landing is the content. */
-  .glowbal-main-content:has(.home-landing-root) {
+     whenever the full-bleed landing is the content.
+
+     `.gb-page-full-bleed` is the successor marker used by the rebuilt pages;
+     `.home-landing-root` goes away with the old landing page. */
+  .glowbal-main-content:has(.home-landing-root),
+  .glowbal-main-content:has(.gb-page-full-bleed) {
     margin-left: 0;
   }
 }
@@ -5305,7 +5309,8 @@ body:not(:has(.cosmos-root)) {
     padding-top: calc(env(safe-area-inset-top) + var(--gb-header-mobile));
   }
 
-  .glowbal-main-content:has(.home-landing-root) {
+  .glowbal-main-content:has(.home-landing-root),
+  .glowbal-main-content:has(.gb-page-full-bleed) {
     padding-top: 0;
   }
 }

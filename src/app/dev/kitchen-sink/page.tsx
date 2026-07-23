@@ -1,6 +1,15 @@
 import { notFound } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { Button, TopNav } from '@/shared/ui';
+import {
+  Button,
+  CheckItem,
+  CheckList,
+  FeatureCard,
+  ICONS,
+  KitIcon,
+  Metric,
+  TopNav,
+} from '@/shared/ui';
 
 /**
  * Design-system reference page. Development only.
@@ -157,6 +166,56 @@ export default function KitchenSinkPage() {
           secondaryAction={{ href: '/auth', label: 'Đăng nhập' }}
           primaryAction={{ href: '/apply', label: 'Lập kế hoạch Du học' }}
         />
+      </Section>
+
+      <Section title="Metric (row goes horizontal at lg, hairlines between)">
+        <div className="flex flex-col items-center gap-gb-6xl lg:flex-row lg:justify-center lg:gap-0">
+          <Metric value="10,000+" label="Trường đại học trong kho" />
+          <div aria-hidden="true" className="hidden w-px self-stretch bg-line lg:block" />
+          <Metric value="150 triệu" label="Tổng giá trị học bổng (USD)" />
+        </div>
+      </Section>
+
+      <Section title="CheckItem">
+        <CheckList>
+          <CheckItem>Hơn 200 trường đại học hàng đầu thế giới</CheckItem>
+          <CheckItem>
+            Một dòng dài để xem chữ xuống dòng có còn thẳng hàng với dấu tích hay không, vì hộp icon
+            28px và line-height 28px là cùng một con số
+          </CheckItem>
+        </CheckList>
+      </Section>
+
+      <Section title="FeatureCard (row sở hữu layout, thẻ không tự đặt bề ngang)">
+        <div className="grid gap-gb-3xl sm:grid-cols-2">
+          <FeatureCard
+            icon="messageChatCircle"
+            title="Chọn một trường đại học"
+            body="Tìm kiếm một trường đại học mà bạn quan tâm, hoặc duyệt theo quốc gia, chuyên ngành, ngân sách."
+            href="/universities"
+            actionLabel="Tìm hiểu thêm"
+          />
+          <FeatureCard
+            icon="chartBreakoutSquare"
+            title="Chọn học bổng"
+            body="Xem các cơ hội học bổng liên quan đến trường đại học bạn đã chọn."
+            href="/scholarships"
+            actionLabel="Tìm hiểu thêm"
+          />
+        </div>
+      </Section>
+
+      <Section title="KitIcon (kích thước lấy từ viewBox, không phải size-6)">
+        <div className="flex flex-wrap items-center gap-gb-4xl text-brand">
+          {(['zapFast', 'checkCircle', 'messageChatCircle', 'zap', 'chartBreakoutSquare', 'messageSmileCircle', 'arrowRight'] as const).map(
+            (name) => (
+              <span key={name} className="flex flex-col items-center gap-gb-md">
+                <KitIcon art={ICONS[name]} frame={32} />
+                <span className="text-gb-xs text-fg-muted">{name}</span>
+              </span>
+            ),
+          )}
+        </div>
       </Section>
     </main>
   );
