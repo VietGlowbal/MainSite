@@ -91,7 +91,7 @@ BATCH_SIZE=5           # Default: 5 jobs per poll
 
 ### Production Deployment
 
-The worker can be deployed separately from the Next.js application. See `scripts/COURSE_PARSE_WORKER.md` for detailed deployment options:
+The worker (`scripts/course-parse-worker.mjs`) can be deployed separately from the Next.js application:
 
 - **Railway/Render**: Deploy as a standalone Node.js service
 - **AWS ECS**: Run as a container with auto-scaling
@@ -114,4 +114,4 @@ node scripts/course-parse-worker.mjs
 
 For horizontal scaling, run multiple worker instances with different `WORKER_ID` values. The atomic job claiming ensures no race conditions.
 
-**Monitoring**: Check queue depth and processing rates using the queries in `scripts/COURSE_PARSE_WORKER.md`.
+**Monitoring**: Check queue depth and processing rates against the `course_parse_jobs` table (schema in `supabase-claim-parse-jobs.sql`).

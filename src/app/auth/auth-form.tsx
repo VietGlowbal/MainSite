@@ -4,6 +4,7 @@ import { FormEvent, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
+import { TID, testId } from '@/shared/lib';
 
 type Mode = 'login' | 'signup';
 
@@ -262,6 +263,7 @@ export function AuthForm() {
                     placeholder="Enter your email"
                     className="auth-input auth-input-with-icon"
                     required
+                    {...testId(TID.authEmailInput)}
                   />
                 </div>
               </div>
@@ -282,6 +284,7 @@ export function AuthForm() {
                     className="auth-input auth-input-with-icon"
                     required
                     minLength={6}
+                    {...testId(TID.authPasswordInput)}
                   />
                   <button
                     type="button"
@@ -406,6 +409,7 @@ export function AuthForm() {
                 type="submit"
                 disabled={loading}
                 className="auth-submit-button"
+                {...testId(TID.authSubmit)}
               >
                 {loading ? 'Please wait...' : mode === 'login' ? 'Sign in' : 'Create account'}
               </button>

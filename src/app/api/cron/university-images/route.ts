@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { resolveUniversityImagery } from '@/lib/wiki-images';
 import { isAuthorizedCron } from '@/lib/cron-auth';
+import { revalidateUniversities } from '@/server/cache';
 
 /**
  * GET/POST /api/cron/university-images
@@ -101,6 +102,13 @@ async function handle(request: NextRequest) {
     } else {
       updated += 1;
     }
+  }
+
+  // Drop the cached university reads so the freshly resolved imagery is
+  // visible on the next request instead of waiting out the 12h TTL. Only
+  // bother when something actually changed.
+  if (updated > 0) {
+    revalidateUniversities();
   }
 
   return NextResponse.json({

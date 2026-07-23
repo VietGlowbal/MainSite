@@ -2,6 +2,19 @@ import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   reactCompiler: true,
+  /**
+   * Hide the dev-only route indicator badge.
+   *
+   * Not cosmetic: `playwright.config.ts` sets `reuseExistingServer: !CI`, so a
+   * local E2E run attaches to whatever is already on :3000. If that happens to
+   * be `next dev`, every full-page screenshot picks up the badge in the
+   * bottom-left corner — and a baseline recorded that way then fails on CI,
+   * which always builds production and has no badge. That is exactly how a
+   * 38x38 dev artifact ended up committed into the Home baselines.
+   *
+   * Errors and build failures are still surfaced; only the badge is hidden.
+   */
+  devIndicators: false,
   turbopack: {
     root: __dirname,
   },

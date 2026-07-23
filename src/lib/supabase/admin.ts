@@ -1,14 +1,11 @@
-import { createClient } from '@supabase/supabase-js';
-
-export function createAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    },
-  );
-}
+/**
+ * @deprecated Moved to `@/server/db/admin`.
+ *
+ * Kept as a re-export so the existing importers keep compiling unchanged.
+ * This client uses the service-role key and therefore BYPASSES row-level
+ * security — it belongs in `src/server`, a route handler, or a repository,
+ * never in a page or component. The five page components that still use it are
+ * frozen in the ADMIN_CLIENT_DEBT list in eslint.config.mjs; that list may
+ * shrink but never grow.
+ */
+export { createAdminClient } from '@/server/db/admin';

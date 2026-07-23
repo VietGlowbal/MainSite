@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+# Two runs pushing to main at once would race on the same files. Queue them
+# instead of cancelling — a cancelled run loses that day's generated content.
+concurrency:
+  group: geo-publish
+  cancel-in-progress: false
+
 jobs:
   geo-content:
     runs-on: ubuntu-latest
@@ -20,7 +26,7 @@ jobs:
           node-version: 20
           cache: npm
       - name: Install dependencies
-        run: npm install
+        run: npm ci
       - name: Generate student questions
         run: npm run geo:questions
       - name: Cluster questions
@@ -35,6 +41,21 @@ jobs:
         run: npm run geo:images
       - name: Generate metadata
         run: npm run geo:metadata
+
+      # This pipeline commits TypeScript (src/app/guides, src/app/news,
+      # src/components/news, src/app/sitemap.ts, src/lib/geo-content.ts)
+      # straight to main with no review. Gate the push on the same checks CI
+      # runs on a PR, so a bad generator cannot break the deployed site.
+      - name: Verify generated output
+        run: |
+          npm run typecheck
+          npm run lint
+          npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+
       - name: Commit and push live GEO updates
         run: |
           git config user.name "github-actions[bot]"

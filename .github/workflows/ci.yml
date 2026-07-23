@@ -1,0 +1,91 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # Typecheck runs before lint: a type error is almost always the root
+      # cause when both fail, and it is the cheaper signal.
+      - name: Typecheck (whole repo)
+        run: npm run typecheck
+
+      # New code under src/{features,shared,server} is held to stricter rules
+      # (noUncheckedIndexedAccess, verbatimModuleSyntax, ...).
+      - name: Typecheck (strict — new code only)
+        run: npm run typecheck:strict
+
+      - name: Lint
+        run: npm run lint
+
+      # --coverage enforces the ratchet thresholds in vitest.config.ts.
+      - name: Test
+        run: npm run test -- --coverage
+
+      # The build is the only gate that catches client/server boundary
+      # violations and bad imports across all 33 pages. Supabase clients are
+      # lazily constructed, so placeholder values are enough to compile and
+      # prerender — no repository secrets required.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+          SUPABASE_SERVICE_ROLE_KEY: placeholder-service-role-key
+
+  # E2E runs on pull requests only. It must never gate the daily GEO
+  # push-to-main: a flaky browser test blocking content publication would be a
+  # worse outcome than the bug it might catch.
+  e2e:
+    if: github.event_name == 'pull_request'
+    needs: verify
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Install Playwright browser
+        run: npx playwright install --with-deps chromium
+
+      # Needs real credentials: the specs assert that /universities renders
+      # actual universities, which placeholder values cannot produce.
+      # The signed-in specs self-skip unless E2E_EMAIL/E2E_PASSWORD are set.
+      - name: Run E2E
+        run: npm run test:e2e
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          E2E_EMAIL: ${{ secrets.E2E_EMAIL }}
+          E2E_PASSWORD: ${{ secrets.E2E_PASSWORD }}
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 7

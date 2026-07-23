@@ -4,7 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { AnimatePresence, motion } from 'framer-motion';
 import { createClient } from '@/lib/supabase/client';
-import type { CourseSearchSessionResponse } from '@/app/api/course-search-sessions/route';
+import type {
+  CourseSearchSessionResponse,
+  CourseSearchResult,
+} from '@/app/api/course-search-sessions/route';
 import { CourseResultCard } from './course-result-card';
 import { UpgradePromptModal } from './upgrade-prompt-modal';
 import { track } from '@vercel/analytics';
@@ -35,7 +38,7 @@ interface StudentProfile {
   user_id: string;
   nationality: string | null;
   study_level: string | null;
-  grades_summary: Record<string, any> | null;
+  grades_summary: Record<string, unknown> | null;
   budget_range: string | null;
 }
 
@@ -106,7 +109,7 @@ export function CourseSearchSessionModal({
   // Search state
   const [isSearching, setIsSearching] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<CourseSearchResult[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
   
   // Form state

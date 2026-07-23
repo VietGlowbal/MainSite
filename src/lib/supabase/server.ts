@@ -1,23 +1,9 @@
-import { cookies } from 'next/headers';
-import { createServerClient } from '@supabase/ssr';
-
-export async function createClient() {
-  const cookieStore = await cookies();
-
-  return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return cookieStore.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
-          );
-        },
-      },
-    },
-  );
-}
+/**
+ * @deprecated Moved to `@/server/db/server`.
+ *
+ * Kept as a re-export so the ~88 existing importers keep compiling unchanged.
+ * Do not add new importers: data access should go through a feature repository
+ * under `src/features/<domain>/api`, which is the only layer allowed to talk to
+ * the database. See eslint.config.mjs for the enforced boundaries.
+ */
+export { createClient } from '@/server/db/server';

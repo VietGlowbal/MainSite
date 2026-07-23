@@ -1,0 +1,284 @@
+/* ==========================================================================
+   GLOWBAL design tokens
+   --------------------------------------------------------------------------
+   Extracted from the Figma variables on "UI Final - Dev"
+   (file 4gHWPze5ngIizbTtujEcQL). The design is built on the Untitled UI /
+   Simple Design System kit, so the token structure below mirrors that kit's
+   three tiers: primitive -> semantic -> utility.
+
+   STATUS
+     Everything below -> FINAL.
+
+   Note on the brand ramp: rose #e11d48 was confirmed as GLOWBAL's primary
+   brand by the product owner on 2026-07-22. It is NOT yet bound as a Figma
+   variable — get_variable_defs still returns Untitled UI's default purple
+   (#6941c6), because the mockups paint the CTA fill by hand. So do not
+   "correct" this file against a variable dump; the dump is the stale one.
+
+   RULES
+     - This file is the single source of truth for values. Do not hard-code a
+       colour, spacing step, or radius in a component.
+     - Primitives use plain @theme so they emit real custom properties.
+     - Semantics use @theme inline so utilities compile to var(--gb-*) rather
+       than a baked literal — that indirection is what makes a re-theme (or a
+       future dark mode) a one-file change.
+   ========================================================================== */
+
+@theme {
+  /* ── Neutral ramp — FINAL ────────────────────────────────────────────── */
+  --color-gb-neutral-950: #171717;
+  --color-gb-neutral-900: #262626;
+  --color-gb-neutral-700: #404040;
+  --color-gb-neutral-600: #525252;
+  --color-gb-neutral-500: #737373;
+  --color-gb-neutral-400: #a3a3a3;
+  --color-gb-neutral-300: #d4d4d4;
+  --color-gb-neutral-200: #e5e5e5;
+  --color-gb-neutral-50: #fafafa;
+  --color-gb-neutral-0: #ffffff;
+
+  /* Pure black. NOT part of the ramp the designer published — the desktop top
+     nav (Figma 104:7114) is filled with unbound #000000 rather than the ramp's
+     darkest step #171717. Recorded here so components stay literal-free; worth
+     asking the designer whether the bar is meant to be neutral-950 instead. */
+  --color-gb-neutral-1000: #000000;
+
+  /* ── Brand ramp — rose ───────────────────────────────────────────────────
+     600 is GLOWBAL's primary brand, confirmed 2026-07-22, and is the CTA /
+     primary-button fill throughout the mockups. It is exactly Tailwind's
+     rose-600, so the surrounding steps are taken from that ramp — consistent,
+     but only 600 is design-confirmed. */
+  --color-gb-brand-50: #fff1f2;
+  --color-gb-brand-100: #ffe4e6;
+  --color-gb-brand-300: #fda4af;
+  --color-gb-brand-500: #f43f5e;
+  --color-gb-brand-600: #e11d48; /* Figma: Colors/Rose/600 — CONFIRMED */
+  --color-gb-brand-700: #be123c;
+
+  /* ── Admission-tier palette — CONFIRMED from Figma ───────────────────────
+     Not decoration: these encode the reach / recommend / safe classification
+     that src/lib/admission-fit.ts already computes, and the redesign promotes
+     it to the primary way of navigating the universities page (a three-card
+     selector at the top, plus a badge on every card).
+
+     Reach is a solid fill with white text; recommend and safe are tinted
+     badges (dark text on a pale background).
+
+     Reach resolves to the same rose as the brand today, but it is deliberately
+     NOT an alias of it. The two mean different things: brand is identity,
+     reach is a risk classification sitting next to blue and green. A rebrand
+     must not silently repaint the tier scale. */
+  --color-gb-tier-reach: #e11d48; /* Figma: Colors/Rose/600 */
+  --color-gb-tier-recommend: #2563eb; /* Figma: Colors/Blue/600 */
+  --color-gb-tier-recommend-bg: #eff6ff; /* Figma: Colors/Blue/50 */
+  --color-gb-tier-safe: #15803d; /* Figma: Colors/Green/700 */
+  --color-gb-tier-safe-bg: #f0fdf4; /* Figma: Colors/Green/50 */
+
+  /* Figma "Colors/Yellow/400" — the ratings-badge star. */
+  --color-gb-yellow-400: #facc15;
+
+  /* ── Spacing — FINAL ─────────────────────────────────────────────────────
+     NOT Tailwind's default 4px scale: sm is 6 and lg is 12. Always use these
+     steps rather than p-2 / p-3, or the rhythm drifts from the design. */
+  --spacing-gb-xxs: 2px;
+  --spacing-gb-xs: 4px;
+  --spacing-gb-sm: 6px;
+  --spacing-gb-md: 8px;
+  --spacing-gb-lg: 12px;
+  --spacing-gb-xl: 16px;
+  --spacing-gb-2xl: 20px;
+  --spacing-gb-3xl: 24px;
+  --spacing-gb-4xl: 32px;
+  --spacing-gb-5xl: 40px;
+  --spacing-gb-6xl: 48px;
+  --spacing-gb-7xl: 64px;
+  --spacing-gb-9xl: 96px;
+
+  /* Untitled UI gives buttons their own horizontal padding steps (14 / 18 / 22)
+     which are deliberately NOT on the layout scale above. Only the xl step is
+     used so far — the Home hero CTA (Figma 104:7133). Add the others when a
+     design actually calls for them. */
+  --spacing-gb-btn-xl: 18px;
+
+  /* ── Radius — FINAL ──────────────────────────────────────────────────────
+     Much tighter than the legacy code, which uses rounded-[1.5rem] (24px) and
+     rounded-[2rem] (32px) throughout. Do not carry those values forward. */
+  --radius-gb-none: 0px;
+  --radius-gb-sm: 6px;
+  --radius-gb-md: 8px;
+  --radius-gb-lg: 10px;
+  --radius-gb-xl: 12px;
+  --radius-gb-full: 9999px;
+
+  /* ── Type scale — FINAL ──────────────────────────────────────────────────
+     Body is Inter, display is Bricolage Grotesque. Display sizes carry
+     letter-spacing -2 in Figma; that is applied per-utility below. */
+  --text-gb-xs: 12px;
+  --text-gb-xs--line-height: 18px;
+  --text-gb-sm: 14px;
+  --text-gb-sm--line-height: 20px;
+  --text-gb-md: 16px;
+  --text-gb-md--line-height: 24px;
+  --text-gb-lg: 18px;
+  --text-gb-lg--line-height: 28px;
+  --text-gb-xl: 20px;
+  --text-gb-xl--line-height: 30px;
+  --text-gb-display-xs: 24px;
+  --text-gb-display-xs--line-height: 32px;
+  --text-gb-display-sm: 30px;
+  --text-gb-display-sm--line-height: 38px;
+  --text-gb-display-md: 36px;
+  --text-gb-display-md--line-height: 44px;
+  /* The Home hero heading (Figma 104:7130). Hand-set in the design rather than
+     bound to a text style, and its 54px leading is tighter than Untitled UI's
+     display-lg (48/60) — so the value is the design's, not the kit's. */
+  --text-gb-display-lg: 48px;
+  --text-gb-display-lg--line-height: 54px;
+  --text-gb-display-xl: 60px;
+  --text-gb-display-xl--line-height: 72px;
+
+  /* ── Letter-spacing ──────────────────────────────────────────────────────
+     Two values, and the design uses both — which is worth knowing before you
+     assume one of them is a mistake.
+
+     `tight` (-2%) is what Untitled UI's bound display text styles carry, e.g.
+     "Display xl/Semibold" on the metric numbers (Figma 104:7158).
+
+     `open` (+2%) is what the designer hand-sets on the Bricolage headings that
+     are NOT bound to a text style — the partner-wall heading (104:7136, 48px ->
+     0.96px) and the metrics heading (104:7154, 36px -> 0.72px). Same magnitude,
+     opposite sign, applied consistently to both, which is why it is reproduced
+     here rather than "corrected". Still worth confirming with the designer.
+
+     em rather than px so one token covers every size the design applies it at. */
+  --tracking-gb-display-tight: -0.02em;
+  --tracking-gb-display-open: 0.02em;
+
+  /* ── Shadows — FINAL ─────────────────────────────────────────────────── */
+  --shadow-gb-xs: 0 1px 2px #0000000d;
+  --shadow-gb-lg: 0 4px 6px -2px #00000008, 0 12px 16px -4px #00000014;
+
+  /* Figma "Shadows/shadow-xs-skeuomorphic" — the drop shadow above plus two
+     inner shadows that give Untitled UI buttons their slight bevel. Every
+     Buttons/Button instance in the design carries it. */
+  --shadow-gb-xs-skeuomorphic: 0 1px 2px #0000000d, inset 0 -2px 0 #0000000d,
+    inset 0 0 0 1px #0000002e;
+
+  /* ── Containers — FINAL ──────────────────────────────────────────────── */
+  /* ⚠️ These are NOT named `--container-gb-sm` / `--container-gb-xl`, and the
+     reason is a silent-corruption bug rather than taste.
+
+     Tailwind resolves `max-w-<key>` against BOTH the --container-* and the
+     --spacing-* namespaces, and --spacing- wins. With the obvious names,
+     `max-w-gb-xl` returned --spacing-gb-xl (16px) instead of 768px, so a
+     paragraph that should have been 768px wide rendered one word per line. No
+     error, no warning — it only showed up in a screenshot.
+
+     `gb-width-*` cannot collide, because no spacing step is called that. */
+  --container-gb-width-sm: 480px;
+  --container-gb-width-xl: 768px;
+  --container-gb-desktop: 1280px;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Semantic layer.
+
+   Components reference these, never a primitive directly. Swapping the brand
+   ramp, or adding a dark theme, means reassigning here — not touching markup.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  /* Figma Colors/Text/* */
+  --gb-text-primary: var(--color-gb-neutral-950);
+  --gb-text-secondary: var(--color-gb-neutral-700);
+  --gb-text-tertiary: var(--color-gb-neutral-600);
+  --gb-text-quaternary: var(--color-gb-neutral-500);
+  --gb-text-placeholder: var(--color-gb-neutral-500);
+  /* Figma text-brand-secondary-(700): brand-coloured text on a light surface —
+     the "Learn more" link on a feature card. The mockups still paint this
+     #6941c6, Untitled UI's purple, which is the leftover CLAUDE.md flags on the
+     Home frame; the rose ramp is the authority here. */
+  --gb-text-brand: var(--color-gb-brand-700);
+
+  /* Figma Colors/Background/* */
+  --gb-bg-primary: var(--color-gb-neutral-0);
+  --gb-bg-primary-hover: var(--color-gb-neutral-50);
+  --gb-bg-secondary: var(--color-gb-neutral-50);
+  --gb-bg-tertiary: var(--color-gb-neutral-900);
+  /* The dark top-nav bar on the marketing pages. */
+  --gb-bg-inverse-strong: var(--color-gb-neutral-1000);
+
+  /* Figma Colors/Border/* */
+  --gb-border-primary: var(--color-gb-neutral-300);
+  --gb-border-secondary: var(--color-gb-neutral-200);
+
+  /* Layout constants that more than one file has to agree on.
+     Figma "Full-width header navigation" is 375x64: 12px + a 40px icon button
+     + 12px. The header is fixed, so both the header itself and the page-content
+     offset in globals.css read this. */
+  --gb-header-mobile: 64px;
+
+  /* Brand */
+  --gb-brand: var(--color-gb-brand-600);
+  --gb-brand-hover: var(--color-gb-brand-700);
+  --gb-brand-subtle: var(--color-gb-brand-50);
+  /* One step up from -subtle: the tinted disc behind a section's "Featured
+     icon" (Figma 104:7153). Distinct from -subtle because the two sit next to
+     each other in the kit — 50 is a page-level wash, 100 is a component fill. */
+  --gb-brand-surface: var(--color-gb-brand-100);
+  --gb-on-brand: var(--color-gb-neutral-0);
+
+  /* Admission tiers. `-on-` is the text colour to use against the matching
+     surface, so a badge only ever needs a pair. */
+  --gb-tier-reach-surface: var(--color-gb-tier-reach);
+  --gb-tier-reach-on: var(--color-gb-neutral-0);
+  --gb-tier-recommend-surface: var(--color-gb-tier-recommend-bg);
+  --gb-tier-recommend-on: var(--color-gb-tier-recommend);
+  --gb-tier-safe-surface: var(--color-gb-tier-safe-bg);
+  --gb-tier-safe-on: var(--color-gb-tier-safe);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Utility surface.
+
+   `inline` keeps the var() reference in the compiled rule, e.g.
+   `bg-surface` -> `background-color: var(--gb-bg-primary)`.
+
+   Utility names are chosen to read unambiguously (Tailwind turns --color-X
+   into bg-X / text-X / border-X, so a name like `text-primary` would be
+   ambiguous between a text colour and a brand fill). Figma's original name is
+   noted against each.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme inline {
+  /* bg-surface, bg-surface-hover, bg-surface-muted, bg-surface-inverse */
+  --color-surface: var(--gb-bg-primary); /* Figma bg-primary */
+  --color-surface-hover: var(--gb-bg-primary-hover); /* Figma bg-primary_hover */
+  --color-surface-muted: var(--gb-bg-secondary); /* Figma bg-secondary */
+  --color-surface-inverse: var(--gb-bg-tertiary); /* Figma bg-tertiary */
+  --color-surface-inverse-strong: var(--gb-bg-inverse-strong);
+
+  /* text-fg, text-fg-secondary, text-fg-tertiary, text-fg-muted */
+  --color-fg: var(--gb-text-primary); /* Figma text-primary (900) */
+  --color-fg-secondary: var(--gb-text-secondary); /* Figma text-secondary (700) */
+  --color-fg-tertiary: var(--gb-text-tertiary); /* Figma text-tertiary (600) */
+  --color-fg-muted: var(--gb-text-quaternary); /* Figma text-quaternary (500) */
+  --color-fg-brand: var(--gb-text-brand); /* Figma text-brand-secondary (700) */
+
+  /* border-line, border-line-strong */
+  --color-line: var(--gb-border-secondary); /* Figma border-secondary */
+  --color-line-strong: var(--gb-border-primary); /* Figma border-primary */
+
+  /* bg-brand, text-brand, text-on-brand */
+  --color-brand: var(--gb-brand);
+  --color-brand-hover: var(--gb-brand-hover);
+  --color-brand-subtle: var(--gb-brand-subtle);
+  --color-brand-surface: var(--gb-brand-surface);
+  --color-on-brand: var(--gb-on-brand);
+
+  /* Tier badges: pair bg-tier-<t> with text-on-tier-<t>. */
+  --color-tier-reach: var(--gb-tier-reach-surface);
+  --color-on-tier-reach: var(--gb-tier-reach-on);
+  --color-tier-recommend: var(--gb-tier-recommend-surface);
+  --color-on-tier-recommend: var(--gb-tier-recommend-on);
+  --color-tier-safe: var(--gb-tier-safe-surface);
+  --color-on-tier-safe: var(--gb-tier-safe-on);
+}

@@ -1,11 +1,64 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
+import { TID, testId } from '@/shared/lib';
+import { MobileNav, type MobileNavItem } from '@/shared/ui';
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Persisted nav preferences
+   ────────────────────────────────────────────────────────────────────────
+   These live in localStorage, which the server cannot see. Reading them in a
+   useState initializer (the previous approach) made the server and the client
+   render different markup, and React responds to a hydration mismatch by
+   discarding the server HTML and re-rendering the whole tree on the client —
+   so SSR was being thrown away on every page except the landing page.
+
+   useSyncExternalStore is the primitive for exactly this: it takes a separate
+   server snapshot, so the first client render provably matches the server, and
+   React re-reads the real value immediately afterwards.
+───────────────────────────────────────────────────────────────────────── */
+
+const NAV_PREF_EVENT = 'glowbal:nav-pref-changed';
+
+function subscribeToNavPrefs(onChange: () => void) {
+  // `storage` covers changes from other tabs; the custom event covers writes
+  // made by this tab, which `storage` deliberately does not fire for.
+  window.addEventListener('storage', onChange);
+  window.addEventListener(NAV_PREF_EVENT, onChange);
+  return () => {
+    window.removeEventListener('storage', onChange);
+    window.removeEventListener(NAV_PREF_EVENT, onChange);
+  };
+}
+
+function readFlag(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === 'true';
+  } catch {
+    // Private mode / storage blocked — fall back to the default.
+    return false;
+  }
+}
+
+function writeFlag(key: string, value: boolean) {
+  try {
+    localStorage.setItem(key, String(value));
+  } catch {
+    /* storage blocked — the change still applies for this session */
+  }
+  window.dispatchEvent(new Event(NAV_PREF_EVENT));
+}
+
+/** A boolean localStorage flag, hydration-safe (server snapshot is always false). */
+function useNavPrefFlag(key: string): boolean {
+  const getSnapshot = useCallback(() => readFlag(key), [key]);
+  return useSyncExternalStore(subscribeToNavPrefs, getSnapshot, () => false);
+}
 
 /**
  * Scroll-driven gradient angle for the avatar ring.
@@ -49,13 +102,18 @@ function useScrollDeg() {
  * The active item gets a filled gradient pill; the rest are outlined pills.
  */
 
+/*
+ * `mobile` used to hold the abbreviated caption for the bottom tab bar ("Fund",
+ * "News"). That bar is gone; the hamburger sheet is a full-width list, so the
+ * field now carries the longer wording from the designer's mobile mockup.
+ */
 const NAV_ITEMS = [
-  { href: '/',                label: 'Home',          mobile: 'Home',     activeMatch: 'exact' as const },
-  { href: '/universities',    label: 'Search',        mobile: 'Search',   activeMatch: 'prefix' as const },
-  { href: '/apply',           label: 'Apply',         mobile: 'Apply',    activeMatch: 'prefix' as const, requiresAuth: true },
-  { href: '/scholarships',    label: 'Scholarships',  mobile: 'Fund',     activeMatch: 'prefix' as const, requiresAuth: true },
-  { href: '/mentors',         label: 'Mentorship',     mobile: 'Mentors',  activeMatch: 'prefix' as const },
-  { href: '/news',            label: 'GLOWBAL News',  mobile: 'News',     activeMatch: 'prefix' as const },
+  { href: '/',                label: 'Home',          mobile: 'Home',               activeMatch: 'exact' as const },
+  { href: '/universities',    label: 'Search',        mobile: 'Search universities', activeMatch: 'prefix' as const },
+  { href: '/apply',           label: 'Apply',         mobile: 'Plan your studies',  activeMatch: 'prefix' as const, requiresAuth: true },
+  { href: '/scholarships',    label: 'Scholarships',  mobile: 'Scholarships',       activeMatch: 'prefix' as const, requiresAuth: true },
+  { href: '/mentors',         label: 'Mentorship',    mobile: 'Mentorship',         activeMatch: 'prefix' as const },
+  { href: '/news',            label: 'GLOWBAL News',  mobile: 'GLOWBAL News',       activeMatch: 'prefix' as const },
 ];
 
 // Extra item shown only to users who have a mentor profile (any status).
@@ -73,6 +131,36 @@ const COORDINATOR_ITEM = {
   mobile: 'Coordinator',
   activeMatch: 'prefix' as const,
 };
+
+const ADMIN_ITEM = {
+  href: '/admin',
+  label: 'Admin',
+  mobile: 'Admin',
+  activeMatch: 'prefix' as const,
+};
+
+type NavItem = {
+  href: string;
+  label: string;
+  mobile: string;
+  activeMatch: 'exact' | 'prefix';
+  requiresAuth?: boolean;
+};
+
+/**
+ * The destinations this user can see, in order.
+ *
+ * Desktop and mobile derive from this same list so the two navigations can
+ * never drift — previously the sidebar, the bottom tab bar, and the hamburger
+ * drawer each kept their own hand-written subset, and none of the three agreed.
+ */
+function navItemsFor(user: UserSummary | null): NavItem[] {
+  const items: NavItem[] = user ? [...NAV_ITEMS] : NAV_ITEMS.filter((i) => !i.requiresAuth);
+  if (user?.isMentor) items.push(MENTOR_DASHBOARD_ITEM);
+  if (user?.isCoordinator) items.push(COORDINATOR_ITEM);
+  if (user?.isAdmin) items.push(ADMIN_ITEM);
+  return items;
+}
 
 function isActive(pathname: string, item: { href: string; activeMatch: 'exact' | 'prefix' }) {
   if (item.activeMatch === 'exact') return pathname === item.href;
@@ -171,59 +259,6 @@ function AdminPill() {
   );
 }
 
-// ── Mobile bottom bar ────────────────────────────────────────────────────────
-function MobileNav({ user }: { user: UserSummary | null }) {
-  const pathname = usePathname();
-  const deg = useScrollDeg();
-  const { t } = useLanguage();
-
-  const initials = user?.name.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase() ?? '';
-
-  // Mobile nav shows exactly 4 app-like buttons: Search, Apply, Mentors, Profile
-  const mobileItems = [
-    { href: '/universities', label: 'Search', mobile: 'Search', icon: IconSearch },
-    { href: '/apply', label: 'Apply', mobile: 'Apply', icon: IconApply },
-    { href: '/mentors', label: 'Mentors', mobile: 'Mentors', icon: IconMentorship },
-    user 
-      ? { href: '/profile', label: 'Profile', mobile: 'Profile', icon: IconUser, isProfile: true }
-      : { href: '/auth', label: 'Sign in', mobile: 'Sign in', icon: IconUser, isProfile: false },
-  ];
-
-  return (
-    <nav className="glowbal-mobile-nav" aria-label="Mobile navigation">
-      {mobileItems.map((item) => {
-        const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
-        const Icon = item.icon;
-
-        return (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={`glowbal-mobile-nav-item${active ? ' glowbal-mobile-nav-item-active' : ''}`}
-          >
-            {item.isProfile && user ? (
-              <div
-                className="glowbal-mobile-nav-avatar"
-                style={{ background: `linear-gradient(${deg}deg, #ff4d8c, #ff3b3b, #00b4d8, #1e2a78)` }}
-              >
-                {user?.avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={user.avatarUrl} alt={user.name} className="glowbal-nav-avatar-img" />
-                ) : (
-                  <div className="glowbal-nav-avatar-initials" style={{ fontSize: '0.55rem' }}>{initials}</div>
-                )}
-              </div>
-            ) : (
-              <span className="glowbal-mobile-nav-icon"><Icon /></span>
-            )}
-            <span className="glowbal-mobile-nav-label">{t(item.mobile)}</span>
-          </Link>
-        );
-      })}
-    </nav>
-  );
-}
-
 // ── Language Switcher ────────────────────────────────────────────────────────
 function LanguageSwitcher() {
   const { lang: language, toggle: toggleLanguage } = useLanguage();
@@ -253,130 +288,53 @@ function LanguageSwitcher() {
   );
 }
 
-// ── Mobile top bar + hamburger drawer ────────────────────────────────────────
-// The bottom nav only has room for 4 primary destinations. The hamburger
-// surfaces everything else (Scholarships, GLOWBAL News, Mentor hub, Admin) plus
-// the language switch, mirroring the desktop sidebar's secondary links. Mobile
-// only — hidden from md upward where the full sidebar is visible.
-function MobileTopBar({ user }: { user: UserSummary | null }) {
-  const pathname = usePathname();
+// ── Mobile navigation ────────────────────────────────────────────────────────
+/**
+ * Adapts the app's nav model onto the shared mobile header from the redesign.
+ *
+ * This replaces two components: a bottom tab bar and a separate top bar with
+ * its own drawer, which rendered stacked on top of each other on every mobile
+ * page. The designer confirmed the redesign collapses navigation into a single
+ * hamburger, so the destinations they carried between them all land here.
+ */
+function MobileNavigation({ user }: { user: UserSummary | null }) {
   const { t, lang: language, toggle: toggleLanguage } = useLanguage();
-  const [open, setOpen] = useState(false);
 
-  // Lock body scroll while the drawer is open.
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.body.style.overflow = prev;
-    };
-  }, [open]);
-
-  // Pages not already reachable from the bottom nav (Search/Apply/Mentors/Profile).
-  const drawerItems: { href: string; label: string; icon: () => React.JSX.Element }[] = [
-    { href: '/', label: 'Home', icon: IconHome },
-    { href: '/scholarships', label: 'Scholarships', icon: IconScholarship },
-    { href: '/news', label: 'GLOWBAL News', icon: IconNews },
-  ];
-  if (user?.isMentor) {
-    drawerItems.push({ href: '/dashboard/mentor', label: 'Mentor hub', icon: IconMentorHub });
-  }
-  if (user?.isCoordinator) {
-    drawerItems.push({ href: '/coordinator', label: 'Coordinator', icon: IconCoordinator });
-  }
-  if (user?.isAdmin) {
-    drawerItems.push({ href: '/admin', label: 'Admin', icon: IconAdmin });
-  }
+  const items: MobileNavItem[] = navItemsFor(user).map((item) => ({
+    href: item.href,
+    label: t(item.mobile),
+  }));
 
   return (
-    <>
-      <header className="glowbal-mobile-topbar">
-        <Link href="/" aria-label="Glowbal home" className="glowbal-mobile-topbar-logo">
-          <GlowbalLogo height={26} />
+    <MobileNav
+      logo={
+        <Link href="/" aria-label="Glowbal home" className="inline-flex items-center">
+          <GlowbalLogo height={28} />
         </Link>
+      }
+      items={items}
+      primaryAction={{ href: '/apply', label: t('Plan your studies') }}
+      secondaryAction={
+        user
+          ? { href: '/profile', label: t('Profile') }
+          : { href: '/auth', label: t('Sign in') }
+      }
+      openLabel={t('Menu')}
+      closeLabel={t('Close menu')}
+      utility={
         <button
           type="button"
-          onClick={() => setOpen(true)}
-          className="glowbal-mobile-menu-button"
-          aria-label="Open menu"
-          aria-expanded={open}
-          aria-haspopup="dialog"
+          onClick={toggleLanguage}
+          className="mb-gb-lg flex w-full items-center justify-between rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-medium text-fg-tertiary transition-colors hover:bg-surface-hover"
+          aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
         >
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <line x1="3" y1="6" x2="21" y2="6" />
-            <line x1="3" y1="12" x2="21" y2="12" />
-            <line x1="3" y1="18" x2="21" y2="18" />
-          </svg>
+          <span>{language === 'en' ? '🇬🇧 English' : '🇻🇳 Tiếng Việt'}</span>
+          <span className="text-gb-xs font-semibold tracking-wide text-fg-muted">
+            {language === 'en' ? 'EN' : 'VI'}
+          </span>
         </button>
-      </header>
-
-      {open && (
-        <div className="glowbal-mobile-drawer-overlay" role="dialog" aria-modal="true" aria-label="Menu">
-          <button
-            type="button"
-            className="glowbal-mobile-drawer-scrim"
-            aria-label="Close menu"
-            onClick={() => setOpen(false)}
-          />
-          <div className="glowbal-mobile-drawer">
-            <div className="glowbal-mobile-drawer-header">
-              <GlowbalLogo height={28} />
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="glowbal-mobile-drawer-close"
-                aria-label="Close menu"
-              >
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                  <line x1="18" y1="6" x2="6" y2="18" />
-                  <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-              </button>
-            </div>
-
-            <nav className="glowbal-mobile-drawer-nav" aria-label="More navigation">
-              {drawerItems.map((item) => {
-                const active = pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={() => setOpen(false)}
-                    className={`glowbal-mobile-drawer-item${active ? ' glowbal-mobile-drawer-item-active' : ''}`}
-                  >
-                    <span className="glowbal-mobile-drawer-item-icon"><Icon /></span>
-                    <span>{t(item.label)}</span>
-                  </Link>
-                );
-              })}
-            </nav>
-
-            <div className="glowbal-mobile-drawer-footer">
-              <button
-                type="button"
-                onClick={toggleLanguage}
-                className="glowbal-mobile-drawer-lang"
-                aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
-              >
-                <span className="glowbal-mobile-drawer-item-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-                    <circle cx="12" cy="12" r="10" />
-                    <path d="M2 12h20" />
-                    <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-                  </svg>
-                </span>
-                <span>
-                  {language === 'en' ? '🇬🇧 English' : '🇻🇳 Tiếng Việt'}
-                </span>
-                <span className="glowbal-mobile-drawer-lang-hint">{language === 'en' ? 'EN' : 'VI'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+      }
+    />
   );
 }
 
@@ -395,21 +353,10 @@ function DesktopSidebar({
   const pathname = usePathname();
   const { t } = useLanguage();
 
-  const baseItems = user ? NAV_ITEMS : NAV_ITEMS.filter((i) => !i.requiresAuth);
-  let visibleItems = user?.isMentor ? [...baseItems, MENTOR_DASHBOARD_ITEM] : baseItems;
-
-  // Add coordinator link to navigation if user has the coordinator role
-  if (user?.isCoordinator) {
-    visibleItems = [...visibleItems, COORDINATOR_ITEM];
-  }
-
-  // Add admin link to navigation if user is admin
-  if (user?.isAdmin) {
-    visibleItems = [...visibleItems, { href: '/admin', label: 'Admin', mobile: 'Admin', activeMatch: 'prefix' as const }];
-  }
+  const visibleItems = navItemsFor(user);
 
   return (
-    <aside className={`glowbal-sidebar${collapsed ? ' is-collapsed' : ''}`}>
+    <aside className={`glowbal-sidebar${collapsed ? ' is-collapsed' : ''}`} {...testId(TID.navHeader)}>
       {/* Animated brand gradient strip (pink → red → aqua → navy) */}
       <div className="glowbal-brand-strip-vertical" aria-hidden />
 
@@ -472,23 +419,32 @@ function DesktopSidebar({
 // ── Main nav controller ──────────────────────────────────────────────────────
 export function NavReveal() {
   const pathname = usePathname();
-  const [revealed, setRevealed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    const isLanding = window.location.pathname === '/';
-    return !isLanding || localStorage.getItem('glowbal-nav-revealed') === 'true';
-  });
   const [user, setUser] = useState<UserSummary | null>(null);
-
-  // Sidebar starts expanded; collapsing to an icon rail is an explicit,
-  // remembered user choice. Mirror the `revealed` pattern above and read the
-  // stored preference in the initializer (localStorage is client-only).
-  const [collapsed, setCollapsed] = useState(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('glowbal-sidebar-collapsed') === 'true';
-  });
 
   // Hide nav on home page regardless of revealed state
   const isHomePage = pathname === '/';
+
+  /*
+   * Pages that ship their own header. The marketing pages carry the TopNav from
+   * the redesign, so the app chrome must not double up — two headers would also
+   * put two elements behind the `nav-header` test id, which the contract in
+   * shared/lib/testids.ts forbids.
+   */
+  const rendersOwnChrome = pathname === '/dev/home';
+
+  /*
+   * The reveal gate only ever mattered for the landing page: everywhere else
+   * the nav is always shown, and `pathname` is known during SSR. So the server
+   * renders the correct markup directly, and the only genuinely client-known
+   * bits — the stored preferences — come from useNavPrefFlag, whose server
+   * snapshot matches the server render by construction.
+   */
+
+  // Landing page only: hidden until revealed, which persists across visits.
+  const revealedOnLanding = useNavPrefFlag('glowbal-nav-revealed');
+
+  // Sidebar starts expanded; collapsing to an icon rail is a remembered choice.
+  const collapsed = useNavPrefFlag('glowbal-sidebar-collapsed');
 
   // Reflect the collapsed state onto <body> so the CSS-driven main-content
   // margin shrinks in step with the sidebar instead of leaving dead space.
@@ -500,17 +456,14 @@ export function NavReveal() {
   }, [collapsed]);
 
   function toggleCollapsed() {
-    setCollapsed((prev) => {
-      const next = !prev;
-      localStorage.setItem('glowbal-sidebar-collapsed', String(next));
-      return next;
-    });
+    // Write-through: localStorage is the source of truth, and the notify makes
+    // useSyncExternalStore re-read it.
+    writeFlag('glowbal-sidebar-collapsed', !collapsed);
   }
 
   useEffect(() => {
     function onReveal() {
-      setRevealed(true);
-      localStorage.setItem('glowbal-nav-revealed', 'true');
+      writeFlag('glowbal-nav-revealed', true);
     }
     window.addEventListener('glowbal:reveal-nav', onReveal);
 
@@ -583,13 +536,15 @@ export function NavReveal() {
     };
   }, []);
 
-  if (!revealed || isHomePage) return null;
+  // Non-landing pages always show the nav, and the server knows that, so the
+  // first client render matches the server HTML exactly.
+  if (rendersOwnChrome) return null;
+  if (isHomePage && !revealedOnLanding) return null;
 
   return (
     <>
       <DesktopSidebar user={user} collapsed={collapsed} onToggleCollapsed={toggleCollapsed} />
-      <MobileTopBar user={user} />
-      <MobileNav user={user} />
+      <MobileNavigation user={user} />
     </>
   );
 }

@@ -9,7 +9,7 @@ import { POST } from '../route';
  * - skippedDuplicates: Courses already in user's shortlist
  */
 
-import { buildAddCoursesSupabase } from './test-helpers';
+import { buildAddCoursesSupabase, makeRequest } from './test-helpers';
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(),
@@ -45,7 +45,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.4 Duplicate Detection'
   });
 
   const createMockRequest = (body: any): Request => {
-    return new Request('http://localhost:3000/api/apply-shortlist/add-courses', {
+    return makeRequest('http://localhost:3000/api/apply-shortlist/add-courses', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),

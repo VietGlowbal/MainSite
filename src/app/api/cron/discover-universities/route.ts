@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAuthorizedCron } from '@/lib/cron-auth';
+import { revalidateUniversities } from '@/server/cache';
 
 /**
  * GET/POST /api/cron/discover-universities
@@ -147,6 +148,10 @@ async function handle(request: NextRequest) {
   if (insert.error) {
     return NextResponse.json({ error: insert.error.message }, { status: 500 });
   }
+
+  // New rows are in the table; drop the cached reads so they appear on the
+  // next request rather than after the 12h TTL expires.
+  revalidateUniversities();
 
   return NextResponse.json({
     ok: true,

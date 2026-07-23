@@ -181,6 +181,7 @@ describe('Task 8.6: Store results and update session status', () => {
 
       // Mock web search
       vi.mocked(getSearchProvider).mockReturnValue({
+        name: 'tavily',
         search: vi.fn().mockResolvedValue([
           {
             title: 'Engineering MEng',
@@ -242,8 +243,18 @@ describe('Task 8.6: Store results and update session status', () => {
         results: [
           {
             id: 'course-1',
+            universityId: 1,
             courseName: 'Test Course',
             courseUrl: 'https://example.edu/test',
+            sourceDomain: 'example.edu',
+            snippet: null,
+            degreeLevel: null,
+            duration: null,
+            tuitionFeeText: null,
+            confidenceLabel: 'Checked recently',
+            sourceConfidence: 0.9,
+            sourceType: 'cached',
+            lastExtractedAt: '2026-01-01T00:00:00.000Z',
             rank: 1,
           },
         ],
@@ -301,6 +312,7 @@ describe('Task 8.6: Store results and update session status', () => {
 
       // Mock web search with NO results
       vi.mocked(getSearchProvider).mockReturnValue({
+        name: 'tavily',
         search: vi.fn().mockResolvedValue([]), // Empty results
       });
 
@@ -416,6 +428,7 @@ describe('Task 8.6: Store results and update session status', () => {
 
       // Mock web search
       vi.mocked(getSearchProvider).mockReturnValue({
+        name: 'tavily',
         search: vi.fn().mockResolvedValue([
           {
             title: 'Test Course',

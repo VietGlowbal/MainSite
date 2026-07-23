@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '../route';
 import { createClient } from '@/lib/supabase/server';
-import { buildAddCoursesSupabase, allowedEntitlement } from './test-helpers';
+import { buildAddCoursesSupabase, allowedEntitlement, makeRequest } from './test-helpers';
 
 /**
  * Task 13.1 Tests: Route handler, authentication, and input validation
@@ -40,7 +40,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
   describe('Input validation', () => {
     it('should reject invalid JSON', async () => {
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         body: 'invalid json',
       });
@@ -53,7 +53,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
     });
 
     it('should reject missing sessionId', async () => {
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -70,7 +70,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
     });
 
     it('should reject invalid sessionId (not UUID)', async () => {
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -88,7 +88,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
     });
 
     it('should reject empty selectedResultIds array', async () => {
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -106,7 +106,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
     });
 
     it('should reject too many selectedResultIds (>10)', async () => {
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -124,7 +124,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
     });
 
     it('should reject invalid result ID (not UUID)', async () => {
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -168,7 +168,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -203,7 +203,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -231,7 +231,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -268,7 +268,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -320,7 +320,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -375,7 +375,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -414,7 +414,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -453,7 +453,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -492,7 +492,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -526,7 +526,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -565,7 +565,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -640,7 +640,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -689,7 +689,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -740,7 +740,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -791,7 +791,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
@@ -839,7 +839,7 @@ describe('POST /api/apply-shortlist/add-courses - Task 13.1 & 13.2', () => {
 
       vi.mocked(createClient).mockResolvedValue(mockSupabase as any);
 
-      const request = new Request('http://localhost/api/apply-shortlist/add-courses', {
+      const request = makeRequest('http://localhost/api/apply-shortlist/add-courses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(validRequestBody),
