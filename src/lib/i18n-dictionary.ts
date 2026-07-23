@@ -32,10 +32,78 @@ export const translations: Record<string, string> = {
   'Sign out': 'Đăng xuất',
   'Search universities': 'Tìm trường đại học',
   Coordinator: 'Điều phối viên',
+  'About us': 'Về chúng tôi',
+  'AI strategy': 'AI lên chiến lược',
+  Blog: 'Blog',
+  Contact: 'Liên hệ',
+  // 'Find a mentor' is already defined further down, under the mentorship copy.
   // Mobile hamburger sheet. "Plan your studies" is the designer's CTA copy.
   Menu: 'Menu',
   'Close menu': 'Đóng menu',
   'Plan your studies': 'Lập kế hoạch du học',
+
+  // ── Home hero (Figma 104:7126) ───────────────────────────────────────────
+  // DomTranslator matches the *exact* trimmed text of a node, so these keys
+  // must stay character-identical to the JSX in features/marketing/ui.
+  'Study-abroad experts who help you choose universities and scholarships, and stay beside you through the whole application':
+    'Chuyên gia du học giúp bạn chọn trường và học bổng, đồng hành cùng bạn xuyên suốt quá trình ứng tuyển hồ sơ du học',
+  'Explore over 10,000 universities, discover more than 2,000 scholarships worth over 150,000,000 USD, and build your application strategy with AI and real student supporters around the world.':
+    'Khám phá hơn 10,000 trường đại học, tìm hiểu hơn 2,000 học bổng trị giá trên 150,000,000 USD, và xây dựng chiến lược hồ sơ của bạn với AI và những người hỗ trợ sinh viên thực tế trên toàn thế giới.',
+  'Find my scholarships': 'Tìm học bổng của tôi',
+
+  // ── Home partner wall (Figma 104:7135) ───────────────────────────────────
+  // University names live in alt attributes, which DomTranslator never touches,
+  // so there is nothing here to accidentally translate.
+  'Our featured partners': 'Đối tác tiêu biểu của chúng tôi',
+
+  // ── Home metrics (Figma 104:7148) ────────────────────────────────────────
+  // The three figures are the hero's, restated. They are listed here rather
+  // than left to fall through so that a number never makes a round trip to
+  // /api/translate just to come back unchanged.
+  'Standout numbers': 'Những con số nổi bật',
+  'A short guide to how GLOWBAL takes you from a dream university to a clear scholarship plan.':
+    'Một hướng dẫn ngắn về cách GLOWBAL đưa bạn từ trường đại học mơ ước đến một kế hoạch học bổng rõ ràng.',
+  // Keep the values short in both languages — see the note on `Metric`.
+  '10,000+': '10,000+',
+  'Universities covered': 'Trường đại học trong kho',
+  '2,000+': '2,000+',
+  'Open scholarships': 'Học bổng đang mở',
+  '150M': '150 triệu',
+  'Total scholarship value (USD)': 'Tổng giá trị học bổng (USD)',
+
+  // ── Home features (Figma 104:7164) ───────────────────────────────────────
+  // Only the first block is written; the other two show `MissingContent`,
+  // which is marked data-no-auto-translate and needs no keys.
+  Features: 'Tính năng',
+  'See the scholarships tied to the university you picked':
+    'Xem các học bổng liên kết với trường đại học bạn đã chọn',
+  'Browse a free preview. Create your profile to unlock the full eligibility rules, the documents you need, and to save opportunities into your plan.':
+    'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
+  // A product name — kept as-is in both languages, like the university names.
+  'GlowBal Matcher': 'GlowBal Matcher',
+  'Answer simple questions about you. With our G-Matching technology, we can pair you with the best future opportunity from:':
+    'Trả lời vài câu hỏi đơn giản về bạn. Với công nghệ G-Matching, chúng tôi ghép bạn với cơ hội phù hợp nhất từ:',
+  '200+ top universities globally': 'Hơn 200 trường đại học hàng đầu thế giới',
+  '100+ different majors, even the rarest ones': 'Hơn 100 chuyên ngành, kể cả những ngành hiếm nhất',
+  '3000+ scholarships': 'Hơn 3000 học bổng',
+
+  // ── Home "How GLOWBAL works" (Figma 104:7211) ────────────────────────────
+  // 'Learn more' is already defined above, under the common actions.
+  'How GLOWBAL works': 'Cách GLOWBAL hoạt động',
+  'No agencies, no endless tabs. Just the clearest path from a dream university to a scholarship plan.':
+    'Không có đại lý, không có tab vô tận. Chỉ có con đường rõ ràng nhất từ một trường mơ ước đến một kế hoạch học bổng.',
+  'Pick a university': 'Chọn một trường đại học',
+  'Search for a university you care about, or browse by country, major, budget and scholarship odds.':
+    'Tìm kiếm một trường đại học mà bạn quan tâm, hoặc duyệt theo quốc gia, chuyên ngành, ngân sách và khả năng học bổng.',
+  'Create your free GLOWBAL profile': 'Tạo hồ sơ GLOWBAL miễn phí của bạn',
+  'Add your basics so GLOWBAL can surface the scholarships that fit and save your application plan.':
+    'Thêm thông tin cơ bản của bạn để GLOWBAL có thể hiển thị các học bổng liên quan và lưu kế hoạch hồ sơ của bạn.',
+  'Choose your scholarships': 'Chọn học bổng',
+  'See the scholarship opportunities tied to the university you picked and save the ones you want to apply for.':
+    'Xem các cơ hội học bổng liên quan đến trường đại học bạn đã chọn và lưu lại những học bổng bạn muốn đăng ký.',
+  'Build your AI strategy': 'Tạo chiến lược AI của bạn',
+  'Get a personalised strategy showing what to prepare, what to improve, and how to approach each scholarship.':
+    'Nhận một chiến lược cá nhân hóa cho thấy những gì cần chuẩn bị, những gì cần cải thiện và cách tiếp cận từng học bổng.',
 
   // ── Common actions / labels ──────────────────────────────────────────────
   Save: 'Lưu',

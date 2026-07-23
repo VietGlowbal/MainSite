@@ -94,6 +94,12 @@
   --spacing-gb-7xl: 64px;
   --spacing-gb-9xl: 96px;
 
+  /* Untitled UI gives buttons their own horizontal padding steps (14 / 18 / 22)
+     which are deliberately NOT on the layout scale above. Only the xl step is
+     used so far — the Home hero CTA (Figma 104:7133). Add the others when a
+     design actually calls for them. */
+  --spacing-gb-btn-xl: 18px;
+
   /* ── Radius — FINAL ──────────────────────────────────────────────────────
      Much tighter than the legacy code, which uses rounded-[1.5rem] (24px) and
      rounded-[2rem] (32px) throughout. Do not carry those values forward. */
@@ -123,8 +129,30 @@
   --text-gb-display-sm--line-height: 38px;
   --text-gb-display-md: 36px;
   --text-gb-display-md--line-height: 44px;
+  /* The Home hero heading (Figma 104:7130). Hand-set in the design rather than
+     bound to a text style, and its 54px leading is tighter than Untitled UI's
+     display-lg (48/60) — so the value is the design's, not the kit's. */
+  --text-gb-display-lg: 48px;
+  --text-gb-display-lg--line-height: 54px;
   --text-gb-display-xl: 60px;
   --text-gb-display-xl--line-height: 72px;
+
+  /* ── Letter-spacing ──────────────────────────────────────────────────────
+     Two values, and the design uses both — which is worth knowing before you
+     assume one of them is a mistake.
+
+     `tight` (-2%) is what Untitled UI's bound display text styles carry, e.g.
+     "Display xl/Semibold" on the metric numbers (Figma 104:7158).
+
+     `open` (+2%) is what the designer hand-sets on the Bricolage headings that
+     are NOT bound to a text style — the partner-wall heading (104:7136, 48px ->
+     0.96px) and the metrics heading (104:7154, 36px -> 0.72px). Same magnitude,
+     opposite sign, applied consistently to both, which is why it is reproduced
+     here rather than "corrected". Still worth confirming with the designer.
+
+     em rather than px so one token covers every size the design applies it at. */
+  --tracking-gb-display-tight: -0.02em;
+  --tracking-gb-display-open: 0.02em;
 
   /* ── Shadows — FINAL ─────────────────────────────────────────────────── */
   --shadow-gb-xs: 0 1px 2px #0000000d;
@@ -137,8 +165,18 @@
     inset 0 0 0 1px #0000002e;
 
   /* ── Containers — FINAL ──────────────────────────────────────────────── */
-  --container-gb-sm: 480px;
-  --container-gb-xl: 768px;
+  /* ⚠️ These are NOT named `--container-gb-sm` / `--container-gb-xl`, and the
+     reason is a silent-corruption bug rather than taste.
+
+     Tailwind resolves `max-w-<key>` against BOTH the --container-* and the
+     --spacing-* namespaces, and --spacing- wins. With the obvious names,
+     `max-w-gb-xl` returned --spacing-gb-xl (16px) instead of 768px, so a
+     paragraph that should have been 768px wide rendered one word per line. No
+     error, no warning — it only showed up in a screenshot.
+
+     `gb-width-*` cannot collide, because no spacing step is called that. */
+  --container-gb-width-sm: 480px;
+  --container-gb-width-xl: 768px;
   --container-gb-desktop: 1280px;
 }
 
@@ -155,6 +193,11 @@
   --gb-text-tertiary: var(--color-gb-neutral-600);
   --gb-text-quaternary: var(--color-gb-neutral-500);
   --gb-text-placeholder: var(--color-gb-neutral-500);
+  /* Figma text-brand-secondary-(700): brand-coloured text on a light surface —
+     the "Learn more" link on a feature card. The mockups still paint this
+     #6941c6, Untitled UI's purple, which is the leftover CLAUDE.md flags on the
+     Home frame; the rose ramp is the authority here. */
+  --gb-text-brand: var(--color-gb-brand-700);
 
   /* Figma Colors/Background/* */
   --gb-bg-primary: var(--color-gb-neutral-0);
@@ -178,6 +221,10 @@
   --gb-brand: var(--color-gb-brand-600);
   --gb-brand-hover: var(--color-gb-brand-700);
   --gb-brand-subtle: var(--color-gb-brand-50);
+  /* One step up from -subtle: the tinted disc behind a section's "Featured
+     icon" (Figma 104:7153). Distinct from -subtle because the two sit next to
+     each other in the kit — 50 is a page-level wash, 100 is a component fill. */
+  --gb-brand-surface: var(--color-gb-brand-100);
   --gb-on-brand: var(--color-gb-neutral-0);
 
   /* Admission tiers. `-on-` is the text colour to use against the matching
@@ -214,6 +261,7 @@
   --color-fg-secondary: var(--gb-text-secondary); /* Figma text-secondary (700) */
   --color-fg-tertiary: var(--gb-text-tertiary); /* Figma text-tertiary (600) */
   --color-fg-muted: var(--gb-text-quaternary); /* Figma text-quaternary (500) */
+  --color-fg-brand: var(--gb-text-brand); /* Figma text-brand-secondary (700) */
 
   /* border-line, border-line-strong */
   --color-line: var(--gb-border-secondary); /* Figma border-secondary */
@@ -223,6 +271,7 @@
   --color-brand: var(--gb-brand);
   --color-brand-hover: var(--gb-brand-hover);
   --color-brand-subtle: var(--gb-brand-subtle);
+  --color-brand-surface: var(--gb-brand-surface);
   --color-on-brand: var(--gb-on-brand);
 
   /* Tier badges: pair bg-tier-<t> with text-on-tier-<t>. */
