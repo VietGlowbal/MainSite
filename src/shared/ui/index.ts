@@ -9,8 +9,14 @@
  */
 export { Button } from './button';
 export type { ButtonSize, ButtonVariant } from './button';
+export { CheckItem, CheckList } from './check-item';
 export { Container } from './container';
+export { FeatureCard } from './feature-card';
+export { ICONS, KitIcon } from './icons';
+export type { KitIconArt } from './icons';
+export { Metric } from './metric';
 export { MobileNav } from './mobile-nav';
+export { Section } from './section';
 export type { MobileNavAction, MobileNavItem } from './mobile-nav';
 export { TopNav } from './top-nav';
 export type { TopNavItem } from './top-nav';

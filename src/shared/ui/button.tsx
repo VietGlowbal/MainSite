@@ -13,24 +13,32 @@ import Link from 'next/link';
  * half the design's "buttons" navigate.
  */
 
-export type ButtonVariant = 'primary' | 'secondary' | 'secondary-on-dark';
-export type ButtonSize = 'sm' | 'md';
+export type ButtonVariant = 'primary' | 'primary-on-dark' | 'secondary' | 'secondary-on-dark';
+export type ButtonSize = 'sm' | 'md' | 'xl';
 
 const BASE =
-  'inline-flex items-center justify-center gap-gb-xs rounded-gb-md text-gb-sm font-semibold ' +
+  'inline-flex items-center justify-center gap-gb-xs rounded-gb-md font-semibold ' +
   'shadow-gb-xs-skeuomorphic transition-colors ' +
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ' +
   'disabled:pointer-events-none disabled:opacity-60';
 
 const SIZES: Record<ButtonSize, string> = {
   /** 8 + 20 + 8 = 36px. The nav actions and most inline CTAs. */
-  sm: 'px-gb-lg py-gb-md',
+  sm: 'px-gb-lg py-gb-md text-gb-sm',
   /** 40px flat, matching the mobile nav's stacked actions. */
-  md: 'h-gb-5xl px-gb-xl',
+  md: 'h-gb-5xl px-gb-xl text-gb-sm',
+  /** 12 + 24 + 12 = 48px on 16/24 text. The Home hero CTA (Figma 104:7133). */
+  xl: 'px-gb-btn-xl py-gb-lg text-gb-md',
 };
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary: 'bg-brand text-on-brand hover:bg-brand-hover',
+  /*
+   * Both primary instances in the design sit on the black bar/hero and carry a
+   * 2px translucent white border. It is not decoration — without it the rose
+   * fill bleeds into pure black at the edges.
+   */
+  'primary-on-dark': 'border-2 border-white/12 bg-brand text-on-brand hover:bg-brand-hover',
   secondary: 'border border-line-strong bg-surface text-fg-secondary hover:bg-surface-hover',
   /*
    * Same white fill as `secondary`, but on the black nav bar the design swaps

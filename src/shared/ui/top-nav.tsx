@@ -78,7 +78,7 @@ export function TopNav({ logo, items, primaryAction, secondaryAction }: Props) {
           <Button href={secondaryAction.href} variant="secondary-on-dark">
             {secondaryAction.label}
           </Button>
-          <Button href={primaryAction.href} variant="primary">
+          <Button href={primaryAction.href} variant="primary-on-dark">
             {primaryAction.label}
           </Button>
         </div>
