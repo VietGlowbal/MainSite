@@ -1,5 +1,22 @@
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { expect, test } from '@playwright/test';
 import { TID } from '../../src/shared/lib/testids';
+
+/**
+ * Baselines are per-platform (font rasterisation differs), and only the win32
+ * PNGs are committed. Without this guard Playwright looks for
+ * `<name>-chromium-linux.png` on the Ubuntu CI runner, does not find it, and
+ * fails the run — so a machine with no baseline for its platform skips instead.
+ * Mirrors kitchen-sink.spec.ts. To add the Linux baseline CI needs, run the
+ * suite on Linux with `npm run test:e2e:update` and commit the generated PNG.
+ */
+const SNAPSHOT_DIR = path.join(__dirname, 'home-preview.spec.ts-snapshots');
+
+function baselineExists(name: string): boolean {
+  const platform = process.platform === 'win32' ? 'win32' : process.platform === 'darwin' ? 'darwin' : 'linux';
+  return existsSync(path.join(SNAPSHOT_DIR, `${name}-chromium-${platform}.png`));
+}
 
 /**
  * /dev/home — the Home page being rebuilt from Figma 104:7113, section by
@@ -184,6 +201,10 @@ test.describe('home preview — desktop', () => {
   });
 
   test('visual baseline', async ({ page }) => {
+    test.skip(
+      !baselineExists('home-desktop'),
+      `No visual baseline for ${process.platform}. Run npm run test:e2e:update here and commit the PNG.`,
+    );
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
     await settle(page);
@@ -277,6 +298,10 @@ test.describe('home preview — mobile', () => {
   });
 
   test('visual baseline', async ({ page }) => {
+    test.skip(
+      !baselineExists('home-mobile'),
+      `No visual baseline for ${process.platform}. Run npm run test:e2e:update here and commit the PNG.`,
+    );
     await page.setViewportSize(MOBILE);
     await page.goto('/dev/home');
     await settle(page);
