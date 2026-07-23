@@ -35,6 +35,16 @@ export default defineConfig({
   webServer: {
     command: 'npm run build && npm run start',
     url: 'http://localhost:3000',
+    /**
+     * ⚠️ Locally this attaches to whatever already answers on :3000 — including
+     * a `next dev` server running someone else's branch. CI never reuses, so a
+     * green local run is not evidence CI will be green.
+     *
+     * If a visual baseline disagrees between your machine and CI, check this
+     * first. `devIndicators: false` in next.config.ts removes the one visible
+     * dev/prod difference that used to poison screenshots, but stale code on
+     * :3000 is still stale code.
+     */
     reuseExistingServer: !process.env.CI,
     timeout: 300_000,
     // The suite runs a production build on purpose, so /dev/kitchen-sink has
