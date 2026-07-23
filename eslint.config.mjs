@@ -20,7 +20,18 @@ import nextTs from 'eslint-config-next/typescript';
  * On the day these land, src/{features,shared,server} do not exist, so the
  * feature/shared zones match nothing and `npm run lint` stays green.
  */
-const FEATURES = ['universities', 'scholarships', 'apply', 'onboarding', 'mentorship', 'auth'];
+// 'marketing' holds the public-facing page compositions (Home and, later, the
+// About / AI-strategy pages). It has ui/ only — no repository, no domain logic;
+// its data comes from server actions the route owns.
+const FEATURES = [
+  'universities',
+  'scholarships',
+  'apply',
+  'onboarding',
+  'mentorship',
+  'auth',
+  'marketing',
+];
 
 const TEST_FILES = ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'];
 
