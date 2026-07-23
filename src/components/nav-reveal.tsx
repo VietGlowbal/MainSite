@@ -425,6 +425,14 @@ export function NavReveal() {
   const isHomePage = pathname === '/';
 
   /*
+   * Pages that ship their own header. The marketing pages carry the TopNav from
+   * the redesign, so the app chrome must not double up — two headers would also
+   * put two elements behind the `nav-header` test id, which the contract in
+   * shared/lib/testids.ts forbids.
+   */
+  const rendersOwnChrome = pathname === '/dev/home';
+
+  /*
    * The reveal gate only ever mattered for the landing page: everywhere else
    * the nav is always shown, and `pathname` is known during SSR. So the server
    * renders the correct markup directly, and the only genuinely client-known
@@ -530,6 +538,7 @@ export function NavReveal() {
 
   // Non-landing pages always show the nav, and the server knows that, so the
   // first client render matches the server HTML exactly.
+  if (rendersOwnChrome) return null;
   if (isHomePage && !revealedOnLanding) return null;
 
   return (
