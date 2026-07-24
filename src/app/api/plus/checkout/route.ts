@@ -9,6 +9,7 @@ import {
   meetsStripeMinimum,
   PLUS_DISPLAY_CURRENCIES,
   DEFAULT_DISPLAY_CURRENCY,
+  PLUS_SALES_ENABLED,
 } from '@/lib/plus';
 
 /**
@@ -31,6 +32,12 @@ const BodySchema = z.object({
 });
 
 export async function POST(request: NextRequest) {
+  // Sales are off (see PLUS_SALES_ENABLED). Refuse before touching Stripe, so
+  // no session can be created by a request that skipped the UI.
+  if (!PLUS_SALES_ENABLED) {
+    return NextResponse.json({ error: 'GlowBal Plus is not on sale yet' }, { status: 403 });
+  }
+
   let body: unknown;
   try {
     body = await request.json();
