@@ -47,8 +47,8 @@ export const translations: Record<string, string> = {
   // must stay character-identical to the JSX in features/marketing/ui.
   'Study-abroad experts who help you choose universities and scholarships, and stay beside you through the whole application':
     'Chuyên gia du học giúp bạn chọn trường và học bổng, đồng hành cùng bạn xuyên suốt quá trình ứng tuyển hồ sơ du học',
-  'Explore over 10,000 universities, discover more than 2,000 scholarships worth over 150,000,000 USD, and build your application strategy with AI and real student supporters around the world.':
-    'Khám phá hơn 10,000 trường đại học, tìm hiểu hơn 2,000 học bổng trị giá trên 150,000,000 USD, và xây dựng chiến lược hồ sơ của bạn với AI và những người hỗ trợ sinh viên thực tế trên toàn thế giới.',
+  'Explore over 200 universities, discover more than 3,000 scholarships worth over 150,000,000 USD, and build your application strategy with AI and real student supporters around the world.':
+    'Khám phá hơn 200 trường đại học, tìm hiểu hơn 3,000 học bổng trị giá trên 150,000,000 USD, và xây dựng chiến lược hồ sơ của bạn với AI và những người hỗ trợ sinh viên thực tế trên toàn thế giới.',
   'Find my scholarships': 'Tìm học bổng của tôi',
 
   // ── Home partner wall (Figma 104:7135) ───────────────────────────────────
@@ -64,9 +64,9 @@ export const translations: Record<string, string> = {
   'A short guide to how GLOWBAL takes you from a dream university to a clear scholarship plan.':
     'Một hướng dẫn ngắn về cách GLOWBAL đưa bạn từ trường đại học mơ ước đến một kế hoạch học bổng rõ ràng.',
   // Keep the values short in both languages — see the note on `Metric`.
-  '10,000+': '10,000+',
+  '200+': '200+',
   'Universities covered': 'Trường đại học trong kho',
-  '2,000+': '2,000+',
+  '3,000+': '3,000+',
   'Open scholarships': 'Học bổng đang mở',
   '150M': '150 triệu',
   'Total scholarship value (USD)': 'Tổng giá trị học bổng (USD)',

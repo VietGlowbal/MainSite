@@ -131,7 +131,7 @@ function PackageCard({
   }
 
   const ctaLabel = !PLUS_SALES_ENABLED
-    ? 'Sắp ra mắt'
+    ? 'Coming soon'
     : loading
       ? 'Starting checkout…'
       : signedIn

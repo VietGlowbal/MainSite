@@ -81,10 +81,10 @@ export default async function PlusPage({
 
         {!PLUS_SALES_ENABLED ? (
           <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-slate-200 bg-white px-5 py-4 text-center text-sm text-slate-600">
-            <p className="font-semibold text-slate-900">GlowBal Plus sắp ra mắt</p>
+            <p className="font-semibold text-slate-900">GlowBal Plus is coming soon</p>
             <p className="mt-1">
-              Các gói dưới đây là bản xem trước — chưa mở bán. Mọi tính năng trong gói Free vẫn dùng
-              được đầy đủ.
+              The plans below are a preview — they are not on sale yet. Everything in the Free plan
+              is fully available in the meantime.
             </p>
           </div>
         ) : null}
