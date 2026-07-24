@@ -2,25 +2,34 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Avatar } from './avatar';
 import { Button } from './button';
 import { Container } from './container';
 import { TID, testId } from '@/shared/lib';
 
 /**
- * TopNav — the desktop marketing header, from Figma node 104:7114
- * ("Dropdown header navigation", 1440x69).
+ * TopNav — the desktop header, from three Figma frames that are the same
+ * component in three states:
+ *
+ *   104:7114  guest, dark   — Home and the other black-band marketing pages
+ *   105:8301  guest, light  — the content pages (universities, study plan)
+ *   203:12356 signed in     — dark, and the frame that unblocked Tier 2/3
  *
  * Desktop only: below `md` the header collapses to the hamburger in
  * ./mobile-nav.tsx, which the designer confirmed.
  *
- * Height is 16 + 36 + a 1px rule = 69px, matching the frame exactly.
+ * Height is 16 + 36 + a 1px rule = 69px, matching all three frames exactly.
  *
- * Two things in the design are worth knowing before changing this file:
- *  - The bar is filled with unbound #000000, not the neutral ramp's darkest
- *    step. See --color-gb-neutral-1000 in tokens.css.
- *  - The primary action carries a 2px translucent white border it does not have
- *    anywhere else — that is the `secondary-on-dark` sibling problem in
- *    reverse, and it exists because the button sits on black.
+ * Three things in the design are worth knowing before changing this file:
+ *  - The dark bar is filled with unbound #000000, not the neutral ramp's
+ *    darkest step. See --color-gb-neutral-1000 in tokens.css.
+ *  - The primary action keeps its 2px translucent white border in BOTH tones
+ *    (105:8312 uses the same `on-dark` instance on the white bar). On white it
+ *    reads as a slightly lighter inset ring on the rose fill. That is the
+ *    design's choice, not an oversight to "fix" — only the SECONDARY button
+ *    changes between tones.
+ *  - Signed in, the design drops the secondary action entirely: one primary
+ *    button, then the avatar and name. So `secondaryAction` is guest-only.
  */
 
 export type TopNavItem = {
@@ -29,20 +38,56 @@ export type TopNavItem = {
   label: string;
 };
 
+export type TopNavUser = {
+  /** Display name, shown next to the avatar at text-sm/semibold. */
+  name: string;
+  avatarUrl?: string | null | undefined;
+  /** Where the avatar block links — the account area. */
+  href: string;
+};
+
+type Tone = 'dark' | 'light';
+
 type Props = {
   /** Wordmark, 28px tall in the design. Links home. */
   logo: React.ReactNode;
   items: readonly TopNavItem[];
   primaryAction: TopNavItem;
-  secondaryAction: TopNavItem;
+  /** Guest only — ignored when `user` is set, which is what the design does. */
+  secondaryAction?: TopNavItem | undefined;
+  /** Present => signed-in state (203:12356). */
+  user?: TopNavUser | null | undefined;
+  /** Defaults to the dark bar the marketing pages use. */
+  tone?: Tone | undefined;
 };
 
-export function TopNav({ logo, items, primaryAction, secondaryAction }: Props) {
+const BAR: Record<Tone, string> = {
+  dark: 'border-white/12 bg-surface-inverse-strong',
+  light: 'border-line bg-surface',
+};
+
+/** Nav links: white on the black bar, text-secondary (700) on the white one. */
+const LINK: Record<Tone, { idle: string; active: string }> = {
+  dark: { idle: 'text-white hover:bg-white/8', active: 'bg-white/12 text-white' },
+  light: {
+    idle: 'text-fg-secondary hover:bg-surface-hover',
+    active: 'bg-surface-muted text-fg',
+  },
+};
+
+export function TopNav({
+  logo,
+  items,
+  primaryAction,
+  secondaryAction,
+  user,
+  tone = 'dark',
+}: Props) {
   const pathname = usePathname();
 
   return (
     <header
-      className="hidden border-b border-white/12 bg-surface-inverse-strong py-gb-xl md:block"
+      className={`hidden border-b py-gb-xl md:block ${BAR[tone]}`}
       {...testId(TID.navHeader)}
     >
       <Container className="flex items-center gap-gb-xl">
@@ -64,7 +109,7 @@ export function TopNav({ logo, items, primaryAction, secondaryAction }: Props) {
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
                   className={`rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold whitespace-nowrap transition-colors ${
-                    active ? 'bg-white/12 text-white' : 'text-white hover:bg-white/8'
+                    active ? LINK[tone].active : LINK[tone].idle
                   }`}
                 >
                   {item.label}
@@ -74,13 +119,41 @@ export function TopNav({ logo, items, primaryAction, secondaryAction }: Props) {
           </nav>
         </div>
 
-        <div className="flex shrink-0 items-center gap-gb-lg">
-          <Button href={secondaryAction.href} variant="secondary-on-dark">
-            {secondaryAction.label}
-          </Button>
-          <Button href={primaryAction.href} variant="primary-on-dark">
-            {primaryAction.label}
-          </Button>
+        {/* 24px between the actions and the avatar block (203:12466); the
+            buttons themselves stay 12px apart in both states. */}
+        <div className="flex shrink-0 items-center gap-gb-3xl">
+          <div className="flex shrink-0 items-center gap-gb-lg">
+            {/* Signed in, the design shows no "Sign in" button at all. */}
+            {user == null && secondaryAction ? (
+              <Button
+                href={secondaryAction.href}
+                variant={tone === 'dark' ? 'secondary-on-dark' : 'secondary'}
+              >
+                {secondaryAction.label}
+              </Button>
+            ) : null}
+            <Button href={primaryAction.href} variant="primary-on-dark">
+              {primaryAction.label}
+            </Button>
+          </div>
+
+          {user ? (
+            <Link
+              href={user.href}
+              className="flex shrink-0 items-center gap-gb-xs rounded-gb-full transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              {...testId(TID.navProfileLink)}
+            >
+              <Avatar name={user.name} src={user.avatarUrl} />
+              {/* neutral-50 rather than pure white in the design (203:12469). */}
+              <span
+                className={`text-gb-sm font-semibold whitespace-nowrap ${
+                  tone === 'dark' ? 'text-fg-on-inverse' : 'text-fg'
+                }`}
+              >
+                {user.name}
+              </span>
+            </Link>
+          ) : null}
         </div>
       </Container>
     </header>

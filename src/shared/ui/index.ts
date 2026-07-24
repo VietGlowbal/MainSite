@@ -7,13 +7,25 @@
  *  - no feature/app/server imports — shared/ is a leaf
  *  - no legacy class names (.glowbal-*, .auth-*, ...); see CLAUDE.md
  */
+export { Avatar } from './avatar';
+export { Badge, admissionBadgeVariant } from './badge';
+export type { BadgeVariant } from './badge';
 export { Button } from './button';
 export type { ButtonSize, ButtonVariant } from './button';
 export { CheckItem, CheckList } from './check-item';
+export { Checkbox, CheckboxGroup } from './checkbox';
 export { Container } from './container';
 export { FeatureCard } from './feature-card';
-export { ICONS, KitIcon } from './icons';
-export type { KitIconArt } from './icons';
+export { CONTROL_BASE, FormField, controlClasses } from './form-field';
+export { Input } from './input';
+export { Radio, RadioGroup } from './radio';
+export { RatingsBadge } from './ratings-badge';
+export { Select } from './select';
+export { Textarea } from './textarea';
+export { Footer } from './footer';
+export type { FooterColumn, FooterLink, FooterSocial } from './footer';
+export { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon } from './icons';
+export type { BrandIconArt, KitIconArt } from './icons';
 export { Metric } from './metric';
 export { MobileNav } from './mobile-nav';
 export { Section } from './section';
