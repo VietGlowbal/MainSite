@@ -777,6 +777,68 @@ export const translations: Record<string, string> = {
   'Get a practical degree that leads to strong job options worldwide.':
     'Có một tấm bằng thực tiễn dẫn tới nhiều cơ hội việc làm tốt trên toàn cầu.',
 
+  // ── Home: scholarship rail (Figma 104:7225) ──────────────────────────────
+  // The design writes these in Vietnamese; the English above is the source
+  // string, so these entries are the designer's own wording restored.
+  'Scholarship library': 'Kho học bổng',
+  'Browse a preview for free. Create your profile to unlock the full eligibility criteria and required documents, and to save opportunities into your plan.':
+    'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
+  'See more': 'Xem thêm',
+  'View scholarship': 'Xem học bổng',
+  'Scroll or swipe to see more scholarships.':
+    'Cuộn hoặc vuốt để xem thêm học bổng.',
+
+  // ── Home: testimonials (Figma 104:7265) ──────────────────────────────────
+  'Learn from students who made it': 'Học hỏi từ những sinh viên đã thành công',
+  'GlowBal connects you with students all over the world who share real experience of universities, scholarships, applications and student life.':
+    'GlowBal kết nối bạn với những sinh viên trên khắp thế giới, những người chia sẻ kinh nghiệm thực tế về các trường đại học, học bổng, hồ sơ và cuộc sống sinh viên.',
+
+  // ── Home: FAQ (Figma 104:7347) ───────────────────────────────────────────
+  'Frequently asked questions': 'Câu hỏi thường gặp',
+  'Everything you need to know about the product and billing.':
+    'Mọi điều bạn cần biết về sản phẩm và thanh toán.',
+  'What is GlowBal?': 'GlowBal là gì?',
+  'Is GlowBal free?': 'GlowBal có miễn phí không?',
+  'What is the AI strategy suggestion?': 'Gợi ý chiến lược AI là gì?',
+  'Who are the student supporters?': 'Ai là những người hỗ trợ sinh viên?',
+  'Do I need to know which university I want?':
+    'Tôi có cần biết trường đại học của mình không?',
+  'Why do I need to create a profile?': 'Tại sao tôi cần tạo một hồ sơ?',
+
+  // ── Home: contact (Figma 104:7361) ───────────────────────────────────────
+  'Leave your details for a consultation': 'Để lại thông tin để nhận tư vấn',
+  'GlowBal will get in touch to understand what you need.':
+    'GlowBal sẽ liên lạc với bạn để hiểu hơn về nhu cầu của bạn.',
+  'The GlowBal team': 'Đội ngũ của Glowbal',
+  'Start with a dream university. Leave with a scholarship plan.':
+    'Bắt đầu với một trường đại học mơ ước. Ra về với kế hoạch học bổng.',
+  'First name': 'Tên',
+  'Last name': 'Họ',
+  'Phone number': 'Số điện thoại',
+  'Country dialling code': 'Mã vùng quốc gia',
+  'Leave us a message...': 'Để lại lời nhắn cho chúng tôi...',
+  'Get advice': 'Tư vấn cho tôi',
+  'Sending…': 'Đang gửi…',
+  'You agree to our friendly': 'Bạn đồng ý với',
+  'privacy policy': 'chính sách bảo mật',
+
+  // ── Footer (Figma 104:7404) ──────────────────────────────────────────────
+  'Helping students find global universities, scholarships, and application strategies.':
+    'Giúp sinh viên tìm kiếm các trường đại học toàn cầu, học bổng và chiến lược nộp hồ sơ.',
+  Product: 'Sản phẩm',
+  Company: 'Công ty',
+  Legal: 'Pháp lý',
+  'Find scholarships': 'Tìm kiếm học bổng',
+  // 'AI strategy' is already defined in the Navigation block above.
+  'Student mentors': 'Cố vấn sinh viên',
+  'Our team': 'Đội ngũ',
+  'Student stories': 'Câu chuyện của sinh viên',
+  'Terms of service': 'Điều khoản dịch vụ',
+  '© 2026 GlowBal. Student-first global guidance.':
+    '© 2026 GlowBal. Hướng dẫn toàn cầu ưu tiên sinh viên.',
+  'Best AI Tool': 'Công cụ AI tốt nhất',
+  '2,000+ reviews': 'Hơn 2.000 đánh giá',
+
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',
   'Tiếng Việt': 'Tiếng Việt',
