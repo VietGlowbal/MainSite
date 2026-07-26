@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
@@ -420,6 +420,7 @@ function DesktopSidebar({
 export function NavReveal() {
   const pathname = usePathname();
   const [user, setUser] = useState<UserSummary | null>(null);
+  const loadedUserId = useRef<string | null>(null);
 
   // Hide nav on home page regardless of revealed state
   const isHomePage = pathname === '/';
@@ -470,9 +471,12 @@ export function NavReveal() {
     const supabase = createClient();
     async function loadUser(authUser: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null) {
       if (!authUser) {
+        loadedUserId.current = null;
         setUser(null);
         return;
       }
+      if (loadedUserId.current === authUser.id) return;
+      loadedUserId.current = authUser.id;
       // Best-effort fetch of the mentor profile flag. RLS-safe — anyone
       // can read their own row. We don't block the header on this; the
       // pill simply appears after the request resolves.

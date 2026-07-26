@@ -322,10 +322,12 @@ function ApplicationCard({
 
   return (
     <div className={highlighted ? 'rounded-2xl ring-2 ring-pink-400 ring-offset-2' : ''}>
-    <Link
-      href={href}
-      className="group flex items-stretch gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:shadow-[0_6px_20px_rgba(15,23,42,0.08)] hover:-translate-y-0.5"
-    >
+    <div className="group relative flex items-stretch gap-0 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)] transition hover:shadow-[0_6px_20px_rgba(15,23,42,0.08)] hover:-translate-y-0.5">
+      <Link
+        href={href}
+        aria-label={`Open ${app.courseName} application`}
+        className="absolute inset-0 z-10 rounded-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
+      />
       {/* University image */}
       <div className="relative hidden w-[140px] shrink-0 overflow-hidden sm:block">
         {app.imageUrl ? (
@@ -372,7 +374,7 @@ function ApplicationCard({
                   target="_blank"
                   rel="noopener noreferrer"
                   onClick={(e) => e.stopPropagation()}
-                  className="text-xs font-semibold text-pink-600 hover:text-pink-700 inline-flex items-center gap-1"
+                  className="relative z-20 inline-flex items-center gap-1 text-xs font-semibold text-pink-600 hover:text-pink-700"
                 >
                   View official page
                   <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -452,7 +454,7 @@ function ApplicationCard({
                     <button
                       type="button"
                       onClick={handleRetry}
-                      className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-pink-600 hover:text-pink-700 transition"
+                      className="relative z-20 mt-1.5 inline-flex items-center gap-1 text-[10px] font-semibold text-pink-600 transition hover:text-pink-700"
                     >
                       <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <polyline points="23 4 23 10 17 10" />
@@ -538,7 +540,7 @@ function ApplicationCard({
           <polyline points="9 18 15 12 9 6" />
         </svg>
       </div>
-    </Link>
+    </div>
 
       {/* Saved scholarships nested under this application */}
       {scholarships.length > 0 && (

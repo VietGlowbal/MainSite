@@ -34,6 +34,17 @@ const themeConfigs: Record<LandingGlobeTheme, { atmosphere: string; alt: number;
   daylight: { atmosphere: 'rgba(255,180,205,0.55)', alt: 0.20, texture: '//unpkg.com/three-globe/example/img/earth-day.jpg' },
 };
 
+function supportsWebGL() {
+  try {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('webgl2') ?? canvas.getContext('webgl');
+    context?.getExtension('WEBGL_lose_context')?.loseContext();
+    return Boolean(context);
+  } catch {
+    return false;
+  }
+}
+
 export const LandingGlobe = forwardRef<LandingGlobeHandle, Props>(function LandingGlobe(
   { theme = 'cosmos', size = 500, rotateSpeed = 0.5, responsive = false },
   ref,
@@ -44,10 +55,27 @@ export const LandingGlobe = forwardRef<LandingGlobeHandle, Props>(function Landi
   const globeRef = useRef<any>(undefined);
   const wrapRef = useRef<HTMLDivElement>(null);
   const [measured, setMeasured] = useState<number>(size);
+  const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
   const cfg = themeConfigs[theme];
 
   useEffect(() => {
-    import('react-globe.gl').then((mod) => setGlobeComp(() => mod.default));
+    let cancelled = false;
+    if (!supportsWebGL()) {
+      setWebglSupported(false);
+      return;
+    }
+
+    setWebglSupported(true);
+    import('react-globe.gl')
+      .then((mod) => {
+        if (!cancelled) setGlobeComp(() => mod.default);
+      })
+      .catch(() => {
+        if (!cancelled) setWebglSupported(false);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -90,6 +118,27 @@ export const LandingGlobe = forwardRef<LandingGlobeHandle, Props>(function Landi
   const wrapperStyle: React.CSSProperties = responsive
     ? { width: '100%', aspectRatio: '1 / 1', display: 'block' }
     : { width: size, height: size };
+
+  if (webglSupported === false) {
+    return (
+      <div ref={wrapRef} style={wrapperStyle}>
+        <div
+          role="img"
+          aria-label="Decorative globe"
+          style={{
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            backgroundColor: '#dbeafe',
+            backgroundImage: `url(${cfg.texture})`,
+            backgroundPosition: 'center',
+            backgroundSize: 'cover',
+            boxShadow: `0 0 40px ${cfg.atmosphere}`,
+          }}
+        />
+      </div>
+    );
+  }
 
   if (!GlobeComp) {
     return <div ref={wrapRef} style={wrapperStyle} />;

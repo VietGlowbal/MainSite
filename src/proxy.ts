@@ -48,14 +48,16 @@ export async function proxy(request: NextRequest) {
     },
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Verify the JWT locally when Supabase uses asymmetric signing keys. This
+  // still refreshes expiring sessions, but avoids an Auth API round trip on
+  // every page navigation.
+  const { data: claimsData } = await supabase.auth.getClaims();
+  const userId = claimsData?.claims.sub;
 
   const isProtected = PROTECTED_ROUTES.some((route) => pathname.startsWith(route));
 
   // Not logged in trying to access protected route → redirect to auth
-  if (!user && isProtected) {
+  if (!userId && isProtected) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth';
     url.searchParams.set('redirect', `${pathname}${request.nextUrl.search}`);
@@ -63,7 +65,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Logged in user on /auth → redirect away
-  if (user && pathname.startsWith('/auth') && !pathname.startsWith('/auth/callback')) {
+  if (userId && pathname.startsWith('/auth') && !pathname.startsWith('/auth/callback')) {
     const redirectTarget = request.nextUrl.searchParams.get('redirect');
     if (redirectTarget?.startsWith('/')) {
       return NextResponse.redirect(new URL(redirectTarget, request.url));
@@ -80,7 +82,7 @@ export async function proxy(request: NextRequest) {
   // /universities and /mentors remain browseable so users can preview value.
   const ONBOARDING_GATED = ['/my-universities', '/profile'];
   const needsOnboardingCheck =
-    user &&
+    userId &&
     ONBOARDING_GATED.some((route) => pathname.startsWith(route)) &&
     !pathname.startsWith('/onboarding');
 
@@ -88,7 +90,7 @@ export async function proxy(request: NextRequest) {
     const { data: profile } = await supabase
       .from('student_profiles')
       .select('onboarding_completed, study_level, preferred_countries')
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
       .maybeSingle();
 
     const completed =
