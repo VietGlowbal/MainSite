@@ -1,380 +1,340 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
-import Link from 'next/link';
+import { useMemo, useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
+import { GlowbalLogo } from '@/components/glowbal-logo';
+import {
+  FOOTER_COLUMNS,
+  FOOTER_COPYRIGHT,
+  FOOTER_RATINGS,
+  FOOTER_SOCIAL,
+  FOOTER_TAGLINE,
+  MARKETING_NAV_ITEMS,
+} from '@/features/marketing/ui';
 import type { GeoGuide } from '@/lib/geo-content';
+import {
+  Button,
+  Container,
+  Footer,
+  ICONS,
+  Input,
+  KitIcon,
+  MobileNav,
+  Pagination,
+  TopNav,
+} from '@/shared/ui';
 
-// Icon components
-const BookmarkIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-  </svg>
-);
+/**
+ * /guides — the Blog list, built from Figma 153:18266 ("Blog page header").
+ *
+ * The design is a light TopNav, a grey header band (eyebrow / display heading /
+ * supporting text), a row of topic tabs, a two-column card grid, Pagination and
+ * the shared Footer. Everything here maps onto primitives that already exist;
+ * the only new art is ICONS.arrowUpRight (Figma 2:31009) and the three alpha
+ * overlay tokens the card's frosted attribution strip needs.
+ *
+ * Three places where real data forced a decision, all deliberate:
+ *
+ *  1. NO AUTHOR. The mockup's attribution strip reads "Olivia Rhye / 20 Jan
+ *     2027" over a byline; GeoGuide has no author field, and inventing one is
+ *     the same class of mistake as the fake testimonials on Home. The strip
+ *     keeps its two-line shape with the two facts the data does have — date,
+ *     then reading time.
+ *
+ *  2. TABS ARE DATA, NOT A LIST. The frame hardcodes five categories
+ *     (Scholarships, Visa & Application, Student Life, Student Stories). The
+ *     real topics come from listGeoTopics(), which already returns "All topics"
+ *     first — that is the design's "View all" tab, so the two line up. A tab
+ *     for a topic with no posts behind it would be a dead control.
+ *
+ *  3. THE SUBSCRIBE ROW IS AN ADDITION. The frame's supporting text says
+ *     "Subscribe to learn about new product features…" and then draws no
+ *     control, so the copy is a dangling instruction. /guides is also one of
+ *     only two places on the site wired to POST /api/newsletter/subscribe, so
+ *     shipping the frame literally would delete working functionality to
+ *     reproduce placeholder text. The row goes in the column the design's own
+ *     copy points at. Ask the designer to draw it (or to drop the sentence).
+ *
+ * Dropped from the previous version, per the design: the search box, the sort
+ * select, and the whole right sidebar (topic list, popular tags, mentor CTA).
+ * The sidebar's newsletter form is what survives as (3) above.
+ */
 
-const ClockIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-);
+/** 2 columns x 3 rows — Figma 153:18283 renders exactly six cards. */
+const PAGE_SIZE = 6;
 
-const CalendarIcon = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-  </svg>
-);
+/** listGeoTopics() puts this first; the design labels that tab "View all". */
+const ALL_TOPICS = 'All topics';
 
-interface GuidesClientProps {
-  allGuides: GeoGuide[];
-  topics: string[];
+function formatDate(iso: string) {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return iso;
+  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-export function GuidesClient({ allGuides, topics }: GuidesClientProps) {
-  const [selectedTopic, setSelectedTopic] = useState('All topics');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<'latest' | 'oldest'>('latest');
+/**
+ * Figma "Blog post card" (153:18284).
+ *
+ * The cover is square-cornered on purpose — the instance has `overflow-clip`
+ * with no radius, unlike every other card in the file.
+ */
+function BlogPostCard({ guide }: { guide: GeoGuide }) {
+  const href = `/guides/${guide.slug}`;
+  return (
+    <article className="flex flex-col gap-gb-xl">
+      <Link href={href} className="group relative block aspect-[384/256] w-full overflow-clip border-[0.5px] border-line-on-image">
+        <Image
+          src={guide.heroImage}
+          alt=""
+          fill
+          sizes="(min-width: 1024px) 592px, 100vw"
+          className="object-cover transition-transform duration-300 group-hover:scale-105"
+        />
+        {/* Attribution strip: a frosted panel over a bottom-up scrim, so white
+            text stays legible whatever the photo underneath is doing. */}
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-b from-transparent to-scrim">
+          <div className="border-t border-surface-frosted bg-surface-frosted p-gb-2xl backdrop-blur-md">
+            <div className="flex items-start justify-between gap-gb-3xl text-gb-sm text-white">
+              <div className="flex flex-col">
+                <span className="font-semibold">{formatDate(guide.publishedAt)}</span>
+                <span>{guide.readingTimeMinutes} min read</span>
+              </div>
+              <span className="shrink-0 font-semibold">{guide.topic}</span>
+            </div>
+          </div>
+        </div>
+      </Link>
 
-  // Filter and sort guides
-  const filteredGuides = useMemo(() => {
-    let filtered = allGuides;
+      <div className="flex flex-col gap-gb-2xl">
+        <div className="flex flex-col gap-gb-xs">
+          {/* Clamped to two lines rather than the mockup's one: real titles run
+              to 60+ characters, and a single line would cut most of them off
+              mid-word. The clamp is what keeps the grid rows even. */}
+          <h2 className="line-clamp-2 text-gb-lg font-semibold text-fg">
+            <Link href={href} className="hover:text-fg-brand">
+              {guide.title}
+            </Link>
+          </h2>
+          <p className="line-clamp-2 text-gb-md text-fg-tertiary">{guide.excerpt}</p>
+        </div>
+        <Link
+          href={href}
+          className="inline-flex items-center gap-gb-sm text-gb-md font-semibold text-brand hover:text-brand-hover"
+        >
+          Read post
+          <KitIcon art={ICONS.arrowUpRight} frame={20} />
+        </Link>
+      </div>
+    </article>
+  );
+}
 
-    // Filter by topic
-    if (selectedTopic !== 'All topics') {
-      filtered = filtered.filter(guide => guide.topic === selectedTopic);
-    }
-
-    // Filter by search query
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase();
-      filtered = filtered.filter(guide => 
-        guide.title.toLowerCase().includes(query) ||
-        guide.excerpt.toLowerCase().includes(query) ||
-        guide.tags.some(tag => tag.toLowerCase().includes(query))
-      );
-    }
-
-    // Sort
-    if (sortBy === 'oldest') {
-      filtered = [...filtered].reverse();
-    }
-
-    return filtered;
-  }, [allGuides, selectedTopic, searchQuery, sortBy]);
-
-  // Calculate topic counts
-  const topicCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    allGuides.forEach(guide => {
-      counts[guide.topic] = (counts[guide.topic] || 0) + 1;
-    });
-    return counts;
-  }, [allGuides]);
-
-  // Get popular tags
-  const popularTags = useMemo(() => {
-    const tagCounts: Record<string, number> = {};
-    allGuides.forEach(guide => {
-      guide.tags.forEach(tag => {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-      });
-    });
-    return Object.entries(tagCounts)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 8)
-      .map(([tag]) => tag);
-  }, [allGuides]);
-
+/** See note (3) in the file header — an addition, not a frame. */
+function SubscribeRow() {
   const [email, setEmail] = useState('');
-  const [subscribeStatus, setSubscribeStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const [subscribeMessage, setSubscribeMessage] = useState('');
+  const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  const [message, setMessage] = useState('');
 
-  const handleSubscribe = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    
-    if (!email || !email.includes('@')) {
-      setSubscribeStatus('error');
-      setSubscribeMessage('Please enter a valid email address');
+  async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!email.includes('@')) {
+      setStatus('error');
+      setMessage('Please enter a valid email address');
       return;
     }
-
-    setSubscribeStatus('loading');
-    setSubscribeMessage('');
-
+    setStatus('loading');
+    setMessage('');
     try {
       const response = await fetch('/api/newsletter/subscribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, source: 'guides_page' }),
       });
-
-      const data = await response.json();
-
+      const data = (await response.json()) as { error?: string; alreadySubscribed?: boolean };
       if (response.ok) {
-        setSubscribeStatus('success');
-        setSubscribeMessage(data.alreadySubscribed ? 'You\'re already subscribed!' : 'Successfully subscribed! Check your email.');
+        setStatus('success');
+        setMessage(
+          data.alreadySubscribed
+            ? "You're already subscribed!"
+            : 'Successfully subscribed! Check your email.',
+        );
         setEmail('');
       } else {
-        setSubscribeStatus('error');
-        setSubscribeMessage(data.error || 'Something went wrong. Please try again.');
+        setStatus('error');
+        setMessage(data.error ?? 'Something went wrong. Please try again.');
       }
     } catch {
-      setSubscribeStatus('error');
-      setSubscribeMessage('Failed to subscribe. Please try again.');
+      setStatus('error');
+      setMessage('Failed to subscribe. Please try again.');
     }
-  };
+  }
+
+  const busy = status === 'loading' || status === 'success';
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-white">
-      {/* Header */}
-      <div className="border-b border-slate-200 bg-white">
-        <div className="mx-auto max-w-7xl px-6 py-12">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-pink-600">GLOWBAL GUIDES</p>
-          <h1 className="mt-3 text-4xl font-bold tracking-tight text-slate-900">
-            Study-abroad guides & insights
-          </h1>
-          <p className="mt-3 max-w-2xl text-lg text-slate-600">
-            Expert insights, real student stories, and practical guides to help you plan, apply and succeed.
-          </p>
-
-          {/* Search and Sort */}
-          <div className="mt-8 flex flex-col gap-4 sm:flex-row sm:items-center">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search articles, topics or universities..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 pl-10 text-sm text-slate-900 placeholder-slate-400 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-100"
-              />
-              <svg className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as 'latest' | 'oldest')}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-700 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-100"
-            >
-              <option value="latest">Sort: Latest</option>
-              <option value="oldest">Sort: Oldest</option>
-            </select>
-          </div>
-
-          {/* Topic Filters */}
-          <div className="mt-6 flex flex-wrap gap-2">
-            {topics.map((topic) => (
-              <button
-                key={topic}
-                onClick={() => setSelectedTopic(topic)}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-all ${
-                  selectedTopic === topic
-                    ? 'bg-pink-600 text-white shadow-md'
-                    : 'bg-white text-slate-700 hover:bg-slate-100 border border-slate-200'
-                }`}
-              >
-                {topic}
-              </button>
-            ))}
-          </div>
-        </div>
+    /* method="post" for the same reason as the auth form: a submit that beats
+       hydration must not append the address to the URL. */
+    <form method="post" onSubmit={onSubmit} className="flex flex-col gap-gb-md">
+      <div className="flex flex-col gap-gb-md sm:flex-row">
+        <Input
+          name="newsletter-email"
+          type="email"
+          autoComplete="email"
+          placeholder="Enter your email"
+          aria-label="Enter your email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          disabled={busy}
+          required
+          fieldClassName="flex-1"
+        />
+        <Button type="submit" size="md" disabled={busy}>
+          {status === 'loading' ? 'Please wait...' : status === 'success' ? 'Subscribed' : 'Subscribe'}
+        </Button>
       </div>
+      {message ? (
+        <p
+          role="status"
+          className={`text-gb-sm ${status === 'error' ? 'text-fg-error' : 'text-fg-tertiary'}`}
+        >
+          {message}
+        </p>
+      ) : null}
+    </form>
+  );
+}
 
-      {/* Main Content */}
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_320px]">
-          {/* Articles List */}
-          <div className="space-y-6">
-            {filteredGuides.length === 0 ? (
-              <div className="rounded-2xl border border-slate-200 bg-white p-12 text-center">
-                <p className="text-lg text-slate-600">No guides found matching your criteria.</p>
+export function GuidesClient({
+  allGuides,
+  topics,
+  userName = null,
+  userAvatarUrl = null,
+}: {
+  allGuides: GeoGuide[];
+  topics: string[];
+  userName?: string | null;
+  userAvatarUrl?: string | null;
+}) {
+  const [topic, setTopic] = useState(ALL_TOPICS);
+  const [page, setPage] = useState(1);
+
+  const filtered = useMemo(
+    () => (topic === ALL_TOPICS ? allGuides : allGuides.filter((guide) => guide.topic === topic)),
+    [allGuides, topic],
+  );
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // Clamp rather than reset in an effect: filtering can shrink the list under
+  // the current page, and an effect would render one empty frame first.
+  const currentPage = Math.min(page, totalPages);
+  const visible = filtered.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
+  function selectTopic(next: string) {
+    setTopic(next);
+    setPage(1);
+  }
+
+  const isSignedIn = !!userName;
+  const primaryAction = { href: '/onboarding', label: 'Plan your studies' };
+
+  return (
+    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
+      <TopNav
+        tone="light"
+        logo={<GlowbalLogo height={28} />}
+        items={MARKETING_NAV_ITEMS}
+        primaryAction={primaryAction}
+        {...(isSignedIn && userName
+          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
+          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
+      />
+      <MobileNav
+        logo={
+          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
+            <GlowbalLogo height={28} />
+          </Link>
+        }
+        items={MARKETING_NAV_ITEMS}
+        primaryAction={primaryAction}
+        secondaryAction={
+          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
+        }
+        openLabel="Menu"
+        closeLabel="Close menu"
+      />
+
+      <main>
+        {/* Header band — Figma 153:18279. Grey, and it ends flush under the
+            text: the separation from the tabs is the next section's padding. */}
+        <section className="bg-surface-muted pt-gb-9xl">
+          <Container className="flex flex-col gap-gb-lg">
+            <p className="text-gb-md font-semibold text-brand">Blog</p>
+            <div className="flex flex-col gap-gb-4xl lg:flex-row lg:items-start">
+              <h1 className="flex-1 font-display text-gb-display-sm font-medium tracking-gb-display-tight text-fg lg:max-w-gb-width-xl lg:text-gb-display-lg">
+                Resource library
+              </h1>
+              <div className="flex w-full flex-col gap-gb-xl lg:max-w-gb-width-sm lg:pt-gb-lg">
+                <p className="text-gb-xl text-fg-tertiary">
+                  Guides on choosing a university, funding it, and getting in — written for
+                  Vietnamese students.
+                </p>
+                <SubscribeRow />
               </div>
-            ) : (
-              filteredGuides.map((guide, index) => (
-                <article
-                  key={guide.slug}
-                  className="group relative overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-lg"
-                >
-                  <div className="flex flex-col sm:flex-row">
-                    {/* Image */}
-                    <Link href={`/guides/${guide.slug}`} className="relative h-48 w-full overflow-hidden sm:h-auto sm:w-64">
-                      <Image
-                        src={guide.heroImage}
-                        alt={guide.title}
-                        fill
-                        className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      />
-                      {index === 0 && (
-                        <div className="absolute left-4 top-4 rounded-full bg-pink-600 px-3 py-1 text-xs font-bold uppercase tracking-wider text-white">
-                          Featured
-                        </div>
-                      )}
-                    </Link>
+            </div>
+          </Container>
+        </section>
 
-                    {/* Content */}
-                    <div className="flex flex-1 flex-col p-6">
-                      {/* Metadata */}
-                      <div className="mb-3 flex flex-wrap items-center gap-3 text-sm text-slate-500">
-                        <span className="flex items-center gap-1">
-                          <CalendarIcon className="h-4 w-4" />
-                          {new Date(guide.publishedAt).toLocaleDateString('en-US', { 
-                            month: 'short', 
-                            day: 'numeric', 
-                            year: 'numeric' 
-                          })}
-                        </span>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                          <ClockIcon className="h-4 w-4" />
-                          {guide.readingTimeMinutes} min read
-                        </span>
-                        <span>•</span>
-                        <span className="rounded-full bg-cyan-50 px-3 py-1 text-xs font-medium text-cyan-700">
-                          {guide.topic}
-                        </span>
-                      </div>
-
-                      {/* Title */}
-                      <h2 className="mb-3 text-xl font-bold text-slate-900 group-hover:text-pink-600">
-                        <Link href={`/guides/${guide.slug}`}>
-                          {guide.title}
-                        </Link>
-                      </h2>
-
-                      {/* Excerpt */}
-                      <p className="mb-4 line-clamp-2 text-slate-600">
-                        {guide.excerpt}
-                      </p>
-
-                      {/* Footer */}
-                      <div className="mt-auto flex items-center justify-between">
-                        <Link
-                          href={`/guides/${guide.slug}`}
-                          className="text-sm font-semibold text-cyan-600 hover:text-cyan-700"
-                        >
-                          Read more →
-                        </Link>
-                        <button
-                          className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-pink-600"
-                          aria-label="Bookmark"
-                        >
-                          <BookmarkIcon className="h-5 w-5" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </article>
-              ))
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <aside className="space-y-6">
-            {/* Explore by Topic */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-slate-900">Explore by topic</h3>
-              <div className="space-y-2">
-                {topics.map((topic) => (
+        <section className="py-gb-6xl">
+          <Container className="flex flex-col gap-gb-6xl">
+            {/* Figma 153:18282 "Horizontal tabs". A real tablist: arrow keys are
+                not wired, so these stay buttons in a plain row. */}
+            <div className="-mx-gb-md flex gap-gb-xs overflow-x-auto px-gb-md pb-gb-xs">
+              {topics.map((name) => {
+                const active = name === topic;
+                return (
                   <button
-                    key={topic}
-                    onClick={() => setSelectedTopic(topic)}
-                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors ${
-                      selectedTopic === topic
-                        ? 'bg-pink-50 font-semibold text-pink-600'
-                        : 'text-slate-700 hover:bg-slate-50'
+                    key={name}
+                    type="button"
+                    onClick={() => selectTopic(name)}
+                    aria-pressed={active}
+                    className={`flex h-gb-6xl shrink-0 items-center justify-center rounded-gb-sm px-gb-lg text-gb-md font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                      active
+                        ? 'bg-surface-hover text-fg-secondary'
+                        : 'text-fg-muted hover:bg-surface-hover'
                     }`}
                   >
-                    <span className="flex items-center gap-2">
-                      <span className={`h-2 w-2 rounded-full ${
-                        selectedTopic === topic ? 'bg-pink-600' : 'bg-slate-300'
-                      }`} />
-                      {topic}
-                    </span>
-                    <span className="text-slate-500">{topicCounts[topic] || allGuides.length}</span>
+                    {name === ALL_TOPICS ? 'View all' : name}
                   </button>
-                ))}
-              </div>
+                );
+              })}
             </div>
 
-            {/* Popular Tags */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-4 text-lg font-bold text-slate-900">Popular tags</h3>
-              <div className="flex flex-wrap gap-2">
-                {popularTags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => setSearchQuery(tag)}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-medium text-slate-700 hover:border-cyan-300 hover:bg-cyan-50 hover:text-cyan-700"
-                  >
-                    {tag}
-                  </button>
-                ))}
-                <Link
-                  href="#"
-                  className="rounded-full px-3 py-1 text-xs font-semibold text-pink-600 hover:text-pink-700"
-                >
-                  View all tags →
-                </Link>
-              </div>
-            </div>
-
-            {/* Newsletter Signup */}
-            <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-50 to-cyan-50 p-6 shadow-sm">
-              <h3 className="mb-2 text-lg font-bold text-slate-900">Stay updated</h3>
-              <p className="mb-4 text-sm text-slate-600">
-                Get the latest study abroad tips, guides and opportunities straight to your inbox.
+            {visible.length === 0 ? (
+              <p className="py-gb-9xl text-center text-gb-md text-fg-tertiary">
+                No posts in this topic yet.
               </p>
-              <form onSubmit={handleSubscribe} className="space-y-3">
-                <input
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={subscribeStatus === 'loading' || subscribeStatus === 'success'}
-                  className="w-full rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm text-slate-900 placeholder-slate-400 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 disabled:opacity-50"
-                  required
-                />
-                <button
-                  type="submit"
-                  disabled={subscribeStatus === 'loading' || subscribeStatus === 'success'}
-                  className="w-full rounded-lg bg-gradient-to-r from-pink-600 to-pink-500 px-4 py-2 text-sm font-semibold text-white shadow-md hover:from-pink-700 hover:to-pink-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {subscribeStatus === 'loading' ? 'Subscribing...' : subscribeStatus === 'success' ? '✓ Subscribed' : 'Subscribe'}
-                </button>
-                {subscribeMessage && (
-                  <p className={`text-xs ${subscribeStatus === 'error' ? 'text-red-600' : 'text-green-600'}`}>
-                    {subscribeMessage}
-                  </p>
-                )}
-              </form>
-            </div>
-
-            {/* Mentor CTA */}
-            <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h3 className="mb-2 text-lg font-bold text-slate-900">Need personalized advice?</h3>
-              <p className="mb-4 text-sm text-slate-600">
-                Chat with a mentor who has studied in the UK.
-              </p>
-              <div className="mb-4 flex -space-x-2">
-                {[1, 2, 3].map((i) => (
-                  <div
-                    key={i}
-                    className="h-10 w-10 rounded-full border-2 border-white bg-gradient-to-br from-pink-400 to-cyan-400"
-                  />
+            ) : (
+              <div className="grid grid-cols-1 gap-x-gb-4xl gap-y-gb-6xl md:grid-cols-2">
+                {visible.map((guide) => (
+                  <BlogPostCard key={guide.slug} guide={guide} />
                 ))}
-                <div className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-white bg-slate-200 text-xs font-bold text-slate-600">
-                  +42
-                </div>
               </div>
-              <Link
-                href="/mentors"
-                className="block w-full rounded-lg bg-cyan-600 px-4 py-2 text-center text-sm font-semibold text-white hover:bg-cyan-700"
-              >
-                Ask a mentor →
-              </Link>
-            </div>
-          </aside>
-        </div>
-      </div>
+            )}
+
+            <Pagination page={currentPage} totalPages={totalPages} onPageChange={setPage} />
+          </Container>
+        </section>
+      </main>
+
+      <Footer
+        logo={<GlowbalLogo height={28} />}
+        tagline={FOOTER_TAGLINE}
+        columns={FOOTER_COLUMNS}
+        social={FOOTER_SOCIAL}
+        copyright={FOOTER_COPYRIGHT}
+        ratings={FOOTER_RATINGS}
+      />
     </div>
   );
 }
