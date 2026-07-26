@@ -452,6 +452,12 @@ export function NavReveal() {
     // Also exact: the saved list is rebuilt (Figma 223:8824), the
     // /my-universities/[id] task pages under it are not.
     '/my-universities',
+    // Same again: the applications list is rebuilt (Figma 337:18767), the
+    // /apply/[applicationId] workspace under it is not.
+    '/apply',
+    // And again: the mentor browse is rebuilt (Figma 154:8345); /mentors/[id],
+    // /mentors/apply and its success page are not.
+    '/mentors',
     '/dev/saved-list',
   ]);
   const rendersOwnChrome = OWN_CHROME_ROUTES.has(pathname);

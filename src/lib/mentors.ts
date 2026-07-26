@@ -10,24 +10,70 @@ import type {
 
 // ── Browse approved mentors ─────────────────────────────────────────────────
 
+/**
+ * The public shape of a mentor — what the directory at /mentors may show a
+ * visitor who is not signed in.
+ *
+ * Deliberately not `MentorProfile`. That type mirrors the whole row, which also
+ * carries `legal_name`, `date_of_birth`, the four verification storage keys and
+ * `stripe_account_id`. Those are identity and payout details, and a public
+ * directory has no business serialising them into the page.
+ */
+export type PublicMentor = Pick<
+  MentorWithUniversity,
+  | 'id'
+  | 'display_name'
+  | 'avatar_url'
+  | 'university_id'
+  | 'degree_level'
+  | 'subject'
+  | 'graduation_year'
+  | 'currently_enrolled'
+  | 'bio'
+  | 'help_topics'
+  | 'strengths'
+  | 'languages'
+  | 'total_sessions'
+  | 'avg_rating'
+  // A session rate is a public fact about a mentor, and the price sorts need it.
+  | 'hourly_rate_amount'
+  | 'hourly_rate_currency'
+  | 'created_at'
+  | 'university'
+>;
+
+const PUBLIC_MENTOR_SELECT = `
+  id, display_name, avatar_url, university_id, degree_level, subject,
+  graduation_year, currently_enrolled, bio, help_topics, strengths, languages,
+  total_sessions, avg_rating, hourly_rate_amount, hourly_rate_currency, created_at,
+  university:universities!achiever_profiles_university_id_fkey ( id, name, country )
+`;
+
 export async function getApprovedMentors(
   filters?: MentorBrowseFilters,
-): Promise<MentorWithUniversity[]> {
-  const supabase = await createClient();
+): Promise<PublicMentor[]> {
+  /*
+   * Admin client, not the request-scoped one.
+   *
+   * `achiever_profiles` has no public-read RLS policy, so the anon role reads
+   * back zero rows — which made /mentors render an empty directory to every
+   * signed-out visitor, silently, because an RLS filter is not an error. The
+   * mentor directory is public by design (it is in the marketing nav and the
+   * footer), so the read is done with the service role and narrowed to
+   * PUBLIC_MENTOR_SELECT instead.
+   *
+   * The durable fix is a `status = 'approved'` read policy on the table; until
+   * that migration is run, this keeps the page honest. Nothing here is
+   * user-scoped, so there is no per-user data to leak by bypassing RLS.
+   */
+  const supabase = createAdminClient();
 
   // Note: the legacy "achiever_*" tables are kept in place so existing
   // bookings, admin pages, and reviews continue to work. We just rebrand
   // the surface area as "mentor" everywhere new code touches.
   const { data, error } = await supabase
     .from('achiever_profiles')
-    .select(`
-      *,
-      university:universities!achiever_profiles_university_id_fkey (
-        id,
-        name,
-        country
-      )
-    `)
+    .select(PUBLIC_MENTOR_SELECT)
     .eq('status', 'approved');
 
   if (error) {
@@ -35,7 +81,7 @@ export async function getApprovedMentors(
     return [];
   }
 
-  let results = (data ?? []) as MentorWithUniversity[];
+  let results = (data ?? []) as unknown as PublicMentor[];
 
   // Filtering
   if (filters?.query) {
