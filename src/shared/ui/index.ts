@@ -8,6 +8,7 @@
  *  - no legacy class names (.glowbal-*, .auth-*, ...); see CLAUDE.md
  */
 export { Avatar } from './avatar';
+export type { AvatarSize } from './avatar';
 export { Badge, admissionBadgeVariant } from './badge';
 export type { BadgeVariant } from './badge';
 export { Button } from './button';

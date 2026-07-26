@@ -8,9 +8,18 @@
  * translucent dark ring is what separates it from white. Drop either and the
  * avatar bleeds into one of the two backgrounds.
  *
- * 32px is the only size the design uses so far. Add sizes when a frame calls
- * for one, the way button.tsx handles its padding steps.
+ * Sizes are named steps, the way button.tsx handles its padding steps. `sm` is
+ * the signed-in nav's 32px; `lg` is the 60px crest slot on the applications list
+ * (Figma 337:18792), where the frame draws a university mark and most rows have
+ * no logo to draw, so the initials fallback carries them.
  */
+
+export type AvatarSize = 'sm' | 'lg';
+
+const SIZES: Record<AvatarSize, string> = {
+  sm: 'size-gb-4xl text-gb-xs',
+  lg: 'size-[60px] text-gb-lg',
+};
 
 function initials(name: string): string {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -25,16 +34,18 @@ function initials(name: string): string {
 export function Avatar({
   name,
   src,
+  size = 'sm',
   className,
 }: {
   /** Used for the alt text and as the initials fallback. */
   name: string;
   src?: string | null | undefined;
+  size?: AvatarSize | undefined;
   className?: string | undefined;
 }) {
   return (
     <div
-      className={`relative size-gb-4xl shrink-0 rounded-gb-full bg-surface p-px shadow-gb-xs ring-[0.5px] ring-black/10${
+      className={`relative ${SIZES[size]} shrink-0 rounded-gb-full bg-surface p-px shadow-gb-xs ring-[0.5px] ring-black/10${
         className ? ` ${className}` : ''
       }`}
     >
@@ -54,7 +65,8 @@ export function Avatar({
         ) : (
           <div
             aria-hidden
-            className="flex size-full items-center justify-center rounded-gb-full border border-white bg-surface-muted text-gb-xs font-semibold text-fg-secondary"
+            /* Text size is inherited from the wrapper's size step. */
+            className="flex size-full items-center justify-center rounded-gb-full border border-white bg-surface-muted font-semibold text-fg-secondary"
           >
             {initials(name)}
           </div>
