@@ -12,7 +12,7 @@ import {
 } from '@/lib/admission-fit';
 import { toExplorerUniversity, type UniversityScholarship } from '@/lib/explorer-utils';
 import type { ApplicationEntry } from '@/lib/explorer-context';
-import { UniversityExplorerClient } from './university-explorer-client';
+import { UniversityListClient } from './university-list-client';
 
 /**
  * Normalise an English test result to a 0–1 proficiency, used as one input to
@@ -223,8 +223,20 @@ export default async function UniversitiesPage() {
     }
   }
 
+  // Name + avatar for the signed-in nav (Figma 203:12356). Read from the auth
+  // user we already have — no extra query. Falls back to the email local-part,
+  // matching what the global nav (nav-reveal.tsx) shows.
+  const userName = user
+    ? ((user.user_metadata?.full_name as string | undefined) ??
+      user.email?.split('@')[0] ??
+      'Profile')
+    : null;
+  const userAvatarUrl = user
+    ? ((user.user_metadata?.avatar_url as string | undefined) ?? null)
+    : null;
+
   return (
-    <UniversityExplorerClient
+    <UniversityListClient
       universities={explorerUniversities}
       initialShortlist={savedUniversityIds}
       initialApplications={initialApplications}
@@ -232,6 +244,8 @@ export default async function UniversitiesPage() {
       hasProfile={!!profile}
       admissionUnlocked={admissionUnlocked}
       profileStrength={profileStrength?.score ?? null}
+      userName={userName}
+      userAvatarUrl={userAvatarUrl}
       wikiPairs={wikiPairs}
     />
   );
