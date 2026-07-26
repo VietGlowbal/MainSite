@@ -43,8 +43,17 @@ const metadataDir = path.join(repoRoot, 'content/geo/metadata');
 const publicNewsImagesDir = path.join(repoRoot, 'public/generated/news');
 
 function parseFrontmatter(markdown: string) {
-  const match = markdown.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
-  if (!match) return { frontmatter: {}, body: markdown };
+  /*
+   * Normalise line endings before matching. The files in content/geo/drafts are
+   * CRLF (they are authored/committed on Windows), and the pattern below anchors
+   * on "\n---\n" — so against a CRLF file it did not match at all, every guide
+   * silently fell back to `{ frontmatter: {} }`, and the list page rendered the
+   * slug as the title, "---" as the excerpt, and today's date as publishedAt.
+   * No error anywhere; it just looked like the content was bad.
+   */
+  const text = markdown.replace(/\r\n/g, '\n');
+  const match = text.match(/^---\n([\s\S]*?)\n---\n([\s\S]*)$/);
+  if (!match) return { frontmatter: {}, body: text };
   const frontmatter: Record<string, string> = {};
   for (const line of match[1].split('\n')) {
     const idx = line.indexOf(':');

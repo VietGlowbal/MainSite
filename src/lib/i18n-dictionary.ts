@@ -165,6 +165,20 @@ export const translations: Record<string, string> = {
     'Nhận các mẹo du học, học bổng và hướng dẫn mới nhất ngay trong hộp thư của bạn.',
   '{minutes} min read': '{minutes} phút đọc',
 
+  // ── Blog list, redesigned (Figma 153:18266) ──────────────────────────────
+  'Resource library': 'Thư viện tài nguyên',
+  'Guides on choosing a university, funding it, and getting in — written for Vietnamese students.':
+    'Hướng dẫn chọn trường, tìm nguồn tài chính và cách trúng tuyển — viết cho sinh viên Việt Nam.',
+  'Read post': 'Đọc bài',
+  'No posts in this topic yet.': 'Chưa có bài viết nào trong chủ đề này.',
+  Subscribed: 'Đã đăng ký',
+  'Please enter a valid email address': 'Vui lòng nhập địa chỉ email hợp lệ',
+  'Successfully subscribed! Check your email.':
+    'Đăng ký thành công! Hãy kiểm tra email của bạn.',
+  "You're already subscribed!": 'Bạn đã đăng ký rồi!',
+  'Something went wrong. Please try again.': 'Đã xảy ra lỗi. Vui lòng thử lại.',
+  'Failed to subscribe. Please try again.': 'Đăng ký thất bại. Vui lòng thử lại.',
+
   // ── Article (guide) page chrome ──────────────────────────────────────────
   'On this page': 'Trong trang này',
   'Related articles': 'Bài viết liên quan',
@@ -838,6 +852,44 @@ export const translations: Record<string, string> = {
     '© 2026 GlowBal. Hướng dẫn toàn cầu ưu tiên sinh viên.',
   'Best AI Tool': 'Công cụ AI tốt nhất',
   '2,000+ reviews': 'Hơn 2.000 đánh giá',
+
+  // ── Universities list (Figma 105:8300) ───────────────────────────────────
+  // "Find the university...", "Search by university name" and "Sort by" are
+  // already defined above (the earlier universities block).
+  'Explore universities worldwide and find your perfect fit.':
+    'Khám phá các trường đại học trên toàn thế giới và tìm nơi phù hợp nhất với bạn.',
+  'Where do you want to study': 'Bạn muốn học ở đâu',
+  'Select a major': 'Chọn chuyên ngành',
+  'Find universities': 'Tìm trường đại học',
+  'Filter by criteria': 'Chọn theo tiêu chí',
+  // Criteria chips (only the data-backed ones ship, see university-list-client).
+  // 'Scholarships' and 'Acceptance rate' are defined elsewhere in this file.
+  'World QS ranking': 'Xếp hạng QS thế giới',
+  // Sort chips
+  Popular: 'Phổ biến',
+  'Price: high to low': 'Giá cao - thấp',
+  'Price: low to high': 'Giá thấp - cao',
+  // Majors ('Business' and 'Arts & Humanities' are defined elsewhere)
+  'Engineering & Technology': 'Kỹ thuật & Công nghệ',
+  'Medicine & Health': 'Y khoa & Sức khỏe',
+  // Card ('View profile' is defined elsewhere)
+  'QS ranking': 'Xếp hạng QS',
+  'International tuition': 'Học phí quốc tế',
+  'Global top 50': 'Top 50 toàn cầu',
+  'Top 200 worldwide': 'Top 200 toàn cầu',
+  'Saved to your list': 'Đã lưu vào danh sách của bạn',
+  'Removed from your list': 'Đã xóa khỏi danh sách của bạn',
+  'No universities match your filters': 'Không có trường nào khớp với bộ lọc của bạn',
+  'Try clearing a filter or searching a different name.':
+    'Hãy thử bỏ bớt bộ lọc hoặc tìm một tên khác.',
+  // Login gate
+  'Log in to keep exploring': 'Đăng nhập để tiếp tục khám phá',
+  'Create a free account to open full university profiles, discover scholarships and unlock your personalised matches.':
+    'Tạo tài khoản miễn phí để mở hồ sơ đầy đủ của trường, khám phá học bổng và mở khóa gợi ý phù hợp riêng cho bạn.',
+  'Log in or sign up': 'Đăng nhập hoặc đăng ký',
+  'Maybe later': 'Để sau',
+  // Nav / mobile chrome ('Menu', 'Close menu', 'Next' are defined elsewhere)
+  Previous: 'Trước',
 
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',
