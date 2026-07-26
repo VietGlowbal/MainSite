@@ -28,7 +28,12 @@ export type KitIconArt = {
   /** The icon-frame size those units were exported against. */
   readonly frame: number;
   readonly strokeWidth: number;
-  readonly d: string;
+  /**
+   * One path, or several. Most of the kit's icons export as a single compound
+   * path; a few (marker-pin-02) are genuinely two separate `<path>` elements,
+   * and concatenating their `d` strings would join the shapes with a stray line.
+   */
+  readonly d: string | readonly string[];
 };
 
 export function KitIcon({
@@ -56,7 +61,9 @@ export function KitIcon({
       focusable="false"
       {...(className ? { className } : {})}
     >
-      <path d={art.d} />
+      {(typeof art.d === 'string' ? [art.d] : art.d).map((d) => (
+        <path key={d} d={d} />
+      ))}
     </svg>
   );
 }
@@ -125,6 +132,52 @@ export const ICONS = {
     frame: 20,
     strokeWidth: 1.66667,
     d: 'M0.833333 6.66667H12.5M6.66667 12.5L12.5 6.66667L6.66667 0.833333',
+  },
+  /**
+   * Figma 2:31009 — trails "Read post" on a blog card (I153:18284;1390:725).
+   * Deliberately a second arrow rather than a rotated `arrowRight`: the kit's
+   * up-right glyph has its own elbow (a diagonal shaft plus a corner bracket),
+   * so rotating the horizontal one by 45° gives a visibly different mark.
+   */
+  arrowUpRight: {
+    w: 10,
+    h: 10,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M0.833333 9.16667L9.16667 0.833333M9.16667 9.16667V0.833333H0.833333',
+  },
+  /**
+   * Figma 41:4011 — the location line on a saved-list row (223:9502).
+   * Two paths: the pin outline and the dot inside it.
+   */
+  markerPin02: {
+    w: 15,
+    h: 18.3333,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: [
+      'M7.5 9.58333C8.88071 9.58333 10 8.46404 10 7.08333C10 5.70262 8.88071 4.58333 7.5 4.58333C6.11929 4.58333 5 5.70262 5 7.08333C5 8.46404 6.11929 9.58333 7.5 9.58333Z',
+      'M7.5 17.5C9.16667 14.1667 14.1667 12.0152 14.1667 7.5C14.1667 3.8181 11.1819 0.833333 7.5 0.833333C3.8181 0.833333 0.833333 3.8181 0.833333 7.5C0.833333 12.0152 5.83333 14.1667 7.5 17.5Z',
+    ],
+  },
+  /** Figma 41:8794 — the deadline line on a saved-list row (223:9505). */
+  clock: {
+    w: 18.3333,
+    h: 18.3333,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M9.16667 4.16667V9.16667L12.5 10.8333M17.5 9.16667C17.5 13.769 13.769 17.5 9.16667 17.5C4.56429 17.5 0.833333 13.769 0.833333 9.16667C0.833333 4.56429 4.56429 0.833333 9.16667 0.833333C13.769 0.833333 17.5 4.56429 17.5 9.16667Z',
+  },
+  /**
+   * Figma 223:9567 — the scholarship bar under the saved list. Exported at 32px
+   * with no inset, so `frame` is 32 here rather than the usual 20/24.
+   */
+  gift01: {
+    w: 32,
+    h: 32,
+    frame: 32,
+    strokeWidth: 2,
+    d: 'M16 8V29.3333M16 8H11.2857C10.5911 8 9.92493 7.71905 9.43377 7.21895C8.9426 6.71885 8.66667 6.04058 8.66667 5.33333C8.66667 4.62609 8.9426 3.94781 9.43377 3.44772C9.92493 2.94762 10.5911 2.66667 11.2857 2.66667C14.9524 2.66667 16 8 16 8ZM16 8H20.7143C21.4089 8 22.0751 7.71905 22.5662 7.21895C23.0574 6.71885 23.3333 6.04058 23.3333 5.33333C23.3333 4.62609 23.0574 3.94781 22.5662 3.44772C22.0751 2.94762 21.4089 2.66667 20.7143 2.66667C17.0476 2.66667 16 8 16 8ZM26.6667 14.6667V25.0667C26.6667 26.5601 26.6667 27.3069 26.376 27.8773C26.1204 28.3791 25.7124 28.787 25.2106 29.0427C24.6402 29.3333 23.8935 29.3333 22.4 29.3333L9.6 29.3333C8.10653 29.3333 7.35979 29.3333 6.78936 29.0427C6.28759 28.787 5.87964 28.3791 5.62398 27.8773C5.33333 27.3069 5.33333 26.5601 5.33333 25.0667V14.6667M2.66667 10.1333L2.66667 12.5333C2.66667 13.2801 2.66667 13.6534 2.81199 13.9387C2.93982 14.1895 3.1438 14.3935 3.39468 14.5213C3.67989 14.6667 4.05326 14.6667 4.8 14.6667L27.2 14.6667C27.9467 14.6667 28.3201 14.6667 28.6053 14.5213C28.8562 14.3935 29.0602 14.1895 29.188 13.9387C29.3333 13.6534 29.3333 13.2801 29.3333 12.5333V10.1333C29.3333 9.3866 29.3333 9.01323 29.188 8.72801C29.0602 8.47713 28.8562 8.27316 28.6053 8.14533C28.3201 8 27.9467 8 27.2 8L4.8 8C4.05326 8 3.6799 8 3.39468 8.14532C3.1438 8.27316 2.93982 8.47713 2.81199 8.72801C2.66667 9.01323 2.66667 9.3866 2.66667 10.1333Z',
   },
 } as const satisfies Record<string, KitIconArt>;
 

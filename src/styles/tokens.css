@@ -88,6 +88,19 @@
   /* Figma "Colors/Yellow/400" — the ratings-badge star. */
   --color-gb-yellow-400: #facc15;
 
+  /* ── Alpha overlays — from the kit's component-colors/alpha/* ─────────────
+     The blog post card (Figma I153:18284;1390:634) frames its cover photo with
+     a hairline, then floats a frosted attribution strip over the bottom of it
+     (;1390:865 the gradient, ;1390:866 the panel).
+
+     These have to be translucent — the whole point is that the photo shows
+     through — so no step on the neutral ramp can express them, and they are
+     recorded as their own primitives rather than approximated. 8-digit hex
+     because that is what the ramp above uses; #0000001a is rgba(0,0,0,.1). */
+  --color-gb-alpha-black-10: #0000001a;
+  --color-gb-alpha-black-40: #00000066;
+  --color-gb-alpha-white-30: #ffffff4d;
+
   /* ── Error / destructive — ⚠️ NOT DESIGN-CONFIRMED ──────────────────────
      No frame in the redesign draws an invalid field, a failed request, or a
      destructive action, so there is no Figma variable to copy. These are
@@ -148,6 +161,11 @@
   --radius-gb-md: 8px;
   --radius-gb-lg: 10px;
   --radius-gb-xl: 12px;
+  /* 16px, and the exception to the "tighter than the legacy code" note above:
+     the saved-list row (Figma 223:9485 the card, 223:9591 its cover image) is
+     the one place the design reaches past 12px. It is the kit's `radius-2xl`,
+     bound as a variable there, not a hand-set value. */
+  --radius-gb-2xl: 16px;
   --radius-gb-full: 9999px;
 
   /* ── Type scale — FINAL ──────────────────────────────────────────────────
@@ -271,6 +289,15 @@
   --gb-border-primary: var(--color-gb-neutral-300);
   --gb-border-secondary: var(--color-gb-neutral-200);
 
+  /* Over-image treatments — see the alpha primitives above. Named for the job
+     rather than the colour so a card does not have to know it is compositing:
+       -on-image   the hairline framing a cover photo
+       scrim       the bottom-up darkening that keeps white text legible
+       frosted     the blurred panel that carries that text */
+  --gb-border-on-image: var(--color-gb-alpha-black-10);
+  --gb-scrim: var(--color-gb-alpha-black-40);
+  --gb-bg-frosted: var(--color-gb-alpha-white-30);
+
   /* Error — see the ⚠️ note on the error ramp above. */
   --gb-text-error: var(--color-gb-error-600);
   --gb-border-error: var(--color-gb-error-500);
@@ -337,6 +364,10 @@
   --color-line: var(--gb-border-secondary); /* Figma border-secondary */
   --color-line-strong: var(--gb-border-primary); /* Figma border-primary */
   --color-line-on-inverse: var(--gb-border-on-inverse); /* dark-band border */
+  /* Over-image: border-line-on-image, bg-scrim / to-scrim, bg-surface-frosted. */
+  --color-line-on-image: var(--gb-border-on-image);
+  --color-scrim: var(--gb-scrim);
+  --color-surface-frosted: var(--gb-bg-frosted);
 
   /* Error: fg-error / line-error / surface-error. Not design-confirmed. */
   --color-fg-error: var(--gb-text-error);

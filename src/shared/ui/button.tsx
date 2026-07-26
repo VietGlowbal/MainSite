@@ -14,7 +14,7 @@ import Link from 'next/link';
  */
 
 export type ButtonVariant = 'primary' | 'primary-on-dark' | 'secondary' | 'secondary-on-dark';
-export type ButtonSize = 'sm' | 'md' | 'xl';
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 const BASE =
   'inline-flex items-center justify-center gap-gb-xs rounded-gb-md font-semibold ' +
@@ -27,6 +27,12 @@ const SIZES: Record<ButtonSize, string> = {
   sm: 'px-gb-lg py-gb-md text-gb-sm',
   /** 40px flat, matching the mobile nav's stacked actions. */
   md: 'h-gb-5xl px-gb-xl text-gb-sm',
+  /**
+   * 12 + 20 + 12 = 44px on 14/20 text. The kit's `lg`, and the size the
+   * saved-list scholarship bar uses (Figma 223:9677, drawn at h-44 with
+   * px-12/py-8 — the 8 is the frame's own padding, not the text box's).
+   */
+  lg: 'px-gb-lg py-gb-lg text-gb-sm',
   /** 12 + 24 + 12 = 48px on 16/24 text. The Home hero CTA (Figma 104:7133). */
   xl: 'px-gb-btn-xl py-gb-lg text-gb-md',
 };

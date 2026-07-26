@@ -18,11 +18,30 @@
  * being re-derived on every card.
  */
 
-export type BadgeVariant = 'outline' | 'reach' | 'recommend' | 'safe';
+export type BadgeVariant = 'outline' | 'brand-subtle' | 'neutral' | 'reach' | 'recommend' | 'safe';
 
 const VARIANTS: Record<BadgeVariant, string> = {
   outline:
     'rounded-gb-sm border border-line-on-inverse px-gb-sm py-gb-xxs text-gb-xs font-medium text-fg-on-inverse-muted',
+  /*
+   * Rose text on a rose-50 fill — Figma I105:8403, the ranking badge on the
+   * university card ("top 50 toàn cầu"). Distinct from the `reach` tier badge
+   * (solid rose, white text): this one is a soft label, not a risk signal.
+   */
+  'brand-subtle':
+    'rounded-gb-full bg-brand-subtle px-gb-lg py-gb-xs text-gb-sm font-medium text-fg-brand',
+  /*
+   * The unemphasised sibling of `brand-subtle`, same geometry: grey text on a
+   * neutral-50 fill. Figma 223:9496/223:9497, the country and institution-type
+   * pills on a saved-list row, which sit in the same badge row as two
+   * `brand-subtle` ranking pills.
+   *
+   * The mockup gives these a 1px #fff1f2 border — brand-50 on a neutral-50
+   * fill, i.e. invisible, and left over from duplicating the rose pill without
+   * changing the stroke. Reproducing an invisible border would only make the
+   * pill 2px taller than its sibling, so the border is dropped instead.
+   */
+  neutral: 'rounded-gb-full bg-surface-muted px-gb-lg py-gb-xs text-gb-sm font-medium text-fg-muted',
   reach: 'rounded-gb-full bg-tier-reach px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-reach',
   recommend:
     'rounded-gb-full bg-tier-recommend px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-recommend',
