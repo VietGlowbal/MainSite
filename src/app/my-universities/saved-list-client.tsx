@@ -66,6 +66,13 @@ export type ScholarshipOption = {
   amountLabel: string | null;
   deadlineLabel: string | null;
   coverage: string | null;
+  /* The rest feed the detail panel — Figma 337:19349, "Chi tiết voucer". */
+  scope: string | null;
+  eligibility: string | null;
+  conditions: string | null;
+  insight: string | null;
+  appliesToText: string | null;
+  sourceUrl: string | null;
 };
 
 export type SavedRow = {
@@ -232,6 +239,121 @@ function SavedRowItem({
 }
 
 /** Figma 223:13022, minus the code field — see note (1) at the top of this file. */
+/** One labelled prose block on the detail panel. Hidden when the column is null. */
+function DetailBlock({ heading, body }: { heading: string; body: string | null }) {
+  if (!body) return null;
+  return (
+    <div className="flex flex-col gap-gb-md">
+      <h3 className="text-gb-sm font-semibold text-fg">{heading}</h3>
+      {/* The columns are free prose with real newlines in them, so preserve the
+          author's line breaks rather than collapsing them into one paragraph. */}
+      <p className="whitespace-pre-line text-gb-sm leading-relaxed text-fg-tertiary">{body}</p>
+    </div>
+  );
+}
+
+/**
+ * The scholarship detail panel — Figma 337:19349, "Chi tiết voucer".
+ *
+ * Despite the frame's name there is no voucher here: every field on it maps to a
+ * real `scholarships` column (coverage, eligibility, conditions, insight,
+ * applies_to_text, deadline). The frame's sibling on the older canvas leads with
+ * a "Mã học bổng" redeem-a-code control, which is the part with no schema behind
+ * it and stays unbuilt — see the note at the top of this file.
+ */
+function ScholarshipDetail({
+  option,
+  universityName,
+  universityLogoUrl,
+  onBack,
+}: {
+  option: ScholarshipOption;
+  universityName: string;
+  universityLogoUrl?: string | null;
+  onBack: () => void;
+}) {
+  return (
+    <div className="flex flex-col gap-gb-3xl">
+      {/* Figma 337:19352 — title and "Trở về" */}
+      <div className="flex items-start justify-between gap-gb-xl">
+        <h2 className="text-gb-lg font-semibold text-fg">{option.name}</h2>
+        <Button variant="secondary" size="sm" onClick={onBack} className="shrink-0">
+          Back
+        </Button>
+      </div>
+
+      {option.scope ? (
+        <div className="flex flex-wrap gap-gb-md">
+          <Badge variant="brand-subtle">{option.scope}</Badge>
+        </div>
+      ) : null}
+
+      {/* Figma 337:19366 — the value card */}
+      <div className="flex items-start gap-gb-xl rounded-gb-xl border border-line p-gb-xl">
+        {universityLogoUrl ? (
+          /* Crests come from arbitrary hosts, so a plain <img> as elsewhere. */
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={universityLogoUrl}
+            alt=""
+            loading="lazy"
+            className="size-gb-7xl shrink-0 object-contain"
+          />
+        ) : null}
+        <div className="flex min-w-0 flex-col gap-gb-md">
+          <span className="text-gb-sm text-fg-secondary">Scholarship value</span>
+          {option.amountLabel ? (
+            <span className="text-gb-display-xs font-semibold text-brand">{option.amountLabel}</span>
+          ) : (
+            <span className="text-gb-md text-fg-tertiary">Value not published</span>
+          )}
+          {option.coverage ? (
+            <p className="whitespace-pre-line text-gb-sm text-fg-tertiary">{option.coverage}</p>
+          ) : null}
+          {option.deadlineLabel ? (
+            <span className="flex items-center gap-gb-sm text-gb-sm text-fg-tertiary">
+              <KitIcon art={ICONS.clock} frame={20} className="shrink-0" />
+              Deadline: {option.deadlineLabel}
+            </span>
+          ) : null}
+        </div>
+      </div>
+
+      <DetailBlock heading="Who it is for" body={option.eligibility} />
+      <DetailBlock heading="Application conditions" body={option.conditions} />
+      <DetailBlock heading="Analysis" body={option.insight} />
+
+      {/* Figma 337:19470 — "Trường áp dụng". The free-text column is the
+          scholarship's own wording; the saved university is the structured link
+          that actually put this option in front of the student. */}
+      <div className="flex flex-col gap-gb-md">
+        <h3 className="text-gb-sm font-semibold text-fg">Applies to</h3>
+        <div className="flex flex-wrap gap-gb-md">
+          <Badge variant="neutral">{universityName}</Badge>
+        </div>
+        {/* The free-text column very often just restates the university the
+            badge above already names ("Massachusetts Institute of Technology
+            (MIT)"), so it is shown only when it adds something. */}
+        {option.appliesToText && !option.appliesToText.includes(universityName) ? (
+          <p className="text-gb-sm text-fg-tertiary">{option.appliesToText}</p>
+        ) : null}
+      </div>
+
+      {option.sourceUrl ? (
+        <Link
+          href={option.sourceUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover"
+        >
+          Open the official page
+          <KitIcon art={ICONS.arrowUpRight} frame={20} />
+        </Link>
+      ) : null}
+    </div>
+  );
+}
+
 function ScholarshipPicker({
   open,
   onClose,
@@ -252,6 +374,42 @@ function ScholarshipPicker({
   busy: boolean;
 }) {
   const [chosen, setChosen] = useState<string | null>(null);
+  /* `${universityId}:${scholarshipId}` of the row whose detail panel is open. */
+  const [viewing, setViewing] = useState<string | null>(null);
+
+  const viewed = viewing
+    ? candidates.find(({ option, universityId }) => `${universityId}:${option.id}` === viewing)
+    : undefined;
+
+  /*
+   * The detail panel takes over the same dialog rather than stacking a second
+   * one: the frame draws one surface with a "Trở về" that returns to the list,
+   * and nesting modals would trap focus twice over.
+   */
+  // Closing the dialog from the detail panel must not leave it open behind the
+  // scrim for the next time the picker is used.
+  const close = () => {
+    setViewing(null);
+    onClose();
+  };
+
+  if (viewed) {
+    return (
+      <Modal
+        open={open}
+        onClose={close}
+        label={viewed.option.name}
+        className="max-h-[85vh] max-w-[720px] overflow-y-auto p-gb-3xl"
+      >
+        <ScholarshipDetail
+          option={viewed.option}
+          universityName={viewed.universityName}
+          universityLogoUrl={viewed.universityLogoUrl}
+          onBack={() => setViewing(null)}
+        />
+      </Modal>
+    );
+  }
 
   return (
     <Modal
@@ -273,12 +431,13 @@ function ScholarshipPicker({
           {candidates.map(({ option, universityId, universityName, universityLogoUrl }) => {
             const value = `${universityId}:${option.id}`;
             return (
-              <label
+              <div
                 key={value}
-                className={`flex cursor-pointer items-start gap-gb-lg rounded-gb-xl border p-gb-xl transition-colors ${
+                className={`flex items-start gap-gb-lg rounded-gb-xl border p-gb-xl transition-colors ${
                   chosen === value ? 'border-brand bg-brand-subtle' : 'border-line hover:bg-surface-hover'
                 }`}
               >
+              <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-gb-lg">
                 <input
                   type="radio"
                   name="scholarship-choice"
@@ -325,6 +484,14 @@ function ScholarshipPicker({
                   </span>
                 </span>
               </label>
+              <button
+                type="button"
+                onClick={() => setViewing(value)}
+                className="shrink-0 rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                Details
+              </button>
+              </div>
             );
           })}
         </fieldset>

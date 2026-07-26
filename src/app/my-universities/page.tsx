@@ -117,6 +117,13 @@ export default async function MyUniversitiesPage() {
         amountLabel: s.amountLabel,
         deadlineLabel: s.deadlineLabel,
         coverage: s.coverage,
+        // The detail panel's fields — Figma 337:19349.
+        scope: s.scope,
+        eligibility: s.eligibility,
+        conditions: s.conditions,
+        insight: s.insight,
+        appliesToText: s.appliesToText,
+        sourceUrl: s.sourceUrl,
       }),
     );
 
