@@ -58,6 +58,13 @@ export default async function SavedListPreviewPage() {
       amountLabel: s.amountLabel,
       deadlineLabel: s.deadlineLabel,
       coverage: s.coverage,
+      // Detail-panel fields (Figma 337:19349) — real columns, like the rest.
+      scope: s.scope,
+      eligibility: s.eligibility,
+      conditions: s.conditions,
+      insight: s.insight,
+      appliesToText: s.appliesToText,
+      sourceUrl: s.sourceUrl,
     }));
 
     // Give exactly one row an attached scholarship so the 223:13621 state is
