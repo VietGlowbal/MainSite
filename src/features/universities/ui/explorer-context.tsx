@@ -167,6 +167,23 @@ export function UniversityExplorerProvider({
     setSelectedCountries([]);
   }, []);
 
+  /*
+   * Declared here rather than further down with the other feedback helpers
+   * because `addToShortlist` depends on it. A useCallback dependency array is
+   * evaluated where the hook is called, so naming a `const` defined below this
+   * point throws on the TDZ — hoisting is the fix, not an eslint-disable.
+   */
+  const showToast = useCallback((message: string) => {
+    if (toastTimeoutRef.current) {
+      clearTimeout(toastTimeoutRef.current);
+    }
+    setToast({ message, visible: true });
+    toastTimeoutRef.current = setTimeout(() => {
+      setToast(null);
+      toastTimeoutRef.current = null;
+    }, 3000);
+  }, []);
+
   const addToShortlist = useCallback(
     async (id: number) => {
       setShortlist((prev) => {
@@ -187,7 +204,7 @@ export function UniversityExplorerProvider({
       if (!userData.user) return;
 
       // Persist to Supabase
-      const { data: inserted } = await supabase
+      const { data: inserted, error: insertError } = await supabase
         .from('user_universities')
         .upsert(
           {
@@ -200,6 +217,24 @@ export function UniversityExplorerProvider({
         )
         .select('id')
         .single();
+
+      /*
+       * This error used to be discarded, and the optimistic state above was left
+       * in place — so a failed save looked exactly like a successful one until
+       * the next reload, when the university silently vanished. That is not
+       * hypothetical: `public.user_universities` is missing from at least one
+       * project this runs against (supabase-schema.sql:151 creates it), and
+       * there every save on this page was quietly lost, taking /my-universities
+       * and the /apply shortlist down with it.
+       *
+       * Rolling the optimistic state back is what makes the failure visible.
+       */
+      if (insertError) {
+        console.error('addToShortlist: saving to user_universities failed:', insertError.message);
+        setShortlist((prev) => prev.filter((x) => x !== id));
+        showToast('Could not save that university. Please try again.');
+        return;
+      }
 
       // Generate tasks from templates
       if (inserted) {
@@ -224,7 +259,7 @@ export function UniversityExplorerProvider({
         }
       }
     },
-    [isLoggedIn, supabase, initialUniversities],
+    [isLoggedIn, supabase, initialUniversities, showToast],
   );
 
   const removeFromShortlist = useCallback(
@@ -351,17 +386,6 @@ export function UniversityExplorerProvider({
     },
     [isLoggedIn, supabase, applications],
   );
-
-  const showToast = useCallback((message: string) => {
-    if (toastTimeoutRef.current) {
-      clearTimeout(toastTimeoutRef.current);
-    }
-    setToast({ message, visible: true });
-    toastTimeoutRef.current = setTimeout(() => {
-      setToast(null);
-      toastTimeoutRef.current = null;
-    }, 3000);
-  }, []);
 
   // ── Context value ───────────────────────────────────────────────────
 
