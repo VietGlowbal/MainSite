@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render } from '@testing-library/react';
 import { RouteLoading } from '../route-loading';
-import { GlobalLoadingOverlay } from '@/shared/ui';
+import { GlobalLoadingOverlay } from '@/shared/ui/loading-overlay';
 
 let pathname = '/universities';
 

@@ -12,7 +12,7 @@ import { CourseResultCard } from './course-result-card';
 import { UpgradePromptModal } from './upgrade-prompt-modal';
 import { track } from '@vercel/analytics';
 import { logSearchError } from '@/lib/error-logging/error-logger';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 interface ExtendedUserEntitlement {
   plan: 'free' | 'plus' | 'team' | 'admin';

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /* ─────────────────────────────────────────────────────────────────────────
    TYPES

@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { GeoArticleStatus } from '@/lib/geo-cms';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type ArticleRow = {
   id: string;

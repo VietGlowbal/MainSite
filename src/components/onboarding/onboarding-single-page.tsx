@@ -31,7 +31,7 @@ import {
 } from '@/lib/onboarding-options';
 import { useT } from '@/lib/i18n';
 import type { StudentProfile } from '@/lib/types';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const LightGlobe = dynamic(
   () => import('@/components/landing-globe').then((mod) => ({ default: mod.LandingGlobe })),

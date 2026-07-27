@@ -2,7 +2,13 @@
 
 import { useEffect, useRef } from 'react';
 import { usePathname } from 'next/navigation';
-import { beginLoading } from '@/shared/ui';
+// Deep import, not the `@/shared/ui` barrel. This module needs one function
+// from one file, and the barrel would pull every primitive in the design system
+// (TopNav, Modal, Pagination, ...) into the graph of a component that renders
+// nothing — which shows up as a bundle cost on every page and, more visibly, as
+// a coverage cliff, since the ratchet in vitest.config.ts measures files the
+// tests actually load.
+import { beginLoading } from '@/shared/ui/loading-overlay';
 
 /**
  * RouteLoading — puts the globe loader up during client-side navigation.

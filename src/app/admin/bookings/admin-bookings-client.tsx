@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { BookingStatus } from '@/types/achievers';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';

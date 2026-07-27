@@ -16,7 +16,7 @@ import {
   type ComparisonValue,
   type PlanColumn,
 } from '@/lib/plus';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * PlusPricing — the interactive heart of the /plus page.

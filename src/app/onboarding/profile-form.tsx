@@ -12,7 +12,7 @@ import {
   subjectFamilies,
   supportNeeds,
 } from '@/lib/onboarding-options';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const MiniGlobe = dynamic(
   () => import('@/components/landing-globe').then((mod) => ({ default: mod.LandingGlobe })),

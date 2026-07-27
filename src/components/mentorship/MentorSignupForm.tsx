@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Currency, DegreeLevel } from '@/types/mentorship';
 import { currencySymbol, formatMoney, toSmallestUnits } from '@/lib/currency';
 import { CheckIcon, CloseIcon } from './mentor-icons';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const DEGREE_LEVELS: { value: DegreeLevel; label: string }[] = [
   { value: 'undergraduate', label: 'Undergraduate' },

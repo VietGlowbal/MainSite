@@ -3,7 +3,8 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { Button, Input, useLoadingIndicator } from '@/shared/ui';
+import { Button, Input } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { controlClasses } from '@/shared/ui';
 import { createClient } from '@/lib/supabase/client';
 import { TID, testId } from '@/shared/lib';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Candidate = { id: string; title: string; slug: string };
 type Relation = 'related' | 'cluster' | 'prerequisite' | 'next' | 'cites';

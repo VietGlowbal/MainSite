@@ -14,7 +14,7 @@ import {
 } from '@/lib/match-insights';
 import { RadarPentagon } from './RadarPentagon';
 import { PillarBox } from './PillarBox';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 // Structural subset of the transformed ApplicationMatchAnalysis. `pillars` is
 // stored as JSON, so it arrives loosely typed and is narrowed below.

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarships';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * UniversitySearch — the interactive entry point into the funnel (Phase 3).

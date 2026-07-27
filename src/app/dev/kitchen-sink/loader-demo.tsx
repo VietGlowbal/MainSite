@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { Button, useLoadingIndicator } from '@/shared/ui';
+import { Button } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * Drives the real global overlay from the kitchen sink, so the busy state can

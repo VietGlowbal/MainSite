@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, render, screen } from '@testing-library/react';
 import { GlobalLoadingOverlay, beginLoading, useLoadingIndicator } from './loading-overlay';
-import { GlobeLoader } from './globe-loader';
+import { GlobeLoader, LoadingScreen, PageLoaderOverlay } from './globe-loader';
 import { LOADING_PHRASES, nextPhraseIndex } from './loading-phrases';
 
 /** Must match SHOW_DELAY_MS / MIN_VISIBLE_MS in loading-overlay.tsx. */
@@ -276,6 +276,35 @@ describe('GlobeLoader', () => {
     expect(video?.loop).toBe(true);
     expect(video?.autoplay).toBe(true);
     expect(video?.hasAttribute('playsinline')).toBe(true);
+  });
+});
+
+describe('route-level loaders', () => {
+  it('LoadingScreen fills the page rather than floating over it', () => {
+    const { container } = render(<LoadingScreen />);
+
+    // A route's loading.tsx replaces the page content, so it occupies the
+    // page; `fixed` here would leave the route behind it visible.
+    const root = container.firstElementChild;
+    expect(root?.className).toContain('min-h-screen');
+    expect(root?.className).not.toContain('fixed');
+    expect(loader()).not.toBeNull();
+  });
+
+  it('LoadingScreen passes a label through to the card', () => {
+    render(<LoadingScreen label="Loading your applications" />);
+    expect(screen.getAllByText('Loading your applications')).toHaveLength(2);
+  });
+
+  it('PageLoaderOverlay floats over a skeleton without eating clicks', () => {
+    // Unlike the global overlay there is nothing underneath to protect, and
+    // swallowing scroll on a full-page skeleton would be actively annoying.
+    const { container } = render(<PageLoaderOverlay />);
+
+    const root = container.firstElementChild;
+    expect(root?.className).toContain('pointer-events-none');
+    expect(root?.className).toContain('fixed');
+    expect(loader()).not.toBeNull();
   });
 });
 

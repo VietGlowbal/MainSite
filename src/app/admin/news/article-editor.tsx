@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { GeoArticle, GeoArticleStatus } from '@/lib/geo-cms';
 import { ArticleLinksEditor } from './article-links-editor';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const TOPICS = [
   'All topics',

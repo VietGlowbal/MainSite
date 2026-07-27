@@ -12,7 +12,7 @@ import {
   supportNeeds,
 } from '@/lib/onboarding-options';
 import type { StudentProfile } from '@/lib/types';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const SearchWorldSelector = dynamic(
   () => import('@/app/onboarding/world-picker').then((mod) => mod.SearchWorldSelector),

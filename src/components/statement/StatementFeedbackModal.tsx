@@ -10,7 +10,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { AIAnalysis } from '@/lib/types';
 import { StatementWriter } from './StatementWriter';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Props = {
   applicationId: string;

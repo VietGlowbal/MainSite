@@ -25,8 +25,8 @@ import {
   KitIcon,
   MobileNav,
   TopNav,
-  useLoadingIndicator,
 } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * The applications list — Figma 337:18767 ("Trang my apply", titled "My

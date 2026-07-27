@@ -10,7 +10,7 @@ import type {
 } from '@/types/mentorship';
 import { formatMoney, currencySymbol, toSmallestUnits, toMajorUnits } from '@/lib/currency';
 import { CheckIcon, CloseIcon } from './mentor-icons';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const TIME_PRESETS = ['09:00', '11:00', '14:00', '16:00', '18:00', '20:00'];
 

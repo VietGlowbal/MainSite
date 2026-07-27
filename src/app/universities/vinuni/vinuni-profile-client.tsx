@@ -19,7 +19,7 @@ import {
   type Scholarship,
   type AaccPillarKey,
 } from '@/lib/vinuni-content';
-import { useLoadingIndicator } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Props = {
   university: University;

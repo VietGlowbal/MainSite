@@ -23,8 +23,8 @@ import {
   MobileNav,
   Pagination,
   TopNav,
-  useLoadingIndicator,
 } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * /guides — the Blog list, built from Figma 153:18266 ("Blog page header").
