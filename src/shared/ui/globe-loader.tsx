@@ -254,6 +254,22 @@ export function GlobeLoader({
  * `min-h-screen` rather than `fixed`: a route-level loading UI replaces the
  * page content, so it should occupy the page rather than float over it. The
  * floating variant is `GlobalLoadingOverlay`.
+ *
+ * ⚠️ ADDING A `loading.tsx` IS NOT A FREE UI CHANGE. It wraps the segment in a
+ * Suspense boundary, which lets Next prerender a static shell for a route that
+ * was previously dynamic-and-skipped. The page body then runs at build time —
+ * and if its data fetch throws there, the build fails rather than the page
+ * falling back to server rendering.
+ *
+ * This is not hypothetical: a root `src/app/loading.tsx` was tried here and
+ * broke `npm run build` on /admin/news, whose layout reads cookies() and whose
+ * page fetches through the service-role client. CI builds with placeholder
+ * Supabase credentials, so the build-time fetch fails. Note that a Vercel
+ * preview will NOT catch this — it builds with real credentials.
+ *
+ * So: add `loading.tsx` per route, deliberately, and run `npm run build` with
+ * placeholder credentials afterwards. Client-side navigation does not need it
+ * — `RouteLoading` already covers every route for that.
  */
 export function LoadingScreen({ label }: { label?: string | undefined }) {
   return (
