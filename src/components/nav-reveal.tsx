@@ -443,6 +443,9 @@ export function NavReveal() {
     '/dev/home',
     '/universities',
     '/auth',
+    // Pre-launch site lock (LAUNCH_PLAN.md) — bare centered card, same
+    // treatment as /auth, no app chrome to double up.
+    '/coming-soon',
     '/onboarding',
     '/about',
     // Exact match, like /universities: the Blog LIST is rebuilt (Figma
