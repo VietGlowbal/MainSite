@@ -12,6 +12,7 @@ import {
   supportNeeds,
 } from '@/lib/onboarding-options';
 import type { StudentProfile } from '@/lib/types';
+import { useLoadingIndicator } from '@/shared/ui';
 
 const SearchWorldSelector = dynamic(
   () => import('@/app/onboarding/world-picker').then((mod) => mod.SearchWorldSelector),
@@ -217,6 +218,7 @@ export function GlowbalOption3GlobeDemo({
   const [goalSeed, setGoalSeed] = useState(0);
   const [showCompletion, setShowCompletion] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  useLoadingIndicator(isSubmitting, 'Saving your answers');
   const [finishSpinFocus, setFinishSpinFocus] = useState<{ lat: number; lng: number; altitude?: number } | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarships';
+import { useLoadingIndicator } from '@/shared/ui';
 
 /**
  * UniversitySearch — the interactive entry point into the funnel (Phase 3).
@@ -51,6 +52,7 @@ export function UniversitySearch() {
   const [query, setQuery] = useState('');
   const [matches, setMatches] = useState<UniversityMatch[]>([]);
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Searching universities');
   const [selected, setSelected] = useState<UniversityMatch | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);

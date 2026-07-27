@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useLoadingIndicator } from '@/shared/ui';
 
 /* ─────────────────────────────────────────────────────────────────────────
    TYPES
@@ -89,6 +90,7 @@ function typeBadge(t: string) {
 export function ScholarshipDashboard({ applications, existingScholarships }: Props) {
   const [scholarships, setScholarships] = useState<AIScholarship[]>([]);
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Finding scholarships for you');
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
   const [selectedApps, setSelectedApps] = useState<string[]>([]);

@@ -12,6 +12,7 @@ import { CourseResultCard } from './course-result-card';
 import { UpgradePromptModal } from './upgrade-prompt-modal';
 import { track } from '@vercel/analytics';
 import { logSearchError } from '@/lib/error-logging/error-logger';
+import { useLoadingIndicator } from '@/shared/ui';
 
 interface ExtendedUserEntitlement {
   plan: 'free' | 'plus' | 'team' | 'admin';
@@ -105,9 +106,11 @@ export function CourseSearchSessionModal({
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [entitlement, setEntitlement] = useState<ExtendedUserEntitlement | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
+  useLoadingIndicator(isLoadingData, 'Loading your profile');
   
   // Search state
   const [isSearching, setIsSearching] = useState(false);
+  useLoadingIndicator(isSearching, 'Finding courses for you');
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchResults, setSearchResults] = useState<CourseSearchResult[]>([]);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -127,6 +130,7 @@ export function CourseSearchSessionModal({
   
   // Add courses state
   const [isAddingCourses, setIsAddingCourses] = useState(false);
+  useLoadingIndicator(isAddingCourses, 'Adding courses to your plan');
   const [addCoursesError, setAddCoursesError] = useState<string | null>(null);
   const [addCoursesResponse, setAddCoursesResponse] = useState<AddCoursesResponse | null>(null);
   

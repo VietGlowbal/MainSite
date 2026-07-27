@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { BookingStatus } from '@/types/achievers';
+import { useLoadingIndicator } from '@/shared/ui';
 
 function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
@@ -49,6 +50,7 @@ type BookingRow = {
 export function AdminBookingsClient({ bookings }: { bookings: BookingRow[] }) {
   const [items, setItems] = useState(bookings);
   const [updating, setUpdating] = useState<number | null>(null);
+  useLoadingIndicator(updating !== null, 'Updating the booking');
 
   const pendingPayment = items.filter((b) => b.status === 'pending_payment');
   const confirmed = items.filter((b) => b.status === 'confirmed');

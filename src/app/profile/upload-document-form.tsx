@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLoadingIndicator } from '@/shared/ui';
 
 type DocType = 'cv' | 'statement_of_purpose';
 
@@ -19,6 +20,7 @@ export function UploadDocumentForm() {
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Uploading your document');
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

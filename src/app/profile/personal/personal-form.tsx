@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { StudentProfile } from '@/lib/types';
+import { useLoadingIndicator } from '@/shared/ui';
 
 const INPUT = 'block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition';
 const LABEL = 'block text-xs font-semibold text-slate-700 mb-1.5';
@@ -25,6 +26,7 @@ export function PersonalForm({
   const [nationality, setNationality] = useState(initialProfile?.nationality ?? '');
   const [bio, setBio] = useState(initialProfile?.bio ?? '');
   const [saving, setSaving] = useState(false);
+  useLoadingIndicator(saving, 'Saving your profile');
   const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
 
   const handleSave = async () => {

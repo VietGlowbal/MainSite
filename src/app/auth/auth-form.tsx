@@ -3,7 +3,7 @@
 import { FormEvent, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { Button, Input } from '@/shared/ui';
+import { Button, Input, useLoadingIndicator } from '@/shared/ui';
 import { controlClasses } from '@/shared/ui';
 import { createClient } from '@/lib/supabase/client';
 import { TID, testId } from '@/shared/lib';
@@ -90,6 +90,7 @@ export function AuthForm() {
   const [dob, setDob] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Checking your details');
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
 

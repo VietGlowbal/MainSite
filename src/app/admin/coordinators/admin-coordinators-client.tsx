@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useLoadingIndicator } from '@/shared/ui';
 
 type Ambassador = {
   coordinator_id: string;
@@ -36,6 +37,7 @@ function formatDate(value: string | null) {
 export function AdminCoordinatorsClient() {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [busy, setBusy] = useState<string | null>(null);
+  useLoadingIndicator(busy !== null, 'Updating the coordinator');
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [copied, setCopied] = useState<string | null>(null);

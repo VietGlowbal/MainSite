@@ -1,3 +1,5 @@
+import { PageLoaderOverlay } from '@/shared/ui';
+
 export default function Loading() {
   return (
     <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
@@ -15,6 +17,7 @@ export default function Loading() {
           </div>
         </div>
       </div>
+      <PageLoaderOverlay />
     </main>
   );
 }

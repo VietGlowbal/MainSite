@@ -10,6 +10,7 @@ import type {
 } from '@/types/mentorship';
 import { formatMoney, currencySymbol, toSmallestUnits, toMajorUnits } from '@/lib/currency';
 import { CheckIcon, CloseIcon } from './mentor-icons';
+import { useLoadingIndicator } from '@/shared/ui';
 
 const TIME_PRESETS = ['09:00', '11:00', '14:00', '16:00', '18:00', '20:00'];
 
@@ -188,6 +189,7 @@ function AvailabilityTab({
   const [selectedDates, setSelectedDates] = useState<string[]>([]);
   const [customTime, setCustomTime] = useState('10:00');
   const [busy, setBusy] = useState(false);
+  useLoadingIndicator(busy, 'Updating your availability');
   const [error, setError] = useState<string | null>(null);
   void profile;
 
@@ -480,6 +482,7 @@ function PricingTab({ profile }: { profile: MentorProfile }) {
     String(toMajorUnits(Number(profile.hourly_rate_amount ?? 0), profile.hourly_rate_currency)),
   );
   const [busy, setBusy] = useState(false);
+  useLoadingIndicator(busy, 'Saving your rate');
   const [msg, setMsg] = useState<string | null>(null);
 
   async function save() {

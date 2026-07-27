@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useLoadingIndicator } from '@/shared/ui';
 
 type Ambassador = {
   link_id: string;
@@ -33,6 +34,7 @@ export function AmbassadorsClient() {
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
+  useLoadingIndicator(busy !== null, 'Updating the ambassador');
   const [error, setError] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
   const [origin, setOrigin] = useState('');

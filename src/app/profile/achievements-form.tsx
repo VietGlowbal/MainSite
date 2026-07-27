@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useLoadingIndicator } from '@/shared/ui';
 
 interface Achievement {
   id: string;
@@ -22,6 +23,7 @@ export function AchievementsForm({ userId, initialAchievements, initialSkills }:
   const [skills, setSkills] = useState<string[]>(initialSkills);
   const [skillInput, setSkillInput] = useState('');
   const [saving, setSaving] = useState(false);
+  useLoadingIndicator(saving, 'Saving your achievements');
   const [message, setMessage] = useState<string | null>(null);
 
   const addAchievement = () => {

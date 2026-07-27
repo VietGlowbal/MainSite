@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { useLoadingIndicator } from '@/shared/ui';
 
 const feedbackSchema = z.object({
   pageUrl: z.string().url('Please enter a valid URL'),
@@ -15,6 +16,7 @@ type FeedbackForm = z.infer<typeof feedbackSchema>;
 
 export default function FeedbackPage() {
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  useLoadingIndicator(status === 'submitting', 'Sending your feedback');
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 

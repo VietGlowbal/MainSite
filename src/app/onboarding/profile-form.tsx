@@ -12,6 +12,7 @@ import {
   subjectFamilies,
   supportNeeds,
 } from '@/lib/onboarding-options';
+import { useLoadingIndicator } from '@/shared/ui';
 
 const MiniGlobe = dynamic(
   () => import('@/components/landing-globe').then((mod) => ({ default: mod.LandingGlobe })),
@@ -73,6 +74,7 @@ export function OnboardingForm({ initialProfile, isSignedIn }: Props) {
   const [profile, setProfile] = useState<StudentProfile>(initialState);
   const [message, setMessage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Saving your profile');
   const [stepIndex, setStepIndex] = useState(0);
   const [activeFamily, setActiveFamily] = useState('');
   const [pulsingFamily, setPulsingFamily] = useState<string | null>(null);

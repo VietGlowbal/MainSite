@@ -23,6 +23,7 @@ import {
   MobileNav,
   Pagination,
   TopNav,
+  useLoadingIndicator,
 } from '@/shared/ui';
 
 /**
@@ -134,6 +135,7 @@ function BlogPostCard({ guide }: { guide: GeoGuide }) {
 function SubscribeRow() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  useLoadingIndicator(status === 'loading', 'Signing you up');
   const [message, setMessage] = useState('');
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
