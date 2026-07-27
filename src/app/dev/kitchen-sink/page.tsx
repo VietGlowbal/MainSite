@@ -1,13 +1,30 @@
 import { notFound } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import {
+  FOOTER_COLUMNS,
+  FOOTER_COPYRIGHT,
+  FOOTER_RATINGS,
+  FOOTER_SOCIAL,
+  FOOTER_TAGLINE,
+} from '@/features/marketing/ui';
+import {
+  Avatar,
+  Badge,
   Button,
   CheckItem,
   CheckList,
+  Checkbox,
+  CheckboxGroup,
   FeatureCard,
+  Footer,
   ICONS,
+  Input,
   KitIcon,
   Metric,
+  Radio,
+  RadioGroup,
+  Select,
+  Textarea,
   TopNav,
 } from '@/shared/ui';
 
@@ -65,16 +82,11 @@ export default function KitchenSinkPage() {
         <p className="mb-gb-lg text-gb-sm text-fg-tertiary">
           Encodes the reach / recommend / safe classification from admission-fit.ts.
         </p>
-        <div className="flex flex-wrap gap-gb-md">
-          <span className="rounded-gb-full bg-tier-reach px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-reach">
-            Reach Universities
-          </span>
-          <span className="rounded-gb-full bg-tier-recommend px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-recommend">
-            Recommend Universities
-          </span>
-          <span className="rounded-gb-full bg-tier-safe px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-safe">
-            Safe Universities
-          </span>
+        <div className="flex flex-wrap items-center gap-gb-md">
+          <Badge variant="reach">Reach Universities</Badge>
+          <Badge variant="recommend">Recommend Universities</Badge>
+          <Badge variant="safe">Safe Universities</Badge>
+          <Badge>New</Badge>
         </div>
       </Section>
 
@@ -159,12 +171,100 @@ export default function KitchenSinkPage() {
         </div>
       </Section>
 
-      <Section title="TopNav (desktop — hidden below md)">
+      <Section title="TopNav — guest, dark (Figma 104:7114)">
         <TopNav
           logo={<GlowbalLogo height={28} />}
           items={DEMO_NAV_ITEMS}
           secondaryAction={{ href: '/auth', label: 'Đăng nhập' }}
           primaryAction={{ href: '/apply', label: 'Lập kế hoạch Du học' }}
+        />
+      </Section>
+
+      <Section title="TopNav — guest, light (Figma 105:8301)">
+        <TopNav
+          tone="light"
+          logo={<GlowbalLogo height={28} />}
+          items={DEMO_NAV_ITEMS}
+          secondaryAction={{ href: '/auth', label: 'Đăng nhập' }}
+          primaryAction={{ href: '/universities', label: 'Tìm trường đại học' }}
+        />
+      </Section>
+
+      <Section title="TopNav — signed in (Figma 203:12356; no secondary action)">
+        <TopNav
+          logo={<GlowbalLogo height={28} />}
+          items={DEMO_NAV_ITEMS}
+          primaryAction={{ href: '/apply', label: 'Lập kế hoạch Du học' }}
+          user={{ name: 'Khánh Linh', href: '/profile', avatarUrl: null }}
+        />
+      </Section>
+
+      <Section title="Avatar (32px — image and initials fallback)">
+        <div className="flex items-center gap-gb-xl bg-surface-inverse-strong p-gb-lg">
+          <Avatar name="Khánh Linh" />
+          <Avatar name="Olivia Rhye" />
+        </div>
+      </Section>
+
+      <Section title="Form controls (Figma 105:8028 — label 6px above a 44px box)">
+        <div className="grid max-w-gb-width-xl gap-gb-3xl sm:grid-cols-2">
+          <Input name="ks-name" label="Name" placeholder="Enter your name" />
+          <Input
+            name="ks-email"
+            type="email"
+            label="Email"
+            placeholder="you@example.com"
+            hint="Chúng tôi chỉ dùng email để gửi kết quả."
+          />
+          <Input
+            name="ks-invalid"
+            label="Email (error — không có trong Figma)"
+            defaultValue="not-an-email"
+            error="Email không hợp lệ."
+          />
+          <Select name="ks-country" label="Country" placeholder="Select a country" defaultValue="">
+            <option value="uk">United Kingdom</option>
+            <option value="us">United States</option>
+            <option value="au">Australia</option>
+          </Select>
+          <Input name="ks-disabled" label="Disabled" placeholder="Không sửa được" disabled />
+          <Textarea
+            name="ks-sop"
+            label="Personal statement"
+            placeholder="Dán bài viết của bạn vào đây…"
+            hint="Tối đa 650 từ."
+          />
+        </div>
+      </Section>
+
+      <Section title="Radio / Checkbox (trạng thái chọn suy từ kit, Figma chỉ vẽ trạng thái trống)">
+        <div className="grid max-w-gb-width-xl gap-gb-4xl sm:grid-cols-2">
+          <RadioGroup id="ks-level" legend="Bạn đang học ở bậc nào?">
+            <Radio name="ks-level" value="highschool" label="Trung học phổ thông" defaultChecked />
+            <Radio name="ks-level" value="undergrad" label="Đại học" />
+            <Radio
+              name="ks-level"
+              value="grad"
+              label="Sau đại học"
+              description="Thạc sĩ hoặc tiến sĩ"
+            />
+          </RadioGroup>
+          <CheckboxGroup id="ks-subjects" legend="Ngành quan tâm" hint="Chọn tất cả những gì phù hợp.">
+            <Checkbox name="ks-subjects" value="eng" label="Engineering" description="12 users" />
+            <Checkbox name="ks-subjects" value="design" label="Design" description="10 users" />
+            <Checkbox name="ks-subjects" value="business" label="Business" />
+          </CheckboxGroup>
+        </div>
+      </Section>
+
+      <Section title="Footer (Figma 104:7404)">
+        <Footer
+          logo={<GlowbalLogo height={28} />}
+          tagline={FOOTER_TAGLINE}
+          columns={FOOTER_COLUMNS}
+          social={FOOTER_SOCIAL}
+          copyright={FOOTER_COPYRIGHT}
+          ratings={FOOTER_RATINGS}
         />
       </Section>
 

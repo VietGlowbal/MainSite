@@ -5313,6 +5313,16 @@ body:not(:has(.cosmos-root)) {
   .glowbal-main-content:has(.gb-page-full-bleed) {
     padding-top: 0;
   }
+
+  /* …unless the full-bleed page ships its OWN fixed mobile header (its own
+     MobileNav), in which case the content must clear it again. /universities is
+     the first such page: it owns TopNav + MobileNav + Footer but still needs the
+     mobile offset. Two classes out-specify the one-class rule above, so this
+     wins regardless of source order. Pages that ship a full-bleed hero with no
+     mobile header (/dev/home) omit the modifier and keep padding-top: 0. */
+  .glowbal-main-content:has(.gb-page-full-bleed.gb-has-mobile-header) {
+    padding-top: calc(env(safe-area-inset-top) + var(--gb-header-mobile));
+  }
 }
 
 /* Floating language toggle for the landing page (sits over the dark cosmic

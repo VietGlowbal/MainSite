@@ -11,11 +11,14 @@ import { ICONS, KitIcon, Metric, Section } from '@/shared/ui';
  * something the designer would only tell me to delete.
  *
  * So the three figures below are lifted from the hero's own approved copy
- * (104:7126: "over 10,000 universities, more than 2,000 scholarships worth over
- * 150,000,000 USD"). Nothing here is invented, and the page now says the same
- * thing twice instead of contradicting itself. The design has a FOURTH slot the
+ * (104:7126). Nothing here is invented, and the page now says the same thing
+ * twice instead of contradicting itself. The design has a FOURTH slot the
  * duplicated label was filling — supply a fourth number and it is one entry in
  * the array.
+ *
+ * The counts were confirmed by the owner on 24/07 as 200 universities and 3,000
+ * scholarships. Change them here, in the hero, and in the Features block
+ * together — those three are the only places the page states them.
  *
  * Copy stays English and is translated by the dictionary, same as the hero.
  *
@@ -25,8 +28,8 @@ import { ICONS, KitIcon, Metric, Section } from '@/shared/ui';
  * its neighbours. Short value, unit in the label — see the note on `Metric`.
  */
 const METRICS = [
-  { value: '10,000+', label: 'Universities covered' },
-  { value: '2,000+', label: 'Open scholarships' },
+  { value: '200+', label: 'Universities covered' },
+  { value: '3,000+', label: 'Open scholarships' },
   { value: '150M', label: 'Total scholarship value (USD)' },
 ] as const;
 

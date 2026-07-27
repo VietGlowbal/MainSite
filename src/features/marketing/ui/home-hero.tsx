@@ -36,8 +36,12 @@ export function HomeHero() {
             Study-abroad experts who help you choose universities and scholarships, and stay beside
             you through the whole application
           </h1>
+          {/* Numbers confirmed by the owner on 24/07: 200 universities, 3,000
+              scholarships — matching the Features block below, which already
+              said that. The hero previously claimed 10,000 and 2,000 and
+              contradicted it two sections down. */}
           <p className="max-w-gb-width-xl text-gb-md md:text-gb-xl">
-            Explore over 10,000 universities, discover more than 2,000 scholarships worth over
+            Explore over 200 universities, discover more than 3,000 scholarships worth over
             150,000,000 USD, and build your application strategy with AI and real student
             supporters around the world.
           </p>

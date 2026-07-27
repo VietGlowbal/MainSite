@@ -142,3 +142,40 @@ export function parseDeadline(raw: string | null | undefined, now: Date = new Da
   }
   return candidate;
 }
+
+/**
+ * A deadline as a row can print it: "5 Jan 2026" when the stored prose carries a
+ * usable date, the trimmed prose when it does not, and null when there is
+ * nothing to show.
+ *
+ * The fallback matters more than the happy path. `application_deadline` holds
+ * things like "Rolling" and "Varies by programme" as well as dates, and those
+ * are useful to a student — dropping them because {@link parseDeadline} returned
+ * null would hide real information.
+ *
+ * The year guard is the other half of that. `parseDeadline` has a pinned bug
+ * (see its tests): V8 resolves a bare "Jan 15" to the year **2001**, so
+ * formatting it would print "15 Jan 2001" — a date the source never said, and
+ * worse than printing "Jan 15" verbatim. A parse landing more than a year in the
+ * past means the string had no year in it, so the prose is used instead. A
+ * genuinely stale deadline from last month still formats, because that one IS
+ * what the data says.
+ *
+ * @param now Injectable clock, forwarded to parseDeadline and used by the guard,
+ *   so both stay assertable in tests.
+ */
+export function formatDeadlineLabel(
+  raw: string | null | undefined,
+  now: Date = new Date(),
+): string | null {
+  const trimmed = raw?.trim();
+  if (!trimmed || trimmed === '—') return null;
+
+  const parsed = parseDeadline(trimmed, now);
+  if (!parsed) return trimmed;
+
+  const oneYearAgo = new Date(now.getFullYear() - 1, now.getMonth(), now.getDate());
+  if (parsed.getTime() < oneYearAgo.getTime()) return trimmed;
+
+  return parsed.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}

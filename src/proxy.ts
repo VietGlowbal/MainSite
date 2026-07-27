@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
+import { SITE_GATE_COOKIE, isSiteLockEnabled, verifyGateCookie } from '@/lib/site-gate';
 
 // Routes that require authentication
 const PROTECTED_ROUTES = [
@@ -12,8 +13,42 @@ const PROTECTED_ROUTES = [
   '/onboarding/complete',
 ];
 
+// Paths that stay reachable even while the site lock (below) is on: static
+// assets, API routes (already individually authed — cron secrets, webhooks,
+// admin checks — and Stripe/Vercel Cron need to reach them regardless), the
+// gate page itself, and the metadata-route icons the gate page's own <head>
+// needs to render.
+function bypassesSiteLock(pathname: string): boolean {
+  return (
+    pathname.startsWith('/_next') ||
+    pathname.startsWith('/api') ||
+    pathname.startsWith('/favicon') ||
+    pathname === '/coming-soon' ||
+    pathname === '/icon' ||
+    pathname === '/apple-icon' ||
+    /\.(svg|png|jpg|jpeg|gif|ico|css|js|woff2?)$/.test(pathname)
+  );
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
+
+  // ── Pre-launch site lock ────────────────────────────────────────────────
+  // See LAUNCH_PLAN.md and src/lib/site-gate.ts. SITE_LOCK_ENABLED=1 walls the
+  // whole site off behind one shared team password; unset it at launch and
+  // this whole block is a no-op. Deliberately checked before, and separate
+  // from, everything below — this decides whether the site is visible at
+  // all, the existing logic decides who's signed in once it is.
+  if (isSiteLockEnabled() && !bypassesSiteLock(pathname)) {
+    const cookie = request.cookies.get(SITE_GATE_COOKIE)?.value;
+    if (!verifyGateCookie(cookie)) {
+      const url = request.nextUrl.clone();
+      url.pathname = '/coming-soon';
+      url.search = '';
+      url.searchParams.set('from', `${pathname}${request.nextUrl.search}`);
+      return NextResponse.redirect(url);
+    }
+  }
 
   // Skip static assets and API routes
   if (

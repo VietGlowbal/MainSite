@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   PLUS_PACKAGES,
@@ -8,6 +8,7 @@ import {
   PLAN_COLUMNS,
   PLUS_DISPLAY_CURRENCIES,
   DEFAULT_DISPLAY_CURRENCY,
+  PLUS_SALES_ENABLED,
   formatPlanPrice,
   currencyLabel,
   type DisplayCurrency,
@@ -129,22 +130,38 @@ function PackageCard({
     }
   }
 
-  const ctaLabel = loading ? 'Starting checkout…' : signedIn ? 'Choose this plan' : 'Sign up & choose';
+  const ctaLabel = !PLUS_SALES_ENABLED
+    ? 'Coming soon'
+    : loading
+      ? 'Starting checkout…'
+      : signedIn
+        ? 'Choose this plan'
+        : 'Sign up & choose';
+
+  // With sales off the card is a plain preview: no click target, no keyboard
+  // handler, no hover lift — nothing that promises an action we won't perform.
+  const interactive = PLUS_SALES_ENABLED
+    ? ({
+        role: 'button',
+        tabIndex: 0,
+        'aria-label': `Select GlowBal Plus ${pkg.name} — ${formatPlanPrice(pkg.amountVnd, currency)}`,
+        'aria-busy': loading,
+        onClick: select,
+        onKeyDown: (e: KeyboardEvent) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            select();
+          }
+        },
+      } as const)
+    : {};
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-label={`Select GlowBal Plus ${pkg.name} — ${formatPlanPrice(pkg.amountVnd, currency)}`}
-      aria-busy={loading}
-      onClick={select}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          select();
-        }
-      }}
-      className={`group relative flex cursor-pointer flex-col rounded-3xl border bg-white p-7 outline-none transition-all duration-200 hover:-translate-y-1.5 focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2 ${
+      {...interactive}
+      className={`group relative flex flex-col rounded-3xl border bg-white p-7 outline-none transition-all duration-200 focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2 ${
+        PLUS_SALES_ENABLED ? 'cursor-pointer hover:-translate-y-1.5' : ''
+      } ${
         highlighted
           ? 'border-2 border-pink-300 shadow-[0_24px_56px_rgba(255,77,140,0.18)] hover:shadow-[0_30px_64px_rgba(255,77,140,0.26)] lg:-mt-3 lg:mb-3'
           : 'border-slate-200 shadow-[0_12px_30px_rgba(30,40,80,0.05)] hover:border-pink-200 hover:shadow-[0_22px_48px_rgba(30,40,80,0.12)]'
@@ -169,13 +186,16 @@ function PackageCard({
       </div>
 
       {/* Visual CTA — the click is handled by the whole card, so this is a
-          styled cue rather than a separate interactive control. */}
+          styled cue rather than a separate interactive control. With sales off
+          it drops to a muted label so it doesn't read as a live button. */}
       <span
-        aria-hidden
+        aria-hidden={PLUS_SALES_ENABLED}
         className={`mt-6 inline-flex items-center justify-center rounded-full px-6 py-3 text-sm font-semibold transition ${
-          highlighted
-            ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white shadow-[0_12px_28px_rgba(255,77,140,0.3)]'
-            : 'border border-slate-200 bg-white text-slate-700 group-hover:border-pink-300 group-hover:text-pink-600'
+          !PLUS_SALES_ENABLED
+            ? 'border border-slate-200 bg-slate-50 text-slate-500'
+            : highlighted
+              ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white shadow-[0_12px_28px_rgba(255,77,140,0.3)]'
+              : 'border border-slate-200 bg-white text-slate-700 group-hover:border-pink-300 group-hover:text-pink-600'
         } ${loading ? 'opacity-60' : ''}`}
       >
         {ctaLabel}
@@ -196,7 +216,7 @@ function PackageCard({
         ))}
       </ul>
 
-      {!signedIn ? (
+      {PLUS_SALES_ENABLED && !signedIn ? (
         <p className="mt-5 text-center text-xs text-slate-400">
           No account yet? Selecting a plan signs you up first — it&rsquo;s free to start.
         </p>

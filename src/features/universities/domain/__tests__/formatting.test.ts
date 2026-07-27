@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   formatAcceptanceForCard,
+  formatDeadlineLabel,
   formatTuitionForCard,
   formatUsdCompact,
   parseAcceptanceRate,
@@ -160,5 +161,42 @@ describe('parseDeadline', () => {
     expect(parseDeadline(null, now)).toBeNull();
     expect(parseDeadline('—', now)).toBeNull();
     expect(parseDeadline('rolling admissions', now)).toBeNull();
+  });
+});
+
+describe('formatDeadlineLabel', () => {
+  const now = new Date(2026, 5, 15); // 15 June 2026
+
+  it('formats a full date', () => {
+    expect(formatDeadlineLabel('January 15, 2027', now)).toBe('15 Jan 2027');
+  });
+
+  it('keeps prose that carries no date at all', () => {
+    expect(formatDeadlineLabel('Rolling admissions', now)).toBe('Rolling admissions');
+    expect(formatDeadlineLabel('Varies by programme', now)).toBe('Varies by programme');
+  });
+
+  /**
+   * The guard on the pinned parseDeadline bug above: "Jan 15" parses to 2001, and
+   * printing "15 Jan 2001" would assert a year the data never gave. The prose is
+   * shown instead.
+   */
+  it('falls back to prose when the parse lands implausibly in the past', () => {
+    expect(formatDeadlineLabel('Jan 15', now)).toBe('Jan 15');
+    expect(formatDeadlineLabel('Oct 1', now)).toBe('Oct 1');
+  });
+
+  it('still formats a genuinely recent past deadline', () => {
+    expect(formatDeadlineLabel('March 1, 2026', now)).toBe('1 Mar 2026');
+  });
+
+  it('formats a month-only string, which parseDeadline rolls forward', () => {
+    expect(formatDeadlineLabel('December', now)).toBe('15 Dec 2026');
+  });
+
+  it('returns null when there is nothing to show', () => {
+    expect(formatDeadlineLabel(null, now)).toBeNull();
+    expect(formatDeadlineLabel('   ', now)).toBeNull();
+    expect(formatDeadlineLabel('—', now)).toBeNull();
   });
 });

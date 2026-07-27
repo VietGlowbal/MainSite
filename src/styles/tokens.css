@@ -43,6 +43,17 @@
      asking the designer whether the bar is meant to be neutral-950 instead. */
   --color-gb-neutral-1000: #000000;
 
+  /* Two more unbound steps, both from the footer (Figma 104:7404), recorded for
+     the same reason as neutral-1000 rather than rounded to a neighbour:
+       990 — the footer surface. Sits between 950 (#171717) and pure black, and
+             is NOT the same value as the nav bar above it.
+       350 — the footer column headings ("Sản phẩm", "Công ty", "Pháp lý"), one
+             notch brighter than the links beneath them. Between 300 and 400.
+     Both are hand-set literals in the mockup, so confirm with the designer
+     before treating either as part of the published ramp. */
+  --color-gb-neutral-990: #0a0a0a;
+  --color-gb-neutral-350: #cacaca;
+
   /* ── Brand ramp — rose ───────────────────────────────────────────────────
      600 is GLOWBAL's primary brand, confirmed 2026-07-22, and is the CTA /
      primary-button fill throughout the mockups. It is exactly Tailwind's
@@ -77,6 +88,37 @@
   /* Figma "Colors/Yellow/400" — the ratings-badge star. */
   --color-gb-yellow-400: #facc15;
 
+  /* ── Alpha overlays — from the kit's component-colors/alpha/* ─────────────
+     The blog post card (Figma I153:18284;1390:634) frames its cover photo with
+     a hairline, then floats a frosted attribution strip over the bottom of it
+     (;1390:865 the gradient, ;1390:866 the panel).
+
+     These have to be translucent — the whole point is that the photo shows
+     through — so no step on the neutral ramp can express them, and they are
+     recorded as their own primitives rather than approximated. 8-digit hex
+     because that is what the ramp above uses; #0000001a is rgba(0,0,0,.1). */
+  --color-gb-alpha-black-10: #0000001a;
+  --color-gb-alpha-black-40: #00000066;
+  --color-gb-alpha-white-30: #ffffff4d;
+
+  /* ── Error / destructive — ⚠️ NOT DESIGN-CONFIRMED ──────────────────────
+     No frame in the redesign draws an invalid field, a failed request, or a
+     destructive action, so there is no Figma variable to copy. These are
+     Untitled UI's stock error ramp.
+
+     They exist because the alternative is worse: twelve form pages ship with
+     validation the user cannot see, or every form invents its own red. Kept
+     here so that when the designer does specify an error state it is a one-line
+     change rather than a hunt through markup.
+
+     Deliberately NOT the brand rose. Brand is identity, error is a signal, and
+     an invalid field that lights up in the CTA colour reads as emphasis rather
+     than as a problem — the same reason the tier scale is not an alias of the
+     brand. Ask the designer before treating any of this as final. */
+  --color-gb-error-50: #fef3f2;
+  --color-gb-error-500: #f04438;
+  --color-gb-error-600: #d92d20;
+
   /* ── Spacing — FINAL ─────────────────────────────────────────────────────
      NOT Tailwind's default 4px scale: sm is 6 and lg is 12. Always use these
      steps rather than p-2 / p-3, or the rhythm drifts from the design. */
@@ -100,14 +142,30 @@
      design actually calls for them. */
   --spacing-gb-btn-xl: 18px;
 
+  /* Input padding, same story: 14/10 is Untitled UI's own step, not a layout
+     step. 10 + 24 (text-md leading) + 10 = the 44px control height every form
+     field in the design has (Figma I105:8028;3285:380392). */
+  --spacing-gb-input-x: 14px;
+  --spacing-gb-input-y: 10px;
+
   /* ── Radius — FINAL ──────────────────────────────────────────────────────
      Much tighter than the legacy code, which uses rounded-[1.5rem] (24px) and
      rounded-[2rem] (32px) throughout. Do not carry those values forward. */
   --radius-gb-none: 0px;
+  /* 4px, and the only place it appears is the checkbox (Figma 223:9431), where
+     the designer bound `spacing-xs` to the corner radius rather than a radius
+     variable. Recorded as a radius so components do not have to reach into the
+     spacing namespace to round a corner. */
+  --radius-gb-xs: 4px;
   --radius-gb-sm: 6px;
   --radius-gb-md: 8px;
   --radius-gb-lg: 10px;
   --radius-gb-xl: 12px;
+  /* 16px, and the exception to the "tighter than the legacy code" note above:
+     the saved-list row (Figma 223:9485 the card, 223:9591 its cover image) is
+     the one place the design reaches past 12px. It is the kit's `radius-2xl`,
+     bound as a variable there, not a hand-set value. */
+  --radius-gb-2xl: 16px;
   --radius-gb-full: 9999px;
 
   /* ── Type scale — FINAL ──────────────────────────────────────────────────
@@ -193,6 +251,26 @@
   --gb-text-tertiary: var(--color-gb-neutral-600);
   --gb-text-quaternary: var(--color-gb-neutral-500);
   --gb-text-placeholder: var(--color-gb-neutral-500);
+  /* ── Dark-band foregrounds ───────────────────────────────────────────────
+     A dark band is not the light theme with the background swapped: in the
+     footer (Figma 104:7404) the designer re-bound the whole semantic set
+     against a dark surface, so "text-tertiary" reads neutral-400 there and
+     "border-primary" reads neutral-700 — the mirror of what they mean above.
+
+     Kept as their own vocabulary for two reasons: a dark band can then use one
+     consistent set instead of reaching for raw ramp steps, and "neutral-50 as a
+     foreground" reads as a mistake when written as a surface colour.
+
+     Brightest to dimmest, which is also the order the footer stacks them:
+       on-inverse            neutral-50   signed-in user name (203:12469)
+       on-inverse-secondary  neutral-350  footer column headings
+       on-inverse-muted      neutral-400  footer tagline, links, copyright */
+  --gb-text-on-inverse: var(--color-gb-neutral-50);
+  --gb-text-on-inverse-secondary: var(--color-gb-neutral-350);
+  --gb-text-on-inverse-muted: var(--color-gb-neutral-400);
+  --gb-border-on-inverse: var(--color-gb-neutral-700);
+  /* One step deeper than --gb-bg-inverse-strong (#000): the footer surface. */
+  --gb-bg-inverse-deep: var(--color-gb-neutral-990);
   /* Figma text-brand-secondary-(700): brand-coloured text on a light surface —
      the "Learn more" link on a feature card. The mockups still paint this
      #6941c6, Untitled UI's purple, which is the leftover CLAUDE.md flags on the
@@ -210,6 +288,20 @@
   /* Figma Colors/Border/* */
   --gb-border-primary: var(--color-gb-neutral-300);
   --gb-border-secondary: var(--color-gb-neutral-200);
+
+  /* Over-image treatments — see the alpha primitives above. Named for the job
+     rather than the colour so a card does not have to know it is compositing:
+       -on-image   the hairline framing a cover photo
+       scrim       the bottom-up darkening that keeps white text legible
+       frosted     the blurred panel that carries that text */
+  --gb-border-on-image: var(--color-gb-alpha-black-10);
+  --gb-scrim: var(--color-gb-alpha-black-40);
+  --gb-bg-frosted: var(--color-gb-alpha-white-30);
+
+  /* Error — see the ⚠️ note on the error ramp above. */
+  --gb-text-error: var(--color-gb-error-600);
+  --gb-border-error: var(--color-gb-error-500);
+  --gb-bg-error-subtle: var(--color-gb-error-50);
 
   /* Layout constants that more than one file has to agree on.
      Figma "Full-width header navigation" is 375x64: 12px + a 40px icon button
@@ -255,6 +347,7 @@
   --color-surface-muted: var(--gb-bg-secondary); /* Figma bg-secondary */
   --color-surface-inverse: var(--gb-bg-tertiary); /* Figma bg-tertiary */
   --color-surface-inverse-strong: var(--gb-bg-inverse-strong);
+  --color-surface-inverse-deep: var(--gb-bg-inverse-deep); /* footer 104:7404 */
 
   /* text-fg, text-fg-secondary, text-fg-tertiary, text-fg-muted */
   --color-fg: var(--gb-text-primary); /* Figma text-primary (900) */
@@ -262,10 +355,24 @@
   --color-fg-tertiary: var(--gb-text-tertiary); /* Figma text-tertiary (600) */
   --color-fg-muted: var(--gb-text-quaternary); /* Figma text-quaternary (500) */
   --color-fg-brand: var(--gb-text-brand); /* Figma text-brand-secondary (700) */
+  /* Dark-band foregrounds — pair with bg-surface-inverse-deep. */
+  --color-fg-on-inverse: var(--gb-text-on-inverse); /* Figma Colors/Neutral/50 */
+  --color-fg-on-inverse-secondary: var(--gb-text-on-inverse-secondary);
+  --color-fg-on-inverse-muted: var(--gb-text-on-inverse-muted);
 
   /* border-line, border-line-strong */
   --color-line: var(--gb-border-secondary); /* Figma border-secondary */
   --color-line-strong: var(--gb-border-primary); /* Figma border-primary */
+  --color-line-on-inverse: var(--gb-border-on-inverse); /* dark-band border */
+  /* Over-image: border-line-on-image, bg-scrim / to-scrim, bg-surface-frosted. */
+  --color-line-on-image: var(--gb-border-on-image);
+  --color-scrim: var(--gb-scrim);
+  --color-surface-frosted: var(--gb-bg-frosted);
+
+  /* Error: fg-error / line-error / surface-error. Not design-confirmed. */
+  --color-fg-error: var(--gb-text-error);
+  --color-line-error: var(--gb-border-error);
+  --color-surface-error: var(--gb-bg-error-subtle);
 
   /* bg-brand, text-brand, text-on-brand */
   --color-brand: var(--gb-brand);

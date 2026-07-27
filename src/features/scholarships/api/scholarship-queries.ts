@@ -27,6 +27,12 @@ export interface ScholarshipForUniversity {
   amountCurrency: string | null;
   coverage: string | null;
   eligibility: string | null;
+  /** "Điều kiện ứng tuyển" on the detail panel (Figma 337:19349). */
+  conditions: string | null;
+  /** "Phân tích" — the editorial read on how competitive the award is. */
+  insight: string | null;
+  /** "Trường áp dụng", as free text; the id join is the structured version. */
+  appliesToText: string | null;
   deadlineLabel: string | null;
   sourceUrl: string | null;
 }

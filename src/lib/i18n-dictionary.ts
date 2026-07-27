@@ -47,8 +47,8 @@ export const translations: Record<string, string> = {
   // must stay character-identical to the JSX in features/marketing/ui.
   'Study-abroad experts who help you choose universities and scholarships, and stay beside you through the whole application':
     'Chuyên gia du học giúp bạn chọn trường và học bổng, đồng hành cùng bạn xuyên suốt quá trình ứng tuyển hồ sơ du học',
-  'Explore over 10,000 universities, discover more than 2,000 scholarships worth over 150,000,000 USD, and build your application strategy with AI and real student supporters around the world.':
-    'Khám phá hơn 10,000 trường đại học, tìm hiểu hơn 2,000 học bổng trị giá trên 150,000,000 USD, và xây dựng chiến lược hồ sơ của bạn với AI và những người hỗ trợ sinh viên thực tế trên toàn thế giới.',
+  'Explore over 200 universities, discover more than 3,000 scholarships worth over 150,000,000 USD, and build your application strategy with AI and real student supporters around the world.':
+    'Khám phá hơn 200 trường đại học, tìm hiểu hơn 3,000 học bổng trị giá trên 150,000,000 USD, và xây dựng chiến lược hồ sơ của bạn với AI và những người hỗ trợ sinh viên thực tế trên toàn thế giới.',
   'Find my scholarships': 'Tìm học bổng của tôi',
 
   // ── Home partner wall (Figma 104:7135) ───────────────────────────────────
@@ -64,9 +64,9 @@ export const translations: Record<string, string> = {
   'A short guide to how GLOWBAL takes you from a dream university to a clear scholarship plan.':
     'Một hướng dẫn ngắn về cách GLOWBAL đưa bạn từ trường đại học mơ ước đến một kế hoạch học bổng rõ ràng.',
   // Keep the values short in both languages — see the note on `Metric`.
-  '10,000+': '10,000+',
+  '200+': '200+',
   'Universities covered': 'Trường đại học trong kho',
-  '2,000+': '2,000+',
+  '3,000+': '3,000+',
   'Open scholarships': 'Học bổng đang mở',
   '150M': '150 triệu',
   'Total scholarship value (USD)': 'Tổng giá trị học bổng (USD)',
@@ -164,6 +164,20 @@ export const translations: Record<string, string> = {
   'Get the latest study abroad tips, scholarships and guides straight to your inbox.':
     'Nhận các mẹo du học, học bổng và hướng dẫn mới nhất ngay trong hộp thư của bạn.',
   '{minutes} min read': '{minutes} phút đọc',
+
+  // ── Blog list, redesigned (Figma 153:18266) ──────────────────────────────
+  'Resource library': 'Thư viện tài nguyên',
+  'Guides on choosing a university, funding it, and getting in — written for Vietnamese students.':
+    'Hướng dẫn chọn trường, tìm nguồn tài chính và cách trúng tuyển — viết cho sinh viên Việt Nam.',
+  'Read post': 'Đọc bài',
+  'No posts in this topic yet.': 'Chưa có bài viết nào trong chủ đề này.',
+  Subscribed: 'Đã đăng ký',
+  'Please enter a valid email address': 'Vui lòng nhập địa chỉ email hợp lệ',
+  'Successfully subscribed! Check your email.':
+    'Đăng ký thành công! Hãy kiểm tra email của bạn.',
+  "You're already subscribed!": 'Bạn đã đăng ký rồi!',
+  'Something went wrong. Please try again.': 'Đã xảy ra lỗi. Vui lòng thử lại.',
+  'Failed to subscribe. Please try again.': 'Đăng ký thất bại. Vui lòng thử lại.',
 
   // ── Article (guide) page chrome ──────────────────────────────────────────
   'On this page': 'Trong trang này',
@@ -776,6 +790,106 @@ export const translations: Record<string, string> = {
     'Chuyển đến một thành phố lớn và phát triển sự tự tin.',
   'Get a practical degree that leads to strong job options worldwide.':
     'Có một tấm bằng thực tiễn dẫn tới nhiều cơ hội việc làm tốt trên toàn cầu.',
+
+  // ── Home: scholarship rail (Figma 104:7225) ──────────────────────────────
+  // The design writes these in Vietnamese; the English above is the source
+  // string, so these entries are the designer's own wording restored.
+  'Scholarship library': 'Kho học bổng',
+  'Browse a preview for free. Create your profile to unlock the full eligibility criteria and required documents, and to save opportunities into your plan.':
+    'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
+  'See more': 'Xem thêm',
+  'View scholarship': 'Xem học bổng',
+  'Scroll or swipe to see more scholarships.':
+    'Cuộn hoặc vuốt để xem thêm học bổng.',
+
+  // ── Home: testimonials (Figma 104:7265) ──────────────────────────────────
+  'Learn from students who made it': 'Học hỏi từ những sinh viên đã thành công',
+  'GlowBal connects you with students all over the world who share real experience of universities, scholarships, applications and student life.':
+    'GlowBal kết nối bạn với những sinh viên trên khắp thế giới, những người chia sẻ kinh nghiệm thực tế về các trường đại học, học bổng, hồ sơ và cuộc sống sinh viên.',
+
+  // ── Home: FAQ (Figma 104:7347) ───────────────────────────────────────────
+  'Frequently asked questions': 'Câu hỏi thường gặp',
+  'Everything you need to know about the product and billing.':
+    'Mọi điều bạn cần biết về sản phẩm và thanh toán.',
+  'What is GlowBal?': 'GlowBal là gì?',
+  'Is GlowBal free?': 'GlowBal có miễn phí không?',
+  'What is the AI strategy suggestion?': 'Gợi ý chiến lược AI là gì?',
+  'Who are the student supporters?': 'Ai là những người hỗ trợ sinh viên?',
+  'Do I need to know which university I want?':
+    'Tôi có cần biết trường đại học của mình không?',
+  'Why do I need to create a profile?': 'Tại sao tôi cần tạo một hồ sơ?',
+
+  // ── Home: contact (Figma 104:7361) ───────────────────────────────────────
+  'Leave your details for a consultation': 'Để lại thông tin để nhận tư vấn',
+  'GlowBal will get in touch to understand what you need.':
+    'GlowBal sẽ liên lạc với bạn để hiểu hơn về nhu cầu của bạn.',
+  'The GlowBal team': 'Đội ngũ của Glowbal',
+  'Start with a dream university. Leave with a scholarship plan.':
+    'Bắt đầu với một trường đại học mơ ước. Ra về với kế hoạch học bổng.',
+  'First name': 'Tên',
+  'Last name': 'Họ',
+  'Phone number': 'Số điện thoại',
+  'Country dialling code': 'Mã vùng quốc gia',
+  'Leave us a message...': 'Để lại lời nhắn cho chúng tôi...',
+  'Get advice': 'Tư vấn cho tôi',
+  'Sending…': 'Đang gửi…',
+  'You agree to our friendly': 'Bạn đồng ý với',
+  'privacy policy': 'chính sách bảo mật',
+
+  // ── Footer (Figma 104:7404) ──────────────────────────────────────────────
+  'Helping students find global universities, scholarships, and application strategies.':
+    'Giúp sinh viên tìm kiếm các trường đại học toàn cầu, học bổng và chiến lược nộp hồ sơ.',
+  Product: 'Sản phẩm',
+  Company: 'Công ty',
+  Legal: 'Pháp lý',
+  'Find scholarships': 'Tìm kiếm học bổng',
+  // 'AI strategy' is already defined in the Navigation block above.
+  'Student mentors': 'Cố vấn sinh viên',
+  'Our team': 'Đội ngũ',
+  'Student stories': 'Câu chuyện của sinh viên',
+  'Terms of service': 'Điều khoản dịch vụ',
+  '© 2026 GlowBal. Student-first global guidance.':
+    '© 2026 GlowBal. Hướng dẫn toàn cầu ưu tiên sinh viên.',
+  'Best AI Tool': 'Công cụ AI tốt nhất',
+  '2,000+ reviews': 'Hơn 2.000 đánh giá',
+
+  // ── Universities list (Figma 105:8300) ───────────────────────────────────
+  // "Find the university...", "Search by university name" and "Sort by" are
+  // already defined above (the earlier universities block).
+  'Explore universities worldwide and find your perfect fit.':
+    'Khám phá các trường đại học trên toàn thế giới và tìm nơi phù hợp nhất với bạn.',
+  'Where do you want to study': 'Bạn muốn học ở đâu',
+  'Select a major': 'Chọn chuyên ngành',
+  'Find universities': 'Tìm trường đại học',
+  'Filter by criteria': 'Chọn theo tiêu chí',
+  // Criteria chips (only the data-backed ones ship, see university-list-client).
+  // 'Scholarships' and 'Acceptance rate' are defined elsewhere in this file.
+  'World QS ranking': 'Xếp hạng QS thế giới',
+  // Sort chips
+  Popular: 'Phổ biến',
+  'Price: high to low': 'Giá cao - thấp',
+  'Price: low to high': 'Giá thấp - cao',
+  // Majors ('Business' and 'Arts & Humanities' are defined elsewhere)
+  'Engineering & Technology': 'Kỹ thuật & Công nghệ',
+  'Medicine & Health': 'Y khoa & Sức khỏe',
+  // Card ('View profile' is defined elsewhere)
+  'QS ranking': 'Xếp hạng QS',
+  'International tuition': 'Học phí quốc tế',
+  'Global top 50': 'Top 50 toàn cầu',
+  'Top 200 worldwide': 'Top 200 toàn cầu',
+  'Saved to your list': 'Đã lưu vào danh sách của bạn',
+  'Removed from your list': 'Đã xóa khỏi danh sách của bạn',
+  'No universities match your filters': 'Không có trường nào khớp với bộ lọc của bạn',
+  'Try clearing a filter or searching a different name.':
+    'Hãy thử bỏ bớt bộ lọc hoặc tìm một tên khác.',
+  // Login gate
+  'Log in to keep exploring': 'Đăng nhập để tiếp tục khám phá',
+  'Create a free account to open full university profiles, discover scholarships and unlock your personalised matches.':
+    'Tạo tài khoản miễn phí để mở hồ sơ đầy đủ của trường, khám phá học bổng và mở khóa gợi ý phù hợp riêng cho bạn.',
+  'Log in or sign up': 'Đăng nhập hoặc đăng ký',
+  'Maybe later': 'Để sau',
+  // Nav / mobile chrome ('Menu', 'Close menu', 'Next' are defined elsewhere)
+  Previous: 'Trước',
 
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',

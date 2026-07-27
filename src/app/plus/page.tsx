@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { FREE_FEATURES, GLOWBAL_FB_CHAT_URL } from '@/lib/plus';
+import { FREE_FEATURES, GLOWBAL_FB_CHAT_URL, PLUS_SALES_ENABLED } from '@/lib/plus';
 import { PlusPricing } from '@/components/plus/plus-pricing';
 
 export const metadata: Metadata = {
@@ -79,6 +79,16 @@ export default async function PlusPage({
           ) : null}
         </div>
 
+        {!PLUS_SALES_ENABLED ? (
+          <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-slate-200 bg-white px-5 py-4 text-center text-sm text-slate-600">
+            <p className="font-semibold text-slate-900">GlowBal Plus is coming soon</p>
+            <p className="mt-1">
+              The plans below are a preview — they are not on sale yet. Everything in the Free plan
+              is fully available in the meantime.
+            </p>
+          </div>
+        ) : null}
+
         {isPlus ? (
           <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-center text-sm text-emerald-700">
             You’re on <strong>GlowBal Plus</strong>
@@ -127,16 +137,27 @@ export default async function PlusPage({
         </Link>
 
         <div className="mx-auto mt-8 flex max-w-2xl flex-col items-center gap-2 text-center text-xs text-slate-400">
-          <p className="inline-flex items-center gap-1.5">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-            Payments are processed securely by Stripe.
-          </p>
-          <p>
-            Choose your currency above — you’ll be charged in the currency you
-            select; conversions from VND are approximate. GlowBal helps you
-            discover opportunities and prepare stronger applications; it does not
-            guarantee scholarship outcomes.
-          </p>
+          {/* Nothing is being charged while sales are off, so the payment
+              reassurance is withheld rather than shown against no checkout. */}
+          {PLUS_SALES_ENABLED ? (
+            <>
+              <p className="inline-flex items-center gap-1.5">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
+                Payments are processed securely by Stripe.
+              </p>
+              <p>
+                Choose your currency above — you’ll be charged in the currency you
+                select; conversions from VND are approximate. GlowBal helps you
+                discover opportunities and prepare stronger applications; it does not
+                guarantee scholarship outcomes.
+              </p>
+            </>
+          ) : (
+            <p>
+              GlowBal helps you discover opportunities and prepare stronger applications; it does
+              not guarantee scholarship outcomes.
+            </p>
+          )}
         </div>
       </div>
     </main>

@@ -425,12 +425,45 @@ export function NavReveal() {
   const isHomePage = pathname === '/';
 
   /*
-   * Pages that ship their own header. The marketing pages carry the TopNav from
-   * the redesign, so the app chrome must not double up — two headers would also
-   * put two elements behind the `nav-header` test id, which the contract in
-   * shared/lib/testids.ts forbids.
+   * Pages that ship their own header. The redesigned pages carry the TopNav +
+   * MobileNav + Footer chrome themselves (the /dev/home pattern), so the app
+   * chrome must not double up — two headers would also put two elements behind
+   * the `nav-header` test id, which the contract in shared/lib/testids.ts
+   * forbids, and two mobile navs is exactly the regression mobile-nav.spec.ts
+   * guards against.
+   *
+   * `/universities` matches exactly, not by prefix: the in-page detail view
+   * lives at the same path (`?u=<id>`), while the legacy `/universities/vinuni`
+   * static page still relies on the app chrome.
+   *
+   * `/auth` shows no app chrome at all in the redesign — the Figma frames are a
+   * bare centered card — so the sidebar and mobile nav are suppressed here too.
    */
-  const rendersOwnChrome = pathname === '/dev/home';
+  const OWN_CHROME_ROUTES = new Set([
+    '/dev/home',
+    '/universities',
+    '/auth',
+    // Pre-launch site lock (LAUNCH_PLAN.md) — bare centered card, same
+    // treatment as /auth, no app chrome to double up.
+    '/coming-soon',
+    '/onboarding',
+    '/about',
+    // Exact match, like /universities: the Blog LIST is rebuilt (Figma
+    // 153:18266) but /guides/[slug] is not yet, so the detail pages keep the
+    // app chrome until 153:20197 is built.
+    '/guides',
+    // Also exact: the saved list is rebuilt (Figma 223:8824), the
+    // /my-universities/[id] task pages under it are not.
+    '/my-universities',
+    // Same again: the applications list is rebuilt (Figma 337:18767), the
+    // /apply/[applicationId] workspace under it is not.
+    '/apply',
+    // And again: the mentor browse is rebuilt (Figma 154:8345); /mentors/[id],
+    // /mentors/apply and its success page are not.
+    '/mentors',
+    '/dev/saved-list',
+  ]);
+  const rendersOwnChrome = OWN_CHROME_ROUTES.has(pathname);
 
   /*
    * The reveal gate only ever mattered for the landing page: everywhere else
