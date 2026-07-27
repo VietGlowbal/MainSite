@@ -2,6 +2,7 @@
 
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type UploadedFile = {
   docType: string;
@@ -21,6 +22,7 @@ export function OnboardingDocumentUpload() {
   const [message, setMessage] = useState<string | null>(null);
   const [isError, setIsError] = useState(false);
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Uploading your documents');
   const [dragOverCv, setDragOverCv] = useState(false);
   const [dragOverExtra, setDragOverExtra] = useState(false);
 

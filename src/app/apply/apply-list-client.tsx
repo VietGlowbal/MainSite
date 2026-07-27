@@ -26,6 +26,7 @@ import {
   MobileNav,
   TopNav,
 } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * The applications list — Figma 337:18767 ("Trang my apply", titled "My
@@ -218,6 +219,7 @@ function ImportBar() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Loading your applications');
   const [quota, setQuota] = useState<{ currentUsage: number; currentLimit: number } | null>(null);
 
   const handleSubmit = useCallback(

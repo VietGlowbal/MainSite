@@ -1,4 +1,4 @@
-import { Container } from '@/shared/ui';
+import { Container, PageLoaderOverlay } from '@/shared/ui';
 
 /**
  * Skeleton for the saved list. Mirrors the row geometry the page settles into
@@ -26,6 +26,7 @@ export default function Loading() {
           ))}
         </div>
       </Container>
+      <PageLoaderOverlay />
     </main>
   );
 }

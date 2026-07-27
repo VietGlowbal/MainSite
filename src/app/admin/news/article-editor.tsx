@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { GeoArticle, GeoArticleStatus } from '@/lib/geo-cms';
 import { ArticleLinksEditor } from './article-links-editor';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const TOPICS = [
   'All topics',
@@ -55,6 +56,7 @@ export function ArticleEditor({ article, candidates = [] }: EditorProps) {
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   const [saving, setSaving] = useState(false);
+  useLoadingIndicator(saving, 'Saving the article');
   const [error, setError] = useState<string | null>(null);
 
   const effectiveSlug = slugTouched ? slug : slugify(title);

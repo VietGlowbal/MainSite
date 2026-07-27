@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { LoaderDemo } from './loader-demo';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import {
   FOOTER_COLUMNS,
@@ -17,6 +18,7 @@ import {
   CheckboxGroup,
   FeatureCard,
   Footer,
+  GlobeLoader,
   ICONS,
   Input,
   KitIcon,
@@ -315,6 +317,30 @@ export default function KitchenSinkPage() {
               </span>
             ),
           )}
+        </div>
+      </Section>
+
+      <Section title="GlobeLoader (busy state — not from Figma, see tokens.css)">
+        <div className="flex flex-wrap items-start gap-gb-4xl">
+          <div className="flex flex-col items-center gap-gb-md">
+            <GlobeLoader />
+            <span className="text-gb-xs text-fg-muted">md, no label</span>
+          </div>
+          <div className="flex flex-col items-center gap-gb-md">
+            <GlobeLoader label="Saving your profile" />
+            <span className="text-gb-xs text-fg-muted">md, labelled</span>
+          </div>
+          <div className="flex flex-col items-center gap-gb-md">
+            <GlobeLoader size="sm" label="Recalculating your match" />
+            <span className="text-gb-xs text-fg-muted">sm</span>
+          </div>
+        </div>
+        <p className="mt-gb-xl text-gb-sm text-fg-tertiary">
+          The rotating line is shared by every loader on screen, so these three show the
+          same word. Below is the real overlay, scrim and all.
+        </p>
+        <div className="mt-gb-lg">
+          <LoaderDemo />
         </div>
       </Section>
     </main>

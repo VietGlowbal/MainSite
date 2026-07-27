@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { Currency, DegreeLevel } from '@/types/mentorship';
 import { currencySymbol, formatMoney, toSmallestUnits } from '@/lib/currency';
 import { CheckIcon, CloseIcon } from './mentor-icons';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const DEGREE_LEVELS: { value: DegreeLevel; label: string }[] = [
   { value: 'undergraduate', label: 'Undergraduate' },
@@ -159,6 +160,7 @@ export function MentorSignupForm({
 
   // ── Submission ─────────────────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false);
+  useLoadingIndicator(submitting, 'Submitting your application');
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<StepKey>('identity');
 

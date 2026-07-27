@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
 import { Button, Textarea, TopNav } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { createClient } from '@/lib/supabase/client';
 import { studyLevels, subjectFamilies, supportNeeds } from '@/lib/onboarding-options';
 import { useT } from '@/lib/i18n';
@@ -201,6 +202,7 @@ export function OnboardingWizard({
   });
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  useLoadingIndicator(submitting, 'Building your profile');
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {

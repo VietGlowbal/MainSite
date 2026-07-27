@@ -19,6 +19,7 @@ import {
   type Scholarship,
   type AaccPillarKey,
 } from '@/lib/vinuni-content';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Props = {
   university: University;
@@ -943,6 +944,7 @@ function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [mode, setMode] = useState<'idle' | 'yes' | 'no'>('idle');
   const [sopText, setSopText] = useState('');
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Analysing your statement');
   const [result, setResult] = useState<AaccAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);

@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
 import type { GeoGuide } from '@/lib/geo-content';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Props = {
   guides: GeoGuide[];
@@ -426,6 +427,7 @@ export function NewsletterCard() {
   const { t } = useLanguage();
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  useLoadingIndicator(status === 'loading', 'Signing you up');
   const [message, setMessage] = useState('');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {

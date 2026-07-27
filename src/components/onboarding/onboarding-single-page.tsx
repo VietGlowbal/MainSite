@@ -31,6 +31,7 @@ import {
 } from '@/lib/onboarding-options';
 import { useT } from '@/lib/i18n';
 import type { StudentProfile } from '@/lib/types';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const LightGlobe = dynamic(
   () => import('@/components/landing-globe').then((mod) => ({ default: mod.LandingGlobe })),
@@ -188,6 +189,7 @@ export function OnboardingSinglePage({
     }
   });
   const [submitting, setSubmitting] = useState(false);
+  useLoadingIndicator(submitting, 'Building your profile');
   const [message, setMessage] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 

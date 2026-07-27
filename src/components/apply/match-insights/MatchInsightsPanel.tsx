@@ -14,6 +14,7 @@ import {
 } from '@/lib/match-insights';
 import { RadarPentagon } from './RadarPentagon';
 import { PillarBox } from './PillarBox';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 // Structural subset of the transformed ApplicationMatchAnalysis. `pillars` is
 // stored as JSON, so it arrives loosely typed and is narrowed below.
@@ -54,6 +55,7 @@ export function MatchInsightsPanel({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [busyPillar, setBusyPillar] = useState<PillarKey | null>(null);
+  useLoadingIndicator(busy || busyPillar !== null, 'Recalculating your match');
   const [addedPillars, setAddedPillars] = useState<Set<PillarKey>>(new Set());
   const [error, setError] = useState<string | null>(null);
 

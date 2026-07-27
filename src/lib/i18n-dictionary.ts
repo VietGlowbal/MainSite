@@ -891,6 +891,47 @@ export const translations: Record<string, string> = {
   // Nav / mobile chrome ('Menu', 'Close menu', 'Next' are defined elsewhere)
   Previous: 'Trước',
 
+  // ── Loading states ───────────────────────────────────────────────────────
+  // The `label` a caller hands the globe loader (src/shared/ui/globe-loader.tsx)
+  // — the line under the spinning globe that says what is actually happening.
+  // The playful rotating line above it is NOT here: it lives in
+  // src/shared/ui/loading-phrases.ts as EN/VI pairs, for the reasons set out in
+  // that file's header.
+  Loading: 'Đang tải',
+  'Checking your details': 'Đang kiểm tra thông tin của bạn',
+  'Signing you out': 'Đang đăng xuất',
+  'Signing you up': 'Đang đăng ký cho bạn',
+  'Saving your profile': 'Đang lưu hồ sơ của bạn',
+  'Building your profile': 'Đang dựng hồ sơ của bạn',
+  'Saving your answers': 'Đang lưu câu trả lời của bạn',
+  'Saving your achievements': 'Đang lưu thành tích của bạn',
+  'Uploading your document': 'Đang tải tài liệu lên',
+  'Uploading your documents': 'Đang tải tài liệu lên',
+  'Searching universities': 'Đang tìm trường',
+  'Finding scholarships for you': 'Đang tìm học bổng cho bạn',
+  'Finding courses for you': 'Đang tìm khoá học cho bạn',
+  'Loading your applications': 'Đang tải hồ sơ ứng tuyển của bạn',
+  'Loading your profile': 'Đang tải hồ sơ của bạn',
+  'Adding courses to your plan': 'Đang thêm khoá học vào kế hoạch',
+  'Reading your statement': 'Đang đọc bài luận của bạn',
+  'Analysing your statement': 'Đang phân tích bài luận của bạn',
+  'Recalculating your match': 'Đang tính lại mức độ phù hợp',
+  'Submitting your application': 'Đang gửi hồ sơ của bạn',
+  'Submitting your review': 'Đang gửi đánh giá của bạn',
+  'Sending your feedback': 'Đang gửi phản hồi của bạn',
+  'Opening secure checkout': 'Đang mở trang thanh toán bảo mật',
+  'Updating your availability': 'Đang cập nhật lịch rảnh của bạn',
+  'Saving your rate': 'Đang lưu mức phí của bạn',
+  'Updating the user': 'Đang cập nhật người dùng',
+  'Updating the coordinator': 'Đang cập nhật điều phối viên',
+  'Updating the ambassador': 'Đang cập nhật đại sứ',
+  'Updating the article': 'Đang cập nhật bài viết',
+  'Updating the application': 'Đang cập nhật hồ sơ',
+  'Updating the booking': 'Đang cập nhật lịch hẹn',
+  'Saving the article': 'Đang lưu bài viết',
+  'Loading article links': 'Đang tải liên kết bài viết',
+  'Saving article links': 'Đang lưu liên kết bài viết',
+
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',
   'Tiếng Việt': 'Tiếng Việt',
