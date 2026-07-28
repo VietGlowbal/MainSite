@@ -438,8 +438,15 @@ export function NavReveal() {
    *
    * `/auth` shows no app chrome at all in the redesign — the Figma frames are a
    * bare centered card — so the sidebar and mobile nav are suppressed here too.
+   *
+   * Two lists, because "rebuilt" arrives at different depths. EXACT is the
+   * default and stays the default: most rebuilt pages still have legacy child
+   * routes underneath that need the app chrome. PREFIX is only for subtrees
+   * where every descendant is rebuilt — matching those by prefix is what stops
+   * this list needing a new entry per dynamic segment.
    */
   const OWN_CHROME_ROUTES = new Set([
+    '/',
     '/dev/home',
     '/universities',
     '/auth',
@@ -463,7 +470,19 @@ export function NavReveal() {
     '/mentors',
     '/dev/saved-list',
   ]);
-  const rendersOwnChrome = OWN_CHROME_ROUTES.has(pathname);
+
+  /*
+   * Subtrees where every descendant ships its own chrome, matched by prefix.
+   *
+   * Keep this list short and only add a path once its WHOLE tree is rebuilt —
+   * a prefix entry silently covers routes that do not exist yet, so a legacy
+   * page added underneath one would lose its navigation with nothing to say so.
+   */
+  const OWN_CHROME_PREFIXES = ['/ai-strategy'];
+
+  const rendersOwnChrome =
+    OWN_CHROME_ROUTES.has(pathname) ||
+    OWN_CHROME_PREFIXES.some((base) => pathname === base || pathname.startsWith(`${base}/`));
 
   /*
    * The reveal gate only ever mattered for the landing page: everywhere else
