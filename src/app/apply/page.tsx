@@ -64,6 +64,7 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
     status: app.status,
     progressPercentage: app.progress_percentage,
     parseStatus: app.parse_status,
+    parseError: app.parse_error,
     importStatus: app.import_status,
     aiSummary: app.ai_summary,
     userNotes: app.user_notes,

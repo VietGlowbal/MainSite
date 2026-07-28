@@ -157,6 +157,12 @@ export type CourseApplication = {
   currentStageId?: string;
   progressPercentage: number;
   parseStatus?: 'pending' | 'processing' | 'complete' | 'timeout' | 'failed';
+  /**
+   * Student-facing reason the course page could not be read. Set only when
+   * `parseStatus` is 'failed'; the worker writes it so the row can say what
+   * went wrong instead of sitting on "Loading course details..." forever.
+   */
+  parseError?: string | null;
   deadline?: string;
   deadlineSource?: string;
   deadlineConfidence?: number;
