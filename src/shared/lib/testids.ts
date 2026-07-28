@@ -50,6 +50,12 @@ export const TID = {
   // ── Onboarding ────────────────────────────────────────────────────────
   onboardingStep: 'onboarding-step',
 
+  // ── Apply / AI strategy ───────────────────────────────────────────────
+  /** Caption under a ScoreRing. Names which measure the ring shows. */
+  scoreRingLabel: 'score-ring-label',
+  /** The five-step journey nav. Both journeys use the same component. */
+  stepper: 'stepper',
+
   // ── Feedback ──────────────────────────────────────────────────────────
   toast: 'app-toast',
   /**

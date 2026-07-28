@@ -54,6 +54,10 @@ export {
   useLoadingIndicator,
   useLoadingSnapshot,
 } from './loading-overlay';
+export { ScoreRing, scoreRingColor } from './score-ring';
+export type { ScoreRingMeasure, ScoreRingSize } from './score-ring';
+export { Stepper } from './stepper';
+export type { StepperStep } from './stepper';
 export { Metric } from './metric';
 export { Modal } from './modal';
 export { MobileNav } from './mobile-nav';

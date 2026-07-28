@@ -24,6 +24,7 @@ import {
   Input,
   KitIcon,
   MobileNav,
+  ScoreRing,
   TopNav,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
@@ -78,67 +79,6 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
  * regardless. All of it is in git history at apply-dashboard.tsx.
  */
 
-/** Figma 337:18812 — the gauge is banded by value: 92 green, 60 amber, 30 rose. */
-function gaugeColor(pct: number): string {
-  if (pct >= 70) return 'var(--color-gb-tier-safe)'; // Figma Colors/Green/700
-  if (pct >= 40) return 'var(--color-gb-yellow-400)'; // Figma Colors/Yellow/400
-  return 'var(--color-gb-brand-600)'; // Figma Colors/Rose/600
-}
-
-/**
- * Figma 337:18813 "Activity gauge".
- *
- * The frame exports the three rings as flat images baked at 92% / 60% / 30%, so
- * they cannot be reused — the arc has to follow real `progress_percentage`. Drawn
- * as an SVG arc instead, which is what the ring it replaces did too.
- */
-function ProgressGauge({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(100, Math.round(value)));
-  const r = 32;
-  const circ = 2 * Math.PI * r;
-
-  return (
-    <div className="flex size-[104px] shrink-0 items-center justify-center rounded-gb-full bg-surface-muted/90 p-gb-lg backdrop-blur-sm">
-      <svg
-        width="76"
-        height="76"
-        viewBox="0 0 76 76"
-        role="img"
-        aria-label={`${pct}% complete`}
-      >
-        <circle
-          cx="38"
-          cy="38"
-          r={r}
-          fill="none"
-          stroke="var(--color-gb-neutral-300)"
-          strokeWidth="8"
-        />
-        <circle
-          cx="38"
-          cy="38"
-          r={r}
-          fill="none"
-          stroke={gaugeColor(pct)}
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${(pct / 100) * circ} ${circ}`}
-          transform="rotate(-90 38 38)"
-        />
-        <text
-          x="38"
-          y="38"
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="fill-[var(--gb-text-primary)] text-gb-md font-semibold"
-        >
-          {pct}%
-        </text>
-      </svg>
-    </div>
-  );
-}
-
 /** "14 Jan 2026" — the frame's format. Fixed locale so it cannot drift on hydration. */
 function formatDeadline(iso: string): string {
   const d = new Date(iso);
@@ -186,7 +126,7 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
 
       {/* Figma 337:18811 — gauge + deadline + continue */}
       <div className="flex shrink-0 items-center gap-gb-3xl">
-        <ProgressGauge value={app.progressPercentage ?? 0} />
+        <ScoreRing value={app.progressPercentage ?? 0} measure="progress" />
 
         <div className="flex flex-col justify-center gap-gb-xl">
           <div className="flex flex-col gap-gb-xxs">
