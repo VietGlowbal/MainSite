@@ -62,15 +62,55 @@ const LINK_SOURCE: Record<string, { type: string; title: string }> = {
   scholarships: { type: 'scholarships', title: 'Scholarships and funding' },
 };
 
+/**
+ * Returns whether the write landed. The previous version swallowed the result
+ * entirely, which is how a row could sit in `processing` forever with nothing
+ * in the logs to say why.
+ */
 async function updateApplication(
   applicationId: string,
   fields: Record<string, unknown>,
-): Promise<void> {
+): Promise<boolean> {
   const supabase = createAdminClient();
-  await supabase
+  const { error } = await supabase
     .from('course_applications')
     .update({ ...fields, updated_at: new Date().toISOString() })
     .eq('id', applicationId);
+
+  if (error) {
+    console.error('[job-processor] application update failed', {
+      applicationId,
+      columns: Object.keys(fields),
+      message: error.message,
+    });
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Move an application out of `processing` and into a terminal state.
+ *
+ * Status and message are written separately, and that is deliberate.
+ * `parse_error` is added by supabase-apply-parse-state.sql; if this deploys
+ * ahead of that migration, a combined update would be rejected whole and the
+ * row would be stranded mid-parse — the exact failure this release exists to
+ * remove. Splitting them means the worst case is a failed row with a generic
+ * message instead of a specific one, and a loud log line saying why.
+ */
+async function settleApplication(
+  applicationId: string,
+  parseStatus: 'pending' | 'failed',
+  message: string | null,
+): Promise<void> {
+  await updateApplication(applicationId, {
+    parse_status: parseStatus,
+    progress_percentage: 0,
+  });
+
+  if (message !== null || parseStatus === 'pending') {
+    await updateApplication(applicationId, { parse_error: message });
+  }
 }
 
 /**
@@ -210,10 +250,11 @@ function applicationFields(
   sourceUrl: string,
 ): Record<string, unknown> {
   const { course } = extraction;
+  // parse_error is cleared separately — see settleApplication for why this
+  // update must not depend on that column existing.
   const fields: Record<string, unknown> = {
     parse_status: 'complete',
     import_status: 'complete',
-    parse_error: null,
   };
 
   const map: Array<[string, string | null]> = [
@@ -253,11 +294,11 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
     if (!result.ok) {
       const willRetry = RETRYABLE[result.reason] && job.attempts < job.max_attempts;
       await recordJobFailure(job.id, result.reason, willRetry);
-      await updateApplication(job.application_id, {
-        parse_status: willRetry ? 'pending' : 'failed',
-        parse_error: willRetry ? null : FAILURE_MESSAGE[result.reason],
-        progress_percentage: 0,
-      });
+      await settleApplication(
+        job.application_id,
+        willRetry ? 'pending' : 'failed',
+        willRetry ? null : FAILURE_MESSAGE[result.reason],
+      );
       return {
         applicationId: job.application_id,
         status: willRetry ? 'retry' : 'failed',
@@ -268,6 +309,8 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
     const counts = await writeChecklist(job.application_id, result.data);
     await writeSources(job.application_id, result.data);
     await updateApplication(job.application_id, applicationFields(result.data, job.course_url));
+    // Clears any message left by an earlier failed attempt.
+    await updateApplication(job.application_id, { parse_error: null });
 
     await updateJobStatus(job.id, 'complete', {
       parsed_data: result.data as unknown as Record<string, unknown>,
@@ -284,11 +327,11 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
     const message = error instanceof Error ? error.message : 'Unknown error';
     const willRetry = job.attempts < job.max_attempts;
     await recordJobFailure(job.id, message, willRetry);
-    await updateApplication(job.application_id, {
-      parse_status: willRetry ? 'pending' : 'failed',
-      parse_error: willRetry ? null : 'Something went wrong while reading that page.',
-      progress_percentage: 0,
-    });
+    await settleApplication(
+      job.application_id,
+      willRetry ? 'pending' : 'failed',
+      willRetry ? null : 'Something went wrong while reading that page.',
+    );
     return {
       applicationId: job.application_id,
       status: willRetry ? 'retry' : 'failed',
