@@ -14,21 +14,34 @@ import type { FooterColumn, FooterSocial, TopNavItem } from '@/shared/ui';
  */
 
 /**
- * Primary navigation. Figma 104:7114 (guest) and 203:12356 (signed in) draw the
- * same five items, so one list serves both states.
+ * Primary navigation. Figma 375:9845 (guest) and 375:10151 (signed in), both on
+ * the "Khanh Linh - Chi" canvas, which supersedes 104:7114 / 203:12356.
+ *
+ * ONE LIST SERVES BOTH STATES, still — but for a narrower reason than before.
+ * The two frames no longer draw the same items: signed in drops "Lập kế hoạch
+ * du học" because that frame promotes it to the CTA button. That is a property
+ * of the CTA slot, not of the item list, and every page here already picks its
+ * own `primaryAction` (the saved list and the applications list both use
+ * "Search universities"). Splitting the list on the signed-in flag would delete
+ * the only /apply link from pages whose CTA points elsewhere — a regression the
+ * frame does not ask for. Note the guest frame duplicates the label in both
+ * slots anyway, so the design is not consistent on the point.
  *
  * "Tìm trường đại học" is the sixth, added on the product owner's instruction so
- * the desktop bar matches the mobile sheet (179:12826) and the university
- * directory keeps a direct entry for the two audiences the design file names at
- * 105:8246: people who want to look around first, and people who already know
- * what they want.
+ * the desktop bar matches the mobile sheet (375:12205, unchanged from 179:12826)
+ * and the university directory keeps a direct entry for the two audiences the
+ * design file names at 105:8246: people who want to look around first, and
+ * people who already know what they want. The newest frames do not draw it;
+ * kept on the owner's standing instruction.
  */
 export const MARKETING_NAV_ITEMS: readonly TopNavItem[] = [
   // Figma "Về chúng tôi". The page itself is Figma 153:11401.
   { href: '/about', label: 'About us' },
-  // Figma "AI lên chiến lược" — see the note below; this is a product pillar,
-  // not a dead link.
-  { href: '/ai-strategy', label: 'AI strategy' },
+  // Figma "Lên Chiến lược Du học" — renamed from "AI lên chiến lược" on the new
+  // canvas. See the note below; this is a product pillar, not a dead link.
+  // The FOOTER still says "Chiến lược AI" (its frame did not change), so the two
+  // deliberately carry different labels for the same route.
+  { href: '/ai-strategy', label: 'Build your strategy' },
   { href: '/universities', label: 'Search universities' },
   { href: '/apply', label: 'Plan your studies' },
   { href: '/mentors', label: 'Find a mentor' },
@@ -39,24 +52,29 @@ export const MARKETING_NAV_ITEMS: readonly TopNavItem[] = [
 ];
 
 /**
- * On "AI strategy", because it was briefly dropped from this list on the
- * grounds that it was undesigned. It is not: the sitemap (Figma 123:2864,
- * "Dg-final") makes it one of ten top-level destinations and gives it the
- * longest flow on the board —
+ * On the strategy link, because it was briefly dropped from this list on the
+ * grounds that it was undesigned. It is not, and as of the "Khanh Linh - Chi"
+ * canvas it is no longer even a provenance risk: the whole flow has been
+ * REDRAWN onto the dev canvas under a banner frame labelled "Apply"
+ * (375:18836). That migration is the signal docs/redesign-status.md calls the
+ * only objective one — a frame on the dev canvas is safe to build.
  *
- *   Input 1: School · Major · Scholarship -> Input 2: Detailed Achievements ->
- *   report yourself and the school -> AI Report 1: Personal Reflection ->
- *   AI Report 2: Matching Level -> Strategy -> Steps -> Submit
+ * The flow, in stepper order (Reflection -> Output report design -> University
+ * Detail -> Applycation Strategy -> Submit Audit):
  *
- * and the screens exist on the "Tính năng" canvas: the five-step stepper
- * (114:7941 "Personal Narrative Development / Your Essay / Your CV /
- * Application Strategy / Submit Audit"), the Reflection forms (94:8622,
- * 110:17958, 110:18098), Submit (112:22861, 114:8566) and Select School
- * (156:11660, 215:12145).
+ *   landing 375:18445 · candidate info 375:19260 · achievements 375:18839 ·
+ *   reflection modals 407:17291, 408:17403, 409:17502, 409:17626 ·
+ *   reflection output 375:18328 · profile portrait 375:18185 ·
+ *   university fit 375:18645 · per-university strategy 375:19502, 405:6526 ·
+ *   essay feedback 375:17961 · CV analysis 375:18038 · pricing 375:19705 ·
+ *   submit 375:18117 · confirmation 375:18594 · major re-picker 375:13546
  *
  * It is NOT /apply. /apply is the applications dashboard — shortlist,
- * deadlines, saved scholarships — which the sitemap calls "Study abroad plan".
- * The two are separate destinations there and must stay separate here.
+ * deadlines, saved scholarships. The two are separate destinations and must
+ * stay separate here. (The sitemap frame that used to be cited for this,
+ * 123:2864 "Dg-final", is gone from the file; the separation now rests on the
+ * two flows being drawn as two distinct banner groups, "Apply" and "Trang my
+ * apply".)
  *
  * The route does not exist yet, so this link 404s until the flow is built.
  * That is deliberate and tracked, unlike the dead link it replaces.

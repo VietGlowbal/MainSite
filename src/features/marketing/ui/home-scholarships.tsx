@@ -20,6 +20,20 @@ import { MissingContent } from './missing-content';
  * case study". None of that is a scholarship. The rail therefore renders real
  * scholarships when given them and MissingContent when not; it never invents an
  * award, a value, or a deadline.
+ *
+ * ⚠️ AND THE DATABASE CANNOT FILL THEM. Measured 28/07 across all 2,877
+ * published rows: `provider` is null on 2,877 of them and `country` on 2,859.
+ * The card's bold line and its logo slot are both the awarding body, so there
+ * is nothing real to print — `name`, `coverage`, `deadline_text` and `insight`
+ * are the columns that are actually populated. Filling the slot from the linked
+ * university was considered and rejected: it is right for
+ * "Excellence Scholarship – Institut Galilée" and wrong for Chevening or DAAD,
+ * and a card that misattributes an award is worse than no card.
+ *
+ * So "/" passes showPlaceholders={false} and no entries: the heading, the blurb
+ * and the "See more" link are real and useful, and nothing fake ships under
+ * them. Populate `scholarships.provider` (or agree a card that does not need
+ * it) and the rail lights up with no change here.
  */
 
 export type ScholarshipTeaser = {
@@ -36,9 +50,12 @@ export type ScholarshipTeaser = {
 export function HomeScholarships({
   entries = [],
   seeMoreHref = '/scholarships',
+  showPlaceholders = true,
 }: {
   entries?: readonly ScholarshipTeaser[];
   seeMoreHref?: string;
+  /** false on "/" — see the note above; the dashed box is for the preview only. */
+  showPlaceholders?: boolean;
 }) {
   return (
     <section className="bg-surface py-gb-9xl">
@@ -57,10 +74,12 @@ export function HomeScholarships({
         </div>
 
         {entries.length === 0 ? (
-          <MissingContent
-            node="104:7225"
-            label='Thẻ học bổng — Figma còn tiêu đề "Kho học bổng ...." bỏ dở và nội dung mẫu "Layers / Read case study"'
-          />
+          showPlaceholders ? (
+            <MissingContent
+              node="104:7225"
+              label='Thẻ học bổng — Figma còn tiêu đề "Kho học bổng ...." bỏ dở và nội dung mẫu "Layers / Read case study"'
+            />
+          ) : null
         ) : (
           <>
             {/* -mx + px so the cards can bleed to the viewport edge on mobile
