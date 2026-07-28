@@ -54,6 +54,8 @@ export {
   useLoadingIndicator,
   useLoadingSnapshot,
 } from './loading-overlay';
+export { RangeHistogram } from './range-histogram';
+export { RepeatableFieldset } from './repeatable-fieldset';
 export { ScoreRing, scoreRingColor } from './score-ring';
 export type { ScoreRingMeasure, ScoreRingSize } from './score-ring';
 export { Stepper } from './stepper';

@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { FormPrimitivesDemo } from './form-primitives-demo';
 import { LoaderDemo } from './loader-demo';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import {
@@ -320,6 +321,15 @@ export default function KitchenSinkPage() {
             ),
           )}
         </div>
+      </Section>
+
+      <Section title="Form primitives — RepeatableFieldset and RangeHistogram">
+        <p className="mb-gb-3xl text-gb-sm text-fg-tertiary">
+          Both are only meaningful in motion. Remove the middle achievement and check the others
+          keep their own values; drag the budget handles together and check they clamp rather than
+          swap. The distribution is placeholder shape, not real data.
+        </p>
+        <FormPrimitivesDemo />
       </Section>
 
       <Section title="ScoreRing (Figma 337:18813 — banded 70 / 40)">

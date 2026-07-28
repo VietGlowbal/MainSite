@@ -10,6 +10,10 @@
    its @theme blocks merge into the generated theme. See src/styles/tokens.css. */
 @import "../styles/tokens.css";
 
+/* Component CSS that utilities cannot express (native form-control
+   pseudo-elements). Kept out of this file on purpose — see its header. */
+@import "../styles/components.css";
+
 :root {
   --background: #F5F6FF;
   --foreground: #1A1A2E;
