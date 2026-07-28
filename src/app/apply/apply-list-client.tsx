@@ -79,6 +79,114 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
  * regardless. All of it is in git history at apply-dashboard.tsx.
  */
 
+/** Figma 337:18812 — the gauge is banded by value: 92 green, 60 amber, 30 rose. */
+function gaugeColor(pct: number): string {
+  if (pct >= 70) return 'var(--color-gb-tier-safe)'; // Figma Colors/Green/700
+  if (pct >= 40) return 'var(--color-gb-yellow-400)'; // Figma Colors/Yellow/400
+  return 'var(--color-gb-brand-600)'; // Figma Colors/Rose/600
+}
+
+/**
+ * Figma 337:18813 "Activity gauge".
+ *
+ * The frame exports the three rings as flat images baked at 92% / 60% / 30%, so
+ * they cannot be reused — the arc has to follow real `progress_percentage`. Drawn
+ * as an SVG arc instead, which is what the ring it replaces did too.
+ */
+function ProgressGauge({ value }: { value: number }) {
+  const pct = Math.max(0, Math.min(100, Math.round(value)));
+  const r = 32;
+  const circ = 2 * Math.PI * r;
+
+  return (
+    <div className="flex size-[104px] shrink-0 items-center justify-center rounded-gb-full bg-surface-muted/90 p-gb-lg backdrop-blur-sm">
+      <svg
+        width="76"
+        height="76"
+        viewBox="0 0 76 76"
+        role="img"
+        aria-label={`${pct}% complete`}
+      >
+        <circle
+          cx="38"
+          cy="38"
+          r={r}
+          fill="none"
+          stroke="var(--color-gb-neutral-300)"
+          strokeWidth="8"
+        />
+        <circle
+          cx="38"
+          cy="38"
+          r={r}
+          fill="none"
+          stroke={gaugeColor(pct)}
+          strokeWidth="8"
+          strokeLinecap="round"
+          strokeDasharray={`${(pct / 100) * circ} ${circ}`}
+          transform="rotate(-90 38 38)"
+        />
+        <text
+          x="38"
+          y="38"
+          textAnchor="middle"
+          dominantBaseline="central"
+          className="fill-[var(--gb-text-primary)] text-gb-md font-semibold"
+        >
+          {pct}%
+        </text>
+      </svg>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Waiting for the parse
+
+   A pasted course URL is read in the background — a queued job the cron worker
+   drains, usually inside a minute. The row is created immediately with
+   placeholder text, so without this the list said "Loading course details..."
+   forever and only corrected itself if the student happened to reload later.
+
+   `router.refresh()` rather than polling /api/applications/[id]/parse-status:
+   the parse changes the course name, the country, the deadline and the
+   progress, and re-reading the server component picks all of them up in one
+   request. Polling the status endpoint would tell us the parse had finished and
+   then require a refresh anyway.
+   ───────────────────────────────────────────────────────────────────────── */
+
+const POLL_MS = 4000;
+/**
+ * Give up refreshing after this long. The worker retries with quadratic
+ * backoff, so a job still pending at four minutes is waiting on a retry that is
+ * minutes away — long past the point where a student is watching the tab.
+ */
+const POLL_CEILING_MS = 4 * 60 * 1000;
+
+function isPending(app: CourseApplication): boolean {
+  return app.parseStatus === 'pending' || app.parseStatus === 'processing';
+}
+
+function useParseRefresh(applications: CourseApplication[]): void {
+  const router = useRouter();
+  const waiting = applications.some(isPending);
+
+  useEffect(() => {
+    if (!waiting) return undefined;
+
+    const startedAt = Date.now();
+    const timer = setInterval(() => {
+      if (Date.now() - startedAt > POLL_CEILING_MS) {
+        clearInterval(timer);
+        return;
+      }
+      router.refresh();
+    }, POLL_MS);
+
+    return () => clearInterval(timer);
+  }, [waiting, router]);
+}
+
 /** "14 Jan 2026" — the frame's format. Fixed locale so it cannot drift on hydration. */
 function formatDeadline(iso: string): string {
   const d = new Date(iso);
@@ -86,8 +194,73 @@ function formatDeadline(iso: string): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+/**
+ * The row's course line while the page is still being read.
+ *
+ * `course_name` is inserted as the literal string "Loading course details..."
+ * when the application is created, so it is a placeholder masquerading as data.
+ * Rendering it verbatim is what made a stalled parse look like a stuck spinner
+ * that never resolved. Treat any row that is still parsing as having no course
+ * name yet, whatever the column happens to hold.
+ */
+const COURSE_NAME_PLACEHOLDER = /^loading course details/i;
+
+function courseLine(app: CourseApplication): string | null {
+  if (isPending(app)) return null;
+  if (!app.courseName) return null;
+  return COURSE_NAME_PLACEHOLDER.test(app.courseName) ? null : app.courseName;
+}
+
+/** Retry control for a row whose parse failed. Wired to a route that had no caller. */
+function RetryParse({ applicationId }: { applicationId: string }) {
+  const router = useRouter();
+  const [retrying, setRetrying] = useState(false);
+  const [error, setError] = useState('');
+  useLoadingIndicator(retrying, 'Reading the course page');
+
+  return (
+    <div className="flex flex-col gap-gb-xs">
+      <button
+        type="button"
+        disabled={retrying}
+        onClick={async () => {
+          setRetrying(true);
+          setError('');
+          try {
+            const res = await fetch(`/api/applications/${applicationId}/retry-parse`, {
+              method: 'POST',
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              setError(
+                res.status === 429
+                  ? 'Too many attempts just now. Try again in an hour.'
+                  : (body.error ?? 'Could not start another attempt.'),
+              );
+              return;
+            }
+            router.refresh();
+          } catch {
+            setError('Could not reach the server.');
+          } finally {
+            setRetrying(false);
+          }
+        }}
+        className="self-start text-gb-sm font-semibold text-brand hover:text-brand-hover disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        {retrying ? 'Trying again…' : 'Try again'}
+      </button>
+      {error ? <span className="text-gb-sm text-fg-error">{error}</span> : null}
+    </div>
+  );
+}
+
 /** Figma 337:18787 — one application row. */
 function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: string | null }) {
+  const course = courseLine(app);
+  const pending = isPending(app);
+  const failed = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
+
   return (
     <li className="flex flex-col gap-gb-3xl rounded-gb-2xl border border-line p-gb-xl lg:flex-row lg:items-center lg:justify-between">
       {/* Figma 337:18790 "_Job post" */}
@@ -99,8 +272,21 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
         <div className="flex min-w-0 flex-col gap-gb-2xl">
           <div className="flex min-w-0 flex-col gap-gb-xl">
             <p className="text-gb-md font-semibold text-fg">{app.universityName}</p>
-            {app.courseName ? (
-              <p className="text-gb-md text-fg-tertiary">{app.courseName}</p>
+            {course ? <p className="text-gb-md text-fg-tertiary">{course}</p> : null}
+
+            {pending ? (
+              <p className="text-gb-sm text-fg-muted" aria-live="polite">
+                Reading the course page and building your checklist…
+              </p>
+            ) : null}
+
+            {failed ? (
+              <div className="flex flex-col gap-gb-sm">
+                <p className="text-gb-sm text-fg-error">
+                  {app.parseError ?? 'We could not read that course page.'}
+                </p>
+                <RetryParse applicationId={app.id} />
+              </div>
             ) : null}
           </div>
 
@@ -281,6 +467,10 @@ export function ApplyListClient({
 }: ApplyListClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Keeps the list moving while a pasted URL is still being read.
+  useParseRefresh(applications);
+
   /*
    * /scholarships links here with ?universityId=..&openCourseSearch=true.
    *
