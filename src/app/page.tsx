@@ -21,7 +21,15 @@ import { recordWaitlistSignup } from '@/features/marketing/api';
 import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
 import { sendEmail } from '@/lib/send-email';
 import { Footer, MobileNav, TopNav } from '@/shared/ui';
+import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
+import { headers } from 'next/headers';
 import Link from 'next/link';
+
+/**
+ * Five consultation requests per IP per hour. Generous for a person filling the
+ * form in twice, useless for a script. See the note in `submitContact`.
+ */
+const contactLimiter = new RateLimiter({ maxRequests: 5, windowMs: 60 * 60 * 1000 });
 
 /**
  * "/" — Home, rebuilt from Figma 375:9844 on the "Khanh Linh - Chi" canvas.
@@ -92,6 +100,34 @@ async function submitContact(
   formData: FormData,
 ): Promise<ContactState> {
   'use server';
+
+  /*
+   * ⚠️ RATE LIMITED BECAUSE THIS ACTION SENDS MAIL TO AN ADDRESS THE CALLER
+   * TYPES. Without a limit it is an open relay in miniature: a script can post
+   * this form in a loop and have our domain deliver "You're on the GLOWBAL
+   * waitlist" to any inbox it likes. That burns sender reputation, and it is on
+   * "/", the most reachable page on the site.
+   *
+   * Keyed on the client IP rather than the email, because the email is the
+   * attacker-controlled part — limiting per-address stops nothing.
+   *
+   * ⚠️ In-memory, so the limit is per server instance. On multi-instance
+   * hosting the effective ceiling multiplies by the instance count. That is a
+   * real weakening, not a fix to skip: it turns an unbounded amplifier into a
+   * bounded one. A durable fix is a shared store (the limiter's README covers
+   * Upstash) or a captcha.
+   */
+  const headerList = await headers();
+  const forwarded = headerList.get('x-forwarded-for') ?? '';
+  const clientIp = forwarded.split(',')[0]?.trim() || headerList.get('x-real-ip') || 'unknown';
+
+  const limit = contactLimiter.checkLimit(`contact:${clientIp}`);
+  if (!limit.allowed) {
+    return {
+      status: 'error',
+      message: `Too many requests. Please try again in ${limit.retryAfter} seconds.`,
+    };
+  }
 
   const email = String(formData.get('email') || '').trim().toLowerCase();
   const firstName = String(formData.get('firstName') || '').trim();
