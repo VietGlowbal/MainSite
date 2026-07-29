@@ -62,6 +62,15 @@ type Props = {
   user?: TopNavUser | null | undefined;
   /** Defaults to the dark bar the marketing pages use. */
   tone?: Tone | undefined;
+  /**
+   * A control that sits before the actions — the language switcher, in practice.
+   *
+   * Not in the Figma frames, which draw the header for an English-only mockup.
+   * It is here because the app is bilingual and the switcher used to live in
+   * the sidebar footer: with the sidebar gone there is nowhere else on desktop
+   * for it, and MobileNav has had the equivalent `utility` slot all along.
+   */
+  utility?: React.ReactNode;
 };
 
 const BAR: Record<Tone, string> = {
@@ -85,6 +94,7 @@ export function TopNav({
   secondaryAction,
   user,
   tone = 'dark',
+  utility,
 }: Props) {
   const pathname = usePathname();
 
@@ -136,6 +146,8 @@ export function TopNav({
         {/* 24px between the actions and the avatar block (203:12466); the
             buttons themselves stay 12px apart in both states. */}
         <div className="flex shrink-0 items-center gap-gb-3xl">
+          {utility ? <div className="flex shrink-0 items-center">{utility}</div> : null}
+
           <div className="flex shrink-0 items-center gap-gb-lg">
             {/* Signed in, the design shows no "Sign in" button at all. */}
             {user == null && secondaryAction ? (
