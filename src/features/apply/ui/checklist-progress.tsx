@@ -1,4 +1,4 @@
-import { ScoreRing } from '@/shared/ui';
+import { ProgressBar, ScoreRing } from '@/shared/ui';
 import type { TaskCounts } from '../domain';
 
 /**
@@ -20,15 +20,34 @@ const LEGEND: Array<{ key: keyof TaskCounts; label: string; dot: string }> = [
   { key: 'notStarted', label: 'Not started', dot: 'bg-line-strong' },
 ];
 
-export function ChecklistProgress({ counts }: { counts: TaskCounts }) {
+export function ChecklistProgress({
+  counts,
+  researching = false,
+}: {
+  counts: TaskCounts;
+  /** Parse still running, so an empty checklist is expected rather than wrong. */
+  researching?: boolean;
+}) {
   if (counts.total === 0) {
     return (
       <section className="flex flex-col gap-gb-lg rounded-gb-2xl border border-line p-gb-3xl">
         <h2 className="text-gb-md font-semibold text-fg">Application progress</h2>
-        <p className="text-gb-sm text-fg-tertiary">
-          Your checklist is built from the official course page. Once it is ready, your progress
-          appears here.
-        </p>
+        {researching ? (
+          <>
+            {/* The bar carries the state; the sentence explains it. A card with
+                only the sentence read as a dead panel next to a 0% ring. */}
+            <ProgressBar label="Building your checklist" size="sm" />
+            <p className="text-gb-sm text-fg-tertiary">
+              We&rsquo;re building your checklist from the official course page. Your progress
+              appears here once it&rsquo;s ready.
+            </p>
+          </>
+        ) : (
+          <p className="text-gb-sm text-fg-tertiary">
+            Your checklist is built from the official course page. Once it is ready, your progress
+            appears here.
+          </p>
+        )}
       </section>
     );
   }

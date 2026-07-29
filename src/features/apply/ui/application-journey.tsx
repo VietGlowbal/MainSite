@@ -3,6 +3,7 @@
 import { Stepper, type StepperStep } from '@/shared/ui';
 import type { ApplicationStage } from '@/lib/apply-types';
 import { stageProgressLabel } from '../domain';
+import { ResearchProgress } from './research-progress';
 
 /**
  * "Your application journey" — the five-stage spine of a course application.
@@ -74,28 +75,26 @@ export function ApplicationJourney({
  * This is the common case on live data, not an edge case: until the parse
  * worker has read the course page there are no stages at all, and the previous
  * build rendered that as an empty journey with a 100% progress bar above it.
+ *
+ * The waiting half is `ResearchProgress` — a paragraph alone left the screen
+ * looking inert, which is what made a working parse read as a broken page.
  */
-export function JourneyPending({ parseStatus, parseError }: {
+export function JourneyPending({ parseStatus, parseError, target }: {
   parseStatus?: string | undefined;
   parseError?: string | null | undefined;
+  target?: string | null | undefined;
 }) {
   const failed = parseStatus === 'failed' || parseStatus === 'timeout';
+
+  if (!failed) return <ResearchProgress target={target} />;
 
   return (
     <section className="flex flex-col items-start gap-gb-lg rounded-gb-2xl border border-dashed border-line-strong p-gb-4xl">
       <h2 className="font-display text-gb-xl font-semibold text-fg">Your application journey</h2>
-
-      {failed ? (
-        <p className="text-gb-md text-fg-tertiary">
-          {parseError ?? 'We could not read the official course page, so there is no checklist yet.'}{' '}
-          You can try again from your applications list.
-        </p>
-      ) : (
-        <p className="text-gb-md text-fg-tertiary">
-          We are reading the official course page and building your checklist. This usually takes a
-          minute — the steps will appear here.
-        </p>
-      )}
+      <p className="text-gb-md text-fg-tertiary">
+        {parseError ?? 'We could not read the official course page, so there is no checklist yet.'}{' '}
+        You can try again from your applications list.
+      </p>
     </section>
   );
 }

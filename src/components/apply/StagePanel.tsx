@@ -6,18 +6,24 @@
 'use client';
 
 import type { ApplicationStage, ApplicationTask } from '@/lib/apply-types';
+import { ProgressBar } from '@/shared/ui';
 import { TaskItem } from './TaskItem';
 
 type Props = {
   stage: ApplicationStage;
   stageNumber: number;
   totalStages: number;
+  /**
+   * Whether the course page is still being read. A stage with no tasks means
+   * two different things either side of that, and only one of them is normal.
+   */
+  researching?: boolean;
   onTaskToggle: (taskId: string, newStatus: 'completed' | 'not_started') => void;
   onTaskAction: (task: ApplicationTask) => void;
   onStatementFeedback?: (task: ApplicationTask) => void;
 };
 
-export function StagePanel({ stage, stageNumber, totalStages, onTaskToggle, onTaskAction, onStatementFeedback }: Props) {
+export function StagePanel({ stage, stageNumber, totalStages, researching = false, onTaskToggle, onTaskAction, onStatementFeedback }: Props) {
   const tasks = stage.tasks || [];
 
   return (
@@ -67,16 +73,23 @@ export function StagePanel({ stage, stageNumber, totalStages, onTaskToggle, onTa
                 />
               ))}
             </div>
+          ) : researching ? (
+            /* The parse is still running, so an empty stage is expected. The
+               padlock this replaces said the opposite — a locked stage is a
+               paywall in this app, and students read it as one. */
+            <div className="flex flex-col gap-gb-lg py-gb-2xl">
+              <ProgressBar label="Building the tasks for this step" size="sm" />
+              <p className="text-gb-sm text-fg-tertiary">
+                GlowBal&rsquo;s AI is still working through the course page. The tasks for this step
+                appear here as soon as they&rsquo;re ready.
+              </p>
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 mb-3">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-slate-400">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-slate-900">No tasks yet</p>
-              <p className="mt-1 text-xs text-slate-500">Tasks will appear here as you progress</p>
+              <p className="text-sm font-medium text-slate-900">Nothing to do here</p>
+              <p className="mt-1 text-xs text-slate-500">
+                This course page didn&rsquo;t call for any tasks at this step.
+              </p>
             </div>
           )}
         </div>

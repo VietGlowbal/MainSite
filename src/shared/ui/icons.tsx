@@ -134,6 +134,20 @@ export const ICONS = {
     d: 'M0.833333 6.66667H12.5M6.66667 12.5L12.5 6.66667L6.66667 0.833333',
   },
   /**
+   * Leads the "back to the list" link on the course workspace.
+   *
+   * A true mirror of `arrowRight` about x = 6.66667, unlike the `arrowUpRight`
+   * case below: this glyph is a straight shaft plus a symmetrical chevron, with
+   * no elbow to give the reflection away.
+   */
+  arrowLeft: {
+    w: 13.3333,
+    h: 13.3333,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M12.5 6.66667H0.833333M6.66667 12.5L0.833333 6.66667L6.66667 0.833333',
+  },
+  /**
    * Figma 2:31009 — trails "Read post" on a blog card (I153:18284;1390:725).
    * Deliberately a second arrow rather than a rotated `arrowRight`: the kit's
    * up-right glyph has its own elbow (a diagonal shaft plus a corner bracket),

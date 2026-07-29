@@ -7,3 +7,4 @@
 export { ApplicationBanner } from './application-banner';
 export { ApplicationJourney, JourneyPending } from './application-journey';
 export { ChecklistProgress } from './checklist-progress';
+export { ResearchProgress, ResearchingInline } from './research-progress';

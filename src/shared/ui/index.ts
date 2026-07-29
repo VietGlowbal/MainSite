@@ -54,6 +54,7 @@ export {
   useLoadingIndicator,
   useLoadingSnapshot,
 } from './loading-overlay';
+export { ProgressBar } from './progress-bar';
 export { RangeHistogram } from './range-histogram';
 export { RepeatableFieldset } from './repeatable-fieldset';
 export { ScoreRing, scoreRingColor } from './score-ring';

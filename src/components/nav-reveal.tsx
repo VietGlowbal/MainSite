@@ -455,15 +455,32 @@ export function NavReveal() {
     // Also exact: the saved list is rebuilt (Figma 223:8824), the
     // /my-universities/[id] task pages under it are not.
     '/my-universities',
-    // Same again: the applications list is rebuilt (Figma 337:18767), the
-    // /apply/[applicationId] workspace under it is not.
+    // The applications list. The workspace under it is covered by the prefix
+    // rule below rather than listed here.
     '/apply',
     // And again: the mentor browse is rebuilt (Figma 154:8345); /mentors/[id],
     // /mentors/apply and its success page are not.
     '/mentors',
     '/dev/saved-list',
+    // Previews the workspace, which ships its own chrome. Listed for the same
+    // reason as the two above: a dev route that renders the app chrome as well
+    // would preview a page nobody can navigate to.
+    '/dev/apply-workspace',
   ]);
-  const rendersOwnChrome = OWN_CHROME_ROUTES.has(pathname);
+  /*
+   * Whole subtrees that ship their own chrome, matched by prefix rather than
+   * by exact path.
+   *
+   * `/apply/` covers the per-course workspace. The set above deliberately
+   * matches exactly, because most of these routes have un-rebuilt detail pages
+   * beneath them that still want the app chrome — but apply is now rebuilt all
+   * the way down, and the sidebar is gone from the whole journey.
+   */
+  const OWN_CHROME_PREFIXES = ['/apply/'];
+
+  const rendersOwnChrome =
+    OWN_CHROME_ROUTES.has(pathname) ||
+    OWN_CHROME_PREFIXES.some((prefix) => pathname.startsWith(prefix));
 
   /*
    * The reveal gate only ever mattered for the landing page: everywhere else

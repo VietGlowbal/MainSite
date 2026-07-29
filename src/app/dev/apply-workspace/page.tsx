@@ -21,7 +21,7 @@ import { ApplicationWorkspaceV2 } from '@/app/apply/[applicationId]/application-
  * data must not be mistakable for a real student's, so the university is
  * invented rather than borrowed from the directory.
  *
- * ?state=pending | failed | active — defaults to active.
+ * ?state=pending | researching | failed | active — defaults to active.
  */
 
 const DEMO_UNIVERSITY = 'Demo Institute of Technology';
@@ -96,7 +96,7 @@ const STAGES: ApplicationStage[] = [
   ]),
 ];
 
-function view(state: 'pending' | 'failed' | 'active'): ApplicationWorkspaceView {
+function view(state: 'pending' | 'researching' | 'failed' | 'active'): ApplicationWorkspaceView {
   const base = {
     id: 'demo',
     userId: 'demo',
@@ -111,10 +111,35 @@ function view(state: 'pending' | 'failed' | 'active'): ApplicationWorkspaceView 
 
   if (state === 'pending') {
     return {
-      // Exactly what a freshly pasted URL looks like: the placeholder course
-      // name the insert writes, and no checklist at all.
-      application: { ...base, courseName: 'Loading course details...', parseStatus: 'pending' },
+      // Exactly what a freshly pasted URL looks like: BOTH placeholders the
+      // insert writes, and no checklist at all. The university placeholder
+      // matters — it was rendering as the page's <h1>.
+      application: {
+        ...base,
+        universityName: 'Unknown University',
+        courseName: 'Loading course details...',
+        parseStatus: 'pending',
+      },
       stages: [],
+      requirements: [],
+      sources: [],
+      recommendations: [],
+      metrics: { progress: 0, requirementsMet: 0, requirementsTotal: 0 },
+    };
+  }
+
+  if (state === 'researching') {
+    // The half-parsed middle: stages written, tasks not yet distributed into
+    // all of them. This is the state in the report — a real application whose
+    // first stage showed a padlock over "No tasks yet".
+    return {
+      application: {
+        ...base,
+        universityName: 'Unknown University',
+        courseName: 'Loading course details...',
+        parseStatus: 'processing',
+      },
+      stages: STAGES.map((s) => ({ ...s, status: 'not_started' as const, tasks: [] })),
       requirements: [],
       sources: [],
       recommendations: [],
@@ -190,15 +215,16 @@ export default async function DevApplyWorkspacePage({
   if (!enabled) notFound();
 
   const { state } = await searchParams;
-  const which = state === 'pending' || state === 'failed' ? state : 'active';
+  const which =
+    state === 'pending' || state === 'researching' || state === 'failed' ? state : 'active';
 
+  // No wrapping <main>: the workspace ships its own chrome, same as the route.
   return (
-    <main className="min-h-screen bg-surface">
-      <ApplicationWorkspaceV2
-        workspace={view(which)}
-        isPlus={false}
-        matchInputs={{ cv: false, essay: false, academic: false }}
-      />
-    </main>
+    <ApplicationWorkspaceV2
+      workspace={view(which)}
+      isPlus={false}
+      matchInputs={{ cv: false, essay: false, academic: false }}
+      userName="Demo Student"
+    />
   );
 }

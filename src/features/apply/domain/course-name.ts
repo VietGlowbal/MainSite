@@ -14,6 +14,16 @@
 
 const PLACEHOLDER = /^loading course details/i;
 
+/**
+ * `university_name` gets the same treatment, for the same reason.
+ *
+ * The insert falls back to the literal "Unknown University" whenever the pasted
+ * URL did not resolve to a row in the directory — which is most pastes, since a
+ * course URL is matched by hostname and the directory is far from complete.
+ * Shown verbatim it reads as a failure, and it was the first thing on the page.
+ */
+const UNIVERSITY_PLACEHOLDER = /^unknown university$/i;
+
 /** True while the worker has not finished (or started) reading the course page. */
 export function isParsePending(parseStatus: string | null | undefined): boolean {
   return parseStatus === 'pending' || parseStatus === 'processing';
@@ -34,4 +44,36 @@ export function displayCourseName(
   if (isParsePending(parseStatus)) return null;
   if (!courseName) return null;
   return PLACEHOLDER.test(courseName) ? null : courseName;
+}
+
+/**
+ * The university name to render, or `null` when the insert never resolved one.
+ *
+ * Unlike the course name this is NOT withheld while the parse runs: when the
+ * URL did match the directory, the name is real from the moment the row is
+ * created and is the most useful thing on the screen. Only the placeholder is
+ * suppressed.
+ */
+export function displayUniversityName(universityName: string | null | undefined): string | null {
+  if (!universityName) return null;
+  return UNIVERSITY_PLACEHOLDER.test(universityName.trim()) ? null : universityName;
+}
+
+/**
+ * A human-readable stand-in for an application with no resolved names yet:
+ * the course URL's host, minus `www.`.
+ *
+ * Better than "Unknown University" and better than a blank heading — it is the
+ * one fact we hold with certainty about an unparsed row, and it is the thing
+ * the student themselves pasted, so they recognise it.
+ */
+export function courseUrlLabel(courseUrl: string | null | undefined): string | null {
+  if (!courseUrl) return null;
+  try {
+    return new URL(courseUrl).hostname.replace(/^www\./, '');
+  } catch {
+    // The column is not constrained, and a row predating URL validation can
+    // hold anything. A broken heading is worse than none.
+    return null;
+  }
 }

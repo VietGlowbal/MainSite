@@ -461,6 +461,28 @@
       opacity: 1;
     }
   }
+
+  /* The indeterminate progress bar (shared/ui/progress-bar.tsx).
+
+     A travelling segment rather than a fill that grows: the work behind it —
+     an AI reading a course page — has no measurable percentage, and a bar that
+     creeps to 90% and stops is a lie the user learns to distrust. This one
+     plainly conveys "running, duration unknown".
+
+     Translating a 40%-wide child from -100% to 250% of its own box sweeps the
+     full track with a clean entry and exit at both ends. `transform` only, so
+     it stays on the compositor and costs nothing on a page that is already
+     waiting on the network. */
+  --animate-gb-progress-sweep: gb-progress-sweep 1.6s ease-in-out infinite;
+
+  @keyframes gb-progress-sweep {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
 }
 
 :root {

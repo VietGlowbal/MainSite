@@ -56,17 +56,22 @@ export default async function ApplicationPage({
     academic: Boolean(profile?.academic_background || profile?.grades_summary),
   };
 
+  const userName =
+    (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || null;
+  const userAvatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
+
+  /* No wrapping <main> here: the workspace ships its own chrome (TopNav,
+     MobileNav, Footer) around its own <main>, the same way the applications
+     list does. /apply/* is suppressed in nav-reveal.tsx, so there is no app
+     sidebar on this page to sit inside. */
   return (
-    /* NOT `gb-page-full-bleed`: that marker cancels the 240px sidebar gutter in
-       globals.css, and is only for pages that ship their own nav (/universities).
-       This page sits inside the global sidebar shell, so it keeps the gutter. */
-    <main className="min-h-screen bg-surface">
-      <ApplicationWorkspaceV2
-        workspace={workspace}
-        isPlus={isPlus}
-        matchInputs={matchInputs}
-        logoUrl={logoUrl}
-      />
-    </main>
+    <ApplicationWorkspaceV2
+      workspace={workspace}
+      isPlus={isPlus}
+      matchInputs={matchInputs}
+      logoUrl={logoUrl}
+      userName={userName}
+      userAvatarUrl={userAvatarUrl}
+    />
   );
 }
