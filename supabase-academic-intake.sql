@@ -20,7 +20,11 @@ ALTER TABLE student_profiles
   -- "Vietnamese National Curriculum" | "IB Diploma Programme (IBDP)" |
   -- "Cambridge International (IGCSE / AS & A Level)" |
   -- "AP + US High School Diploma" | "Others"
-  ADD COLUMN IF NOT EXISTS curriculum      TEXT,
+  --
+  -- An ARRAY, because the frame draws checkboxes and a student can genuinely
+  -- sit two curricula at once — Vietnamese National plus AP is a common pair.
+  -- A single TEXT column would silently drop the second tick at save time.
+  ADD COLUMN IF NOT EXISTS curriculum      TEXT[],
   -- The scale the GPA below is expressed on: "10-point scale" | "4.0 scale".
   -- Kept separate from the value because "3.8" means nothing without it, and
   -- the frame makes the student pick it explicitly.
