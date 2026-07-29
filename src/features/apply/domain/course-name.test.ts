@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { displayCourseName, isParsePending } from './course-name';
+import {
+  courseUrlLabel,
+  displayCourseName,
+  displayUniversityName,
+  isParsePending,
+} from './course-name';
 
 describe('isParsePending', () => {
   it('is true only while the worker has not settled the row', () => {
@@ -47,5 +52,44 @@ describe('displayCourseName', () => {
     expect(displayCourseName('Loading Dock Engineering', 'complete')).toBe(
       'Loading Dock Engineering',
     );
+  });
+});
+
+describe('displayUniversityName', () => {
+  it('rejects the insert placeholder, case and padding insensitively', () => {
+    expect(displayUniversityName('Unknown University')).toBeNull();
+    expect(displayUniversityName('unknown university')).toBeNull();
+    expect(displayUniversityName('  Unknown University  ')).toBeNull();
+  });
+
+  it('keeps a real name regardless of parse state', () => {
+    // Unlike the course name this is NOT withheld mid-parse: when the paste
+    // matched the directory the name is real from the moment of insert.
+    expect(displayUniversityName('University of Toronto')).toBe('University of Toronto');
+  });
+
+  it('does not swallow a university whose real name contains the word', () => {
+    expect(displayUniversityName('University of the Unknown')).toBe('University of the Unknown');
+  });
+
+  it('returns null for an empty or missing name', () => {
+    expect(displayUniversityName(null)).toBeNull();
+    expect(displayUniversityName(undefined)).toBeNull();
+    expect(displayUniversityName('')).toBeNull();
+  });
+});
+
+describe('courseUrlLabel', () => {
+  it('gives the host without the www prefix', () => {
+    expect(courseUrlLabel('https://www.utoronto.ca/courses/cmp1')).toBe('utoronto.ca');
+    expect(courseUrlLabel('https://future.utoronto.ca/apply')).toBe('future.utoronto.ca');
+  });
+
+  it('returns null rather than throwing on a value that is not a URL', () => {
+    // The column is unconstrained and predates URL validation.
+    expect(courseUrlLabel('utoronto.ca/courses')).toBeNull();
+    expect(courseUrlLabel('')).toBeNull();
+    expect(courseUrlLabel(null)).toBeNull();
+    expect(courseUrlLabel(undefined)).toBeNull();
   });
 });

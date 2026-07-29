@@ -14,8 +14,14 @@ import {
   FOOTER_TAGLINE,
   MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
-import { displayCourseName, isParsePending } from '@/features/apply/domain';
+import {
+  courseUrlLabel,
+  displayCourseName,
+  displayUniversityName,
+  isParsePending,
+} from '@/features/apply/domain';
 import { anyParsePending, useParseRefresh } from '@/features/apply/hooks';
+import { ResearchingInline } from '@/features/apply/ui';
 import type { CourseApplication } from '@/lib/apply-types';
 import {
   Avatar,
@@ -26,6 +32,7 @@ import {
   Input,
   KitIcon,
   MobileNav,
+  ProgressBar,
   ScoreRing,
   TopNav,
 } from '@/shared/ui';
@@ -153,6 +160,8 @@ function RetryParse({ applicationId }: { applicationId: string }) {
 /** Figma 337:18787 — one application row. */
 function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: string | null }) {
   const course = courseLine(app);
+  const university = displayUniversityName(app.universityName);
+  const urlLabel = courseUrlLabel(app.courseUrl);
   const pending = isPending(app);
   const failed = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
 
@@ -160,19 +169,32 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
     <li className="flex flex-col gap-gb-3xl rounded-gb-2xl border border-line p-gb-xl lg:flex-row lg:items-center lg:justify-between">
       {/* Figma 337:18790 "_Job post" */}
       <div className="flex min-w-0 flex-1 items-center gap-gb-2xl">
-        <Avatar name={app.universityName} src={logoUrl} size="lg" className="hidden sm:block" />
+        <Avatar
+          name={university ?? urlLabel ?? 'Course'}
+          src={logoUrl}
+          size="lg"
+          className="hidden sm:block"
+        />
 
         <span aria-hidden className="hidden self-stretch border-l border-line sm:block" />
 
         <div className="flex min-w-0 flex-col gap-gb-2xl">
           <div className="flex min-w-0 flex-col gap-gb-xl">
-            <p className="text-gb-md font-semibold text-fg">{app.universityName}</p>
+            {/* `university` is null when the paste never matched the directory,
+                where the column holds the literal "Unknown University". The
+                host of the pasted URL is the honest stand-in. */}
+            <p className="text-gb-md font-semibold text-fg">
+              {university ?? urlLabel ?? 'Your application'}
+            </p>
             {course ? <p className="text-gb-md text-fg-tertiary">{course}</p> : null}
 
             {pending ? (
-              <p className="text-gb-sm text-fg-muted" aria-live="polite">
-                Reading the course page and building your checklist…
-              </p>
+              <div className="flex max-w-sm flex-col gap-gb-md">
+                <ProgressBar label="Reading the course page" size="sm" />
+                <ResearchingInline>
+                  GlowBal&rsquo;s AI is reading the course page and building your checklist…
+                </ResearchingInline>
+              </div>
             ) : null}
 
             {failed ? (

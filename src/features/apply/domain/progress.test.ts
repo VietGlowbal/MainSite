@@ -131,6 +131,29 @@ describe('activeStageIndex', () => {
     ];
     expect(activeStageIndex(stages)).toBe(1);
   });
+
+  it('starts at the top when the stages exist but have no tasks yet', () => {
+    /*
+     * The parse worker writes the stages first and the tasks afterwards, so
+     * every stage is briefly empty. "No stage has an unfinished task" is
+     * vacuously true there, and treating it as "everything is done" drew the
+     * whole stepper complete and landed the student on Submit.
+     */
+    const stages = [stage('Research', []), stage('Eligibility', []), stage('Submit', [])];
+    expect(activeStageIndex(stages)).toBe(0);
+  });
+
+  it('still honours an in-progress stage that has no tasks yet', () => {
+    const stages = [stage('Research', []), stage('Eligibility', [], 'in_progress')];
+    expect(activeStageIndex(stages)).toBe(1);
+  });
+
+  it('does not let one empty stage drag a finished application back to the top', () => {
+    // Some tasks exist, so the "everything done" branch is the right one — the
+    // empty trailing stage must not be mistaken for an unwritten checklist.
+    const stages = [stage('Research', [task('completed')]), stage('Submit', [])];
+    expect(activeStageIndex(stages)).toBe(1);
+  });
 });
 
 describe('stageProgressLabel', () => {

@@ -94,8 +94,22 @@ export function activeStageIndex(stages: ApplicationStage[]): number {
   );
   if (unfinished !== -1) return unfinished;
 
-  // Everything done: sit on the last stage rather than sending them back to
-  // the top of a finished application.
+  /*
+   * "No unfinished task" means two opposite things, and the difference is
+   * whether any task exists at all.
+   *
+   * The parse worker writes the five stages first and distributes the tasks
+   * into them afterwards, so there is a window where every stage is empty. That
+   * window satisfies the search above vacuously, and returning the last index
+   * for it drew the whole stepper as complete — five rose ticks over an
+   * application with nothing done, landing the student on "Submit". Start at
+   * the top instead; the stage panel says the tasks are still being written.
+   */
+  const hasAnyTask = stages.some((stage) => (stage.tasks ?? []).length > 0);
+  if (!hasAnyTask) return 0;
+
+  // Genuinely everything done: sit on the last stage rather than sending them
+  // back to the top of a finished application.
   return stages.length - 1;
 }
 

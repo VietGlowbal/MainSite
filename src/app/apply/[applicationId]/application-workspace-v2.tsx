@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ApplicationWorkspaceView, ApplicationTask } from '@/lib/apply-types';
 import { StagePanel } from '@/components/apply/StagePanel';
@@ -15,12 +16,23 @@ import {
 } from '@/features/apply/ui';
 import {
   activeStageIndex as computeActiveIndex,
+  courseUrlLabel,
   displayCourseName,
+  displayUniversityName,
   isParsePending,
   summariseTasks,
 } from '@/features/apply/domain';
 import { useParseRefresh } from '@/features/apply/hooks';
-import { Button, Container, KitIcon, ICONS } from '@/shared/ui';
+import { GlowbalLogo } from '@/components/glowbal-logo';
+import {
+  FOOTER_COLUMNS,
+  FOOTER_COPYRIGHT,
+  FOOTER_RATINGS,
+  FOOTER_SOCIAL,
+  FOOTER_TAGLINE,
+  MARKETING_NAV_ITEMS,
+} from '@/features/marketing/ui';
+import { Button, Container, Footer, KitIcon, ICONS, MobileNav, TopNav } from '@/shared/ui';
 
 /**
  * The course workspace — Figma "Lập kế hoạch du học", the per-course screen.
@@ -60,6 +72,8 @@ type Props = {
   isPlus?: boolean;
   matchInputs?: MatchInputs;
   logoUrl?: string | null;
+  userName?: string | null;
+  userAvatarUrl?: string | null;
 };
 
 export function ApplicationWorkspaceV2({
@@ -67,6 +81,8 @@ export function ApplicationWorkspaceV2({
   isPlus = false,
   matchInputs = { cv: false, essay: false, academic: false },
   logoUrl = null,
+  userName = null,
+  userAvatarUrl = null,
 }: Props) {
   const router = useRouter();
   const { application, stages, sources } = workspace;
@@ -77,9 +93,12 @@ export function ApplicationWorkspaceV2({
   /* The row exists the moment a URL is pasted; the checklist arrives a minute
      later. Without this the student sits on "we're reading the course page"
      until they reload — the exact bug the applications list already fixed. */
-  useParseRefresh(isParsePending(application.parseStatus));
+  const researching = isParsePending(application.parseStatus);
+  useParseRefresh(researching);
 
   const courseName = displayCourseName(application.courseName, application.parseStatus);
+  const universityName = displayUniversityName(application.universityName);
+  const urlLabel = courseUrlLabel(application.courseUrl);
 
   const [activeStageId, setActiveStageId] = useState<string | undefined>(
     () => (defaultIndex >= 0 ? stages[defaultIndex]?.id : undefined),
@@ -138,15 +157,61 @@ export function ApplicationWorkspaceV2({
 
   const hasChecklist = stages.length > 0;
 
+  const isSignedIn = Boolean(userName);
+  const primaryAction = { href: '/apply', label: 'My applications' };
+
   return (
-    <Container className="flex flex-col gap-gb-5xl py-gb-5xl">
-      <ApplicationBanner
-        universityName={application.universityName}
-        {...(courseName ? { courseName } : {})}
-        logoUrl={logoUrl}
+    /* gb-page-full-bleed: the app sidebar is suppressed for /apply/* in
+       nav-reveal.tsx, so this page ships its own chrome and must reclaim the
+       240px gutter globals.css reserves for a sidebar that is not there.
+       gb-has-mobile-header keeps the top offset, because the MobileNav below is
+       fixed and content has to clear it. */
+    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
+      <TopNav
+        tone="light"
+        logo={<GlowbalLogo height={28} />}
+        items={MARKETING_NAV_ITEMS}
+        primaryAction={primaryAction}
+        {...(isSignedIn && userName
+          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
+          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
+      />
+      <MobileNav
+        logo={
+          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
+            <GlowbalLogo height={28} />
+          </Link>
+        }
+        items={MARKETING_NAV_ITEMS}
+        primaryAction={primaryAction}
+        secondaryAction={
+          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
+        }
+        openLabel="Menu"
+        closeLabel="Close menu"
       />
 
-      <div className="grid gap-gb-5xl xl:grid-cols-[minmax(0,1fr)_320px]">
+      <main className="min-h-screen pb-gb-9xl pt-gb-4xl">
+        <Container className="flex flex-col gap-gb-5xl">
+          {/* Without the sidebar there is no persistent route back to the list,
+              so the workspace carries its own. */}
+          <Link
+            href="/apply"
+            className="inline-flex w-fit items-center gap-gb-sm text-gb-sm font-semibold text-fg-tertiary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <KitIcon art={ICONS.arrowLeft} frame={20} className="shrink-0" />
+            All applications
+          </Link>
+
+          <ApplicationBanner
+            {...(universityName ? { universityName } : {})}
+            {...(courseName ? { courseName } : {})}
+            urlLabel={urlLabel}
+            logoUrl={logoUrl}
+            researching={researching}
+          />
+
+          <div className="grid gap-gb-5xl xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-gb-5xl">
           {hasChecklist ? (
             <ApplicationJourney
@@ -158,6 +223,7 @@ export function ApplicationWorkspaceV2({
             <JourneyPending
               {...(application.parseStatus ? { parseStatus: application.parseStatus } : {})}
               {...(application.parseError ? { parseError: application.parseError } : {})}
+              target={urlLabel}
             />
           )}
 
@@ -166,6 +232,7 @@ export function ApplicationWorkspaceV2({
               stage={activeStage}
               stageNumber={activeIndex + 1}
               totalStages={stages.length}
+              researching={researching}
               onTaskToggle={handleTaskToggle}
               onTaskAction={handleTaskAction}
               onStatementFeedback={() => setStatementModalOpen(true)}
@@ -182,7 +249,7 @@ export function ApplicationWorkspaceV2({
         </div>
 
         <aside className="flex flex-col gap-gb-3xl">
-          <ChecklistProgress counts={counts} />
+          <ChecklistProgress counts={counts} researching={researching} />
 
           {application.courseUrl ? (
             <a
@@ -229,22 +296,35 @@ export function ApplicationWorkspaceV2({
               </ul>
             </section>
           ) : null}
-        </aside>
-      </div>
+          </aside>
+          </div>
+        </Container>
+      </main>
+
+      <Footer
+        logo={<GlowbalLogo height={28} />}
+        tagline={FOOTER_TAGLINE}
+        columns={FOOTER_COLUMNS}
+        social={FOOTER_SOCIAL}
+        copyright={FOOTER_COPYRIGHT}
+        ratings={FOOTER_RATINGS}
+      />
 
       {statementModalOpen ? (
         <StatementFeedbackModal
           applicationId={application.id}
           /* Course first, then university — the same order the banner reads in.
-             Falls back to the university alone on an application whose course
-             page has not been parsed yet, rather than printing "undefined ·". */
+             Each part is dropped when it is not known yet, so an unparsed
+             application never prints "undefined ·" or the raw placeholders. */
           targetName={
-            courseName ? `${courseName} · ${application.universityName}` : application.universityName
+            [courseName, universityName].filter(Boolean).join(' · ') ||
+            urlLabel ||
+            'this course'
           }
           contextNote={workspace.course?.entryRequirementsSummary ?? application.aiSummary}
           onClose={() => setStatementModalOpen(false)}
         />
       ) : null}
-    </Container>
+    </div>
   );
 }
