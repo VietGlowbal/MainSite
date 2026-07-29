@@ -21,6 +21,8 @@ export {
   reflectionFromProfile,
   reflectionSchema,
 } from './reflection';
+export { AI_JOURNEY, AI_JOURNEY_STEPS, aiJourneySteps } from './ai-journey';
+export type { AiJourneyStep } from './ai-journey';
 export {
   courseUrlLabel,
   displayCourseName,

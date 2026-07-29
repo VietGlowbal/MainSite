@@ -462,6 +462,8 @@ export function NavReveal() {
     // /mentors/apply and its success page are not.
     '/mentors',
     '/dev/saved-list',
+    // The AI strategy journey's entry page ships TopNav + MobileNav + Footer.
+    '/ai-strategy',
     // Previews the workspace, which ships its own chrome. Listed for the same
     // reason as the two above: a dev route that renders the app chrome as well
     // would preview a page nobody can navigate to.
