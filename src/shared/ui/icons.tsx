@@ -210,6 +210,37 @@ export const ICONS = {
     strokeWidth: 1.66667,
     d: 'M5.83333 0.83333V10.8333M0.83333 5.83333H10.8333',
   },
+  /**
+   * ⚠️ NOT A FIGMA EXPORT — see the note on `plus`.
+   *
+   * The upload frames draw an upload-cloud glyph, but the file has no export of
+   * one, so these two are constructed to the kit's conventions. Same coordinate
+   * trap as `plus`: `viewBox` is `0 0 w h`, the STROKED bounds, so a path
+   * written in the 24px design frame renders clipped. Both were laid out at 24
+   * with strokeWidth 2 (half-stroke 1) and then translated so the stroked box
+   * starts at the origin — for `uploadCloud` that is x−3, y−6.
+   */
+  uploadCloud: {
+    w: 18,
+    h: 15,
+    frame: 24,
+    strokeWidth: 2,
+    d: ['M9 9V1', 'M5.5 4.5L9 1L12.5 4.5', 'M1 9v3a2 2 0 002 2h12a2 2 0 002-2V9'],
+  },
+  /** ⚠️ NOT A FIGMA EXPORT. Removes an uploaded file. Translated x−2, y−2. */
+  trash: {
+    w: 20,
+    h: 21,
+    frame: 24,
+    strokeWidth: 2,
+    d: [
+      'M1 4h18',
+      'M6 4V2a1 1 0 011-1h6a1 1 0 011 1v2',
+      'M17 4v14a2 2 0 01-2 2H5a2 2 0 01-2-2V4',
+      'M8 9v6',
+      'M12 9v6',
+    ],
+  },
   /** Figma 41:8794 — the deadline line on a saved-list row (223:9505). */
   clock: {
     w: 18.3333,

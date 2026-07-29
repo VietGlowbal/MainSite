@@ -62,6 +62,9 @@ export {
   useLoadingIndicator,
   useLoadingSnapshot,
 } from './loading-overlay';
+export { DocumentRow, formatBytes } from './document-row';
+export type { DocumentStatus } from './document-row';
+export { FileDropzone } from './file-dropzone';
 export { ProgressBar } from './progress-bar';
 export { RangeHistogram } from './range-histogram';
 export { RepeatableFieldset } from './repeatable-fieldset';

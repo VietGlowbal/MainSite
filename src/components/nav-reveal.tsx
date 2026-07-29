@@ -470,6 +470,8 @@ export function NavReveal() {
     // and its success page still take the app chrome, so this stays exact.
     '/mentors',
     '/dev/saved-list',
+    // The AI strategy journey's entry page ships TopNav + MobileNav + Footer.
+    '/ai-strategy',
     // Previews the workspace, which ships its own chrome. Listed for the same
     // reason as the two above: a dev route that renders the app chrome as well
     // would preview a page nobody can navigate to.
