@@ -34,3 +34,16 @@ export {
 export { countriesMatch, normalizeCountryName } from './country';
 
 export { officialWebsite } from './websites';
+
+export {
+  normaliseUniversityName,
+  pickBestMatch,
+  registrableDomain,
+  sameDomain,
+} from './match-university';
+export type {
+  MatchQuery,
+  MatchReason,
+  UniversityCandidate,
+  UniversityMatch,
+} from './match-university';
