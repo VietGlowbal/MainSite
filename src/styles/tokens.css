@@ -94,6 +94,21 @@
   /* Figma "Colors/Yellow/400" — the ratings-badge star. */
   --color-gb-yellow-400: #facc15;
 
+  /* ── Informational blue ───────────────────────────────────────────────────
+     Figma binds "Colors/Blue/50" + "Colors/Blue/600" in two unrelated places:
+     the admission-tier `recommend` badge above, and the help-topic chips on the
+     mentor profile (375:21684, "Tốt nhất cho"). Same primitives, so the hex is
+     deliberately repeated rather than aliased — for exactly the reason given
+     for reach/rose above. A tier is a risk classification; a topic chip is a
+     category label. Repainting the tier scale must not silently repaint every
+     chip that happens to be blue today.
+
+     Blue/500 is the verified seal behind the white tick next to a mentor's
+     name (375:21653) — a filled mark, not a badge pair. */
+  --color-gb-blue-50: #eff6ff;
+  --color-gb-blue-500: #3b82f6;
+  --color-gb-blue-600: #2563eb;
+
   /* ── Alpha overlays — from the kit's component-colors/alpha/* ─────────────
      The blog post card (Figma I153:18284;1390:634) frames its cover photo with
      a hairline, then floats a frosted attribution strip over the bottom of it
@@ -333,6 +348,13 @@
   --gb-tier-recommend-on: var(--color-gb-tier-recommend);
   --gb-tier-safe-surface: var(--color-gb-tier-safe-bg);
   --gb-tier-safe-on: var(--color-gb-tier-safe);
+
+  /* Informational chips — same pair shape as the tiers: `-on-` is the text
+     colour for the matching surface. */
+  --gb-info-surface: var(--color-gb-blue-50);
+  --gb-info-on: var(--color-gb-blue-600);
+  /* Standalone filled mark, so no pair — the tick on top of it is white. */
+  --gb-verified: var(--color-gb-blue-500);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -394,6 +416,12 @@
   --color-on-tier-recommend: var(--gb-tier-recommend-on);
   --color-tier-safe: var(--gb-tier-safe-surface);
   --color-on-tier-safe: var(--gb-tier-safe-on);
+
+  /* Informational chip: pair bg-info-subtle with text-fg-info. */
+  --color-info-subtle: var(--gb-info-surface);
+  --color-fg-info: var(--gb-info-on);
+  /* text-fg-verified — drives the seal via currentColor. */
+  --color-fg-verified: var(--gb-verified);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
