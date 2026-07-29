@@ -47,12 +47,20 @@ const WIDTHS = [1280, 1440] as const;
  * it worth waiting properly rather than raising the diff threshold.
  */
 async function settle(page: import('@playwright/test').Page) {
-  await page
-    .locator('img[src*="home-hero-globe"]')
-    .evaluate((img: HTMLImageElement) =>
-      img.complete ? undefined : new Promise((r) => img.addEventListener('load', () => r(null))),
-    );
+  await page.locator(`[data-testid="${TID.heroGlobe}"] canvas`).waitFor();
   await page.evaluate(() => document.fonts.ready);
+}
+
+/**
+ * The hero globe, which every screenshot here has to mask.
+ *
+ * It rotates continuously, tips as the page scrolls, and lights dots at random,
+ * so no two frames of it are alike and no baseline can ever match it. This used
+ * to be a static PNG and `settle` waited for that image to load; the wait went
+ * stale when the PNG was replaced, and the mask is what should have replaced it.
+ */
+function globe(page: import('@playwright/test').Page) {
+  return [page.locator(`[data-testid="${TID.heroGlobe}"]`)];
 }
 
 test.describe('home preview — desktop', () => {
@@ -209,7 +217,7 @@ test.describe('home preview — desktop', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
     await settle(page);
-    await expect(page).toHaveScreenshot('home-desktop.png', { fullPage: true });
+    await expect(page).toHaveScreenshot('home-desktop.png', { fullPage: true, mask: globe(page) });
   });
 });
 
@@ -330,6 +338,6 @@ test.describe('home preview — mobile', () => {
     await page.setViewportSize(MOBILE);
     await page.goto('/dev/home');
     await settle(page);
-    await expect(page).toHaveScreenshot('home-mobile.png', { fullPage: true });
+    await expect(page).toHaveScreenshot('home-mobile.png', { fullPage: true, mask: globe(page) });
   });
 });

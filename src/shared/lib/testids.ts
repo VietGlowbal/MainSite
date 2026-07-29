@@ -25,6 +25,14 @@ export const TID = {
   /** Full-screen sheet the hamburger opens. Absent from the DOM when closed. */
   navMobileSheet: 'nav-mobile-sheet',
 
+  /**
+   * The home hero's dot globe. Decorative, so nothing asserts on it — this
+   * exists so the visual baselines can MASK it. It rotates continuously and
+   * lights dots at random, which is a full-page screenshot's worst case: no two
+   * frames of it are ever the same.
+   */
+  heroGlobe: 'hero-globe',
+
   // ── Auth ──────────────────────────────────────────────────────────────
   authEmailInput: 'auth-email',
   authPasswordInput: 'auth-password',

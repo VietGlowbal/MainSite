@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { TID, testId } from '@/shared/lib/testids';
 
 /**
- * HeroGlobe — the rotating dot globe in the homepage hero.
+ * HeroGlobe — the draggable dot globe in the homepage hero.
  *
  * Replaces public/home-hero-globe.png, a 446KB static render. The mask this
- * samples is 6.8KB, so the moving version is the lighter one.
+ * samples is ~84KB, so the moving version is still the lighter one.
  *
  * ─── WHAT CHANGED FROM THE PROTOTYPE ────────────────────────────────────────
  *
@@ -22,21 +23,51 @@ import { useEffect, useRef } from 'react';
  *
  * IT STOPS WHEN NOBODY IS LOOKING. The prototype ran an unconditional
  * requestAnimationFrame loop. This one pauses when scrolled out of view, when
- * the tab is hidden, and entirely when the visitor prefers reduced motion — in
- * which case it draws a single still frame, because a hero with a hole in it is
- * not an accessibility win.
+ * the tab is hidden, and does not start at all when the visitor prefers reduced
+ * motion — in which case it draws still frames on demand, because a hero with a
+ * hole in it is not an accessibility win.
  *
- * NOT INTERACTIVE. The prototype had drag, wheel-zoom and click ripples. Drag
- * and wheel on a hero fight the page for the gesture, and on a phone that means
- * the globe eats your scroll.
+ * ─── AND WHAT CHANGED SINCE ─────────────────────────────────────────────────
+ *
+ * IT IS DRAGGABLE. Previously it was not, on the reasoning that drag on a hero
+ * fights the page for the gesture. That is true of *vertical* drag on a
+ * touchscreen and not of anything else, so the fix is `touch-action: pan-y`
+ * rather than giving up the interaction: a vertical swipe scrolls the page as
+ * usual, a horizontal one spins the globe. See the pointer handlers below.
+ *
+ * IT LOOKS LIKE EARTH. Three things were wrong and are covered where they are
+ * fixed: the mask was too coarse and sampled a single pixel (`landAt`), the rows
+ * were offset by an irrational phase that frayed every coastline (`buildPoints`),
+ * and the land floated with no ocean behind it (`drawSphere`).
  */
 
-/** Degrees between sampled latitude rows. Smaller is denser and costs more. */
-const LAT_STEP = 2.6;
-const LAT_STEP_DENSE = 1.9;
+/**
+ * Degrees between sampled latitude rows — the dot spacing, in effect.
+ * Smaller is denser and costs more. Desktop gets the denser grid.
+ */
+const LAT_STEP = 2.3;
+const LAT_STEP_DENSE = 1.7;
 
-/** Sampled band. Past ~84° the rows converge and add cost, not detail. */
-const LAT_LIMIT = 84;
+/**
+ * How much of a dot's cell must be land for the dot to exist.
+ *
+ * ⚠️ THIS IS THE FIX FOR "SOME DOTS ARE COMPLETELY OFF", so think before
+ * lowering it. The old sampler asked one pixel of a 1024x512 land-110m raster
+ * whether it was land. At that resolution a single pixel is 20km of a coastline
+ * generalised for a thumbnail, so the answer was frequently wrong in both
+ * directions: dots appeared on specks of open ocean where 110m had rounded an
+ * islet up, and vanished from real land like the Panama isthmus where it had
+ * rounded a strait down. Averaging the whole cell instead of point-sampling its
+ * centre asks the question the dot is actually posing — "is this patch of Earth
+ * land?" — and a sub-cell speck can no longer answer yes.
+ *
+ * 0.3 keeps Iceland, Sri Lanka, Taiwan and New Zealand's South Island. It drops
+ * things smaller than about a third of a cell, which at this density is Hawaii
+ * and the Canaries. A lone correct dot and a lone wrong dot look identical, so
+ * the ones too small to read as their own landmass are not worth the ones that
+ * would come back with them.
+ */
+const LAND_COVERAGE = 0.3;
 
 const ROTATION_PER_MS = 0.00007;
 
@@ -56,12 +87,42 @@ const ROTATION_PER_MS = 0.00007;
 const FLASH_MS = 2600;
 /** Share of dots lit at once. 0.015 is a scattering; 0.05 is a light show. */
 const CONCURRENT_FRACTION = 0.014;
+/** Multiplier on that share while the pointer is over the globe. */
+const HOVER_FLASH_BOOST = 1.9;
 /** Peak size multiplier. Enough to notice, not enough to bulge. */
 const FLASH_GROWTH = 0.55;
 
 /** How far the globe tips as the hero scrolls away, in radians. */
 const SCROLL_TILT = 0.34;
-const BASE_TILT = 0.34;
+/**
+ * Resting tilt. 23.44° is Earth's axial tilt, which is both the realistic
+ * number and, conveniently, enough to keep the poles off centre so the land
+ * reads as a globe rather than as a disc.
+ */
+const BASE_TILT = 0.409;
+
+/* ── Drag ─────────────────────────────────────────────────────────────────
+   Radians per pixel is set so that dragging across the globe's own width turns
+   it about half a turn: less and it feels stuck to treacle, more and a flick
+   sends it spinning past where you were aiming. */
+const DRAG_RADIANS_PER_PX = 0.0075;
+/** Tilt is clamped short of the pole; past that you are looking at a disc. */
+const TILT_LIMIT = 0.95;
+/** Flick speed ceiling, rad/ms. Roughly three turns a second. */
+const MAX_FLICK = 0.0022;
+/** Share of the flick that survives each 16ms once you let go. */
+const FLICK_DECAY = 0.94;
+
+/**
+ * Direction the light comes from, in view space: x right, y up, z toward the
+ * viewer. Upper left and mostly frontal — enough of a terminator down the right
+ * limb to model the sphere, not so much that half the land goes missing.
+ */
+const LIGHT = (() => {
+  const [x, y, z] = [-0.42, 0.4, 0.82];
+  const length = Math.hypot(x, y, z);
+  return { x: x / length, y: y / length, z: z / length };
+})();
 
 type Point = {
   /** Unit vector on the sphere, unrotated. */
@@ -73,7 +134,9 @@ type Point = {
   flashColour: string;
 };
 
-function readPalette(el: HTMLElement): { dot: string; flashes: string[] } {
+type Palette = { dot: string; sea: string; rim: string; flashes: string[] };
+
+function readPalette(el: HTMLElement): Palette {
   const style = getComputedStyle(el);
   const read = (name: string) => style.getPropertyValue(name).trim();
   const flashes = [1, 2, 3, 4, 5]
@@ -81,7 +144,11 @@ function readPalette(el: HTMLElement): { dot: string; flashes: string[] } {
     .filter((c) => c.length > 0);
 
   return {
+    // Named CSS colours for the fallbacks, not hex: raw hex is banned under
+    // src/features, and the real values live in tokens.css where they belong.
     dot: read('--gb-globe-dot') || 'white',
+    sea: read('--gb-globe-sea') || 'navy',
+    rim: read('--gb-globe-rim') || 'skyblue',
     // A visible fallback rather than an empty list: if the tokens ever fail to
     // resolve, the globe should still light up rather than silently going grey.
     flashes: flashes.length > 0 ? flashes : ['white'],
@@ -89,57 +156,101 @@ function readPalette(el: HTMLElement): { dot: string; flashes: string[] } {
 }
 
 /**
+ * Mean land coverage of one lat/lon cell, 0 (all sea) to 1 (all land).
+ *
+ * The mask is greyscale-in-RGBA and deliberately anti-aliased — see the note in
+ * scripts/build-globe-mask.mjs — so a coastal pixel already carries a partial
+ * value, and averaging a cell gives a real area estimate rather than a vote.
+ */
+function coverage(
+  data: Uint8ClampedArray,
+  width: number,
+  height: number,
+  lat: number,
+  latSpan: number,
+  lon: number,
+  lonSpan: number,
+): number {
+  const top = ((90 - (lat + latSpan / 2)) / 180) * height;
+  const bottom = ((90 - (lat - latSpan / 2)) / 180) * height;
+  const y0 = Math.min(height - 1, Math.max(0, Math.floor(top)));
+  const y1 = Math.min(height - 1, Math.max(y0, Math.ceil(bottom) - 1));
+
+  // Longitude wraps, so this walks a column count from a start index modulo the
+  // width rather than clamping to an edge the way latitude does.
+  const x0 = Math.floor((((lon - lonSpan / 2 + 540) % 360) / 360) * width);
+  const cols = Math.max(1, Math.round((lonSpan / 360) * width));
+
+  let sum = 0;
+  let samples = 0;
+  for (let y = y0; y <= y1; y++) {
+    const rowOffset = y * width;
+    for (let c = 0; c < cols; c++) {
+      sum += data[(rowOffset + ((x0 + c) % width)) * 4]!;
+      samples += 1;
+    }
+  }
+  return samples === 0 ? 0 : sum / (samples * 255);
+}
+
+/**
  * Points on the land, sampled from the baked equirectangular mask.
  *
- * TWO THINGS HERE ARE EASY TO GET WRONG, and the first build got both.
+ * THREE THINGS HERE ARE EASY TO GET WRONG, and earlier builds got all three.
  *
- * 1. A ROW HAS TO CLOSE. Walking `lon += step` from -180 while `lon < 180`
- *    only lands evenly if the step divides 360, and `latStep / cos(lat)` almost
- *    never does. The last dot of each row therefore sat an arbitrary fraction of
- *    a step from where the row began, leaving a seam of mis-spaced dots running
- *    pole to pole — which swept across the visible face as the globe turned and
- *    read as the dots being out of line. Rounding to a whole number of dots and
- *    dividing 360 by THAT makes every row exactly periodic.
+ * 1. A ROW HAS TO CLOSE. Walking `lon += step` from -180 while `lon < 180` only
+ *    lands evenly if the step divides 360, and `latStep / cos(lat)` almost never
+ *    does. The last dot of each row therefore sat an arbitrary fraction of a step
+ *    from where the row began, leaving a seam of mis-spaced dots running pole to
+ *    pole. Rounding to a whole number of dots and dividing 360 by THAT makes
+ *    every row exactly periodic.
  *
- * 2. ROWS MUST NOT SHARE A STARTING LONGITUDE. With every row beginning at
- *    -180, neighbouring rows have near-equal steps and their dots stack into
- *    vertical columns — a moiré that makes a sphere look like a grid draped over
- *    one. Offsetting each row by the golden ratio is the standard fix: the
- *    sequence never repeats, so no two rows ever line up.
+ * 2. ROWS MUST NOT SHARE A STARTING LONGITUDE — but the cure can be worse than
+ *    the disease. With every row starting at -180, neighbouring rows have
+ *    near-equal steps and their dots stack into vertical columns: a moiré that
+ *    makes a sphere look like a grid draped over one. The previous fix offset
+ *    each row by the golden ratio, which does break the columns, and also means
+ *    no two adjacent dots have any fixed relationship — so every coastline came
+ *    out frayed and the land read as a smudge rather than as a continent with an
+ *    edge. Half a step on alternate rows breaks the columns just as well and
+ *    gives a hexagonal packing, which is both the tightest arrangement on a
+ *    plane and regular enough that a coast looks like a coast.
  *
- * The longitude step still widens by 1/cos(lat) so dots stay roughly evenly
- * spaced on the sphere rather than bunching at the poles.
+ * 3. THE POLES ARE PART OF EARTH. The band used to stop at ±84° on the reasoning
+ *    that the rows converge there and add cost rather than detail. They do
+ *    converge — but Antarctica reaches the pole, so the globe was showing it
+ *    sliced flat, and Greenland lost its top. Letting the dot count fall with
+ *    cos(lat) to a single dot at the pole costs almost nothing, because that is
+ *    exactly where the rows are shortest.
  */
-const GOLDEN = 0.6180339887498949;
-
 function buildPoints(mask: ImageData, latStep: number): Point[] {
   const points: Point[] = [];
   const { width, height, data } = mask;
 
-  let row = 0;
-  for (let lat = LAT_LIMIT; lat >= -LAT_LIMIT; lat -= latStep) {
+  // A whole number of rows, so the grid lands exactly on both poles.
+  const rows = Math.max(2, Math.round(180 / latStep));
+  const rowStep = 180 / rows;
+
+  for (let row = 0; row <= rows; row++) {
+    const lat = 90 - row * rowStep;
     const latRad = (lat * Math.PI) / 180;
-    const cosLat = Math.cos(latRad);
+    const cosLat = Math.max(0, Math.cos(latRad));
     const sinLat = Math.sin(latRad);
 
-    const wanted = Math.max(latStep, latStep / Math.max(cosLat, 0.22));
-    // A whole number of dots around the parallel, so the row closes on itself.
-    const count = Math.max(3, Math.round(360 / wanted));
+    // Dots per parallel falls with cos(lat), which keeps the spacing on the
+    // sphere even instead of bunching them up towards the poles.
+    const count = Math.max(1, Math.round((360 * cosLat) / rowStep));
     const step = 360 / count;
-    // Irrational offset per row: no two rows line up into a column.
-    const phase = ((row * GOLDEN) % 1) * step;
-    row += 1;
+    const phase = row % 2 === 0 ? 0 : step / 2;
 
-    const pixelY = Math.min(height - 1, Math.max(0, Math.floor(((90 - lat) / 180) * height)));
+    // The cell is as tall as the row spacing and as wide as the dot spacing,
+    // capped because near the poles a step is tens of degrees and averaging that
+    // much longitude would smear Antarctica's coast into the sea.
+    const lonSpan = Math.min(step, rowStep * 1.5);
 
     for (let i = 0; i < count; i++) {
       const lon = -180 + phase + i * step;
-      const pixelX = Math.min(
-        width - 1,
-        Math.max(0, Math.floor((((lon + 540) % 360) / 360) * width)),
-      );
-      // The mask is greyscale-in-RGBA; one channel is enough.
-      if (data[(pixelY * width + pixelX) * 4]! < 120) continue;
+      if (coverage(data, width, height, lat, rowStep, lon, lonSpan) < LAND_COVERAGE) continue;
 
       const lonRad = (lon * Math.PI) / 180;
       points.push({
@@ -187,6 +298,7 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
     let raf = 0;
     let disposed = false;
     let visible = true;
+    let ready = false;
     let rotation = 0.6;
     let lastFrame = 0;
     let flashCursor = 0;
@@ -197,6 +309,21 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
     /** Where the page is scrolled, and the eased value the globe actually uses. */
     let scrollTarget = 0;
     let scrollEased = 0;
+
+    /* Interaction state. `spin` is the live angular velocity: it sits at
+       ROTATION_PER_MS normally, is replaced by the flick speed on release, and
+       eases back. `tiltDrag` is where the visitor left the axis and stays there,
+       because a globe you have turned should not creep back on its own. */
+    let spin = ROTATION_PER_MS;
+    let tiltDrag = 0;
+    let dragging = false;
+    let dragPointer = -1;
+    let dragX = 0;
+    let dragY = 0;
+    let dragAt = 0;
+    let dragVelocity = 0;
+    let hover = 0;
+    let hoverTarget = 0;
 
     function resize() {
       const rect = wrap.getBoundingClientRect();
@@ -239,19 +366,69 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
       }
     }
 
+    /**
+     * The ocean, the lit side, and the limb.
+     *
+     * Land dots on their own describe the continents but not the body they are
+     * on, so at any moment half of what you are looking at is unlit black and
+     * the sphere has to be inferred from the scatter. A filled disc, a highlight
+     * offset toward LIGHT and a rim stroke are three cheap draws that do what
+     * stippling the sea would have cost ~8,000 more dots to do.
+     */
+    function drawSphere(centre: number, radius: number) {
+      ctx.globalAlpha = 0.85;
+      ctx.fillStyle = palette.sea;
+      ctx.beginPath();
+      ctx.arc(centre, centre, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      const highlight = ctx.createRadialGradient(
+        centre + LIGHT.x * radius * 0.6,
+        centre - LIGHT.y * radius * 0.6,
+        radius * 0.04,
+        centre,
+        centre,
+        radius * 1.15,
+      );
+      highlight.addColorStop(0, palette.rim);
+      highlight.addColorStop(1, 'transparent');
+      ctx.globalAlpha = 0.15 + 0.05 * hover;
+      ctx.fillStyle = highlight;
+      ctx.beginPath();
+      ctx.arc(centre, centre, radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // The limb. A sphere's edge is where you see through the most atmosphere,
+      // which is why an unlit rim still glows on every photograph of Earth.
+      ctx.globalAlpha = 0.4 + 0.2 * hover;
+      ctx.strokeStyle = palette.rim;
+      ctx.lineWidth = Math.max(1, radius * 0.014);
+      ctx.shadowColor = palette.rim;
+      ctx.shadowBlur = radius * (0.06 + 0.04 * hover);
+      ctx.beginPath();
+      ctx.arc(centre, centre, radius - ctx.lineWidth / 2, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
     function draw(now: number) {
       const centre = size / 2;
-      const radius = size * 0.46;
+      // 0.46 before the rim existed. The limb's glow needs somewhere to go, and
+      // canvas clips it flat against the edge rather than fading it, which shows
+      // as a straight line tangent to the sphere at top, bottom and both sides.
+      const radius = size * 0.445;
 
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
 
+      drawSphere(centre, radius);
+
       const cosY = Math.cos(rotation);
       const sinY = Math.sin(rotation);
-      // Base tilt keeps the poles off centre so the land reads as a globe rather
-      // than a disc; the scrolled part tips it further as the hero leaves.
-      const tilt = BASE_TILT + scrollEased * SCROLL_TILT;
+      // Resting tilt, plus wherever the visitor dragged the axis to, plus the
+      // scrolled part that tips it further as the hero leaves.
+      const tilt = BASE_TILT + tiltDrag + scrollEased * SCROLL_TILT;
       const cosX = Math.cos(tilt);
       const sinX = Math.sin(tilt);
 
@@ -271,9 +448,23 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
         const screenX = centre + x1 * radius;
         const screenY = centre - y2 * radius;
 
-        // Atmosphere: dots fade toward the limb, which is what gives a flat
-        // point cloud its roundness.
-        const depth = 0.35 + 0.65 * Math.pow(z2, 0.5);
+        /*
+         * Two separate things, and the globe needs both. Depth fades dots toward
+         * the limb, which is what gives a flat point cloud its roundness.
+         * Lambert shades them by their angle to the light, which is what makes
+         * it a lit sphere rather than an evenly glowing one.
+         *
+         * BOTH TERMS KEEP A HIGH FLOOR, and the floors are the whole difficulty.
+         * Multiply two falloffs together and the corner where they meet — the
+         * unlit side of the limb — lands near zero, so a third of the visible
+         * face goes dark and Earth stops being recognisable there. The point of
+         * the shading is to model the sphere, not to hide the continents on it,
+         * so each term gives up roughly a third of its range at worst rather
+         * than all of it.
+         */
+        const depth = 0.55 + 0.45 * Math.sqrt(z2);
+        const lambert = Math.max(0, x1 * LIGHT.x + y2 * LIGHT.y + z2 * LIGHT.z);
+        const shade = depth * (0.62 + 0.38 * lambert) * (1 + 0.12 * hover);
 
         let lit = 0;
         if (p.flashStart > 0) {
@@ -284,7 +475,10 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
 
         if (lit > 0.01) {
           const s = dotSize * (1 + FLASH_GROWTH * lit);
-          ctx.globalAlpha = Math.min(1, depth * (0.5 + 0.5 * lit));
+          // Flashes keep a floor of their own brightness: a dot lighting up on
+          // the night side should still be visible, or the effect only ever
+          // happens on one half of the globe.
+          ctx.globalAlpha = Math.min(1, Math.max(shade, depth * 0.8) * (0.5 + 0.5 * lit));
           ctx.fillStyle = p.flashColour;
           ctx.shadowColor = p.flashColour;
           ctx.shadowBlur = 5 * lit;
@@ -293,7 +487,7 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
           ctx.fill();
           ctx.shadowBlur = 0;
         } else {
-          ctx.globalAlpha = depth * 0.6;
+          ctx.globalAlpha = Math.min(1, shade * 0.85);
           ctx.fillStyle = palette.dot;
           ctx.beginPath();
           ctx.arc(screenX, screenY, dotSize / 2, 0, Math.PI * 2);
@@ -313,12 +507,21 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
         // backgrounded tab hands back a gap of seconds on its first frame.
         const elapsed = lastFrame === 0 ? 16 : Math.min(64, now - lastFrame);
         lastFrame = now;
-        rotation += elapsed * ROTATION_PER_MS;
+
+        hover += (hoverTarget - hover) * Math.min(1, elapsed / 180);
+
+        if (!dragging) {
+          // A flick decays back to the idle rate rather than stopping dead, so
+          // letting go feels like releasing something with mass.
+          spin = ROTATION_PER_MS + (spin - ROTATION_PER_MS) * FLICK_DECAY ** (elapsed / 16);
+          rotation += elapsed * spin;
+        }
         scrollEased += (scrollTarget - scrollEased) * Math.min(1, elapsed / 220);
 
         // Rate that holds CONCURRENT_FRACTION of the dots lit: each lives
         // FLASH_MS, so lighting (fraction * count / FLASH_MS) per ms sustains it.
-        spawnDebt += (elapsed * points.length * CONCURRENT_FRACTION) / FLASH_MS;
+        const share = CONCURRENT_FRACTION * (1 + (HOVER_FLASH_BOOST - 1) * hover);
+        spawnDebt += (elapsed * points.length * share) / FLASH_MS;
         const toLight = Math.floor(spawnDebt);
         if (toLight > 0) {
           spawnDebt -= toLight;
@@ -333,9 +536,89 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
       raf = requestAnimationFrame(frame);
     }
 
+    /**
+     * Draw one frame outside the loop.
+     *
+     * Under reduced motion there is no loop to piggyback on, but drag still
+     * works — the guidance is about motion the visitor did not ask for, and a
+     * globe that turns exactly as far as you pull it is motion they are asking
+     * for continuously. So drag repaints through here instead.
+     */
+    function drawOnce() {
+      if (ready) draw(performance.now());
+    }
+
+    /* ── Pointer ────────────────────────────────────────────────────────── */
+
+    function onPointerDown(event: PointerEvent) {
+      if (!ready || dragging || !event.isPrimary) return;
+      dragging = true;
+      dragPointer = event.pointerId;
+      dragX = event.clientX;
+      dragY = event.clientY;
+      dragAt = event.timeStamp;
+      dragVelocity = 0;
+      // Capture so a drag that leaves the canvas keeps tracking, and so the
+      // release always arrives even if it happens over another element.
+      wrap.setPointerCapture(event.pointerId);
+    }
+
+    function onPointerMove(event: PointerEvent) {
+      if (!dragging || event.pointerId !== dragPointer) return;
+
+      const dx = event.clientX - dragX;
+      const dy = event.clientY - dragY;
+      const dt = Math.max(1, event.timeStamp - dragAt);
+      dragX = event.clientX;
+      dragY = event.clientY;
+      dragAt = event.timeStamp;
+
+      rotation += dx * DRAG_RADIANS_PER_PX;
+      // Pulling down tips the front face down, which brings the north pole into
+      // view — the same way it works on a globe on a desk.
+      tiltDrag = Math.min(
+        TILT_LIMIT - BASE_TILT,
+        Math.max(-TILT_LIMIT - BASE_TILT, tiltDrag + dy * DRAG_RADIANS_PER_PX),
+      );
+      // Only the last moment of the gesture decides the flick, so a slow drag
+      // that ends in a snap throws and one that ends parked does not.
+      dragVelocity = (dx * DRAG_RADIANS_PER_PX) / dt;
+
+      if (reduced) drawOnce();
+    }
+
+    function endDrag(event: PointerEvent) {
+      if (!dragging || event.pointerId !== dragPointer) return;
+      dragging = false;
+      dragPointer = -1;
+      if (wrap.hasPointerCapture(event.pointerId)) wrap.releasePointerCapture(event.pointerId);
+      // Inertia is motion nobody asked for, so under reduced motion the globe
+      // simply stops where it was left.
+      spin = reduced ? 0 : Math.max(-MAX_FLICK, Math.min(MAX_FLICK, dragVelocity));
+    }
+
+    function onPointerEnter() {
+      hoverTarget = 1;
+      if (reduced) drawOnce();
+    }
+
+    function onPointerLeave() {
+      hoverTarget = 0;
+      if (reduced) drawOnce();
+    }
+
+    wrap.addEventListener('pointerdown', onPointerDown);
+    wrap.addEventListener('pointermove', onPointerMove);
+    wrap.addEventListener('pointerup', endDrag);
+    wrap.addEventListener('pointercancel', endDrag);
+    wrap.addEventListener('pointerenter', onPointerEnter);
+    wrap.addEventListener('pointerleave', onPointerLeave);
+
+    /* ── Lifecycle ──────────────────────────────────────────────────────── */
+
     const observer = new ResizeObserver(() => {
       resize();
-      if (reduced) draw(performance.now());
+      if (reduced) drawOnce();
     });
     observer.observe(wrap);
 
@@ -383,10 +666,11 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
       points = buildPoints(offCtx.getImageData(0, 0, off.width, off.height), step);
 
       resize();
+      ready = true;
 
       if (reduced) {
-        // One frame, no loop, no flashes.
-        draw(performance.now());
+        // One frame, no loop, no flashes — but drag still repaints.
+        drawOnce();
         return;
       }
       raf = requestAnimationFrame(frame);
@@ -399,6 +683,12 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
       io.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('scroll', onScroll);
+      wrap.removeEventListener('pointerdown', onPointerDown);
+      wrap.removeEventListener('pointermove', onPointerMove);
+      wrap.removeEventListener('pointerup', endDrag);
+      wrap.removeEventListener('pointercancel', endDrag);
+      wrap.removeEventListener('pointerenter', onPointerEnter);
+      wrap.removeEventListener('pointerleave', onPointerLeave);
       image.onload = null;
     };
   }, []);
@@ -406,8 +696,21 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
   return (
     <div
       ref={wrapRef}
+      /*
+       * Still aria-hidden, and still not focusable, even though it is now
+       * draggable. The globe carries no information and performs no function —
+       * spinning it tells you nothing the still version did not — so it is
+       * decoration that happens to respond to a pointer. Putting a tab stop on
+       * the hero for it would cost every keyboard visitor a keystroke to skip
+       * something that does nothing.
+       *
+       * `touch-pan-y` is what makes drag safe here: on a touchscreen the browser
+       * keeps vertical gestures for scrolling and only hands us horizontal ones,
+       * so the globe cannot eat the page's scroll.
+       */
       aria-hidden="true"
-      className={`relative aspect-square ${className ?? ''}`}
+      {...testId(TID.heroGlobe)}
+      className={`relative aspect-square cursor-grab touch-pan-y select-none active:cursor-grabbing ${className ?? ''}`}
     >
       {/* A soft brand glow behind the sphere. Pure decoration, but it stops the
           dots reading as a flat scatter on the black band. */}
