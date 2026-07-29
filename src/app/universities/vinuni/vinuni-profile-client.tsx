@@ -940,7 +940,23 @@ const PILLAR_ACCENT: Record<AaccPillarKey, { ring: string; chip: string; bar: st
 
 const MIN_SOP_CHARS = 200;
 
-function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
+/**
+ * ⚠️ EXPORTED, and it is the only reason this file still exists.
+ *
+ * /universities/vinuni now redirects to /universities/97, which renders the
+ * shared design (Figma 375:10629). Everything else in this file is superseded
+ * by that page; this section is not, because it is a FEATURE — the AACC
+ * statement analyser, calling /api/ai/analyze-statement-aacc — that happened to
+ * be parked on a university page. It is re-rendered inside VinUni's extras so
+ * the redirect loses nothing.
+ *
+ * TODO: lift this and its helpers (SopBackToggle, PillarGuideAccordion,
+ * AaccSkeleton, AaccResult, PillarResultCard, ScoreDial) into their own module
+ * and delete the rest of this file. It belongs with /ai-strategy — see
+ * docs/redesign-status.md. Until then the dead components below still ship in
+ * whatever chunk imports this one.
+ */
+export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
   const [mode, setMode] = useState<'idle' | 'yes' | 'no'>('idle');
   const [sopText, setSopText] = useState('');
   const [loading, setLoading] = useState(false);

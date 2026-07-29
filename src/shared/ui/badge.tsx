@@ -18,7 +18,15 @@
  * being re-derived on every card.
  */
 
-export type BadgeVariant = 'outline' | 'brand-subtle' | 'neutral' | 'reach' | 'recommend' | 'safe';
+export type BadgeVariant =
+  | 'outline'
+  | 'brand-subtle'
+  | 'neutral'
+  | 'reach'
+  | 'recommend'
+  | 'safe'
+  | 'brand-chip'
+  | 'info-chip';
 
 const VARIANTS: Record<BadgeVariant, string> = {
   outline:
@@ -42,6 +50,25 @@ const VARIANTS: Record<BadgeVariant, string> = {
    * pill 2px taller than its sibling, so the border is dropped instead.
    */
   neutral: 'rounded-gb-full bg-surface-muted px-gb-lg py-gb-xs text-gb-sm font-medium text-fg-muted',
+  /*
+   * The two chip rows on the mentor profile — "Điểm mạnh" (375:21668) and
+   * "Tốt nhất cho" (375:21684).
+   *
+   * Same geometry as `brand-subtle`, but one type step down: those frames bind
+   * `Text xs/Medium` (12/18), not the `Text sm` the university card and the
+   * tier pills use. Reusing `brand-subtle` would render them 2px larger than
+   * the design, so the size is baked into its own variant rather than added as
+   * a `size` prop — every existing call site wants the current step, and a prop
+   * would put a second axis on a primitive that has managed without one.
+   *
+   * `info-chip` is blue because a help topic is a category, not a risk level.
+   * See the note on --color-gb-blue-* in tokens.css for why it does not reuse
+   * the visually identical `recommend` tier.
+   */
+  'brand-chip':
+    'rounded-gb-full bg-brand-subtle px-gb-lg py-gb-xs text-gb-xs font-medium text-fg-brand',
+  'info-chip':
+    'rounded-gb-full bg-info-subtle px-gb-lg py-gb-xs text-gb-xs font-medium text-fg-info',
   reach: 'rounded-gb-full bg-tier-reach px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-reach',
   recommend:
     'rounded-gb-full bg-tier-recommend px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-recommend',

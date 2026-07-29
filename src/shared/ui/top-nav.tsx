@@ -49,7 +49,10 @@ export type TopNavUser = {
 type Tone = 'dark' | 'light';
 
 type Props = {
-  /** Wordmark, 28px tall in the design. Links home. */
+  /**
+   * Wordmark, 28px tall in the design. Pass the bare mark — this component
+   * wraps it in the link to `/` itself.
+   */
   logo: React.ReactNode;
   items: readonly TopNavItem[];
   primaryAction: TopNavItem;
@@ -98,7 +101,18 @@ export function TopNav({
          * only once there is room for it.
          */}
         <div className="flex min-w-0 flex-1 items-center gap-gb-3xl xl:gap-gb-7xl">
-          {logo}
+          {/* The wordmark is the site's home affordance, which is why the `logo`
+              prop is documented as "Links home". The <Link> lives HERE rather
+              than in each caller so no page can forget it — MobileNav takes the
+              opposite approach and its callers wrap the node themselves, so do
+              not pass an already-linked node in here or the anchors nest. */}
+          <Link
+            href="/"
+            aria-label="GlowBal home"
+            className="flex shrink-0 items-center rounded-gb-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            {logo}
+          </Link>
           <nav aria-label="Primary" className="flex min-w-0 items-center gap-gb-md overflow-hidden">
             {items.map((item) => {
               const active =

@@ -438,8 +438,15 @@ export function NavReveal() {
    *
    * `/auth` shows no app chrome at all in the redesign — the Figma frames are a
    * bare centered card — so the sidebar and mobile nav are suppressed here too.
+   *
+   * Two lists, because "rebuilt" arrives at different depths. EXACT is the
+   * default and stays the default: most rebuilt pages still have legacy child
+   * routes underneath that need the app chrome. PREFIX is only for subtrees
+   * where every descendant is rebuilt — matching those by prefix is what stops
+   * this list needing a new entry per dynamic segment.
    */
   const OWN_CHROME_ROUTES = new Set([
+    '/',
     '/dev/home',
     '/universities',
     '/auth',
@@ -458,8 +465,9 @@ export function NavReveal() {
     // The applications list. The workspace under it is covered by the prefix
     // rule below rather than listed here.
     '/apply',
-    // And again: the mentor browse is rebuilt (Figma 154:8345); /mentors/[id],
-    // /mentors/apply and its success page are not.
+    // And again: the mentor browse is rebuilt (Figma 154:8345). /mentors/[id]
+    // is now rebuilt too and is matched below by its uuid, but /mentors/apply
+    // and its success page still take the app chrome, so this stays exact.
     '/mentors',
     '/dev/saved-list',
     // Previews the workspace, which ships its own chrome. Listed for the same
@@ -467,20 +475,40 @@ export function NavReveal() {
     // would preview a page nobody can navigate to.
     '/dev/apply-workspace',
   ]);
+
   /*
-   * Whole subtrees that ship their own chrome, matched by prefix rather than
-   * by exact path.
+   * Subtrees where every descendant ships its own chrome, matched by prefix.
    *
-   * `/apply/` covers the per-course workspace. The set above deliberately
-   * matches exactly, because most of these routes have un-rebuilt detail pages
-   * beneath them that still want the app chrome — but apply is now rebuilt all
-   * the way down, and the sidebar is gone from the whole journey.
+   * Keep this list short and only add a path once its WHOLE tree is rebuilt —
+   * a prefix entry silently covers routes that do not exist yet, so a legacy
+   * page added underneath one would lose its navigation with nothing to say so.
    */
-  const OWN_CHROME_PREFIXES = ['/apply/'];
+  const OWN_CHROME_PREFIXES = ['/ai-strategy'];
+
+  /*
+   * `/universities/<id>` — the rebuilt detail page (Figma 375:10629) — ships
+   * its own chrome, but `/universities/vinuni` next door still uses the app
+   * chrome, so this cannot be a plain prefix. Matching digits separates them:
+   * the new route is keyed on the numeric id because `universities` has no slug
+   * column. When vinuni is retired this can become a prefix entry.
+   */
+  const isNumericUniversityRoute = /^\/universities\/\d+$/.test(pathname);
+
+  /*
+   * `/mentors/<uuid>` — the rebuilt profile page (Figma 375:21633). Same
+   * problem as /universities above and the same solution: `/mentors/apply` and
+   * `/mentors/apply/success` sit next door and still use the app chrome, so a
+   * prefix would strip the navigation off them. Mentor ids are uuids, which is
+   * what separates the two — `apply` cannot match this shape.
+   */
+  const isMentorProfileRoute =
+    /^\/mentors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname);
 
   const rendersOwnChrome =
     OWN_CHROME_ROUTES.has(pathname) ||
-    OWN_CHROME_PREFIXES.some((prefix) => pathname.startsWith(prefix));
+    isNumericUniversityRoute ||
+    isMentorProfileRoute ||
+    OWN_CHROME_PREFIXES.some((base) => pathname === base || pathname.startsWith(`${base}/`));
 
   /*
    * The reveal gate only ever mattered for the landing page: everywhere else

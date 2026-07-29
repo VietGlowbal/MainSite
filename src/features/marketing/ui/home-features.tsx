@@ -18,9 +18,17 @@ import { MissingContent } from './missing-content';
  * to 681x529 for a node Figma reports as 762.98x512 — so the frame is rebuilt
  * here at the design's real geometry instead of shipping a broken asset.
  *
- * ⚠️ BLOCK ONE CONTRADICTS THE HERO. It claims "200+ top universities" and
- * "3000+ scholarships"; the hero two sections up claims over 10,000 and over
- * 2,000. Both are reproduced as written — resolving them is a copy decision.
+ * Block one's "200+ top universities" and "3000+ scholarships" now AGREE with
+ * the hero. They did not for a long time — the hero claimed 10,000 at one point
+ * and 300+ after the 375:9857 rebuild — and the owner settled it at 200+ on
+ * 28/07. These two components are the only places the number appears; change
+ * them together.
+ *
+ * `showPlaceholders` is how this section reaches "/" without shipping dashed
+ * boxes to real visitors: false renders only the blocks whose copy exists and
+ * drops the mockup frames, which have no asset behind them for ANY block. The
+ * preview at /dev/home leaves it true so the gap stays visible to us. Delete the
+ * prop once blocks two and three are written and the mockups are exported.
  */
 
 type Block = {
@@ -74,7 +82,13 @@ function BlockMedia({ node, side }: { node: string; side: 'right' | 'left' }) {
   );
 }
 
-function FeatureBlock({ block }: { block: Block }) {
+function FeatureBlock({
+  block,
+  showPlaceholders,
+}: {
+  block: Block;
+  showPlaceholders: boolean;
+}) {
   return (
     <div
       className={`flex flex-col gap-gb-6xl lg:items-center lg:gap-gb-9xl ${
@@ -109,12 +123,18 @@ function FeatureBlock({ block }: { block: Block }) {
         )}
       </div>
 
-      <BlockMedia node={block.mediaNode} side={block.media} />
+      {showPlaceholders ? <BlockMedia node={block.mediaNode} side={block.media} /> : null}
     </div>
   );
 }
 
-export function HomeFeatures() {
+function isComplete(block: Block): boolean {
+  return block.body != null && block.checks != null;
+}
+
+export function HomeFeatures({ showPlaceholders = true }: { showPlaceholders?: boolean } = {}) {
+  const blocks = showPlaceholders ? BLOCKS : BLOCKS.filter(isComplete);
+
   return (
     <Section
       padded={false}
@@ -134,8 +154,8 @@ export function HomeFeatures() {
         </p>
       </div>
 
-      {BLOCKS.map((block) => (
-        <FeatureBlock key={block.node} block={block} />
+      {blocks.map((block) => (
+        <FeatureBlock key={block.node} block={block} showPlaceholders={showPlaceholders} />
       ))}
     </Section>
   );

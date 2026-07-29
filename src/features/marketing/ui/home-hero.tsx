@@ -2,7 +2,22 @@ import Image from 'next/image';
 import { Button, Section } from '@/shared/ui';
 
 /**
- * Home hero — Figma node 104:7126 (1440x646).
+ * Home hero — Figma node 375:9857 (1440x646) on the "Khanh Linh - Chi" canvas,
+ * which supersedes 104:7126. The layout is unchanged; the copy is not.
+ *
+ * The page's pitch moved from universities to scholarships: the headline is now
+ * two lines instead of five, and the CTA reads "find matching scholarships"
+ * rather than "find mine".
+ *
+ * ⚠️ THE UNIVERSITY COUNT DELIBERATELY DEPARTS FROM THE FRAME. 375:9857 says
+ * "300+ trường đại học". The owner confirmed 200 on 24/07 and re-confirmed it
+ * on 28/07 when the conflict was raised, so this ships 200+ and the frame is
+ * wrong — not the other way round. It now agrees with the Features block, which
+ * also says 200+.
+ *
+ * Those two places are the ONLY ones that state this number. Change them
+ * together, and ask the designer to correct the frame rather than "fixing" this
+ * back to match it.
  *
  * Copy is written in English and translated by the dictionary in
  * src/lib/i18n-dictionary.ts, which `DomTranslator` matches against the exact
@@ -33,23 +48,17 @@ export function HomeHero() {
       <div className="flex min-w-0 flex-1 flex-col gap-gb-6xl">
         <div className="flex flex-col gap-gb-xl">
           <h1 className="font-display text-gb-display-sm font-medium md:text-gb-display-lg">
-            Study-abroad experts who help you choose universities and scholarships, and stay beside
-            you through the whole application
+            A tool built for scholarship hunters
           </h1>
-          {/* Numbers confirmed by the owner on 24/07: 200 universities, 3,000
-              scholarships — matching the Features block below, which already
-              said that. The hero previously claimed 10,000 and 2,000 and
-              contradicted it two sections down. */}
           <p className="max-w-gb-width-xl text-gb-md md:text-gb-xl">
-            Explore over 200 universities, discover more than 3,000 scholarships worth over
-            150,000,000 USD, and build your application strategy with AI and real student
-            supporters around the world.
+            Personalised analysis and strategy, beside you for the whole scholarship hunt — across
+            200+ universities and 3,000+ scholarships worth up to $150,000,000.
           </p>
         </div>
 
         <div className="flex max-w-gb-width-sm">
           <Button href="/onboarding" size="xl" variant="primary-on-dark">
-            Find my scholarships
+            Find matching scholarships
           </Button>
         </div>
       </div>

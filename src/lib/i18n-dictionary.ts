@@ -33,7 +33,11 @@ export const translations: Record<string, string> = {
   'Search universities': 'Tìm trường đại học',
   Coordinator: 'Điều phối viên',
   'About us': 'Về chúng tôi',
-  'AI strategy': 'AI lên chiến lược',
+  // The header and the footer point at /ai-strategy under different labels, on
+  // purpose: the nav was relabelled on Figma 375:9845 / 375:10151, the footer
+  // frame (104:7413) was not. Keep both keys.
+  'Build your strategy': 'Lên Chiến lược Du học', // header, Figma 375:9845
+  'AI strategy': 'Chiến lược AI', // footer, Figma 104:7413
   Blog: 'Blog',
   Contact: 'Liên hệ',
   // 'Find a mentor' is already defined further down, under the mentorship copy.
@@ -42,13 +46,17 @@ export const translations: Record<string, string> = {
   'Close menu': 'Đóng menu',
   'Plan your studies': 'Lập kế hoạch du học',
 
-  // ── Home hero (Figma 104:7126) ───────────────────────────────────────────
+  // ── Home hero (Figma 375:9857) ───────────────────────────────────────────
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
   // must stay character-identical to the JSX in features/marketing/ui.
-  'Study-abroad experts who help you choose universities and scholarships, and stay beside you through the whole application':
-    'Chuyên gia du học giúp bạn chọn trường và học bổng, đồng hành cùng bạn xuyên suốt quá trình ứng tuyển hồ sơ du học',
-  'Explore over 200 universities, discover more than 3,000 scholarships worth over 150,000,000 USD, and build your application strategy with AI and real student supporters around the world.':
-    'Khám phá hơn 200 trường đại học, tìm hiểu hơn 3,000 học bổng trị giá trên 150,000,000 USD, và xây dựng chiến lược hồ sơ của bạn với AI và những người hỗ trợ sinh viên thực tế trên toàn thế giới.',
+  'A tool built for scholarship hunters': 'Công cụ dành cho "dân săn học bổng"',
+  // "200+", not the frame's "300+" — the owner confirmed 200 on 24/07 and again
+  // on 28/07. Both languages carry the same number; see the note in home-hero.
+  'Personalised analysis and strategy, beside you for the whole scholarship hunt — across 200+ universities and 3,000+ scholarships worth up to $150,000,000.':
+    'Phân tích và đưa chiến lược cá nhân hoá, đồng hành xuyên suốt quá trình săn học bổng từ 200+ trường đại học và 3000+ học bổng với trị giá lên đến $150,000,000.',
+  'Find matching scholarships': 'Tìm Học bổng Phù hợp',
+  // Still rendered by the legacy landing at src/components/landing/home until
+  // that tree is deleted. Remove this key with those files, not before.
   'Find my scholarships': 'Tìm học bổng của tôi',
 
   // ── Home partner wall (Figma 104:7135) ───────────────────────────────────
@@ -56,20 +64,25 @@ export const translations: Record<string, string> = {
   // so there is nothing here to accidentally translate.
   'Our featured partners': 'Đối tác tiêu biểu của chúng tôi',
 
-  // ── Home metrics (Figma 104:7148) ────────────────────────────────────────
-  // The three figures are the hero's, restated. They are listed here rather
-  // than left to fall through so that a number never makes a round trip to
-  // /api/translate just to come back unchanged.
+  // ── Home metrics (Figma 375:9879) ────────────────────────────────────────
+  // Five adoption figures supplied by the designer. Listed here rather than
+  // left to fall through so that a number never makes a round trip to
+  // /api/translate just to come back unchanged. The Vietnamese digit groupings
+  // are the frame's own, which is why they do not all carry separators.
   'Standout numbers': 'Những con số nổi bật',
-  'A short guide to how GLOWBAL takes you from a dream university to a clear scholarship plan.':
-    'Một hướng dẫn ngắn về cách GLOWBAL đưa bạn từ trường đại học mơ ước đến một kế hoạch học bổng rõ ràng.',
+  '"GlowBal has shown how much it invests in product quality, and how well it answers what the market actually needs"':
+    '"GlowBal đã chứng minh mức độ đầu tư về chất lượng sản phẩm và khả năng đáp ứng nhu cầu thực từ thị trường"',
   // Keep the values short in both languages — see the note on `Metric`.
-  '200+': '200+',
-  'Universities covered': 'Trường đại học trong kho',
-  '3,000+': '3,000+',
-  'Open scholarships': 'Học bổng đang mở',
-  '150M': '150 triệu',
-  'Total scholarship value (USD)': 'Tổng giá trị học bổng (USD)',
+  '7,800+': '7800+',
+  'Scholarship searches run': 'Lượt Sử dụng Công cụ Tìm kiếm học bổng',
+  '370': '370',
+  'Regular users': 'Người dùng Thường xuyên',
+  '$2,000': '$2000',
+  'Invested by Venture X': 'Đầu tư từ quỹ Venture X',
+  '150': '150',
+  'Pilot users': 'Người dùng Thử nghiệm',
+  '270': '270',
+  'Pieces of feedback shaping the product': 'Feedbacks để hoàn thiện hệ thống',
 
   // ── Home features (Figma 104:7164) ───────────────────────────────────────
   // Only the first block is written; the other two show `MissingContent`,
@@ -931,6 +944,58 @@ export const translations: Record<string, string> = {
   'Saving the article': 'Đang lưu bài viết',
   'Loading article links': 'Đang tải liên kết bài viết',
   'Saving article links': 'Đang lưu liên kết bài viết',
+
+  // ── Mentor profile, /mentors/[id] (Figma 375:21633) ──────────────────────
+  // The frame's Vietnamese is the source for these; the English literals in
+  // the JSX are the translation back, so the pairs read in the frame's voice.
+  'All mentors': 'Tất cả cố vấn',
+  About: 'Giới thiệu',
+  Strengths: 'Điểm mạnh',
+  'Best for': 'Tốt nhất cho',
+  // `Reviews`, `Book a session` and `Back` are deliberately absent — all three
+  // are already defined above (lines 331, 394, 128) and a duplicate key is a
+  // type error. The existing Vietnamese covers this page unchanged.
+  'Book this mentor': 'Đặt lịch với cố vấn này',
+  // Its own text node beside the formatted price, so it translates on its own.
+  '/hour': '/giờ',
+  'Book now': 'Đặt lịch ngay',
+  'Available times': 'Khung giờ trống',
+  'No reviews yet — be the first to book and leave one.':
+    'Chưa có đánh giá nào — hãy là người đầu tiên đặt lịch và để lại đánh giá.',
+  '+ 10% service fee · paid securely through Stripe':
+    '+ 10% phí dịch vụ · thanh toán an toàn qua Stripe',
+  'Pick any open day below. Sessions must be booked at least an hour ahead.':
+    'Chọn bất kỳ ngày nào mở bên dưới. Buổi tư vấn cần được đặt trước ít nhất một giờ.',
+  'This mentor hasn’t published availability for the next 90 days.':
+    'Cố vấn này chưa mở lịch cho 90 ngày tới.',
+  'No ratings yet': 'Chưa có đánh giá nào',
+  'No open times right now': 'Hiện chưa có khung giờ trống',
+  'Select a day with a dot to see its times.':
+    'Chọn một ngày có dấu chấm để xem khung giờ.',
+  'No date selected': 'Chưa chọn ngày',
+  'Loading availability…': 'Đang tải lịch trống…',
+  Today: 'Hôm nay',
+  'Not bookable yet': 'Chưa thể đặt lịch',
+  'What do you want help with?': 'Bạn muốn được hỗ trợ điều gì?',
+  'What would you like to ask?': 'Bạn muốn hỏi điều gì?',
+  'The more context you give, the more your mentor can prepare.':
+    'Bạn chia sẻ càng cụ thể, cố vấn càng chuẩn bị tốt.',
+  'Or type your own topic': 'Hoặc tự nhập chủ đề của bạn',
+  'Session topic': 'Chủ đề buổi tư vấn',
+  'Service fee (10%)': 'Phí dịch vụ (10%)',
+  Total: 'Tổng cộng',
+  'Redirecting…': 'Đang chuyển hướng…',
+  'Personal statement review': 'Review bài luận cá nhân',
+  'Course & university choice': 'Lựa chọn chương trình học & trường',
+  'Interview practice': 'Luyện phỏng vấn',
+  'Scholarships & funding': 'Học bổng & trợ cấp',
+  'Life on campus': 'Đời sống sinh viên',
+  'Previous month': 'Tháng trước',
+  'Next month': 'Tháng sau',
+  'Talk to a student who has already been admitted where you are applying.':'Hãy kết nối với các sinh viên đang theo học tại ngôi trường bạn muốn nộp hồ sơ',
+  'Anywhere':'Mọi nơi',
+  'Subject':'Ngành học',
+  'Search by name or university':'Tìm kiếm theo tên sinh viên hoặc trường',
 
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',

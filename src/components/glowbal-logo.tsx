@@ -22,6 +22,15 @@ import Image from 'next/image';
  * yields exactly the 138x28 the Figma header draws.
  *
  * The uncropped file is left in place; nothing else references it.
+ *
+ * ── Why the inline width is a number, not `auto` ─────────────────────────────
+ * `width: auto` leaves the cross size auto, so in a COLUMN flex container the
+ * default `align-items: stretch` applies to the <img> and blows it out to the
+ * container's full width while the fixed height stays put. That is what made
+ * the footer wordmark render 352x28 (ratio 12.6 against the asset's 4.9) — the
+ * footer's left column is `flex flex-col` with no `items-*`, whereas TopNav's
+ * row has `items-center` and so was unaffected. Emitting the derived width in
+ * px opts every call site out of that stretch, whatever container it lands in.
  */
 type Props = {
   /** Rendered height in px. Width is derived from the source aspect ratio. */
@@ -59,7 +68,7 @@ export function GlowbalLogo({
        */
       quality={90}
       className={className}
-      style={{ height, width: 'auto', display: 'block' }}
+      style={{ height, width, display: 'block' }}
     />
   );
 }

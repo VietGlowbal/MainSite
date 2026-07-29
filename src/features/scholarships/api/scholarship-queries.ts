@@ -59,6 +59,13 @@ export interface ScholarshipQueries {
   /** Adapter name, e.g. "supabase". */
   readonly name: string;
 
+  /**
+   * ⚠️ Reads the WHOLE published set through `getPublishedScholarships()` and
+   * slices in memory — about 6MB today, which is over Next's 2MB data-cache
+   * ceiling, so the cache write throws an unhandled rejection. Callers that
+   * need a handful of rows should not reach for this; a ranged query is the
+   * fix, and Track A owns replacing the body.
+   */
   listPublished(query: ScholarshipListQuery): Promise<Page<DirectoryScholarship>>;
 
   /**

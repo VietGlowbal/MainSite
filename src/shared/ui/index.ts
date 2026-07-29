@@ -26,7 +26,15 @@ export { Select } from './select';
 export { Textarea } from './textarea';
 export { Footer } from './footer';
 export type { FooterColumn, FooterLink, FooterSocial } from './footer';
-export { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon } from './icons';
+export {
+  BRAND_ICONS,
+  BrandIcon,
+  ICONS,
+  InstagramMark,
+  KitIcon,
+  SearchMark,
+  VerifiedMark,
+} from './icons';
 export type { BrandIconArt, KitIconArt } from './icons';
 export { GlobeLoader, LoadingScreen, PageLoaderOverlay } from './globe-loader';
 export type { GlobeLoaderSize } from './globe-loader';
@@ -62,6 +70,8 @@ export type { ScoreRingMeasure, ScoreRingSize } from './score-ring';
 export { Stepper } from './stepper';
 export type { StepperStep } from './stepper';
 export { Metric } from './metric';
+export { MultiSelect } from './multi-select';
+export type { MultiSelectOption } from './multi-select';
 export { Modal } from './modal';
 export { MobileNav } from './mobile-nav';
 export { Section } from './section';

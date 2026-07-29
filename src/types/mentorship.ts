@@ -68,6 +68,12 @@ export interface MentorWithUniversity extends MentorProfile {
     id: number;
     name: string;
     country: string;
+    /**
+     * Optional because most callers join only (id, name, country). The mentor
+     * profile page (Figma 375:21633) draws the crest above the name, so its
+     * select asks for this one too.
+     */
+    logo_url?: string | null;
   } | null;
 }
 
