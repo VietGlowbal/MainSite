@@ -48,6 +48,12 @@ export type StudentProfile = {
   current_institution?: string | null;
   current_qualification?: string | null;
   predicted_grades?: string | null;
+  // Academic intake — onboarding câu 6 (Figma 375:11536). See
+  // supabase-academic-intake.sql for why these are separate from
+  // current_qualification / predicted_grades, which are free text.
+  curriculum?: string | null;
+  gpa_scale?: string | null;
+  gpa_value?: number | null;
   graduation_year?: number | null;
   preferred_cities?: string[] | null;
   study_mode_preference?: string | null;

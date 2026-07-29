@@ -50,8 +50,10 @@ export const translations: Record<string, string> = {
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
   // must stay character-identical to the JSX in features/marketing/ui.
   'A tool built for scholarship hunters': 'Công cụ dành cho "dân săn học bổng"',
-  'Personalised analysis and strategy, beside you for the whole scholarship hunt — across 300+ universities and 3,000+ scholarships worth up to $150,000,000.':
-    'Phân tích và đưa chiến lược cá nhân hoá, đồng hành xuyên suốt quá trình săn học bổng từ 300+ trường đại học và 3000+ học bổng với trị giá lên đến $150,000,000.',
+  // "200+", not the frame's "300+" — the owner confirmed 200 on 24/07 and again
+  // on 28/07. Both languages carry the same number; see the note in home-hero.
+  'Personalised analysis and strategy, beside you for the whole scholarship hunt — across 200+ universities and 3,000+ scholarships worth up to $150,000,000.':
+    'Phân tích và đưa chiến lược cá nhân hoá, đồng hành xuyên suốt quá trình săn học bổng từ 200+ trường đại học và 3000+ học bổng với trị giá lên đến $150,000,000.',
   'Find matching scholarships': 'Tìm Học bổng Phù hợp',
   // Still rendered by the legacy landing at src/components/landing/home until
   // that tree is deleted. Remove this key with those files, not before.
