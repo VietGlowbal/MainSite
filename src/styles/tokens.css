@@ -355,6 +355,33 @@
   --gb-info-on: var(--color-gb-blue-600);
   /* Standalone filled mark, so no pair — the tick on top of it is white. */
   --gb-verified: var(--color-gb-blue-500);
+
+  /* ── Hero globe ───────────────────────────────────────────────────────────
+     The colours the dot globe in the homepage hero lights up with.
+
+     TOKENS RATHER THAN LITERALS IN THE COMPONENT for two reasons. Canvas needs
+     real colour strings, and eslint bans raw hex under src/features — but more
+     usefully, a palette is design-system data and belongs where a designer can
+     find it.
+
+     WHY THESE FIVE. The prototype this came from flashed twenty-one hues —
+     neon red, crimson, electric blue, matrix green, solar gold, violet — all at
+     once. Every colour clashing with its neighbour is what makes that read as
+     television static rather than as something alive. These five are the brand
+     rose and the logo gradient's own pink and aqua, plus the two hues that
+     bridge them, so any pair that happens to light up together still looks
+     deliberate. No green, no yellow: neither is in the brand, and they are what
+     made the prototype look like a Christmas tree.
+
+     Ordered warm to cool. The component walks the list rather than picking at
+     random, so consecutive blooms are adjacent hues. */
+  --gb-globe-flash-1: var(--color-gb-brand-600); /* rose 600 — the brand */
+  --gb-globe-flash-2: #ff4d8c;                   /* logo pink */
+  --gb-globe-flash-3: #c084fc;                   /* violet bridge */
+  --gb-globe-flash-4: #38bdf8;                   /* sky */
+  --gb-globe-flash-5: #00b4d8;                   /* logo aqua */
+  /* The dots that are not lit. Near-white on the black hero band. */
+  --gb-globe-dot: var(--color-gb-neutral-0);
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
