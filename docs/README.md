@@ -1,21 +1,29 @@
 # docs/ — session handoff notes
 
-Written 2026-07-26 at the end of the Figma redesign push, updated 2026-07-27, so
-a fresh session can skip re-deriving what a previous one already established.
-**Not product documentation** — `AGENTS.md` bans that, and these files exist
-because the owner asked for a handoff pack. If they ever contradict the code, the
-code wins.
+Written 2026-07-26 at the end of the Figma redesign push, updated through
+2026-07-30, so a fresh session can skip re-deriving what a previous one already
+established. **Not product documentation** — `AGENTS.md` bans that, and these
+files exist because the owner asked for a handoff pack. If they ever contradict
+the code, the code wins.
 
-**The single most important fact in this pack:** the Figma file has two canvases,
-and building from the wrong one has already cost a rebuild once. See the top of
-[redesign-status.md](redesign-status.md) before picking a frame.
+**Two facts worth more than the rest of this pack:**
+
+1. The Figma file has **three** canvases and Figma's own page index lists only
+   two. Building from the wrong one has already cost a rebuild. See the top of
+   [redesign-status.md](redesign-status.md) before picking a frame.
+2. **Verify claims about the database against the database.** Two separate
+   sessions have now burned the owner's time by trusting a `.sql` file or a
+   stale to-do instead of querying — most recently four pointless re-runs of a
+   migration that could never have worked. See
+   [known-issues.md §0](known-issues.md), which includes the one-liner that
+   reads live column types.
 
 ## Read order
 
 | File | Read it when |
 |---|---|
 | [redesign-status.md](redesign-status.md) | **Always first.** What is rebuilt, what is still legacy, which Figma node maps to which route. |
-| [known-issues.md](known-issues.md) | Before touching `/universities`, `/my-universities`, saving, or auth. Contains one hard blocker. |
+| [known-issues.md](known-issues.md) | Before touching `/universities`, `/my-universities`, `/mentors`, saving, auth — **or any `supabase-*.sql` file**. §0 is the migration trap; §1b is the mentorship RLS gap. |
 | [design-system.md](design-system.md) | Before writing any component. Token names, the primitives that already exist. |
 | [architecture.md](architecture.md) | Before adding a file under `features/`, `shared/`, or `server/`. |
 | [verification.md](verification.md) | Before claiming anything works. Commands, baselines, how to see gated pages. |
@@ -108,3 +116,19 @@ in a comment at the top of the file that made it.
   `src/components/nav-reveal.tsx`, or the legacy app sidebar renders on top of
   it. Screenshot the finished page before calling it done — this is easy to miss
   in a diff and obvious in a render.
+- **A frame can be broken, and copying it faithfully then ships the break.** The
+  mentor profile's calendar (`375:21725`) is a stretched component instance whose
+  date grid wrapped to **ten** columns under a seven-label weekday header, so
+  dates no longer sit under their weekday. Its booking section also carries the
+  heading from the section two blocks above it. Neither is a design decision.
+  When geometry contradicts what the component *is*, rebuild the behaviour and
+  write down why.
+- **Check what the API requires before trusting the frame's flow.** That same
+  page's "Đặt lịch ngay" goes straight from slot to payment, but
+  `POST /api/mentorship/checkout` refuses a booking without `help_topic` — the
+  one field telling the mentor what to prepare. The gap is the design's, not the
+  API's; the fix is to ask for it, never to invent a value that satisfies a
+  validator.
+- **Never edit a migration that has already been applied.** `ADD COLUMN IF NOT
+  EXISTS` matches names, not types, so re-running it can never repair a wrong
+  column. Add a guarded follow-up instead — [known-issues.md §0](known-issues.md).

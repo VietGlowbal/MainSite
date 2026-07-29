@@ -34,9 +34,10 @@ setting that rule must not overlap an existing zone.
 ### `ADMIN_CLIENT_DEBT`
 
 A hardcoded list of pages that still build the RLS-bypassing service-role client
-inline. **It may shrink, never grow** — a new offender fails lint. Currently:
-`src/app/page.tsx`, `src/app/admin/page.tsx`, `src/app/plus/success/page.tsx`,
-`src/app/universities/vinuni/page.tsx`.
+inline. **It may shrink, never grow** — a new offender fails lint. Down to two:
+`src/app/admin/page.tsx` and `src/app/plus/success/page.tsx`. The entries removed
+so far are kept as comments in `eslint.config.mjs` saying what replaced them,
+which is the record of the list shrinking.
 
 ## Strict TypeScript
 
@@ -66,6 +67,36 @@ That is the existing pattern in `src/app/apply/page.tsx`.
 table render identically, so an unchecked error becomes a page that quietly lies —
 which is exactly how the missing `user_universities` table went unnoticed. At
 minimum `console.error`, as the repositories do.
+
+⚠️ **And an RLS filter is not an error at all.** The read succeeds and returns
+zero rows, so error-checking cannot catch it. Twice now that has shipped a page
+that was simply empty — or 404 — for signed-out visitors, with nothing logged:
+the mentor directory, then `/mentors/[id]` (known-issues §1b). If a page is
+reachable from the guest nav, **test it against the anon key**, not only a
+signed-in session.
+
+### Public reads that bypass RLS — `src/lib/mentors.ts`
+
+Not FSD (`src/lib` is pre-FSD, and rule 5 permits the admin client in a
+repository), but it is the only place in the codebase deliberately serving
+*public* data through the service role, so the pattern is worth stating:
+
+1. **Filter for visibility inside the query, never in the caller.**
+   `.eq('status','approved')`, `.eq('is_visible', true)`, `.eq('status','open')`.
+   Bypassing RLS means the query is the only gate left.
+2. **Project onto an explicit public type — never `select('*')`.**
+   `PublicMentor` exists because `achiever_profiles` also holds `legal_name`,
+   `date_of_birth`, `stripe_account_id` and four verification-document storage
+   keys, and the old code handed the whole row to a `'use client'` component,
+   which serialises it into the page.
+3. **Validate the id before the round trip.** A malformed uuid makes Postgres
+   raise on the cast rather than return nothing.
+4. **Mirror the write-side rules the API will enforce.** The booking calendar
+   filters to slots `POST /api/mentorship/checkout` will actually accept, so the
+   student is not offered a time that 409s at payment.
+
+Anything added here should read the same way, and should shrink back to the
+request-scoped client once the anon read policies exist.
 
 ## Routing / gating
 
