@@ -1,10 +1,16 @@
 /* ==========================================================================
    GLOWBAL design tokens
    --------------------------------------------------------------------------
-   Extracted from the Figma variables on "UI Final - Dev"
-   (file 4gHWPze5ngIizbTtujEcQL). The design is built on the Untitled UI /
-   Simple Design System kit, so the token structure below mirrors that kit's
-   three tiers: primitive -> semantic -> utility.
+   Extracted from the Figma variables on the "UI Final - Dev" canvas. The design
+   is built on the Untitled UI / Simple Design System kit, so the token structure
+   below mirrors that kit's three tiers: primitive -> semantic -> utility.
+
+   ⚠️ This header used to name file 4gHWPze5ngIizbTtujEcQL. That key is dead, and
+   it is the third one this repo has carried. The live key as of 2026-07-28 is
+   Ut5pryBVlc1MpxI4IrnkIm, and the authoritative canvas is now "Khanh Linh - Chi"
+   (375:9842), not "UI Final - Dev". Rather than record a fourth key here that
+   will also go stale, see docs/README.md, which is kept current — and confirm
+   against the owner's own URL before trusting either.
 
    STATUS
      Everything below -> FINAL.
