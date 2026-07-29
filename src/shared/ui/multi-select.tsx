@@ -50,6 +50,17 @@ type Props = {
   maxVisible?: number;
   /** Accessible name for the whole control. */
   label: string;
+  /**
+   * One answer only — picking replaces rather than adds, and "Select all"
+   * disappears because it would be meaningless.
+   *
+   * The frames draw checkboxes everywhere, so this is a departure. It exists
+   * because some of these lists are single-answer by construction: a GPA is one
+   * number on one scale, so "10-point scale" AND "4.0 scale" together describes
+   * nothing. The alternative — letting the student tick both and silently
+   * saving the first — is the data-loss bug this prevents.
+   */
+  single?: boolean;
   resetLabel?: string;
   selectAllLabel?: string;
 };
@@ -78,6 +89,7 @@ export function MultiSelect({
   heading,
   maxVisible = 5,
   label,
+  single = false,
   resetLabel = 'Reset',
   selectAllLabel = 'Select all',
 }: Props) {
@@ -93,6 +105,12 @@ export function MultiSelect({
   const selected = useMemo(() => new Set(value), [value]);
 
   function toggle(optionValue: string) {
+    if (single) {
+      // Re-picking the current answer clears it, so a required-looking control
+      // is still escapable without a "none" option.
+      onChange(selected.has(optionValue) ? [] : [optionValue]);
+      return;
+    }
     const next = new Set(selected);
     if (next.has(optionValue)) next.delete(optionValue);
     else next.add(optionValue);
@@ -163,13 +181,15 @@ export function MultiSelect({
           >
             {resetLabel}
           </button>
-          <button
-            type="button"
-            onClick={() => onChange(options.map((o) => o.value))}
-            className="rounded-gb-md border border-line px-gb-lg py-gb-sm text-gb-sm font-semibold text-fg-secondary transition-colors hover:bg-surface-hover"
-          >
-            {selectAllLabel}
-          </button>
+          {single ? null : (
+            <button
+              type="button"
+              onClick={() => onChange(options.map((o) => o.value))}
+              className="rounded-gb-md border border-line px-gb-lg py-gb-sm text-gb-sm font-semibold text-fg-secondary transition-colors hover:bg-surface-hover"
+            >
+              {selectAllLabel}
+            </button>
+          )}
         </div>
       </div>
     </div>

@@ -51,7 +51,9 @@ export type StudentProfile = {
   // Academic intake — onboarding câu 6 (Figma 375:11536). See
   // supabase-academic-intake.sql for why these are separate from
   // current_qualification / predicted_grades, which are free text.
-  curriculum?: string | null;
+  /** Array: a student can sit more than one curriculum. See the migration. */
+  curriculum?: string[] | null;
+  /** Single: one GPA number has one scale. */
   gpa_scale?: string | null;
   gpa_value?: number | null;
   graduation_year?: number | null;
