@@ -945,6 +945,58 @@ export const translations: Record<string, string> = {
   'Loading article links': 'Đang tải liên kết bài viết',
   'Saving article links': 'Đang lưu liên kết bài viết',
 
+  // ── Mentor profile, /mentors/[id] (Figma 375:21633) ──────────────────────
+  // The frame's Vietnamese is the source for these; the English literals in
+  // the JSX are the translation back, so the pairs read in the frame's voice.
+  'All mentors': 'Tất cả cố vấn',
+  About: 'Giới thiệu',
+  Strengths: 'Điểm mạnh',
+  'Best for': 'Tốt nhất cho',
+  // `Reviews`, `Book a session` and `Back` are deliberately absent — all three
+  // are already defined above (lines 331, 394, 128) and a duplicate key is a
+  // type error. The existing Vietnamese covers this page unchanged.
+  'Book this mentor': 'Đặt lịch với cố vấn này',
+  // Its own text node beside the formatted price, so it translates on its own.
+  '/hour': '/giờ',
+  'Book now': 'Đặt lịch ngay',
+  'Available times': 'Khung giờ trống',
+  'No reviews yet — be the first to book and leave one.':
+    'Chưa có đánh giá nào — hãy là người đầu tiên đặt lịch và để lại đánh giá.',
+  '+ 10% service fee · paid securely through Stripe':
+    '+ 10% phí dịch vụ · thanh toán an toàn qua Stripe',
+  'Pick any open day below. Sessions must be booked at least an hour ahead.':
+    'Chọn bất kỳ ngày nào mở bên dưới. Buổi tư vấn cần được đặt trước ít nhất một giờ.',
+  'This mentor hasn’t published availability for the next 90 days.':
+    'Cố vấn này chưa mở lịch cho 90 ngày tới.',
+  'No ratings yet': 'Chưa có đánh giá nào',
+  'No open times right now': 'Hiện chưa có khung giờ trống',
+  'Select a day with a dot to see its times.':
+    'Chọn một ngày có dấu chấm để xem khung giờ.',
+  'No date selected': 'Chưa chọn ngày',
+  'Loading availability…': 'Đang tải lịch trống…',
+  Today: 'Hôm nay',
+  'Not bookable yet': 'Chưa thể đặt lịch',
+  'What do you want help with?': 'Bạn muốn được hỗ trợ điều gì?',
+  'What would you like to ask?': 'Bạn muốn hỏi điều gì?',
+  'The more context you give, the more your mentor can prepare.':
+    'Bạn chia sẻ càng cụ thể, cố vấn càng chuẩn bị tốt.',
+  'Or type your own topic': 'Hoặc tự nhập chủ đề của bạn',
+  'Session topic': 'Chủ đề buổi tư vấn',
+  'Service fee (10%)': 'Phí dịch vụ (10%)',
+  Total: 'Tổng cộng',
+  'Redirecting…': 'Đang chuyển hướng…',
+  'Personal statement review': 'Review bài luận cá nhân',
+  'Course & university choice': 'Lựa chọn chương trình học & trường',
+  'Interview practice': 'Luyện phỏng vấn',
+  'Scholarships & funding': 'Học bổng & trợ cấp',
+  'Life on campus': 'Đời sống sinh viên',
+  'Previous month': 'Tháng trước',
+  'Next month': 'Tháng sau',
+  'Talk to a student who has already been admitted where you are applying.':'Hãy kết nối với các sinh viên đang theo học tại ngôi trường bạn muốn nộp hồ sơ',
+  'Anywhere':'Mọi nơi',
+  'Subject':'Ngành học',
+  'Search by name or university':'Tìm kiếm theo tên sinh viên hoặc trường',
+
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',
   'Tiếng Việt': 'Tiếng Việt',
