@@ -9,12 +9,15 @@ import { Button, Section } from '@/shared/ui';
  * two lines instead of five, and the CTA reads "find matching scholarships"
  * rather than "find mine".
  *
- * ⚠️ THE CATALOGUE COUNT CONTRADICTS THE RECORD. This frame says "300+ trường
- * đại học"; the owner confirmed 200 on 24/07, and the Features block still says
- * 200. The frame is the newer artefact so it is what ships here, but 300 is the
- * direction that overstates coverage, and the two sections now disagree by 100
- * universities. Raised with the owner on 28/07 — whichever number is right, the
- * Features block has to move with this one.
+ * ⚠️ THE UNIVERSITY COUNT DELIBERATELY DEPARTS FROM THE FRAME. 375:9857 says
+ * "300+ trường đại học". The owner confirmed 200 on 24/07 and re-confirmed it
+ * on 28/07 when the conflict was raised, so this ships 200+ and the frame is
+ * wrong — not the other way round. It now agrees with the Features block, which
+ * also says 200+.
+ *
+ * Those two places are the ONLY ones that state this number. Change them
+ * together, and ask the designer to correct the frame rather than "fixing" this
+ * back to match it.
  *
  * Copy is written in English and translated by the dictionary in
  * src/lib/i18n-dictionary.ts, which `DomTranslator` matches against the exact
@@ -49,7 +52,7 @@ export function HomeHero() {
           </h1>
           <p className="max-w-gb-width-xl text-gb-md md:text-gb-xl">
             Personalised analysis and strategy, beside you for the whole scholarship hunt — across
-            300+ universities and 3,000+ scholarships worth up to $150,000,000.
+            200+ universities and 3,000+ scholarships worth up to $150,000,000.
           </p>
         </div>
 

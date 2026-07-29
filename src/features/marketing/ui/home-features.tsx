@@ -18,10 +18,11 @@ import { MissingContent } from './missing-content';
  * to 681x529 for a node Figma reports as 762.98x512 — so the frame is rebuilt
  * here at the design's real geometry instead of shipping a broken asset.
  *
- * ⚠️ BLOCK ONE CONTRADICTS THE HERO. It claims "200+ top universities"; the
- * hero, rebuilt from 375:9857, now claims 300+. (It used to claim 10,000, so
- * the gap has narrowed, but it is still a gap.) Both are reproduced as written —
- * resolving them is a copy decision, raised with the owner on 28/07.
+ * Block one's "200+ top universities" and "3000+ scholarships" now AGREE with
+ * the hero. They did not for a long time — the hero claimed 10,000 at one point
+ * and 300+ after the 375:9857 rebuild — and the owner settled it at 200+ on
+ * 28/07. These two components are the only places the number appears; change
+ * them together.
  *
  * `showPlaceholders` is how this section reaches "/" without shipping dashed
  * boxes to real visitors: false renders only the blocks whose copy exists and
