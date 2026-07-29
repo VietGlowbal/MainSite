@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
-import { Button, Textarea, TopNav } from '@/shared/ui';
+import { Button, Input, MultiSelect, Textarea, TopNav } from '@/shared/ui';
+import type { MultiSelectOption } from '@/shared/ui';
 import { createClient } from '@/lib/supabase/client';
 import { studyLevels, subjectFamilies, supportNeeds } from '@/lib/onboarding-options';
 import { useT } from '@/lib/i18n';
@@ -17,13 +18,22 @@ import type { StudentProfile } from '@/lib/types';
  * question per screen, a segmented progress bar, and a "Tiếp tục" button. The
  * globe is dropped.
  *
- * Scope decision (2026-07-25): this reuses the EXISTING seven-question model
- * wired to `student_profiles`, presented in the new stepped pattern. The Figma's
- * extra steps — notably the academic-awards capture (câu 8: Level / Role / Prize
- * / Year) — collect data with no column in `student_profiles` and overlap the
- * /ai-strategy "Detailed Achievements" input, so they are deliberately NOT built
- * here; they belong to that flow and a schema decision. Everything below keeps
- * the exact save / guest-bounce / draft / skip behaviour of the old form.
+ * Scope, revised 2026-07-28: NINE steps, not seven. The original build reused
+ * the existing seven-question model because the Figma's academic steps had no
+ * columns behind them. The owner has since asked for câu 6 (375:11536) and câu
+ * 7 (375:11616) to be built and the columns added — see
+ * supabase-academic-intake.sql, which must be run before this ships.
+ *
+ * They sit at positions 6 and 7 so the progress pill reads 6/9 and 7/9 exactly
+ * as the frames do.
+ *
+ * ⚠️ Câu 8 (academic awards: Level / Role / Prize / Year) is STILL not built.
+ * It duplicates the /ai-strategy "Detailed Achievements" input, which asks for
+ * the same thing in more depth, and nothing has been decided about which owns
+ * it. That is a product decision, not a missing column.
+ *
+ * Everything below keeps the exact save / guest-bounce / draft / skip behaviour
+ * of the old form.
  */
 
 const ONBOARDING_DRAFT_KEY = 'glowbal-onboarding-draft';
@@ -47,14 +57,75 @@ const goalIdeas = [
   'Get a practical degree that leads to strong job options worldwide.',
 ];
 
+/** Câu 6 (375:11536). Labels are the frame's, verbatim. */
+const curriculumOptions: MultiSelectOption[] = [
+  { value: 'Vietnamese National Curriculum', label: 'Vietnamese National Curriculum' },
+  { value: 'IB Diploma Programme (IBDP)', label: 'IB Diploma Programme (IBDP)' },
+  {
+    value: 'Cambridge International (IGCSE / AS & A Level)',
+    label: 'Cambridge International (IGCSE / AS & A Level)',
+  },
+  { value: 'AP + US High School Diploma', label: 'AP + US High School Diploma' },
+  { value: 'Others...', label: 'Others...' },
+];
+
+const gpaScaleOptions: MultiSelectOption[] = [
+  { value: '10-point scale', label: '10-point scale' },
+  { value: '4.0 scale', label: '4.0 scale' },
+];
+
+/** Câu 7 (375:11616), upper half. Written to `english_test_scores`. */
+const englishTestOptions: MultiSelectOption[] = [
+  { value: 'IELTS Academic', label: 'IELTS Academic' },
+  { value: 'TOEFL iBT', label: 'TOEFL iBT' },
+  { value: 'PTE Academic', label: 'PTE Academic' },
+  { value: 'Duolingo English Test', label: 'Duolingo English Test' },
+  { value: 'Cambridge English', label: 'Cambridge English' },
+  { value: 'None yet', label: 'None yet' },
+];
+
+/** Câu 7, lower half. Written to `standardized_test_scores`. */
+const standardizedTestOptions: MultiSelectOption[] = [
+  { value: 'SAT', label: 'SAT' },
+  { value: 'ACT', label: 'ACT' },
+  { value: 'AP Exams', label: 'AP Exams' },
+  { value: 'IB Diploma', label: 'IB Diploma' },
+  { value: 'A-Level', label: 'A-Level' },
+  { value: 'GCSE / IGCSE', label: 'GCSE / IGCSE' },
+  { value: 'None yet', label: 'None yet' },
+];
+
+/** "None yet" means the student has no result, so it excludes every sibling. */
+const NONE_YET = 'None yet';
+
+type Academic = { curriculum: string[]; gpaScale: string[]; gpa: string };
+type Tests = {
+  english: string[];
+  englishScore: string;
+  englishOther: string;
+  standardized: string[];
+  standardizedScore: string;
+};
+
 type Answers = {
   study_level: string;
   subjects: string;
   countries: string;
   budget: string;
   campus: string;
+  academic: Academic;
+  tests: Tests;
   support: string;
   goals: string;
+};
+
+const EMPTY_ACADEMIC: Academic = { curriculum: [], gpaScale: [], gpa: '' };
+const EMPTY_TESTS: Tests = {
+  english: [],
+  englishScore: '',
+  englishOther: '',
+  standardized: [],
+  standardizedScore: '',
 };
 
 const EMPTY_ANSWERS: Answers = {
@@ -63,9 +134,39 @@ const EMPTY_ANSWERS: Answers = {
   countries: '',
   budget: '',
   campus: '',
+  academic: EMPTY_ACADEMIC,
+  tests: EMPTY_TESTS,
   support: '',
   goals: '',
 };
+
+/**
+ * GPA as a number, or null. Deliberately strict: the column is NUMERIC(4,2) and
+ * a value that is not a number is worse than no value, because a scale-aware
+ * comparison against `universities.gpa_range` would silently skip it.
+ */
+function parseGpa(raw: string): number | null {
+  const n = Number.parseFloat(raw.trim().replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+/** Same, for the English overall score column (also NUMERIC). */
+function parseScore(raw: string): number | null {
+  const n = Number.parseFloat(raw.trim().replace(',', '.'));
+  return Number.isFinite(n) ? n : null;
+}
+
+/** The two structured steps; everything else is a plain string. */
+function isStructured(key: StepKey): key is 'academic' | 'tests' {
+  return key === 'academic' || key === 'tests';
+}
+
+/** Has this step been answered enough to move on? */
+function isAnswered(answers: Answers, key: StepKey): boolean {
+  if (key === 'academic') return answers.academic.curriculum.length > 0;
+  if (key === 'tests') return answers.tests.english.length > 0;
+  return answers[key] !== '';
+}
 
 // ── Profile <-> answers mapping (unchanged from the old single-page form) ────
 
@@ -92,6 +193,15 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
     countries: region,
     budget: initialProfile.budget_range || '',
     campus: firstCampus,
+    academic: {
+      curriculum: initialProfile.curriculum ? [initialProfile.curriculum] : [],
+      gpaScale: initialProfile.gpa_scale ? [initialProfile.gpa_scale] : [],
+      gpa: initialProfile.gpa_value != null ? String(initialProfile.gpa_value) : '',
+    },
+    // Test results live in their own tables, which this component is not given.
+    // A returning student re-enters them; the upserts below are keyed on
+    // (user_id, test_type) so nothing duplicates.
+    tests: EMPTY_TESTS,
     support: firstSupport,
     goals: initialProfile.goals || '',
   };
@@ -130,6 +240,10 @@ const STEPS: { key: StepKey; title: string; body: string }[] = [
   { key: 'countries', title: 'Which parts of the world feel right?', body: 'Think globally, then narrow it down to places that excite you.' },
   { key: 'budget', title: 'What budget feels realistic?', body: 'A strong shortlist should be ambitious, but still within reach.' },
   { key: 'campus', title: 'What kind of environment suits you?', body: 'Course fit matters, but so does where you will actually live.' },
+  // Câu 6 and câu 7. Both frames title the screen "Academic Information"; the
+  // body lines are written here because the frames carry none.
+  { key: 'academic', title: 'Academic Information', body: 'Which curriculum are you studying, and how are you graded on it?' },
+  { key: 'tests', title: 'Academic Information', body: 'Add any test results you already have. Leave a score blank if you are still waiting for it.' },
   { key: 'support', title: 'Where do you most want support?', body: 'No judgement — pick the area where guidance would help most.' },
   { key: 'goals', title: 'What kind of future are you building?', body: 'Speak in your own words — even one sentence helps us match you.' },
 ];
@@ -192,6 +306,13 @@ export function OnboardingWizard({
       if (!parsed.answers) return base;
       const merged = { ...base };
       for (const k of Object.keys(EMPTY_ANSWERS) as StepKey[]) {
+        // The structured steps are objects, so "empty" is not falsiness —
+        // a draft wins whenever the profile did not supply the step.
+        if (isStructured(k)) {
+          const draft = parsed.answers[k];
+          if (draft && !isAnswered(merged, k)) merged[k] = draft as never;
+          continue;
+        }
         if (!merged[k] && parsed.answers[k]) merged[k] = parsed.answers[k];
       }
       return merged;
@@ -211,8 +332,27 @@ export function OnboardingWizard({
     }
   }, [answers]);
 
-  function update(key: StepKey, value: string) {
+  function update(key: Exclude<StepKey, 'academic' | 'tests'>, value: string) {
     setAnswers((p) => ({ ...p, [key]: value }));
+  }
+
+  function updateAcademic(patch: Partial<Academic>) {
+    setAnswers((p) => ({ ...p, academic: { ...p.academic, ...patch } }));
+  }
+
+  function updateTests(patch: Partial<Tests>) {
+    setAnswers((p) => ({ ...p, tests: { ...p.tests, ...patch } }));
+  }
+
+  /**
+   * "None yet" is exclusive: choosing it clears the real tests, and choosing a
+   * real test clears it. Without this a student can claim both "I have IELTS"
+   * and "I have nothing", and the row written to the score table is a guess.
+   */
+  function pickTests(next: string[], previous: string[]): string[] {
+    const added = next.filter((v) => !previous.includes(v));
+    if (added.includes(NONE_YET)) return [NONE_YET];
+    return next.filter((v) => v !== NONE_YET);
   }
 
   function skip() {
@@ -259,6 +399,12 @@ export function OnboardingWizard({
         career_interests: profile.career_interests,
         campus_preferences: profile.campus_preferences,
         support_needs: profile.support_needs,
+        // Câu 6. Both lists are single-answer in practice, so the first entry
+        // is the answer; the control is multi-select because the frame draws
+        // checkboxes, not radios.
+        curriculum: answers.academic.curriculum[0] ?? null,
+        gpa_scale: answers.academic.gpaScale[0] ?? null,
+        gpa_value: parseGpa(answers.academic.gpa),
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -271,6 +417,54 @@ export function OnboardingWizard({
       return;
     }
 
+    /*
+     * Câu 7 writes to two score tables rather than to student_profiles.
+     *
+     * Deliberately NOT fatal: the profile is already saved by this point, and
+     * failing the whole wizard over a secondary row would lose the eight
+     * answers that did save. A failure is logged and the student moves on —
+     * /profile/english is the place to correct a test result anyway.
+     *
+     * "None yet" means the student has no result, so nothing is written.
+     */
+    const userId = userData.user.id;
+    const now = new Date().toISOString();
+
+    const englishRows = answers.tests.english
+      .filter((testType) => testType !== NONE_YET)
+      .map((testType) => ({
+        user_id: userId,
+        test_type: testType,
+        overall_score: parseScore(answers.tests.englishScore),
+        updated_at: now,
+      }));
+
+    const standardizedRows = answers.tests.standardized
+      .filter((testType) => testType !== NONE_YET)
+      .map((testType) => ({
+        user_id: userId,
+        test_type: testType,
+        score: answers.tests.standardizedScore.trim() || null,
+        updated_at: now,
+      }));
+
+    const writes = [];
+    if (englishRows.length > 0) {
+      writes.push(
+        supabase.from('english_test_scores').upsert(englishRows, { onConflict: 'user_id,test_type' }),
+      );
+    }
+    if (standardizedRows.length > 0) {
+      writes.push(
+        supabase
+          .from('standardized_test_scores')
+          .upsert(standardizedRows, { onConflict: 'user_id,test_type' }),
+      );
+    }
+    for (const result of await Promise.all(writes)) {
+      if (result.error) console.error('[onboarding] test scores:', result.error.message);
+    }
+
     try {
       window.localStorage.removeItem(ONBOARDING_DRAFT_KEY);
     } catch {
@@ -281,7 +475,9 @@ export function OnboardingWizard({
 
   const isLast = step === STEPS.length - 1;
   const current = STEPS[step]!;
-  const currentAnswer = answers[current.key];
+  // The single-choice steps compare against this; the two structured steps
+  // never reach a `Choice`, so an empty string is the safe value for them.
+  const currentAnswer = isStructured(current.key) ? '' : answers[current.key];
 
   function next() {
     if (isLast) {
@@ -387,6 +583,107 @@ export function OnboardingWizard({
             </div>
           ) : null}
 
+          {/* Câu 6 — Figma 375:11536. The grading-scale list appears only once
+              a curriculum is chosen, and carries it as its heading, which is
+              what the frame draws ("Vietnamese National Curriculum" above
+              10-point / 4.0). */}
+          {current.key === 'academic' ? (
+            <div className="flex flex-col gap-gb-3xl">
+              <MultiSelect
+                name="curriculum"
+                label={t('Curriculum')}
+                placeholder={t('Select a GPA')}
+                options={curriculumOptions}
+                value={answers.academic.curriculum}
+                onChange={(curriculum) => updateAcademic({ curriculum })}
+              />
+
+              {answers.academic.curriculum.length > 0 ? (
+                <MultiSelect
+                  name="gpaScale"
+                  label={t('Grading scale')}
+                  placeholder={t('Select a grading scale')}
+                  options={gpaScaleOptions}
+                  value={answers.academic.gpaScale}
+                  onChange={(gpaScale) => updateAcademic({ gpaScale })}
+                  heading={answers.academic.curriculum[0] ?? ''}
+                  maxVisible={2}
+                />
+              ) : null}
+
+              <Input
+                name="gpa"
+                label={t('Current GPA')}
+                inputMode="decimal"
+                value={answers.academic.gpa}
+                onChange={(e) => updateAcademic({ gpa: e.target.value })}
+                placeholder={t('Enter your current GPA')}
+              />
+            </div>
+          ) : null}
+
+          {/* Câu 7 — Figma 375:11616. Two independent test groups, each with
+              its own score field. */}
+          {current.key === 'tests' ? (
+            <div className="flex flex-col gap-gb-3xl">
+              <MultiSelect
+                name="englishTest"
+                label={t('English proficiency')}
+                placeholder={t('English Proficiency')}
+                options={englishTestOptions}
+                value={answers.tests.english}
+                onChange={(next) =>
+                  updateTests({ english: pickTests(next, answers.tests.english) })
+                }
+              />
+
+              {/* Hidden once "None yet" is the answer — there is no score to
+                  give, and an enabled field would invite an invented one. */}
+              {answers.tests.english.length > 0 && !answers.tests.english.includes(NONE_YET) ? (
+                <>
+                  <Input
+                    name="englishScore"
+                    label={t('Your score')}
+                    inputMode="decimal"
+                    value={answers.tests.englishScore}
+                    onChange={(e) => updateTests({ englishScore: e.target.value })}
+                    placeholder={t('Overall score')}
+                  />
+                  <Input
+                    name="englishOther"
+                    label={t('Other')}
+                    value={answers.tests.englishOther}
+                    onChange={(e) => updateTests({ englishOther: e.target.value })}
+                    placeholder={t('Anything else about this result')}
+                    hint={t('Not stored yet — there is no column for it. Add it on your profile instead.')}
+                  />
+                </>
+              ) : null}
+
+              <MultiSelect
+                name="standardizedTest"
+                label={t('Standardized test')}
+                placeholder={t('Standardized Test')}
+                options={standardizedTestOptions}
+                value={answers.tests.standardized}
+                onChange={(next) =>
+                  updateTests({ standardized: pickTests(next, answers.tests.standardized) })
+                }
+              />
+
+              {answers.tests.standardized.length > 0 &&
+              !answers.tests.standardized.includes(NONE_YET) ? (
+                <Input
+                  name="standardizedScore"
+                  label={t('Your score')}
+                  value={answers.tests.standardizedScore}
+                  onChange={(e) => updateTests({ standardizedScore: e.target.value })}
+                  placeholder={t('e.g. 1450, 34, A*AA')}
+                />
+              ) : null}
+            </div>
+          ) : null}
+
           {current.key === 'support' ? (
             <div className="grid gap-gb-lg sm:grid-cols-2">
               {supportNeeds.map((need) => (
@@ -442,7 +739,7 @@ export function OnboardingWizard({
           <Button
             size="xl"
             onClick={next}
-            disabled={submitting || (isLast ? false : !currentAnswer)}
+            disabled={submitting || (isLast ? false : !isAnswered(answers, current.key))}
           >
             {submitting
               ? t('Saving…')
