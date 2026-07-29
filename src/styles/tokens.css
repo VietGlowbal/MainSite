@@ -383,14 +383,10 @@
   /* The dots that are not lit. Near-white on the black hero band. */
   --gb-globe-dot: var(--color-gb-neutral-0);
 
-  /* The sphere the dots sit on.
-     Land dots alone give an outline of the continents but no body, so the
-     silhouette reads as a flat scatter until you fill the ocean behind it. A
-     deep blue sphere with a lit rim is what makes it read as Earth — and it is
-     one gradient per frame rather than the ~8,000 extra dots it would take to
-     stipple the sea. */
-  --gb-globe-sea: #0b2a4a;
-  --gb-globe-rim: #38bdf8;
+  /* There is deliberately no sea or rim colour here. A filled navy sphere with
+     a lit limb was tried behind the dots and taken back out: at hero size it
+     read as a blue ball with specks on it, not as a planet picked out in light,
+     and it sat badly on the black band. The globe is dots on transparent. */
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

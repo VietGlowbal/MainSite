@@ -35,10 +35,18 @@ import { TID, testId } from '@/shared/lib/testids';
  * rather than giving up the interaction: a vertical swipe scrolls the page as
  * usual, a horizontal one spins the globe. See the pointer handlers below.
  *
- * IT LOOKS LIKE EARTH. Three things were wrong and are covered where they are
- * fixed: the mask was too coarse and sampled a single pixel (`landAt`), the rows
- * were offset by an irrational phase that frayed every coastline (`buildPoints`),
- * and the land floated with no ocean behind it (`drawSphere`).
+ * IT LOOKS LIKE EARTH. Two things were wrong and are covered where they are
+ * fixed: the mask was too coarse and sampled a single pixel (see LAND_COVERAGE
+ * and `coverage`), and the rows were offset by an irrational phase that frayed
+ * every coastline (see `buildPoints`).
+ *
+ * ⚠️ IT IS DOTS AND NOTHING ELSE. A filled ocean sphere was tried here — a navy
+ * disc with a lit limb, on the reasoning that land dots alone describe the
+ * continents but not the body they sit on. The owner asked for it out on sight,
+ * and they were right: at hero size it read as a solid blue ball with specks on
+ * it rather than as a constellation of a planet, and it fought the black band
+ * the hero sits on. Roundness comes from the dots' own depth falloff instead.
+ * Do not add a background behind them.
  */
 
 /**
@@ -115,8 +123,12 @@ const FLICK_DECAY = 0.94;
 
 /**
  * Direction the light comes from, in view space: x right, y up, z toward the
- * viewer. Upper left and mostly frontal — enough of a terminator down the right
- * limb to model the sphere, not so much that half the land goes missing.
+ * viewer. Upper left and mostly frontal.
+ *
+ * The shading it drives is deliberately gentle — see `shade` in `draw`. With no
+ * ocean surface to catch a highlight there is nothing for a strong terminator to
+ * fall across, so pushing it only thins the dots down one side and the globe
+ * starts to read as a crescent.
  */
 const LIGHT = (() => {
   const [x, y, z] = [-0.42, 0.4, 0.82];
@@ -134,7 +146,7 @@ type Point = {
   flashColour: string;
 };
 
-type Palette = { dot: string; sea: string; rim: string; flashes: string[] };
+type Palette = { dot: string; flashes: string[] };
 
 function readPalette(el: HTMLElement): Palette {
   const style = getComputedStyle(el);
@@ -144,11 +156,7 @@ function readPalette(el: HTMLElement): Palette {
     .filter((c) => c.length > 0);
 
   return {
-    // Named CSS colours for the fallbacks, not hex: raw hex is banned under
-    // src/features, and the real values live in tokens.css where they belong.
     dot: read('--gb-globe-dot') || 'white',
-    sea: read('--gb-globe-sea') || 'navy',
-    rim: read('--gb-globe-rim') || 'skyblue',
     // A visible fallback rather than an empty list: if the tokens ever fail to
     // resolve, the globe should still light up rather than silently going grey.
     flashes: flashes.length > 0 ? flashes : ['white'],
@@ -366,63 +374,13 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
       }
     }
 
-    /**
-     * The ocean, the lit side, and the limb.
-     *
-     * Land dots on their own describe the continents but not the body they are
-     * on, so at any moment half of what you are looking at is unlit black and
-     * the sphere has to be inferred from the scatter. A filled disc, a highlight
-     * offset toward LIGHT and a rim stroke are three cheap draws that do what
-     * stippling the sea would have cost ~8,000 more dots to do.
-     */
-    function drawSphere(centre: number, radius: number) {
-      ctx.globalAlpha = 0.85;
-      ctx.fillStyle = palette.sea;
-      ctx.beginPath();
-      ctx.arc(centre, centre, radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      const highlight = ctx.createRadialGradient(
-        centre + LIGHT.x * radius * 0.6,
-        centre - LIGHT.y * radius * 0.6,
-        radius * 0.04,
-        centre,
-        centre,
-        radius * 1.15,
-      );
-      highlight.addColorStop(0, palette.rim);
-      highlight.addColorStop(1, 'transparent');
-      ctx.globalAlpha = 0.15 + 0.05 * hover;
-      ctx.fillStyle = highlight;
-      ctx.beginPath();
-      ctx.arc(centre, centre, radius, 0, Math.PI * 2);
-      ctx.fill();
-
-      // The limb. A sphere's edge is where you see through the most atmosphere,
-      // which is why an unlit rim still glows on every photograph of Earth.
-      ctx.globalAlpha = 0.4 + 0.2 * hover;
-      ctx.strokeStyle = palette.rim;
-      ctx.lineWidth = Math.max(1, radius * 0.014);
-      ctx.shadowColor = palette.rim;
-      ctx.shadowBlur = radius * (0.06 + 0.04 * hover);
-      ctx.beginPath();
-      ctx.arc(centre, centre, radius - ctx.lineWidth / 2, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.shadowBlur = 0;
-    }
-
     function draw(now: number) {
       const centre = size / 2;
-      // 0.46 before the rim existed. The limb's glow needs somewhere to go, and
-      // canvas clips it flat against the edge rather than fading it, which shows
-      // as a straight line tangent to the sphere at top, bottom and both sides.
-      const radius = size * 0.445;
+      const radius = size * 0.46;
 
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
       ctx.clearRect(0, 0, size, size);
-
-      drawSphere(centre, radius);
 
       const cosY = Math.cos(rotation);
       const sinY = Math.sin(rotation);
@@ -449,22 +407,22 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
         const screenY = centre - y2 * radius;
 
         /*
-         * Two separate things, and the globe needs both. Depth fades dots toward
-         * the limb, which is what gives a flat point cloud its roundness.
-         * Lambert shades them by their angle to the light, which is what makes
-         * it a lit sphere rather than an evenly glowing one.
+         * Two terms, doing different jobs, and the balance between them is the
+         * whole look now that there is nothing drawn behind the dots.
          *
-         * BOTH TERMS KEEP A HIGH FLOOR, and the floors are the whole difficulty.
-         * Multiply two falloffs together and the corner where they meet — the
-         * unlit side of the limb — lands near zero, so a third of the visible
-         * face goes dark and Earth stops being recognisable there. The point of
-         * the shading is to model the sphere, not to hide the continents on it,
-         * so each term gives up roughly a third of its range at worst rather
-         * than all of it.
+         * Depth fades dots toward the limb. With no sphere under them this is
+         * the ONLY thing making a flat scatter read as round, so it carries most
+         * of the range.
+         *
+         * Lambert shades them by their angle to the light, and gets a deliberately
+         * narrow one. It earns its keep on a lit surface; on bare dots, turning it
+         * up just thins one side out and the globe reads as a crescent. A high
+         * floor also keeps the far side of the terminator legible — the point is
+         * to model the sphere, not to hide the continents on it.
          */
-        const depth = 0.55 + 0.45 * Math.sqrt(z2);
+        const depth = 0.35 + 0.65 * Math.sqrt(z2);
         const lambert = Math.max(0, x1 * LIGHT.x + y2 * LIGHT.y + z2 * LIGHT.z);
-        const shade = depth * (0.62 + 0.38 * lambert) * (1 + 0.12 * hover);
+        const shade = depth * (0.7 + 0.3 * lambert) * (1 + 0.12 * hover);
 
         let lit = 0;
         if (p.flashStart > 0) {
@@ -478,7 +436,7 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
           // Flashes keep a floor of their own brightness: a dot lighting up on
           // the night side should still be visible, or the effect only ever
           // happens on one half of the globe.
-          ctx.globalAlpha = Math.min(1, Math.max(shade, depth * 0.8) * (0.5 + 0.5 * lit));
+          ctx.globalAlpha = Math.min(1, Math.max(shade, depth * 0.75) * (0.5 + 0.5 * lit));
           ctx.fillStyle = p.flashColour;
           ctx.shadowColor = p.flashColour;
           ctx.shadowBlur = 5 * lit;
