@@ -1,0 +1,68 @@
+'use client';
+
+import { Container } from '@/shared/ui';
+import { ReflectionAboutForm } from '@/app/ai-strategy/reflection/reflection-about-form';
+import { ReflectionEvidenceForm } from '@/app/ai-strategy/reflection/achievements/reflection-evidence-form';
+
+/**
+ * Both reflection steps, unauthenticated.
+ *
+ * The real routes redirect to /auth, so the only way to look at them is to hold
+ * a signed-in account — the same reason /dev/apply-workspace exists. Everything
+ * here is the real component; only the seed values are fabricated, and they are
+ * written to be obviously fabricated per CLAUDE.md's rule about demo data that
+ * could pass for a real student's.
+ *
+ * Submitting posts to /api/reflection and will 401. That is correct: the point
+ * of this page is the layout, not the round trip.
+ */
+export function ReflectionPreview({ step }: { step: 'about' | 'evidence' }) {
+  if (step === 'evidence') {
+    return (
+      <Container className="max-w-4xl py-gb-5xl">
+        <ReflectionEvidenceForm
+          initialAchievements={[
+            {
+              id: 'demo-1',
+              category: 'competition',
+              title: 'Demo placing — Example Mathematics Olympiad',
+              competition: 'Example Olympiad',
+              organisation: 'Example Department of Education',
+              level: 'Cấp thành phố',
+              year: 2026,
+              detail: 'Demo entry. Not a real student record.',
+            },
+          ]}
+          initialActivities={[
+            {
+              id: 'demo-2',
+              category: 'mentoring',
+              title: 'Demo peer tutoring programme',
+              organisation: 'Example School',
+              period: '2024 – 2026',
+            },
+          ]}
+        />
+      </Container>
+    );
+  }
+
+  return (
+    <Container className="max-w-4xl py-gb-5xl">
+      <ReflectionAboutForm
+        initial={{
+          highestEducation: '4 - Year Bachelor’s Degree',
+          nationality: 'Vietnam',
+          gpa: '3.5 / 4',
+          ielts: '7 / 10',
+          majors: ['Design'],
+          countries: ['Japan'],
+          intendedLevel: 'Bachelor’s Degree',
+          fundingSource: 'Personal savings or parents',
+          budgetRange: '270000000-500000000',
+          tuitionBudgetUsd: '$20,000 - $30,000',
+        }}
+      />
+    </Container>
+  );
+}

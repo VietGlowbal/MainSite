@@ -316,7 +316,17 @@ export function NavReveal() {
    * a prefix entry silently covers routes that do not exist yet, so a legacy
    * page added underneath one would lose its navigation with nothing to say so.
    */
-  const OWN_CHROME_PREFIXES = ['/ai-strategy'];
+  const OWN_CHROME_PREFIXES = [
+    '/ai-strategy',
+    /*
+     * `/apply` and everything under it. The per-course workspace was rebuilt
+     * with its own chrome in #85/#86 and this prefix went with it, but the
+     * mentor-detail change (536755a) restructured this list and dropped it —
+     * which put the app header AND the workspace's own header on the same page.
+     * The whole tree is rebuilt, so the prefix is correct.
+     */
+    '/apply',
+  ];
 
   /*
    * `/universities/<id>` — the rebuilt detail page (Figma 375:10629) — ships
