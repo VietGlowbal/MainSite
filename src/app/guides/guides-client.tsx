@@ -24,6 +24,7 @@ import {
   Pagination,
   TopNav,
 } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * /guides — the Blog list, built from Figma 153:18266 ("Blog page header").
@@ -134,6 +135,7 @@ function BlogPostCard({ guide }: { guide: GeoGuide }) {
 function SubscribeRow() {
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
+  useLoadingIndicator(status === 'loading', 'Signing you up');
   const [message, setMessage] = useState('');
 
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {

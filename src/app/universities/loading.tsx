@@ -1,4 +1,4 @@
-import { Container } from '@/shared/ui';
+import { Container, PageLoaderOverlay } from '@/shared/ui';
 
 /**
  * /universities loading state.
@@ -57,6 +57,7 @@ export default function Loading() {
           ))}
         </div>
       </Container>
+      <PageLoaderOverlay />
     </div>
   );
 }

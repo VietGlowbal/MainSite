@@ -14,7 +14,6 @@
     "seed:scholarships:cleanup": "node --env-file=.env.local scripts/seed-scholarships.mjs --cleanup",
     "seed:scholarships:publish": "node --env-file=.env.local scripts/seed-scholarships.mjs --status=published",
     "seed:university-images": "node --env-file=.env.local scripts/seed-university-images.mjs",
-    "test:extraction": "node --env-file=.env.local scripts/test-course-extraction.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",

@@ -322,6 +322,7 @@ export function OnboardingWizard({
   });
   const [step, setStep] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  useLoadingIndicator(submitting, 'Building your profile');
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {

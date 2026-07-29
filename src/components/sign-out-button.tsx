@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type SignOutButtonProps = {
   className?: string;
@@ -21,6 +22,7 @@ export function SignOutButton({
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Signing you out');
   const [error, setError] = useState<string | null>(null);
 
   const handleSignOut = async () => {

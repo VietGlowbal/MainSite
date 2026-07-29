@@ -18,6 +18,10 @@
   },
   "include": [
     "next-env.d.ts",
+    // Pulls in the @testing-library/jest-dom matcher augmentation (toBeInTheDocument,
+    // toHaveAttribute, ...). Without it the component tests under src/shared fail to
+    // typecheck here even though they pass under the base config, which includes it.
+    "src/__tests__/setup.ts",
     "src/features/**/*.ts",
     "src/features/**/*.tsx",
     "src/shared/**/*.ts",

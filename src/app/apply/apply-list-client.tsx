@@ -14,6 +14,14 @@ import {
   FOOTER_TAGLINE,
   MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
+import {
+  courseUrlLabel,
+  displayCourseName,
+  displayUniversityName,
+  isParsePending,
+} from '@/features/apply/domain';
+import { anyParsePending, useParseRefresh } from '@/features/apply/hooks';
+import { ResearchingInline } from '@/features/apply/ui';
 import type { CourseApplication } from '@/lib/apply-types';
 import {
   Avatar,
@@ -24,8 +32,11 @@ import {
   Input,
   KitIcon,
   MobileNav,
+  ProgressBar,
+  ScoreRing,
   TopNav,
 } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * The applications list — Figma 337:18767 ("Trang my apply", titled "My
@@ -77,66 +88,15 @@ import {
  * regardless. All of it is in git history at apply-dashboard.tsx.
  */
 
-/** Figma 337:18812 — the gauge is banded by value: 92 green, 60 amber, 30 rose. */
-function gaugeColor(pct: number): string {
-  if (pct >= 70) return 'var(--color-gb-tier-safe)'; // Figma Colors/Green/700
-  if (pct >= 40) return 'var(--color-gb-yellow-400)'; // Figma Colors/Yellow/400
-  return 'var(--color-gb-brand-600)'; // Figma Colors/Rose/600
-}
+/* ─────────────────────────────────────────────────────────────────────────
+   Waiting for the parse
 
-/**
- * Figma 337:18813 "Activity gauge".
- *
- * The frame exports the three rings as flat images baked at 92% / 60% / 30%, so
- * they cannot be reused — the arc has to follow real `progress_percentage`. Drawn
- * as an SVG arc instead, which is what the ring it replaces did too.
- */
-function ProgressGauge({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(100, Math.round(value)));
-  const r = 32;
-  const circ = 2 * Math.PI * r;
-
-  return (
-    <div className="flex size-[104px] shrink-0 items-center justify-center rounded-gb-full bg-surface-muted/90 p-gb-lg backdrop-blur-sm">
-      <svg
-        width="76"
-        height="76"
-        viewBox="0 0 76 76"
-        role="img"
-        aria-label={`${pct}% complete`}
-      >
-        <circle
-          cx="38"
-          cy="38"
-          r={r}
-          fill="none"
-          stroke="var(--color-gb-neutral-300)"
-          strokeWidth="8"
-        />
-        <circle
-          cx="38"
-          cy="38"
-          r={r}
-          fill="none"
-          stroke={gaugeColor(pct)}
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${(pct / 100) * circ} ${circ}`}
-          transform="rotate(-90 38 38)"
-        />
-        <text
-          x="38"
-          y="38"
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="fill-[var(--gb-text-primary)] text-gb-md font-semibold"
-        >
-          {pct}%
-        </text>
-      </svg>
-    </div>
-  );
-}
+   Both the polling and the placeholder rule now live in the feature (hooks/
+   use-parse-refresh and domain/course-name) so that the list and the per-course
+   workspace behave identically. They previously lived only here, which is why
+   the workspace shipped with neither: it printed the placeholder as its <h1>
+   and never refreshed itself when the parse landed.
+   ───────────────────────────────────────────────────────────────────────── */
 
 /** "14 Jan 2026" — the frame's format. Fixed locale so it cannot drift on hydration. */
 function formatDeadline(iso: string): string {
@@ -145,21 +105,105 @@ function formatDeadline(iso: string): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
+function isPending(app: CourseApplication): boolean {
+  return isParsePending(app.parseStatus);
+}
+
+function courseLine(app: CourseApplication): string | null {
+  return displayCourseName(app.courseName, app.parseStatus);
+}
+
+/** Retry control for a row whose parse failed. Wired to a route that had no caller. */
+function RetryParse({ applicationId }: { applicationId: string }) {
+  const router = useRouter();
+  const [retrying, setRetrying] = useState(false);
+  const [error, setError] = useState('');
+  useLoadingIndicator(retrying, 'Reading the course page');
+
+  return (
+    <div className="flex flex-col gap-gb-xs">
+      <button
+        type="button"
+        disabled={retrying}
+        onClick={async () => {
+          setRetrying(true);
+          setError('');
+          try {
+            const res = await fetch(`/api/applications/${applicationId}/retry-parse`, {
+              method: 'POST',
+            });
+            const body = await res.json().catch(() => ({}));
+            if (!res.ok) {
+              setError(
+                res.status === 429
+                  ? 'Too many attempts just now. Try again in an hour.'
+                  : (body.error ?? 'Could not start another attempt.'),
+              );
+              return;
+            }
+            router.refresh();
+          } catch {
+            setError('Could not reach the server.');
+          } finally {
+            setRetrying(false);
+          }
+        }}
+        className="self-start text-gb-sm font-semibold text-brand hover:text-brand-hover disabled:opacity-60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        {retrying ? 'Trying again…' : 'Try again'}
+      </button>
+      {error ? <span className="text-gb-sm text-fg-error">{error}</span> : null}
+    </div>
+  );
+}
+
 /** Figma 337:18787 — one application row. */
 function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: string | null }) {
+  const course = courseLine(app);
+  const university = displayUniversityName(app.universityName);
+  const urlLabel = courseUrlLabel(app.courseUrl);
+  const pending = isPending(app);
+  const failed = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
+
   return (
     <li className="flex flex-col gap-gb-3xl rounded-gb-2xl border border-line p-gb-xl lg:flex-row lg:items-center lg:justify-between">
       {/* Figma 337:18790 "_Job post" */}
       <div className="flex min-w-0 flex-1 items-center gap-gb-2xl">
-        <Avatar name={app.universityName} src={logoUrl} size="lg" className="hidden sm:block" />
+        <Avatar
+          name={university ?? urlLabel ?? 'Course'}
+          src={logoUrl}
+          size="lg"
+          className="hidden sm:block"
+        />
 
         <span aria-hidden className="hidden self-stretch border-l border-line sm:block" />
 
         <div className="flex min-w-0 flex-col gap-gb-2xl">
           <div className="flex min-w-0 flex-col gap-gb-xl">
-            <p className="text-gb-md font-semibold text-fg">{app.universityName}</p>
-            {app.courseName ? (
-              <p className="text-gb-md text-fg-tertiary">{app.courseName}</p>
+            {/* `university` is null when the paste never matched the directory,
+                where the column holds the literal "Unknown University". The
+                host of the pasted URL is the honest stand-in. */}
+            <p className="text-gb-md font-semibold text-fg">
+              {university ?? urlLabel ?? 'Your application'}
+            </p>
+            {course ? <p className="text-gb-md text-fg-tertiary">{course}</p> : null}
+
+            {pending ? (
+              <div className="flex max-w-sm flex-col gap-gb-md">
+                <ProgressBar label="Reading the course page" size="sm" />
+                <ResearchingInline>
+                  GlowBal&rsquo;s AI is reading the course page and building your checklist…
+                </ResearchingInline>
+              </div>
+            ) : null}
+
+            {failed ? (
+              <div className="flex flex-col gap-gb-sm">
+                <p className="text-gb-sm text-fg-error">
+                  {app.parseError ?? 'We could not read that course page.'}
+                </p>
+                <RetryParse applicationId={app.id} />
+              </div>
             ) : null}
           </div>
 
@@ -185,7 +229,7 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
 
       {/* Figma 337:18811 — gauge + deadline + continue */}
       <div className="flex shrink-0 items-center gap-gb-3xl">
-        <ProgressGauge value={app.progressPercentage ?? 0} />
+        <ScoreRing value={app.progressPercentage ?? 0} measure="progress" />
 
         <div className="flex flex-col justify-center gap-gb-xl">
           <div className="flex flex-col gap-gb-xxs">
@@ -218,6 +262,7 @@ function ImportBar() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Loading your applications');
   const [quota, setQuota] = useState<{ currentUsage: number; currentLimit: number } | null>(null);
 
   const handleSubmit = useCallback(
@@ -339,6 +384,10 @@ export function ApplyListClient({
 }: ApplyListClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+
+  // Keeps the list moving while a pasted URL is still being read.
+  useParseRefresh(anyParsePending(applications));
+
   /*
    * /scholarships links here with ?universityId=..&openCourseSearch=true.
    *

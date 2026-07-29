@@ -4,8 +4,10 @@ import { Bricolage_Grotesque, Geist_Mono, Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NavReveal } from '@/components/nav-reveal';
+import { RouteLoading } from '@/components/route-loading';
 import { LanguageProvider } from '@/lib/i18n';
 import { DomTranslator } from '@/lib/dom-translate';
+import { GlobalLoadingOverlay } from '@/shared/ui';
 import './globals.css';
 
 // Body face, per the Figma variable "Font family/font-family-body".
@@ -51,6 +53,13 @@ export default function RootLayout({
   ReactDOM.preconnect('https://images.unsplash.com', { crossOrigin: 'anonymous' });
   ReactDOM.prefetchDNS('https://lh3.googleusercontent.com');
 
+  // The globe loader's poster frame (11KB). It is what fills the card in the
+  // moment before the video decodes, and the card is by definition shown when
+  // the network is already busy — so fetch it while nothing else is competing.
+  // The clip itself is deliberately NOT preloaded: 69KB on every page load, to
+  // save a few hundred milliseconds on a screen the poster already covers.
+  ReactDOM.preload('/loading-globe-poster.jpg', { as: 'image', fetchPriority: 'low' });
+
   return (
     <html
       lang="en"
@@ -62,7 +71,14 @@ export default function RootLayout({
       <body className="min-h-full overflow-x-hidden text-slate-800 glowbal-site-shell">
         <LanguageProvider>
           <NavReveal />
+          {/* Puts the globe loader up during client-side navigation. Renders
+              nothing itself — it only drives the loading store. */}
+          <RouteLoading />
           <main className="glowbal-main-content">{children}</main>
+          {/* Inside LanguageProvider: the loader's rotating line is bilingual.
+              Mounted once here so every page gets it — see loading-overlay.tsx
+              for why callers do not need a provider of their own. */}
+          <GlobalLoadingOverlay />
           {/* Whole-page translation for any text not covered by the static
               dictionary or t()/AutoTranslate. Only calls /api/translate when
               Vietnamese is active; English stays the zero-cost default. */}

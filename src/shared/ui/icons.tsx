@@ -134,6 +134,20 @@ export const ICONS = {
     d: 'M0.833333 6.66667H12.5M6.66667 12.5L12.5 6.66667L6.66667 0.833333',
   },
   /**
+   * Leads the "back to the list" link on the course workspace.
+   *
+   * A true mirror of `arrowRight` about x = 6.66667, unlike the `arrowUpRight`
+   * case below: this glyph is a straight shaft plus a symmetrical chevron, with
+   * no elbow to give the reflection away.
+   */
+  arrowLeft: {
+    w: 13.3333,
+    h: 13.3333,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M12.5 6.66667H0.833333M6.66667 12.5L0.833333 6.66667L6.66667 0.833333',
+  },
+  /**
    * Figma 2:31009 — trails "Read post" on a blog card (I153:18284;1390:725).
    * Deliberately a second arrow rather than a rotated `arrowRight`: the kit's
    * up-right glyph has its own elbow (a diagonal shaft plus a corner bracket),
@@ -159,6 +173,27 @@ export const ICONS = {
       'M7.5 9.58333C8.88071 9.58333 10 8.46404 10 7.08333C10 5.70262 8.88071 4.58333 7.5 4.58333C6.11929 4.58333 5 5.70262 5 7.08333C5 8.46404 6.11929 9.58333 7.5 9.58333Z',
       'M7.5 17.5C9.16667 14.1667 14.1667 12.0152 14.1667 7.5C14.1667 3.8181 11.1819 0.833333 7.5 0.833333C3.8181 0.833333 0.833333 3.8181 0.833333 7.5C0.833333 12.0152 5.83333 14.1667 7.5 17.5Z',
     ],
+  },
+  /**
+   * ⚠️ NOT A FIGMA EXPORT, unlike everything else in this file.
+   *
+   * The reflection form needs an add control and no frame in the file draws one
+   * with an exported glyph, so this is constructed to the kit's conventions
+   * rather than taken from it. Replace it with the real export if one is ever
+   * added to the file.
+   *
+   * Note the coordinate space, which is easy to get wrong: `viewBox` is
+   * `0 0 w h`, the *stroked bounds*, not the 20px icon frame. So the path runs
+   * 0.83333 → 10.83333 rather than 4.16667 → 15.8333, inset by half a stroke
+   * exactly as `clock` and `markerPin02` are. Written in frame coordinates it
+   * renders clipped to its own top-left corner.
+   */
+  plus: {
+    w: 11.6667,
+    h: 11.6667,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M5.83333 0.83333V10.8333M0.83333 5.83333H10.8333',
   },
   /** Figma 41:8794 — the deadline line on a saved-list row (223:9505). */
   clock: {

@@ -16,6 +16,7 @@ import {
   type ComparisonValue,
   type PlanColumn,
 } from '@/lib/plus';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * PlusPricing — the interactive heart of the /plus page.
@@ -99,6 +100,7 @@ function PackageCard({
 }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  useLoadingIndicator(loading, 'Opening secure checkout');
   const [error, setError] = useState<string | null>(null);
   const highlighted = pkg.highlighted;
 

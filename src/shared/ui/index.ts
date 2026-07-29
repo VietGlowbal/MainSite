@@ -28,6 +28,39 @@ export { Footer } from './footer';
 export type { FooterColumn, FooterLink, FooterSocial } from './footer';
 export { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon, SearchMark } from './icons';
 export type { BrandIconArt, KitIconArt } from './icons';
+export { GlobeLoader, LoadingScreen, PageLoaderOverlay } from './globe-loader';
+export type { GlobeLoaderSize } from './globe-loader';
+export { LOADING_PHRASES, nextPhraseIndex } from './loading-phrases';
+export type { LoadingPhrase } from './loading-phrases';
+/**
+ * The loading store and its hooks.
+ *
+ * ⚠️ Import these from '@/shared/ui/loading-overlay', NOT from this barrel,
+ * unless you are also pulling a component out of it. They are re-exported here
+ * for discoverability, but a module that wants one hook and reaches through the
+ * barrel to get it drags every primitive above into its graph.
+ *
+ * That is not a style preference. The forty-odd call sites for
+ * `useLoadingIndicator` include components that are under test, and pulling the
+ * whole design system into those tests moved ~300 uncovered branches into the
+ * coverage denominator — enough to break the ratchet in vitest.config.ts on its
+ * own. It is also dead weight in the client bundle of every page that saves a
+ * form.
+ */
+export {
+  GlobalLoadingOverlay,
+  beginLoading,
+  useBeginLoading,
+  useLoadingIndicator,
+  useLoadingSnapshot,
+} from './loading-overlay';
+export { ProgressBar } from './progress-bar';
+export { RangeHistogram } from './range-histogram';
+export { RepeatableFieldset } from './repeatable-fieldset';
+export { ScoreRing, scoreRingColor } from './score-ring';
+export type { ScoreRingMeasure, ScoreRingSize } from './score-ring';
+export { Stepper } from './stepper';
+export type { StepperStep } from './stepper';
 export { Metric } from './metric';
 export { MultiSelect } from './multi-select';
 export type { MultiSelectOption } from './multi-select';

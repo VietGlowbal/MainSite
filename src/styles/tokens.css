@@ -395,3 +395,110 @@
   --color-tier-safe: var(--gb-tier-safe-surface);
   --color-on-tier-safe: var(--gb-tier-safe-on);
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Loading overlay — ⚠️ NOT DESIGN-CONFIRMED
+
+   The globe loader (src/shared/ui/globe-loader.tsx) is a product decision, not
+   a Figma frame: no mockup draws a busy state, so there is no variable to copy.
+   Recorded here for the same reason as the error ramp above — the alternative
+   is every caller inventing its own dim level and its own dot animation.
+
+   Two things are load-bearing rather than taste:
+
+     * The loader video is rendered on a #fafafa plate, and that is not a
+       coincidence — the source clip's own background is exactly #fafafa, i.e.
+       neutral-50. Matching it is what makes the globe read as floating on the
+       card instead of sitting in a visible video box. Re-encoding the clip on a
+       different backdrop means re-pointing `--gb-loader-plate` at it.
+
+     * `scrim-soft` is deliberately a third of the modal `scrim`. The loader
+       fires on ordinary navigation, several times a minute; at modal weight it
+       would read as "the app stopped" rather than "the app is working".
+
+   Ask the designer before treating any of this as final.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-gb-alpha-black-15: #00000026;
+
+  /* Panel width for the loader card. Named `gb-width-*` for the same
+     collision reason documented on the containers above: `max-w-gb-xs` would
+     resolve against --spacing-gb-xs (4px), not this. */
+  --container-gb-width-xs: 240px;
+
+  /* The three dots after the phrase, appearing one at a time. Staggered by
+     animation-delay at the call site rather than by three separate keyframes. */
+  --animate-gb-loader-dot: gb-loader-dot 1.5s ease-in-out infinite;
+  /* The card's entrance. Overshoot-free easing: it is an interruption, and a
+     bouncy one reads as a notification. */
+  --animate-gb-loader-in: gb-loader-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Crossfade when the phrase swaps. */
+  --animate-gb-loader-phrase: gb-loader-phrase 300ms ease-out both;
+
+  @keyframes gb-loader-dot {
+    0% {
+      opacity: 0;
+    }
+    25%,
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes gb-loader-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes gb-loader-phrase {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* The indeterminate progress bar (shared/ui/progress-bar.tsx).
+
+     A travelling segment rather than a fill that grows: the work behind it —
+     an AI reading a course page — has no measurable percentage, and a bar that
+     creeps to 90% and stops is a lie the user learns to distrust. This one
+     plainly conveys "running, duration unknown".
+
+     Translating a 40%-wide child from -100% to 250% of its own box sweeps the
+     full track with a clean entry and exit at both ends. `transform` only, so
+     it stays on the compositor and costs nothing on a page that is already
+     waiting on the network. */
+  --animate-gb-progress-sweep: gb-progress-sweep 1.6s ease-in-out infinite;
+
+  @keyframes gb-progress-sweep {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+}
+
+:root {
+  /* The plate the globe clip sits on — must equal the clip's own backdrop. */
+  --gb-loader-plate: var(--color-gb-neutral-50);
+  /* Page dim while the loader is up. See the note above on why it is light. */
+  --gb-scrim-soft: var(--color-gb-alpha-black-15);
+}
+
+@theme inline {
+  --color-loader-plate: var(--gb-loader-plate);
+  --color-scrim-soft: var(--gb-scrim-soft);
+}

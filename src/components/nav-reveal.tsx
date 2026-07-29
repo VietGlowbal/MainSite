@@ -462,13 +462,17 @@ export function NavReveal() {
     // Also exact: the saved list is rebuilt (Figma 223:8824), the
     // /my-universities/[id] task pages under it are not.
     '/my-universities',
-    // Same again: the applications list is rebuilt (Figma 337:18767), the
-    // /apply/[applicationId] workspace under it is not.
+    // The applications list. The workspace under it is covered by the prefix
+    // rule below rather than listed here.
     '/apply',
     // And again: the mentor browse is rebuilt (Figma 154:8345); /mentors/[id],
     // /mentors/apply and its success page are not.
     '/mentors',
     '/dev/saved-list',
+    // Previews the workspace, which ships its own chrome. Listed for the same
+    // reason as the two above: a dev route that renders the app chrome as well
+    // would preview a page nobody can navigate to.
+    '/dev/apply-workspace',
   ]);
 
   /*
