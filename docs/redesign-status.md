@@ -74,6 +74,7 @@ Both carry banner frames naming them:
 | `/` | `375:9844` | **Khanh Linh - Chi** | **Promoted 28/07**, replacing the 976-line legacy landing. Ships no `MissingContent`: testimonials and FAQ are omitted outright, Features and the scholarship rail take `showPlaceholders={false}`. Owns its chrome, including its own `MobileNav` — without that a phone gets no navigation at all. |
 | `/dev/home` | `375:9844` | **Khanh Linh - Chi** | Still here after the swap, on purpose: it keeps every section INCLUDING the placeholders, so the copy gaps stay visible. Renders no real data — check data against `/`. |
 | `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
+| `/mentors/[id]` | `375:21633` | **Khanh Linh - Chi** | **Built 29/07.** Replaced `MentorProfile.tsx` + `BookMentorModal.tsx` + `MentorAvailabilityGrid.tsx`, all three deleted. Real 7-column booking calendar (the frame's is a broken 10-column instance — see below). Fixed two live bugs in the process: the page 404'd for every signed-out visitor, and it serialised the mentor's PII into the client payload. |
 | `/dev/saved-list` | — | — | Dev-only preview of `/my-universities`, hydrated from the real repositories. |
 
 ### Deliberate departures from the frames
@@ -106,6 +107,60 @@ Each is documented in a comment at the top of the relevant file.
 - **Scholarship dialog** — the "Mã học bổng" code field is still **not built**.
   No voucher / promo / redeem concept exists anywhere in the schema.
 
+#### `/mentors/[id]` — five departures, and two bugs the rebuild had to fix
+
+The frame is `375:21633` "Detail cố vấn" (1440×1823). Layout is taken from it
+exactly: a 1200-wide header card, then a 720 / 96 / 384 two-column body. The
+section cards really do carry only 12px of horizontal padding against 32–48
+vertical — that is the frame, not a mistake in the code.
+
+Departures, all noted in the files themselves:
+
+1. **The booking section's heading in the frame reads "Điểm mạnh"** — the same
+   heading as the strengths block two sections above it, over a paragraph about
+   picking a day. A copy-paste artefact. Shipped as "Book a session".
+2. **The frame's calendar is a broken component instance.** `Dates`
+   (`375:21725`) is 412px wide with cells at x=0…360 — **ten columns** — under a
+   seven-label weekday header, so 1–31 run continuously and the selected "8"
+   lands in the ninth column. January 8 2027 is a Friday. Built as a real
+   Monday-first 7-column month instead, same 40px cells, same rose selected pill
+   and availability dot.
+3. **The strengths paragraph has no column behind it.** In the frame it holds a
+   course description ("Master of Health Administration (MHA)…"), which is not a
+   statement about the mentor. Dropped, same call as the lorem ipsum on
+   `/universities/[id]`. The chips (`strengths`) render.
+4. **"Book now" opens an intake dialog rather than going straight to Stripe.**
+   `POST /api/mentorship/checkout` requires `help_topic` (3–200 chars) and the
+   booking is useless to the mentor without it. The frame ends at the slot, so
+   the picker is drawn as designed and the missing intake is asked for after.
+5. **The frame draws only the empty state for reviews.** No design exists for a
+   populated list, so one is composed from the same card and type tokens.
+
+Two live bugs found while rebuilding, both fixed by the new reads in
+`src/lib/mentors.ts`:
+
+- **The page 404'd for every signed-out visitor.** Every select policy on
+  `achiever_profiles`, `mentor_availability_slots` and `session_reviews` is
+  granted `to authenticated` (supabase-global-station.sql). `getMentorById` uses
+  the request-scoped client, so anonymous reads returned zero rows,
+  `notFound()` fired, and every card in the *public* directory was a dead link.
+  RLS returning nothing is not an error, so nothing reported it.
+- **It leaked the mentor's PII.** `getMentorById` selects `*` and the page
+  handed the whole row to a `'use client'` component, putting `legal_name`,
+  `date_of_birth`, `stripe_account_id` and the four verification-document
+  storage keys in the page payload. `getPublicMentorById` uses the existing
+  `PublicMentor` projection instead.
+
+Two smaller correctness fixes in the same area: the calendar now offers only
+`open` slots starting at least an hour out, because checkout rejects `held`
+slots with a 409 and anything sooner with a 400 — the old grid offered both and
+let the student discover it at the payment step.
+
+⚠️ `session_reviews` has **no `reviewer_name` column**, though
+`MentorReviewWithReviewer` declares one. Every review the old page rendered was
+already unattributed; the new one says "Glowbal student" rather than carry the
+fiction. Add the column (or a join) before review authorship means anything.
+
 ### Two corrections to earlier notes in this file
 
 1. **`337:19349` "Chi tiết voucer" is not a voucher.** Despite the frame name it
@@ -125,7 +180,6 @@ Each is documented in a comment at the top of the relevant file.
 | Route | Figma | Canvas | Blocker |
 |---|---|---|---|
 | `/ai-strategy` | 18 frames, listed in [nav-items.tsx](../src/features/marketing/ui/nav-items.tsx) — landing `375:18445`, candidate info `375:19260`, achievements `375:18839`, reflection modals `407:17291`/`408:17403`/`409:17502`/`409:17626`, reflection `375:18328`, portrait `375:18185`, fit `375:18645`, strategy `375:19502`/`405:6526`, essay `375:17961`, CV `375:18038`, pricing `375:19705`, submit `375:18117`, confirmation `375:18594`, major picker `375:13546` | **Khanh Linh - Chi** | Net-new route, largest group, **404s today** from both nav and footer. No longer a provenance risk — it has migrated onto the dev canvas. `/ai-strategy` is already registered in `OWN_CHROME_PREFIXES`. |
-| `/mentors/[id]` | `375:21633` "Detail cố vấn" | **Khanh Linh - Chi** | Net-new design over the legacy `MentorProfile.tsx` (322 lines) + `BookMentorModal.tsx` (274). Adds an inline booking calendar with an available-times column; `/api/mentorship/slots` and `/api/mentorship/checkout` already exist. |
 | `/plus` | `115:13253`, `132:9601`, `196:16799`, `115:17014` | **Tính năng** | 3 tiers (free / $10 / $100). Sales are off (`PLUS_SALES_ENABLED=false`) — build as static preview. |
 | `/guides/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
 | `/privacy` | `153:22478` | **Tính năng** | Frame is named `Desktop`. |
@@ -241,8 +295,11 @@ low priority.
 | `src/app/guides/[slug]/` | 2 | `article-body.tsx`. |
 
 `src/app/mentors/` is no longer on this list — the browse page was rebuilt and
-`MentorBrowse.tsx` deleted. `/mentors/[id]`, `/mentors/apply` and its success
-page still use the app chrome.
+`MentorBrowse.tsx` deleted, and `/mentors/[id]` was rebuilt on 29/07 (which also
+deleted `MentorProfile.tsx`, `BookMentorModal.tsx` and
+`MentorAvailabilityGrid.tsx`). `/mentors/apply` and its success page still use
+the app chrome — and `/mentors/apply/page.tsx` is the last `.glow-pill` in the
+mentors tree.
 
 Definition of done for any of these: the grep in [verification.md](verification.md)
 returns nothing for that route's whole tree. Half-converted is the worst state —
@@ -260,8 +317,12 @@ since 28/07:
   `/auth`, `/coming-soon`, `/onboarding`, `/about`, `/guides`,
   `/my-universities`, `/apply`, `/mentors`, `/dev/saved-list`. Exact, because
   the child routes under most of them (`/apply/[applicationId]`,
-  `/mentors/[id]`, `/guides/[slug]`, `/my-universities/[id]`,
-  `/universities/vinuni`) are still on the app chrome.
+  `/guides/[slug]`, `/my-universities/[id]`, `/universities/vinuni`,
+  `/mentors/apply`) are still on the app chrome.
+- Two **id-shaped** matchers, for rebuilt detail pages whose siblings are not
+  rebuilt and so cannot take a prefix: `/universities/<digits>` and
+  `/mentors/<uuid>`. The shape is what separates them from `/universities/vinuni`
+  and `/mentors/apply` next door.
 - `OWN_CHROME_PREFIXES`, matched by **prefix**: `/ai-strategy`. Only for
   subtrees where every descendant is rebuilt — a prefix silently covers routes
   that do not exist yet.

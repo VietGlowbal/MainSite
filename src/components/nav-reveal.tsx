@@ -465,8 +465,9 @@ export function NavReveal() {
     // The applications list. The workspace under it is covered by the prefix
     // rule below rather than listed here.
     '/apply',
-    // And again: the mentor browse is rebuilt (Figma 154:8345); /mentors/[id],
-    // /mentors/apply and its success page are not.
+    // And again: the mentor browse is rebuilt (Figma 154:8345). /mentors/[id]
+    // is now rebuilt too and is matched below by its uuid, but /mentors/apply
+    // and its success page still take the app chrome, so this stays exact.
     '/mentors',
     '/dev/saved-list',
     // Previews the workspace, which ships its own chrome. Listed for the same
@@ -493,9 +494,20 @@ export function NavReveal() {
    */
   const isNumericUniversityRoute = /^\/universities\/\d+$/.test(pathname);
 
+  /*
+   * `/mentors/<uuid>` — the rebuilt profile page (Figma 375:21633). Same
+   * problem as /universities above and the same solution: `/mentors/apply` and
+   * `/mentors/apply/success` sit next door and still use the app chrome, so a
+   * prefix would strip the navigation off them. Mentor ids are uuids, which is
+   * what separates the two — `apply` cannot match this shape.
+   */
+  const isMentorProfileRoute =
+    /^\/mentors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname);
+
   const rendersOwnChrome =
     OWN_CHROME_ROUTES.has(pathname) ||
     isNumericUniversityRoute ||
+    isMentorProfileRoute ||
     OWN_CHROME_PREFIXES.some((base) => pathname === base || pathname.startsWith(`${base}/`));
 
   /*
