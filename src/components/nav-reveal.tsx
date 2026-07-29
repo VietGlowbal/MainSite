@@ -480,8 +480,18 @@ export function NavReveal() {
    */
   const OWN_CHROME_PREFIXES = ['/ai-strategy'];
 
+  /*
+   * `/universities/<id>` — the rebuilt detail page (Figma 375:10629) — ships
+   * its own chrome, but `/universities/vinuni` next door still uses the app
+   * chrome, so this cannot be a plain prefix. Matching digits separates them:
+   * the new route is keyed on the numeric id because `universities` has no slug
+   * column. When vinuni is retired this can become a prefix entry.
+   */
+  const isNumericUniversityRoute = /^\/universities\/\d+$/.test(pathname);
+
   const rendersOwnChrome =
     OWN_CHROME_ROUTES.has(pathname) ||
+    isNumericUniversityRoute ||
     OWN_CHROME_PREFIXES.some((base) => pathname === base || pathname.startsWith(`${base}/`));
 
   /*

@@ -3,7 +3,7 @@
 Hướng dẫn này giúp Claude Code hiểu đúng bối cảnh dự án GlowBal khi code theo design từ Figma.
 
 > **Đọc `docs/README.md` trước khi bắt đầu.** Đó là bản bàn giao trạng thái
-> codebase (26/07): trang nào đã dựng lại theo Figma, node-id của từng frame,
+> codebase: trang nào đã dựng lại theo Figma, node-id của từng frame,
 > primitive nào đã có sẵn, bug/blocker đang mở, và cách verify. Mục đích là để
 > không phải dò lại những gì phiên trước đã xác định. Code luôn thắng nếu docs
 > lệch.
@@ -26,7 +26,11 @@ GlowBal là nền tảng AI đồng hành cho sinh viên Việt Nam apply du h�
 - **Styling:** Tailwind CSS 4
 - **Form & validate:** react-hook-form + Zod
 - **Animation:** GSAP, Framer Motion
-- **3D:** Three.js (Globe 3D ở trang chọn trường)
+- **3D:** `react-globe.gl` (bọc Three.js). ⚠️ Globe **đã bị bỏ khỏi
+  `/universities`** khi trang này dựng lại theo Figma — thiết kế mới là lưới
+  phẳng có filter (chủ dự án chốt). Chỗ duy nhất còn render globe là trang legacy
+  `/my-universities/[id]`; hero trang chủ dùng ảnh PNG tĩnh, không phải 3D. Đừng
+  thêm globe vào trang mới vì thấy dependency này còn trong `package.json`.
 - **Data/Auth:** Supabase (Postgres, Auth, Storage, Row-Level Security)
 - **Thanh toán:** Stripe
 - **Ngôn ngữ:** song ngữ Anh–Việt (i18n EN–VI), mặc định ưu tiên hiển thị đúng cả 2 ngôn ngữ khi tạo component có text
