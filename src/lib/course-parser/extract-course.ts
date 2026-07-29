@@ -138,6 +138,22 @@ export type ExtractedScholarship = {
 
 export type ExtractedCourse = {
   universityName: string | null;
+  /**
+   * The institution's name in its own language, when the masthead carries one
+   * ("Đại học Bách khoa Hà Nội" beside "Hanoi University of Science and
+   * Technology").
+   */
+  universityLocalName: string | null;
+  /**
+   * "public" or "private", ONLY when the page states it.
+   *
+   * Everything about a university on this type is transcription, never recall.
+   * These two fields exist so a university we do not have yet can be created
+   * from the page — see resolveUniversity in features/universities/api for why
+   * nothing judgemental (rankings, tuition, acceptance rate) is allowed to come
+   * from the model.
+   */
+  universityType: string | null;
   courseName: string | null;
   degreeLevel: string | null;
   subject: string | null;
@@ -290,6 +306,8 @@ const RESPONSE_SCHEMA = {
       additionalProperties: false,
       required: [
         'universityName',
+        'universityLocalName',
+        'universityType',
         'courseName',
         'degreeLevel',
         'subject',
@@ -307,6 +325,15 @@ const RESPONSE_SCHEMA = {
       ],
       properties: {
         universityName: { type: ['string', 'null'] },
+        universityLocalName: {
+          type: ['string', 'null'],
+          description: "The institution's name in its own language, if the page shows one",
+        },
+        universityType: {
+          type: ['string', 'null'],
+          description:
+            'Exactly "public" or "private", and ONLY if the page states it. Never infer it.',
+        },
         courseName: { type: ['string', 'null'] },
         degreeLevel: { type: ['string', 'null'], description: "e.g. Bachelor's, Master's, PhD" },
         subject: { type: ['string', 'null'] },
@@ -382,6 +409,20 @@ const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
  * date, and it cannot stop the model returning a stage key that was valid when
  * the enum was built and has since been renamed.
  */
+/**
+ * `universities.type` is a two-value vocabulary the country/type filter chips
+ * render, so anything outside it becomes null rather than a new chip. The
+ * prompt asks for "public" or "private"; this is what happens when it answers
+ * "State university" or "Public research university" anyway.
+ */
+function normaliseInstitutionType(value: string | null): string | null {
+  if (!value) return null;
+  const lower = value.toLowerCase();
+  if (lower.includes('private')) return 'private';
+  if (lower.includes('public') || lower.includes('state')) return 'public';
+  return null;
+}
+
 function normalise(raw: unknown, pageUrl: string): CourseExtraction | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const r = raw as Record<string, unknown>;
@@ -447,6 +488,11 @@ function normalise(raw: unknown, pageUrl: string): CourseExtraction | null {
   return {
     course: {
       universityName: str(c['universityName']),
+      universityLocalName: str(c['universityLocalName']),
+      /* Constrained here rather than trusted: the column feeds a filter chip,
+         and a model that answers "state university" once would add a third
+         value to a two-value vocabulary. */
+      universityType: normaliseInstitutionType(str(c['universityType'])),
       courseName: str(c['courseName']),
       degreeLevel: str(c['degreeLevel']),
       subject: str(c['subject']),

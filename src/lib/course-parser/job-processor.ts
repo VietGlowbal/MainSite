@@ -18,6 +18,7 @@ import {
   type CourseExtraction,
   type ExtractionFailure,
 } from './extract-course';
+import { resolveUniversity } from '@/features/universities/api';
 import { updateJobStatus, recordJobFailure, type CourseParseJob } from './job-queue';
 
 export interface ProcessResult {
@@ -280,6 +281,56 @@ function applicationFields(
 }
 
 /**
+ * Attach the application to a row in `universities`, creating one if needed.
+ *
+ * Runs AFTER the application fields are written, and its failure is swallowed:
+ * a directory lookup going wrong is not a reason to fail a parse that has
+ * already produced a course name and a checklist. The application keeps its
+ * `university_name` either way — the id is an upgrade that unlocks the crest,
+ * the hero image and the entry-requirement facts.
+ *
+ * Only fills a NULL. An application that came through the course-search modal
+ * already has the id the student picked, and a name read off a page must never
+ * overrule an explicit choice.
+ */
+async function linkUniversity(
+  applicationId: string,
+  extraction: CourseExtraction,
+  courseUrl: string,
+): Promise<string> {
+  try {
+    const supabase = createAdminClient();
+    const { data: existing } = await supabase
+      .from('course_applications')
+      .select('university_id')
+      .eq('id', applicationId)
+      .maybeSingle();
+
+    if (existing?.university_id != null) return 'already-linked';
+
+    const { course } = extraction;
+    const outcome = await resolveUniversity({
+      name: course.universityName,
+      courseUrl,
+      country: course.country,
+      type: course.universityType,
+      localName: course.universityLocalName,
+    });
+
+    if (outcome.status === 'skipped') return `skipped:${outcome.reason}`;
+
+    await updateApplication(applicationId, { university_id: outcome.universityId });
+
+    return outcome.status === 'matched'
+      ? `matched:${outcome.match.reason}`
+      : `created:${outcome.universityId}`;
+  } catch (error) {
+    console.error('[job-processor] university resolution failed:', error);
+    return 'error';
+  }
+}
+
+/**
  * Process one claimed parse job.
  */
 export async function processParseJob(job: CourseParseJob): Promise<ProcessResult> {
@@ -312,6 +363,8 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
     // Clears any message left by an earlier failed attempt.
     await updateApplication(job.application_id, { parse_error: null });
 
+    const resolved = await linkUniversity(job.application_id, result.data, job.course_url);
+
     await updateJobStatus(job.id, 'complete', {
       parsed_data: result.data as unknown as Record<string, unknown>,
     });
@@ -319,6 +372,7 @@ export async function processParseJob(job: CourseParseJob): Promise<ProcessResul
     console.log('[job-processor] complete', {
       applicationId: job.application_id,
       ...counts,
+      university: resolved,
       confidence: result.data.confidence,
     });
 
