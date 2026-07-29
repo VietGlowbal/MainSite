@@ -172,6 +172,16 @@ const EMPTY_ANSWERS: Answers = {
  * percentage) would hit it. Out of range is treated as "not a GPA", same as
  * letters.
  */
+/**
+ * Whatever `student_profiles.curriculum` hands back, as the list the UI wants.
+ * See the note in the caller for why this cannot assume the declared type.
+ */
+function toCurriculumList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
+  if (typeof value === 'string' && value.trim() !== '') return [value];
+  return [];
+}
+
 function parseGpa(raw: string): number | null {
   const n = Number.parseFloat(raw.trim().replace(',', '.'));
   if (!Number.isFinite(n) || n < 0 || n > 99.99) return null;
@@ -216,6 +226,18 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
     else region = 'Europe';
   }
 
+  /*
+   * `student_profiles.curriculum` is TEXT[] — but only on a database that has
+   * had the repair block in supabase-academic-intake.sql applied. The column
+   * shipped as TEXT first, and `ADD COLUMN IF NOT EXISTS` matches on name
+   * alone, so re-running that migration never changed the type: a project that
+   * ran the early copy still has TEXT and hands back a bare string here.
+   *
+   * The declared type says string[], so nothing downstream expects that, and
+   * `curriculum.join(' · ')` at the câu 6 heading throws on a string. Rather
+   * than trust the schema, coerce whatever arrives into the list the UI is
+   * typed for. Delete this once every environment is known to be converted.
+   */
   return {
     study_level: firstStudyLevel,
     subjects: firstSubject,
@@ -223,7 +245,7 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
     budget: initialProfile.budget_range || '',
     campus: firstCampus,
     academic: {
-      curriculum: initialProfile.curriculum ?? [],
+      curriculum: toCurriculumList(initialProfile.curriculum),
       gpaScale: initialProfile.gpa_scale ? [initialProfile.gpa_scale] : [],
       gpa: initialProfile.gpa_value != null ? String(initialProfile.gpa_value) : '',
     },
