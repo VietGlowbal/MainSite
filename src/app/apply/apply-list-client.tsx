@@ -24,6 +24,7 @@ import {
   Input,
   KitIcon,
   MobileNav,
+  ScoreRing,
   TopNav,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
@@ -311,7 +312,7 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
 
       {/* Figma 337:18811 — gauge + deadline + continue */}
       <div className="flex shrink-0 items-center gap-gb-3xl">
-        <ProgressGauge value={app.progressPercentage ?? 0} />
+        <ScoreRing value={app.progressPercentage ?? 0} measure="progress" />
 
         <div className="flex flex-col justify-center gap-gb-xl">
           <div className="flex flex-col gap-gb-xxs">

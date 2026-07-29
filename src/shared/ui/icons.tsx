@@ -160,6 +160,27 @@ export const ICONS = {
       'M7.5 17.5C9.16667 14.1667 14.1667 12.0152 14.1667 7.5C14.1667 3.8181 11.1819 0.833333 7.5 0.833333C3.8181 0.833333 0.833333 3.8181 0.833333 7.5C0.833333 12.0152 5.83333 14.1667 7.5 17.5Z',
     ],
   },
+  /**
+   * ⚠️ NOT A FIGMA EXPORT, unlike everything else in this file.
+   *
+   * The reflection form needs an add control and no frame in the file draws one
+   * with an exported glyph, so this is constructed to the kit's conventions
+   * rather than taken from it. Replace it with the real export if one is ever
+   * added to the file.
+   *
+   * Note the coordinate space, which is easy to get wrong: `viewBox` is
+   * `0 0 w h`, the *stroked bounds*, not the 20px icon frame. So the path runs
+   * 0.83333 → 10.83333 rather than 4.16667 → 15.8333, inset by half a stroke
+   * exactly as `clock` and `markerPin02` are. Written in frame coordinates it
+   * renders clipped to its own top-left corner.
+   */
+  plus: {
+    w: 11.6667,
+    h: 11.6667,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M5.83333 0.83333V10.8333M0.83333 5.83333H10.8333',
+  },
   /** Figma 41:8794 — the deadline line on a saved-list row (223:9505). */
   clock: {
     w: 18.3333,

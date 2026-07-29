@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { FormPrimitivesDemo } from './form-primitives-demo';
 import { LoaderDemo } from './loader-demo';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import {
@@ -25,7 +26,9 @@ import {
   Metric,
   Radio,
   RadioGroup,
+  ScoreRing,
   Select,
+  Stepper,
   Textarea,
   TopNav,
 } from '@/shared/ui';
@@ -318,6 +321,63 @@ export default function KitchenSinkPage() {
             ),
           )}
         </div>
+      </Section>
+
+      <Section title="Form primitives — RepeatableFieldset and RangeHistogram">
+        <p className="mb-gb-3xl text-gb-sm text-fg-tertiary">
+          Both are only meaningful in motion. Remove the middle achievement and check the others
+          keep their own values; drag the budget handles together and check they clamp rather than
+          swap. The distribution is placeholder shape, not real data.
+        </p>
+        <FormPrimitivesDemo />
+      </Section>
+
+      <Section title="ScoreRing (Figma 337:18813 — banded 70 / 40)">
+        <p className="mb-gb-xl text-gb-sm text-fg-tertiary">
+          Drawn as an SVG arc, not the flat images the frame exports, because the arc has to
+          follow a real value. The caption is required: `progress` and `match` band identically,
+          so a bare ring at 40% in green is genuinely ambiguous.
+        </p>
+        <div className="flex flex-wrap items-end gap-gb-4xl">
+          <ScoreRing value={92} measure="progress" />
+          <ScoreRing value={60} measure="progress" />
+          <ScoreRing value={30} measure="progress" />
+          <ScoreRing value={0} measure="progress" />
+          <ScoreRing value={72} measure="match" size="sm" />
+          <ScoreRing value={83} measure="match" size="lg" label="Overall fit" />
+        </div>
+      </Section>
+
+      <Section title="Stepper — per-course journey (due dates)">
+        <Stepper
+          steps={[
+            { key: 'research', label: 'Research', meta: 'Due 14 Aug 2026' },
+            { key: 'eligibility', label: 'Check eligibility', meta: 'Due 14 Sep 2026' },
+            { key: 'documents', label: 'Prepare documents', meta: 'Due 14 Oct 2026' },
+            { key: 'improve', label: 'Improve application', meta: 'Due 14 Oct 2026' },
+            { key: 'submit', label: 'Submit', meta: 'Due 14 Oct 2026' },
+          ]}
+          currentIndex={2}
+          label="Your application journey"
+        />
+      </Section>
+
+      <Section title="Stepper — AI strategy, paywall after step 3">
+        <p className="mb-gb-xl text-gb-sm text-fg-tertiary">
+          A locked step never renders as reached and never linkifies, however far the student has
+          got — the boundary has to read as a wall rather than as work not yet done.
+        </p>
+        <Stepper
+          steps={[
+            { key: 'reflection', label: 'Reflection', href: '#' },
+            { key: 'report', label: 'Output report', href: '#' },
+            { key: 'university', label: 'University Detail', href: '#' },
+            { key: 'strategy', label: 'Application Strategy', locked: true },
+            { key: 'audit', label: 'Submit Audit', locked: true },
+          ]}
+          currentIndex={2}
+          label="AI strategy journey"
+        />
       </Section>
 
       <Section title="GlobeLoader (busy state — not from Figma, see tokens.css)">
