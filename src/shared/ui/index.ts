@@ -26,7 +26,15 @@ export { Select } from './select';
 export { Textarea } from './textarea';
 export { Footer } from './footer';
 export type { FooterColumn, FooterLink, FooterSocial } from './footer';
-export { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon, SearchMark } from './icons';
+export {
+  BRAND_ICONS,
+  BrandIcon,
+  ICONS,
+  InstagramMark,
+  KitIcon,
+  SearchMark,
+  VerifiedMark,
+} from './icons';
 export type { BrandIconArt, KitIconArt } from './icons';
 export { GlobeLoader, LoadingScreen, PageLoaderOverlay } from './globe-loader';
 export type { GlobeLoaderSize } from './globe-loader';
