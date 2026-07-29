@@ -269,6 +269,40 @@ export function InstagramMark({ frame = 20, className }: { frame?: number; class
   );
 }
 
+/**
+ * SearchMark — the magnifier on every search field.
+ *
+ * ⚠️ NOT TRACED FROM A FRAME, and not part of `ICONS` for that reason. It is
+ * the glyph `/universities` has shipped since its rebuild, lifted here verbatim
+ * when `MultiSelect` needed the same one (Figma 375:11536 draws a magnifier in
+ * the filter field but the asset was never exported). Two hand-drawn copies of
+ * one icon is the thing this file exists to prevent, so it lives here and both
+ * callers import it.
+ *
+ * Stroke-based, so it cannot be a `KitIconArt` entry — those are filled paths.
+ * If the real Untitled UI `search-lg` is ever exported, replace this body and
+ * both callers pick it up.
+ */
+export function SearchMark({ frame = 20 }: { frame?: number }) {
+  return (
+    <svg
+      width={frame}
+      height={frame}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
 /** Figma 104:7423–104:7425 — the three marks in the footer's social row. */
 export const BRAND_ICONS = {
   x: {

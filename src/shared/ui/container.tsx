@@ -18,12 +18,25 @@ export function Container({
   as: Tag = 'div',
   className,
   children,
+  ...rest
 }: {
   as?: 'div' | 'section' | 'header' | 'footer' | 'nav';
   // `| undefined` is required by exactOptionalPropertyTypes: callers forward an
   // optional className straight through, and that is a `string | undefined`.
   className?: string | undefined;
   children: React.ReactNode;
+  /**
+   * Forwarded to the rendered element. Landmark elements need this: `as="nav"`
+   * with no accessible name is an unlabelled landmark, and the label was being
+   * silently swallowed before these were passed through.
+   */
+  id?: string | undefined;
+  'aria-label'?: string | undefined;
+  'aria-labelledby'?: string | undefined;
 }) {
-  return <Tag className={className ? `${CLASSES} ${className}` : CLASSES}>{children}</Tag>;
+  return (
+    <Tag {...rest} className={className ? `${CLASSES} ${className}` : CLASSES}>
+      {children}
+    </Tag>
+  );
 }
