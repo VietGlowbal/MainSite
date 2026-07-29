@@ -40,6 +40,16 @@ const nextConfig: NextConfig = {
     ];
   },
   images: {
+    /**
+     * Next 16 changed the default from "any quality" to `[75]`, and a `quality`
+     * prop outside the allowlist is silently coerced to the nearest entry
+     * rather than erroring. So `<GlowbalLogo>`'s documented `quality={90}` was
+     * being served as q=75 — the exact artefacting that prop exists to avoid.
+     * 90 is here for the wordmark (a gradient with thin counters) and the
+     * contact photograph; everything else stays on the 75 default.
+     * See node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md.
+     */
+    qualities: [75, 90],
     remotePatterns: [
       // Wikipedia / Wikimedia thumbnails — used for university card cover images
       { protocol: 'https', hostname: 'upload.wikimedia.org' },

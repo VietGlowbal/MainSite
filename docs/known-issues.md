@@ -132,6 +132,17 @@ confidently wrong date.
 
 ---
 
+## 5c. Fixed 2026-07-29 — do not re-introduce
+
+| What | Where |
+|---|---|
+| Footer wordmark rendered 352×28 — ratio 12.6 against the asset's 4.9, stretched 2.5× wide. `GlowbalLogo`'s inline `width: auto` leaves the cross size auto, so in a **column** flex container the default `align-items: stretch` applies to the `<img>` and blows it to the container width while the fixed height stays put. The footer's left column is `flex flex-col` with no `items-*`; `TopNav`'s row has `items-center` and so never showed it. Fixed at the source by emitting the derived width in px, which opts every one of the ~30 call sites out of the stretch regardless of container. | `src/components/glowbal-logo.tsx` |
+| `quality={90}` was being served as **q=75**. Next 16 changed `images.qualities` from "any" to `[75]`, and an out-of-allowlist `quality` prop is *silently coerced to the nearest entry* rather than erroring — so the prop that exists to stop the wordmark's gradient artefacting did nothing. Allowlist is now `[75, 90]`. | `next.config.ts` |
+| Desktop wordmark was not a link. `TopNav`'s `logo` prop was documented "Links home" but no caller wrapped it and the component didn't either; only `MobileNav`'s callers did. The `<Link href="/">` now lives inside `TopNav` so no page can forget it — **so do not pass an already-linked node to `TopNav`**, or the anchors nest. `MobileNav` keeps the opposite convention (caller wraps). | `src/shared/ui/top-nav.tsx` |
+| Contact photo blurry: `sizes="…592px"` made the browser fetch the 640w candidate and upscale it 1.6×. `sizes` describes the **layout** width, but `object-cover` needs more: the source is 16:9 (1.778) into a 1.081 box, so only 61% of the width is shown and filling 576 CSS px takes 576 × 1.645 = 948 source px. Now `165vw` / `948px`, which fetches 1080w and lands at 1:1 at DPR 1. | `src/features/marketing/ui/home-contact.tsx` |
+
+---
+
 ## 6. Open questions for the designer / owner
 
 1. **The sitemap frame (`123:2864`, "Dg-final") no longer exists in the file.**
@@ -146,3 +157,13 @@ confidently wrong date.
 5. **Ratings badge** — "Best AI Tool · 2,000+ reviews" is placeholder the owner asked to keep temporarily. It appears in the footer of every page, so it is a public claim.
 6. **X (Twitter)** — drawn in the footer frame `104:7422` with no handle supplied. Currently omitted; Instagram has no art in Figma at all (hence the hand-shaped `InstagramMark`).
 7. **Rose `#e11d48`** — confirmed as brand by the owner, but Figma variables still resolve to Untitled UI purple `#6941c6`. `tokens.css` is the authority; do not "correct" it against a variable dump.
+8. **`public/home-contact-team.jpg` is too small for retina.** The master is
+   1200×675 (145 KB), added by the owner in `a0d165b`. The Home contact card
+   crops 16:9 into a 576×533 box, which uses only ~61% of the width — so a
+   DPR-2 screen needs a **~1900 px wide** source and the file caps out at 1200.
+   The `sizes` fix above makes DPR 1 pixel-exact; DPR 2 is still upscaled 1.58×
+   and visibly soft. **Needs a higher-resolution export of the same photo** —
+   drop it in at the same path, ≥1920×1080 (ideally 2400×1350), 16:9. No code
+   change required. Alternatively re-crop the framing so less of the width is
+   thrown away, but `home-contact.tsx` documents the 576×533 crop as
+   design-intended, so ask before changing it.

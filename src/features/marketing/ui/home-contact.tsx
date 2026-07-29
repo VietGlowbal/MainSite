@@ -67,12 +67,20 @@ export function HomeContact({
             by hand — it shows the middle ~59% of the photo, which is where the
             team is. Do not "fix" the aspect to 16:9 or the framing changes. */}
         <div className="relative aspect-[576/533] overflow-hidden rounded-gb-xl">
+          {/* `sizes` is deliberately ~1.65x the box, because `sizes` describes
+              the LAYOUT width and `object-cover` needs more pixels than that.
+              The source is 16:9 (1.778) and the box is 1.081, so cover scales
+              to match height and shows only 1.081/1.778 = 61% of the width:
+              filling 576 CSS px takes 576 x 1.645 = 948 source px. Declaring
+              592 made the browser pick the 640w candidate and upscale it 1.6x,
+              which is why the photo read as blurry. */}
           <Image
             src="/home-contact-team.jpg"
             alt="The GlowBal team at Venture X Demo Day"
             width={576}
             height={533}
-            sizes="(max-width: 1024px) 100vw, 592px"
+            sizes="(max-width: 1024px) 165vw, 948px"
+            quality={90}
             className="h-full w-full object-cover"
           />
           <div className="absolute inset-x-gb-3xl bottom-gb-3xl rounded-gb-lg bg-black/45 p-gb-2xl backdrop-blur-sm">
