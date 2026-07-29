@@ -102,6 +102,7 @@ const eslintConfig = defineConfig([
     '.next/**',
     'out/**',
     'build/**',
+    '.gitnexus/**',
     'next-env.d.ts',
     // The GEO pipeline generates and commits code from here on a daily cron.
     // It has its own gate (`npm run geo:check` runs tsc against geo.tsconfig).

@@ -9,10 +9,36 @@
 // ============================================================================
 
 import type { SupabaseClient } from '@supabase/supabase-js';
+import mammoth from 'mammoth';
 import { extractText, getDocumentProxy } from 'unpdf';
 
 const STORAGE_BUCKET = 'student-documents';
-const MAX_CHARS = 12000;
+const MAX_CHARS = 15000;
+
+export async function extractDocumentBytes(
+  bytes: Uint8Array,
+  mimeType: string | null,
+  fileName: string,
+): Promise<string | null> {
+  const key = fileName.toLowerCase();
+  const mt = (mimeType ?? '').toLowerCase();
+  let text = '';
+
+  if (mt.includes('pdf') || key.endsWith('.pdf')) {
+    const pdf = await getDocumentProxy(bytes);
+    const extracted = await extractText(pdf, { mergePages: true });
+    text = Array.isArray(extracted.text) ? extracted.text.join('\n') : extracted.text;
+  } else if (mt.includes('wordprocessingml.document') || key.endsWith('.docx')) {
+    text = (await mammoth.extractRawText({ buffer: Buffer.from(bytes) })).value;
+  } else if (mt.startsWith('text/') || /\.(txt|md|markdown|csv)$/.test(key)) {
+    text = new TextDecoder().decode(bytes);
+  } else {
+    return null;
+  }
+
+  const normalized = text.trim();
+  return normalized ? normalized.slice(0, MAX_CHARS) : null;
+}
 
 export async function extractDocumentText(
   admin: SupabaseClient,
@@ -24,25 +50,7 @@ export async function extractDocumentText(
     if (error || !data) return null;
 
     const bytes = new Uint8Array(await data.arrayBuffer());
-    const key = storageKey.toLowerCase();
-    const mt = (mimeType ?? '').toLowerCase();
-
-    // PDF — the common case for CVs and statements.
-    if (mt.includes('pdf') || key.endsWith('.pdf')) {
-      const pdf = await getDocumentProxy(bytes);
-      const { text } = await extractText(pdf, { mergePages: true });
-      const merged = (Array.isArray(text) ? text.join('\n') : text)?.trim() ?? '';
-      return merged.length > 0 ? merged.slice(0, MAX_CHARS) : null;
-    }
-
-    // Plain text / markdown.
-    if (mt.startsWith('text/') || /\.(txt|md|markdown|csv)$/.test(key)) {
-      const text = new TextDecoder().decode(bytes).trim();
-      return text.length > 0 ? text.slice(0, MAX_CHARS) : null;
-    }
-
-    // Unsupported binary format (e.g. .docx) — caller handles null.
-    return null;
+    return extractDocumentBytes(bytes, mimeType, storageKey);
   } catch (err) {
     console.error('[document-text] extraction failed for', storageKey, err);
     return null;

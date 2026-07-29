@@ -70,3 +70,28 @@ test('saving a university survives a reload', async ({ page }) => {
   await afterReload.click();
   await expect(afterReload).toHaveAttribute('aria-label', /save/i);
 });
+
+test('a VinUni application opens the V2 statement feedback workspace', async ({ page }) => {
+  await signIn(page);
+  const response = await page.request.get('/api/applications');
+  expect(response.ok()).toBe(true);
+  const payload = (await response.json()) as {
+    applications?: Array<{
+      id: string;
+      universityName?: string;
+      university_name?: string;
+    }>;
+  };
+  const vinUni = payload.applications?.find((application) =>
+    /vin\s*(?:university|uni)/i.test(
+      application.universityName ?? application.university_name ?? '',
+    ),
+  );
+  test.skip(!vinUni, 'The E2E account has no VinUniversity application.');
+
+  await page.goto(`/apply/${vinUni!.id}/statement-feedback`);
+
+  await expect(page.getByLabel('Đề bài luận')).toBeVisible();
+  await expect(page.getByLabel('Nội dung bài luận')).toBeVisible();
+  await expect(page.getByText('VinUni AACC')).toBeVisible();
+});

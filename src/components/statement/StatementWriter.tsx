@@ -12,13 +12,35 @@
  * to the personal_statements table against whichever target it was given.
  */
 
-import { useMemo, useState, useCallback } from 'react';
+import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import type {
+  AaccAnalysis,
+  VinUniStreamEvent,
+} from '@/lib/ai/vinuni-grounded-evaluation';
+import type {
+  AaccAnalysisV2,
+  ReviewClaim,
+  VinUniRequestedSection,
+  VinUniV2SectionEvent,
+  VinUniV2StreamEvent,
+} from '@/lib/ai/vinuni-evaluation-v2';
+import {
+  createVinUniInputHash,
+  VINUNI_DEFAULT_ESSAY_PROMPT,
+  VINUNI_DEMO_APPLICATION_ID,
+} from '@/lib/ai/vinuni-evaluation-shared';
 import type { AIAnalysis, AISuggestion } from '@/lib/types';
+import {
+  reviewClaimElementId,
+  reviewClaimKey,
+  VinUniAaccFeedback,
+} from './VinUniAaccFeedback';
 
 export type StatementSaveTarget =
   | { kind: 'university'; userUniversityId: number }
-  | { kind: 'application'; applicationId: string };
+  | { kind: 'application'; applicationId: string }
+  | { kind: 'demo' };
 
 type DocType = 'personal_statement' | 'statement_of_purpose';
 
@@ -30,11 +52,26 @@ type Props = {
   /** Optional "what this university looks for" context shown before analysis. */
   contextNote?: string | null;
   initialContent: string;
-  initialAnalysis: AIAnalysis | null;
+  initialAnalysis: AIAnalysis | StoredVinUniAnalysis | null;
   statementId: number | null;
   initialDocType?: DocType;
   /** Compact layout tuned for a modal (no fixed full-screen height). */
   embedded?: boolean;
+  /** Full-page Apply workspace with a wider feedback pane and mobile pane switcher. */
+  workspace?: boolean;
+  /** Explicit evaluator selection for scoped MVP entry points. */
+  evaluationMode?: 'generic' | 'vinuni';
+};
+
+type VinUniAnalysis = AaccAnalysis | AaccAnalysisV2;
+
+export type StoredVinUniAnalysis = {
+  schemaVersion: string;
+  rubricVersion: string;
+  promptVersion: string;
+  essayPrompt: string;
+  inputHash: string;
+  analysis: AaccAnalysisV2;
 };
 
 function scoreColor(score: number) {
@@ -78,6 +115,275 @@ const SUGGESTION_STYLES: Record<AISuggestion['type'], { chip: string; bar: strin
   impact: { chip: 'bg-rose-100 text-rose-700', bar: 'border-rose-300', highlight: 'bg-rose-100' },
 };
 
+const EMPTY_PILLAR = {
+  score: 0,
+  analysis: [],
+  strengths: [],
+  gaps: [],
+  evidenceQuotes: [],
+};
+
+function emptyVinUniAnalysis(): AaccAnalysis {
+  return {
+    overall: { score: 0, verdict: 'needs-work', summary: '' },
+    pillars: {
+      ability: { ...EMPTY_PILLAR },
+      aspirations: { ...EMPTY_PILLAR },
+      creativity: { ...EMPTY_PILLAR },
+      commitment: { ...EMPTY_PILLAR },
+    },
+    topRecommendations: [],
+    sections: {
+      overallSummary: [],
+      ideasStructure: { strengths: [], weaknesses: [], suggestions: [] },
+      hookEngagement: { analysis: [], suggestions: [] },
+      nextSteps: [],
+    },
+  };
+}
+
+function emptyReview(): AaccAnalysisV2['review'] {
+  const pillar = () => ({ score: 0, analysis: [], strengths: [], gaps: [] });
+  return {
+    overall: [],
+    ideasStructure: { strengths: [], weaknesses: [], suggestions: [] },
+    hookEngagement: { analysis: [], suggestions: [] },
+    pillars: {
+      ability: pillar(),
+      aspirations: pillar(),
+      creativity: pillar(),
+      commitment: pillar(),
+    },
+    nextSteps: { actions: [], questions: [] },
+  };
+}
+
+function ensureV2Analysis(current: VinUniAnalysis): AaccAnalysisV2 {
+  if ('review' in current) return current;
+  return {
+    ...current,
+    isComplete: false,
+    context: {
+      profileStatus: 'not_available',
+      programmeConfidence: 'low',
+      programmeName: null,
+    },
+    evidenceMap: {
+      essaySegments: [],
+      claims: [],
+      reflectionArcs: [],
+      promptCoverage: [],
+      aaccCoverage: {
+        ability: { evidenceIds: [], strength: 'none' },
+        aspirations: { evidenceIds: [], strength: 'none' },
+        creativity: { evidenceIds: [], strength: 'none' },
+        commitment: { evidenceIds: [], strength: 'none' },
+      },
+      informationGaps: [],
+      possiblePromptInjection: false,
+    },
+    review: emptyReview(),
+  };
+}
+
+function isStoredVinUniAnalysis(
+  value: AIAnalysis | StoredVinUniAnalysis | null,
+): value is StoredVinUniAnalysis {
+  return Boolean(
+    value &&
+      'schemaVersion' in value &&
+      'analysis' in value &&
+      typeof value.analysis === 'object',
+  );
+}
+
+function applyVinUniSection(
+  current: VinUniAnalysis,
+  event:
+    | Extract<VinUniStreamEvent, { type: 'section' }>
+    | VinUniV2SectionEvent,
+): VinUniAnalysis {
+  const textOf = (items: { text: string }[]) => items.map(({ text }) => text);
+  if (event.section === 'A') {
+    const items = textOf(event.data.items);
+    const next = {
+      ...current,
+      overall: { ...current.overall, summary: items.join(' ') },
+      sections: { ...current.sections!, overallSummary: items },
+    };
+    if (event.data.items.some((item) => 'evidenceRefs' in item)) {
+      const v2 = ensureV2Analysis(next);
+      return { ...v2, review: { ...v2.review, overall: event.data.items as ReviewClaim[] } };
+    }
+    return next;
+  }
+  if (event.section === 'B') {
+    const next = {
+      ...current,
+      sections: {
+        ...current.sections!,
+        ideasStructure: {
+          strengths: textOf(event.data.strengths),
+          weaknesses: event.data.weaknesses.map((group) => ({
+            category: group.category,
+            title: group.title,
+            items: textOf(group.items),
+          })),
+          suggestions: textOf(event.data.suggestions),
+        },
+      },
+    };
+    if (
+      [...event.data.strengths, ...event.data.suggestions].some(
+        (item) => 'evidenceRefs' in item,
+      )
+    ) {
+      const v2 = ensureV2Analysis(next);
+      return {
+        ...v2,
+        review: {
+          ...v2.review,
+          ideasStructure: event.data as AaccAnalysisV2['review']['ideasStructure'],
+        },
+      };
+    }
+    return next;
+  }
+  if (event.section === 'C') {
+    const next = {
+      ...current,
+      sections: {
+        ...current.sections!,
+        hookEngagement: {
+          analysis: textOf(event.data.analysis),
+          suggestions: textOf(event.data.suggestions),
+        },
+      },
+    };
+    if (
+      [...event.data.analysis, ...event.data.suggestions].some(
+        (item) => 'evidenceRefs' in item,
+      )
+    ) {
+      const v2 = ensureV2Analysis(next);
+      return {
+        ...v2,
+        review: {
+          ...v2.review,
+          hookEngagement: event.data as AaccAnalysisV2['review']['hookEngagement'],
+        },
+      };
+    }
+    return next;
+  }
+  if (event.section === 'D') {
+    const next = {
+      ...current,
+      pillars: {
+        ...current.pillars,
+        [event.criterion]: {
+          score: event.data.score * 10,
+          analysis: textOf(event.data.analysis),
+          strengths: textOf(event.data.strengths),
+          gaps: textOf(event.data.gaps),
+          evidenceQuotes: [],
+        },
+      },
+    };
+    if (
+      [...event.data.analysis, ...event.data.strengths, ...event.data.gaps].some(
+        (item) => 'evidenceRefs' in item,
+      )
+    ) {
+      const v2 = ensureV2Analysis(next);
+      return {
+        ...v2,
+        review: {
+          ...v2.review,
+          pillars: {
+            ...v2.review.pillars,
+            [event.criterion]: event.data as AaccAnalysisV2['review']['pillars'][typeof event.criterion],
+          },
+        },
+      };
+    }
+    return next;
+  }
+  if (event.section === 'E') {
+    if ('actions' in event.data) {
+      const items = textOf(event.data.actions);
+      const next: VinUniAnalysis = {
+        ...current,
+        sections: { ...current.sections!, nextSteps: items },
+        topRecommendations: items.map((action, index) => ({
+          id: `stream-rec-${index + 1}`,
+          pillar: 'ability',
+          action,
+          rationale: '',
+        })),
+      };
+      const v2 = ensureV2Analysis(next);
+      return {
+        ...v2,
+        review: {
+          ...v2.review,
+          nextSteps: event.data,
+        },
+      };
+    }
+    const items = textOf(event.data.items);
+    const next = {
+      ...current,
+      sections: { ...current.sections!, nextSteps: items },
+      topRecommendations: items.map((action, index) => ({
+        id: `stream-rec-${index + 1}`,
+        pillar: 'ability',
+        action,
+        rationale: '',
+      })),
+    };
+    return next as VinUniAnalysis;
+  }
+  const score = event.data.score;
+  return {
+    ...current,
+    overall: {
+      ...current.overall,
+      score,
+      verdict:
+        score >= 90
+          ? 'strong-fit'
+          : score >= 70
+            ? 'promising'
+            : score >= 50
+              ? 'needs-work'
+              : 'misaligned',
+    },
+  };
+}
+
+async function readNdjson(
+  response: Response,
+  onEvent: (event: VinUniStreamEvent | VinUniV2StreamEvent) => void,
+) {
+  if (!response.body) throw new Error('AI service returned no stream.');
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { value, done } = await reader.read();
+    buffer += decoder.decode(value, { stream: !done });
+    const lines = buffer.split(/\r?\n/);
+    buffer = lines.pop() ?? '';
+    for (const line of lines) {
+      if (line.trim()) onEvent(JSON.parse(line) as VinUniStreamEvent);
+    }
+    if (done) break;
+  }
+  if (buffer.trim()) onEvent(JSON.parse(buffer) as VinUniStreamEvent);
+}
+
 export function StatementWriter({
   saveTarget,
   targetName,
@@ -87,23 +393,60 @@ export function StatementWriter({
   statementId: initialStatementId,
   initialDocType = 'personal_statement',
   embedded = false,
+  workspace = false,
+  evaluationMode = 'generic',
 }: Props) {
+  const isVinUni =
+    evaluationMode === 'vinuni' || /\bvin\s*(?:university|uni)\b/i.test(targetName);
+  const storedVinUni = isStoredVinUniAnalysis(initialAnalysis) ? initialAnalysis : null;
   const supabase = useMemo(() => createClient(), []);
   const [text, setText] = useState(initialContent);
-  const [analysis, setAnalysis] = useState<AIAnalysis | null>(initialAnalysis);
-  const [status, setStatus] = useState<'idle' | 'analyzing' | 'done'>(initialAnalysis ? 'done' : 'idle');
+  const [analysis, setAnalysis] = useState<AIAnalysis | null>(
+    isVinUni || isStoredVinUniAnalysis(initialAnalysis) ? null : initialAnalysis,
+  );
+  const [vinUniAnalysis, setVinUniAnalysis] = useState<VinUniAnalysis | null>(
+    storedVinUni?.analysis ?? null,
+  );
+  const [essayPrompt, setEssayPrompt] = useState(
+    storedVinUni?.essayPrompt ?? VINUNI_DEFAULT_ESSAY_PROMPT,
+  );
+  const [vinUniStatus, setVinUniStatus] = useState('');
+  const [animateVinUniFeedback, setAnimateVinUniFeedback] = useState(false);
+  const [missingSections, setMissingSections] = useState<VinUniRequestedSection[]>([]);
+  const [activeEvidenceIds, setActiveEvidenceIds] = useState<string[]>([]);
+  const [activeClaimKeys, setActiveClaimKeys] = useState<string[]>([]);
+  const [status, setStatus] = useState<'idle' | 'analyzing' | 'done'>(
+    storedVinUni || (!isVinUni && initialAnalysis) ? 'done' : 'idle',
+  );
   const [activeTab, setActiveTab] = useState<'score' | 'suggestions' | 'checklist'>('suggestions');
   const [hoveredSuggestion, setHoveredSuggestion] = useState<string | null>(null);
   const [docType, setDocType] = useState<DocType>(initialDocType);
   const [error, setError] = useState<string | null>(null);
   const [statementId, setStatementId] = useState<number | null>(initialStatementId);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<'edit' | 'review'>(initialAnalysis ? 'review' : 'edit');
+  const [viewMode, setViewMode] = useState<'edit' | 'review'>(
+    storedVinUni || (!isVinUni && initialAnalysis) ? 'review' : 'edit',
+  );
+  const [reviewEditing, setReviewEditing] = useState(false);
+  const [workspacePane, setWorkspacePane] = useState<'essay' | 'feedback'>('essay');
+  const analysisAbortRef = useRef<AbortController | null>(null);
+  const textRef = useRef(text);
+  const promptRef = useRef(essayPrompt);
+  textRef.current = text;
+  promptRef.current = essayPrompt;
+
+  useEffect(() => () => analysisAbortRef.current?.abort(), []);
 
   const wordCount = text.split(/\s+/).filter((w) => w.length > 0).length;
+  const minimumAnalysisLength = isVinUni ? 200 : 20;
 
   const saveDraft = useCallback(
-    async (content: string, aiAnalysis?: AIAnalysis | null) => {
+    async (content: string, aiAnalysis?: unknown) => {
+      if (saveTarget.kind === 'demo') {
+        setSaveStatus('Demo · không lưu dữ liệu');
+        setTimeout(() => setSaveStatus(null), 2000);
+        return;
+      }
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
@@ -138,34 +481,159 @@ export function StatementWriter({
     [supabase, targetName, docType, analysis, saveTarget, statementId],
   );
 
-  const handleAnalyze = useCallback(async () => {
-    if (text.trim().length < 20) return;
+  const handleAnalyze = useCallback(async (retrySections?: VinUniRequestedSection[]) => {
+    if (text.trim().length < minimumAnalysisLength) return;
+    analysisAbortRef.current?.abort();
+    const abortController = new AbortController();
+    analysisAbortRef.current = abortController;
+    setWorkspacePane('feedback');
     setStatus('analyzing');
+    if (isVinUni) {
+      setAnimateVinUniFeedback(true);
+      if (workspace) setViewMode('review');
+    }
     setError(null);
+    setVinUniStatus(isVinUni ? 'AI đang chuẩn bị phân tích…' : '');
+    setMissingSections([]);
+    if (isVinUni && !retrySections?.length) {
+      setReviewEditing(false);
+      setVinUniAnalysis(emptyVinUniAnalysis());
+    }
+    const submittedText = text;
+    const submittedPrompt = essayPrompt;
 
     try {
-      const res = await fetch('/api/ai/analyze-statement', {
+      const res = await fetch(
+        isVinUni ? '/api/ai/analyze-statement-aacc' : '/api/ai/analyze-statement',
+        {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, docType, targetUniversity: targetName }),
-      });
+          body: JSON.stringify(
+            isVinUni
+              ? {
+                  text: submittedText,
+                  essayPrompt: submittedPrompt,
+                  ...(saveTarget.kind === 'application'
+                    ? { applicationId: saveTarget.applicationId }
+                    : saveTarget.kind === 'demo'
+                      ? { applicationId: VINUNI_DEMO_APPLICATION_ID }
+                    : {}),
+                  ...(retrySections?.length
+                    ? { requestedSections: retrySections }
+                    : {}),
+                }
+              : { text, docType, targetUniversity: targetName },
+          ),
+          signal: abortController.signal,
+        },
+      );
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || 'Analysis failed');
       }
 
-      const result: AIAnalysis = await res.json();
-      setAnalysis(result);
+      if (isVinUni) {
+        let completed = false;
+        let streamError: string | null = null;
+        const completeEvent: {
+          current:
+            | Extract<VinUniV2StreamEvent, { type: 'complete' }>
+            | Extract<VinUniStreamEvent, { type: 'complete' }>
+            | null;
+        } = { current: null };
+        await readNdjson(res, (event) => {
+          if (event.type === 'status') {
+            setVinUniStatus(event.message);
+          } else if (event.type === 'diagnostics') {
+            setVinUniAnalysis((current) => ({
+              ...ensureV2Analysis(current ?? emptyVinUniAnalysis()),
+              diagnostics: event.data,
+            }));
+          } else if (event.type === 'section') {
+            setVinUniAnalysis((current) =>
+              applyVinUniSection(current ?? emptyVinUniAnalysis(), event),
+            );
+          } else if (event.type === 'complete') {
+            if (
+              'inputHash' in event &&
+              event.inputHash !==
+                createVinUniInputHash(textRef.current, promptRef.current)
+            ) {
+              return;
+            }
+            completed = true;
+            completeEvent.current = event;
+            if (!('isComplete' in event.analysis) || event.analysis.isComplete) {
+              setVinUniAnalysis(event.analysis);
+            }
+          } else {
+            streamError = event.message;
+            setMissingSections(
+              event.sections.filter((section): section is VinUniRequestedSection =>
+                [
+                  'A',
+                  'B',
+                  'C',
+                  'D:ability',
+                  'D:aspirations',
+                  'D:creativity',
+                  'D:commitment',
+                  'E',
+                ].includes(section),
+              ),
+            );
+          }
+        });
+        if (!completed && !streamError && !retrySections?.length) {
+          throw new Error('AI stream ended before completion.');
+        }
+        if (streamError) setError(streamError);
+        setStatus('done');
+        setVinUniStatus('');
+        setViewMode('review');
+        if (
+          completeEvent.current &&
+          'versions' in completeEvent.current &&
+          completeEvent.current.analysis.isComplete
+        ) {
+          await saveDraft(submittedText, {
+            schemaVersion: completeEvent.current.versions.schema,
+            rubricVersion: completeEvent.current.versions.rubric,
+            promptVersion: completeEvent.current.versions.prompt,
+            essayPrompt: submittedPrompt,
+            inputHash: completeEvent.current.inputHash,
+            analysis: completeEvent.current.analysis,
+          } satisfies StoredVinUniAnalysis);
+        }
+        return;
+      }
+
+      setVinUniAnalysis(null);
+      const genericResult = (await res.json()) as AIAnalysis;
+      setAnalysis(genericResult);
       setStatus('done');
       setActiveTab('suggestions');
       setViewMode('review');
-      await saveDraft(text, result);
+      await saveDraft(text, genericResult);
     } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'Analysis failed. Please try again.');
       setStatus('idle');
+    } finally {
+      if (analysisAbortRef.current === abortController) analysisAbortRef.current = null;
     }
-  }, [text, docType, targetName, saveDraft]);
+  }, [
+    text,
+    essayPrompt,
+    docType,
+    targetName,
+    saveDraft,
+    saveTarget,
+    isVinUni,
+    minimumAnalysisLength,
+    workspace,
+  ]);
 
   const acceptSuggestion = (suggestion: AISuggestion) => {
     setText((prev) => prev.replace(suggestion.originalText, suggestion.replacement));
@@ -175,6 +643,129 @@ export function StatementWriter({
         suggestions: analysis.suggestions.filter((s) => s.id !== suggestion.id),
       });
     }
+  };
+
+  const allReviewClaims = useCallback(() => {
+    if (!vinUniAnalysis || !('review' in vinUniAnalysis)) return [];
+    const review = vinUniAnalysis.review;
+    return [
+      ...(vinUniAnalysis.diagnostics?.issues ?? []),
+      ...review.overall,
+      ...review.ideasStructure.strengths,
+      ...review.ideasStructure.weaknesses.flatMap(({ items }) => items),
+      ...review.ideasStructure.suggestions,
+      ...review.hookEngagement.analysis,
+      ...review.hookEngagement.suggestions,
+      ...Object.values(review.pillars).flatMap((pillar) => [
+        ...pillar.analysis,
+        ...pillar.strengths,
+        ...pillar.gaps,
+      ]),
+      ...review.nextSteps.actions,
+      ...review.nextSteps.questions,
+    ];
+  }, [vinUniAnalysis]);
+
+  const selectReviewClaim = useCallback((claim: ReviewClaim) => {
+    const essayIds = claim.evidenceRefs
+      .filter(({ source }) => source === 'essay')
+      .map(({ id }) => id);
+    setActiveClaimKeys([reviewClaimKey(claim)]);
+    setActiveEvidenceIds(essayIds);
+    setViewMode('review');
+    if (workspace && essayIds.length) setWorkspacePane('essay');
+    window.requestAnimationFrame(() => {
+      document.getElementById(`evidence-${essayIds[0]}`)?.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center',
+      });
+    });
+  }, [workspace]);
+
+  const selectEssayEvidence = useCallback(
+    (evidenceId: string) => {
+      const claims = allReviewClaims()
+        .filter((claim) =>
+          claim.evidenceRefs.some(
+            (reference) =>
+              reference.source === 'essay' && reference.id === evidenceId,
+          ),
+        );
+      setActiveEvidenceIds([evidenceId]);
+      setActiveClaimKeys(claims.map(reviewClaimKey));
+      if (workspace) setWorkspacePane('feedback');
+      window.requestAnimationFrame(() => {
+        const firstClaim = claims[0];
+        if (!firstClaim) return;
+        document.getElementById(reviewClaimElementId(firstClaim))?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center',
+        });
+      });
+    },
+    [allReviewClaims, workspace],
+  );
+
+  const renderVinUniEvidence = () => {
+    const mappedAnalysis =
+      vinUniAnalysis && 'evidenceMap' in vinUniAnalysis ? vinUniAnalysis : null;
+    const diagnosticEvidenceIds = new Set<string>(
+      mappedAnalysis?.diagnostics?.issues.flatMap((issue) =>
+        issue.evidenceRefs
+          .filter(({ source }) => source === 'essay')
+          .map(({ id }) => id),
+      ) ?? [],
+    );
+    const linkedEvidenceIds = new Set<string>(
+      allReviewClaims().flatMap((claim) =>
+        claim.evidenceRefs
+          .filter(({ source }) => source === 'essay')
+          .map(({ id }) => id),
+      ),
+    );
+    const elements: React.ReactNode[] = [];
+    let cursor = 0;
+    for (const segment of mappedAnalysis?.evidenceMap.essaySegments ?? []) {
+      const index = text.indexOf(segment.text, cursor);
+      if (index < 0) continue;
+      if (index > cursor) elements.push(text.slice(cursor, index));
+      if (!linkedEvidenceIds.has(segment.evidence_id)) {
+        elements.push(segment.text);
+        cursor = index + segment.text.length;
+        continue;
+      }
+      const active = activeEvidenceIds.includes(segment.evidence_id);
+      const needsImprovement = diagnosticEvidenceIds.has(segment.evidence_id);
+      elements.push(
+        <button
+          key={segment.evidence_id}
+          id={`evidence-${segment.evidence_id}`}
+          type="button"
+          aria-label={`Dẫn chứng ${segment.evidence_id}: ${segment.text}`}
+          data-active={active ? 'true' : 'false'}
+          onClick={() => selectEssayEvidence(segment.evidence_id)}
+          className={`inline rounded-[0.2em] text-left text-inherit transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
+            active
+              ? 'bg-amber-200 text-slate-950 ring-2 ring-amber-400'
+              : needsImprovement
+                ? 'bg-amber-100/80 text-slate-950'
+                : 'hover:bg-amber-50'
+          }`}
+        >
+          {segment.text}
+        </button>,
+      );
+      cursor = index + segment.text.length;
+    }
+    if (cursor < text.length) elements.push(text.slice(cursor));
+    return (
+      <p
+        data-testid="essay-manuscript"
+        className="whitespace-pre-wrap text-base leading-8 text-slate-700"
+      >
+        {elements}
+      </p>
+    );
   };
 
   const renderHighlightedText = () => {
@@ -216,14 +807,83 @@ export function StatementWriter({
     return <p className="whitespace-pre-wrap text-base leading-relaxed text-slate-700">{elements}</p>;
   };
 
-  const outerClass = embedded
-    ? 'flex min-h-0 flex-1 flex-col lg:flex-row'
-    : 'flex flex-1 flex-col overflow-hidden lg:flex-row';
+  const renderVinUniReviewEditor = () => (
+    <div>
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
+        <p className="text-xs font-medium text-slate-500">
+          {reviewEditing ? 'Đang chỉnh sửa · kết quả cũ chưa cập nhật' : `${wordCount} từ`}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={() => setReviewEditing((current) => !current)}
+            className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition duration-300 hover:border-pink-300 hover:text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
+          >
+            {reviewEditing ? 'Xem đánh dấu' : 'Chỉnh sửa bài luận'}
+          </button>
+          <button
+            type="button"
+            onClick={() => void handleAnalyze()}
+            disabled={status === 'analyzing' || text.trim().length < minimumAnalysisLength}
+            className="rounded-full bg-pink-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition duration-300 hover:bg-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {status === 'analyzing' ? 'Đang phân tích…' : 'Phân tích lại'}
+          </button>
+        </div>
+      </div>
+      {reviewEditing ? (
+        <textarea
+          aria-label="Chỉnh sửa bài luận"
+          value={text}
+          onChange={(event) => setText(event.target.value)}
+          className="min-h-[520px] w-full resize-y rounded-xl border border-slate-200 bg-white p-4 text-base leading-8 text-slate-700 outline-none transition focus:border-pink-300 focus:ring-2 focus:ring-pink-100"
+        />
+      ) : (
+        renderVinUniEvidence()
+      )}
+    </div>
+  );
+
+  const vinUniWorkspaceReview = Boolean(
+    workspace &&
+      isVinUni &&
+      vinUniAnalysis &&
+      viewMode === 'review',
+  );
+  const outerClass = vinUniWorkspaceReview
+    ? 'block min-h-0 flex-1 overflow-y-auto bg-slate-50'
+    : embedded
+      ? 'flex min-h-0 flex-1 flex-col lg:flex-row'
+      : 'flex flex-1 flex-col overflow-hidden lg:flex-row';
 
   return (
     <div className={outerClass}>
+      {workspace && !vinUniWorkspaceReview && (
+        <div className="grid shrink-0 grid-cols-2 border-b border-slate-200 bg-white p-2 lg:hidden">
+          {[
+            ['essay', 'Bài luận'],
+            ['feedback', 'Phản hồi'],
+          ].map(([pane, label]) => (
+            <button
+              key={pane}
+              type="button"
+              onClick={() => setWorkspacePane(pane as 'essay' | 'feedback')}
+              className={`rounded-lg px-3 py-2 text-sm font-semibold transition ${
+                workspacePane === pane
+                  ? 'bg-pink-50 text-pink-600'
+                  : 'text-slate-500 hover:bg-slate-50'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
       {/* ── Left: Editor ── */}
-      <section className="flex min-h-0 flex-1 flex-col border-b border-slate-200 lg:w-3/5 lg:border-b-0 lg:border-r">
+      {!vinUniWorkspaceReview ? <section
+        aria-label="Bài luận"
+        className={`${workspace && workspacePane !== 'essay' ? 'hidden lg:flex' : 'flex'} min-h-0 flex-1 flex-col border-b border-slate-200 ${workspace ? 'lg:w-[42%] lg:flex-none' : 'lg:w-3/5'} lg:border-b-0 lg:border-r`}
+      >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
             <select
@@ -238,7 +898,7 @@ export function StatementWriter({
             {saveStatus && <span className="text-xs font-medium text-emerald-500">{saveStatus}</span>}
           </div>
           <div className="flex items-center gap-2">
-            {analysis && (
+            {(analysis || vinUniAnalysis) && (
               <button
                 type="button"
                 onClick={() => setViewMode((m) => (m === 'edit' ? 'review' : 'edit'))}
@@ -247,17 +907,19 @@ export function StatementWriter({
                 {viewMode === 'edit' ? 'Review' : 'Edit'}
               </button>
             )}
+            {!isVinUni && (
+              <button
+                type="button"
+                onClick={() => saveDraft(text)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+              >
+                Save draft
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => saveDraft(text)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
-            >
-              Save draft
-            </button>
-            <button
-              type="button"
-              onClick={handleAnalyze}
-              disabled={status === 'analyzing' || text.trim().length < 20}
+              onClick={() => void handleAnalyze()}
+              disabled={status === 'analyzing' || text.trim().length < minimumAnalysisLength}
               className="inline-flex items-center gap-1.5 rounded-lg bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-4 py-1.5 text-xs font-bold text-white shadow-[0_4px_12px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
             >
               {status === 'analyzing'
@@ -271,8 +933,24 @@ export function StatementWriter({
 
         <div className={`min-h-0 flex-1 overflow-y-auto p-4 md:p-6 ${embedded ? 'max-h-[42vh] lg:max-h-none' : ''}`}>
           {viewMode === 'edit' || status === 'analyzing' ? (
-            <div className="relative h-full">
+            <div className="flex h-full min-h-0 flex-col">
+              {isVinUni ? (
+                <label className="mb-4 block shrink-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
+                  <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
+                    Đề bài luận
+                  </span>
+                  <textarea
+                    aria-label="Đề bài luận"
+                    value={essayPrompt}
+                    maxLength={2000}
+                    onChange={(event) => setEssayPrompt(event.target.value)}
+                    className="min-h-16 w-full resize-y bg-transparent text-sm leading-5 text-slate-700 outline-none"
+                  />
+                </label>
+              ) : null}
+              <div className="relative min-h-0 flex-1">
               <textarea
+                aria-label="Nội dung bài luận"
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={`Paste your ${docType === 'statement_of_purpose' ? 'statement of purpose' : 'personal statement'} here, or start writing. We'll give you specific feedback on how to strengthen it for ${targetName}.`}
@@ -284,16 +962,37 @@ export function StatementWriter({
                   <span className={wordCount > 650 ? ' font-medium text-red-500' : ''}> · UCAS max: 650</span>
                 )}
               </div>
+              </div>
             </div>
           ) : (
-            <div className="relative min-h-full">{renderHighlightedText()}</div>
+            <div className="relative min-h-full">
+              {isVinUni &&
+              vinUniAnalysis &&
+              'evidenceMap' in vinUniAnalysis &&
+              vinUniAnalysis.evidenceMap.essaySegments.length
+                ? renderVinUniEvidence()
+                : renderHighlightedText()}
+            </div>
           )}
         </div>
-      </section>
+      </section> : null}
 
       {/* ── Right: Analysis Panel ── */}
-      <section className="flex min-h-0 flex-1 flex-col bg-slate-50 lg:w-2/5">
-        {status === 'idle' && !analysis && (
+      <section
+        aria-label="Phản hồi"
+        className={vinUniWorkspaceReview
+          ? 'block w-full bg-slate-50'
+          : `${workspace && workspacePane !== 'feedback' ? 'hidden lg:flex' : 'flex'} min-h-0 flex-1 flex-col bg-slate-50 ${workspace ? 'lg:w-[58%] lg:flex-none' : 'lg:w-2/5'}`}
+      >
+        {isVinUni && !vinUniAnalysis ? (
+          <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-white px-4 py-3 text-[11px] font-semibold text-slate-600">
+            <span className="rounded-full border border-slate-200 px-3 py-1.5">Essay</span>
+            <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5">VinUni AACC</span>
+            <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5">Programme · Server xác nhận</span>
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5">Profile · Nếu có</span>
+          </div>
+        ) : null}
+        {status === 'idle' && !analysis && !vinUniAnalysis && (
           <div className="flex-1 space-y-4 overflow-y-auto p-5">
             {contextNote && (
               <div className="rounded-xl border border-slate-200 bg-white p-4">
@@ -327,7 +1026,7 @@ export function StatementWriter({
           </div>
         )}
 
-        {status === 'analyzing' && (
+        {status === 'analyzing' && !vinUniAnalysis && (
           <div className="flex flex-1 flex-col items-center justify-center p-8">
             <div className="mb-4 h-10 w-10 animate-spin rounded-full border-[3px] border-pink-200 border-t-pink-500" />
             <h2 className="text-base font-semibold text-slate-600">Reading like an admissions officer…</h2>
@@ -335,8 +1034,70 @@ export function StatementWriter({
           </div>
         )}
 
+        {vinUniStatus ? (
+          <div
+            role="status"
+            className="mx-4 mt-4 flex items-center gap-3 rounded-xl border border-pink-200 bg-white px-4 py-3 text-sm font-medium text-slate-700"
+          >
+            <span className="h-2 w-2 animate-pulse rounded-full bg-pink-500" aria-hidden />
+            {vinUniStatus}
+          </div>
+        ) : null}
+
         {error && (
-          <div className="m-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-600">{error}</div>
+          <div className="m-4 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <p>{error}</p>
+            {missingSections.length ? (
+              <button
+                type="button"
+                onClick={() => void handleAnalyze(missingSections)}
+                className="mt-3 rounded-full border border-red-300 bg-white px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+              >
+                Thử lại phần thiếu
+              </button>
+            ) : null}
+          </div>
+        )}
+
+        {vinUniAnalysis && (
+          <div
+            className={
+              vinUniWorkspaceReview
+                ? 'p-4 md:p-6'
+                : 'min-h-0 flex-1 overflow-y-auto p-4'
+            }
+          >
+            {'context' in vinUniAnalysis ? (
+              <div className="mb-3 flex flex-wrap gap-2 text-[11px] font-semibold text-slate-600">
+                <span className="rounded-full border border-slate-200 bg-white px-3 py-1.5">Essay</span>
+                <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5">VinUni AACC</span>
+                <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5">
+                  Programme · {vinUniAnalysis.context.programmeName ?? 'VinUni chung'}
+                </span>
+                <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5">
+                  Profile · {vinUniAnalysis.context.profileStatus === 'available' ? 'Đã dùng' : 'Không có'}
+                </span>
+              </div>
+            ) : null}
+            <VinUniAaccFeedback
+              analysis={vinUniAnalysis}
+              manuscript={vinUniWorkspaceReview ? renderVinUniReviewEditor() : undefined}
+              streaming={animateVinUniFeedback}
+              loading={status === 'analyzing'}
+              activeClaimKeys={activeClaimKeys}
+              onEvidenceSelect={selectReviewClaim}
+              onTryAgain={() => {
+                analysisAbortRef.current?.abort();
+                setVinUniAnalysis(null);
+                setActiveClaimKeys([]);
+                setActiveEvidenceIds([]);
+                setMissingSections([]);
+                setStatus('idle');
+                setAnimateVinUniFeedback(false);
+                setViewMode('edit');
+              }}
+            />
+          </div>
         )}
 
         {analysis && status !== 'analyzing' && (

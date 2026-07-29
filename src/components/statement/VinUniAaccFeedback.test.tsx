@@ -1,0 +1,465 @@
+import { act, render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { AaccAnalysis } from '@/lib/ai/vinuni-grounded-evaluation';
+import type { AaccAnalysisV2 } from '@/lib/ai/vinuni-evaluation-v2';
+import {
+  calculateImprovementProjection,
+  reviewClaimKey,
+  VinUniAaccFeedback,
+} from './VinUniAaccFeedback';
+
+const pillar = {
+  score: 70,
+  analysis: ['Phân tích có căn cứ.'],
+  strengths: ['Điểm mạnh có căn cứ.'],
+  gaps: ['Điểm yếu có căn cứ.'],
+  evidenceQuotes: ['I led a robotics team.'],
+};
+
+const analysis: AaccAnalysis = {
+  overall: {
+    score: 65,
+    verdict: 'needs-work',
+    summary: 'Bài luận có trải nghiệm cụ thể nhưng cần đào sâu suy ngẫm cá nhân.',
+  },
+  pillars: {
+    ability: pillar,
+    aspirations: pillar,
+    creativity: pillar,
+    commitment: pillar,
+  },
+  topRecommendations: [],
+  sections: {
+    overallSummary: ['Bài luận có trải nghiệm cụ thể.'],
+    ideasStructure: {
+      strengths: ['Mạch kể rõ ràng.'],
+      weaknesses: [
+        {
+          category: 'personal_reflection',
+          title: 'Suy ngẫm cá nhân',
+          items: ['Phần bài học còn ngắn.'],
+        },
+      ],
+      suggestions: ['Giải thích trải nghiệm đã thay đổi bạn như thế nào.'],
+    },
+    hookEngagement: {
+      analysis: ['Mở bài đi thẳng vào sự kiện.'],
+      suggestions: ['[CẦN USER BỔ SUNG: lời thoại thật khi dự án bắt đầu]'],
+    },
+    nextSteps: ['Bổ sung suy ngẫm sau thất bại.'],
+  },
+};
+
+describe('VinUniAaccFeedback', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('uses the same action gains for the roadmap and final projected score', () => {
+    expect(
+      calculateImprovementProjection(7.7, [
+        { priority: 'high' },
+        { priority: 'high' },
+        { priority: 'medium' },
+      ]),
+    ).toEqual({ current: 7.7, gain: 1.3, potential: 9 });
+  });
+
+  it('renders the complete Vietnamese A-F review and allows another analysis', async () => {
+    const onTryAgain = vi.fn();
+    render(<VinUniAaccFeedback analysis={analysis} onTryAgain={onTryAgain} />);
+
+    for (const heading of [
+      'A. Tổng quan',
+      'B. Ý tưởng & cấu trúc',
+      'C. Mở bài & sức hút',
+      'D. Đánh giá AACC',
+      'E. Bước tiếp theo',
+      'F. Điểm AACC',
+    ]) {
+      expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
+    }
+    expect(screen.getByText('[CẦN USER BỔ SUNG: lời thoại thật khi dự án bắt đầu]')).toBeVisible();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa & phân tích lại' }));
+    expect(onTryAgain).toHaveBeenCalledOnce();
+  });
+
+  it('does not render an empty improvement card', () => {
+    const withoutSuggestions = structuredClone(analysis);
+    withoutSuggestions.sections!.ideasStructure.suggestions = [];
+
+    render(<VinUniAaccFeedback analysis={withoutSuggestions} onTryAgain={vi.fn()} />);
+
+    expect(screen.queryByRole('heading', { name: /Gợi ý cải thiện/i })).not.toBeInTheDocument();
+    const strengthsCard = screen.getByRole('heading', { name: /Điểm mạnh/i }).parentElement;
+    expect(strengthsCard?.parentElement).not.toHaveClass('lg:grid-cols-2');
+  });
+
+  it('uses a light surface theme without black background blocks', () => {
+    const { container } = render(
+      <VinUniAaccFeedback analysis={analysis} onTryAgain={vi.fn()} />,
+    );
+
+    expect(container.querySelectorAll('[class*="bg-slate-950"]')).toHaveLength(0);
+    expect(container.querySelector('header')).toHaveClass('text-slate-950');
+    expect(screen.getByLabelText('Điểm tổng AACC')).toHaveClass('bg-pink-50/70');
+    expect(screen.getAllByRole('progressbar')).toHaveLength(4);
+  });
+
+  it('uses an editorial diagnostic hierarchy without emoji interface chrome', () => {
+    const { container } = render(
+      <VinUniAaccFeedback analysis={analysis} onTryAgain={vi.fn()} />,
+    );
+
+    expect(
+      container.querySelector('[data-visual-style="editorial-diagnostic"]'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Tóm tắt chẩn đoán')).toHaveAttribute(
+      'data-layout',
+      'editorial-rail',
+    );
+    expect(screen.getAllByTestId('status-icon').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByRole('region', { name: 'Phần A: Tổng quan' })).toBeVisible();
+    expect(screen.getAllByRole('row')[0]).toHaveClass('sm:grid-cols-2');
+    expect(screen.getAllByRole('row')[0]).not.toHaveClass('grid-cols-2');
+    expect(container.textContent).not.toMatch(/[💡⚠◐]/u);
+  });
+
+  it('renders only arrived sections and hides bullet chrome until typing starts', async () => {
+    vi.useFakeTimers();
+    const partial = structuredClone(analysis);
+    partial.overall.score = 0;
+    partial.sections!.ideasStructure = { strengths: [], weaknesses: [], suggestions: [] };
+    partial.sections!.hookEngagement = { analysis: [], suggestions: [] };
+    partial.sections!.nextSteps = [];
+    for (const key of ['ability', 'aspirations', 'creativity', 'commitment'] as const) {
+      partial.pillars[key] = {
+        score: 0,
+        analysis: [],
+        strengths: [],
+        gaps: [],
+        evidenceQuotes: [],
+      };
+    }
+
+    const { container } = render(
+      <VinUniAaccFeedback analysis={partial} onTryAgain={vi.fn()} streaming loading />,
+    );
+
+    for (const heading of [/^A\./, /^B\./, /^C\./, /^D\./, /^E\./, /^F\./]) {
+      expect(screen.queryByRole('heading', { name: heading })).not.toBeInTheDocument();
+    }
+    expect(screen.getAllByText('…').length).toBeGreaterThan(0);
+
+    const firstBullet = container.querySelector('ul li');
+    expect(firstBullet).not.toBeVisible();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => {
+      vi.advanceTimersByTime(6);
+    });
+    expect(screen.getByRole('heading', { name: 'A. Tổng quan' })).toBeVisible();
+    expect(firstBullet).toBeVisible();
+  });
+
+  it('removes empty loading skeletons after completion while typing continues', () => {
+    const completed = structuredClone(analysis);
+    completed.pillars.ability.strengths = [];
+    completed.pillars.ability.gaps = [];
+
+    render(
+      <VinUniAaccFeedback
+        analysis={completed}
+        onTryAgain={vi.fn()}
+        streaming
+        loading={false}
+      />,
+    );
+
+    expect(screen.queryAllByTestId('feedback-skeleton')).toHaveLength(0);
+    expect(screen.getAllByTestId('typing-text').length).toBeGreaterThan(0);
+  });
+
+  it('types one streamed feedback item at a time', async () => {
+    vi.useFakeTimers();
+    const sequential = structuredClone(analysis);
+    sequential.sections!.overallSummary = ['First feedback item.', 'Second feedback item.'];
+    render(<VinUniAaccFeedback analysis={sequential} onTryAgain={vi.fn()} streaming />);
+
+    const [firstItem, secondItem] = screen.getAllByTestId('typing-text');
+    const firstText = sequential.sections!.overallSummary[0];
+    expect(firstItem).toBeEmptyDOMElement();
+    expect(secondItem).toBeEmptyDOMElement();
+    expect(
+      screen.queryByRole('heading', { name: 'B. Ý tưởng & cấu trúc' }),
+    ).not.toBeInTheDocument();
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => {
+      vi.advanceTimersByTime(12);
+    });
+    expect(firstItem.textContent?.length).toBeGreaterThan(0);
+    expect(firstItem.textContent).not.toBe(firstText);
+    expect(secondItem).toBeEmptyDOMElement();
+
+    await act(async () => {
+      vi.advanceTimersByTime(firstText.length * 6);
+      await Promise.resolve();
+    });
+    act(() => {
+      vi.advanceTimersByTime(6);
+    });
+    expect(firstItem).toHaveTextContent(firstText);
+    expect(secondItem.textContent?.length).toBeGreaterThan(0);
+  });
+
+  it('renders the manuscript with one current-versus-achievable radar and hover definitions', async () => {
+    const v2 = structuredClone(analysis) as AaccAnalysisV2;
+    v2.diagnostics = {
+      dimensions: {
+        writing: { score: 6, summary: 'Câu văn rõ nhưng còn lặp.' },
+        detail: { score: 6, summary: 'Thiếu chi tiết cảm giác.' },
+        voice: { score: 4, summary: 'Giọng cá nhân chưa rõ.' },
+        character: { score: 9, summary: 'Thể hiện trách nhiệm.' },
+        curiosity: { score: 7, summary: 'Có tinh thần tò mò.' },
+        contribution: { score: 6, summary: 'Có kết quả cụ thể.' },
+      },
+      issues: [
+        {
+          id: 'DIAG-1',
+          criterion: 'detail',
+          text: 'Cho thấy phản ứng cụ thể của học sinh trong buổi đầu.',
+          evidenceRefs: [{ source: 'essay', id: 'U001' }],
+          priority: 'high',
+        },
+      ],
+      achievability: {
+        currentScore: 6.3,
+        potentialScore: 6.4,
+        dimensions: {
+          writing: { current: 6, potential: 6 },
+          detail: { current: 6, potential: 6.5 },
+          voice: { current: 4, potential: 4 },
+          character: { current: 9, potential: 9 },
+          curiosity: { current: 7, potential: 7 },
+          contribution: { current: 6, potential: 6 },
+        },
+      },
+    };
+
+    render(
+      <VinUniAaccFeedback
+        analysis={v2}
+        manuscript={<p>I led a robotics workshop.</p>}
+        onTryAgain={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole('region', { name: 'Chẩn đoán bài luận' })).toHaveAttribute(
+      'data-visual-style',
+      'editorial-diagnostic',
+    );
+    expect(screen.getByRole('heading', { name: 'Bài luận đã chấm' })).toBeVisible();
+    expect(screen.getByTestId('diagnostic-radar')).toBeVisible();
+    expect(screen.getByTestId('diagnostic-radar-current')).toBeVisible();
+    expect(screen.getByTestId('diagnostic-radar-potential')).toBeVisible();
+    for (const label of ['Writing', 'Detail', 'Voice', 'Character', 'Curiosity', 'Contribution']) {
+      expect(screen.getByRole('button', { name: new RegExp(label) })).toBeVisible();
+    }
+    await userEvent.hover(screen.getByRole('button', { name: /Writing/ }));
+    expect(screen.getByText(/độ rõ ràng, nhịp câu và cấu trúc/i)).toBeVisible();
+    expect(screen.getAllByText('6.3')[0]).toBeVisible();
+    expect(screen.getAllByText('6.4')[0]).toBeVisible();
+    const diagnosticIssue = screen.getByRole('button', {
+      name: 'Cho thấy phản ứng cụ thể của học sinh trong buổi đầu.',
+    });
+    expect(diagnosticIssue).toBeVisible();
+    expect(within(diagnosticIssue).getByText('Ưu tiên cao')).toBeVisible();
+    expect(within(diagnosticIssue).queryByText('+0.5')).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /A\./ })).toBeVisible();
+  });
+
+  it('turns the A-F report into evidence, comparison, score and action visuals', () => {
+    const v2 = structuredClone(analysis) as AaccAnalysisV2;
+    const strength = {
+      id: 'VIS-1',
+      text: 'Mạch kể vấn đề đến bài học rõ ràng.',
+      evidenceRefs: [{ source: 'essay' as const, id: 'U001' as const }],
+      priority: 'medium' as const,
+    };
+    const gap = {
+      id: 'VIS-2',
+      text: 'Thiếu mục tiêu tương lai cụ thể.',
+      evidenceRefs: [{ source: 'essay' as const, id: 'U002' as const }],
+      priority: 'high' as const,
+    };
+    v2.isComplete = true;
+    v2.context = {
+      profileStatus: 'not_available',
+      programmeConfidence: 'high',
+      programmeName: 'Bachelor of Computer Science',
+    };
+    v2.evidenceMap = {
+      essaySegments: [
+        { evidence_id: 'U001', text: 'I led a robotics team.' },
+        { evidence_id: 'U002', text: 'I want to study computing.' },
+      ],
+      claims: [{ id: 'C001', text: 'Leadership', evidenceIds: ['U001'] }],
+      reflectionArcs: [
+        { id: 'R001', evidenceIds: ['U001'], completeness: 'complete' },
+      ],
+      promptCoverage: [
+        {
+          id: 'Q001',
+          requirement: 'Describe an achievement',
+          status: 'answered',
+          evidenceIds: ['U001'],
+        },
+        {
+          id: 'Q002',
+          requirement: 'Explain future goals',
+          status: 'partial',
+          evidenceIds: ['U002'],
+        },
+      ],
+      aaccCoverage: {
+        ability: { evidenceIds: ['U001'], strength: 'clear' },
+        aspirations: { evidenceIds: ['U002'], strength: 'emerging' },
+        creativity: { evidenceIds: [], strength: 'none' },
+        commitment: { evidenceIds: ['U001'], strength: 'clear' },
+      },
+      informationGaps: [{ id: 'G001', text: gap.text, evidenceIds: ['U002'] }],
+      possiblePromptInjection: false,
+    };
+    v2.review = {
+      overall: [strength, gap],
+      ideasStructure: {
+        strengths: [strength],
+        weaknesses: [{ category: 'future', title: 'Tương lai', items: [gap] }],
+        suggestions: [gap],
+      },
+      hookEngagement: { analysis: [strength], suggestions: [gap] },
+      pillars: {
+        ability: { score: 7, analysis: [strength], strengths: [strength], gaps: [gap] },
+        aspirations: { score: 7, analysis: [strength], strengths: [strength], gaps: [gap] },
+        creativity: { score: 7, analysis: [strength], strengths: [strength], gaps: [gap] },
+        commitment: { score: 7, analysis: [strength], strengths: [strength], gaps: [gap] },
+      },
+      nextSteps: { actions: [gap], questions: [] },
+    };
+    v2.diagnostics = {
+      dimensions: {
+        writing: { score: 7, summary: 'Mạch kể rõ.' },
+        detail: { score: 6, summary: 'Cần thêm chi tiết.' },
+        voice: { score: 7, summary: 'Giọng văn khá rõ.' },
+        character: { score: 8, summary: 'Phẩm chất tốt.' },
+        curiosity: { score: 7, summary: 'Có tò mò.' },
+        contribution: { score: 7, summary: 'Có đóng góp.' },
+      },
+      issues: [{ ...gap, criterion: 'detail' }],
+      achievability: {
+        currentScore: 7,
+        potentialScore: 7.5,
+        dimensions: {
+          writing: { current: 7, potential: 7.2 },
+          detail: { current: 6, potential: 6.5 },
+          voice: { current: 7, potential: 7 },
+          character: { current: 8, potential: 8 },
+          curiosity: { current: 7, potential: 7 },
+          contribution: { current: 7, potential: 7 },
+        },
+      },
+    };
+
+    render(<VinUniAaccFeedback analysis={v2} onTryAgain={vi.fn()} />);
+
+    const journeyChart = screen.getByRole('img', {
+      name: 'Biểu đồ nhịp bài luận qua 5 chặng',
+    });
+    expect(journeyChart).toBeVisible();
+    expect(within(journeyChart).getByTestId('narrative-plot')).toHaveClass('h-[260px]');
+    const stageMarkers = within(journeyChart).getAllByTestId('narrative-stage-marker');
+    expect(stageMarkers).toHaveLength(5);
+    expect(stageMarkers[0]).toHaveClass('h-12', 'w-12');
+    for (const stage of ['Hook', 'Bối cảnh', 'Xung đột', 'Chuyển biến', 'Tương lai']) {
+      expect(within(journeyChart).getByText(stage)).toBeVisible();
+    }
+    expect(screen.getByRole('img', { name: 'Bản đồ độ phủ dẫn chứng' })).toBeVisible();
+    expect(screen.getByRole('table', { name: 'Đã có và cần bổ sung' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Tín hiệu Writing, Detail và Voice' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Điểm AACC và mức có thể đạt' })).toBeVisible();
+    expect(screen.getByRole('list', { name: 'Lộ trình ưu tiên' })).toBeVisible();
+    expect(screen.getByRole('img', { name: 'Cầu điểm cải thiện' })).toBeVisible();
+    expect(screen.queryByRole('img', { name: 'Tín hiệu Tổng quan' })).not.toBeInTheDocument();
+  });
+
+  it('keeps evidence metadata clickable and shows every priority without a disclosure toggle', async () => {
+    const onEvidenceSelect = vi.fn();
+    const v2 = structuredClone(analysis) as AaccAnalysisV2;
+    v2.review = {
+      overall: [
+        {
+          id: 'R001',
+          text: 'Nhận xét ưu tiên cao có dẫn chứng trực tiếp từ bài luận của ứng viên.',
+          evidenceRefs: [{ source: 'essay', id: 'U001' }],
+          priority: 'high',
+        },
+        {
+          id: 'R002',
+          text: 'Chi tiết ưu tiên thấp chỉ nên xuất hiện khi người dùng mở phần phân tích đầy đủ.',
+          evidenceRefs: [{ source: 'programme', id: 'T001' }, { source: 'essay', id: 'U001' }],
+          priority: 'low',
+        },
+      ],
+      ideasStructure: { strengths: [], weaknesses: [], suggestions: [] },
+      hookEngagement: { analysis: [], suggestions: [] },
+      pillars: {
+        ability: { score: 7, analysis: [], strengths: [], gaps: [] },
+        aspirations: { score: 7, analysis: [], strengths: [], gaps: [] },
+        creativity: { score: 7, analysis: [], strengths: [], gaps: [] },
+        commitment: { score: 7, analysis: [], strengths: [], gaps: [] },
+      },
+      nextSteps: {
+        actions: [],
+        questions: [
+          {
+            id: 'R003',
+            text: 'Bạn có số liệu dài hạn nào giúp kiểm chứng tác động của hoạt động này không?',
+            evidenceRefs: [{ source: 'essay', id: 'U001' }],
+            priority: 'high',
+          },
+        ],
+      },
+    };
+
+    render(
+      <VinUniAaccFeedback
+        analysis={v2}
+        onTryAgain={vi.fn()}
+        onEvidenceSelect={onEvidenceSelect}
+        activeClaimKeys={[reviewClaimKey(v2.review.overall[0])]}
+      />,
+    );
+
+    const high = screen.getByRole('button', {
+      name: 'Nhận xét ưu tiên cao có dẫn chứng trực tiếp từ bài luận của ứng viên.',
+    });
+    expect(high).toHaveAttribute('data-active', 'true');
+    expect(screen.getByText(v2.review.overall[1].text)).toBeVisible();
+    expect(
+      screen.queryByRole('button', {
+        name: /^(xem phân tích đầy đủ|thu gọn phân tích)$/i,
+      }),
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(high);
+    expect(onEvidenceSelect).toHaveBeenCalledWith(v2.review.overall[0]);
+
+    expect(screen.getByRole('heading', { name: 'Câu hỏi cần bổ sung' })).toBeVisible();
+  });
+});

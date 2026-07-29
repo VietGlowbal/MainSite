@@ -12,7 +12,6 @@ import type {
   SavedScholarshipLite,
 } from '@/lib/apply-types';
 import { useLanguage } from '@/lib/i18n';
-import { StatementFeedbackModal } from '@/components/statement/StatementFeedbackModal';
 import { UpgradePromptModal } from '@/components/upgrade-prompt-modal';
 import { CourseSearchSessionModal } from '@/components/course-search-session-modal';
 import { getPartialDataBadge, getMissingFieldsDisplay } from '@/lib/partial-data-helper';
@@ -1192,7 +1191,6 @@ export function ApplyDashboard({
       if (!b.deadline) return -1;
       return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
     })[0] ?? applications[0];
-  const [sopOpen, setSopOpen] = useState(false);
 
   const handleCloseCourseSearch = () => {
     setIsCourseSearchOpen(false);
@@ -1377,18 +1375,14 @@ export function ApplyDashboard({
         <OverviewCard overview={overview} />
         <DeadlinesCard deadlines={upcomingDeadlines} />
         <MentorCard />
-        <ImproveCard onOpenSop={() => setSopOpen(true)} sopEnabled={Boolean(sopTarget)} />
+        <ImproveCard
+          onOpenSop={() =>
+            sopTarget && router.push(`/apply/${sopTarget.id}/statement-feedback`)
+          }
+          sopEnabled={Boolean(sopTarget)}
+        />
         <TrialBanner />
       </div>
-
-      {sopOpen && sopTarget && (
-        <StatementFeedbackModal
-          applicationId={sopTarget.id}
-          targetName={`${sopTarget.courseName} · ${sopTarget.universityName}`}
-          contextNote={sopTarget.aiSummary}
-          onClose={() => setSopOpen(false)}
-        />
-      )}
 
       {/* CourseSearchSessionModal */}
       {isCourseSearchOpen && universityContext && universityDetails && (

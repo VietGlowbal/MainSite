@@ -10,7 +10,13 @@ import { expect, test } from '@playwright/test';
  */
 
 /** Mirrors PROTECTED_ROUTES in src/proxy.ts. */
-const PROTECTED = ['/profile', '/dashboard', '/my-universities', '/admin', '/onboarding/complete'];
+const PROTECTED = [
+  '/profile',
+  '/dashboard',
+  '/my-universities',
+  '/admin',
+  '/onboarding/complete',
+];
 
 for (const route of PROTECTED) {
   test(`guest visiting ${route} is sent to /auth with a redirect back`, async ({ page }) => {
@@ -35,5 +41,10 @@ test('scholarships requires an account', async ({ page }) => {
   // Gated by a redirect inside the page rather than by the proxy, so it is
   // worth asserting separately — the mechanism differs from PROTECTED above.
   await page.goto('/scholarships');
+  await expect(page).toHaveURL(/\/auth/);
+});
+
+test('statement feedback workspace requires an account', async ({ page }) => {
+  await page.goto('/apply/e2e-placeholder/statement-feedback');
   await expect(page).toHaveURL(/\/auth/);
 });

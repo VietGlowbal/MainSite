@@ -1,11 +1,13 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApplyDashboard } from '@/app/apply/apply-dashboard';
 import type { CourseApplication } from '@/lib/apply-types';
 
+const push = vi.fn();
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({
-    push: vi.fn(),
+    push,
     refresh: vi.fn(),
     replace: vi.fn(),
   }),
@@ -28,6 +30,7 @@ const application: CourseApplication = {
 
 describe('ApplyDashboard application card', () => {
   beforeEach(() => {
+    push.mockReset();
     global.fetch = vi.fn().mockResolvedValue({ ok: false });
   });
 
@@ -60,5 +63,32 @@ describe('ApplyDashboard application card', () => {
     expect(officialLink.parentElement?.closest('a')).toBeNull();
     expect(officialLink).toHaveAttribute('href', application.courseUrl);
     expect(applicationLink).toHaveAttribute('href', `/apply/${application.id}`);
+  });
+
+  it('opens SOP Maximiser as a dedicated page in the current tab', () => {
+    render(
+      <ApplyDashboard
+        applications={[application]}
+        shortlisted={[]}
+        upcomingDeadlines={[]}
+        overview={{
+          activeApplications: 1,
+          submitted: 0,
+          offersReceived: 0,
+          tasksCompleted: 0,
+          totalTasks: 0,
+        }}
+        savedScholarshipsByUniversity={{}}
+        matchByApplicationId={{}}
+        focusUniversityId={null}
+        courseSearchUniversityId={null}
+        openCourseSearch={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /SOP Maximiser/i }));
+
+    expect(push).toHaveBeenCalledWith(`/apply/${application.id}/statement-feedback`);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

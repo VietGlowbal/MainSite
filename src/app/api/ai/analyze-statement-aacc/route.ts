@@ -14,28 +14,267 @@
  */
 
 import { NextResponse } from 'next/server';
+import {
+  streamDeepSeekText,
+  streamOpenRouterText,
+  streamVinUniEvaluation,
+  VINUNI_EVALUATION_CONFIG,
+  type VinUniStreamEvent,
+} from '@/lib/ai/vinuni-grounded-evaluation';
+import {
+  buildVinUniEvaluationContext,
+  streamVinUniEvaluationV2,
+  VINUNI_EVALUATION_CONFIG_V2,
+  type VinUniRequestedSection,
+  type VinUniV2StreamEvent,
+} from '@/lib/ai/vinuni-evaluation-v2';
+import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import { createClient } from '@/lib/supabase/server';
+import { VINUNI_DEMO_APPLICATION_ID } from '@/lib/ai/vinuni-evaluation-shared';
 
 const MIN_LENGTH = 200;
+const MAX_LENGTH = 15_000;
+const MAX_PROMPT_LENGTH = 2_000;
+const V2_SECTION_KEYS = new Set<VinUniRequestedSection>([
+  'A',
+  'B',
+  'C',
+  'D:ability',
+  'D:aspirations',
+  'D:creativity',
+  'D:commitment',
+  'E',
+]);
 
 export async function POST(request: Request) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const body = await request.json().catch(() => ({}));
+  const applicationId =
+    typeof body?.applicationId === 'string' ? body.applicationId.trim() : '';
+  const useV2 =
+    process.env.VINUNI_ESSAY_PIPELINE_VERSION === 'v2' && Boolean(applicationId);
+  const isDemoId = applicationId === VINUNI_DEMO_APPLICATION_ID;
+  const isLocalDemo = useV2 && isDemoId && process.env.NODE_ENV === 'development';
 
-  if (!user) {
+  if (isDemoId && !isLocalDemo) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+
+  const supabase = isLocalDemo ? null : await createClient();
+  const user = supabase ? (await supabase.auth.getUser()).data.user : null;
+
+  if (!isLocalDemo && !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const body = await request.json().catch(() => ({}));
-  const text = typeof body?.text === 'string' ? body.text : '';
+  const text = typeof body?.text === 'string' ? body.text.trim() : '';
 
   if (!text || text.trim().length < MIN_LENGTH) {
     return NextResponse.json(
       { error: `Please provide at least ${MIN_LENGTH} characters of SOP text.` },
       { status: 400 },
     );
+  }
+  if (text.length > MAX_LENGTH) {
+    return NextResponse.json(
+      { error: `Bài luận không được vượt quá ${MAX_LENGTH.toLocaleString('vi-VN')} ký tự.` },
+      { status: 400 },
+    );
+  }
+
+  let v2Input:
+    | {
+        essayPrompt: string;
+        requestedSections?: VinUniRequestedSection[];
+        context: ReturnType<typeof buildVinUniEvaluationContext>;
+      }
+    | undefined;
+  if (useV2) {
+    const essayPrompt =
+      typeof body?.essayPrompt === 'string' ? body.essayPrompt.trim() : '';
+    const requestedSections = Array.isArray(body?.requestedSections)
+      ? body.requestedSections.filter(
+          (section: unknown): section is VinUniRequestedSection =>
+            typeof section === 'string' &&
+            V2_SECTION_KEYS.has(section as VinUniRequestedSection),
+        )
+      : undefined;
+    if (!applicationId) {
+      return NextResponse.json({ error: 'Application ID is required.' }, { status: 400 });
+    }
+    if (!essayPrompt || essayPrompt.length > MAX_PROMPT_LENGTH) {
+      return NextResponse.json(
+        { error: `Essay prompt phải có từ 1 đến ${MAX_PROMPT_LENGTH.toLocaleString('vi-VN')} ký tự.` },
+        { status: 400 },
+      );
+    }
+    if (
+      body?.requestedSections !== undefined &&
+      (!Array.isArray(body.requestedSections) ||
+        !requestedSections?.length ||
+        requestedSections.length !== body.requestedSections.length)
+    ) {
+      return NextResponse.json(
+        { error: 'requestedSections contains an unsupported section.' },
+        { status: 400 },
+      );
+    }
+
+    if (isLocalDemo) {
+      v2Input = {
+        essayPrompt,
+        ...(requestedSections ? { requestedSections } : {}),
+        context: buildVinUniEvaluationContext({
+          application: {
+            id: VINUNI_DEMO_APPLICATION_ID,
+            universityName: 'VinUniversity',
+            courseName: 'Bachelor of Computer Science',
+          },
+          course: {
+            courseName: 'Bachelor of Computer Science',
+            degreeLevel: 'Bachelor',
+            subject: 'Computer Science',
+          },
+          profile: null,
+        }),
+      };
+    } else {
+      const workspace = await fetchApplicationWorkspace(applicationId, user!.id);
+      if (!workspace) {
+        return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+      }
+      const profile =
+        process.env.VINUNI_PROFILE_CONTEXT_ENABLED === 'true'
+          ? (
+              await supabase!
+                .from('student_profiles')
+                .select(
+                  'academic_background, grades_summary, goals, career_interests, achievements, skills, profile_summary, bio',
+                )
+                .eq('user_id', user!.id)
+                .maybeSingle()
+            ).data
+          : null;
+      v2Input = {
+        essayPrompt,
+        ...(requestedSections ? { requestedSections } : {}),
+        context: buildVinUniEvaluationContext({
+          application: {
+            id: workspace.application.id,
+            universityName: workspace.application.universityName,
+            courseName: workspace.application.courseName,
+          },
+          course: workspace.course
+            ? {
+                courseName: workspace.course.courseName,
+                degreeLevel: workspace.course.degreeLevel,
+                subject: workspace.course.subject,
+              }
+            : null,
+          profile: profile ?? null,
+        }),
+      };
+    }
+  }
+
+  if (process.env.VINUNI_GROUNDED_PIPELINE_ENABLED === 'true') {
+    if (!useV2 && !VINUNI_EVALUATION_CONFIG) {
+      return NextResponse.json(
+        { error: 'Grounded VinUni evaluation is not configured yet.' },
+        { status: 503 },
+      );
+    }
+    const evaluationConfig = VINUNI_EVALUATION_CONFIG!;
+    const provider = process.env.VINUNI_AI_PROVIDER === 'openrouter' ? 'openrouter' : 'deepseek';
+    const apiKeyName = provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'DEEPSEEK_API_KEY';
+    const apiKey = process.env[apiKeyName];
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: `AI service not configured. Set ${apiKeyName} in .env.local.` },
+        { status: 500 },
+      );
+    }
+    const model =
+      provider === 'openrouter'
+        ? process.env.OPENROUTER_MODEL || 'qwen/qwen3.5-flash-02-23'
+        : process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro';
+    const providerStream =
+      provider === 'openrouter' ? streamOpenRouterText : streamDeepSeekText;
+    const abortController = new AbortController();
+    request.signal.addEventListener('abort', () => abortController.abort(), { once: true });
+    const encoder = new TextEncoder();
+    const encodeEvent = (event: VinUniStreamEvent | VinUniV2StreamEvent) =>
+      encoder.encode(`${JSON.stringify(event)}\n`);
+
+    const body = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        try {
+          const events = useV2
+            ? streamVinUniEvaluationV2({
+                essay: text,
+                essayPrompt: v2Input!.essayPrompt,
+                context: v2Input!.context,
+                config: VINUNI_EVALUATION_CONFIG_V2,
+                apiKey,
+                model,
+                ...(v2Input!.requestedSections
+                  ? { requestedSections: v2Input!.requestedSections }
+                  : {}),
+                stream: providerStream,
+                signal: abortController.signal,
+              })
+            : streamVinUniEvaluation({
+                essay: text,
+                config: evaluationConfig,
+                apiKey,
+                model,
+                stream: providerStream,
+                signal: abortController.signal,
+              });
+          for await (const event of events) {
+            controller.enqueue(encodeEvent(event));
+            if (event.type === 'complete') {
+              console.info('VinUni AI stream complete', {
+                provider,
+                model,
+                pipeline: useV2 ? 'v2' : 'v1',
+                firstSectionMs: event.timing.firstSectionMs,
+                totalMs: event.timing.totalMs,
+              });
+            }
+          }
+        } catch (error) {
+          if (abortController.signal.aborted) return;
+          console.error('VinUni AI stream failed', {
+            provider,
+            model,
+            code: 'STREAM_FAILED',
+            message: error instanceof Error ? error.message : String(error),
+          });
+          controller.enqueue(
+            encodeEvent({
+              type: 'error',
+              code: 'STREAM_FAILED',
+              sections: [],
+              message: 'Phân tích AI chưa hoàn tất. Vui lòng thử lại.',
+              retryable: true,
+            }),
+          );
+        } finally {
+          if (!abortController.signal.aborted) controller.close();
+        }
+      },
+      cancel() {
+        abortController.abort();
+      },
+    });
+
+    return new Response(body, {
+      headers: {
+        'Content-Type': 'application/x-ndjson; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+        'X-Accel-Buffering': 'no',
+      },
+    });
   }
 
   const apiKey = process.env.OPENAI_API_KEY;

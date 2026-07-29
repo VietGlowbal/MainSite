@@ -6,6 +6,7 @@
 'use client';
 
 import type { ApplicationTask } from '@/lib/apply-types';
+import { isCvTask } from '@/components/cv/is-cv-task';
 import { isStatementTask } from '@/components/statement/is-statement-task';
 
 type Props = {
@@ -55,7 +56,10 @@ const taskIcons: Record<string, React.JSX.Element> = {
 export function TaskItem({ task, onToggle, onAction, onStatementFeedback }: Props) {
   const isCompleted = task.status === 'completed';
   const icon = taskIcons[task.taskType] || taskIcons.general;
-  const showStatementCta = !isCompleted && Boolean(onStatementFeedback) && isStatementTask(task);
+  const showAiCta =
+    !isCompleted &&
+    Boolean(onStatementFeedback) &&
+    (isStatementTask(task) || isCvTask(task));
 
   return (
     <div className={`flex items-start gap-3 rounded-xl border p-4 transition ${
@@ -109,7 +113,7 @@ export function TaskItem({ task, onToggle, onAction, onStatementFeedback }: Prop
       </div>
 
       {/* Action button */}
-      {showStatementCta ? (
+      {showAiCta ? (
         <button
           type="button"
           onClick={() => onStatementFeedback?.(task)}

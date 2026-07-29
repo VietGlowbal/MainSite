@@ -3,6 +3,8 @@
 import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { VinUniAaccFeedback } from '@/components/statement/VinUniAaccFeedback';
+import type { AaccAnalysis } from '@/lib/ai/vinuni-grounded-evaluation';
 import type { University } from '@/lib/types';
 import {
   vinuniHero,
@@ -885,23 +887,7 @@ function ArrowRight() {
 //  §6 SOP AACC analyzer
 // ──────────────────────────────────────────────────────────────────
 
-type AaccPillarResult = {
-  score: number;
-  strengths: string[];
-  gaps: string[];
-  evidenceQuotes: string[];
-};
-
-type AaccAnalysis = {
-  overall: {
-    score: number;
-    verdict: 'strong-fit' | 'promising' | 'needs-work' | 'misaligned';
-    summary: string;
-  };
-  pillars: Record<AaccPillarKey, AaccPillarResult>;
-  topRecommendations: { id: string; pillar: AaccPillarKey; action: string; rationale: string }[];
-  redFlags?: string[];
-};
+type AaccPillarResult = AaccAnalysis['pillars'][AaccPillarKey];
 
 const VERDICT_LABEL: Record<AaccAnalysis['overall']['verdict'], { label: string; tone: string }> = {
   'strong-fit': { label: 'Strong fit', tone: 'bg-emerald-100 text-emerald-700 border-emerald-200' },
@@ -1036,7 +1022,7 @@ function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
                     Paste your Statement of Purpose
                   </label>
                   <p className="mt-1 text-xs text-slate-500">
-                    Minimum {MIN_SOP_CHARS} characters. The text is sent only to OpenAI for this analysis — not stored.
+                    Tối thiểu {MIN_SOP_CHARS} ký tự. Bài viết được AI phân tích và không được lưu.
                   </p>
                   <textarea
                     ref={textareaRef}
@@ -1254,6 +1240,9 @@ function AaccSkeleton() {
 }
 
 function AaccResult({ analysis, onTryAgain }: { analysis: AaccAnalysis; onTryAgain: () => void }) {
+  if (analysis.sections) {
+    return <VinUniAaccFeedback analysis={analysis} onTryAgain={onTryAgain} />;
+  }
   const verdict = VERDICT_LABEL[analysis.overall.verdict] ?? VERDICT_LABEL.promising;
   return (
     <div className="space-y-6">
