@@ -14,6 +14,8 @@ import {
   FOOTER_TAGLINE,
   MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
+import { displayCourseName, isParsePending } from '@/features/apply/domain';
+import { anyParsePending, useParseRefresh } from '@/features/apply/hooks';
 import type { CourseApplication } from '@/lib/apply-types';
 import {
   Avatar,
@@ -79,113 +81,15 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
  * regardless. All of it is in git history at apply-dashboard.tsx.
  */
 
-/** Figma 337:18812 — the gauge is banded by value: 92 green, 60 amber, 30 rose. */
-function gaugeColor(pct: number): string {
-  if (pct >= 70) return 'var(--color-gb-tier-safe)'; // Figma Colors/Green/700
-  if (pct >= 40) return 'var(--color-gb-yellow-400)'; // Figma Colors/Yellow/400
-  return 'var(--color-gb-brand-600)'; // Figma Colors/Rose/600
-}
-
-/**
- * Figma 337:18813 "Activity gauge".
- *
- * The frame exports the three rings as flat images baked at 92% / 60% / 30%, so
- * they cannot be reused — the arc has to follow real `progress_percentage`. Drawn
- * as an SVG arc instead, which is what the ring it replaces did too.
- */
-function ProgressGauge({ value }: { value: number }) {
-  const pct = Math.max(0, Math.min(100, Math.round(value)));
-  const r = 32;
-  const circ = 2 * Math.PI * r;
-
-  return (
-    <div className="flex size-[104px] shrink-0 items-center justify-center rounded-gb-full bg-surface-muted/90 p-gb-lg backdrop-blur-sm">
-      <svg
-        width="76"
-        height="76"
-        viewBox="0 0 76 76"
-        role="img"
-        aria-label={`${pct}% complete`}
-      >
-        <circle
-          cx="38"
-          cy="38"
-          r={r}
-          fill="none"
-          stroke="var(--color-gb-neutral-300)"
-          strokeWidth="8"
-        />
-        <circle
-          cx="38"
-          cy="38"
-          r={r}
-          fill="none"
-          stroke={gaugeColor(pct)}
-          strokeWidth="8"
-          strokeLinecap="round"
-          strokeDasharray={`${(pct / 100) * circ} ${circ}`}
-          transform="rotate(-90 38 38)"
-        />
-        <text
-          x="38"
-          y="38"
-          textAnchor="middle"
-          dominantBaseline="central"
-          className="fill-[var(--gb-text-primary)] text-gb-md font-semibold"
-        >
-          {pct}%
-        </text>
-      </svg>
-    </div>
-  );
-}
-
 /* ─────────────────────────────────────────────────────────────────────────
    Waiting for the parse
 
-   A pasted course URL is read in the background — a queued job the cron worker
-   drains, usually inside a minute. The row is created immediately with
-   placeholder text, so without this the list said "Loading course details..."
-   forever and only corrected itself if the student happened to reload later.
-
-   `router.refresh()` rather than polling /api/applications/[id]/parse-status:
-   the parse changes the course name, the country, the deadline and the
-   progress, and re-reading the server component picks all of them up in one
-   request. Polling the status endpoint would tell us the parse had finished and
-   then require a refresh anyway.
+   Both the polling and the placeholder rule now live in the feature (hooks/
+   use-parse-refresh and domain/course-name) so that the list and the per-course
+   workspace behave identically. They previously lived only here, which is why
+   the workspace shipped with neither: it printed the placeholder as its <h1>
+   and never refreshed itself when the parse landed.
    ───────────────────────────────────────────────────────────────────────── */
-
-const POLL_MS = 4000;
-/**
- * Give up refreshing after this long. The worker retries with quadratic
- * backoff, so a job still pending at four minutes is waiting on a retry that is
- * minutes away — long past the point where a student is watching the tab.
- */
-const POLL_CEILING_MS = 4 * 60 * 1000;
-
-function isPending(app: CourseApplication): boolean {
-  return app.parseStatus === 'pending' || app.parseStatus === 'processing';
-}
-
-function useParseRefresh(applications: CourseApplication[]): void {
-  const router = useRouter();
-  const waiting = applications.some(isPending);
-
-  useEffect(() => {
-    if (!waiting) return undefined;
-
-    const startedAt = Date.now();
-    const timer = setInterval(() => {
-      if (Date.now() - startedAt > POLL_CEILING_MS) {
-        clearInterval(timer);
-        return;
-      }
-      router.refresh();
-    }, POLL_MS);
-
-    return () => clearInterval(timer);
-  }, [waiting, router]);
-}
 
 /** "14 Jan 2026" — the frame's format. Fixed locale so it cannot drift on hydration. */
 function formatDeadline(iso: string): string {
@@ -194,21 +98,12 @@ function formatDeadline(iso: string): string {
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
-/**
- * The row's course line while the page is still being read.
- *
- * `course_name` is inserted as the literal string "Loading course details..."
- * when the application is created, so it is a placeholder masquerading as data.
- * Rendering it verbatim is what made a stalled parse look like a stuck spinner
- * that never resolved. Treat any row that is still parsing as having no course
- * name yet, whatever the column happens to hold.
- */
-const COURSE_NAME_PLACEHOLDER = /^loading course details/i;
+function isPending(app: CourseApplication): boolean {
+  return isParsePending(app.parseStatus);
+}
 
 function courseLine(app: CourseApplication): string | null {
-  if (isPending(app)) return null;
-  if (!app.courseName) return null;
-  return COURSE_NAME_PLACEHOLDER.test(app.courseName) ? null : app.courseName;
+  return displayCourseName(app.courseName, app.parseStatus);
 }
 
 /** Retry control for a row whose parse failed. Wired to a route that had no caller. */
@@ -469,7 +364,7 @@ export function ApplyListClient({
   const searchParams = useSearchParams();
 
   // Keeps the list moving while a pasted URL is still being read.
-  useParseRefresh(applications);
+  useParseRefresh(anyParsePending(applications));
 
   /*
    * /scholarships links here with ?universityId=..&openCourseSearch=true.

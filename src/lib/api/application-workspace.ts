@@ -144,6 +144,10 @@ function transformApplication(app: any) {
     status: app.status,
     currentStageId: app.current_stage_id,
     progressPercentage: app.progress_percentage,
+    // The workspace renders a real state for an application whose course page
+    // has not been read yet, so it needs to know that has happened.
+    parseStatus: app.parse_status,
+    parseError: app.parse_error,
     deadline: app.deadline,
     deadlineSource: app.deadline_source,
     deadlineConfidence: app.deadline_confidence,

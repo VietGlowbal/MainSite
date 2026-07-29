@@ -21,6 +21,9 @@ export {
   reflectionFromProfile,
   reflectionSchema,
 } from './reflection';
+export { displayCourseName, isParsePending } from './course-name';
+export { activeStageIndex, stageProgressLabel, summariseTasks } from './progress';
+export type { TaskCounts } from './progress';
 export type {
   AboutYouValues,
   AchievementCategory,
