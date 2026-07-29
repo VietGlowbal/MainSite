@@ -1,5 +1,5 @@
-import Image from 'next/image';
 import { Button, Section } from '@/shared/ui';
+import { HeroGlobe } from './hero-globe';
 
 /**
  * Home hero — Figma node 375:9857 (1440x646) on the "Khanh Linh - Chi" canvas,
@@ -32,16 +32,6 @@ import { Button, Section } from '@/shared/ui';
  *    no input field in it.
  */
 
-/**
- * Figma places the globe at top:-27 relative to the container.
- *
- * public/home-hero-globe.png is the untouched export of node 104:7134. It is
- * 24bpp with no alpha and a black fill, which is fine only because this band is
- * black too — putting it on any other background will show a hard edge. If a
- * later section reuses it, get a transparent export first.
- */
-const GLOBE = { width: 496, height: 467 };
-
 export function HomeHero() {
   return (
     <Section tone="dark" containerClassName="flex flex-col-reverse items-center gap-gb-6xl lg:flex-row lg:items-center lg:gap-gb-4xl">
@@ -63,16 +53,13 @@ export function HomeHero() {
         </div>
       </div>
 
-      {/* Decorative; -24px is the nearest step to the design's -27px bleed. */}
-      <Image
-        src="/home-hero-globe.png"
-        alt=""
-        width={GLOBE.width}
-        height={GLOBE.height}
-        priority
-        sizes="(max-width: 1024px) 60vw, 496px"
-        className="h-auto w-[60%] max-w-[496px] shrink-0 lg:-mt-gb-3xl lg:w-[496px]"
-      />
+      {/* The rotating dot globe, in place of the 446KB static export of node
+          104:7134. Decorative, hence aria-hidden inside the component; -24px is
+          the nearest step to the design's -27px bleed.
+
+          Square rather than the frame's 496x467: a sphere wants a square box,
+          and the export's 29px of extra width was padding. */}
+      <HeroGlobe className="w-[60%] max-w-[496px] shrink-0 lg:-mt-gb-3xl lg:w-[496px]" />
     </Section>
   );
 }
