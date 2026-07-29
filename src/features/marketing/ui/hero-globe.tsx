@@ -16,16 +16,9 @@ import { useEffect, useRef } from 'react';
  * to produce a bitmap that never changes. scripts/build-globe-mask.mjs bakes it
  * once into public/hero-globe-land.png instead.
  *
- * COLOUR ARRIVES IN BLOOMS, NOT AS STATIC. This is the difference between the
- * prototype and something you want to look at. There, every dot flashed
- * independently on a 12%-per-frame coin flip, which is a precise description of
- * television static — the eye finds no pattern because there is none. Here a
- * bloom starts at one point and travels outward as a ring, so the colour reads
- * as a pulse crossing the surface. Same mechanism, one added variable
- * (distance from a centre), completely different feel.
- *
- * FIVE HUES, NOT TWENTY-ONE, and walked in order rather than drawn at random —
- * see --gb-globe-flash-* in tokens.css for why.
+ * FIVE HUES, NOT TWENTY-ONE. The prototype mixed neon red, electric blue,
+ * matrix green and solar gold, every colour clashing with its neighbour. See
+ * --gb-globe-flash-* in tokens.css.
  *
  * IT STOPS WHEN NOBODY IS LOOKING. The prototype ran an unconditional
  * requestAnimationFrame loop. This one pauses when scrolled out of view, when
@@ -35,10 +28,10 @@ import { useEffect, useRef } from 'react';
  *
  * NOT INTERACTIVE. The prototype had drag, wheel-zoom and click ripples. Drag
  * and wheel on a hero fight the page for the gesture, and on a phone that means
- * the globe eats your scroll. It rotates on its own and that is all.
+ * the globe eats your scroll.
  */
 
-/** Degrees between sampled points. Smaller is denser and costs more. */
+/** Degrees between sampled latitude rows. Smaller is denser and costs more. */
 const LAT_STEP = 2.6;
 const LAT_STEP_DENSE = 1.9;
 
@@ -47,34 +40,37 @@ const LAT_LIMIT = 84;
 
 const ROTATION_PER_MS = 0.00007;
 
-/** A bloom's life, and how far across the sphere its ring travels (radians). */
-const BLOOM_MS = 2600;
-const BLOOM_REACH = 1.5;
-/**
- * Half-width of the lit ring, in radians.
- *
- * This is the number that decides whether the effect reads as a travelling
- * pulse or as a coloured wash. At 0.34 the band covered most of a hemisphere at
- * once, so the whole globe simply turned violet and the motion was invisible.
- * Narrow enough to see an edge, wide enough not to look like a hoop.
- */
-const BLOOM_BAND = 0.2;
-/** Several thin rings at once look richer than one thick one. */
-const MAX_BLOOMS = 5;
+/* ─────────────────────────────────────────────────────────────────────────
+   Flashes
+
+   Individual dots lighting at random, which is what the brief asked for after
+   the first build. That one sent expanding rings of colour across the surface;
+   correct to the letter of "animated", but with several rings alive at once it
+   read as a light show rather than as a globe with something happening on it.
+
+   Single dots, sparsely, with a long gentle curve. The intensity knob is
+   CONCURRENT_FRACTION: the share of dots lit at any moment. It is a fraction
+   rather than a count so density changes do not change the look.
+   ───────────────────────────────────────────────────────────────────────── */
+
+const FLASH_MS = 2600;
+/** Share of dots lit at once. 0.015 is a scattering; 0.05 is a light show. */
+const CONCURRENT_FRACTION = 0.014;
+/** Peak size multiplier. Enough to notice, not enough to bulge. */
+const FLASH_GROWTH = 0.55;
+
+/** How far the globe tips as the hero scrolls away, in radians. */
+const SCROLL_TILT = 0.34;
+const BASE_TILT = 0.34;
 
 type Point = {
   /** Unit vector on the sphere, unrotated. */
   x: number;
   y: number;
   z: number;
-};
-
-type Bloom = {
-  x: number;
-  y: number;
-  z: number;
-  start: number;
-  colour: string;
+  /** performance.now() when this dot last lit, or 0. */
+  flashStart: number;
+  flashColour: string;
 };
 
 function readPalette(el: HTMLElement): { dot: string; flashes: string[] } {
@@ -95,24 +91,53 @@ function readPalette(el: HTMLElement): { dot: string; flashes: string[] } {
 /**
  * Points on the land, sampled from the baked equirectangular mask.
  *
- * The longitude step widens with latitude by 1/cos(lat) so the dots stay
- * roughly evenly spaced on the sphere instead of bunching at the poles, which
- * is what a fixed step gives and what makes a dot globe look like it has hair.
+ * TWO THINGS HERE ARE EASY TO GET WRONG, and the first build got both.
+ *
+ * 1. A ROW HAS TO CLOSE. Walking `lon += step` from -180 while `lon < 180`
+ *    only lands evenly if the step divides 360, and `latStep / cos(lat)` almost
+ *    never does. The last dot of each row therefore sat an arbitrary fraction of
+ *    a step from where the row began, leaving a seam of mis-spaced dots running
+ *    pole to pole — which swept across the visible face as the globe turned and
+ *    read as the dots being out of line. Rounding to a whole number of dots and
+ *    dividing 360 by THAT makes every row exactly periodic.
+ *
+ * 2. ROWS MUST NOT SHARE A STARTING LONGITUDE. With every row beginning at
+ *    -180, neighbouring rows have near-equal steps and their dots stack into
+ *    vertical columns — a moiré that makes a sphere look like a grid draped over
+ *    one. Offsetting each row by the golden ratio is the standard fix: the
+ *    sequence never repeats, so no two rows ever line up.
+ *
+ * The longitude step still widens by 1/cos(lat) so dots stay roughly evenly
+ * spaced on the sphere rather than bunching at the poles.
  */
+const GOLDEN = 0.6180339887498949;
+
 function buildPoints(mask: ImageData, latStep: number): Point[] {
   const points: Point[] = [];
   const { width, height, data } = mask;
 
+  let row = 0;
   for (let lat = LAT_LIMIT; lat >= -LAT_LIMIT; lat -= latStep) {
     const latRad = (lat * Math.PI) / 180;
     const cosLat = Math.cos(latRad);
     const sinLat = Math.sin(latRad);
-    const lonStep = Math.max(latStep / Math.max(cosLat, 0.22), latStep);
+
+    const wanted = Math.max(latStep, latStep / Math.max(cosLat, 0.22));
+    // A whole number of dots around the parallel, so the row closes on itself.
+    const count = Math.max(3, Math.round(360 / wanted));
+    const step = 360 / count;
+    // Irrational offset per row: no two rows line up into a column.
+    const phase = ((row * GOLDEN) % 1) * step;
+    row += 1;
 
     const pixelY = Math.min(height - 1, Math.max(0, Math.floor(((90 - lat) / 180) * height)));
 
-    for (let lon = -180; lon < 180; lon += lonStep) {
-      const pixelX = Math.min(width - 1, Math.max(0, Math.floor(((lon + 180) / 360) * width)));
+    for (let i = 0; i < count; i++) {
+      const lon = -180 + phase + i * step;
+      const pixelX = Math.min(
+        width - 1,
+        Math.max(0, Math.floor((((lon + 540) % 360) / 360) * width)),
+      );
       // The mask is greyscale-in-RGBA; one channel is enough.
       if (data[(pixelY * width + pixelX) * 4]! < 120) continue;
 
@@ -121,6 +146,8 @@ function buildPoints(mask: ImageData, latStep: number): Point[] {
         x: cosLat * Math.sin(lonRad),
         y: sinLat,
         z: cosLat * Math.cos(lonRad),
+        flashStart: 0,
+        flashColour: '',
       });
     }
   }
@@ -162,10 +189,14 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
     let visible = true;
     let rotation = 0.6;
     let lastFrame = 0;
-    let blooms: Bloom[] = [];
-    let bloomCursor = 0;
+    let flashCursor = 0;
+    /** Carries the fractional part of "dots to light this frame" across frames. */
+    let spawnDebt = 0;
     let size = 0;
     let dpr = 1;
+    /** Where the page is scrolled, and the eased value the globe actually uses. */
+    let scrollTarget = 0;
+    let scrollEased = 0;
 
     function resize() {
       const rect = wrap.getBoundingClientRect();
@@ -180,25 +211,32 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
       canvas.style.height = `${next}px`;
     }
 
-    function spawnBloom(now: number) {
-      // Walk the palette rather than drawing from it: consecutive blooms are
-      // then adjacent hues, so two overlapping ones are always a near-pair.
-      const colour = palette.flashes[bloomCursor % palette.flashes.length]!;
-      bloomCursor += 1;
+    /**
+     * Scroll progress, 0 at the top and 1 once the hero is a viewport away.
+     *
+     * Read from a listener rather than inside the draw loop so the layout is not
+     * queried every frame, and eased toward rather than applied raw — a tilt
+     * bound directly to scrollY jitters with every wheel notch.
+     */
+    function onScroll() {
+      const h = window.innerHeight || 1;
+      scrollTarget = Math.min(1, Math.max(0, window.scrollY / h));
+    }
 
-      // A uniformly random direction. Sampling lat/lon uniformly instead would
-      // cluster the blooms at the poles.
-      const u = Math.random() * 2 - 1;
-      const theta = Math.random() * Math.PI * 2;
-      const r = Math.sqrt(Math.max(0, 1 - u * u));
+    function lightDots(now: number, count: number) {
+      if (points.length === 0) return;
+      for (let i = 0; i < count; i++) {
+        // Walk the palette rather than drawing from it, so the mix on screen
+        // stays even instead of clumping onto one hue by chance.
+        const colour = palette.flashes[flashCursor % palette.flashes.length]!;
+        flashCursor += 1;
 
-      blooms.push({
-        x: r * Math.cos(theta),
-        y: u,
-        z: r * Math.sin(theta),
-        start: now,
-        colour,
-      });
+        const p = points[Math.floor(Math.random() * points.length)]!;
+        // Skip one already lit: restarting it mid-curve is a visible stutter.
+        if (now - p.flashStart < FLASH_MS) continue;
+        p.flashStart = now;
+        p.flashColour = colour;
+      }
     }
 
     function draw(now: number) {
@@ -211,13 +249,12 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
 
       const cosY = Math.cos(rotation);
       const sinY = Math.sin(rotation);
-      // A fixed tilt, so the poles are not dead centre and the land reads as a
-      // globe rather than a disc.
-      const tilt = 0.36;
+      // Base tilt keeps the poles off centre so the land reads as a globe rather
+      // than a disc; the scrolled part tips it further as the hero leaves.
+      const tilt = BASE_TILT + scrollEased * SCROLL_TILT;
       const cosX = Math.cos(tilt);
       const sinX = Math.sin(tilt);
 
-      const active = blooms;
       const dotSize = Math.max(1.5, size * 0.0062);
 
       for (let i = 0; i < points.length; i++) {
@@ -238,40 +275,21 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
         // point cloud its roundness.
         const depth = 0.35 + 0.65 * Math.pow(z2, 0.5);
 
-        // Brightest bloom wins, rather than blending several — overlapping
-        // additive colour turns two brand hues into a muddy third.
-        let best = 0;
-        let bestColour = '';
-        for (let b = 0; b < active.length; b++) {
-          const bloom = active[b]!;
-          const age = (now - bloom.start) / BLOOM_MS;
-          if (age < 0 || age > 1) continue;
-
-          const dot = p.x * bloom.x + p.y * bloom.y + p.z * bloom.z;
-          const angle = Math.acos(Math.max(-1, Math.min(1, dot)));
-          const front = age * BLOOM_REACH;
-          const offset = Math.abs(angle - front);
-          if (offset > BLOOM_BAND) continue;
-
-          // Across the ring: 1 at the front, 0 at the band edge.
-          const across = 1 - offset / BLOOM_BAND;
-          // Over its life: rises and falls, so a bloom never pops out.
-          const life = Math.sin(age * Math.PI);
-          const strength = across * across * life;
-          if (strength > best) {
-            best = strength;
-            bestColour = bloom.colour;
-          }
+        let lit = 0;
+        if (p.flashStart > 0) {
+          const age = (now - p.flashStart) / FLASH_MS;
+          // sin gives a symmetrical rise and fall, so nothing pops in or out.
+          if (age > 0 && age < 1) lit = Math.sin(age * Math.PI);
         }
 
-        if (best > 0.01) {
-          const lit = dotSize * (1 + 0.75 * best);
-          ctx.globalAlpha = Math.min(1, depth * (0.55 + 0.45 * best));
-          ctx.fillStyle = bestColour;
-          ctx.shadowColor = bestColour;
-          ctx.shadowBlur = 6 * best;
+        if (lit > 0.01) {
+          const s = dotSize * (1 + FLASH_GROWTH * lit);
+          ctx.globalAlpha = Math.min(1, depth * (0.5 + 0.5 * lit));
+          ctx.fillStyle = p.flashColour;
+          ctx.shadowColor = p.flashColour;
+          ctx.shadowBlur = 5 * lit;
           ctx.beginPath();
-          ctx.arc(screenX, screenY, lit / 2, 0, Math.PI * 2);
+          ctx.arc(screenX, screenY, s / 2, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 0;
         } else {
@@ -296,9 +314,16 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
         const elapsed = lastFrame === 0 ? 16 : Math.min(64, now - lastFrame);
         lastFrame = now;
         rotation += elapsed * ROTATION_PER_MS;
+        scrollEased += (scrollTarget - scrollEased) * Math.min(1, elapsed / 220);
 
-        blooms = blooms.filter((b) => now - b.start < BLOOM_MS);
-        if (blooms.length < MAX_BLOOMS && Math.random() < 0.035) spawnBloom(now);
+        // Rate that holds CONCURRENT_FRACTION of the dots lit: each lives
+        // FLASH_MS, so lighting (fraction * count / FLASH_MS) per ms sustains it.
+        spawnDebt += (elapsed * points.length * CONCURRENT_FRACTION) / FLASH_MS;
+        const toLight = Math.floor(spawnDebt);
+        if (toLight > 0) {
+          spawnDebt -= toLight;
+          lightDots(now, toLight);
+        }
 
         draw(now);
       } else {
@@ -332,6 +357,13 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
     }
     document.addEventListener('visibilitychange', onVisibility);
 
+    // Scroll-linked motion is precisely what reduced motion asks us not to do,
+    // so the listener is only attached when motion is welcome.
+    if (!reduced) {
+      window.addEventListener('scroll', onScroll, { passive: true });
+      onScroll();
+    }
+
     const image = new Image();
     image.decoding = 'async';
     image.src = '/hero-globe-land.png';
@@ -353,7 +385,7 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
       resize();
 
       if (reduced) {
-        // One frame, no loop, no blooms.
+        // One frame, no loop, no flashes.
         draw(performance.now());
         return;
       }
@@ -366,6 +398,7 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
       observer.disconnect();
       io.disconnect();
       document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('scroll', onScroll);
       image.onload = null;
     };
   }, []);
