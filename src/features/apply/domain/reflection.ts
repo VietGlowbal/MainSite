@@ -66,19 +66,43 @@ export const TUITION_BUDGETS_USD = [
   'Over $50,000',
 ] as const;
 
+/**
+ * Academic achievement types.
+ *
+ * The mockup drew four, two of which were the same thing twice ("Nhóm Bằng
+ * khen / Giấy khen & Chứng chỉ" and "Bằng khen / Giấy khen & Chứng chỉ", both
+ * glossed "Certificates & Recognitions"). Confirmed as a mockup slip; the
+ * duplicate is not reproduced here.
+ *
+ * `competition` is new and earns its place — an Olympiad placing is the single
+ * most common Vietnamese academic credential, and filing it under "Academic
+ * award" loses the distinction admissions readers care about.
+ *
+ * `mentoring` has MOVED to ACTIVITY_CATEGORIES. Tutoring a younger year is
+ * something you did, not something you were awarded, and leaving it here put a
+ * service activity in a list of prizes.
+ */
 export const ACHIEVEMENT_CATEGORIES = [
-  { value: 'academic_award', label: 'Academic award' },
-  { value: 'research', label: 'Research or publication' },
-  { value: 'certification', label: 'Certification' },
-  { value: 'mentoring', label: 'Mentoring or teaching' },
+  { value: 'academic_award', label: 'Academic Awards & Prizes' },
+  { value: 'competition', label: 'Competitions & Olympiads' },
+  { value: 'research', label: 'Research & Publications' },
+  { value: 'certification', label: 'Certificates & Recognitions' },
   { value: 'other', label: 'Other' },
 ] as const;
 
+/**
+ * Extracurricular activity types.
+ *
+ * `mentoring` is a category of its own rather than a corner of `leadership`:
+ * it is common enough among Vietnamese applicants to be worth counting, and
+ * folding it into leadership would make that bucket mean two things.
+ */
 export const ACTIVITY_CATEGORIES = [
-  { value: 'community_project', label: 'Community project' },
-  { value: 'leadership', label: 'Leadership and initiative' },
-  { value: 'innovation', label: 'Innovation and projects' },
-  { value: 'personal_growth', label: 'Personal growth' },
+  { value: 'community_project', label: 'Community Impact Project' },
+  { value: 'leadership', label: 'Leadership & Initiative' },
+  { value: 'innovation', label: 'Innovation & Projects' },
+  { value: 'personal_growth', label: 'Personal Growth' },
+  { value: 'mentoring', label: 'Mentoring & Tutoring' },
   { value: 'other', label: 'Other' },
 ] as const;
 
@@ -135,7 +159,7 @@ export const aspirationsSchema = z.object({
 
 export const achievementSchema = z.object({
   id: z.string().optional(),
-  category: z.enum(['academic_award', 'research', 'certification', 'mentoring', 'other']),
+  category: z.enum(['academic_award', 'competition', 'research', 'certification', 'other']),
   title: z.string().trim().min(1, 'Give this achievement a name.').max(200),
   competition: optionalText(200),
   organisation: optionalText(200),
@@ -157,7 +181,14 @@ export const achievementSchema = z.object({
 
 export const activitySchema = z.object({
   id: z.string().optional(),
-  category: z.enum(['community_project', 'leadership', 'innovation', 'personal_growth', 'other']),
+  category: z.enum([
+    'community_project',
+    'leadership',
+    'innovation',
+    'personal_growth',
+    'mentoring',
+    'other',
+  ]),
   title: z.string().trim().min(1, 'Give this activity a name.').max(200),
   organisation: optionalText(200),
   level: optionalText(80),

@@ -24,6 +24,13 @@ export {
 export { AI_JOURNEY, AI_JOURNEY_STEPS, aiJourneySteps } from './ai-journey';
 export type { AiJourneyStep } from './ai-journey';
 export {
+  REFLECTION_STEPS,
+  REFLECTION_STEP_COUNT,
+  reflectionProgress,
+  reflectionStep,
+} from './reflection-steps';
+export type { ReflectionStepKey } from './reflection-steps';
+export {
   courseUrlLabel,
   displayCourseName,
   displayUniversityName,

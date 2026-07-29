@@ -27,10 +27,13 @@ CREATE TABLE IF NOT EXISTS student_achievements (
   category       TEXT NOT NULL
     CHECK (category IN (
       'academic_award',      -- Giải thưởng học thuật
+      'competition',         -- Cuộc thi & Olympic
       'research',            -- Nghiên cứu & xuất bản
-      'certification',       -- Chứng chỉ
-      'mentoring',           -- Mentor / giảng dạy
+      'certification',       -- Bằng khen, giấy khen & chứng chỉ
       'other'
+      -- 'mentoring' deliberately absent: it moved to student_activities.
+      -- Tutoring a younger year is something you did, not something you were
+      -- awarded, and it was the one service entry in a list of prizes.
     )),
 
   title          TEXT NOT NULL,
@@ -86,6 +89,7 @@ CREATE TABLE IF NOT EXISTS student_activities (
       'leadership',          -- Club leadership, student council, event organiser
       'innovation',          -- Passion projects, startups, engineering, research
       'personal_growth',     -- Competitions, certifications, online programmes
+      'mentoring',           -- Tutoring, peer mentoring, teaching a younger year
       'other'
     )),
 
