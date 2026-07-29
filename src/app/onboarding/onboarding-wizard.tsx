@@ -6,6 +6,13 @@ import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
 import { Button, Input, MultiSelect, Textarea, TopNav } from '@/shared/ui';
 import type { MultiSelectOption } from '@/shared/ui';
+// Not from the '@/shared/ui' barrel — see the note on the re-export there: the
+// hook is used in ~40 places, and reaching through the barrel for it drags the
+// whole design system into each one's graph and into the coverage denominator.
+// This import was lost when the globe-loader work (#81) merged with the 9-step
+// wizard rewrite; the call at `useLoadingIndicator(submitting, …)` survived, the
+// import did not, and that is what failed the Vercel build.
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { createClient } from '@/lib/supabase/client';
 import { studyLevels, subjectFamilies, supportNeeds } from '@/lib/onboarding-options';
 import { useT } from '@/lib/i18n';
@@ -99,12 +106,26 @@ const standardizedTestOptions: MultiSelectOption[] = [
 const NONE_YET = 'None yet';
 
 type Academic = { curriculum: string[]; gpaScale: string[]; gpa: string };
+
+/**
+ * Scores are keyed BY TEST, not shared.
+ *
+ * The frame draws one "Your Score:" field under each multi-select, but the
+ * multi-select takes several tests. Writing that one number to every selected
+ * test fabricates data — a student who ticks IELTS and TOEFL and types 7.5 gets
+ * a TOEFL of 7.5, which is not a score on that scale at all. One field per
+ * chosen test is a small departure from the frame and the only way these rows
+ * land honestly.
+ *
+ * The frame's second, unlabelled "Other" box is dropped: nothing in the schema
+ * corresponds to it, so it was a control that collected typing and threw it
+ * away.
+ */
 type Tests = {
   english: string[];
-  englishScore: string;
-  englishOther: string;
+  englishScores: Record<string, string>;
   standardized: string[];
-  standardizedScore: string;
+  standardizedScores: Record<string, string>;
 };
 
 type Answers = {
@@ -122,10 +143,9 @@ type Answers = {
 const EMPTY_ACADEMIC: Academic = { curriculum: [], gpaScale: [], gpa: '' };
 const EMPTY_TESTS: Tests = {
   english: [],
-  englishScore: '',
-  englishOther: '',
+  englishScores: {},
   standardized: [],
-  standardizedScore: '',
+  standardizedScores: {},
 };
 
 const EMPTY_ANSWERS: Answers = {
@@ -144,16 +164,25 @@ const EMPTY_ANSWERS: Answers = {
  * GPA as a number, or null. Deliberately strict: the column is NUMERIC(4,2) and
  * a value that is not a number is worse than no value, because a scale-aware
  * comparison against `universities.gpa_range` would silently skip it.
+ *
+ * The range guard is not cosmetic. NUMERIC(4,2) holds up to 99.99, and Postgres
+ * does not round an over-range value — it raises `numeric field overflow`, which
+ * arrives as a failed save on the LAST step of a nine-step wizard with every
+ * other answer already written. A student typing their GPA as "100" (or a
+ * percentage) would hit it. Out of range is treated as "not a GPA", same as
+ * letters.
  */
 function parseGpa(raw: string): number | null {
   const n = Number.parseFloat(raw.trim().replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
+  if (!Number.isFinite(n) || n < 0 || n > 99.99) return null;
+  return n;
 }
 
-/** Same, for the English overall score column (also NUMERIC). */
+/** Same, for the English overall score columns (also NUMERIC). */
 function parseScore(raw: string): number | null {
   const n = Number.parseFloat(raw.trim().replace(',', '.'));
-  return Number.isFinite(n) ? n : null;
+  if (!Number.isFinite(n) || n < 0 || n > 9999) return null;
+  return n;
 }
 
 /** The two structured steps; everything else is a plain string. */
@@ -194,7 +223,7 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
     budget: initialProfile.budget_range || '',
     campus: firstCampus,
     academic: {
-      curriculum: initialProfile.curriculum ? [initialProfile.curriculum] : [],
+      curriculum: initialProfile.curriculum ?? [],
       gpaScale: initialProfile.gpa_scale ? [initialProfile.gpa_scale] : [],
       gpa: initialProfile.gpa_value != null ? String(initialProfile.gpa_value) : '',
     },
@@ -349,11 +378,35 @@ export function OnboardingWizard({
    * "None yet" is exclusive: choosing it clears the real tests, and choosing a
    * real test clears it. Without this a student can claim both "I have IELTS"
    * and "I have nothing", and the row written to the score table is a guess.
+   *
+   * The `added.length === 1` guard is what makes "Select all" behave. That
+   * button hands back every option at once with "None yet" among them; treating
+   * that as an exclusive pick would collapse the whole list to "I have no
+   * results", the opposite of what was just asked for.
    */
   function pickTests(next: string[], previous: string[]): string[] {
     const added = next.filter((v) => !previous.includes(v));
-    if (added.includes(NONE_YET)) return [NONE_YET];
+    if (added.length === 1 && added[0] === NONE_YET) return [NONE_YET];
     return next.filter((v) => v !== NONE_YET);
+  }
+
+  /**
+   * Drop scores belonging to tests that are no longer selected.
+   *
+   * Without this, unticking IELTS leaves its score in state; re-ticking it later
+   * silently restores a number the student may have meant to clear, and the
+   * draft in localStorage carries it between sessions.
+   */
+  function keepScores(
+    selected: string[],
+    scores: Record<string, string>,
+  ): Record<string, string> {
+    const kept: Record<string, string> = {};
+    for (const test of selected) {
+      const score = scores[test];
+      if (score != null) kept[test] = score;
+    }
+    return kept;
   }
 
   function skip() {
@@ -400,10 +453,19 @@ export function OnboardingWizard({
         career_interests: profile.career_interests,
         campus_preferences: profile.campus_preferences,
         support_needs: profile.support_needs,
-        // Câu 6. Both lists are single-answer in practice, so the first entry
-        // is the answer; the control is multi-select because the frame draws
-        // checkboxes, not radios.
-        curriculum: answers.academic.curriculum[0] ?? null,
+        /*
+         * Câu 6.
+         *
+         * `curriculum` keeps EVERY selection, in a TEXT[] column: the frame
+         * draws checkboxes and a student can genuinely sit two curricula at
+         * once (Vietnamese National plus AP is common). Saving only the first
+         * would drop a tick the student watched themselves make.
+         *
+         * `gpa_scale` is the opposite and is a single-answer control, because
+         * one GPA number has one scale — "10-point" AND "4.0" together
+         * describes nothing.
+         */
+        curriculum: answers.academic.curriculum.length > 0 ? answers.academic.curriculum : null,
         gpa_scale: answers.academic.gpaScale[0] ?? null,
         gpa_value: parseGpa(answers.academic.gpa),
         onboarding_completed: true,
@@ -431,12 +493,14 @@ export function OnboardingWizard({
     const userId = userData.user.id;
     const now = new Date().toISOString();
 
+    // Each test carries ITS OWN score. See the note on `Tests`: one shared
+    // number written across several test types is invented data.
     const englishRows = answers.tests.english
       .filter((testType) => testType !== NONE_YET)
       .map((testType) => ({
         user_id: userId,
         test_type: testType,
-        overall_score: parseScore(answers.tests.englishScore),
+        overall_score: parseScore(answers.tests.englishScores[testType] ?? ''),
         updated_at: now,
       }));
 
@@ -445,7 +509,7 @@ export function OnboardingWizard({
       .map((testType) => ({
         user_id: userId,
         test_type: testType,
-        score: answers.tests.standardizedScore.trim() || null,
+        score: (answers.tests.standardizedScores[testType] ?? '').trim() || null,
         updated_at: now,
       }));
 
@@ -590,13 +654,19 @@ export function OnboardingWizard({
               10-point / 4.0). */}
           {current.key === 'academic' ? (
             <div className="flex flex-col gap-gb-3xl">
+              {/* The frame's placeholder here reads "Select a GPA" over a list
+                  of curricula, which describes the step rather than the field
+                  and misdirects on the one screen where the two are easy to
+                  confuse. Corrected; the frame should be too. */}
               <MultiSelect
                 name="curriculum"
                 label={t('Curriculum')}
-                placeholder={t('Select a GPA')}
+                placeholder={t('Select a curriculum')}
                 options={curriculumOptions}
                 value={answers.academic.curriculum}
-                onChange={(curriculum) => updateAcademic({ curriculum })}
+                onChange={(curriculum) =>
+                  updateAcademic({ curriculum, ...(curriculum.length === 0 ? { gpaScale: [] } : {}) })
+                }
               />
 
               {answers.academic.curriculum.length > 0 ? (
@@ -607,7 +677,9 @@ export function OnboardingWizard({
                   options={gpaScaleOptions}
                   value={answers.academic.gpaScale}
                   onChange={(gpaScale) => updateAcademic({ gpaScale })}
-                  heading={answers.academic.curriculum[0] ?? ''}
+                  // One GPA, one scale — see the note on MultiSelect's `single`.
+                  single
+                  heading={answers.academic.curriculum.join(' · ')}
                   maxVisible={2}
                 />
               ) : null}
@@ -623,8 +695,10 @@ export function OnboardingWizard({
             </div>
           ) : null}
 
-          {/* Câu 7 — Figma 375:11616. Two independent test groups, each with
-              its own score field. */}
+          {/* Câu 7 — Figma 375:11616. Two independent test groups. The frame
+              gives each ONE score box; these give one per chosen test, because
+              the picker is multi-select and a shared number would be written to
+              every test type. See the note on `Tests`. */}
           {current.key === 'tests' ? (
             <div className="flex flex-col gap-gb-3xl">
               <MultiSelect
@@ -633,33 +707,37 @@ export function OnboardingWizard({
                 placeholder={t('English Proficiency')}
                 options={englishTestOptions}
                 value={answers.tests.english}
-                onChange={(next) =>
-                  updateTests({ english: pickTests(next, answers.tests.english) })
-                }
+                onChange={(next) => {
+                  const english = pickTests(next, answers.tests.english);
+                  updateTests({
+                    english,
+                    englishScores: keepScores(english, answers.tests.englishScores),
+                  });
+                }}
               />
 
-              {/* Hidden once "None yet" is the answer — there is no score to
-                  give, and an enabled field would invite an invented one. */}
-              {answers.tests.english.length > 0 && !answers.tests.english.includes(NONE_YET) ? (
-                <>
+              {/* "None yet" means there is no result, so no score box appears —
+                  an enabled field there would invite an invented number. */}
+              {answers.tests.english
+                .filter((test) => test !== NONE_YET)
+                .map((test) => (
                   <Input
-                    name="englishScore"
-                    label={t('Your score')}
+                    key={test}
+                    name={`englishScore-${test}`}
+                    label={`${t('Your score')} — ${test}`}
                     inputMode="decimal"
-                    value={answers.tests.englishScore}
-                    onChange={(e) => updateTests({ englishScore: e.target.value })}
+                    value={answers.tests.englishScores[test] ?? ''}
+                    onChange={(e) =>
+                      updateTests({
+                        englishScores: {
+                          ...answers.tests.englishScores,
+                          [test]: e.target.value,
+                        },
+                      })
+                    }
                     placeholder={t('Overall score')}
                   />
-                  <Input
-                    name="englishOther"
-                    label={t('Other')}
-                    value={answers.tests.englishOther}
-                    onChange={(e) => updateTests({ englishOther: e.target.value })}
-                    placeholder={t('Anything else about this result')}
-                    hint={t('Not stored yet — there is no column for it. Add it on your profile instead.')}
-                  />
-                </>
-              ) : null}
+                ))}
 
               <MultiSelect
                 name="standardizedTest"
@@ -667,21 +745,37 @@ export function OnboardingWizard({
                 placeholder={t('Standardized Test')}
                 options={standardizedTestOptions}
                 value={answers.tests.standardized}
-                onChange={(next) =>
-                  updateTests({ standardized: pickTests(next, answers.tests.standardized) })
-                }
+                onChange={(next) => {
+                  const standardized = pickTests(next, answers.tests.standardized);
+                  updateTests({
+                    standardized,
+                    standardizedScores: keepScores(
+                      standardized,
+                      answers.tests.standardizedScores,
+                    ),
+                  });
+                }}
               />
 
-              {answers.tests.standardized.length > 0 &&
-              !answers.tests.standardized.includes(NONE_YET) ? (
-                <Input
-                  name="standardizedScore"
-                  label={t('Your score')}
-                  value={answers.tests.standardizedScore}
-                  onChange={(e) => updateTests({ standardizedScore: e.target.value })}
-                  placeholder={t('e.g. 1450, 34, A*AA')}
-                />
-              ) : null}
+              {answers.tests.standardized
+                .filter((test) => test !== NONE_YET)
+                .map((test) => (
+                  <Input
+                    key={test}
+                    name={`standardizedScore-${test}`}
+                    label={`${t('Your score')} — ${test}`}
+                    value={answers.tests.standardizedScores[test] ?? ''}
+                    onChange={(e) =>
+                      updateTests({
+                        standardizedScores: {
+                          ...answers.tests.standardizedScores,
+                          [test]: e.target.value,
+                        },
+                      })
+                    }
+                    placeholder={t('e.g. 1450, 34, A*AA')}
+                  />
+                ))}
             </div>
           ) : null}
 
