@@ -16,6 +16,8 @@ export {
   parseTuitionRange,
 } from './formatting';
 
+export { leadFragment, splitList } from './highlights';
+
 export { scholarshipCandidates } from './saved-list';
 export type {
   SavedListScholarship,
