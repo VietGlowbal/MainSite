@@ -53,7 +53,19 @@ export type StudentProfile = {
   // current_qualification / predicted_grades, which are free text.
   /** Array: a student can sit more than one curriculum. See the migration. */
   curriculum?: string[] | null;
-  /** Single: one GPA number has one scale. */
+  /**
+   * One row per entry in `curriculum`: the grade for that curriculum and the
+   * scale it was measured on. JSONB, so this is `unknown` at the boundary —
+   * read it through `toCurriculumGrades` in features/onboarding/domain rather
+   * than trusting the shape.
+   *
+   * The two fields below are the SUMMARY of this: one comparable number for the
+   * scale-aware check against `universities.gpa_range`. They cannot replace it —
+   * a student sitting two curricula has two grades, and an IB total out of 45 is
+   * not a GPA on any scale.
+   */
+  curriculum_grades?: unknown;
+  /** Single: one GPA number has one scale. Derived from `curriculum_grades`. */
   gpa_scale?: string | null;
   gpa_value?: number | null;
   graduation_year?: number | null;
