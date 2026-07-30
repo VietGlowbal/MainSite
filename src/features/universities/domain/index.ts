@@ -18,12 +18,21 @@ export {
 
 export { leadFragment, splitList } from './highlights';
 
-export { scholarshipCandidates } from './saved-list';
+export { attachedOptions, bestCoveragePercent, scholarshipCandidates } from './saved-list';
 export type {
+  CoverageLike,
   SavedListScholarship,
   SavedListUniversity,
   ScholarshipCandidate,
 } from './saved-list';
+
+export { filterOptions, isCourseUrl, optionsForGroup, programChoices } from './programs';
+export type {
+  CatalogueCollege,
+  ProgramChoices,
+  ProgramGroup,
+  ProgramOption,
+} from './programs';
 
 export {
   amountToUsd,
