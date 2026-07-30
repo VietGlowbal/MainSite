@@ -14,7 +14,8 @@ import { FormField } from './form-field';
 type Props = Omit<React.ComponentProps<'input'>, 'className' | 'name' | 'type'> & {
   name: string;
   label: string;
-  description?: string | undefined;
+  /** A node, not just a string — see the note on Checkbox's. */
+  description?: React.ReactNode;
   className?: string | undefined;
 };
 
