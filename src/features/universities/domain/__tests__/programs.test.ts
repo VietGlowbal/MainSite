@@ -4,30 +4,43 @@ import {
   isCourseUrl,
   optionsForGroup,
   programChoices,
-  type CatalogueCollege,
+  type CatalogueEntry,
 } from '../programs';
 
 /**
- * `strengths` values below are copied verbatim from the live rows (read
- * 2026-07-30 with the service key), so a change to the splitting rules fails
- * against real data rather than against a convenient fixture.
+ * Values below are copied verbatim from the live database (read 2026-07-31 with
+ * the service key), so a change to these rules fails against real data rather
+ * than against a convenient fixture.
  */
 const MIT_STRENGTHS = 'Engineering, CS, Physics, Economics, Management, Architecture, Neuroscience';
 const NUS_STRENGTHS =
   'Business (NUS Business School), Law, Medicine, Engineering, CS, Life Sciences, Arts & Social Sciences';
 
-/** Structurally what `vinuniColleges` provides. */
-const CATALOGUE: CatalogueCollege[] = [
+/** Georgia Tech (university_id 104) as `catalog_programmes` actually holds it. */
+const CATALOGUE: CatalogueEntry[] = [
   {
-    name: 'College of Business and Management',
-    programs: [{ name: 'Bachelor of Business Administration', durationYears: 4 }],
+    name: 'Business Administration (MBA)',
+    degree: 'Master',
+    durationYears: null,
+    units: [{ name: 'Scheller College of Business', isPrimary: true }],
   },
   {
-    name: 'College of Health Sciences',
-    programs: [
-      { name: 'Doctor of Medicine', durationYears: 6 },
-      { name: 'Bachelor of Nursing', durationYears: 4 },
-    ],
+    name: 'Computer Science',
+    degree: 'Bachelor',
+    durationYears: 4,
+    units: [{ name: 'College of Computing', isPrimary: true }],
+  },
+  {
+    name: 'Computer Science',
+    degree: 'Master',
+    durationYears: null,
+    units: [{ name: 'College of Computing', isPrimary: true }],
+  },
+  {
+    name: 'Civil Engineering',
+    degree: 'Bachelor',
+    durationYears: null,
+    units: [{ name: 'College of Engineering', isPrimary: true }],
   },
 ];
 
@@ -68,37 +81,81 @@ describe('programChoices', () => {
   it('builds the frame\u2019s two lists from a real catalogue', () => {
     const choices = programChoices(null, CATALOGUE);
 
+    // Schools sorted, so the list is stable across reloads.
     expect(choices.groups.map((group) => group.name)).toEqual([
-      'College of Business and Management',
-      'College of Health Sciences',
+      'College of Computing',
+      'College of Engineering',
+      'Scheller College of Business',
     ]);
     // The flat list is the union, so the search box can reach everything.
-    expect(choices.options).toHaveLength(3);
-    expect(choices.options.find((o) => o.name === 'Doctor of Medicine')?.durationYears).toBe(6);
+    expect(choices.options).toHaveLength(4);
+  });
+
+  it('keeps the same subject at two degree levels as two choices', () => {
+    // Georgia Tech really does catalogue Computer Science as both. Collapsing
+    // them on name would delete one of the two things the student came to pick
+    // between.
+    const computing = programChoices(null, CATALOGUE).groups.find(
+      (group) => group.name === 'College of Computing',
+    );
+
+    expect(computing?.options.map((o) => `${o.name} (${o.degree})`)).toEqual([
+      'Computer Science (Bachelor)',
+      'Computer Science (Master)',
+    ]);
+  });
+
+  it('lists a programme under every school that administers it', () => {
+    // Joint degrees exist (Penn's, for one), and a student browsing by school
+    // should find it under either.
+    const choices = programChoices(null, [
+      {
+        name: 'Jerome Fisher M&T',
+        degree: 'Bachelor',
+        units: [
+          { name: 'School of Engineering and Applied Science', isPrimary: true },
+          { name: 'The Wharton School' },
+        ],
+      },
+    ]);
+
+    expect(choices.groups.map((g) => g.name)).toEqual([
+      'School of Engineering and Applied Science',
+      'The Wharton School',
+    ]);
+    // ...but only once in the flat list.
+    expect(choices.options).toHaveLength(1);
   });
 
   it('prefers the catalogue over strengths when both are present', () => {
     const choices = programChoices(MIT_STRENGTHS, CATALOGUE);
 
-    expect(choices.groups).toHaveLength(2);
+    expect(choices.groups).toHaveLength(3);
     expect(choices.options.map((o) => o.name)).not.toContain('Engineering');
   });
 
-  it('drops a school with no programmes rather than showing an empty heading', () => {
-    const choices = programChoices(null, [
-      { name: 'College of Nothing', programs: [] },
-      ...CATALOGUE,
-    ]);
+  it('still offers a programme that belongs to no school', () => {
+    // `academic_units` is empty on some rows. Dropping those would hide real
+    // programmes; they belong in the flat list with no school heading.
+    const choices = programChoices(null, [{ name: 'Liberal Arts', degree: 'Bachelor' }]);
 
-    expect(choices.groups.map((group) => group.name)).not.toContain('College of Nothing');
+    expect(choices.groups).toEqual([]);
+    expect(choices.options.map((o) => o.name)).toEqual(['Liberal Arts']);
   });
 
   it('omits a duration the catalogue does not give', () => {
+    // Null on 400 of 404 live rows, so this is the common path, not the edge.
     const choices = programChoices(null, [
-      { name: 'College of X', programs: [{ name: 'Bachelor of X', durationYears: 0 }] },
+      { name: 'Applied Economics', degree: 'Master', durationYears: null },
+      { name: 'Zero Years', durationYears: 0 },
     ]);
 
     expect(choices.options[0]?.durationYears).toBeUndefined();
+    expect(choices.options[1]?.durationYears).toBeUndefined();
+  });
+
+  it('omits a degree the catalogue does not give', () => {
+    expect(programChoices(null, [{ name: 'Mystery Course' }]).options[0]?.degree).toBeUndefined();
   });
 
   it('returns empty lists when there is nothing to offer', () => {
@@ -115,18 +172,17 @@ describe('optionsForGroup', () => {
   it('shows every programme before a school is chosen', () => {
     // Getting this backwards renders an empty second list on first open, which
     // reads as missing data rather than as "pick a school first".
-    expect(optionsForGroup(choices, null)).toHaveLength(3);
+    expect(optionsForGroup(choices, null)).toHaveLength(4);
   });
 
   it('narrows to the chosen school', () => {
-    expect(optionsForGroup(choices, 'College of Health Sciences').map((o) => o.name)).toEqual([
-      'Doctor of Medicine',
-      'Bachelor of Nursing',
+    expect(optionsForGroup(choices, 'College of Engineering').map((o) => o.name)).toEqual([
+      'Civil Engineering',
     ]);
   });
 
   it('falls back to everything for a school that is not in the list', () => {
-    expect(optionsForGroup(choices, 'College of Atlantis')).toHaveLength(3);
+    expect(optionsForGroup(choices, 'College of Atlantis')).toHaveLength(4);
   });
 });
 
@@ -154,11 +210,13 @@ describe('filterOptions', () => {
     expect(filterOptions(options, '   ')).toHaveLength(options.length);
   });
 
-  it('does not match on the duration', () => {
-    // Typing "4" would otherwise select most of a catalogue.
+  it('does not match on the degree or the duration', () => {
+    // Typing "master" should not return every postgraduate programme when the
+    // student is searching for a subject called "Master…".
     const catalogued = programChoices(null, CATALOGUE).options;
 
     expect(filterOptions(catalogued, '4')).toEqual([]);
+    expect(filterOptions(catalogued, 'Master').map((o) => o.name)).toEqual([]);
   });
 });
 
