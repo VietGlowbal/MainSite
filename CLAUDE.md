@@ -106,5 +106,12 @@ File mới dưới `features/`, `shared/`, `server/` chạy dưới `tsconfig.st
 - Structured output (điểm số, JSON schema) cần hiển thị được thành UI kiểm tra được — không phải khối text tự do.
 - Mọi dữ kiện AI bóc tách cần có chỗ hiển thị **mức độ tin cậy** (confidence level) nếu design có thiết kế phần đó.
 - Không hard-code dữ liệu mẫu trông giống dữ liệu thật của sinh viên — dùng placeholder rõ ràng là dữ liệu demo.
+- **Dữ liệu crawler (`catalog_programmes`, `courses`, `academic_units`, `crawl_*`) là AI bóc tách, không phải dữ liệu đã biên tập.** Trước khi đưa lên UI:
+  - `verification_status = NEEDS_REVIEW` là **trạng thái mặc định**, không phải cảnh báo sai (390/404 dòng). Đừng lọc theo nó — lọc sẽ chỉ còn 1/24 trường có dữ liệu. `REJECTED` mới là cờ "pipeline đã loại"; chỉ loại theo cờ đó.
+  - Tên bị nối hết mọi facet (dài tới 154 ký tự, lặp cả tên khoa). Phải cắt bớt — nhưng **chỉ cắt phần đuôi**, cắt giữa chuỗi sẽ xoá mất phần phân biệt ("Computer Science – Online Degree (MS)" → "Computer Science").
+  - Cùng một ngành thường có nhiều bậc học; mọi thao tác khử trùng lặp phải xét cả **tên và bậc học**.
+  - Thay vì gắn nhãn "chưa xác minh" lên gần như mọi dòng, hãy nói một lần nguồn dữ liệu đến từ đâu và cho link `official_url` để sinh viên tự kiểm chứng.
+
+  Chi tiết + số đo trong `docs/known-issues.md §1a`.
 
 @AGENTS.md

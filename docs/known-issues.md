@@ -201,6 +201,28 @@ What was in it, once looked at: 404 programmes across 24 of 106 universities,
 All of that now drives the subject picker; see
 `src/features/universities/api/programme-queries.ts`.
 
+### It is crawler output, so it needs shaping before a student sees it
+
+⚠️ **`NEEDS_REVIEW` does not mean "we think this is wrong."** It is the default
+state of anything that has not been through a rule validator — 390 of the 404
+rows carry it. `REJECTED` is the flag that means the pipeline decided against a
+row. Do not label `NEEDS_REVIEW` "unverified" in the UI, and do not filter on it:
+all 10 `RULE_VALIDATED` rows belong to one university, so filtering leaves the
+catalogue working for 1 of the 24 covered and silently drops the rest to the
+`strengths` fallback.
+
+Also true of the raw rows, and handled in
+`features/universities/domain/programs.ts`:
+
+- **names are facet soup.** Median 35 characters, p90 84, max 154 — the longest
+  repeats its school twice. `tidyProgrammeName` peels the trailing facets;
+  it must only ever peel the TAIL, because cutting at the first facet word
+  anywhere destroys "Computer Science – Online Degree (MS)".
+- **the same subject appears at several degree levels**, so anything that
+  deduplicates must key on name *and* degree.
+- **the catalogue itself contains duplicates** — Princeton lists "Computer
+  Science" twice at master's and twice at bachelor's.
+
 ---
 
 ## 1c. FIXED 2026-07-31 — `supabase-saved-program.sql` applied

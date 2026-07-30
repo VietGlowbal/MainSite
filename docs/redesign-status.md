@@ -329,6 +329,52 @@ kinh doanh — Chương trình cử nhân kinh doanh quốc tế", which is a se
 the university rather than a row. That slot keeps `best_for`; the student's own
 chosen subject gets the "Ngành …" line, which is a fact because they chose it.
 
+#### Crawled data needs shaping before it reaches a student
+
+Three decisions, all measured against all 404 rows rather than the handful that
+happened to be on screen.
+
+**1. `verification_status` is neither filtered nor badged.** 390 of 404 rows are
+`NEEDS_REVIEW`, 10 are `RULE_VALIDATED`, 4 are null — and all 10 validated rows
+belong to **one university** (Penn). So filtering to "verified" would leave the
+catalogue path working for 1 of the 24 catalogued universities, silently, with
+everyone else dropping to the `strengths` fallback: that is deleting the feature,
+not hedging it. And a badge on 96.5% of rows cannot help a student choose between
+two of them.
+
+⚠️ `NEEDS_REVIEW` is the **default** state of crawler output that has not been
+through a rule validator. It does not mean "we think this is wrong" — `REJECTED`
+means that. Do not label it "unverified" anywhere.
+
+What ships instead: `REJECTED` rows are excluded (zero today, so it is insurance),
+and the picker says once, under the heading, *"Collected from this university's
+own course catalogue. Check the official page before you apply."* with
+`official_url` — populated on all 404 — offered as a link on the chosen
+programme.
+
+**2. Names are peeled back to the subject** (`tidyProgrammeName`). Crawled names
+are frequently every facet concatenated, sometimes with the school twice:
+
+> Health Education and Health Communication, MSPH Bloomberg School of Public
+> Health Master's Full-time Part-time Bloomberg School of Public Health In-person
+
+That is 154 characters, and the median name is 35. Across all 404 rows: p90
+84 → 65, worst 154 → 47, 44 shortened, and **0 outputs that are not a prefix of
+their input** — the same invariant `leadFragment` carries.
+
+⚠️ **It peels the TAIL; it must never cut mid-string.** The first version cut at
+the earliest facet word anywhere in the name, which turned Georgia Tech's
+"Computer Science – Online Degree (MS)" into "Computer Science" — losing the
+distinguishing clause *and* colliding with the real "Computer Science (MS)" two
+rows below it in the same list. Found by looking at the rendered picker; there is
+a regression test on it now.
+
+**3. Dedupe keys on name AND degree.** The same subject is commonly catalogued at
+two levels, and collapsing on name alone would delete one of the two things the
+student came to choose between. Measured: tidying costs **0** extra rows to
+dedupe — the 5 rows it does collapse are duplicates already present upstream
+(Princeton lists "Computer Science" twice at master's and twice at bachelor's).
+
 The frame's "Mã học bổng" + "ÁP DỤNG" redeem-a-code control is **still not
 built**, for the same reason as the first time: no voucher table, no code column,
 no endpoint. Migrating to the new canvas did not add one.
