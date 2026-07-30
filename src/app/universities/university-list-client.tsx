@@ -1,6 +1,5 @@
 'use client';
 
-import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import {
   Suspense,
@@ -10,8 +9,9 @@ import {
   useRef,
   useState,
 } from 'react';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SavedNavLink } from '@/components/saved-nav-link';
 import {
   MARKETING_NAV_ITEMS,
   FOOTER_COLUMNS,
@@ -46,23 +46,28 @@ import { FadeInImage } from './fade-in-image';
  *
  * This replaces the 3,227-line globe explorer. The decision (2026-07-25) was to
  * follow the redesign: a flat, server-fed, filterable card grid — no 3D globe,
- * no in-page SPA tabs. What is DELIBERATELY kept, because the e2e contract and
- * the product depend on it:
- *   - explorer-context, verbatim: the login gate, shortlist persistence, and
- *     the detail view state all live there and are unchanged.
- *   - DetailView, the existing 911-line detail panel, shown when a signed-in
- *     user opens a card. Its redesign (Figma 105:8659) is a later pass; this is
- *     the "giữ detail cũ tạm" the owner agreed to.
- *   - The lazy image-resolution effect and the ?u= URL sync from the old shell.
+ * no in-page SPA tabs. What is DELIBERATELY kept:
+ *   - explorer-context, verbatim: the login gate and shortlist persistence live
+ *     there and are unchanged.
+ *   - The lazy image-resolution effect from the old shell.
  *
- * The testid contract in shared/lib/testids.ts is the thing that outlives the
- * rewrite: uniResultsGrid, uniCard, uniCardSaveButton, uniSearchInput,
- * uniPagination, uniDetailPanel all still resolve to exactly one element each.
+ * ⚠️ **The in-page detail panel is GONE as of 2026-07-30.** The header above
+ * used to record that `DetailView` — the 893-line pre-redesign panel — was kept
+ * as "giữ detail cũ tạm" until its redesign landed. That redesign DID land, on
+ * 2026-07-28, as the real route /universities/[id] (Figma 375:10629) — but
+ * nothing was ever rewired to open it, so clicking a card still swapped in the
+ * old panel at `?u=<id>` and the redesigned page was reachable only by typing
+ * the URL. The owner reported it on 2026-07-30 as "the detail UI is still the
+ * old design", which is exactly what it was. Cards now navigate; the panel and
+ * the `?u=` two-way sync are deleted, and `?u=` redirects (see
+ * useLegacyDetailParamRedirect).
+ *
+ * The testid contract in shared/lib/testids.ts still holds: uniResultsGrid,
+ * uniCard, uniCardSaveButton, uniSearchInput and uniPagination resolve here.
+ * `uniDetailPanel` moved WITH the panel it names — it is now on the root of
+ * /universities/[id], so "click a card, expect the detail panel" still passes
+ * and now asserts the redesigned page.
  */
-
-const DetailView = dynamic(() =>
-  import('./detail-view').then((mod) => ({ default: mod.DetailView })),
-);
 
 const PAGE_SIZE = 9; // 3x3, matching the design.
 const AUTH_REDIRECT = '/auth?redirect=/universities';
@@ -111,13 +116,16 @@ function IconHeart({ filled }: { filled: boolean }) {
 // ── University card ────────────────────────────────────────────────────────
 
 function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
-  const { setView, isShortlisted, addToShortlist, removeFromShortlist, showToast } = useExplorer();
+  const {
+    isLoggedIn,
+    requireLogin,
+    isShortlisted,
+    addToShortlist,
+    removeFromShortlist,
+    showToast,
+  } = useExplorer();
   const saved = isShortlisted(uni.id);
   const badge = rankingBadgeLabel(uni);
-
-  function open() {
-    setView('detail', uni.id);
-  }
 
   function toggleSave(e: React.MouseEvent) {
     e.stopPropagation();
@@ -131,18 +139,22 @@ function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
   }
 
   return (
+    /*
+     * The card NAVIGATES to /universities/[id] — the page rebuilt from Figma
+     * 375:10629. It used to call `setView('detail')`, which swapped an in-page
+     * panel (the pre-redesign DetailView) in at `?u=<id>`, so the whole browse
+     * flow never reached the redesigned page and the old design was what
+     * everyone actually saw. That panel is gone; this is the rewire.
+     *
+     * A real <Link> stretched over the card, rather than the old
+     * `role="button"` div, so the card gets a URL — middle-click, open in new
+     * tab, "copy link" and crawlers all work now. The save button sits above it
+     * on the z-axis and keeps its own click; nothing is nested inside the
+     * anchor, which would be invalid.
+     */
     <div
       {...testId(TID.uniCard)}
-      onClick={open}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          open();
-        }
-      }}
-      role="button"
-      tabIndex={0}
-      className="group flex cursor-pointer flex-col overflow-hidden rounded-gb-xl bg-surface-muted text-left transition-shadow hover:shadow-gb-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className="group relative flex flex-col overflow-hidden rounded-gb-xl bg-surface-muted text-left transition-shadow hover:shadow-gb-md focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand"
     >
       {/* Cover image (226px in the design). Empty until the wiki resolver fills
           it in; the muted card background shows through as the placeholder. */}
@@ -160,7 +172,7 @@ function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
           {...testId(TID.uniCardSaveButton)}
           aria-pressed={saved}
           aria-label={saved ? 'Remove from your list' : 'Save to your list'}
-          className={`absolute right-gb-lg top-gb-lg flex size-gb-6xl items-center justify-center rounded-gb-full shadow-gb-xs transition-colors ${
+          className={`absolute right-gb-lg top-gb-lg z-10 flex size-gb-6xl items-center justify-center rounded-gb-full shadow-gb-xs transition-colors ${
             saved ? 'bg-brand text-on-brand' : 'bg-surface/90 text-fg-secondary hover:bg-surface'
           }`}
         >
@@ -171,7 +183,38 @@ function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
       <div className="flex flex-1 flex-col gap-gb-3xl px-gb-xl pt-gb-3xl pb-gb-3xl">
         <div className="flex flex-col gap-gb-xl">
           <div className="flex flex-col gap-gb-lg">
-            <h3 className="text-gb-lg font-semibold text-fg">{uni.name}</h3>
+            <h3 className="text-gb-lg font-semibold text-fg">
+              {/*
+               * `after:` turns this one anchor into the card's whole hit area.
+               * The login gate still comes first for guests: the anchor has a
+               * real href so the URL is visible on hover and copyable, and the
+               * click is intercepted rather than the link being withheld.
+               */}
+              <Link
+                href={`/universities/${uni.id}`}
+                onClick={(e) => {
+                  if (!isLoggedIn) {
+                    e.preventDefault();
+                    requireLogin();
+                  }
+                }}
+                /*
+                 * A guest's click is cancelled in favour of the login gate, so
+                 * there is no navigation to show a loader for. RouteLoading
+                 * listens in the CAPTURE phase — it runs before React's handler,
+                 * so `defaultPrevented` is still false by the time it decides —
+                 * and its own doc notes that a click which turns out not to
+                 * navigate leaves a handle open until SAFETY_MS. That is a flat
+                 * 10-second fake loader on the gate. `data-no-loader` is the
+                 * opt-out it provides; signed-in users still get the loader,
+                 * because they really do navigate.
+                 */
+                {...(isLoggedIn ? {} : { 'data-no-loader': '' })}
+                className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
+              >
+                {uni.name}
+              </Link>
+            </h3>
             {uni.description ? (
               <p className="line-clamp-3 text-gb-md text-fg-tertiary">{uni.description}</p>
             ) : null}
@@ -514,53 +557,33 @@ function Toast() {
   );
 }
 
-// ── URL sync (?u=<id> <-> detail view), unchanged from the old shell ─────────
+// ── Legacy ?u=<id> deep links ───────────────────────────────────────────────
 
-function useUniversityUrlSync() {
-  const { activeView, selectedUniversityId, universities, setView } = useExplorer();
+/**
+ * Forward `/universities?u=<id>` to `/universities/<id>`.
+ *
+ * `?u=` used to open the in-page detail panel, and the two-way sync that kept
+ * it in step with the URL was the most delicate code on this page. The panel is
+ * gone, but the query string is still out there: /api/home/save-university has
+ * always finished the sign-up funnel on it, and selection-cache restores a
+ * focused university with it. Redirecting keeps every one of those links
+ * landing on a real university page instead of silently dropping them on the
+ * unfiltered list.
+ *
+ * `replace`, not `push`, so Back goes to wherever the reader came from rather
+ * than to a URL that immediately redirects again.
+ */
+function useLegacyDetailParamRedirect() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const pathname = usePathname();
-  const lastWrittenRef = useRef<string>('');
 
   useEffect(() => {
     const param = searchParams.get('u');
-    if (param) {
-      const id = parseInt(param, 10);
-      if (Number.isFinite(id) && universities.some((u) => u.id === id)) {
-        if (activeView !== 'detail' || selectedUniversityId !== id) {
-          setView('detail', id);
-        }
-      }
-    } else if (activeView === 'detail') {
-      /*
-       * No `?u` in the URL while the detail view is open normally means the user
-       * pressed Back, so the view closes. But it ALSO describes the moment right
-       * after a card is clicked: the effect below has asked the router for
-       * `?u=<id>` and `searchParams` has not caught up yet. Closing the view
-       * there reverts the click — the card opens and instantly snaps shut, and
-       * because the effect below then rewrites the URL to '', it never recovers.
-       *
-       * `lastWrittenRef` is the discriminator: non-empty means the pending
-       * write is ours, so this is our own navigation in flight, not a Back.
-       * (Guests never hit this — setView bounces them to the login gate before
-       * the view changes, which is why only signed-in users saw it.)
-       */
-      if (lastWrittenRef.current !== '') return;
-      setView('browse');
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, universities]);
-
-  useEffect(() => {
-    const desired =
-      activeView === 'detail' && selectedUniversityId != null
-        ? `?u=${selectedUniversityId}`
-        : '';
-    if (desired === lastWrittenRef.current) return;
-    lastWrittenRef.current = desired;
-    router.replace(`${pathname}${desired}`, { scroll: false });
-  }, [activeView, selectedUniversityId, pathname, router]);
+    if (!param) return;
+    const id = Number.parseInt(param, 10);
+    if (!Number.isFinite(id)) return;
+    router.replace(`/universities/${id}`);
+  }, [searchParams, router]);
 }
 
 // ── Page chrome + view switch ────────────────────────────────────────────────
@@ -574,8 +597,7 @@ function Chrome({
   userAvatarUrl: string | null;
   isLoggedIn: boolean;
 }) {
-  const { activeView } = useExplorer();
-  useUniversityUrlSync();
+  useLegacyDetailParamRedirect();
 
   const primaryAction = { href: '/onboarding', label: 'Plan your studies' };
 
@@ -584,11 +606,14 @@ function Chrome({
        fixed header), so globals.css must keep the mobile top offset that plain
        full-bleed pages drop. */
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
+      {/* `utility` carries the way back to the saved list. This page is where a
+          student saves from, so it is the one header that must have it. */}
       <TopNav
         tone="light"
         logo={<GlowbalLogo height={28} />}
         items={MARKETING_NAV_ITEMS}
         primaryAction={primaryAction}
+        utility={<SavedNavLink />}
         {...(isLoggedIn && userName
           ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
           : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
@@ -604,18 +629,13 @@ function Chrome({
         secondaryAction={
           isLoggedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
         }
+        utility={<SavedNavLink variant="row" />}
         openLabel="Menu"
         closeLabel="Close menu"
       />
 
       <main className="min-h-screen">
-        {activeView === 'detail' ? (
-          <div {...testId(TID.uniDetailPanel)}>
-            <DetailView />
-          </div>
-        ) : (
-          <BrowseView />
-        )}
+        <BrowseView />
       </main>
 
       <Footer

@@ -39,10 +39,11 @@ this, and do not re-do those pages.**
 |---|---|---|---|
 | Home | `104:7113` → `375:9844` | New scholarship-first hero; metrics 4 → 5 items with real figures; one nav label | **done 28/07** |
 | Signed-in nav | `203:12356` → `375:10151` | 5 items → 4; "AI lên chiến lược" → "Lên Chiến lược Du học" | **done 28/07** |
-| Onboarding câu 6 | `107:11086` → `375:11536` | +222px: gained an open multi-select (curriculum, then grading scale), each with Reset / Select all | **done 28/07** |
-| Onboarding câu 7 | `107:11165` → `375:11616` | +444px: English proficiency + score, then standardized test + score | **done 28/07** |
+| Onboarding câu 6 | `107:11086` → `375:11536` | +222px: gained an open multi-select (curriculum, then grading scale), each with Reset / Select all | **done 28/07, reworked 30/07** — see below |
+| Onboarding câu 7 | `107:11165` → `375:11616` | +444px: English proficiency + score, then standardized test + score | **done 28/07, scores validated 30/07** |
 
-Câu 9 differs only by `symbol` → `instance` on a flag graphic. Not a real change.
+Câu 9 differs only by `symbol` → `instance` on a flag graphic. Not a real change
+— and it is now **deleted** anyway (owner, 30/07).
 
 ### The two net-new clusters
 
@@ -63,17 +64,18 @@ Both carry banner frames naming them:
 
 | Route | Figma | Canvas | Notes |
 |---|---|---|---|
-| `/universities` | `105:8300`, `105:8247` | UI Final | Globe dropped for a flat filterable grid (owner's call). Kept `explorer-context` and `detail-view.tsx` verbatim. Only 3 of 6 filter chips ship — the rest need DB columns that do not exist. |
+| `/universities` | `105:8300`, `105:8247` | UI Final | Globe dropped for a flat filterable grid (owner's call). Kept `explorer-context` verbatim. **Cards navigate to `/universities/[id]` as of 30/07** — `detail-view.tsx` is deleted, see §Wiring below. Only 3 of 6 filter chips ship — the rest need DB columns that do not exist. |
 | `/auth` | `105:8004`, `105:8037` | UI Final | Centered card, login + signup. All Supabase branches preserved. |
-| `/onboarding` | `107:10574` + câu 1–9, plus `375:11536`/`375:11616` | mixed | **NINE steps since 28/07.** Was a 7-step reskin of the existing question model; the owner then asked for câu 6 and câu 7 (the academic screens) to be built and the columns added. They sit at positions 6 and 7 so the pill reads 6/9 and 7/9 as the frames do. ⚠️ **`supabase-academic-intake.sql` must be run before this ships** — it adds `student_profiles.curriculum` / `gpa_scale` / `gpa_value` and creates `standardized_test_scores`. Câu 8 (awards) is still not built; it duplicates the /ai-strategy achievements input and nobody has decided which owns it. |
+| `/onboarding` | `107:10574` + câu 1–8, plus `375:11536`/`375:11616` | mixed | **EIGHT steps since 30/07** (was nine). Câu 6 and câu 7 — the academic screens — sit at positions 6 and 7. ⚠️ **`supabase-academic-intake.sql` must be run before this ships**; it was extended on 30/07 and is safe to re-run. See the three owner decisions below. Câu 8 (awards) is still not built; it duplicates the /ai-strategy achievements input and nobody has decided which owns it. |
 | `/apply` | `337:18767` | UI Final | **"My application".** Progress donut banded by `progress_percentage`, deadline, "Continue applying" → `/apply/[applicationId]`. Replaced the 1,455-line `apply-dashboard.tsx`. |
-| `/my-universities` | `223:8824`, `223:13621`, `223:13022` + `337:19349` | mixed | Saved list. Base built from Tính năng, **so it is already behind `337:18493`**. The scholarship detail panel is built from the migrated `337:19349`. |
+| `/my-universities` | `375:12701`, `375:12841`, `375:13295`, `375:13369`, `502:18462` | **Khanh Linh - Chi** | Saved list — the cart. **Rebuilt onto the authoritative canvas 30/07**; it had been built from `223:8824`/`223:13621`/`223:13022` on the retired Tính năng canvas, which draws a strictly smaller card. See §"The saved list was a canvas behind" below. |
+| `/my-universities/program` | `375:13546` | **Khanh Linh - Chi** | **Built 30/07.** "Chọn lại ngành", the subject re-picker a saved row links to. ⚠️ Needs `supabase-saved-program.sql` — see below. |
 | `/mentors` | `154:8345` | **Tính năng** | Search + 4-across card grid. ⚠️ Not yet migrated — expect a pass when it is. |
 | `/about` | `153:11401` | **Tính năng** | Net-new route. Real team from `lib/team.ts`. ⚠️ Same provenance risk. |
 | `/guides` | `153:18266` | **Tính năng** | Blog list, data-driven topic tabs. ⚠️ Same provenance risk. |
 | `/` | `375:9844` | **Khanh Linh - Chi** | **Promoted 28/07**, replacing the 976-line legacy landing. Ships no `MissingContent`: testimonials and FAQ are omitted outright, Features and the scholarship rail take `showPlaceholders={false}`. Owns its chrome, including its own `MobileNav` — without that a phone gets no navigation at all. |
 | `/dev/home` | `375:9844` | **Khanh Linh - Chi** | Still here after the swap, on purpose: it keeps every section INCLUDING the placeholders, so the copy gaps stay visible. Renders no real data — check data against `/`. |
-| `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
+| `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07, wired up + extended 30/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
 | `/mentors/[id]` | `375:21633` | **Khanh Linh - Chi** | **Built 29/07.** Replaced `MentorProfile.tsx` + `BookMentorModal.tsx` + `MentorAvailabilityGrid.tsx`, all three deleted. Real 7-column booking calendar (the frame's is a broken 10-column instance — see below). Fixed two live bugs in the process: the page 404'd for every signed-out visitor, and it serialised the mentor's PII into the client payload. |
 | `/dev/saved-list` | — | — | Dev-only preview of `/my-universities`, hydrated from the real repositories. |
 
@@ -106,6 +108,79 @@ Each is documented in a comment at the top of the relevant file.
 - **`/guides` cards** — no author byline (`GeoGuide` has no author field).
 - **Scholarship dialog** — the "Mã học bổng" code field is still **not built**.
   No voucher / promo / redeem concept exists anywhere in the schema.
+
+#### `/onboarding` — three owner decisions, 30/07
+
+All three are owner instructions, not inferences. Each is documented in a comment
+at the top of `src/app/onboarding/onboarding-wizard.tsx`.
+
+1. **Câu 9 ("What kind of future are you building?") is deleted.** The wizard is
+   eight steps and the pill reads `n/8`. `student_profiles.goals` is NOT written
+   by this form any more — the upsert omits the column entirely, so a value from
+   `/profile/goals` (which owns that answer, with more room) survives a re-run of
+   onboarding. Sending `null` would have erased it. The Vietnamese strings for
+   câu 9 stay in `i18n-dictionary.ts`: the legacy
+   `components/onboarding/onboarding-single-page.tsx` still renders them.
+
+2. **The progress bar navigates.** Each segment is a real `<button>` in a `<nav>`,
+   so an answer can be corrected without pressing "Back" five times. It is NOT
+   "jump anywhere": the frontier (`reachable`) is every step already seen, plus
+   each consecutive step after that which is already answered. Jumping *forward*
+   past a blank step would route around the same gate that disables "Continue"
+   and land the student on the save button with câu 3 empty. The second half of
+   the rule is what lets a returning student with a full draft go straight to the
+   one answer they came to change.
+
+   ⚠️ The draft that feeds this frontier is **untrusted input** — see
+   `docs/known-issues.md` §00. Four components share its localStorage key, and a
+   draft written before commit `09d3bc9` crashed câu 7 on every render once
+   `isAnswered` started validating scores. It is now coerced in one tested place,
+   `src/features/onboarding/domain/draft.ts`.
+
+   ⚠️ **This is also why the draft is read after hydration, not in the `useState`
+   initialiser.** A segment's `disabled` is derived from how much has been
+   answered; a localStorage-derived first render disagrees with the server's HTML,
+   and React does not patch up mismatched *attributes* — it keeps the server's.
+   The symptom was a bar permanently locked at step 1 for anyone with a draft,
+   with nothing on screen to explain it. `useSyncExternalStore` is the gate;
+   `useEffect` + `setState` is not an option (`react-hooks/set-state-in-effect`).
+
+3. **Câu 6 asks for a grade per curriculum, on that curriculum's own scale.**
+   The frame draws ONE grading-scale list and ONE "Current GPA" box under a
+   *checkbox* list of curricula, and that cannot hold the answer:
+
+   - A student sitting the Vietnamese National Curriculum **and** AP has a 0–10
+     average and a 4.0 GPA. One box makes them discard one, and whichever
+     survives is stored without saying which curriculum it belongs to.
+   - An IBDP student has **neither**. They have a total out of 45, which is not a
+     GPA and does not fit a box labelled "10-point / 4.0".
+
+   So each ticked curriculum renders its own scale picker (a `Radio` group, not a
+   second searchable multi-select — that control was wrong for two options) and
+   its own checked grade box. Same departure, same reason, as câu 7's per-test
+   score fields.
+
+   `src/features/onboarding/domain/academic-grading.ts` owns which scales each
+   curriculum offers and what each one accepts, with 218 unit tests. Every scale
+   is swept against known junk input, because **the reported bug was that the GPA
+   box accepted "dsf"** — the only check was a `parseFloat` at save time whose
+   `null` went to the database silently. Câu 7's score boxes had the same hole and
+   now carry per-test formats (IELTS half bands 0–9, TOEFL whole 0–120, SAT steps
+   of 10, A-Level letters, …). Câu 6's grades are **required**; câu 7's scores stay
+   **optional**, because that step's own copy tells the student to leave one blank
+   while they wait for a result.
+
+   Two limits are deliberate and commented in the module: a letter-grade list has
+   to accept a run-together form ("A\*AA"), which means any run of grade letters
+   passes; and an unknown "Other" scale can only be held to leading with its
+   number ("18/20", "87%"). Both are shape filters, not verification.
+
+   **Schema:** `student_profiles.curriculum_grades` (JSONB) is new and REQUIRED —
+   it is the only place a two-curriculum student's second grade, or an IB total,
+   can land without being relabelled. `gpa_scale` / `gpa_value` are now the
+   *derived summary*: the first ticked curriculum whose scale yields a comparable
+   number, for the check against `universities.gpa_range`. `gpa_value` is widened
+   to `NUMERIC(6,2)` so a 100% "Others" grade cannot overflow it mid-save.
 
 #### `/mentors/[id]` — five departures, and two bugs the rebuild had to fix
 
@@ -168,10 +243,20 @@ fiction. Add the column (or a join) before review authorship means anything.
    column (`coverage`, `eligibility`, `conditions`, `insight`, `applies_to_text`,
    `deadline_date`). It was predicted to hit the same schema wall as the code
    field; it does not, and it is built.
-2. **`337:19703` "Chọn lại ngành" is not a saved-list dialog.** Its background
-   reads "Reflection / 1/3 / What is your highest level… / ILETS" — it is the
-   Select-a-Major picker from the **AI-strategy** flow. It was grouped under the
-   "Trang lưu" banner by spatial position only. Build it with `/ai-strategy`.
+2. ~~**`337:19703` "Chọn lại ngành" is not a saved-list dialog.**~~ **WRONG —
+   corrected 30/07 by the product owner.** The note read the frame's dimmed
+   backdrop ("Reflection / 1/3 / What is your highest level… / ILETS"), concluded
+   the picker belonged to the AI-strategy questionnaire, and said it had been
+   grouped under the "Trang lưu" banner by spatial position only. The owner has
+   since described the flow directly: a saved row's "Chọn lại ngành tại đây"
+   opens it. The backdrop is a reused screen; the frame is in the Trang lưu
+   cluster because that is where it is used. It is built, as
+   `/my-universities/program` (migrated node `375:13546`).
+
+   **The lesson is about the evidence, not the answer.** "Its background shows
+   another page" is weak evidence next to "it sits inside that banner group" —
+   a designer reuses a backdrop far more often than they misfile a frame. When a
+   layout signal and a grouping signal disagree, ask rather than pick.
 
 ---
 
@@ -183,6 +268,198 @@ fiction. Add the column (or a join) before review authorship means anything.
 | `/plus` | `115:13253`, `132:9601`, `196:16799`, `115:17014` | **Tính năng** | 3 tiers (free / $10 / $100). Sales are off (`PLUS_SALES_ENABLED=false`) — build as static preview. |
 | `/guides/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
 | `/privacy` | `153:22478` | **Tính năng** | Frame is named `Desktop`. |
+
+### The saved list was a canvas behind (found 30/07)
+
+`/my-universities` was built from `223:8824` / `223:13621` / `223:13022` on the
+**retired "Tính năng" canvas**. The migrated frames — `375:12701` and friends —
+draw a strictly larger card, and the three extra elements are the whole feature
+the owner asked for:
+
+| On `375:12701` | On `223:8824` | Now |
+|---|---|---|
+| tuition badge (`375:12740`) | absent | `formatTuitionForCard(tuition_usd)`, and the **net** figure once a scholarship is attached |
+| "Ngành …" + "Chọn lại ngành tại đây" (`375:12741`) | absent | links to `/my-universities/program` |
+| "Học bổng tại đây" + the applied state (`375:12841`) | a plain `/scholarships` link | opens the picker in browse mode; the bar shows the discount |
+
+Plus two frames nobody had built: the subject re-picker `375:13546` and the
+confirmation `502:18462`.
+
+**How this hid for so long.** The old file's header comment cited its frames
+accurately, the page looked finished, and the tests passed. Nothing in the repo
+says which canvas a node id belongs to — `223:*` and `375:*` are just numbers. The
+only way to catch it is the table at the top of this file, which is why it is at
+the top of this file. **Before touching a rebuilt page, check the node ids in its
+header comment against that table.**
+
+#### What the frame asks for that the database cannot answer
+
+The card's supporting line reads "Viện kinh doanh — Chương trình cử nhân kinh
+doanh quốc tế" — school plus course. **There is no course catalogue.** Verified
+live, not from a `.sql` file: no `programs`, no `majors`, no
+`university_programs`; `universities.strengths` is a comma-separated subject line
+and that is all of it (97 of 106 rows). So:
+
+- the supporting slot keeps `best_for`, a real sentence about the university;
+- the student's own chosen subject gets the "Ngành …" line, which is a fact
+  because they chose it;
+- the picker offers `splitList(strengths)` for 105 universities and the real
+  school→programme→duration tree for VinUni, whose catalogue lives in
+  `src/lib/vinuni-content.ts`. `features/universities/domain/programs.ts` makes
+  that call once, with tests.
+
+The frame's "Mã học bổng" + "ÁP DỤNG" redeem-a-code control is **still not
+built**, for the same reason it was not built the first time: no voucher table,
+no code column, no endpoint. Migrating to the new canvas did not add one.
+
+#### The bit that needs the owner
+
+`supabase-saved-program.sql` adds `user_universities.program` and
+`program_url`. **It has not been run** — this repo applies `.sql` by hand. Until
+it is, every row reads "No subject chosen yet" and saving one reports *"Saving a
+subject is not switched on in this environment yet"* rather than a generic retry
+prompt. The read is a `select('*')` precisely so a missing column cannot break
+the whole page.
+
+⚠️ The missing-column check matches on the PostgREST **code**, verified against
+the live API: `PGRST204`, message `Could not find the 'program' column of
+'user_universities' in the schema cache`. Note "column" comes *after* the column
+name — an obvious `/column .*program/` pattern misses it, and did.
+
+### Wiring: a rebuilt page nobody could reach (found 30/07)
+
+**A page can be finished, verified, and still be dead.** `/universities/[id]` was
+built on 28/07 from `375:10629` and was correct. It was also **unreachable from
+the product**: clicking a card on `/universities` called `setView('detail', id)`,
+which swapped in `detail-view.tsx` — the 893-line pre-redesign panel — at
+`?u=<id>`. Nothing ever linked to the new route, so the only way to see it was to
+type the URL. Two days later the owner reported "the detail UI is still the old
+design", and that was exactly right.
+
+The gap was recorded and read as done: `university-list-client.tsx`'s header said
+DetailView was kept as *"giữ detail cũ tạm"* until its redesign landed. The
+redesign landed as a **different route**, so the sentence stayed true-looking
+while becoming false.
+
+**When a rebuild ships as a new route rather than as an edit to the old
+component, the old component does not become dead — it stays live until someone
+changes what points at it. Grep for who navigates to the thing you replaced, and
+click through from the page a real reader starts on.** A screenshot of the new
+URL proves the page renders, not that anyone can get to it.
+
+Fixed 30/07:
+- Cards are a stretched `<Link href="/universities/{id}">`, so the card has a
+  real URL (middle-click, new tab, crawlers). The login gate is preserved by
+  intercepting the click for guests, not by withholding the href.
+- `detail-view.tsx` **deleted**; the `activeView === 'detail'` branch and the
+  `?u=` two-way sync with it.
+- `?u=<id>` still resolves — `useLegacyDetailParamRedirect` forwards it to
+  `/universities/<id>`, because `/api/home/save-university` ends the sign-up
+  funnel on it and `selection-cache` restores focus with it. That route now
+  redirects straight to the real page.
+- `TID.uniDetailPanel` moved onto the root of `/universities/[id]`, so
+  `signed-in.spec.ts`'s "click a card, expect the detail panel" now asserts the
+  redesigned page, and the guest gate test's "expect 0" still holds.
+
+#### The same class of bug again, one page over (found 30/07)
+
+**Nothing in the product linked to `/my-universities` at all.** Not the nav, not
+the footer, not the heart that saves to it. `src/proxy.ts` sends every fresh
+sign-in there and `/universities/[id]` has a save button whose entire purpose is
+to put a row on it — and the only way to *read* the result was to type the URL.
+
+Same shape as the paragraph above and worth stating as a rule: **a page that
+writes data needs a link to the page that reads it, and the writer is not that
+link.** Grep for `href="/<route>"` before calling a route done; zero hits outside
+its own subtree is the tell.
+
+Fixed with `src/components/saved-nav-link.tsx` — a heart with a count in
+`TopNav`'s `utility` slot, plus a row in `MobileNav`'s drawer. It reads its own
+count (`head: true`, RLS-scoped, renders nothing when signed out or on error)
+rather than being threaded through the seventeen places `TopNav` is constructed.
+
+⚠️ **It was 61px wide and that broke the header.** `TopNav` already warns that
+its six nowrap labels crowd the actions; the first version pushed the nav 14px
+past its box on `/universities` and 27px on `/my-universities`, clipping "Blog" to
+"B" **at 1440, the design's own width**. Confirmed as this control's fault by
+deleting the element from the live DOM and re-measuring (overflow → 0). It is now
+32px square with a corner count badge. **Anything else added to that slot needs
+the same measurement.**
+
+### `position: sticky` never worked anywhere on this site (found 30/07)
+
+`<html>` and `<body>` both carried `overflow-x-hidden` (layout.tsx). `hidden`
+computes the other axis to `auto`, which makes the element a **scroll
+container** — so `body` sat between every page and the thing that actually
+scrolls, and sticky resolves against its nearest scrolling ancestor. Body never
+scrolls, so nothing could ever stick.
+
+It hid for months because `getComputedStyle` still reports `position: sticky` and
+nothing errors — the element just scrolls away. `/universities/[id]`'s sidebar had
+shipped `lg:sticky` since 28/07 and had never once stuck.
+
+Fix: `overflow-x-clip` on both (clip does not create a scroll container), plus
+`flow-root` on body. **The `flow-root` is not cosmetic** — `hidden` was also
+establishing a block formatting context as a side effect, and dropping to `clip`
+without replacing it let first/last child margins collapse through the body, so
+every page lost height at both ends.
+
+⚠️ There is a **second** sticky trap that is per-page and the CSS fix does not
+help: a sticky element only sticks while *its own parent box* is on screen. The
+section bar was first wrapped in a `<div className="pt-gb-5xl">`, pinning it to a
+103px-tall parent, and it scrolled away immediately. Sticky elements must be
+direct children of something tall — top spacing goes on the sticky element as a
+margin, not on a wrapper.
+
+### Every jump-to-section link showed a 10-second fake loader (found 30/07)
+
+Owner report: clicking a section in the detail page's bar "loads quite long
+(about 10s)". **10s was not a coincidence — it is `SAFETY_MS` in
+[route-loading.tsx](../src/components/route-loading.tsx) to the millisecond.** A
+duration that exactly equals a timeout constant means nothing was ever loading;
+a handle was opened and nothing could close it.
+
+`navigatesInApp()` already declined hash-only links correctly, so the click path
+was innocent. The culprit was one line further down:
+
+```ts
+window.addEventListener('popstate', start);
+```
+
+**Chrome fires `popstate` for a same-document fragment navigation.** So every
+anchor click opened a loader, and all three of its exits were closed:
+- `usePathname()` does not change on a hash change → the commit effect never ran.
+- The URL poll captured its "from" *inside* `start()`, which on popstate runs
+  **after** the address bar has already updated → it compared the new URL against
+  itself, forever.
+- Leaving only `SAFETY_MS`.
+
+Fixed by remembering the last settled `pathname + search` in a ref (popstate
+cannot read where it came from — it has to have been recorded beforehand) and
+ignoring any traversal that does not change it. Query-string-only traversals are
+ignored too, for the same unendable-loader reason; they are cache-served and
+imperceptible.
+
+⚠️ **The unit test asserted the bug.** `route-loading.test.tsx` had "shows the
+loader on back/forward navigation" dispatching a bare `PopStateEvent` **without
+touching the URL** — encoding "any popstate is a navigation", which is precisely
+what was wrong. It now updates the URL first, in the order a browser does, and
+there are four new cases pinning hash-only and query-only traversals.
+
+**Second instance of the same root cause, introduced the same day:** the rewired
+university card calls `preventDefault()` for guests to show the login gate.
+`RouteLoading` listens on **capture**, so it runs before React's handler and sees
+`defaultPrevented === false` — a cancelled click therefore also parked the loader
+for the full 10s. Fixed with the `data-no-loader` opt-out the component already
+provides, applied only when signed out. **Any handler that may cancel a `<Link>`
+needs that attribute.**
+
+Related, and part of why the page felt slow in Vietnamese: the section labels
+were not in `i18n-dictionary.ts`, so the bar rendered half-translated
+("Giới thiệu · Subjects · Tuyển sinh · Location") until several sequential
+`/api/translate` round trips returned. The fixed UI strings are now static
+entries — 4 round trips down to 3, and the remaining ones are the university's
+own prose, which genuinely needs the model.
 
 ### `/universities/[id]` — what the data actually supports (measured 28/07)
 

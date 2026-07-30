@@ -138,12 +138,77 @@ describe('RouteLoading', () => {
     expect(loader()).toBeNull();
   });
 
-  it('shows the loader on back/forward navigation', () => {
-    mount();
-
+  /**
+   * A history traversal, as the browser performs it: the address bar is updated
+   * FIRST, then `popstate` fires. Getting that order right is the whole point —
+   * this test used to dispatch a bare `popstate` with the URL untouched, which
+   * asserted "any popstate is a navigation" and let a real bug through.
+   */
+  function traverseTo(url: string) {
+    window.history.replaceState({}, '', url);
     act(() => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
+  }
+
+  it('shows the loader on back/forward navigation to a different route', () => {
+    mount();
+
+    traverseTo('/scholarships');
+    tick(SHOW_DELAY_MS + 20);
+
+    expect(loader()).not.toBeNull();
+  });
+
+  /**
+   * ⚠️ REGRESSION. Chrome fires `popstate` for a same-document fragment
+   * navigation, so every "jump to section" link on /universities/[id] opened a
+   * loader that nothing could close: `usePathname()` does not change on a hash
+   * change, and the URL poll's "from" was captured after the address bar had
+   * already updated, so it compared the new URL against itself forever. The
+   * loader sat there for the full SAFETY_MS — a flat 10 seconds of fake loading
+   * on a link whose entire job is to scroll.
+   */
+  it('does not show the loader when only the hash changes', () => {
+    mount();
+
+    traverseTo('/universities#costs');
+    tick(SHOW_DELAY_MS + 200);
+
+    expect(loader()).toBeNull();
+  });
+
+  it('does not leave a loader up after a hash change (the 10s hang)', () => {
+    mount();
+
+    traverseTo('/universities#costs');
+    // Well past the point where a debounced loader would have appeared, but
+    // nowhere near SAFETY_MS: if this passes only because of the safety net, the
+    // assertion below fails.
+    tick(SAFETY_MS / 2);
+
+    expect(loader()).toBeNull();
+  });
+
+  /**
+   * A query-string-only traversal is served from the router's client cache, and
+   * it is also unendable here — popstate leaves no URL to poll away from and
+   * `usePathname()` does not change. Showing a loader would mean a SAFETY_MS
+   * hang on Back out of every filter and page change.
+   */
+  it('does not show the loader when a traversal only changes the query string', () => {
+    mount();
+
+    traverseTo('/universities?page=2');
+    tick(SHOW_DELAY_MS + 200);
+
+    expect(loader()).toBeNull();
+  });
+
+  it('still shows the loader when a traversal changes both pathname and query', () => {
+    mount();
+
+    traverseTo('/scholarships?page=2');
     tick(SHOW_DELAY_MS + 20);
 
     expect(loader()).not.toBeNull();

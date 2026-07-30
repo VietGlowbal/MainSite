@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "glowbal-data-ingestion"
+version = "0.1.0"
+description = "Bounded university programme catalogue and deep-enrichment smoke pipeline."
+requires-python = ">=3.11"
+dependencies = [
+  "certifi>=2025.1.31",
+  "pypdf>=5",
+]
+
+[project.optional-dependencies]
+browser = ["playwright>=1.50"]
+scrapy = ["scrapy>=2.13,<3"]
+render = ["crawl4ai>=0.8.6,<0.9"]
+full-crawl = [
+  "scrapy>=2.13,<3",
+  "crawl4ai>=0.8.6,<0.9",
+]
+
+[project.scripts]
+glowbal-ingest = "glowbal_ingestion.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

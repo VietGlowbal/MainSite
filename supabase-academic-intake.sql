@@ -31,6 +31,21 @@ ALTER TABLE student_profiles
   -- sit two curricula at once — Vietnamese National plus AP is a common pair.
   -- A single TEXT column would silently drop the second tick at save time.
   ADD COLUMN IF NOT EXISTS curriculum      TEXT[],
+  -- One row per entry in `curriculum`:
+  --   [{"curriculum": "...", "scale": "...", "grade": "8.5", "value": 8.5}]
+  --
+  -- REQUIRED as of 2026-07-30. `gpa_scale` + `gpa_value` below hold ONE number
+  -- on ONE scale, and câu 6 asks the curriculum question with checkboxes — a
+  -- student sitting the Vietnamese National Curriculum and AP has a 0–10
+  -- average AND a 4.0 GPA, and an IBDP student has neither (they have a total
+  -- out of 45, which is not a GPA). The two columns below cannot represent any
+  -- of that; they are now the derived summary of this one.
+  --
+  -- `grade` is the student's own text, so a letter scale (A*AA, 9/8/7) survives
+  -- the round trip. `value` is the same grade as a number when the scale has
+  -- one, and null when it does not — an A=4 conversion here would invent a
+  -- figure the student never gave.
+  ADD COLUMN IF NOT EXISTS curriculum_grades JSONB,
   -- The scale the GPA below is expressed on: "10-point scale" | "4.0 scale".
   -- Kept separate from the value because "3.8" means nothing without it, and
   -- the frame makes the student pick it explicitly.
@@ -38,6 +53,22 @@ ALTER TABLE student_profiles
   -- NUMERIC, not TEXT: this is the one academic field meant to be compared,
   -- and a 10-point GPA needs one decimal place.
   ADD COLUMN IF NOT EXISTS gpa_value       NUMERIC(4, 2);
+
+-- ── Widen gpa_value: NUMERIC(4,2) -> NUMERIC(6,2) ─────────────────────────
+-- NUMERIC(4,2) holds 99.99. The "Others..." curriculum is graded as a
+-- percentage, so 100 is a legitimate answer — and Postgres does not round an
+-- over-range value, it raises `numeric field overflow`. That surfaces as a
+-- failed save on the LAST step of the wizard with every other answer already
+-- written.
+--
+-- The wizard also refuses to send a value the narrow column cannot hold, so an
+-- un-migrated project stays functional and merely drops the odd 100%. Running
+-- this removes the need for that guard.
+--
+-- Idempotent: widening a NUMERIC in place rewrites no rows and re-running is a
+-- no-op once the type already matches.
+ALTER TABLE student_profiles
+  ALTER COLUMN gpa_value TYPE NUMERIC(6, 2);
 
 -- ── Repair: curriculum TEXT -> TEXT[] ─────────────────────────────────────
 -- REQUIRED for any project that ran an earlier copy of this file.

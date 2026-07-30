@@ -4,6 +4,52 @@ Ordered by how likely they are to waste your time.
 
 ---
 
+## 00. FOUR components share the `glowbal-onboarding-draft` localStorage key — and it has crashed the wizard twice
+
+**Read this before changing any type inside the onboarding wizard's `Answers`.**
+
+These all read and write the same key, with three different top-level shapes:
+
+| File | Shape written |
+|---|---|
+| `src/app/onboarding/onboarding-wizard.tsx` | `{ answers: Answers }` — the live one |
+| `src/components/onboarding/onboarding-single-page.tsx` | `{ answers: … }`, a subset (no `academic`/`tests`, has `goals`) |
+| `src/components/onboarding/onboarding-globe-quiz.tsx` | `{ answers: …, stepIndex }` |
+| `src/app/onboarding/profile-form.tsx` | `{ profile: StudentProfile, stepIndex }` — **no `answers` at all** |
+
+A draft is therefore not a value the current build wrote. It is a value *some*
+build wrote, on a machine that may not have loaded the app since. Two shape
+changes have shipped without migrating it, and both crashed:
+
+1. **Commit `09d3bc9`** renamed `Tests.englishScore: string` →
+   `englishScores: Record<string, string>` (one score per test instead of one
+   number written across all of them). Drafts already in browsers kept the old
+   key, so restoring one left `englishScores` **undefined** and every read threw
+   `TypeError: Cannot read properties of undefined (reading 'Cambridge English')`.
+   It stayed latent until 30/07, when `isAnswered('tests')` grew a call to
+   `testScoresValid` — which indexes that map on **every render**, so the wizard
+   went from "silently wrong" to "error boundary".
+2. **The câu 6 rework (30/07)** replaced `{ gpaScale: string[], gpa: string }`
+   with per-curriculum `scales` / `grades` maps. Same hazard, caught before ship.
+
+What let both in: `JSON.parse(raw) as { answers?: Answers }`. **An `as` on a
+`JSON.parse` result is a lie** — it tells the compiler the old shape cannot
+exist, which is exactly the case that does exist.
+
+**The rule now:** the draft is parsed in ONE place,
+`src/features/onboarding/domain/draft.ts`, typed `Record<string, unknown>`, and
+every field is *coerced* rather than cast — `readAcademicDraft`, `readTestsDraft`,
+`toCurriculumList`, `toStringMap`. It is a domain module so it has unit tests
+(`draft.test.ts`), including a regression test built from the exact draft that
+produced the crash above. If you change a shape inside `Answers`, add the old
+shape's migration to that file and a test beside the others.
+
+Renaming the key on a breaking change would also work and would be simpler — but
+it silently discards every in-flight draft, which is worse for the student than
+losing one stale field.
+
+---
+
 ## 0. `ADD COLUMN IF NOT EXISTS` never changes a column's TYPE — and it cost the owner four re-runs
 
 **The single most expensive mistake in this pack so far.** Read it before
@@ -65,6 +111,25 @@ Two rules come out of this:
 crash câu 6 on `curriculum.join(' · ')` — delete that helper once every
 environment is known to be `TEXT[]`.
 
+⚠️ **`supabase-academic-intake.sql` grew again on 2026-07-30, so that same re-run
+now covers two more things.** Câu 6 was reworked to ask for a grade per
+curriculum (see `docs/redesign-status.md`), which needs:
+
+- `student_profiles.curriculum_grades JSONB` — **new, and the save fails without
+  it.** PostgREST answers `Could not find the 'curriculum_grades' column` and the
+  student sees that message on the last step. Added by name, so a plain re-run
+  picks it up.
+- `gpa_value` widened `NUMERIC(4,2)` → `NUMERIC(6,2)`, as a **separate**
+  `ALTER COLUMN` statement — per rule 1 above, the original `ADD COLUMN` line was
+  not edited to do it, because that would have been skipped forever. Reason:
+  `NUMERIC(4,2)` tops out at 99.99 and the "Others..." curriculum is graded as a
+  percentage, where 100 is a real answer. Postgres does not round an over-range
+  value, it raises `numeric field overflow` — a failed save on the last step with
+  every other answer already written. The wizard also refuses to send a value the
+  narrow column cannot hold (`GPA_COLUMN_MAX`), so an un-migrated project stays
+  usable and merely drops the odd 100%; that guard can go once every environment
+  is `NUMERIC(6,2)`.
+
 ---
 
 ## 1. FIXED 2026-07-27 — `public.user_universities` migration applied
@@ -91,6 +156,50 @@ Related tables that were already populated: `universities` (97),
 `scholarships` (2877), `scholarship_universities` (374), `user_scholarships`,
 `student_profiles`, `course_applications` (29), `team_members`, `geo_articles`,
 `achiever_profiles` (8, 7 approved).
+
+Re-measured 2026-07-30: `universities` 106 rows (97 with `strengths`, 97 with
+`tuition_usd`), `user_universities` 4, `user_scholarships` 48, `scholarships`
+2877, `scholarship_universities` 374. There is **no** `programs`, `majors` or
+`university_programs` table — checked, because the "Chọn lại ngành" frame implies
+a course catalogue and it does not exist.
+
+⚠️ Some comments in the repo still asserted `user_universities` was missing, more
+than two days after it was applied — `src/app/dev/saved-list/page.tsx` carried a
+whole paragraph about every save silently no-opping. Corrected 30/07. **A "this
+table does not exist" note is only true on the day it was written.**
+
+---
+
+## 1c. OUTSTANDING — `supabase-saved-program.sql` has not been run
+
+Adds `user_universities.program` and `.program_url`, which back the "Ngành …"
+line on each saved row and the "Chọn lại ngành" picker at
+`/my-universities/program` (Figma `375:12701`, `375:13546`).
+
+Additive and idempotent: two nullable `text` columns, `ADD COLUMN IF NOT EXISTS`,
+no RLS change needed (the existing `for all` policy on the row covers them).
+
+**Until it is run**, and this is by design rather than by accident:
+
+- the saved list still renders — the read is `select('*')`, so naming a column
+  that does not exist cannot fail the whole page;
+- every row shows "No subject chosen yet";
+- saving a subject reports *"Saving a subject is not switched on in this
+  environment yet — the user_universities.program column has not been added.
+  Nothing was changed."* instead of a generic retry prompt.
+
+That last one exists because a generic error sends someone retrying a write that
+can never succeed. It matches the PostgREST **code**, verified against the live
+API rather than guessed:
+
+```
+code    PGRST204
+message Could not find the 'program' column of 'user_universities' in the schema cache
+```
+
+Note the word "column" comes **after** the column name. The obvious pattern
+`/column .*program/i` does not match it — that was the first version, and it fell
+through to the generic message in the browser.
 
 ---
 

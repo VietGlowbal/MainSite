@@ -1,11 +1,29 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
-import { Button, Input, MultiSelect, Textarea, TopNav } from '@/shared/ui';
+import { Button, Input, MultiSelect, Radio, TopNav } from '@/shared/ui';
 import type { MultiSelectOption } from '@/shared/ui';
+import {
+  EMPTY_ACADEMIC,
+  EMPTY_TESTS,
+  ENGLISH_TEST_FORMATS,
+  STANDARDIZED_TEST_FORMATS,
+  academicComplete,
+  collectCurriculumGrades,
+  defaultScaleFor,
+  gradeFormatFor,
+  keepScores,
+  readAcademicDraft,
+  readTestsDraft,
+  scalesFor,
+  testScoresValid,
+  toCurriculumGrades,
+  toCurriculumList,
+} from '@/features/onboarding/domain';
+import type { Academic, GradeFormat, Tests } from '@/features/onboarding/domain';
 // Not from the '@/shared/ui' barrel — see the note on the re-export there: the
 // hook is used in ~40 places, and reaching through the barrel for it drags the
 // whole design system into each one's graph and into the coverage denominator.
@@ -31,13 +49,23 @@ import type { StudentProfile } from '@/lib/types';
  * 7 (375:11616) to be built and the columns added — see
  * supabase-academic-intake.sql, which must be run before this ships.
  *
- * They sit at positions 6 and 7 so the progress pill reads 6/9 and 7/9 exactly
- * as the frames do.
+ * They sit at positions 6 and 7 so the progress pill reads 6/8 and 7/8.
+ *
+ * Scope, revised 2026-07-30 (owner): EIGHT steps. Câu 9 ("What kind of future
+ * are you building?") is REMOVED. It was the only free-text step, it asked for
+ * something /profile/goals already owns with more room, and it sat between the
+ * student and the matches they came for. `student_profiles.goals` is untouched
+ * by this form now — the upsert below simply omits the column, so a value
+ * written by /profile/goals survives a re-run of onboarding.
  *
  * ⚠️ Câu 8 (academic awards: Level / Role / Prize / Year) is STILL not built.
  * It duplicates the /ai-strategy "Detailed Achievements" input, which asks for
  * the same thing in more depth, and nothing has been decided about which owns
  * it. That is a product decision, not a missing column.
+ *
+ * The progress bar is a navigation control, not a readout: any step already
+ * reached is clickable so an answer can be corrected without walking the whole
+ * wizard backwards. See `reachable` for why it is not simply "any step".
  *
  * Everything below keeps the exact save / guest-bounce / draft / skip behaviour
  * of the old form.
@@ -56,14 +84,6 @@ const regionOptions = [
   { label: 'Middle East', hint: 'UAE, Qatar' },
   { label: 'Open to ideas', hint: 'Show best-fit places first' },
 ];
-const goalIdeas = [
-  'Build a global AI career with strong scholarship support.',
-  'Study computer science abroad and launch a startup one day.',
-  'Find a university that opens doors into product and innovation.',
-  'Move into a big international city and grow my confidence.',
-  'Get a practical degree that leads to strong job options worldwide.',
-];
-
 /** Câu 6 (375:11536). Labels are the frame's, verbatim. */
 const curriculumOptions: MultiSelectOption[] = [
   { value: 'Vietnamese National Curriculum', label: 'Vietnamese National Curriculum' },
@@ -74,11 +94,6 @@ const curriculumOptions: MultiSelectOption[] = [
   },
   { value: 'AP + US High School Diploma', label: 'AP + US High School Diploma' },
   { value: 'Others...', label: 'Others...' },
-];
-
-const gpaScaleOptions: MultiSelectOption[] = [
-  { value: '10-point scale', label: '10-point scale' },
-  { value: '4.0 scale', label: '4.0 scale' },
 ];
 
 /** Câu 7 (375:11616), upper half. Written to `english_test_scores`. */
@@ -105,29 +120,13 @@ const standardizedTestOptions: MultiSelectOption[] = [
 /** "None yet" means the student has no result, so it excludes every sibling. */
 const NONE_YET = 'None yet';
 
-type Academic = { curriculum: string[]; gpaScale: string[]; gpa: string };
-
 /**
- * Scores are keyed BY TEST, not shared.
- *
- * The frame draws one "Your Score:" field under each multi-select, but the
- * multi-select takes several tests. Writing that one number to every selected
- * test fabricates data — a student who ticks IELTS and TOEFL and types 7.5 gets
- * a TOEFL of 7.5, which is not a score on that scale at all. One field per
- * chosen test is a small departure from the frame and the only way these rows
- * land honestly.
- *
- * The frame's second, unlabelled "Other" box is dropped: nothing in the schema
- * corresponds to it, so it was a control that collected typing and threw it
- * away.
+ * `Academic` (câu 6) and `Tests` (câu 7) live in
+ * `src/features/onboarding/domain/draft.ts`, together with the coercers that
+ * read them back out of localStorage. See the note there: both shapes have
+ * changed since drafts started being saved, and both changes crashed the step
+ * until the draft was parsed defensively rather than cast.
  */
-type Tests = {
-  english: string[];
-  englishScores: Record<string, string>;
-  standardized: string[];
-  standardizedScores: Record<string, string>;
-};
-
 type Answers = {
   study_level: string;
   subjects: string;
@@ -137,15 +136,6 @@ type Answers = {
   academic: Academic;
   tests: Tests;
   support: string;
-  goals: string;
-};
-
-const EMPTY_ACADEMIC: Academic = { curriculum: [], gpaScale: [], gpa: '' };
-const EMPTY_TESTS: Tests = {
-  english: [],
-  englishScores: {},
-  standardized: [],
-  standardizedScores: {},
 };
 
 const EMPTY_ANSWERS: Answers = {
@@ -157,42 +147,116 @@ const EMPTY_ANSWERS: Answers = {
   academic: EMPTY_ACADEMIC,
   tests: EMPTY_TESTS,
   support: '',
-  goals: '',
 };
 
 /**
- * GPA as a number, or null. Deliberately strict: the column is NUMERIC(4,2) and
- * a value that is not a number is worse than no value, because a scale-aware
- * comparison against `universities.gpa_range` would silently skip it.
- *
- * The range guard is not cosmetic. NUMERIC(4,2) holds up to 99.99, and Postgres
- * does not round an over-range value — it raises `numeric field overflow`, which
- * arrives as a failed save on the LAST step of a nine-step wizard with every
- * other answer already written. A student typing their GPA as "100" (or a
- * percentage) would hit it. Out of range is treated as "not a GPA", same as
- * letters.
+ * `gpa_value` is NUMERIC(4,2), which holds 99.99 — and Postgres does not round
+ * an over-range value, it raises `numeric field overflow`. That arrives as a
+ * failed save on the LAST step with every other answer already written, so a
+ * number the column cannot hold is dropped instead of sent. The migration
+ * widens the column to NUMERIC(6,2) for percentages; this guard is what keeps
+ * an un-migrated project saving rather than erroring.
  */
+const GPA_COLUMN_MAX = 99.99;
+
+/** The one message the format layer does not own: an empty required box. */
+const GRADE_REQUIRED = 'Enter your grade so we can match you accurately.';
+
 /**
- * Whatever `student_profiles.curriculum` hands back, as the list the UI wants.
- * See the note in the caller for why this cannot assume the declared type.
+ * Why this step's grade box rejects what is in it, or `undefined`.
+ *
+ * An untouched empty box is NOT an error — it reports as `undefined` here and is
+ * caught by `isAnswered`, which keeps "Continue" disabled. Shouting "required"
+ * at a field nobody has typed in yet is noise; shouting "that is not a grade"
+ * the moment they type letters is the whole point. `showRequired` flips the
+ * empty case on once they have tried to leave the step.
  */
-function toCurriculumList(value: unknown): string[] {
-  if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
-  if (typeof value === 'string' && value.trim() !== '') return [value];
-  return [];
+function gradeError(
+  format: GradeFormat | undefined,
+  raw: string,
+  showRequired: boolean,
+): { message: string; vars: Record<string, string | number> } | undefined {
+  if (format === undefined) return undefined;
+  if (raw.trim() === '') {
+    return showRequired ? { message: GRADE_REQUIRED, vars: {} } : undefined;
+  }
+  return format.check(raw) ?? undefined;
 }
 
-function parseGpa(raw: string): number | null {
-  const n = Number.parseFloat(raw.trim().replace(',', '.'));
-  if (!Number.isFinite(n) || n < 0 || n > 99.99) return null;
-  return n;
+/**
+ * A hydration gate, as an external store.
+ *
+ * `useSyncExternalStore` is the one hook that can report a client-only fact
+ * safely: React takes `onServer` for the SSR pass AND for the hydration render,
+ * then `onClient`, and re-renders for the difference itself.
+ *
+ * Neither alternative works here. A `useState` initialiser that reads
+ * localStorage makes the hydration render disagree with the server's HTML, and
+ * React does not patch up mismatched ATTRIBUTES — it keeps the server's, which
+ * left every progress-bar segment stuck `disabled`. A `useEffect` that calls
+ * `setState` trips `react-hooks/set-state-in-effect`.
+ *
+ * The store never emits, because "we are on the client" cannot stop being true.
+ */
+const NO_UPDATES = () => () => {};
+const onClient = () => true;
+const onServer = () => false;
+
+/**
+ * The saved draft's answers, as UNTRUSTED JSON.
+ *
+ * Typed `Record<string, unknown>` rather than `Answers` on purpose. Four
+ * components share this localStorage key — this wizard,
+ * `components/onboarding/onboarding-single-page`,
+ * `components/onboarding/onboarding-globe-quiz` and `./profile-form` — and they
+ * write three different top-level shapes between them, on top of whatever an
+ * older build of this wizard left behind. Declaring the parse result as `Answers`
+ * is what let a draft with `englishScore: string` (pre-09d3bc9) into state as if
+ * it had an `englishScores` map, which crashed câu 7 on every keystroke.
+ */
+function readDraft(): Record<string, unknown> | null {
+  try {
+    const raw = window.localStorage.getItem(ONBOARDING_DRAFT_KEY);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (parsed === null || typeof parsed !== 'object') return null;
+    // `profile-form` writes `{ profile, stepIndex }` and has no `answers` at all.
+    const answers = (parsed as Record<string, unknown>)['answers'];
+    if (answers === null || typeof answers !== 'object') return null;
+    return answers as Record<string, unknown>;
+  } catch {
+    return null;
+  }
 }
 
-/** Same, for the English overall score columns (also NUMERIC). */
-function parseScore(raw: string): number | null {
-  const n = Number.parseFloat(raw.trim().replace(',', '.'));
-  if (!Number.isFinite(n) || n < 0 || n > 9999) return null;
-  return n;
+/**
+ * Draft answers layered UNDER the profile's — a saved profile always wins, and
+ * the draft only fills steps it left empty.
+ *
+ * Every value is coerced, never cast. The structured steps go through their own
+ * readers; the plain steps are type-checked here because a shared draft key means
+ * a non-string can genuinely turn up in one.
+ */
+function mergeDraft(base: Answers, draft: Record<string, unknown> | null): Answers {
+  if (draft === null) return base;
+  const merged = { ...base };
+  for (const k of Object.keys(EMPTY_ANSWERS) as StepKey[]) {
+    // The structured steps are objects, so "empty" is not falsiness —
+    // a draft wins whenever the profile did not supply the step.
+    if (k === 'academic') {
+      const academic = readAcademicDraft(draft[k]);
+      if (academic && !isAnswered(merged, k)) merged[k] = academic;
+      continue;
+    }
+    if (k === 'tests') {
+      const tests = readTestsDraft(draft[k]);
+      if (tests && !isAnswered(merged, k)) merged[k] = tests;
+      continue;
+    }
+    const value = draft[k];
+    if (!merged[k] && typeof value === 'string' && value !== '') merged[k] = value;
+  }
+  return merged;
 }
 
 /** The two structured steps; everything else is a plain string. */
@@ -202,8 +266,18 @@ function isStructured(key: StepKey): key is 'academic' | 'tests' {
 
 /** Has this step been answered enough to move on? */
 function isAnswered(answers: Answers, key: StepKey): boolean {
-  if (key === 'academic') return answers.academic.curriculum.length > 0;
-  if (key === 'tests') return answers.tests.english.length > 0;
+  if (key === 'academic') return academicComplete(answers.academic);
+  if (key === 'tests') {
+    return (
+      answers.tests.english.length > 0 &&
+      testScoresValid(answers.tests.english, answers.tests.englishScores, ENGLISH_TEST_FORMATS) &&
+      testScoresValid(
+        answers.tests.standardized,
+        answers.tests.standardizedScores,
+        STANDARDIZED_TEST_FORMATS,
+      )
+    );
+  }
   return answers[key] !== '';
 }
 
@@ -244,18 +318,52 @@ function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
     countries: region,
     budget: initialProfile.budget_range || '',
     campus: firstCampus,
-    academic: {
-      curriculum: toCurriculumList(initialProfile.curriculum),
-      gpaScale: initialProfile.gpa_scale ? [initialProfile.gpa_scale] : [],
-      gpa: initialProfile.gpa_value != null ? String(initialProfile.gpa_value) : '',
-    },
+    academic: buildInitialAcademic(initialProfile),
     // Test results live in their own tables, which this component is not given.
     // A returning student re-enters them; the upserts below are keyed on
     // (user_id, test_type) so nothing duplicates.
     tests: EMPTY_TESTS,
     support: firstSupport,
-    goals: initialProfile.goals || '',
   };
+}
+
+/**
+ * Câu 6, restored from the profile.
+ *
+ * `curriculum_grades` is the real source and carries one row per curriculum.
+ * The `gpa_scale` / `gpa_value` fallback exists for rows written before that
+ * column did — those hold a single scale and number with no curriculum attached,
+ * so they are attributed to the FIRST curriculum, and only when that curriculum
+ * actually offers the stored scale. Guessing wider would relabel a Vietnamese
+ * 10-point average as an IB total.
+ */
+function buildInitialAcademic(profile: StudentProfile): Academic {
+  const curriculum = toCurriculumList(profile.curriculum);
+  const scales: Record<string, string> = {};
+  const grades: Record<string, string> = {};
+
+  for (const row of toCurriculumGrades(profile.curriculum_grades)) {
+    if (!curriculum.includes(row.curriculum)) continue;
+    scales[row.curriculum] = row.scale;
+    grades[row.curriculum] = row.grade;
+  }
+
+  const first = curriculum[0];
+  if (first !== undefined && grades[first] === undefined && profile.gpa_value != null) {
+    const legacy = scalesFor(first).find((format) => format.scale === profile.gpa_scale);
+    if (legacy !== undefined) {
+      scales[first] = legacy.scale;
+      grades[first] = String(profile.gpa_value);
+    }
+  }
+
+  // Anything still without a scale gets the curriculum's default, so its box
+  // renders with a format rather than blank.
+  for (const name of curriculum) {
+    if (scales[name] === undefined) scales[name] = defaultScaleFor(name);
+  }
+
+  return { curriculum, scales, grades };
 }
 
 function mapRegionToCountries(region: string): string[] {
@@ -275,7 +383,8 @@ function answersToProfile(a: Answers): StudentProfile {
     target_subjects: a.subjects ? [a.subjects] : [],
     preferred_countries: mapRegionToCountries(a.countries),
     budget_range: a.budget || null,
-    goals: a.goals || null,
+    // No `goals`: câu 9 was removed and this form no longer collects it. The
+    // upsert omits the column entirely so a value from /profile/goals survives.
     career_interests: a.subjects ? [a.subjects] : [],
     campus_preferences: a.campus || null,
     support_needs: a.support || null,
@@ -296,7 +405,8 @@ const STEPS: { key: StepKey; title: string; body: string }[] = [
   { key: 'academic', title: 'Academic Information', body: 'Which curriculum are you studying, and how are you graded on it?' },
   { key: 'tests', title: 'Academic Information', body: 'Add any test results you already have. Leave a score blank if you are still waiting for it.' },
   { key: 'support', title: 'Where do you most want support?', body: 'No judgement — pick the area where guidance would help most.' },
-  { key: 'goals', title: 'What kind of future are you building?', body: 'Speak in your own words — even one sentence helps us match you.' },
+  // Câu 9 ("What kind of future are you building?") was removed on 2026-07-30 —
+  // see the scope note at the top of the file. /profile/goals owns that answer.
 ];
 
 // ── Selectable option ────────────────────────────────────────────────────────
@@ -330,6 +440,52 @@ function Choice({
   );
 }
 
+// ── Câu 7 score box ──────────────────────────────────────────────────────────
+
+/**
+ * One test's score, formatted and checked on that test's own scale.
+ *
+ * Both halves of câu 7 used a bare text box with a shared placeholder, so "sdvds"
+ * was accepted as a TOEFL score and written to a NUMERIC column as `null`. IELTS
+ * is 0–9 in half bands, TOEFL 0–120 whole, A-Level is letters — one box cannot
+ * check all three, so each test brings its own format.
+ *
+ * These scores stay OPTIONAL: the step's own copy tells the student to leave one
+ * blank while they wait for a result. An empty box is never an error here; only a
+ * filled one that is not a score on the scale.
+ */
+function ScoreField({
+  group,
+  test,
+  format,
+  value,
+  onChange,
+}: {
+  /** Namespaces the input id — "None yet" and "IB Diploma" appear in both lists. */
+  group: string;
+  test: string;
+  format: GradeFormat | undefined;
+  value: string;
+  onChange: (next: string) => void;
+}) {
+  const t = useT();
+  const problem = value.trim() === '' ? null : (format?.check(value) ?? null);
+  const slug = `${group}-${test.replace(/[^a-zA-Z0-9]+/g, '-').replace(/-+$/, '')}`;
+
+  return (
+    <Input
+      name={`score-${slug}`}
+      // The test name is a proper noun on both sides of the i18n boundary.
+      label={`${t('Your score')} — ${test}`}
+      inputMode={format?.numeric === false ? 'text' : 'decimal'}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      {...(format ? { hint: t(format.hint), placeholder: format.placeholder } : {})}
+      {...(problem ? { error: t(problem.message, problem.vars) } : {})}
+    />
+  );
+}
+
 // ── Component ────────────────────────────────────────────────────────────────
 
 export function OnboardingWizard({
@@ -347,42 +503,51 @@ export function OnboardingWizard({
   const t = useT();
   const supabase = useMemo(() => createClient(), []);
 
-  const [answers, setAnswers] = useState<Answers>(() => {
-    const base = buildInitialAnswers(initialProfile);
-    if (typeof window === 'undefined') return base;
-    try {
-      const raw = window.localStorage.getItem(ONBOARDING_DRAFT_KEY);
-      if (!raw) return base;
-      const parsed = JSON.parse(raw) as { answers?: Answers };
-      if (!parsed.answers) return base;
-      const merged = { ...base };
-      for (const k of Object.keys(EMPTY_ANSWERS) as StepKey[]) {
-        // The structured steps are objects, so "empty" is not falsiness —
-        // a draft wins whenever the profile did not supply the step.
-        if (isStructured(k)) {
-          const draft = parsed.answers[k];
-          if (draft && !isAnswered(merged, k)) merged[k] = draft as never;
-          continue;
-        }
-        if (!merged[k] && parsed.answers[k]) merged[k] = parsed.answers[k];
-      }
-      return merged;
-    } catch {
-      return base;
-    }
-  });
+  const hydrated = useSyncExternalStore(NO_UPDATES, onClient, onServer);
+  const [answers, setAnswers] = useState<Answers>(() => buildInitialAnswers(initialProfile));
+  const [draftRead, setDraftRead] = useState(false);
+
+  /*
+   * The localStorage draft is merged in once hydration is over — see the note on
+   * NO_UPDATES for why it cannot be read in the initialiser above.
+   *
+   * Adjusting state DURING render rather than in an effect is deliberate and is
+   * React's own pattern for it: React re-runs this component with the merged
+   * answers before committing, so nothing paints twice and no effect is involved.
+   */
+  if (hydrated && !draftRead) {
+    setDraftRead(true);
+    setAnswers((base) => mergeDraft(base, readDraft()));
+  }
+
   const [step, setStep] = useState(0);
+  /**
+   * The furthest step reached in this session.
+   *
+   * The progress bar navigates, so it needs to know which steps the student has
+   * actually seen — `step` alone forgets the moment they go back to fix câu 3.
+   */
+  const [furthest, setFurthest] = useState(0);
+  /**
+   * Câu 6 asks for a grade per curriculum, and an empty box is a blocker rather
+   * than a mistake. Its "required" message stays hidden until the student tries
+   * to leave the step, so an untouched form is not covered in red.
+   */
+  const [showRequired, setShowRequired] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   useLoadingIndicator(submitting, 'Building your profile');
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
+    // Skipped until the draft has been read, so the pre-hydration answers do
+    // not overwrite the very draft they are about to be merged with.
+    if (!draftRead) return;
     try {
       window.localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify({ answers }));
     } catch {
       /* ignore */
     }
-  }, [answers]);
+  }, [answers, draftRead]);
 
   function update(key: Exclude<StepKey, 'academic' | 'tests'>, value: string) {
     setAnswers((p) => ({ ...p, [key]: value }));
@@ -390,6 +555,40 @@ export function OnboardingWizard({
 
   function updateAcademic(patch: Partial<Academic>) {
     setAnswers((p) => ({ ...p, academic: { ...p.academic, ...patch } }));
+  }
+
+  /**
+   * Ticking a curriculum preselects the scale most of its students report on, so
+   * the grade box arrives with a format instead of asking two questions before
+   * accepting one number. Unticking one takes its scale and grade with it —
+   * otherwise re-ticking it later silently restores a grade the student cleared,
+   * and the localStorage draft carries it between sessions.
+   */
+  function pickCurriculum(curriculum: string[]) {
+    const scales: Record<string, string> = {};
+    const grades: Record<string, string> = {};
+    for (const name of curriculum) {
+      scales[name] = answers.academic.scales[name] ?? defaultScaleFor(name);
+      const grade = answers.academic.grades[name];
+      if (grade !== undefined) grades[name] = grade;
+    }
+    updateAcademic({ curriculum, scales, grades });
+  }
+
+  /**
+   * Switching scale clears the grade.
+   *
+   * "8.5" is a good 10-point average and an impossible 4.0 one; carrying the
+   * number across would leave a value that reads as valid on a scale it was
+   * never measured on.
+   */
+  function pickScale(curriculum: string, scale: string) {
+    const grades = { ...answers.academic.grades };
+    delete grades[curriculum];
+    updateAcademic({
+      scales: { ...answers.academic.scales, [curriculum]: scale },
+      grades,
+    });
   }
 
   function updateTests(patch: Partial<Tests>) {
@@ -410,25 +609,6 @@ export function OnboardingWizard({
     const added = next.filter((v) => !previous.includes(v));
     if (added.length === 1 && added[0] === NONE_YET) return [NONE_YET];
     return next.filter((v) => v !== NONE_YET);
-  }
-
-  /**
-   * Drop scores belonging to tests that are no longer selected.
-   *
-   * Without this, unticking IELTS leaves its score in state; re-ticking it later
-   * silently restores a number the student may have meant to clear, and the
-   * draft in localStorage carries it between sessions.
-   */
-  function keepScores(
-    selected: string[],
-    scores: Record<string, string>,
-  ): Record<string, string> {
-    const kept: Record<string, string> = {};
-    for (const test of selected) {
-      const score = scores[test];
-      if (score != null) kept[test] = score;
-    }
-    return kept;
   }
 
   function skip() {
@@ -463,6 +643,18 @@ export function OnboardingWizard({
     }
 
     const profile = answersToProfile(answers);
+    const grades = collectCurriculumGrades(answers.academic);
+    /*
+     * `gpa_scale` / `gpa_value` keep holding ONE comparable number, because that
+     * is what a check against `universities.gpa_range` reads. The first ticked
+     * curriculum whose scale produces a number wins — an IB student who also
+     * ticked AP contributes the AP GPA rather than "38", which would compare as
+     * a 38.0 GPA. Letter-only students contribute no number at all, and that is
+     * correct: there isn't one.
+     */
+    const comparable = grades.find(
+      (row) => row.value !== null && row.value <= GPA_COLUMN_MAX,
+    );
     const { error } = await supabase.from('student_profiles').upsert(
       {
         user_id: userData.user.id,
@@ -471,7 +663,8 @@ export function OnboardingWizard({
         preferred_countries: profile.preferred_countries,
         budget_range: profile.budget_range,
         academic_background: null,
-        goals: profile.goals,
+        // No `goals` key. Câu 9 is gone and omitting the column leaves whatever
+        // /profile/goals wrote intact — sending `null` would erase it.
         career_interests: profile.career_interests,
         campus_preferences: profile.campus_preferences,
         support_needs: profile.support_needs,
@@ -483,13 +676,15 @@ export function OnboardingWizard({
          * once (Vietnamese National plus AP is common). Saving only the first
          * would drop a tick the student watched themselves make.
          *
-         * `gpa_scale` is the opposite and is a single-answer control, because
-         * one GPA number has one scale — "10-point" AND "4.0" together
-         * describes nothing.
+         * `curriculum_grades` is the grade for each of those ticks, with the
+         * scale it was measured on. It is the only place a two-curriculum
+         * student's second grade — or an IB total, which is not a GPA — can land
+         * without being relabelled as something else.
          */
         curriculum: answers.academic.curriculum.length > 0 ? answers.academic.curriculum : null,
-        gpa_scale: answers.academic.gpaScale[0] ?? null,
-        gpa_value: parseGpa(answers.academic.gpa),
+        curriculum_grades: grades.length > 0 ? grades : null,
+        gpa_scale: comparable?.scale ?? null,
+        gpa_value: comparable?.value ?? null,
         onboarding_completed: true,
         onboarding_completed_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
@@ -522,7 +717,12 @@ export function OnboardingWizard({
       .map((testType) => ({
         user_id: userId,
         test_type: testType,
-        overall_score: parseScore(answers.tests.englishScores[testType] ?? ''),
+        // The score is checked on its own scale before it gets here, so this is
+        // the number the student typed — not a `parseFloat` best guess.
+        overall_score:
+          ENGLISH_TEST_FORMATS[testType]?.toNumber(
+            answers.tests.englishScores[testType] ?? '',
+          ) ?? null,
         updated_at: now,
       }));
 
@@ -566,11 +766,39 @@ export function OnboardingWizard({
   // never reach a `Choice`, so an empty string is the safe value for them.
   const currentAnswer = isStructured(current.key) ? '' : answers[current.key];
 
+  /**
+   * The last step the progress bar will jump to.
+   *
+   * NOT simply `STEPS.length - 1`. The bar exists so an answer can be corrected,
+   * which is a backwards move; letting it jump FORWARD past an unanswered step
+   * would route around the same gate that keeps "Continue" disabled, and the
+   * student would land on the save button with câu 3 still blank.
+   *
+   * So: everything already seen stays open, and the frontier extends over each
+   * consecutive step that is already answered. The second half matters for a
+   * returning student whose draft or profile filled the whole wizard — they
+   * start at step 1 and can go straight to the one answer they came to change.
+   */
+  const reachable = useMemo(() => {
+    let last = furthest;
+    while (last < STEPS.length - 1 && isAnswered(answers, STEPS[last]!.key)) last += 1;
+    return last;
+  }, [answers, furthest]);
+
+  function goTo(index: number) {
+    const target = Math.min(Math.max(index, 0), STEPS.length - 1);
+    setStep(target);
+    setFurthest((f) => Math.max(f, target));
+    // Each step owns its own blank-field nudges; carrying câu 6's into câu 7
+    // would flag boxes the student has not reached.
+    setShowRequired(false);
+  }
+
   function next() {
     if (isLast) {
       void save();
     } else {
-      setStep((s) => Math.min(s + 1, STEPS.length - 1));
+      goTo(step + 1);
     }
   }
 
@@ -597,22 +825,52 @@ export function OnboardingWizard({
             {step + 1}/{STEPS.length}
           </span>
         </div>
-        <div className="mt-gb-lg flex gap-gb-xs" aria-hidden="true">
-          {STEPS.map((s, i) => (
-            <span
-              key={s.key}
-              className={`h-gb-xs flex-1 rounded-gb-full transition-colors ${
-                i <= step ? 'bg-brand' : 'bg-surface-muted'
-              }`}
-            />
-          ))}
-        </div>
+        {/*
+          The bar navigates. Each segment is a real <button> in a <nav> rather
+          than the decorative <span> this was, because a student who spots a
+          mistake in câu 2 from câu 7 should not have to press "Back" five times.
+
+          The 4px segment is not a click target, so the button carries 6px of
+          vertical padding and draws the bar in a child span. The 6px is taken
+          off this row's own margin and off the Skip link below it, so the bar
+          still sits 12px under the title and nothing else moves.
+        */}
+        <nav className="mt-gb-sm flex gap-gb-xs" aria-label={t('Onboarding questions')}>
+          {STEPS.map((s, i) => {
+            const open = i <= reachable;
+            const done = i <= step;
+            return (
+              <button
+                key={s.key}
+                type="button"
+                onClick={() => goTo(i)}
+                disabled={!open}
+                aria-current={i === step ? 'step' : undefined}
+                // The bar is the only label these have, and it is a colour. The
+                // number and the question text give each one a real name.
+                aria-label={`${t('Question')} ${i + 1} — ${t(s.title)}`}
+                title={`${i + 1}. ${t(s.title)}`}
+                className="group flex-1 cursor-pointer py-gb-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed"
+              >
+                <span
+                  className={`block h-gb-xs rounded-gb-full transition-colors ${
+                    done
+                      ? 'bg-brand'
+                      : open
+                        ? 'bg-surface-muted group-hover:bg-brand-surface'
+                        : 'bg-surface-muted'
+                  }`}
+                />
+              </button>
+            );
+          })}
+        </nav>
 
         {/* Skip */}
         <button
           type="button"
           onClick={skip}
-          className="mt-gb-lg self-end text-gb-sm font-semibold text-fg-muted transition-colors hover:text-fg-secondary"
+          className="mt-gb-sm self-end text-gb-sm font-semibold text-fg-muted transition-colors hover:text-fg-secondary"
         >
           {t('Skip for now')} →
         </button>
@@ -670,10 +928,13 @@ export function OnboardingWizard({
             </div>
           ) : null}
 
-          {/* Câu 6 — Figma 375:11536. The grading-scale list appears only once
-              a curriculum is chosen, and carries it as its heading, which is
-              what the frame draws ("Vietnamese National Curriculum" above
-              10-point / 4.0). */}
+          {/* Câu 6 — Figma 375:11536.
+              The frame draws ONE grading-scale list and ONE "Current GPA" box
+              under the checkbox list. These are per curriculum instead: see the
+              note on `Academic` for why a shared box cannot hold the answer of
+              a student sitting two curricula, or of an IB student, who has no
+              GPA at all. Each block carries its curriculum as a heading, which
+              is the treatment the frame gives the scale list. */}
           {current.key === 'academic' ? (
             <div className="flex flex-col gap-gb-3xl">
               {/* The frame's placeholder here reads "Select a GPA" over a list
@@ -686,34 +947,75 @@ export function OnboardingWizard({
                 placeholder={t('Select a curriculum')}
                 options={curriculumOptions}
                 value={answers.academic.curriculum}
-                onChange={(curriculum) =>
-                  updateAcademic({ curriculum, ...(curriculum.length === 0 ? { gpaScale: [] } : {}) })
-                }
+                onChange={pickCurriculum}
               />
 
-              {answers.academic.curriculum.length > 0 ? (
-                <MultiSelect
-                  name="gpaScale"
-                  label={t('Grading scale')}
-                  placeholder={t('Select a grading scale')}
-                  options={gpaScaleOptions}
-                  value={answers.academic.gpaScale}
-                  onChange={(gpaScale) => updateAcademic({ gpaScale })}
-                  // One GPA, one scale — see the note on MultiSelect's `single`.
-                  single
-                  heading={answers.academic.curriculum.join(' · ')}
-                  maxVisible={2}
-                />
-              ) : null}
+              {answers.academic.curriculum.map((curriculum) => {
+                const scales = scalesFor(curriculum);
+                const scale = answers.academic.scales[curriculum];
+                const format = gradeFormatFor(curriculum, scale);
+                if (format === undefined) return null;
+                const raw = answers.academic.grades[curriculum] ?? '';
+                const problem = gradeError(format, raw, showRequired);
+                // Sanitised for use in an id/name — the option labels carry
+                // spaces, slashes, ampersands and dots.
+                const slug = curriculum.replace(/[^a-zA-Z0-9]+/g, '-').replace(/-+$/, '');
 
-              <Input
-                name="gpa"
-                label={t('Current GPA')}
-                inputMode="decimal"
-                value={answers.academic.gpa}
-                onChange={(e) => updateAcademic({ gpa: e.target.value })}
-                placeholder={t('Enter your current GPA')}
-              />
+                return (
+                  <div
+                    key={curriculum}
+                    className="flex flex-col rounded-gb-md border border-line bg-surface shadow-xs"
+                  >
+                    <p className="border-b border-line px-gb-xl py-gb-lg text-gb-sm font-medium text-fg">
+                      {t(curriculum)}
+                    </p>
+                    <div className="flex flex-col gap-gb-xl p-gb-xl">
+                      {/* A single-scale curriculum gets no picker — a radio
+                          group of one is a decision the student cannot make. */}
+                      {scales.length > 1 ? (
+                        <fieldset>
+                          <legend className="text-gb-sm font-medium text-fg-secondary">
+                            {t('How are you graded?')}
+                          </legend>
+                          <div className="mt-gb-md flex flex-col gap-gb-lg sm:flex-row sm:gap-gb-3xl">
+                            {scales.map((option) => (
+                              <Radio
+                                key={option.scale}
+                                name={`scale-${slug}`}
+                                value={option.scale}
+                                label={t(option.scale)}
+                                checked={format.scale === option.scale}
+                                onChange={() => pickScale(curriculum, option.scale)}
+                              />
+                            ))}
+                          </div>
+                        </fieldset>
+                      ) : null}
+
+                      <Input
+                        name={`grade-${slug}`}
+                        label={t(format.fieldLabel)}
+                        required
+                        hint={t(format.hint)}
+                        inputMode={format.numeric ? 'decimal' : 'text'}
+                        // The browser's own validation is off: it fires on submit
+                        // and this wizard has no <form>. `error` is the channel.
+                        value={raw}
+                        onChange={(e) =>
+                          updateAcademic({
+                            grades: { ...answers.academic.grades, [curriculum]: e.target.value },
+                          })
+                        }
+                        // Leaving a box empty is what turns the "required"
+                        // message on — see the note on `showRequired`.
+                        onBlur={() => setShowRequired(true)}
+                        placeholder={format.placeholder}
+                        {...(problem ? { error: t(problem.message, problem.vars) } : {})}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           ) : null}
 
@@ -743,21 +1045,17 @@ export function OnboardingWizard({
               {answers.tests.english
                 .filter((test) => test !== NONE_YET)
                 .map((test) => (
-                  <Input
+                  <ScoreField
                     key={test}
-                    name={`englishScore-${test}`}
-                    label={`${t('Your score')} — ${test}`}
-                    inputMode="decimal"
+                    group="english"
+                    test={test}
+                    format={ENGLISH_TEST_FORMATS[test]}
                     value={answers.tests.englishScores[test] ?? ''}
-                    onChange={(e) =>
+                    onChange={(score) =>
                       updateTests({
-                        englishScores: {
-                          ...answers.tests.englishScores,
-                          [test]: e.target.value,
-                        },
+                        englishScores: { ...answers.tests.englishScores, [test]: score },
                       })
                     }
-                    placeholder={t('Overall score')}
                   />
                 ))}
 
@@ -782,20 +1080,17 @@ export function OnboardingWizard({
               {answers.tests.standardized
                 .filter((test) => test !== NONE_YET)
                 .map((test) => (
-                  <Input
+                  <ScoreField
                     key={test}
-                    name={`standardizedScore-${test}`}
-                    label={`${t('Your score')} — ${test}`}
+                    group="standardized"
+                    test={test}
+                    format={STANDARDIZED_TEST_FORMATS[test]}
                     value={answers.tests.standardizedScores[test] ?? ''}
-                    onChange={(e) =>
+                    onChange={(score) =>
                       updateTests({
-                        standardizedScores: {
-                          ...answers.tests.standardizedScores,
-                          [test]: e.target.value,
-                        },
+                        standardizedScores: { ...answers.tests.standardizedScores, [test]: score },
                       })
                     }
-                    placeholder={t('e.g. 1450, 34, A*AA')}
                   />
                 ))}
             </div>
@@ -809,33 +1104,6 @@ export function OnboardingWizard({
             </div>
           ) : null}
 
-          {current.key === 'goals' ? (
-            <div className="flex flex-col gap-gb-lg">
-              <Textarea
-                name="goals"
-                value={answers.goals}
-                onChange={(e) => update('goals', e.target.value)}
-                placeholder={t("A sentence or two about the future you're building toward.")}
-                rows={4}
-              />
-              <div className="flex flex-wrap gap-gb-sm">
-                {goalIdeas.map((idea) => {
-                  const label = t(idea);
-                  return (
-                    <button
-                      key={idea}
-                      type="button"
-                      onClick={() => update('goals', label)}
-                      className="rounded-gb-full border border-line-strong bg-surface px-gb-lg py-gb-sm text-gb-xs text-fg-tertiary transition-colors hover:border-brand hover:text-fg-brand"
-                    >
-                      {label.slice(0, 60)}
-                      {label.length > 60 ? '…' : ''}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          ) : null}
         </div>
 
         {message ? (
@@ -847,7 +1115,7 @@ export function OnboardingWizard({
         {/* Nav */}
         <div className="mt-gb-5xl flex items-center justify-between gap-gb-lg">
           {step > 0 ? (
-            <Button variant="secondary" onClick={() => setStep((s) => Math.max(s - 1, 0))}>
+            <Button variant="secondary" onClick={() => goTo(step - 1)}>
               {t('Back')}
             </Button>
           ) : (

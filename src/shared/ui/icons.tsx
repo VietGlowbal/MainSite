@@ -40,11 +40,21 @@ export function KitIcon({
   art,
   frame,
   className,
+  filled = false,
 }: {
   art: KitIconArt;
   /** Side of the icon frame in the design, e.g. 24 inside a 48px featured icon. */
   frame: number;
   className?: string | undefined;
+  /**
+   * Paint the interior in `currentColor` as well as the stroke.
+   *
+   * Only meaningful for icons whose path is a closed shape — `heart`, for its
+   * saved state. Every other icon here is an open stroke, where a fill would
+   * flood the area the path happens to enclose. Defaults to off, which is the
+   * behaviour every existing caller already relies on.
+   */
+  filled?: boolean | undefined;
 }) {
   const scale = frame / art.frame;
   return (
@@ -52,7 +62,7 @@ export function KitIcon({
       viewBox={`0 0 ${art.w} ${art.h}`}
       width={art.w * scale}
       height={art.h * scale}
-      fill="none"
+      fill={filled ? 'currentColor' : 'none'}
       stroke="currentColor"
       strokeWidth={art.strokeWidth}
       strokeLinecap="round"
@@ -259,6 +269,23 @@ export const ICONS = {
     frame: 32,
     strokeWidth: 2,
     d: 'M16 8V29.3333M16 8H11.2857C10.5911 8 9.92493 7.71905 9.43377 7.21895C8.9426 6.71885 8.66667 6.04058 8.66667 5.33333C8.66667 4.62609 8.9426 3.94781 9.43377 3.44772C9.92493 2.94762 10.5911 2.66667 11.2857 2.66667C14.9524 2.66667 16 8 16 8ZM16 8H20.7143C21.4089 8 22.0751 7.71905 22.5662 7.21895C23.0574 6.71885 23.3333 6.04058 23.3333 5.33333C23.3333 4.62609 23.0574 3.94781 22.5662 3.44772C22.0751 2.94762 21.4089 2.66667 20.7143 2.66667C17.0476 2.66667 16 8 16 8ZM26.6667 14.6667V25.0667C26.6667 26.5601 26.6667 27.3069 26.376 27.8773C26.1204 28.3791 25.7124 28.787 25.2106 29.0427C24.6402 29.3333 23.8935 29.3333 22.4 29.3333L9.6 29.3333C8.10653 29.3333 7.35979 29.3333 6.78936 29.0427C6.28759 28.787 5.87964 28.3791 5.62398 27.8773C5.33333 27.3069 5.33333 26.5601 5.33333 25.0667V14.6667M2.66667 10.1333L2.66667 12.5333C2.66667 13.2801 2.66667 13.6534 2.81199 13.9387C2.93982 14.1895 3.1438 14.3935 3.39468 14.5213C3.67989 14.6667 4.05326 14.6667 4.8 14.6667L27.2 14.6667C27.9467 14.6667 28.3201 14.6667 28.6053 14.5213C28.8562 14.3935 29.0602 14.1895 29.188 13.9387C29.3333 13.6534 29.3333 13.2801 29.3333 12.5333V10.1333C29.3333 9.3866 29.3333 9.01323 29.188 8.72801C29.0602 8.47713 28.8562 8.27316 28.6053 8.14533C28.3201 8 27.9467 8 27.2 8L4.8 8C4.05326 8 3.6799 8 3.39468 8.14532C3.1438 8.27316 2.93982 8.47713 2.81199 8.72801C2.66667 9.01323 2.66667 9.3866 2.66667 10.1333Z',
+  },
+  /**
+   * Figma 522:8641 — the save-to-shortlist heart added to the university detail
+   * header (522:8643) after that page was first built.
+   *
+   * Exported at 32px with no inset, like gift01 above, so `frame` is 32. The
+   * export also carries a `<rect rx="16" fill="#FFF1F2">` behind the path — the
+   * rose-50 pill the heart sits in. That is a background, not artwork, so it is
+   * dropped here and drawn with `bg-brand-subtle rounded-gb-full` on the button
+   * instead; baking it into the icon would ship a colour a token cannot reach.
+   */
+  heart: {
+    w: 32,
+    h: 32,
+    frame: 32,
+    strokeWidth: 2,
+    d: 'M15.9932 9.21872C13.9938 6.8813 10.6597 6.25255 8.15469 8.39292C5.64964 10.5333 5.29697 14.1119 7.2642 16.6433C8.89982 18.748 13.8498 23.187 15.4721 24.6237C15.6536 24.7845 15.7444 24.8648 15.8502 24.8964C15.9426 24.924 16.0437 24.924 16.1361 24.8964C16.2419 24.8648 16.3327 24.7845 16.5142 24.6237C18.1365 23.187 23.0865 18.748 24.7221 16.6433C26.6893 14.1119 26.3797 10.5108 23.8316 8.39292C21.2835 6.27506 17.9925 6.8813 15.9932 9.21872Z',
   },
 } as const satisfies Record<string, KitIconArt>;
 

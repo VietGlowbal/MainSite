@@ -1,0 +1,129 @@
+{
+  "collection_year": 2024,
+  "targets": [
+    {
+      "institution_id": "mit-us",
+      "unitid": 166683,
+      "name": "Massachusetts Institute of Technology",
+      "aliases": ["Massachusetts Institute of Technology (MIT)"]
+    },
+    {
+      "institution_id": "harvard-us",
+      "unitid": 166027,
+      "name": "Harvard University"
+    },
+    {
+      "institution_id": "stanford-us",
+      "unitid": 243744,
+      "name": "Stanford University"
+    },
+    {
+      "institution_id": "yale-us",
+      "unitid": 130794,
+      "name": "Yale University"
+    },
+    {
+      "institution_id": "princeton-us",
+      "unitid": 186131,
+      "name": "Princeton University"
+    },
+    {
+      "institution_id": "columbia-us",
+      "unitid": 190150,
+      "name": "Columbia University in the City of New York",
+      "aliases": ["Columbia University"]
+    },
+    {
+      "institution_id": "upenn-us",
+      "unitid": 215062,
+      "name": "University of Pennsylvania"
+    },
+    {
+      "institution_id": "duke-us",
+      "unitid": 198419,
+      "name": "Duke University"
+    },
+    {
+      "institution_id": "johns-hopkins-us",
+      "unitid": 162928,
+      "name": "Johns Hopkins University"
+    },
+    {
+      "institution_id": "northwestern-us",
+      "unitid": 147767,
+      "name": "Northwestern University"
+    },
+    {
+      "institution_id": "uchicago-us",
+      "unitid": 144050,
+      "name": "University of Chicago"
+    },
+    {
+      "institution_id": "caltech-us",
+      "unitid": 110404,
+      "name": "California Institute of Technology",
+      "aliases": ["California Institute of Technology (Caltech)"]
+    },
+    {
+      "institution_id": "cornell-us",
+      "unitid": 190415,
+      "name": "Cornell University"
+    },
+    {
+      "institution_id": "uc-berkeley-us",
+      "unitid": 110635,
+      "name": "University of California-Berkeley",
+      "aliases": [
+        "University of California, Berkeley",
+        "University of California, Berkeley (UCB)"
+      ]
+    },
+    {
+      "institution_id": "ucla-us",
+      "unitid": 110662,
+      "name": "University of California-Los Angeles",
+      "aliases": [
+        "University of California, Los Angeles",
+        "University of California, Los Angeles (UCLA)"
+      ]
+    },
+    {
+      "institution_id": "umich-us",
+      "unitid": 170976,
+      "name": "University of Michigan-Ann Arbor",
+      "aliases": ["University of Michigan, Ann Arbor"]
+    },
+    {
+      "institution_id": "georgia-tech-us",
+      "unitid": 139755,
+      "name": "Georgia Institute of Technology-Main Campus",
+      "aliases": ["Georgia Institute of Technology"]
+    },
+    {
+      "institution_id": "carnegie-mellon-us",
+      "unitid": 211440,
+      "name": "Carnegie Mellon University"
+    },
+    {
+      "institution_id": "uiuc-us",
+      "unitid": 145637,
+      "name": "University of Illinois Urbana-Champaign",
+      "aliases": [
+        "University of Illinois at Urbana-Champaign",
+        "University of Illinois Urbana-Champaign (UIUC)"
+      ]
+    },
+    {
+      "institution_id": "nyu-us",
+      "unitid": 193900,
+      "name": "New York University",
+      "aliases": ["New York University (NYU)"]
+    },
+    {
+      "institution_id": "purdue-us",
+      "unitid": 243780,
+      "name": "Purdue University-Main Campus",
+      "aliases": ["Purdue University"]
+    }
+  ]
+}

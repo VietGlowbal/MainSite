@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SavedNavLink } from '@/components/saved-nav-link';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
@@ -12,7 +13,15 @@ import {
   FOOTER_TAGLINE,
   MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
-import { formatDeadlineLabel, scholarshipCandidates } from '@/features/universities/domain';
+import {
+  attachedOptions,
+  bestCoveragePercent,
+  computeNetTuition,
+  formatDeadlineLabel,
+  formatUsdCompact,
+  scholarshipCandidates,
+} from '@/features/universities/domain';
+import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarships';
 import { createClient } from '@/lib/supabase/client';
 import { TID, testId } from '@/shared/lib';
 import {
@@ -28,21 +37,37 @@ import {
 } from '@/shared/ui';
 
 /**
- * The saved list — Figma 223:8824 ("Danh sách đã lưu"), plus 223:13621 for the
- * selected / scholarship-attached state and 223:13022 for the picker dialog.
+ * The saved list — the cart. Figma 375:12701 ("Trang lưu" / "Danh sách đã lưu")
+ * on the authoritative "Khanh Linh - Chi" canvas, with 375:12841 for the
+ * scholarship-attached state, 375:13295 for the picker, 375:13369 for the
+ * scholarship detail panel and 502:18462 for the confirmation.
+ *
+ * ⚠️ FIRST BUILT FROM THE RETIRED CANVAS. The original version of this file was
+ * written against 223:8824 / 223:13621 / 223:13022, which are the pre-migration
+ * drawings on "Tính năng". The migrated frames add three elements per row that
+ * simply are not on the old ones — tuition, the chosen subject, and the link to
+ * re-pick it — so anyone comparing this file to 223:8824 will find things it
+ * does not explain. Build against 375:*.
  *
  * Where this departs from the frames, and why:
  *
- *  1. NO SCHOLARSHIP CODE FIELD. The dialog (223:13022) leads with "Mã học
- *     bổng" + "ÁP DỤNG" — a redeem-a-code control. There is no code anywhere in
- *     the schema: no voucher table, no code column, no endpoint. Shipping the
- *     input would be a third dead control of the kind /auth just had two
- *     removed from. The rest of the dialog is real and is built: it lists the
- *     scholarships actually linked to the selected universities
- *     (scholarship_universities) and attaches the chosen one to the saved
- *     university (user_scholarships.university_id).
+ *  1. NO SCHOLARSHIP CODE FIELD. The picker (375:13295, and 223:13022 before it)
+ *     leads with "Mã học bổng" + "ÁP DỤNG" — a redeem-a-code control. There is
+ *     no code anywhere in the schema: no voucher table, no code column, no
+ *     endpoint. The migration to the new canvas did not add one, so the field
+ *     stays out; shipping it would be a dead control of the kind /auth had two
+ *     removed from. Everything else in that dialog is real and is built.
  *
- *  2. COUNTRY MOVES TO THE PIN. The frame's badge row is
+ *  2. NO INVENTED PROGRAMME LINE. The frame's supporting text reads "Viện kinh
+ *     doanh — Chương trình cử nhân kinh doanh quốc tế", i.e. school + course.
+ *     There is no course catalogue in the database — no `programs`, `majors` or
+ *     `university_programs` table, checked live — so that exact sentence cannot
+ *     be produced for any of the 97 universities without making it up. The slot
+ *     keeps `best_for`, which is a real sentence about the university, and the
+ *     student's own chosen subject gets its own line below (the frame's 375:12743
+ *     "Ngành …"), which is a fact because they chose it.
+ *
+ *  3. COUNTRY MOVES TO THE PIN. The frame's badge row is
  *     [QS rank][THE rank][country][institution type] and its details line is
  *     [pin "Remote"][clock deadline] — "Remote" being leftover text from the
  *     kit's job-post card this row is an instance of. There is no city column to
@@ -50,13 +75,13 @@ import {
  *     badge row keeps the three facts that are not places. Same slots, no fact
  *     printed twice.
  *
- *  3. "Xóa" IS text-md, NOT text-xl. The frame's node is 20px, which would make
+ *  4. "Xóa" IS text-md, NOT text-xl. The frame's node is 20px, which would make
  *     the destructive link the largest text in the row — larger than the
  *     university name. The layer is named "Supporting text" and carries "92%" in
  *     the sibling "My application" frames, so its size is inherited from a
  *     repurposed layer rather than chosen.
  *
- *  4. NO MOBILE FRAME EXISTS for this page, so the row reflows here: the
+ *  5. NO MOBILE FRAME EXISTS for this page, so the row reflows here: the
  *     checkbox and Remove share a top line, then the cover, then the card.
  */
 
@@ -66,7 +91,13 @@ export type ScholarshipOption = {
   amountLabel: string | null;
   deadlineLabel: string | null;
   coverage: string | null;
-  /* The rest feed the detail panel — Figma 337:19349, "Chi tiết voucer". */
+  /* What the discount maths reads: `bestCoveragePercent` for the bar's headline
+     and `computeNetTuition` for the row's net figure. */
+  fundingType: string[] | null;
+  amountMin: number | null;
+  amountMax: number | null;
+  amountCurrency: string | null;
+  /* The rest feed the detail panel — Figma 375:13369, "Chi tiết voucer". */
   scope: string | null;
   eligibility: string | null;
   conditions: string | null;
@@ -87,10 +118,24 @@ export type SavedRow = {
   deadline: string | null;
   summary: string | null;
   imageUrl: string | null;
-  /** Crest, shown beside each option in the picker (Figma 223:13022). */
+  /** Crest, shown beside each option in the picker (Figma 375:13305). */
   logoUrl: string | null;
   /** Resolved via features/universities/domain — null for most universities. */
   website: string | null;
+  /** Card-sized tuition, already through `formatTuitionForCard`. "—" when absent. */
+  tuition: string;
+  /** The unabridged `tuition_usd` prose: the title attribute, and the net maths. */
+  tuitionRaw: string | null;
+  /**
+   * The subject the student picked for this university (375:12743, "Ngành …").
+   *
+   * Null both when they have not picked one and when
+   * supabase-saved-program.sql has not been applied — the row renders an
+   * invitation to choose in either case, which is true either way.
+   */
+  program: string | null;
+  /** A course page they pasted when the directory did not list their subject. */
+  programUrl: string | null;
   attached: Array<{ savedId: number; id: number; name: string; amountLabel: string | null }>;
   options: ScholarshipOption[];
 };
@@ -98,6 +143,132 @@ export type SavedRow = {
 const CHECKBOX =
   'size-gb-4xl shrink-0 cursor-pointer rounded-gb-sm border-2 border-line-strong accent-brand ' +
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand';
+
+/**
+ * `scholarships.scope` as a label rather than the stored enum.
+ *
+ * Falls back to the raw value for a scope the map does not know, which is better
+ * than blanking a badge the frame draws — and is how a new enum value would
+ * announce itself rather than disappearing.
+ */
+function scopeLabel(scope: string): string {
+  return (
+    (SCHOLARSHIP_SCOPE_LABELS as Record<string, string | undefined>)[scope] ?? scope
+  );
+}
+
+/**
+ * The row's money line — Figma 375:12740, the rose badge under the summary.
+ *
+ * ONE BADGE, TWO MEANINGS, AND THE DIFFERENCE IS THE POINT. The frame draws
+ * "10,000USD/ năm" on the plain state and "5.000USD/ năm" on the row that has a
+ * scholarship attached (375:12841), while its bar reads "Học bổng 50%". So the
+ * slot holds the price of the thing, and the price changes when the voucher is
+ * applied — which is what makes the page a cart rather than a list.
+ *
+ * The net figure is only shown when it can be computed from real values:
+ * `computeNetTuition` needs a parseable tuition range and either a coverage
+ * percentage or a cash award it can convert. Roughly half the rows have prose
+ * tuition that yields no range ("Approx. $15,000–18,000/year before subsidy
+ * (program-dependent…)" does, "Varies by programme" does not), and those keep
+ * the list price alone rather than showing a discount nobody can check.
+ */
+function TuitionBadges({ row }: { row: SavedRow }) {
+  const attached = attachedOptions(row);
+  const net = computeNetTuition(row.tuitionRaw, attached);
+  const hasTuition = row.tuition !== '—';
+
+  if (!hasTuition) return null;
+
+  /*
+   * "Free" is a whole answer, not an amount, so it does not take the period.
+   * `formatTuitionForCard` returns it for the tuition-free systems in the table
+   * (Paris-Saclay, and the other publicly funded rows), and "Free / year" reads
+   * like a broken template.
+   */
+  const isFree = row.tuition === 'Free';
+
+  if (!net) {
+    return (
+      <div className="flex flex-wrap items-center gap-gb-md">
+        {/* `title` on a wrapper rather than on Badge: the primitive takes only
+            `variant` and `className`, and widening a design-system component so
+            one page can hang a tooltip on it is the wrong direction. */}
+        <span title={row.tuitionRaw ?? undefined}>
+          {/* " / year" is its own text node so the dictionary can reach it — the
+              amount beside it is a formatted number and must not be translated. */}
+          <Badge variant="brand-subtle">
+            {row.tuition}
+            {isFree ? null : <span className="font-normal"> / year</span>}
+          </Badge>
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-gb-md">
+      <span title={net.scholarshipName}>
+        <Badge variant="brand-subtle">
+          {formatUsdCompact(net.netLo, net.netHi)}
+          <span className="font-normal"> / year</span>
+        </Badge>
+      </span>
+      {/* The list price stays visible and struck through: a student comparing
+          two saved rows needs to know which number is the discounted one. */}
+      <span
+        className="text-gb-sm text-fg-muted line-through"
+        title={row.tuitionRaw ?? undefined}
+      >
+        {row.tuition}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * "Ngành … / Chọn lại ngành tại đây" — Figma 375:12741.
+ *
+ * When nothing has been picked the label is an invitation rather than a value.
+ * The frame only draws the chosen state, and printing a plausible-looking
+ * subject into an empty slot would be inventing the student's own answer.
+ */
+function ProgramRow({ row }: { row: SavedRow }) {
+  const href = `/my-universities/program?u=${row.universityId}`;
+
+  return (
+    <div className="flex flex-wrap items-center gap-gb-lg">
+      {row.program ? (
+        /* The label and the value are separate text nodes on purpose: DomTranslator
+           keys on whole nodes, so "Subject:" is a dictionary hit and the subject
+           itself — which is the university's own wording — is left alone. */
+        <span className="text-gb-md text-fg">
+          <span className="text-fg-tertiary">Subject:</span> {row.program}
+        </span>
+      ) : (
+        <span className="text-gb-md text-fg-tertiary">No subject chosen yet</span>
+      )}
+      {row.programUrl ? (
+        <a
+          href={row.programUrl}
+          target="_blank"
+          rel="noreferrer noopener"
+          className="flex items-center gap-gb-xs text-gb-sm font-semibold text-fg-tertiary hover:text-fg"
+        >
+          Course page
+          <KitIcon art={ICONS.arrowUpRight} frame={16} />
+        </a>
+      ) : null}
+      <Link
+        href={href}
+        className="flex items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover"
+      >
+        {row.program ? 'Change subject here' : 'Choose a subject here'}
+        <KitIcon art={ICONS.arrowUpRight} frame={20} />
+      </Link>
+    </div>
+  );
+}
 
 function SavedRowItem({
   row,
@@ -160,30 +331,51 @@ function SavedRowItem({
 
       {/*
         `lg:min-h-[188px]` is the cover's height, and it is load-bearing rather
-        than decorative: every row in the frame is exactly 188px because the
-        mockup's cards all carry the same four fields. Real rows do not — a
-        university with no ranking, summary or type collapses to two lines, and
+        than decorative: every row in the frame is exactly as tall as its cover
+        because the mockup's cards all carry the same fields. Real rows do not —
+        a university with no ranking, summary or type collapses to two lines, and
         without the floor the cover sticks out above and below a card half its
         height. With it, `justify-between` drops the details line to the bottom
         and the row keeps the design's geometry.
+
+        The floor is the COVER's 188px, not the frame's 272px card. 375:12726 is
+        272 tall because it holds two more lines than 223:9485 did, and those two
+        lines are conditional here (a university with no tuition and no chosen
+        subject renders neither). Pinning 272 would leave that row padded with
+        empty space instead of closing up.
       */}
       <article className="order-4 flex w-full flex-col justify-between gap-gb-2xl rounded-gb-2xl border border-line bg-surface p-gb-3xl lg:order-3 lg:min-h-[188px] lg:min-w-0 lg:flex-1">
         <div className="flex flex-col gap-gb-xl">
           <div className="flex flex-col gap-gb-md">
             <h2 className="text-gb-md font-semibold text-fg">{row.name}</h2>
             <div className="flex flex-wrap gap-gb-lg">
+              {/*
+                Number and label as separate text nodes, for the reason given on
+                the scholarship bar: no machine-translation fallback on this
+                route, so "#90 THE Ranking" as one node can never be a dictionary
+                hit. It showed half-translated in Vietnamese — the QS badge only
+                worked because a stale entry survived in the localStorage MT cache
+                from before /my-universities was marked PII.
+              */}
               {row.qsRank != null ? (
-                <Badge variant="brand-subtle">#{row.qsRank} QS World Ranking</Badge>
+                <Badge variant="brand-subtle">
+                  #{row.qsRank} <span>QS World Ranking</span>
+                </Badge>
               ) : null}
               {row.theRank != null ? (
-                <Badge variant="brand-subtle">#{row.theRank} THE Ranking</Badge>
+                <Badge variant="brand-subtle">
+                  #{row.theRank} <span>THE Ranking</span>
+                </Badge>
               ) : null}
               {row.type ? <Badge variant="neutral">{row.type}</Badge> : null}
             </div>
           </div>
+          {/* 375:12739. `best_for` — see departure (2) in the header. */}
           {row.summary ? (
             <p className="line-clamp-2 text-gb-md text-fg-tertiary">{row.summary}</p>
           ) : null}
+          <TuitionBadges row={row} />
+          <ProgramRow row={row} />
           {row.attached.length > 0 ? (
             <ul className="flex flex-wrap gap-gb-md">
               {row.attached.map((s) => (
@@ -206,7 +398,7 @@ function SavedRowItem({
             {deadline ? (
               <span className="flex items-center gap-gb-sm text-gb-sm font-semibold text-fg-tertiary">
                 <KitIcon art={ICONS.clock} frame={20} className="text-fg-muted" />
-                Deadline: {deadline}
+                <span>Deadline:</span> {deadline}
               </span>
             ) : null}
           </div>
@@ -223,9 +415,13 @@ function SavedRowItem({
           ) : (
             /* No website in the lookup — a link labelled "Official site" that
                points at a guess would be worse than one that points somewhere
-               real, so it points at the in-app profile instead. */
+               real, so it points at the in-app profile instead.
+
+               `/universities/<id>`, not the old `?u=<id>`: that query form is now
+               only a compatibility shim that client-side `router.replace`s to
+               this URL, so linking to it costs a redirect for no reason. */
             <Link
-              href={`/universities?u=${row.universityId}`}
+              href={`/universities/${row.universityId}`}
               className="flex items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover"
             >
               View profile
@@ -238,7 +434,6 @@ function SavedRowItem({
   );
 }
 
-/** Figma 223:13022, minus the code field — see note (1) at the top of this file. */
 /** One labelled prose block on the detail panel. Hidden when the column is null. */
 function DetailBlock({ heading, body }: { heading: string; body: string | null }) {
   if (!body) return null;
@@ -253,13 +448,14 @@ function DetailBlock({ heading, body }: { heading: string; body: string | null }
 }
 
 /**
- * The scholarship detail panel — Figma 337:19349, "Chi tiết voucer".
+ * The scholarship detail panel — Figma 375:13369, "Chi tiết voucer" (337:19349
+ * on the retired canvas; the two are the same drawing).
  *
  * Despite the frame's name there is no voucher here: every field on it maps to a
  * real `scholarships` column (coverage, eligibility, conditions, insight,
- * applies_to_text, deadline). The frame's sibling on the older canvas leads with
- * a "Mã học bổng" redeem-a-code control, which is the part with no schema behind
- * it and stays unbuilt — see the note at the top of this file.
+ * applies_to_text, deadline). The picker it opens from leads with a "Mã học bổng"
+ * redeem-a-code control, which is the part with no schema behind it and stays
+ * unbuilt — see the note at the top of this file.
  */
 function ScholarshipDetail({
   option,
@@ -284,7 +480,7 @@ function ScholarshipDetail({
 
       {option.scope ? (
         <div className="flex flex-wrap gap-gb-md">
-          <Badge variant="brand-subtle">{option.scope}</Badge>
+          <Badge variant="brand-subtle">{scopeLabel(option.scope)}</Badge>
         </div>
       ) : null}
 
@@ -313,7 +509,7 @@ function ScholarshipDetail({
           {option.deadlineLabel ? (
             <span className="flex items-center gap-gb-sm text-gb-sm text-fg-tertiary">
               <KitIcon art={ICONS.clock} frame={20} className="shrink-0" />
-              Deadline: {option.deadlineLabel}
+              <span>Deadline:</span> {option.deadlineLabel}
             </span>
           ) : null}
         </div>
@@ -354,22 +550,169 @@ function ScholarshipDetail({
   );
 }
 
+type Candidate = {
+  option: ScholarshipOption;
+  universityId: number;
+  universityName: string;
+  universityLogoUrl?: string | null;
+};
+
+/**
+ * One scholarship in the picker — Figma 375:13305.
+ *
+ * The frame's layout, which is different from the one this dialog used to have:
+ * crest on the left behind a vertical rule, then the scope badge, the name, the
+ * value in large rose type, and a footer of deadline + "Xem chi tiết". The radio
+ * sits on the right. Value is the loudest thing in the card because it is what
+ * the student is choosing between.
+ */
+function ScholarshipCandidateCard({
+  candidate,
+  chosen,
+  onChoose,
+  onView,
+  selectable,
+}: {
+  candidate: Candidate;
+  chosen: boolean;
+  onChoose: () => void;
+  onView: () => void;
+  /**
+   * Browse mode (opened from "Scholarships here") lists what is on offer and
+   * has nothing to confirm, so it draws no radio. An input that leads to a
+   * disabled button is a dead control.
+   */
+  selectable: boolean;
+}) {
+  const { option, universityName, universityLogoUrl } = candidate;
+
+  const body = (
+    <>
+      {universityLogoUrl ? (
+        /* Same reason as the row cover: crests come from arbitrary hosts, so a
+           plain <img> rather than next/image. */
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={universityLogoUrl}
+          alt=""
+          loading="lazy"
+          className="h-gb-6xl w-[110px] shrink-0 object-contain"
+        />
+      ) : (
+        /* The frame always has a crest. 9 of 106 rows have no logo_url, and
+           without a placeholder the divider and text jump left on those. */
+        <span className="flex h-gb-6xl w-[110px] shrink-0 items-center justify-center font-display text-gb-xl text-fg-muted">
+          {universityName.slice(0, 1)}
+        </span>
+      )}
+
+      {/* 375:13309 sits behind a 1px rule in the frame. */}
+      <span className="flex min-w-0 flex-1 flex-col gap-gb-md border-l border-line pl-gb-xl">
+        {/* The label, not the raw enum. `scope` is stored as "university" /
+            "country" / "consortium" / "provider", and printing it straight into
+            the frame's badge slot leaks a database value into the UI — the
+            scholarships directory has mapped it through
+            SCHOLARSHIP_SCOPE_LABELS since it was built, and the dictionary
+            already carries the four translations. */}
+        {option.scope ? (
+          <span className="flex">
+            <Badge variant="brand-subtle">{scopeLabel(option.scope)}</Badge>
+          </span>
+        ) : null}
+        <span className="text-gb-sm font-semibold text-fg">{option.name}</span>
+        {/* Real scholarship names are frequently "<award> at <university>
+            <year>", so printing the university underneath would say it twice.
+            Shown only when the name does not already carry it. */}
+        {option.name.includes(universityName) ? null : (
+          <span className="text-gb-sm text-fg-tertiary">{universityName}</span>
+        )}
+        {option.amountLabel ? (
+          <span className="text-gb-xl font-semibold text-brand">{option.amountLabel}</span>
+        ) : (
+          <span className="text-gb-sm text-fg-tertiary">Value not published</span>
+        )}
+        <span className="flex w-full min-w-0 flex-wrap items-center justify-between gap-gb-lg">
+          {option.deadlineLabel ? (
+            /*
+              CLAMPED TO ONE LINE. `deadline_text` is free prose and some rows run
+              to a paragraph — "Đợt 1 (Gia hạn cho L2/M1 lên năm tiếp theo): Nộp
+              đơn từ 15/04 đến 30/04 … Đợt 2 …" is six lines on this card, which
+              pushes the next scholarship out of the dialog. The full string stays
+              reachable as a title and again, unclamped, in the detail panel.
+            */
+            <span
+              className="flex min-w-0 flex-1 items-center gap-gb-sm text-gb-sm text-fg-tertiary"
+              title={option.deadlineLabel}
+            >
+              <KitIcon art={ICONS.clock} frame={20} className="shrink-0" />
+              <span className="shrink-0">Deadline:</span>
+              <span className="truncate">{option.deadlineLabel}</span>
+            </span>
+          ) : (
+            <span />
+          )}
+          {/*
+            A <button>, not a nested link, and outside the <label> below for the
+            same reason: a control inside a label is activated by clicking the
+            label, so putting "Xem chi tiết" in there would open the detail panel
+            every time the student picked the scholarship.
+          */}
+          <button
+            type="button"
+            onClick={onView}
+            className="flex shrink-0 items-center gap-gb-xs rounded-gb-md text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            See details
+            <KitIcon art={ICONS.arrowUpRight} frame={20} />
+          </button>
+        </span>
+      </span>
+    </>
+  );
+
+  return (
+    <div
+      className={`flex min-w-0 items-center gap-gb-xl rounded-gb-xl border p-gb-xl transition-colors ${
+        chosen ? 'border-brand bg-brand-subtle' : 'border-line'
+      }`}
+    >
+      {selectable ? (
+        <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-gb-xl">
+          {body}
+          <input
+            type="radio"
+            name="scholarship-choice"
+            checked={chosen}
+            onChange={onChoose}
+            aria-label={`Choose ${option.name}`}
+            className="size-gb-2xl shrink-0 cursor-pointer accent-brand"
+          />
+        </label>
+      ) : (
+        <div className="flex min-w-0 flex-1 items-center gap-gb-xl">{body}</div>
+      )}
+    </div>
+  );
+}
+
 function ScholarshipPicker({
   open,
+  mode,
   onClose,
   candidates,
   onApply,
   busy,
 }: {
   open: boolean;
+  /**
+   * `apply` is the frame's dialog: pick one, confirm. `browse` is the same list
+   * opened from "Scholarships here" — read-only, so it drops the radios and the
+   * confirm button.
+   */
+  mode: 'apply' | 'browse';
   onClose: () => void;
-  /** Every scholarship linked to the selected universities, with its university. */
-  candidates: Array<{
-    option: ScholarshipOption;
-    universityId: number;
-    universityName: string;
-    universityLogoUrl?: string | null;
-  }>;
+  /** Every scholarship linked to the universities in scope, with its university. */
+  candidates: Candidate[];
   onApply: (choice: { scholarshipId: number; universityId: number }) => void;
   busy: boolean;
 }) {
@@ -411,107 +754,125 @@ function ScholarshipPicker({
     );
   }
 
+  const heading = mode === 'apply' ? 'Apply a scholarship' : 'Scholarships for your saved list';
+
   return (
-    <Modal
-      open={open}
-      onClose={onClose}
-      label="Apply a scholarship"
-      className="max-w-[640px] p-gb-3xl"
-    >
-      <h2 className="text-gb-lg font-semibold text-fg">Apply a scholarship</h2>
+    <Modal open={open} onClose={close} label={heading} className="max-w-[720px] p-gb-3xl">
+      <h2 className="text-gb-lg font-semibold text-fg">{heading}</h2>
       <p className="mt-gb-md text-gb-sm text-fg-tertiary">
-        {candidates.length > 0
-          ? 'Pick a scholarship to attach to your saved university. It will show on the university and in your plan.'
-          : 'None of the universities you selected have a scholarship in our directory yet.'}
+        {candidates.length === 0
+          ? mode === 'apply'
+            ? 'None of the universities you selected have a scholarship in our directory yet.'
+            : 'None of the universities on your saved list have a scholarship in our directory yet.'
+          : mode === 'apply'
+            ? 'Pick a scholarship to attach to your saved university. It will show on the university and in your plan.'
+            : 'Everything our directory links to the universities you saved. Open one to see who it is for and what it covers.'}
       </p>
 
+      {/*
+        `min-w-0` on the fieldset below is load-bearing, not tidiness: <fieldset>
+        computes to `min-width: min-content` by default, so a `truncate` inside it
+        has nothing to truncate against and the widest scholarship's prose
+        deadline stretches the whole dialog past the viewport instead. Measured —
+        the dialog rendered 1440px wide before this.
+      */}
       {candidates.length > 0 ? (
-        <fieldset className="mt-gb-3xl flex max-h-[50vh] flex-col gap-gb-lg overflow-y-auto">
+        <fieldset className="mt-gb-3xl flex max-h-[52vh] min-w-0 flex-col gap-gb-lg overflow-y-auto">
           <legend className="sr-only">Available scholarships</legend>
-          {candidates.map(({ option, universityId, universityName, universityLogoUrl }) => {
-            const value = `${universityId}:${option.id}`;
+          {candidates.map((candidate) => {
+            const value = `${candidate.universityId}:${candidate.option.id}`;
             return (
-              <div
+              <ScholarshipCandidateCard
                 key={value}
-                className={`flex items-start gap-gb-lg rounded-gb-xl border p-gb-xl transition-colors ${
-                  chosen === value ? 'border-brand bg-brand-subtle' : 'border-line hover:bg-surface-hover'
-                }`}
-              >
-              <label className="flex min-w-0 flex-1 cursor-pointer items-start gap-gb-lg">
-                <input
-                  type="radio"
-                  name="scholarship-choice"
-                  value={value}
-                  checked={chosen === value}
-                  onChange={() => setChosen(value)}
-                  className="mt-gb-xxs size-gb-2xl shrink-0 cursor-pointer accent-brand"
-                />
-                {universityLogoUrl ? (
-                  /* Same reason as the row cover: crests come from arbitrary
-                     hosts, so a plain <img> rather than next/image. */
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={universityLogoUrl}
-                    alt=""
-                    loading="lazy"
-                    className="size-gb-6xl shrink-0 object-contain"
-                  />
-                ) : null}
-                <span className="flex min-w-0 flex-col gap-gb-xs">
-                  <span className="text-gb-sm font-semibold text-fg">{option.name}</span>
-                  {/* Real scholarship names are frequently "<award> at <university>
-                      <year>", so printing the university underneath would say it
-                      twice. Shown only when the name does not already carry it. */}
-                  {option.name.includes(universityName) ? null : (
-                    <span className="text-gb-sm text-fg-tertiary">{universityName}</span>
-                  )}
-                  {/* `coverage` is free prose in the data and runs to several
-                      lines ("...covers the following: | Tuition fees | Monthly
-                      stipend | ..."), which would make one option taller than the
-                      dialog. Clamped, on its own line rather than inline with the
-                      short facts below. */}
-                  {option.coverage ? (
-                    <span className="line-clamp-2 text-gb-sm text-fg-muted">{option.coverage}</span>
-                  ) : null}
-                  <span className="flex flex-wrap items-center gap-gb-lg text-gb-sm text-fg-muted">
-                    {option.amountLabel ? <span>{option.amountLabel}</span> : null}
-                    {option.deadlineLabel ? (
-                      <span className="flex items-center gap-gb-sm">
-                        <KitIcon art={ICONS.clock} frame={20} />
-                        {option.deadlineLabel}
-                      </span>
-                    ) : null}
-                  </span>
-                </span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setViewing(value)}
-                className="shrink-0 rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              >
-                Details
-              </button>
-              </div>
+                candidate={candidate}
+                chosen={chosen === value}
+                onChoose={() => setChosen(value)}
+                onView={() => setViewing(value)}
+                selectable={mode === 'apply'}
+              />
             );
           })}
         </fieldset>
       ) : null}
 
+      {/* 375:13368 — the actions sit bottom-right. Browse mode has one button,
+          because there is nothing to confirm. */}
       <div className="mt-gb-3xl flex items-center justify-end gap-gb-lg">
-        <Button variant="secondary" size="lg" onClick={onClose}>
-          Back
+        <Button variant="secondary" size="lg" onClick={close}>
+          {mode === 'apply' ? 'Back' : 'Close'}
         </Button>
-        <Button
-          size="lg"
-          disabled={!chosen || busy}
-          onClick={() => {
-            if (!chosen) return;
-            const [uni, sch] = chosen.split(':');
-            onApply({ universityId: Number(uni), scholarshipId: Number(sch) });
-          }}
-        >
-          {busy ? 'Please wait...' : 'Apply scholarship'}
-        </Button>
+        {mode === 'apply' ? (
+          <Button
+            size="lg"
+            disabled={!chosen || busy}
+            onClick={() => {
+              if (!chosen) return;
+              const [uni, sch] = chosen.split(':');
+              onApply({ universityId: Number(uni), scholarshipId: Number(sch) });
+            }}
+          >
+            {busy ? 'Please wait...' : 'Apply scholarship now'}
+          </Button>
+        ) : null}
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * The confirmation — Figma 502:18462, the last frame in the "Trang lưu" cluster.
+ *
+ * A dialog rather than a route. The frame is a full page, but it is the end of an
+ * action taken on this one and has nothing of its own to load; giving it a URL
+ * would make it reachable by typing, and a congratulations page that congratulates
+ * you for nothing is worse than no page.
+ *
+ * The frame's heading reads "Thanh you for you applycation". Shipped as "Thank
+ * you for your application" — three typos in a row is a slip, not a voice.
+ */
+function ScholarshipApplied({
+  open,
+  onClose,
+  scholarshipName,
+}: {
+  open: boolean;
+  onClose: () => void;
+  scholarshipName: string | null;
+}) {
+  return (
+    <Modal open={open} onClose={onClose} label="Scholarship added" className="max-w-[560px] p-gb-5xl">
+      <div className="flex flex-col items-center gap-gb-2xl text-center">
+        {/*
+          The frame draws a solid green disc with a white tick. The token set has
+          no solid green surface — `tier-safe` is the pale Green/50 fill and
+          `on-tier-safe` its Green/700 ink, which is the pairing the whole
+          admission-tier system uses. Rather than reach past the tokens for one
+          decorative circle, this is that pairing: pale disc, green tick. Same
+          meaning, and it stays correct if the ramp is ever retuned.
+        */}
+        <span className="flex size-gb-7xl items-center justify-center rounded-gb-full bg-tier-safe text-on-tier-safe">
+          <KitIcon art={ICONS.checkCircle} frame={32} />
+        </span>
+        <h2 className="font-display text-gb-display-sm font-medium tracking-gb-display-tight text-fg">
+          Thank you for your application
+        </h2>
+        {/* Name on its own line rather than inside the sentence — see the note on
+            the bar above: this route gets no machine-translation fallback, so an
+            interpolated sentence could never be translated. */}
+        {scholarshipName ? (
+          <p className="text-gb-md font-semibold text-fg">{scholarshipName}</p>
+        ) : null}
+        <p className="text-gb-md text-fg-tertiary">
+          Your scholarship is now part of your plan.
+        </p>
+        <div className="mt-gb-lg flex flex-wrap items-center justify-center gap-gb-lg">
+          <Button variant="secondary" size="lg" onClick={onClose}>
+            Back to my saved list
+          </Button>
+          <Button href="/apply" size="lg">
+            Go to my plan
+          </Button>
+        </div>
       </div>
     </Modal>
   );
@@ -532,8 +893,11 @@ export function SavedListClient({
   const [rows, setRows] = useState(initialRows);
   const [selected, setSelected] = useState<number[]>([]);
   const [removing, setRemoving] = useState<number[]>([]);
-  const [pickerOpen, setPickerOpen] = useState(false);
+  /** null = closed. The mode decides scope and whether anything is selectable. */
+  const [picker, setPicker] = useState<'apply' | 'browse' | null>(null);
   const [applying, setApplying] = useState(false);
+  /** Non-null once an award has been attached: drives the 502:18462 confirmation. */
+  const [applied, setApplied] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -573,17 +937,32 @@ export function SavedListClient({
   );
 
   /**
-   * Every offerable scholarship on a ticked row, flattened for the picker. The
-   * crest is joined on here rather than inside `scholarshipCandidates`, which
-   * stays a pure selection rule with no display fields in it.
+   * Every offerable scholarship, flattened for the picker. The crest is joined on
+   * here rather than inside `scholarshipCandidates`, which stays a pure selection
+   * rule with no display fields in it.
+   *
+   * TWO SCOPES, BECAUSE THE TWO DOORS MEAN DIFFERENT THINGS. "Apply scholarship"
+   * acts on the ticked rows, since attaching an award means attaching it to a
+   * particular saved university. "Scholarships here" is a browse, so it covers
+   * every saved row — asking a student to tick something first only to show them
+   * a read-only list would be a step for nothing.
    */
-  const candidates = useMemo(() => {
-    const logos = new Map(rows.map((row) => [row.universityId, row.logoUrl]));
-    return scholarshipCandidates(rows, selected).map((candidate) => ({
-      ...candidate,
-      universityLogoUrl: logos.get(candidate.universityId) ?? null,
-    }));
-  }, [rows, selected]);
+  const withCrest = useCallback(
+    (universityIds: number[]) => {
+      const logos = new Map(rows.map((row) => [row.universityId, row.logoUrl]));
+      return scholarshipCandidates(rows, universityIds).map((candidate) => ({
+        ...candidate,
+        universityLogoUrl: logos.get(candidate.universityId) ?? null,
+      }));
+    },
+    [rows],
+  );
+
+  const applyCandidates = useMemo(() => withCrest(selected), [withCrest, selected]);
+  const browseCandidates = useMemo(
+    () => withCrest(rows.map((row) => row.universityId)),
+    [withCrest, rows],
+  );
 
   const applyScholarship = useCallback(
     async ({ scholarshipId, universityId }: { scholarshipId: number; universityId: number }) => {
@@ -607,16 +986,30 @@ export function SavedListClient({
         showToast('Could not attach that scholarship. Please try again.');
         return;
       }
-      setPickerOpen(false);
-      showToast('Scholarship added to your plan');
-      // The row's badge list is server-derived, so re-read rather than guess at
-      // the label the server would have produced.
+      // Name it from what is already on screen. Reading it back would mean
+      // waiting on the refresh below before the confirmation could say anything.
+      const name =
+        rows
+          .flatMap((row) => row.options)
+          .find((option) => option.id === scholarshipId)?.name ?? null;
+      setPicker(null);
+      setApplied(name);
+      // The row's badge list and net tuition are server-derived, so re-read
+      // rather than guess at what the server would have produced.
       router.refresh();
     },
-    [supabase, showToast, router],
+    [supabase, showToast, router, rows],
   );
 
   const attachedCount = rows.reduce((sum, row) => sum + row.attached.length, 0);
+  /**
+   * The bar's headline on 375:12841 reads "Học bổng 50%".
+   *
+   * Null whenever no attached award states a percentage — many are cash sums, and
+   * a sum is not a proportion of a bill whose size is free prose. The bar then
+   * falls back to the count, which is still true.
+   */
+  const coveragePercent = bestCoveragePercent(rows);
   const isSignedIn = !!userName;
   const primaryAction = { href: '/universities', label: 'Search universities' };
 
@@ -627,6 +1020,7 @@ export function SavedListClient({
         logo={<GlowbalLogo height={28} />}
         items={MARKETING_NAV_ITEMS}
         primaryAction={primaryAction}
+        utility={<SavedNavLink />}
         {...(isSignedIn && userName
           ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
           : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
@@ -642,6 +1036,7 @@ export function SavedListClient({
         secondaryAction={
           isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
         }
+        utility={<SavedNavLink variant="row" />}
         openLabel="Menu"
         closeLabel="Close menu"
       />
@@ -685,40 +1080,84 @@ export function SavedListClient({
             </ul>
           )}
 
-          {/* Scholarship bar — Figma 223:9570. Its left-hand text is the one
-              thing that changes between 223:8824 and 223:13621. */}
+          {/*
+            Scholarship bar — Figma 375:12813, and 375:12841 for the state after an
+            award is attached. Three things change between the two frames: the
+            headline becomes the discount, and the primary button stops being
+            "Apply Học bổng" and becomes "Lên kế hoạch ứng tuyển" — once a
+            scholarship is on the plan, the next step is the application, not
+            another award.
+
+            "Scholarships here" and the primary button are two doors to the same
+            dialog with different scope: the link browses everything linked to the
+            saved list, the button attaches one award to the ticked rows. See the
+            `candidates` memo.
+          */}
           {rows.length > 0 ? (
             <div className="flex flex-wrap items-center justify-between gap-gb-xl border-t border-line pt-gb-3xl">
               <div className="flex flex-wrap items-center gap-gb-5xl">
                 <span className="flex items-center gap-gb-xl">
                   <KitIcon art={ICONS.gift01} frame={32} className="shrink-0 text-brand" />
-                  <span className="text-gb-md font-semibold text-fg">
-                    {attachedCount > 0
-                      ? `${attachedCount} scholarship${attachedCount === 1 ? '' : 's'} attached`
-                      : 'See all the scholarships you could apply for'}
+                  {/*
+                    The label and the number are separate text nodes throughout.
+                    /my-universities is a PII route, so DomTranslator's machine
+                    fallback is switched off here (dom-translate.tsx) and every
+                    string must be a static dictionary hit — an interpolated
+                    "Scholarship 50%" would never be one, and would sit in English
+                    on a Vietnamese page forever.
+                  */}
+                  <span
+                    className={`text-gb-md font-semibold ${
+                      coveragePercent != null ? 'text-brand' : 'text-fg'
+                    }`}
+                  >
+                    {coveragePercent != null ? (
+                      <>
+                        <span>Scholarship</span> {coveragePercent}%
+                      </>
+                    ) : attachedCount > 0 ? (
+                      <>
+                        {attachedCount}{' '}
+                        <span>{attachedCount === 1 ? 'scholarship attached' : 'scholarships attached'}</span>
+                      </>
+                    ) : (
+                      'See all the scholarships you could apply for'
+                    )}
                   </span>
                 </span>
-                <Link
-                  href="/scholarships"
-                  className="flex items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover"
+                <button
+                  type="button"
+                  onClick={() => setPicker('browse')}
+                  className="flex items-center gap-gb-xs rounded-gb-md text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
-                  Find scholarships
+                  Scholarships here
                   <KitIcon art={ICONS.arrowUpRight} frame={20} />
-                </Link>
+                </button>
               </div>
-              <Button
-                size="lg"
-                disabled={selected.length === 0}
-                onClick={() => setPickerOpen(true)}
-              >
-                Apply scholarship
-              </Button>
+              {/*
+                On 375:12841 the ticked row already HAS its scholarship, and the
+                CTA there is "Lên kế hoạch ứng tuyển" — there is nothing left to
+                apply, so the next step is the application. That is the rule, not
+                "any award anywhere switches the button": a student with three
+                saved universities and one award still needs to be able to attach
+                an award to the other two, and hiding this behind an attached
+                count would strand them.
+              */}
+              {applyCandidates.length === 0 && attachedCount > 0 ? (
+                <Button href="/apply" size="lg">
+                  Plan my application
+                </Button>
+              ) : (
+                <Button size="lg" disabled={selected.length === 0} onClick={() => setPicker('apply')}>
+                  Apply scholarship
+                </Button>
+              )}
             </div>
           ) : null}
 
           {/* The button above is disabled rather than hidden when nothing is
               ticked, so say what to do about it. */}
-          {rows.length > 0 && selected.length === 0 ? (
+          {rows.length > 0 && attachedCount === 0 && selected.length === 0 ? (
             <p className="-mt-gb-4xl text-gb-sm text-fg-muted">
               Tick a university to attach a scholarship to it.
             </p>
@@ -736,11 +1175,18 @@ export function SavedListClient({
       />
 
       <ScholarshipPicker
-        open={pickerOpen}
-        onClose={() => setPickerOpen(false)}
-        candidates={candidates}
+        open={picker !== null}
+        mode={picker ?? 'apply'}
+        onClose={() => setPicker(null)}
+        candidates={picker === 'browse' ? browseCandidates : applyCandidates}
         onApply={applyScholarship}
         busy={applying}
+      />
+
+      <ScholarshipApplied
+        open={applied !== null}
+        onClose={() => setApplied(null)}
+        scholarshipName={applied}
       />
 
       {toast ? (

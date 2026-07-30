@@ -45,6 +45,7 @@ export const translations: Record<string, string> = {
   Menu: 'Menu',
   'Close menu': 'Đóng menu',
   'Plan your studies': 'Lập kế hoạch du học',
+  'Build your application strategy':'Lên chiến lược ứng tuyển',
 
   // ── Home hero (Figma 375:9857) ───────────────────────────────────────────
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
@@ -804,6 +805,106 @@ export const translations: Record<string, string> = {
   'Get a practical degree that leads to strong job options worldwide.':
     'Có một tấm bằng thực tiễn dẫn tới nhiều cơ hội việc làm tốt trên toàn cầu.',
 
+  // ── Onboarding wizard: câu 6 & 7 (academic intake) ───────────────────────
+  // The progress bar navigates, so its segments need accessible names — see
+  // onboarding-wizard.tsx. "Question" is interpolated with the step number.
+  'Onboarding questions': 'Các câu hỏi tìm hiểu',
+  Question: 'Câu hỏi',
+
+  'Academic Information': 'Thông tin học tập',
+  'Which curriculum are you studying, and how are you graded on it?':
+    'Bạn đang học chương trình nào, và được chấm điểm theo thang điểm nào?',
+  'Add any test results you already have. Leave a score blank if you are still waiting for it.':
+    'Thêm những kết quả thi bạn đã có. Để trống nếu bạn vẫn đang chờ kết quả.',
+  Curriculum: 'Chương trình học',
+  'Select a curriculum': 'Chọn chương trình học',
+  'How are you graded?': 'Bạn được chấm điểm theo thang nào?',
+  // 'English proficiency' is already above, in the profile section.
+  'English Proficiency': 'Trình độ tiếng Anh',
+  'Standardized test': 'Kỳ thi chuẩn hóa',
+  'Standardized Test': 'Kỳ thi chuẩn hóa',
+  'Your score': 'Điểm của bạn',
+
+  // Curricula. The exam-board names are proper nouns and stay as they are.
+  'Vietnamese National Curriculum': 'Chương trình Giáo dục Phổ thông Việt Nam',
+  'Others...': 'Khác...',
+
+  // Grading scales.
+  '10-point scale': 'Thang điểm 10',
+  '4.0 scale': 'Thang điểm 4.0',
+  'IB points (out of 45)': 'Điểm IB (trên 45)',
+  '7-point subject average': 'Điểm trung bình môn (thang 7)',
+  'A Level / AS letter grades': 'Điểm chữ A Level / AS',
+  'IGCSE grades (9–1)': 'Điểm IGCSE (9–1)',
+  '4.0 scale (unweighted)': 'Thang 4.0 (không trọng số)',
+  '5.0 scale (weighted)': 'Thang 5.0 (có trọng số)',
+  'Percentage (%)': 'Phần trăm (%)',
+  'Other scale — describe it': 'Thang điểm khác — mô tả rõ',
+
+  // Grade / score field labels.
+  'Current GPA (0–10)': 'GPA hiện tại (0–10)',
+  'Current GPA (0–4.0)': 'GPA hiện tại (0–4.0)',
+  'Current GPA (0–5.0)': 'GPA hiện tại (0–5.0)',
+  'Predicted or current IB total': 'Tổng điểm IB dự kiến hoặc hiện tại',
+  'Average subject grade (1–7)': 'Điểm trung bình môn (1–7)',
+  'Your A Level / AS grades': 'Điểm A Level / AS của bạn',
+  'Your IGCSE grades': 'Điểm IGCSE của bạn',
+  'Current average (%)': 'Điểm trung bình hiện tại (%)',
+  'Your grade and its scale': 'Điểm của bạn kèm thang điểm',
+  'Overall band': 'Điểm band tổng',
+  'Total score': 'Tổng điểm',
+  'Overall score': 'Điểm tổng',
+  'Cambridge English Scale score': 'Điểm theo thang Cambridge English',
+  'Composite score': 'Điểm tổng hợp',
+  'Your AP scores': 'Điểm AP của bạn',
+  'IB total': 'Tổng điểm IB',
+  'Your A Level grades': 'Điểm A Level của bạn',
+  'Your GCSE / IGCSE grades': 'Điểm GCSE / IGCSE của bạn',
+
+  // Field hints.
+  'Your overall average, as it appears on your transcript.':
+    'Điểm trung bình chung (như trên học bạ của bạn).',
+  'Unweighted GPA on the 4.0 scale.': 'GPA không trọng số trên thang 4.0.',
+  'Six subjects plus the bonus points — 24 to 45.':
+    'Sáu môn cộng điểm thưởng — 24 đến 45.',
+  'Use this if you only have per-subject grades so far.':
+    'Chọn mục này nếu bạn mới chỉ có điểm từng môn.',
+  'Predicted grades are fine — mark them as predicted in your notes.':
+    'Điểm dự kiến cũng được — hãy ghi rõ đó là điểm dự kiến.',
+  'List one number per subject.': 'Ghi một số cho mỗi môn.',
+  'The unweighted GPA on your transcript.': 'GPA không trọng số trên học bạ của bạn.',
+  'Use this only if your school weights AP and honours courses.':
+    'Chỉ chọn nếu trường bạn cộng trọng số cho lớp AP và honours.',
+  'Your overall average as a percentage.':
+    'Điểm trung bình chung của bạn tính theo phần trăm.',
+  'Start with the number — for example 18/20 or 87%.':
+    'Bắt đầu bằng con số — ví dụ 18/20 hoặc 87%.',
+  'Half bands only — 0 to 9.': 'Chỉ theo nửa band — 0 đến 9.',
+  'Four sections out of 30 each — 0 to 120.':
+    'Bốn phần, mỗi phần tối đa 30 — tổng 0 đến 120.',
+  '10 to 90.': '10 đến 90.',
+  'Reported in steps of 5 — 10 to 160.': 'Báo theo bước 5 — 10 đến 160.',
+  '80 to 230 on the Cambridge English Scale.':
+    '80 đến 230 trên thang Cambridge English.',
+  'Reported in steps of 10 — 400 to 1600.': 'Báo theo bước 10 — 400 đến 1600.',
+  '1 to 36.': '1 đến 36.',
+  'One score per exam, 1 to 5.': 'Một điểm cho mỗi kỳ thi, 1 đến 5.',
+  '24 to 45.': '24 đến 45.',
+  'One letter per subject; A* to E.': 'Một điểm chữ cho mỗi môn; A* đến E.',
+  'Numbers (9–1) or letters (A*–G).': 'Dạng số (9–1) hoặc dạng chữ (A*–G).',
+
+  // Rejected values. `{min}`, `{max}`, `{decimals}`, `{step}` and `{example}`
+  // are interpolated by t() — keep the braces and the names verbatim.
+  'Enter a number between {min} and {max}.': 'Hãy nhập một số từ {min} đến {max}.',
+  'This scale uses whole numbers only.': 'Thang điểm này chỉ nhận số nguyên.',
+  'Round to {decimals} decimal places or fewer.':
+    'Làm tròn tới tối đa {decimals} chữ số thập phân.',
+  'Scores on this scale move in steps of {step}.':
+    'Điểm trên thang này nhảy theo bước {step}.',
+  'Use grades like {example}.': 'Hãy nhập theo dạng {example}.',
+  'Enter your grade so we can match you accurately.':
+    'Hãy nhập điểm của bạn để chúng tôi ghép cặp chính xác.',
+
   // ── Home: scholarship rail (Figma 104:7225) ──────────────────────────────
   // The design writes these in Vietnamese; the English above is the source
   // string, so these entries are the designer's own wording restored.
@@ -996,6 +1097,200 @@ export const translations: Record<string, string> = {
   'Anywhere':'Mọi nơi',
   'Subject':'Ngành học',
   'Search by name or university':'Tìm kiếm theo tên sinh viên hoặc trường',
+
+  // ── University detail, /universities/[id] (Figma 375:10629) ───────────────
+  //
+  // The section bar and the strip/rail labels. Listed here rather than left to
+  // /api/translate because the bar is the first thing on the page a reader uses:
+  // uncovered strings made it render half-Vietnamese ("Giới thiệu · Subjects ·
+  // Tuyển sinh · Location") until four sequential round trips came back, and the
+  // labels are fixed UI text, so paying a model for them on every load is waste.
+  // `About`, `Admissions`, `Careers`, `Overview` and `At a glance` are already
+  // covered above.
+  Subjects: 'Các ngành',
+  Location: 'Địa điểm',
+  'Costs & funding': 'Chi phí & Tài trợ',
+  'Why this university': 'Vì sao chọn trường này',
+  'Talk to a student': 'Kết nối với sinh viên',
+  Programmes: 'Chương trình học',
+  'Statement review': 'Nhận xét bài luận',
+  // Section eyebrows.
+  Academics: 'Học thuật',
+  'Getting in': 'Tuyển sinh',
+  'On campus': 'Trong trường',
+  Money: 'Chi phí',
+  'After graduation': 'Sau khi tốt nghiệp',
+  'The honest view': 'Góc nhìn thực tế',
+  'Ask a human': 'Tư vấn trực tiếp',
+  VinUniversity: 'VinUniversity',
+  // Stat strip and facts rail. `Acceptance rate` is already covered above.
+  'QS World Rank': 'Xếp hạng QS thế giới',
+  'Typical GPA': 'GPA điển hình',
+  'Tuition / year': 'Học phí / năm',
+  'Application deadline': 'Hạn nộp đơn',
+  'Admission difficulty': 'Độ khó tuyển sinh',
+  'Living cost (USD / year)': 'Chi phí sinh hoạt (USD / năm)',
+  'English requirement': 'Yêu cầu tiếng Anh',
+  // Body sections.
+  // `Best for`, `International environment` and `Teaching style` are already
+  // covered above, as are `Find a mentor` and `Frequently asked questions`.
+  'Subjects and fit': 'Các ngành & mức độ phù hợp',
+  'Strongest subjects': 'Ngành mạnh nhất',
+  'Admission requirements': 'Yêu cầu tuyển sinh',
+  'Campus and location': 'Khuôn viên & vị trí',
+  'Costs and scholarships': 'Chi phí & học bổng',
+  'Careers and outcomes': 'Nghề nghiệp & kết quả',
+  'Talk to someone who studied here': 'Nói chuyện với người từng học ở đây',
+  'Worth knowing': 'Nên biết',
+  "GlowBal's insider note": 'Ghi chú nội bộ của GlowBal',
+  'Back to university search': 'Quay về trang Tìm trường đại học',
+  'Official website': 'Website chính thức',
+  'See all scholarships': 'Xem tất cả học bổng',
+  'Colleges and programmes': 'Các trường & chương trình',
+
+  // ── Saved list, /my-universities (Figma 375:12701 · 375:12841 · 375:13295 ·
+  //    375:13369 · 502:18462) and the subject picker (375:13546) ─────────────
+  //
+  // ⚠️ EVERY string on these two routes has to be here. `/my-universities` is in
+  // PII_ROUTE_PREFIXES (src/lib/dom-translate.tsx), so whole-page machine
+  // translation is switched OFF — there is no fallback, and anything missing
+  // sits in English on a Vietnamese page permanently. That is also why the
+  // components split labels away from values: an interpolated "Scholarship 50%"
+  // or "Deadline: 5 Jan 2026" could never be a dictionary hit.
+  'Saved list': 'Danh sách đã lưu',
+  'The universities you have saved, with their deadlines and any scholarships you have attached.':
+    'Các trường bạn đã lưu, kèm hạn chót và học bổng bạn đã áp dụng.',
+  'Nothing saved yet — the universities you save while browsing show up here.':
+    'Chưa lưu trường nào — các trường bạn lưu khi tìm kiếm sẽ hiện ở đây.',
+  'Save a university from the search page and it will appear here with its deadline and the scholarships attached to it.':
+    'Lưu một trường từ trang tìm kiếm, trường đó sẽ hiện ở đây kèm hạn chót và các học bổng đi cùng.',
+  'Saved universities': 'Trường đã lưu',
+  'Economics':'Kinh tế',
+  'Humanities':'Nhân văn',
+
+  // The row (375:12726). `QS World Ranking` is already covered further up.
+  'THE Ranking': 'Xếp hạng THE',
+  'Deadline:': 'Hạn chót:',
+  '/ year': '/ năm',
+  'Subject:': 'Ngành:',
+  'No subject chosen yet': 'Chưa chọn ngành',
+  // The frame's own wording for this link, kept verbatim.
+  'Change subject here': 'Chọn lại ngành tại đây',
+  'Choose a subject here': 'Chọn ngành tại đây',
+  'Course page': 'Trang khoá học',
+  'Official site': 'Liên kết chính thức',
+  Remove: 'Xóa',
+  /*
+   * ⚠️ NOT COVERED, and it cannot be: the row checkbox and the picker's radios
+   * carry interpolated aria-labels ("Select Massachusetts Institute of
+   * Technology", "Choose Fulbright Scholarship 2026"). There is no static key for
+   * a string containing a university name, and this route has no machine
+   * fallback, so those stay English for screen-reader users. Fixing it properly
+   * means a t()-with-parameters helper, which this dictionary does not have.
+   */
+
+  // The scholarship bar (375:12813 / 375:12841)
+  'See all the scholarships you could apply for': 'Xem thêm tất cả các học bổng',
+  'Scholarships here': 'Học bổng tại đây',
+  Scholarship: 'Học bổng',
+  'scholarship attached': 'học bổng đã áp dụng',
+  'scholarships attached': 'học bổng đã áp dụng',
+  'Apply scholarship': 'Áp học bổng',
+  'Plan my application': 'Lên kế hoạch ứng tuyển',
+  'Tick a university to attach a scholarship to it.':
+    'Tích chọn một trường để áp học bổng cho trường đó.',
+
+  // The picker (375:13295)
+  'Apply a scholarship': 'Áp học bổng',
+  'Scholarships for your saved list': 'Học bổng cho danh sách đã lưu',
+  'Pick a scholarship to attach to your saved university. It will show on the university and in your plan.':
+    'Chọn một học bổng để áp cho trường bạn đã lưu. Học bổng sẽ hiện trên trường đó và trong kế hoạch của bạn.',
+  'Everything our directory links to the universities you saved. Open one to see who it is for and what it covers.':
+    'Tất cả học bổng mà hệ thống liên kết với các trường bạn đã lưu. Mở một học bổng để xem đối tượng và mức hỗ trợ.',
+  'None of the universities you selected have a scholarship in our directory yet.':
+    'Các trường bạn chọn hiện chưa có học bổng nào trong hệ thống.',
+  'None of the universities on your saved list have a scholarship in our directory yet.':
+    'Các trường trong danh sách đã lưu hiện chưa có học bổng nào trong hệ thống.',
+  'Available scholarships': 'Học bổng khả dụng',
+  'See details': 'Xem chi tiết',
+  'Value not published': 'Chưa công bố giá trị',
+  'Apply scholarship now': 'Áp học bổng ngay',
+  Close: 'Đóng',
+  // `Please wait...` is already covered further up this file.
+
+  // The scholarship detail panel (375:13369)
+  'Scholarship value': 'Gía trị học bổng',
+  'Who it is for': 'Đối tượng',
+  'Application conditions': 'Điều kiện ứng tuyển',
+  Analysis: 'Phân tích',
+  'Applies to': 'Trường áp dụng',
+  'Open the official page': 'Mở trang chính thức',
+
+  // The confirmation (502:18462). The frame reads "Thanh you for you
+  // applycation"; shipped without the typos.
+  'Thank you for your application': 'Cảm ơn bạn đã ứng tuyển',
+  'Your scholarship is now part of your plan.':
+    'Học bổng đã được thêm vào kế hoạch của bạn.',
+  'Back to my saved list': 'Quay lại danh sách đã lưu',
+  'Go to my plan': 'Đi đến trang apply',
+  'Scholarship added': 'Đã thêm học bổng',
+
+  // Toasts
+  'Could not remove that university. Please try again.':
+    'Không thể xoá trường này. Vui lòng thử lại.',
+  'Could not attach that scholarship. Please try again.':
+    'Không thể áp học bổng này. Vui lòng thử lại.',
+  'Your session expired. Please sign in again.':
+    'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+
+  // The subject picker (375:13546)
+  'Select a subject': 'Chọn ngành',
+  School: 'Trường/Viện',
+  'Search schools': 'Tìm trường/viện',
+  'Search subjects': 'Tìm ngành',
+  'We do not have a subject list for this university yet. Paste a link to the course page below and it will show on your saved list.':
+    'Hệ thống chưa có danh sách ngành cho trường này. Hãy dán link trang khoá học bên dưới, link sẽ hiện trong danh sách đã lưu của bạn.',
+  'Cannot find the subject you want? Paste a link to it':
+    'Nếu không tìm thấy ngành mong muốn thì paste link',
+  'Optional. It shows as a link on your saved list.':
+    'Không bắt buộc. Link sẽ hiện trong danh sách đã lưu của bạn.',
+  'That does not look like a course page link — it needs to start with http:// or https://':
+    'Đây không giống link trang khoá học — link cần bắt đầu bằng http:// hoặc https://',
+  'Save subject': 'Lưu ngành',
+  'Saving...': 'Đang lưu...',
+  'Pick a subject or paste a course link to continue.':
+    'Chọn một ngành hoặc dán link khoá học để tiếp tục.',
+  'Saving a subject is not switched on in this environment yet — the user_universities.program column has not been added. Nothing was changed.':
+    'Tính năng lưu ngành chưa được bật ở môi trường này — cột user_universities.program chưa được thêm. Không có thay đổi nào được lưu.',
+  'We could not save that. Please try again.': 'Không thể lưu. Vui lòng thử lại.',
+  Reset: 'Đặt lại',
+
+  /*
+   * Counts and durations on the picker's two lists (the frame's "4
+   * specializations" and "(4 năm)").
+   *
+   * Enumerated rather than interpolated for the reason at the top of this
+   * section: these are `MultiSelectOption.description` strings, so there is no
+   * text node to split, and this route has no machine-translation fallback. The
+   * ranges cover what the one catalogue in the repo actually contains (VinUni's
+   * colleges hold 1–6 programmes; its degrees run 4–6 years) with headroom.
+   */
+  '1 programme': '1 chương trình',
+  '2 programmes': '2 chương trình',
+  '3 programmes': '3 chương trình',
+  '4 programmes': '4 chương trình',
+  '5 programmes': '5 chương trình',
+  '6 programmes': '6 chương trình',
+  '7 programmes': '7 chương trình',
+  '8 programmes': '8 chương trình',
+  '1 year': '1 năm',
+  '2 years': '2 năm',
+  '3 years': '3 năm',
+  '4 years': '4 năm',
+  '5 years': '5 năm',
+  '6 years': '6 năm',
+  '7 years': '7 năm',
+  '8 years': '8 năm',
 
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',

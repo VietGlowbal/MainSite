@@ -26,11 +26,28 @@ grep -rE 'class(Name)?="[^"]*\b(glowbal|auth|glow|profile|cosmic|cosmos|onboardi
 ### e2e baseline, post-migration
 
 `public.user_universities` was created 2026-07-27 (see known-issues.md §1), so
-the one expected failure this doc used to document is gone. Current baseline:
-**50 pass** when `E2E_EMAIL`/`E2E_PASSWORD` are not set in the Playwright
-process (the 3 signed-in specs skip rather than fail), **53 pass / 0 fail** when
-they are. If you see a failure instead of a skip on the signed-in specs, that is
-a real regression, not the known gap this doc used to describe.
+the one expected failure this doc used to document is gone. Current baseline
+(re-measured 2026-07-30): **52 pass / 1 fail** with `E2E_EMAIL`/`E2E_PASSWORD`
+set in the Playwright process, **49 pass / 1 fail / 3 skipped** without them (the
+signed-in specs skip rather than fail).
+
+⚠️ **The 1 failure is `kitchen-sink.spec.ts` → "design tokens render as
+expected", and it is PRE-EXISTING on `feat/saved-uni-page`.** Verified by
+stashing all working-tree changes and re-running on a clean tree: it fails with
+byte-identical numbers (expected 1280×7876, received 1280×7761, 1,293,946 pixels
+different). Something committed on this branch changed that page's height and the
+snapshot was never re-blessed. **Do not re-bless it blind** — find what changed
+the height first, then decide. Do not spend time proving it is yours; it isn't.
+
+Two flakes to expect rather than chase, both artefacts of `reuseExistingServer`
+attaching to a `next dev` server:
+- `smoke.spec.ts` → `/about` can 500 on its very first compile and pass on every
+  later run.
+- `signed-in.spec.ts` → "saving a university survives a reload" can fail under a
+  busy full-suite run: the save does a second insert (tasks from
+  `task_templates`) and the reload can beat the commit. Passes in isolation.
+
+Re-run a suspected flake before treating it as a regression.
 
 ### Visual baselines
 
@@ -76,11 +93,26 @@ that drives a form.
 ## Seeing a gated page
 
 `/my-universities` is behind the auth gate **and** the onboarding gate.
-`user_universities` now exists (2026-07-27) but is empty in production, so a real
-account still shows the empty state. `/dev/saved-list` renders the same client
-component from the real repositories with only the `user_universities` read
-substituted — real covers, ranks, deadlines, crests, and really-linked
-scholarships.
+`user_universities` exists (applied 2026-07-27) and holds rows — the E2E account
+had 2 saved universities on 2026-07-30, which is enough to see the real page.
+`/dev/saved-list` renders the same client component from the real repositories
+with only the `user_universities` read substituted — real covers, ranks, tuition,
+deadlines, crests, and really-linked scholarships.
+
+For the full cluster (list → subject picker → scholarship browse → detail →
+apply → confirmation), signing in as the E2E user and walking it is better than
+the preview, because the preview cannot exercise the writes. What that walk
+showed on 2026-07-30, all with the `program` columns still absent:
+
+| Step | Result |
+|---|---|
+| `/my-universities` | 2 rows, tuition badges, 2 "Choose a subject here" links |
+| nav heart | `data-saved-count="2"`, no header overflow at 1440 |
+| "Scholarships here" | 5 real linked scholarships, frame's card layout |
+| "See details" | the `375:13369` panel, real columns |
+| `/my-universities/program?u=82` | 6 subjects from `strengths` |
+| Save subject | *"…the user_universities.program column has not been added"* |
+| VI | list, bar and error message all in Vietnamese |
 
 Prefer this pattern over writing to the owner's database. Same idea as
 `/dev/home` and `/dev/kitchen-sink`; gate it identically:
