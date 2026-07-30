@@ -47,6 +47,21 @@ import { TID, testId } from '@/shared/lib/testids';
  * it rather than as a constellation of a planet, and it fought the black band
  * the hero sits on. Roundness comes from the dots' own depth falloff instead.
  * Do not add a background behind them.
+ *
+ * IT ANNOUNCES ITSELF ON MOUNT. The globe used to appear already spinning at
+ * its resting rate, full size, full opacity, from the very first frame — there
+ * was nothing marking the moment it became interactive. It now grows in from
+ * ~62% size with a matching fade, while spinning at several times its resting
+ * rate and decaying back down over about a second, the same decay curve a
+ * released drag flick uses (see INTRO_SPIN and FLICK_DECAY). All three settle
+ * around the same moment, which is what makes it read as one entrance rather
+ * than three unrelated animations. Both are computed in `draw()`/`frame()`
+ * rather than as a CSS transition on the wrapping element, because a CSS
+ * transform there would be reflected in `wrap.getBoundingClientRect()` and
+ * `resize()` would size the canvas's backing store to the shrunken
+ * mid-transition rect — locking the globe at a blurry, under-resolved size for
+ * the rest of its life. Driving the grow through `radius` instead never touches
+ * layout, only what gets drawn.
  */
 
 /**
@@ -77,7 +92,20 @@ const LAT_STEP_DENSE = 1.7;
  */
 const LAND_COVERAGE = 0.3;
 
-const ROTATION_PER_MS = 0.00007;
+const ROTATION_PER_MS = 0.00015;
+
+/* ── Intro: grow, fade and a fast spin that settles ──────────────────────── */
+
+/** How long the grow/fade take. The spin's own decay (below) lands near here too. */
+const INTRO_MS = 900;
+/** Dots start at this fraction of full projected size and grow to 1. */
+const INTRO_SCALE_FROM = 0.62;
+/**
+ * Starting angular velocity, rad/ms — just under MAX_FLICK, a fast but not
+ * dizzying burst. Decays toward ROTATION_PER_MS on the same curve a released
+ * drag flick does (FLICK_DECAY), landing within about a second.
+ */
+const INTRO_SPIN = 0.0016;
 
 /* ─────────────────────────────────────────────────────────────────────────
    Flashes
@@ -94,20 +122,32 @@ const ROTATION_PER_MS = 0.00007;
 
 const FLASH_MS = 2600;
 /** Share of dots lit at once. 0.015 is a scattering; 0.05 is a light show. */
-const CONCURRENT_FRACTION = 0.014;
+const CONCURRENT_FRACTION = 0.028;
 /** Multiplier on that share while the pointer is over the globe. */
 const HOVER_FLASH_BOOST = 1.9;
 /** Peak size multiplier. Enough to notice, not enough to bulge. */
-const FLASH_GROWTH = 0.55;
+const FLASH_GROWTH = 0.78;
 
 /** How far the globe tips as the hero scrolls away, in radians. */
 const SCROLL_TILT = 0.34;
 /**
- * Resting tilt. 23.44° is Earth's axial tilt, which is both the realistic
- * number and, conveniently, enough to keep the poles off centre so the land
- * reads as a globe rather than as a disc.
+ * Resting tilt: none. The rotation axis sits vertical on screen, so the
+ * equator — which is what the sphere's radius is measured against — runs
+ * exactly through the canvas's centre at rest, at every rotation, before any
+ * scroll or drag. See the tilt math in `draw()`: an equatorial point's screen
+ * height is `-z1 * sin(tilt)`, which is only independent of `z1` (and so
+ * identically 0, dead centre) when `tilt` is 0.
+ *
+ * This used to be 23.44°, Earth's real axial tilt, kept for two reasons: it's
+ * the realistic number, and it held the poles off-centre so the land read as
+ * a globe rather than a disc. Neither survives contact with "centre the
+ * equator" as a hard requirement — any nonzero tilt sags the equator below
+ * centre at its nearest point — so this is 0 and the poles sit exactly on the
+ * limb instead, which reads perfectly fine on a *spinning* sphere: it's the
+ * ordinary "globe on a vertical spindle" view. Scrolling and dragging still
+ * tip it away from here.
  */
-const BASE_TILT = 0.409;
+const BASE_TILT = 0;
 
 /* ── Drag ─────────────────────────────────────────────────────────────────
    Radians per pixel is set so that dragging across the globe's own width turns
@@ -314,6 +354,11 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
     let spawnDebt = 0;
     let size = 0;
     let dpr = 1;
+    /** performance.now() of the first animated frame, or -1 before it happens. */
+    let introStart = -1;
+    /** Eased 0→1 over INTRO_MS. Fixed at 1 (fully settled) under reduced motion,
+        since drawOnce() never advances it. */
+    let introEase = reduced ? 1 : 0;
     /** Where the page is scrolled, and the eased value the globe actually uses. */
     let scrollTarget = 0;
     let scrollEased = 0;
@@ -376,7 +421,7 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
 
     function draw(now: number) {
       const centre = size / 2;
-      const radius = size * 0.46;
+      const radius = size * 0.46 * (INTRO_SCALE_FROM + (1 - INTRO_SCALE_FROM) * introEase);
 
       ctx.save();
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -436,16 +481,16 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
           // Flashes keep a floor of their own brightness: a dot lighting up on
           // the night side should still be visible, or the effect only ever
           // happens on one half of the globe.
-          ctx.globalAlpha = Math.min(1, Math.max(shade, depth * 0.75) * (0.5 + 0.5 * lit));
+          ctx.globalAlpha = Math.min(1, Math.max(shade, depth * 0.92) * (0.65 + 0.35 * lit)) * introEase;
           ctx.fillStyle = p.flashColour;
           ctx.shadowColor = p.flashColour;
-          ctx.shadowBlur = 5 * lit;
+          ctx.shadowBlur = 9 * lit;
           ctx.beginPath();
           ctx.arc(screenX, screenY, s / 2, 0, Math.PI * 2);
           ctx.fill();
           ctx.shadowBlur = 0;
         } else {
-          ctx.globalAlpha = Math.min(1, shade * 0.85);
+          ctx.globalAlpha = Math.min(1, shade * 0.85) * introEase;
           ctx.fillStyle = palette.dot;
           ctx.beginPath();
           ctx.arc(screenX, screenY, dotSize / 2, 0, Math.PI * 2);
@@ -465,6 +510,10 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
         // backgrounded tab hands back a gap of seconds on its first frame.
         const elapsed = lastFrame === 0 ? 16 : Math.min(64, now - lastFrame);
         lastFrame = now;
+
+        if (introStart < 0) introStart = now;
+        const introT = Math.min(1, (now - introStart) / INTRO_MS);
+        introEase = 1 - (1 - introT) ** 3; // cubic ease-out
 
         hover += (hoverTarget - hover) * Math.min(1, elapsed / 180);
 
@@ -627,10 +676,11 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
       ready = true;
 
       if (reduced) {
-        // One frame, no loop, no flashes — but drag still repaints.
+        // One frame, no loop, no flashes, no intro spin — but drag still repaints.
         drawOnce();
         return;
       }
+      spin = INTRO_SPIN;
       raf = requestAnimationFrame(frame);
     };
 
