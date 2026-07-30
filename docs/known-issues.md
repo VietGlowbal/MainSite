@@ -157,6 +157,50 @@ Related tables that were already populated: `universities` (97),
 `student_profiles`, `course_applications` (29), `team_members`, `geo_articles`,
 `achiever_profiles` (8, 7 approved).
 
+Re-measured 2026-07-30: `universities` 106 rows (97 with `strengths`, 97 with
+`tuition_usd`), `user_universities` 4, `user_scholarships` 48, `scholarships`
+2877, `scholarship_universities` 374. There is **no** `programs`, `majors` or
+`university_programs` table — checked, because the "Chọn lại ngành" frame implies
+a course catalogue and it does not exist.
+
+⚠️ Some comments in the repo still asserted `user_universities` was missing, more
+than two days after it was applied — `src/app/dev/saved-list/page.tsx` carried a
+whole paragraph about every save silently no-opping. Corrected 30/07. **A "this
+table does not exist" note is only true on the day it was written.**
+
+---
+
+## 1c. OUTSTANDING — `supabase-saved-program.sql` has not been run
+
+Adds `user_universities.program` and `.program_url`, which back the "Ngành …"
+line on each saved row and the "Chọn lại ngành" picker at
+`/my-universities/program` (Figma `375:12701`, `375:13546`).
+
+Additive and idempotent: two nullable `text` columns, `ADD COLUMN IF NOT EXISTS`,
+no RLS change needed (the existing `for all` policy on the row covers them).
+
+**Until it is run**, and this is by design rather than by accident:
+
+- the saved list still renders — the read is `select('*')`, so naming a column
+  that does not exist cannot fail the whole page;
+- every row shows "No subject chosen yet";
+- saving a subject reports *"Saving a subject is not switched on in this
+  environment yet — the user_universities.program column has not been added.
+  Nothing was changed."* instead of a generic retry prompt.
+
+That last one exists because a generic error sends someone retrying a write that
+can never succeed. It matches the PostgREST **code**, verified against the live
+API rather than guessed:
+
+```
+code    PGRST204
+message Could not find the 'program' column of 'user_universities' in the schema cache
+```
+
+Note the word "column" comes **after** the column name. The obvious pattern
+`/column .*program/i` does not match it — that was the first version, and it fell
+through to the generic message in the browser.
+
 ---
 
 ## 1b. The whole mentorship schema is readable only by `authenticated`

@@ -93,11 +93,26 @@ that drives a form.
 ## Seeing a gated page
 
 `/my-universities` is behind the auth gate **and** the onboarding gate.
-`user_universities` now exists (2026-07-27) but is empty in production, so a real
-account still shows the empty state. `/dev/saved-list` renders the same client
-component from the real repositories with only the `user_universities` read
-substituted — real covers, ranks, deadlines, crests, and really-linked
-scholarships.
+`user_universities` exists (applied 2026-07-27) and holds rows — the E2E account
+had 2 saved universities on 2026-07-30, which is enough to see the real page.
+`/dev/saved-list` renders the same client component from the real repositories
+with only the `user_universities` read substituted — real covers, ranks, tuition,
+deadlines, crests, and really-linked scholarships.
+
+For the full cluster (list → subject picker → scholarship browse → detail →
+apply → confirmation), signing in as the E2E user and walking it is better than
+the preview, because the preview cannot exercise the writes. What that walk
+showed on 2026-07-30, all with the `program` columns still absent:
+
+| Step | Result |
+|---|---|
+| `/my-universities` | 2 rows, tuition badges, 2 "Choose a subject here" links |
+| nav heart | `data-saved-count="2"`, no header overflow at 1440 |
+| "Scholarships here" | 5 real linked scholarships, frame's card layout |
+| "See details" | the `375:13369` panel, real columns |
+| `/my-universities/program?u=82` | 6 subjects from `strengths` |
+| Save subject | *"…the user_universities.program column has not been added"* |
+| VI | list, bar and error message all in Vietnamese |
 
 Prefer this pattern over writing to the owner's database. Same idea as
 `/dev/home` and `/dev/kitchen-sink`; gate it identically:
