@@ -3,7 +3,6 @@
 import Image from 'next/image';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
-  ORBIT_PATH_D,
   ORBIT_SAMPLES,
   ORBIT_TOTAL_LENGTH,
   ORBIT_VIEWBOX,
@@ -31,8 +30,8 @@ import { PARTNER_LOGOS } from './partner-logos';
  * logos the same way, front first, each with its own small release dip and a
  * different, descending note.
  *
- * Two engineering choices worth flagging because they are not visible in the
- * reference itself:
+ * Three engineering choices worth flagging because they are not visible in
+ * the reference itself:
  *
  * 1. POSITION STAYS PERCENTAGE-BASED. The reference reads the container's
  *    pixel `getBoundingClientRect()` every frame and writes absolute
@@ -44,15 +43,30 @@ import { PARTNER_LOGOS } from './partner-logos';
  *    layered on top via `calc()` (`--orbit-offset-px`), so the visual result
  *    is the same fixed-pixel nudge without needing the container's size.
  *
- * 2. SOUND IS AS-GIVEN, WITH ONE CAVEAT WORTH KNOWING. Most browsers only
- *    unlock an AudioContext on a "real" user gesture — click, key press, touch
- *    start — and do not count `mouseenter` as one. So on a first-ever visit
- *    where the pointer reaches this section before any click happens
- *    anywhere on the page, `audioCtx.resume()` can silently stay suspended
- *    and the chime just won't play; nothing here forces that not to happen,
- *    it's how the platform's autoplay policy works. The reference's own
- *    try/catch already treats a failed play as a no-op, which is the right
- *    behaviour either way.
+ * 2. THE HOVER POP EASES ON ITS OWN TRACK, NOT THE WAVE'S. The reference sets
+ *    the hovered card's extra scale and lift from a bare `isSelf` boolean —
+ *    1.25x and -14px the instant `mouseenter` fires, back to 1x the instant
+ *    it doesn't. That is exactly the "pop" that needed smoothing: each
+ *    NodeState now also carries `focus`, a second eased value alongside
+ *    `impact` (same IMPACT_EASE_IN_MS/OUT_MS), driven purely by "is this the
+ *    hovered index" rather than by wave arrival, so the grow-and-lift glides
+ *    in and back out instead of snapping on both ends.
+ *
+ * 3. SOUND UNLOCKS ON THE FIRST GESTURE ANYWHERE ON THE PAGE, not just on this
+ *    section. Browsers only unlock an AudioContext on a "real" user gesture —
+ *    click, key press, touch start — and do not count `mouseenter` as one. A
+ *    context created lazily on the first hover would therefore often stay
+ *    suspended: the very interaction meant to trigger the chime is the one
+ *    kind of interaction that cannot unlock it. So a one-time
+ *    pointerdown/keydown listener on `document` primes the shared
+ *    AudioContext as soon as the visitor's first genuine gesture happens
+ *    anywhere — a nav click, a scroll-triggered tap, whatever comes first —
+ *    which is normally well before their pointer ever reaches this section.
+ *    It still is not a guarantee: a visitor who hovers a logo as the literal
+ *    first thing they do on the page will get silence that one time, because
+ *    no gesture has happened yet to unlock audio at all. That is the
+ *    platform's policy, not a bug, and the existing try/catch around playback
+ *    already treats a still-suspended context as a harmless no-op.
  *
  * WHAT DIDN'T COME ACROSS, still: per-institution categories and hover
  * descriptions ("Academic Partner", "Leading research in physical AI…"). The
@@ -87,23 +101,32 @@ const REVOLUTION_MS = 31_250;
 
 /** How fast a shockwave travels along the curve, in user units per ms — the
     reference's 2400px/s against an SVG in the same 1020x572 user-unit space
-    ORBIT_PATH_D is defined in. */
+    the curve is defined in. */
 const WAVE_SPEED_PX_PER_MS = 2.4;
-/** Distance (user units) over which a wave's arrival smooth-steps a logo's
-    impact from 0 to 1, rather than snapping the instant the front arrives. */
-const IMPACT_SMOOTH_WINDOW_PX = 70;
-/** Distance (user units) over which the transient crest/dip bounce plays out
-    as a wave front passes through a logo. */
-const CREST_WINDOW_PX = 80;
+/**
+ * Distance (user units) over which a wave's arrival smooth-steps a logo's
+ * impact from 0 to 1, and over which the transient crest/dip bounce plays
+ * out. Both roughly doubled from the reference's 70/80 — at WAVE_SPEED_PX_PER_MS
+ * those windows are ~29ms and ~33ms, a couple of frames, which read as a
+ * flick rather than a bounce. ~117ms and ~133ms give the pop somewhere to
+ * happen.
+ */
+const IMPACT_SMOOTH_WINDOW_PX = 140;
+const CREST_WINDOW_PX = 160;
 /** Peak upward nudge (px) as the hover wave's crest passes through a logo. */
 const HOVER_CREST_LIFT_PX = 16;
 /** Peak downward nudge (px) as the release wave's dip passes through. */
 const RELEASE_CREST_LIFT_PX = 12;
-/** How quickly a logo's impact eases toward its target — faster rising into
-    an impact than falling out of one, matching the reference's 22/12 (1/sec)
-    rates expressed here as millisecond time-constants. */
-const IMPACT_EASE_IN_MS = 45;
-const IMPACT_EASE_OUT_MS = 83;
+/**
+ * How quickly a logo's impact (and FOCUS_SCALE/FOCUS_LIFT_PX, via `focus` —
+ * see NodeState) eases toward its target — faster rising into an impact than
+ * falling out of one, matching the reference's 22/12 (1/sec) rates, but both
+ * roughly doubled from the direct millisecond-time-constant conversion
+ * (45/83) for the same reason as the windows above: fast enough to read as
+ * responsive, slow enough to read as eased rather than snapped.
+ */
+const IMPACT_EASE_IN_MS = 110;
+const IMPACT_EASE_OUT_MS = 190;
 /** At full impact a logo does not fully stop — it creeps at this fraction of
     normal speed, which is what keeps a long hover from ever looking static. */
 const IMPACT_SPEED_FLOOR = 0.02;
@@ -120,14 +143,14 @@ const FOCUS_SCALE = 1.25;
 /** How far the hovered logo lifts, px. */
 const FOCUS_LIFT_PX = 14;
 /** Depth scale range: 0.55 at the back of the orbit to 1.25 at the front —
-    wider than the previous build's 0.55–1.15, matching the reference. */
+    wider than an earlier build's 0.55–1.15, matching the reference. Depth
+    affects only size and stacking order here, never colour — the reference's
+    opacity fade at the back horizon (down to 0.35) is deliberately not
+    carried over: it read as the logos dimming as they orbit, and a
+    university's crest is a fixed mark, not something that should look
+    different depending on where it currently sits on the ring. */
 const DEPTH_SCALE_FROM = 0.55;
 const DEPTH_SCALE_SPAN = 0.7;
-/** Below this depth a logo is considered "at the back horizon" and dims to
-    HORIZON_OPACITY — a hard cut rather than the previous continuous fade,
-    again matching the reference. */
-const HORIZON_DEPTH_THRESHOLD = 0.08;
-const HORIZON_OPACITY = 0.35;
 /** Degrees a logo tilts away from the hovered one at full impact, capped and
     tapering with index distance around the ring. */
 const TILT_MAX_DEG = 12;
@@ -149,8 +172,15 @@ type Wave = {
 type NodeState = {
   /** This node's own position along the curve, 0–1. */
   progress: number;
-  /** 0 = orbiting normally, 1 = fully caught by a wave (near-frozen, tilted). */
+  /** 0 = orbiting normally, 1 = fully caught by a wave (near-frozen, tilted).
+      Shared by every logo the wave passes through. */
   impact: number;
+  /** 0 = at rest, 1 = the literally-hovered logo. Unlike `impact`, only ever
+      targets 1 for whichever index is currently hovered (and 0 for every
+      other index, including the one that was just released) — this is what
+      the hover pop (FOCUS_SCALE, FOCUS_LIFT_PX) eases through, so it grows in
+      and shrinks back on its own smooth curve instead of following the wave. */
+  focus: number;
 };
 
 function smoothstep(min: number, max: number, value: number): number {
@@ -221,26 +251,26 @@ function playReleaseNote(index: number): void {
 type OrbitVars = {
   readonly x: string;
   readonly y: string;
-  readonly depth: string;
   readonly z: string;
-  readonly opacity: string;
   readonly scale: string;
   readonly tilt: string;
   readonly offsetPx: string;
 };
 
-function orbitVars(progress: number, isSelf: boolean, tiltDeg: number, offsetPx: number): OrbitVars {
+/** `focus` is 0 for every logo except whichever is hovered, where it eases
+    0→1 — see NodeState. Z-index switches to FOCUS_Z_INDEX once focus is past
+    the midpoint of its ease, which in practice reads as instant (the ease
+    itself now runs ~110ms) without needing a separate boolean plumbed through. */
+function orbitVars(progress: number, focus: number, tiltDeg: number, offsetPx: number): OrbitVars {
   const point = orbitPointAt(ORBIT_SAMPLES, progress);
   const depthScale = DEPTH_SCALE_FROM + point.depth * DEPTH_SCALE_SPAN;
   return {
     x: `${((point.x / ORBIT_VIEWBOX.width) * 100).toFixed(3)}%`,
     y: `${((point.y / ORBIT_VIEWBOX.height) * 100).toFixed(3)}%`,
-    depth: point.depth.toFixed(4),
-    z: String(isSelf ? FOCUS_Z_INDEX : Math.floor(point.depth * 100)),
-    opacity: point.depth < HORIZON_DEPTH_THRESHOLD ? String(HORIZON_OPACITY) : '1',
-    scale: (depthScale * (isSelf ? FOCUS_SCALE : 1)).toFixed(4),
+    z: String(focus > 0.5 ? FOCUS_Z_INDEX : Math.floor(point.depth * 100)),
+    scale: (depthScale * (1 + focus * (FOCUS_SCALE - 1))).toFixed(4),
     tilt: tiltDeg.toFixed(2),
-    offsetPx: `${((isSelf ? -FOCUS_LIFT_PX : 0) + offsetPx).toFixed(2)}px`,
+    offsetPx: `${(focus * -FOCUS_LIFT_PX + offsetPx).toFixed(2)}px`,
   };
 }
 
@@ -249,7 +279,6 @@ function orbitStyle(vars: OrbitVars): CSSProperties {
     '--orbit-x': vars.x,
     '--orbit-y': vars.y,
     '--orbit-z': vars.z,
-    '--orbit-opacity': vars.opacity,
     '--orbit-scale': vars.scale,
     '--orbit-tilt': vars.tilt,
     '--orbit-offset-px': vars.offsetPx,
@@ -259,11 +288,12 @@ function orbitStyle(vars: OrbitVars): CSSProperties {
 const NODE_CLASSES = [
   /* Mobile: the centred wrap, at close to the images' real resolution. */
   'relative aspect-square w-[88px] overflow-hidden rounded-gb-md',
-  /* Desktop: a point on the orbit, centred on it. */
+  /* Desktop: a point on the orbit, centred on it. Full opacity always — depth
+     is conveyed by scale and stacking order only, never by fading colour. */
   'lg:absolute lg:left-[var(--orbit-x)] lg:top-[var(--orbit-y)] lg:w-[9.8%]',
-  'lg:z-[var(--orbit-z)] lg:opacity-[var(--orbit-opacity)]',
+  'lg:z-[var(--orbit-z)]',
   'lg:[transform:translate(-50%,-50%)_translateY(var(--orbit-offset-px))_scale(var(--orbit-scale))_rotate(calc(var(--orbit-tilt)*1deg))]',
-  'lg:[will-change:transform,opacity]',
+  'lg:[will-change:transform]',
 ].join(' ');
 
 export function HomePartners() {
@@ -287,6 +317,7 @@ export function HomePartners() {
     const states: NodeState[] = nodes.map((_, index) => ({
       progress: index / nodes.length,
       impact: 0,
+      focus: 0,
     }));
 
     let activeWave: Wave | null = null;
@@ -386,8 +417,16 @@ export function HomePartners() {
           }
         }
 
-        const easeMs = targetImpact > state.impact ? IMPACT_EASE_IN_MS : IMPACT_EASE_OUT_MS;
-        state.impact += (targetImpact - state.impact) * Math.min(1, delta / easeMs);
+        const impactEaseMs = targetImpact > state.impact ? IMPACT_EASE_IN_MS : IMPACT_EASE_OUT_MS;
+        state.impact += (targetImpact - state.impact) * Math.min(1, delta / impactEaseMs);
+
+        // Separate from impact on purpose — see NodeState.focus. Targets 1
+        // only for the literal hovered index and 0 for everyone else,
+        // including whichever index was hovered a moment ago, so the pop
+        // eases back out symmetrically with how it eased in.
+        const targetFocus = isSelf ? 1 : 0;
+        const focusEaseMs = targetFocus > state.focus ? IMPACT_EASE_IN_MS : IMPACT_EASE_OUT_MS;
+        state.focus += (targetFocus - state.focus) * Math.min(1, delta / focusEaseMs);
 
         const speedRatio = 1 - state.impact * (1 - IMPACT_SPEED_FLOOR);
         state.progress = (state.progress + (delta / REVOLUTION_MS) * speedRatio) % 1;
@@ -404,11 +443,10 @@ export function HomePartners() {
           }
         }
 
-        const vars = orbitVars(state.progress, isSelf, tilt, offsetPx);
+        const vars = orbitVars(state.progress, state.focus, tilt, offsetPx);
         node.style.setProperty('--orbit-x', vars.x);
         node.style.setProperty('--orbit-y', vars.y);
         node.style.setProperty('--orbit-z', vars.z);
-        node.style.setProperty('--orbit-opacity', vars.opacity);
         node.style.setProperty('--orbit-scale', vars.scale);
         node.style.setProperty('--orbit-tilt', vars.tilt);
         node.style.setProperty('--orbit-offset-px', vars.offsetPx);
@@ -444,6 +482,19 @@ export function HomePartners() {
     desktop.addEventListener('change', sync);
     reduced.addEventListener('change', sync);
     sync();
+
+    // Prime audio on the visitor's first genuine gesture anywhere on the page
+    // — see the doc comment above for why a hover alone cannot reliably do
+    // this. Skipped entirely under reduced motion, matching the shockwave's
+    // own reduced-motion policy: no wave, no sound.
+    let unlockAudio: (() => void) | null = null;
+    if (!reduced.matches) {
+      unlockAudio = () => {
+        getAudioCtx();
+      };
+      document.addEventListener('pointerdown', unlockAudio, { once: true, passive: true });
+      document.addEventListener('keydown', unlockAudio, { once: true });
+    }
 
     const teardownListeners: (() => void)[] = [];
     nodes.forEach((node, index) => {
@@ -491,6 +542,10 @@ export function HomePartners() {
       document.removeEventListener('visibilitychange', sync);
       desktop.removeEventListener('change', sync);
       reduced.removeEventListener('change', sync);
+      if (unlockAudio !== null) {
+        document.removeEventListener('pointerdown', unlockAudio);
+        document.removeEventListener('keydown', unlockAudio);
+      }
       teardownListeners.forEach((teardown) => teardown());
     };
   }, []);
@@ -532,33 +587,13 @@ export function HomePartners() {
             </p>
           </div>
 
-          {/* The orbit, drawn faintly. `currentColor` inherits the section's
-              white, so it needs no colour of its own and cannot drift from one.
-              Delete the svg and the ring goes: nothing reads this element — the
-              logos' positions come from the same `d` string through the domain
-              module, not from the rendered path. */}
-          <svg
-            aria-hidden="true"
-            viewBox={`0 0 ${ORBIT_VIEWBOX.width} ${ORBIT_VIEWBOX.height}`}
-            fill="none"
-            className="pointer-events-none absolute inset-0 hidden lg:block"
-          >
-            <path
-              d={ORBIT_PATH_D}
-              stroke="currentColor"
-              strokeWidth={1.5}
-              strokeDasharray="10 12"
-              className="opacity-[0.15]"
-            />
-          </svg>
-
           <ul className="flex flex-wrap justify-center gap-gb-3xl lg:block">
             {PARTNER_LOGOS.map((logo, index) => (
               <li
                 key={logo.name}
                 data-orbit-node
                 className={NODE_CLASSES}
-                style={orbitStyle(orbitVars(index / PARTNER_LOGOS.length, false, 0, 0))}
+                style={orbitStyle(orbitVars(index / PARTNER_LOGOS.length, 0, 0, 0))}
               >
                 <Image
                   src={logo.src}
