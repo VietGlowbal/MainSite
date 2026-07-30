@@ -151,22 +151,20 @@ function cubicAt(segment: Cubic, t: number): Vec {
  */
 const FLATTEN_STEPS = 128;
 
-/**
- * `count` points around the orbit, spaced equally by arc length.
- *
- * The first point is the curve's start and the last stops one step short of
- * returning to it, so the table is a cycle: index `count` would be index 0
- * again. Getting that wrong is how you end up with one visibly wrong gap in an
- * otherwise even ring.
- */
-export function sampleOrbit(count: number): readonly OrbitPoint[] {
-  if (!Number.isInteger(count) || count < 3) {
-    throw new Error(`orbit path: need at least three samples, got ${count}`);
-  }
+type Flattened = { readonly points: readonly Vec[]; readonly lengths: readonly number[]; readonly total: number };
 
+/**
+ * The curve reduced to a polyline with a running arc length at each vertex.
+ *
+ * Shared by `sampleOrbit` (which walks this table to place evenly-spaced
+ * points) and `ORBIT_TOTAL_LENGTH` (which just wants the last entry) — both
+ * need the identical flattening, and computing it twice would risk the two
+ * disagreeing by the flattening's own small error if `FLATTEN_STEPS` ever
+ * changes in only one place.
+ */
+function flattenPath(): Flattened {
   const segments = parseCubicPath(ORBIT_PATH_D);
 
-  /* Flatten to a polyline with a running length at each vertex. */
   const points: Vec[] = [segments[0]?.p0 ?? { x: 0, y: 0 }];
   const lengths: number[] = [0];
   let total = 0;
@@ -180,6 +178,24 @@ export function sampleOrbit(count: number): readonly OrbitPoint[] {
       lengths.push(total);
     }
   }
+
+  return { points, lengths, total };
+}
+
+/**
+ * `count` points around the orbit, spaced equally by arc length.
+ *
+ * The first point is the curve's start and the last stops one step short of
+ * returning to it, so the table is a cycle: index `count` would be index 0
+ * again. Getting that wrong is how you end up with one visibly wrong gap in an
+ * otherwise even ring.
+ */
+export function sampleOrbit(count: number): readonly OrbitPoint[] {
+  if (!Number.isInteger(count) || count < 3) {
+    throw new Error(`orbit path: need at least three samples, got ${count}`);
+  }
+
+  const { points, lengths, total } = flattenPath();
 
   /* Walk the table at a constant distance step. */
   const spacing = total / count;
@@ -220,6 +236,35 @@ export function sampleOrbit(count: number): readonly OrbitPoint[] {
  * without the table being large enough to notice in the bundle.
  */
 export const ORBIT_SAMPLES: readonly OrbitPoint[] = sampleOrbit(512);
+
+/**
+ * The orbit's real arc length, in the same user units as ORBIT_PATH_D — the
+ * equivalent of an SVG `<path>` element's own `getTotalLength()`.
+ *
+ * What this is FOR: converting a wave-propagation speed given in "user units
+ * per millisecond" into how far along the ring a wave has travelled, so a
+ * hover shockwave can be timed against the real geometry of the curve rather
+ * than against sample-table indices (which would run at a different rate
+ * wherever the curve is tighter or gentler).
+ */
+export const ORBIT_TOTAL_LENGTH: number = flattenPath().total;
+
+/**
+ * Arc-length distance between two points on the ring, taking whichever
+ * direction around the loop is shorter.
+ *
+ * `progress` is periodic, so a naive `|a - b| * ORBIT_TOTAL_LENGTH` overstates
+ * the distance for any pair on opposite sides of the 0/1 seam — two points a
+ * hair apart across the seam would otherwise measure as nearly the whole
+ * orbit apart. Wrapping the fractional difference into [-0.5, 0.5] first fixes
+ * that, matching how a wave radiating from a source and reaching a node "the
+ * short way around" would actually travel.
+ */
+export function orbitArcDistance(a: number, b: number): number {
+  let diff = Math.abs(a - b) % 1;
+  if (diff > 0.5) diff = 1 - diff;
+  return diff * ORBIT_TOTAL_LENGTH;
+}
 
 /**
  * The point `progress` of the way around the orbit, wrapping at both ends.

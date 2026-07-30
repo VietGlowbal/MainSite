@@ -96,16 +96,30 @@ const ROTATION_PER_MS = 0.00015;
 
 /* ── Intro: grow, fade and a fast spin that settles ──────────────────────── */
 
-/** How long the grow/fade take. The spin's own decay (below) lands near here too. */
-const INTRO_MS = 900;
+/** How long the grow/fade take. Cut down from an original 900ms — at that
+    length the entrance read as its own event rather than as part of the page
+    arriving. 320ms is close to the shortest a fade/grow can be and still be
+    perceived as eased rather than a cut. */
+const INTRO_MS = 320;
 /** Dots start at this fraction of full projected size and grow to 1. */
 const INTRO_SCALE_FROM = 0.62;
 /**
  * Starting angular velocity, rad/ms — just under MAX_FLICK, a fast but not
- * dizzying burst. Decays toward ROTATION_PER_MS on the same curve a released
- * drag flick does (FLICK_DECAY), landing within about a second.
+ * dizzying burst.
  */
 const INTRO_SPIN = 0.0016;
+/**
+ * Decay rate for the intro spin specifically, applied per 16ms like
+ * FLICK_DECAY but steeper — a released drag flick should still ease out
+ * leisurely (that one is a direct response to the visitor's own gesture, and
+ * cutting it short would feel like the globe ignoring them), but the intro
+ * burst has no such reason to linger. At 0.80, INTRO_SPIN is back within 10%
+ * of ROTATION_PER_MS in about 336ms — lining up with INTRO_MS rather than
+ * trailing it. FLICK_DECAY (0.94) closing the same gap takes roughly 1.2s,
+ * which is what made the first version of this feel like its own separate
+ * event instead of part of the page arriving.
+ */
+const INTRO_SPIN_DECAY = 0.8;
 
 /* ─────────────────────────────────────────────────────────────────────────
    Flashes
@@ -519,8 +533,12 @@ export function HeroGlobe({ className }: { className?: string | undefined }) {
 
         if (!dragging) {
           // A flick decays back to the idle rate rather than stopping dead, so
-          // letting go feels like releasing something with mass.
-          spin = ROTATION_PER_MS + (spin - ROTATION_PER_MS) * FLICK_DECAY ** (elapsed / 16);
+          // letting go feels like releasing something with mass. The intro
+          // burst uses its own steeper rate (INTRO_SPIN_DECAY) while introT
+          // hasn't yet reached 1; past that this is always a released-flick
+          // decay, since a drag can only happen after the globe is ready.
+          const decay = introT < 1 ? INTRO_SPIN_DECAY : FLICK_DECAY;
+          spin = ROTATION_PER_MS + (spin - ROTATION_PER_MS) * decay ** (elapsed / 16);
           rotation += elapsed * spin;
         }
         scrollEased += (scrollTarget - scrollEased) * Math.min(1, elapsed / 220);

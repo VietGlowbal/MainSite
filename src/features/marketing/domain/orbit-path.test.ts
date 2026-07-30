@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ORBIT_PATH_D,
   ORBIT_SAMPLES,
+  ORBIT_TOTAL_LENGTH,
   ORBIT_VIEWBOX,
+  orbitArcDistance,
   orbitPointAt,
   parseCubicPath,
   sampleOrbit,
@@ -153,5 +155,58 @@ describe('orbitPointAt', () => {
       // bound on clumping, not the tight check above.
       expect(Math.max(...gaps) / mean).toBeLessThan(1.2);
     }
+  });
+});
+
+describe('ORBIT_TOTAL_LENGTH', () => {
+  it('is close to the 512-sample table walked end to end', () => {
+    // Chord length between consecutive equal-arc-length samples slightly
+    // undershoots the true arc between them, so the table's own perimeter is a
+    // lower bound on the real length, not an exact match — but for 512 samples
+    // on a curve this smooth the two should agree to a fraction of a percent.
+    let perimeter = 0;
+    for (let i = 0; i < ORBIT_SAMPLES.length; i += 1) {
+      const a = ORBIT_SAMPLES[i]!;
+      const b = ORBIT_SAMPLES[(i + 1) % ORBIT_SAMPLES.length]!;
+      perimeter += Math.hypot(b.x - a.x, b.y - a.y);
+    }
+    expect(perimeter).toBeGreaterThan(ORBIT_TOTAL_LENGTH * 0.999);
+    expect(perimeter).toBeLessThanOrEqual(ORBIT_TOTAL_LENGTH);
+  });
+
+  it('is positive and roughly the scale of the viewBox perimeter', () => {
+    // A loose sanity bound: an ellipse-ish loop inscribed in the ~1020x572 box
+    // should have a perimeter somewhere between its bounding box's width and
+    // twice its full perimeter, not, say, three units or three million.
+    expect(ORBIT_TOTAL_LENGTH).toBeGreaterThan(ORBIT_VIEWBOX.width);
+    expect(ORBIT_TOTAL_LENGTH).toBeLessThan(2 * (ORBIT_VIEWBOX.width + ORBIT_VIEWBOX.height) * 2);
+  });
+});
+
+describe('orbitArcDistance', () => {
+  it('is zero for a point and itself', () => {
+    expect(orbitArcDistance(0.3, 0.3)).toBe(0);
+    expect(orbitArcDistance(0, 1)).toBeCloseTo(0, 6); // 0 and 1 are the same point
+  });
+
+  it('is symmetric', () => {
+    expect(orbitArcDistance(0.2, 0.9)).toBeCloseTo(orbitArcDistance(0.9, 0.2), 10);
+  });
+
+  it('takes the short way around the seam', () => {
+    // 0.02 and 0.98 are 0.04 of the loop apart going through the seam at 0/1,
+    // and 0.96 apart the long way. A naive |a-b| would report the long way.
+    const distance = orbitArcDistance(0.02, 0.98);
+    expect(distance).toBeCloseTo(0.04 * ORBIT_TOTAL_LENGTH, 1);
+  });
+
+  it('tops out at half the total length, for antipodal points', () => {
+    const distance = orbitArcDistance(0.1, 0.6);
+    expect(distance).toBeCloseTo(0.5 * ORBIT_TOTAL_LENGTH, 1);
+  });
+
+  it('matches the direct calculation for points that do not cross the seam', () => {
+    const distance = orbitArcDistance(0.3, 0.45);
+    expect(distance).toBeCloseTo(0.15 * ORBIT_TOTAL_LENGTH, 1);
   });
 });
