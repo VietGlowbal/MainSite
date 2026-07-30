@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SavedNavLink } from '@/components/saved-nav-link';
 import {
   MARKETING_NAV_ITEMS,
   FOOTER_COLUMNS,
@@ -605,11 +606,14 @@ function Chrome({
        fixed header), so globals.css must keep the mobile top offset that plain
        full-bleed pages drop. */
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
+      {/* `utility` carries the way back to the saved list. This page is where a
+          student saves from, so it is the one header that must have it. */}
       <TopNav
         tone="light"
         logo={<GlowbalLogo height={28} />}
         items={MARKETING_NAV_ITEMS}
         primaryAction={primaryAction}
+        utility={<SavedNavLink />}
         {...(isLoggedIn && userName
           ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
           : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
@@ -625,6 +629,7 @@ function Chrome({
         secondaryAction={
           isLoggedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
         }
+        utility={<SavedNavLink variant="row" />}
         openLabel="Menu"
         closeLabel="Close menu"
       />

@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SavedNavLink } from '@/components/saved-nav-link';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
@@ -269,11 +270,16 @@ export function UniversityDetail({
       {...testId(TID.uniDetailPanel)}
       className="gb-page-full-bleed gb-has-mobile-header bg-surface"
     >
+      {/* `utility` is the route to the saved list. It belongs here more than
+          anywhere: the heart in this page's header puts a university IN that
+          list, and before this the only way to look at the result was to type
+          the URL. */}
       <TopNav
         tone="light"
         logo={<GlowbalLogo height={28} />}
         items={MARKETING_NAV_ITEMS}
         primaryAction={{ href: '/universities', label: 'Search universities' }}
+        utility={<SavedNavLink />}
         {...navUser}
       />
       <MobileNav
@@ -287,6 +293,7 @@ export function UniversityDetail({
         secondaryAction={
           isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
         }
+        utility={<SavedNavLink variant="row" />}
         openLabel="Menu"
         closeLabel="Close menu"
       />
