@@ -1283,6 +1283,13 @@ export const translations: Record<string, string> = {
   '6 programmes': '6 chương trình',
   '7 programmes': '7 chương trình',
   '8 programmes': '8 chương trình',
+  // Degree levels, folded to one spelling by `degreeLabel` in the api slice —
+  // the raw `catalog_programmes.degree_level` has both "master" and "Master's".
+  Bachelor: 'Cử nhân',
+  Master: 'Thạc sĩ',
+  Diploma: 'Cao đẳng',
+  // `PhD` is already covered further up, in the onboarding vocabulary.
+
   '1 year': '1 năm',
   '2 years': '2 năm',
   '3 years': '3 năm',

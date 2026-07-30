@@ -292,34 +292,58 @@ only way to catch it is the table at the top of this file, which is why it is at
 the top of this file. **Before touching a rebuilt page, check the node ids in its
 header comment against that table.**
 
-#### What the frame asks for that the database cannot answer
+#### Where the picker's options come from
 
-The card's supporting line reads "Viện kinh doanh — Chương trình cử nhân kinh
-doanh quốc tế" — school plus course. **There is no course catalogue.** Verified
-live, not from a `.sql` file: no `programs`, no `majors`, no
-`university_programs`; `universities.strengths` is a comma-separated subject line
-and that is all of it (97 of 106 rows). So:
+**`catalog_programmes`.** It is the crawler's programme catalogue and it carries
+exactly the tree the frame draws: `programme_name`, `degree_level`, and a
+denormalised `academic_units` array that is the school layer. Read through
+`features/universities/api/programme-queries.ts`.
 
-- the supporting slot keeps `best_for`, a real sentence about the university;
-- the student's own chosen subject gets the "Ngành …" line, which is a fact
-  because they chose it;
-- the picker offers `splitList(strengths)` for 105 universities and the real
-  school→programme→duration tree for VinUni, whose catalogue lives in
-  `src/lib/vinuni-content.ts`. `features/universities/domain/programs.ts` makes
-  that call once, with tests.
+⚠️ **This file previously said "there is no course catalogue", and that was
+wrong.** The check behind it probed three *guessed* table names — `programs`,
+`majors`, `university_programs` — missed on all three, and generalised. There are
+**75 tables** in this database. One call answers the question properly:
+
+```bash
+# PostgREST's OpenAPI document: every exposed table and its columns
+curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  | jq -r '.definitions | keys[]'
+```
+
+**Enumerate the schema; never conclude a table is absent from a handful of
+guessed names.** This is the second entry in this pack about trusting a guess
+over the database — see known-issues.md §0 for the first.
+
+Coverage is partial, and that shapes the design (measured 2026-07-31):
+
+| Fact | Consequence |
+|---|---|
+| 404 programmes over **24** of 106 universities | `universities.strengths` stays the fallback, and is the path most students hit |
+| `duration` null on **400 of 404** | the frame's "(4 năm)" renders for almost nothing; never defaulted |
+| `degree_level` well populated, but spelled `bachelor` **and** `Bachelor's` | folded by `degreeLabel`; it takes the secondary line the frame gave to duration, because the same subject is catalogued at two levels |
+| a programme can list several `academic_units` | it appears under each school, once in the flat list |
+| `catalog_programmes` readable by `anon` **and** `authenticated` | no repeat of the mentor-directory RLS trap; checked with both keys |
+
+What the database still cannot answer is the frame's *supporting* line, "Viện
+kinh doanh — Chương trình cử nhân kinh doanh quốc tế", which is a sentence about
+the university rather than a row. That slot keeps `best_for`; the student's own
+chosen subject gets the "Ngành …" line, which is a fact because they chose it.
 
 The frame's "Mã học bổng" + "ÁP DỤNG" redeem-a-code control is **still not
-built**, for the same reason it was not built the first time: no voucher table,
-no code column, no endpoint. Migrating to the new canvas did not add one.
+built**, for the same reason as the first time: no voucher table, no code column,
+no endpoint. Migrating to the new canvas did not add one.
 
-#### The bit that needs the owner
+#### The migration
 
-`supabase-saved-program.sql` adds `user_universities.program` and
-`program_url`. **It has not been run** — this repo applies `.sql` by hand. Until
-it is, every row reads "No subject chosen yet" and saving one reports *"Saving a
-subject is not switched on in this environment yet"* rather than a generic retry
-prompt. The read is a `select('*')` precisely so a missing column cannot break
-the whole page.
+`supabase-saved-program.sql` adds `user_universities.program` and `program_url`.
+**Applied by the owner 2026-07-31**; confirmed live, and the round trip works —
+picking "Computer Science (MS)" at Georgia Tech stores that string and the card
+renders "Subject: Computer Science (MS)".
+
+The tolerance built while it was outstanding is worth keeping: the read is a
+`select('*')`, so a project without these columns still renders the list rather
+than failing whole. If you add another column here, do not switch that to an
+explicit list.
 
 ⚠️ The missing-column check matches on the PostgREST **code**, verified against
 the live API: `PGRST204`, message `Could not find the 'program' column of
