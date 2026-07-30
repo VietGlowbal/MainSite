@@ -113,10 +113,14 @@ Matching is **exact** by default, so `/guides` gets its own chrome while
 `/guides/[slug]` stays on the app chrome.
 
 Current members: `/` `/dev/home` `/universities` `/auth` `/onboarding` `/about`
-`/guides` `/my-universities` `/apply` `/mentors` `/dev/saved-list`
-`/coming-soon` `/dev/apply-workspace`. Forgetting to add a route here is the
-actual failure mode, not a hypothetical — it happened to `/apply` and was caught
-by screenshotting the finished page.
+`/guides` `/my-universities` `/my-universities/program` `/apply` `/mentors`
+`/dev/saved-list` `/coming-soon` `/ai-strategy` `/dev/apply-workspace`.
+Forgetting to add a route here is the actual failure mode, not a hypothetical —
+it happened to `/apply` and was caught by screenshotting the finished page.
+
+Note `/my-universities/program` is listed separately rather than folded into a
+`/my-universities` prefix: the `[id]` task pages between them are still on the
+app chrome, so a prefix would silently strip their sidebar.
 
 Two escapes from exact matching, both in the same file:
 

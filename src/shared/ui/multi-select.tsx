@@ -3,6 +3,7 @@
 import { useId, useMemo, useState } from 'react';
 import { Checkbox } from './checkbox';
 import { SearchMark } from './icons';
+import { Radio } from './radio';
 
 /**
  * MultiSelect — Untitled UI's `_Multi-select menu item` list with the kit's
@@ -58,11 +59,11 @@ type Props = {
    * câu 6's grading-scale list (a GPA is one number on one scale, so "10-point"
    * AND "4.0" together describes nothing).
    *
-   * ⚠️ NO CALLER as of 2026-07-30. Câu 6 now asks the scale question per
-   * curriculum, which is a `Radio` group of two or three options — a search
-   * field over a scrolling list was the wrong control for that. Kept because the
-   * capability is sound and the next single-answer list will want it; delete it
-   * if that list never arrives.
+   * Câu 6 no longer uses it — it asks the scale question per curriculum, which is
+   * a `Radio` group of two or three options. The caller now is the "Chọn lại
+   * ngành" picker (`src/app/my-universities/program`), whose two lists are the
+   * same kit component in the frame (375:13703, 375:13716) and which stores one
+   * subject per saved university, so "Select all" would have nothing to mean.
    */
   single?: boolean;
   resetLabel?: string;
@@ -159,18 +160,30 @@ export function MultiSelect({
           {visible.length === 0 ? (
             <p className="px-gb-lg py-gb-lg text-gb-sm text-fg-muted">No matches for “{query}”.</p>
           ) : (
-            visible.map((option) => (
-              <div key={option.value} className="rounded-gb-sm px-gb-lg py-gb-lg hover:bg-surface-hover">
-                <Checkbox
-                  name={name}
-                  value={option.value}
-                  label={option.label}
-                  {...(option.description ? { description: option.description } : {})}
-                  checked={selected.has(option.value)}
-                  onChange={() => toggle(option.value)}
-                />
-              </div>
-            ))
+            visible.map((option) => {
+              /*
+               * Round control in `single` mode. The frames draw squares
+               * everywhere because they are all instances of the kit's
+               * multi-select row, but a square box on a list where ticking one
+               * unticks the last is a lie to anyone reading the shape — and to a
+               * screen reader, which announces "checkbox, not checked" for five
+               * options that are really one choice. The frame this mode was
+               * built for (375:13716, the subject picker) draws circles.
+               */
+              const Control = single ? Radio : Checkbox;
+              return (
+                <div key={option.value} className="rounded-gb-sm px-gb-lg py-gb-lg hover:bg-surface-hover">
+                  <Control
+                    name={name}
+                    value={option.value}
+                    label={option.label}
+                    {...(option.description ? { description: option.description } : {})}
+                    checked={selected.has(option.value)}
+                    onChange={() => toggle(option.value)}
+                  />
+                </div>
+              );
+            })
           )}
         </div>
 

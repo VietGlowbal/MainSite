@@ -68,7 +68,8 @@ Both carry banner frames naming them:
 | `/auth` | `105:8004`, `105:8037` | UI Final | Centered card, login + signup. All Supabase branches preserved. |
 | `/onboarding` | `107:10574` + câu 1–8, plus `375:11536`/`375:11616` | mixed | **EIGHT steps since 30/07** (was nine). Câu 6 and câu 7 — the academic screens — sit at positions 6 and 7. ⚠️ **`supabase-academic-intake.sql` must be run before this ships**; it was extended on 30/07 and is safe to re-run. See the three owner decisions below. Câu 8 (awards) is still not built; it duplicates the /ai-strategy achievements input and nobody has decided which owns it. |
 | `/apply` | `337:18767` | UI Final | **"My application".** Progress donut banded by `progress_percentage`, deadline, "Continue applying" → `/apply/[applicationId]`. Replaced the 1,455-line `apply-dashboard.tsx`. |
-| `/my-universities` | `223:8824`, `223:13621`, `223:13022` + `337:19349` | mixed | Saved list. Base built from Tính năng, **so it is already behind `337:18493`**. The scholarship detail panel is built from the migrated `337:19349`. |
+| `/my-universities` | `375:12701`, `375:12841`, `375:13295`, `375:13369`, `502:18462` | **Khanh Linh - Chi** | Saved list — the cart. **Rebuilt onto the authoritative canvas 30/07**; it had been built from `223:8824`/`223:13621`/`223:13022` on the retired Tính năng canvas, which draws a strictly smaller card. See §"The saved list was a canvas behind" below. |
+| `/my-universities/program` | `375:13546` | **Khanh Linh - Chi** | **Built 30/07.** "Chọn lại ngành", the subject re-picker a saved row links to. ⚠️ Needs `supabase-saved-program.sql` — see below. |
 | `/mentors` | `154:8345` | **Tính năng** | Search + 4-across card grid. ⚠️ Not yet migrated — expect a pass when it is. |
 | `/about` | `153:11401` | **Tính năng** | Net-new route. Real team from `lib/team.ts`. ⚠️ Same provenance risk. |
 | `/guides` | `153:18266` | **Tính năng** | Blog list, data-driven topic tabs. ⚠️ Same provenance risk. |
@@ -242,10 +243,20 @@ fiction. Add the column (or a join) before review authorship means anything.
    column (`coverage`, `eligibility`, `conditions`, `insight`, `applies_to_text`,
    `deadline_date`). It was predicted to hit the same schema wall as the code
    field; it does not, and it is built.
-2. **`337:19703` "Chọn lại ngành" is not a saved-list dialog.** Its background
-   reads "Reflection / 1/3 / What is your highest level… / ILETS" — it is the
-   Select-a-Major picker from the **AI-strategy** flow. It was grouped under the
-   "Trang lưu" banner by spatial position only. Build it with `/ai-strategy`.
+2. ~~**`337:19703` "Chọn lại ngành" is not a saved-list dialog.**~~ **WRONG —
+   corrected 30/07 by the product owner.** The note read the frame's dimmed
+   backdrop ("Reflection / 1/3 / What is your highest level… / ILETS"), concluded
+   the picker belonged to the AI-strategy questionnaire, and said it had been
+   grouped under the "Trang lưu" banner by spatial position only. The owner has
+   since described the flow directly: a saved row's "Chọn lại ngành tại đây"
+   opens it. The backdrop is a reused screen; the frame is in the Trang lưu
+   cluster because that is where it is used. It is built, as
+   `/my-universities/program` (migrated node `375:13546`).
+
+   **The lesson is about the evidence, not the answer.** "Its background shows
+   another page" is weak evidence next to "it sits inside that banner group" —
+   a designer reuses a backdrop far more often than they misfile a frame. When a
+   layout signal and a grouping signal disagree, ask rather than pick.
 
 ---
 
@@ -257,6 +268,63 @@ fiction. Add the column (or a join) before review authorship means anything.
 | `/plus` | `115:13253`, `132:9601`, `196:16799`, `115:17014` | **Tính năng** | 3 tiers (free / $10 / $100). Sales are off (`PLUS_SALES_ENABLED=false`) — build as static preview. |
 | `/guides/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
 | `/privacy` | `153:22478` | **Tính năng** | Frame is named `Desktop`. |
+
+### The saved list was a canvas behind (found 30/07)
+
+`/my-universities` was built from `223:8824` / `223:13621` / `223:13022` on the
+**retired "Tính năng" canvas**. The migrated frames — `375:12701` and friends —
+draw a strictly larger card, and the three extra elements are the whole feature
+the owner asked for:
+
+| On `375:12701` | On `223:8824` | Now |
+|---|---|---|
+| tuition badge (`375:12740`) | absent | `formatTuitionForCard(tuition_usd)`, and the **net** figure once a scholarship is attached |
+| "Ngành …" + "Chọn lại ngành tại đây" (`375:12741`) | absent | links to `/my-universities/program` |
+| "Học bổng tại đây" + the applied state (`375:12841`) | a plain `/scholarships` link | opens the picker in browse mode; the bar shows the discount |
+
+Plus two frames nobody had built: the subject re-picker `375:13546` and the
+confirmation `502:18462`.
+
+**How this hid for so long.** The old file's header comment cited its frames
+accurately, the page looked finished, and the tests passed. Nothing in the repo
+says which canvas a node id belongs to — `223:*` and `375:*` are just numbers. The
+only way to catch it is the table at the top of this file, which is why it is at
+the top of this file. **Before touching a rebuilt page, check the node ids in its
+header comment against that table.**
+
+#### What the frame asks for that the database cannot answer
+
+The card's supporting line reads "Viện kinh doanh — Chương trình cử nhân kinh
+doanh quốc tế" — school plus course. **There is no course catalogue.** Verified
+live, not from a `.sql` file: no `programs`, no `majors`, no
+`university_programs`; `universities.strengths` is a comma-separated subject line
+and that is all of it (97 of 106 rows). So:
+
+- the supporting slot keeps `best_for`, a real sentence about the university;
+- the student's own chosen subject gets the "Ngành …" line, which is a fact
+  because they chose it;
+- the picker offers `splitList(strengths)` for 105 universities and the real
+  school→programme→duration tree for VinUni, whose catalogue lives in
+  `src/lib/vinuni-content.ts`. `features/universities/domain/programs.ts` makes
+  that call once, with tests.
+
+The frame's "Mã học bổng" + "ÁP DỤNG" redeem-a-code control is **still not
+built**, for the same reason it was not built the first time: no voucher table,
+no code column, no endpoint. Migrating to the new canvas did not add one.
+
+#### The bit that needs the owner
+
+`supabase-saved-program.sql` adds `user_universities.program` and
+`program_url`. **It has not been run** — this repo applies `.sql` by hand. Until
+it is, every row reads "No subject chosen yet" and saving one reports *"Saving a
+subject is not switched on in this environment yet"* rather than a generic retry
+prompt. The read is a `select('*')` precisely so a missing column cannot break
+the whole page.
+
+⚠️ The missing-column check matches on the PostgREST **code**, verified against
+the live API: `PGRST204`, message `Could not find the 'program' column of
+'user_universities' in the schema cache`. Note "column" comes *after* the column
+name — an obvious `/column .*program/` pattern misses it, and did.
 
 ### Wiring: a rebuilt page nobody could reach (found 30/07)
 
@@ -292,6 +360,31 @@ Fixed 30/07:
 - `TID.uniDetailPanel` moved onto the root of `/universities/[id]`, so
   `signed-in.spec.ts`'s "click a card, expect the detail panel" now asserts the
   redesigned page, and the guest gate test's "expect 0" still holds.
+
+#### The same class of bug again, one page over (found 30/07)
+
+**Nothing in the product linked to `/my-universities` at all.** Not the nav, not
+the footer, not the heart that saves to it. `src/proxy.ts` sends every fresh
+sign-in there and `/universities/[id]` has a save button whose entire purpose is
+to put a row on it — and the only way to *read* the result was to type the URL.
+
+Same shape as the paragraph above and worth stating as a rule: **a page that
+writes data needs a link to the page that reads it, and the writer is not that
+link.** Grep for `href="/<route>"` before calling a route done; zero hits outside
+its own subtree is the tell.
+
+Fixed with `src/components/saved-nav-link.tsx` — a heart with a count in
+`TopNav`'s `utility` slot, plus a row in `MobileNav`'s drawer. It reads its own
+count (`head: true`, RLS-scoped, renders nothing when signed out or on error)
+rather than being threaded through the seventeen places `TopNav` is constructed.
+
+⚠️ **It was 61px wide and that broke the header.** `TopNav` already warns that
+its six nowrap labels crowd the actions; the first version pushed the nav 14px
+past its box on `/universities` and 27px on `/my-universities`, clipping "Blog" to
+"B" **at 1440, the design's own width**. Confirmed as this control's fault by
+deleting the element from the live DOM and re-measuring (overflow → 0). It is now
+32px square with a corner count badge. **Anything else added to that slot needs
+the same measurement.**
 
 ### `position: sticky` never worked anywhere on this site (found 30/07)
 

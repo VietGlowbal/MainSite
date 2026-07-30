@@ -45,6 +45,7 @@ export const translations: Record<string, string> = {
   Menu: 'Menu',
   'Close menu': 'Đóng menu',
   'Plan your studies': 'Lập kế hoạch du học',
+  'Build your application strategy':'Lên chiến lược ứng tuyển',
 
   // ── Home hero (Figma 375:9857) ───────────────────────────────────────────
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
@@ -1146,6 +1147,150 @@ export const translations: Record<string, string> = {
   'Official website': 'Website chính thức',
   'See all scholarships': 'Xem tất cả học bổng',
   'Colleges and programmes': 'Các trường & chương trình',
+
+  // ── Saved list, /my-universities (Figma 375:12701 · 375:12841 · 375:13295 ·
+  //    375:13369 · 502:18462) and the subject picker (375:13546) ─────────────
+  //
+  // ⚠️ EVERY string on these two routes has to be here. `/my-universities` is in
+  // PII_ROUTE_PREFIXES (src/lib/dom-translate.tsx), so whole-page machine
+  // translation is switched OFF — there is no fallback, and anything missing
+  // sits in English on a Vietnamese page permanently. That is also why the
+  // components split labels away from values: an interpolated "Scholarship 50%"
+  // or "Deadline: 5 Jan 2026" could never be a dictionary hit.
+  'Saved list': 'Danh sách đã lưu',
+  'The universities you have saved, with their deadlines and any scholarships you have attached.':
+    'Các trường bạn đã lưu, kèm hạn chót và học bổng bạn đã áp dụng.',
+  'Nothing saved yet — the universities you save while browsing show up here.':
+    'Chưa lưu trường nào — các trường bạn lưu khi tìm kiếm sẽ hiện ở đây.',
+  'Save a university from the search page and it will appear here with its deadline and the scholarships attached to it.':
+    'Lưu một trường từ trang tìm kiếm, trường đó sẽ hiện ở đây kèm hạn chót và các học bổng đi cùng.',
+  'Saved universities': 'Trường đã lưu',
+  'Economics':'Kinh tế',
+  'Humanities':'Nhân văn',
+
+  // The row (375:12726). `QS World Ranking` is already covered further up.
+  'THE Ranking': 'Xếp hạng THE',
+  'Deadline:': 'Hạn chót:',
+  '/ year': '/ năm',
+  'Subject:': 'Ngành:',
+  'No subject chosen yet': 'Chưa chọn ngành',
+  // The frame's own wording for this link, kept verbatim.
+  'Change subject here': 'Chọn lại ngành tại đây',
+  'Choose a subject here': 'Chọn ngành tại đây',
+  'Course page': 'Trang khoá học',
+  'Official site': 'Liên kết chính thức',
+  Remove: 'Xóa',
+  /*
+   * ⚠️ NOT COVERED, and it cannot be: the row checkbox and the picker's radios
+   * carry interpolated aria-labels ("Select Massachusetts Institute of
+   * Technology", "Choose Fulbright Scholarship 2026"). There is no static key for
+   * a string containing a university name, and this route has no machine
+   * fallback, so those stay English for screen-reader users. Fixing it properly
+   * means a t()-with-parameters helper, which this dictionary does not have.
+   */
+
+  // The scholarship bar (375:12813 / 375:12841)
+  'See all the scholarships you could apply for': 'Xem thêm tất cả các học bổng',
+  'Scholarships here': 'Học bổng tại đây',
+  Scholarship: 'Học bổng',
+  'scholarship attached': 'học bổng đã áp dụng',
+  'scholarships attached': 'học bổng đã áp dụng',
+  'Apply scholarship': 'Áp học bổng',
+  'Plan my application': 'Lên kế hoạch ứng tuyển',
+  'Tick a university to attach a scholarship to it.':
+    'Tích chọn một trường để áp học bổng cho trường đó.',
+
+  // The picker (375:13295)
+  'Apply a scholarship': 'Áp học bổng',
+  'Scholarships for your saved list': 'Học bổng cho danh sách đã lưu',
+  'Pick a scholarship to attach to your saved university. It will show on the university and in your plan.':
+    'Chọn một học bổng để áp cho trường bạn đã lưu. Học bổng sẽ hiện trên trường đó và trong kế hoạch của bạn.',
+  'Everything our directory links to the universities you saved. Open one to see who it is for and what it covers.':
+    'Tất cả học bổng mà hệ thống liên kết với các trường bạn đã lưu. Mở một học bổng để xem đối tượng và mức hỗ trợ.',
+  'None of the universities you selected have a scholarship in our directory yet.':
+    'Các trường bạn chọn hiện chưa có học bổng nào trong hệ thống.',
+  'None of the universities on your saved list have a scholarship in our directory yet.':
+    'Các trường trong danh sách đã lưu hiện chưa có học bổng nào trong hệ thống.',
+  'Available scholarships': 'Học bổng khả dụng',
+  'See details': 'Xem chi tiết',
+  'Value not published': 'Chưa công bố giá trị',
+  'Apply scholarship now': 'Áp học bổng ngay',
+  Close: 'Đóng',
+  // `Please wait...` is already covered further up this file.
+
+  // The scholarship detail panel (375:13369)
+  'Scholarship value': 'Gía trị học bổng',
+  'Who it is for': 'Đối tượng',
+  'Application conditions': 'Điều kiện ứng tuyển',
+  Analysis: 'Phân tích',
+  'Applies to': 'Trường áp dụng',
+  'Open the official page': 'Mở trang chính thức',
+
+  // The confirmation (502:18462). The frame reads "Thanh you for you
+  // applycation"; shipped without the typos.
+  'Thank you for your application': 'Cảm ơn bạn đã ứng tuyển',
+  'Your scholarship is now part of your plan.':
+    'Học bổng đã được thêm vào kế hoạch của bạn.',
+  'Back to my saved list': 'Quay lại danh sách đã lưu',
+  'Go to my plan': 'Đi đến trang apply',
+  'Scholarship added': 'Đã thêm học bổng',
+
+  // Toasts
+  'Could not remove that university. Please try again.':
+    'Không thể xoá trường này. Vui lòng thử lại.',
+  'Could not attach that scholarship. Please try again.':
+    'Không thể áp học bổng này. Vui lòng thử lại.',
+  'Your session expired. Please sign in again.':
+    'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.',
+
+  // The subject picker (375:13546)
+  'Select a subject': 'Chọn ngành',
+  School: 'Trường/Viện',
+  'Search schools': 'Tìm trường/viện',
+  'Search subjects': 'Tìm ngành',
+  'We do not have a subject list for this university yet. Paste a link to the course page below and it will show on your saved list.':
+    'Hệ thống chưa có danh sách ngành cho trường này. Hãy dán link trang khoá học bên dưới, link sẽ hiện trong danh sách đã lưu của bạn.',
+  'Cannot find the subject you want? Paste a link to it':
+    'Nếu không tìm thấy ngành mong muốn thì paste link',
+  'Optional. It shows as a link on your saved list.':
+    'Không bắt buộc. Link sẽ hiện trong danh sách đã lưu của bạn.',
+  'That does not look like a course page link — it needs to start with http:// or https://':
+    'Đây không giống link trang khoá học — link cần bắt đầu bằng http:// hoặc https://',
+  'Save subject': 'Lưu ngành',
+  'Saving...': 'Đang lưu...',
+  'Pick a subject or paste a course link to continue.':
+    'Chọn một ngành hoặc dán link khoá học để tiếp tục.',
+  'Saving a subject is not switched on in this environment yet — the user_universities.program column has not been added. Nothing was changed.':
+    'Tính năng lưu ngành chưa được bật ở môi trường này — cột user_universities.program chưa được thêm. Không có thay đổi nào được lưu.',
+  'We could not save that. Please try again.': 'Không thể lưu. Vui lòng thử lại.',
+  Reset: 'Đặt lại',
+
+  /*
+   * Counts and durations on the picker's two lists (the frame's "4
+   * specializations" and "(4 năm)").
+   *
+   * Enumerated rather than interpolated for the reason at the top of this
+   * section: these are `MultiSelectOption.description` strings, so there is no
+   * text node to split, and this route has no machine-translation fallback. The
+   * ranges cover what the one catalogue in the repo actually contains (VinUni's
+   * colleges hold 1–6 programmes; its degrees run 4–6 years) with headroom.
+   */
+  '1 programme': '1 chương trình',
+  '2 programmes': '2 chương trình',
+  '3 programmes': '3 chương trình',
+  '4 programmes': '4 chương trình',
+  '5 programmes': '5 chương trình',
+  '6 programmes': '6 chương trình',
+  '7 programmes': '7 chương trình',
+  '8 programmes': '8 chương trình',
+  '1 year': '1 năm',
+  '2 years': '2 năm',
+  '3 years': '3 năm',
+  '4 years': '4 năm',
+  '5 years': '5 năm',
+  '6 years': '6 năm',
+  '7 years': '7 năm',
+  '8 years': '8 năm',
 
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SavedNavLink } from '@/components/saved-nav-link';
 import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
 import { MobileNav, TopNav, type MobileNavItem } from '@/shared/ui';
@@ -183,17 +184,22 @@ function MobileNavigation({ user }: { user: UserSummary | null }) {
       openLabel={t('Menu')}
       closeLabel={t('Close menu')}
       utility={
-        <button
-          type="button"
-          onClick={toggleLanguage}
-          className="mb-gb-lg flex w-full items-center justify-between rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-medium text-fg-tertiary transition-colors hover:bg-surface-hover"
-          aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
-        >
-          <span>{language === 'en' ? '🇬🇧 English' : '🇻🇳 Tiếng Việt'}</span>
-          <span className="text-gb-xs font-semibold tracking-wide text-fg-muted">
-            {language === 'en' ? 'EN' : 'VI'}
-          </span>
-        </button>
+        <>
+          {/* Mobile has no header row to hang a count pill on, so the saved list
+              gets a drawer row instead. Renders nothing when signed out. */}
+          <SavedNavLink variant="row" />
+          <button
+            type="button"
+            onClick={toggleLanguage}
+            className="mb-gb-lg flex w-full items-center justify-between rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-medium text-fg-tertiary transition-colors hover:bg-surface-hover"
+            aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
+          >
+            <span>{language === 'en' ? '🇬🇧 English' : '🇻🇳 Tiếng Việt'}</span>
+            <span className="text-gb-xs font-semibold tracking-wide text-fg-muted">
+              {language === 'en' ? 'EN' : 'VI'}
+            </span>
+          </button>
+        </>
       }
     />
   );
@@ -239,7 +245,14 @@ function AppTopNav({ user }: { user: UserSummary | null }) {
       logo={<GlowbalLogo height={28} />}
       items={items}
       primaryAction={{ href: '/apply', label: t('Plan your studies') }}
-      utility={<LanguageSwitcher />}
+      /* Two controls in the one utility slot. SavedNavLink renders nothing when
+         signed out, so the guest header is unchanged. */
+      utility={
+        <span className="flex items-center gap-gb-lg">
+          <SavedNavLink />
+          <LanguageSwitcher />
+        </span>
+      }
       {...(user
         ? { user: { name: user.name, avatarUrl: user.avatarUrl, href: '/profile' } }
         : { secondaryAction: { href: '/auth', label: t('Sign in') } })}
@@ -290,9 +303,14 @@ export function NavReveal() {
     // 153:18266) but /guides/[slug] is not yet, so the detail pages keep the
     // app chrome until 153:20197 is built.
     '/guides',
-    // Also exact: the saved list is rebuilt (Figma 223:8824), the
+    // Also exact: the saved list is rebuilt (Figma 375:12701), the
     // /my-universities/[id] task pages under it are not.
     '/my-universities',
+    // The "Chọn lại ngành" subject picker (Figma 375:13546). Listed alongside its
+    // parent rather than folded into a /my-universities prefix, because the
+    // [id] task pages in between are still on the app chrome — a prefix here
+    // would silently strip their sidebar.
+    '/my-universities/program',
     // The applications list. The workspace under it is covered by the prefix
     // rule below rather than listed here.
     '/apply',
