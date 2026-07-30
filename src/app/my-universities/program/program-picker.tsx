@@ -106,18 +106,43 @@ export function ProgramPicker({
 
   const subjectOptions: MultiSelectOption[] = useMemo(
     () =>
-      optionsForGroup(choices, group).map((option) => ({
-        value: option.name,
-        label: option.name,
-        // The frame's "(4 năm)". Only where the catalogue actually says so.
-        ...(option.durationYears != null
-          ? {
-              description: `${option.durationYears} ${
-                option.durationYears === 1 ? 'year' : 'years'
-              }`,
-            }
-          : {}),
-      })),
+      optionsForGroup(choices, group).map((option) => {
+        /*
+         * The frame puts the course length on this line. The catalogue almost
+         * never has one (null on 400 of 404 rows), but it does have the degree
+         * level — and that is the more useful discriminator anyway, because the
+         * same subject is catalogued as both a bachelor's and a master's. Both
+         * are shown when both exist, neither is invented when they do not.
+         *
+         * Each part is its own <span>, so each is a whole text node the static
+         * dictionary can translate. This route has no machine fallback, and
+         * "Bachelor · 4 years" as one string could never be a dictionary hit.
+         */
+        const parts: React.ReactNode[] = [];
+        if (option.degree) parts.push(<span key="degree">{option.degree}</span>);
+        if (option.durationYears != null) {
+          // Built as ONE string, not `{n} {'years'}` — that produces separate
+          // child nodes and the dictionary keys the whole node ("4 years").
+          const years = `${option.durationYears} ${option.durationYears === 1 ? 'year' : 'years'}`;
+          parts.push(<span key="duration">{years}</span>);
+        }
+
+        return {
+          value: option.name,
+          label: option.name,
+          ...(parts.length > 0
+            ? {
+                description: (
+                  <>
+                    {parts[0]}
+                    {parts.length > 1 ? ' · ' : null}
+                    {parts[1]}
+                  </>
+                ),
+              }
+            : {}),
+        };
+      }),
     [choices, group],
   );
 
