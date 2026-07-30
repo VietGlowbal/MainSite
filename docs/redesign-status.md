@@ -64,7 +64,7 @@ Both carry banner frames naming them:
 
 | Route | Figma | Canvas | Notes |
 |---|---|---|---|
-| `/universities` | `105:8300`, `105:8247` | UI Final | Globe dropped for a flat filterable grid (owner's call). Kept `explorer-context` and `detail-view.tsx` verbatim. Only 3 of 6 filter chips ship — the rest need DB columns that do not exist. |
+| `/universities` | `105:8300`, `105:8247` | UI Final | Globe dropped for a flat filterable grid (owner's call). Kept `explorer-context` verbatim. **Cards navigate to `/universities/[id]` as of 30/07** — `detail-view.tsx` is deleted, see §Wiring below. Only 3 of 6 filter chips ship — the rest need DB columns that do not exist. |
 | `/auth` | `105:8004`, `105:8037` | UI Final | Centered card, login + signup. All Supabase branches preserved. |
 | `/onboarding` | `107:10574` + câu 1–8, plus `375:11536`/`375:11616` | mixed | **EIGHT steps since 30/07** (was nine). Câu 6 and câu 7 — the academic screens — sit at positions 6 and 7. ⚠️ **`supabase-academic-intake.sql` must be run before this ships**; it was extended on 30/07 and is safe to re-run. See the three owner decisions below. Câu 8 (awards) is still not built; it duplicates the /ai-strategy achievements input and nobody has decided which owns it. |
 | `/apply` | `337:18767` | UI Final | **"My application".** Progress donut banded by `progress_percentage`, deadline, "Continue applying" → `/apply/[applicationId]`. Replaced the 1,455-line `apply-dashboard.tsx`. |
@@ -74,7 +74,7 @@ Both carry banner frames naming them:
 | `/guides` | `153:18266` | **Tính năng** | Blog list, data-driven topic tabs. ⚠️ Same provenance risk. |
 | `/` | `375:9844` | **Khanh Linh - Chi** | **Promoted 28/07**, replacing the 976-line legacy landing. Ships no `MissingContent`: testimonials and FAQ are omitted outright, Features and the scholarship rail take `showPlaceholders={false}`. Owns its chrome, including its own `MobileNav` — without that a phone gets no navigation at all. |
 | `/dev/home` | `375:9844` | **Khanh Linh - Chi** | Still here after the swap, on purpose: it keeps every section INCLUDING the placeholders, so the copy gaps stay visible. Renders no real data — check data against `/`. |
-| `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
+| `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07, wired up + extended 30/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
 | `/mentors/[id]` | `375:21633` | **Khanh Linh - Chi** | **Built 29/07.** Replaced `MentorProfile.tsx` + `BookMentorModal.tsx` + `MentorAvailabilityGrid.tsx`, all three deleted. Real 7-column booking calendar (the frame's is a broken 10-column instance — see below). Fixed two live bugs in the process: the page 404'd for every signed-out visitor, and it serialised the mentor's PII into the client payload. |
 | `/dev/saved-list` | — | — | Dev-only preview of `/my-universities`, hydrated from the real repositories. |
 
@@ -257,6 +257,66 @@ fiction. Add the column (or a join) before review authorship means anything.
 | `/plus` | `115:13253`, `132:9601`, `196:16799`, `115:17014` | **Tính năng** | 3 tiers (free / $10 / $100). Sales are off (`PLUS_SALES_ENABLED=false`) — build as static preview. |
 | `/guides/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
 | `/privacy` | `153:22478` | **Tính năng** | Frame is named `Desktop`. |
+
+### Wiring: a rebuilt page nobody could reach (found 30/07)
+
+**A page can be finished, verified, and still be dead.** `/universities/[id]` was
+built on 28/07 from `375:10629` and was correct. It was also **unreachable from
+the product**: clicking a card on `/universities` called `setView('detail', id)`,
+which swapped in `detail-view.tsx` — the 893-line pre-redesign panel — at
+`?u=<id>`. Nothing ever linked to the new route, so the only way to see it was to
+type the URL. Two days later the owner reported "the detail UI is still the old
+design", and that was exactly right.
+
+The gap was recorded and read as done: `university-list-client.tsx`'s header said
+DetailView was kept as *"giữ detail cũ tạm"* until its redesign landed. The
+redesign landed as a **different route**, so the sentence stayed true-looking
+while becoming false.
+
+**When a rebuild ships as a new route rather than as an edit to the old
+component, the old component does not become dead — it stays live until someone
+changes what points at it. Grep for who navigates to the thing you replaced, and
+click through from the page a real reader starts on.** A screenshot of the new
+URL proves the page renders, not that anyone can get to it.
+
+Fixed 30/07:
+- Cards are a stretched `<Link href="/universities/{id}">`, so the card has a
+  real URL (middle-click, new tab, crawlers). The login gate is preserved by
+  intercepting the click for guests, not by withholding the href.
+- `detail-view.tsx` **deleted**; the `activeView === 'detail'` branch and the
+  `?u=` two-way sync with it.
+- `?u=<id>` still resolves — `useLegacyDetailParamRedirect` forwards it to
+  `/universities/<id>`, because `/api/home/save-university` ends the sign-up
+  funnel on it and `selection-cache` restores focus with it. That route now
+  redirects straight to the real page.
+- `TID.uniDetailPanel` moved onto the root of `/universities/[id]`, so
+  `signed-in.spec.ts`'s "click a card, expect the detail panel" now asserts the
+  redesigned page, and the guest gate test's "expect 0" still holds.
+
+### `position: sticky` never worked anywhere on this site (found 30/07)
+
+`<html>` and `<body>` both carried `overflow-x-hidden` (layout.tsx). `hidden`
+computes the other axis to `auto`, which makes the element a **scroll
+container** — so `body` sat between every page and the thing that actually
+scrolls, and sticky resolves against its nearest scrolling ancestor. Body never
+scrolls, so nothing could ever stick.
+
+It hid for months because `getComputedStyle` still reports `position: sticky` and
+nothing errors — the element just scrolls away. `/universities/[id]`'s sidebar had
+shipped `lg:sticky` since 28/07 and had never once stuck.
+
+Fix: `overflow-x-clip` on both (clip does not create a scroll container), plus
+`flow-root` on body. **The `flow-root` is not cosmetic** — `hidden` was also
+establishing a block formatting context as a side effect, and dropping to `clip`
+without replacing it let first/last child margins collapse through the body, so
+every page lost height at both ends.
+
+⚠️ There is a **second** sticky trap that is per-page and the CSS fix does not
+help: a sticky element only sticks while *its own parent box* is on screen. The
+section bar was first wrapped in a `<div className="pt-gb-5xl">`, pinning it to a
+103px-tall parent, and it scrolled away immediately. Sticky elements must be
+direct children of something tall — top spacing goes on the sticky element as a
+margin, not on a wrapper.
 
 ### `/universities/[id]` — what the data actually supports (measured 28/07)
 
