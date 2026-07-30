@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { GeoArticleStatus } from '@/lib/geo-cms';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type ArticleRow = {
   id: string;
@@ -38,6 +39,7 @@ export function AdminNewsClient({ articles }: { articles: ArticleRow[] }) {
   const router = useRouter();
   const [items, setItems] = useState(articles);
   const [busy, setBusy] = useState<string | null>(null);
+  useLoadingIndicator(busy !== null, 'Updating the article');
   const [error, setError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);

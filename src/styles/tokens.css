@@ -1,10 +1,16 @@
 /* ==========================================================================
    GLOWBAL design tokens
    --------------------------------------------------------------------------
-   Extracted from the Figma variables on "UI Final - Dev"
-   (file 4gHWPze5ngIizbTtujEcQL). The design is built on the Untitled UI /
-   Simple Design System kit, so the token structure below mirrors that kit's
-   three tiers: primitive -> semantic -> utility.
+   Extracted from the Figma variables on the "UI Final - Dev" canvas. The design
+   is built on the Untitled UI / Simple Design System kit, so the token structure
+   below mirrors that kit's three tiers: primitive -> semantic -> utility.
+
+   ⚠️ This header used to name file 4gHWPze5ngIizbTtujEcQL. That key is dead, and
+   it is the third one this repo has carried. The live key as of 2026-07-28 is
+   Ut5pryBVlc1MpxI4IrnkIm, and the authoritative canvas is now "Khanh Linh - Chi"
+   (375:9842), not "UI Final - Dev". Rather than record a fourth key here that
+   will also go stale, see docs/README.md, which is kept current — and confirm
+   against the owner's own URL before trusting either.
 
    STATUS
      Everything below -> FINAL.
@@ -43,6 +49,17 @@
      asking the designer whether the bar is meant to be neutral-950 instead. */
   --color-gb-neutral-1000: #000000;
 
+  /* Two more unbound steps, both from the footer (Figma 104:7404), recorded for
+     the same reason as neutral-1000 rather than rounded to a neighbour:
+       990 — the footer surface. Sits between 950 (#171717) and pure black, and
+             is NOT the same value as the nav bar above it.
+       350 — the footer column headings ("Sản phẩm", "Công ty", "Pháp lý"), one
+             notch brighter than the links beneath them. Between 300 and 400.
+     Both are hand-set literals in the mockup, so confirm with the designer
+     before treating either as part of the published ramp. */
+  --color-gb-neutral-990: #0a0a0a;
+  --color-gb-neutral-350: #cacaca;
+
   /* ── Brand ramp — rose ───────────────────────────────────────────────────
      600 is GLOWBAL's primary brand, confirmed 2026-07-22, and is the CTA /
      primary-button fill throughout the mockups. It is exactly Tailwind's
@@ -77,6 +94,52 @@
   /* Figma "Colors/Yellow/400" — the ratings-badge star. */
   --color-gb-yellow-400: #facc15;
 
+  /* ── Informational blue ───────────────────────────────────────────────────
+     Figma binds "Colors/Blue/50" + "Colors/Blue/600" in two unrelated places:
+     the admission-tier `recommend` badge above, and the help-topic chips on the
+     mentor profile (375:21684, "Tốt nhất cho"). Same primitives, so the hex is
+     deliberately repeated rather than aliased — for exactly the reason given
+     for reach/rose above. A tier is a risk classification; a topic chip is a
+     category label. Repainting the tier scale must not silently repaint every
+     chip that happens to be blue today.
+
+     Blue/500 is the verified seal behind the white tick next to a mentor's
+     name (375:21653) — a filled mark, not a badge pair. */
+  --color-gb-blue-50: #eff6ff;
+  --color-gb-blue-500: #3b82f6;
+  --color-gb-blue-600: #2563eb;
+
+  /* ── Alpha overlays — from the kit's component-colors/alpha/* ─────────────
+     The blog post card (Figma I153:18284;1390:634) frames its cover photo with
+     a hairline, then floats a frosted attribution strip over the bottom of it
+     (;1390:865 the gradient, ;1390:866 the panel).
+
+     These have to be translucent — the whole point is that the photo shows
+     through — so no step on the neutral ramp can express them, and they are
+     recorded as their own primitives rather than approximated. 8-digit hex
+     because that is what the ramp above uses; #0000001a is rgba(0,0,0,.1). */
+  --color-gb-alpha-black-10: #0000001a;
+  --color-gb-alpha-black-40: #00000066;
+  --color-gb-alpha-white-30: #ffffff4d;
+
+  /* ── Error / destructive — ⚠️ NOT DESIGN-CONFIRMED ──────────────────────
+     No frame in the redesign draws an invalid field, a failed request, or a
+     destructive action, so there is no Figma variable to copy. These are
+     Untitled UI's stock error ramp.
+
+     They exist because the alternative is worse: twelve form pages ship with
+     validation the user cannot see, or every form invents its own red. Kept
+     here so that when the designer does specify an error state it is a one-line
+     change rather than a hunt through markup.
+
+     Deliberately NOT the brand rose. Brand is identity, error is a signal, and
+     an invalid field that lights up in the CTA colour reads as emphasis rather
+     than as a problem — the same reason the tier scale is not an alias of the
+     brand. Ask the designer before treating any of this as final. */
+  --color-gb-error-50: #fef3f2;
+  --color-gb-error-500: #f04438;
+  --color-gb-error-600: #d92d20;
+
   /* ── Spacing — FINAL ─────────────────────────────────────────────────────
      NOT Tailwind's default 4px scale: sm is 6 and lg is 12. Always use these
      steps rather than p-2 / p-3, or the rhythm drifts from the design. */
@@ -100,14 +163,30 @@
      design actually calls for them. */
   --spacing-gb-btn-xl: 18px;
 
+  /* Input padding, same story: 14/10 is Untitled UI's own step, not a layout
+     step. 10 + 24 (text-md leading) + 10 = the 44px control height every form
+     field in the design has (Figma I105:8028;3285:380392). */
+  --spacing-gb-input-x: 14px;
+  --spacing-gb-input-y: 10px;
+
   /* ── Radius — FINAL ──────────────────────────────────────────────────────
      Much tighter than the legacy code, which uses rounded-[1.5rem] (24px) and
      rounded-[2rem] (32px) throughout. Do not carry those values forward. */
   --radius-gb-none: 0px;
+  /* 4px, and the only place it appears is the checkbox (Figma 223:9431), where
+     the designer bound `spacing-xs` to the corner radius rather than a radius
+     variable. Recorded as a radius so components do not have to reach into the
+     spacing namespace to round a corner. */
+  --radius-gb-xs: 4px;
   --radius-gb-sm: 6px;
   --radius-gb-md: 8px;
   --radius-gb-lg: 10px;
   --radius-gb-xl: 12px;
+  /* 16px, and the exception to the "tighter than the legacy code" note above:
+     the saved-list row (Figma 223:9485 the card, 223:9591 its cover image) is
+     the one place the design reaches past 12px. It is the kit's `radius-2xl`,
+     bound as a variable there, not a hand-set value. */
+  --radius-gb-2xl: 16px;
   --radius-gb-full: 9999px;
 
   /* ── Type scale — FINAL ──────────────────────────────────────────────────
@@ -193,6 +272,26 @@
   --gb-text-tertiary: var(--color-gb-neutral-600);
   --gb-text-quaternary: var(--color-gb-neutral-500);
   --gb-text-placeholder: var(--color-gb-neutral-500);
+  /* ── Dark-band foregrounds ───────────────────────────────────────────────
+     A dark band is not the light theme with the background swapped: in the
+     footer (Figma 104:7404) the designer re-bound the whole semantic set
+     against a dark surface, so "text-tertiary" reads neutral-400 there and
+     "border-primary" reads neutral-700 — the mirror of what they mean above.
+
+     Kept as their own vocabulary for two reasons: a dark band can then use one
+     consistent set instead of reaching for raw ramp steps, and "neutral-50 as a
+     foreground" reads as a mistake when written as a surface colour.
+
+     Brightest to dimmest, which is also the order the footer stacks them:
+       on-inverse            neutral-50   signed-in user name (203:12469)
+       on-inverse-secondary  neutral-350  footer column headings
+       on-inverse-muted      neutral-400  footer tagline, links, copyright */
+  --gb-text-on-inverse: var(--color-gb-neutral-50);
+  --gb-text-on-inverse-secondary: var(--color-gb-neutral-350);
+  --gb-text-on-inverse-muted: var(--color-gb-neutral-400);
+  --gb-border-on-inverse: var(--color-gb-neutral-700);
+  /* One step deeper than --gb-bg-inverse-strong (#000): the footer surface. */
+  --gb-bg-inverse-deep: var(--color-gb-neutral-990);
   /* Figma text-brand-secondary-(700): brand-coloured text on a light surface —
      the "Learn more" link on a feature card. The mockups still paint this
      #6941c6, Untitled UI's purple, which is the leftover CLAUDE.md flags on the
@@ -210,6 +309,20 @@
   /* Figma Colors/Border/* */
   --gb-border-primary: var(--color-gb-neutral-300);
   --gb-border-secondary: var(--color-gb-neutral-200);
+
+  /* Over-image treatments — see the alpha primitives above. Named for the job
+     rather than the colour so a card does not have to know it is compositing:
+       -on-image   the hairline framing a cover photo
+       scrim       the bottom-up darkening that keeps white text legible
+       frosted     the blurred panel that carries that text */
+  --gb-border-on-image: var(--color-gb-alpha-black-10);
+  --gb-scrim: var(--color-gb-alpha-black-40);
+  --gb-bg-frosted: var(--color-gb-alpha-white-30);
+
+  /* Error — see the ⚠️ note on the error ramp above. */
+  --gb-text-error: var(--color-gb-error-600);
+  --gb-border-error: var(--color-gb-error-500);
+  --gb-bg-error-subtle: var(--color-gb-error-50);
 
   /* Layout constants that more than one file has to agree on.
      Figma "Full-width header navigation" is 375x64: 12px + a 40px icon button
@@ -235,6 +348,45 @@
   --gb-tier-recommend-on: var(--color-gb-tier-recommend);
   --gb-tier-safe-surface: var(--color-gb-tier-safe-bg);
   --gb-tier-safe-on: var(--color-gb-tier-safe);
+
+  /* Informational chips — same pair shape as the tiers: `-on-` is the text
+     colour for the matching surface. */
+  --gb-info-surface: var(--color-gb-blue-50);
+  --gb-info-on: var(--color-gb-blue-600);
+  /* Standalone filled mark, so no pair — the tick on top of it is white. */
+  --gb-verified: var(--color-gb-blue-500);
+
+  /* ── Hero globe ───────────────────────────────────────────────────────────
+     The colours the dot globe in the homepage hero lights up with.
+
+     TOKENS RATHER THAN LITERALS IN THE COMPONENT for two reasons. Canvas needs
+     real colour strings, and eslint bans raw hex under src/features — but more
+     usefully, a palette is design-system data and belongs where a designer can
+     find it.
+
+     WHY THESE FIVE. The prototype this came from flashed twenty-one hues —
+     neon red, crimson, electric blue, matrix green, solar gold, violet — all at
+     once. Every colour clashing with its neighbour is what makes that read as
+     television static rather than as something alive. These five are the brand
+     rose and the logo gradient's own pink and aqua, plus the two hues that
+     bridge them, so any pair that happens to light up together still looks
+     deliberate. No green, no yellow: neither is in the brand, and they are what
+     made the prototype look like a Christmas tree.
+
+     Ordered warm to cool. The component walks the list rather than picking at
+     random, so consecutive blooms are adjacent hues. */
+  --gb-globe-flash-1: var(--color-gb-brand-600); /* rose 600 — the brand */
+  --gb-globe-flash-2: #ff4d8c;                   /* logo pink */
+  --gb-globe-flash-3: #c084fc;                   /* violet bridge */
+  --gb-globe-flash-4: #38bdf8;                   /* sky */
+  --gb-globe-flash-5: #00b4d8;                   /* logo aqua */
+  /* The dots that are not lit. Near-white on the black hero band. */
+  --gb-globe-dot: var(--color-gb-neutral-0);
+
+  /* There is deliberately no sea or rim colour here. A filled navy sphere with
+     a lit limb was tried behind the dots and taken back out: at hero size it
+     read as a blue ball with specks on it, not as a planet picked out in light,
+     and it sat badly on the black band. The globe is dots on transparent. */
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
@@ -255,6 +407,7 @@
   --color-surface-muted: var(--gb-bg-secondary); /* Figma bg-secondary */
   --color-surface-inverse: var(--gb-bg-tertiary); /* Figma bg-tertiary */
   --color-surface-inverse-strong: var(--gb-bg-inverse-strong);
+  --color-surface-inverse-deep: var(--gb-bg-inverse-deep); /* footer 104:7404 */
 
   /* text-fg, text-fg-secondary, text-fg-tertiary, text-fg-muted */
   --color-fg: var(--gb-text-primary); /* Figma text-primary (900) */
@@ -262,10 +415,24 @@
   --color-fg-tertiary: var(--gb-text-tertiary); /* Figma text-tertiary (600) */
   --color-fg-muted: var(--gb-text-quaternary); /* Figma text-quaternary (500) */
   --color-fg-brand: var(--gb-text-brand); /* Figma text-brand-secondary (700) */
+  /* Dark-band foregrounds — pair with bg-surface-inverse-deep. */
+  --color-fg-on-inverse: var(--gb-text-on-inverse); /* Figma Colors/Neutral/50 */
+  --color-fg-on-inverse-secondary: var(--gb-text-on-inverse-secondary);
+  --color-fg-on-inverse-muted: var(--gb-text-on-inverse-muted);
 
   /* border-line, border-line-strong */
   --color-line: var(--gb-border-secondary); /* Figma border-secondary */
   --color-line-strong: var(--gb-border-primary); /* Figma border-primary */
+  --color-line-on-inverse: var(--gb-border-on-inverse); /* dark-band border */
+  /* Over-image: border-line-on-image, bg-scrim / to-scrim, bg-surface-frosted. */
+  --color-line-on-image: var(--gb-border-on-image);
+  --color-scrim: var(--gb-scrim);
+  --color-surface-frosted: var(--gb-bg-frosted);
+
+  /* Error: fg-error / line-error / surface-error. Not design-confirmed. */
+  --color-fg-error: var(--gb-text-error);
+  --color-line-error: var(--gb-border-error);
+  --color-surface-error: var(--gb-bg-error-subtle);
 
   /* bg-brand, text-brand, text-on-brand */
   --color-brand: var(--gb-brand);
@@ -281,4 +448,117 @@
   --color-on-tier-recommend: var(--gb-tier-recommend-on);
   --color-tier-safe: var(--gb-tier-safe-surface);
   --color-on-tier-safe: var(--gb-tier-safe-on);
+
+  /* Informational chip: pair bg-info-subtle with text-fg-info. */
+  --color-info-subtle: var(--gb-info-surface);
+  --color-fg-info: var(--gb-info-on);
+  /* text-fg-verified — drives the seal via currentColor. */
+  --color-fg-verified: var(--gb-verified);
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Loading overlay — ⚠️ NOT DESIGN-CONFIRMED
+
+   The globe loader (src/shared/ui/globe-loader.tsx) is a product decision, not
+   a Figma frame: no mockup draws a busy state, so there is no variable to copy.
+   Recorded here for the same reason as the error ramp above — the alternative
+   is every caller inventing its own dim level and its own dot animation.
+
+   Two things are load-bearing rather than taste:
+
+     * The loader video is rendered on a #fafafa plate, and that is not a
+       coincidence — the source clip's own background is exactly #fafafa, i.e.
+       neutral-50. Matching it is what makes the globe read as floating on the
+       card instead of sitting in a visible video box. Re-encoding the clip on a
+       different backdrop means re-pointing `--gb-loader-plate` at it.
+
+     * `scrim-soft` is deliberately a third of the modal `scrim`. The loader
+       fires on ordinary navigation, several times a minute; at modal weight it
+       would read as "the app stopped" rather than "the app is working".
+
+   Ask the designer before treating any of this as final.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --color-gb-alpha-black-15: #00000026;
+
+  /* Panel width for the loader card. Named `gb-width-*` for the same
+     collision reason documented on the containers above: `max-w-gb-xs` would
+     resolve against --spacing-gb-xs (4px), not this. */
+  --container-gb-width-xs: 240px;
+
+  /* The three dots after the phrase, appearing one at a time. Staggered by
+     animation-delay at the call site rather than by three separate keyframes. */
+  --animate-gb-loader-dot: gb-loader-dot 1.5s ease-in-out infinite;
+  /* The card's entrance. Overshoot-free easing: it is an interruption, and a
+     bouncy one reads as a notification. */
+  --animate-gb-loader-in: gb-loader-in 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  /* Crossfade when the phrase swaps. */
+  --animate-gb-loader-phrase: gb-loader-phrase 300ms ease-out both;
+
+  @keyframes gb-loader-dot {
+    0% {
+      opacity: 0;
+    }
+    25%,
+    75% {
+      opacity: 1;
+    }
+    100% {
+      opacity: 0;
+    }
+  }
+
+  @keyframes gb-loader-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes gb-loader-phrase {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  /* The indeterminate progress bar (shared/ui/progress-bar.tsx).
+
+     A travelling segment rather than a fill that grows: the work behind it —
+     an AI reading a course page — has no measurable percentage, and a bar that
+     creeps to 90% and stops is a lie the user learns to distrust. This one
+     plainly conveys "running, duration unknown".
+
+     Translating a 40%-wide child from -100% to 250% of its own box sweeps the
+     full track with a clean entry and exit at both ends. `transform` only, so
+     it stays on the compositor and costs nothing on a page that is already
+     waiting on the network. */
+  --animate-gb-progress-sweep: gb-progress-sweep 1.6s ease-in-out infinite;
+
+  @keyframes gb-progress-sweep {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: translateX(250%);
+    }
+  }
+}
+
+:root {
+  /* The plate the globe clip sits on — must equal the clip's own backdrop. */
+  --gb-loader-plate: var(--color-gb-neutral-50);
+  /* Page dim while the loader is up. See the note above on why it is light. */
+  --gb-scrim-soft: var(--color-gb-alpha-black-15);
+}
+
+@theme inline {
+  --color-loader-plate: var(--gb-loader-plate);
+  --color-scrim-soft: var(--gb-scrim-soft);
 }

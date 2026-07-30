@@ -28,7 +28,12 @@ export type KitIconArt = {
   /** The icon-frame size those units were exported against. */
   readonly frame: number;
   readonly strokeWidth: number;
-  readonly d: string;
+  /**
+   * One path, or several. Most of the kit's icons export as a single compound
+   * path; a few (marker-pin-02) are genuinely two separate `<path>` elements,
+   * and concatenating their `d` strings would join the shapes with a stray line.
+   */
+  readonly d: string | readonly string[];
 };
 
 export function KitIcon({
@@ -56,7 +61,9 @@ export function KitIcon({
       focusable="false"
       {...(className ? { className } : {})}
     >
-      <path d={art.d} />
+      {(typeof art.d === 'string' ? [art.d] : art.d).map((d) => (
+        <path key={d} d={d} />
+      ))}
     </svg>
   );
 }
@@ -110,6 +117,29 @@ export const ICONS = {
     strokeWidth: 2,
     d: 'M7.60796 12C7.60796 12 8.92046 13.5 11.108 13.5C13.2955 13.5 14.608 12 14.608 12M13.858 7H13.868M8.35796 7H8.36796M11.108 18C15.8024 18 19.608 14.1944 19.608 9.5C19.608 4.80558 15.8024 1 11.108 1C6.41354 1 2.60796 4.80558 2.60796 9.5C2.60796 10.45 2.7638 11.3636 3.05133 12.2166C3.15953 12.5376 3.21363 12.6981 3.22338 12.8214C3.23302 12.9432 3.22574 13.0286 3.19561 13.1469C3.1651 13.2668 3.09775 13.3915 2.96305 13.6408L1.32739 16.6684C1.09408 17.1002 0.977426 17.3161 1.00353 17.4828C1.02628 17.6279 1.1117 17.7557 1.23713 17.8322C1.38113 17.9201 1.62526 17.8948 2.1135 17.8444L7.23452 17.315C7.3896 17.299 7.46714 17.291 7.53782 17.2937C7.60733 17.2963 7.6564 17.3029 7.72419 17.3185C7.79311 17.3344 7.87978 17.3678 8.05311 17.4345C9.00116 17.7998 10.0312 18 11.108 18ZM14.358 7C14.358 7.27614 14.1341 7.5 13.858 7.5C13.5818 7.5 13.358 7.27614 13.358 7C13.358 6.72386 13.5818 6.5 13.858 6.5C14.1341 6.5 14.358 6.72386 14.358 7ZM8.85796 7C8.85796 7.27614 8.6341 7.5 8.35796 7.5C8.08181 7.5 7.85796 7.27614 7.85796 7C7.85796 6.72386 8.08181 6.5 8.35796 6.5C8.6341 6.5 8.85796 6.72386 8.85796 7Z',
   },
+  /**
+   * Figma I375:21812 — the paper plane in the 56px featured icon on the mentor
+   * profile's booking card (375:21811).
+   *
+   * The instance carries a check-circle variant at the same two sizes; the
+   * visible one is this. Exported at the xl step (28px icon in a 56px tile),
+   * which is why `frame` is 28 and not 24.
+   */
+  send: {
+    w: 24.4373,
+    h: 24.4373,
+    frame: 28,
+    strokeWidth: 2,
+    d: 'M10.4763 13.961L22.7263 1.71095M10.6252 14.3437L13.6913 22.228C13.9614 22.9226 14.0965 23.2699 14.2911 23.3713C14.4598 23.4592 14.6607 23.4593 14.8295 23.3716C15.0243 23.2704 15.1597 22.9233 15.4306 22.2291L23.1194 2.52668C23.3639 1.89997 23.4862 1.58662 23.4193 1.38639C23.3612 1.2125 23.2248 1.07603 23.0509 1.01794C22.8507 0.951051 22.5373 1.07334 21.9106 1.3179L2.20823 9.00663C1.51398 9.27756 1.16685 9.41303 1.06569 9.60775C0.977992 9.77655 0.978111 9.97751 1.066 10.1462C1.16739 10.3408 1.51468 10.4759 2.20925 10.746L10.0936 13.8121C10.2346 13.8669 10.3051 13.8944 10.3644 13.9367C10.417 13.9742 10.4631 14.0202 10.5006 14.0728C10.5429 14.1322 10.5703 14.2027 10.6252 14.3437Z',
+  },
+  /** Figma 2:384 — the dropdown affordance on Select (instance 104:7396, 16px). */
+  chevronDown: {
+    w: 9.75,
+    h: 5.75,
+    frame: 16,
+    strokeWidth: 1.75,
+    d: 'M0.875 0.875L4.875 4.875L8.875 0.875',
+  },
   /** Figma 2:467 — trails the "Learn more" link on a feature card. */
   arrowRight: {
     w: 13.3333,
@@ -118,4 +148,311 @@ export const ICONS = {
     strokeWidth: 1.66667,
     d: 'M0.833333 6.66667H12.5M6.66667 12.5L12.5 6.66667L6.66667 0.833333',
   },
+  /**
+   * Leads the "back to the list" link on the course workspace.
+   *
+   * A true mirror of `arrowRight` about x = 6.66667, unlike the `arrowUpRight`
+   * case below: this glyph is a straight shaft plus a symmetrical chevron, with
+   * no elbow to give the reflection away.
+   */
+  arrowLeft: {
+    w: 13.3333,
+    h: 13.3333,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M12.5 6.66667H0.833333M6.66667 12.5L0.833333 6.66667L6.66667 0.833333',
+  },
+  /**
+   * Figma 2:31009 — trails "Read post" on a blog card (I153:18284;1390:725).
+   * Deliberately a second arrow rather than a rotated `arrowRight`: the kit's
+   * up-right glyph has its own elbow (a diagonal shaft plus a corner bracket),
+   * so rotating the horizontal one by 45° gives a visibly different mark.
+   */
+  arrowUpRight: {
+    w: 10,
+    h: 10,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M0.833333 9.16667L9.16667 0.833333M9.16667 9.16667V0.833333H0.833333',
+  },
+  /**
+   * Figma 41:4011 — the location line on a saved-list row (223:9502).
+   * Two paths: the pin outline and the dot inside it.
+   */
+  markerPin02: {
+    w: 15,
+    h: 18.3333,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: [
+      'M7.5 9.58333C8.88071 9.58333 10 8.46404 10 7.08333C10 5.70262 8.88071 4.58333 7.5 4.58333C6.11929 4.58333 5 5.70262 5 7.08333C5 8.46404 6.11929 9.58333 7.5 9.58333Z',
+      'M7.5 17.5C9.16667 14.1667 14.1667 12.0152 14.1667 7.5C14.1667 3.8181 11.1819 0.833333 7.5 0.833333C3.8181 0.833333 0.833333 3.8181 0.833333 7.5C0.833333 12.0152 5.83333 14.1667 7.5 17.5Z',
+    ],
+  },
+  /**
+   * ⚠️ NOT A FIGMA EXPORT, unlike everything else in this file.
+   *
+   * The reflection form needs an add control and no frame in the file draws one
+   * with an exported glyph, so this is constructed to the kit's conventions
+   * rather than taken from it. Replace it with the real export if one is ever
+   * added to the file.
+   *
+   * Note the coordinate space, which is easy to get wrong: `viewBox` is
+   * `0 0 w h`, the *stroked bounds*, not the 20px icon frame. So the path runs
+   * 0.83333 → 10.83333 rather than 4.16667 → 15.8333, inset by half a stroke
+   * exactly as `clock` and `markerPin02` are. Written in frame coordinates it
+   * renders clipped to its own top-left corner.
+   */
+  plus: {
+    w: 11.6667,
+    h: 11.6667,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M5.83333 0.83333V10.8333M0.83333 5.83333H10.8333',
+  },
+  /**
+   * ⚠️ NOT A FIGMA EXPORT — see the note on `plus`.
+   *
+   * The upload frames draw an upload-cloud glyph, but the file has no export of
+   * one, so these two are constructed to the kit's conventions. Same coordinate
+   * trap as `plus`: `viewBox` is `0 0 w h`, the STROKED bounds, so a path
+   * written in the 24px design frame renders clipped. Both were laid out at 24
+   * with strokeWidth 2 (half-stroke 1) and then translated so the stroked box
+   * starts at the origin — for `uploadCloud` that is x−3, y−6.
+   */
+  uploadCloud: {
+    w: 18,
+    h: 15,
+    frame: 24,
+    strokeWidth: 2,
+    d: ['M9 9V1', 'M5.5 4.5L9 1L12.5 4.5', 'M1 9v3a2 2 0 002 2h12a2 2 0 002-2V9'],
+  },
+  /** ⚠️ NOT A FIGMA EXPORT. Removes an uploaded file. Translated x−2, y−2. */
+  trash: {
+    w: 20,
+    h: 21,
+    frame: 24,
+    strokeWidth: 2,
+    d: [
+      'M1 4h18',
+      'M6 4V2a1 1 0 011-1h6a1 1 0 011 1v2',
+      'M17 4v14a2 2 0 01-2 2H5a2 2 0 01-2-2V4',
+      'M8 9v6',
+      'M12 9v6',
+    ],
+  },
+  /** Figma 41:8794 — the deadline line on a saved-list row (223:9505). */
+  clock: {
+    w: 18.3333,
+    h: 18.3333,
+    frame: 20,
+    strokeWidth: 1.66667,
+    d: 'M9.16667 4.16667V9.16667L12.5 10.8333M17.5 9.16667C17.5 13.769 13.769 17.5 9.16667 17.5C4.56429 17.5 0.833333 13.769 0.833333 9.16667C0.833333 4.56429 4.56429 0.833333 9.16667 0.833333C13.769 0.833333 17.5 4.56429 17.5 9.16667Z',
+  },
+  /**
+   * Figma 223:9567 — the scholarship bar under the saved list. Exported at 32px
+   * with no inset, so `frame` is 32 here rather than the usual 20/24.
+   */
+  gift01: {
+    w: 32,
+    h: 32,
+    frame: 32,
+    strokeWidth: 2,
+    d: 'M16 8V29.3333M16 8H11.2857C10.5911 8 9.92493 7.71905 9.43377 7.21895C8.9426 6.71885 8.66667 6.04058 8.66667 5.33333C8.66667 4.62609 8.9426 3.94781 9.43377 3.44772C9.92493 2.94762 10.5911 2.66667 11.2857 2.66667C14.9524 2.66667 16 8 16 8ZM16 8H20.7143C21.4089 8 22.0751 7.71905 22.5662 7.21895C23.0574 6.71885 23.3333 6.04058 23.3333 5.33333C23.3333 4.62609 23.0574 3.94781 22.5662 3.44772C22.0751 2.94762 21.4089 2.66667 20.7143 2.66667C17.0476 2.66667 16 8 16 8ZM26.6667 14.6667V25.0667C26.6667 26.5601 26.6667 27.3069 26.376 27.8773C26.1204 28.3791 25.7124 28.787 25.2106 29.0427C24.6402 29.3333 23.8935 29.3333 22.4 29.3333L9.6 29.3333C8.10653 29.3333 7.35979 29.3333 6.78936 29.0427C6.28759 28.787 5.87964 28.3791 5.62398 27.8773C5.33333 27.3069 5.33333 26.5601 5.33333 25.0667V14.6667M2.66667 10.1333L2.66667 12.5333C2.66667 13.2801 2.66667 13.6534 2.81199 13.9387C2.93982 14.1895 3.1438 14.3935 3.39468 14.5213C3.67989 14.6667 4.05326 14.6667 4.8 14.6667L27.2 14.6667C27.9467 14.6667 28.3201 14.6667 28.6053 14.5213C28.8562 14.3935 29.0602 14.1895 29.188 13.9387C29.3333 13.6534 29.3333 13.2801 29.3333 12.5333V10.1333C29.3333 9.3866 29.3333 9.01323 29.188 8.72801C29.0602 8.47713 28.8562 8.27316 28.6053 8.14533C28.3201 8 27.9467 8 27.2 8L4.8 8C4.05326 8 3.6799 8 3.39468 8.14532C3.1438 8.27316 2.93982 8.47713 2.81199 8.72801C2.66667 9.01323 2.66667 9.3866 2.66667 10.1333Z',
+  },
 } as const satisfies Record<string, KitIconArt>;
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Brand marks.
+
+   Separate from ICONS above because these are FILLED, not stroked: the kit's
+   `Social icon` exports carry `fill` paths with no stroke at all, so KitIcon's
+   stroke/strokeWidth treatment renders them as hollow outlines. Same idea
+   otherwise — path data verbatim from the export, with the baked #737373
+   swapped for currentColor so the caller picks the colour with a token.
+   ────────────────────────────────────────────────────────────────────────── */
+
+export type BrandIconArt = {
+  readonly w: number;
+  readonly h: number;
+  /** The icon frame these units were exported against. */
+  readonly frame: number;
+  readonly d: string;
+  /** X's mark is a compound path and needs the even-odd rule to keep its hole. */
+  readonly evenOdd?: boolean;
+};
+
+export function BrandIcon({
+  art,
+  frame,
+  className,
+}: {
+  art: BrandIconArt;
+  /** Side of the icon frame in the design, e.g. 20 in the footer. */
+  frame: number;
+  className?: string | undefined;
+}) {
+  const scale = frame / art.frame;
+  return (
+    <svg
+      viewBox={`0 0 ${art.w} ${art.h}`}
+      width={art.w * scale}
+      height={art.h * scale}
+      fill="currentColor"
+      aria-hidden="true"
+      focusable="false"
+      {...(className ? { className } : {})}
+    >
+      <path
+        d={art.d}
+        {...(art.evenOdd ? { fillRule: 'evenodd' as const, clipRule: 'evenodd' as const } : {})}
+      />
+    </svg>
+  );
+}
+
+/**
+ * Instagram, carried over verbatim from the legacy footer
+ * (src/components/landing/home/home-landing.tsx:932).
+ *
+ * ⚠️ NOT design art. The Figma social row (104:7422) draws X, LinkedIn and
+ * Facebook only, and `search_design_system` finds no Instagram mark in any
+ * connected library — so there is nothing to export. This is the shape the site
+ * already shipped rather than one invented here, which is the reason it is a
+ * hand-shaped outline sitting next to filled brand marks.
+ *
+ * TODO(design): ask for an Instagram mark on 104:7422, then move this into
+ * BRAND_ICONS with the others and delete this component.
+ *
+ * One fix on the way over: the original's aperture dot is a zero-length <line>
+ * with the default butt cap, which renders nothing. `strokeLinecap="round"`
+ * is what actually makes it a dot.
+ */
+export function InstagramMark({ frame = 20, className }: { frame?: number; className?: string }) {
+  return (
+    <svg
+      width={frame}
+      height={frame}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+      {...(className ? { className } : {})}
+    >
+      <rect x="2" y="2" width="20" height="20" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <line x1="17.5" y1="6.5" x2="17.5" y2="6.5" />
+    </svg>
+  );
+}
+
+/**
+ * SearchMark — the magnifier on every search field.
+ *
+ * ⚠️ NOT TRACED FROM A FRAME, and not part of `ICONS` for that reason. It is
+ * the glyph `/universities` has shipped since its rebuild, lifted here verbatim
+ * when `MultiSelect` needed the same one (Figma 375:11536 draws a magnifier in
+ * the filter field but the asset was never exported). Two hand-drawn copies of
+ * one icon is the thing this file exists to prevent, so it lives here and both
+ * callers import it.
+ *
+ * Stroke-based, so it cannot be a `KitIconArt` entry — those are filled paths.
+ * If the real Untitled UI `search-lg` is ever exported, replace this body and
+ * both callers pick it up.
+ */
+export function SearchMark({ frame = 20 }: { frame?: number }) {
+  return (
+    <svg
+      width={frame}
+      height={frame}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      focusable="false"
+    >
+      <circle cx="11" cy="11" r="8" />
+      <path d="m21 21-4.3-4.3" />
+    </svg>
+  );
+}
+
+/**
+ * Figma 375:21653 — the verified seal beside a mentor's name.
+ *
+ * Not a `KitIconArt` entry: those render one stroke colour through
+ * `currentColor`, and this is two filled paths in two colours — a scalloped
+ * seal with a white tick punched over it. The seal takes `currentColor` so the
+ * caller sets it with `text-fg-verified`; only the tick is hard-white, which is
+ * what the design draws regardless of the seal's colour.
+ *
+ * `title` renders an accessible name, because "verified" is information and not
+ * decoration — a mentor whose documents Glowbal has checked is a claim a
+ * screen-reader user needs to hear. Callers that already say "verified" in
+ * adjacent text should pass `title={null}` so it is not announced twice.
+ */
+export function VerifiedMark({
+  frame = 16,
+  title = 'Verified mentor',
+  className,
+}: {
+  frame?: number;
+  title?: string | null;
+  className?: string | undefined;
+}) {
+  return (
+    <svg
+      width={frame}
+      height={frame}
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      {...(title ? { role: 'img' } : { 'aria-hidden': true, focusable: false })}
+      {...(className ? { className } : {})}
+    >
+      {title ? <title>{title}</title> : null}
+      <path
+        fill="currentColor"
+        d="M9.91068 1.42318C10.1917 1.70456 10.573 1.86283 10.9707 1.86318H12.3647C12.7625 1.86318 13.144 2.02121 13.4253 2.30252C13.7066 2.58382 13.8647 2.96535 13.8647 3.36318V4.75618C13.8647 5.15418 14.0227 5.53618 14.3047 5.81718L15.2887 6.80218C15.4281 6.94148 15.5386 7.10688 15.6141 7.28893C15.6895 7.47098 15.7284 7.66612 15.7284 7.86318C15.7284 8.06024 15.6895 8.25538 15.6141 8.43743C15.5386 8.61948 15.4281 8.78488 15.2887 8.92418L14.3037 9.90918C14.0223 10.1902 13.864 10.5715 13.8637 10.9692V12.3632C13.8637 12.761 13.7056 13.1425 13.4243 13.4238C13.143 13.7051 12.7615 13.8632 12.3637 13.8632H10.9707C10.573 13.8635 10.1917 14.0218 9.91068 14.3032L8.92468 15.2882C8.64343 15.5691 8.26218 15.7269 7.86468 15.7269C7.46718 15.7269 7.08593 15.5691 6.80468 15.2882L5.81868 14.3022C5.53765 14.0208 5.15637 13.8625 4.75868 13.8622H3.36468C2.96703 13.8622 2.58565 13.7043 2.30437 13.4232C2.0231 13.1421 1.86495 12.7608 1.86468 12.3632V10.9702C1.86433 10.5725 1.70606 10.1912 1.42468 9.91018L0.43968 8.92318C0.30029 8.78388 0.189715 8.61848 0.114273 8.43643C0.0388305 8.25438 0 8.05924 0 7.86218C0 7.66512 0.0388305 7.46998 0.114273 7.28793C0.189715 7.10588 0.30029 6.94048 0.43968 6.80118L1.42468 5.81618C1.70582 5.53539 1.86407 5.15452 1.86468 4.75718V3.36318C1.86468 2.96535 2.02272 2.58382 2.30402 2.30252C2.58532 2.02121 2.96686 1.86318 3.36468 1.86318H4.75768C5.15537 1.86283 5.53665 1.70456 5.81768 1.42318L6.80468 0.43918C7.08597 0.157973 7.46743 0 7.86518 0C8.26293 0 8.64439 0.157973 8.92568 0.43918L9.91168 1.42518L9.91068 1.42318Z"
+      />
+      <path
+        className="fill-white"
+        fillRule="evenodd"
+        clipRule="evenodd"
+        /* The tick, exported at 7x7 and offset to the seal's centre. */
+        transform="translate(4.43 4.36)"
+        d="M6.88326 1.1534C6.99014 0.985519 7.02596 0.782055 6.98282 0.587767C6.93969 0.393479 6.82114 0.224284 6.65326 0.117401C6.48538 0.0105191 6.28191 -0.0252947 6.08763 0.0178387C5.89334 0.060972 5.72414 0.179519 5.61726 0.347401L2.68026 4.9624L1.33626 3.2824C1.21201 3.12698 1.0311 3.02729 0.833346 3.00526C0.635589 2.98322 0.437178 3.04065 0.281761 3.1649C0.126344 3.28916 0.0266528 3.47006 0.00461728 3.66782C-0.0174183 3.86557 0.0400075 4.06398 0.164261 4.2194L2.16426 6.7194C2.2388 6.81269 2.33453 6.88683 2.4435 6.93566C2.55246 6.98449 2.67152 7.0066 2.79075 7.00014C2.90998 6.99369 3.02595 6.95886 3.12901 6.89855C3.23207 6.83824 3.31923 6.75419 3.38326 6.6534L6.88326 1.1534V1.1534Z"
+      />
+    </svg>
+  );
+}
+
+/** Figma 104:7423–104:7425 — the three marks in the footer's social row. */
+export const BRAND_ICONS = {
+  x: {
+    w: 18.2809,
+    h: 17.5,
+    frame: 20,
+    evenOdd: true,
+    d: 'M12.2784 17.5L7.86409 11.208L2.33792 17.5H0L6.82685 9.72928L0 0H6.00246L10.1629 5.93013L15.3757 0H17.7137L11.2036 7.41084L18.2809 17.5H12.2784ZM14.8819 15.7262H13.3079L3.34755 1.77386H4.92175L8.91096 7.36047L9.6008 8.32989L14.8819 15.7262Z',
+  },
+  linkedin: {
+    w: 20,
+    h: 20,
+    frame: 20,
+    d: 'M18.5195 0H1.47656C0.660156 0 0 0.644531 0 1.44141V18.5547C0 19.3516 0.660156 20 1.47656 20H18.5195C19.3359 20 20 19.3516 20 18.5586V1.44141C20 0.644531 19.3359 0 18.5195 0ZM5.93359 17.043H2.96484V7.49609H5.93359V17.043ZM4.44922 6.19531C3.49609 6.19531 2.72656 5.42578 2.72656 4.47656C2.72656 3.52734 3.49609 2.75781 4.44922 2.75781C5.39844 2.75781 6.16797 3.52734 6.16797 4.47656C6.16797 5.42187 5.39844 6.19531 4.44922 6.19531ZM17.043 17.043H14.0781V12.4023C14.0781 11.2969 14.0586 9.87109 12.5352 9.87109C10.9922 9.87109 10.7578 11.0781 10.7578 12.3242V17.043H7.79688V7.49609H10.6406V8.80078H10.6797C11.0742 8.05078 12.043 7.25781 13.4844 7.25781C16.4883 7.25781 17.043 9.23438 17.043 11.8047V17.043V17.043Z',
+  },
+  facebook: {
+    w: 20,
+    h: 19.8785,
+    frame: 20,
+    d: 'M20 10C20 4.47715 15.5229 0 10 0C4.47715 0 0 4.47715 0 10C0 14.9912 3.65684 19.1283 8.4375 19.8785V12.8906H5.89844V10H8.4375V7.79688C8.4375 5.29063 9.93047 3.90625 12.2146 3.90625C13.3084 3.90625 14.4531 4.10156 14.4531 4.10156V6.5625H13.1922C11.95 6.5625 11.5625 7.3334 11.5625 8.125V10H14.3359L13.8926 12.8906H11.5625V19.8785C16.3432 19.1283 20 14.9912 20 10Z',
+  },
+} as const satisfies Record<string, BrandIconArt>;

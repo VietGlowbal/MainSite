@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Props = {
   bookingId: number;
@@ -15,6 +16,7 @@ export function ReviewFormClient({ bookingId, achieverId, userId }: Props) {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  useLoadingIndicator(submitting, 'Submitting your review');
   const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {

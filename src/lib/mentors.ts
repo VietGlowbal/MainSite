@@ -10,24 +10,81 @@ import type {
 
 // ── Browse approved mentors ─────────────────────────────────────────────────
 
+/**
+ * The public shape of a mentor — what the directory at /mentors may show a
+ * visitor who is not signed in.
+ *
+ * Deliberately not `MentorProfile`. That type mirrors the whole row, which also
+ * carries `legal_name`, `date_of_birth`, the four verification storage keys and
+ * `stripe_account_id`. Those are identity and payout details, and a public
+ * directory has no business serialising them into the page.
+ */
+export type PublicMentor = Pick<
+  MentorWithUniversity,
+  | 'id'
+  | 'display_name'
+  | 'avatar_url'
+  | 'university_id'
+  | 'degree_level'
+  | 'subject'
+  | 'graduation_year'
+  | 'currently_enrolled'
+  | 'bio'
+  | 'help_topics'
+  | 'strengths'
+  | 'languages'
+  | 'total_sessions'
+  | 'avg_rating'
+  // A session rate is a public fact about a mentor, and the price sorts need it.
+  | 'hourly_rate_amount'
+  | 'hourly_rate_currency'
+  | 'created_at'
+  | 'university'
+  /*
+   * Both added for the profile page (Figma 375:21633), and both public facts a
+   * student is choosing on: the header reads "2023 – 2025 · masters · …", and
+   * the tick beside the name is gated on `verified_at` rather than on
+   * `status === 'approved'`. Those are not the same claim — approval lets a
+   * mentor take bookings, verification says Glowbal checked their documents —
+   * and a trust marker must not be inferred from the weaker one.
+   */
+  | 'study_start_year'
+  | 'verified_at'
+>;
+
+const PUBLIC_MENTOR_SELECT = `
+  id, display_name, avatar_url, university_id, degree_level, subject,
+  graduation_year, study_start_year, currently_enrolled, bio, help_topics, strengths,
+  languages, total_sessions, avg_rating, hourly_rate_amount, hourly_rate_currency,
+  verified_at, created_at,
+  university:universities!achiever_profiles_university_id_fkey ( id, name, country, logo_url )
+`;
+
 export async function getApprovedMentors(
   filters?: MentorBrowseFilters,
-): Promise<MentorWithUniversity[]> {
-  const supabase = await createClient();
+): Promise<PublicMentor[]> {
+  /*
+   * Admin client, not the request-scoped one.
+   *
+   * `achiever_profiles` has no public-read RLS policy, so the anon role reads
+   * back zero rows — which made /mentors render an empty directory to every
+   * signed-out visitor, silently, because an RLS filter is not an error. The
+   * mentor directory is public by design (it is in the marketing nav and the
+   * footer), so the read is done with the service role and narrowed to
+   * PUBLIC_MENTOR_SELECT instead.
+   *
+   * The durable fix is a `status = 'approved'` read policy on the table; until
+   * that migration is run, this keeps the page honest. Nothing here is
+   * user-scoped, so there is no per-user data to leak by bypassing RLS.
+   */
+  const supabase = createAdminClient();
 
   // Note: the legacy "achiever_*" tables are kept in place so existing
   // bookings, admin pages, and reviews continue to work. We just rebrand
   // the surface area as "mentor" everywhere new code touches.
   const { data, error } = await supabase
     .from('achiever_profiles')
-    .select(`
-      *,
-      university:universities!achiever_profiles_university_id_fkey (
-        id,
-        name,
-        country
-      )
-    `)
+    .select(PUBLIC_MENTOR_SELECT)
     .eq('status', 'approved');
 
   if (error) {
@@ -35,7 +92,7 @@ export async function getApprovedMentors(
     return [];
   }
 
-  let results = (data ?? []) as MentorWithUniversity[];
+  let results = (data ?? []) as unknown as PublicMentor[];
 
   // Filtering
   if (filters?.query) {
@@ -110,6 +167,142 @@ export async function getApprovedMentors(
   }
 
   return results;
+}
+
+// ── Single mentor, public ───────────────────────────────────────────────────
+
+/**
+ * The mentor behind `/mentors/<id>` — the public profile page.
+ *
+ * Deliberately NOT `getMentorById`, for two reasons that were both live bugs on
+ * that page before this existed:
+ *
+ * 1. `getMentorById` reads through the request-scoped client, and every select
+ *    policy on `achiever_profiles` is granted `to authenticated` (see
+ *    supabase-global-station.sql). A signed-out visitor therefore read back
+ *    zero rows, `getMentorById` returned null, and the page called notFound() —
+ *    so every card in the public directory was a 404 for exactly the audience
+ *    the directory is public for. RLS returning nothing is not an error, so
+ *    nothing anywhere said so.
+ *
+ * 2. `getMentorById` selects `*`, and the page handed the whole row to a
+ *    `'use client'` component. That serialises `legal_name`, `date_of_birth`,
+ *    `stripe_account_id` and all four verification-document storage keys into
+ *    the page payload, readable by anyone who opens the page source. The
+ *    PublicMentor projection exists precisely to stop that, and this uses it.
+ *
+ * Same service-role reasoning as `getApprovedMentors`: nothing here is
+ * user-scoped, so bypassing RLS leaks no per-user data — and the `approved`
+ * filter is applied in the query, not by the caller, so a pending or suspended
+ * mentor cannot be reached by guessing a URL.
+ */
+export async function getPublicMentorById(id: string): Promise<PublicMentor | null> {
+  // A malformed id would make Postgres raise on the uuid cast rather than
+  // return nothing, so filter it out before the round trip.
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) {
+    return null;
+  }
+
+  const supabase = createAdminClient();
+
+  const { data, error } = await supabase
+    .from('achiever_profiles')
+    .select(PUBLIC_MENTOR_SELECT)
+    .eq('id', id)
+    .eq('status', 'approved')
+    .maybeSingle();
+
+  if (error || !data) return null;
+  return data as unknown as PublicMentor;
+}
+
+/**
+ * The slots the booking calendar may offer, filtered to the ones checkout will
+ * actually accept.
+ *
+ * `getMentorOpenSlots` is wrong for this surface twice over: it returns `held`
+ * alongside `open`, and it starts at `now`. POST /api/mentorship/checkout
+ * rejects both — a held slot 409s ("no longer available") and anything starting
+ * within the hour 400s ("must be booked at least an hour in advance"). Offering
+ * a time that cannot be booked is worse than not offering it, so the same two
+ * rules are applied here rather than left for the student to discover at the
+ * payment step.
+ *
+ * Service role for the same reason as the profile above — the read policy on
+ * `mentor_availability_slots` is also `to authenticated`, so a signed-out
+ * visitor saw an empty calendar and no explanation.
+ */
+export async function getPublicMentorSlots(
+  mentorId: string,
+  options?: { daysAhead?: number },
+): Promise<MentorAvailabilitySlot[]> {
+  const supabase = createAdminClient();
+
+  const leadTimeMs = 60 * 60 * 1000; // mirrors the checkout guard
+  const fromIso = new Date(Date.now() + leadTimeMs).toISOString();
+  const toIso = new Date(
+    Date.now() + (options?.daysAhead ?? 90) * 24 * 60 * 60 * 1000,
+  ).toISOString();
+
+  const { data, error } = await supabase
+    .from('mentor_availability_slots')
+    .select('id, mentor_id, starts_at, ends_at, status, booking_id, hold_expires_at, created_at')
+    .eq('mentor_id', mentorId)
+    .eq('status', 'open')
+    .gte('starts_at', fromIso)
+    .lte('starts_at', toIso)
+    .order('starts_at', { ascending: true });
+
+  if (error) {
+    console.error('Error fetching public slots:', error);
+    return [];
+  }
+
+  return (data ?? []) as MentorAvailabilitySlot[];
+}
+
+/**
+ * Visible reviews for the public profile.
+ *
+ * Narrowed by hand rather than `select('*')`: the row also carries
+ * `reviewer_id` and `booking_id`, which identify the student who wrote it and
+ * the session they bought. Neither is rendered, and neither belongs in a public
+ * payload.
+ *
+ * ⚠️ There is no author name to show. `MentorReviewWithReviewer` declares a
+ * `reviewer_name`, but `session_reviews` has no such column (see
+ * supabase-global-station.sql) — so `select('*')` has always returned
+ * undefined for it and the existing profile has always rendered reviews
+ * unattributed. Rather than carry the fiction forward, this returns only the
+ * columns that exist; the caller labels them accordingly.
+ */
+export type PublicMentorReview = {
+  id: number;
+  rating: number;
+  comment: string | null;
+  created_at: string;
+};
+
+export async function getPublicMentorReviews(
+  mentorId: string,
+  limit = 20,
+): Promise<{ reviews: PublicMentorReview[]; count: number }> {
+  const supabase = createAdminClient();
+
+  const { data, error, count } = await supabase
+    .from('session_reviews')
+    .select('id, rating, comment, created_at', { count: 'exact' })
+    .eq('achiever_id', mentorId)
+    .eq('is_visible', true)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    console.error('Error fetching public reviews:', error);
+    return { reviews: [], count: 0 };
+  }
+
+  return { reviews: (data ?? []) as PublicMentorReview[], count: count ?? 0 };
 }
 
 // ── Single mentor ───────────────────────────────────────────────────────────

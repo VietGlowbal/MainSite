@@ -1,9 +1,64 @@
 import type { Metadata } from 'next';
-import { HomeLanding } from '@/components/landing/home/home-landing';
-import { createAdminClient } from '@/lib/supabase/admin';
-import { sendEmail } from '@/lib/send-email';
+import { GlowbalLogo } from '@/components/glowbal-logo';
+import {
+  FOOTER_COLUMNS,
+  FOOTER_COPYRIGHT,
+  FOOTER_RATINGS,
+  FOOTER_SOCIAL,
+  FOOTER_TAGLINE,
+  HomeContact,
+  HomeFeatures,
+  HomeHero,
+  HomeHowItWorks,
+  HomeMetrics,
+  HomePartners,
+  HomeScholarships,
+  MARKETING_NAV_ACTIONS,
+  MARKETING_NAV_ITEMS,
+  type ContactState,
+} from '@/features/marketing/ui';
+import { recordWaitlistSignup } from '@/features/marketing/api';
 import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
-import type { WaitlistState } from '@/lib/types';
+import { sendEmail } from '@/lib/send-email';
+import { Footer, MobileNav, TopNav } from '@/shared/ui';
+import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
+import { headers } from 'next/headers';
+import Link from 'next/link';
+
+/**
+ * Five consultation requests per IP per hour. Generous for a person filling the
+ * form in twice, useless for a script. See the note in `submitContact`.
+ */
+const contactLimiter = new RateLimiter({ maxRequests: 5, windowMs: 60 * 60 * 1000 });
+
+/**
+ * "/" — Home, rebuilt from Figma 375:9844 on the "Khanh Linh - Chi" canvas.
+ *
+ * This replaced the 976-line legacy landing at src/components/landing/home,
+ * which was the last big page still built on globals.css class names. The
+ * composition is the one that was proven at /dev/home first; that route stays
+ * as the design preview and is now the ONLY place the unwritten sections are
+ * still visible.
+ *
+ * ⚠️ TWO SECTIONS ARE NOT HERE, and their absence is deliberate:
+ *
+ *   HomeTestimonials  quotes need real students and their consent
+ *   HomeFaq           every answer is a claim about pricing, staffing or process
+ *
+ * Both render `MissingContent` until the owner writes them, and a dashed "copy
+ * missing" box is not something a real visitor should see. Two more sections are
+ * here but told to drop their placeholders:
+ *
+ *   HomeFeatures      showPlaceholders={false} — blocks 2 and 3 have no copy,
+ *                     and no block has a mockup asset
+ *   HomeScholarships  showPlaceholders={false} — the card needs an awarding
+ *                     body and `scholarships.provider` is null on all 2,877
+ *                     published rows, so the heading and "See more" ship
+ *                     without cards. See the note on that component.
+ *
+ * Adding any of them back is one line once the data or copy lands — /dev/home
+ * keeps the full composition, placeholders included.
+ */
 
 export const metadata: Metadata = {
   title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
@@ -21,57 +76,145 @@ export const metadata: Metadata = {
   ],
 };
 
-// The landing roster (team) rarely changes; ISR keeps the page prerendered
-// while letting the cached Supabase team query refresh in the background.
+// Nothing on this page reads per-request state, so it prerenders. The 12h
+// window is kept from the previous landing page, ready for the first section
+// that does take a Supabase read.
 export const revalidate = 43200;
 
-async function joinWaitlist(_prevState: WaitlistState, formData: FormData): Promise<WaitlistState> {
+/**
+ * The consultation form (Figma 104:7361).
+ *
+ * It writes to `waitlist_signups`, the same table the pre-launch /coming-soon
+ * gate uses, through the marketing repository rather than a second inline
+ * admin-client insert. That is what took this file off ADMIN_CLIENT_DEBT in
+ * eslint.config.mjs — a list that may shrink and must never grow.
+ *
+ * ⚠️ The table has three columns (email, first_name, notes) and the form has
+ * six fields. Last name is joined onto the first, and the phone number is
+ * appended to the notes, so nothing the student typed is silently dropped. The
+ * real fix is columns; until then this is lossy-but-visible rather than lossy-
+ * and-silent.
+ */
+async function submitContact(
+  _prevState: ContactState,
+  formData: FormData,
+): Promise<ContactState> {
   'use server';
+
+  /*
+   * ⚠️ RATE LIMITED BECAUSE THIS ACTION SENDS MAIL TO AN ADDRESS THE CALLER
+   * TYPES. Without a limit it is an open relay in miniature: a script can post
+   * this form in a loop and have our domain deliver "You're on the GLOWBAL
+   * waitlist" to any inbox it likes. That burns sender reputation, and it is on
+   * "/", the most reachable page on the site.
+   *
+   * Keyed on the client IP rather than the email, because the email is the
+   * attacker-controlled part — limiting per-address stops nothing.
+   *
+   * ⚠️ In-memory, so the limit is per server instance. On multi-instance
+   * hosting the effective ceiling multiplies by the instance count. That is a
+   * real weakening, not a fix to skip: it turns an unbounded amplifier into a
+   * bounded one. A durable fix is a shared store (the limiter's README covers
+   * Upstash) or a captcha.
+   */
+  const headerList = await headers();
+  const forwarded = headerList.get('x-forwarded-for') ?? '';
+  const clientIp = forwarded.split(',')[0]?.trim() || headerList.get('x-real-ip') || 'unknown';
+
+  const limit = contactLimiter.checkLimit(`contact:${clientIp}`);
+  if (!limit.allowed) {
+    return {
+      status: 'error',
+      message: `Too many requests. Please try again in ${limit.retryAfter} seconds.`,
+    };
+  }
 
   const email = String(formData.get('email') || '').trim().toLowerCase();
   const firstName = String(formData.get('firstName') || '').trim();
+  const lastName = String(formData.get('lastName') || '').trim();
   const notes = String(formData.get('notes') || '').trim();
+  const dialCode = String(formData.get('dialCode') || '').trim();
+  const phone = String(formData.get('phone') || '').trim();
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { status: 'error', message: 'Please enter a valid email address.' };
   }
 
-  try {
-    const supabase = createAdminClient();
+  const fullName = [firstName, lastName].filter(Boolean).join(' ');
+  const noteLines = [notes, phone ? `Phone: ${dialCode} ${phone}`.trim() : ''].filter(Boolean);
 
-    // Try insert first — if it succeeds it's a new signup, send the email
-    const { error: insertError } = await supabase.from('waitlist_signups').insert(
-      { email, first_name: firstName || null, notes: notes || null, source: 'website_waitlist' },
-    );
+  const result = await recordWaitlistSignup({
+    email,
+    firstName: fullName,
+    notes: noteLines.join('\n\n'),
+  });
 
-    const isNew = !insertError;
-
-    // If duplicate, update notes/name silently
-    if (insertError && insertError.code === '23505') {
-      await supabase.from('waitlist_signups').update(
-        { first_name: firstName || null, notes: notes || null },
-      ).eq('email', email);
-    } else if (insertError) {
-      if (insertError.code === '42P01') {
-        return { status: 'error', message: 'The waitlist table is not set up yet. Create `waitlist_signups` in Supabase.' };
-      }
-      return { status: 'error', message: 'Something went wrong saving your signup. Please try again.' };
-    }
-
-    if (isNew) {
-      await sendEmail({
-        to: email,
-        subject: "You're on the GLOWBAL waitlist",
-        html: waitlistConfirmationEmail(firstName),
-      });
-    }
-
-    return { status: 'ok', message: "You're on the list. We'll keep you posted." };
-  } catch {
-    return { status: 'error', message: 'Something went wrong saving your signup. Please try again.' };
+  if (result.outcome === 'table-missing' || result.outcome === 'error') {
+    return {
+      status: 'error',
+      message: 'Something went wrong saving your details. Please try again.',
+    };
   }
+
+  // Only a genuinely new signup gets the confirmation mail; re-submitting the
+  // form must not send it a second time.
+  if (result.outcome === 'inserted') {
+    await sendEmail({
+      to: email,
+      subject: "You're on the GLOWBAL waitlist",
+      html: waitlistConfirmationEmail(firstName),
+    });
+  }
+
+  return { status: 'ok', message: "Thanks — we'll be in touch shortly." };
 }
 
 export default function Home() {
-  return <HomeLanding action={joinWaitlist} />;
+  return (
+    /* gb-page-full-bleed tells globals.css to drop the sidebar gutter and the
+       mobile header offset — this page owns its own chrome. It also has to be
+       listed in OWN_CHROME_ROUTES in src/components/nav-reveal.tsx, or the
+       legacy app sidebar renders on top of it. */
+    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface-inverse-strong">
+      <TopNav
+        logo={<GlowbalLogo height={28} />}
+        items={MARKETING_NAV_ITEMS}
+        secondaryAction={MARKETING_NAV_ACTIONS.secondary}
+        primaryAction={MARKETING_NAV_ACTIONS.primary}
+      />
+      {/* TopNav is desktop-only (hidden below md). Without this the landing
+          page has NO navigation on a phone at all: "/" is in OWN_CHROME_ROUTES,
+          so the legacy mobile nav is suppressed too. `gb-has-mobile-header` on
+          the wrapper is what offsets the content past the fixed 64px bar. */}
+      <MobileNav
+        logo={
+          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
+            <GlowbalLogo height={28} />
+          </Link>
+        }
+        items={MARKETING_NAV_ITEMS}
+        primaryAction={MARKETING_NAV_ACTIONS.primary}
+        secondaryAction={MARKETING_NAV_ACTIONS.secondary}
+        openLabel="Menu"
+        closeLabel="Close menu"
+      />
+      <main>
+        <HomeHero />
+        <HomePartners />
+        <HomeMetrics />
+        <HomeFeatures showPlaceholders={false} />
+        <HomeHowItWorks />
+        <HomeScholarships showPlaceholders={false} />
+        <HomeContact action={submitContact} />
+      </main>
+      <Footer
+        logo={<GlowbalLogo height={28} />}
+        tagline={FOOTER_TAGLINE}
+        columns={FOOTER_COLUMNS}
+        social={FOOTER_SOCIAL}
+        copyright={FOOTER_COPYRIGHT}
+        ratings={FOOTER_RATINGS}
+      />
+    </div>
+  );
 }

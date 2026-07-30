@@ -27,6 +27,8 @@ export function setUniversityQueries(impl: UniversityQueries | null): void {
 }
 
 export { SupabaseUniversityRepository };
+export { AUTO_PARSE_SOURCE, resolveUniversity } from './university-resolver';
+export type { ResolveInput, ResolveOutcome } from './university-resolver';
 export {
   UNIVERSITY_LIST_COLUMNS,
   UNIVERSITY_PAGE_SIZE_DEFAULT,

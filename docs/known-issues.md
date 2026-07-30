@@ -1,0 +1,331 @@
+# Known issues
+
+Ordered by how likely they are to waste your time.
+
+---
+
+## 0. `ADD COLUMN IF NOT EXISTS` never changes a column's TYPE — and it cost the owner four re-runs
+
+**The single most expensive mistake in this pack so far.** Read it before
+editing any `supabase-*.sql` file that has already been applied.
+
+`supabase-academic-intake.sql` originally declared:
+
+```sql
+ADD COLUMN IF NOT EXISTS curriculum TEXT
+```
+
+The owner ran it. A later review established that a student can sit two
+curricula at once, so the line was edited **in place** to `TEXT[]`. The owner
+re-ran the file — four times — and the column stayed `TEXT` every time, because
+`IF NOT EXISTS` compares the column **name** and never looks at its type. The
+statement was skipped silently on every run, and would be on the hundredth.
+
+Worse, the session then reported "the migration hasn't been run" from a stale
+note instead of querying the database. It had been run. One column was wrong.
+
+Two rules come out of this:
+
+1. **Never edit an applied migration in place.** Add a follow-up block that
+   inspects `information_schema` and converts, guarded so it is idempotent.
+   The repair now in that file is the pattern:
+
+   ```sql
+   DO $$
+   BEGIN
+     IF EXISTS (
+       SELECT 1 FROM information_schema.columns
+       WHERE table_schema='public' AND table_name='student_profiles'
+         AND column_name='curriculum' AND data_type <> 'ARRAY'
+     ) THEN
+       ALTER TABLE public.student_profiles
+         ALTER COLUMN curriculum TYPE TEXT[]
+         USING CASE WHEN curriculum IS NULL OR btrim(curriculum)='' THEN NULL
+                    ELSE ARRAY[curriculum] END;
+     END IF;
+   END $$;
+   ```
+
+2. **Verify schema against the database, never against the .sql file or a
+   note.** PostgREST publishes the live types — this needs no SQL editor:
+
+   ```bash
+   node --env-file=.env.local -e "
+   const u=process.env.NEXT_PUBLIC_SUPABASE_URL+'/rest/v1/', k=process.env.SUPABASE_SERVICE_ROLE_KEY;
+   fetch(u,{headers:{apikey:k,Authorization:'Bearer '+k}}).then(r=>r.json()).then(s=>
+     console.log(s.definitions.student_profiles.properties.curriculum));
+   "
+   ```
+
+   `{type:'array'}` means converted; `{type:'string',format:'text'}` means not.
+
+⚠️ **Still outstanding:** the owner must run the repaired file once more.
+`src/app/onboarding/onboarding-wizard.tsx` was hardened to coerce a `string` or
+`string[]` into a list (`toCurriculumList`) so a half-migrated database cannot
+crash câu 6 on `curriculum.join(' · ')` — delete that helper once every
+environment is known to be `TEXT[]`.
+
+---
+
+## 1. FIXED 2026-07-27 — `public.user_universities` migration applied
+
+Was: PostgREST answered `Could not find the table 'public.user_universities' in
+the schema cache` even for the service-role key. The owner ran
+`supabase-schema.sql:151` and it is now confirmed live (empty, RLS enabled,
+`application_tasks`'s FK to it resolves).
+
+```bash
+node --env-file=.env.local -e "
+const { createClient } = require('@supabase/supabase-js');
+const a = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+a.from('user_universities').select('id').limit(1).then(r => console.log(r.error?.message ?? 'OK'));
+"
+```
+
+This unblocks: the heart button on `/universities`, `GET
+/api/home/save-university`, `/my-universities` actually holding rows, and
+`tests/e2e/signed-in.spec.ts` → *"saving a university survives a reload"*
+(baseline moves from 51 pass / 1 fail to 52 pass / 0 fail).
+
+Related tables that were already populated: `universities` (97),
+`scholarships` (2877), `scholarship_universities` (374), `user_scholarships`,
+`student_profiles`, `course_applications` (29), `team_members`, `geo_articles`,
+`achiever_profiles` (8, 7 approved).
+
+---
+
+## 1b. The whole mentorship schema is readable only by `authenticated`
+
+Found while rebuilding `/mentors`: the anon role reads back **zero rows** from
+`achiever_profiles`, so the request-scoped Supabase client used by the old
+`getApprovedMentors` silently returned an empty directory to every signed-out
+visitor. Confirmed directly:
+
+```bash
+node --env-file=.env.local -e "
+const { createClient } = require('@supabase/supabase-js');
+const a = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+a.from('achiever_profiles').select('id').eq('status','approved').then(r => console.log(r.error?.message ?? 'rows: ' + r.data.length));
+"
+```
+
+Worked around, not fixed, in `src/lib/mentors.ts`: `getApprovedMentors` now reads
+through `createAdminClient()` and projects onto an explicit `PublicMentor` type
+(name, avatar, university, subject, bio, help topics, rating, session rate —
+**not** `legal_name`, `date_of_birth`, the four verification storage keys, or
+`stripe_account_id`, which the old `select('*')` was serialising into every page
+load regardless of the RLS bug). The durable fix is a
+`status = 'approved'` public read policy on the table; this workaround should be
+revisited once that migration exists.
+
+### Wider than first recorded (2026-07-30)
+
+It is **not just `achiever_profiles`**. Every select policy across the
+mentorship schema is granted `to authenticated` — checked in
+`supabase-global-station.sql` and `supabase-mentorship.sql`:
+
+| Table | Policy | Granted to |
+|---|---|---|
+| `achiever_profiles` | "Anyone can read approved achiever profiles" | `authenticated` |
+| `mentor_availability_slots` | "Read mentor availability for booking" | `authenticated` |
+| `session_reviews` | "Authenticated users can read visible reviews" | `authenticated` |
+
+"Anyone" in that first policy name is wrong, and it is what made the gap easy to
+miss. The consequence found on 2026-07-30: **`/mentors/[id]` returned 404 to
+every signed-out visitor**, because `getMentorById` used the request-scoped
+client, got zero rows, and the page called `notFound()`. Every card in the
+*public* directory was a dead link, and no error was logged anywhere — an RLS
+filter returning nothing is a successful query.
+
+Same workaround, applied to the detail page: `getPublicMentorById`,
+`getPublicMentorSlots` and `getPublicMentorReviews` in `src/lib/mentors.ts` read
+through the service role and project onto public columns. Verified with an
+unauthenticated request returning 200 and containing none of `legal_name`,
+`date_of_birth`, `stripe_account_id` or `storage_key`.
+
+Prove the underlying gap is still there with the anon key:
+
+```bash
+node --env-file=.env.local -e "
+const { createClient } = require('@supabase/supabase-js');
+const a = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+a.from('english_test_scores').select('id').then(r => console.log('anon sees', r.data?.length, 'rows'));
+"
+```
+
+When the durable policies land, all six `getPublic*`/`getApproved*` helpers can
+drop back to the request-scoped client together.
+
+---
+
+## 2. Hydration mismatch on `/universities` — reduced, not eliminated
+
+The imagery patch (`setWithImages`) lives **outside** the `<Suspense>` that wraps
+`Chrome`, so its state update can land while the card subtree is still hydrating.
+React then discards the server HTML and re-renders the whole tree — and the
+explorer comes back with default state, which is how a signed-in card click could
+end up on the login gate.
+
+Only reproduces once `/api/university-images` is warm enough to answer in a few
+milliseconds, which is why it appears after repeated runs and not on a cold visit.
+
+Mitigated in `src/app/universities/university-list-client.tsx` with
+`startTransition` plus a one-frame `requestAnimationFrame` defer. Clean in most
+runs, **still reproduces occasionally**.
+
+Proper fix (not done): move the imagery state inside the Suspense boundary, or
+resolve imagery server-side and drop the client patch.
+
+---
+
+## 2b. `session_reviews.reviewer_name` does not exist
+
+`MentorReviewWithReviewer` in `src/types/mentorship.ts` declares
+`reviewer_name: string | null`, and `getMentorReviews` fetches with
+`select('*')`. There is no such column — `session_reviews` is
+`id, booking_id, reviewer_id, achiever_id, rating, comment, is_visible,
+created_at` (supabase-global-station.sql). So the field has always come back
+`undefined` and every review the old profile page rendered was unattributed,
+with TypeScript asserting otherwise.
+
+The rebuilt `/mentors/[id]` labels reviews "Glowbal student" rather than carry
+the fiction, and `getPublicMentorReviews` selects only columns that exist. To
+make authorship real, either add the column or join `student_profiles` — and
+decide first whether a reviewer's name should be public at all.
+
+---
+
+## 3. Dead code
+
+| File | Lines | Status |
+|---|---|---|
+| `src/app/onboarding/profile-form.tsx` | 599 | Orphan — nothing imports it. 14 legacy classes. |
+| `src/app/onboarding/world-picker.tsx` | 701 | Imported only by `onboarding-globe-quiz.tsx`, itself an orphan. 13 legacy classes. |
+| `src/components/onboarding/onboarding-globe-quiz.tsx` | 663 | Orphan. |
+| `src/components/onboarding/onboarding-single-page.tsx` | 564 | Orphan — only referenced from comments in `i18n-dictionary.ts` and `selection-cache.ts`. |
+| `src/components/landing/home/` — `home-landing.tsx`, `hero-globe.tsx`, `reveal.tsx`, `site-header.tsx`, `university-search.tsx` | 1,510 | **Orphaned 2026-07-28** when `/` was promoted to the Figma build. Nothing imports any of them; the only remaining reference is a source citation in a comment in `src/shared/ui/icons.tsx`. `globals.css` still carries two `.home-landing-root` rules (≈4952, ≈5316) that now match nothing. |
+
+That is ~2,530 lines of orphaned onboarding plus the 1,510-line landing tree —
+**~4,000 lines**, and most of `src/app/onboarding/`'s 43 legacy classes.
+Deleting them is safe and would make the onboarding tree clean, but it was left
+alone because nobody asked. `src/app/my-universities/my-universities-client.tsx`
+(928 lines) was in the same state and **has** been deleted — it is in git history
+if it is ever wanted back.
+
+### What clearing this list would unlock: dropping `react-globe.gl`
+
+Traced 2026-07-30. The library is imported in two files —
+`src/app/onboarding/world-picker.tsx` (dead, above) and
+`src/components/landing-globe.tsx`, the shared wrapper. `LandingGlobe` has four
+consumers, and **three of them are on this dead list**:
+
+| Consumer | Status |
+|---|---|
+| `src/app/onboarding/profile-form.tsx` | dead |
+| `src/components/onboarding/onboarding-single-page.tsx` | dead |
+| `src/components/landing/home/hero-globe.tsx` | dead (orphaned landing) |
+| `src/app/my-universities/[id]/university-globe.tsx` | **live** |
+
+So deleting this table leaves exactly one consumer, which is what CLAUDE.md
+already asserts ("the only place still rendering the globe is the legacy
+`/my-universities/[id]`"). Retire that page and `react-globe.gl` — and the
+Three.js bundle behind it — can come out of `package.json` entirely. Until then
+do **not** re-introduce a globe on a new page; the redesign dropped it from
+`/universities` and the home hero is a static PNG.
+
+---
+
+## 4. `parseDeadline` resolves bare "Jan 15" to the year 2001
+
+Pre-existing and **deliberately pinned by a test** in
+`src/features/universities/domain/__tests__/formatting.test.ts` — V8's
+`Date.parse('Jan 15')` succeeds and wins before the roll-forward fallback can run.
+
+Do not "fix" it without updating that test, which exists so the fix is a visible
+diff. `formatDeadlineLabel` guards against it: a parse landing more than a year in
+the past is treated as "the string had no year", and the original prose is shown
+instead. That is why `/my-universities` prints
+`Deadline: UG: Jan 1 (EA: Nov 1) | PG: Dec–Jan varies by dept` rather than a
+confidently wrong date.
+
+---
+
+## 5. Fixed 2026-07-26 — do not re-introduce
+
+| What | Where |
+|---|---|
+| Password reached the URL. A submit landing before hydration falls through to a native GET, putting `email`/`password` in the query string, history and access logs. Both forms now carry `method="post"`. | `src/app/auth/auth-form.tsx`, `src/app/guides/guides-client.tsx` |
+| Save failed silently — `addToShortlist` discarded the upsert error and kept the optimistic state, so the UI said "Saved" and the row vanished on reload. Now logs, rolls back, toasts. (`showToast` had to be hoisted above `addToShortlist`: a `useCallback` deps array is evaluated at the call site, so naming a `const` declared below throws on the TDZ.) | `src/features/universities/ui/explorer-context.tsx` |
+| Signed-in card click never opened the detail view. One effect wrote `?u=<id>`; the other read the URL before that write landed, saw no `?u`, and reverted to `browse`. Guests never hit it because `setView` bounces them to the login gate first — which is why the guest suite stayed green and hid it. | `useUniversityUrlSync` in `src/app/universities/university-list-client.tsx` |
+| Every blog guide fell back to empty frontmatter — `parseFrontmatter` anchored on `\n---\n` and the draft files are CRLF. Titles rendered as slugs, excerpts as `---`, dates as today. | `src/lib/geo-content.ts` |
+| Logo rendered blurry with colour fringing. `public/glowbal-logo.png` is 1115×398 but the wordmark occupies only 929×163 of it, so `height={28}` gave a 78×28 box with ~11px lettering. Cropped to the framing Figma itself uses (node `153:18271`) → `public/brand/glowbal-wordmark.png`, 1115×227, `quality={90}`. `height={28}` now yields the design's 138×28. | `src/components/glowbal-logo.tsx` |
+
+---
+
+## 5b. Fixed 2026-07-27 — do not re-introduce
+
+| What | Where |
+|---|---|
+| The legacy app sidebar (`NavReveal`) overlapped the new `/apply` page. Rebuilding a page onto its own `TopNav`/`MobileNav`/`Footer` chrome does nothing on its own — the route also has to be added to `OWN_CHROME_ROUTES`, or the old sidebar renders on top of it. Confirmed by screenshot before the fix. | `src/components/nav-reveal.tsx` — same list also needed `/mentors` for the same reason |
+| `achiever_profiles` has no public-read RLS policy — see 1b above. | `src/lib/mentors.ts` |
+| Mentor card badge overflowed into the next grid column. `Badge` bakes in `whitespace-nowrap`, and real university names run to "London School of Economics and Political Science" — the pill needs its own line and a `truncate` on the text inside, not inline with the name. | `src/app/mentors/mentors-client.tsx` |
+| `setState` called synchronously inside a `useEffect` body (new lint error, baseline is 0). The "open the course-search modal from a query param" flag is a prop, so opening the modal belongs in `useState`'s initializer, not a reaction fired from an effect. The effect that's left only strips the query param, which is a real side effect. | `src/app/apply/apply-list-client.tsx` |
+
+---
+
+## 5c. Fixed 2026-07-29 — do not re-introduce
+
+| What | Where |
+|---|---|
+| Footer wordmark rendered 352×28 — ratio 12.6 against the asset's 4.9, stretched 2.5× wide. `GlowbalLogo`'s inline `width: auto` leaves the cross size auto, so in a **column** flex container the default `align-items: stretch` applies to the `<img>` and blows it to the container width while the fixed height stays put. The footer's left column is `flex flex-col` with no `items-*`; `TopNav`'s row has `items-center` and so never showed it. Fixed at the source by emitting the derived width in px, which opts every one of the ~30 call sites out of the stretch regardless of container. | `src/components/glowbal-logo.tsx` |
+| `quality={90}` was being served as **q=75**. Next 16 changed `images.qualities` from "any" to `[75]`, and an out-of-allowlist `quality` prop is *silently coerced to the nearest entry* rather than erroring — so the prop that exists to stop the wordmark's gradient artefacting did nothing. Allowlist is now `[75, 90]`. | `next.config.ts` |
+| Desktop wordmark was not a link. `TopNav`'s `logo` prop was documented "Links home" but no caller wrapped it and the component didn't either; only `MobileNav`'s callers did. The `<Link href="/">` now lives inside `TopNav` so no page can forget it — **so do not pass an already-linked node to `TopNav`**, or the anchors nest. `MobileNav` keeps the opposite convention (caller wraps). | `src/shared/ui/top-nav.tsx` |
+| Contact photo blurry: `sizes="…592px"` made the browser fetch the 640w candidate and upscale it 1.6×. `sizes` describes the **layout** width, but `object-cover` needs more: the source is 16:9 (1.778) into a 1.081 box, so only 61% of the width is shown and filling 576 CSS px takes 576 × 1.645 = 948 source px. Now `165vw` / `948px`, which fetches 1080w and lands at 1:1 at DPR 1. | `src/features/marketing/ui/home-contact.tsx` |
+
+---
+
+## 5d. Fixed 2026-07-30 — do not re-introduce
+
+| What | Where |
+|---|---|
+| `/mentors/[id]` 404'd for every signed-out visitor, and leaked the mentor's PII to every signed-in one. See 1b. | `src/lib/mentors.ts`, `src/app/mentors/[id]/` |
+| The booking calendar offered slots checkout will refuse. `getMentorOpenSlots` returns `open` **and** `held` starting from `now`; `POST /api/mentorship/checkout` 409s on a held slot and 400s on anything inside the next hour. The student found out at the payment step. `getPublicMentorSlots` applies both rules up front. | `src/lib/mentors.ts` |
+| Hydration mismatch from `{name} literal-text` in JSX. Adjacent text children need React's `<!-- -->` separators to survive, and `DomTranslator` walks and rewrites those same nodes. Compose one string instead — which also makes the sentence dictionary-translatable rather than machine-translated. | `src/app/mentors/[id]/mentor-booking.tsx`, `mentor-detail.tsx` |
+| `setState` in a `useEffect` body for a "have I hydrated yet" flag (lint error; baseline is 0 errors). `useSyncExternalStore(subscribeToNothing, () => true, () => false)` is the sanctioned way to give server and client different answers — the three callbacks must be module-level constants or the subscription re-fires every render. | `src/app/mentors/[id]/mentor-booking.tsx` |
+| Home visual baselines failed after the wordmark fix in `0923f56`. Any change to shared chrome (logo, `TopNav`, `Footer`, tokens) invalidates `home-preview.spec.ts` — re-bless with `--update-snapshots` **in the same commit** as the intentional change, or the next session inherits a red suite it did not cause. | `tests/e2e/home-preview.spec.ts-snapshots/` |
+
+---
+
+## 6. Open questions for the designer / owner
+
+1. **The sitemap frame (`123:2864`, "Dg-final") no longer exists in the file.**
+   Both canvases were scanned at full depth on 2026-07-27 — no `123:*` node, no
+   node named like a sitemap. `nav-items.ts` cites it as the reason
+   `/ai-strategy` and `/apply` stay separate destinations; that citation is now
+   dead. Restore the frame, or re-confirm the split some other way.
+2. **Scholarship code field** (`223:13022`) — new feature needing a backend, or drop it from the design?
+3. **Mentorship public-read RLS** — see 1b above. `achiever_profiles`,
+   `mentor_availability_slots` and `session_reviews` all need anon read policies
+   (approved / open / visible respectively); currently worked around with the
+   admin client in six places.
+4. **Should `/mentors/[id]` be public at all?** It is, and so is the directory
+   that links to it. But the in-page university detail on `/universities` is
+   sign-in gated, so the two public surfaces now disagree about what a guest may
+   see. Not a bug — a product decision nobody has made explicitly.
+5. **Review authorship** — see 2b. `session_reviews` has no name column. Add one
+   (or join `student_profiles`), or accept "Glowbal student". Decide first
+   whether a reviewer's name should be public at all.
+6. **Error ramp** — `tokens.css` ships an Untitled UI stock error ramp. No frame draws an error state, so it is unconfirmed.
+7. **Ratings badge** — "Best AI Tool · 2,000+ reviews" is placeholder the owner asked to keep temporarily. It appears in the footer of every page, so it is a public claim.
+8. **X (Twitter)** — drawn in the footer frame `104:7422` with no handle supplied. Currently omitted; Instagram has no art in Figma at all (hence the hand-shaped `InstagramMark`).
+9. **Rose `#e11d48`** — confirmed as brand by the owner, but Figma variables still resolve to Untitled UI purple `#6941c6`. `tokens.css` is the authority; do not "correct" it against a variable dump.
+10. **`public/home-contact-team.jpg` is too small for retina.** The master is
+   1200×675 (145 KB), added by the owner in `a0d165b`. The Home contact card
+   crops 16:9 into a 576×533 box, which uses only ~61% of the width — so a
+   DPR-2 screen needs a **~1900 px wide** source and the file caps out at 1200.
+   The `sizes` fix above makes DPR 1 pixel-exact; DPR 2 is still upscaled 1.58×
+   and visibly soft. **Needs a higher-resolution export of the same photo** —
+   drop it in at the same path, ≥1920×1080 (ideally 2400×1350), 16:9. No code
+   change required. Alternatively re-crop the framing so less of the width is
+   thrown away, but `home-contact.tsx` documents the 576×533 crop as
+   design-intended, so ask before changing it.

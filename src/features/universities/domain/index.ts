@@ -6,6 +6,7 @@
  */
 export {
   formatAcceptanceForCard,
+  formatDeadlineLabel,
   formatTuitionForCard,
   formatUsdCompact,
   formatUsdOne,
@@ -14,6 +15,13 @@ export {
   parseTuition,
   parseTuitionRange,
 } from './formatting';
+
+export { scholarshipCandidates } from './saved-list';
+export type {
+  SavedListScholarship,
+  SavedListUniversity,
+  ScholarshipCandidate,
+} from './saved-list';
 
 export {
   amountToUsd,
@@ -24,3 +32,18 @@ export {
 } from './pricing';
 
 export { countriesMatch, normalizeCountryName } from './country';
+
+export { officialWebsite } from './websites';
+
+export {
+  normaliseUniversityName,
+  pickBestMatch,
+  registrableDomain,
+  sameDomain,
+} from './match-university';
+export type {
+  MatchQuery,
+  MatchReason,
+  UniversityCandidate,
+  UniversityMatch,
+} from './match-university';

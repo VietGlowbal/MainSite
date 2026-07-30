@@ -1,13 +1,35 @@
 import { notFound } from 'next/navigation';
+import { FormPrimitivesDemo } from './form-primitives-demo';
+import { LoaderDemo } from './loader-demo';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import {
+  FOOTER_COLUMNS,
+  FOOTER_COPYRIGHT,
+  FOOTER_RATINGS,
+  FOOTER_SOCIAL,
+  FOOTER_TAGLINE,
+} from '@/features/marketing/ui';
+import {
+  Avatar,
+  Badge,
   Button,
   CheckItem,
   CheckList,
+  Checkbox,
+  CheckboxGroup,
   FeatureCard,
+  Footer,
+  GlobeLoader,
   ICONS,
+  Input,
   KitIcon,
   Metric,
+  Radio,
+  RadioGroup,
+  ScoreRing,
+  Select,
+  Stepper,
+  Textarea,
   TopNav,
 } from '@/shared/ui';
 
@@ -65,16 +87,11 @@ export default function KitchenSinkPage() {
         <p className="mb-gb-lg text-gb-sm text-fg-tertiary">
           Encodes the reach / recommend / safe classification from admission-fit.ts.
         </p>
-        <div className="flex flex-wrap gap-gb-md">
-          <span className="rounded-gb-full bg-tier-reach px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-reach">
-            Reach Universities
-          </span>
-          <span className="rounded-gb-full bg-tier-recommend px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-recommend">
-            Recommend Universities
-          </span>
-          <span className="rounded-gb-full bg-tier-safe px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-safe">
-            Safe Universities
-          </span>
+        <div className="flex flex-wrap items-center gap-gb-md">
+          <Badge variant="reach">Reach Universities</Badge>
+          <Badge variant="recommend">Recommend Universities</Badge>
+          <Badge variant="safe">Safe Universities</Badge>
+          <Badge>New</Badge>
         </div>
       </Section>
 
@@ -159,12 +176,100 @@ export default function KitchenSinkPage() {
         </div>
       </Section>
 
-      <Section title="TopNav (desktop — hidden below md)">
+      <Section title="TopNav — guest, dark (Figma 104:7114)">
         <TopNav
           logo={<GlowbalLogo height={28} />}
           items={DEMO_NAV_ITEMS}
           secondaryAction={{ href: '/auth', label: 'Đăng nhập' }}
           primaryAction={{ href: '/apply', label: 'Lập kế hoạch Du học' }}
+        />
+      </Section>
+
+      <Section title="TopNav — guest, light (Figma 105:8301)">
+        <TopNav
+          tone="light"
+          logo={<GlowbalLogo height={28} />}
+          items={DEMO_NAV_ITEMS}
+          secondaryAction={{ href: '/auth', label: 'Đăng nhập' }}
+          primaryAction={{ href: '/universities', label: 'Tìm trường đại học' }}
+        />
+      </Section>
+
+      <Section title="TopNav — signed in (Figma 203:12356; no secondary action)">
+        <TopNav
+          logo={<GlowbalLogo height={28} />}
+          items={DEMO_NAV_ITEMS}
+          primaryAction={{ href: '/apply', label: 'Lập kế hoạch Du học' }}
+          user={{ name: 'Khánh Linh', href: '/profile', avatarUrl: null }}
+        />
+      </Section>
+
+      <Section title="Avatar (32px — image and initials fallback)">
+        <div className="flex items-center gap-gb-xl bg-surface-inverse-strong p-gb-lg">
+          <Avatar name="Khánh Linh" />
+          <Avatar name="Olivia Rhye" />
+        </div>
+      </Section>
+
+      <Section title="Form controls (Figma 105:8028 — label 6px above a 44px box)">
+        <div className="grid max-w-gb-width-xl gap-gb-3xl sm:grid-cols-2">
+          <Input name="ks-name" label="Name" placeholder="Enter your name" />
+          <Input
+            name="ks-email"
+            type="email"
+            label="Email"
+            placeholder="you@example.com"
+            hint="Chúng tôi chỉ dùng email để gửi kết quả."
+          />
+          <Input
+            name="ks-invalid"
+            label="Email (error — không có trong Figma)"
+            defaultValue="not-an-email"
+            error="Email không hợp lệ."
+          />
+          <Select name="ks-country" label="Country" placeholder="Select a country" defaultValue="">
+            <option value="uk">United Kingdom</option>
+            <option value="us">United States</option>
+            <option value="au">Australia</option>
+          </Select>
+          <Input name="ks-disabled" label="Disabled" placeholder="Không sửa được" disabled />
+          <Textarea
+            name="ks-sop"
+            label="Personal statement"
+            placeholder="Dán bài viết của bạn vào đây…"
+            hint="Tối đa 650 từ."
+          />
+        </div>
+      </Section>
+
+      <Section title="Radio / Checkbox (trạng thái chọn suy từ kit, Figma chỉ vẽ trạng thái trống)">
+        <div className="grid max-w-gb-width-xl gap-gb-4xl sm:grid-cols-2">
+          <RadioGroup id="ks-level" legend="Bạn đang học ở bậc nào?">
+            <Radio name="ks-level" value="highschool" label="Trung học phổ thông" defaultChecked />
+            <Radio name="ks-level" value="undergrad" label="Đại học" />
+            <Radio
+              name="ks-level"
+              value="grad"
+              label="Sau đại học"
+              description="Thạc sĩ hoặc tiến sĩ"
+            />
+          </RadioGroup>
+          <CheckboxGroup id="ks-subjects" legend="Ngành quan tâm" hint="Chọn tất cả những gì phù hợp.">
+            <Checkbox name="ks-subjects" value="eng" label="Engineering" description="12 users" />
+            <Checkbox name="ks-subjects" value="design" label="Design" description="10 users" />
+            <Checkbox name="ks-subjects" value="business" label="Business" />
+          </CheckboxGroup>
+        </div>
+      </Section>
+
+      <Section title="Footer (Figma 104:7404)">
+        <Footer
+          logo={<GlowbalLogo height={28} />}
+          tagline={FOOTER_TAGLINE}
+          columns={FOOTER_COLUMNS}
+          social={FOOTER_SOCIAL}
+          copyright={FOOTER_COPYRIGHT}
+          ratings={FOOTER_RATINGS}
         />
       </Section>
 
@@ -215,6 +320,87 @@ export default function KitchenSinkPage() {
               </span>
             ),
           )}
+        </div>
+      </Section>
+
+      <Section title="Form primitives — RepeatableFieldset and RangeHistogram">
+        <p className="mb-gb-3xl text-gb-sm text-fg-tertiary">
+          Both are only meaningful in motion. Remove the middle achievement and check the others
+          keep their own values; drag the budget handles together and check they clamp rather than
+          swap. The distribution is placeholder shape, not real data.
+        </p>
+        <FormPrimitivesDemo />
+      </Section>
+
+      <Section title="ScoreRing (Figma 337:18813 — banded 70 / 40)">
+        <p className="mb-gb-xl text-gb-sm text-fg-tertiary">
+          Drawn as an SVG arc, not the flat images the frame exports, because the arc has to
+          follow a real value. The caption is required: `progress` and `match` band identically,
+          so a bare ring at 40% in green is genuinely ambiguous.
+        </p>
+        <div className="flex flex-wrap items-end gap-gb-4xl">
+          <ScoreRing value={92} measure="progress" />
+          <ScoreRing value={60} measure="progress" />
+          <ScoreRing value={30} measure="progress" />
+          <ScoreRing value={0} measure="progress" />
+          <ScoreRing value={72} measure="match" size="sm" />
+          <ScoreRing value={83} measure="match" size="lg" label="Overall fit" />
+        </div>
+      </Section>
+
+      <Section title="Stepper — per-course journey (due dates)">
+        <Stepper
+          steps={[
+            { key: 'research', label: 'Research', meta: 'Due 14 Aug 2026' },
+            { key: 'eligibility', label: 'Check eligibility', meta: 'Due 14 Sep 2026' },
+            { key: 'documents', label: 'Prepare documents', meta: 'Due 14 Oct 2026' },
+            { key: 'improve', label: 'Improve application', meta: 'Due 14 Oct 2026' },
+            { key: 'submit', label: 'Submit', meta: 'Due 14 Oct 2026' },
+          ]}
+          currentIndex={2}
+          label="Your application journey"
+        />
+      </Section>
+
+      <Section title="Stepper — AI strategy, paywall after step 3">
+        <p className="mb-gb-xl text-gb-sm text-fg-tertiary">
+          A locked step never renders as reached and never linkifies, however far the student has
+          got — the boundary has to read as a wall rather than as work not yet done.
+        </p>
+        <Stepper
+          steps={[
+            { key: 'reflection', label: 'Reflection', href: '#' },
+            { key: 'report', label: 'Output report', href: '#' },
+            { key: 'university', label: 'University Detail', href: '#' },
+            { key: 'strategy', label: 'Application Strategy', locked: true },
+            { key: 'audit', label: 'Submit Audit', locked: true },
+          ]}
+          currentIndex={2}
+          label="AI strategy journey"
+        />
+      </Section>
+
+      <Section title="GlobeLoader (busy state — not from Figma, see tokens.css)">
+        <div className="flex flex-wrap items-start gap-gb-4xl">
+          <div className="flex flex-col items-center gap-gb-md">
+            <GlobeLoader />
+            <span className="text-gb-xs text-fg-muted">md, no label</span>
+          </div>
+          <div className="flex flex-col items-center gap-gb-md">
+            <GlobeLoader label="Saving your profile" />
+            <span className="text-gb-xs text-fg-muted">md, labelled</span>
+          </div>
+          <div className="flex flex-col items-center gap-gb-md">
+            <GlobeLoader size="sm" label="Recalculating your match" />
+            <span className="text-gb-xs text-fg-muted">sm</span>
+          </div>
+        </div>
+        <p className="mt-gb-xl text-gb-sm text-fg-tertiary">
+          The rotating line is shared by every loader on screen, so these three show the
+          same word. Below is the real overlay, scrim and all.
+        </p>
+        <div className="mt-gb-lg">
+          <LoaderDemo />
         </div>
       </Section>
     </main>

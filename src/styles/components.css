@@ -1,0 +1,75 @@
+/* ==========================================================================
+   Component CSS that cannot be expressed as utilities
+   --------------------------------------------------------------------------
+   A deliberately small file, and it should stay that way. Everything in
+   src/shared/ui is styled with tokens through Tailwind utilities; this exists
+   only for the handful of things utilities genuinely cannot reach — chiefly
+   pseudo-elements on native form controls, which have no class to attach to.
+
+   NOT src/app/globals.css. That file is 5,672 lines of unlayered legacy CSS
+   with 425 selectors that out-rank Tailwind utilities, and CLAUDE.md's whole
+   quarantine strategy depends on new code staying out of it. New component CSS
+   goes here instead.
+
+   Rules for anything added below:
+     - `gb-` prefix, so it can never collide with a legacy selector.
+     - Values from tokens. No literals.
+     - A comment saying why a utility could not do the job.
+   ========================================================================== */
+
+/* ── Range slider thumbs ──────────────────────────────────────────────────
+   RangeHistogram stacks two native <input type="range"> over the distribution
+   bars. Native ranges are the right call — keyboard, screen readers, touch
+   targets and RTL all come free — but a thumb can only be styled through
+   ::-webkit-slider-thumb and ::-moz-range-thumb, which take no class.
+
+   pointer-events is the load-bearing part. The two inputs overlap completely,
+   so the upper one would swallow every click meant for the lower. Disabling
+   events on the input and re-enabling them on the thumb alone means each
+   handle is grabbable and the track beneath stays inert.
+   ────────────────────────────────────────────────────────────────────────── */
+
+.gb-range {
+  pointer-events: none;
+}
+
+.gb-range:focus {
+  outline: none;
+}
+
+.gb-range::-webkit-slider-thumb {
+  pointer-events: auto;
+  -webkit-appearance: none;
+  appearance: none;
+  width: var(--spacing-gb-2xl);
+  height: var(--spacing-gb-2xl);
+  border-radius: var(--radius-gb-full);
+  background: var(--gb-brand);
+  border: 2px solid var(--color-gb-neutral-0);
+  box-shadow: var(--shadow-gb-xs);
+  cursor: grab;
+}
+
+.gb-range::-moz-range-thumb {
+  pointer-events: auto;
+  width: var(--spacing-gb-2xl);
+  height: var(--spacing-gb-2xl);
+  border-radius: var(--radius-gb-full);
+  background: var(--gb-brand);
+  border: 2px solid var(--color-gb-neutral-0);
+  box-shadow: var(--shadow-gb-xs);
+  cursor: grab;
+}
+
+/* Keyboard focus has to land on the thumb, not the invisible full-width input
+   — a focus ring around the whole track tells the user nothing about which
+   handle they are about to move. */
+.gb-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--gb-brand);
+  outline-offset: 2px;
+}
+
+.gb-range:focus-visible::-moz-range-thumb {
+  outline: 2px solid var(--gb-brand);
+  outline-offset: 2px;
+}

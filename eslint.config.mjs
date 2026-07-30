@@ -41,13 +41,16 @@ const TEST_FILES = ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'];
  * offender is a lint failure. Track A's fix is deleting entries from here.
  */
 const ADMIN_CLIENT_DEBT = [
-  'src/app/page.tsx',
   'src/app/admin/page.tsx',
   'src/app/plus/success/page.tsx',
-  'src/app/universities/vinuni/page.tsx',
   // Removed: src/app/universities/page.tsx — now goes through the universities
   // repository (src/features/universities/api) instead of building an admin
   // client inline. This is what shrinking the list looks like.
+  // Removed: src/app/page.tsx — the landing page was rebuilt from Figma
+  // 375:9844 and its waitlist insert now goes through recordWaitlistSignup in
+  // src/features/marketing/api.
+  // Removed: src/app/universities/vinuni/page.tsx — now a redirect to
+  // /universities/97, which reads through the universities repository.
 ];
 
 /** Route handlers are server-side by definition — /api and the two outside it. */

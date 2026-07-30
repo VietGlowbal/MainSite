@@ -33,7 +33,11 @@ export const translations: Record<string, string> = {
   'Search universities': 'Tìm trường đại học',
   Coordinator: 'Điều phối viên',
   'About us': 'Về chúng tôi',
-  'AI strategy': 'AI lên chiến lược',
+  // The header and the footer point at /ai-strategy under different labels, on
+  // purpose: the nav was relabelled on Figma 375:9845 / 375:10151, the footer
+  // frame (104:7413) was not. Keep both keys.
+  'Build your strategy': 'Lên Chiến lược Du học', // header, Figma 375:9845
+  'AI strategy': 'Chiến lược AI', // footer, Figma 104:7413
   Blog: 'Blog',
   Contact: 'Liên hệ',
   // 'Find a mentor' is already defined further down, under the mentorship copy.
@@ -42,13 +46,17 @@ export const translations: Record<string, string> = {
   'Close menu': 'Đóng menu',
   'Plan your studies': 'Lập kế hoạch du học',
 
-  // ── Home hero (Figma 104:7126) ───────────────────────────────────────────
+  // ── Home hero (Figma 375:9857) ───────────────────────────────────────────
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
   // must stay character-identical to the JSX in features/marketing/ui.
-  'Study-abroad experts who help you choose universities and scholarships, and stay beside you through the whole application':
-    'Chuyên gia du học giúp bạn chọn trường và học bổng, đồng hành cùng bạn xuyên suốt quá trình ứng tuyển hồ sơ du học',
-  'Explore over 10,000 universities, discover more than 2,000 scholarships worth over 150,000,000 USD, and build your application strategy with AI and real student supporters around the world.':
-    'Khám phá hơn 10,000 trường đại học, tìm hiểu hơn 2,000 học bổng trị giá trên 150,000,000 USD, và xây dựng chiến lược hồ sơ của bạn với AI và những người hỗ trợ sinh viên thực tế trên toàn thế giới.',
+  'A tool built for scholarship hunters': 'Công cụ dành cho "dân săn học bổng"',
+  // "200+", not the frame's "300+" — the owner confirmed 200 on 24/07 and again
+  // on 28/07. Both languages carry the same number; see the note in home-hero.
+  'Personalised analysis and strategy, beside you for the whole scholarship hunt — across 200+ universities and 3,000+ scholarships worth up to $150,000,000.':
+    'Phân tích và đưa chiến lược cá nhân hoá, đồng hành xuyên suốt quá trình săn học bổng từ 200+ trường đại học và 3000+ học bổng với trị giá lên đến $150,000,000.',
+  'Find matching scholarships': 'Tìm Học bổng Phù hợp',
+  // Still rendered by the legacy landing at src/components/landing/home until
+  // that tree is deleted. Remove this key with those files, not before.
   'Find my scholarships': 'Tìm học bổng của tôi',
 
   // ── Home partner wall (Figma 104:7135) ───────────────────────────────────
@@ -56,20 +64,25 @@ export const translations: Record<string, string> = {
   // so there is nothing here to accidentally translate.
   'Our featured partners': 'Đối tác tiêu biểu của chúng tôi',
 
-  // ── Home metrics (Figma 104:7148) ────────────────────────────────────────
-  // The three figures are the hero's, restated. They are listed here rather
-  // than left to fall through so that a number never makes a round trip to
-  // /api/translate just to come back unchanged.
+  // ── Home metrics (Figma 375:9879) ────────────────────────────────────────
+  // Five adoption figures supplied by the designer. Listed here rather than
+  // left to fall through so that a number never makes a round trip to
+  // /api/translate just to come back unchanged. The Vietnamese digit groupings
+  // are the frame's own, which is why they do not all carry separators.
   'Standout numbers': 'Những con số nổi bật',
-  'A short guide to how GLOWBAL takes you from a dream university to a clear scholarship plan.':
-    'Một hướng dẫn ngắn về cách GLOWBAL đưa bạn từ trường đại học mơ ước đến một kế hoạch học bổng rõ ràng.',
+  '"GlowBal has shown how much it invests in product quality, and how well it answers what the market actually needs"':
+    '"GlowBal đã chứng minh mức độ đầu tư về chất lượng sản phẩm và khả năng đáp ứng nhu cầu thực từ thị trường"',
   // Keep the values short in both languages — see the note on `Metric`.
-  '10,000+': '10,000+',
-  'Universities covered': 'Trường đại học trong kho',
-  '2,000+': '2,000+',
-  'Open scholarships': 'Học bổng đang mở',
-  '150M': '150 triệu',
-  'Total scholarship value (USD)': 'Tổng giá trị học bổng (USD)',
+  '7,800+': '7800+',
+  'Scholarship searches run': 'Lượt Sử dụng Công cụ Tìm kiếm học bổng',
+  '370': '370',
+  'Regular users': 'Người dùng Thường xuyên',
+  '$2,000': '$2000',
+  'Invested by Venture X': 'Đầu tư từ quỹ Venture X',
+  '150': '150',
+  'Pilot users': 'Người dùng Thử nghiệm',
+  '270': '270',
+  'Pieces of feedback shaping the product': 'Feedbacks để hoàn thiện hệ thống',
 
   // ── Home features (Figma 104:7164) ───────────────────────────────────────
   // Only the first block is written; the other two show `MissingContent`,
@@ -164,6 +177,20 @@ export const translations: Record<string, string> = {
   'Get the latest study abroad tips, scholarships and guides straight to your inbox.':
     'Nhận các mẹo du học, học bổng và hướng dẫn mới nhất ngay trong hộp thư của bạn.',
   '{minutes} min read': '{minutes} phút đọc',
+
+  // ── Blog list, redesigned (Figma 153:18266) ──────────────────────────────
+  'Resource library': 'Thư viện tài nguyên',
+  'Guides on choosing a university, funding it, and getting in — written for Vietnamese students.':
+    'Hướng dẫn chọn trường, tìm nguồn tài chính và cách trúng tuyển — viết cho sinh viên Việt Nam.',
+  'Read post': 'Đọc bài',
+  'No posts in this topic yet.': 'Chưa có bài viết nào trong chủ đề này.',
+  Subscribed: 'Đã đăng ký',
+  'Please enter a valid email address': 'Vui lòng nhập địa chỉ email hợp lệ',
+  'Successfully subscribed! Check your email.':
+    'Đăng ký thành công! Hãy kiểm tra email của bạn.',
+  "You're already subscribed!": 'Bạn đã đăng ký rồi!',
+  'Something went wrong. Please try again.': 'Đã xảy ra lỗi. Vui lòng thử lại.',
+  'Failed to subscribe. Please try again.': 'Đăng ký thất bại. Vui lòng thử lại.',
 
   // ── Article (guide) page chrome ──────────────────────────────────────────
   'On this page': 'Trong trang này',
@@ -776,6 +803,199 @@ export const translations: Record<string, string> = {
     'Chuyển đến một thành phố lớn và phát triển sự tự tin.',
   'Get a practical degree that leads to strong job options worldwide.':
     'Có một tấm bằng thực tiễn dẫn tới nhiều cơ hội việc làm tốt trên toàn cầu.',
+
+  // ── Home: scholarship rail (Figma 104:7225) ──────────────────────────────
+  // The design writes these in Vietnamese; the English above is the source
+  // string, so these entries are the designer's own wording restored.
+  'Scholarship library': 'Kho học bổng',
+  'Browse a preview for free. Create your profile to unlock the full eligibility criteria and required documents, and to save opportunities into your plan.':
+    'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
+  'See more': 'Xem thêm',
+  'View scholarship': 'Xem học bổng',
+  'Scroll or swipe to see more scholarships.':
+    'Cuộn hoặc vuốt để xem thêm học bổng.',
+
+  // ── Home: testimonials (Figma 104:7265) ──────────────────────────────────
+  'Learn from students who made it': 'Học hỏi từ những sinh viên đã thành công',
+  'GlowBal connects you with students all over the world who share real experience of universities, scholarships, applications and student life.':
+    'GlowBal kết nối bạn với những sinh viên trên khắp thế giới, những người chia sẻ kinh nghiệm thực tế về các trường đại học, học bổng, hồ sơ và cuộc sống sinh viên.',
+
+  // ── Home: FAQ (Figma 104:7347) ───────────────────────────────────────────
+  'Frequently asked questions': 'Câu hỏi thường gặp',
+  'Everything you need to know about the product and billing.':
+    'Mọi điều bạn cần biết về sản phẩm và thanh toán.',
+  'What is GlowBal?': 'GlowBal là gì?',
+  'Is GlowBal free?': 'GlowBal có miễn phí không?',
+  'What is the AI strategy suggestion?': 'Gợi ý chiến lược AI là gì?',
+  'Who are the student supporters?': 'Ai là những người hỗ trợ sinh viên?',
+  'Do I need to know which university I want?':
+    'Tôi có cần biết trường đại học của mình không?',
+  'Why do I need to create a profile?': 'Tại sao tôi cần tạo một hồ sơ?',
+
+  // ── Home: contact (Figma 104:7361) ───────────────────────────────────────
+  'Leave your details for a consultation': 'Để lại thông tin để nhận tư vấn',
+  'GlowBal will get in touch to understand what you need.':
+    'GlowBal sẽ liên lạc với bạn để hiểu hơn về nhu cầu của bạn.',
+  'The GlowBal team': 'Đội ngũ của Glowbal',
+  'Start with a dream university. Leave with a scholarship plan.':
+    'Bắt đầu với một trường đại học mơ ước. Ra về với kế hoạch học bổng.',
+  'First name': 'Tên',
+  'Last name': 'Họ',
+  'Phone number': 'Số điện thoại',
+  'Country dialling code': 'Mã vùng quốc gia',
+  'Leave us a message...': 'Để lại lời nhắn cho chúng tôi...',
+  'Get advice': 'Tư vấn cho tôi',
+  'Sending…': 'Đang gửi…',
+  'You agree to our friendly': 'Bạn đồng ý với',
+  'privacy policy': 'chính sách bảo mật',
+
+  // ── Footer (Figma 104:7404) ──────────────────────────────────────────────
+  'Helping students find global universities, scholarships, and application strategies.':
+    'Giúp sinh viên tìm kiếm các trường đại học toàn cầu, học bổng và chiến lược nộp hồ sơ.',
+  Product: 'Sản phẩm',
+  Company: 'Công ty',
+  Legal: 'Pháp lý',
+  'Find scholarships': 'Tìm kiếm học bổng',
+  // 'AI strategy' is already defined in the Navigation block above.
+  'Student mentors': 'Cố vấn sinh viên',
+  'Our team': 'Đội ngũ',
+  'Student stories': 'Câu chuyện của sinh viên',
+  'Terms of service': 'Điều khoản dịch vụ',
+  '© 2026 GlowBal. Student-first global guidance.':
+    '© 2026 GlowBal. Hướng dẫn toàn cầu ưu tiên sinh viên.',
+  'Best AI Tool': 'Công cụ AI tốt nhất',
+  '2,000+ reviews': 'Hơn 2.000 đánh giá',
+
+  // ── Universities list (Figma 105:8300) ───────────────────────────────────
+  // "Find the university...", "Search by university name" and "Sort by" are
+  // already defined above (the earlier universities block).
+  'Explore universities worldwide and find your perfect fit.':
+    'Khám phá các trường đại học trên toàn thế giới và tìm nơi phù hợp nhất với bạn.',
+  'Where do you want to study': 'Bạn muốn học ở đâu',
+  'Select a major': 'Chọn chuyên ngành',
+  'Find universities': 'Tìm trường đại học',
+  'Filter by criteria': 'Chọn theo tiêu chí',
+  // Criteria chips (only the data-backed ones ship, see university-list-client).
+  // 'Scholarships' and 'Acceptance rate' are defined elsewhere in this file.
+  'World QS ranking': 'Xếp hạng QS thế giới',
+  // Sort chips
+  Popular: 'Phổ biến',
+  'Price: high to low': 'Giá cao - thấp',
+  'Price: low to high': 'Giá thấp - cao',
+  // Majors ('Business' and 'Arts & Humanities' are defined elsewhere)
+  'Engineering & Technology': 'Kỹ thuật & Công nghệ',
+  'Medicine & Health': 'Y khoa & Sức khỏe',
+  // Card ('View profile' is defined elsewhere)
+  'QS ranking': 'Xếp hạng QS',
+  'International tuition': 'Học phí quốc tế',
+  'Global top 50': 'Top 50 toàn cầu',
+  'Top 200 worldwide': 'Top 200 toàn cầu',
+  'Saved to your list': 'Đã lưu vào danh sách của bạn',
+  'Removed from your list': 'Đã xóa khỏi danh sách của bạn',
+  'No universities match your filters': 'Không có trường nào khớp với bộ lọc của bạn',
+  'Try clearing a filter or searching a different name.':
+    'Hãy thử bỏ bớt bộ lọc hoặc tìm một tên khác.',
+  // Login gate
+  'Log in to keep exploring': 'Đăng nhập để tiếp tục khám phá',
+  'Create a free account to open full university profiles, discover scholarships and unlock your personalised matches.':
+    'Tạo tài khoản miễn phí để mở hồ sơ đầy đủ của trường, khám phá học bổng và mở khóa gợi ý phù hợp riêng cho bạn.',
+  'Log in or sign up': 'Đăng nhập hoặc đăng ký',
+  'Maybe later': 'Để sau',
+  // Nav / mobile chrome ('Menu', 'Close menu', 'Next' are defined elsewhere)
+  Previous: 'Trước',
+
+  // ── Loading states ───────────────────────────────────────────────────────
+  // The `label` a caller hands the globe loader (src/shared/ui/globe-loader.tsx)
+  // — the line under the spinning globe that says what is actually happening.
+  // The playful rotating line above it is NOT here: it lives in
+  // src/shared/ui/loading-phrases.ts as EN/VI pairs, for the reasons set out in
+  // that file's header.
+  Loading: 'Đang tải',
+  'Checking your details': 'Đang kiểm tra thông tin của bạn',
+  'Signing you out': 'Đang đăng xuất',
+  'Signing you up': 'Đang đăng ký cho bạn',
+  'Saving your profile': 'Đang lưu hồ sơ của bạn',
+  'Building your profile': 'Đang dựng hồ sơ của bạn',
+  'Saving your answers': 'Đang lưu câu trả lời của bạn',
+  'Saving your achievements': 'Đang lưu thành tích của bạn',
+  'Uploading your document': 'Đang tải tài liệu lên',
+  'Uploading your documents': 'Đang tải tài liệu lên',
+  'Searching universities': 'Đang tìm trường',
+  'Finding scholarships for you': 'Đang tìm học bổng cho bạn',
+  'Finding courses for you': 'Đang tìm khoá học cho bạn',
+  'Loading your applications': 'Đang tải hồ sơ ứng tuyển của bạn',
+  'Loading your profile': 'Đang tải hồ sơ của bạn',
+  'Adding courses to your plan': 'Đang thêm khoá học vào kế hoạch',
+  'Reading your statement': 'Đang đọc bài luận của bạn',
+  'Analysing your statement': 'Đang phân tích bài luận của bạn',
+  'Recalculating your match': 'Đang tính lại mức độ phù hợp',
+  'Submitting your application': 'Đang gửi hồ sơ của bạn',
+  'Submitting your review': 'Đang gửi đánh giá của bạn',
+  'Sending your feedback': 'Đang gửi phản hồi của bạn',
+  'Opening secure checkout': 'Đang mở trang thanh toán bảo mật',
+  'Updating your availability': 'Đang cập nhật lịch rảnh của bạn',
+  'Saving your rate': 'Đang lưu mức phí của bạn',
+  'Updating the user': 'Đang cập nhật người dùng',
+  'Updating the coordinator': 'Đang cập nhật điều phối viên',
+  'Updating the ambassador': 'Đang cập nhật đại sứ',
+  'Updating the article': 'Đang cập nhật bài viết',
+  'Updating the application': 'Đang cập nhật hồ sơ',
+  'Updating the booking': 'Đang cập nhật lịch hẹn',
+  'Saving the article': 'Đang lưu bài viết',
+  'Loading article links': 'Đang tải liên kết bài viết',
+  'Saving article links': 'Đang lưu liên kết bài viết',
+
+  // ── Mentor profile, /mentors/[id] (Figma 375:21633) ──────────────────────
+  // The frame's Vietnamese is the source for these; the English literals in
+  // the JSX are the translation back, so the pairs read in the frame's voice.
+  'All mentors': 'Tất cả cố vấn',
+  About: 'Giới thiệu',
+  Strengths: 'Điểm mạnh',
+  'Best for': 'Tốt nhất cho',
+  // `Reviews`, `Book a session` and `Back` are deliberately absent — all three
+  // are already defined above (lines 331, 394, 128) and a duplicate key is a
+  // type error. The existing Vietnamese covers this page unchanged.
+  'Book this mentor': 'Đặt lịch với cố vấn này',
+  // Its own text node beside the formatted price, so it translates on its own.
+  '/hour': '/giờ',
+  'Book now': 'Đặt lịch ngay',
+  'Available times': 'Khung giờ trống',
+  'No reviews yet — be the first to book and leave one.':
+    'Chưa có đánh giá nào — hãy là người đầu tiên đặt lịch và để lại đánh giá.',
+  '+ 10% service fee · paid securely through Stripe':
+    '+ 10% phí dịch vụ · thanh toán an toàn qua Stripe',
+  'Pick any open day below. Sessions must be booked at least an hour ahead.':
+    'Chọn bất kỳ ngày nào mở bên dưới. Buổi tư vấn cần được đặt trước ít nhất một giờ.',
+  'This mentor hasn’t published availability for the next 90 days.':
+    'Cố vấn này chưa mở lịch cho 90 ngày tới.',
+  'No ratings yet': 'Chưa có đánh giá nào',
+  'No open times right now': 'Hiện chưa có khung giờ trống',
+  'Select a day with a dot to see its times.':
+    'Chọn một ngày có dấu chấm để xem khung giờ.',
+  'No date selected': 'Chưa chọn ngày',
+  'Loading availability…': 'Đang tải lịch trống…',
+  Today: 'Hôm nay',
+  'Not bookable yet': 'Chưa thể đặt lịch',
+  'What do you want help with?': 'Bạn muốn được hỗ trợ điều gì?',
+  'What would you like to ask?': 'Bạn muốn hỏi điều gì?',
+  'The more context you give, the more your mentor can prepare.':
+    'Bạn chia sẻ càng cụ thể, cố vấn càng chuẩn bị tốt.',
+  'Or type your own topic': 'Hoặc tự nhập chủ đề của bạn',
+  'Session topic': 'Chủ đề buổi tư vấn',
+  'Service fee (10%)': 'Phí dịch vụ (10%)',
+  Total: 'Tổng cộng',
+  'Redirecting…': 'Đang chuyển hướng…',
+  'Personal statement review': 'Review bài luận cá nhân',
+  'Course & university choice': 'Lựa chọn chương trình học & trường',
+  'Interview practice': 'Luyện phỏng vấn',
+  'Scholarships & funding': 'Học bổng & trợ cấp',
+  'Life on campus': 'Đời sống sinh viên',
+  'Previous month': 'Tháng trước',
+  'Next month': 'Tháng sau',
+  'Talk to a student who has already been admitted where you are applying.':'Hãy kết nối với các sinh viên đang theo học tại ngôi trường bạn muốn nộp hồ sơ',
+  'Anywhere':'Mọi nơi',
+  'Subject':'Ngành học',
+  'Search by name or university':'Tìm kiếm theo tên sinh viên hoặc trường',
 
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',

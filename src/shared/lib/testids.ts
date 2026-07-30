@@ -25,6 +25,14 @@ export const TID = {
   /** Full-screen sheet the hamburger opens. Absent from the DOM when closed. */
   navMobileSheet: 'nav-mobile-sheet',
 
+  /**
+   * The home hero's dot globe. Decorative, so nothing asserts on it — this
+   * exists so the visual baselines can MASK it. It rotates continuously and
+   * lights dots at random, which is a full-page screenshot's worst case: no two
+   * frames of it are ever the same.
+   */
+  heroGlobe: 'hero-globe',
+
   // ── Auth ──────────────────────────────────────────────────────────────
   authEmailInput: 'auth-email',
   authPasswordInput: 'auth-password',
@@ -50,8 +58,21 @@ export const TID = {
   // ── Onboarding ────────────────────────────────────────────────────────
   onboardingStep: 'onboarding-step',
 
+  // ── Apply / AI strategy ───────────────────────────────────────────────
+  /** Caption under a ScoreRing. Names which measure the ring shows. */
+  scoreRingLabel: 'score-ring-label',
+  /** The five-step journey nav. Both journeys use the same component. */
+  stepper: 'stepper',
+
   // ── Feedback ──────────────────────────────────────────────────────────
   toast: 'app-toast',
+  /**
+   * The globe loading card. Present whenever the app is busy — a route
+   * transition, a save, a submission — so E2E can wait it out instead of
+   * racing it. Note it is NOT unique: the global overlay and a route-level
+   * `loading.tsx` can both be mounted for a moment during a hard navigation.
+   */
+  globalLoader: 'global-loader',
 } as const;
 
 export type TestId = (typeof TID)[keyof typeof TID];

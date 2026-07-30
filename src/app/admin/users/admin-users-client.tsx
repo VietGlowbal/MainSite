@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Pagination } from '@/components/ui/pagination';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const USERS_PER_PAGE = 10;
 
@@ -33,6 +34,7 @@ function formatDate(value: string | null) {
 export function AdminUsersClient() {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [busy, setBusy] = useState<string | null>(null);
+  useLoadingIndicator(busy !== null, 'Updating the user');
   const [filter, setFilter] = useState<'all' | 'admins' | 'mentors'>('all');
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);

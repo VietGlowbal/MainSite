@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { AchieverStatus } from '@/types/achievers';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Application = {
   id: string;
@@ -38,6 +39,7 @@ function StatusBadge({ status }: { status: AchieverStatus }) {
 export function AdminAchieversClient({ applications }: { applications: Application[] }) {
   const [items, setItems] = useState(applications);
   const [updating, setUpdating] = useState<string | null>(null);
+  useLoadingIndicator(updating !== null, 'Updating the application');
   const [expanded, setExpanded] = useState<string | null>(null);
 
   async function updateStatus(id: string, status: AchieverStatus) {

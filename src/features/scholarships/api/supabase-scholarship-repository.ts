@@ -11,11 +11,19 @@ import {
   type ScholarshipQueries,
 } from './scholarship-queries';
 
-/** Columns the "scholarships available here" strip on a university needs. */
+/**
+ * Columns the "scholarships available here" strip on a university needs.
+ *
+ * `conditions`, `insight` and `applies_to_text` are here for the saved list's
+ * scholarship detail panel (Figma 337:19349, "Chi tiết voucer"): it opens from a
+ * row already on screen, so carrying three more text columns on this one join is
+ * cheaper than a second round trip per scholarship the student opens.
+ */
 const FOR_UNIVERSITY_SELECT = `
   university_id,
   scholarships (
     id, name, scope, funding_type, coverage, eligibility,
+    conditions, insight, applies_to_text,
     amount_min, amount_max, amount_currency,
     deadline_date, deadline_text, source_url, status
   )
@@ -30,6 +38,9 @@ type ForUniversityRow = {
     funding_type: string[] | null;
     coverage: string | null;
     eligibility: string | null;
+    conditions: string | null;
+    insight: string | null;
+    applies_to_text: string | null;
     amount_min: number | null;
     amount_max: number | null;
     amount_currency: string | null;
@@ -140,6 +151,9 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
         amountCurrency: s.amount_currency,
         coverage: s.coverage,
         eligibility: s.eligibility,
+        conditions: s.conditions,
+        insight: s.insight,
+        appliesToText: s.applies_to_text,
         deadlineLabel: formatDeadline(s.deadline_date, s.deadline_text),
         sourceUrl: s.source_url,
       };

@@ -1,6 +1,5 @@
 /**
- * The eleven university tiles scattered across Figma 104:7135, with each one's
- * position and size on the design's 1440x977 stage.
+ * The eleven universities shown in the partners section.
  *
  * ⚠️ TWO THINGS TO SETTLE BEFORE THIS REACHES "/" IN ĐỢT 5.
  *
@@ -13,46 +12,39 @@
  *    same logos are unobjectionable under something like "Các trường trong kho
  *    dữ liệu" (universities in our database).
  *
- * 2. Every source file is 90x90 and the design paints them at 100-140px, so
- *    they are already upscaled before the device pixel ratio is applied — on a
- *    2x screen the largest tile is drawn at 3.1x its real resolution. Ask the
- *    designer for the vector or 2x originals.
+ * 2. Every source file is 90x90 and the orbit paints them between about 60 and
+ *    125px, so the ones at the near side of the orbit are upscaled before the
+ *    device pixel ratio is applied. Ask the designer for the vector or 2x
+ *    originals.
  *
- * The coordinates are the raw Figma frame numbers rather than percentages, so
- * they can be checked against get_metadata without arithmetic. The component
- * turns them into percentages, which is what makes the whole arrangement scale
- * as one piece.
+ * The order is the order they sit around the orbit — evenly spaced, so it is a
+ * seating plan rather than a ranking. It reads as the Figma scatter did (roughly
+ * anticlockwise from MIT) so the two are diffable.
+ *
+ * ─── WHAT USED TO BE HERE ───────────────────────────────────────────────────
+ *
+ * Each entry also carried an `x`, `y` and `size`: the hand-placed coordinates
+ * from Figma 104:7135, which the component turned into percentages of a fixed
+ * 1440x977 stage. That stage is gone — the logos now orbit, and their positions
+ * come from `../domain/orbit-path`. Nothing read the coordinates any more, so
+ * they went with it rather than sitting here looking authoritative.
  */
 export type PartnerLogo = {
   /** Alt text. An institution name — never translated, per the i18n rules. */
   readonly name: string;
   readonly src: string;
-  /** Top-left corner in the design's 1440x977 frame. */
-  readonly x: number;
-  readonly y: number;
-  /** Tiles are square in the design; this is both width and height. */
-  readonly size: number;
 };
 
-/** Figma 104:7135. Wider than the 1280 container — tiles run from x=168 to x=1373. */
-export const PARTNER_STAGE = { width: 1440, height: 977 } as const;
-
-/**
- * Heading 104:7136 sits at y=439 and is 64px tall, so its centre is at 471 of
- * 977 — a touch above the true middle. Kept exact rather than rounded to 50%.
- */
-export const PARTNER_HEADING_CENTER_Y = 471 / PARTNER_STAGE.height;
-
 export const PARTNER_LOGOS: readonly PartnerLogo[] = [
-  { name: 'Massachusetts Institute of Technology', src: '/partners/mit.png', x: 366, y: 232, size: 120 },
-  { name: 'Imperial College London', src: '/partners/imperial.png', x: 168, y: 415, size: 140 },
-  { name: 'Stanford University', src: '/partners/stanford.png', x: 605, y: 125, size: 120 },
-  { name: 'University of Oxford', src: '/partners/oxford.png', x: 840, y: 71, size: 110 },
-  { name: 'Harvard University', src: '/partners/harvard.png', x: 321, y: 620, size: 130 },
-  { name: 'University of Cambridge', src: '/partners/cambridge.png', x: 534, y: 718, size: 120 },
-  { name: 'California Institute of Technology', src: '/partners/caltech.png', x: 791, y: 763, size: 120 },
-  { name: 'National University of Singapore', src: '/partners/nus.png', x: 981, y: 624, size: 106 },
-  { name: 'The University of Hong Kong', src: '/partners/hku.png', x: 1159, y: 512, size: 102 },
-  { name: 'Cornell University', src: '/partners/cornell.png', x: 1055, y: 182, size: 120 },
-  { name: 'ETH Zürich', src: '/partners/eth-zurich.png', x: 1273, y: 346, size: 100 },
+  { name: 'Massachusetts Institute of Technology', src: '/partners/mit.png' },
+  { name: 'Imperial College London', src: '/partners/imperial.png' },
+  { name: 'Stanford University', src: '/partners/stanford.png' },
+  { name: 'University of Oxford', src: '/partners/oxford.png' },
+  { name: 'Harvard University', src: '/partners/harvard.png' },
+  { name: 'University of Cambridge', src: '/partners/cambridge.png' },
+  { name: 'California Institute of Technology', src: '/partners/caltech.png' },
+  { name: 'National University of Singapore', src: '/partners/nus.png' },
+  { name: 'The University of Hong Kong', src: '/partners/hku.png' },
+  { name: 'Cornell University', src: '/partners/cornell.png' },
+  { name: 'ETH Zürich', src: '/partners/eth-zurich.png' },
 ];

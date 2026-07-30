@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 interface Props {
   userId: string;
@@ -39,6 +40,7 @@ export function PersonalInfoCard({ userId, initialData }: Props) {
   });
   const [draft, setDraft] = useState('');
   const [saving, setSaving] = useState(false);
+  useLoadingIndicator(saving, 'Saving your profile');
 
   const startEdit = (key: Field['key']) => {
     setDraft(values[key]);

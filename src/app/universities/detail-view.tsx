@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { officialWebsite } from '@/features/universities/domain';
 import { useExplorer, type ExplorerUniversity } from '@/lib/explorer-context';
 import type { UniversityScholarship } from '@/lib/explorer-utils';
 import { FUNDING_TYPE_LABELS } from '@/lib/scholarships';
@@ -24,29 +25,10 @@ function extractFoundedYear(uni: ExplorerUniversity): number | null {
   return null;
 }
 
-const UNIVERSITY_WEBSITES: Record<string, string> = {
-  'Massachusetts Institute of Technology': 'https://mit.edu',
-  'Harvard University': 'https://harvard.edu',
-  'Stanford University': 'https://stanford.edu',
-  'University of Oxford': 'https://ox.ac.uk',
-  'University of Cambridge': 'https://cam.ac.uk',
-  'Imperial College London': 'https://imperial.ac.uk',
-  'University College London': 'https://ucl.ac.uk',
-  'University of Toronto': 'https://utoronto.ca',
-  'University of Melbourne': 'https://unimelb.edu.au',
-  'National University of Singapore': 'https://nus.edu.sg',
-  'ETH Zurich': 'https://ethz.ch',
-  'University of Bologna': 'https://unibo.it',
-  'Sapienza University of Rome': 'https://uniroma1.it',
-  'Politecnico di Milano': 'https://polimi.it',
-  'Bocconi University': 'https://unibocconi.it',
-};
-
+// The lookup itself now lives in features/universities/domain/websites.ts so the
+// saved list (/my-universities) shares one copy of it.
 function guessWebsite(uni: ExplorerUniversity): string | null {
-  const hit =
-    UNIVERSITY_WEBSITES[uni.name] ??
-    UNIVERSITY_WEBSITES[uni.name.replace(/\s*\([^)]*\)\s*$/, '').trim()];
-  return hit ?? null;
+  return officialWebsite(uni.name);
 }
 
 /**

@@ -47,12 +47,20 @@ const WIDTHS = [1280, 1440] as const;
  * it worth waiting properly rather than raising the diff threshold.
  */
 async function settle(page: import('@playwright/test').Page) {
-  await page
-    .locator('img[src*="home-hero-globe"]')
-    .evaluate((img: HTMLImageElement) =>
-      img.complete ? undefined : new Promise((r) => img.addEventListener('load', () => r(null))),
-    );
+  await page.locator(`[data-testid="${TID.heroGlobe}"] canvas`).waitFor();
   await page.evaluate(() => document.fonts.ready);
+}
+
+/**
+ * The hero globe, which every screenshot here has to mask.
+ *
+ * It rotates continuously, tips as the page scrolls, and lights dots at random,
+ * so no two frames of it are alike and no baseline can ever match it. This used
+ * to be a static PNG and `settle` waited for that image to load; the wait went
+ * stale when the PNG was replaced, and the mask is what should have replaced it.
+ */
+function globe(page: import('@playwright/test').Page) {
+  return [page.locator(`[data-testid="${TID.heroGlobe}"]`)];
 }
 
 test.describe('home preview — desktop', () => {
@@ -197,7 +205,8 @@ test.describe('home preview — desktop', () => {
     await page.goto('/dev/home');
 
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(page.getByRole('link', { name: /find my scholarships/i })).toBeVisible();
+    // Figma 375:9857 renamed this from "Find my scholarships".
+    await expect(page.getByRole('link', { name: /find matching scholarships/i })).toBeVisible();
   });
 
   test('visual baseline', async ({ page }) => {
@@ -208,15 +217,20 @@ test.describe('home preview — desktop', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
     await settle(page);
-    await expect(page).toHaveScreenshot('home-desktop.png', { fullPage: true });
+    await expect(page).toHaveScreenshot('home-desktop.png', { fullPage: true, mask: globe(page) });
   });
 });
 
 /**
  * The đợt 5 tripwire. `MissingContent` marks copy the Figma file has not been
  * written — right now two of the three feature blocks and all three mockups.
- * It is only ever meant to be seen on /dev/home, and the risk is that "/" gets
- * swapped over to the new composition while some of it is still standing.
+ * It is only ever meant to be seen on /dev/home.
+ *
+ * The swap has happened: "/" renders the new composition as of 28/07. This
+ * guard is what lets it, so it matters more now, not less — "/" drops the two
+ * unwritten sections and passes showPlaceholders={false} to the two that are
+ * partly written, and any of those coming undone shows a dashed box to real
+ * visitors.
  */
 test('the real home page never ships a missing-content marker', async ({ page }) => {
   await page.goto('/');
@@ -224,11 +238,26 @@ test('the real home page never ships a missing-content marker', async ({ page })
 });
 
 /**
+ * "/" owns its chrome, so its own MobileNav is the only thing standing between
+ * a phone and no navigation at all. Viewport inlined because MOBILE is declared
+ * further down the file.
+ */
+test('the real home page has navigation on mobile', async ({ page }) => {
+  await page.setViewportSize({ width: 393, height: 851 });
+  await page.goto('/');
+  await expect(page.getByRole('button', { name: /menu/i })).toBeVisible();
+});
+
+/**
  * The metric row is the one place on this page where the Vietnamese build can
- * break while the English one looks perfect: the column is the Untitled UI
- * default 283.5px, sized for the kit's "400+" and "10k", and a value that wraps
- * pushes its own label a line below the other two. "150M USD" -> "150 triệu
- * USD" did exactly that, which is why the currency now lives in the label.
+ * break while the English one looks perfect: the column is 240px (Figma
+ * 375:9889), sized for the kit's "400+" and "10k", and a value that wraps pushes
+ * its own label a line below the others. "150M USD" -> "150 triệu USD" did
+ * exactly that, which is why any unit lives in the label.
+ *
+ * The row went from three columns to five on the new canvas and the value
+ * dropped 60px -> 48px to fit, so this guard matters MORE than it did: there is
+ * less slack per column than there was.
  *
  * The language is forced through localStorage rather than a UI toggle, and
  * /api/translate is blocked outright — every string this section uses is in the
@@ -286,15 +315,19 @@ test.describe('home preview — mobile', () => {
     await page.setViewportSize(MOBILE);
     await page.goto('/dev/home');
 
-    // TopNav is desktop-only; below md the page shows the hamburger header,
-    // which NavReveal suppresses here — so the preview has no nav at all yet.
-    // Once the marketing nav is wired up this becomes a real assertion.
     const overflows = await page.evaluate(
       () => document.documentElement.scrollWidth > document.documentElement.clientWidth,
     );
     expect(overflows, 'page scrolls horizontally on mobile').toBe(false);
 
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+
+    // Now a real assertion, as the note here used to promise. TopNav is
+    // desktop-only and NavReveal suppresses the legacy chrome on this route, so
+    // the hamburger is the ONLY navigation a phone gets — if MobileNav is
+    // dropped from the composition the page has no nav at all, which is exactly
+    // how it shipped before 28/07.
+    await expect(page.getByRole('button', { name: /menu/i })).toBeVisible();
   });
 
   test('visual baseline', async ({ page }) => {
@@ -305,6 +338,6 @@ test.describe('home preview — mobile', () => {
     await page.setViewportSize(MOBILE);
     await page.goto('/dev/home');
     await settle(page);
-    await expect(page).toHaveScreenshot('home-mobile.png', { fullPage: true });
+    await expect(page).toHaveScreenshot('home-mobile.png', { fullPage: true, mask: globe(page) });
   });
 });

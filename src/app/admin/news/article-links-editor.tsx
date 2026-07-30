@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Candidate = { id: string; title: string; slug: string };
 type Relation = 'related' | 'cluster' | 'prerequisite' | 'next' | 'cites';
@@ -22,7 +23,9 @@ const RELATIONS: { value: Relation; label: string }[] = [
 export function ArticleLinksEditor({ articleId, candidates }: { articleId: string; candidates: Candidate[] }) {
   const [links, setLinks] = useState<Link[]>([]);
   const [loading, setLoading] = useState(true);
+  useLoadingIndicator(loading, 'Loading article links');
   const [saving, setSaving] = useState(false);
+  useLoadingIndicator(saving, 'Saving article links');
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [target, setTarget] = useState('');

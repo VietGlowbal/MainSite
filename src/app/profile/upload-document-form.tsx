@@ -1,141 +1,124 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
+import {
+  ACCEPTED_DOCUMENT_TYPES,
+  useDocumentUpload,
+  type DocumentKind,
+} from '@/features/apply/hooks';
+import { DocumentRow, FileDropzone } from '@/shared/ui';
+import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
-type DocType = 'cv' | 'statement_of_purpose';
+/**
+ * Uploading a CV or a personal statement.
+ *
+ * REBUILT AGAINST THE NEW FRAMES. What this replaces was a bare
+ * `<input type="file">` wrapped in `.glow-card` / `.glow-input` /
+ * `.glow-button-primary` — three class families on CLAUDE.md's quarantine list,
+ * so it was inheriting from the 5,672 lines of unlayered legacy CSS that
+ * out-rank Tailwind. It also surfaced raw Supabase errors to the student, left
+ * orphaned objects in the bucket when the row insert failed, and bounced them
+ * to /universities on a 900ms timer whether or not that was where they came
+ * from.
+ *
+ * The upload itself now lives in `useDocumentUpload`, shared with onboarding.
+ */
 
-const DOC_TYPES: { value: DocType; label: string; hint: string }[] = [
+const DOC_TYPES: { value: DocumentKind; label: string; hint: string }[] = [
   { value: 'cv', label: 'CV / Résumé', hint: 'Your academic or professional CV' },
-  { value: 'statement_of_purpose', label: 'Statement of Purpose', hint: 'Personal statement or SOP for applications' },
+  {
+    value: 'statement_of_purpose',
+    label: 'Personal statement',
+    hint: 'Your statement of purpose or personal statement',
+  },
 ];
 
 export function UploadDocumentForm() {
-  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
-  const [file, setFile] = useState<File | null>(null);
-  const [docType, setDocType] = useState<DocType>('cv');
-  const [message, setMessage] = useState<string | null>(null);
-  const [isError, setIsError] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const { items, upload, remove } = useDocumentUpload();
+  const [kind, setKind] = useState<DocumentKind>('cv');
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setLoading(true);
-    setMessage(null);
-    setIsError(false);
+  useLoadingIndicator(busy, 'Uploading your document');
 
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData.user) {
-      setMessage('Please sign in first.');
-      setIsError(true);
-      setLoading(false);
-      return;
-    }
+  const active = DOC_TYPES.find((d) => d.value === kind);
 
-    if (!file) {
-      setMessage('Please choose a file first.');
-      setIsError(true);
-      setLoading(false);
-      return;
-    }
+  async function handleFiles(files: File[]) {
+    setBusy(true);
+    const settled = await upload(files, kind);
+    setBusy(false);
 
-    const path = `${userData.user.id}/${docType}/${Date.now()}-${file.name}`;
-
-    const { error: uploadError } = await supabase.storage
-      .from('student-documents')
-      .upload(path, file, { upsert: false });
-
-    if (uploadError) {
-      setMessage(uploadError.message);
-      setIsError(true);
-      setLoading(false);
-      return;
-    }
-
-    const { error: insertError } = await supabase.from('uploaded_documents').insert({
-      user_id: userData.user.id,
-      type: docType,
-      storage_key: path,
-      file_name: file.name,
-      mime_type: file.type,
-      parsed_summary: null,
-    });
-
-    if (insertError) {
-      setMessage(insertError.message);
-      setIsError(true);
-    } else {
-      setMessage('Uploaded successfully. Taking you back to your matches…');
-      setFile(null);
-      // reset file input
-      const input = document.getElementById('doc-file-input') as HTMLInputElement | null;
-      if (input) input.value = '';
-      // Send the user back to the university search they came from. refresh()
-      // lets the universities server component recompute match data now that a
-      // document exists.
-      setTimeout(() => {
-        router.push('/universities');
-        router.refresh();
-      }, 900);
-    }
-
-    setLoading(false);
-  };
+    // Refresh rather than navigate. The list of stored documents on this page
+    // is server-rendered, and the student is most likely here to add a second
+    // file — sending them to /universities on a timer was the old form
+    // guessing, and it guessed wrong for anyone arriving from /apply.
+    if (settled.some((item) => item.status === 'complete')) router.refresh();
+  }
 
   return (
-    <section className="glow-card space-y-5">
-      <div>
-        <h2 className="text-xl font-semibold text-slate-900">Upload document</h2>
-        <p className="mt-1 text-sm text-slate-500">CV or Statement of Purpose — stored securely in your profile.</p>
-      </div>
-
-      {/* Doc type selector */}
-      <div className="grid grid-cols-2 gap-3">
-        {DOC_TYPES.map((dt) => (
-          <button
-            key={dt.value}
-            type="button"
-            onClick={() => setDocType(dt.value)}
-            className={`rounded-2xl border p-3 text-left transition-all ${
-              docType === dt.value
-                ? 'border-pink-300 bg-pink-50 shadow-[0_0_0_2px_rgba(255,77,140,0.15)]'
-                : 'border-black/5 bg-white/60 hover:border-pink-200'
-            }`}
-          >
-            <p className={`text-sm font-semibold ${docType === dt.value ? 'text-pink-600' : 'text-slate-700'}`}>{dt.label}</p>
-            <p className="mt-0.5 text-xs text-slate-400 leading-snug">{dt.hint}</p>
-          </button>
-        ))}
-      </div>
-
-      <form className="space-y-4" onSubmit={handleSubmit}>
-        <label className="glow-label">
-          Choose file
-          <input
-            id="doc-file-input"
-            className="glow-input mt-2"
-            type="file"
-            accept=".pdf,.doc,.docx,.txt"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-          />
-        </label>
-        {file && (
-          <p className="text-xs text-slate-500 truncate">
-            Selected: <span className="font-medium text-slate-700">{file.name}</span> ({(file.size / 1024).toFixed(0)} KB)
-          </p>
-        )}
-        <button className="glow-button-primary glow-button-primary-wide" type="submit" disabled={loading}>
-          {loading ? 'Uploading…' : `Upload ${DOC_TYPES.find(d => d.value === docType)?.label}`}
-        </button>
-      </form>
-
-      {message && (
-        <p className={`text-sm rounded-xl px-3 py-2 ${isError ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
-          {message}
+    <section className="flex flex-col gap-gb-2xl rounded-gb-2xl border border-line bg-surface p-gb-3xl">
+      <div className="flex flex-col gap-gb-xs">
+        <h2 className="text-gb-lg font-semibold text-fg">Upload a document</h2>
+        <p className="text-gb-sm text-fg-tertiary">
+          Stored privately in your profile. GlowBal reads it to score how well you match a course.
         </p>
-      )}
+      </div>
+
+      <div
+        role="radiogroup"
+        aria-label="Document type"
+        className="grid gap-gb-lg sm:grid-cols-2"
+      >
+        {DOC_TYPES.map((option) => {
+          const selected = kind === option.value;
+          return (
+            <button
+              key={option.value}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => setKind(option.value)}
+              className={`flex flex-col gap-gb-xxs rounded-gb-xl border p-gb-xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                selected
+                  ? 'border-brand bg-brand-subtle'
+                  : 'border-line hover:border-line-strong'
+              }`}
+            >
+              <span
+                className={`text-gb-sm font-semibold ${selected ? 'text-fg-brand' : 'text-fg'}`}
+              >
+                {option.label}
+              </span>
+              <span className="text-gb-xs text-fg-tertiary">{option.hint}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <FileDropzone
+        onFiles={handleFiles}
+        accept={ACCEPTED_DOCUMENT_TYPES}
+        disabled={busy}
+        label={`Click to upload ${active?.label ?? 'a document'}`}
+        hint="PDF, DOC, DOCX, TXT or RTF (max. 10MB)"
+      />
+
+      {items.length > 0 ? (
+        <ul className="flex flex-col gap-gb-md">
+          {items.map((item) => (
+            <DocumentRow
+              key={item.key}
+              fileName={item.fileName}
+              total={item.size}
+              status={item.status}
+              {...(item.error ? { error: item.error } : {})}
+              onRemove={() => remove(item.key)}
+              removeLabel={`Dismiss ${item.fileName}`}
+            />
+          ))}
+        </ul>
+      ) : null}
     </section>
   );
 }

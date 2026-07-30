@@ -6,7 +6,7 @@ pageType: ranking
 studentSegment: Vietnamese undergraduate applicant
 targetCountry: UK
 subject: Computer Science
-lastUpdated: 2026-07-26
+lastUpdated: 2026-07-29
 status: draft
 ---
 # UK Computer Science Comparison for Vietnamese undergraduate applicant

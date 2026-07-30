@@ -14,6 +14,21 @@
 export type PlusPlanId = 'plus-starter' | 'plus-pro' | 'plus-premium';
 
 /**
+ * Master switch for selling Plus. Off for launch — we are not taking payment
+ * yet, and there is no Stripe webhook, so a payment that completed after the
+ * user closed the tab would be charged without ever granting access.
+ *
+ * While this is false:
+ *  - the tier cards render as a non-interactive preview ("Sắp ra mắt"),
+ *  - POST /api/plus/checkout refuses, so hiding the button is not the only
+ *    thing standing between a crafted request and a live Stripe session,
+ *  - onboarding no longer ends on the upsell.
+ *
+ * To sell again: set this to true AND ship the webhook. Both, in that order.
+ */
+export const PLUS_SALES_ENABLED = false;
+
+/**
  * Facebook (Messenger) chat link for the "Not sure? Chat with our in-house
  * team" CTA on the payment page.
  */

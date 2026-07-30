@@ -7,14 +7,75 @@
  *  - no feature/app/server imports — shared/ is a leaf
  *  - no legacy class names (.glowbal-*, .auth-*, ...); see CLAUDE.md
  */
+export { Avatar } from './avatar';
+export type { AvatarSize } from './avatar';
+export { Badge, admissionBadgeVariant } from './badge';
+export type { BadgeVariant } from './badge';
 export { Button } from './button';
 export type { ButtonSize, ButtonVariant } from './button';
 export { CheckItem, CheckList } from './check-item';
+export { Checkbox, CheckboxGroup } from './checkbox';
 export { Container } from './container';
 export { FeatureCard } from './feature-card';
-export { ICONS, KitIcon } from './icons';
-export type { KitIconArt } from './icons';
+export { CONTROL_BASE, FormField, controlClasses } from './form-field';
+export { Input } from './input';
+export { Pagination, paginationRange } from './pagination';
+export { Radio, RadioGroup } from './radio';
+export { RatingsBadge } from './ratings-badge';
+export { Select } from './select';
+export { Textarea } from './textarea';
+export { Footer } from './footer';
+export type { FooterColumn, FooterLink, FooterSocial } from './footer';
+export {
+  BRAND_ICONS,
+  BrandIcon,
+  ICONS,
+  InstagramMark,
+  KitIcon,
+  SearchMark,
+  VerifiedMark,
+} from './icons';
+export type { BrandIconArt, KitIconArt } from './icons';
+export { GlobeLoader, LoadingScreen, PageLoaderOverlay } from './globe-loader';
+export type { GlobeLoaderSize } from './globe-loader';
+export { LOADING_PHRASES, nextPhraseIndex } from './loading-phrases';
+export type { LoadingPhrase } from './loading-phrases';
+/**
+ * The loading store and its hooks.
+ *
+ * ⚠️ Import these from '@/shared/ui/loading-overlay', NOT from this barrel,
+ * unless you are also pulling a component out of it. They are re-exported here
+ * for discoverability, but a module that wants one hook and reaches through the
+ * barrel to get it drags every primitive above into its graph.
+ *
+ * That is not a style preference. The forty-odd call sites for
+ * `useLoadingIndicator` include components that are under test, and pulling the
+ * whole design system into those tests moved ~300 uncovered branches into the
+ * coverage denominator — enough to break the ratchet in vitest.config.ts on its
+ * own. It is also dead weight in the client bundle of every page that saves a
+ * form.
+ */
+export {
+  GlobalLoadingOverlay,
+  beginLoading,
+  useBeginLoading,
+  useLoadingIndicator,
+  useLoadingSnapshot,
+} from './loading-overlay';
+export { DocumentRow, formatBytes } from './document-row';
+export type { DocumentStatus } from './document-row';
+export { FileDropzone } from './file-dropzone';
+export { ProgressBar } from './progress-bar';
+export { RangeHistogram } from './range-histogram';
+export { RepeatableFieldset } from './repeatable-fieldset';
+export { ScoreRing, scoreRingColor } from './score-ring';
+export type { ScoreRingMeasure, ScoreRingSize } from './score-ring';
+export { Stepper } from './stepper';
+export type { StepperStep } from './stepper';
 export { Metric } from './metric';
+export { MultiSelect } from './multi-select';
+export type { MultiSelectOption } from './multi-select';
+export { Modal } from './modal';
 export { MobileNav } from './mobile-nav';
 export { Section } from './section';
 export type { MobileNavAction, MobileNavItem } from './mobile-nav';

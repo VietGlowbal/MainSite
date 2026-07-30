@@ -44,5 +44,12 @@ test('design tokens render as expected', async ({ page }) => {
   await expect(page).toHaveScreenshot('design-tokens.png', {
     fullPage: true,
     maxDiffPixelRatio: 0.01,
+    // The GlobeLoader cards are the one thing on this page that cannot hold
+    // still: a looping video, a phrase that swaps every 2.4s, and three dots
+    // on a 1.5s cycle. Against maxDiffPixelRatio 0.01 they would fail on
+    // timing alone, so they are masked out. Nothing is lost — the tokens they
+    // are built from (radius, shadow, surface, spacing) are all sampled
+    // elsewhere on the page, which is what this baseline is actually for.
+    mask: [page.getByTestId('global-loader')],
   });
 });
