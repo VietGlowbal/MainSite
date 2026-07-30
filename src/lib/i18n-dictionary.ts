@@ -1250,6 +1250,9 @@ export const translations: Record<string, string> = {
   'Search subjects': 'Tìm ngành',
   'We do not have a subject list for this university yet. Paste a link to the course page below and it will show on your saved list.':
     'Hệ thống chưa có danh sách ngành cho trường này. Hãy dán link trang khoá học bên dưới, link sẽ hiện trong danh sách đã lưu của bạn.',
+  'Collected from this university’s own course catalogue. Check the official page before you apply.':
+    'Được thu thập từ danh mục khoá học của chính trường. Hãy kiểm tra trang chính thức trước khi nộp hồ sơ.',
+  'Open the official course page': 'Mở trang khoá học chính thức',
   'Cannot find the subject you want? Paste a link to it':
     'Nếu không tìm thấy ngành mong muốn thì paste link',
   'Optional. It shows as a link on your saved list.':

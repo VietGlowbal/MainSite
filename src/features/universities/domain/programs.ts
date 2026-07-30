@@ -52,6 +52,14 @@ export type ProgramOption = {
    * dictionary holds "4 years", not "4 năm" spelled into the data.
    */
   durationYears?: number;
+  /**
+   * The university's own page for this programme, when the catalogue has one.
+   *
+   * Shown once a programme is chosen rather than on every row: it is the way a
+   * student checks a crawled listing against the source, which matters because
+   * these rows are collected rather than curated.
+   */
+  officialUrl?: string;
 };
 
 /** A school/college heading with the programmes under it. */
@@ -59,6 +67,137 @@ export type ProgramGroup = {
   name: string;
   options: ProgramOption[];
 };
+
+/**
+ * Facet words that only ever appear in a crawled programme name's TAIL.
+ *
+ * `catalog_programmes.programme_name` is frequently every facet of a listing
+ * concatenated — degree level, study modes, the administering school, sometimes
+ * twice. Median length is 35 characters but p90 is 85 and the longest is 154:
+ *
+ *   "Health Education and Health Communication, MSPH Bloomberg School of Public
+ *    Health Master's Full-time Part-time Bloomberg School of Public Health
+ *    In-person"
+ *
+ * The subject is always at the head, and the soup always starts at one of these.
+ * Ordered longest-first so "In Person" is found before "Person" could be.
+ */
+const FACET_MARKERS = [
+  'Professional Degree',
+  'Online/Hybrid',
+  'Postgraduate',
+  'Undergraduate',
+  'Non-Degree',
+  'On-Campus',
+  'On Campus',
+  'In-person',
+  'In Person',
+  'Full-time',
+  'Full Time',
+  'Part-time',
+  'Part Time',
+  'Bachelors',
+  "Bachelor's",
+  'Doctoral',
+  'Graduate',
+  'Masters',
+  "Master's",
+  'Hybrid',
+  'Online',
+  'Distance',
+  // Penn ends its listings with these. Safe only because this peels the TAIL —
+  // as a mid-string cut they would wreck "Major Works of Western Literature".
+  'Major',
+  'Minor',
+] as const;
+
+/**
+ * A crawled programme name, cut back to the subject.
+ *
+ * LOSSY AND ONLY EVER A PREFIX, the same contract as `leadFragment`: this
+ * returns the head of its input, never a rewrite of it. It is what the student
+ * picks and what gets written to `user_universities.program`, so it has to stay
+ * recognisable as the thing the university calls it.
+ *
+ * @param schools Names of the schools administering it. They are cut too — the
+ *   picker already shows the school as the list heading above, and the crawler
+ *   repeats it inline (sometimes twice).
+ */
+export function tidyProgrammeName(
+  raw: string,
+  schools: readonly string[] = [],
+): string {
+  const name = raw.replace(/\s+/g, ' ').trim();
+  if (!name) return name;
+
+  const markers = [...FACET_MARKERS, ...schools.map((school) => school.trim()).filter(Boolean)];
+  let head = name;
+
+  /*
+   * PEEL THE TAIL, NEVER CUT IN THE MIDDLE — and this is the whole design.
+   *
+   * The first version cut at the EARLIEST facet word anywhere in the string.
+   * That mangles a name that legitimately contains one: Georgia Tech's
+   * "Computer Science – Online Degree (MS)" became "Computer Science", which
+   * both lost the distinguishing clause and collided with the real "Computer
+   * Science (MS)" two rows below it. Caught in the browser, not by a test.
+   *
+   * Peeling only a TRAILING run of facets cannot do that: anything sitting
+   * before a word the vocabulary does not recognise is left alone, whatever it
+   * says. The cost is that some tails survive — NYU ends its names with "Arts &
+   * Science", which is not quite any of its unit names — and a long name is a
+   * far smaller problem than a wrong one.
+   */
+  for (let guard = 0; guard < 24; guard += 1) {
+    const previous = head;
+
+    head = head.replace(/[\s,;:|–-]+$/, '');
+
+    for (const marker of markers) {
+      const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const trailing = new RegExp(`\\s${escaped}\\s*$`, 'i');
+      if (trailing.test(head)) {
+        head = head.replace(trailing, '');
+        break;
+      }
+    }
+
+    /*
+     * A bare credential the tail repeats: "Computer Science Courant (MS) MS
+     * Masters …" peels back to "… (MS) MS". Only an ALL-CAPS token, and only
+     * when it does not follow a comma or a bracket — "Applied Economics, MA"
+     * and "Computer Science (BS)" are how a university writes it, and stay.
+     */
+    const credential = /\s([A-Z]{2,6}(?:\/[A-Z]{2,6})*)\s*$/.exec(head);
+    if (credential) {
+      const preceding = head[credential.index - 1];
+      if (preceding !== ',' && preceding !== '(' && preceding !== '/') {
+        head = head.slice(0, credential.index);
+      }
+    }
+
+    if (head === previous) break;
+  }
+
+  head = head.trim();
+
+  /*
+   * Never destroy a name. A length check is not enough: a name made only of
+   * facet words peels to another facet word ("Graduate Full-time Online" ->
+   * "Graduate"), which passes any length test and means nothing as a subject.
+   * The head has to still contain something that is not a facet.
+   */
+  return head.length >= 3 && hasSubjectWord(head) ? head : name;
+}
+
+/** Whether anything survives once the facet vocabulary is removed. */
+function hasSubjectWord(head: string): boolean {
+  let rest = head;
+  for (const marker of FACET_MARKERS) {
+    rest = rest.replace(new RegExp(`(?:^|\\s)${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|$)`, 'gi'), ' ');
+  }
+  return /[A-Za-z]{2}/.test(rest);
+}
 
 export type ProgramChoices = {
   /**
@@ -72,6 +211,16 @@ export type ProgramChoices = {
    * of the selected group; otherwise the `strengths` line.
    */
   options: ProgramOption[];
+  /**
+   * Where the list came from, so the caller can say so.
+   *
+   * `catalogue` rows are crawler output — collected from the university's own
+   * pages rather than curated — and the picker tells the student that once,
+   * under the heading. `strengths` is our own editorial subject line and makes
+   * no such claim. `none` means there is nothing to pick from and only the
+   * paste-a-link fallback applies.
+   */
+  source: 'catalogue' | 'strengths' | 'none';
 };
 
 /**
@@ -86,6 +235,7 @@ export type CatalogueEntry = {
   name: string;
   degree?: string | null;
   durationYears?: number | null;
+  officialUrl?: string | null;
   /** The schools administering it. Empty is normal and handled. */
   units?: readonly { name: string; isPrimary?: boolean }[];
 };
@@ -104,9 +254,11 @@ export function programChoices(
   const entries = (catalogue ?? []).filter((entry) => entry.name.trim().length > 0);
 
   if (entries.length === 0) {
+    const options = splitList(strengths).map((name) => ({ name }));
     return {
       groups: [],
-      options: splitList(strengths).map((name) => ({ name })),
+      options,
+      source: options.length > 0 ? 'strengths' : 'none',
     };
   }
 
@@ -138,13 +290,16 @@ export function programChoices(
     .filter((group) => group.options.length > 0)
     .sort((a, b) => a.name.localeCompare(b.name));
 
-  return { groups, options };
+  return { groups, options, source: 'catalogue' };
 }
 
 function toOption(entry: CatalogueEntry): ProgramOption {
   return {
-    name: entry.name.trim(),
+    // Cut back to the subject, with this programme's own schools stripped —
+    // they are the heading it sits under, not part of its name.
+    name: tidyProgrammeName(entry.name, (entry.units ?? []).map((unit) => unit.name)),
     ...(entry.degree ? { degree: entry.degree } : {}),
+    ...(entry.officialUrl ? { officialUrl: entry.officialUrl } : {}),
     // Never defaulted: null on 400 of 404 rows, and "4 years" on a programme
     // that does not say so would be a claim we invented.
     ...(entry.durationYears != null && Number.isFinite(entry.durationYears) && entry.durationYears > 0

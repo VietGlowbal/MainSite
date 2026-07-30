@@ -102,6 +102,7 @@ export default async function ChooseProgramPage({
     name: programme.name,
     degree: degreeLabel(programme.degreeLevel),
     durationYears: durationYears(programme.duration),
+    officialUrl: programme.officialUrl,
     units: programme.units,
   }));
 

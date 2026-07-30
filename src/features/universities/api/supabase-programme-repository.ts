@@ -22,8 +22,23 @@ type RawRow = {
   credential: string | null;
   duration: string | null;
   official_url: string | null;
+  verification_status: string | null;
   academic_units: unknown;
 };
+
+/**
+ * The one verification state that must never be offered as a choice.
+ *
+ * ⚠️ NOT `NEEDS_REVIEW`. That is the DEFAULT state of crawler output that has
+ * not been through a rule validator — 390 of the 404 live rows carry it — and it
+ * does not mean "we think this is wrong". Filtering on it would leave the
+ * catalogue path working for exactly one university (Penn, the only holder of
+ * the 10 `RULE_VALIDATED` rows), which is deleting the feature rather than
+ * hedging it. `REJECTED` is the flag that means the pipeline decided against a
+ * row; it appears 58 times elsewhere in the crawl tables and zero times here, so
+ * this is insurance, not a filter that currently removes anything.
+ */
+const REJECTED = 'REJECTED';
 
 /**
  * Supabase-backed {@link ProgrammeQueries}.
@@ -45,7 +60,7 @@ export class SupabaseProgrammeRepository implements ProgrammeQueries {
     const { data, error } = await admin
       .from('catalog_programmes')
       .select(
-        'programme_id, university_id, programme_name, degree_level, credential, duration, official_url, academic_units',
+        'programme_id, university_id, programme_name, degree_level, credential, duration, official_url, verification_status, academic_units',
       )
       .eq('university_id', universityId)
       .order('programme_name', { ascending: true });
@@ -68,6 +83,13 @@ function toProgramme(row: RawRow): CatalogueProgramme | null {
   const name = row.programme_name?.trim();
   // A nameless programme cannot be offered as a choice.
   if (!name || row.university_id == null) return null;
+  /*
+   * Filtered here rather than with `.neq()` in the query, because `neq` is not
+   * null-safe in SQL: `NULL != 'REJECTED'` is NULL, not true, so it would also
+   * drop the 4 rows whose status is unset. A comparison in JS treats null as
+   * "not rejected", which is the intent.
+   */
+  if (row.verification_status === REJECTED) return null;
 
   return {
     id: row.programme_id,
