@@ -4,6 +4,52 @@ Ordered by how likely they are to waste your time.
 
 ---
 
+## 00. FOUR components share the `glowbal-onboarding-draft` localStorage key — and it has crashed the wizard twice
+
+**Read this before changing any type inside the onboarding wizard's `Answers`.**
+
+These all read and write the same key, with three different top-level shapes:
+
+| File | Shape written |
+|---|---|
+| `src/app/onboarding/onboarding-wizard.tsx` | `{ answers: Answers }` — the live one |
+| `src/components/onboarding/onboarding-single-page.tsx` | `{ answers: … }`, a subset (no `academic`/`tests`, has `goals`) |
+| `src/components/onboarding/onboarding-globe-quiz.tsx` | `{ answers: …, stepIndex }` |
+| `src/app/onboarding/profile-form.tsx` | `{ profile: StudentProfile, stepIndex }` — **no `answers` at all** |
+
+A draft is therefore not a value the current build wrote. It is a value *some*
+build wrote, on a machine that may not have loaded the app since. Two shape
+changes have shipped without migrating it, and both crashed:
+
+1. **Commit `09d3bc9`** renamed `Tests.englishScore: string` →
+   `englishScores: Record<string, string>` (one score per test instead of one
+   number written across all of them). Drafts already in browsers kept the old
+   key, so restoring one left `englishScores` **undefined** and every read threw
+   `TypeError: Cannot read properties of undefined (reading 'Cambridge English')`.
+   It stayed latent until 30/07, when `isAnswered('tests')` grew a call to
+   `testScoresValid` — which indexes that map on **every render**, so the wizard
+   went from "silently wrong" to "error boundary".
+2. **The câu 6 rework (30/07)** replaced `{ gpaScale: string[], gpa: string }`
+   with per-curriculum `scales` / `grades` maps. Same hazard, caught before ship.
+
+What let both in: `JSON.parse(raw) as { answers?: Answers }`. **An `as` on a
+`JSON.parse` result is a lie** — it tells the compiler the old shape cannot
+exist, which is exactly the case that does exist.
+
+**The rule now:** the draft is parsed in ONE place,
+`src/features/onboarding/domain/draft.ts`, typed `Record<string, unknown>`, and
+every field is *coerced* rather than cast — `readAcademicDraft`, `readTestsDraft`,
+`toCurriculumList`, `toStringMap`. It is a domain module so it has unit tests
+(`draft.test.ts`), including a regression test built from the exact draft that
+produced the crash above. If you change a shape inside `Answers`, add the old
+shape's migration to that file and a test beside the others.
+
+Renaming the key on a breaking change would also work and would be simpler — but
+it silently discards every in-flight draft, which is worse for the student than
+losing one stale field.
+
+---
+
 ## 0. `ADD COLUMN IF NOT EXISTS` never changes a column's TYPE — and it cost the owner four re-runs
 
 **The single most expensive mistake in this pack so far.** Read it before
@@ -64,6 +110,25 @@ Two rules come out of this:
 `string[]` into a list (`toCurriculumList`) so a half-migrated database cannot
 crash câu 6 on `curriculum.join(' · ')` — delete that helper once every
 environment is known to be `TEXT[]`.
+
+⚠️ **`supabase-academic-intake.sql` grew again on 2026-07-30, so that same re-run
+now covers two more things.** Câu 6 was reworked to ask for a grade per
+curriculum (see `docs/redesign-status.md`), which needs:
+
+- `student_profiles.curriculum_grades JSONB` — **new, and the save fails without
+  it.** PostgREST answers `Could not find the 'curriculum_grades' column` and the
+  student sees that message on the last step. Added by name, so a plain re-run
+  picks it up.
+- `gpa_value` widened `NUMERIC(4,2)` → `NUMERIC(6,2)`, as a **separate**
+  `ALTER COLUMN` statement — per rule 1 above, the original `ADD COLUMN` line was
+  not edited to do it, because that would have been skipped forever. Reason:
+  `NUMERIC(4,2)` tops out at 99.99 and the "Others..." curriculum is graded as a
+  percentage, where 100 is a real answer. Postgres does not round an over-range
+  value, it raises `numeric field overflow` — a failed save on the last step with
+  every other answer already written. The wizard also refuses to send a value the
+  narrow column cannot hold (`GPA_COLUMN_MAX`), so an un-migrated project stays
+  usable and merely drops the odd 100%; that guard can go once every environment
+  is `NUMERIC(6,2)`.
 
 ---
 

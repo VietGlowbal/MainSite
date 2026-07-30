@@ -54,11 +54,15 @@ type Props = {
    * One answer only — picking replaces rather than adds, and "Select all"
    * disappears because it would be meaningless.
    *
-   * The frames draw checkboxes everywhere, so this is a departure. It exists
-   * because some of these lists are single-answer by construction: a GPA is one
-   * number on one scale, so "10-point scale" AND "4.0 scale" together describes
-   * nothing. The alternative — letting the student tick both and silently
-   * saving the first — is the data-loss bug this prevents.
+   * The frames draw checkboxes everywhere, so this is a departure, added for
+   * câu 6's grading-scale list (a GPA is one number on one scale, so "10-point"
+   * AND "4.0" together describes nothing).
+   *
+   * ⚠️ NO CALLER as of 2026-07-30. Câu 6 now asks the scale question per
+   * curriculum, which is a `Radio` group of two or three options — a search
+   * field over a scrolling list was the wrong control for that. Kept because the
+   * capability is sound and the next single-answer list will want it; delete it
+   * if that list never arrives.
    */
   single?: boolean;
   resetLabel?: string;

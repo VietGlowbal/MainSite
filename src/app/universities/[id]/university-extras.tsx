@@ -5,7 +5,7 @@ import {
   vinuniFaq,
 } from '@/lib/vinuni-content';
 import { SopAaccSection } from '../vinuni/vinuni-profile-client';
-import type { DetailSection } from './university-detail';
+import { SectionHeading, type DetailSection } from './university-detail';
 
 /**
  * Per-university extra sections.
@@ -59,12 +59,9 @@ export function UniversityExtras({
     <>
       {/* Colleges and programmes — no equivalent column exists on `universities`. */}
       <section className="flex flex-col gap-gb-2xl">
-        <h2
-          id="programmes"
-          className="scroll-mt-gb-9xl font-display text-gb-display-sm font-semibold text-fg"
-        >
+        <SectionHeading id="programmes" eyebrow="VinUniversity">
           Colleges and programmes
-        </h2>
+        </SectionHeading>
         <div className="flex flex-col gap-gb-xl">
           {vinuniColleges.map((college) => (
             <div key={college.id} className="rounded-gb-xl border border-line p-gb-3xl">
@@ -93,18 +90,18 @@ export function UniversityExtras({
 
       {/* The AACC statement analyser, carried over so the redirect from
           /universities/vinuni loses nothing. It brings its own styling. */}
-      <section id="statement" className="scroll-mt-gb-9xl">
+      <section
+        id="statement"
+        className="scroll-mt-[calc(var(--gb-header-mobile)+var(--spacing-gb-7xl))] md:scroll-mt-gb-9xl"
+      >
         <SopAaccSection isLoggedIn={isSignedIn} />
       </section>
 
       {/* FAQ — also has no column equivalent. */}
       <section className="flex flex-col gap-gb-2xl">
-        <h2
-          id="faq"
-          className="scroll-mt-gb-9xl font-display text-gb-display-sm font-semibold text-fg"
-        >
+        <SectionHeading id="faq" eyebrow="VinUniversity">
           Frequently asked questions
-        </h2>
+        </SectionHeading>
         <div className="flex flex-col gap-gb-md">
           {vinuniFaq.map((entry) => (
             <details

@@ -2,10 +2,11 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
-import { officialWebsite } from '@/features/universities/domain';
+import { officialWebsite, splitList } from '@/features/universities/domain';
 import { createClient } from '@/lib/supabase/server';
 import type { University } from '@/lib/types';
-import { UniversityDetail, type DetailSection } from './university-detail';
+import type { DetailSection } from './detail-nav';
+import { UniversityDetail } from './university-detail';
 import { UniversityExtras, extraSectionsFor } from './university-extras';
 
 /**
@@ -57,6 +58,13 @@ export async function generateMetadata({
 /** Anchors for the bar at 375:10665, minus the ones with no section behind them. */
 function sectionsFor(university: University): DetailSection[] {
   const sections: DetailSection[] = [{ id: 'about', label: 'About' }];
+  // The frame's "Các ngành" anchor. It had no target until `strengths` and
+  // `best_for` stopped being prose inside two other sections — see
+  // university-detail.tsx. Still conditional: an anchor to an unrendered
+  // section scrolls nowhere.
+  if (splitList(university.strengths).length > 0 || splitList(university.best_for).length > 0) {
+    sections.push({ id: 'subjects', label: 'Subjects' });
+  }
   sections.push({ id: 'admissions', label: 'Admissions' });
   if (university.housing) sections.push({ id: 'location', label: 'Location' });
   sections.push({ id: 'costs', label: 'Costs & funding' });
@@ -81,6 +89,26 @@ export default async function UniversityDetailPage({
     getScholarshipQueries().byUniversityIds([university.id]),
   ]);
 
+  /*
+   * Initial state for the save heart (Figma 522:8643). Read here rather than in
+   * the button so the first paint is already correct — a client-side fetch would
+   * render every already-saved university as unsaved for a beat, and the reader
+   * would see their own list appear to be wrong.
+   *
+   * RLS scopes user_universities to the owner, so this is the request-scoped
+   * client, not an admin one. `head: true` with an exact count avoids pulling a
+   * row back to ask a yes/no question.
+   */
+  let isSaved = false;
+  if (user) {
+    const { count } = await supabase
+      .from('user_universities')
+      .select('university_id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('university_id', university.id);
+    isSaved = (count ?? 0) > 0;
+  }
+
   const scholarships = (scholarshipsByUniversity.get(university.id) ?? []).map((s) => ({
     id: s.id,
     name: s.name,
@@ -101,6 +129,7 @@ export default async function UniversityDetailPage({
       extras={<UniversityExtras universityId={university.id} isSignedIn={!!user} />}
       officialSite={officialWebsite(university.name)}
       isSignedIn={!!user}
+      isSaved={isSaved}
       userName={userName}
       userAvatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
     />

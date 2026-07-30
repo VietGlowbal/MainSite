@@ -84,14 +84,40 @@ export default function RootLayout({
   ReactDOM.preload('/loading-globe-poster.jpg', { as: 'image', fetchPriority: 'low' });
 
   return (
+    /*
+     * ⚠️ `overflow-x-clip`, NOT `overflow-x-hidden`, on both html and body.
+     *
+     * They do the same job here — stop a wide legacy page scrolling sideways —
+     * but `hidden` computes the other axis to `auto`, which makes the element a
+     * scroll container. That put a scroll container (body) between every page
+     * and the one that actually scrolls, and `position: sticky` resolves against
+     * its nearest scrolling ancestor: body, which never scrolls. So NOTHING on
+     * the site could stick. `getComputedStyle` still reported `position: sticky`
+     * and the element still scrolled straight off the top, which is why this
+     * survived — /universities/[id]'s sidebar had shipped `lg:sticky` since
+     * 2026-07-28 and had never once stuck.
+     *
+     * `clip` does not create a scroll container, so sticky works, and it clips
+     * horizontal overflow at least as firmly as `hidden` did — it also removes
+     * the programmatic sideways scroll `hidden` still allowed.
+     *
+     * `flow-root` on the body is the other half and is NOT cosmetic. `hidden`
+     * established a block formatting context as a side effect of being a scroll
+     * container; `clip` does not, so the first and last child margins started
+     * collapsing through the body and every page lost height at both ends — it
+     * showed up as the kitchen-sink snapshot coming back 115px shorter.
+     * `display: flow-root` restores exactly that block formatting context
+     * without restoring the scroll container, so margins behave as before and
+     * sticky still works.
+     */
     <html
       lang="en"
-      className={`${inter.variable} ${bricolage.variable} ${geistMono.variable} h-full overflow-x-hidden antialiased`}
+      className={`${inter.variable} ${bricolage.variable} ${geistMono.variable} h-full overflow-x-clip antialiased`}
     >
       {/* No `bg-white` here: `body {}` now lives in @layer base (globals.css),
           so a utility would out-rank it and flip the page background from
           #F5F6FF to white. The background belongs to the base layer. */}
-      <body className="min-h-full overflow-x-hidden text-slate-800 glowbal-site-shell">
+      <body className="min-h-full flow-root overflow-x-clip text-slate-800 glowbal-site-shell">
         <LanguageProvider>
           <NavReveal />
           {/* Puts the globe loader up during client-side navigation. Renders

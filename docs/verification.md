@@ -26,11 +26,28 @@ grep -rE 'class(Name)?="[^"]*\b(glowbal|auth|glow|profile|cosmic|cosmos|onboardi
 ### e2e baseline, post-migration
 
 `public.user_universities` was created 2026-07-27 (see known-issues.md §1), so
-the one expected failure this doc used to document is gone. Current baseline:
-**50 pass** when `E2E_EMAIL`/`E2E_PASSWORD` are not set in the Playwright
-process (the 3 signed-in specs skip rather than fail), **53 pass / 0 fail** when
-they are. If you see a failure instead of a skip on the signed-in specs, that is
-a real regression, not the known gap this doc used to describe.
+the one expected failure this doc used to document is gone. Current baseline
+(re-measured 2026-07-30): **52 pass / 1 fail** with `E2E_EMAIL`/`E2E_PASSWORD`
+set in the Playwright process, **49 pass / 1 fail / 3 skipped** without them (the
+signed-in specs skip rather than fail).
+
+⚠️ **The 1 failure is `kitchen-sink.spec.ts` → "design tokens render as
+expected", and it is PRE-EXISTING on `feat/saved-uni-page`.** Verified by
+stashing all working-tree changes and re-running on a clean tree: it fails with
+byte-identical numbers (expected 1280×7876, received 1280×7761, 1,293,946 pixels
+different). Something committed on this branch changed that page's height and the
+snapshot was never re-blessed. **Do not re-bless it blind** — find what changed
+the height first, then decide. Do not spend time proving it is yours; it isn't.
+
+Two flakes to expect rather than chase, both artefacts of `reuseExistingServer`
+attaching to a `next dev` server:
+- `smoke.spec.ts` → `/about` can 500 on its very first compile and pass on every
+  later run.
+- `signed-in.spec.ts` → "saving a university survives a reload" can fail under a
+  busy full-suite run: the save does a second insert (tasks from
+  `task_templates`) and the reload can beat the commit. Passes in isolation.
+
+Re-run a suspected flake before treating it as a regression.
 
 ### Visual baselines
 
