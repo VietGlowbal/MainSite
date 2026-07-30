@@ -39,10 +39,11 @@ this, and do not re-do those pages.**
 |---|---|---|---|
 | Home | `104:7113` → `375:9844` | New scholarship-first hero; metrics 4 → 5 items with real figures; one nav label | **done 28/07** |
 | Signed-in nav | `203:12356` → `375:10151` | 5 items → 4; "AI lên chiến lược" → "Lên Chiến lược Du học" | **done 28/07** |
-| Onboarding câu 6 | `107:11086` → `375:11536` | +222px: gained an open multi-select (curriculum, then grading scale), each with Reset / Select all | **done 28/07** |
-| Onboarding câu 7 | `107:11165` → `375:11616` | +444px: English proficiency + score, then standardized test + score | **done 28/07** |
+| Onboarding câu 6 | `107:11086` → `375:11536` | +222px: gained an open multi-select (curriculum, then grading scale), each with Reset / Select all | **done 28/07, reworked 30/07** — see below |
+| Onboarding câu 7 | `107:11165` → `375:11616` | +444px: English proficiency + score, then standardized test + score | **done 28/07, scores validated 30/07** |
 
-Câu 9 differs only by `symbol` → `instance` on a flag graphic. Not a real change.
+Câu 9 differs only by `symbol` → `instance` on a flag graphic. Not a real change
+— and it is now **deleted** anyway (owner, 30/07).
 
 ### The two net-new clusters
 
@@ -65,7 +66,7 @@ Both carry banner frames naming them:
 |---|---|---|---|
 | `/universities` | `105:8300`, `105:8247` | UI Final | Globe dropped for a flat filterable grid (owner's call). Kept `explorer-context` and `detail-view.tsx` verbatim. Only 3 of 6 filter chips ship — the rest need DB columns that do not exist. |
 | `/auth` | `105:8004`, `105:8037` | UI Final | Centered card, login + signup. All Supabase branches preserved. |
-| `/onboarding` | `107:10574` + câu 1–9, plus `375:11536`/`375:11616` | mixed | **NINE steps since 28/07.** Was a 7-step reskin of the existing question model; the owner then asked for câu 6 and câu 7 (the academic screens) to be built and the columns added. They sit at positions 6 and 7 so the pill reads 6/9 and 7/9 as the frames do. ⚠️ **`supabase-academic-intake.sql` must be run before this ships** — it adds `student_profiles.curriculum` / `gpa_scale` / `gpa_value` and creates `standardized_test_scores`. Câu 8 (awards) is still not built; it duplicates the /ai-strategy achievements input and nobody has decided which owns it. |
+| `/onboarding` | `107:10574` + câu 1–8, plus `375:11536`/`375:11616` | mixed | **EIGHT steps since 30/07** (was nine). Câu 6 and câu 7 — the academic screens — sit at positions 6 and 7. ⚠️ **`supabase-academic-intake.sql` must be run before this ships**; it was extended on 30/07 and is safe to re-run. See the three owner decisions below. Câu 8 (awards) is still not built; it duplicates the /ai-strategy achievements input and nobody has decided which owns it. |
 | `/apply` | `337:18767` | UI Final | **"My application".** Progress donut banded by `progress_percentage`, deadline, "Continue applying" → `/apply/[applicationId]`. Replaced the 1,455-line `apply-dashboard.tsx`. |
 | `/my-universities` | `223:8824`, `223:13621`, `223:13022` + `337:19349` | mixed | Saved list. Base built from Tính năng, **so it is already behind `337:18493`**. The scholarship detail panel is built from the migrated `337:19349`. |
 | `/mentors` | `154:8345` | **Tính năng** | Search + 4-across card grid. ⚠️ Not yet migrated — expect a pass when it is. |
@@ -106,6 +107,79 @@ Each is documented in a comment at the top of the relevant file.
 - **`/guides` cards** — no author byline (`GeoGuide` has no author field).
 - **Scholarship dialog** — the "Mã học bổng" code field is still **not built**.
   No voucher / promo / redeem concept exists anywhere in the schema.
+
+#### `/onboarding` — three owner decisions, 30/07
+
+All three are owner instructions, not inferences. Each is documented in a comment
+at the top of `src/app/onboarding/onboarding-wizard.tsx`.
+
+1. **Câu 9 ("What kind of future are you building?") is deleted.** The wizard is
+   eight steps and the pill reads `n/8`. `student_profiles.goals` is NOT written
+   by this form any more — the upsert omits the column entirely, so a value from
+   `/profile/goals` (which owns that answer, with more room) survives a re-run of
+   onboarding. Sending `null` would have erased it. The Vietnamese strings for
+   câu 9 stay in `i18n-dictionary.ts`: the legacy
+   `components/onboarding/onboarding-single-page.tsx` still renders them.
+
+2. **The progress bar navigates.** Each segment is a real `<button>` in a `<nav>`,
+   so an answer can be corrected without pressing "Back" five times. It is NOT
+   "jump anywhere": the frontier (`reachable`) is every step already seen, plus
+   each consecutive step after that which is already answered. Jumping *forward*
+   past a blank step would route around the same gate that disables "Continue"
+   and land the student on the save button with câu 3 empty. The second half of
+   the rule is what lets a returning student with a full draft go straight to the
+   one answer they came to change.
+
+   ⚠️ The draft that feeds this frontier is **untrusted input** — see
+   `docs/known-issues.md` §00. Four components share its localStorage key, and a
+   draft written before commit `09d3bc9` crashed câu 7 on every render once
+   `isAnswered` started validating scores. It is now coerced in one tested place,
+   `src/features/onboarding/domain/draft.ts`.
+
+   ⚠️ **This is also why the draft is read after hydration, not in the `useState`
+   initialiser.** A segment's `disabled` is derived from how much has been
+   answered; a localStorage-derived first render disagrees with the server's HTML,
+   and React does not patch up mismatched *attributes* — it keeps the server's.
+   The symptom was a bar permanently locked at step 1 for anyone with a draft,
+   with nothing on screen to explain it. `useSyncExternalStore` is the gate;
+   `useEffect` + `setState` is not an option (`react-hooks/set-state-in-effect`).
+
+3. **Câu 6 asks for a grade per curriculum, on that curriculum's own scale.**
+   The frame draws ONE grading-scale list and ONE "Current GPA" box under a
+   *checkbox* list of curricula, and that cannot hold the answer:
+
+   - A student sitting the Vietnamese National Curriculum **and** AP has a 0–10
+     average and a 4.0 GPA. One box makes them discard one, and whichever
+     survives is stored without saying which curriculum it belongs to.
+   - An IBDP student has **neither**. They have a total out of 45, which is not a
+     GPA and does not fit a box labelled "10-point / 4.0".
+
+   So each ticked curriculum renders its own scale picker (a `Radio` group, not a
+   second searchable multi-select — that control was wrong for two options) and
+   its own checked grade box. Same departure, same reason, as câu 7's per-test
+   score fields.
+
+   `src/features/onboarding/domain/academic-grading.ts` owns which scales each
+   curriculum offers and what each one accepts, with 218 unit tests. Every scale
+   is swept against known junk input, because **the reported bug was that the GPA
+   box accepted "dsf"** — the only check was a `parseFloat` at save time whose
+   `null` went to the database silently. Câu 7's score boxes had the same hole and
+   now carry per-test formats (IELTS half bands 0–9, TOEFL whole 0–120, SAT steps
+   of 10, A-Level letters, …). Câu 6's grades are **required**; câu 7's scores stay
+   **optional**, because that step's own copy tells the student to leave one blank
+   while they wait for a result.
+
+   Two limits are deliberate and commented in the module: a letter-grade list has
+   to accept a run-together form ("A\*AA"), which means any run of grade letters
+   passes; and an unknown "Other" scale can only be held to leading with its
+   number ("18/20", "87%"). Both are shape filters, not verification.
+
+   **Schema:** `student_profiles.curriculum_grades` (JSONB) is new and REQUIRED —
+   it is the only place a two-curriculum student's second grade, or an IB total,
+   can land without being relabelled. `gpa_scale` / `gpa_value` are now the
+   *derived summary*: the first ticked curriculum whose scale yields a comparable
+   number, for the check against `universities.gpa_range`. `gpa_value` is widened
+   to `NUMERIC(6,2)` so a 100% "Others" grade cannot overflow it mid-save.
 
 #### `/mentors/[id]` — five departures, and two bugs the rebuild had to fix
 
