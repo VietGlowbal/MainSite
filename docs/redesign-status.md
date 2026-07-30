@@ -318,6 +318,56 @@ section bar was first wrapped in a `<div className="pt-gb-5xl">`, pinning it to 
 direct children of something tall — top spacing goes on the sticky element as a
 margin, not on a wrapper.
 
+### Every jump-to-section link showed a 10-second fake loader (found 30/07)
+
+Owner report: clicking a section in the detail page's bar "loads quite long
+(about 10s)". **10s was not a coincidence — it is `SAFETY_MS` in
+[route-loading.tsx](../src/components/route-loading.tsx) to the millisecond.** A
+duration that exactly equals a timeout constant means nothing was ever loading;
+a handle was opened and nothing could close it.
+
+`navigatesInApp()` already declined hash-only links correctly, so the click path
+was innocent. The culprit was one line further down:
+
+```ts
+window.addEventListener('popstate', start);
+```
+
+**Chrome fires `popstate` for a same-document fragment navigation.** So every
+anchor click opened a loader, and all three of its exits were closed:
+- `usePathname()` does not change on a hash change → the commit effect never ran.
+- The URL poll captured its "from" *inside* `start()`, which on popstate runs
+  **after** the address bar has already updated → it compared the new URL against
+  itself, forever.
+- Leaving only `SAFETY_MS`.
+
+Fixed by remembering the last settled `pathname + search` in a ref (popstate
+cannot read where it came from — it has to have been recorded beforehand) and
+ignoring any traversal that does not change it. Query-string-only traversals are
+ignored too, for the same unendable-loader reason; they are cache-served and
+imperceptible.
+
+⚠️ **The unit test asserted the bug.** `route-loading.test.tsx` had "shows the
+loader on back/forward navigation" dispatching a bare `PopStateEvent` **without
+touching the URL** — encoding "any popstate is a navigation", which is precisely
+what was wrong. It now updates the URL first, in the order a browser does, and
+there are four new cases pinning hash-only and query-only traversals.
+
+**Second instance of the same root cause, introduced the same day:** the rewired
+university card calls `preventDefault()` for guests to show the login gate.
+`RouteLoading` listens on **capture**, so it runs before React's handler and sees
+`defaultPrevented === false` — a cancelled click therefore also parked the loader
+for the full 10s. Fixed with the `data-no-loader` opt-out the component already
+provides, applied only when signed out. **Any handler that may cancel a `<Link>`
+needs that attribute.**
+
+Related, and part of why the page felt slow in Vietnamese: the section labels
+were not in `i18n-dictionary.ts`, so the bar rendered half-translated
+("Giới thiệu · Subjects · Tuyển sinh · Location") until several sequential
+`/api/translate` round trips returned. The fixed UI strings are now static
+entries — 4 round trips down to 3, and the remaining ones are the university's
+own prose, which genuinely needs the model.
+
 ### `/universities/[id]` — what the data actually supports (measured 28/07)
 
 Do not re-probe this; it decided the approach.

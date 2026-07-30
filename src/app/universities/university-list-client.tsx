@@ -197,6 +197,18 @@ function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
                     requireLogin();
                   }
                 }}
+                /*
+                 * A guest's click is cancelled in favour of the login gate, so
+                 * there is no navigation to show a loader for. RouteLoading
+                 * listens in the CAPTURE phase — it runs before React's handler,
+                 * so `defaultPrevented` is still false by the time it decides —
+                 * and its own doc notes that a click which turns out not to
+                 * navigate leaves a handle open until SAFETY_MS. That is a flat
+                 * 10-second fake loader on the gate. `data-no-loader` is the
+                 * opt-out it provides; signed-in users still get the loader,
+                 * because they really do navigate.
+                 */
+                {...(isLoggedIn ? {} : { 'data-no-loader': '' })}
                 className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
               >
                 {uni.name}

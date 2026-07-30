@@ -1097,6 +1097,56 @@ export const translations: Record<string, string> = {
   'Subject':'Ngành học',
   'Search by name or university':'Tìm kiếm theo tên sinh viên hoặc trường',
 
+  // ── University detail, /universities/[id] (Figma 375:10629) ───────────────
+  //
+  // The section bar and the strip/rail labels. Listed here rather than left to
+  // /api/translate because the bar is the first thing on the page a reader uses:
+  // uncovered strings made it render half-Vietnamese ("Giới thiệu · Subjects ·
+  // Tuyển sinh · Location") until four sequential round trips came back, and the
+  // labels are fixed UI text, so paying a model for them on every load is waste.
+  // `About`, `Admissions`, `Careers`, `Overview` and `At a glance` are already
+  // covered above.
+  Subjects: 'Các ngành',
+  Location: 'Địa điểm',
+  'Costs & funding': 'Chi phí & Tài trợ',
+  'Why this university': 'Vì sao chọn trường này',
+  'Talk to a student': 'Kết nối với sinh viên',
+  Programmes: 'Chương trình học',
+  'Statement review': 'Nhận xét bài luận',
+  // Section eyebrows.
+  Academics: 'Học thuật',
+  'Getting in': 'Tuyển sinh',
+  'On campus': 'Trong trường',
+  Money: 'Chi phí',
+  'After graduation': 'Sau khi tốt nghiệp',
+  'The honest view': 'Góc nhìn thực tế',
+  'Ask a human': 'Tư vấn trực tiếp',
+  VinUniversity: 'VinUniversity',
+  // Stat strip and facts rail. `Acceptance rate` is already covered above.
+  'QS World Rank': 'Xếp hạng QS thế giới',
+  'Typical GPA': 'GPA điển hình',
+  'Tuition / year': 'Học phí / năm',
+  'Application deadline': 'Hạn nộp đơn',
+  'Admission difficulty': 'Độ khó tuyển sinh',
+  'Living cost (USD / year)': 'Chi phí sinh hoạt (USD / năm)',
+  'English requirement': 'Yêu cầu tiếng Anh',
+  // Body sections.
+  // `Best for`, `International environment` and `Teaching style` are already
+  // covered above, as are `Find a mentor` and `Frequently asked questions`.
+  'Subjects and fit': 'Các ngành & mức độ phù hợp',
+  'Strongest subjects': 'Ngành mạnh nhất',
+  'Admission requirements': 'Yêu cầu tuyển sinh',
+  'Campus and location': 'Khuôn viên & vị trí',
+  'Costs and scholarships': 'Chi phí & học bổng',
+  'Careers and outcomes': 'Nghề nghiệp & kết quả',
+  'Talk to someone who studied here': 'Nói chuyện với người từng học ở đây',
+  'Worth knowing': 'Nên biết',
+  "GlowBal's insider note": 'Ghi chú nội bộ của GlowBal',
+  'Back to university search': 'Quay về trang Tìm trường đại học',
+  'Official website': 'Website chính thức',
+  'See all scholarships': 'Xem tất cả học bổng',
+  'Colleges and programmes': 'Các trường & chương trình',
+
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',
   'Tiếng Việt': 'Tiếng Việt',
