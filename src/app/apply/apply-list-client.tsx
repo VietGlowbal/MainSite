@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SavedNavLink } from '@/components/saved-nav-link';
 import { CourseSearchSessionModal } from '@/components/course-search-session-modal';
 import { UpgradePromptModal } from '@/components/upgrade-prompt-modal';
 import {
@@ -417,6 +418,7 @@ export function ApplyListClient({
         logo={<GlowbalLogo height={28} />}
         items={MARKETING_NAV_ITEMS}
         primaryAction={primaryAction}
+        utility={<SavedNavLink />}
         {...(isSignedIn && userName
           ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
           : { secondaryAction: { href: '/auth', label: 'Sign in' } })}

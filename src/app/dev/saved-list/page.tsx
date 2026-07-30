@@ -2,36 +2,36 @@ import { notFound } from 'next/navigation';
 import { SavedListClient, type SavedRow } from '@/app/my-universities/saved-list-client';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
-import { officialWebsite } from '@/features/universities/domain';
+import { formatTuitionForCard, officialWebsite, splitList } from '@/features/universities/domain';
 
 /**
- * /dev/saved-list — design preview for /my-universities (Figma 223:8824,
- * 223:13621, 223:13022).
+ * /dev/saved-list — design preview for /my-universities (Figma 375:12701,
+ * 375:12841, 375:13295, 375:13369, 502:18462).
  *
- * Exists because the real route is the hardest page in the app to look at. Two
- * reasons, and the second is the important one:
+ * Exists because the real route is the hardest page in the app to look at: it
+ * sits behind the auth gate AND the onboarding gate in src/proxy.ts, so reviewing
+ * it normally means holding a signed-in account with a completed profile, and
+ * then saving enough universities to see every state.
  *
- *  1. It sits behind the auth gate AND the onboarding gate in src/proxy.ts, so
- *     reviewing it normally means holding a signed-in account with a completed
- *     profile.
- *  2. `public.user_universities` is MISSING from the Supabase project this repo
- *     currently points at (supabase-schema.sql:151 is the migration that creates
- *     it). Until it is applied, saving a university silently no-ops everywhere —
- *     the heart on /universities, /api/home/save-university, the /apply
- *     shortlist — so the real page can only ever render its empty state, no
- *     matter who signs in.
+ * ⚠️ AN EARLIER VERSION OF THIS COMMENT WAS WRONG, and it is the kind of wrong
+ * that costs a session: it stated that `public.user_universities` was MISSING
+ * from the project and that every save silently no-opped. That was true when it
+ * was written and is not true now — the table exists and holds rows (queried
+ * live 2026-07-30 with the service key). If you need to know the state of a
+ * table, query it; see docs/known-issues.md §0.
  *
- * So this page composes the same rows the real one would, from the SAME
+ * This page composes the same rows the real one would, from the SAME
  * repositories, with only the `user_universities` read replaced: it takes the
  * first few universities in the directory instead of the ones a student saved.
- * Everything downstream is real — names, countries, rankings, deadlines, cover
- * images, crests, and the scholarships genuinely linked to those universities
- * via `scholarship_universities`.
+ * Everything downstream is real — names, countries, rankings, tuition,
+ * deadlines, cover images, crests, and the scholarships genuinely linked to
+ * those universities via `scholarship_universities`.
  *
  * ⚠️ WHICH UNIVERSITIES APPEAR HERE IS NOT STUDENT DATA. It is "the first rows
  * the directory returns", chosen by this file. Nothing is written, because
- * nothing is signed in. The `attached` list is likewise a preview of the
- * scholarship-attached state (Figma 223:13621), not anyone's real plan.
+ * nothing is signed in. The `attached` list and the chosen subject are likewise
+ * previews of the scholarship-attached state (375:12841) and the "Ngành …" line
+ * (375:12743), not anyone's real plan.
  *
  * Same gate as /dev/home and /dev/kitchen-sink: hidden in production unless
  * ENABLE_DEV_ROUTES is set.
@@ -58,7 +58,12 @@ export default async function SavedListPreviewPage() {
       amountLabel: s.amountLabel,
       deadlineLabel: s.deadlineLabel,
       coverage: s.coverage,
-      // Detail-panel fields (Figma 337:19349) — real columns, like the rest.
+      // What the discount maths reads — the bar's percentage and the row's net.
+      fundingType: s.fundingType,
+      amountMin: s.amountMin,
+      amountMax: s.amountMax,
+      amountCurrency: s.amountCurrency,
+      // Detail-panel fields (Figma 375:13369) — real columns, like the rest.
       scope: s.scope,
       eligibility: s.eligibility,
       conditions: s.conditions,
@@ -67,7 +72,7 @@ export default async function SavedListPreviewPage() {
       sourceUrl: s.sourceUrl,
     }));
 
-    // Give exactly one row an attached scholarship so the 223:13621 state is
+    // Give exactly one row an attached scholarship so the 375:12841 state is
     // visible, and so the picker's "already attached" filter is exercised.
     const attached =
       index === 1 && options[0]
@@ -94,6 +99,16 @@ export default async function SavedListPreviewPage() {
       imageUrl: uni.image_url ?? null,
       logoUrl: uni.logo_url ?? null,
       website: officialWebsite(uni.name),
+      tuition: formatTuitionForCard(uni.tuition_usd),
+      tuitionRaw: uni.tuition_usd ?? null,
+      /*
+       * One row previews the chosen-subject state and the rest the empty one, so
+       * both halves of ProgramRow are visible at a glance. The value is the
+       * university's OWN first strength, not an invented course name — same rule
+       * as everywhere else on this page.
+       */
+      program: index === 0 ? (splitList(uni.strengths)[0] ?? null) : null,
+      programUrl: null,
       attached,
       options,
     };
