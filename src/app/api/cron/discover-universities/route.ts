@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { isAuthorizedCron } from '@/lib/cron-auth';
+import {
+  buildHipolabsCandidate,
+  type HipolabsCandidate,
+  type HipolabsUniversity,
+} from '@/lib/university-discovery/hipolabs';
 import { revalidateUniversities } from '@/server/cache';
 
 /**
@@ -35,6 +40,8 @@ export const maxDuration = 60;
 
 const DEFAULT_LIMIT = 25;
 const MAX_LIMIT = 100;
+const EXISTING_PAGE_SIZE = 1_000;
+const MAX_EXISTING_ROWS = 50_000;
 
 // Sensible default focus list — GlowBal's core study destinations. Override via
 // the UNIVERSITY_DISCOVERY_COUNTRIES env var (comma-separated country names as
@@ -49,11 +56,6 @@ const DEFAULT_COUNTRIES = [
 ];
 
 const HIPOLABS = 'https://universities.hipolabs.com/search';
-
-type HipolabsUniversity = {
-  name?: string;
-  country?: string;
-};
 
 function configuredCountries(): string[] {
   const raw = process.env.UNIVERSITY_DISCOVERY_COUNTRIES;
@@ -98,31 +100,75 @@ async function handle(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Existing names, lower-cased, for de-duplication.
-  const { data: existingRows, error } = await admin.from('universities').select('name');
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  // Supabase projects commonly cap one response at 1,000 rows. Page through
+  // the review table so growth beyond 1,000 institutions does not reinsert
+  // a university whose identity happened to fall outside the first page.
+  const existingRows: { name: string | null; primary_domain: string | null }[] = [];
+  for (let offset = 0; offset < MAX_EXISTING_ROWS; offset += EXISTING_PAGE_SIZE) {
+    const { data, error } = await admin
+      .from('universities')
+      .select('name, primary_domain')
+      .order('id', { ascending: true })
+      .range(offset, offset + EXISTING_PAGE_SIZE - 1);
+    if (error) {
+      return NextResponse.json(
+        {
+          error: error.message,
+          migration_required: 'supabase-hipolabs-crawl-seeds.sql',
+        },
+        { status: 500 },
+      );
+    }
+    const page = data ?? [];
+    existingRows.push(...page);
+    if (page.length < EXISTING_PAGE_SIZE) break;
+    if (existingRows.length >= MAX_EXISTING_ROWS) {
+      return NextResponse.json(
+        {
+          error: `University identity scan exceeded the ${MAX_EXISTING_ROWS}-row safety limit.`,
+        },
+        { status: 500 },
+      );
+    }
   }
-  const existing = new Set((existingRows ?? []).map((r) => (r.name ?? '').trim().toLowerCase()));
+  const existing = new Set(existingRows.map((r) => (r.name ?? '').trim().toLowerCase()));
+  const existingDomains = new Set(
+    existingRows
+      .map((r) => (r.primary_domain ?? '').trim().toLowerCase())
+      .filter(Boolean),
+  );
 
   // Gather candidates across the configured countries, de-duplicating against
   // both the DB and within this run.
   const countries = configuredCountries();
-  const candidates: { name: string; country: string }[] = [];
+  const candidates: HipolabsCandidate[] = [];
   const seenThisRun = new Set<string>();
+  const seenDomains = new Set<string>();
+  let rejectedWithoutDomain = 0;
+  const discoveredAt = new Date().toISOString();
 
   for (const country of countries) {
     if (candidates.length >= limit) break;
     const list = await fetchCountry(country);
     for (const u of list) {
       if (candidates.length >= limit) break;
-      const name = (u.name ?? '').trim();
-      const uCountry = (u.country ?? country).trim();
-      if (name.length < 2) continue;
-      const key = name.toLowerCase();
-      if (existing.has(key) || seenThisRun.has(key)) continue;
+      const candidate = buildHipolabsCandidate(u, country, discoveredAt);
+      if (!candidate) {
+        rejectedWithoutDomain += 1;
+        continue;
+      }
+      const key = candidate.name.toLowerCase();
+      if (
+        existing.has(key) ||
+        seenThisRun.has(key) ||
+        existingDomains.has(candidate.primary_domain) ||
+        seenDomains.has(candidate.primary_domain)
+      ) {
+        continue;
+      }
       seenThisRun.add(key);
-      candidates.push({ name, country: uCountry });
+      seenDomains.add(candidate.primary_domain);
+      candidates.push(candidate);
     }
   }
 
@@ -132,21 +178,23 @@ async function handle(request: NextRequest) {
       added: 0,
       message: 'No new universities found (or the source was unreachable).',
       countries,
+      rejected_without_valid_domain: rejectedWithoutDomain,
     });
   }
 
-  // Tagged insert; fall back to a bare insert if the `source` column isn't
-  // present yet (supabase-university-source.sql not applied).
-  let insert = await admin
+  const insert = await admin
     .from('universities')
-    .insert(candidates.map((c) => ({ ...c, source: 'auto' })))
+    .insert(candidates)
     .select('id');
-  if (insert.error) {
-    insert = await admin.from('universities').insert(candidates).select('id');
-  }
 
   if (insert.error) {
-    return NextResponse.json({ error: insert.error.message }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: insert.error.message,
+        migration_required: 'supabase-hipolabs-crawl-seeds.sql',
+      },
+      { status: 500 },
+    );
   }
 
   // New rows are in the table; drop the cached reads so they appear on the
@@ -156,7 +204,16 @@ async function handle(request: NextRequest) {
   return NextResponse.json({
     ok: true,
     added: insert.data?.length ?? candidates.length,
-    sample: candidates.slice(0, 10).map((c) => `${c.name} (${c.country})`),
+    review_status: 'pending',
+    crawl_seed_enabled: false,
+    rejected_without_valid_domain: rejectedWithoutDomain,
+    sample: candidates.slice(0, 10).map((candidate) => ({
+      name: candidate.name,
+      country: candidate.country,
+      country_code: candidate.country_code,
+      primary_domain: candidate.primary_domain,
+      official_url: candidate.official_url,
+    })),
     countries,
   });
 }

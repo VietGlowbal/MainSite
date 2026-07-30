@@ -1,0 +1,117 @@
+{
+  "run_name": "programme-smoke-6",
+  "deepseek_flash_model": "deepseek-v4-flash",
+  "deepseek_pro_model": "deepseek-v4-pro",
+  "deepseek_base_url": "https://api.deepseek.com",
+  "institutions": [
+    {
+      "institution_id": "mit-us",
+      "name": "Massachusetts Institute of Technology",
+      "country_code": "US",
+      "official_domain": "mit.edu",
+      "homepage_url": "https://www.mit.edu/",
+      "catalogue_hints": [
+        "https://catalog.mit.edu/degree-charts/",
+        "https://catalog.mit.edu/mit/undergraduate-education/academic-programs/",
+        "https://oge.mit.edu/graduate-admissions/programs/"
+      ],
+      "programme_url_patterns": [
+        "^https://catalog\\.mit\\.edu/degree-charts/[^/]+/$",
+        "^https://oge\\.mit\\.edu/programs/[^/]+/$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": true
+    },
+    {
+      "institution_id": "imperial-uk",
+      "name": "Imperial College London",
+      "country_code": "GB",
+      "official_domain": "imperial.ac.uk",
+      "homepage_url": "https://www.imperial.ac.uk/",
+      "catalogue_hints": [
+        "https://www.imperial.ac.uk/study/courses/"
+      ],
+      "programme_url_patterns": [
+        "^https://www\\.imperial\\.ac\\.uk/study/courses/(?:undergraduate|postgraduate-(?:taught|research|doctoral))/\\d{4}/[^/]+/$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": true
+    },
+    {
+      "institution_id": "toronto-ca",
+      "name": "University of Toronto",
+      "country_code": "CA",
+      "official_domain": "utoronto.ca",
+      "homepage_url": "https://www.utoronto.ca/",
+      "catalogue_hints": [
+        "https://www.utoronto.ca/academics/undergraduate-programs",
+        "https://www.sgs.utoronto.ca/programs/"
+      ],
+      "manual_programme_urls": [
+        "https://engineering.calendar.utoronto.ca/undergraduate-program-computer-engineering-aecpebasc"
+      ],
+      "programme_url_patterns": [
+        "^https://[^/]*utoronto\\.ca/(?:admissions/)?programs?/[^/]+/?$",
+        "^https://sgs\\.calendar\\.utoronto\\.ca/(?:degree/[^/]+|combined/[^/]+|[^/]+)$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": true
+    },
+    {
+      "institution_id": "unsw-au",
+      "name": "UNSW Sydney",
+      "country_code": "AU",
+      "official_domain": "unsw.edu.au",
+      "homepage_url": "https://www.unsw.edu.au/",
+      "catalogue_hints": [
+        "https://www.unsw.edu.au/study/find-a-degree-or-course",
+        "https://www.unsw.edu.au/study/undergraduate",
+        "https://www.unsw.edu.au/study/postgraduate"
+      ],
+      "programme_url_patterns": [
+        "^https://www\\.unsw\\.edu\\.au/study/(?:undergraduate|postgraduate)/[^/]+/?$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": false
+    },
+    {
+      "institution_id": "tu-delft-nl",
+      "name": "Delft University of Technology",
+      "country_code": "NL",
+      "official_domain": "tudelft.nl",
+      "homepage_url": "https://www.tudelft.nl/en/",
+      "catalogue_hints": [
+        "https://www.tudelft.nl/en/education/programmes/bachelors",
+        "https://www.tudelft.nl/en/education/programmes/masters"
+      ],
+      "manual_programme_urls": [
+        "https://www.tudelft.nl/onderwijs/opleidingen/masters/ae/msc-aerospace-engineering"
+      ],
+      "programme_url_patterns": [
+        "^https://www\\.tudelft\\.nl/(?:en/)?(?:education|onderwijs)/opleidingen/(?:bachelors|masters)/[^/]+/[^/]+/?$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": false
+    },
+    {
+      "institution_id": "ntu-sg",
+      "name": "Nanyang Technological University",
+      "country_code": "SG",
+      "official_domain": "ntu.edu.sg",
+      "homepage_url": "https://www.ntu.edu.sg/",
+      "catalogue_hints": [
+        "https://www.ntu.edu.sg/education/degree-programmes",
+        "https://www.ntu.edu.sg/admissions/graduate/programme-listing"
+      ],
+      "manual_programme_urls": [
+        "https://www.ntu.edu.sg/computing/admissions/graduate-programmes/detail/master-of-science-in-data-science-%28msds%29"
+      ],
+      "programme_url_patterns": [
+        "^https://www\\.ntu\\.edu\\.sg/education/undergraduate-programme/[^/]+/?$",
+        "^https://www\\.ntu\\.edu\\.sg/[^?#]+/graduate-programmes?/(?:detail/)?[^/]+/?$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": false
+    }
+  ]
+}

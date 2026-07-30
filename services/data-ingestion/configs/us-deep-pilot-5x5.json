@@ -1,0 +1,487 @@
+{
+  "run_name": "us-deep-pilot-5x5",
+  "deepseek_flash_model": "deepseek-v4-flash",
+  "deepseek_pro_model": "deepseek-v4-pro",
+  "deepseek_base_url": "https://api.deepseek.com",
+  "limits": {
+    "max_deep_programmes_per_institution": 5,
+    "max_optional_phd_total": 3,
+    "max_sources_per_extraction_group": 6,
+    "max_source_chars_per_extraction_group": 40000
+  },
+  "institutions": [
+    {
+      "institution_id": "mit-us",
+      "name": "Massachusetts Institute of Technology",
+      "country_code": "US",
+      "official_domain": "mit.edu",
+      "homepage_url": "https://www.mit.edu/",
+      "allowed_domains": [
+        "mitadmissions.org"
+      ],
+      "catalogue_hints": [
+        "https://catalog.mit.edu/degree-charts/",
+        "https://www.eecs.mit.edu/academics/graduate-programs/degree-programs/"
+      ],
+      "school_profile_urls": [
+        "https://www.mit.edu/about/",
+        "https://www.mit.edu/about/mission-statement/",
+        "https://www.mit.edu/values/"
+      ],
+      "manual_programme_urls": [
+        "https://catalog.mit.edu/degree-charts/computer-science-engineering-course-6-3/",
+        "https://catalog.mit.edu/degree-charts/artifical-intelligence-decision-making-course-6-4/",
+        "https://catalog.mit.edu/degree-charts/electrical-engineering-computing-6-5/",
+        "https://catalog.mit.edu/degree-charts/master-computational-science-engineering/",
+        "https://catalog.mit.edu/degree-charts/phd-computational-science-engineering/"
+      ],
+      "programme_metadata": {
+        "https://catalog.mit.edu/degree-charts/computer-science-engineering-course-6-3/": {
+          "programme_name": "Computer Science and Engineering",
+          "degree_level": "bachelor",
+          "credential": "SB",
+          "normalized_field": "computer_science"
+        },
+        "https://catalog.mit.edu/degree-charts/artifical-intelligence-decision-making-course-6-4/": {
+          "programme_name": "Artificial Intelligence and Decision Making",
+          "degree_level": "bachelor",
+          "credential": "SB",
+          "normalized_field": "computer_science"
+        },
+        "https://catalog.mit.edu/degree-charts/electrical-engineering-computing-6-5/": {
+          "programme_name": "Electrical Engineering with Computing",
+          "degree_level": "bachelor",
+          "credential": "SB",
+          "normalized_field": "electrical_engineering"
+        },
+        "https://catalog.mit.edu/degree-charts/master-computational-science-engineering/": {
+          "programme_name": "Computational Science and Engineering",
+          "degree_level": "master",
+          "credential": "SM",
+          "normalized_field": "computer_science"
+        },
+        "https://catalog.mit.edu/degree-charts/phd-computational-science-engineering/": {
+          "programme_name": "Computational Science and Engineering",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "computer_science"
+        }
+      },
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://mitadmissions.org/apply/firstyear/",
+          "https://mitadmissions.org/apply/firstyear/letters-of-recommendation/",
+          "https://mitadmissions.org/apply/firstyear/essays-activities-academics/",
+          "https://mitadmissions.org/apply/firstyear/transcripts/"
+        ]
+      },
+      "shared_source_bundles": {
+        "bachelor": [
+          "https://registrar.mit.edu/registration-academics/tuition-fees/undergraduate",
+          "https://sfs.mit.edu/undergraduate-students/types-of-aid/mit-scholarships-grants/"
+        ]
+      },
+      "programme_source_bundles": {
+        "https://catalog.mit.edu/degree-charts/computer-science-engineering-course-6-3/": [
+          "https://mitadmissions.org/apply/firstyear/",
+          "https://mitadmissions.org/apply/firstyear/letters-of-recommendation/",
+          "https://mitadmissions.org/apply/firstyear/essays-activities-academics/",
+          "https://mitadmissions.org/apply/firstyear/transcripts/"
+        ],
+        "https://catalog.mit.edu/degree-charts/master-computational-science-engineering/": [
+          "https://cse.mit.edu/admissions/",
+          "https://cse.mit.edu/programs-admissions/cse-sm/"
+        ],
+        "https://catalog.mit.edu/degree-charts/phd-computational-science-engineering/": [
+          "https://cse.mit.edu/admissions/",
+          "https://cse.mit.edu/programs-admissions/apply/",
+          "https://cse.mit.edu/programs-admissions/apply/admissions-faqs/",
+          "https://cse.mit.edu/programs-admissions/cse-phd-program/"
+        ]
+      },
+      "programme_url_patterns": [
+        "^https://catalog\\.mit\\.edu/degree-charts/[^/]+/$",
+        "^https://www\\.eecs\\.mit\\.edu/academics/graduate-programs/degree-programs/$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": false
+    },
+    {
+      "institution_id": "harvard-us",
+      "name": "Harvard University",
+      "country_code": "US",
+      "official_domain": "harvard.edu",
+      "homepage_url": "https://www.harvard.edu/",
+      "catalogue_hints": [
+        "https://www.harvard.edu/programs/",
+        "https://gsas.harvard.edu/programs",
+        "https://seas.harvard.edu/computer-science"
+      ],
+      "school_profile_urls": [
+        "https://www.harvard.edu/about/",
+        "https://ccl.harvard.edu/about/community-values"
+      ],
+      "manual_programme_urls": [
+        "https://seas.harvard.edu/computer-science/bachelors-degree-computer-science",
+        "https://seas.harvard.edu/electrical-computer-engineering/bachelors-degree-within-electrical-computer-engineering",
+        "https://gsas.harvard.edu/program/data-science",
+        "https://gsas.harvard.edu/program/computer-science",
+        "https://gsas.harvard.edu/program/economics"
+      ],
+      "programme_metadata": {
+        "https://seas.harvard.edu/computer-science/bachelors-degree-computer-science": {
+          "programme_name": "Computer Science",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "computer_science"
+        },
+        "https://seas.harvard.edu/electrical-computer-engineering/bachelors-degree-within-electrical-computer-engineering": {
+          "programme_name": "Electrical Engineering",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "electrical_engineering"
+        },
+        "https://gsas.harvard.edu/program/data-science": {
+          "programme_name": "Data Science",
+          "degree_level": "master",
+          "credential": "SM",
+          "normalized_field": "data_science"
+        },
+        "https://gsas.harvard.edu/program/computer-science": {
+          "programme_name": "Computer Science",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "computer_science"
+        },
+        "https://gsas.harvard.edu/program/economics": {
+          "programme_name": "Economics",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "economics"
+        }
+      },
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://college.harvard.edu/admissions/apply",
+          "https://college.harvard.edu/admissions/apply/application-requirements"
+        ],
+        "master": [
+          "https://gsas.harvard.edu/apply/applying-degree-programs",
+          "https://gsas.harvard.edu/apply/applying-degree-programs/transcripts",
+          "https://gsas.harvard.edu/apply/applying-degree-programs/statement-purpose-personal-statement-and-writing-sample"
+        ],
+        "phd": [
+          "https://gsas.harvard.edu/apply/applying-degree-programs",
+          "https://gsas.harvard.edu/apply/applying-degree-programs/transcripts",
+          "https://gsas.harvard.edu/apply/applying-degree-programs/statement-purpose-personal-statement-and-writing-sample"
+        ]
+      },
+      "programme_source_bundles": {
+        "https://seas.harvard.edu/computer-science/bachelors-degree-computer-science": [
+          "https://college.harvard.edu/admissions/apply",
+          "https://college.harvard.edu/admissions/apply/application-requirements"
+        ],
+        "https://gsas.harvard.edu/program/data-science": [
+          "https://gsas.harvard.edu/apply/applying-degree-programs",
+          "https://gsas.harvard.edu/apply/applying-degree-programs/transcripts",
+          "https://gsas.harvard.edu/apply/applying-degree-programs/statement-purpose-personal-statement-and-writing-sample",
+          "https://gsas.harvard.edu/apply/cost-attendance-2026-2027"
+        ]
+      },
+      "programme_url_patterns": [
+        "^https://seas\\.harvard\\.edu/[^?#]+/bachelors-degree-[^/?#]+/?$",
+        "^https://gsas\\.harvard\\.edu/program/[^/?#]+/?$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": true
+    },
+    {
+      "institution_id": "stanford-us",
+      "name": "Stanford University",
+      "country_code": "US",
+      "official_domain": "stanford.edu",
+      "homepage_url": "https://www.stanford.edu/",
+      "catalogue_hints": [
+        "https://www.cs.stanford.edu/academics-overview",
+        "https://www.cs.stanford.edu/admissions",
+        "https://gradadmissions.stanford.edu/explore-programs"
+      ],
+      "school_profile_urls": [
+        "https://www.stanford.edu/about/"
+      ],
+      "manual_programme_urls": [
+        "https://www.cs.stanford.edu/academics-overview/academics-bachelors-program",
+        "https://ee.stanford.edu/admissions/bs",
+        "https://datasciencemajor.stanford.edu/academics/undergraduate-data-science-bs-program/degree-requirements-2025-2026-data-science-bs",
+        "https://www.cs.stanford.edu/admissions/masters-admissions",
+        "https://www.cs.stanford.edu/admissions/phd-admissions"
+      ],
+      "programme_metadata": {
+        "https://www.cs.stanford.edu/academics-overview/academics-bachelors-program": {
+          "programme_name": "Computer Science",
+          "degree_level": "bachelor",
+          "credential": "BS",
+          "normalized_field": "computer_science"
+        },
+        "https://ee.stanford.edu/admissions/bs": {
+          "programme_name": "Electrical Engineering",
+          "degree_level": "bachelor",
+          "credential": "BS",
+          "normalized_field": "electrical_engineering"
+        },
+        "https://datasciencemajor.stanford.edu/academics/undergraduate-data-science-bs-program/degree-requirements-2025-2026-data-science-bs": {
+          "programme_name": "Data Science",
+          "degree_level": "bachelor",
+          "credential": "BS",
+          "normalized_field": "data_science"
+        },
+        "https://www.cs.stanford.edu/admissions/masters-admissions": {
+          "programme_name": "Computer Science",
+          "degree_level": "master",
+          "credential": "MS",
+          "normalized_field": "computer_science"
+        },
+        "https://www.cs.stanford.edu/admissions/phd-admissions": {
+          "programme_name": "Computer Science",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "computer_science"
+        }
+      },
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://admission.stanford.edu/apply/first-year/index.html",
+          "https://admission.stanford.edu/apply/first-year/apply.html",
+          "https://admission.stanford.edu/apply/first-year/forms.html"
+        ],
+        "master": [
+          "https://gradadmissions.stanford.edu/apply/application-overview",
+          "https://gradadmissions.stanford.edu/apply/transcripts",
+          "https://gradadmissions.stanford.edu/apply/recommendations",
+          "https://gradadmissions.stanford.edu/apply/statements"
+        ],
+        "phd": [
+          "https://gradadmissions.stanford.edu/apply/application-overview",
+          "https://gradadmissions.stanford.edu/apply/transcripts",
+          "https://gradadmissions.stanford.edu/apply/recommendations",
+          "https://gradadmissions.stanford.edu/apply/statements"
+        ]
+      },
+      "shared_source_bundles": {
+        "bachelor": [
+          "https://studentservices.stanford.edu/tuition-rates/2026-2027-undergraduate-tuition-rates",
+          "https://financialaid.stanford.edu/undergrad/"
+        ]
+      },
+      "programme_source_bundles": {
+        "https://www.cs.stanford.edu/academics-overview/academics-bachelors-program": [
+          "https://admission.stanford.edu/apply/first-year/index.html",
+          "https://admission.stanford.edu/apply/first-year/apply.html",
+          "https://admission.stanford.edu/apply/first-year/forms.html",
+          "https://bulletin.stanford.edu/programs/CS-BS"
+        ],
+        "https://www.cs.stanford.edu/admissions/masters-admissions": [
+          "https://www.cs.stanford.edu/admissions-graduate-application-deadlines",
+          "https://gradadmissions.stanford.edu/apply/application-overview",
+          "https://gradadmissions.stanford.edu/apply/transcripts",
+          "https://gradadmissions.stanford.edu/apply/recommendations",
+          "https://gradadmissions.stanford.edu/apply/statements"
+        ]
+      },
+      "programme_url_patterns": [
+        "^https://www\\.cs\\.stanford\\.edu/academics-overview/academics-(?:bachelors|masters|phd)-program/?$",
+        "^https://www\\.cs\\.stanford\\.edu/admissions/(?:masters|phd)-admissions/?$",
+        "^https://bulletin\\.stanford\\.edu/programs/[^/?#]+/?$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": false
+    },
+    {
+      "institution_id": "yale-us",
+      "name": "Yale University",
+      "country_code": "US",
+      "official_domain": "yale.edu",
+      "homepage_url": "https://www.yale.edu/",
+      "catalogue_hints": [
+        "https://catalog.yale.edu/ycps/subjects-of-instruction/",
+        "https://gsas.yale.edu/programs-of-study"
+      ],
+      "school_profile_urls": [
+        "https://www.yale.edu/about-yale"
+      ],
+      "manual_programme_urls": [
+        "https://catalog.yale.edu/ycps/subjects-of-instruction/computer-science/",
+        "https://catalog.yale.edu/ycps/subjects-of-instruction/electrical-engineering-computer-science/",
+        "https://catalog.yale.edu/ycps/subjects-of-instruction/computerscienceandeconomics/",
+        "https://gsas.yale.edu/programs-of-study/computer-science",
+        "https://cs.yale.edu/grad/handbook/programs.html"
+      ],
+      "programme_metadata": {
+        "https://catalog.yale.edu/ycps/subjects-of-instruction/computer-science/": {
+          "programme_name": "Computer Science",
+          "degree_level": "bachelor",
+          "credential": "BS",
+          "normalized_field": "computer_science"
+        },
+        "https://catalog.yale.edu/ycps/subjects-of-instruction/electrical-engineering-computer-science/": {
+          "programme_name": "Electrical Engineering and Computer Science",
+          "degree_level": "bachelor",
+          "credential": "BS",
+          "normalized_field": "electrical_engineering"
+        },
+        "https://catalog.yale.edu/ycps/subjects-of-instruction/computerscienceandeconomics/": {
+          "programme_name": "Computer Science and Economics",
+          "degree_level": "bachelor",
+          "credential": "BS",
+          "normalized_field": "computer_science"
+        },
+        "https://gsas.yale.edu/programs-of-study/computer-science": {
+          "programme_name": "Computer Science",
+          "degree_level": "master",
+          "credential": "MS",
+          "normalized_field": "computer_science"
+        },
+        "https://cs.yale.edu/grad/handbook/programs.html": {
+          "programme_name": "Computer Science",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "computer_science"
+        }
+      },
+      "shared_admission_source_bundles": {
+        "bachelor": [
+        "https://admissions.yale.edu/instructions",
+          "https://admissions.yale.edu/standardized-testing"
+        ],
+        "master": [
+          "https://gsas.yale.edu/admissions/phdmasters-application-process",
+          "https://gsas.yale.edu/programs-of-study/computer-science"
+        ],
+        "phd": [
+          "https://gsas.yale.edu/admissions/phdmasters-application-process",
+          "https://gsas.yale.edu/programs-of-study/computer-science"
+        ]
+      },
+      "shared_source_bundles": {
+        "bachelor": [
+          "https://finaid.yale.edu/"
+        ]
+      },
+      "programme_source_bundles": {
+        "https://gsas.yale.edu/programs-of-study/computer-science": [
+          "https://gsas.yale.edu/admissions/phdmasters-application-process",
+          "https://gsas.yale.edu/admissions/phdmasters-application-process"
+        ],
+        "https://cs.yale.edu/grad/handbook/programs.html": [
+          "https://gsas.yale.edu/programs-of-study/computer-science",
+          "https://gsas.yale.edu/admissions/phdmasters-application-process",
+          "https://gsas.yale.edu/admissions/phdmasters-application-process"
+        ]
+      },
+      "programme_url_patterns": [
+        "^https://catalog\\.yale\\.edu/ycps/subjects-of-instruction/[^/?#]+/?$",
+        "^https://gsas\\.yale\\.edu/programs-of-study/[^/?#]+/?$",
+        "^https://cs\\.yale\\.edu/grad/[^?#]+$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": false
+    },
+    {
+      "institution_id": "princeton-us",
+      "name": "Princeton University",
+      "country_code": "US",
+      "official_domain": "princeton.edu",
+      "homepage_url": "https://www.princeton.edu/",
+      "catalogue_hints": [
+        "https://www.cs.princeton.edu/ugrad",
+        "https://www.cs.princeton.edu/grad",
+        "https://ua.princeton.edu/fields-study"
+      ],
+      "school_profile_urls": [
+        "https://www.princeton.edu/meet-princeton",
+        "https://www.princeton.edu/meet-princeton/mission-statement"
+      ],
+      "manual_programme_urls": [
+        "https://www.cs.princeton.edu/ugrad/undergraduate-degrees-requirements",
+        "https://www.cs.princeton.edu/ugrad/declaring-computer-science",
+        "https://www.cs.princeton.edu/grad/meng-track",
+        "https://www.cs.princeton.edu/grad/admissions-requirements",
+        "https://www.cs.princeton.edu/grad/graduate-program"
+      ],
+      "programme_metadata": {
+        "https://www.cs.princeton.edu/ugrad/undergraduate-degrees-requirements": {
+          "programme_name": "Computer Science",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "computer_science"
+        },
+        "https://www.cs.princeton.edu/ugrad/declaring-computer-science": {
+          "programme_name": "Computer Science",
+          "degree_level": "bachelor",
+          "credential": "BSE",
+          "normalized_field": "computer_science"
+        },
+        "https://www.cs.princeton.edu/grad/meng-track": {
+          "programme_name": "Computer Science",
+          "degree_level": "master",
+          "credential": "MEng",
+          "normalized_field": "computer_science"
+        },
+        "https://www.cs.princeton.edu/grad/admissions-requirements": {
+          "programme_name": "Computer Science",
+          "degree_level": "master",
+          "credential": "MSE",
+          "normalized_field": "computer_science"
+        },
+        "https://www.cs.princeton.edu/grad/graduate-program": {
+          "programme_name": "Computer Science",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "computer_science"
+        }
+      },
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://admission.princeton.edu/apply/application-checklist",
+          "https://admission.princeton.edu/apply/standardized-testing",
+          "https://admission.princeton.edu/apply/international-students"
+        ],
+        "master": [
+          "https://www.cs.princeton.edu/grad/admissions-requirements",
+          "https://www.cs.princeton.edu/grad/resources-prospective-grads"
+        ],
+        "phd": [
+          "https://www.cs.princeton.edu/grad/admissions-requirements",
+          "https://www.cs.princeton.edu/grad/resources-prospective-grads"
+        ]
+      },
+      "shared_source_bundles": {
+        "bachelor": [
+          "https://admission.princeton.edu/cost-aid",
+          "https://finaid.princeton.edu/how-aid-works"
+        ]
+      },
+      "programme_source_bundles": {
+        "https://www.cs.princeton.edu/grad/meng-track": [
+          "https://www.cs.princeton.edu/grad/masters-degree-requirements",
+          "https://www.cs.princeton.edu/grad/admissions-requirements"
+        ],
+        "https://www.cs.princeton.edu/grad/admissions-requirements": [
+          "https://www.cs.princeton.edu/grad/graduate-program",
+          "https://www.cs.princeton.edu/grad/resources-prospective-grads"
+        ],
+        "https://www.cs.princeton.edu/grad/graduate-program": [
+          "https://www.cs.princeton.edu/grad/admissions-requirements",
+          "https://www.cs.princeton.edu/grad/resources-prospective-grads"
+        ]
+      },
+      "programme_url_patterns": [
+        "^https://www\\.cs\\.princeton\\.edu/(?:ugrad|grad)/[^?#]+$",
+        "^https://ua\\.princeton\\.edu/fields-study/[^?#]+$",
+        "^https://gradschool\\.princeton\\.edu/academics/degrees-requirements/fields-study/[^?#]+$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": false
+    }
+  ]
+}

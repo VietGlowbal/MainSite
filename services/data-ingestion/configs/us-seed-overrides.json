@@ -1,0 +1,530 @@
+{
+  "domains": {
+    "caltech.edu": {
+      "catalogue_hints": [
+        "https://catalog.caltech.edu/current/",
+        "https://catalog.caltech.edu/current/general-information/education-and-research/",
+        "https://gradoffice.caltech.edu/academics/optionreps"
+      ],
+      "school_profile_urls": [
+        "https://www.caltech.edu/about/at-a-glance",
+        "https://www.caltech.edu/about/values/freedom-expression"
+      ],
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://www.caltech.edu/admissions-aid"
+        ],
+        "master": [
+          "https://catalog.caltech.edu/current/information-for-graduate-students/graduate-policies-and-procedures/admission-to-graduate-standing/"
+        ],
+        "phd": [
+          "https://catalog.caltech.edu/current/information-for-graduate-students/graduate-policies-and-procedures/admission-to-graduate-standing/"
+        ]
+      },
+      "shared_source_bundles": {
+        "master": [
+          "https://catalog.caltech.edu/current/information-for-graduate-students/graduate-expenses/"
+        ],
+        "phd": [
+          "https://catalog.caltech.edu/current/information-for-graduate-students/graduate-expenses/"
+        ]
+      }
+    },
+    "cmu.edu": {
+      "catalogue_hints": [
+        "https://coursecatalog.web.cmu.edu/",
+        "https://coursecatalog.web.cmu.edu/degreesoffered/graduate-degrees/",
+        "https://www.cs.cmu.edu/education/masters/",
+        "https://www.cmu.edu/admission/majors-programs/undergraduate-program-finder",
+        "https://www.cmu.edu/student-admission/"
+      ],
+      "school_profile_urls": [
+        "https://www.cmu.edu/about/",
+        "https://admission.enrollment.cmu.edu/about/vision-mission-values"
+      ],
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://www.cmu.edu/admission/admission/admission-consideration"
+        ],
+        "master": [
+          "https://www.cmu.edu/student-admission/"
+        ],
+        "phd": [
+          "https://www.cmu.edu/student-admission/"
+        ]
+      }
+    },
+    "columbia.edu": {
+      "catalogue_hints": [
+        "https://bulletin.columbia.edu/columbia-college/departments-instruction/",
+        "https://www.college.columbia.edu/academics/programs",
+        "https://bulletin.columbia.edu/general-studies/majors-concentrations/",
+        "https://www.columbia.edu/content/category/degree-programs",
+        "https://sps.columbia.edu/academics/masters"
+      ],
+      "school_profile_urls": [
+        "https://www.columbia.edu/content/about-columbia-university"
+      ],
+      "shared_source_bundles": {
+        "bachelor": [
+          "https://bulletin.columbia.edu/columbia-college/fees-expenses-financial-aid/"
+        ]
+      }
+    },
+    "cornell.edu": {
+      "catalogue_hints": [
+        "https://catalog.cornell.edu/"
+      ],
+      "school_profile_urls": [
+        "https://diversity.cornell.edu/about-us"
+      ],
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://catalog.cornell.edu/general-information/admissions/admissions.pdf"
+        ],
+        "master": [
+          "https://catalog.cornell.edu/general-information/admissions/admissions.pdf"
+        ],
+        "phd": [
+          "https://catalog.cornell.edu/general-information/admissions/admissions.pdf"
+        ]
+      },
+      "shared_source_bundles": {
+        "bachelor": [
+          "https://catalog.cornell.edu/general-information/tuition/"
+        ],
+        "master": [
+          "https://catalog.cornell.edu/general-information/tuition/"
+        ],
+        "phd": [
+          "https://catalog.cornell.edu/general-information/tuition/"
+        ]
+      }
+    },
+    "duke.edu": {
+      "catalogue_hints": [
+        "https://www.duke.edu/academics/",
+        "https://gradschool.duke.edu/academics/programs-and-degrees/phd-programs/"
+      ],
+      "school_profile_urls": [
+        "https://www.duke.edu/about/"
+      ],
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://admissions.duke.edu/apply/"
+        ],
+        "master": [
+          "https://www.duke.edu/admissions/"
+        ],
+        "phd": [
+          "https://www.duke.edu/admissions/"
+        ]
+      },
+      "shared_source_bundles": {
+        "master": [
+          "https://gradschool.duke.edu/financial-support/cost-attend/"
+        ],
+        "phd": [
+          "https://gradschool.duke.edu/financial-support/cost-attend/"
+        ]
+      }
+    },
+    "jhu.edu": {
+      "catalogue_hints": [
+        "https://e-catalogue.jhu.edu/",
+        "https://e-catalogue.jhu.edu/catalogcontents/",
+        "https://e-catalogue.jhu.edu/arts-sciences/full-time-residential-programs/",
+        "https://www.jhu.edu/academics/"
+      ],
+      "school_profile_urls": [
+        "https://www.jhu.edu/about/"
+      ],
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://apply.jhu.edu/how-to-apply/"
+        ],
+        "master": [
+          "https://e-catalogue.jhu.edu/university-wide-policies-information/admission/"
+        ],
+        "phd": [
+          "https://e-catalogue.jhu.edu/university-wide-policies-information/admission/"
+        ]
+      }
+    },
+    "nyu.edu": {
+      "catalogue_hints": [
+        "https://bulletins.nyu.edu/programs/",
+        "https://bulletins.nyu.edu/undergraduate/arts-science/programs/",
+        "https://bulletins.nyu.edu/graduate/arts-science/programs/"
+      ],
+      "school_profile_urls": [
+        "https://www.nyu.edu/about.html"
+      ],
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://www.nyu.edu/admissions/undergraduate-admissions/how-to-apply.html"
+        ],
+        "master": [
+          "https://gsas.nyu.edu/admissions/arc/application-requirements.html"
+        ],
+        "phd": [
+          "https://gsas.nyu.edu/admissions/arc/application-requirements.html"
+        ]
+      }
+    },
+    "northwestern.edu": {
+      "catalogue_hints": [
+        "https://catalogs.northwestern.edu/undergraduate/programs-az/",
+        "https://catalogs.northwestern.edu/undergraduate/",
+        "https://catalogs.northwestern.edu/graduate/"
+      ],
+      "school_profile_urls": [
+        "https://www.northwestern.edu/about/"
+      ],
+      "shared_admission_source_bundles": {
+        "bachelor": [
+          "https://catalogs.northwestern.edu/undergraduate/admission/"
+        ],
+        "master": [
+          "https://www.tgs.northwestern.edu/admission/application-procedures/application-requirements/"
+        ],
+        "phd": [
+          "https://www.tgs.northwestern.edu/admission/application-procedures/application-requirements/"
+        ]
+      }
+    },
+    "stanford.edu": {
+      "catalogue_hints": [
+        "https://bulletin.stanford.edu/programs"
+      ],
+      "school_profile_urls": [
+        "https://www.stanford.edu/about/"
+      ]
+    },
+    "princeton.edu": {
+      "catalogue_hints": [
+        "https://ua.princeton.edu/fields-study",
+        "https://gradschool.princeton.edu/academics/degrees-requirements/fields-study"
+      ],
+      "manual_programme_urls": [
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/astrophysical-sciences",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/chemical-and-biological",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/chemistry",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/civil-and-environmental",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/ecology-and-evolutionary-biology",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/economics",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/electrical-and-computer",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/geosciences",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/mathematics",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/mechanical-and-aerospace",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/molecular-biology",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/neuroscience",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/operations-research-and",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/physics",
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/princeton-school-public-and-international"
+      ],
+      "programme_metadata": {
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/astrophysical-sciences": {
+          "programme_name": "Astrophysical Sciences",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "astrophysical_sciences"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/chemical-and-biological": {
+          "programme_name": "Chemical and Biological Engineering",
+          "degree_level": "bachelor",
+          "credential": "BSE",
+          "normalized_field": "chemical_biological_engineering"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/chemistry": {
+          "programme_name": "Chemistry",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "chemistry"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/civil-and-environmental": {
+          "programme_name": "Civil and Environmental Engineering",
+          "degree_level": "bachelor",
+          "credential": "BSE",
+          "normalized_field": "civil_environmental_engineering"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/ecology-and-evolutionary-biology": {
+          "programme_name": "Ecology and Evolutionary Biology",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "ecology_evolutionary_biology"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/economics": {
+          "programme_name": "Economics",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "economics"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/electrical-and-computer": {
+          "programme_name": "Electrical and Computer Engineering",
+          "degree_level": "bachelor",
+          "credential": "BSE",
+          "normalized_field": "electrical_computer_engineering"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/geosciences": {
+          "programme_name": "Geosciences",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "geosciences"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/mathematics": {
+          "programme_name": "Mathematics",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "mathematics"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/mechanical-and-aerospace": {
+          "programme_name": "Mechanical and Aerospace Engineering",
+          "degree_level": "bachelor",
+          "credential": "BSE",
+          "normalized_field": "mechanical_aerospace_engineering"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/molecular-biology": {
+          "programme_name": "Molecular Biology",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "molecular_biology"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/neuroscience": {
+          "programme_name": "Neuroscience",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "neuroscience"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-science-engineering/operations-research-and": {
+          "programme_name": "Operations Research and Financial Engineering",
+          "degree_level": "bachelor",
+          "credential": "BSE",
+          "normalized_field": "operations_research_financial_engineering"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/physics": {
+          "programme_name": "Physics",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "physics"
+        },
+        "https://ua.princeton.edu/fields-study/departmental-majors-degree-bachelor-arts/princeton-school-public-and-international": {
+          "programme_name": "Public and International Affairs",
+          "degree_level": "bachelor",
+          "credential": "AB",
+          "normalized_field": "public_international_affairs"
+        }
+      },
+      "school_profile_urls": [
+        "https://www.princeton.edu/meet-princeton"
+      ]
+    },
+    "uchicago.edu": {
+      "catalogue_hints": [
+        "https://collegecatalog.uchicago.edu/thecollege/programsofstudy/",
+        "https://grad.uchicago.edu/admissions/programs/"
+      ],
+      "school_profile_urls": [
+        "https://www.uchicago.edu/who-we-are"
+      ]
+    },
+    "illinois.edu": {
+      "catalogue_hints": [
+        "https://catalog.illinois.edu/degree-programs/"
+      ],
+      "school_profile_urls": [
+        "https://illinois.edu/about/index.html"
+      ]
+    },
+    "umich.edu": {
+      "catalogue_hints": [
+        "https://admissions.umich.edu/academics-majors/majors-degrees",
+        "https://rackham.umich.edu/programs-of-study/",
+        "https://bulletin.engin.umich.edu/ug-ed/degrees/"
+      ],
+      "manual_programme_urls": [
+        "https://aero.engin.umich.edu/",
+        "https://sph.umich.edu/biostat/programs/phd.html",
+        "https://bme.umich.edu/",
+        "https://sph.umich.edu/biostat/",
+        "https://michiganross.umich.edu/programs/phd",
+        "https://che.engin.umich.edu/",
+        "https://cee.engin.umich.edu/",
+        "https://designscience.engin.umich.edu/",
+        "https://lsa.umich.edu/earth",
+        "https://lsa.umich.edu/econ/mae.html",
+        "https://lsa.umich.edu/econ/doctoral-program.html",
+        "https://ioe.engin.umich.edu/graduate/phd-program/",
+        "https://mse.engin.umich.edu/graduate/ph-d-degree-requirements",
+        "https://www.si.umich.edu/programs/master-applied-data-science/how-do-i-apply-master-applied-data-science",
+        "https://sph.umich.edu/ehs/index.html",
+        "https://ioe.engin.umich.edu/graduate/",
+        "https://www.si.umich.edu/programs/master-science-information",
+        "https://macro.engin.umich.edu/",
+        "https://mse.engin.umich.edu/graduate/",
+        "https://name.engin.umich.edu/"
+      ],
+      "programme_metadata": {
+        "https://aero.engin.umich.edu/": {
+          "programme_name": "Aerospace Engineering",
+          "degree_level": "master",
+          "credential": "MSE",
+          "normalized_field": "aerospace_engineering"
+        },
+        "https://sph.umich.edu/biostat/programs/phd.html": {
+          "programme_name": "Biostatistics",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "biostatistics"
+        },
+        "https://bme.umich.edu/": {
+          "programme_name": "Biomedical Engineering",
+          "degree_level": "master",
+          "credential": "MSE",
+          "normalized_field": "biomedical_engineering"
+        },
+        "https://sph.umich.edu/biostat/": {
+          "programme_name": "Biostatistics",
+          "degree_level": "master",
+          "credential": "MS",
+          "normalized_field": "biostatistics"
+        },
+        "https://michiganross.umich.edu/programs/phd": {
+          "programme_name": "Business Administration",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "business_administration"
+        },
+        "https://che.engin.umich.edu/": {
+          "programme_name": "Chemical Engineering",
+          "degree_level": "master",
+          "credential": "MSE",
+          "normalized_field": "chemical_engineering"
+        },
+        "https://cee.engin.umich.edu/": {
+          "programme_name": "Civil Engineering",
+          "degree_level": "master",
+          "credential": "MSE",
+          "normalized_field": "civil_engineering"
+        },
+        "https://designscience.engin.umich.edu/": {
+          "programme_name": "Design Science",
+          "degree_level": "master",
+          "credential": "MS",
+          "normalized_field": "design_science"
+        },
+        "https://lsa.umich.edu/earth": {
+          "programme_name": "Earth and Environmental Sciences",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "earth_environmental_sciences"
+        },
+        "https://lsa.umich.edu/econ/mae.html": {
+          "programme_name": "Applied Economics",
+          "degree_level": "master",
+          "credential": "MA",
+          "normalized_field": "applied_economics"
+        },
+        "https://lsa.umich.edu/econ/doctoral-program.html": {
+          "programme_name": "Economics",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "economics"
+        },
+        "https://ioe.engin.umich.edu/graduate/phd-program/": {
+          "programme_name": "Industrial and Operations Engineering",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "industrial_operations_engineering"
+        },
+        "https://mse.engin.umich.edu/graduate/ph-d-degree-requirements": {
+          "programme_name": "Materials Science and Engineering",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "materials_science_engineering"
+        },
+        "https://www.si.umich.edu/programs/master-applied-data-science/how-do-i-apply-master-applied-data-science": {
+          "programme_name": "Applied Data Science",
+          "degree_level": "master",
+          "credential": "MADS",
+          "normalized_field": "data_science"
+        },
+        "https://sph.umich.edu/ehs/index.html": {
+          "programme_name": "Environmental Health Sciences",
+          "degree_level": "master",
+          "credential": "MS",
+          "normalized_field": "environmental_health_sciences"
+        },
+        "https://ioe.engin.umich.edu/graduate/": {
+          "programme_name": "Industrial and Operations Engineering",
+          "degree_level": "master",
+          "credential": "MS/MSE",
+          "normalized_field": "industrial_operations_engineering"
+        },
+        "https://www.si.umich.edu/programs/master-science-information": {
+          "programme_name": "Information",
+          "degree_level": "master",
+          "credential": "MSI",
+          "normalized_field": "information_science"
+        },
+        "https://macro.engin.umich.edu/": {
+          "programme_name": "Macromolecular Science and Engineering",
+          "degree_level": "phd",
+          "credential": "PhD",
+          "normalized_field": "macromolecular_science_engineering"
+        },
+        "https://mse.engin.umich.edu/graduate/": {
+          "programme_name": "Materials Science and Engineering",
+          "degree_level": "master",
+          "credential": "MSE",
+          "normalized_field": "materials_science_engineering"
+        },
+        "https://name.engin.umich.edu/": {
+          "programme_name": "Naval Architecture and Marine Engineering",
+          "degree_level": "master",
+          "credential": "MS/MSE",
+          "normalized_field": "naval_architecture_marine_engineering"
+        }
+      },
+      "school_profile_urls": [
+        "https://umich.edu/about/"
+      ]
+    },
+    "upenn.edu": {
+      "catalogue_hints": [
+        "https://catalog.upenn.edu/undergraduate/programs/",
+        "https://catalog.upenn.edu/graduate/programs/",
+        "https://catalog.upenn.edu/programs/"
+      ],
+      "school_profile_urls": [
+        "https://www.upenn.edu/about"
+      ]
+    },
+    "ucla.edu": {
+      "catalogue_hints": [
+        "https://admission.ucla.edu/apply/majors",
+        "https://grad.ucla.edu/graduate-program-requirements/",
+        "https://grad.ucla.edu/programs/",
+        "https://catalog.registrar.ucla.edu/Undergraduate-Study/Majors-and-Degrees",
+        "https://catalog.registrar.ucla.edu/Undergraduate-Study",
+        "https://catalog.registrar.ucla.edu/"
+      ],
+      "school_profile_urls": [
+        "https://www.ucla.edu/about/mission-and-values"
+      ]
+    },
+    "berkeley.edu": {
+      "catalogue_hints": [
+        "https://guide.berkeley.edu/undergraduate/degree-programs/",
+        "https://guide.berkeley.edu/graduate/degree-programs/",
+        "https://undergraduate.catalog.berkeley.edu/programs",
+        "https://graduate.catalog.berkeley.edu/programs",
+        "https://undergraduate.catalog.berkeley.edu/",
+        "https://graduate.catalog.berkeley.edu/"
+      ],
+      "school_profile_urls": [
+        "https://www.berkeley.edu/about/"
+      ]
+    }
+  }
+}

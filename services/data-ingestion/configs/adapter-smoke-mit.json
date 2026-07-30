@@ -1,0 +1,48 @@
+{
+  "run_name": "adapter-smoke-mit",
+  "limits": {
+    "global_concurrency": 1,
+    "institution_concurrency": 1,
+    "per_domain_concurrency": 1,
+    "request_timeout_seconds": 25,
+    "max_sitemaps_per_institution": 1,
+    "max_sitemap_urls": 5000,
+    "max_index_pages": 5,
+    "max_index_depth": 1,
+    "max_deep_sources_per_programme": 1,
+    "max_admission_retry_sources_per_programme": 0,
+    "max_deep_programmes_per_institution": 1,
+    "max_status_preflight_candidates_per_institution": 1,
+    "max_optional_phd_total": 0,
+    "crawl4ai_min_text_chars": 800,
+    "min_request_interval_seconds": 0.25
+  },
+  "institutions": [
+    {
+      "institution_id": "mit-us",
+      "name": "Massachusetts Institute of Technology",
+      "country_code": "US",
+      "official_domain": "mit.edu",
+      "homepage_url": "https://www.mit.edu/",
+      "catalogue_hints": [
+        "https://catalog.mit.edu/degree-charts/"
+      ],
+      "manual_programme_urls": [
+        "https://catalog.mit.edu/degree-charts/computer-science-engineering-course-6-3/"
+      ],
+      "programme_metadata": {
+        "https://catalog.mit.edu/degree-charts/computer-science-engineering-course-6-3/": {
+          "programme_name": "Computer Science and Engineering",
+          "degree_level": "bachelor",
+          "credential": "SB",
+          "normalized_field": "computer_science"
+        }
+      },
+      "programme_url_patterns": [
+        "^https://catalog\\.mit\\.edu/degree-charts/[^/]+/$"
+      ],
+      "terms_status": "UNREVIEWED",
+      "enable_optional_phd": false
+    }
+  ]
+}

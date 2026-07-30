@@ -45,3 +45,16 @@ next-env.d.ts
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+/tmp
+/docs
+
+# Python ingestion service
+**/__pycache__/
+**/*.py[cod]
+**/.pytest_cache/
+/services/data-ingestion/.venv/
+/services/data-ingestion/.coverage
+/services/data-ingestion/crawl_state.sqlite*
+/services/data-ingestion/build/
+/services/data-ingestion/src/*.egg-info/
