@@ -2,13 +2,18 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
-import { officialWebsite } from '@/features/universities/domain';
+import { formatTuitionForCard, officialWebsite } from '@/features/universities/domain';
 import { createClient } from '@/lib/supabase/server';
 import { SavedListClient, type SavedRow, type ScholarshipOption } from './saved-list-client';
 
 /**
- * /my-universities — "Danh sách đã lưu", the saved list. Figma 223:8824, with
- * 223:13621 as the selected / scholarship-attached state.
+ * /my-universities — "Danh sách đã lưu", the saved list.
+ *
+ * Figma 375:12701 on the authoritative "Khanh Linh - Chi" canvas, with 375:12841
+ * as the scholarship-attached state. ⚠️ This page was first built from 223:8824
+ * / 223:13621 on the RETIRED "Tính năng" canvas, which draws a strictly smaller
+ * card: no tuition, no chosen subject, no re-pick link. See
+ * docs/redesign-status.md — the two canvases diverge and the newer one wins.
  *
  * This route used to be a bare `redirect('/apply')`, which left a sitemap-level
  * destination (Figma 123:2864 lists "Lưu" as one of ten) with no page — and
@@ -39,9 +44,19 @@ export default async function MyUniversitiesPage() {
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth?redirect=%2Fmy-universities');
 
+  /*
+   * `select('*')` rather than a column list, and that is deliberate.
+   *
+   * `program` / `program_url` (supabase-saved-program.sql) back the "Ngành …"
+   * line and the re-pick link. Naming them explicitly would make this read fail
+   * outright — with the whole saved list, not just the subject — on any project
+   * where that file has not been run yet. A star select returns whatever the
+   * table actually has, and the two fields are then read as optional below. The
+   * table is eight narrow columns, so there is nothing to save by listing them.
+   */
   const { data: savedRows, error: savedError } = await supabase
     .from('user_universities')
-    .select('id, university_id, added_at')
+    .select('*')
     .eq('user_id', user.id)
     .order('added_at', { ascending: false });
 
@@ -61,6 +76,9 @@ export default async function MyUniversitiesPage() {
     id: number;
     university_id: number;
     added_at: string | null;
+    /** Absent until supabase-saved-program.sql has been applied. */
+    program?: string | null;
+    program_url?: string | null;
   }>;
   const universityIds = saved.map((row) => row.university_id);
 
@@ -117,7 +135,15 @@ export default async function MyUniversitiesPage() {
         amountLabel: s.amountLabel,
         deadlineLabel: s.deadlineLabel,
         coverage: s.coverage,
-        // The detail panel's fields — Figma 337:19349.
+        /* What the discount maths reads — `bestCoveragePercent` on the bar and
+           `computeNetTuition` on the row. Carried on the option rather than on
+           `attached`, because `byIds` (which builds `attached`) has no coverage
+           in its projection and the same awards appear on both sides. */
+        fundingType: s.fundingType,
+        amountMin: s.amountMin,
+        amountMax: s.amountMax,
+        amountCurrency: s.amountCurrency,
+        // The detail panel's fields — Figma 375:13369.
         scope: s.scope,
         eligibility: s.eligibility,
         conditions: s.conditions,
@@ -141,6 +167,14 @@ export default async function MyUniversitiesPage() {
         imageUrl: uni.image_url ?? null,
         logoUrl: uni.logo_url ?? null,
         website: officialWebsite(uni.name),
+        /* The frame's rose badge (375:12740). `tuition_usd` is editorial prose,
+           not a number — "32,000–44,000 (intl UG, Medicine higher)" — so it goes
+           through the same formatter the university cards use, and the full
+           string stays reachable as a title attribute. */
+        tuition: formatTuitionForCard(uni.tuition_usd),
+        tuitionRaw: uni.tuition_usd ?? null,
+        program: row.program ?? null,
+        programUrl: row.program_url ?? null,
         attached,
         options,
       },
