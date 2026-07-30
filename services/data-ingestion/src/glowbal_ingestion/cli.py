@@ -37,6 +37,7 @@ from .supabase_import import (
     preflight_supabase_run,
 )
 from .url_safety import UnsafeUrlError, canonicalize_url, hostname_matches
+from .worker import run_worker
 
 
 SERVICE_ROOT = Path(__file__).resolve().parents[2]
@@ -437,6 +438,68 @@ def _parser() -> argparse.ArgumentParser:
         type=Path,
         default=MAIN_SITE_ROOT / ".env.local",
     )
+
+    process_jobs = subparsers.add_parser(
+        "process-jobs",
+        help=(
+            "Poll the programme_ingestion_jobs Supabase table and process "
+            "each pending job using the ingestion pipeline."
+        ),
+    )
+    process_jobs.add_argument(
+        "--env-file",
+        type=Path,
+        default=MAIN_SITE_ROOT / ".env.local",
+        help=".env file with SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, DEEPSEEK_API_KEY.",
+    )
+    process_jobs.add_argument(
+        "--output-root",
+        type=Path,
+        default=MAIN_SITE_ROOT / "tmp" / "ingestion-worker-runs",
+        help="Directory for temporary pipeline run output (gitignored).",
+    )
+    process_jobs.add_argument(
+        "--worker-id",
+        default=None,
+        help="Stable identifier for this worker instance (default: random UUID).",
+    )
+    process_jobs.add_argument(
+        "--batch-size",
+        type=int,
+        default=1,
+        metavar="N",
+        help="Number of jobs to claim per poll cycle (default: 1).",
+    )
+    process_jobs.add_argument(
+        "--poll-interval",
+        type=float,
+        default=10.0,
+        metavar="SECONDS",
+        help="Seconds to wait between polls when queue is empty (default: 10).",
+    )
+    process_jobs.add_argument(
+        "--max-iterations",
+        type=int,
+        default=None,
+        metavar="N",
+        help="Stop after N poll iterations (useful for testing; default: run forever).",
+    )
+    process_jobs.add_argument(
+        "--run-timeout",
+        type=float,
+        default=600.0,
+        metavar="SECONDS",
+        help="Hard timeout per job pipeline run in seconds (default: 600).",
+    )
+    process_jobs.add_argument(
+        "--allow-unreviewed-terms",
+        action="store_true",
+        help=(
+            "Explicitly allow crawling universities whose terms_status is "
+            "UNREVIEWED. Use only after an operator has accepted this policy."
+        ),
+    )
+
     return parser
 
 
@@ -1156,6 +1219,32 @@ def main(argv: list[str] | None = None) -> int:
                 indent=2,
             )
         )
+        return 0
+    if args.command == "process-jobs":
+        import logging as _logging
+        _logging.basicConfig(
+            level=_logging.INFO,
+            format="%(asctime)s %(levelname)s %(name)s %(message)s",
+        )
+        try:
+            run_worker(
+                worker_id=args.worker_id,
+                batch_size=args.batch_size,
+                poll_interval_seconds=args.poll_interval,
+                max_iterations=args.max_iterations,
+                output_root=args.output_root,
+                env_file=args.env_file,
+                run_timeout_seconds=args.run_timeout,
+                allow_unreviewed_terms=args.allow_unreviewed_terms,
+            )
+        except KeyboardInterrupt:
+            print(json.dumps({"ok": True, "stopped": "keyboard_interrupt"}))
+        except Exception as exc:  # noqa: BLE001
+            print(
+                json.dumps({"ok": False, "error": str(exc)}),
+                file=sys.stderr,
+            )
+            return 1
         return 0
 
     limits_path = args.limits
