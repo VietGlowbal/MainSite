@@ -1,0 +1,911 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GlowBal — Build My CV UX Flow</title>
+  <style>
+    :root {
+      --bg: #f6f4f1;
+      --paper: #fff;
+      --ink: #111827;
+      --muted: #64748b;
+      --line: #dbe3ee;
+      --pink: #ec2f92;
+      --pink-dark: #be176d;
+      --pink-soft: #fff1f7;
+      --green: #087f5b;
+      --green-soft: #eafaf3;
+      --amber: #9a5b00;
+      --amber-soft: #fff8df;
+      --red: #bd2c36;
+      --red-soft: #fff1f2;
+      --shadow: 0 18px 50px rgba(15, 23, 42, .08);
+      --radius: 22px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      background: var(--bg);
+      font: 15px/1.55 Arial, Helvetica, sans-serif;
+    }
+    button, input, textarea, select { font: inherit; }
+    button { cursor: pointer; }
+    button:disabled { cursor: not-allowed; opacity: .48; }
+    :focus-visible { outline: 3px solid rgba(236, 47, 146, .24); outline-offset: 2px; }
+
+    .topbar {
+      position: sticky;
+      top: 0;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 16px 28px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .94);
+      backdrop-filter: blur(14px);
+    }
+    .brand { display: flex; align-items: center; gap: 12px; }
+    .brand-mark {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      place-items: center;
+      border-radius: 12px;
+      color: #fff;
+      background: var(--pink);
+      font-weight: 900;
+    }
+    .brand strong { display: block; font-size: 15px; }
+    .brand span, .context { color: var(--muted); font-size: 12px; }
+    .context { text-align: right; }
+    .context strong { color: var(--ink); }
+
+    .shell {
+      display: grid;
+      grid-template-columns: 236px minmax(0, 1fr);
+      gap: 24px;
+      width: min(1540px, calc(100% - 36px));
+      margin: 24px auto 64px;
+    }
+    .rail {
+      position: sticky;
+      top: 94px;
+      align-self: start;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 8px 30px rgba(15, 23, 42, .04);
+    }
+    .rail-kicker, .eyebrow {
+      color: var(--pink-dark);
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: .16em;
+      text-transform: uppercase;
+    }
+    .rail h2 { margin: 7px 0 18px; font-size: 20px; line-height: 1.25; }
+    .step-button {
+      display: flex;
+      width: 100%;
+      align-items: center;
+      gap: 11px;
+      margin: 4px 0;
+      padding: 11px 10px;
+      border: 0;
+      border-radius: 14px;
+      color: var(--muted);
+      background: transparent;
+      text-align: left;
+      font-weight: 700;
+    }
+    .step-button:hover { background: #f8fafc; }
+    .step-button.active { color: var(--pink-dark); background: var(--pink-soft); }
+    .step-number {
+      display: grid;
+      flex: 0 0 auto;
+      width: 28px;
+      height: 28px;
+      place-items: center;
+      border-radius: 50%;
+      background: #eef2f7;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .step-button.active .step-number { color: #fff; background: var(--pink); }
+    .step-button.done .step-number { color: var(--green); background: var(--green-soft); }
+    .rail-note {
+      margin-top: 20px;
+      padding: 13px;
+      border: 1px solid #f5c4dc;
+      border-radius: 14px;
+      color: #7f234f;
+      background: #fff7fb;
+      font-size: 12px;
+    }
+
+    .screen { display: none; min-width: 0; }
+    .screen.active { display: block; animation: enter .24s ease-out; }
+    @keyframes enter { from { opacity: 0; transform: translateY(5px); } }
+    .screen-header {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 18px;
+    }
+    .screen-header h1 { margin: 5px 0 0; font-size: clamp(27px, 3vw, 42px); line-height: 1.08; letter-spacing: -.035em; }
+    .screen-header p { max-width: 650px; margin: 8px 0 0; color: var(--muted); }
+    .phase {
+      flex: 0 0 auto;
+      padding: 8px 12px;
+      border: 1px solid #f4bfd8;
+      border-radius: 999px;
+      color: var(--pink-dark);
+      background: var(--pink-soft);
+      font-size: 12px;
+      font-weight: 800;
+    }
+
+    .panel {
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--paper);
+      box-shadow: 0 8px 28px rgba(15, 23, 42, .035);
+    }
+    .panel-pad { padding: 24px; }
+    .grid-2 { display: grid; grid-template-columns: minmax(300px, .72fr) minmax(0, 1.28fr); gap: 18px; }
+    .grid-form { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+    .full { grid-column: 1 / -1; }
+    .section-title { margin: 0 0 4px; font-size: 21px; letter-spacing: -.02em; }
+    .section-copy { margin: 0 0 20px; color: var(--muted); }
+
+    label { display: block; color: #475569; font-size: 12px; font-weight: 750; }
+    input, textarea, select {
+      width: 100%;
+      margin-top: 7px;
+      padding: 11px 13px;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      color: var(--ink);
+      background: #fff;
+      outline: 0;
+    }
+    textarea { min-height: 92px; resize: vertical; }
+    input:focus, textarea:focus, select:focus { border-color: #f282b9; box-shadow: 0 0 0 4px var(--pink-soft); }
+
+    .button {
+      display: inline-flex;
+      min-height: 42px;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 18px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      font-weight: 800;
+    }
+    .button.primary { color: #fff; background: var(--pink); }
+    .button.primary:hover { background: #d92383; }
+    .button.secondary { border-color: var(--line); color: var(--ink); background: #fff; }
+    .button.soft { border-color: #f3b8d5; color: var(--pink-dark); background: var(--pink-soft); }
+    .button.wide { width: 100%; }
+    .actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 20px; border-top: 1px solid var(--line); }
+
+    .target-card {
+      padding: 26px;
+      border: 1px solid #f2bfd8;
+      border-radius: var(--radius);
+      background: linear-gradient(145deg, #fff 0%, #fff7fb 100%);
+    }
+    .target-card h2 { max-width: 340px; margin: 24px 0 13px; font-size: 31px; line-height: 1.15; letter-spacing: -.04em; }
+    .target-card p { color: var(--muted); }
+    .loader {
+      display: none;
+      min-height: 410px;
+      place-items: center;
+      text-align: center;
+    }
+    .loader.show { display: grid; }
+    .pulse {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      margin-right: 8px;
+      border-radius: 50%;
+      background: var(--pink);
+      animation: pulse 1s infinite alternate;
+    }
+    @keyframes pulse { to { opacity: .35; transform: scale(.72); } }
+    .target-result { display: none; }
+    .target-result.show { display: block; }
+    .keywords { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .keyword {
+      padding: 7px 11px;
+      border: 1px solid #f2bfd8;
+      border-radius: 999px;
+      color: var(--pink-dark);
+      background: var(--pink-soft);
+      font-size: 12px;
+      font-weight: 800;
+      text-transform: uppercase;
+    }
+    .insight-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .insight {
+      min-height: 132px;
+      padding: 17px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #fff;
+    }
+    .insight-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+    .insight strong { color: #64748b; font-size: 11px; letter-spacing: .06em; text-transform: uppercase; }
+    .insight p { margin: 13px 0 0; color: #334155; font-size: 13px; }
+    .status-pill { padding: 4px 7px; border-radius: 999px; font-size: 10px; font-weight: 800; }
+    .status-pill.good { color: var(--green); background: var(--green-soft); }
+    .status-pill.low { color: var(--amber); background: var(--amber-soft); }
+
+    .form-section + .form-section { margin-top: 30px; padding-top: 26px; border-top: 1px solid var(--line); }
+    .form-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 16px; }
+    .form-head h2 { margin: 0; font-size: 20px; }
+    .entry {
+      margin-top: 14px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 17px;
+      background: #fbfcfe;
+    }
+    .frameworks { display: flex; flex-wrap: wrap; gap: 7px; margin: 12px 0 10px; }
+    .framework {
+      padding: 5px 9px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: #fff;
+      font-size: 11px;
+      font-weight: 750;
+    }
+    .framework.selected { border-color: #f1a9cd; color: var(--pink-dark); background: var(--pink-soft); }
+    .hint { margin: 7px 0 0; color: var(--muted); font-size: 11px; font-weight: 400; }
+
+    .stream { display: none; padding: 28px; }
+    .stream.show { display: block; }
+    .stream-list { display: grid; gap: 10px; margin-top: 20px; }
+    .stream-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 15px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      color: var(--muted);
+      background: #fff;
+    }
+    .stream-row.ready { color: var(--ink); border-color: #b9ead4; background: #f4fcf8; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e1; }
+    .ready .dot { background: #10b981; }
+
+    .builder { display: grid; grid-template-columns: 350px minmax(760px, 1fr); gap: 18px; }
+    .assessment { align-self: start; padding: 22px; }
+    .assessment h2 { margin: 8px 0 15px; font-size: 24px; }
+    .number-list { display: grid; gap: 12px; margin: 0; padding: 0; list-style: none; }
+    .number-list li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; font-size: 13px; }
+    .number-list b { color: var(--pink); }
+    .signal-box { margin-top: 20px; padding-top: 18px; border-top: 1px solid var(--line); }
+    .signal-box h3 { margin: 0 0 8px; font-size: 15px; }
+    .signal-box ul { margin: 0; padding-left: 18px; color: var(--muted); font-size: 12px; }
+    .gate {
+      margin-top: 20px;
+      padding: 16px;
+      border: 1px solid #efd38d;
+      border-radius: 16px;
+      background: var(--amber-soft);
+    }
+    .gate h3 { margin: 0; font-size: 15px; }
+    .gate p { margin: 5px 0 13px; color: #7b5a1a; font-size: 12px; }
+    .gate textarea { min-height: 72px; background: #fff; }
+    .gate label + label { margin-top: 12px; }
+    .gate-lock { margin-top: 9px; color: var(--amber); font-size: 11px; }
+    .edit-tip { margin-top: 16px; padding: 11px; border-radius: 12px; color: var(--muted); background: #f8fafc; font-size: 11px; }
+
+    .preview-wrap { overflow: auto; padding: 20px; border-radius: var(--radius); background: #e7ebf0; }
+    .cv-paper {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto;
+      padding: 16mm 17mm;
+      color: #111827;
+      background: #fff;
+      box-shadow: var(--shadow);
+      font: 10.5pt/1.32 Arial, Helvetica, sans-serif;
+    }
+    .cv-paper header { padding-bottom: 8px; border-bottom: 1.5px solid #111827; }
+    .cv-paper h1 { margin: 0; font-size: 25pt; letter-spacing: -.04em; }
+    .cv-paper .contact { color: #475569; }
+    .cv-section { margin-top: 10px; }
+    .cv-section h2 { margin: 0 0 4px; font-size: 10pt; letter-spacing: .17em; text-transform: uppercase; }
+    .cv-section p { margin: 2px 0; }
+    .cv-section ul { margin: 3px 0 0; padding-left: 19px; }
+    .cv-item { margin-top: 7px; }
+    .cv-item strong { font-size: 11pt; }
+    .date { color: #64748b; }
+    [contenteditable="true"] { border-radius: 4px; transition: background .15s, box-shadow .15s; }
+    [contenteditable="true"]:hover { background: #fff6fa; box-shadow: 0 0 0 3px #fff6fa; }
+    [contenteditable="true"]:focus { outline: 2px solid #f282b9; background: #fff; }
+
+    .review {
+      display: none;
+      margin-top: 18px;
+      padding: 22px;
+    }
+    .review.show { display: block; animation: enter .25s ease-out; }
+    .review-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+    .review-card { padding: 16px; border: 1px solid var(--line); border-radius: 16px; }
+    .review-card.good { border-color: #a9e8cc; background: var(--green-soft); }
+    .review-card.warn { border-color: #efd38d; background: var(--amber-soft); }
+    .review-card.next { border-color: #f2bdd7; background: var(--pink-soft); }
+    .review-card strong { display: block; margin-bottom: 6px; }
+    .review-card p { margin: 0; color: #475569; font-size: 13px; }
+    .score-line { display: grid; grid-template-columns: 150px 1fr 42px; gap: 12px; align-items: center; margin-top: 12px; font-size: 13px; }
+    .bar { height: 8px; overflow: hidden; border-radius: 999px; background: #eef2f7; }
+    .bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #ec2f92, #f47db5); }
+
+    .layout-grid { display: grid; grid-template-columns: 310px minmax(0, 1fr); gap: 18px; }
+    .layout-control { align-self: start; padding: 22px; }
+    .layout-choice { padding: 15px; border: 2px solid var(--pink); border-radius: 16px; background: var(--pink-soft); }
+    .layout-choice strong { display: block; }
+    .layout-choice span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; }
+    .callout { margin-top: 14px; padding: 13px; border-radius: 13px; color: var(--muted); background: #f8fafc; font-size: 12px; }
+
+    .handoff {
+      margin-top: 26px;
+      padding: 22px;
+      border: 1px dashed #f0a7ca;
+      border-radius: var(--radius);
+      background: #fff9fc;
+    }
+    .handoff h2 { margin: 0 0 12px; font-size: 18px; }
+    .handoff-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .handoff article { padding: 13px; border-radius: 13px; background: #fff; }
+    .handoff strong { display: block; margin-bottom: 4px; font-size: 12px; }
+    .handoff p { margin: 0; color: var(--muted); font-size: 11px; }
+
+    .toast {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      z-index: 40;
+      display: none;
+      max-width: 360px;
+      padding: 13px 16px;
+      border: 1px solid #a9e8cc;
+      border-radius: 14px;
+      color: #075b42;
+      background: #f0fcf7;
+      box-shadow: var(--shadow);
+      font-weight: 750;
+    }
+    .toast.show { display: block; }
+
+    @media (max-width: 1100px) {
+      .shell { grid-template-columns: 1fr; }
+      .rail { position: static; display: flex; overflow-x: auto; gap: 6px; }
+      .rail-kicker, .rail h2, .rail-note { display: none; }
+      .step-button { min-width: max-content; }
+      .grid-2, .builder, .layout-grid { grid-template-columns: 1fr; }
+      .builder { min-width: 0; }
+    }
+    @media (max-width: 720px) {
+      .topbar { padding: 13px 16px; }
+      .context { display: none; }
+      .shell { width: min(100% - 20px, 1540px); margin-top: 12px; }
+      .grid-form, .insight-grid, .review-summary, .handoff-grid { grid-template-columns: 1fr; }
+      .screen-header { align-items: start; flex-direction: column; gap: 10px; }
+      .panel-pad, .target-card { padding: 18px; }
+      .actions { flex-direction: column-reverse; }
+      .button { width: 100%; }
+    }
+
+    @media print {
+      body { background: #fff; }
+      .topbar, .rail, .screen-header, .layout-control, .handoff, .toast { display: none !important; }
+      .shell, .layout-grid, .screen, #screen-4 { display: block !important; width: 100%; margin: 0; }
+      .screen:not(#screen-4), .preview-wrap:not(#layout-preview) { display: none !important; }
+      #layout-preview { overflow: visible; padding: 0; background: #fff; }
+      .cv-paper { width: 100%; min-height: 0; padding: 0; box-shadow: none; }
+      @page { size: A4; margin: 11mm; }
+    }
+  </style>
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">G</div>
+      <div>
+        <strong>GlowBal CV Studio</strong>
+        <span>UX handoff prototype · Build from scratch</span>
+      </div>
+    </div>
+    <div class="context">
+      <strong>University of Cambridge</strong><br>
+      BA (Hons) Computer Science · Application CV
+    </div>
+  </header>
+
+  <div class="shell">
+    <nav class="rail" aria-label="Các bước tạo CV">
+      <div class="rail-kicker">Build My CV</div>
+      <h2>Từ trải nghiệm rời rạc đến CV chiến lược.</h2>
+      <button class="step-button active" data-step="1"><span class="step-number">1</span>Target Profile</button>
+      <button class="step-button" data-step="2"><span class="step-number">2</span>Nội dung</button>
+      <button class="step-button" data-step="3"><span class="step-number">3</span>Bản CV & Review</button>
+      <button class="step-button" data-step="4"><span class="step-number">4</span>Harvard & PDF</button>
+      <div class="rail-note">
+        Bản nháp tự lưu trên thiết bị. Không lưu CV hoặc câu trả lời bổ sung vào database trong MVP.
+      </div>
+    </nav>
+
+    <main>
+      <section class="screen active" id="screen-1">
+        <div class="screen-header">
+          <div>
+            <div class="eyebrow">Bước 1 · Hiểu đích đến</div>
+            <h1>CV này cần chứng minh điều gì?</h1>
+            <p>AI tổng hợp dữ liệu trường, chương trình và hồ sơ hiện có. Dữ liệu thiếu được ghi rõ thay vì tự suy đoán.</p>
+          </div>
+          <span class="phase">Target Profile</span>
+        </div>
+
+        <div class="grid-2">
+          <div class="target-card">
+            <div class="eyebrow">Career direction</div>
+            <h2>Thêm định hướng để Target Profile sát hơn.</h2>
+            <p>Không bắt buộc. Người dùng có thể viết ngắn bằng tiếng Việt hoặc tiếng Anh.</p>
+            <label>
+              Định hướng nghề nghiệp
+              <textarea id="career">Software Engineer in education technology, interested in AI and accessible learning.</textarea>
+            </label>
+            <button class="button primary wide" id="build-target">Tạo Target Profile</button>
+          </div>
+
+          <div class="panel panel-pad">
+            <div class="loader" id="target-loader">
+              <div>
+                <p><span class="pulse"></span><strong>AI đang xây dựng Target Profile…</strong></p>
+                <p style="color:var(--muted);font-size:12px">Đang đối chiếu University DNA, Programme DNA và Career Alignment.</p>
+              </div>
+            </div>
+            <div class="target-result" id="target-result">
+              <div class="keywords">
+                <span class="keyword">Analytical thinking</span>
+                <span class="keyword">Technical initiative</span>
+                <span class="keyword">Teaching impact</span>
+              </div>
+              <div class="insight-grid">
+                <article class="insight">
+                  <div class="insight-top"><strong>Định vị trường</strong><span class="status-pill good">synthesis</span></div>
+                  <p>Môi trường học thuật chuyên sâu, đề cao tư duy độc lập, nền tảng Toán và khả năng giải quyết vấn đề.</p>
+                </article>
+                <article class="insight">
+                  <div class="insight-top"><strong>Triết lý giáo dục</strong><span class="status-pill good">explicit</span></div>
+                  <p>Supervision-based learning yêu cầu ứng viên biết đặt câu hỏi, lập luận và cải thiện qua phản hồi.</p>
+                </article>
+                <article class="insight">
+                  <div class="insight-top"><strong>Programme DNA</strong><span class="status-pill low">low confidence</span></div>
+                  <p>Chưa đủ dữ liệu module chi tiết. CV chỉ nhấn vào nền tảng Computer Science và Mathematics đã xác thực.</p>
+                </article>
+                <article class="insight">
+                  <div class="insight-top"><strong>Career alignment</strong><span class="status-pill good">synthesis</span></div>
+                  <p>Kết nối trải nghiệm software, AI và giáo dục thành một hướng phát triển nhất quán.</p>
+                </article>
+              </div>
+              <div class="actions">
+                <button class="button secondary" id="rebuild-target">Tạo lại</button>
+                <button class="button primary next-step" data-next="2">Tiếp tục nhập nội dung</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-2">
+        <div class="screen-header">
+          <div>
+            <div class="eyebrow">Bước 2 · Thu thập dẫn chứng</div>
+            <h1>Nhập trải nghiệm bằng ngôn ngữ của bạn.</h1>
+            <p>AI chuẩn hóa câu chữ sau. Ở bước này, ưu tiên dữ kiện thật: hành động, vai trò, đối tượng và kết quả.</p>
+          </div>
+          <span class="phase">Autosave local</span>
+        </div>
+
+        <div class="panel panel-pad">
+          <section class="form-section">
+            <div class="form-head"><h2>Thông tin cá nhân</h2><span class="status-pill good">Đã điền</span></div>
+            <div class="grid-form">
+              <label>Họ và tên<input value="An Nguyen"></label>
+              <label>Email<input value="tester.student.a@glowbal-uat.test"></label>
+              <label>Số điện thoại<input value="+84 90 123 4567"></label>
+              <label>Địa điểm<input value="Hanoi, Vietnam"></label>
+              <label class="full">LinkedIn / Portfolio<input value="linkedin.com/in/an-nguyen"></label>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="form-head"><h2>Education</h2><button class="button secondary" type="button">Thêm học vấn</button></div>
+            <div class="entry grid-form">
+              <label>Trường<input value="Hanoi-Amsterdam High School"></label>
+              <label>Chương trình<input value="A-levels"></label>
+              <label>Môn học<input value="Mathematics, Further Mathematics, Physics, Computer Science"></label>
+              <label>Kết quả dự kiến<input value="A*A*AA"></label>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="form-head"><h2>Experience Collection</h2><button class="button secondary" type="button">Thêm trải nghiệm</button></div>
+            <article class="entry">
+              <div class="grid-form">
+                <label>Vai trò<input value="Summer Intern (Software)"></label>
+                <label>Tổ chức<input value="FPT Software"></label>
+              </div>
+              <div class="frameworks" aria-label="Framework đã chọn">
+                <span class="framework selected">Built / created</span>
+                <span class="framework">Led / managed</span>
+                <span class="framework">Solved / improved</span>
+                <span class="framework">Partnered</span>
+              </div>
+              <label>
+                Contribution 1
+                <textarea>Built internal tooling in TypeScript and shipped a dashboard used by the QA team.</textarea>
+                <span class="hint">Designed / Built / Developed [what] for [who], resulting in [impact].</span>
+              </label>
+            </article>
+            <article class="entry">
+              <div class="grid-form">
+                <label>Vai trò<input value="Volunteer Coding Tutor"></label>
+                <label>Tổ chức<input value="CodeClub Hanoi"></label>
+              </div>
+              <div class="frameworks">
+                <span class="framework">Built / created</span>
+                <span class="framework selected">Led / managed</span>
+                <span class="framework">Solved / improved</span>
+                <span class="framework">Partnered</span>
+              </div>
+              <label>
+                Contribution 1
+                <textarea>Designed and delivered a 6-week introductory Python curriculum for secondary school students.</textarea>
+                <span class="hint">Led / Managed / Mentored [people or project], resulting in [outcome].</span>
+              </label>
+            </article>
+          </section>
+
+          <section class="form-section">
+            <div class="form-head"><h2>Skills</h2><button class="button secondary" type="button">Thêm nhóm kỹ năng</button></div>
+            <div class="grid-form">
+              <label>Tên nhóm<input value="Programming & Technical"></label>
+              <label>Kỹ năng<input value="Python, C++, Algorithms, TypeScript"></label>
+              <label>Tên nhóm<input value="Communication"></label>
+              <label>Kỹ năng<input value="Public Speaking, Teaching, Curriculum Design"></label>
+            </div>
+          </section>
+
+          <div class="actions">
+            <button class="button secondary next-step" data-next="1">Quay lại</button>
+            <button class="button primary" id="generate-cv">Tạo CV bằng AI</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-3">
+        <div class="screen-header">
+          <div>
+            <div class="eyebrow">Bước 3 · Refine & Review</div>
+            <h1>CV được tạo trước, review chỉ mở khi dữ liệu đủ.</h1>
+            <p>Click trực tiếp vào About Me hoặc bullet để sửa. Không cần một nút “Sửa CV” riêng.</p>
+          </div>
+          <span class="phase" id="cv-phase">Generating</span>
+        </div>
+
+        <div class="panel stream show" id="generation-stream">
+          <p><span class="pulse"></span><strong>AI đang chuẩn hóa và sắp xếp CV…</strong></p>
+          <div class="stream-list">
+            <div class="stream-row" data-stream="0"><span>About Me</span><span class="dot"></span></div>
+            <div class="stream-row" data-stream="1"><span>Education</span><span class="dot"></span></div>
+            <div class="stream-row" data-stream="2"><span>Experience</span><span class="dot"></span></div>
+            <div class="stream-row" data-stream="3"><span>Skills & Assessment</span><span class="dot"></span></div>
+          </div>
+        </div>
+
+        <div id="generated-view" hidden>
+          <div class="builder">
+            <aside class="panel assessment">
+              <div class="eyebrow">AI Assessment</div>
+              <h2>Ba điểm mạnh</h2>
+              <ol class="number-list">
+                <li><b>01</b><span>Nền tảng Toán và Computer Science rõ ràng.</span></li>
+                <li><b>02</b><span>Có trải nghiệm xây sản phẩm phần mềm thực tế.</span></li>
+                <li><b>03</b><span>Duy trì hoạt động dạy học cho cộng đồng.</span></li>
+              </ol>
+              <div class="signal-box">
+                <h3>Còn thiếu tín hiệu</h3>
+                <ul>
+                  <li>Impact của dashboard chưa có số liệu cụ thể.</li>
+                  <li>Chưa rõ số học sinh và kết quả của lớp Python.</li>
+                </ul>
+              </div>
+
+              <section class="gate" id="clarification-gate">
+                <h3>AI cần bạn bổ sung</h3>
+                <p>Trả lời bằng dữ kiện thật. Phải trả lời hết và tạo lại CV trước khi chạy Review.</p>
+                <label>Dashboard đã giúp đội QA cải thiện điều gì?
+                  <textarea class="answer" placeholder="Ví dụ: giảm thời gian tổng hợp báo cáo từ..."></textarea>
+                </label>
+                <label>Bạn đã dạy bao nhiêu học sinh và kết quả ra sao?
+                  <textarea class="answer" placeholder="Ví dụ: 18 học sinh, 15 em hoàn thành..."></textarea>
+                </label>
+                <button class="button primary wide" id="submit-answers" disabled>Dùng câu trả lời để cải thiện CV</button>
+                <div class="gate-lock">CV Review đang khóa cho đến khi hoàn thành bước này.</div>
+              </section>
+
+              <div class="edit-tip">Nhấp vào phần giới thiệu hoặc bullet trên bản CV để chỉnh trực tiếp.</div>
+              <button class="button soft wide" id="run-review" disabled>Chạy CV Review</button>
+              <button class="button secondary wide next-step" style="margin-top:9px" data-next="4">Chọn layout</button>
+            </aside>
+
+            <div class="preview-wrap">
+              <article class="cv-paper" id="editable-cv">
+                <header>
+                  <h1 contenteditable="true">An Nguyen</h1>
+                  <div class="contact" contenteditable="true">tester.student.a@glowbal-uat.test · +84 90 123 4567 · Hanoi, Vietnam</div>
+                </header>
+                <section class="cv-section">
+                  <h2>Profile</h2>
+                  <p contenteditable="true">A Computer Science student with a strong foundation in algorithms and software development, demonstrated through practical tools and educational projects. Committed to making technical knowledge accessible to younger learners.</p>
+                </section>
+                <section class="cv-section">
+                  <h2>Education</h2>
+                  <div class="cv-item">
+                    <strong contenteditable="true">A-levels · Hanoi-Amsterdam High School</strong>
+                    <p contenteditable="true">Mathematics, Further Mathematics, Physics, Computer Science</p>
+                    <ul><li contenteditable="true">Predicted A*A*AA, including Mathematics and Further Mathematics.</li></ul>
+                  </div>
+                </section>
+                <section class="cv-section">
+                  <h2>Experience</h2>
+                  <div class="cv-item">
+                    <strong contenteditable="true">Summer Intern (Software) · FPT Software</strong>
+                    <div class="date">Jun 2025 – Aug 2025</div>
+                    <ul><li id="dashboard-bullet" contenteditable="true">Built internal tooling in TypeScript and shipped a dashboard adopted by the QA team.</li></ul>
+                  </div>
+                  <div class="cv-item">
+                    <strong contenteditable="true">Volunteer Coding Tutor · CodeClub Hanoi</strong>
+                    <div class="date">Jun 2024 – Present</div>
+                    <ul><li id="teaching-bullet" contenteditable="true">Designed and delivered a 6-week introductory Python curriculum for secondary school students.</li></ul>
+                  </div>
+                </section>
+                <section class="cv-section">
+                  <h2>Skills</h2>
+                  <p contenteditable="true"><strong>Programming & Technical:</strong> Python, C++, Algorithms, TypeScript</p>
+                  <p contenteditable="true"><strong>Communication:</strong> Public Speaking, Teaching, Curriculum Design</p>
+                </section>
+              </article>
+            </div>
+          </div>
+
+          <section class="panel review" id="review-result">
+            <div class="eyebrow">CV Review · ngôn ngữ dễ hiểu</div>
+            <h2 class="section-title">CV của bạn đang thuyết phục ở đâu?</h2>
+            <p class="section-copy">Nhận xét ưu tiên hành động cụ thể, tránh thuật ngữ tuyển sinh khó hiểu.</p>
+            <div class="review-summary">
+              <article class="review-card good"><strong>Đã làm tốt</strong><p>CV cho thấy bạn vừa học tốt môn kỹ thuật, vừa biết dùng kiến thức để tạo sản phẩm và hỗ trợ người khác.</p></article>
+              <article class="review-card warn"><strong>Cần làm rõ</strong><p>Mỗi trải nghiệm nên có ít nhất một kết quả cụ thể để người đọc hiểu mức độ đóng góp của bạn.</p></article>
+              <article class="review-card next"><strong>Làm tiếp theo</strong><p>Rút About Me còn 2–3 câu và giữ những từ khóa khớp với ngành Computer Science.</p></article>
+            </div>
+            <div style="margin-top:22px">
+              <div class="score-line"><span>Độ rõ ràng</span><div class="bar"><span style="width:82%"></span></div><b>8.2</b></div>
+              <div class="score-line"><span>Dẫn chứng</span><div class="bar"><span style="width:74%"></span></div><b>7.4</b></div>
+              <div class="score-line"><span>Phù hợp ngành</span><div class="bar"><span style="width:86%"></span></div><b>8.6</b></div>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="screen" id="screen-4">
+        <div class="screen-header">
+          <div>
+            <div class="eyebrow">Bước 4 · Layout & export</div>
+            <h1>Harvard-style CV, sẵn sàng tải PDF.</h1>
+            <p>Một cột, đen trắng, dễ đọc và thân thiện với hệ thống ATS. Ưu tiên một trang, tối đa hai trang.</p>
+          </div>
+          <span class="phase">Print-ready</span>
+        </div>
+
+        <div class="layout-grid">
+          <aside class="panel layout-control">
+            <div class="eyebrow">Selected layout</div>
+            <div class="layout-choice" style="margin-top:14px">
+              <strong>Harvard-style CV</strong>
+              <span>Single column · ATS friendly · Academic focus</span>
+            </div>
+            <div class="callout">AI đề xuất bố cục này vì hồ sơ có nền tảng học thuật và kỹ thuật rõ hơn yếu tố lãnh đạo hình thức.</div>
+            <div class="callout">Nếu CV vượt hai trang, hệ thống cảnh báo và đề xuất rút gọn About Me hoặc bullet dài.</div>
+            <button class="button primary wide" style="margin-top:16px" onclick="window.print()">Tải PDF / In CV</button>
+            <button class="button secondary wide next-step" style="margin-top:9px" data-next="3">Quay lại chỉnh CV</button>
+          </aside>
+
+          <div class="preview-wrap" id="layout-preview">
+            <article class="cv-paper">
+              <header>
+                <h1>An Nguyen</h1>
+                <div class="contact">tester.student.a@glowbal-uat.test · +84 90 123 4567 · Hanoi, Vietnam</div>
+              </header>
+              <section class="cv-section">
+                <h2>Profile</h2>
+                <p>A Computer Science student with a strong foundation in algorithms and software development. Combines practical software experience with sustained commitment to teaching younger learners.</p>
+              </section>
+              <section class="cv-section">
+                <h2>Education</h2>
+                <div class="cv-item">
+                  <strong>A-levels · Hanoi-Amsterdam High School</strong>
+                  <p>Mathematics, Further Mathematics, Physics, Computer Science</p>
+                  <ul><li>Predicted A*A*AA, including Mathematics and Further Mathematics.</li></ul>
+                </div>
+              </section>
+              <section class="cv-section">
+                <h2>Experience</h2>
+                <div class="cv-item">
+                  <strong>Summer Intern (Software) · FPT Software</strong>
+                  <div class="date">Jun 2025 – Aug 2025</div>
+                  <ul><li>Built a TypeScript dashboard that reduced the QA team’s weekly reporting time by 30%.</li></ul>
+                </div>
+                <div class="cv-item">
+                  <strong>Volunteer Coding Tutor · CodeClub Hanoi</strong>
+                  <div class="date">Jun 2024 – Present</div>
+                  <ul><li>Designed and delivered a 6-week Python curriculum; 15 of 18 students completed a working project.</li></ul>
+                </div>
+              </section>
+              <section class="cv-section">
+                <h2>Skills</h2>
+                <p><strong>Programming & Technical:</strong> Python, C++, Algorithms, TypeScript</p>
+                <p><strong>Communication:</strong> Public Speaking, Teaching, Curriculum Design</p>
+              </section>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="handoff">
+        <h2>Quy tắc UX cần giữ khi triển khai</h2>
+        <div class="handoff-grid">
+          <article><strong>Progressive flow</strong><p>Chỉ mở bước tiếp theo khi dữ liệu tối thiểu hợp lệ; không render sẵn kết quả AI rỗng.</p></article>
+          <article><strong>Low-quality gate</strong><p>Nếu AI hỏi bổ sung, người dùng phải trả lời hết, submit và tạo lại CV trước khi Review.</p></article>
+          <article><strong>Inline editing</strong><p>Click trực tiếp vào nội dung CV để sửa; mọi thay đổi làm kết quả Review cũ hết hiệu lực.</p></article>
+          <article><strong>Plain language</strong><p>Feedback dùng câu ngắn, ví dụ cụ thể, phù hợp học sinh THCS và THPT.</p></article>
+          <article><strong>AI states</strong><p>Hiển thị trạng thái “AI đang làm…” và mount từng section theo stream, không bung toàn bộ skeleton.</p></article>
+          <article><strong>Local draft</strong><p>Autosave theo user + application; có thể xóa bản nháp trên thiết bị; không lưu server trong MVP.</p></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script>
+    const screens = [...document.querySelectorAll('.screen')];
+    const stepButtons = [...document.querySelectorAll('.step-button')];
+    const toast = document.getElementById('toast');
+    let highestStep = 1;
+    let targetBuilt = false;
+    let cvBuilt = false;
+    let answersApplied = false;
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add('show');
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => toast.classList.remove('show'), 2600);
+    }
+
+    function goToStep(step, force = false) {
+      if (!force && step > highestStep) {
+        showToast('Hãy hoàn thành bước hiện tại trước.');
+        return;
+      }
+      screens.forEach(screen => screen.classList.toggle('active', screen.id === `screen-${step}`));
+      stepButtons.forEach(button => {
+        const number = Number(button.dataset.step);
+        button.classList.toggle('active', number === step);
+        button.classList.toggle('done', number < highestStep);
+      });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    stepButtons.forEach(button => button.addEventListener('click', () => goToStep(Number(button.dataset.step))));
+    document.querySelectorAll('.next-step').forEach(button => button.addEventListener('click', () => goToStep(Number(button.dataset.next))));
+
+    function buildTarget() {
+      const loader = document.getElementById('target-loader');
+      const result = document.getElementById('target-result');
+      result.classList.remove('show');
+      loader.classList.add('show');
+      setTimeout(() => {
+        loader.classList.remove('show');
+        result.classList.add('show');
+        targetBuilt = true;
+        highestStep = Math.max(highestStep, 2);
+        showToast('Target Profile đã sẵn sàng.');
+      }, 850);
+    }
+
+    document.getElementById('build-target').addEventListener('click', buildTarget);
+    document.getElementById('rebuild-target').addEventListener('click', buildTarget);
+
+    document.getElementById('generate-cv').addEventListener('click', () => {
+      if (!targetBuilt) {
+        showToast('Hãy tạo Target Profile trước.');
+        return;
+      }
+      highestStep = Math.max(highestStep, 3);
+      goToStep(3, true);
+      document.getElementById('generation-stream').classList.add('show');
+      document.getElementById('generated-view').hidden = true;
+      document.getElementById('cv-phase').textContent = 'Generating';
+      const rows = [...document.querySelectorAll('[data-stream]')];
+      rows.forEach(row => row.classList.remove('ready'));
+      rows.forEach((row, index) => setTimeout(() => row.classList.add('ready'), 380 * (index + 1)));
+      setTimeout(() => {
+        document.getElementById('generation-stream').classList.remove('show');
+        document.getElementById('generated-view').hidden = false;
+        document.getElementById('cv-phase').textContent = 'Needs input';
+        cvBuilt = true;
+      }, 1900);
+    });
+
+    const answers = [...document.querySelectorAll('.answer')];
+    const submitAnswers = document.getElementById('submit-answers');
+    answers.forEach(answer => answer.addEventListener('input', () => {
+      submitAnswers.disabled = !answers.every(item => item.value.trim());
+    }));
+
+    submitAnswers.addEventListener('click', () => {
+      const dashboardAnswer = answers[0].value.trim();
+      const teachingAnswer = answers[1].value.trim();
+      document.getElementById('dashboard-bullet').textContent =
+        `Built a TypeScript dashboard for the QA team, ${dashboardAnswer.charAt(0).toLowerCase() + dashboardAnswer.slice(1)}`;
+      document.getElementById('teaching-bullet').textContent =
+        `Designed and delivered a 6-week Python curriculum; ${teachingAnswer.charAt(0).toLowerCase() + teachingAnswer.slice(1)}`;
+      document.getElementById('clarification-gate').innerHTML =
+        '<h3>Đã bổ sung dữ kiện</h3><p>CV đã được cập nhật. Bạn có thể chỉnh trực tiếp hoặc chạy CV Review.</p>';
+      answersApplied = true;
+      document.getElementById('run-review').disabled = false;
+      document.getElementById('cv-phase').textContent = 'Review ready';
+      highestStep = Math.max(highestStep, 4);
+      showToast('CV đã cập nhật và mở khóa Review.');
+    });
+
+    document.getElementById('run-review').addEventListener('click', () => {
+      if (!cvBuilt || !answersApplied) return;
+      const button = document.getElementById('run-review');
+      button.disabled = true;
+      button.textContent = 'AI đang review…';
+      setTimeout(() => {
+        document.getElementById('review-result').classList.add('show');
+        button.textContent = 'Chạy lại CV Review';
+        button.disabled = false;
+        document.getElementById('review-result').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 900);
+    });
+
+    document.getElementById('editable-cv').addEventListener('input', () => {
+      document.getElementById('review-result').classList.remove('show');
+      if (answersApplied) document.getElementById('run-review').disabled = false;
+    });
+  </script>
+</body>
+</html>

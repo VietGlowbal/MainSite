@@ -97,4 +97,26 @@ describe('POST cv-builder/generate', () => {
       }),
     );
   });
+
+  it('uses DeepSeek V4 Flash only for clarification improvements', async () => {
+    await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          targetProfile: { keywords: ['A', 'B', 'C'] },
+          form,
+          mode: 'clarification',
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+
+    expect(streamCvBuilderGenerationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        model: 'deepseek-v4-flash',
+        clarification: true,
+      }),
+    );
+  });
 });

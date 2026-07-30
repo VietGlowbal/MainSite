@@ -174,6 +174,7 @@ export async function searchCachedCourses(
       .from('courses')
       .select('*')
       .eq('university_id', universityId)
+      .eq('extraction_status', 'extracted')
       .ilike('course_name', searchPattern);
     
     // Filter by study level if provided

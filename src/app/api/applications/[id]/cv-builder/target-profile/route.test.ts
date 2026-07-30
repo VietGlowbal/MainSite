@@ -75,5 +75,9 @@ describe('POST cv-builder/target-profile', () => {
         stream: streamDeepSeekTextMock,
       }),
     );
+    expect(loadCvBuilderContextMock).toHaveBeenCalledWith(
+      'app-1',
+      expect.objectContaining({ id: 'user-1' }),
+    );
   });
 });

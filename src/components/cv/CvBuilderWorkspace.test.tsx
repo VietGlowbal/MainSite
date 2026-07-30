@@ -129,6 +129,43 @@ const targetProfile: CvTargetProfileV1 = {
     entrySignals: [unavailable],
   },
   careerAlignment: [unavailable],
+  evidenceSignals: [
+    {
+      id: 'S001',
+      label: 'Problem solving',
+      description: 'CV cần chứng minh cách bạn giải quyết một vấn đề cụ thể.',
+      evidenceExamples: ['Một dự án có mô tả cách làm và kết quả'],
+      sourceRefs: ['course:subject'],
+    },
+    {
+      id: 'S002',
+      label: 'Programming',
+      description: 'CV cần có dẫn chứng về khả năng lập trình thực tế.',
+      evidenceExamples: ['Sản phẩm hoặc công cụ bạn đã xây dựng'],
+      sourceRefs: ['course:subject'],
+    },
+    {
+      id: 'S003',
+      label: 'Collaboration',
+      description: 'CV cần chứng minh bạn có thể làm việc cùng người khác.',
+      evidenceExamples: ['Vai trò cụ thể trong một nhóm'],
+      sourceRefs: ['university:best_for'],
+    },
+    {
+      id: 'S004',
+      label: 'Academic readiness',
+      description: 'CV cần thể hiện nền tảng học tập phù hợp.',
+      evidenceExamples: ['Môn học hoặc dự án học thuật liên quan'],
+      sourceRefs: ['course:entry_requirements_summary'],
+    },
+    {
+      id: 'S005',
+      label: 'Career direction',
+      description: 'CV cần kết nối trải nghiệm với định hướng nghề nghiệp.',
+      evidenceExamples: ['Trải nghiệm liên quan đến ngành dự định theo đuổi'],
+      sourceRefs: ['profile:career_interests'],
+    },
+  ],
   keywords: ['Problem solving', 'Programming', 'Collaboration'],
   confidence: 'low',
   limitations: [],
@@ -137,6 +174,33 @@ const targetProfile: CvTargetProfileV1 = {
 describe('CvBuilderWorkspace', () => {
   beforeEach(() => localStorage.clear());
   afterEach(() => vi.unstubAllGlobals());
+
+  it('shows target evidence requirements without scoring a CV that does not exist yet', async () => {
+    localStorage.setItem(
+      'glowbal:cv-builder:v1:user-1:app-1',
+      JSON.stringify({
+        schemaVersion: 'cv-builder-v1',
+        applicationId: 'app-1',
+        targetProfile,
+        form: prefill,
+        selectedTemplate: 'academic',
+      }),
+    );
+    render(
+      <CvBuilderWorkspace
+        applicationId="app-1"
+        userId="user-1"
+        universityName="Example University"
+        programmeName="Computer Science"
+        prefill={prefill}
+      />,
+    );
+
+    expect(await screen.findByRole('heading', { name: 'CV cần chứng minh' })).toBeVisible();
+    expect(screen.getAllByText('Problem solving')).toHaveLength(2);
+    expect(screen.queryByText(/đã có dẫn chứng/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/còn thiếu tín hiệu/i)).not.toBeInTheDocument();
+  });
 
   it('opens the content step and enforces five contributions per entry', async () => {
     render(
@@ -154,25 +218,76 @@ describe('CvBuilderWorkspace', () => {
     expect(screen.getAllByLabelText(/Contribution \d/)).toHaveLength(5);
   });
 
+  it('removes a skill group from the CV form', async () => {
+    render(
+      <CvBuilderWorkspace
+        applicationId="app-1"
+        userId="user-1"
+        universityName="Example University"
+        programmeName="Computer Science"
+        prefill={prefill}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /Nội dung/ }));
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Xóa nhóm kỹ năng 1' }),
+    );
+
+    expect(screen.queryByDisplayValue('Core skills')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: '+ Thêm nhóm kỹ năng' }),
+    ).toBeVisible();
+  });
+
   it('uses a Harvard paper, edits on click, and locks review until every answer is applied', async () => {
     const improvedCv: GeneratedCvV1 = {
       ...generatedCv,
+      projects: generatedCv.projects.map((project) => ({
+        ...project,
+        bullets: [
+          {
+            text: 'Built a robotics project used by 20 students.',
+            evidenceIds: ['K001'],
+          },
+        ],
+      })),
       assessment: { ...generatedCv.assessment, followUpQuestions: [] },
       layout: { templateId: 'academic', rationale: 'Harvard-style ATS layout.' },
     };
+    let resolveGenerate!: (response: Response) => void;
+    const generateResponse = new Promise<Response>((resolve) => {
+      resolveGenerate = resolve;
+    });
     vi.stubGlobal(
       'fetch',
-      vi.fn(async () =>
+      vi.fn(() => generateResponse),
+    );
+    const finishGenerate = () =>
+      resolveGenerate(
         new Response(
-          `${JSON.stringify({
-            type: 'complete',
-            generatedCv: improvedCv,
-            timing: { firstSectionMs: 10, totalMs: 20 },
-          })}\n`,
+          [
+            {
+              type: 'section',
+              section: 'about_me',
+              data: { text: improvedCv.aboutMe },
+            },
+            {
+              type: 'section',
+              section: 'projects',
+              data: { items: improvedCv.projects },
+            },
+            {
+              type: 'section',
+              section: 'assessment',
+              data: generatedCv.assessment,
+            },
+          ]
+            .map((event) => JSON.stringify(event))
+            .join('\n') + '\n',
           { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } },
         ),
-      ),
-    );
+      );
     localStorage.setItem(
       'glowbal:cv-builder:v1:user-1:app-1',
       JSON.stringify({
@@ -181,7 +296,7 @@ describe('CvBuilderWorkspace', () => {
         targetProfile,
         form: prefill,
         generatedCv,
-        selectedTemplate: 'technical',
+        selectedTemplate: 'academic',
       }),
     );
     render(
@@ -204,6 +319,33 @@ describe('CvBuilderWorkspace', () => {
     expect(screen.getByRole('article', { name: 'CV Harvard' })).toHaveClass(
       'cv-harvard',
     );
+    const harvardPaper = screen.getByRole('article', { name: 'CV Harvard' });
+    expect(harvardPaper.querySelector('.cv-harvard-header')).not.toBeNull();
+    expect(harvardPaper.querySelector('.cv-harvard-contact')).toHaveTextContent(
+      'alex@example.com | +84 90 123 4567 | Hanoi | alex.dev',
+    );
+    expect(
+      harvardPaper.querySelectorAll('.cv-harvard-entry-row').length,
+    ).toBeGreaterThan(0);
+    expect(
+      screen.getByRole('textbox', {
+        name: 'Chỉnh sửa tiêu đề University Projects',
+      }),
+    ).toHaveTextContent('University Projects');
+    const educationHeader = screen
+      .getByRole('textbox', { name: 'Chỉnh sửa tiêu đề Education' })
+      .closest('h2');
+    const educationSection = educationHeader?.closest('section');
+    const educationEntryHeader = educationSection?.querySelector('h3');
+    expect(getComputedStyle(educationHeader!)).toHaveProperty('fontWeight', '400');
+    expect(getComputedStyle(educationEntryHeader!)).toHaveProperty(
+      'fontWeight',
+      '400',
+    );
+    expect(getComputedStyle(educationSection!)).toHaveProperty(
+      'marginTop',
+      '12px',
+    );
     expect(
       screen.queryByRole('button', { name: 'Sửa trực tiếp trên CV' }),
     ).not.toBeInTheDocument();
@@ -220,7 +362,7 @@ describe('CvBuilderWorkspace', () => {
       'Chỉnh sửa trường học 1',
       'Chỉnh sửa ngành học 1',
       'Chỉnh sửa chi tiết học vấn 1.1',
-      'Chỉnh sửa tiêu đề Projects & Research',
+      'Chỉnh sửa tiêu đề University Projects',
       'Chỉnh sửa tiêu đề dự án 1',
       'Chỉnh sửa tổ chức dự án 1',
       'Chỉnh sửa thời gian dự án 1',
@@ -259,6 +401,7 @@ describe('CvBuilderWorkspace', () => {
     });
     expect(reviewButton).toBeDisabled();
     expect(submitButton).toBeDisabled();
+    expect(screen.getByText('Đã trả lời 0/2 câu')).toBeVisible();
 
     await userEvent.type(
       screen.getByLabelText('Dự án đã giúp được bao nhiêu người?'),
@@ -273,6 +416,16 @@ describe('CvBuilderWorkspace', () => {
     await userEvent.click(submitButton);
 
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+    expect(
+      JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body)),
+    ).toEqual(expect.objectContaining({ mode: 'clarification' }));
+    expect(
+      screen.getByRole('button', { name: 'AI đang cải thiện CV…' }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByText('AI đang chuẩn hóa và sắp xếp CV…'),
+    ).not.toBeInTheDocument();
+    finishGenerate();
     await waitFor(() =>
       expect(
         screen.queryByRole('heading', { name: 'AI cần bạn bổ sung' }),
@@ -281,5 +434,125 @@ describe('CvBuilderWorkspace', () => {
     await waitFor(() =>
       expect(screen.getByRole('button', { name: 'Chạy CV Review' })).toBeEnabled(),
     );
+    expect(screen.getByRole('article', { name: 'CV Harvard' })).toHaveTextContent(
+      '20 students',
+    );
+
+    vi.mocked(fetch).mockImplementationOnce(
+      () => new Promise<Response>(() => {}),
+    );
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Chạy CV Review' }),
+    );
+    expect(
+      screen.getByRole('button', { name: 'AI đang review…' }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByText('AI đang đọc và đánh giá CV…'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps clarification mode when retrying a missing revised section', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi
+        .fn()
+        .mockResolvedValueOnce(
+          new Response(
+            `${JSON.stringify({
+              type: 'error',
+              code: 'STREAM_FAILED',
+              missingSections: ['projects'],
+              message: 'CV generation incomplete.',
+              retryable: true,
+            })}\n`,
+            { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } },
+          ),
+        )
+        .mockImplementationOnce(() => new Promise<Response>(() => {})),
+    );
+    localStorage.setItem(
+      'glowbal:cv-builder:v1:user-1:app-1',
+      JSON.stringify({
+        schemaVersion: 'cv-builder-v1',
+        applicationId: 'app-1',
+        targetProfile,
+        form: prefill,
+        generatedCv,
+        selectedTemplate: 'academic',
+      }),
+    );
+    render(
+      <CvBuilderWorkspace
+        applicationId="app-1"
+        userId="user-1"
+        universityName="Example University"
+        programmeName="Computer Science"
+        prefill={prefill}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /Bản CV/ }));
+    await userEvent.type(
+      screen.getByLabelText('Dự án đã giúp được bao nhiêu người?'),
+      '20 học sinh.',
+    );
+    await userEvent.type(
+      screen.getByLabelText('Bạn đã tự làm phần nào trong dự án?'),
+      'Tôi thiết kế và lập trình bộ điều khiển.',
+    );
+    await userEvent.click(
+      screen.getByRole('button', {
+        name: 'Dùng câu trả lời để cải thiện CV',
+      }),
+    );
+    await userEvent.click(
+      await screen.findByRole('button', { name: 'Thử lại phần thiếu' }),
+    );
+
+    await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
+    expect(
+      JSON.parse(String(vi.mocked(fetch).mock.calls[1]?.[1]?.body)),
+    ).toEqual(expect.objectContaining({ mode: 'clarification' }));
+  });
+
+  it('offers only Harvard and AACC layouts and switches the CV preview', async () => {
+    localStorage.setItem(
+      'glowbal:cv-builder:v1:user-1:app-1',
+      JSON.stringify({
+        schemaVersion: 'cv-builder-v1',
+        applicationId: 'app-1',
+        targetProfile,
+        form: prefill,
+        generatedCv,
+        selectedTemplate: 'technical',
+      }),
+    );
+    render(
+      <CvBuilderWorkspace
+        applicationId="app-1"
+        userId="user-1"
+        universityName="Example University"
+        programmeName="Computer Science"
+        prefill={prefill}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /Bản CV/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Chọn layout/ }));
+
+    const harvard = screen.getByRole('button', { name: /Harvard/ });
+    const aacc = screen.getByRole('button', { name: /AACC/ });
+    expect(aacc).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.queryByRole('button', { name: /Leadership/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('article', { name: 'CV AACC' })).toHaveClass('cv-aacc');
+
+    await userEvent.click(harvard);
+    expect(screen.getByRole('article', { name: 'CV Harvard' })).toHaveClass(
+      'cv-harvard',
+    );
+
+    await userEvent.click(aacc);
+    expect(aacc).toHaveAttribute('aria-pressed', 'true');
   });
 });

@@ -73,6 +73,10 @@ export async function POST(
     return NextResponse.json({ error: 'Danh sách phần cần tạo không hợp lệ.' }, { status: 400 });
   }
 
+  if (payload?.mode !== undefined && payload.mode !== 'clarification') {
+    return NextResponse.json({ error: 'Invalid CV generation mode.' }, { status: 400 });
+  }
+
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
@@ -80,7 +84,10 @@ export async function POST(
       { status: 500 },
     );
   }
-  const model = process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro';
+  const model =
+    payload?.mode === 'clarification'
+      ? 'deepseek-v4-flash'
+      : process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro';
   const encoder = new TextEncoder();
   const encode = (event: CvBuilderStreamEvent) =>
     encoder.encode(`${JSON.stringify(event)}\n`);
@@ -97,6 +104,7 @@ export async function POST(
             apiKey,
             model,
             requestedSections,
+            clarification: payload?.mode === 'clarification',
             stream: streamDeepSeekText,
             signal: abortController.signal,
           })) {

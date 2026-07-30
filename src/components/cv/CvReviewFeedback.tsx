@@ -230,6 +230,270 @@ const CV_SECTION_TITLES: Record<string, string> = {
   interests: 'Sở thích',
 };
 
+const STRATEGIC_GRAPH_META = {
+  programme_alignment: { label: 'Đúng hướng', color: '#ec4899' },
+  story_positioning: { label: 'Dấu ấn cá nhân', color: '#8b5cf6' },
+  evidence_quality: { label: 'Dẫn chứng', color: '#0ea5e9' },
+  content_prioritization: { label: 'Ưu tiên nội dung', color: '#10b981' },
+  one_page_efficiency: { label: 'Gọn một trang', color: '#f59e0b' },
+} as const;
+
+function scoreStatus(score: number) {
+  if (score >= 8) return { label: 'Tốt', className: 'text-emerald-700' };
+  if (score >= 6) return { label: 'Khá', className: 'text-amber-700' };
+  return { label: 'Cần sửa', className: 'text-rose-700' };
+}
+
+function ScoreRing({
+  label,
+  score,
+  color,
+  large = false,
+}: {
+  label: string;
+  score: number;
+  color: string;
+  large?: boolean;
+}) {
+  const value = Math.max(0, Math.min(10, score));
+  const status = scoreStatus(value);
+  const size = large ? 'h-28 w-28' : 'h-20 w-20';
+  const inset = large ? 'inset-[9px]' : 'inset-[7px]';
+
+  return (
+    <div
+      className="flex min-w-0 flex-col items-center text-center"
+      role="img"
+      aria-label={`${label}: ${value}/10, ${status.label}`}
+    >
+      <div
+        className={`relative grid shrink-0 place-items-center rounded-full ${size}`}
+        style={{
+          background: `conic-gradient(${color} ${value * 10}%, #eef2f7 0)`,
+        }}
+      >
+        <span className={`absolute rounded-full bg-white ${inset}`} aria-hidden />
+        <span
+          className={`relative font-semibold text-slate-950 ${large ? 'text-3xl' : 'text-xl'}`}
+        >
+          {value}
+        </span>
+      </div>
+      <p className="mt-2 text-xs font-semibold text-slate-800">{label}</p>
+      <p className={`mt-0.5 text-[11px] font-medium ${status.className}`}>
+        {status.label}
+      </p>
+    </div>
+  );
+}
+
+function CvScoreDashboard({
+  strategic,
+  cvSections,
+  overallScore,
+}: {
+  strategic: Array<
+    Extract<CvReviewSectionEvent, { section: 'strategic' }>
+  >;
+  cvSections: Array<
+    Extract<CvReviewSectionEvent, { section: 'cv_section' }>
+  >;
+  overallScore?: number;
+}) {
+  if (!strategic.length) return null;
+
+  const currentOverall =
+    overallScore ??
+    Math.round(
+      (strategic.reduce((total, event) => total + event.data.score, 0) /
+        strategic.length) *
+        10,
+    ) /
+      10;
+
+  return (
+    <section
+      className="rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 shadow-sm md:p-6"
+      data-testid="cv-score-dashboard"
+      aria-labelledby="cv-score-dashboard-title"
+    >
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-600">
+            Bản đồ điểm CV
+          </p>
+          <h3
+            id="cv-score-dashboard-title"
+            className="mt-1 text-lg font-semibold text-slate-950"
+          >
+            Điểm mạnh và phần cần ưu tiên
+          </h3>
+        </div>
+        <div className="flex gap-4 text-[11px] font-medium text-slate-500">
+          <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />8–10 Tốt</span>
+          <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />6–7 Khá</span>
+          <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-rose-500" />Dưới 6</span>
+        </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[150px_1fr] xl:items-center">
+        <div className="rounded-3xl border border-pink-100 bg-white p-5">
+          <ScoreRing
+            label="Điểm tổng"
+            score={currentOverall}
+            color="#ec4899"
+            large
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-5 rounded-3xl border border-slate-200 bg-white p-5 sm:grid-cols-3 lg:grid-cols-5">
+          {strategic.map((event) => {
+            const meta = STRATEGIC_GRAPH_META[event.criterion];
+            return (
+              <ScoreRing
+                key={event.criterion}
+                label={meta.label}
+                score={event.data.score}
+                color={meta.color}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {cvSections.length ? (
+        <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
+          <div className="mb-4 flex items-center justify-between gap-3">
+            <h4 className="text-sm font-semibold text-slate-950">
+              Chất lượng từng phần
+            </h4>
+            <span className="text-xs text-slate-500">Thang điểm 10</span>
+          </div>
+          <div className="grid gap-x-8 gap-y-4 md:grid-cols-2">
+            {cvSections.map((event) => {
+              const status = scoreStatus(event.data.score);
+              return (
+                <div key={event.sectionKey}>
+                  <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
+                    <span className="font-medium text-slate-700">
+                      {CV_SECTION_TITLES[event.sectionKey] ?? 'Phần CV khác'}
+                    </span>
+                    <span className={`font-semibold ${status.className}`}>
+                      {event.data.score}/10
+                    </span>
+                  </div>
+                  <div
+                    className="h-2.5 overflow-hidden rounded-full bg-slate-100"
+                    role="img"
+                    aria-label={`${CV_SECTION_TITLES[event.sectionKey] ?? 'Phần CV khác'}: ${event.data.score}/10`}
+                  >
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-pink-500 to-fuchsia-500 transition-[width] duration-500"
+                      style={{ width: `${Math.max(0, Math.min(10, event.data.score)) * 10}%` }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+const STRONG_CV_TARGET = 8;
+
+function CvReadinessGap({
+  strategic,
+}: {
+  strategic: Array<
+    Extract<CvReviewSectionEvent, { section: 'strategic' }>
+  >;
+}) {
+  if (!strategic.length) return null;
+
+  return (
+    <section
+      className="overflow-hidden rounded-[28px] border border-slate-200 bg-white shadow-sm"
+      data-testid="cv-readiness-gap"
+      aria-labelledby="cv-readiness-gap-title"
+    >
+      <div className="border-b border-slate-200 bg-gradient-to-r from-pink-50 via-white to-violet-50 px-5 py-4 md:px-6">
+        <div className="flex flex-wrap items-end justify-between gap-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-600">
+              Khoảng cách điểm
+            </p>
+            <h3
+              id="cv-readiness-gap-title"
+              className="mt-1 text-lg font-semibold text-slate-950"
+            >
+              Còn cách một CV mạnh bao xa?
+            </h3>
+          </div>
+          <div className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600">
+            Vạch đen = mốc tốt {STRONG_CV_TARGET}/10
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-x-8 gap-y-5 p-5 md:grid-cols-2 md:p-6">
+        {strategic.map((event) => {
+          const meta = STRATEGIC_GRAPH_META[event.criterion];
+          const value = Math.max(0, Math.min(10, event.data.score));
+          const gap = Math.max(0, STRONG_CV_TARGET - value);
+          const gapText = gap
+            ? `Còn thiếu ${gap.toFixed(1).replace(/\.0$/, '')} điểm`
+            : 'Đã đạt mốc tốt';
+          return (
+            <div
+              key={event.criterion}
+              role="img"
+              aria-label={`${meta.label}: hiện tại ${value}/10, mục tiêu ${STRONG_CV_TARGET}/10, ${
+                gap
+                  ? `còn thiếu ${gap.toFixed(1).replace(/\.0$/, '')} điểm`
+                  : 'đã đạt mục tiêu'
+              }`}
+            >
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="text-sm font-semibold text-slate-800">
+                  {meta.label}
+                </span>
+                <span
+                  className={`text-xs font-semibold ${
+                    gap ? 'text-rose-600' : 'text-emerald-700'
+                  }`}
+                >
+                  {gapText}
+                </span>
+              </div>
+              <div className="relative h-4 overflow-visible rounded-full bg-slate-100">
+                <div
+                  className="h-full rounded-full transition-[width] duration-500"
+                  style={{
+                    width: `${value * 10}%`,
+                    backgroundColor: meta.color,
+                  }}
+                />
+                <span
+                  className="absolute -top-1 h-6 w-0.5 rounded-full bg-slate-950"
+                  style={{ left: `${STRONG_CV_TARGET * 10}%` }}
+                  aria-hidden
+                />
+              </div>
+              <div className="mt-1 flex justify-between text-[10px] font-medium text-slate-400">
+                <span>0</span>
+                <span>{value}/10 hiện tại</span>
+                <span>10</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export function CvReviewFeedback({
   events,
   analysis,
@@ -323,6 +587,14 @@ export function CvReviewFeedback({
             </p>
           </div>
         </header>
+
+        <CvScoreDashboard
+          strategic={strategic}
+          cvSections={cvSections}
+          overallScore={analysis?.overallScore}
+        />
+
+        <CvReadinessGap strategic={strategic} />
 
         {summary && visibleBlocks > 0 ? (
           <ProgressiveBlock

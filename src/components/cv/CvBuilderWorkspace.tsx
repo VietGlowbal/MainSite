@@ -49,7 +49,7 @@ type AnyStreamEvent =
       timing: { totalMs: number };
     };
 
-const steps = ['Target Profile', 'Nội dung', 'Bản CV', 'Harvard & PDF'];
+const steps = ['Target Profile', 'Nội dung', 'Bản CV', 'Layout & PDF'];
 const inputClass =
   'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-50';
 
@@ -169,6 +169,31 @@ function TargetProfile({
           </span>
         ))}
       </div>
+      <section className="mt-6 rounded-2xl border border-pink-200 bg-pink-50/40 p-5">
+        <h2 className="text-lg font-semibold text-slate-950">CV cần chứng minh</h2>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          Đây là rubric mục tiêu, chưa phải đánh giá CV của bạn. Độ phủ chỉ được kiểm tra sau khi bạn nhập trải nghiệm.
+        </p>
+        <ol className="mt-4 grid gap-3 sm:grid-cols-2">
+          {profile.evidenceSignals.map((signal, index) => (
+            <li key={signal.id} className="rounded-xl border border-pink-100 bg-white p-4">
+              <div className="flex items-start gap-3">
+                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-pink-500 text-xs font-bold text-white">
+                  {index + 1}
+                </span>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-950">{signal.label}</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">{signal.description}</p>
+                  <p className="mt-2 text-[11px] leading-4 text-pink-700">
+                    Ví dụ dẫn chứng: {signal.evidenceExamples.join(' · ')}
+                  </p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+      <h2 className="mt-7 text-sm font-semibold text-slate-950">Căn cứ xây rubric</h2>
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
         {insights.map(([label, insight]) => (
           <article key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
@@ -513,6 +538,23 @@ function FormEditor({
           <SectionTitle number="05">Skills</SectionTitle>
           {form.skillGroups.map((group, index) => (
             <div key={group.id} className="mb-3 rounded-2xl border border-slate-200 p-4">
+              <div className="mb-3 flex justify-end">
+                <button
+                  type="button"
+                  aria-label={`Xóa nhóm kỹ năng ${index + 1}`}
+                  className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
+                  onClick={() =>
+                    setForm((current) => ({
+                      ...current,
+                      skillGroups: current.skillGroups.filter(
+                        (item) => item.id !== group.id,
+                      ),
+                    }))
+                  }
+                >
+                  Xóa nhóm
+                </button>
+              </div>
               <Field
                 label="Nhóm"
                 value={group.label}
@@ -569,12 +611,14 @@ function FormEditor({
 function CvPaper({
   form,
   cv,
+  template,
   typing = false,
   onFormChange,
   onCvChange,
 }: {
   form: CvBuilderFormV1;
   cv: GeneratedCvV1;
+  template: CvTemplateId;
   typing?: boolean;
   onFormChange?: (form: CvBuilderFormV1) => void;
   onCvChange?: (cv: GeneratedCvV1) => void;
@@ -640,25 +684,10 @@ function CvPaper({
         <h2>{editSectionTitle(section, title, `Chỉnh sửa tiêu đề ${title}`)}</h2>
         {items.map((item, itemIndex) => (
           <article key={item.sourceId}>
-            <h3>
-              {editable
-                ? inlineEditor(
-                    item.title,
-                    `Chỉnh sửa tiêu đề ${itemLabel} ${itemIndex + 1}`,
-                    (value) =>
-                      onCvChange?.({
-                        ...cv,
-                        [section]: cv[section].map((entry, index) =>
-                          index === itemIndex ? { ...entry, title: value } : entry,
-                        ),
-                      }),
-                    true,
-                  )
-                : item.title}
-              {item.organization ? (
-                <>
-                  {' · '}
-                  {editable
+            <div className="cv-harvard-entry-row cv-harvard-entry-row--primary">
+              <h3>
+                {item.organization
+                  ? editable
                     ? inlineEditor(
                         item.organization,
                         `Chỉnh sửa tổ chức ${itemLabel} ${itemIndex + 1}`,
@@ -673,11 +702,45 @@ function CvPaper({
                           }),
                         true,
                       )
-                    : item.organization}
-                </>
-              ) : null}
-            </h3>
-            {item.dates && (
+                    : item.organization
+                  : editable
+                    ? inlineEditor(
+                        item.title,
+                        `Chỉnh sửa tiêu đề ${itemLabel} ${itemIndex + 1}`,
+                        (value) =>
+                          onCvChange?.({
+                            ...cv,
+                            [section]: cv[section].map((entry, index) =>
+                              index === itemIndex ? { ...entry, title: value } : entry,
+                            ),
+                          }),
+                        true,
+                      )
+                    : item.title}
+              </h3>
+            </div>
+            <div className="cv-harvard-entry-row cv-harvard-entry-row--secondary">
+              {item.organization ? (
+                <em>
+                  {editable
+                    ? inlineEditor(
+                        item.title,
+                        `Chỉnh sửa tiêu đề ${itemLabel} ${itemIndex + 1}`,
+                        (value) =>
+                          onCvChange?.({
+                            ...cv,
+                            [section]: cv[section].map((entry, index) =>
+                              index === itemIndex ? { ...entry, title: value } : entry,
+                            ),
+                          }),
+                        true,
+                      )
+                    : item.title}
+                </em>
+              ) : (
+                <span />
+              )}
+              {item.dates && (
               <time>
                 {editable
                   ? inlineEditor(
@@ -694,7 +757,8 @@ function CvPaper({
                     )
                   : item.dates}
               </time>
-            )}
+              )}
+            </div>
             <ul>
               {item.bullets.map((bullet, index) => (
                 <li key={`${item.sourceId}-${index}`}>
@@ -736,10 +800,10 @@ function CvPaper({
   return (
     <article
       id="cv-print-area"
-      aria-label="CV Harvard"
-      className="cv-paper cv-harvard"
+      aria-label={template === 'academic' ? 'CV Harvard' : 'CV AACC'}
+      className={`cv-paper ${template === 'academic' ? 'cv-harvard' : 'cv-aacc'}`}
     >
-      <header>
+      <header className="cv-harvard-header">
         <h1>
           {editable
             ? inlineEditor(
@@ -754,7 +818,7 @@ function CvPaper({
               )
             : form.personal.fullName}
         </h1>
-        <p>
+        <p className="cv-harvard-contact">
           {(
             [
               ['email', form.personal.email, 'Chỉnh sửa email'],
@@ -770,7 +834,7 @@ function CvPaper({
             .filter(([, value]) => value)
             .map(([key, value, label], index) => (
               <span key={key}>
-                {index ? ' · ' : ''}
+                {index ? ' | ' : ''}
                 {editable
                   ? inlineEditor(
                       value ?? '',
@@ -815,24 +879,8 @@ function CvPaper({
           </h2>
           {cv.education.map((item, itemIndex) => (
             <article key={item.sourceId}>
-              <h3>
-                {editable
-                  ? inlineEditor(
-                      item.qualification,
-                      `Chỉnh sửa bằng cấp ${itemIndex + 1}`,
-                      (value) =>
-                        onCvChange?.({
-                          ...cv,
-                          education: cv.education.map((entry, index) =>
-                            index === itemIndex
-                              ? { ...entry, qualification: value }
-                              : entry,
-                          ),
-                        }),
-                      true,
-                    )
-                  : item.qualification}
-                {' · '}
+              <div className="cv-harvard-entry-row cv-harvard-entry-row--primary">
+                <h3>
                 {editable
                   ? inlineEditor(
                       item.institution,
@@ -849,25 +897,48 @@ function CvPaper({
                       true,
                     )
                   : item.institution}
-              </h3>
-              {item.dates && (
-                <time>
+                </h3>
+              </div>
+              <div className="cv-harvard-entry-row cv-harvard-entry-row--secondary">
+                <em>
                   {editable
                     ? inlineEditor(
-                        item.dates,
-                        `Chỉnh sửa thời gian học ${itemIndex + 1}`,
+                        item.qualification,
+                        `Chỉnh sửa bằng cấp ${itemIndex + 1}`,
                         (value) =>
                           onCvChange?.({
                             ...cv,
                             education: cv.education.map((entry, index) =>
-                              index === itemIndex ? { ...entry, dates: value } : entry,
+                              index === itemIndex
+                                ? { ...entry, qualification: value }
+                                : entry,
                             ),
                           }),
                         true,
                       )
-                    : item.dates}
-                </time>
-              )}
+                    : item.qualification}
+                </em>
+                {item.dates && (
+                  <time>
+                    {editable
+                      ? inlineEditor(
+                          item.dates,
+                          `Chỉnh sửa thời gian học ${itemIndex + 1}`,
+                          (value) =>
+                            onCvChange?.({
+                              ...cv,
+                              education: cv.education.map((entry, index) =>
+                                index === itemIndex
+                                  ? { ...entry, dates: value }
+                                  : entry,
+                              ),
+                            }),
+                          true,
+                        )
+                      : item.dates}
+                  </time>
+                )}
+              </div>
               {item.fieldOfStudy && (
                 <p>
                   {editable
@@ -919,8 +990,8 @@ function CvPaper({
           ))}
         </section>
       )}
-      {entrySection('experience', 'Experience', cv.experience)}
-      {entrySection('projects', 'Projects & Research', cv.projects)}
+      {entrySection('experience', 'Work Experience', cv.experience)}
+      {entrySection('projects', 'University Projects', cv.projects)}
       {entrySection('activities', 'Activities', cv.activities)}
       {cv.awards.length > 0 && (
         <section>
@@ -1038,7 +1109,7 @@ export function CvBuilderWorkspace({
   const [targetProfile, setTargetProfile] = useState<CvTargetProfileV1 | null>(null);
   const [generatedCv, setGeneratedCv] = useState<GeneratedCvV1 | null>(null);
   const [partial, setPartial] = useState<CvBuilderModelEvent[]>([]);
-  const template: CvTemplateId = 'academic';
+  const [template, setTemplate] = useState<CvTemplateId>('academic');
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [missingSections, setMissingSections] = useState<CvBuilderModelEvent['section'][]>([]);
@@ -1050,6 +1121,7 @@ export function CvBuilderWorkspace({
     Record<string, string>
   >({});
   const controllers = useRef<AbortController[]>([]);
+  const retryClarification = useRef(false);
   const previewRef = useRef<HTMLDivElement>(null);
   const reviewRef = useRef<HTMLDivElement>(null);
   const [tooLong, setTooLong] = useState(false);
@@ -1065,6 +1137,7 @@ export function CvBuilderWorkspace({
       setForm(restored.form);
       setTargetProfile(restored.targetProfile ?? null);
       setGeneratedCv(restored.generatedCv ?? null);
+      setTemplate(restored.selectedTemplate === 'technical' ? 'technical' : 'academic');
     }
     setHydrated(true);
     return () => controllers.current.forEach((controller) => controller.abort());
@@ -1093,7 +1166,7 @@ export function CvBuilderWorkspace({
   useEffect(() => {
     if (!generatedCv || !previewRef.current) return;
     setTooLong(previewRef.current.scrollHeight > 2246);
-  }, [generatedCv]);
+  }, [generatedCv, template]);
 
   const startRequest = () => {
     controllers.current.forEach((controller) => controller.abort());
@@ -1138,6 +1211,7 @@ export function CvBuilderWorkspace({
   const generate = async (
     requestedSections?: CvBuilderModelEvent['section'][],
     formOverride = form,
+    clarificationRound = false,
   ) => {
     if (!targetProfile) return setError('Hãy tạo Target Profile trước.');
     const validatedForm = CvBuilderFormSchema.safeParse(formOverride);
@@ -1173,15 +1247,23 @@ export function CvBuilderWorkspace({
           targetProfile,
           form: validatedForm.data,
           requestedSections,
+          mode: clarificationRound ? 'clarification' : undefined,
         }),
         signal: controller.signal,
       });
       if (!response.ok) throw new Error((await response.json()).error ?? 'Không thể tạo CV.');
       const received: CvBuilderModelEvent[] = [];
       let receivedComplete = false;
+      let rebuiltComplete = false;
       await readNdjson(response, (event) => {
         if (event.type === 'section') {
-          const sectionEvent = { section: event.section, data: event.data } as CvBuilderModelEvent;
+          const sectionEvent = {
+            section: event.section,
+            data:
+              clarificationRound && event.section === 'assessment'
+                ? { ...event.data, followUpQuestions: [] }
+                : event.data,
+          } as CvBuilderModelEvent;
           received.push(sectionEvent);
           setPartial((current) => [
             ...current.filter((item) => item.section !== sectionEvent.section),
@@ -1193,21 +1275,38 @@ export function CvBuilderWorkspace({
           if (
             cvBuilderExpectedSections(validatedForm.data).every((section) =>
               merged.has(section),
-            )
+            ) &&
+            (!requestedSections?.length ||
+              requestedSections.every((section) =>
+                received.some((item) => item.section === section),
+              ))
           ) {
             const complete = assembleGeneratedCv(validatedForm.data, merged.values());
             setGeneratedCv(complete);
+            rebuiltComplete = true;
             setStatus('');
             setBusy(false);
           }
         } else if (event.type === 'complete' && 'generatedCv' in event) {
           receivedComplete = true;
-          setGeneratedCv(event.generatedCv);
+          setGeneratedCv(
+            clarificationRound
+              ? {
+                  ...event.generatedCv,
+                  assessment: {
+                    ...event.generatedCv.assessment,
+                    followUpQuestions: [],
+                  },
+                }
+              : event.generatedCv,
+          );
+          rebuiltComplete = true;
           setStatus('');
         } else if (event.type === 'error') {
           setError(event.message);
           if ('missingSections' in event) {
             setMissingSections(event.missingSections as CvBuilderModelEvent['section'][]);
+            retryClarification.current = clarificationRound;
           }
         }
       });
@@ -1216,11 +1315,21 @@ export function CvBuilderWorkspace({
           [...acceptedBefore, ...received].map((event) => [event.section, event]),
         );
         const expected = cvBuilderExpectedSections(validatedForm.data);
-        if (expected.every((section) => merged.has(section))) {
+        if (
+          expected.every((section) => merged.has(section)) &&
+          requestedSections.every((section) =>
+            received.some((item) => item.section === section),
+          )
+        ) {
           const complete = assembleGeneratedCv(validatedForm.data, merged.values());
           setGeneratedCv(complete);
+          rebuiltComplete = true;
           setStatus('');
         }
+      }
+      if (rebuiltComplete) {
+        retryClarification.current = false;
+        if (clarificationRound) setClarificationAnswers({});
       }
     } catch (reason) {
       if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Không thể tạo CV.');
@@ -1297,8 +1406,7 @@ export function CvBuilderWorkspace({
       clarificationAnswers,
     );
     setForm(applied.form);
-    setClarificationAnswers({});
-    void generate(applied.sections, applied.form);
+    void generate(applied.sections, applied.form, true);
   };
 
   const partialSummary = useMemo(
@@ -1317,24 +1425,43 @@ export function CvBuilderWorkspace({
   );
   const followUpQuestions = generatedCv?.assessment.followUpQuestions ?? [];
   const clarificationRequired = followUpQuestions.length > 0;
+  const answeredClarificationCount = followUpQuestions.filter(({ id }) =>
+    clarificationAnswers[id]?.trim(),
+  ).length;
   const allClarificationsAnswered =
     clarificationRequired &&
-    followUpQuestions.every(({ id }) => clarificationAnswers[id]?.trim());
+    answeredClarificationCount === followUpQuestions.length;
+  const improvingCv = busy && status.includes('chuẩn hóa và sắp xếp CV');
+  const reviewingCv = busy && status.includes('đánh giá CV');
 
   return (
     <main className="cv-builder-shell min-h-screen bg-[#f6f4f1] text-slate-950 print:bg-white">
       <style jsx global>{`
         @page { size: A4; margin: 11mm; }
-        .cv-paper { width: 210mm; min-height: 297mm; background: white; padding: 17mm 18mm; color: #111827; font-family: Arial, Helvetica, sans-serif; font-size: 10.5pt; line-height: 1.3; box-shadow: 0 18px 55px rgba(15,23,42,.12); }
-        .cv-paper header { border-bottom: 1.5px solid #111827; padding-bottom: 7px; margin-bottom: 10px; }
-        .cv-paper h1 { font-size: 25pt; letter-spacing: -.035em; font-weight: 800; }
-        .cv-paper header p, .cv-paper time { color: #475569; font-size: 9pt; }
-        .cv-paper section { margin-top: 9px; break-inside: avoid; }
-        .cv-paper h2 { margin-bottom: 4px; color: #111827; font-size: 8.5pt; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
-        .cv-paper h3 { font-weight: 750; }
-        .cv-paper article { margin-bottom: 6px; break-inside: avoid; }
-        .cv-paper ul { margin: 2px 0 0 15px; list-style: disc; }
-        .cv-paper li { margin-top: 1px; }
+        .cv-paper { width: 210mm; min-height: 297mm; background: white; padding: 13mm 17mm; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 9.4pt; line-height: 1.18; box-shadow: 0 18px 55px rgba(15,23,42,.12); }
+        .cv-harvard-header { margin-bottom: 7px; text-align: center; }
+        .cv-paper h1 { font-size: 17pt; line-height: 1; font-weight: 800; text-transform: uppercase; }
+        .cv-harvard-contact { margin-top: 3px; color: #111; font-size: 8.3pt; white-space: nowrap; }
+        .cv-paper section { margin-top: 12px; }
+        .cv-paper h2 { margin-bottom: 5px; border-bottom: 1px solid #111; color: #111; font-size: 9pt; line-height: 1.15; font-weight: 400; letter-spacing: 0; text-transform: uppercase; }
+        .cv-paper h3 { font-size: 9.4pt; font-weight: 400; text-transform: uppercase; }
+        .cv-paper article { margin-bottom: 8px; break-inside: avoid; }
+        .cv-paper p { margin: 0; }
+        .cv-harvard-entry-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+        .cv-harvard-entry-row > :first-child { min-width: 0; }
+        .cv-harvard-entry-row > :last-child { flex: none; text-align: right; }
+        .cv-harvard-entry-row--secondary { font-style: italic; }
+        .cv-paper time { color: #111; font-size: 9pt; font-weight: 600; white-space: nowrap; }
+        .cv-paper ul { margin: 0 0 0 14px; list-style: disc; }
+        .cv-paper li { margin: 0; padding-left: 1px; }
+        .cv-aacc { padding: 16mm 18mm; color: #172033; font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.35; border-top: 7px solid #ec4899; }
+        .cv-aacc .cv-harvard-header { margin-bottom: 12px; border-bottom: 2px solid #ec4899; padding-bottom: 10px; text-align: left; }
+        .cv-aacc h1 { color: #0f172a; font-size: 24pt; text-transform: none; }
+        .cv-aacc .cv-harvard-contact { color: #64748b; font-size: 9pt; }
+        .cv-aacc section { margin-top: 15px; }
+        .cv-aacc h2 { border-bottom-color: #fbcfe8; color: #db2777; font-weight: 700; letter-spacing: .12em; }
+        .cv-aacc h3 { color: #0f172a; font-weight: 700; text-transform: none; }
+        .cv-aacc .cv-harvard-entry-row--secondary, .cv-aacc time { color: #64748b; }
         .cv-inline-editor { display: block; min-width: 4rem; border-radius: 3px; outline: none; transition: background-color .15s, box-shadow .15s; }
         .cv-inline-editor--inline { display: inline-block; min-width: 1rem; }
         .cv-inline-editor:hover { background: #fff7fb; box-shadow: 0 0 0 2px #fbcfe8; }
@@ -1394,7 +1521,9 @@ export function CvBuilderWorkspace({
                 <button
                   className="ml-4 rounded-full border border-red-300 px-3 py-1.5 font-bold"
                   disabled={busy}
-                  onClick={() => generate(missingSections)}
+                  onClick={() =>
+                    generate(missingSections, form, retryClarification.current)
+                  }
                 >
                   Thử lại phần thiếu
                 </button>
@@ -1477,8 +1606,8 @@ export function CvBuilderWorkspace({
               {generatedCv && (
                 <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
                   <aside className="rounded-3xl border border-slate-200 bg-white p-6">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-pink-600">AI Assessment</p>
-                    <h2 className="mt-3 text-2xl font-semibold">Ba điểm mạnh</h2>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-pink-600">Độ phủ dẫn chứng</p>
+                    <h2 className="mt-3 text-2xl font-semibold">3 tín hiệu đã thể hiện tốt</h2>
                     <ol className="mt-5 space-y-3">
                       {generatedCv.assessment.strengths.map((strength, index) => (
                         <li key={strength} className="flex gap-3 text-sm leading-6">
@@ -1525,16 +1654,22 @@ export function CvBuilderWorkspace({
                             </label>
                           ))}
                         </div>
+                        <p className="mt-3 text-xs font-semibold text-slate-500">
+                          Đã trả lời {answeredClarificationCount}/{followUpQuestions.length} câu
+                        </p>
                         <button
                           type="button"
                           className="mt-4 w-full rounded-full bg-pink-500 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+                          aria-busy={improvingCv}
                           disabled={
                             busy ||
                             !allClarificationsAnswered
                           }
                           onClick={applyClarifications}
                         >
-                          Dùng câu trả lời để cải thiện CV
+                          {improvingCv
+                            ? 'AI đang cải thiện CV…'
+                            : 'Dùng câu trả lời để cải thiện CV'}
                         </button>
                       </section>
                     )}
@@ -1546,18 +1681,11 @@ export function CvBuilderWorkspace({
                       disabled={busy || clarificationRequired}
                       onClick={reviewCv}
                     >
-                      {busy ? 'AI đang review…' : 'Chạy CV Review'}
+                      {reviewingCv ? 'AI đang review…' : 'Chạy CV Review'}
                     </button>
                     {clarificationRequired && (
                       <p className="mt-2 text-xs leading-5 text-amber-700">
                         Hãy trả lời đủ các câu hỏi và tạo lại CV trước khi chạy Review.
-                      </p>
-                    )}
-                    {(status.includes('đánh giá CV') || reviewEvents.length > 0) && (
-                      <p className="mt-3 rounded-xl bg-pink-50 px-3 py-2 text-xs font-semibold text-pink-700">
-                        {reviewEvents.length
-                          ? `Đã nhận ${reviewEvents.length} phần nhận xét — xem ngay bên dưới.`
-                          : 'AI đang đọc và đánh giá CV…'}
                       </p>
                     )}
                     <button className="mt-3 w-full rounded-full border border-pink-300 bg-pink-50 px-4 py-3 text-sm font-bold text-pink-700" onClick={() => setStep(3)}>
@@ -1569,6 +1697,7 @@ export function CvBuilderWorkspace({
                       <CvPaper
                         form={form}
                         cv={generatedCv}
+                        template={template}
                         onFormChange={editForm}
                         onCvChange={editGenerated}
                       />
@@ -1591,11 +1720,30 @@ export function CvBuilderWorkspace({
             <section className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)] print:block">
               <aside className="rounded-3xl border border-slate-200 bg-white p-5 print:hidden">
                 <p className="text-xs font-bold uppercase tracking-[0.2em] text-pink-600">Layout</p>
-                <div className="mt-5 rounded-2xl border border-pink-400 bg-pink-50 p-4">
-                  <strong className="block">Harvard-style CV</strong>
-                  <span className="mt-1 block text-xs leading-5 text-slate-500">
-                    Bố cục đen trắng, một cột, dễ đọc và thân thiện với ATS.
-                  </span>
+                <div className="mt-5 space-y-3">
+                  {(
+                    [
+                      ['academic', 'Harvard', 'Đen trắng, một cột, tối ưu ATS.'],
+                      ['technical', 'AACC', 'Light hồng–slate, nhấn mạnh dấu ấn cá nhân.'],
+                    ] as const
+                  ).map(([id, name, description]) => (
+                    <button
+                      key={id}
+                      type="button"
+                      aria-pressed={template === id}
+                      className={`w-full rounded-2xl border p-4 text-left transition ${
+                        template === id
+                          ? 'border-pink-400 bg-pink-50'
+                          : 'border-slate-200 bg-white hover:border-pink-200'
+                      }`}
+                      onClick={() => setTemplate(id)}
+                    >
+                      <strong className="block">{name}</strong>
+                      <span className="mt-1 block text-xs leading-5 text-slate-500">
+                        {description}
+                      </span>
+                    </button>
+                  ))}
                 </div>
                 <p className="mt-5 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
                   AI đề xuất: {generatedCv.layout.rationale}
@@ -1617,6 +1765,7 @@ export function CvBuilderWorkspace({
                   <CvPaper
                     form={form}
                     cv={generatedCv}
+                    template={template}
                     onFormChange={editForm}
                     onCvChange={editGenerated}
                   />

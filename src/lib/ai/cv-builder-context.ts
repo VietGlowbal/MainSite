@@ -13,6 +13,7 @@ type ContextInput = {
     programmeName: string;
     universityId?: number;
     courseId?: string;
+    courseUrl?: string;
     degreeLevel?: string;
     subject?: string;
   };
@@ -38,6 +39,12 @@ export type CvBuilderContextData = {
 
 const SOURCE_FIELDS = {
   university: [
+    'name',
+    'country',
+    'type',
+    'qs_rank',
+    'the_rank',
+    'national_rank',
     'strengths',
     'specific_insight',
     'teaching_style',
@@ -45,13 +52,21 @@ const SOURCE_FIELDS = {
     'industry_connections',
     'employability',
     'best_for',
+    'admission_difficulty',
+    'accept_rate',
     'notes',
   ],
   course: [
+    'course_name',
+    'course_url',
     'subject',
     'degree_level',
+    'study_mode',
+    'duration',
+    'intake',
     'entry_requirements_summary',
     'english_requirements_summary',
+    'application_method',
     'search_keywords',
     'university_metadata',
     'entry_requirements',
@@ -69,6 +84,7 @@ const SOURCE_FIELDS = {
 
 function text(value: unknown) {
   if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   if (Array.isArray(value)) return value.filter(Boolean).join(', ');
   if (value && typeof value === 'object' && Object.keys(value).length) {
     return JSON.stringify(value);
@@ -102,9 +118,12 @@ export function buildCvBuilderContextData(input: ContextInput): CvBuilderContext
     ...sources('profile', input.profile),
   ];
   const courseSourceCount = sourceEntries.filter(({ ref }) => ref.startsWith('course:')).length;
-  const confidence = hasProgrammeDepth(input.course)
+  const courseStatus = text(input.course?.extraction_status).toLowerCase();
+  const courseReviewed = !courseStatus || courseStatus === 'extracted';
+  const hasCourseRecord = Boolean(text(input.course?.id));
+  const confidence = courseReviewed && hasProgrammeDepth(input.course)
     ? 'high'
-    : input.application.courseId && courseSourceCount >= 2
+    : courseReviewed && hasCourseRecord && courseSourceCount >= 2
       ? 'medium'
       : 'low';
   const limitations = [
@@ -114,6 +133,9 @@ export function buildCvBuilderContextData(input: ContextInput): CvBuilderContext
     ...(courseSourceCount
       ? []
       : ['Programme-specific data is limited to the application name and subject.']),
+    ...(courseStatus === 'needs_review'
+      ? ['The programme record is awaiting review; only explicit fields are used.']
+      : []),
   ];
   const profile = input.profile ?? {};
   const education =
@@ -207,41 +229,93 @@ export async function loadCvBuilderContext(
   const supabase = await createClient();
   const { application } = workspace;
 
-  const universityQuery = supabase
-    .from('universities')
+  const profilePromise = supabase
+    .from('student_profiles')
     .select(
-      'strengths,specific_insight,teaching_style,international_environment,industry_connections,employability,best_for,notes',
-    );
-  const universityPromise = application.universityId
-    ? universityQuery.eq('id', application.universityId).maybeSingle()
-    : universityQuery.ilike('name', application.universityName).limit(1).maybeSingle();
-  const coursePromise = application.courseId
-    ? supabase
-        .from('courses')
-        .select(
-          'subject,degree_level,entry_requirements_summary,english_requirements_summary,search_keywords,university_metadata,entry_requirements',
-        )
-        .eq('id', application.courseId)
-        .maybeSingle()
-    : Promise.resolve({ data: null });
+      'phone,location,current_institution,current_qualification,target_subjects,graduation_year,academic_background,predicted_grades,goals,career_interests,achievements,skills,profile_summary,bio',
+    )
+    .eq('user_id', user.id)
+    .maybeSingle();
+  const workExperiencesPromise = supabase
+    .from('work_experiences')
+    .select('id,company,role,start_date,end_date,is_current,description')
+    .eq('user_id', user.id)
+    .order('start_date', { ascending: false });
+  const courseSelect =
+    'id,university_id,university_name,course_name,course_url,subject,degree_level,study_mode,duration,intake,entry_requirements_summary,english_requirements_summary,application_method,search_keywords,university_metadata,entry_requirements,source_confidence,extraction_status';
 
-  const [{ data: university }, { data: course }, { data: profile }, { data: workExperiences }] =
-    await Promise.all([
-      universityPromise,
-      coursePromise,
-      supabase
-        .from('student_profiles')
-        .select(
-          'phone,location,current_institution,current_qualification,target_subjects,graduation_year,academic_background,predicted_grades,goals,career_interests,achievements,skills,profile_summary,bio',
-        )
-        .eq('user_id', user.id)
-        .maybeSingle(),
-      supabase
-        .from('work_experiences')
-        .select('id,company,role,start_date,end_date,is_current,description')
-        .eq('user_id', user.id)
-        .order('start_date', { ascending: false }),
-    ]);
+  let course: JsonRecord = null;
+  if (application.courseId) {
+    const { data } = await supabase
+      .from('courses')
+      .select(courseSelect)
+      .eq('id', application.courseId)
+      .maybeSingle();
+    course = data;
+  }
+  if (!course && application.courseUrl) {
+    const { data } = await supabase
+      .from('courses')
+      .select(courseSelect)
+      .eq('course_url', application.courseUrl)
+      .maybeSingle();
+    course = data;
+  }
+  if (!course) {
+    let query = supabase
+      .from('courses')
+      .select(courseSelect)
+      .order('source_confidence', { ascending: false })
+      .limit(100);
+    query = application.universityId
+      ? query.eq('university_id', application.universityId)
+      : query.ilike('university_name', application.universityName);
+    const { data: candidates } = await query;
+    const normalizedName = text(application.courseName)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+    course =
+      candidates?.find(
+        (candidate) =>
+          text(candidate.course_name).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim() ===
+          normalizedName,
+      ) ?? null;
+  }
+
+  const universitySelect =
+    'id,name,country,type,qs_rank,the_rank,national_rank,strengths,specific_insight,teaching_style,international_environment,industry_connections,employability,best_for,admission_difficulty,accept_rate,notes,primary_domain,official_url';
+  const universityId =
+    application.universityId ??
+    (typeof course?.university_id === 'number' ? course.university_id : undefined);
+  const { data: initialUniversity } = universityId
+    ? await supabase
+        .from('universities')
+        .select(universitySelect)
+        .eq('id', universityId)
+        .maybeSingle()
+    : await supabase
+        .from('universities')
+        .select(universitySelect)
+        .ilike('name', application.universityName)
+        .limit(1)
+        .maybeSingle();
+  let university: JsonRecord = initialUniversity;
+  if (initialUniversity?.primary_domain) {
+    const { data: sameDomain } = await supabase
+      .from('universities')
+      .select(universitySelect)
+      .eq('primary_domain', initialUniversity.primary_domain);
+    university =
+      sameDomain?.sort(
+        (a, b) =>
+          sources('university', b).length - sources('university', a).length,
+      )[0] ?? initialUniversity;
+  }
+  const [{ data: profile }, { data: workExperiences }] = await Promise.all([
+    profilePromise,
+    workExperiencesPromise,
+  ]);
 
   const metadata = user.user_metadata ?? {};
   const email = user.email ?? '';
@@ -256,20 +330,19 @@ export async function loadCvBuilderContext(
       programmeName: application.courseName,
       ...(application.universityId ? { universityId: application.universityId } : {}),
       ...(application.courseId ? { courseId: application.courseId } : {}),
+      ...(application.courseUrl ? { courseUrl: application.courseUrl } : {}),
       ...(application.degreeLevel ? { degreeLevel: application.degreeLevel } : {}),
       ...(application.subject ? { subject: application.subject } : {}),
     },
     university: university ?? null,
     course:
       course ??
-      (workspace.course
-        ? {
-            subject: workspace.course.subject,
-            degree_level: workspace.course.degreeLevel,
-            entry_requirements_summary: workspace.course.entryRequirementsSummary,
-            english_requirements_summary: workspace.course.englishRequirementsSummary,
-          }
-        : null),
+      {
+        course_name: application.courseName,
+        course_url: application.courseUrl,
+        subject: application.subject,
+        degree_level: application.degreeLevel,
+      },
     profile: profile ?? null,
     workExperiences: (workExperiences ?? []) as JsonRecord[],
   });

@@ -54,6 +54,20 @@ const allStrategicEvents: CvReviewSectionEvent[] = strategicCriteria.map(
   }),
 );
 
+const experienceSection: CvReviewSectionEvent = {
+  type: 'section',
+  section: 'cv_section',
+  sectionKey: 'experience',
+  sectionName: 'Experience',
+  data: {
+    score: 6,
+    strengths: [bullet('Có kinh nghiệm phù hợp.')],
+    improvements: [bullet('Cần nêu rõ kết quả.')],
+    missingOpportunities: [],
+    recommendations: [bullet('Thêm một số liệu cụ thể.')],
+  },
+};
+
 describe('CvReviewFeedback', () => {
   afterEach(() => vi.useRealTimers());
 
@@ -82,6 +96,45 @@ describe('CvReviewFeedback', () => {
 
     expect(screen.getByText('A. CV có đúng hướng ngành học không?')).toBeVisible();
     expect(screen.queryByText('A. Programme Alignment')).not.toBeInTheDocument();
+  });
+
+  it('shows score rings and section bars from streamed review data', () => {
+    vi.useFakeTimers();
+    render(
+      <CvReviewFeedback
+        events={[...allStrategicEvents, experienceSection]}
+        analysis={null}
+        streaming
+      />,
+    );
+
+    expect(screen.getByTestId('cv-score-dashboard')).toBeVisible();
+    expect(
+      screen.getByRole('img', { name: 'Điểm tổng: 7.4/10, Khá' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('img', { name: 'Đúng hướng: 7/10, Khá' }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('img', { name: 'Kinh nghiệm: 6/10' }),
+    ).toBeVisible();
+  });
+
+  it('shows the score gap to a strong CV target', () => {
+    render(
+      <CvReviewFeedback
+        events={allStrategicEvents}
+        analysis={null}
+        streaming
+      />,
+    );
+
+    expect(screen.getByTestId('cv-readiness-gap')).toBeVisible();
+    expect(
+      screen.getByRole('img', {
+        name: 'Đúng hướng: hiện tại 7/10, mục tiêu 8/10, còn thiếu 1 điểm',
+      }),
+    ).toBeVisible();
   });
 
   it('does not mount later sections until the active section finishes typing', async () => {

@@ -19,6 +19,9 @@ describe('buildCvBuilderContextData', () => {
         subject: 'Computer Science',
       },
       university: {
+        name: 'Example University',
+        country: 'United Kingdom',
+        qs_rank: 25,
         strengths: 'Project-based learning',
         teaching_style: 'Hands-on seminars',
         international_environment: 'Global cohort',
@@ -26,10 +29,15 @@ describe('buildCvBuilderContextData', () => {
         employability: 'Strong technology outcomes',
       },
       course: {
+        id: 'course-1',
+        course_name: 'BSc Computer Science',
         subject: 'Computer Science',
         degree_level: 'Bachelor',
+        study_mode: 'On campus',
+        duration: '3 years',
         entry_requirements_summary: 'Strong mathematics preparation',
         search_keywords: ['programming', 'algorithms'],
+        extraction_status: 'extracted',
       },
       profile: {
         phone: '+84 123',
@@ -59,6 +67,14 @@ describe('buildCvBuilderContextData', () => {
       ref: 'university:teaching_style',
       value: 'Hands-on seminars',
     });
+    expect(context.sourceEntries).toContainEqual({
+      ref: 'university:qs_rank',
+      value: '25',
+    });
+    expect(context.sourceEntries).toContainEqual({
+      ref: 'course:duration',
+      value: '3 years',
+    });
     expect(context.validSourceRefs.has('profile:career_interests')).toBe(true);
     expect(context.confidence).toBe('medium');
     expect(context.limitations.join(' ')).toMatch(/module/i);
@@ -66,5 +82,30 @@ describe('buildCvBuilderContextData', () => {
     expect(context.prefill.education[0].institution).toBe('Example High School');
     expect(context.prefill.entries[0].contributions[0].text).toContain('six students');
     expect(context.prefill.awards[0].title).toBe('Regional robotics finalist');
+  });
+
+  it('keeps an unreviewed programme usable but lowers Target Profile confidence', () => {
+    const context = buildCvBuilderContextData({
+      user: { id: 'user-1', email: 'alex@example.com', name: 'Alex Nguyen' },
+      application: {
+        id: 'app-1',
+        universityName: 'Example University',
+        programmeName: 'Computer Science',
+        courseId: 'course-1',
+      },
+      university: { strengths: 'Research-led teaching' },
+      course: {
+        id: 'course-1',
+        course_name: 'Computer Science',
+        degree_level: 'bachelor',
+        extraction_status: 'needs_review',
+      },
+      profile: null,
+      workExperiences: [],
+    });
+
+    expect(context.confidence).toBe('low');
+    expect(context.limitations.join(' ')).toMatch(/awaiting review/i);
+    expect(context.validSourceRefs.has('course:course_name')).toBe(true);
   });
 });
