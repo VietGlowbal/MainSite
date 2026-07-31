@@ -26,17 +26,34 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizePackageImports: ['framer-motion', 'gsap', '@gsap/react'],
   },
-  // Force the canonical custom domain. Anyone landing on the raw
-  // *.vercel.app hostname gets a permanent redirect to glowbal-education.com,
-  // so the URL bar always reads the brand domain.
   async redirects() {
     return [
+      // Force the canonical custom domain. Anyone landing on the raw
+      // *.vercel.app hostname gets a permanent redirect to
+      // glowbal-education.com, so the URL bar always reads the brand domain.
       {
         source: '/:path*',
         has: [{ type: 'host', value: 'main-site-seven-opal.vercel.app' }],
         destination: 'https://glowbal-education.com/:path*',
         permanent: true,
       },
+      /*
+       * /guides -> /news, permanently.
+       *
+       * The two routes rendered the same listGeoGuides() data through two
+       * designs; they were merged on 31/07 and /news is the surviving URL.
+       * These entries are not tidiness — every article published so far has
+       * shipped a /guides/<slug> canonical URL in content/geo/metadata/*.json
+       * and in the sitemap, so those addresses are indexed and are what any
+       * inbound link points at. A 308 is what carries that ranking over.
+       *
+       * Order matters: the :slug rule is listed first because Next matches
+       * top-down and the bare /guides rule would otherwise be unreachable for
+       * nothing — they do not overlap, but keeping the specific one first is
+       * the habit that stops the next edit from breaking it.
+       */
+      { source: '/guides/:slug', destination: '/news/:slug', permanent: true },
+      { source: '/guides', destination: '/news', permanent: true },
     ];
   },
   images: {

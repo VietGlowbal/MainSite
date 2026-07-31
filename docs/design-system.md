@@ -109,11 +109,11 @@ Pages that render their own `TopNav`/`Footer` must:
    (two elements behind the `nav-header` test id, which the testid contract
    forbids, and two mobile navs — exactly what `mobile-nav.spec.ts` guards).
 
-Matching is **exact** by default, so `/guides` gets its own chrome while
-`/guides/[slug]` stays on the app chrome.
+Matching is **exact** by default, so `/news` gets its own chrome while
+`/news/[slug]` stays on the app chrome.
 
 Current members: `/` `/dev/home` `/universities` `/auth` `/onboarding` `/about`
-`/guides` `/my-universities` `/my-universities/program` `/apply` `/mentors`
+`/news` `/my-universities` `/my-universities/program` `/apply` `/mentors`
 `/dev/saved-list` `/coming-soon` `/ai-strategy` `/dev/apply-workspace`.
 Forgetting to add a route here is the actual failure mode, not a hypothetical —
 it happened to `/apply` and was caught by screenshotting the finished page.

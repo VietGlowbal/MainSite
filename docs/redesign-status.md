@@ -72,7 +72,7 @@ Both carry banner frames naming them:
 | `/my-universities/program` | `375:13546` | **Khanh Linh - Chi** | **Built 30/07.** "Chọn lại ngành", the subject re-picker a saved row links to. ⚠️ Needs `supabase-saved-program.sql` — see below. |
 | `/mentors` | `154:8345` | **Tính năng** | Search + 4-across card grid. ⚠️ Not yet migrated — expect a pass when it is. |
 | `/about` | `153:11401` | **Tính năng** | Net-new route. Real team from `lib/team.ts`. ⚠️ Same provenance risk. |
-| `/guides` | `153:18266` | **Tính năng** | Blog list, data-driven topic tabs. ⚠️ Same provenance risk. |
+| `/news` | `153:18266` | **Tính năng** | Blog list, data-driven topic tabs. ⚠️ Same provenance risk. **Merged 31/07:** `/guides` and `/news` served the same data through two designs; the redesign is now the only UI and `/news` the only URL. See §"Two blog routes became one" below. |
 | `/` | `375:9844` | **Khanh Linh - Chi** | **Promoted 28/07**, replacing the 976-line legacy landing. Ships no `MissingContent`: testimonials and FAQ are omitted outright, Features and the scholarship rail take `showPlaceholders={false}`. Owns its chrome, including its own `MobileNav` — without that a phone gets no navigation at all. |
 | `/dev/home` | `375:9844` | **Khanh Linh - Chi** | Still here after the swap, on purpose: it keeps every section INCLUDING the placeholders, so the copy gaps stay visible. Renders no real data — check data against `/`. |
 | `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07, wired up + extended 30/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
@@ -105,7 +105,11 @@ Each is documented in a comment at the top of the relevant file.
   `university_id` to join a `logo_url` from.
 - **`/about` hero** — the frame claims "offices all around the world" over a world
   map. Untrue for a Vietnamese student startup; replaced with honest copy.
-- **`/guides` cards** — no author byline (`GeoGuide` has no author field).
+- **`/news` cards** — no author byline (`GeoGuide` has no author field).
+- **`/news` keeps a search box and a featured post**, neither of which
+  `153:18266` draws. Owner instruction, 31/07 — both existed on the page this
+  route absorbed and dropping working controls to match a frame is the same
+  trade as the subscribe row. See §"Two blog routes became one" below.
 - **Scholarship dialog** — the "Mã học bổng" code field is still **not built**.
   No voucher / promo / redeem concept exists anywhere in the schema.
 
@@ -266,8 +270,47 @@ fiction. Add the column (or a join) before review authorship means anything.
 |---|---|---|---|
 | `/ai-strategy` | 18 frames, listed in [nav-items.tsx](../src/features/marketing/ui/nav-items.tsx) — landing `375:18445`, candidate info `375:19260`, achievements `375:18839`, reflection modals `407:17291`/`408:17403`/`409:17502`/`409:17626`, reflection `375:18328`, portrait `375:18185`, fit `375:18645`, strategy `375:19502`/`405:6526`, essay `375:17961`, CV `375:18038`, pricing `375:19705`, submit `375:18117`, confirmation `375:18594`, major picker `375:13546` | **Khanh Linh - Chi** | Net-new route, largest group, **404s today** from both nav and footer. No longer a provenance risk — it has migrated onto the dev canvas. `/ai-strategy` is already registered in `OWN_CHROME_PREFIXES`. |
 | `/plus` | `115:13253`, `132:9601`, `196:16799`, `115:17014` | **Tính năng** | 3 tiers (free / $10 / $100). Sales are off (`PLUS_SALES_ENABLED=false`) — build as static preview. |
-| `/guides/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
+| `/news/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
 | `/privacy` | `153:22478` | **Tính năng** | Frame is named `Desktop`. |
+
+### Two blog routes became one (31/07)
+
+`/news` and `/guides` rendered the **same** `listGeoGuides()` data through two
+different designs — `/news` pre-redesign (orbiting-globe hero, featured article,
+search, grid/list toggle, trending sidebar), `/guides` the Figma rebuild
+(`153:18266`). The owner merged them: **the redesign is the UI, `/news` is the
+URL.**
+
+`/news` won the URL because it is what everything already pointed at — the app
+sidebar (`nav-reveal.tsx`), the article breadcrumb, and the `BreadcrumbList` in
+each article's JSON-LD. The Figma nav label stays "Blog"; only the href moved.
+
+What moved, and what has to move with it if this is ever revisited:
+
+| | Before | After |
+|---|---|---|
+| List | `/guides` + `/news` | `/news` (`news-client.tsx`) |
+| Article | `/guides/[slug]` | `/news/[slug]` |
+| Old URLs | — | 308 in `next.config.ts` |
+| Canonical | `…/guides/<slug>` | `…/news/<slug>` — `scripts/geo/generateMetadata.ts` **and** the 5 already-generated `content/geo/metadata/*.json` |
+| `revalidatePath` | `/news` + `/guides` + `/guides/:slug` | `/news` + `/news/:slug` (4 admin routes) |
+| Own chrome | `'/guides'` | `'/news'` |
+| Typecheck scope | `geo.tsconfig.json`, the pipeline's `git add` | same, repointed |
+
+The 308s are not tidiness. Every article published so far shipped a
+`/guides/<slug>` canonical in its metadata JSON and in the sitemap, so those
+addresses are what search engines hold and what any inbound link points at.
+
+Two controls the frame does not draw survived the merge, on the owner's
+instruction: **search** (title/excerpt/topic/tags, the filter the old page
+shipped) and a **featured** lead post. The dead ones did not — "Save for later"
+and the sort select were buttons with no handler, and the trending rail ranked
+by a hand-written topic weighting rather than any real signal.
+
+Only `NewsletterCard` survives from the old tree, in
+`src/components/news/newsletter-card.tsx`; `/news/[slug]` still renders it and it
+is still on the legacy pink styling that page uses. It goes when `153:20197` is
+built.
 
 ### The saved list was a canvas behind (found 30/07)
 
@@ -639,7 +682,7 @@ low priority.
 | `src/app/dashboard/` | 12 | 6 routes. |
 | `src/app/coordinator/` | 8 | |
 | `src/app/my-universities/[id]/` | 3 | Task/writer pages under the rebuilt list. |
-| `src/app/guides/[slug]/` | 2 | `article-body.tsx`. |
+| `src/app/news/[slug]/` | 2 | `article-body.tsx`. |
 
 `src/app/mentors/` is no longer on this list — the browse page was rebuilt and
 `MentorBrowse.tsx` deleted, and `/mentors/[id]` was rebuilt on 29/07 (which also
@@ -661,10 +704,10 @@ for pages that ship `TopNav` + `MobileNav` + `Footer` themselves. Two lists
 since 28/07:
 
 - `OWN_CHROME_ROUTES`, matched **exactly**: `/`, `/dev/home`, `/universities`,
-  `/auth`, `/coming-soon`, `/onboarding`, `/about`, `/guides`,
+  `/auth`, `/coming-soon`, `/onboarding`, `/about`, `/news`,
   `/my-universities`, `/apply`, `/mentors`, `/dev/saved-list`. Exact, because
   the child routes under most of them (`/apply/[applicationId]`,
-  `/guides/[slug]`, `/my-universities/[id]`, `/universities/vinuni`,
+  `/news/[slug]`, `/my-universities/[id]`, `/universities/vinuni`,
   `/mentors/apply`) are still on the app chrome.
 - Two **id-shaped** matchers, for rebuilt detail pages whose siblings are not
   rebuilt and so cannot take a prefix: `/universities/<digits>` and

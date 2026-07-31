@@ -55,7 +55,7 @@
     --type guide \
     --slug "test-guide" \
     --title "Test Guide" \
-    --url "http://localhost:3000/guides/test-guide"
+    --url "http://localhost:3000/news/test-guide"
   ```
   - [ ] Check email received
   - [ ] Verify in Supabase: `SELECT * FROM newsletter_content_sent;`
@@ -80,7 +80,7 @@ git commit -m "feat: Add newsletter subscription system
 - Add newsletter_subscriptions and newsletter_content_sent tables
 - Implement subscribe/unsubscribe API endpoints
 - Add newsletter notification system
-- Update NewsletterCard and guides newsletter form
+- Update NewsletterCard and the /news subscribe row
 - Add unsubscribe page
 - Add CLI tool for sending newsletters
 - Add comprehensive documentation"
@@ -121,7 +121,7 @@ git push origin main
     --type guide \
     --slug "test-guide" \
     --title "Test Guide" \
-    --url "https://your-domain.com/guides/test-guide"
+    --url "https://your-domain.com/news/test-guide"
   ```
 
 ## 📊 Post-Deployment Monitoring
