@@ -30,7 +30,7 @@ A complete newsletter/mailing list system that allows users to subscribe to upda
 
 ### Components
 - `src/components/news/news-page-client.tsx` - Updated NewsletterCard with working subscription
-- `src/app/guides/guides-client.tsx` - Updated newsletter form with working subscription
+- `src/app/news/news-client.tsx` - Updated newsletter form with working subscription
 
 ### Configuration
 - `package.json` - Added `notify-newsletter` script
@@ -99,7 +99,7 @@ id              bigserial PRIMARY KEY
 email           text UNIQUE NOT NULL
 first_name      text
 status          text ('active' | 'unsubscribed')
-source          text (e.g., 'news_page', 'guides_page')
+source          text (e.g., 'news_page', 'news_article')
 subscribed_at   timestamptz
 unsubscribed_at timestamptz
 last_email_sent timestamptz

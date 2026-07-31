@@ -14,7 +14,7 @@
 
 #### On the Guides Page
 
-1. Visit the **Guides** page at `/guides`
+1. Visit the **News** page at `/news`
 2. Scroll to the sidebar
 3. Find the **"Stay updated"** section
 4. Enter your email address
@@ -87,7 +87,7 @@ npm run notify-newsletter -- \
   --type guide \
   --slug "uk-study-guide-2027" \
   --title "Complete UK Study Guide for 2027" \
-  --url "https://glowbal.com/guides/uk-study-guide-2027" \
+  --url "https://glowbal.com/news/uk-study-guide-2027" \
   --excerpt "Everything you need to know about studying in the UK"
 ```
 
@@ -99,7 +99,7 @@ The script will output:
    Type: guide
    Slug: uk-study-guide-2027
    Title: Complete UK Study Guide for 2027
-   URL: https://glowbal.com/guides/uk-study-guide-2027
+   URL: https://glowbal.com/news/uk-study-guide-2027
 ✅ Newsletter sent successfully!
    Total subscribers: 150
    Successfully sent: 148

@@ -90,8 +90,11 @@ function buildMetadata(markdown: string): GeoPageMetadata {
   const description = frontmatter.description ?? 'Glowbal GEO draft content';
   const slug = frontmatter.slug ?? 'draft';
   const topic = inferTopic(frontmatter, body);
-  const canonicalUrl = `https://glowbal-education.com/guides/${slug}`;
-  const breadcrumbs = [{ name: 'Home', item: 'https://glowbal-education.com/' }, { name: 'Guides', item: 'https://glowbal-education.com/guides' }, { name: title, item: canonicalUrl }];
+  // /news, not /guides: the two blog routes were merged on 31/07 and /news is
+  // the surviving URL. Regenerating over older metadata rewrites the stale
+  // /guides canonicals in content/geo/metadata/*.json.
+  const canonicalUrl = `https://glowbal-education.com/news/${slug}`;
+  const breadcrumbs = [{ name: 'Home', item: 'https://glowbal-education.com/' }, { name: 'Guides', item: 'https://glowbal-education.com/news' }, { name: title, item: canonicalUrl }];
   const image = detectImagePath(slug);
   return {
     title,

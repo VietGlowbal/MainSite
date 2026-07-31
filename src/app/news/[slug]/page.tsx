@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getGeoGuide, listGeoGuides, listLinkedPublishedGuides, listRelatedGeoGuides } from '@/lib/geo-content';
 import type { GeoGuide } from '@/lib/geo-content';
-import { NewsletterCard } from '@/components/news/news-page-client';
+import { NewsletterCard } from '@/components/news/newsletter-card';
+import { SITE_URL } from '@/lib/site-url';
 import { T } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
 import { ArticleBody } from './article-body';
@@ -33,12 +34,10 @@ const tagPalette = [
 // on-demand and cached; this also revalidates on a 5-minute window.
 export const revalidate = 300;
 
-const SITE_URL = 'https://glowbal.co';
-
 /** schema.org JSON-LD: Article + Breadcrumb (+ FAQ passthrough), wired to the
  *  GEO graph via relatedLink — explicit structure for AI search engines. */
 function buildGuideJsonLd(guide: GeoGuide, related: GeoGuide[]) {
-  const url = `${SITE_URL}/guides/${guide.slug}`;
+  const url = `${SITE_URL}/news/${guide.slug}`;
   const image = guide.heroImage
     ? (guide.heroImage.startsWith('http') ? guide.heroImage : `${SITE_URL}${guide.heroImage}`)
     : undefined;
@@ -55,7 +54,7 @@ function buildGuideJsonLd(guide: GeoGuide, related: GeoGuide[]) {
       publisher: { '@type': 'Organization', name: 'GLOWBAL', url: SITE_URL },
       mainEntityOfPage: url,
       ...(guide.tags.length ? { keywords: guide.tags.join(', ') } : {}),
-      ...(related.length ? { relatedLink: related.map((r) => `${SITE_URL}/guides/${r.slug}`) } : {}),
+      ...(related.length ? { relatedLink: related.map((r) => `${SITE_URL}/news/${r.slug}`) } : {}),
     },
     {
       '@type': 'BreadcrumbList',
@@ -226,7 +225,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
             <h2 className="text-lg font-semibold text-slate-900"><T k="Related articles" /></h2>
             <div className="mt-4 space-y-4">
               {related.map((item) => (
-                <Link key={item.slug} href={`/guides/${item.slug}`} className="flex items-center gap-3">
+                <Link key={item.slug} href={`/news/${item.slug}`} className="flex items-center gap-3">
                   <div className="relative h-16 w-16 overflow-hidden rounded-2xl bg-slate-100">
                     <Image src={item.heroImage} alt={item.title} fill className="object-cover" sizes="64px" />
                   </div>

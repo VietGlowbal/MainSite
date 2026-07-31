@@ -42,10 +42,10 @@ jobs:
       - name: Generate metadata
         run: npm run geo:metadata
 
-      # This pipeline commits TypeScript (src/app/guides, src/app/news,
-      # src/components/news, src/app/sitemap.ts, src/lib/geo-content.ts)
-      # straight to main with no review. Gate the push on the same checks CI
-      # runs on a PR, so a bad generator cannot break the deployed site.
+      # This pipeline commits TypeScript (src/app/news, src/components/news,
+      # src/app/sitemap.ts, src/lib/geo-content.ts) straight to main with no
+      # review. Gate the push on the same checks CI runs on a PR, so a bad
+      # generator cannot break the deployed site.
       - name: Verify generated output
         run: |
           npm run typecheck
@@ -60,7 +60,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data/geo content/geo public/generated/news src/app/guides src/app/news src/components/news src/app/sitemap.ts src/lib/geo-content.ts package.json package-lock.json
+          git add data/geo content/geo public/generated/news src/app/news src/components/news src/app/sitemap.ts src/lib/geo-content.ts package.json package-lock.json
           if git diff --cached --quiet; then
             echo "No GEO changes to publish"
             exit 0

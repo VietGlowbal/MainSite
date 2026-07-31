@@ -32,6 +32,7 @@
  */
 
 import { openai, isOpenAIConfigured } from '@/lib/ai/openai-client';
+import { SITE_URL } from '@/lib/site-url';
 
 /* ─────────────────────────────────────────────────────────────────────────
    The fixed stage template
@@ -230,8 +231,11 @@ export async function fetchCoursePageText(
       signal: controller.signal,
       headers: {
         // Some university sites reject requests without a browser-shaped UA.
+        // The `+URL` is the convention for "here is who this bot is" — it has
+        // to resolve, or it defeats its own purpose. It pointed at
+        // glowbal.com/robots (wrong host, and a path that 404s) until 31/07.
         'User-Agent':
-          'Mozilla/5.0 (compatible; GlowbalBot/1.0; +https://glowbal.com/robots)',
+          `Mozilla/5.0 (compatible; GlowbalBot/1.0; +${SITE_URL}/robots.txt)`,
         Accept: 'text/html,application/xhtml+xml',
         'Accept-Language': 'en,vi;q=0.8',
       },

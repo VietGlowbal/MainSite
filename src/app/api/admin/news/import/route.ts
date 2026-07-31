@@ -55,7 +55,6 @@ export async function POST() {
   }
 
   revalidatePath('/news');
-  revalidatePath('/guides');
 
   return NextResponse.json({ total: guides.length, ...tally, errors });
 }

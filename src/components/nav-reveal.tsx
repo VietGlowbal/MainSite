@@ -300,9 +300,10 @@ export function NavReveal() {
     '/onboarding',
     '/about',
     // Exact match, like /universities: the Blog LIST is rebuilt (Figma
-    // 153:18266) but /guides/[slug] is not yet, so the detail pages keep the
-    // app chrome until 153:20197 is built.
-    '/guides',
+    // 153:18266) but /news/[slug] is not yet, so the detail pages keep the
+    // app chrome until 153:20197 is built. Was '/guides' until the two blog
+    // routes were merged onto /news on 31/07.
+    '/news',
     // Also exact: the saved list is rebuilt (Figma 375:12701), the
     // /my-universities/[id] task pages under it are not.
     '/my-universities',
