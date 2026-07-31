@@ -11,6 +11,32 @@ export type GenerateRecommendationsResult = {
   archived: number;
 };
 
+/**
+ * Logs which manual migration is missing, instead of just "insert failed" —
+ * matching the diagnosis pattern `docs/known-issues.md §1c` established for
+ * this repo's migrate-by-hand-in-the-SQL-editor setup. Checked against two
+ * real PostgREST/Postgres codes:
+ *   - `PGRST204` "Could not find the '<col>' column" — a column from
+ *     `supabase-strategy-recommendation-fields.sql` hasn't been added yet.
+ *   - `42501` "new row violates row-level security policy" — the INSERT
+ *     policy from `supabase-strategy-recommendations-insert-policy.sql`
+ *     hasn't been added yet (this table shipped in `supabase-apply-v2.sql`
+ *     with a SELECT and an UPDATE policy but no INSERT policy, so every
+ *     first-time recommendation insert was rejected by RLS until that's run).
+ */
+function logMigrationHint(context: string, error: { code?: string; message?: string } | null): void {
+  if (!error) return;
+  if (error.code === 'PGRST204') {
+    console.error(
+      `[generateRecommendations] ${context}: looks like a missing column — run supabase-strategy-recommendation-fields.sql against the production database.`,
+    );
+  } else if (error.code === '42501') {
+    console.error(
+      `[generateRecommendations] ${context}: looks like a missing RLS policy — run supabase-strategy-recommendations-insert-policy.sql against the production database.`,
+    );
+  }
+}
+
 function seedToRow(seed: RecommendationSeed) {
   return {
     application_id: seed.applicationId,
@@ -81,6 +107,7 @@ export async function generateRecommendations(
 
   if (readError) {
     console.error('[generateRecommendations] read existing failed', readError);
+    logMigrationHint('read existing', readError);
     return { ok: false, error: 'read_failed', inserted: 0, updated: 0, archived: 0 };
   }
 
@@ -99,6 +126,7 @@ export async function generateRecommendations(
       .insert(plan.toInsert.map(seedToRow));
     if (error) {
       console.error('[generateRecommendations] insert failed', error);
+      logMigrationHint('insert', error);
       return { ok: false, error: 'insert_failed', inserted: 0, updated: 0, archived: 0 };
     }
   }
@@ -111,6 +139,7 @@ export async function generateRecommendations(
       .eq('id', update.id);
     if (error) {
       console.error('[generateRecommendations] update failed', error, update.id);
+      logMigrationHint('update', error);
       return {
         ok: false,
         error: 'update_failed',
