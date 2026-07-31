@@ -105,7 +105,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
   return (
     <ReflectionShell step="about">
       <form onSubmit={handleSubmit} className="flex flex-col gap-gb-3xl">
-        <ReflectionSection title="Thông tin cá nhân">
+        <ReflectionSection title="Personal Details">
           <Select
             name="highestEducation"
             label="What is your highest level of education?"
@@ -158,7 +158,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           />
         </ReflectionSection>
 
-        <ReflectionSection title="Học vấn">
+        <ReflectionSection title="Education">
           <Input
             name="schoolName"
             label="School"
@@ -193,7 +193,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           />
         </ReflectionSection>
 
-        <ReflectionSection title="Điểm số">
+        <ReflectionSection title="Grades">
           {/* Kept as written rather than parsed to a number: students give
               these on different scales ("3.5 / 4", "8.7/10"), and normalising
               at input time would mean guessing which. */}
@@ -213,7 +213,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           />
         </ReflectionSection>
 
-        <ReflectionSection title="Nguyện vọng">
+        <ReflectionSection title="University Preferences">
           <Input
             name="majors"
             label="Select a major"
@@ -264,7 +264,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
 
           <Select
             name="fundingSource"
-            label="Ngân sách"
+            label="Funding source"
             placeholder="Select a funding source"
             value={values.fundingSource ?? ''}
             onChange={(e) =>
@@ -326,7 +326,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           />
         </ReflectionSection>
 
-        <ReflectionSection title="Sở thích">
+        <ReflectionSection title="Interests">
           <fieldset className="flex flex-col gap-gb-md">
             <legend className="mb-gb-md text-gb-sm font-semibold text-fg">
               Which of these describe you?
@@ -353,7 +353,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           </fieldset>
         </ReflectionSection>
 
-        <ReflectionSection title="Phong cách học">
+        <ReflectionSection title="Learning Style">
           <fieldset className="flex flex-col gap-gb-md">
             <legend className="mb-gb-md text-gb-sm font-semibold text-fg">
               How do you learn best?
@@ -380,7 +380,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           </fieldset>
         </ReflectionSection>
 
-        <ReflectionSection title="Câu hỏi bài luận">
+        <ReflectionSection title="Personal Statement Questions">
           <Textarea
             name="psMotivations"
             label="What motivates you to study this?"
@@ -411,7 +411,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
 
         <div className="flex justify-center">
           <Button type="submit" size="lg" disabled={saving} className="min-w-64">
-            {saving ? 'Đang lưu…' : 'Tiếp tục'}
+            {saving ? 'Saving…' : 'Continue'}
           </Button>
         </div>
       </form>

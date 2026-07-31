@@ -66,7 +66,12 @@ const getReducedMotion = () => reducedMotionMedia().matches;
 /** The server has no OS preference to read; motion is the safe default. */
 const getServerReducedMotion = () => false;
 
-function usePrefersReducedMotion(): boolean {
+/**
+ * Exported for other looping-video loaders in the app (the AI Strategy
+ * Dashboard's analysis wait, currently) so each one doesn't redefine its own
+ * copy of the same media-query subscription.
+ */
+export function usePrefersReducedMotion(): boolean {
   return useSyncExternalStore(subscribeReducedMotion, getReducedMotion, getServerReducedMotion);
 }
 
