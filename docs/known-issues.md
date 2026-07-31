@@ -159,9 +159,7 @@ Related tables that were already populated: `universities` (97),
 
 Re-measured 2026-07-30: `universities` 106 rows (97 with `strengths`, 97 with
 `tuition_usd`), `user_universities` 4, `user_scholarships` 48, `scholarships`
-2877, `scholarship_universities` 374. There is **no** `programs`, `majors` or
-`university_programs` table — checked, because the "Chọn lại ngành" frame implies
-a course catalogue and it does not exist.
+2877, `scholarship_universities` 374.
 
 ⚠️ Some comments in the repo still asserted `user_universities` was missing, more
 than two days after it was applied — `src/app/dev/saved-list/page.tsx` carried a
@@ -170,23 +168,83 @@ table does not exist" note is only true on the day it was written.**
 
 ---
 
-## 1c. OUTSTANDING — `supabase-saved-program.sql` has not been run
+## 1a. NEVER conclude a table is absent from guessed names — enumerate
+
+**Cost the owner a correction on 2026-07-31.** The saved-list work reported that
+this database has **no course catalogue**, and built a `strengths`-only fallback
+around that. The evidence was three probes — `programs`, `majors`,
+`university_programs` — all missing.
+
+There are **75 tables**. The catalogue is called `catalog_programmes`, with
+`academic_units` beside it, `courses`, `course_offerings`,
+`course_academic_units`, and a whole `crawl_*` pipeline feeding them. Every one
+was one call away:
+
+```bash
+# PostgREST's OpenAPI document lists every exposed table AND its columns
+curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  | jq -r '.definitions | keys[]'
+
+# ...and the columns of one table
+curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  | jq -r '.definitions.catalog_programmes.properties | keys[]'
+```
+
+§0 above is about trusting a `.sql` file over the database. This is the same
+mistake with a different disguise: **a miss on a name you invented is evidence
+about your naming, not about the schema.** Enumerate first, then ask what is in
+what you found.
+
+What was in it, once looked at: 404 programmes across 24 of 106 universities,
+`degree_level` in two spellings (`bachelor` and `Bachelor's`), `duration` null on
+400 of 404, and `academic_units` denormalised onto each row as the school layer.
+All of that now drives the subject picker; see
+`src/features/universities/api/programme-queries.ts`.
+
+### It is crawler output, so it needs shaping before a student sees it
+
+⚠️ **`NEEDS_REVIEW` does not mean "we think this is wrong."** It is the default
+state of anything that has not been through a rule validator — 390 of the 404
+rows carry it. `REJECTED` is the flag that means the pipeline decided against a
+row. Do not label `NEEDS_REVIEW` "unverified" in the UI, and do not filter on it:
+all 10 `RULE_VALIDATED` rows belong to one university, so filtering leaves the
+catalogue working for 1 of the 24 covered and silently drops the rest to the
+`strengths` fallback.
+
+Also true of the raw rows, and handled in
+`features/universities/domain/programs.ts`:
+
+- **names are facet soup.** Median 35 characters, p90 84, max 154 — the longest
+  repeats its school twice. `tidyProgrammeName` peels the trailing facets;
+  it must only ever peel the TAIL, because cutting at the first facet word
+  anywhere destroys "Computer Science – Online Degree (MS)".
+- **the same subject appears at several degree levels**, so anything that
+  deduplicates must key on name *and* degree.
+- **the catalogue itself contains duplicates** — Princeton lists "Computer
+  Science" twice at master's and twice at bachelor's.
+
+---
+
+## 1c. FIXED 2026-07-31 — `supabase-saved-program.sql` applied
 
 Adds `user_universities.program` and `.program_url`, which back the "Ngành …"
 line on each saved row and the "Chọn lại ngành" picker at
 `/my-universities/program` (Figma `375:12701`, `375:13546`).
 
 Additive and idempotent: two nullable `text` columns, `ADD COLUMN IF NOT EXISTS`,
-no RLS change needed (the existing `for all` policy on the row covers them).
+no RLS change needed (the existing `for all` policy on the row covers them). The
+owner ran it on 2026-07-31 and the round trip is confirmed live — picking a
+programme stores it and the saved card renders it.
 
-**Until it is run**, and this is by design rather than by accident:
+**The tolerance built while it was outstanding stays**, and is worth keeping:
 
-- the saved list still renders — the read is `select('*')`, so naming a column
-  that does not exist cannot fail the whole page;
-- every row shows "No subject chosen yet";
-- saving a subject reports *"Saving a subject is not switched on in this
-  environment yet — the user_universities.program column has not been added.
-  Nothing was changed."* instead of a generic retry prompt.
+- the saved list reads with `select('*')`, so a project without these columns
+  renders the list rather than failing whole. Do not switch that to an explicit
+  column list when adding the next field;
+- a row with no subject shows "No subject chosen yet" rather than a placeholder;
+- a write that hits a missing column reports *"Saving a subject is not switched
+  on in this environment yet — the user_universities.program column has not been
+  added. Nothing was changed."* instead of a generic retry prompt.
 
 That last one exists because a generic error sends someone retrying a write that
 can never succeed. It matches the PostgREST **code**, verified against the live

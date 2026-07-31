@@ -28,7 +28,7 @@ export type {
 
 export { filterOptions, isCourseUrl, optionsForGroup, programChoices } from './programs';
 export type {
-  CatalogueCollege,
+  CatalogueEntry,
   ProgramChoices,
   ProgramGroup,
   ProgramOption,

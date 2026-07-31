@@ -5,10 +5,13 @@
  * feature permitted to reach the database. Consumers import the port type, not
  * the adapter, so the implementation stays swappable (and fake-able in tests).
  */
+import { SupabaseProgrammeRepository } from './supabase-programme-repository';
 import { SupabaseUniversityRepository } from './supabase-university-repository';
+import type { ProgrammeQueries } from './programme-queries';
 import type { UniversityQueries } from './university-queries';
 
 let cached: UniversityQueries | null = null;
+let cachedProgrammes: ProgrammeQueries | null = null;
 
 /**
  * The active university repository. Cached at module scope — the adapter is
@@ -26,7 +29,25 @@ export function setUniversityQueries(impl: UniversityQueries | null): void {
   cached = impl;
 }
 
+/** The programme catalogue behind the subject picker. Same lifecycle as above. */
+export function getProgrammeQueries(): ProgrammeQueries {
+  cachedProgrammes ??= new SupabaseProgrammeRepository();
+  return cachedProgrammes;
+}
+
+/** Test seam, mirroring `setUniversityQueries`. */
+export function setProgrammeQueries(impl: ProgrammeQueries | null): void {
+  cachedProgrammes = impl;
+}
+
 export { SupabaseUniversityRepository };
+export { SupabaseProgrammeRepository };
+export { degreeLabel, durationYears } from './programme-queries';
+export type {
+  CatalogueProgramme,
+  ProgrammeAcademicUnit,
+  ProgrammeQueries,
+} from './programme-queries';
 export { AUTO_PARSE_SOURCE, resolveUniversity } from './university-resolver';
 export type { ResolveInput, ResolveOutcome } from './university-resolver';
 export {

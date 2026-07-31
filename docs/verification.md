@@ -110,9 +110,28 @@ showed on 2026-07-30, all with the `program` columns still absent:
 | nav heart | `data-saved-count="2"`, no header overflow at 1440 |
 | "Scholarships here" | 5 real linked scholarships, frame's card layout |
 | "See details" | the `375:13369` panel, real columns |
-| `/my-universities/program?u=82` | 6 subjects from `strengths` |
-| Save subject | *"…the user_universities.program column has not been added"* |
-| VI | list, bar and error message all in Vietnamese |
+| `/my-universities/program?u=82` | 6 subjects from `strengths` (the fallback path) |
+| VI | list, bar and messages all in Vietnamese |
+
+Re-checked 2026-07-31 with the `program` columns applied and a **catalogued**
+university (Georgia Tech, id 104 — one of the 24):
+
+| Step | Result |
+|---|---|
+| picker, school list | College of Computing 3 · College of Design 1 · College of Engineering 13 · Scheller College of Business 3 |
+| picker, subject list | "Aerospace Engineering (BS) / Bachelor", "…(MS) / Master", … |
+| narrowing by school | 20 → the 3 Computing programmes |
+| save | stored `program: "Computer Science (MS)"` |
+| the card | "Subject: Computer Science (MS) · Change subject here" |
+
+⚠️ **That walk seeds a `user_universities` row and deletes it in a `finally`.**
+Only ever for the `E2E_EMAIL` account, and only ever rows the script itself
+inserted — the same rule as the shortlist test. Seeding for a real student's
+account would put a university on their list that they did not choose.
+
+Note `Radio` renders its `<input>` as a **sibling** of the label, not inside it,
+so `label:has(input:checked)` matches nothing — read the value off the input.
+That cost a run.
 
 Prefer this pattern over writing to the owner's database. Same idea as
 `/dev/home` and `/dev/kitchen-sink`; gate it identically:

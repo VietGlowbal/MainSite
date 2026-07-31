@@ -3,28 +3,32 @@ import { splitList } from './highlights';
 /**
  * What a student can pick in the "Chọn lại ngành" re-picker (Figma 375:13546).
  *
- * THE FRAME ASSUMES A COURSE CATALOGUE WE DO NOT HAVE. It draws two stacked
- * lists — schools with a specialization count ("Viện Khoa học Sức khỏe: 4
- * specializations") over subjects with a duration ("Tài chính (4 năm)") — which
- * is a `university → school → programme` tree. The live schema has no such
- * table: `universities` carries `strengths`, a comma-separated subject line, and
- * that is the whole of it. Verified against the database, not a .sql file:
- * 97 of 106 rows have `strengths`, and there is no `programs`, `majors` or
- * `university_programs` table at all.
+ * The frame draws two stacked lists — schools with a specialization count
+ * ("Viện Khoa học Sức khỏe: 4 specializations") over programmes with a duration
+ * ("Tài chính (4 năm)") — a `university → school → programme` tree.
  *
- * So this module returns the frame's shape where the data supports it and one
- * list where it does not, rather than inventing a hierarchy:
+ * ⚠️ AN EARLIER VERSION OF THIS COMMENT SAID THAT TREE DID NOT EXIST IN THE
+ * DATABASE. It does: `catalog_programmes` carries the programme, its
+ * `degree_level`, and a denormalised `academic_units` array that is exactly the
+ * school layer. The claim came from probing three guessed table names and
+ * missing on all three. **The lesson is in `api/programme-queries.ts`:
+ * enumerate the schema, do not guess at it.**
  *
- *   - VinUniversity has a real catalogue in `src/lib/vinuni-content.ts`
- *     (colleges → programmes → concentrations, with `durationYears`). Callers
- *     pass it in as `groups` and get the frame's two lists, counts and durations
- *     included, because every one of those numbers is a fact about VinUni.
- *   - Every other university gets a single list built from `strengths`. No
- *     invented school headings, no invented durations. The second list simply
- *     is not rendered.
+ * What is true is that coverage is PARTIAL, and that is what this module exists
+ * to handle. Measured live on 2026-07-31:
  *
- * Pure: no React, no I/O. `groups` is passed in rather than imported so this
- * stays free of the VinUni content module (which is app-level) and testable.
+ *   - 404 programmes across **24** of the 106 universities. Those get the
+ *     frame's two lists, with a real programme count per school.
+ *   - The other 82 get a single list from `universities.strengths`, the
+ *     comma-separated subject line (present on 97 of 106).
+ *   - `duration` is null on 400 of the 404, so the frame's "(4 năm)" renders
+ *     for almost nothing. It is shown where it exists and never defaulted.
+ *   - `degree_level` IS well populated, and it is the useful discriminator —
+ *     the same subject appears as a bachelor's and a master's — so it takes the
+ *     secondary line the frame gave to duration.
+ *
+ * Pure: no React, no I/O. The catalogue is passed in rather than fetched so this
+ * stays testable and free of the api slice.
  */
 
 /** One pickable subject. */
@@ -32,14 +36,30 @@ export type ProgramOption = {
   /** The label, and the value stored in `user_universities.program`. */
   name: string;
   /**
-   * Course length. Present only when the source data carries one — the frame's
-   * "(4 năm)" is a fact about VinUni's catalogue, not a default to apply to the
-   * other 96 universities.
+   * "Bachelor" / "Master" / "PhD", already folded to one spelling by
+   * `degreeLabel` in the api slice. Absent when the row does not say.
+   *
+   * A known label rather than the raw column, so the picker's secondary line
+   * stays a static dictionary string — this route gets no machine-translation
+   * fallback.
+   */
+  degree?: string;
+  /**
+   * Course length in years. Present only when the source carries one — the
+   * frame's "(4 năm)" is a fact about a particular programme, never a default.
    *
    * A number rather than a formatted string so the unit can be translated: the
    * dictionary holds "4 years", not "4 năm" spelled into the data.
    */
   durationYears?: number;
+  /**
+   * The university's own page for this programme, when the catalogue has one.
+   *
+   * Shown once a programme is chosen rather than on every row: it is the way a
+   * student checks a crawled listing against the source, which matters because
+   * these rows are collected rather than curated.
+   */
+  officialUrl?: string;
 };
 
 /** A school/college heading with the programmes under it. */
@@ -47,6 +67,137 @@ export type ProgramGroup = {
   name: string;
   options: ProgramOption[];
 };
+
+/**
+ * Facet words that only ever appear in a crawled programme name's TAIL.
+ *
+ * `catalog_programmes.programme_name` is frequently every facet of a listing
+ * concatenated — degree level, study modes, the administering school, sometimes
+ * twice. Median length is 35 characters but p90 is 85 and the longest is 154:
+ *
+ *   "Health Education and Health Communication, MSPH Bloomberg School of Public
+ *    Health Master's Full-time Part-time Bloomberg School of Public Health
+ *    In-person"
+ *
+ * The subject is always at the head, and the soup always starts at one of these.
+ * Ordered longest-first so "In Person" is found before "Person" could be.
+ */
+const FACET_MARKERS = [
+  'Professional Degree',
+  'Online/Hybrid',
+  'Postgraduate',
+  'Undergraduate',
+  'Non-Degree',
+  'On-Campus',
+  'On Campus',
+  'In-person',
+  'In Person',
+  'Full-time',
+  'Full Time',
+  'Part-time',
+  'Part Time',
+  'Bachelors',
+  "Bachelor's",
+  'Doctoral',
+  'Graduate',
+  'Masters',
+  "Master's",
+  'Hybrid',
+  'Online',
+  'Distance',
+  // Penn ends its listings with these. Safe only because this peels the TAIL —
+  // as a mid-string cut they would wreck "Major Works of Western Literature".
+  'Major',
+  'Minor',
+] as const;
+
+/**
+ * A crawled programme name, cut back to the subject.
+ *
+ * LOSSY AND ONLY EVER A PREFIX, the same contract as `leadFragment`: this
+ * returns the head of its input, never a rewrite of it. It is what the student
+ * picks and what gets written to `user_universities.program`, so it has to stay
+ * recognisable as the thing the university calls it.
+ *
+ * @param schools Names of the schools administering it. They are cut too — the
+ *   picker already shows the school as the list heading above, and the crawler
+ *   repeats it inline (sometimes twice).
+ */
+export function tidyProgrammeName(
+  raw: string,
+  schools: readonly string[] = [],
+): string {
+  const name = raw.replace(/\s+/g, ' ').trim();
+  if (!name) return name;
+
+  const markers = [...FACET_MARKERS, ...schools.map((school) => school.trim()).filter(Boolean)];
+  let head = name;
+
+  /*
+   * PEEL THE TAIL, NEVER CUT IN THE MIDDLE — and this is the whole design.
+   *
+   * The first version cut at the EARLIEST facet word anywhere in the string.
+   * That mangles a name that legitimately contains one: Georgia Tech's
+   * "Computer Science – Online Degree (MS)" became "Computer Science", which
+   * both lost the distinguishing clause and collided with the real "Computer
+   * Science (MS)" two rows below it. Caught in the browser, not by a test.
+   *
+   * Peeling only a TRAILING run of facets cannot do that: anything sitting
+   * before a word the vocabulary does not recognise is left alone, whatever it
+   * says. The cost is that some tails survive — NYU ends its names with "Arts &
+   * Science", which is not quite any of its unit names — and a long name is a
+   * far smaller problem than a wrong one.
+   */
+  for (let guard = 0; guard < 24; guard += 1) {
+    const previous = head;
+
+    head = head.replace(/[\s,;:|–-]+$/, '');
+
+    for (const marker of markers) {
+      const escaped = marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const trailing = new RegExp(`\\s${escaped}\\s*$`, 'i');
+      if (trailing.test(head)) {
+        head = head.replace(trailing, '');
+        break;
+      }
+    }
+
+    /*
+     * A bare credential the tail repeats: "Computer Science Courant (MS) MS
+     * Masters …" peels back to "… (MS) MS". Only an ALL-CAPS token, and only
+     * when it does not follow a comma or a bracket — "Applied Economics, MA"
+     * and "Computer Science (BS)" are how a university writes it, and stay.
+     */
+    const credential = /\s([A-Z]{2,6}(?:\/[A-Z]{2,6})*)\s*$/.exec(head);
+    if (credential) {
+      const preceding = head[credential.index - 1];
+      if (preceding !== ',' && preceding !== '(' && preceding !== '/') {
+        head = head.slice(0, credential.index);
+      }
+    }
+
+    if (head === previous) break;
+  }
+
+  head = head.trim();
+
+  /*
+   * Never destroy a name. A length check is not enough: a name made only of
+   * facet words peels to another facet word ("Graduate Full-time Online" ->
+   * "Graduate"), which passes any length test and means nothing as a subject.
+   * The head has to still contain something that is not a facet.
+   */
+  return head.length >= 3 && hasSubjectWord(head) ? head : name;
+}
+
+/** Whether anything survives once the facet vocabulary is removed. */
+function hasSubjectWord(head: string): boolean {
+  let rest = head;
+  for (const marker of FACET_MARKERS) {
+    rest = rest.replace(new RegExp(`(?:^|\\s)${marker.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=\\s|$)`, 'gi'), ' ');
+  }
+  return /[A-Za-z]{2}/.test(rest);
+}
 
 export type ProgramChoices = {
   /**
@@ -60,51 +211,100 @@ export type ProgramChoices = {
    * of the selected group; otherwise the `strengths` line.
    */
   options: ProgramOption[];
+  /**
+   * Where the list came from, so the caller can say so.
+   *
+   * `catalogue` rows are crawler output — collected from the university's own
+   * pages rather than curated — and the picker tells the student that once,
+   * under the heading. `strengths` is our own editorial subject line and makes
+   * no such claim. `none` means there is nothing to pick from and only the
+   * paste-a-link fallback applies.
+   */
+  source: 'catalogue' | 'strengths' | 'none';
 };
 
-/** Source shape for a catalogue, structurally matching `vinuni-content.ts`. */
-export type CatalogueCollege = {
+/**
+ * One catalogued programme, as the api slice hands it over.
+ *
+ * Structural and already normalised: `degree` is a known label rather than the
+ * raw `degree_level`, and `durationYears` a number rather than the free text.
+ * Doing that conversion at the edge keeps this module free of the database's
+ * two spellings of "bachelor".
+ */
+export type CatalogueEntry = {
   name: string;
-  programs: readonly { name: string; durationYears: number }[];
+  degree?: string | null;
+  durationYears?: number | null;
+  officialUrl?: string | null;
+  /** The schools administering it. Empty is normal and handled. */
+  units?: readonly { name: string; isPrimary?: boolean }[];
 };
 
 /**
  * Build the picker's contents.
  *
- * @param strengths The university's `strengths` column — the fallback subject list.
- * @param catalogue A real school→programme catalogue, when one exists for this
- *   university. Anything empty or absent falls through to `strengths`.
+ * @param strengths The university's `strengths` column — the fallback subject
+ *   list, used when the catalogue has nothing for this university.
+ * @param catalogue Catalogued programmes for this university, if any.
  */
 export function programChoices(
   strengths: string | null | undefined,
-  catalogue?: readonly CatalogueCollege[] | null,
+  catalogue?: readonly CatalogueEntry[] | null,
 ): ProgramChoices {
-  const groups: ProgramGroup[] = [];
+  const entries = (catalogue ?? []).filter((entry) => entry.name.trim().length > 0);
 
-  for (const college of catalogue ?? []) {
-    const options = college.programs
-      .filter((program) => program.name.trim().length > 0)
-      .map((program) => ({
-        name: program.name.trim(),
-        // A programme with no length in the catalogue gets no duration rather
-        // than a default, because "4 năm" would then be a claim we invented.
-        ...(Number.isFinite(program.durationYears) && program.durationYears > 0
-          ? { durationYears: program.durationYears }
-          : {}),
-      }));
+  if (entries.length === 0) {
+    const options = splitList(strengths).map((name) => ({ name }));
+    return {
+      groups: [],
+      options,
+      source: options.length > 0 ? 'strengths' : 'none',
+    };
+  }
+
+  const options = dedupe(entries.map(toOption));
+
+  /*
+   * Group by school. A programme can be administered by more than one — Penn's
+   * joint degrees are — so it appears under each, which is what a student
+   * browsing by school expects. `isPrimary` orders the units but does not
+   * exclude the others.
+   */
+  const byUnit = new Map<string, ProgramOption[]>();
+  for (const entry of entries) {
+    const units = [...(entry.units ?? [])].sort(
+      (a, b) => Number(b.isPrimary ?? false) - Number(a.isPrimary ?? false),
+    );
+    for (const unit of units) {
+      const name = unit.name.trim();
+      if (!name) continue;
+      const bucket = byUnit.get(name);
+      if (bucket) bucket.push(toOption(entry));
+      else byUnit.set(name, [toOption(entry)]);
+    }
+  }
+
+  const groups: ProgramGroup[] = [...byUnit.entries()]
+    .map(([name, groupOptions]) => ({ name, options: dedupe(groupOptions) }))
     // A school with nothing under it is a heading that leads nowhere.
-    if (options.length > 0) groups.push({ name: college.name.trim(), options });
-  }
+    .filter((group) => group.options.length > 0)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
-  if (groups.length > 0) {
-    // The flat list is the union, so a student who ignores the school list can
-    // still find their programme by typing in the search box.
-    return { groups, options: dedupe(groups.flatMap((group) => group.options)) };
-  }
+  return { groups, options, source: 'catalogue' };
+}
 
+function toOption(entry: CatalogueEntry): ProgramOption {
   return {
-    groups: [],
-    options: splitList(strengths).map((name) => ({ name })),
+    // Cut back to the subject, with this programme's own schools stripped —
+    // they are the heading it sits under, not part of its name.
+    name: tidyProgrammeName(entry.name, (entry.units ?? []).map((unit) => unit.name)),
+    ...(entry.degree ? { degree: entry.degree } : {}),
+    ...(entry.officialUrl ? { officialUrl: entry.officialUrl } : {}),
+    // Never defaulted: null on 400 of 404 rows, and "4 years" on a programme
+    // that does not say so would be a claim we invented.
+    ...(entry.durationYears != null && Number.isFinite(entry.durationYears) && entry.durationYears > 0
+      ? { durationYears: entry.durationYears }
+      : {}),
   };
 }
 
@@ -168,10 +368,21 @@ export function isCourseUrl(raw: string): boolean {
   return url.hostname.includes('.');
 }
 
+/**
+ * Drop repeats, keyed on name AND degree.
+ *
+ * Name alone would be wrong here: a university commonly catalogues the same
+ * subject at two levels ("Applied Economics" as both a bachelor's and a
+ * master's), and collapsing those would silently remove one of the two things
+ * the student came to choose between.
+ *
+ * Repeats do occur — a programme administered by two schools appears once per
+ * school, and the flat list is the union of those.
+ */
 function dedupe(options: readonly ProgramOption[]): ProgramOption[] {
   const seen = new Set<string>();
   return options.filter((option) => {
-    const key = option.name.toLowerCase();
+    const key = `${option.name.toLowerCase()}|${option.degree ?? ''}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

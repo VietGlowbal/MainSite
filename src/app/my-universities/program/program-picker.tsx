@@ -106,19 +106,53 @@ export function ProgramPicker({
 
   const subjectOptions: MultiSelectOption[] = useMemo(
     () =>
-      optionsForGroup(choices, group).map((option) => ({
-        value: option.name,
-        label: option.name,
-        // The frame's "(4 năm)". Only where the catalogue actually says so.
-        ...(option.durationYears != null
-          ? {
-              description: `${option.durationYears} ${
-                option.durationYears === 1 ? 'year' : 'years'
-              }`,
-            }
-          : {}),
-      })),
+      optionsForGroup(choices, group).map((option) => {
+        /*
+         * The frame puts the course length on this line. The catalogue almost
+         * never has one (null on 400 of 404 rows), but it does have the degree
+         * level — and that is the more useful discriminator anyway, because the
+         * same subject is catalogued as both a bachelor's and a master's. Both
+         * are shown when both exist, neither is invented when they do not.
+         *
+         * Each part is its own <span>, so each is a whole text node the static
+         * dictionary can translate. This route has no machine fallback, and
+         * "Bachelor · 4 years" as one string could never be a dictionary hit.
+         */
+        const parts: React.ReactNode[] = [];
+        if (option.degree) parts.push(<span key="degree">{option.degree}</span>);
+        if (option.durationYears != null) {
+          // Built as ONE string, not `{n} {'years'}` — that produces separate
+          // child nodes and the dictionary keys the whole node ("4 years").
+          const years = `${option.durationYears} ${option.durationYears === 1 ? 'year' : 'years'}`;
+          parts.push(<span key="duration">{years}</span>);
+        }
+
+        return {
+          value: option.name,
+          label: option.name,
+          ...(parts.length > 0
+            ? {
+                description: (
+                  <>
+                    {parts[0]}
+                    {parts.length > 1 ? ' · ' : null}
+                    {parts[1]}
+                  </>
+                ),
+              }
+            : {}),
+        };
+      }),
     [choices, group],
+  );
+
+  /** The chosen programme's own page, when the catalogue carries one. */
+  const chosenOfficialUrl = useMemo(
+    () =>
+      program == null
+        ? null
+        : (choices.options.find((option) => option.name === program)?.officialUrl ?? null),
+    [choices.options, program],
   );
 
   const urlProvided = url.trim().length > 0;
@@ -280,6 +314,27 @@ export function ProgramPicker({
                 {/* 375:13716 — subjects. */}
                 <div className="flex flex-col gap-gb-md">
                   <h2 className="text-gb-sm font-semibold text-fg">Subject</h2>
+                  {/*
+                    WHERE THE LIST CAME FROM, said once.
+
+                    Catalogue rows are crawler output: collected from the
+                    university's own pages, not curated by us. The obvious
+                    alternatives were both worse — filtering to the
+                    rule-validated rows would leave this list working for ONE of
+                    the 24 catalogued universities, and badging the rest would
+                    put the same marker on 96.5% of rows, which cannot help
+                    anyone choose between two of them. One honest sentence plus
+                    a link to the source does.
+
+                    Not shown over `strengths`, which is our own editorial
+                    subject line and makes no such claim.
+                  */}
+                  {choices.source === 'catalogue' ? (
+                    <p className="text-gb-sm text-fg-muted">
+                      Collected from this university&rsquo;s own course catalogue. Check the official
+                      page before you apply.
+                    </p>
+                  ) : null}
                   <MultiSelect
                     name="program-subject"
                     label="Subject"
@@ -290,6 +345,21 @@ export function ProgramPicker({
                     maxVisible={6}
                     onChange={(next) => setProgram(next[0] ?? null)}
                   />
+                  {/* The chosen programme's own page — the way to check a
+                      collected listing against the source. Shown for the
+                      selection rather than on every row, where 20 identical
+                      links would be noise. */}
+                  {chosenOfficialUrl ? (
+                    <a
+                      href={chosenOfficialUrl}
+                      target="_blank"
+                      rel="noreferrer noopener"
+                      className="flex items-center gap-gb-xs self-start text-gb-sm font-semibold text-brand hover:text-brand-hover"
+                    >
+                      Open the official course page
+                      <KitIcon art={ICONS.arrowUpRight} frame={20} />
+                    </a>
+                  ) : null}
                 </div>
               </>
             )}

@@ -19,7 +19,13 @@ type Props = Omit<React.ComponentProps<'input'>, 'className' | 'name' | 'type'> 
   /** Sits to the right of the box, and is the click target. */
   label: string;
   /** Secondary line under the label — the "12 users" in Figma 223:9369. */
-  description?: string | undefined;
+  /**
+   * A node, not just a string, so a caller can split it into separate text
+   * nodes. That matters on routes with no machine-translation fallback
+   * (dom-translate.tsx's PII list): "Bachelor · 4 years" as one string can never
+   * be a dictionary hit, while two spans each can.
+   */
+  description?: React.ReactNode;
   className?: string | undefined;
 };
 
