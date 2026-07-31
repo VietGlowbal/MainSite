@@ -31,6 +31,10 @@ const FEATURES = [
   'mentorship',
   'auth',
   'marketing',
+  // Feature 2 — the CV + personal statement workspace under
+  // /ai-strategy/[applicationId]. Listed so the domain/api/ui zone rules below
+  // apply to it; without an entry here a new feature gets no boundaries at all.
+  'application-strategy',
 ];
 
 const TEST_FILES = ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'];
