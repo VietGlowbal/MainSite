@@ -190,6 +190,7 @@ describe('POST /api/applications/from-course-url', () => {
       found: true,
       runId: 'run-1',
       programmeId: 'programme-1',
+      courseId: 'course-1',
       programmeName: 'MS Computer Science',
       degreeLevel: 'master',
       deliveryMode: 'full-time',

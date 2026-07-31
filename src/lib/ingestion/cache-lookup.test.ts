@@ -1,11 +1,18 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mockLimit = vi.fn();
-const mockOfficialUrlIn = vi.fn(() => ({ limit: mockLimit }));
+const mockCrawlLimit = vi.fn();
+const mockCourseLimit = vi.fn();
+const mockOfficialUrlIn = vi.fn(() => ({ limit: mockCrawlLimit }));
 const mockNeq = vi.fn(() => ({ in: mockOfficialUrlIn }));
 const mockRunStatusIn = vi.fn(() => ({ neq: mockNeq }));
-const mockSelect = vi.fn(() => ({ in: mockRunStatusIn }));
-const mockFrom = vi.fn(() => ({ select: mockSelect }));
+const mockCrawlSelect = vi.fn(() => ({ in: mockRunStatusIn }));
+const mockCourseEq = vi.fn(() => ({ limit: mockCourseLimit }));
+const mockCourseSelect = vi.fn(() => ({ eq: mockCourseEq }));
+const mockFrom = vi.fn((table: string) =>
+  table === 'courses'
+    ? { select: mockCourseSelect }
+    : { select: mockCrawlSelect }
+);
 
 vi.mock('@/lib/supabase/admin', () => ({
   createAdminClient: () => ({ from: mockFrom }),
@@ -19,7 +26,7 @@ describe('lookupCrawlCache', () => {
   });
 
   it('uses the explicit run relationship and safe URL equality filters', async () => {
-    mockLimit.mockResolvedValueOnce({ data: [], error: null });
+    mockCrawlLimit.mockResolvedValueOnce({ data: [], error: null });
 
     await expect(
       lookupCrawlCache(
@@ -27,7 +34,7 @@ describe('lookupCrawlCache', () => {
       )
     ).resolves.toEqual({ found: false });
 
-    expect(mockSelect).toHaveBeenCalledWith(
+    expect(mockCrawlSelect).toHaveBeenCalledWith(
       expect.stringContaining(
         'crawl_runs!crawl_programmes_run_id_fkey!inner'
       )
@@ -42,7 +49,7 @@ describe('lookupCrawlCache', () => {
   });
 
   it('prefers an approved run over a newer completed run', async () => {
-    mockLimit.mockResolvedValueOnce({
+    mockCrawlLimit.mockResolvedValueOnce({
       error: null,
       data: [
         {
@@ -77,6 +84,10 @@ describe('lookupCrawlCache', () => {
         },
       ],
     });
+    mockCourseLimit.mockResolvedValueOnce({
+      data: [{ id: 'course-approved' }],
+      error: null,
+    });
 
     const result = await lookupCrawlCache('https://example.edu/program');
 
@@ -84,6 +95,32 @@ describe('lookupCrawlCache', () => {
       found: true,
       runId: 'run-approved',
       programmeId: 'approved',
+      courseId: 'course-approved',
     });
+  });
+
+  it('queues a worker when crawl data has not been promoted yet', async () => {
+    mockCrawlLimit.mockResolvedValueOnce({
+      error: null,
+      data: [
+        {
+          programme_id: 'crawl-only',
+          programme_name: 'Crawl only',
+          official_url: 'https://example.edu/program',
+          verification_status: 'RULE_VALIDATED',
+          run_id: 'run-1',
+          crawl_runs: {
+            id: 'run-1',
+            status: 'completed',
+            finished_at: '2026-07-01T00:00:00Z',
+          },
+        },
+      ],
+    });
+    mockCourseLimit.mockResolvedValueOnce({ data: [], error: null });
+
+    await expect(
+      lookupCrawlCache('https://example.edu/program')
+    ).resolves.toEqual({ found: false });
   });
 });

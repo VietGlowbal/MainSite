@@ -1,24 +1,11 @@
-'use client';
-
 /**
- * GLOWBAL — single-page onboarding form.
+ * Backwards-compatible entry point for the existing onboarding route.
  *
- * Replaces the step-by-step quiz with one long scrollable form so the
- * user can see the whole experience at a glance. Every question is on
- * the same page; users scroll past them like any web form. The form is
- * always skippable — there is a persistent "Skip to search" button at
- * the top, and the search page has an "Improve your searches" pill that
- * brings them back here whenever they're ready.
- *
- * Branding notes:
- *  - The hero strip uses the same pink → cyan gradient as the rest of
- *    the product so the onboarding feels native (no more dark hero).
- *  - The globe is the "marble" (Earth-coloured) variant; the only dark
- *    cosmos globe lives on the home page.
- *  - When the user arrives from /universities (`?from=search`) we show
- *    a contextual banner explaining that filling answers makes the
- *    search more accurate.
+ * The implementation now lives in the onboarding feature. Keeping this export
+ * avoids breaking any legacy imports while the route migrates to the feature
+ * barrel.
  */
+<<<<<<< Updated upstream
 
 import dynamic from 'next/dynamic';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -564,3 +551,6 @@ function Choice({
     </button>
   );
 }
+=======
+export { OnboardingContainer as OnboardingSinglePage } from '@/features/onboarding';
+>>>>>>> Stashed changes

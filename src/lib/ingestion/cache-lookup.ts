@@ -18,6 +18,7 @@ export interface CacheHitResult {
   found: true;
   runId: string;
   programmeId: string;
+  courseId: string;
   programmeName: string | null;
   degreeLevel: string | null;
   deliveryMode: string | null;
@@ -127,11 +128,23 @@ export async function lookupCrawlCache(
 
   const best = ranked[0];
   const run = Array.isArray(best.crawl_runs) ? best.crawl_runs[0] : best.crawl_runs;
+  const { data: catalogCourses, error: catalogError } = await supabase
+    .from('courses')
+    .select('id')
+    .eq('source_programme_id', best.programme_id)
+    .limit(2);
+
+  // A crawl-only match is still useful, but it must pass through the worker
+  // once so promote_crawl_run can create the stable product entity.
+  if (catalogError || !catalogCourses || catalogCourses.length !== 1) {
+    return { found: false };
+  }
 
   return {
     found: true,
     runId: run?.id ?? best.run_id,
     programmeId: best.programme_id,
+    courseId: catalogCourses[0].id,
     programmeName: best.programme_name ?? null,
     degreeLevel: best.degree_level ?? null,
     deliveryMode: best.delivery_mode ?? null,

@@ -54,6 +54,7 @@ ERR_FETCH_FAILED = "FETCH_FAILED"
 ERR_PARSE_FAILED = "PARSE_FAILED"
 ERR_DEEPSEEK_FAILED = "DEEPSEEK_FAILED"
 ERR_IMPORT_FAILED = "IMPORT_FAILED"
+ERR_PROMOTION_FAILED = "PROMOTION_FAILED"
 ERR_RESULT_NOT_FOUND = "RESULT_NOT_FOUND"
 ERR_TIMEOUT = "TIMEOUT"
 ERR_INTERNAL = "INTERNAL_ERROR"
@@ -99,6 +100,17 @@ class WorkerSupabaseClient(SupabaseRestClient):
             f"?id=eq.{application_id}"
         )
         self._patch(endpoint, fields)
+
+    def promote_run(self, run_id: str) -> dict[str, Any]:
+        """Promote one completed crawl run into the product catalogue."""
+        endpoint = f"{self.base_url}/rest/v1/rpc/promote_crawl_run"
+        result = self._rpc_post(
+            endpoint,
+            {"p_run_id": run_id, "p_dry_run": False},
+        )
+        if not isinstance(result, dict) or result.get("ok") is not True:
+            raise RuntimeError("Catalog promotion returned an invalid result.")
+        return result
 
     def get_university(self, university_id: int) -> dict | None:
         """Fetch a single university row that is approved for crawling."""
@@ -206,7 +218,7 @@ class WorkerSupabaseClient(SupabaseRestClient):
         with self.opener(req, timeout=20):
             pass
 
-    def _rpc_post(self, endpoint: str, payload: dict) -> list[dict]:
+    def _rpc_post(self, endpoint: str, payload: dict) -> Any:
         import json
         body = json.dumps(payload).encode()
         req = Request(
@@ -422,12 +434,40 @@ def process_one_job(
     if existing:
         run_id = existing["crawl_run"]["id"]
         programme_id = existing["programme_id"]
+        try:
+            client.promote_run(run_id)
+            catalog_course = _resolve_catalog_course(client, programme_id)
+        except Exception as exc:  # noqa: BLE001
+            log.exception(
+                "Catalog promotion failed for cache run %s",
+                run_id,
+            )
+            return JobOutcome(
+                status="retry",
+                error_code=ERR_PROMOTION_FAILED,
+                error_message=type(exc).__name__,
+                result_run_id=run_id,
+                result_programme_id=programme_id,
+                cache_hit=True,
+            )
+        if not catalog_course:
+            return JobOutcome(
+                status="retry",
+                error_code=ERR_PROMOTION_FAILED,
+                error_message="CatalogCourseNotFound",
+                result_run_id=run_id,
+                result_programme_id=programme_id,
+                cache_hit=True,
+            )
         return JobOutcome(
             status="complete",
             result_run_id=run_id,
             result_programme_id=programme_id,
             cache_hit=True,
-            application_fields=_programme_application_fields(existing),
+            application_fields={
+                **_programme_application_fields(existing),
+                "course_id": catalog_course["id"],
+            },
         )
 
     if seed is None:
@@ -519,12 +559,43 @@ def process_one_job(
             result_run_id=result.run_id,
         )
 
+    try:
+        client.promote_run(result.run_id)
+        catalog_course = _resolve_catalog_course(
+            client,
+            programme["programme_id"],
+        )
+    except Exception as exc:  # noqa: BLE001
+        log.exception(
+            "Catalog promotion failed for job %s run %s",
+            job_id,
+            result.run_id,
+        )
+        return JobOutcome(
+            status="retry",
+            error_code=ERR_PROMOTION_FAILED,
+            error_message=type(exc).__name__,
+            result_run_id=result.run_id,
+            result_programme_id=programme["programme_id"],
+        )
+    if not catalog_course:
+        return JobOutcome(
+            status="retry",
+            error_code=ERR_PROMOTION_FAILED,
+            error_message="CatalogCourseNotFound",
+            result_run_id=result.run_id,
+            result_programme_id=programme["programme_id"],
+        )
+
     return JobOutcome(
         status="complete",
         result_run_id=result.run_id,
         result_programme_id=programme["programme_id"],
         cache_hit=False,
-        application_fields=_programme_application_fields(programme),
+        application_fields={
+            **_programme_application_fields(programme),
+            "course_id": catalog_course["id"],
+        },
     )
 
 
@@ -540,6 +611,23 @@ def _programme_application_fields(programme: Mapping[str, Any]) -> dict[str, Any
         for source, target in mapping.items()
         if programme.get(source)
     }
+
+
+def _resolve_catalog_course(
+    client: WorkerSupabaseClient,
+    programme_id: str,
+) -> dict[str, Any] | None:
+    """Resolve the stable product course created by catalog promotion."""
+    params = urlencode(
+        [
+            ("select", "id,course_name,course_url,verification_status"),
+            ("source_programme_id", f"eq.{programme_id}"),
+            ("limit", "2"),
+        ]
+    )
+    endpoint = f"{client.base_url}/rest/v1/courses?{params}"
+    rows = client._get(endpoint)
+    return rows[0] if len(rows) == 1 else None
 
 
 def _resolve_programme(

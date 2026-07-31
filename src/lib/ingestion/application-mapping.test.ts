@@ -83,6 +83,7 @@ describe('mapIngestionResultToApplication', () => {
       applicationId: 'app-1',
       runId: 'run-1',
       programmeId: 'programme-1',
+      courseId: 'course-1',
       cacheHit: false,
       jobId: 'job-1',
     });
@@ -98,6 +99,7 @@ describe('mapIngestionResultToApplication', () => {
         deadline_source: 'https://example.edu/deadlines',
         crawl_run_id: 'run-1',
         crawl_programme_id: 'programme-1',
+        course_id: 'course-1',
       })
     );
   });

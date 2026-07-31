@@ -86,6 +86,7 @@ def _mock_client(
     client = MagicMock(spec=WorkerSupabaseClient)
     client.get_university.return_value = university_row
     client.lookup_cache.return_value = cache_result
+    client.promote_run.return_value = {"ok": True}
     client.claim_jobs.return_value = claim_jobs or []
     client.update_job.return_value = None
     client.update_application.return_value = None
@@ -191,7 +192,13 @@ class TestCacheRecheck(unittest.TestCase):
             hostname="stateuniversity.edu",
             resolved_ips=("1.2.3.4",),
         )
-        with patch("glowbal_ingestion.worker.validate_url", return_value=mock_validated):
+        with patch(
+            "glowbal_ingestion.worker.validate_url",
+            return_value=mock_validated,
+        ), patch(
+            "glowbal_ingestion.worker._resolve_catalog_course",
+            return_value={"id": "course-1"},
+        ):
             outcome = process_one_job(
                 job,
                 client=client,
@@ -203,6 +210,10 @@ class TestCacheRecheck(unittest.TestCase):
         self.assertTrue(outcome.cache_hit)
         self.assertEqual(outcome.result_programme_id, CACHE_HIT_PROGRAMME["programme_id"])
         self.assertEqual(outcome.result_run_id, CACHE_HIT_PROGRAMME["run_id"])
+        self.assertEqual(outcome.application_fields["course_id"], "course-1")
+        client.promote_run.assert_called_once_with(
+            CACHE_HIT_PROGRAMME["run_id"]
+        )
 
 
     def test_cache_miss_proceeds_to_pipeline(self):
@@ -238,6 +249,9 @@ class TestCacheRecheck(unittest.TestCase):
         ) as importer, patch(
             "glowbal_ingestion.worker._resolve_programme",
             return_value=programme,
+        ), patch(
+            "glowbal_ingestion.worker._resolve_catalog_course",
+            return_value={"id": "course-1"},
         ):
             outcome = process_one_job(
                 VALID_JOB,
@@ -264,6 +278,7 @@ class TestCacheRecheck(unittest.TestCase):
             run_pipeline.call_args.kwargs["allow_unreviewed_terms"]
         )
         self.assertTrue(importer.call_args.kwargs["apply"])
+        client.promote_run.assert_called_once_with("run-1")
 
 
 # ---------------------------------------------------------------------------

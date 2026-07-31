@@ -58,3 +58,6 @@ next-env.d.ts
 /services/data-ingestion/crawl_state.sqlite*
 /services/data-ingestion/build/
 /services/data-ingestion/src/*.egg-info/
+
+/output
+/.playwright-cli

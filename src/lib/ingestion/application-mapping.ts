@@ -18,6 +18,7 @@ export interface IngestionMappingInput {
   applicationId: string;
   runId: string;
   programmeId: string;
+  courseId: string;
   cacheHit: boolean;
   jobId: string;
 }
@@ -108,6 +109,7 @@ export async function mapIngestionResultToApplication(
     // Link back to ingestion system
     crawl_run_id: input.runId,
     crawl_programme_id: input.programmeId,
+    course_id: input.courseId,
     ingestion_job_id: input.jobId,
     updated_at: new Date().toISOString(),
   };
@@ -197,6 +199,7 @@ export async function applyCacheHitToApplication(opts: {
   applicationId: string;
   runId: string;
   programmeId: string;
+  courseId: string;
   jobId: string;
   programmeName: string | null;
   degreeLevel: string | null;
@@ -210,6 +213,7 @@ export async function applyCacheHitToApplication(opts: {
     import_status: 'complete',
     crawl_run_id: opts.runId,
     crawl_programme_id: opts.programmeId,
+    course_id: opts.courseId,
     ingestion_job_id: opts.jobId,
     updated_at: new Date().toISOString(),
   };

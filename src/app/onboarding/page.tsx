@@ -1,6 +1,11 @@
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
+<<<<<<< Updated upstream
 import { OnboardingWizard } from './onboarding-wizard';
+=======
+import { OnboardingContainer, ONBOARDING_FLOW_ID, ONBOARDING_FLOW_VERSION } from '@/features/onboarding';
+import type { StoredOnboardingResponse } from '@/features/onboarding';
+>>>>>>> Stashed changes
 
 /**
  * GLOWBAL onboarding entry — rebuilt from Figma câu 1–9.
@@ -15,9 +20,18 @@ export default async function OnboardingPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const profile = user
-    ? (await supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle()).data
-    : null;
+  const [{ data: profile }, { data: response }] = user
+    ? await Promise.all([
+      supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+      supabase
+        .from('student_onboarding_responses')
+        .select('flow_id, flow_version, answers, completed_steps, status')
+        .eq('user_id', user.id)
+        .eq('flow_id', ONBOARDING_FLOW_ID)
+        .eq('flow_version', ONBOARDING_FLOW_VERSION)
+        .maybeSingle(),
+    ])
+    : [{ data: null }, { data: null }];
 
   const userName =
     (user?.user_metadata?.full_name as string | undefined) ||
@@ -26,6 +40,7 @@ export default async function OnboardingPage() {
   const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
 
   return (
+<<<<<<< Updated upstream
     <Suspense fallback={null}>
       <OnboardingWizard
         initialProfile={profile}
@@ -34,5 +49,16 @@ export default async function OnboardingPage() {
         userAvatarUrl={userAvatarUrl}
       />
     </Suspense>
+=======
+    <main className="onboarding-page-redesign relative min-h-screen overflow-hidden bg-[var(--color-bg)]">
+      <Suspense fallback={null}>
+        <OnboardingContainer
+          initialProfile={profile}
+          initialResponse={response as StoredOnboardingResponse}
+          isSignedIn={!!user}
+        />
+      </Suspense>
+    </main>
+>>>>>>> Stashed changes
   );
 }

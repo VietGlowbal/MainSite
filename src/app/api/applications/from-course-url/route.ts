@@ -277,6 +277,7 @@ export async function POST(request: Request) {
             applicationId: newApp.id,
             runId: cacheResult.runId,
             programmeId: cacheResult.programmeId,
+            courseId: cacheResult.courseId,
             jobId: job.id,
             programmeName: cacheResult.programmeName,
             degreeLevel: cacheResult.degreeLevel,
