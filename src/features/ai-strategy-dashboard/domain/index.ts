@@ -11,16 +11,21 @@ export {
   completionPercent,
   groupByCategory,
   nextPriority,
+  reconcileRecommendations,
   recommendationFromImprovementAction,
   recommendationFromRow,
   recommendationStatusPatchSchema,
   sortByPriority,
 } from './recommendation';
 export type {
+  ExistingRecommendation,
   ProgressStatus,
+  ReconcilePlan,
   Recommendation,
   RecommendationPriority,
+  RecommendationSeed,
   RecommendationStatusPatch,
+  RecommendationUpdate,
 } from './recommendation';
 
 export { APPLICANT_ANALYSIS_SECTIONS, hasSectionContent } from './applicant-analysis';

@@ -38,6 +38,7 @@ async function listRecommendations(
     .select('*')
     .eq('application_id', applicationId)
     .not('category', 'is', null)
+    .is('archived_at', null)
     .order('priority', { ascending: false });
   return data ?? [];
 }
@@ -69,14 +70,14 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const application = await loadApplication(supabase, applicationId, user.id);
   if (!application) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
-  const { error } = await generateRecommendations(supabase, applicationId);
-  if (error === 'no_match_analysis') {
+  const result = await generateRecommendations(supabase, applicationId);
+  if (result.error === 'no_match_analysis') {
     return NextResponse.json(
       { error: 'Run your Course Match Analysis first so we know what to recommend.' },
       { status: 422 },
     );
   }
-  if (error === 'insert_failed') {
+  if (!result.ok) {
     return NextResponse.json(
       { error: 'Could not save your recommendations. If this persists, the database migration may be missing.' },
       { status: 500 },
