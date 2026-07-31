@@ -14,6 +14,12 @@ export { AutosaveStatus } from './autosave-status';
 export { SuggestionCard } from './suggestion-card';
 export { CvSteps } from './cv-steps';
 export { TargetProfileWorkspace } from './target-profile-workspace';
+export { CvContentWorkspace } from './cv-content-workspace';
+export type { CvContentWorkspaceProps } from './cv-content-workspace';
+export { CvImportFlow } from './cv-import-flow';
+export type { ExistingDocument } from './cv-import-flow';
+export { CvEntryEditor } from './cv-entry-editor';
+export type { EntrySuggestion } from './cv-entry-editor';
 export type { TargetProfileWorkspaceProps } from './target-profile-workspace';
 export {
   AnalysisFailedState,

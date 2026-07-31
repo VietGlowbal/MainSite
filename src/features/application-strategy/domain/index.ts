@@ -58,7 +58,8 @@ export {
   sectionUsesField,
   structuredCvPatchSchema,
 } from './cv-sections';
-export type { CvEntryField, CvStepKey, StructuredCvPatch } from './cv-sections';
+export { countUncertain, uncertainFields } from './cv-sections';
+export type { CvEntryField, CvImportDraft, CvStepKey, StructuredCvPatch } from './cv-sections';
 
 export {
   ORIGIN_LABEL,
@@ -97,6 +98,9 @@ export {
   wordLimitState,
 } from './statement-sections';
 export type { StatementSectionKey, WordLimitState } from './statement-sections';
+
+export { CV_SUGGESTION_ACTIONS, CV_SUGGESTION_ACTION_KEYS } from './cv-suggestions';
+export type { CvSuggestionAction } from './cv-suggestions';
 
 export { buildHighlightRuns, matchQuote } from './quote-match';
 export type { HighlightRun, QuoteMatch, QuotedItem } from './quote-match';

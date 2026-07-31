@@ -254,6 +254,39 @@ export function defaultSections(): CvSection[] {
   return DEFAULT_SECTION_KINDS.map((kind) => emptySection(kind));
 }
 
+// ── Import draft ──────────────────────────────────────────────────────────
+
+/**
+ * What an import produces before the student confirms it.
+ *
+ * WHY A DRAFT TYPE AT ALL, rather than just writing sections. The requirement is
+ * that an import can never silently destroy content the student typed, and the
+ * cheapest way to guarantee that is for the import endpoint to have no write path:
+ * it returns this, the student confirms on screen, and the confirmation is a
+ * separate PATCH. Cancelling therefore leaves existing content untouched by
+ * construction rather than by remembering to.
+ *
+ * `uncertain` maps an entry id to the fields the extractor was not confident
+ * about, which the confirmation screen marks `Please check`. Per field rather than
+ * per entry because "we think this end date is right but we are unsure of the
+ * location" is the common case, and flagging the whole entry would make the
+ * student re-read all of it.
+ */
+export type CvImportDraft = {
+  sections: CvSection[];
+  uncertain: Record<string, CvEntryField[]>;
+  /** Facts about the extraction itself, e.g. "no dates were found anywhere". */
+  notes: string[];
+};
+
+export function uncertainFields(draft: CvImportDraft, entryId: string): CvEntryField[] {
+  return draft.uncertain[entryId] ?? [];
+}
+
+export function countUncertain(draft: CvImportDraft): number {
+  return Object.values(draft.uncertain).reduce((n, fields) => n + fields.length, 0);
+}
+
 // ── HTTP validation ───────────────────────────────────────────────────────
 
 /**
