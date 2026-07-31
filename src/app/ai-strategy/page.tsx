@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { AI_JOURNEY, aiJourneySteps } from '@/features/apply/domain';
 import {
@@ -40,10 +41,26 @@ export default async function AiStrategyPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  /*
+   * SIGN IN TO SEE IT — owner's instruction, 31/07, paired with the same rule
+   * on /apply.
+   *
+   * The LINK stays in the nav for everyone (see MARKETING_NAV_ITEMS): that is
+   * how a visitor discovers the feature exists. The PAGE is the student's own
+   * strategy journey — their reflection, their candidate portrait, their essay
+   * and CV feedback — so it opens on the sign-in screen and comes back here
+   * afterwards.
+   *
+   * Gated here rather than in src/proxy.ts to match /apply, which cannot use
+   * PROTECTED_ROUTES because ?openCourseSearch has to stay reachable
+   * signed-out. Two pages, one visible rule, in the file each belongs to.
+   */
+  if (!user) redirect('/auth?redirect=%2Fai-strategy');
+
   const userName =
-    (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
-  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
-  const isSignedIn = Boolean(user);
+    (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || null;
+  const userAvatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
+  const isSignedIn = true;
 
   const primaryAction = { href: '/universities', label: 'Search universities' };
 

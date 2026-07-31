@@ -44,8 +44,14 @@ export const translations: Record<string, string> = {
   // Mobile hamburger sheet. "Plan your studies" is the designer's CTA copy.
   Menu: 'Menu',
   'Close menu': 'Đóng menu',
+  // Still the CTA button's copy (MARKETING_NAV_ACTIONS.primary -> /onboarding),
+  // which is what a guest sees. The nav ITEM that used to share this string is
+  // now "Application" below.
   'Plan your studies': 'Lập kế hoạch du học',
   'Build your application strategy':'Lên chiến lược ứng tuyển',
+  // Nav item -> /apply, signed-in only. Renamed from "Plan your studies" on
+  // 31/07 when that page absorbed the saved list.
+  Application: 'Ứng tuyển',
 
   // ── Home hero (Figma 375:9857) ───────────────────────────────────────────
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
@@ -1166,16 +1172,51 @@ export const translations: Record<string, string> = {
   'See all scholarships': 'Xem tất cả học bổng',
   'Colleges and programmes': 'Các trường & chương trình',
 
-  // ── Saved list, /my-universities (Figma 375:12701 · 375:12841 · 375:13295 ·
-  //    375:13369 · 502:18462) and the subject picker (375:13546) ─────────────
+  // ── "My application", the upper half of /apply (Figma 562:15386) ──────────
   //
-  // ⚠️ EVERY string on these two routes has to be here. `/my-universities` is in
+  // ⚠️ These were MISSING until the merge, and the omission was invisible for
+  // the same reason it mattered: /apply has been in PII_ROUTE_PREFIXES all
+  // along, so there was no machine fallback to paper over them — the tracker's
+  // heading, its subtitle and the import bar simply sat in English on the
+  // Vietnamese page. Same rule as the saved-list block below: every string.
+  'My application': 'Hồ sơ ứng tuyển của tôi',
+  'The courses you are applying to, how far along each one is, and what is due next.':
+    'Các khoá học bạn đang ứng tuyển, tiến độ từng hồ sơ và việc cần làm tiếp theo.',
+  'Nothing here yet — plan one from your saved list below, or add a course by URL.':
+    'Chưa có gì ở đây — lên kế hoạch từ danh sách đã lưu bên dưới, hoặc thêm khoá học bằng link.',
+  'Continue applying': 'Tiếp tục apply',
+  // `Deadline` is already keyed further up (line ~442) and covers this row too.
+  'Add a course': 'Thêm khoá học',
+  'Paste a university course page URL': 'Dán link trang khoá học của trường',
+  'Add course': 'Thêm khoá học',
+  'Adding…': 'Đang thêm…',
+  'We parse the official course page and build your application checklist from it.':
+    'Chúng tôi đọc trang khoá học chính thức và dựng danh sách việc cần làm từ đó.',
+  'GlowBal’s AI is reading the course page and building your checklist…':
+    'AI của GlowBal đang đọc trang khoá học và dựng danh sách việc cần làm…',
+  'Could not reach the server. Please try again.':
+    'Không kết nối được máy chủ. Vui lòng thử lại.',
+
+  // ── Saved list, now the lower half of /apply (Figma 562:15078, previously
+  //    375:12701 · 375:12841 · 375:13295 · 375:13369 · 502:18462) and the
+  //    subject picker (375:13546) ────────────────────────────────────────────
+  //
+  // ⚠️ EVERY string on these two routes has to be here. `/apply` is in
   // PII_ROUTE_PREFIXES (src/lib/dom-translate.tsx), so whole-page machine
   // translation is switched OFF — there is no fallback, and anything missing
   // sits in English on a Vietnamese page permanently. That is also why the
   // components split labels away from values: an interpolated "Scholarship 50%"
   // or "Deadline: 5 Jan 2026" could never be a dictionary hit.
   'Saved list': 'Danh sách đã lưu',
+  // Added with the merge — the two sections now talk to each other.
+  'Go to my saved list': 'Đến danh sách đã lưu',
+  'Tick a university in your saved list below and plan its application, or paste a course page URL above.':
+    'Chọn một trường trong danh sách đã lưu bên dưới và lên kế hoạch ứng tuyển, hoặc dán link trang khoá học ở trên.',
+  'We could not set those applications up. Please try again.':
+    'Chúng tôi không thiết lập được các hồ sơ đó. Vui lòng thử lại.',
+  'We need the course page link to build a checklist. Open "Change subject here" on that university and paste the link to the course.':
+    'Chúng tôi cần link trang khoá học để dựng danh sách việc cần làm. Mở "Đổi ngành tại đây" ở trường đó và dán link khoá học.',
+  'Setting up your application': 'Đang thiết lập hồ sơ ứng tuyển của bạn',
   'The universities you have saved, with their deadlines and any scholarships you have attached.':
     'Các trường bạn đã lưu, kèm hạn chót và học bổng bạn đã áp dụng.',
   'Nothing saved yet — the universities you save while browsing show up here.':

@@ -45,15 +45,17 @@ the code, the code wins.
 
 ## Figma
 
-- **File key:** `Ut5pryBVlc1MpxI4IrnkIm` — confirmed live 2026-07-28 from URLs
+- **File key:** `5Ip9znpaxp6RVByU7Qr35l` — confirmed live 2026-07-31 from a URL
   the owner supplied. The file is named "GLOWBAL - Edtech (Copy)".
-  URL shape: `https://figma.com/design/Ut5pryBVlc1MpxI4IrnkIm/...?node-id=<a>-<b>`
-  ⚠️ **THREE stale keys have been recorded in this repo.** None of them resolve:
+  URL shape: `https://figma.com/design/5Ip9znpaxp6RVByU7Qr35l/...?node-id=<a>-<b>`
+  ⚠️ **FOUR stale keys have now been recorded in this repo.** None resolve:
+  `Ut5pryBVlc1MpxI4IrnkIm` (believed live on 2026-07-28 — this line said so),
   `oveiFvtHONGfkZwXqfmPKc` (an earlier version of THIS file, believed live on
   2026-07-27), `aGN2e7Ms9HpD5EdUSydowr` (older still), and
   `4gHWPze5ngIizbTtujEcQL` (still in the header comment of
-  `src/styles/tokens.css`). The key moves. Verify against the owner's URL rather
-  than trusting any of these, including the one above.
+  `src/styles/tokens.css`). **The key moves roughly every time the owner sends a
+  link.** Do not trust this line either — take the key from whatever URL they
+  paste. The canvas node ids have been stable across all of them.
 - **Canvases — there are THREE, and Figma's page index lists only two:**
 
   | Canvas | Node | Role |

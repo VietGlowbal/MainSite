@@ -9,10 +9,16 @@ import { ICONS, KitIcon } from '@/shared/ui';
 /**
  * The way to the saved list — a heart with a count, in the header.
  *
- * WHY THIS EXISTS. Until now nothing in the product linked to
- * `/my-universities` at all. The page was built, the heart on a university saved
- * to it, `src/proxy.ts` sent every fresh sign-in there — and there was no way to
- * get back to it except typing the URL. A cart nobody can open is not a cart.
+ * Points at `/apply#saved` since the merge: the saved list is the lower half of
+ * that page (Figma 562:15078), and the anchor scrolls past the applications
+ * tracker to it. `#saved` is a contract with `SavedListSection`, which carries
+ * that id and a `scroll-mt-gb-9xl` so the sticky header does not cover the
+ * heading.
+ *
+ * WHY THIS EXISTS. Before it, nothing in the product linked to the saved list at
+ * all. The page was built, the heart on a university saved to it, `src/proxy.ts`
+ * sent every fresh sign-in there — and there was no way to get back to it except
+ * typing the URL. A cart nobody can open is not a cart.
  * (This is the second time on this feature: the university detail page shipped
  * unreachable for two days for the same reason. Grep for who links to a page
  * before calling it done.)
@@ -84,7 +90,7 @@ export function SavedNavLink({
   if (variant === 'row') {
     return (
       <Link
-        href="/my-universities"
+        href="/apply#saved"
         data-saved-count={count}
         className="mb-gb-lg flex w-full items-center justify-between rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-medium text-fg-tertiary transition-colors hover:bg-surface-hover"
       >
@@ -112,7 +118,7 @@ export function SavedNavLink({
    */
   return (
     <Link
-      href="/my-universities"
+      href="/apply#saved"
       aria-label={label}
       title={label}
       data-saved-count={count}
