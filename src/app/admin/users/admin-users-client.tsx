@@ -1,8 +1,16 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Pagination } from '@/components/ui/pagination';
+import {
+  Badge,
+  Button,
+  Pagination,
+  Panel,
+  StatTile,
+  controlClasses,
+} from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { Alert, EmptyRow, TableShell, TD, TH } from '../_ui';
 
 const USERS_PER_PAGE = 10;
 
@@ -26,16 +34,28 @@ type LoadState =
   | { kind: 'ready'; users: AdminUser[] }
   | { kind: 'error'; message: string };
 
+const FILTERS = [
+  { key: 'all', label: 'All' },
+  { key: 'admins', label: 'Admins' },
+  { key: 'mentors', label: 'Mentors' },
+] as const;
+
+type Filter = (typeof FILTERS)[number]['key'];
+
 function formatDate(value: string | null) {
   if (!value) return '—';
-  return new Date(value).toLocaleDateString();
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
 }
 
 export function AdminUsersClient() {
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [busy, setBusy] = useState<string | null>(null);
   useLoadingIndicator(busy !== null, 'Updating the user');
-  const [filter, setFilter] = useState<'all' | 'admins' | 'mentors'>('all');
+  const [filter, setFilter] = useState<Filter>('all');
   const [query, setQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -153,16 +173,16 @@ export function AdminUsersClient() {
   );
 
   if (state.kind === 'loading') {
-    return <p className="text-sm text-slate-400">Loading users…</p>;
+    return <Panel className="text-gb-sm text-fg-muted">Loading users…</Panel>;
   }
   if (state.kind === 'error') {
     return (
-      <div className="glow-card-tight space-y-2">
-        <p className="text-sm text-red-600">{state.message}</p>
-        <button type="button" className="glow-button-secondary text-xs px-4 py-2" onClick={() => void load()}>
+      <Panel className="flex flex-col items-start gap-gb-xl">
+        <Alert tone="error">{state.message}</Alert>
+        <Button variant="secondary" size="lg" onClick={() => void load()}>
           Try again
-        </button>
-      </div>
+        </Button>
+      </Panel>
     );
   }
 
@@ -171,181 +191,141 @@ export function AdminUsersClient() {
   const mentorCount = state.users.filter((u) => u.mentor_status).length;
 
   return (
-    <div className="space-y-4">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <SummaryCard label="Total users" value={total} />
-        <SummaryCard label="Admins" value={adminCount} tone="pink" />
-        <SummaryCard label="Mentor profiles" value={mentorCount} tone="sky" />
+    <div className="flex flex-col gap-gb-3xl">
+      <div className="grid gap-gb-xl sm:grid-cols-3">
+        <StatTile label="Total users" value={total} />
+        <StatTile label="Admins" value={adminCount} tone="brand" />
+        <StatTile label="Mentor profiles" value={mentorCount} tone="info" />
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          {(['all', 'admins', 'mentors'] as const).map((key) => (
+      <div className="flex flex-wrap items-center justify-between gap-gb-xl">
+        <div className="flex flex-wrap gap-gb-md" role="group" aria-label="Filter users">
+          {FILTERS.map(({ key, label }) => (
             <button
               key={key}
               type="button"
               onClick={() => setFilter(key)}
-              className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+              aria-pressed={filter === key}
+              className={`rounded-gb-full border px-gb-xl py-gb-md text-gb-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                 filter === key
-                  ? 'border-pink-300 bg-pink-50 text-pink-600'
-                  : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300'
+                  ? 'border-brand bg-brand-subtle text-fg-brand'
+                  : 'border-line-strong bg-surface text-fg-secondary hover:bg-surface-hover'
               }`}
             >
-              {key === 'all' ? 'All' : key === 'admins' ? 'Admins' : 'Mentors'}
+              {label}
             </button>
           ))}
         </div>
+
         <input
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search by name, email, or ID"
-          className="glow-input max-w-xs text-sm"
+          aria-label="Search users"
+          className={controlClasses(false, 'max-w-gb-width-sm')}
         />
       </div>
 
-      {error && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white/90">
-        <table className="w-full text-sm">
-          <thead className="text-left text-xs uppercase tracking-wider text-slate-500">
-            <tr className="border-b border-slate-200">
-              <th className="px-4 py-3">User</th>
-              <th className="px-4 py-3">Roles</th>
-              <th className="px-4 py-3">Onboarded</th>
-              <th className="px-4 py-3">Joined</th>
-              <th className="px-4 py-3">Last sign-in</th>
-              <th className="px-4 py-3 text-right">Logins</th>
-              <th className="px-4 py-3 text-right">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.length === 0 ? (
-              <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-sm text-slate-400">
-                  No users match.
-                </td>
-              </tr>
-            ) : (
-              paged.map((u) => {
-                const isBusy = busy === u.id;
-                return (
-                  <tr key={u.id} className="border-b border-slate-100 last:border-0">
-                    <td className="px-4 py-3">
-                      <div className="font-medium text-slate-900">
+      <TableShell>
+        <thead className="border-b border-line bg-surface-muted">
+          <tr>
+            <th scope="col" className={TH}>User</th>
+            <th scope="col" className={TH}>Roles</th>
+            <th scope="col" className={TH}>Onboarded</th>
+            <th scope="col" className={TH}>Joined</th>
+            <th scope="col" className={TH}>Last sign-in</th>
+            <th scope="col" className={`${TH} text-right`}>Logins</th>
+            <th scope="col" className={`${TH} text-right`}>Actions</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-line">
+          {filtered.length === 0 ? (
+            <EmptyRow colSpan={7}>No users match.</EmptyRow>
+          ) : (
+            paged.map((u) => {
+              const isBusy = busy === u.id;
+              return (
+                <tr key={u.id}>
+                  <td className={TD}>
+                    <div className="flex flex-col gap-gb-xxs">
+                      <span className="font-medium text-fg">
                         {u.full_name ?? u.mentor_name ?? '—'}
-                      </div>
-                      <div className="text-xs text-slate-500">{u.email ?? '(no email)'}</div>
-                      <div className="font-mono text-[0.65rem] text-slate-400">{u.id}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap gap-1">
-                        {u.is_admin && <Badge tone="pink">Admin</Badge>}
-                        {u.is_coordinator && <Badge tone="sky">Coordinator</Badge>}
-                        {u.mentor_status && (
-                          <Badge tone={u.mentor_status === 'approved' ? 'emerald' : 'amber'}>
-                            Mentor · {u.mentor_status}
-                          </Badge>
-                        )}
-                        {!u.is_admin && !u.is_coordinator && !u.mentor_status && (
-                          <span className="text-xs text-slate-400">Student</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {u.onboarding_completed ? (
-                        <span className="text-emerald-600">Yes</span>
-                      ) : (
-                        <span className="text-slate-400">No</span>
+                      </span>
+                      <span className="text-gb-xs text-fg-tertiary">
+                        {u.email ?? '(no email)'}
+                      </span>
+                      <span className="font-mono text-gb-xs text-fg-muted">{u.id}</span>
+                    </div>
+                  </td>
+                  <td className={TD}>
+                    <div className="flex flex-wrap gap-gb-xs">
+                      {u.is_admin && <Badge variant="brand-chip">Admin</Badge>}
+                      {u.is_coordinator && <Badge variant="info-chip">Coordinator</Badge>}
+                      {u.mentor_status && (
+                        <Badge
+                          variant={u.mentor_status === 'approved' ? 'safe-chip' : 'neutral-chip'}
+                        >
+                          Mentor · {u.mentor_status}
+                        </Badge>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">{formatDate(u.created_at)}</td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {formatDate(u.last_sign_in_at)}
-                    </td>
-                    <td className="px-4 py-3 text-right text-sm font-semibold text-slate-700">
-                      {u.login_count}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex justify-end gap-2">
-                        <button
-                          type="button"
-                          disabled={isBusy}
-                          onClick={() => void setAdmin(u.id, !u.is_admin)}
-                          className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-pink-300 hover:text-pink-600 disabled:opacity-50"
-                        >
-                          {u.is_admin ? 'Remove admin' : 'Make admin'}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={isBusy}
-                          onClick={() => void kickUser(u)}
-                          className="rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                        >
-                          Kick
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })
-            )}
-          </tbody>
-        </table>
-      </div>
+                      {!u.is_admin && !u.is_coordinator && !u.mentor_status && (
+                        <span className="text-gb-xs text-fg-muted">Student</span>
+                      )}
+                    </div>
+                  </td>
+                  <td className={TD}>
+                    {u.onboarding_completed ? (
+                      <Badge variant="safe-chip">Yes</Badge>
+                    ) : (
+                      <Badge variant="neutral-chip">No</Badge>
+                    )}
+                  </td>
+                  <td className={`${TD} text-fg-muted`}>{formatDate(u.created_at)}</td>
+                  <td className={`${TD} text-fg-muted`}>{formatDate(u.last_sign_in_at)}</td>
+                  <td className={`${TD} text-right font-semibold text-fg`}>{u.login_count}</td>
+                  <td className={TD}>
+                    <div className="flex justify-end gap-gb-md">
+                      <Button
+                        variant="secondary"
+                        disabled={isBusy}
+                        onClick={() => void setAdmin(u.id, !u.is_admin)}
+                      >
+                        {u.is_admin ? 'Remove admin' : 'Make admin'}
+                      </Button>
+                      {/*
+                        Deletion is permanent and there is no undo, so it does
+                        not get a `primary` button — `secondary-destructive` is
+                        secondary geometry in the error ramp, which reads as
+                        "deliberate" rather than as the obvious next step.
+                      */}
+                      <Button
+                        variant="secondary-destructive"
+                        disabled={isBusy}
+                        onClick={() => void kickUser(u)}
+                      >
+                        Kick
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })
+          )}
+        </tbody>
+      </TableShell>
 
       {filtered.length > 0 && (
-        <div className="flex flex-col items-center gap-2">
-          <Pagination page={currentPage} pageCount={pageCount} onChange={setPage} />
-          <p className="text-xs text-slate-400">
+        <div className="flex flex-col items-center gap-gb-md">
+          <Pagination page={currentPage} totalPages={pageCount} onPageChange={setPage} />
+          <p className="text-gb-xs text-fg-muted">
             Showing {(currentPage - 1) * USERS_PER_PAGE + 1}–
             {Math.min(currentPage * USERS_PER_PAGE, filtered.length)} of {filtered.length}
           </p>
         </div>
       )}
     </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  tone = 'slate',
-}: {
-  label: string;
-  value: number;
-  tone?: 'slate' | 'pink' | 'sky';
-}) {
-  const toneClass =
-    tone === 'pink' ? 'text-pink-600' : tone === 'sky' ? 'text-sky-600' : 'text-slate-900';
-  return (
-    <div className="glow-card-tight">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</p>
-    </div>
-  );
-}
-
-function Badge({
-  children,
-  tone,
-}: {
-  children: React.ReactNode;
-  tone: 'pink' | 'emerald' | 'amber' | 'sky';
-}) {
-  const styles: Record<typeof tone, string> = {
-    pink: 'border-pink-200 bg-pink-50 text-pink-700',
-    emerald: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    amber: 'border-amber-200 bg-amber-50 text-amber-700',
-    sky: 'border-sky-200 bg-sky-50 text-sky-700',
-  };
-  return (
-    <span className={`inline-flex rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${styles[tone]}`}>
-      {children}
-    </span>
   );
 }

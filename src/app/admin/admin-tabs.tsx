@@ -12,13 +12,21 @@ const TABS = [
   { href: '/admin/coordinators', label: 'Coordinators', match: 'prefix' as const },
 ];
 
+/**
+ * The console's section rail. It sits on the dark header band, so the active
+ * tab is the light surface and the rest are the dark-band foreground ramp —
+ * the same inversion the footer and top nav use, rather than a second set of
+ * greys invented for this one control.
+ *
+ * Wraps rather than scrolls: six labels at 14px fit two rows on a 375px screen,
+ * and a horizontal scroller hides tabs behind an edge with nothing to say they
+ * are there.
+ */
 export function AdminTabs() {
   const pathname = usePathname();
+
   return (
-    <nav
-      aria-label="Admin sections"
-      className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-2 shadow-[0_2px_8px_rgba(15,23,42,0.04)] backdrop-blur"
-    >
+    <nav aria-label="Admin sections" className="flex flex-wrap gap-gb-md">
       {TABS.map((tab) => {
         const active =
           tab.match === 'exact'
@@ -28,10 +36,11 @@ export function AdminTabs() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
+            aria-current={active ? 'page' : undefined}
+            className={`rounded-gb-full px-gb-xl py-gb-md text-gb-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
               active
-                ? 'bg-pink-500 text-white shadow-[0_6px_16px_rgba(255,77,140,0.25)]'
-                : 'text-slate-600 hover:bg-slate-100'
+                ? 'bg-surface text-fg'
+                : 'text-fg-on-inverse-muted hover:bg-surface-inverse hover:text-fg-on-inverse'
             }`}
           >
             {tab.label}

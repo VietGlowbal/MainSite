@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { AdminHeading } from '../_ui';
 import { AdminAchieversClient } from './admin-achievers-client';
 
 /**
@@ -22,15 +23,11 @@ export default async function AdminAchieversPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Mentor applications
-        </h2>
-        <p className="text-sm text-slate-500">
-          Approve or reject incoming mentor signups.
-        </p>
-      </div>
+    <section className="flex flex-col gap-gb-3xl">
+      <AdminHeading
+        title="Mentor applications"
+        description="Approve or reject incoming mentor signups."
+      />
       <AdminAchieversClient applications={applications ?? []} />
     </section>
   );
