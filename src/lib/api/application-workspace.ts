@@ -91,12 +91,17 @@ export async function fetchApplicationWorkspace(
     .limit(1)
     .single();
 
-  // Fetch recommendations
+  // Fetch recommendations — sidebar tips only. `category` is set exclusively
+  // by the AI Strategy Dashboard's recommendation generator
+  // (ai-strategy-dashboard/domain/recommendation.ts); excluding it here keeps
+  // that feature's rows out of this free per-course checklist sidebar, which
+  // reads this table with no other way to tell the two producers apart.
   const { data: recommendations } = await supabase
     .from('application_recommendations')
     .select('*')
     .eq('application_id', applicationId)
     .eq('is_dismissed', false)
+    .is('category', null)
     .order('priority', { ascending: false });
 
   // Calculate metrics

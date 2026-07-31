@@ -10,6 +10,9 @@ export {
   RECOMMENDATION_PRIORITIES,
   completionPercent,
   groupByCategory,
+  nextPriority,
+  recommendationFromImprovementAction,
+  recommendationFromRow,
   recommendationStatusPatchSchema,
   sortByPriority,
 } from './recommendation';

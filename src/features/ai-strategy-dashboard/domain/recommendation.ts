@@ -1,5 +1,6 @@
 import { z } from 'zod';
-import type { ImprovementActionType, PillarKey } from '@/lib/match-insights';
+import type { ImprovementAction, ImprovementActionType, PillarKey } from '@/lib/match-insights';
+import { categoryByPillar } from './strategy-category';
 
 /**
  * Recommendation — one row of `application_recommendations`, extended.
@@ -110,3 +111,90 @@ export const recommendationStatusPatchSchema = z.object({
 });
 
 export type RecommendationStatusPatch = z.infer<typeof recommendationStatusPatchSchema>;
+
+/** The unstarted, highest-priority recommendation — the Dashboard's "Next Priority" (9.1). */
+export function nextPriority(recommendations: readonly Recommendation[]): Recommendation | null {
+  const open = recommendations.filter((r) => r.status !== 'completed');
+  return sortByPriority(open)[0] ?? null;
+}
+
+/** The `application_recommendations` API/DB row shape (snake_case) → `Recommendation`. */
+export function recommendationFromRow(row: Record<string, unknown>): Recommendation {
+  return {
+    id: row.id as string,
+    applicationId: row.application_id as string,
+    category: (row.category as string | null) ?? null,
+    pillar: (row.pillar as PillarKey | null) ?? null,
+    title: row.title as string,
+    reason: (row.body as string | null) ?? null,
+    priority: (row.priority as RecommendationPriority) ?? 'medium',
+    status: (row.status as ProgressStatus) ?? 'not_started',
+    estimatedImpact: (row.estimated_impact as number | null) ?? null,
+    estimatedEffort: (row.estimated_effort as string | null) ?? null,
+    deadline: (row.deadline as string | null) ?? null,
+    evidenceRequired: Boolean(row.evidence_required),
+    relatedRequirement: (row.related_requirement as string | null) ?? null,
+    actionLabel: (row.action_label as string | null) ?? null,
+    actionType: (row.action_type as ImprovementActionType | null) ?? null,
+    actionTarget: (row.action_target as string | null) ?? null,
+    confidence: (row.confidence as number) ?? 0,
+    isDismissed: Boolean(row.is_dismissed),
+    createdAt: row.created_at as string,
+    updatedAt: (row.updated_at as string) ?? (row.created_at as string),
+  };
+}
+
+/**
+ * A new recommendation, built from one AI-generated improvement action — the
+ * row shape `POST /api/applications/[id]/strategy/recommendations` inserts.
+ *
+ * NO SECOND AI CALL. `match-insights`' pillar scoring already asked the model
+ * for course-specific, evidence-based actions (`ImprovementAction`); this is
+ * a deterministic reshaping of that output into the Dashboard's row shape,
+ * the same "extend, don't replace" call `course-match.ts` makes for the
+ * report. `estimatedEffort`, `deadline` and `relatedRequirement` have no
+ * source yet, so they're left null rather than guessed.
+ */
+export function recommendationFromImprovementAction(
+  applicationId: string,
+  action: ImprovementAction,
+): Pick<
+  Recommendation,
+  | 'applicationId'
+  | 'category'
+  | 'pillar'
+  | 'title'
+  | 'reason'
+  | 'priority'
+  | 'estimatedImpact'
+  | 'estimatedEffort'
+  | 'deadline'
+  | 'evidenceRequired'
+  | 'relatedRequirement'
+  | 'actionLabel'
+  | 'actionType'
+  | 'actionTarget'
+> {
+  // Bucketed from the model's own estimatedUplift (0-40, see match-insights'
+  // prompt) rather than re-deriving urgency from scratch — the pillar call
+  // already reasoned about how much each action would help.
+  const priority: RecommendationPriority =
+    action.estimatedUplift >= 20 ? 'high' : action.estimatedUplift >= 10 ? 'medium' : 'low';
+
+  return {
+    applicationId,
+    category: categoryByPillar(action.pillar)?.key ?? null,
+    pillar: action.pillar,
+    title: action.label,
+    reason: action.detail || null,
+    priority,
+    estimatedImpact: action.estimatedUplift,
+    estimatedEffort: null,
+    deadline: null,
+    evidenceRequired: action.actionType === 'upload_document',
+    relatedRequirement: null,
+    actionLabel: action.label,
+    actionType: action.actionType,
+    actionTarget: action.actionTarget ?? null,
+  };
+}

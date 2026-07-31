@@ -97,15 +97,15 @@ Eight phases building the Applicant Analysis, Course Match Analysis and AI Strat
 ### Phase 4: Dashboard (needs Phase 3)
 
 - [x] 10. AI Strategy Introduction page (Requirement 8) — `strategy/intro/page.tsx`, built ahead of the rest of Phase 4 so the analysis page's "Improve My Chances with AI" CTA (Requirement 7.4) has somewhere real to land instead of a placeholder. No Figma node recorded for this screen in `docs/redesign-status.md` to check it against.
-  - Its own CTA ("Generate My Strategy") currently lands on `strategy/dashboard/page.tsx`, an explicit "being built" placeholder — tasks 11-12 replace that page rather than adding a new route.
-- [ ] 11. Dashboard top summary + category board (Requirement 9) — read node `375:19502` / `405:6526` ("strategy") before building the page
-- [ ] 12. Recommendation generator + table (Requirement 10)
+  - Its own CTA ("Generate My Strategy") now lands on the real Dashboard built in tasks 11-12 below, replacing the placeholder.
+- [x] 11. Dashboard top summary + category board (Requirement 9) — `ui/dashboard-summary.tsx` (University/Course/Current Match/Goal/Overall Progress/Next Priority), `ui/strategy-category-board.tsx` (renders `SEEDED_CATEGORIES` with live recommendation counts, "Coming soon" for CV/Portfolio per Open decision 2). Node `375:19502`/`405:6526` ("strategy") not read — Figma MCP still unavailable.
+- [x] 12. Recommendation generator + table (Requirement 10) — `domain/recommendation.ts#recommendationFromImprovementAction` reshapes `application_match_analyses.improvement_actions` (no new AI call, same "extend don't replace" pattern as Course Match Analysis); `api/generate-recommendations.ts` is the shared, idempotent (by title) insert path used by both `POST .../strategy/recommendations` and the Dashboard page's generate-on-first-visit. `ui/recommendation-table.tsx` renders Priority/Recommendation/Reason/Status/Help grouped by category, with a live status control wired to `PATCH .../strategy/recommendations/[recId]` (this pulls Requirement 13's Progress Tracker forward from Phase 5, since the table needs it to be interactive rather than a static list).
+  - **Found and fixed a real bug while wiring this up**: `src/lib/api/application-workspace.ts` (the free per-course checklist's data source) read `application_recommendations` with no filter, so Dashboard-generated rows would have leaked into that unrelated sidebar the moment any existed. Added `.is('category', null)` there — Dashboard rows always set `category`, sidebar tips never do — closing the gap before it could ship a visible bug.
 
 ### Phase 5: Recommendation workspace (needs Phase 4)
 
-- [ ] 13. Recommendation detail page (Requirement 11)
-- [ ] 14. Progress Tracker control (Requirement 13)
-- [ ] 15. Evidence Upload + re-analysis trigger (Requirement 14)
+- [ ] 13. Recommendation detail page (Requirement 11) — Progress Tracker (13) and the "Help" action already work from the table (task 12); this phase is the dedicated page (why this matters / how universities evaluate it / suggested resources) Requirement 11.1 asks for.
+- [ ] 14. Evidence Upload + re-analysis trigger (Requirement 14)
 
 ### Phase 6: AI Coach (needs Phase 4, parallel with Phase 5)
 
@@ -144,12 +144,11 @@ Phase 3 — AI Analysis           (needs 5, 6)
 Phase 4 — Dashboard             (needs 8, 9)
 10 intro ──► 11
 11 summary/categories ──► 12
-12 recommendation table ──► 13, 16
+12 recommendation table (incl. progress tracker) ──► 13, 16
 
 Phase 5 — Recommendation workspace   (needs 12)
-13 detail ──► 14, 15
-14 progress tracker ──► 20
-15 evidence + re-analysis ──► 20
+13 detail ──► 14
+14 evidence + re-analysis ──► 20
 
 Phase 6 — AI Coach              (needs 12, parallel with Phase 5)
 16 coach API ──► 17
@@ -163,7 +162,11 @@ Phases 5 and 6 are independent of each other once Phase 4 lands, so they can pro
 
 ## Notes
 
-**This session ships Phase 0 (decisions 0.3, 0.4 confirmed; 0.1, 0.2 deferred with stated defaults) and Phase 1 only** — migration, domain types, docs cross-link. No pages, no AI prompts, no route handlers ship yet; Phases 2-7 are scoped to roughly one branch each, the same size `feat/strategy-2/3/4` used.
+**Progress so far**: Phase 0 (decisions 0.3, 0.4 confirmed; 0.1, 0.2 deferred with stated defaults), Phase 1 (foundation), Phase 2 (onboarding UI), Phase 3 (AI Analysis) and Phase 4 (Dashboard, including a Progress Tracker pulled forward from Phase 5) are done. The full path from Strategy Home through a working, interactive Dashboard is real. Remaining: Phase 5's Recommendation Detail page and Evidence Upload/re-analysis trigger, Phase 6's AI Coach, and Phase 7's Multiple Strategies switcher + end-to-end pass.
+
+**A separate, urgent fix landed alongside this work** (not tracked as a numbered task, since it predates this spec): the "Build your strategy" nav item, the university page CTA, and `/apply/[applicationId]`'s CTA all pointed at the generic `/ai-strategy` hub with no course context, which — even after Phases 2-4 landed — still showed a static "Coming soon" list because nothing else had wired it up. `/ai-strategy` is now a real hub (a card per existing Strategy, linking into each one) and `/apply/[applicationId]` deep-links straight into that course's own Strategy.
+
+**Figma still hasn't been read.** Every UI-building task above shipped built to this document's text spec and the existing Untitled UI visual language, not the real frames `docs/redesign-status.md` has node ids for. This remains the single biggest follow-up before any of this ships to students widely.
 
 **Migration is manual.** No `supabase/migrations/` runner exists in this repo. `supabase-strategy-dashboard.sql` goes in the repo root and is applied by hand in the Supabase SQL editor, like every other migration here. Task 1.3 exists because "wrote the file" is not "the table exists".
 
