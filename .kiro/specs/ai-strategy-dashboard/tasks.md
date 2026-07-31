@@ -90,12 +90,14 @@ Eight phases building the Applicant Analysis, Course Match Analysis and AI Strat
 
 ### Phase 3: AI Analysis (needs Phase 1, parallel with Phase 6 once Phase 4 lands)
 
-- [ ] 8. Applicant Analysis AI call + report page (Requirement 5, 6) — read node `375:18185` ("portrait") before building the page
-- [ ] 9. Course Match Analysis extension AI call + report page (Requirement 5, 7) — read node `375:18645` ("fit") before building the page
+- [x] 8. Applicant Analysis AI call + report page (Requirement 5, 6) — `src/lib/ai/strategy-dashboard/applicant-analysis.ts` (plain OpenAI JSON-mode, same convention as `match-insights.ts`), `POST/GET /api/applications/[id]/strategy/applicant-analysis`, `ui/applicant-analysis-report.tsx`. Node `375:18185` ("portrait") not read — Figma MCP unavailable this pass, same caveat as Phase 2.
+- [x] 9. Course Match Analysis extension + report page (Requirement 5, 7) — **no new AI call**: `GET /api/applications/[id]/strategy/course-match` reads the existing `application_match_analyses` row (written by the pre-existing `POST /api/applications/[id]/match-insights`) and reshapes it through `domain/course-match.ts#deriveCourseMatchAnalysis`; `ui/course-match-report.tsx` renders it. Generation is delegated to the existing endpoint rather than duplicated — see the note at the top of `strategy/course-match/route.ts`. Node `375:18645` ("fit") not read.
+- [x] 5 (loading state) — `ui/analysis-workspace.tsx` orchestrates both: reads what's stored, generates whichever report is missing, cycles the four Requirement 5.1 messages while waiting, renders both reports once ready, and has a retry action on failure (5.3). Wired at `strategy/analysis/page.tsx`.
 
 ### Phase 4: Dashboard (needs Phase 3)
 
-- [ ] 10. AI Strategy Introduction page (Requirement 8)
+- [x] 10. AI Strategy Introduction page (Requirement 8) — `strategy/intro/page.tsx`, built ahead of the rest of Phase 4 so the analysis page's "Improve My Chances with AI" CTA (Requirement 7.4) has somewhere real to land instead of a placeholder. No Figma node recorded for this screen in `docs/redesign-status.md` to check it against.
+  - Its own CTA ("Generate My Strategy") currently lands on `strategy/dashboard/page.tsx`, an explicit "being built" placeholder — tasks 11-12 replace that page rather than adding a new route.
 - [ ] 11. Dashboard top summary + category board (Requirement 9) — read node `375:19502` / `405:6526` ("strategy") before building the page
 - [ ] 12. Recommendation generator + table (Requirement 10)
 
