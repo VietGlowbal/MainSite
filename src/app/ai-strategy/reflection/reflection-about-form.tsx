@@ -1,18 +1,21 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   EDUCATION_LEVELS,
   FUNDING_SOURCES,
   INTENDED_LEVELS,
+  INTEREST_AREAS,
+  LEARNING_STYLE_OPTIONS,
   TUITION_BUDGETS_USD,
   reflectionStep,
   type AboutYouValues,
   type AspirationsValues,
+  type PersonalSummaryValues,
 } from '@/features/apply/domain';
 import { ReflectionSection, ReflectionShell } from '@/features/apply/ui';
-import { Button, Input, RangeHistogram, Select } from '@/shared/ui';
+import { Button, Checkbox, Input, RangeHistogram, Select, Textarea } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
@@ -49,10 +52,17 @@ function formatVnd(value: number): string {
   return `${Math.round(value).toLocaleString('vi-VN')} VND`;
 }
 
-export type AboutFormValues = AboutYouValues & AspirationsValues;
+export type AboutFormValues = AboutYouValues & AspirationsValues & PersonalSummaryValues;
 
 export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
   const router = useRouter();
+  /**
+   * Set when a Strategy (ai-strategy-dashboard) sent the student here because
+   * their Personal Summary/Achievements weren't done yet — carried through
+   * both steps so achievements' final submit can send them back to that
+   * Strategy instead of the standalone flow's default landing page.
+   */
+  const returnTo = useSearchParams().get('return');
   const [values, setValues] = useState<AboutFormValues>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +94,8 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
         return;
       }
 
-      router.push(reflectionStep('evidence').path);
+      const nextPath = reflectionStep('evidence').path;
+      router.push(returnTo ? `${nextPath}?return=${encodeURIComponent(returnTo)}` : nextPath);
     } catch {
       setError('We could not save that. Please try again.');
       setSaving(false);
@@ -117,6 +128,68 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
             placeholder="Vietnam"
             value={values.nationality ?? ''}
             onChange={(e) => set('nationality', e.target.value || undefined)}
+          />
+
+          <Input
+            name="country"
+            label="What country do you currently live in?"
+            placeholder="Vietnam"
+            value={values.country ?? ''}
+            onChange={(e) => set('country', e.target.value || undefined)}
+          />
+
+          <Input
+            name="languages"
+            label="Which languages do you speak?"
+            placeholder="Vietnamese, English"
+            hint="Separate several with a comma."
+            value={values.languages.join(', ')}
+            onChange={(e) => set('languages', splitList(e.target.value))}
+          />
+
+          <Input
+            name="age"
+            label="Age"
+            type="number"
+            min={10}
+            max={100}
+            value={values.age ?? ''}
+            onChange={(e) => set('age', e.target.value ? Number(e.target.value) : undefined)}
+          />
+        </ReflectionSection>
+
+        <ReflectionSection title="Học vấn">
+          <Input
+            name="schoolName"
+            label="School"
+            placeholder="Hanoi - Amsterdam High School"
+            value={values.schoolName ?? ''}
+            onChange={(e) => set('schoolName', e.target.value || undefined)}
+          />
+
+          <Input
+            name="currentYear"
+            label="Current year"
+            placeholder="Grade 11"
+            value={values.currentYear ?? ''}
+            onChange={(e) => set('currentYear', e.target.value || undefined)}
+          />
+
+          <Input
+            name="currentSubjects"
+            label="Subjects you are currently studying"
+            placeholder="Maths, Physics, English"
+            hint="Separate several with a comma."
+            value={values.currentSubjects.join(', ')}
+            onChange={(e) => set('currentSubjects', splitList(e.target.value))}
+          />
+
+          <Input
+            name="predictedGrades"
+            label="Predicted grades"
+            placeholder="A*AA"
+            value={values.predictedGrades ?? ''}
+            onChange={(e) => set('predictedGrades', e.target.value || undefined)}
           />
         </ReflectionSection>
 
@@ -235,6 +308,103 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
               </option>
             ))}
           </Select>
+
+          <Input
+            name="studyStyle"
+            label="Study style"
+            placeholder="Small classes, hands-on labs"
+            value={values.studyStyle ?? ''}
+            onChange={(e) => set('studyStyle', e.target.value || undefined)}
+          />
+
+          <Textarea
+            name="careerGoals"
+            label="Career goals"
+            placeholder="What do you want to be doing five years after you graduate?"
+            value={values.careerGoals ?? ''}
+            onChange={(e) => set('careerGoals', e.target.value || undefined)}
+          />
+        </ReflectionSection>
+
+        <ReflectionSection title="Sở thích">
+          <fieldset className="flex flex-col gap-gb-md">
+            <legend className="mb-gb-md text-gb-sm font-semibold text-fg">
+              Which of these describe you?
+            </legend>
+            <div className="flex flex-col gap-gb-md">
+              {INTEREST_AREAS.map((area) => (
+                <Checkbox
+                  key={area}
+                  name="interestAreas"
+                  value={area}
+                  label={area}
+                  checked={values.interestAreas.includes(area)}
+                  onChange={(e) =>
+                    set(
+                      'interestAreas',
+                      e.target.checked
+                        ? [...values.interestAreas, area]
+                        : values.interestAreas.filter((a) => a !== area),
+                    )
+                  }
+                />
+              ))}
+            </div>
+          </fieldset>
+        </ReflectionSection>
+
+        <ReflectionSection title="Phong cách học">
+          <fieldset className="flex flex-col gap-gb-md">
+            <legend className="mb-gb-md text-gb-sm font-semibold text-fg">
+              How do you learn best?
+            </legend>
+            <div className="flex flex-col gap-gb-md">
+              {LEARNING_STYLE_OPTIONS.map((style) => (
+                <Checkbox
+                  key={style}
+                  name="learningStyle"
+                  value={style}
+                  label={style}
+                  checked={values.learningStyle.includes(style)}
+                  onChange={(e) =>
+                    set(
+                      'learningStyle',
+                      e.target.checked
+                        ? [...values.learningStyle, style]
+                        : values.learningStyle.filter((s) => s !== style),
+                    )
+                  }
+                />
+              ))}
+            </div>
+          </fieldset>
+        </ReflectionSection>
+
+        <ReflectionSection title="Câu hỏi bài luận">
+          <Textarea
+            name="psMotivations"
+            label="What motivates you to study this?"
+            value={values.psMotivations ?? ''}
+            onChange={(e) => set('psMotivations', e.target.value || undefined)}
+          />
+          <Textarea
+            name="psGoals"
+            label="What are your goals?"
+            value={values.psGoals ?? ''}
+            onChange={(e) => set('psGoals', e.target.value || undefined)}
+          />
+          <Textarea
+            name="psDreamCareer"
+            label="What is your dream career?"
+            value={values.psDreamCareer ?? ''}
+            onChange={(e) => set('psDreamCareer', e.target.value || undefined)}
+          />
+          <Textarea
+            name="psReasonsAbroad"
+            label="Why do you want to study abroad?"
+            value={values.psReasonsAbroad ?? ''}
+            onChange={(e) => set('psReasonsAbroad', e.target.value || undefined)}
+          />
         </ReflectionSection>
 
         {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}

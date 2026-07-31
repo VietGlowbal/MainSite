@@ -6,6 +6,7 @@ import {
   achievementSchema,
   activitySchema,
   aspirationsSchema,
+  personalSummarySchema,
   profileUpdateFromReflection,
 } from '@/features/apply/domain';
 
@@ -24,7 +25,7 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const aboutPayload = aboutYouSchema.merge(aspirationsSchema);
+const aboutPayload = aboutYouSchema.merge(aspirationsSchema).merge(personalSummarySchema);
 
 const bodySchema = z.object({
   about: aboutPayload.optional(),

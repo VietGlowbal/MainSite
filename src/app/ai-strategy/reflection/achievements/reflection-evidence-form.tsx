@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ACHIEVEMENT_CATEGORIES,
   ACTIVITY_CATEGORIES,
@@ -76,6 +76,8 @@ export function ReflectionEvidenceForm({
   initialActivities: ActivityValues[];
 }) {
   const router = useRouter();
+  /** See the matching note in reflection-about-form.tsx. */
+  const returnTo = useSearchParams().get('return');
   const { items, upload, remove } = useDocumentUpload();
 
   const [achievements, setAchievements] = useState<AchievementValues[]>(
@@ -124,7 +126,7 @@ export function ReflectionEvidenceForm({
         return;
       }
 
-      router.push('/ai-strategy');
+      router.push(returnTo || '/ai-strategy');
     } catch {
       setError('We could not save that. Please try again.');
       setSaving(false);
@@ -350,7 +352,15 @@ export function ReflectionEvidenceForm({
         {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
 
         <div className="flex flex-wrap justify-center gap-gb-lg">
-          <Button href={reflectionStep('about').path} variant="secondary" size="lg">
+          <Button
+            href={
+              returnTo
+                ? `${reflectionStep('about').path}?return=${encodeURIComponent(returnTo)}`
+                : reflectionStep('about').path
+            }
+            variant="secondary"
+            size="lg"
+          >
             Quay lại
           </Button>
           <Button type="submit" size="lg" disabled={saving} className="min-w-64">
