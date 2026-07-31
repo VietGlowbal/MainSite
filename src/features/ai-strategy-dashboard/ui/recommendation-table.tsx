@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import type { ProgressStatus, Recommendation } from '../domain';
-import { PROGRESS_STATUS, PROGRESS_STATUS_LABEL, groupByCategory } from '../domain';
-import { SEEDED_CATEGORIES } from '../domain';
+import Link from 'next/link';
+import type { Recommendation } from '../domain';
+import { SEEDED_CATEGORIES, groupByCategory } from '../domain';
+import { ProgressStatusControl } from './progress-status-control';
 import { Badge, type BadgeVariant } from '@/shared/ui';
 
 const PRIORITY_VARIANT: Record<Recommendation['priority'], BadgeVariant> = {
@@ -21,46 +21,19 @@ function categoryLabel(key: string | null): string {
 /**
  * AI Recommendation Table — requirements.md Requirement 10. Grouped by
  * category (`domain/recommendation.ts#groupByCategory`), each row showing
- * Priority / Recommendation / Reason / Status / Help, with an inline status
- * control wired to `PATCH .../recommendations/[recId]` for the Progress
- * Tracker (Requirement 13).
- *
- * No Recommendation Detail page yet (tasks.md Phase 5) — "Help" links out
- * using whatever `actionTarget` the AI itself provided rather than a route
- * that doesn't exist.
+ * Priority / Recommendation / Reason / Status / Help. The title links to the
+ * Recommendation Detail page (Requirement 11); Status is
+ * `ProgressStatusControl` (Requirement 13), shared with that page so a
+ * change made in either place can't disagree with the other.
  */
 export function RecommendationTable({
   applicationId,
   recommendations,
 }: {
   applicationId: string;
-  recommendations: Recommendation[];
+  recommendations: readonly Recommendation[];
 }) {
-  const [rows, setRows] = useState(recommendations);
-  const [pending, setPending] = useState<string | null>(null);
-
-  async function updateStatus(id: string, status: ProgressStatus) {
-    setPending(id);
-    const previous = rows;
-    setRows((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-    try {
-      const res = await fetch(
-        `/api/applications/${applicationId}/strategy/recommendations/${id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status }),
-        },
-      );
-      if (!res.ok) setRows(previous);
-    } catch {
-      setRows(previous);
-    } finally {
-      setPending(null);
-    }
-  }
-
-  if (rows.length === 0) {
+  if (recommendations.length === 0) {
     return (
       <p className="text-gb-sm text-fg-tertiary">
         No recommendations yet — generate your strategy from the AI Strategy Introduction page.
@@ -68,7 +41,7 @@ export function RecommendationTable({
     );
   }
 
-  const groups = groupByCategory(rows);
+  const groups = groupByCategory(recommendations);
 
   return (
     <div className="flex flex-col gap-gb-3xl">
@@ -94,26 +67,24 @@ export function RecommendationTable({
                     <td className="px-gb-lg py-gb-lg align-top">
                       <Badge variant={PRIORITY_VARIANT[rec.priority]}>{rec.priority}</Badge>
                     </td>
-                    <td className="px-gb-lg py-gb-lg align-top text-gb-sm font-medium text-fg">
-                      {rec.title}
+                    <td className="px-gb-lg py-gb-lg align-top text-gb-sm font-medium">
+                      <Link
+                        href={`/ai-strategy/${applicationId}/strategy/recommendations/${rec.id}`}
+                        className="text-fg hover:text-fg-brand hover:underline"
+                      >
+                        {rec.title}
+                      </Link>
                     </td>
                     <td className="px-gb-lg py-gb-lg align-top text-gb-sm text-fg-tertiary">
                       {rec.reason ?? '—'}
                     </td>
                     <td className="px-gb-lg py-gb-lg align-top">
-                      <select
-                        aria-label={`Status for ${rec.title}`}
-                        value={rec.status}
-                        disabled={pending === rec.id}
-                        onChange={(e) => updateStatus(rec.id, e.target.value as ProgressStatus)}
-                        className="rounded-gb-md border border-line bg-surface px-gb-md py-gb-xs text-gb-sm text-fg"
-                      >
-                        {PROGRESS_STATUS.map((status) => (
-                          <option key={status} value={status}>
-                            {PROGRESS_STATUS_LABEL[status]}
-                          </option>
-                        ))}
-                      </select>
+                      <ProgressStatusControl
+                        applicationId={applicationId}
+                        recommendationId={rec.id}
+                        status={rec.status}
+                        label={`Status for ${rec.title}`}
+                      />
                     </td>
                     <td className="px-gb-lg py-gb-lg align-top text-gb-sm">
                       {rec.actionTarget ? (

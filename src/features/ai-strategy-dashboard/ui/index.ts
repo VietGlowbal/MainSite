@@ -5,3 +5,5 @@ export { AnalysisWorkspace } from './analysis-workspace';
 export { DashboardSummary } from './dashboard-summary';
 export { StrategyCategoryBoard } from './strategy-category-board';
 export { RecommendationTable } from './recommendation-table';
+export { ProgressStatusControl } from './progress-status-control';
+export { EvidenceUpload } from './evidence-upload';

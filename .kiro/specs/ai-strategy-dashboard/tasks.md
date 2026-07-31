@@ -104,8 +104,9 @@ Eight phases building the Applicant Analysis, Course Match Analysis and AI Strat
 
 ### Phase 5: Recommendation workspace (needs Phase 4)
 
-- [ ] 13. Recommendation detail page (Requirement 11) — Progress Tracker (13) and the "Help" action already work from the table (task 12); this phase is the dedicated page (why this matters / how universities evaluate it / suggested resources) Requirement 11.1 asks for.
-- [ ] 14. Evidence Upload + re-analysis trigger (Requirement 14)
+- [x] 13. Recommendation detail page (Requirement 11) — `strategy/recommendations/[recommendationId]/page.tsx`. Renders only the two sections with a real data source: "Why this matters" (the AI's own `reason` text) and "How much it could improve admission chances" (`estimatedImpact`, a real match-insights number). "How universities evaluate it" and "suggested learning resources" have no backing data yet (no per-requirement mapping, no resource catalogue) and are omitted rather than invented. `ui/progress-status-control.tsx` extracted from the recommendation table so both places send a status change the same way.
+- [x] 14. Evidence Upload + re-analysis trigger (Requirement 14) — `ui/evidence-upload.tsx` reuses the existing `useDocumentUpload` hook (the same one `/ai-strategy/reflection/achievements` uses) rather than a second upload path, then `PATCH .../recommendations/[recId]/evidence` links the resulting `uploaded_documents` row via `recommendation_id`.
+  - ⚠️ **Re-analysis is a user-triggered "Re-analyse now" button, not the background job design.md sketched.** A real async job queue (matching the course-parser's polling convention) was judged too large a lift for this pass, and a fake one would be worse than an honest gap. The button calls the same three endpoints (`strategy/applicant-analysis`, `match-insights`, `strategy/recommendations`) a Dashboard visit already triggers — real re-analysis, just not automatic yet. A follow-up task should wire this to the polling-job pattern once there's room for it.
 
 ### Phase 6: AI Coach (needs Phase 4, parallel with Phase 5)
 
@@ -162,7 +163,7 @@ Phases 5 and 6 are independent of each other once Phase 4 lands, so they can pro
 
 ## Notes
 
-**Progress so far**: Phase 0 (decisions 0.3, 0.4 confirmed; 0.1, 0.2 deferred with stated defaults), Phase 1 (foundation), Phase 2 (onboarding UI), Phase 3 (AI Analysis) and Phase 4 (Dashboard, including a Progress Tracker pulled forward from Phase 5) are done. The full path from Strategy Home through a working, interactive Dashboard is real. Remaining: Phase 5's Recommendation Detail page and Evidence Upload/re-analysis trigger, Phase 6's AI Coach, and Phase 7's Multiple Strategies switcher + end-to-end pass.
+**Progress so far**: Phases 0-5 are done (0 decisions, 1 foundation, 2 onboarding, 3 AI analysis, 4 dashboard, 5 recommendation detail + evidence upload). The full path from Strategy Home through a working Dashboard, a recommendation detail page, and evidence upload is real. Remaining: Phase 6's AI Coach and Phase 7's Multiple Strategies switcher + end-to-end pass. Evidence-triggered re-analysis (14.3-14.4) is currently a manual "Re-analyse now" button rather than the automatic background job originally designed — see task 14's note.
 
 **A separate, urgent fix landed alongside this work** (not tracked as a numbered task, since it predates this spec): the "Build your strategy" nav item, the university page CTA, and `/apply/[applicationId]`'s CTA all pointed at the generic `/ai-strategy` hub with no course context, which — even after Phases 2-4 landed — still showed a static "Coming soon" list because nothing else had wired it up. `/ai-strategy` is now a real hub (a card per existing Strategy, linking into each one) and `/apply/[applicationId]` deep-links straight into that course's own Strategy.
 
