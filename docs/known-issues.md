@@ -460,6 +460,39 @@ confidently wrong date.
 
 ---
 
+## 4b. `TopNav` silently CLIPS nav links between 768 and ~1200
+
+Found 2026-07-31 while widening the header. Not introduced by that change — it
+measures the same before and after.
+
+The desktop bar turns on at `md` (768) and its link row is `overflow-hidden`, so
+when the links do not fit they are **cut off with no indication** — they do not
+wrap, scroll, or collapse. Measured on `/about`, whose guest nav is the *small*
+case at 6 items:
+
+| Viewport | Links row needs | Gets | Hidden |
+|---|---|---|---|
+| 768 | 669px | 298px | **371px** — over half the links |
+| 1024 | 669px | 554px | **115px** |
+| 1280 | 741px | 741px | 0 |
+
+So on a 768–1024 tablet the bar shows roughly "About us / Build your strategy"
+and quietly drops the rest, including *Search universities*. There is no
+hamburger to fall back to either — `MobileNav` stops at `md`, exactly where this
+starts.
+
+It gets worse signed in: `navItemsFor()` in `src/components/nav-reveal.tsx` adds
+Apply and Scholarships, plus Mentor hub / Coordinator / Admin per role — up to 9
+items, so an admin can lose links at 1280 too. Untested, as it needs a live
+session.
+
+This is why the link spacing in `src/shared/ui/top-nav.tsx` is gated at `xl`:
+loosening below 1280 would bury more links. A real fix needs a decision from the
+designer — raise the desktop breakpoint to `lg`/`xl` so tablets get the
+hamburger, or give the bar an overflow menu. Neither is drawn in Figma.
+
+---
+
 ## 5. Fixed 2026-07-26 — do not re-introduce
 
 | What | Where |
