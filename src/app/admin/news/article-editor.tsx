@@ -165,7 +165,7 @@ export function ArticleEditor({ article, candidates = [] }: EditorProps) {
               }}
               placeholder="auto-generated-from-title"
             />
-            <p className="mt-1 text-xs text-slate-400">Lives at /guides/{effectiveSlug || '…'}</p>
+            <p className="mt-1 text-xs text-slate-400">Lives at /news/{effectiveSlug || '…'}</p>
           </div>
 
           <div>
