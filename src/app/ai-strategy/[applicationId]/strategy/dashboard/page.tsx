@@ -14,13 +14,14 @@ import { Container } from '@/shared/ui';
  * Strategy Dashboard (requirements.md Requirement 9-10). Ownership already
  * enforced by the layout above this route.
  *
- * Generates recommendations on first visit if a Course Match Analysis
- * exists but nothing has been generated from it yet — `generateRecommendations`
- * is idempotent, so this is safe to run on every load rather than needing a
- * separate "has this run before" flag.
+ * Generates (and reconciles) recommendations on every visit if a Course
+ * Match Analysis exists — `generateRecommendations` is idempotent and
+ * update-in-place rather than append-only, so re-running it on every load
+ * is what keeps the table current with the latest analysis.
  *
- * Recommendation Detail (11), AI Coach (12), Evidence Upload (14) and
- * Multiple Strategies (15) are tasks.md Phases 5-7, not built yet.
+ * A generation failure is shown as an explicit error, not an empty table —
+ * those read identically to a genuinely-recommendation-free Strategy
+ * otherwise, which is its own kind of wrong answer.
  */
 export default async function StrategyDashboardPage({
   params,
@@ -51,8 +52,13 @@ export default async function StrategyDashboardPage({
     .limit(1)
     .maybeSingle();
 
+  let generationError: string | null = null;
   if (latestMatch) {
-    await generateRecommendations(supabase, applicationId);
+    const result = await generateRecommendations(supabase, applicationId);
+    if (!result.ok && result.error !== 'no_match_analysis') {
+      generationError =
+        "We couldn't refresh your recommendations just now. Showing what's already saved.";
+    }
   }
 
   const { data: recommendationRows } = await supabase
@@ -60,6 +66,7 @@ export default async function StrategyDashboardPage({
     .select('*')
     .eq('application_id', applicationId)
     .not('category', 'is', null)
+    .is('archived_at', null)
     .order('priority', { ascending: false });
 
   const recommendations = (recommendationRows ?? []).map(recommendationFromRow);
@@ -82,6 +89,12 @@ export default async function StrategyDashboardPage({
           completionPercent={completionPercent}
           recommendations={recommendations}
         />
+
+        {generationError ? (
+          <p className="rounded-gb-lg border border-line bg-surface-muted px-gb-lg py-gb-md text-gb-sm text-fg-error">
+            {generationError}
+          </p>
+        ) : null}
 
         <StrategyCategoryBoard recommendations={recommendations} />
 

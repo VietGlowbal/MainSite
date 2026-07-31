@@ -56,6 +56,10 @@ export type Recommendation = {
   actionTarget: string | null;
   confidence: number;
   isDismissed: boolean;
+  /** The Course Match Analysis run that produced (or last refreshed) this row. */
+  sourceAnalysisId: string | null;
+  /** Set once this row's underlying action no longer appears in the latest analysis. Active lists filter this out; nothing is ever hard-deleted. */
+  archivedAt: string | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -139,6 +143,8 @@ export function recommendationFromRow(row: Record<string, unknown>): Recommendat
     actionTarget: (row.action_target as string | null) ?? null,
     confidence: (row.confidence as number) ?? 0,
     isDismissed: Boolean(row.is_dismissed),
+    sourceAnalysisId: (row.source_analysis_id as string | null) ?? null,
+    archivedAt: (row.archived_at as string | null) ?? null,
     createdAt: row.created_at as string,
     updatedAt: (row.updated_at as string) ?? (row.created_at as string),
   };
@@ -155,10 +161,7 @@ export function recommendationFromRow(row: Record<string, unknown>): Recommendat
  * report. `estimatedEffort`, `deadline` and `relatedRequirement` have no
  * source yet, so they're left null rather than guessed.
  */
-export function recommendationFromImprovementAction(
-  applicationId: string,
-  action: ImprovementAction,
-): Pick<
+export type RecommendationSeed = Pick<
   Recommendation,
   | 'applicationId'
   | 'category'
@@ -174,7 +177,14 @@ export function recommendationFromImprovementAction(
   | 'actionLabel'
   | 'actionType'
   | 'actionTarget'
-> {
+  | 'sourceAnalysisId'
+>;
+
+export function recommendationFromImprovementAction(
+  applicationId: string,
+  action: ImprovementAction,
+  sourceAnalysisId: string,
+): RecommendationSeed {
   // Bucketed from the model's own estimatedUplift (0-40, see match-insights'
   // prompt) rather than re-deriving urgency from scratch — the pillar call
   // already reasoned about how much each action would help.
@@ -196,5 +206,99 @@ export function recommendationFromImprovementAction(
     actionLabel: action.label,
     actionType: action.actionType,
     actionTarget: action.actionTarget ?? null,
+    sourceAnalysisId,
   };
+}
+
+/** The slice of an existing DB row `reconcileRecommendations` needs to match against. */
+export type ExistingRecommendation = {
+  id: string;
+  pillar: PillarKey | null;
+  title: string;
+  status: ProgressStatus;
+};
+
+export type RecommendationUpdate = {
+  id: string;
+  fields: Omit<RecommendationSeed, 'applicationId'>;
+};
+
+export type ReconcilePlan = {
+  toInsert: RecommendationSeed[];
+  toUpdate: RecommendationUpdate[];
+  toArchiveIds: string[];
+};
+
+/**
+ * Matches the latest analysis's actions against a Strategy's existing
+ * recommendations and decides what to insert, update, or retire — the
+ * regeneration logic Requirement 10 needs and the original title-only dedup
+ * in `generateRecommendations` didn't have.
+ *
+ * MATCH KEY IS (pillar, title), NOT id. Nothing about an `ImprovementAction`
+ * is stable across two separate AI calls — a "new" action for the same
+ * underlying weakness is, from the caller's side, indistinguishable from a
+ * genuinely new one except by what it says. Pillar narrows the match to the
+ * right category before comparing titles, which is enough in practice
+ * because the model is prompted for one action per weakness per pillar, not
+ * a free-form list that could restate the same idea two different ways.
+ *
+ * A completed recommendation that's still represented in the new analysis
+ * is left completely untouched — no field on it changes, matching
+ * "preserve user progress" and "don't silently recreate completed work".
+ * One that's NO LONGER represented is archived (not deleted) regardless of
+ * status, because it is no longer what the AI is currently recommending;
+ * archiving keeps the record rather than erasing it.
+ */
+export function reconcileRecommendations(
+  applicationId: string,
+  existing: readonly ExistingRecommendation[],
+  actions: readonly ImprovementAction[],
+  sourceAnalysisId: string,
+): ReconcilePlan {
+  const key = (pillar: PillarKey | null, title: string) => `${pillar ?? ''}::${title}`;
+
+  const existingByKey = new Map<string, ExistingRecommendation>();
+  for (const rec of existing) existingByKey.set(key(rec.pillar, rec.title), rec);
+
+  const matchedIds = new Set<string>();
+  const toInsert: RecommendationSeed[] = [];
+  const toUpdate: RecommendationUpdate[] = [];
+
+  for (const action of actions) {
+    const match = existingByKey.get(key(action.pillar, action.label));
+    const seed = recommendationFromImprovementAction(applicationId, action, sourceAnalysisId);
+
+    if (!match) {
+      toInsert.push(seed);
+      continue;
+    }
+
+    matchedIds.add(match.id);
+    if (match.status === 'completed') continue; // preserve, untouched
+
+    toUpdate.push({
+      id: match.id,
+      fields: {
+        category: seed.category,
+        pillar: seed.pillar,
+        title: seed.title,
+        reason: seed.reason,
+        priority: seed.priority,
+        estimatedImpact: seed.estimatedImpact,
+        estimatedEffort: seed.estimatedEffort,
+        deadline: seed.deadline,
+        evidenceRequired: seed.evidenceRequired,
+        relatedRequirement: seed.relatedRequirement,
+        actionLabel: seed.actionLabel,
+        actionType: seed.actionType,
+        actionTarget: seed.actionTarget,
+        sourceAnalysisId: seed.sourceAnalysisId,
+      },
+    });
+  }
+
+  const toArchiveIds = existing.filter((rec) => !matchedIds.has(rec.id)).map((rec) => rec.id);
+
+  return { toInsert, toUpdate, toArchiveIds };
 }
