@@ -1,7 +1,7 @@
 {
   "title": "UK Cost Guide for Vietnamese undergraduate applicant",
   "metaDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing General options in UK.",
-  "canonicalUrl": "https://glowbal-education.com/guides/uk-cost-guide-for-vietnamese-undergraduate-applicant",
+  "canonicalUrl": "https://glowbal-education.com/news/uk-cost-guide-for-vietnamese-undergraduate-applicant",
   "slug": "uk-cost-guide-for-vietnamese-undergraduate-applicant",
   "openGraphTitle": "UK Cost Guide for Vietnamese undergraduate applicant",
   "openGraphDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing General options in UK.",
@@ -160,13 +160,13 @@
           "@type": "ListItem",
           "position": 2,
           "name": "Guides",
-          "item": "https://glowbal-education.com/guides"
+          "item": "https://glowbal-education.com/news"
         },
         {
           "@type": "ListItem",
           "position": 3,
           "name": "UK Cost Guide for Vietnamese undergraduate applicant",
-          "item": "https://glowbal-education.com/guides/uk-cost-guide-for-vietnamese-undergraduate-applicant"
+          "item": "https://glowbal-education.com/news/uk-cost-guide-for-vietnamese-undergraduate-applicant"
         }
       ]
     },

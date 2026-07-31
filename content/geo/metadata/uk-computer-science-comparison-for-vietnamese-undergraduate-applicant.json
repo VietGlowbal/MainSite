@@ -1,7 +1,7 @@
 {
   "title": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
   "metaDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
-  "canonicalUrl": "https://glowbal-education.com/guides/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
+  "canonicalUrl": "https://glowbal-education.com/news/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
   "slug": "uk-computer-science-comparison-for-vietnamese-undergraduate-applicant",
   "openGraphTitle": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
   "openGraphDescription": "A Glowbal draft guide for vietnamese undergraduate applicant comparing Computer Science options in UK.",
@@ -160,13 +160,13 @@
           "@type": "ListItem",
           "position": 2,
           "name": "Guides",
-          "item": "https://glowbal-education.com/guides"
+          "item": "https://glowbal-education.com/news"
         },
         {
           "@type": "ListItem",
           "position": 3,
           "name": "UK Computer Science Comparison for Vietnamese undergraduate applicant",
-          "item": "https://glowbal-education.com/guides/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant"
+          "item": "https://glowbal-education.com/news/uk-computer-science-comparison-for-vietnamese-undergraduate-applicant"
         }
       ]
     },
