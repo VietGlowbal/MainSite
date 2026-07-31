@@ -13,7 +13,12 @@ import Link from 'next/link';
  * half the design's "buttons" navigate.
  */
 
-export type ButtonVariant = 'primary' | 'primary-on-dark' | 'secondary' | 'secondary-on-dark';
+export type ButtonVariant =
+  | 'primary'
+  | 'primary-on-dark'
+  | 'secondary'
+  | 'secondary-on-dark'
+  | 'secondary-destructive';
 export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 const BASE =
@@ -52,6 +57,26 @@ const VARIANTS: Record<ButtonVariant, string> = {
    * disappears against black.
    */
   'secondary-on-dark': 'border-2 border-white/12 bg-surface text-fg-secondary hover:bg-surface-hover',
+  /*
+   * ⚠️ NOT DESIGN-CONFIRMED, for the same reason as the error ramp it is built
+   * from: no frame in the redesign draws a destructive action. It exists
+   * because the admin console has four of them — delete an article, delete an
+   * account, revoke a role, drop a graph edge — and none of them is reversible.
+   *
+   * `secondary` geometry rather than a filled red: these sit next to Edit and
+   * Publish in the same row, and a solid red button pulls the eye to the one
+   * control an admin least often wants. The error ramp on the border and the
+   * label is enough to separate it, and the intent is confirmed by a
+   * window.confirm() at the call sites that can't be undone.
+   *
+   * A NOTE ON WHY THIS IS A VARIANT AND NOT `className="text-fg-error"`. That
+   * was tried, and it silently does nothing: `secondary` already sets
+   * `text-fg-secondary`, and when two utilities set the same property the
+   * winner is whichever Tailwind emits later in the stylesheet, not whichever
+   * is later in the class attribute. The Kick and Delete buttons rendered grey.
+   */
+  'secondary-destructive':
+    'border border-line-error bg-surface text-fg-error hover:bg-surface-error',
 };
 
 type CommonProps = {
