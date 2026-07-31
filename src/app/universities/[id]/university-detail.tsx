@@ -670,11 +670,13 @@ export function UniversityDetail({
                 </p>
               </div>
               {/*
-               * The frame's label is "Lên Chiến lược Ứng tuyển ngay" and points
-               * at the strategy flow. /ai-strategy does not exist yet — the nav
-               * and footer already carry that deliberate, tracked 404 (see
-               * nav-items.tsx), so this is consistent rather than a new dead
-               * end. It starts working when Phase 2 lands.
+               * The frame's label is "Lên Chiến lược Ứng tuyển ngay". This page
+               * is university-level — no course is selected yet, so there is no
+               * applicationId to deep-link a specific Strategy into (see
+               * .kiro/specs/ai-strategy-dashboard/requirements.md Requirement
+               * 1.1, "one Strategy per course"). /ai-strategy is the right
+               * target: a signed-in student sees their existing strategies
+               * there, or a prompt to pick a course if they have none.
                */}
               <Button href="/ai-strategy" className="w-full">
                 Build your application strategy
