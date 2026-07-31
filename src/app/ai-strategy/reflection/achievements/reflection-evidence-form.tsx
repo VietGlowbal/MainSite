@@ -128,7 +128,7 @@ export function ReflectionEvidenceForm({
         return;
       }
 
-      router.push('/ai-strategy');
+      router.push('/ai-strategy/report');
     } catch {
       setError('We could not save that. Please try again.');
       setSaving(false);

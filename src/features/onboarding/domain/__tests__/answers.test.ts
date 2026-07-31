@@ -1,3 +1,4 @@
+import { describe, expect, it } from 'vitest';
 import {
   answersToProfilePatch,
   completedStepCount,
@@ -34,11 +35,12 @@ describe('onboarding answers', () => {
   it('requires award metadata when the user selects yes', () => {
     const answers = createEmptyAnswers();
     answers.has_academic_awards = 'yes';
-    answers.academic_awards = [createEmptyAward()];
+    const award = createEmptyAward();
+    answers.academic_awards = [award];
 
     expect(stepIsComplete('academic_awards', answers)).toBe(false);
     answers.academic_awards[0] = {
-      ...answers.academic_awards[0],
+      ...award,
       name: 'Science Olympiad',
       level: 'National level',
       role: 'Gold Medal / 1st Prize',

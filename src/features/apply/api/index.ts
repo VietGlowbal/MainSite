@@ -6,3 +6,15 @@
  * the adapter, so the implementation stays swappable (and fake-able in tests).
  */
 export {};
+export {
+  candidateContextHash,
+  contextForModel,
+  loadCandidateContext,
+  stableHash,
+} from './candidate-context';
+export {
+  getMatchingReportPageData,
+  getPersonalReportRecord,
+  listMatchingApplications,
+} from './ai-reports-repository';
+export type { PersonalReportRecord } from './ai-reports-repository';

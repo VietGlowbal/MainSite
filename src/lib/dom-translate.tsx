@@ -52,6 +52,7 @@ const PII_ROUTE_PREFIXES = [
   '/onboarding',
   '/my-universities',
   '/auth',
+  '/ai-strategy',
 ];
 
 function isPiiRoute(pathname: string): boolean {

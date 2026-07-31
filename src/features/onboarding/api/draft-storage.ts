@@ -25,7 +25,7 @@ export function readOnboardingDraft(): OnboardingDraftState | null {
       if (parsed.version === 2 && parsed.answers) {
         return {
           answers: normalizeAnswers(parsed.answers),
-          stepId: parsed.stepId,
+          ...(parsed.stepId ? { stepId: parsed.stepId } : {}),
         };
       }
     }
@@ -43,7 +43,11 @@ export function writeOnboardingDraft(answers: OnboardingAnswers, stepId?: string
   if (typeof window === 'undefined') return;
 
   try {
-    const payload: DraftPayload = { version: 2, answers, stepId };
+    const payload: DraftPayload = {
+      version: 2,
+      answers,
+      ...(stepId ? { stepId } : {}),
+    };
     window.localStorage.setItem(ONBOARDING_DRAFT_KEY, JSON.stringify(payload));
   } catch {
     // A full localStorage or privacy mode should not block onboarding.

@@ -110,7 +110,7 @@ export function useOnboardingController({
     [answers, currentStepIndex, isSignedIn, repository, router],
   );
 
-  const activeStep = ONBOARDING_FLOW_STEPS[currentStepIndex] ?? ONBOARDING_FLOW_STEPS[0];
+  const activeStep = ONBOARDING_FLOW_STEPS[currentStepIndex] ?? ONBOARDING_FLOW_STEPS[0]!;
 
   return {
     answers,

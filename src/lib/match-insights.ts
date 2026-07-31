@@ -59,7 +59,7 @@ export const PILLAR_BY_KEY: Record<PillarKey, PillarDef> = Object.fromEntries(
   MATCH_PILLARS.map((p) => [p.key, p]),
 ) as Record<PillarKey, PillarDef>;
 
-export const MATCH_PROMPT_VERSION = 'match-insights-v1';
+export const MATCH_PROMPT_VERSION = 'match-insights-v2-vi';
 
 export type ImprovementActionType =
   | 'upload_document'

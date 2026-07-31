@@ -4,7 +4,6 @@
  * Pure functions and types: no I/O, no React, no framework imports. Everything
  * here must be unit-testable without a database or a DOM.
  */
-<<<<<<< Updated upstream
 export {
   CURRICULUM_GRADE_FORMATS,
   ENGLISH_TEST_FORMATS,
@@ -27,9 +26,7 @@ export {
   toCurriculumList,
 } from './draft';
 export type { Academic, Tests } from './draft';
-=======
 export * from './answers';
 export * from './content';
 export * from './mappers';
 export * from './types';
->>>>>>> Stashed changes

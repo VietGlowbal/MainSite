@@ -21,11 +21,8 @@ import { Badge, Button, Container, Footer, MobileNav, Stepper, TopNav } from '@/
  * "Continue" CTA on the course workspace, both landed on a 404 rendered inside
  * the app shell, which reads as a blank page rather than as a missing one.
  *
- * WHAT IT DELIBERATELY DOES NOT DO. It does not fake the journey. Four of the
- * five steps have no page yet, so this shows what the journey is, marks each
- * step's state honestly, and points at the parts of the product that are real
- * today. Stub routes that render headings with nothing under them would be a
- * worse answer than a truthful overview — the student would click into them.
+ * The first three steps are live. Strategy and Submit Audit remain visibly
+ * locked until their workflows are implemented.
  */
 
 export const metadata: Metadata = {
@@ -104,21 +101,24 @@ export default async function AiStrategyPage() {
                   <p className="text-gb-sm text-fg-tertiary">{step.blurb}</p>
                 </div>
 
-                {/* No step has a route yet. Saying so is the honest state; a
-                    button wired to nothing is the one thing worse than none. */}
-                <span className="shrink-0 text-gb-sm text-fg-muted">Coming soon</span>
+                {step.href ? (
+                  <Button href={step.href} variant={index === 0 ? 'primary' : 'secondary'}>
+                    {index === 0 ? 'Bắt đầu' : 'Mở báo cáo'}
+                  </Button>
+                ) : (
+                  <span className="shrink-0 text-gb-sm text-fg-muted">Coming soon</span>
+                )}
               </li>
             ))}
           </ol>
 
           <section className="flex flex-col gap-gb-lg rounded-gb-2xl border border-line bg-surface-muted p-gb-4xl">
             <h2 className="font-display text-gb-xl font-semibold text-fg">
-              What you can do right now
+              Give the reports stronger evidence
             </h2>
             <p className="max-w-2xl text-gb-md text-fg-tertiary">
-              While this journey is being built, the per-course side of GlowBal is live: paste a
-              course URL and the AI reads the official page, builds your application checklist, and
-              scores how well your profile matches.
+              Add a course, CV and statement before generating a report. GlowBal keeps missing
+              information visible instead of filling gaps with assumptions.
             </p>
             <div className="flex flex-wrap gap-gb-lg">
               <Button href="/apply" size="lg">

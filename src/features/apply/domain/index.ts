@@ -59,3 +59,25 @@ export type {
   EvidenceExtractionResponse,
   EvidenceSourcePage,
 } from './reflection-extraction';
+export {
+  MATCH_PROMPT_VERSION_V2,
+  REPORT_PROMPT_VERSION,
+  candidateConfidence,
+  canonicalize,
+  enforceFitClassification,
+  hydratePersonalReport,
+  personalReportDraftSchema,
+  personalReportSchema,
+  programmeFitSchema,
+} from './ai-reports';
+export type {
+  CandidateContext,
+  EvidenceKind,
+  EvidenceRef,
+  PersonalReport,
+  PersonalReportDraft,
+  ProgrammeFit,
+  MatchingAnalysisView,
+  MatchingApplicationSummary,
+  MatchingReportPageData,
+} from './ai-reports';

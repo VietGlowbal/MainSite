@@ -9,4 +9,6 @@ export { ApplicationJourney, JourneyPending } from './application-journey';
 export { ChecklistProgress } from './checklist-progress';
 export { EvidenceExtractionPreview } from './evidence-extraction-preview';
 export { ReflectionSection, ReflectionShell } from './reflection-shell';
+export { PersonalReportView } from './personal-report-view';
+export { MatchingReportView } from './matching-report-view';
 export { ResearchProgress, ResearchingInline } from './research-progress';

@@ -1,11 +1,7 @@
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
-<<<<<<< Updated upstream
-import { OnboardingWizard } from './onboarding-wizard';
-=======
 import { OnboardingContainer, ONBOARDING_FLOW_ID, ONBOARDING_FLOW_VERSION } from '@/features/onboarding';
 import type { StoredOnboardingResponse } from '@/features/onboarding';
->>>>>>> Stashed changes
 
 /**
  * GLOWBAL onboarding entry — rebuilt from Figma câu 1–9.
@@ -33,23 +29,7 @@ export default async function OnboardingPage() {
     ])
     : [{ data: null }, { data: null }];
 
-  const userName =
-    (user?.user_metadata?.full_name as string | undefined) ||
-    user?.email?.split('@')[0] ||
-    null;
-  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
-
   return (
-<<<<<<< Updated upstream
-    <Suspense fallback={null}>
-      <OnboardingWizard
-        initialProfile={profile}
-        isSignedIn={!!user}
-        userName={userName}
-        userAvatarUrl={userAvatarUrl}
-      />
-    </Suspense>
-=======
     <main className="onboarding-page-redesign relative min-h-screen overflow-hidden bg-[var(--color-bg)]">
       <Suspense fallback={null}>
         <OnboardingContainer
@@ -59,6 +39,5 @@ export default async function OnboardingPage() {
         />
       </Suspense>
     </main>
->>>>>>> Stashed changes
   );
 }
