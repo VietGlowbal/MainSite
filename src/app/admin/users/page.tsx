@@ -1,3 +1,4 @@
+import { AdminHeading } from '../_ui';
 import { AdminUsersClient } from './admin-users-client';
 
 /**
@@ -9,14 +10,11 @@ import { AdminUsersClient } from './admin-users-client';
  */
 export default function AdminUsersPage() {
   return (
-    <section className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Users</h2>
-        <p className="text-sm text-slate-500">
-          Promote admins or remove accounts. Admin changes apply immediately;
-          deletions are permanent.
-        </p>
-      </div>
+    <section className="flex flex-col gap-gb-3xl">
+      <AdminHeading
+        title="Users"
+        description="Promote admins or remove accounts. Admin changes apply immediately; deletions are permanent."
+      />
       <AdminUsersClient />
     </section>
   );

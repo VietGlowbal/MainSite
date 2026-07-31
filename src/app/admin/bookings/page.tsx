@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import { AdminHeading } from '../_ui';
 import { AdminBookingsClient } from './admin-bookings-client';
 
 /**
@@ -19,15 +20,11 @@ export default async function AdminBookingsPage() {
     .order('created_at', { ascending: false });
 
   return (
-    <section className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-          Bookings & payments
-        </h2>
-        <p className="text-sm text-slate-500">
-          Confirm bank transfers, cancel stale bookings, and watch revenue.
-        </p>
-      </div>
+    <section className="flex flex-col gap-gb-3xl">
+      <AdminHeading
+        title="Bookings & payments"
+        description="Confirm bank transfers, cancel stale bookings, and watch revenue."
+      />
       <AdminBookingsClient bookings={bookings ?? []} />
     </section>
   );

@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { AchieverStatus } from '@/types/achievers';
+import { Badge, Button, ICONS, KitIcon, Panel, type BadgeVariant } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Application = {
@@ -21,19 +22,36 @@ type Application = {
   university: { id: number; name: string; country: string } | null;
 };
 
-function StatusBadge({ status }: { status: AchieverStatus }) {
-  const styles: Record<AchieverStatus, string> = {
-    pending: 'border-amber-200 bg-amber-50 text-amber-700',
-    approved: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    suspended: 'border-red-200 bg-red-50 text-red-700',
-    rejected: 'border-slate-200 bg-slate-50 text-slate-500',
-  };
+/**
+ * Status onto the chip set in shared/ui/badge.tsx.
+ *
+ * `pending` is brand, not a fourth colour: rose is the console's "this is
+ * waiting on you" signal, and the whole point of this page is the pending
+ * queue. Rejected and suspended are both grey — a rejected application and a
+ * suspended mentor are equally out of the directory, and giving suspension its
+ * own red implies an urgency that no control here can act on.
+ */
+const STATUS_VARIANT: Record<AchieverStatus, BadgeVariant> = {
+  pending: 'brand-chip',
+  approved: 'safe-chip',
+  suspended: 'neutral-chip',
+  rejected: 'neutral-chip',
+};
 
+function StatusBadge({ status }: { status: AchieverStatus }) {
   return (
-    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${styles[status]}`}>
+    <Badge variant={STATUS_VARIANT[status]}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
+    </Badge>
   );
+}
+
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
 }
 
 export function AdminAchieversClient({ applications }: { applications: Application[] }) {
@@ -66,92 +84,133 @@ export function AdminAchieversClient({ applications }: { applications: Applicati
   const others = items.filter((a) => a.status !== 'pending');
 
   return (
-    <div className="space-y-6">
-      {/* Pending applications */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">
-          Pending ({pending.length})
-        </h2>
+    <div className="flex flex-col gap-gb-4xl">
+      <section className="flex flex-col gap-gb-xl">
+        <h3 className="text-gb-lg font-semibold text-fg">Pending ({pending.length})</h3>
+
         {pending.length === 0 ? (
-          <p className="text-sm text-slate-400">No pending applications.</p>
+          <Panel className="text-center text-gb-sm text-fg-muted">
+            No pending applications. Nothing is waiting on you here.
+          </Panel>
         ) : (
-          pending.map((app) => (
-            <article key={app.id} className="glow-card space-y-3">
-              <div className="flex items-start justify-between">
+          pending.map((app) => {
+            const open = expanded === app.id;
+            return (
+              <Panel key={app.id} className="flex flex-col gap-gb-xl">
+                <div className="flex flex-wrap items-start justify-between gap-gb-xl">
+                  <div className="flex min-w-0 flex-col gap-gb-xxs">
+                    <p className="text-gb-md font-semibold text-fg">{app.display_name}</p>
+                    <p className="text-gb-sm text-fg-tertiary">
+                      {app.university?.name ?? 'No university on file'} · {app.subject} ·{' '}
+                      {app.degree_level}
+                    </p>
+                    <p className="text-gb-xs text-fg-muted">Applied {formatDate(app.created_at)}</p>
+                  </div>
+                  <div className="flex shrink-0 flex-col items-end gap-gb-md">
+                    <StatusBadge status={app.status} />
+                    {app.quick_signup ? (
+                      <Badge variant="info-chip">Fast-track · no documents</Badge>
+                    ) : null}
+                  </div>
+                </div>
+
                 <div>
-                  <p className="font-semibold text-slate-900">{app.display_name}</p>
-                  <p className="text-sm text-slate-500">
-                    {app.university?.name} · {app.subject} · {app.degree_level}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-1">
-                    Applied {new Date(app.created_at).toLocaleDateString()}
-                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setExpanded(open ? null : app.id)}
+                    aria-expanded={open}
+                    aria-controls={`application-${app.id}`}
+                    className="inline-flex items-center gap-gb-xs rounded-gb-sm text-gb-sm font-semibold text-fg-brand transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                  >
+                    {open ? 'Hide details' : 'View application'}
+                    <KitIcon
+                      art={ICONS.chevronDown}
+                      frame={16}
+                      className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+                    />
+                  </button>
                 </div>
-                <div className="flex flex-col items-end gap-1.5">
-                  <StatusBadge status={app.status} />
-                  {app.quick_signup ? (
-                    <span className="inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-0.5 text-xs font-semibold text-violet-700">
-                      Fast-track · no documents
-                    </span>
-                  ) : null}
+
+                {open ? (
+                  <dl
+                    id={`application-${app.id}`}
+                    className="grid gap-gb-xl rounded-gb-xl border border-line bg-surface-muted p-gb-2xl sm:grid-cols-2"
+                  >
+                    {app.bio ? (
+                      <div className="flex flex-col gap-gb-xxs sm:col-span-2">
+                        <dt className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                          Bio
+                        </dt>
+                        <dd className="text-gb-sm text-fg-secondary">{app.bio}</dd>
+                      </div>
+                    ) : null}
+                    <div className="flex flex-col gap-gb-xxs">
+                      <dt className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                        Topics
+                      </dt>
+                      <dd className="text-gb-sm text-fg-secondary">{app.help_topics.join(', ')}</dd>
+                    </div>
+                    <div className="flex flex-col gap-gb-xxs">
+                      <dt className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                        Languages
+                      </dt>
+                      <dd className="text-gb-sm text-fg-secondary">{app.languages.join(', ')}</dd>
+                    </div>
+                    <div className="flex flex-col gap-gb-xxs">
+                      <dt className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                        Price
+                      </dt>
+                      <dd className="text-gb-sm text-fg-secondary">
+                        {new Intl.NumberFormat('vi-VN').format(app.session_price_vnd)} ₫ /{' '}
+                        {app.session_duration_mins} min
+                      </dd>
+                    </div>
+                  </dl>
+                ) : null}
+
+                <div className="flex flex-wrap gap-gb-lg border-t border-line pt-gb-xl">
+                  <Button
+                    onClick={() => void updateStatus(app.id, 'approved')}
+                    disabled={updating === app.id}
+                    size="lg"
+                  >
+                    Approve
+                  </Button>
+                  <Button
+                    onClick={() => void updateStatus(app.id, 'rejected')}
+                    disabled={updating === app.id}
+                    variant="secondary"
+                    size="lg"
+                  >
+                    Reject
+                  </Button>
                 </div>
-              </div>
-
-              {/* Expandable details */}
-              <button
-                type="button"
-                onClick={() => setExpanded(expanded === app.id ? null : app.id)}
-                className="text-xs text-sky-600 hover:underline"
-              >
-                {expanded === app.id ? 'Hide details' : 'View application'}
-              </button>
-
-              {expanded === app.id && (
-                <div className="glow-muted-card space-y-2 text-sm">
-                  {app.bio && <p><strong>Bio:</strong> {app.bio}</p>}
-                  <p><strong>Topics:</strong> {app.help_topics.join(', ')}</p>
-                  <p><strong>Languages:</strong> {app.languages.join(', ')}</p>
-                  <p><strong>Price:</strong> {new Intl.NumberFormat('vi-VN').format(app.session_price_vnd)} ₫ / {app.session_duration_mins} min</p>
-                </div>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-2 pt-2 border-t border-black/5">
-                <button
-                  type="button"
-                  onClick={() => updateStatus(app.id, 'approved')}
-                  disabled={updating === app.id}
-                  className="glow-button-primary text-xs px-4 py-2"
-                >
-                  Approve
-                </button>
-                <button
-                  type="button"
-                  onClick={() => updateStatus(app.id, 'rejected')}
-                  disabled={updating === app.id}
-                  className="glow-button-secondary text-xs px-4 py-2"
-                >
-                  Reject
-                </button>
-              </div>
-            </article>
-          ))
+              </Panel>
+            );
+          })
         )}
       </section>
 
-      {/* Previously processed */}
       {others.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-slate-900">Processed</h2>
-          {others.map((app) => (
-            <article key={app.id} className="glow-card-tight flex items-center justify-between">
-              <div>
-                <p className="font-medium text-slate-900 text-sm">{app.display_name}</p>
-                <p className="text-xs text-slate-400">{app.university?.name} · {app.subject}</p>
-              </div>
-              <StatusBadge status={app.status} />
-            </article>
-          ))}
+        <section className="flex flex-col gap-gb-xl">
+          <h3 className="text-gb-lg font-semibold text-fg">Processed</h3>
+          <div className="flex flex-col gap-gb-lg">
+            {others.map((app) => (
+              <Panel
+                key={app.id}
+                padding="sm"
+                className="flex flex-wrap items-center justify-between gap-gb-lg"
+              >
+                <div className="flex min-w-0 flex-col gap-gb-xxs">
+                  <p className="text-gb-sm font-semibold text-fg">{app.display_name}</p>
+                  <p className="text-gb-xs text-fg-muted">
+                    {app.university?.name ?? 'No university on file'} · {app.subject}
+                  </p>
+                </div>
+                <StatusBadge status={app.status} />
+              </Panel>
+            ))}
+          </div>
         </section>
       )}
     </div>

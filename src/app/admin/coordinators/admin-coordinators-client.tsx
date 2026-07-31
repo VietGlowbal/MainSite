@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Badge, Button, Panel, PanelHeader, StatTile, controlClasses } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { Alert, EmptyRow, TableShell, TD, TH } from '../_ui';
 
 type Ambassador = {
   coordinator_id: string;
@@ -31,7 +33,32 @@ type LoadState =
 
 function formatDate(value: string | null) {
   if (!value) return '—';
-  return new Date(value).toLocaleDateString();
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+/** One row in the two person lists — the same shape granting and revoking. */
+function PersonRow({
+  name,
+  detail,
+  action,
+}: {
+  name: string;
+  detail: string;
+  action: React.ReactNode;
+}) {
+  return (
+    <li className="flex items-center justify-between gap-gb-lg rounded-gb-xl border border-line bg-surface px-gb-xl py-gb-lg">
+      <div className="flex min-w-0 flex-col gap-gb-xxs">
+        <span className="truncate text-gb-sm font-medium text-fg">{name}</span>
+        <span className="truncate text-gb-xs text-fg-tertiary">{detail}</span>
+      </div>
+      <div className="shrink-0">{action}</div>
+    </li>
+  );
 }
 
 export function AdminCoordinatorsClient() {
@@ -122,20 +149,16 @@ export function AdminCoordinatorsClient() {
   }, [state, query]);
 
   if (state.kind === 'loading') {
-    return <p className="text-sm text-slate-400">Loading…</p>;
+    return <Panel className="text-gb-sm text-fg-muted">Loading…</Panel>;
   }
   if (state.kind === 'error') {
     return (
-      <div className="glow-card-tight space-y-2">
-        <p className="text-sm text-red-600">{state.message}</p>
-        <button
-          type="button"
-          className="glow-button-secondary text-xs px-4 py-2"
-          onClick={() => void load()}
-        >
+      <Panel className="flex flex-col items-start gap-gb-xl">
+        <Alert tone="error">{state.message}</Alert>
+        <Button variant="secondary" size="lg" onClick={() => void load()}>
           Try again
-        </button>
-      </div>
+        </Button>
+      </Panel>
     );
   }
 
@@ -143,182 +166,144 @@ export function AdminCoordinatorsClient() {
   const totalVisits = state.ambassadors.reduce((s, a) => s + a.total_visits, 0);
 
   return (
-    <div className="space-y-5">
-      <div className="grid gap-3 sm:grid-cols-3">
-        <SummaryCard label="Coordinators" value={coordinators.length} tone="pink" />
-        <SummaryCard label="Active ambassadors" value={activeAmbassadors.length} tone="sky" />
-        <SummaryCard label="Total visits driven" value={totalVisits} />
+    <div className="flex flex-col gap-gb-3xl">
+      <div className="grid gap-gb-xl sm:grid-cols-3">
+        <StatTile label="Coordinators" value={coordinators.length} tone="brand" />
+        <StatTile label="Active ambassadors" value={activeAmbassadors.length} tone="info" />
+        <StatTile label="Total visits driven" value={totalVisits} />
       </div>
 
-      {/* Coordinator role management */}
-      <div className="glow-card-tight space-y-4">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold text-slate-700">Coordinators</p>
+      <Panel className="flex flex-col gap-gb-3xl">
+        <div className="flex flex-col gap-gb-xl">
+          <PanelHeader title="Coordinators" description="People who can create ambassador links." />
           {coordinators.length === 0 ? (
-            <p className="text-xs text-slate-400">No coordinators yet.</p>
+            <p className="text-gb-sm text-fg-muted">No coordinators yet.</p>
           ) : (
-            <div className="space-y-1">
+            <ul className="flex flex-col gap-gb-md">
               {coordinators.map((u) => (
-                <div
+                <PersonRow
                   key={u.id}
-                  className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2"
-                >
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-medium text-slate-900">
-                      {u.full_name ?? '—'}
-                    </div>
-                    <div className="truncate text-xs text-slate-500">{u.email ?? u.id}</div>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={busy === u.id}
-                    onClick={() => void setCoordinator(u.id, false)}
-                    className="shrink-0 rounded-full border border-red-200 bg-white px-3 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
-                  >
-                    Revoke
-                  </button>
-                </div>
+                  name={u.full_name ?? '—'}
+                  detail={u.email ?? u.id}
+                  action={
+                    <Button
+                      variant="secondary-destructive"
+                      disabled={busy === u.id}
+                      onClick={() => void setCoordinator(u.id, false)}
+                    >
+                      Revoke
+                    </Button>
+                  }
+                />
               ))}
-            </div>
+            </ul>
           )}
         </div>
 
-        <div className="space-y-2 border-t border-slate-100 pt-3">
-          <p className="text-sm font-semibold text-slate-700">Make someone a coordinator</p>
+        <div className="flex flex-col gap-gb-xl border-t border-line pt-gb-3xl">
+          <PanelHeader
+            title="Make someone a coordinator"
+            description="Search the whole user base. Only non-coordinators are listed."
+            as="h3"
+          />
           <input
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search a user by name, email, or ID"
-            className="glow-input w-full max-w-md text-sm"
+            aria-label="Search users to make coordinator"
+            className={controlClasses(false, 'max-w-gb-width-sm')}
           />
           {query.trim() && (
-            <div className="space-y-1">
+            <>
               {assignable.length === 0 ? (
-                <p className="text-xs text-slate-400">No matching non-coordinator users.</p>
+                <p className="text-gb-sm text-fg-muted">No matching non-coordinator users.</p>
               ) : (
-                assignable.map((u) => (
-                  <div
-                    key={u.id}
-                    className="flex items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-medium text-slate-900">
-                        {u.full_name ?? '—'}
-                      </div>
-                      <div className="truncate text-xs text-slate-500">{u.email ?? u.id}</div>
-                    </div>
-                    <button
-                      type="button"
-                      disabled={busy === u.id}
-                      onClick={() => void setCoordinator(u.id, true)}
-                      className="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-pink-300 hover:text-pink-600 disabled:opacity-50"
-                    >
-                      Make coordinator
-                    </button>
-                  </div>
-                ))
+                <ul className="flex flex-col gap-gb-md">
+                  {assignable.map((u) => (
+                    <PersonRow
+                      key={u.id}
+                      name={u.full_name ?? '—'}
+                      detail={u.email ?? u.id}
+                      action={
+                        <Button
+                          variant="secondary"
+                          disabled={busy === u.id}
+                          onClick={() => void setCoordinator(u.id, true)}
+                        >
+                          Make coordinator
+                        </Button>
+                      }
+                    />
+                  ))}
+                </ul>
               )}
-            </div>
+            </>
           )}
         </div>
-      </div>
+      </Panel>
 
-      {error && (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-          {error}
-        </p>
-      )}
+      {error && <Alert tone="error">{error}</Alert>}
 
-      {/* Ambassadors oversight (read-only) */}
-      <div className="space-y-2">
-        <p className="text-sm font-semibold text-slate-700">All ambassadors</p>
-        <div className="overflow-x-auto rounded-2xl border border-slate-200 bg-white/90">
-          <table className="w-full text-sm">
-            <thead className="text-left text-xs uppercase tracking-wider text-slate-500">
-              <tr className="border-b border-slate-200">
-                <th className="px-4 py-3">Ambassador</th>
-                <th className="px-4 py-3">Coordinator</th>
-                <th className="px-4 py-3">Link</th>
-                <th className="px-4 py-3 text-right">Visits</th>
-                <th className="px-4 py-3 text-right">Unique</th>
-                <th className="px-4 py-3 text-right">Referred</th>
-                <th className="px-4 py-3">Last visit</th>
-                <th className="px-4 py-3 text-right">Link</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.ambassadors.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-8 text-center text-sm text-slate-400">
-                    No ambassadors yet.
+      <section className="flex flex-col gap-gb-xl">
+        <h3 className="text-gb-lg font-semibold text-fg">All ambassadors</h3>
+        <TableShell>
+          <thead className="border-b border-line bg-surface-muted">
+            <tr>
+              <th scope="col" className={TH}>Ambassador</th>
+              <th scope="col" className={TH}>Coordinator</th>
+              <th scope="col" className={TH}>Link</th>
+              <th scope="col" className={`${TH} text-right`}>Visits</th>
+              <th scope="col" className={`${TH} text-right`}>Unique</th>
+              <th scope="col" className={`${TH} text-right`}>Referred</th>
+              <th scope="col" className={TH}>Last visit</th>
+              <th scope="col" className={`${TH} text-right`}>Copy</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {state.ambassadors.length === 0 ? (
+              <EmptyRow colSpan={8}>No ambassadors yet.</EmptyRow>
+            ) : (
+              state.ambassadors.map((a) => (
+                <tr key={a.link_id} className={a.is_active ? undefined : 'opacity-60'}>
+                  <td className={TD}>
+                    <div className="flex flex-wrap items-center gap-gb-md">
+                      <span className="font-medium text-fg">{a.ambassador_name}</span>
+                      {a.is_active ? null : <Badge variant="neutral-chip">Paused</Badge>}
+                    </div>
                   </td>
-                </tr>
-              ) : (
-                state.ambassadors.map((a) => (
-                  <tr
-                    key={a.link_id}
-                    className={`border-b border-slate-100 last:border-0 ${
-                      a.is_active ? '' : 'opacity-50'
+                  <td className={`${TD} text-fg-muted`}>
+                    {a.coordinator_name ?? a.coordinator_email ?? a.coordinator_id}
+                  </td>
+                  <td className={TD}>
+                    <code className="font-mono text-gb-xs text-fg-secondary">/c/{a.code}</code>
+                  </td>
+                  <td className={`${TD} text-right font-semibold text-fg`}>{a.total_visits}</td>
+                  <td className={`${TD} text-right`}>{a.unique_visitors}</td>
+                  {/* Green means "this link brought someone in". A green zero
+                      says the opposite of what the colour says — same rule
+                      StatTile applies to its own numbers. */}
+                  <td
+                    className={`${TD} text-right font-semibold ${
+                      a.referred_users > 0 ? 'text-on-tier-safe' : 'text-fg-muted'
                     }`}
                   >
-                    <td className="px-4 py-3 font-medium text-slate-900">
-                      {a.ambassador_name}
-                      {!a.is_active && (
-                        <span className="ml-2 text-[0.65rem] uppercase text-slate-400">paused</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {a.coordinator_name ?? a.coordinator_email ?? a.coordinator_id}
-                    </td>
-                    <td className="px-4 py-3">
-                      <code className="text-xs text-slate-600">/c/{a.code}</code>
-                    </td>
-                    <td className="px-4 py-3 text-right font-semibold text-slate-900">
-                      {a.total_visits}
-                    </td>
-                    <td className="px-4 py-3 text-right text-slate-600">{a.unique_visitors}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-600">
-                      {a.referred_users}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-500">
-                      {formatDate(a.last_visit_at)}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => void copyLink(a.code)}
-                        className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:border-sky-300 hover:text-sky-600"
-                      >
-                        {copied === a.code ? 'Copied!' : 'Copy'}
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SummaryCard({
-  label,
-  value,
-  tone = 'slate',
-}: {
-  label: string;
-  value: number;
-  tone?: 'slate' | 'pink' | 'sky';
-}) {
-  const toneClass =
-    tone === 'pink' ? 'text-pink-600' : tone === 'sky' ? 'text-sky-600' : 'text-slate-900';
-  return (
-    <div className="glow-card-tight">
-      <p className="text-sm text-slate-500">{label}</p>
-      <p className={`mt-1 text-2xl font-semibold ${toneClass}`}>{value}</p>
+                    {a.referred_users}
+                  </td>
+                  <td className={`${TD} text-fg-muted`}>{formatDate(a.last_visit_at)}</td>
+                  <td className={TD}>
+                    <div className="flex justify-end">
+                      <Button variant="secondary" onClick={() => void copyLink(a.code)}>
+                        {copied === a.code ? 'Copied' : 'Copy link'}
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </TableShell>
+      </section>
     </div>
   );
 }

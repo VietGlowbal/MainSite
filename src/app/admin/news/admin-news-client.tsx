@@ -4,7 +4,9 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { GeoArticleStatus } from '@/lib/geo-cms';
+import { Badge, Button, ICONS, KitIcon, Panel, type BadgeVariant } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { Alert, TableShell, TD, TH } from '../_ui';
 
 type ArticleRow = {
   id: string;
@@ -17,16 +19,18 @@ type ArticleRow = {
   published_at: string | null;
 };
 
+/** Draft is brand for the same reason a pending mentor is: it wants a decision. */
+const STATUS_VARIANT: Record<GeoArticleStatus, BadgeVariant> = {
+  draft: 'brand-chip',
+  published: 'safe-chip',
+  archived: 'neutral-chip',
+};
+
 function StatusBadge({ status }: { status: GeoArticleStatus }) {
-  const styles: Record<GeoArticleStatus, string> = {
-    draft: 'border-amber-200 bg-amber-50 text-amber-700',
-    published: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    archived: 'border-slate-200 bg-slate-50 text-slate-500',
-  };
   return (
-    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${styles[status]}`}>
+    <Badge variant={STATUS_VARIANT[status]}>
       {status.charAt(0).toUpperCase() + status.slice(1)}
-    </span>
+    </Badge>
   );
 }
 
@@ -93,104 +97,105 @@ export function AdminNewsClient({ articles }: { articles: ArticleRow[] }) {
   }
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-slate-500">{items.length} article{items.length === 1 ? '' : 's'}</p>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
+    <div className="flex flex-col gap-gb-xl">
+      <div className="flex flex-wrap items-center justify-between gap-gb-xl">
+        <p className="text-gb-sm text-fg-tertiary">
+          {items.length} article{items.length === 1 ? '' : 's'}
+        </p>
+        <div className="flex flex-wrap items-center gap-gb-md">
+          <Button
+            variant="secondary"
+            size="lg"
             disabled={importing}
-            onClick={importFromFiles}
+            onClick={() => void importFromFiles()}
             title="Import the legacy markdown guides (content/geo) into the database"
-            className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
           >
             {importing ? 'Importing…' : 'Import from files'}
-          </button>
-          <Link href="/admin/news/new" className="glow-button-primary text-sm">
+          </Button>
+          <Button href="/admin/news/new" size="lg">
+            <KitIcon art={ICONS.plus} frame={20} />
             New article
-          </Link>
+          </Button>
         </div>
       </div>
 
-      {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>
-      ) : null}
-      {notice ? (
-        <p className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{notice}</p>
-      ) : null}
+      {error ? <Alert tone="error">{error}</Alert> : null}
+      {notice ? <Alert tone="success">{notice}</Alert> : null}
 
       {items.length === 0 ? (
-        <p className="rounded-2xl border border-dashed border-slate-200 bg-white/60 px-4 py-10 text-center text-sm text-slate-400">
+        <Panel className="text-center text-gb-sm text-fg-muted">
           No articles yet. Create your first one.
-        </p>
+        </Panel>
       ) : (
-        <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-          <table className="w-full text-left text-sm">
-            <thead className="border-b border-slate-200 bg-slate-50/80 text-xs uppercase tracking-wide text-slate-500">
-              <tr>
-                <th className="px-4 py-3 font-semibold">Title</th>
-                <th className="px-4 py-3 font-semibold">Topic</th>
-                <th className="px-4 py-3 font-semibold">Status</th>
-                <th className="px-4 py-3 font-semibold">Updated</th>
-                <th className="px-4 py-3 font-semibold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-100">
-              {items.map((a) => (
-                <tr key={a.id} className="align-top">
-                  <td className="px-4 py-3">
-                    <Link href={`/admin/news/${a.id}/edit`} className="font-semibold text-slate-900 hover:text-pink-600">
+        <TableShell>
+          <thead className="border-b border-line bg-surface-muted">
+            <tr>
+              <th scope="col" className={TH}>Title</th>
+              <th scope="col" className={TH}>Topic</th>
+              <th scope="col" className={TH}>Status</th>
+              <th scope="col" className={TH}>Updated</th>
+              <th scope="col" className={`${TH} text-right`}>Actions</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {items.map((a) => (
+              <tr key={a.id}>
+                <td className={TD}>
+                  <div className="flex flex-col gap-gb-xxs">
+                    <Link
+                      href={`/admin/news/${a.id}/edit`}
+                      className="font-semibold text-fg transition-colors hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                    >
                       {a.title}
                     </Link>
-                    <div className="mt-0.5 flex items-center gap-2 text-xs text-slate-400">
-                      <span>/{a.slug}</span>
+                    <div className="flex flex-wrap items-center gap-gb-md">
+                      <span className="font-mono text-gb-xs text-fg-muted">/{a.slug}</span>
                       {a.source === 'pipeline' ? (
-                        <span className="rounded bg-cyan-50 px-1.5 py-0.5 font-medium text-cyan-700">Pipeline</span>
+                        <Badge variant="info-chip">Pipeline</Badge>
                       ) : null}
                     </div>
-                  </td>
-                  <td className="px-4 py-3 text-slate-600">{a.topic}</td>
-                  <td className="px-4 py-3"><StatusBadge status={a.status} /></td>
-                  <td className="px-4 py-3 text-slate-500">{formatDate(a.updated_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <Link
-                        href={`/admin/news/${a.id}/edit`}
-                        className="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-                      >
-                        Edit
-                      </Link>
-                      {a.status !== 'published' ? (
-                        <button
-                          disabled={busy === a.id}
-                          onClick={() => patchStatus(a.id, 'published')}
-                          className="rounded-lg border border-emerald-200 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 disabled:opacity-50"
-                        >
-                          Publish
-                        </button>
-                      ) : (
-                        <button
-                          disabled={busy === a.id}
-                          onClick={() => patchStatus(a.id, 'draft')}
-                          className="rounded-lg border border-amber-200 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-50 disabled:opacity-50"
-                        >
-                          Unpublish
-                        </button>
-                      )}
-                      <button
+                  </div>
+                </td>
+                <td className={TD}>{a.topic}</td>
+                <td className={TD}>
+                  <StatusBadge status={a.status} />
+                </td>
+                <td className={`${TD} text-fg-muted`}>{formatDate(a.updated_at)}</td>
+                <td className={TD}>
+                  <div className="flex flex-wrap items-center justify-end gap-gb-md">
+                    <Button href={`/admin/news/${a.id}/edit`} variant="secondary">
+                      Edit
+                    </Button>
+                    {a.status !== 'published' ? (
+                      <Button
+                        variant="secondary"
                         disabled={busy === a.id}
-                        onClick={() => remove(a.id, a.title)}
-                        className="rounded-lg border border-red-200 px-2.5 py-1 text-xs font-semibold text-red-600 hover:bg-red-50 disabled:opacity-50"
+                        onClick={() => void patchStatus(a.id, 'published')}
                       >
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        Publish
+                      </Button>
+                    ) : (
+                      <Button
+                        variant="secondary"
+                        disabled={busy === a.id}
+                        onClick={() => void patchStatus(a.id, 'draft')}
+                      >
+                        Unpublish
+                      </Button>
+                    )}
+                    <Button
+                      variant="secondary-destructive"
+                      disabled={busy === a.id}
+                      onClick={() => void remove(a.id, a.title)}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </TableShell>
       )}
     </div>
   );

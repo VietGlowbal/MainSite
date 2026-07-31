@@ -73,6 +73,8 @@ export type { ScoreRingMeasure, ScoreRingSize } from './score-ring';
 export { Stepper } from './stepper';
 export type { StepperStep } from './stepper';
 export { Metric } from './metric';
+export { Panel, PanelHeader, StatTile } from './panel';
+export type { PanelPadding, StatTone } from './panel';
 export { MultiSelect } from './multi-select';
 export type { MultiSelectOption } from './multi-select';
 export { Modal } from './modal';

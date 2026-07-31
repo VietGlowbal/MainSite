@@ -10,7 +10,14 @@ export default async function ProfilePage() {
 
   if (!user) redirect('/auth');
 
-  const [profileResult, documentsResult, mentorSummary, appsCountResult] = await Promise.all([
+  const [
+    profileResult,
+    documentsResult,
+    mentorSummary,
+    appsCountResult,
+    workCountResult,
+    englishCountResult,
+  ] = await Promise.all([
     supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
     supabase
       .from('uploaded_documents')
@@ -19,6 +26,16 @@ export default async function ProfilePage() {
       .order('created_at', { ascending: false }),
     getMentorSummary(),
     supabase.from('course_applications').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    /*
+     * Work experience and English scores live in their own tables, not on
+     * student_profiles. The page used to fetch neither, so both section cards
+     * hard-returned 0% — they read "Get started" to a student who had already
+     * filled them in, and they dragged the overall strength figure down with
+     * them. Two head-only counts is what it takes to stop the page lying about
+     * its own data; the editors themselves are unchanged.
+     */
+    supabase.from('work_experiences').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('english_test_scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
   ]);
 
   const profile = profileResult.data;
@@ -30,12 +47,6 @@ export default async function ProfilePage() {
     user.email?.split('@')[0] ||
     'Student';
   const avatarUrl = user.user_metadata?.avatar_url as string | undefined;
-  const initials = displayName
-    .split(' ')
-    .map((w: string) => w[0])
-    .join('')
-    .slice(0, 2)
-    .toUpperCase();
 
   const memberSince = new Date(user.created_at).toLocaleDateString('en-GB', {
     month: 'long',
@@ -43,22 +54,21 @@ export default async function ProfilePage() {
   });
 
   return (
-    <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
-      <div className="w-full">
-        <ProfileClient
-          displayName={displayName}
-          email={user.email ?? ''}
-          avatarUrl={avatarUrl}
-          initials={initials}
-          memberSince={memberSince}
-          profile={profile}
-          documents={documents}
-          activeApplications={activeApplications}
-          isMentor={!!mentorSummary}
-          plusStatus={!!profile?.plus_status}
-          plusPlan={profile?.plus_plan ?? null}
-        />
-      </div>
+    <main className="min-h-screen bg-transparent px-gb-xl py-gb-3xl md:px-gb-4xl md:py-gb-5xl">
+      <ProfileClient
+        displayName={displayName}
+        email={user.email ?? ''}
+        avatarUrl={avatarUrl}
+        memberSince={memberSince}
+        profile={profile}
+        documents={documents}
+        activeApplications={activeApplications}
+        workEntries={workCountResult.count ?? 0}
+        englishScores={englishCountResult.count ?? 0}
+        isMentor={!!mentorSummary}
+        plusStatus={!!profile?.plus_status}
+        plusPlan={profile?.plus_plan ?? null}
+      />
     </main>
   );
 }

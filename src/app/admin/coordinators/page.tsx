@@ -1,3 +1,4 @@
+import { AdminHeading } from '../_ui';
 import { AdminCoordinatorsClient } from './admin-coordinators-client';
 
 /**
@@ -9,14 +10,11 @@ import { AdminCoordinatorsClient } from './admin-coordinators-client';
  */
 export default function AdminCoordinatorsPage() {
   return (
-    <section className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">Coordinators</h2>
-        <p className="text-sm text-slate-500">
-          Assign the coordinator role, and see every ambassador link and how much
-          traffic each one drives.
-        </p>
-      </div>
+    <section className="flex flex-col gap-gb-3xl">
+      <AdminHeading
+        title="Coordinators"
+        description="Assign the coordinator role, and see every ambassador link and how much traffic each one drives."
+      />
       <AdminCoordinatorsClient />
     </section>
   );

@@ -141,6 +141,26 @@ const enabled = process.env.NODE_ENV !== 'production' || process.env.ENABLE_DEV_
 if (!enabled) notFound();
 ```
 
+### Seeing `/admin` without writing to the database
+
+`isAdmin` (`src/server/auth/auth-helpers.ts`) checks **`ADMIN_USER_IDS`** — a
+comma-separated env var — before it checks `student_profiles.is_admin`. So an
+admin session needs no migration and no row edit: put the E2E user's id in that
+variable in the *server's* environment and sign in normally.
+
+The owner's `next dev` usually holds :3000, so run a second server rather than
+restarting theirs:
+
+```powershell
+npm run build
+$env:ADMIN_USER_IDS = '<e2e-user-id>'; $env:ENABLE_DEV_ROUTES = '1'; npx next start -p 3001
+```
+
+Prefer this to flipping `is_admin` on a real row — nothing to remember to
+revert, and it cannot leak past the process. ⚠️ `next start` reads the build
+manifest at boot: **rebuild and restart it** after a code change, or you will
+screenshot the previous build and think a fix did not land. That happened once.
+
 ### Verifying a page that needs real per-user rows and has no `/dev/*` preview
 
 `/apply`'s gauge is banded by `progress_percentage`, and the real E2E account had

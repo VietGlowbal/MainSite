@@ -257,6 +257,19 @@
   --container-gb-width-sm: 480px;
   --container-gb-width-xl: 768px;
   --container-gb-desktop: 1280px;
+
+  /* The desktop header is the ONE piece of chrome that does not sit inside the
+     1280 measure. Figma only draws the bar at 1440, where 1280 + 32 gutters
+     looks correct; on anything wider the whole bar — wordmark, links, and the
+     two action buttons — collapses into a centred column with ~320px of dead
+     band either side, which reads as the actions floating in the middle of the
+     bar rather than anchored to its right. The product owner asked for them to
+     sit near the right edge with the middle links given room.
+
+     Wider cap + its own gutter, applied in shared/ui/top-nav.tsx only. Page
+     CONTENT stays on --container-gb-desktop; a full-bleed header over a 1280
+     body is a deliberate, common pattern, not a drift. */
+  --container-gb-nav: 1728px;
 }
 
 /* ──────────────────────────────────────────────────────────────────────────

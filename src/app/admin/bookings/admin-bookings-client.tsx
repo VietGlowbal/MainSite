@@ -3,34 +3,41 @@
 import { useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { BookingStatus } from '@/types/achievers';
+import { Badge, Button, Panel, StatTile, type BadgeVariant } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { EmptyRow, TableShell, TD, TH } from '../_ui';
 
 function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';
 }
 
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+/** Same reading as the mentor queue: rose is work waiting on an admin. */
+const STATUS_VARIANT: Record<BookingStatus, BadgeVariant> = {
+  pending_payment: 'brand-chip',
+  confirmed: 'info-chip',
+  completed: 'safe-chip',
+  reviewed: 'safe-chip',
+  cancelled: 'neutral-chip',
+};
+
+const STATUS_LABEL: Record<BookingStatus, string> = {
+  pending_payment: 'Pending payment',
+  confirmed: 'Confirmed',
+  completed: 'Completed',
+  reviewed: 'Reviewed',
+  cancelled: 'Cancelled',
+};
+
 function StatusBadge({ status }: { status: BookingStatus }) {
-  const styles: Record<BookingStatus, string> = {
-    pending_payment: 'border-amber-200 bg-amber-50 text-amber-700',
-    confirmed: 'border-sky-200 bg-sky-50 text-sky-700',
-    completed: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-    reviewed: 'border-purple-200 bg-purple-50 text-purple-700',
-    cancelled: 'border-slate-200 bg-slate-50 text-slate-500',
-  };
-
-  const labels: Record<BookingStatus, string> = {
-    pending_payment: 'Pending payment',
-    confirmed: 'Confirmed',
-    completed: 'Completed',
-    reviewed: 'Reviewed',
-    cancelled: 'Cancelled',
-  };
-
-  return (
-    <span className={`inline-flex rounded-full border px-2.5 py-0.5 text-xs font-semibold ${styles[status]}`}>
-      {labels[status]}
-    </span>
-  );
+  return <Badge variant={STATUS_VARIANT[status]}>{STATUS_LABEL[status]}</Badge>;
 }
 
 type BookingRow = {
@@ -93,106 +100,130 @@ export function AdminBookingsClient({ bookings }: { bookings: BookingRow[] }) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Revenue summary */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="glow-card text-center">
-          <p className="text-sm text-slate-500">Pending payments</p>
-          <p className="text-2xl font-semibold text-amber-600 mt-1">{pendingPayment.length}</p>
-        </div>
-        <div className="glow-card text-center">
-          <p className="text-sm text-slate-500">Active sessions</p>
-          <p className="text-2xl font-semibold text-sky-600 mt-1">{confirmed.length}</p>
-        </div>
-        <div className="glow-card text-center">
-          <p className="text-sm text-slate-500">Total Glowbal revenue</p>
-          <p className="text-2xl font-semibold text-emerald-600 mt-1">{formatVND(totalRevenue)}</p>
-        </div>
+    <div className="flex flex-col gap-gb-4xl">
+      <div className="grid gap-gb-xl sm:grid-cols-3">
+        <StatTile
+          label="Pending payments"
+          value={pendingPayment.length}
+          hint="Waiting on a transfer"
+          tone="brand"
+        />
+        <StatTile label="Active sessions" value={confirmed.length} hint="Paid, not yet held" tone="info" />
+        {/* StatTile drops the tone on a numeric zero by itself, but this value
+            is pre-formatted ("0 ₫") and it will not parse a string — so the
+            caller, which does know the number, decides. A green zero says
+            "revenue banked" about no revenue. */}
+        <StatTile
+          label="Total GlowBal revenue"
+          value={formatVND(totalRevenue)}
+          hint="Fee on confirmed and completed sessions"
+          tone={totalRevenue > 0 ? 'safe' : 'default'}
+        />
       </div>
 
-      {/* Pending payment bookings */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">
+      <section className="flex flex-col gap-gb-xl">
+        <h3 className="text-gb-lg font-semibold text-fg">
           Awaiting payment confirmation ({pendingPayment.length})
-        </h2>
+        </h3>
+
         {pendingPayment.length === 0 ? (
-          <p className="text-sm text-slate-400">No pending payments.</p>
+          <Panel className="text-center text-gb-sm text-fg-muted">No pending payments.</Panel>
         ) : (
           pendingPayment.map((booking) => (
-            <article key={booking.id} className="glow-card space-y-3">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="font-medium text-slate-900">
+            <Panel key={booking.id} className="flex flex-col gap-gb-xl">
+              <div className="flex flex-wrap items-start justify-between gap-gb-xl">
+                <div className="flex min-w-0 flex-col gap-gb-xxs">
+                  <p className="text-gb-md font-semibold text-fg">
                     Booking #{booking.id} · {booking.achiever?.display_name ?? 'Achiever'}
                   </p>
-                  <p className="text-sm text-slate-500">
-                    {formatVND(booking.session_price_vnd)} · Ref:{' '}
-                    <span className="font-mono text-sky-600">{booking.payment_reference}</span>
+                  <p className="text-gb-sm text-fg-tertiary">
+                    {formatVND(booking.session_price_vnd)} · Ref{' '}
+                    <span className="font-mono text-fg-info">{booking.payment_reference}</span>
                   </p>
-                  <p className="text-xs text-slate-400">
-                    Created {new Date(booking.created_at).toLocaleDateString()}
-                  </p>
+                  <p className="text-gb-xs text-fg-muted">Created {formatDate(booking.created_at)}</p>
                 </div>
                 <StatusBadge status={booking.status} />
               </div>
 
-              <div className="text-xs text-slate-500 space-y-0.5">
-                <p>Fee: {formatVND(booking.glowbal_fee_vnd)} (20%)</p>
-                <p>Achiever payout: {formatVND(booking.achiever_payout_vnd)}</p>
-              </div>
+              <dl className="grid gap-gb-xl rounded-gb-xl border border-line bg-surface-muted p-gb-2xl sm:grid-cols-2">
+                <div className="flex flex-col gap-gb-xxs">
+                  <dt className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                    GlowBal fee
+                  </dt>
+                  <dd className="text-gb-sm text-fg-secondary">
+                    {formatVND(booking.glowbal_fee_vnd)}
+                  </dd>
+                </div>
+                <div className="flex flex-col gap-gb-xxs">
+                  <dt className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
+                    Achiever payout
+                  </dt>
+                  <dd className="text-gb-sm text-fg-secondary">
+                    {formatVND(booking.achiever_payout_vnd)}
+                  </dd>
+                </div>
+              </dl>
 
-              <div className="flex gap-2 pt-2 border-t border-black/5">
-                <button
-                  type="button"
-                  onClick={() => confirmPayment(booking.id)}
+              <div className="flex flex-wrap gap-gb-lg border-t border-line pt-gb-xl">
+                <Button
+                  onClick={() => void confirmPayment(booking.id)}
                   disabled={updating === booking.id}
-                  className="glow-button-primary text-xs px-4 py-2"
+                  size="lg"
                 >
                   Confirm payment
-                </button>
-                <button
-                  type="button"
-                  onClick={() => cancelBooking(booking.id)}
+                </Button>
+                <Button
+                  onClick={() => void cancelBooking(booking.id)}
                   disabled={updating === booking.id}
-                  className="glow-button-secondary text-xs px-4 py-2"
+                  variant="secondary"
+                  size="lg"
                 >
                   Cancel
-                </button>
+                </Button>
               </div>
-            </article>
+            </Panel>
           ))
         )}
       </section>
 
-      {/* All bookings table */}
-      <section className="space-y-4">
-        <h2 className="text-lg font-semibold text-slate-900">All bookings</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-slate-200 text-left text-xs text-slate-500 uppercase tracking-wider">
-                <th className="pb-2 pr-4">ID</th>
-                <th className="pb-2 pr-4">Achiever</th>
-                <th className="pb-2 pr-4">Amount</th>
-                <th className="pb-2 pr-4">Fee</th>
-                <th className="pb-2 pr-4">Status</th>
-                <th className="pb-2">Date</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((b) => (
-                <tr key={b.id} className="border-b border-slate-100">
-                  <td className="py-2 pr-4 font-mono text-xs">{b.id}</td>
-                  <td className="py-2 pr-4">{b.achiever?.display_name ?? '—'}</td>
-                  <td className="py-2 pr-4">{formatVND(b.session_price_vnd)}</td>
-                  <td className="py-2 pr-4 text-emerald-600">{formatVND(b.glowbal_fee_vnd)}</td>
-                  <td className="py-2 pr-4"><StatusBadge status={b.status} /></td>
-                  <td className="py-2 text-xs text-slate-400">{new Date(b.created_at).toLocaleDateString()}</td>
+      <section className="flex flex-col gap-gb-xl">
+        <h3 className="text-gb-lg font-semibold text-fg">All bookings</h3>
+        <TableShell>
+          <thead className="border-b border-line bg-surface-muted">
+            <tr>
+              <th scope="col" className={TH}>ID</th>
+              <th scope="col" className={TH}>Achiever</th>
+              <th scope="col" className={`${TH} text-right`}>Amount</th>
+              <th scope="col" className={`${TH} text-right`}>Fee</th>
+              <th scope="col" className={TH}>Status</th>
+              <th scope="col" className={TH}>Date</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-line">
+            {items.length === 0 ? (
+              <EmptyRow colSpan={6}>No bookings yet.</EmptyRow>
+            ) : (
+              items.map((b) => (
+                <tr key={b.id}>
+                  <td className={`${TD} font-mono text-gb-xs`}>{b.id}</td>
+                  <td className={`${TD} font-medium text-fg`}>{b.achiever?.display_name ?? '—'}</td>
+                  <td className={`${TD} text-right`}>{formatVND(b.session_price_vnd)}</td>
+                  <td
+                    className={`${TD} text-right font-semibold ${
+                      b.glowbal_fee_vnd > 0 ? 'text-on-tier-safe' : 'text-fg-muted'
+                    }`}
+                  >
+                    {formatVND(b.glowbal_fee_vnd)}
+                  </td>
+                  <td className={TD}>
+                    <StatusBadge status={b.status} />
+                  </td>
+                  <td className={`${TD} text-fg-muted`}>{formatDate(b.created_at)}</td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              ))
+            )}
+          </tbody>
+        </TableShell>
       </section>
     </div>
   );
