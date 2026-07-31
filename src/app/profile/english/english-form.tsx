@@ -3,13 +3,13 @@
 import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { EnglishTestScore } from '@/lib/types';
+import { Input, Panel, RepeatableFieldset, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-
-const INPUT = 'block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition';
-const LABEL = 'block text-xs font-semibold text-slate-700 mb-1.5';
-const SELECT = INPUT + ' bg-white';
+import { SaveBar, SelectOptions, type SaveMessage } from '../_form-parts';
 
 const TEST_TYPES = ['IELTS Academic', 'IELTS General', 'TOEFL iBT', 'PTE Academic', 'Duolingo English Test', 'Cambridge C1 Advanced', 'Cambridge C2 Proficiency', 'Other'];
+
+const BANDS = ['listening', 'reading', 'writing', 'speaking'] as const;
 
 type DraftScore = Omit<EnglishTestScore, 'id' | 'user_id' | 'created_at' | 'updated_at'> & { _localId: string; id?: string };
 
@@ -26,7 +26,7 @@ export function EnglishForm({
   );
   const [saving, setSaving] = useState(false);
   useLoadingIndicator(saving, 'Saving your profile');
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [message, setMessage] = useState<SaveMessage>(null);
 
   const addScore = () => {
     setScores((prev) => [
@@ -51,7 +51,9 @@ export function EnglishForm({
     );
   };
 
-  const remove = async (score: DraftScore) => {
+  const removeAt = async (index: number) => {
+    const score = scores[index];
+    if (!score) return;
     if (score.id) {
       await supabase.from('english_test_scores').delete().eq('id', score.id);
     }
@@ -91,104 +93,77 @@ export function EnglishForm({
   };
 
   return (
-    <div className="space-y-4">
-      {scores.length === 0 && (
-        <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 py-10 text-center">
-          <p className="text-sm text-slate-400">No test scores added yet.</p>
-          <p className="mt-1 text-xs text-slate-400">Add your IELTS, TOEFL, or other English proficiency results.</p>
-        </div>
-      )}
-
-      {scores.map((score, i) => (
-        <div key={score._localId} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-          <div className="flex items-center justify-between mb-4">
-            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Test #{i + 1}</span>
-            <button type="button" onClick={() => remove(score)} className="text-xs text-slate-400 hover:text-red-400 transition">
-              Remove
-            </button>
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="sm:col-span-2">
-              <label className={LABEL}>Test type</label>
-              <select className={SELECT} value={score.test_type} onChange={(e) => update(score._localId, 'test_type', e.target.value)}>
-                <option value="">Select test…</option>
-                {TEST_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className={LABEL}>Overall score</label>
-              <input
-                className={INPUT}
+    <Panel className="flex flex-col gap-gb-4xl">
+      <RepeatableFieldset
+        legend="Test scores"
+        description="Add every test you have sat. An expired score still helps us judge your level."
+        entries={scores}
+        keyOf={(score) => score._localId}
+        entryLabel={(i) => `Test ${i + 1}`}
+        addLabel="Add test score"
+        onAdd={addScore}
+        onRemove={(index) => void removeAt(index)}
+        emptyState="No test scores yet. Add your IELTS, TOEFL, or other English proficiency results."
+        renderEntry={(score) => (
+          <div className="flex flex-col gap-gb-2xl">
+            <div className="grid gap-gb-2xl sm:grid-cols-2">
+              <Select
+                name={`test_type-${score._localId}`}
+                label="Test type"
+                placeholder="Select test…"
+                value={score.test_type}
+                onChange={(e) => update(score._localId, 'test_type', e.target.value)}
+                fieldClassName="sm:col-span-2"
+              >
+                <SelectOptions options={TEST_TYPES} value={score.test_type} />
+              </Select>
+              <Input
+                name={`overall_score-${score._localId}`}
                 type="number"
                 step="0.5"
+                label="Overall score"
                 placeholder="e.g. 7.5"
                 value={score.overall_score ?? ''}
                 onChange={(e) => update(score._localId, 'overall_score', parseScore(e.target.value))}
               />
-            </div>
-            <div>
-              <label className={LABEL}>Test date</label>
-              <input
-                className={INPUT}
+              <Input
+                name={`test_date-${score._localId}`}
                 type="date"
+                label="Test date"
                 value={score.test_date ?? ''}
                 onChange={(e) => update(score._localId, 'test_date', e.target.value || null)}
               />
-            </div>
-            <div>
-              <label className={LABEL}>Expiry date</label>
-              <input
-                className={INPUT}
+              <Input
+                name={`expiry_date-${score._localId}`}
                 type="date"
+                label="Expiry date"
                 value={score.expiry_date ?? ''}
                 onChange={(e) => update(score._localId, 'expiry_date', e.target.value || null)}
               />
             </div>
-          </div>
 
-          <div className="mt-4">
-            <p className={LABEL + ' mb-2'}>Sub-scores (optional)</p>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-              {(['listening', 'reading', 'writing', 'speaking'] as const).map((band) => (
-                <div key={band}>
-                  <label className="block text-[11px] text-slate-500 mb-1 capitalize">{band}</label>
-                  <input
-                    className={INPUT}
+            <div className="flex flex-col gap-gb-lg">
+              <p className="text-gb-sm font-medium text-fg-secondary">Sub-scores (optional)</p>
+              <div className="grid grid-cols-2 gap-gb-lg sm:grid-cols-4">
+                {BANDS.map((band) => (
+                  <Input
+                    key={band}
+                    name={`${band}_score-${score._localId}`}
                     type="number"
                     step="0.5"
+                    label={band.charAt(0).toUpperCase() + band.slice(1)}
                     placeholder="—"
                     value={score[`${band}_score`] ?? ''}
                     onChange={(e) => update(score._localId, `${band}_score`, parseScore(e.target.value))}
                   />
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           </div>
-        </div>
-      ))}
-
-      <button
-        type="button"
-        onClick={addScore}
-        className="w-full rounded-2xl border border-dashed border-pink-300 bg-pink-50/50 py-3 text-sm font-semibold text-pink-600 transition hover:bg-pink-50"
-      >
-        + Add test score
-      </button>
-
-      <div className="flex items-center gap-4 pt-1">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Saving…' : 'Save scores'}
-        </button>
-        {message && (
-          <p className={`text-sm ${message.ok ? 'text-green-600' : 'text-red-500'}`}>{message.text}</p>
         )}
-      </div>
-    </div>
+      />
+
+      <SaveBar onSave={handleSave} saving={saving} message={message} label="Save scores" />
+    </Panel>
   );
 }
