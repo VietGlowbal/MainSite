@@ -474,7 +474,7 @@ case at 6 items:
 |---|---|---|---|
 | 768 | 669px | 298px | **371px** — over half the links |
 | 1024 | 669px | 554px | **115px** |
-| 1280 | 741px | 741px | 0 |
+| 1280 | 669px | 768px | 0 — 99px spare |
 
 So on a 768–1024 tablet the bar shows roughly "About us / Build your strategy"
 and quietly drops the rest, including *Search universities*. There is no
@@ -486,10 +486,18 @@ Apply and Scholarships, plus Mentor hub / Coordinator / Admin per role — up to
 items, so an admin can lose links at 1280 too. Untested, as it needs a live
 session.
 
-This is why the link spacing in `src/shared/ui/top-nav.tsx` is gated at `xl`:
-loosening below 1280 would bury more links. A real fix needs a decision from the
-designer — raise the desktop breakpoint to `lg`/`xl` so tablets get the
-hamburger, or give the bar an overflow menu. Neither is drawn in Figma.
+This is why every loosening of the link spacing in `src/shared/ui/top-nav.tsx` is
+gated at `2xl`: loosening below 1280 would bury more links, and **1280 itself has
+no room to give away either**. That row of the table used to read `741px / 741px`
+— the links fitting to the pixel — because the links briefly took `Button`'s `sm`
+horizontal padding from `xl`, which costs 72px across six labels. It measured as
+a fit on Windows and clipped "Blog" on CI, where the same text comes out a few px
+wider per label. The `xl` step is now the vertical padding only (the 36px pill
+height, which costs no width); the horizontal one waits for `2xl`.
+
+A real fix for 768–1024 still needs a decision from the designer — raise the
+desktop breakpoint to `lg`/`xl` so tablets get the hamburger, or give the bar an
+overflow menu. Neither is drawn in Figma.
 
 ---
 

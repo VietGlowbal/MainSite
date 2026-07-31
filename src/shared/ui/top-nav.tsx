@@ -159,12 +159,12 @@ export function TopNav({
            * 532px at 1920 — room the links were not using.
            *
            * ⚠️ `overflow-hidden` means running out of room CLIPS links silently
-           * rather than wrapping or scrolling, so the loosening is gated at `xl`.
-           * It has to be: below 1280 the bar is ALREADY over-subscribed (371px
-           * clipped at 768, 115px at 1024 — a pre-existing bug, see
-           * docs/known-issues.md), and widening the links there would bury more
-           * of them. At 1280 the wider padding leaves 28px of slack, so the
-           * second step waits for 2xl where there are several hundred.
+           * rather than wrapping or scrolling, so every loosening is gated at
+           * `2xl`. It has to be: below 1280 the bar is ALREADY over-subscribed
+           * (371px clipped at 768, 115px at 1024 — a pre-existing bug, see
+           * docs/known-issues.md), and at 1280 the links fit with only ~99px to
+           * spare. Anything that widens them before 2xl eats that margin and
+           * buries "Blog" on the first machine that measures text differently.
            */}
           <nav
             aria-label="Primary"
@@ -178,12 +178,19 @@ export function TopNav({
                   key={item.href}
                   href={item.href}
                   aria-current={active ? 'page' : undefined}
-                  /* `xl:px-gb-lg xl:py-gb-md` is Button's `sm` size verbatim —
-                     the same padding, the same text-gb-sm — so from xl up the
-                     active pill is exactly the 36px of the two buttons beside
-                     it instead of a squat 28px. Costs no header height: the row
-                     is already 36px because the buttons set it. */
-                  className={`rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold whitespace-nowrap transition-colors xl:px-gb-lg xl:py-gb-md ${
+                  /* `py-gb-md` from xl up makes the active pill exactly the 36px
+                     of the two buttons beside it instead of a squat 28px, and
+                     costs no header height: the row is already 36px because the
+                     buttons set it.
+
+                     The matching `px-gb-lg` (which would complete Button's `sm`
+                     size) waits for 2xl, and that is a hard constraint, not a
+                     taste call. It widens the six labels by 72px in total —
+                     more than the 27px of slack the bar has left at 1280, so at
+                     xl it clipped "Blog" on any machine whose text measured a
+                     few px wider than the author's (CI did). At 2xl there are
+                     ~200px spare and it is free. */
+                  className={`rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold whitespace-nowrap transition-colors xl:py-gb-md 2xl:px-gb-lg ${
                     active ? LINK[tone].active : LINK[tone].idle
                   }`}
                 >
