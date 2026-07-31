@@ -18,6 +18,8 @@ export { CvContentWorkspace } from './cv-content-workspace';
 export type { CvContentWorkspaceProps } from './cv-content-workspace';
 export { CvImportFlow } from './cv-import-flow';
 export type { ExistingDocument } from './cv-import-flow';
+export { CvReviewWorkspace } from './cv-review-workspace';
+export type { CvReviewWorkspaceProps } from './cv-review-workspace';
 export { CvEntryEditor } from './cv-entry-editor';
 export type { EntrySuggestion } from './cv-entry-editor';
 export type { TargetProfileWorkspaceProps } from './target-profile-workspace';
