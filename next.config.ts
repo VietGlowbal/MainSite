@@ -54,6 +54,23 @@ const nextConfig: NextConfig = {
        */
       { source: '/guides/:slug', destination: '/news/:slug', permanent: true },
       { source: '/guides', destination: '/news', permanent: true },
+      /*
+       * /my-universities -> /apply, permanently.
+       *
+       * The saved list and the applications tracker were two halves of one
+       * journey on two URLs; Figma 562:15078 draws them as one page and /apply
+       * is the surviving address (its /apply/[applicationId] workspace already
+       * lives under it). src/proxy.ts sent every fresh sign-in to
+       * /my-universities for months, so that URL is in browser histories and
+       * bookmarks — a 308 is what carries them over.
+       *
+       * EXACT SOURCE, deliberately no /:path*. The children did NOT move:
+       * /my-universities/program is the subject picker the merged page links
+       * to, and /my-universities/[id] + /[id]/writer are the legacy task pages.
+       * A wildcard here would redirect all three into a page that cannot serve
+       * them.
+       */
+      { source: '/my-universities', destination: '/apply', permanent: true },
     ];
   },
   images: {
