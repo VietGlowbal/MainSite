@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/send-email';
+import { SITE_URL } from '@/lib/site-url';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
 
               <div style="text-align: center; margin-top: 32px; padding-top: 24px; border-top: 1px solid #e2e8f0;">
                 <p style="margin: 0 0 8px 0; font-size: 14px; color: #94a3b8;">
-                  Not interested anymore? <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://glowbal.com'}/newsletter/unsubscribe?email=${encodeURIComponent(email)}" style="color: #ec4899; text-decoration: none;">Unsubscribe</a>
+                  Not interested anymore? <a href="${SITE_URL}/newsletter/unsubscribe?email=${encodeURIComponent(email)}" style="color: #ec4899; text-decoration: none;">Unsubscribe</a>
                 </p>
                 <p style="margin: 0; font-size: 12px; color: #cbd5e1;">
                   © ${new Date().getFullYear()} Glowbal. All rights reserved.
