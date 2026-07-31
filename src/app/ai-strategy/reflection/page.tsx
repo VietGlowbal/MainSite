@@ -22,7 +22,7 @@ export default async function ReflectionAboutPage() {
   const { data } = await supabase
     .from('student_profiles')
     .select(
-      'nationality, current_qualification, study_level, target_subjects, preferred_countries, budget_range, funding_source, tuition_budget_usd, grades_summary',
+      'nationality, current_qualification, study_level, target_subjects, preferred_countries, budget_range, funding_source, tuition_budget_usd, grades_summary, country, languages, age, school_name, current_year, current_subjects, predicted_grades, study_style, goals, interest_areas, learning_style, personal_statement_answers',
     )
     .eq('user_id', user.id)
     .maybeSingle();
@@ -43,6 +43,21 @@ export default async function ReflectionAboutPage() {
           fundingSource: initial.fundingSource,
           budgetRange: initial.budgetRange,
           tuitionBudgetUsd: initial.tuitionBudgetUsd,
+          country: initial.country,
+          languages: initial.languages,
+          age: initial.age,
+          schoolName: initial.schoolName,
+          currentYear: initial.currentYear,
+          currentSubjects: initial.currentSubjects,
+          predictedGrades: initial.predictedGrades,
+          studyStyle: initial.studyStyle,
+          careerGoals: initial.careerGoals,
+          interestAreas: initial.interestAreas,
+          learningStyle: initial.learningStyle,
+          psMotivations: initial.psMotivations,
+          psGoals: initial.psGoals,
+          psDreamCareer: initial.psDreamCareer,
+          psReasonsAbroad: initial.psReasonsAbroad,
         }}
       />
     </ReflectionChrome>

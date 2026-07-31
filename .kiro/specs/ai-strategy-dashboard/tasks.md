@@ -79,10 +79,14 @@ Eight phases building the Applicant Analysis, Course Match Analysis and AI Strat
 
 **Before any task in this phase:** read the actual Figma frame via the Figma MCP server — `docs/redesign-status.md`'s "Designed but not built" table has the node ids (landing `375:18445`, candidate info `375:19260`, achievements `375:18839`) on canvas **Khanh Linh - Chi** (`375:9842`). This document's prose is a behaviour spec, not a layout spec — CLAUDE.md rule 1 applies.
 
-- [ ] 4. Strategy Home page (Requirement 2) — read node `375:18445`
-- [ ] 5. Personal Summary field extensions on `reflection-about-form.tsx` (Requirement 3) — read node `375:19260`
-- [ ] 6. Achievements employment category on `reflection-evidence-form.tsx` (Requirement 4) — read node `375:18839`
-- [ ] 7. Onboarding-vs-Dashboard routing (`use-strategy-onboarding-state.ts`) (Requirement 1.2, 1.3, 15.4)
+⚠️ **Figma MCP was not available this pass.** Tasks 4-7 shipped built to this document's text spec and the existing `reflection-about-form.tsx`/`reflection-evidence-form.tsx` visual language instead, per Open decision 1's stated default — not against node `375:18445`. Layout, spacing and copy on the new Strategy Home page in particular should be checked against the real frame in a follow-up pass before this ships to students; flagged rather than silently treated as final.
+
+- [x] 4. Strategy Home page (Requirement 2) — `src/features/ai-strategy-dashboard/ui/strategy-home.tsx` + `src/app/ai-strategy/[applicationId]/strategy/page.tsx`. Video section omitted (2.6), testimonials are explicitly-labelled placeholders (Open decision 1). Node `375:18445` not read — see warning above.
+- [x] 5. Personal Summary field extensions on `reflection-about-form.tsx` (Requirement 3) — added country/languages/age/school/current year/current subjects/predicted grades/study style/career goals/interests/learning style/personal-statement-questions to `reflection.ts`'s schemas and the form; new `student_profiles` columns in `supabase-strategy-personal-summary.sql`. Node `375:19260` not read.
+- [x] 6. Achievements employment category on `reflection-evidence-form.tsx` (Requirement 4) — added to `ACTIVITY_CATEGORIES` in `reflection.ts`; the form's category `Select` is already data-driven off that constant, so no template change was needed. Node `375:18839` not read (no visual change involved).
+- [x] 7. Onboarding-vs-Dashboard routing (Requirement 1.2, 1.3, 15.4) — `src/features/ai-strategy-dashboard/api/onboarding-status.ts` (`fetchStrategyOnboardingStatus`, a proxy: has the student saved at least one achievement/activity) decides Strategy Home's CTA target; a `?return=` query param threads the target back through the existing shared `/ai-strategy/reflection` → `/ai-strategy/reflection/achievements` flow so a Strategy-scoped visitor lands back on their Strategy instead of the flow's original hardcoded `/ai-strategy`. Landed as server logic on the page rather than a `use-strategy-onboarding-state.ts` hook — no client state needed since the decision only has to be made once, server-side, before the page renders.
+  - New route `src/app/ai-strategy/[applicationId]/strategy/analysis/page.tsx` — an explicit "coming soon" placeholder for Phase 3, not a stub pretending to be finished, so the CTA has somewhere honest to land.
+  - New `src/app/ai-strategy/[applicationId]/layout.tsx` — auth + ownership guard, shared chrome, for every `[applicationId]` page in this feature going forward.
 
 ### Phase 3: AI Analysis (needs Phase 1, parallel with Phase 6 once Phase 4 lands)
 
