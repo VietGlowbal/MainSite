@@ -5,6 +5,7 @@
  * These are compositions, not primitives: anything reusable across features
  * belongs in src/shared/ui instead.
  */
+export { AboutTeam } from './about-team';
 export { HomeContact } from './home-contact';
 export type { ContactState } from './home-contact';
 export { HOME_FAQ, HomeFaq } from './home-faq';
