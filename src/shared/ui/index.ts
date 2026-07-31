@@ -36,7 +36,7 @@ export {
   VerifiedMark,
 } from './icons';
 export type { BrandIconArt, KitIconArt } from './icons';
-export { GlobeLoader, LoadingScreen, PageLoaderOverlay } from './globe-loader';
+export { GlobeLoader, LoadingScreen, PageLoaderOverlay, usePrefersReducedMotion } from './globe-loader';
 export type { GlobeLoaderSize } from './globe-loader';
 export { LOADING_PHRASES, nextPhraseIndex } from './loading-phrases';
 export type { LoadingPhrase } from './loading-phrases';

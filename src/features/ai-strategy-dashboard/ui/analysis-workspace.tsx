@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ApplicantAnalysis, CourseMatchAnalysis } from '../domain';
 import { ApplicantAnalysisReport } from './applicant-analysis-report';
 import { CourseMatchReport } from './course-match-report';
-import { Button } from '@/shared/ui';
+import { Button, usePrefersReducedMotion } from '@/shared/ui';
 
 /** requirements.md 5.1 — cycled while both reports are generating. */
 const LOADING_MESSAGES = [
@@ -133,6 +133,7 @@ export function AnalysisWorkspace({
   if (state === 'generating') {
     return (
       <div className="flex flex-col items-center gap-gb-lg py-gb-7xl text-center">
+        <AnalysisLoadingVideo />
         <p className="text-gb-lg font-semibold text-fg">{LOADING_MESSAGES[messageIndex]}</p>
         <p className="text-gb-sm text-fg-tertiary">This usually takes 30–60 seconds.</p>
       </div>
@@ -145,6 +146,39 @@ export function AnalysisWorkspace({
     <div className="flex flex-col gap-gb-3xl">
       <ApplicantAnalysisReport analysis={applicant} />
       <CourseMatchReport analysis={courseMatch} onImproveHref={improveHref} />
+    </div>
+  );
+}
+
+/**
+ * Loops for as long as the "generating" state lasts (typically 30-60s, so
+ * several loops of the ~10s clip) — same treatment `GlobeLoader`'s `Globe`
+ * uses for `/loading-globe.mp4`: muted + `playsInline` (required for iOS
+ * Safari autoplay), a `poster` for the gap before the first frame decodes,
+ * and a static image instead of motion when the OS asks for reduced motion.
+ */
+function AnalysisLoadingVideo() {
+  const reduced = usePrefersReducedMotion();
+
+  return (
+    <div className="w-full max-w-[420px] overflow-hidden rounded-gb-2xl" aria-hidden="true">
+      {reduced ? (
+        <div
+          className="aspect-[960/668] w-full bg-cover bg-center"
+          style={{ backgroundImage: 'url(/ai-strategy-loading-poster.jpg)' }}
+        />
+      ) : (
+        <video
+          className="w-full"
+          src="/ai-strategy-loading.mp4"
+          poster="/ai-strategy-loading-poster.jpg"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+        />
+      )}
     </div>
   );
 }
