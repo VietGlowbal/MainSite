@@ -15,6 +15,9 @@ type WaitlistSignupInput = {
   email: string;
   firstName: string;
   notes: string;
+  phone: string;
+  /** ISO `YYYY-MM-DD`, or empty when not supplied. */
+  dateOfBirth: string;
 };
 
 type WaitlistSignupResult =
@@ -28,20 +31,26 @@ export async function recordWaitlistSignup({
   email,
   firstName,
   notes,
+  phone,
+  dateOfBirth,
 }: WaitlistSignupInput): Promise<WaitlistSignupResult> {
   const supabase = createAdminClient();
 
+  const fields = {
+    first_name: firstName || null,
+    notes: notes || null,
+    phone: phone || null,
+    date_of_birth: dateOfBirth || null,
+  };
+
   const { error: insertError } = await supabase
     .from('waitlist_signups')
-    .insert({ email, first_name: firstName || null, notes: notes || null, source: 'website_waitlist' });
+    .insert({ email, ...fields, source: 'website_waitlist' });
 
   if (!insertError) return { outcome: 'inserted' };
 
   if (insertError.code === '23505') {
-    await supabase
-      .from('waitlist_signups')
-      .update({ first_name: firstName || null, notes: notes || null })
-      .eq('email', email);
+    await supabase.from('waitlist_signups').update(fields).eq('email', email);
     return { outcome: 'updated' };
   }
 
