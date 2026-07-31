@@ -1,12 +1,22 @@
 import { notFound } from 'next/navigation';
-import { SavedListClient, type SavedRow } from '@/app/my-universities/saved-list-client';
+import { ApplicationProgressClient } from '@/app/apply/application-progress-client';
+import type { SavedRow } from '@/app/apply/saved-list-section';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
 import { formatTuitionForCard, officialWebsite, splitList } from '@/features/universities/domain';
 
 /**
- * /dev/saved-list — design preview for /my-universities (Figma 375:12701,
- * 375:12841, 375:13295, 375:13369, 502:18462).
+ * /dev/saved-list — design preview for the saved list, which since the merge is
+ * the lower half of /apply (Figma 562:15078; the satellite frames 375:12841,
+ * 375:13295, 375:13369 and 502:18462 are unchanged).
+ *
+ * It renders the whole merged page, with "My application" empty above the
+ * preview rows — the empty tracker is a state worth being able to look at, and
+ * a preview that omitted it would no longer resemble the page.
+ *
+ * ⚠️ NOTHING HERE IS SIGNED IN, so the controls that need a session (the import
+ * bar, "Plan my application", attaching a scholarship) will fail if pressed.
+ * This route previews layout; use the real /apply to exercise behaviour.
  *
  * Exists because the real route is the hardest page in the app to look at: it
  * sits behind the auth gate AND the onboarding gate in src/proxy.ts, so reviewing
@@ -114,5 +124,15 @@ export default async function SavedListPreviewPage() {
     };
   });
 
-  return <SavedListClient rows={rows} userName="Preview user" userAvatarUrl={null} />;
+  return (
+    <ApplicationProgressClient
+      applications={[]}
+      logoByUniversityId={{}}
+      savedRows={rows}
+      userName="Preview user"
+      userAvatarUrl={null}
+      courseSearchUniversity={null}
+      openCourseSearch={false}
+    />
+  );
 }

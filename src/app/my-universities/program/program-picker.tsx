@@ -73,6 +73,7 @@ export function ProgramPicker({
   choices,
   initialProgram,
   initialProgramUrl,
+  returnTo,
 }: {
   /** `user_universities.id` — the row this choice is written to. */
   savedId: number;
@@ -81,6 +82,13 @@ export function ProgramPicker({
   choices: ProgramChoices;
   initialProgram: string | null;
   initialProgramUrl: string | null;
+  /**
+   * Where saving (and "Back") goes. Validated same-origin by the server
+   * component. Normally /apply, the page the saved list lives on; /apply also
+   * sends students here mid-"Plan my application" with a ?planFor return so the
+   * application is created the moment the subject exists.
+   */
+  returnTo: string;
 }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -165,9 +173,26 @@ export function ProgramPicker({
     setSaving(true);
     setError(null);
 
+    /*
+     * A PASTED URL WINS, BUT THE CATALOGUE'S OWN URL IS THE FALLBACK.
+     *
+     * This used to write `urlProvided ? url.trim() : null`, so choosing a
+     * subject from the catalogue and not pasting anything stored the subject
+     * with NO url — even though `chosenOfficialUrl` was right there, and was
+     * already being shown to the student two blocks below as "Open the official
+     * course page".
+     *
+     * Harmless while this only fed a display line; not harmless since /apply's
+     * "Plan my application" started needing a URL to post. A row with a subject
+     * and no url would have sent the student straight back to this page, saved
+     * again, and bounced again. Nothing is invented here: it is the catalogue's
+     * own `official_url` for the programme they picked.
+     */
+    const programUrl = urlProvided ? url.trim() : chosenOfficialUrl;
+
     const { error: updateError } = await supabase
       .from('user_universities')
-      .update({ program, program_url: urlProvided ? url.trim() : null })
+      .update({ program, program_url: programUrl })
       .eq('id', savedId);
 
     if (updateError) {
@@ -196,7 +221,7 @@ export function ProgramPicker({
       return;
     }
 
-    router.push('/my-universities');
+    router.push(returnTo);
     router.refresh();
   }
 
@@ -258,7 +283,7 @@ export function ProgramPicker({
                 hand-drawing an icon, which docs/README.md rules out.
               */}
               <Link
-                href="/my-universities"
+                href={returnTo}
                 className="flex shrink-0 items-center gap-gb-xs rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold text-fg-tertiary transition-colors hover:bg-surface-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <KitIcon art={ICONS.arrowLeft} frame={20} />
