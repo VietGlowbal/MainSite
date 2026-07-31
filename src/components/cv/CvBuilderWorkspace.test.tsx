@@ -545,7 +545,17 @@ describe('CvBuilderWorkspace', () => {
     const aacc = screen.getByRole('button', { name: /AACC/ });
     expect(aacc).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: /Leadership/ })).not.toBeInTheDocument();
-    expect(screen.getByRole('article', { name: 'CV AACC' })).toHaveClass('cv-aacc');
+    expect(screen.getByRole('article', { name: 'CV AACC' })).toHaveClass(
+      'cv-aacc',
+      'cv-harvard',
+    );
+    for (const section of ['Ability', 'Aspiration', 'Creativity', 'Commitment']) {
+      expect(screen.getByRole('heading', { name: section })).toBeInTheDocument();
+    }
+    expect(screen.queryByText(/What are you good at/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/What do you hope to achieve/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Do you think outside the box/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/stick-to-it-ive/)).not.toBeInTheDocument();
 
     await userEvent.click(harvard);
     expect(screen.getByRole('article', { name: 'CV Harvard' })).toHaveClass(
@@ -554,5 +564,108 @@ describe('CvBuilderWorkspace', () => {
 
     await userEvent.click(aacc);
     expect(aacc).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('reorders CV sections with accessible buttons and drag and drop', async () => {
+    localStorage.setItem(
+      'glowbal:cv-builder:v1:user-1:app-1',
+      JSON.stringify({
+        schemaVersion: 'cv-builder-v1',
+        applicationId: 'app-1',
+        targetProfile,
+        form: prefill,
+        generatedCv,
+        selectedTemplate: 'academic',
+      }),
+    );
+    render(
+      <CvBuilderWorkspace
+        applicationId="app-1"
+        userId="user-1"
+        universityName="Example University"
+        programmeName="Computer Science"
+        prefill={prefill}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /Bản CV/ }));
+    const profile = screen.getByRole('region', { name: 'Section Profile' });
+    const education = screen.getByRole('region', { name: 'Section Education' });
+    expect(profile).toHaveStyle({ order: '0' });
+    expect(education).toHaveStyle({ order: '1' });
+
+    await userEvent.click(screen.getByRole('button', { name: 'Đưa Profile xuống' }));
+    expect(education).toHaveStyle({ order: '0' });
+    expect(profile).toHaveStyle({ order: '1' });
+
+    const projects = screen.getByRole('region', {
+      name: 'Section University Projects',
+    });
+    fireEvent.dragStart(screen.getByRole('button', { name: 'Kéo Profile' }));
+    fireEvent.dragOver(projects);
+    expect(profile).toHaveClass('cv-section-dragging');
+    expect(projects).toHaveClass('cv-section-drop-target');
+    expect(getComputedStyle(projects)).toHaveProperty(
+      'backgroundColor',
+      'rgb(255, 228, 230)',
+    );
+    fireEvent.drop(projects);
+    expect(projects).not.toHaveClass('cv-section-drop-target');
+    expect(profile).toHaveStyle({ order: '2' });
+
+    await waitFor(() => {
+      const saved = JSON.parse(
+        localStorage.getItem('glowbal:cv-builder:v1:user-1:app-1') ?? '{}',
+      );
+      expect(saved.generatedCv.sectionOrder.slice(0, 3)).toEqual([
+        'education',
+        'projects',
+        'profile',
+      ]);
+    });
+  });
+
+  it('uses the compact four-button toolbar and confirms before hiding a section', async () => {
+    localStorage.setItem(
+      'glowbal:cv-builder:v1:user-1:app-1',
+      JSON.stringify({
+        schemaVersion: 'cv-builder-v1',
+        applicationId: 'app-1',
+        targetProfile,
+        form: prefill,
+        generatedCv,
+        selectedTemplate: 'academic',
+      }),
+    );
+    const confirm = vi.fn(() => true);
+    vi.stubGlobal('confirm', confirm);
+    render(
+      <CvBuilderWorkspace
+        applicationId="app-1"
+        userId="user-1"
+        universityName="Example University"
+        programmeName="Computer Science"
+        prefill={prefill}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /Bản CV/ }));
+    expect(
+      screen.getByRole('toolbar', { name: 'Sắp xếp Education' }),
+    ).toBeInTheDocument();
+    const deleteButton = screen.getByRole('button', { name: 'Xóa Education' });
+    expect(deleteButton).toHaveTextContent('Xóa');
+
+    await userEvent.click(deleteButton);
+    expect(confirm).toHaveBeenCalledWith('Xóa section Education khỏi CV?');
+    expect(
+      screen.queryByRole('region', { name: 'Section Education' }),
+    ).not.toBeInTheDocument();
+    await waitFor(() => {
+      const saved = JSON.parse(
+        localStorage.getItem('glowbal:cv-builder:v1:user-1:app-1') ?? '{}',
+      );
+      expect(saved.generatedCv.hiddenSections).toContain('education');
+    });
   });
 });

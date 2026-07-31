@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
   type Dispatch,
+  type DragEvent,
   type SetStateAction,
 } from 'react';
 import type {
@@ -28,6 +29,7 @@ import {
   type CvBuilderFormV1,
   type CvBuilderModelEvent,
   type CvBuilderStreamEvent,
+  type CvDisplaySectionKey,
   type CvSectionTitleKey,
   type CvTargetProfileV1,
   type CvTemplateId,
@@ -52,6 +54,19 @@ type AnyStreamEvent =
 const steps = ['Target Profile', 'Nội dung', 'Bản CV', 'Layout & PDF'];
 const inputClass =
   'w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-50';
+const cvSectionOrder: CvDisplaySectionKey[] = [
+  'profile',
+  'ability',
+  'aspiration',
+  'creativity',
+  'commitment',
+  'education',
+  'experience',
+  'projects',
+  'activities',
+  'awards',
+  'skills',
+];
 
 async function readNdjson(response: Response, onEvent: (event: AnyStreamEvent) => void) {
   if (!response.body) throw new Error('AI không trả stream.');
@@ -680,6 +695,139 @@ function CvPaper({
   onCvChange?: (cv: GeneratedCvV1) => void;
 }) {
   const editable = Boolean(onFormChange || onCvChange);
+  const draggedSection = useRef<CvDisplaySectionKey | null>(null);
+  const [draggingSection, setDraggingSection] = useState<CvDisplaySectionKey | null>(null);
+  const [dropTarget, setDropTarget] = useState<CvDisplaySectionKey | null>(null);
+  const hiddenSections = cv.hiddenSections ?? [];
+  const availableSections = cvSectionOrder.filter((section) => {
+    if (hiddenSections.includes(section)) return false;
+    if (['ability', 'aspiration', 'creativity', 'commitment'].includes(section))
+      return template === 'technical';
+    if (section === 'education') return cv.education.length > 0;
+    if (section === 'experience') return cv.experience.length > 0;
+    if (section === 'projects') return cv.projects.length > 0;
+    if (section === 'activities') return cv.activities.length > 0;
+    if (section === 'awards') return cv.awards.length > 0;
+    if (section === 'skills') return cv.skillGroups.length > 0;
+    return true;
+  });
+  const visibleSectionOrder = [
+    ...new Set([...(cv.sectionOrder ?? []), ...availableSections]),
+  ].filter((section) => availableSections.includes(section));
+  const moveSection = (section: CvDisplaySectionKey, targetIndex: number) => {
+    const next = [...visibleSectionOrder];
+    const sourceIndex = next.indexOf(section);
+    if (sourceIndex < 0 || targetIndex < 0 || targetIndex >= next.length) return;
+    next.splice(sourceIndex, 1);
+    next.splice(targetIndex, 0, section);
+    onCvChange?.({ ...cv, sectionOrder: next });
+  };
+  const sectionProps = (section: CvDisplaySectionKey, label: string) => ({
+    'aria-label': `Section ${label}`,
+    className: onCvChange
+      ? [
+          'cv-section-editable',
+          draggingSection === section && 'cv-section-dragging',
+          dropTarget === section && 'cv-section-drop-target',
+        ]
+          .filter(Boolean)
+          .join(' ')
+      : undefined,
+    hidden: !availableSections.includes(section),
+    style: {
+      order: visibleSectionOrder.indexOf(section),
+      backgroundColor:
+        dropTarget === section
+          ? '#ffe4e6'
+          : draggingSection === section
+            ? '#fff1f2'
+            : undefined,
+    },
+    onDragOver: (event: DragEvent<HTMLElement>) => {
+      event.preventDefault();
+      if (draggedSection.current && draggedSection.current !== section)
+        setDropTarget(section);
+    },
+    onDrop: (event: DragEvent<HTMLElement>) => {
+      event.preventDefault();
+      const dragged = draggedSection.current;
+      if (dragged && dragged !== section)
+        moveSection(dragged, visibleSectionOrder.indexOf(section));
+      draggedSection.current = null;
+      setDraggingSection(null);
+      setDropTarget(null);
+    },
+  });
+  const sectionToolbar = (section: CvDisplaySectionKey, label: string) => {
+    if (!onCvChange) return null;
+    const index = visibleSectionOrder.indexOf(section);
+    return (
+      <div
+        className="cv-section-toolbar print:hidden"
+        role="toolbar"
+        aria-label={`Sắp xếp ${label}`}
+      >
+        <button
+          type="button"
+          aria-label={`Kéo ${label}`}
+          className="cv-section-drag"
+          draggable
+          title="Kéo để đổi vị trí"
+          onDragStart={() => {
+            draggedSection.current = section;
+            setDraggingSection(section);
+          }}
+          onDragEnd={() => {
+            draggedSection.current = null;
+            setDraggingSection(null);
+            setDropTarget(null);
+          }}
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 2v20M2 12h20M12 2 9 5m3-3 3 3m-3 17-3-3m3 3 3-3M2 12l3-3m-3 3 3 3m17-3-3-3m3 3-3 3" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          aria-label={`Đưa ${label} lên`}
+          disabled={index <= 0}
+          title="Đưa lên"
+          onClick={() => moveSection(section, index - 1)}
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 20V4m0 0-6 6m6-6 6 6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          aria-label={`Đưa ${label} xuống`}
+          disabled={index === visibleSectionOrder.length - 1}
+          title="Đưa xuống"
+          onClick={() => moveSection(section, index + 1)}
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 4v16m0 0-6-6m6 6 6-6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="cv-section-delete"
+          aria-label={`Xóa ${label}`}
+          title="Xóa section"
+          onClick={() => {
+            if (!window.confirm(`Xóa section ${label} khỏi CV?`)) return;
+            onCvChange({
+              ...cv,
+              sectionOrder: visibleSectionOrder.filter((item) => item !== section),
+              hiddenSections: [...new Set([...hiddenSections, section])],
+            });
+          }}
+        >
+          Xóa
+        </button>
+      </div>
+    );
+  };
   const inlineEditor = (
     text: string,
     label: string,
@@ -736,7 +884,8 @@ function CvPaper({
           ? 'dự án'
           : 'hoạt động';
     return items.length ? (
-      <section>
+      <section {...sectionProps(section, title)}>
+        {sectionToolbar(section, title)}
         <h2>{editSectionTitle(section, title, `Chỉnh sửa tiêu đề ${title}`)}</h2>
         {items.map((item, itemIndex) => (
           <article key={item.sourceId}>
@@ -857,7 +1006,7 @@ function CvPaper({
     <article
       id="cv-print-area"
       aria-label={template === 'academic' ? 'CV Harvard' : 'CV AACC'}
-      className={`cv-paper ${template === 'academic' ? 'cv-harvard' : 'cv-aacc'}`}
+      className={`cv-paper cv-harvard${template === 'technical' ? ' cv-aacc' : ''}`}
     >
       <header className="cv-harvard-header">
         <h1>
@@ -916,7 +1065,8 @@ function CvPaper({
             ))}
         </p>
       </header>
-      <section>
+      <section {...sectionProps('profile', 'Profile')}>
+        {sectionToolbar('profile', 'Profile')}
         <h2>{editSectionTitle('profile', 'Profile', 'Chỉnh sửa tiêu đề Profile')}</h2>
         {editable ? (
           <p>
@@ -928,8 +1078,23 @@ function CvPaper({
           <p>{typing ? <TypingText text={cv.aboutMe} /> : cv.aboutMe}</p>
         )}
       </section>
+      {template === 'technical' &&
+        (
+          [
+            ['ability', 'Ability'],
+            ['aspiration', 'Aspiration'],
+            ['creativity', 'Creativity'],
+            ['commitment', 'Commitment'],
+          ] as const
+        ).map(([section, title]) => (
+          <section key={section} {...sectionProps(section, title)}>
+            {sectionToolbar(section, title)}
+            <h2>{title}</h2>
+          </section>
+        ))}
       {cv.education.length > 0 && (
-        <section>
+        <section {...sectionProps('education', 'Education')}>
+          {sectionToolbar('education', 'Education')}
           <h2>
             {editSectionTitle('education', 'Education', 'Chỉnh sửa tiêu đề Education')}
           </h2>
@@ -1050,7 +1215,8 @@ function CvPaper({
       {entrySection('projects', 'University Projects', cv.projects)}
       {entrySection('activities', 'Activities', cv.activities)}
       {cv.awards.length > 0 && (
-        <section>
+        <section {...sectionProps('awards', 'Awards')}>
+          {sectionToolbar('awards', 'Awards')}
           <h2>{editSectionTitle('awards', 'Awards', 'Chỉnh sửa tiêu đề Awards')}</h2>
           {cv.awards.map((award, index) => (
             <p key={award.sourceId}>
@@ -1094,7 +1260,8 @@ function CvPaper({
         </section>
       )}
       {cv.skillGroups.length > 0 && (
-        <section>
+        <section {...sectionProps('skills', 'Skills')}>
+          {sectionToolbar('skills', 'Skills')}
           <h2>{editSectionTitle('skills', 'Skills', 'Chỉnh sửa tiêu đề Skills')}</h2>
           {cv.skillGroups.map((group, index) => (
             <p key={group.sourceId}>
@@ -1494,7 +1661,7 @@ export function CvBuilderWorkspace({
     <main className="cv-builder-shell min-h-screen bg-white text-slate-950 print:bg-white">
       <style jsx global>{`
         @page { size: A4; margin: 11mm; }
-        .cv-paper { width: 210mm; min-height: 297mm; background: white; padding: 13mm 17mm; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 9.4pt; line-height: 1.18; box-shadow: 0 18px 55px rgba(15,23,42,.12); }
+        .cv-paper { display: flex; width: 210mm; min-height: 297mm; flex-direction: column; background: white; padding: 13mm 17mm; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 9.4pt; line-height: 1.18; box-shadow: 0 18px 55px rgba(15,23,42,.12); }
         .cv-harvard-header { margin-bottom: 7px; text-align: center; }
         .cv-paper h1 { font-size: 17pt; line-height: 1; font-weight: 800; text-transform: uppercase; }
         .cv-harvard-contact { margin-top: 3px; color: #111; font-size: 8.3pt; white-space: nowrap; }
@@ -1510,23 +1677,32 @@ export function CvBuilderWorkspace({
         .cv-paper time { color: #111; font-size: 9pt; font-weight: 600; white-space: nowrap; }
         .cv-paper ul { margin: 0 0 0 14px; list-style: disc; }
         .cv-paper li { margin: 0; padding-left: 1px; }
-        .cv-aacc { padding: 16mm 18mm; color: #172033; font-family: Arial, Helvetica, sans-serif; font-size: 10pt; line-height: 1.35; border-top: 7px solid #ec4899; }
-        .cv-aacc .cv-harvard-header { margin-bottom: 12px; border-bottom: 2px solid #ec4899; padding-bottom: 10px; text-align: left; }
-        .cv-aacc h1 { color: #0f172a; font-size: 24pt; text-transform: none; }
-        .cv-aacc .cv-harvard-contact { color: #64748b; font-size: 9pt; }
-        .cv-aacc section { margin-top: 15px; }
-        .cv-aacc h2 { border-bottom-color: #fbcfe8; color: #db2777; font-weight: 700; letter-spacing: .12em; }
-        .cv-aacc h3 { color: #0f172a; font-weight: 700; text-transform: none; }
-        .cv-aacc .cv-harvard-entry-row--secondary, .cv-aacc time { color: #64748b; }
+        .cv-paper section.cv-section-editable { --cv-drag-source: #fff1f2; --cv-drop-target: #ffe4e6; --cv-drop-outline: #fb7185; position: relative; outline: 1px dashed transparent; outline-offset: 5px; transition: background-color .15s, box-shadow .15s, opacity .15s, outline-color .15s; }
+        .cv-paper section.cv-section-editable:hover, .cv-paper section.cv-section-editable:focus-within { outline-color: #94a3b8; }
+        .cv-paper section.cv-section-dragging { box-shadow: 0 0 0 5px var(--cv-drag-source); opacity: .72; }
+        .cv-paper section.cv-section-drop-target { box-shadow: 0 0 0 6px var(--cv-drop-target); outline-color: var(--cv-drop-outline); }
+        .cv-section-toolbar { --cv-control: #8493a3; --cv-control-hover: #6f7f90; --cv-delete: #e54b3b; --cv-delete-hover: #ca382b; position: absolute; top: -37px; left: -1px; display: flex; gap: 6px; opacity: 0; transition: opacity .15s; }
+        .cv-section-editable:hover > .cv-section-toolbar, .cv-section-editable:focus-within > .cv-section-toolbar { opacity: 1; }
+        .cv-section-toolbar button { display: grid; width: 32px; height: 32px; place-items: center; border: 0; border-radius: 7px; background: var(--cv-control); color: #fff; box-shadow: 0 2px 5px rgba(15,23,42,.18); font: 700 14px/1 Arial, sans-serif; cursor: pointer; transition: background-color .15s, transform .15s; }
+        .cv-section-toolbar button:hover:not(:disabled) { background: var(--cv-control-hover); transform: translateY(-1px); }
+        .cv-section-toolbar button:focus-visible { outline: 3px solid #f9a8d4; outline-offset: 2px; }
+        .cv-section-toolbar button:disabled { opacity: .42; cursor: not-allowed; }
+        .cv-section-toolbar button svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+        .cv-section-toolbar .cv-section-drag { cursor: grab; }
+        .cv-section-toolbar .cv-section-drag:active { cursor: grabbing; }
+        .cv-section-toolbar .cv-section-delete { width: auto; padding: 0 10px; background: var(--cv-delete); }
+        .cv-section-toolbar .cv-section-delete:hover:not(:disabled) { background: var(--cv-delete-hover); }
         .cv-inline-editor { display: block; min-width: 4rem; border-radius: 3px; outline: none; transition: background-color .15s, box-shadow .15s; }
         .cv-inline-editor--inline { display: inline-block; min-width: 1rem; }
         .cv-inline-editor:hover { background: #fff7fb; box-shadow: 0 0 0 2px #fbcfe8; }
         .cv-inline-editor:focus { background: #fff7fb; box-shadow: 0 0 0 2px #ec4899; }
         @media print {
           body * { visibility: hidden !important; }
+          .cv-section-toolbar { display: none !important; }
           #cv-print-area, #cv-print-area * { visibility: visible !important; }
           #cv-print-area { position: absolute; inset: 0; width: 100%; min-height: 0; padding: 0; box-shadow: none; }
         }
+        @media (hover: none) { .cv-section-toolbar { opacity: 1; } }
       `}</style>
       <header className="border-b border-slate-200 bg-white px-5 py-4 print:hidden">
         <div className="mx-auto flex max-w-[1216px] flex-wrap items-center justify-between gap-4">

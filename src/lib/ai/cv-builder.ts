@@ -391,11 +391,19 @@ export type CvSectionTitleKey =
   | 'activities'
   | 'awards'
   | 'skills';
+export type CvDisplaySectionKey =
+  | CvSectionTitleKey
+  | 'ability'
+  | 'aspiration'
+  | 'creativity'
+  | 'commitment';
 export type GeneratedBullet = z.infer<typeof GeneratedBulletSchema>;
 export type GeneratedEntry = z.infer<typeof GeneratedEntrySchema>;
 
 export type GeneratedCvV1 = {
   sectionTitles?: Partial<Record<CvSectionTitleKey, string>>;
+  sectionOrder?: CvDisplaySectionKey[];
+  hiddenSections?: CvDisplaySectionKey[];
   aboutMe: string;
   education: z.infer<typeof GeneratedEducationSchema>[];
   experience: GeneratedEntry[];
