@@ -45,10 +45,10 @@ export const MARKETING_NAV_ITEMS: readonly TopNavItem[] = [
   { href: '/universities', label: 'Search universities' },
   { href: '/apply', label: 'Plan your studies' },
   { href: '/mentors', label: 'Find a mentor' },
-  // Figma "Blog". /guides and /news render the same listGeoGuides() data; the
-  // nav points at /guides because its detail route (/guides/[slug]) is the one
-  // the Blog detail frame (153:20197) maps onto.
-  { href: '/guides', label: 'Blog' },
+  // Figma "Blog". /guides and /news used to render the same listGeoGuides()
+  // data through two different designs; they were merged on 31/07 — the
+  // redesign is the UI, /news is the URL, and /guides now 308s here.
+  { href: '/news', label: 'Blog' },
 ];
 
 /**
