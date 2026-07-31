@@ -48,6 +48,13 @@ export function AnalysisWorkspace({
     return () => clearInterval(timer);
   }, [state]);
 
+  // Arriving here is a client-side push from wherever the previous step left
+  // the scroll position (often the bottom of a long form) — without this the
+  // loading video renders off-screen and looks like a blank/broken page.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   useEffect(() => {
     if (ran.current) return;
     ran.current = true;
@@ -132,9 +139,9 @@ export function AnalysisWorkspace({
 
   if (state === 'generating') {
     return (
-      <div className="flex flex-col items-center gap-gb-lg py-gb-7xl text-center">
+      <div className="flex flex-col items-center gap-gb-xl py-gb-6xl text-center">
         <AnalysisLoadingVideo />
-        <p className="text-gb-lg font-semibold text-fg">{LOADING_MESSAGES[messageIndex]}</p>
+        <p className="text-gb-xl font-semibold text-fg">{LOADING_MESSAGES[messageIndex]}</p>
         <p className="text-gb-sm text-fg-tertiary">This usually takes 30–60 seconds.</p>
       </div>
     );
@@ -161,7 +168,7 @@ function AnalysisLoadingVideo() {
   const reduced = usePrefersReducedMotion();
 
   return (
-    <div className="w-full max-w-[420px] overflow-hidden rounded-gb-2xl" aria-hidden="true">
+    <div className="w-full max-w-2xl overflow-hidden rounded-gb-2xl shadow-gb-lg" aria-hidden="true">
       {reduced ? (
         <div
           className="aspect-[960/668] w-full bg-cover bg-center"
