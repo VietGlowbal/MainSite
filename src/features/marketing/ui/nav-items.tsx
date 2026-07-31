@@ -21,11 +21,16 @@ import type { FooterColumn, FooterSocial, TopNavItem } from '@/shared/ui';
  * The two frames no longer draw the same items: signed in drops "Lập kế hoạch
  * du học" because that frame promotes it to the CTA button. That is a property
  * of the CTA slot, not of the item list, and every page here already picks its
- * own `primaryAction` (the saved list and the applications list both use
- * "Search universities"). Splitting the list on the signed-in flag would delete
- * the only /apply link from pages whose CTA points elsewhere — a regression the
- * frame does not ask for. Note the guest frame duplicates the label in both
- * slots anyway, so the design is not consistent on the point.
+ * own `primaryAction` (the merged applications page uses "Search universities").
+ * Note the guest frame duplicates the label in both slots anyway, so the design
+ * is not consistent on the point.
+ *
+ * ⚠️ /apply AND /ai-strategy STAY VISIBLE TO GUESTS, on the owner's instruction
+ * (31/07). Both were briefly hidden behind a signed-in check on the grounds
+ * that a visitor with no account has no application progress; the owner's call
+ * is the opposite and it is the better one — the links are how a guest finds
+ * out the features exist. Each page forces sign-in when it is opened, which is
+ * where that belongs. Do not reintroduce an auth filter on this list.
  *
  * "Tìm trường đại học" is the sixth, added on the product owner's instruction so
  * the desktop bar matches the mobile sheet (375:12205, unchanged from 179:12826)
@@ -43,7 +48,12 @@ export const MARKETING_NAV_ITEMS: readonly TopNavItem[] = [
   // deliberately carry different labels for the same route.
   { href: '/ai-strategy', label: 'Build your strategy' },
   { href: '/universities', label: 'Search universities' },
-  { href: '/apply', label: 'Plan your studies' },
+  /*
+   * Was "Plan your studies" ("Lập kế hoạch du học"). Renamed on the owner's
+   * instruction, 31/07, when /apply absorbed the saved list: the destination is
+   * now the student's applications, not a plan they have yet to make.
+   */
+  { href: '/apply', label: 'Application' },
   { href: '/mentors', label: 'Find a mentor' },
   // Figma "Blog". /guides and /news used to render the same listGeoGuides()
   // data through two different designs; they were merged on 31/07 — the
