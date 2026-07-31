@@ -72,7 +72,7 @@ Both carry banner frames naming them:
 | `/my-universities/program` | `375:13546` | **Khanh Linh - Chi** | **Built 30/07.** "Chọn lại ngành", the subject re-picker a saved row links to. ⚠️ Needs `supabase-saved-program.sql` — see below. |
 | `/mentors` | `154:8345` | **Tính năng** | Search + 4-across card grid. ⚠️ Not yet migrated — expect a pass when it is. |
 | `/about` | `153:11401` | **Tính năng** | Net-new route. Real team from `lib/team.ts`. ⚠️ Same provenance risk. |
-| `/guides` | `153:18266` | **Tính năng** | Blog list, data-driven topic tabs. ⚠️ Same provenance risk. |
+| `/news` | `153:18266` | **Tính năng** | Blog list, data-driven topic tabs. ⚠️ Same provenance risk. **Merged 31/07:** `/guides` and `/news` served the same data through two designs; the redesign is now the only UI and `/news` the only URL. See §"Two blog routes became one" below. |
 | `/` | `375:9844` | **Khanh Linh - Chi** | **Promoted 28/07**, replacing the 976-line legacy landing. Ships no `MissingContent`: testimonials and FAQ are omitted outright, Features and the scholarship rail take `showPlaceholders={false}`. Owns its chrome, including its own `MobileNav` — without that a phone gets no navigation at all. |
 | `/dev/home` | `375:9844` | **Khanh Linh - Chi** | Still here after the swap, on purpose: it keeps every section INCLUDING the placeholders, so the copy gaps stay visible. Renders no real data — check data against `/`. |
 | `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07, wired up + extended 30/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
@@ -105,7 +105,11 @@ Each is documented in a comment at the top of the relevant file.
   `university_id` to join a `logo_url` from.
 - **`/about` hero** — the frame claims "offices all around the world" over a world
   map. Untrue for a Vietnamese student startup; replaced with honest copy.
-- **`/guides` cards** — no author byline (`GeoGuide` has no author field).
+- **`/news` cards** — no author byline (`GeoGuide` has no author field).
+- **`/news` keeps a search box and a featured post**, neither of which
+  `153:18266` draws. Owner instruction, 31/07 — both existed on the page this
+  route absorbed and dropping working controls to match a frame is the same
+  trade as the subscribe row. See §"Two blog routes became one" below.
 - **Scholarship dialog** — the "Mã học bổng" code field is still **not built**.
   No voucher / promo / redeem concept exists anywhere in the schema.
 
@@ -266,8 +270,47 @@ fiction. Add the column (or a join) before review authorship means anything.
 |---|---|---|---|
 | `/ai-strategy` | 18 frames, listed in [nav-items.tsx](../src/features/marketing/ui/nav-items.tsx) — landing `375:18445`, candidate info `375:19260`, achievements `375:18839`, reflection modals `407:17291`/`408:17403`/`409:17502`/`409:17626`, reflection `375:18328`, portrait `375:18185`, fit `375:18645`, strategy `375:19502`/`405:6526`, essay `375:17961`, CV `375:18038`, pricing `375:19705`, submit `375:18117`, confirmation `375:18594`, major picker `375:13546` | **Khanh Linh - Chi** | Net-new route, largest group, **404s today** from both nav and footer. No longer a provenance risk — it has migrated onto the dev canvas. `/ai-strategy` is already registered in `OWN_CHROME_PREFIXES`. |
 | `/plus` | `115:13253`, `132:9601`, `196:16799`, `115:17014` | **Tính năng** | 3 tiers (free / $10 / $100). Sales are off (`PLUS_SALES_ENABLED=false`) — build as static preview. |
-| `/guides/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
+| `/news/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
 | `/privacy` | `153:22478` | **Tính năng** | Frame is named `Desktop`. |
+
+### Two blog routes became one (31/07)
+
+`/news` and `/guides` rendered the **same** `listGeoGuides()` data through two
+different designs — `/news` pre-redesign (orbiting-globe hero, featured article,
+search, grid/list toggle, trending sidebar), `/guides` the Figma rebuild
+(`153:18266`). The owner merged them: **the redesign is the UI, `/news` is the
+URL.**
+
+`/news` won the URL because it is what everything already pointed at — the app
+sidebar (`nav-reveal.tsx`), the article breadcrumb, and the `BreadcrumbList` in
+each article's JSON-LD. The Figma nav label stays "Blog"; only the href moved.
+
+What moved, and what has to move with it if this is ever revisited:
+
+| | Before | After |
+|---|---|---|
+| List | `/guides` + `/news` | `/news` (`news-client.tsx`) |
+| Article | `/guides/[slug]` | `/news/[slug]` |
+| Old URLs | — | 308 in `next.config.ts` |
+| Canonical | `…/guides/<slug>` | `…/news/<slug>` — `scripts/geo/generateMetadata.ts` **and** the 5 already-generated `content/geo/metadata/*.json` |
+| `revalidatePath` | `/news` + `/guides` + `/guides/:slug` | `/news` + `/news/:slug` (4 admin routes) |
+| Own chrome | `'/guides'` | `'/news'` |
+| Typecheck scope | `geo.tsconfig.json`, the pipeline's `git add` | same, repointed |
+
+The 308s are not tidiness. Every article published so far shipped a
+`/guides/<slug>` canonical in its metadata JSON and in the sitemap, so those
+addresses are what search engines hold and what any inbound link points at.
+
+Two controls the frame does not draw survived the merge, on the owner's
+instruction: **search** (title/excerpt/topic/tags, the filter the old page
+shipped) and a **featured** lead post. The dead ones did not — "Save for later"
+and the sort select were buttons with no handler, and the trending rail ranked
+by a hand-written topic weighting rather than any real signal.
+
+Only `NewsletterCard` survives from the old tree, in
+`src/components/news/newsletter-card.tsx`; `/news/[slug]` still renders it and it
+is still on the legacy pink styling that page uses. It goes when `153:20197` is
+built.
 
 ### The saved list was a canvas behind (found 30/07)
 
@@ -292,34 +335,104 @@ only way to catch it is the table at the top of this file, which is why it is at
 the top of this file. **Before touching a rebuilt page, check the node ids in its
 header comment against that table.**
 
-#### What the frame asks for that the database cannot answer
+#### Where the picker's options come from
 
-The card's supporting line reads "Viện kinh doanh — Chương trình cử nhân kinh
-doanh quốc tế" — school plus course. **There is no course catalogue.** Verified
-live, not from a `.sql` file: no `programs`, no `majors`, no
-`university_programs`; `universities.strengths` is a comma-separated subject line
-and that is all of it (97 of 106 rows). So:
+**`catalog_programmes`.** It is the crawler's programme catalogue and it carries
+exactly the tree the frame draws: `programme_name`, `degree_level`, and a
+denormalised `academic_units` array that is the school layer. Read through
+`features/universities/api/programme-queries.ts`.
 
-- the supporting slot keeps `best_for`, a real sentence about the university;
-- the student's own chosen subject gets the "Ngành …" line, which is a fact
-  because they chose it;
-- the picker offers `splitList(strengths)` for 105 universities and the real
-  school→programme→duration tree for VinUni, whose catalogue lives in
-  `src/lib/vinuni-content.ts`. `features/universities/domain/programs.ts` makes
-  that call once, with tests.
+⚠️ **This file previously said "there is no course catalogue", and that was
+wrong.** The check behind it probed three *guessed* table names — `programs`,
+`majors`, `university_programs` — missed on all three, and generalised. There are
+**75 tables** in this database. One call answers the question properly:
+
+```bash
+# PostgREST's OpenAPI document: every exposed table and its columns
+curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  | jq -r '.definitions | keys[]'
+```
+
+**Enumerate the schema; never conclude a table is absent from a handful of
+guessed names.** This is the second entry in this pack about trusting a guess
+over the database — see known-issues.md §0 for the first.
+
+Coverage is partial, and that shapes the design (measured 2026-07-31):
+
+| Fact | Consequence |
+|---|---|
+| 404 programmes over **24** of 106 universities | `universities.strengths` stays the fallback, and is the path most students hit |
+| `duration` null on **400 of 404** | the frame's "(4 năm)" renders for almost nothing; never defaulted |
+| `degree_level` well populated, but spelled `bachelor` **and** `Bachelor's` | folded by `degreeLabel`; it takes the secondary line the frame gave to duration, because the same subject is catalogued at two levels |
+| a programme can list several `academic_units` | it appears under each school, once in the flat list |
+| `catalog_programmes` readable by `anon` **and** `authenticated` | no repeat of the mentor-directory RLS trap; checked with both keys |
+
+What the database still cannot answer is the frame's *supporting* line, "Viện
+kinh doanh — Chương trình cử nhân kinh doanh quốc tế", which is a sentence about
+the university rather than a row. That slot keeps `best_for`; the student's own
+chosen subject gets the "Ngành …" line, which is a fact because they chose it.
+
+#### Crawled data needs shaping before it reaches a student
+
+Three decisions, all measured against all 404 rows rather than the handful that
+happened to be on screen.
+
+**1. `verification_status` is neither filtered nor badged.** 390 of 404 rows are
+`NEEDS_REVIEW`, 10 are `RULE_VALIDATED`, 4 are null — and all 10 validated rows
+belong to **one university** (Penn). So filtering to "verified" would leave the
+catalogue path working for 1 of the 24 catalogued universities, silently, with
+everyone else dropping to the `strengths` fallback: that is deleting the feature,
+not hedging it. And a badge on 96.5% of rows cannot help a student choose between
+two of them.
+
+⚠️ `NEEDS_REVIEW` is the **default** state of crawler output that has not been
+through a rule validator. It does not mean "we think this is wrong" — `REJECTED`
+means that. Do not label it "unverified" anywhere.
+
+What ships instead: `REJECTED` rows are excluded (zero today, so it is insurance),
+and the picker says once, under the heading, *"Collected from this university's
+own course catalogue. Check the official page before you apply."* with
+`official_url` — populated on all 404 — offered as a link on the chosen
+programme.
+
+**2. Names are peeled back to the subject** (`tidyProgrammeName`). Crawled names
+are frequently every facet concatenated, sometimes with the school twice:
+
+> Health Education and Health Communication, MSPH Bloomberg School of Public
+> Health Master's Full-time Part-time Bloomberg School of Public Health In-person
+
+That is 154 characters, and the median name is 35. Across all 404 rows: p90
+84 → 65, worst 154 → 47, 44 shortened, and **0 outputs that are not a prefix of
+their input** — the same invariant `leadFragment` carries.
+
+⚠️ **It peels the TAIL; it must never cut mid-string.** The first version cut at
+the earliest facet word anywhere in the name, which turned Georgia Tech's
+"Computer Science – Online Degree (MS)" into "Computer Science" — losing the
+distinguishing clause *and* colliding with the real "Computer Science (MS)" two
+rows below it in the same list. Found by looking at the rendered picker; there is
+a regression test on it now.
+
+**3. Dedupe keys on name AND degree.** The same subject is commonly catalogued at
+two levels, and collapsing on name alone would delete one of the two things the
+student came to choose between. Measured: tidying costs **0** extra rows to
+dedupe — the 5 rows it does collapse are duplicates already present upstream
+(Princeton lists "Computer Science" twice at master's and twice at bachelor's).
 
 The frame's "Mã học bổng" + "ÁP DỤNG" redeem-a-code control is **still not
-built**, for the same reason it was not built the first time: no voucher table,
-no code column, no endpoint. Migrating to the new canvas did not add one.
+built**, for the same reason as the first time: no voucher table, no code column,
+no endpoint. Migrating to the new canvas did not add one.
 
-#### The bit that needs the owner
+#### The migration
 
-`supabase-saved-program.sql` adds `user_universities.program` and
-`program_url`. **It has not been run** — this repo applies `.sql` by hand. Until
-it is, every row reads "No subject chosen yet" and saving one reports *"Saving a
-subject is not switched on in this environment yet"* rather than a generic retry
-prompt. The read is a `select('*')` precisely so a missing column cannot break
-the whole page.
+`supabase-saved-program.sql` adds `user_universities.program` and `program_url`.
+**Applied by the owner 2026-07-31**; confirmed live, and the round trip works —
+picking "Computer Science (MS)" at Georgia Tech stores that string and the card
+renders "Subject: Computer Science (MS)".
+
+The tolerance built while it was outstanding is worth keeping: the read is a
+`select('*')`, so a project without these columns still renders the list rather
+than failing whole. If you add another column here, do not switch that to an
+explicit list.
 
 ⚠️ The missing-column check matches on the PostgREST **code**, verified against
 the live API: `PGRST204`, message `Could not find the 'program' column of
@@ -564,12 +677,12 @@ low priority.
 |---|---|---|
 | `src/app/onboarding/` | 43 | **Mostly dead code** — see [known-issues.md](known-issues.md). The wizard itself is clean. |
 | `src/components/` | 41 | `nav-reveal.tsx` (the app sidebar) is most of it. |
-| `src/app/profile/` | 41 | 9 routes. |
-| `src/app/admin/` | 29 | 8 routes, internal only — cheapest thing to cut. |
+| ~~`src/app/profile/`~~ | **0** | **Done 31/07** — see "The two consoles" below. |
+| ~~`src/app/admin/`~~ | **0** | **Done 31/07** — see "The two consoles" below. |
 | `src/app/dashboard/` | 12 | 6 routes. |
 | `src/app/coordinator/` | 8 | |
 | `src/app/my-universities/[id]/` | 3 | Task/writer pages under the rebuilt list. |
-| `src/app/guides/[slug]/` | 2 | `article-body.tsx`. |
+| `src/app/news/[slug]/` | 2 | `article-body.tsx`. |
 
 `src/app/mentors/` is no longer on this list — the browse page was rebuilt and
 `MentorBrowse.tsx` deleted, and `/mentors/[id]` was rebuilt on 29/07 (which also
@@ -582,6 +695,64 @@ Definition of done for any of these: the grep in [verification.md](verification.
 returns nothing for that route's whole tree. Half-converted is the worst state —
 `globals.css` is 5,375 unlayered lines that out-rank Tailwind utilities.
 
+### The two consoles — rebuilt 31/07 with NO Figma frame
+
+`/profile` (9 routes) and `/admin` (8 routes) were brought onto the token system
+at the owner's request. **Neither is drawn anywhere in the Figma file**, so
+nothing here is measured — do not go looking for the node id, and do not
+"correct" these pages against a frame that does not exist. The rules followed
+instead were the token scale, the primitives in `src/shared/ui`, and the
+dark-band vocabulary (`bg-surface-inverse-deep` + the `fg-on-inverse-*` ramp)
+that the footer and top nav already use, so both consoles read as the same
+product as the marketing pages.
+
+Four things were added to the design system to make this possible. All are
+token-only and all carry a "no Figma source" header, the same standing as
+`ProgressBar` and the error ramp:
+
+| Added | Where | Why |
+|---|---|---|
+| `Panel` · `PanelHeader` · `StatTile` | `shared/ui/panel.tsx` | ~30 cards and 17 stat tiles across the two consoles. Hand-writing `rounded-gb-2xl border border-line bg-surface` thirty times is thirty chances to drift. |
+| `Badge` `safe-chip` / `neutral-chip` | `shared/ui/badge.tsx` | An admin status column stacks all four states in one table column, so they must share one geometry. `brand-chip` and `info-chip` already existed; these are the other two steps. |
+| `Button` `secondary-destructive` | `shared/ui/button.tsx` | Four irreversible actions in the console. **Read its comment before reaching for `className="text-fg-error"` instead** — that was tried and silently does nothing (see below). |
+| `AdminHeading` · `TableShell` · `TH`/`TD` · `Alert` · `EmptyRow` | `src/app/admin/_ui.tsx` | Console-only. Deliberately not in shared/ui: nothing outside `/admin` renders a data table. |
+| `SaveBar` · `TagInput` · `SelectOptions` | `src/app/profile/_form-parts.tsx` | Profile-only. The save row was copy-pasted five times, the tag field five times. |
+
+Deleted as dead code, all three unreferenced: `profile/personal-info-card.tsx`,
+`profile/profile-sticky-bar.tsx`, `profile/profile-avatar.tsx`.
+
+**A trap worth writing down: `className` cannot override a `Button` variant's
+colour.** `<Button variant="secondary" className="text-fg-error">` renders grey.
+Both are `color` utilities, and Tailwind resolves the conflict by stylesheet
+order, not by the order of the class attribute — `secondary`'s own
+`text-fg-secondary` wins. It shipped that way for one screenshot cycle on the
+Kick and Delete buttons before a render caught it. Anything that needs a
+different colour needs a variant, not a class.
+
+Four things the old pages did that these deliberately do not, each removed
+rather than restyled:
+
+1. **A green "Verified" tick on every student**, whatever their account. Nothing
+   in the schema verifies anything about a student.
+2. **"Active N · Submitted 0 · Offers 0"** on the profile applications card,
+   where the last two were literals. Now one figure, and it is real.
+3. **Work experience and English proficiency scored at a hard-coded 0%.** Both
+   live in their own tables and `/profile/page.tsx` fetched neither, so the
+   cards read "Get started" to a student who had already filled them in and
+   dragged the overall strength figure down. Two `head: true` counts fixed it.
+4. **A `<select>` silently showing the wrong value.** Several option lists were
+   rewritten after onboarding shipped, so real rows hold strings the current
+   list does not contain — the E2E account's `budget_range` is "Up to $25k",
+   which is not in `BUDGET_OPTIONS`. A native select whose value matches no
+   option displays the *first* one, so the page rendered "Under $10,000 / year"
+   in a field that would have overwritten the real answer on the next save.
+   `SelectOptions` appends the stored value. Six selects were affected.
+
+Verified 31/07 on a production build with `ADMIN_USER_IDS` set in the server's
+environment (no DB write — see verification.md): all 16 routes 200, no redirect,
+**no horizontal overflow at 360 or 1440**, no console errors beyond the two
+`_vercel/insights` 404s that every local page produces.
+
 ---
 
 ## Pages that render their own chrome
@@ -591,10 +762,10 @@ for pages that ship `TopNav` + `MobileNav` + `Footer` themselves. Two lists
 since 28/07:
 
 - `OWN_CHROME_ROUTES`, matched **exactly**: `/`, `/dev/home`, `/universities`,
-  `/auth`, `/coming-soon`, `/onboarding`, `/about`, `/guides`,
+  `/auth`, `/coming-soon`, `/onboarding`, `/about`, `/news`,
   `/my-universities`, `/apply`, `/mentors`, `/dev/saved-list`. Exact, because
   the child routes under most of them (`/apply/[applicationId]`,
-  `/guides/[slug]`, `/my-universities/[id]`, `/universities/vinuni`,
+  `/news/[slug]`, `/my-universities/[id]`, `/universities/vinuni`,
   `/mentors/apply`) are still on the app chrome.
 - Two **id-shaped** matchers, for rebuilt detail pages whose siblings are not
   rebuilt and so cannot take a prefix: `/universities/<digits>` and

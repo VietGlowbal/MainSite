@@ -61,7 +61,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     );
     // The article's "Related" rail is part of its rendered page.
     const article = await getArticleById(id);
-    if (article) revalidatePath(`/guides/${article.slug}`);
+    if (article) revalidatePath(`/news/${article.slug}`);
     return NextResponse.json({ ok: true });
   } catch (err) {
     return NextResponse.json({ error: (err as Error).message }, { status: 400 });

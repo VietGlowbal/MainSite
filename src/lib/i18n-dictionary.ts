@@ -158,22 +158,14 @@ export const translations: Record<string, string> = {
   More: 'Thêm',
 
   // ── News / guides ────────────────────────────────────────────────────────
-  'Glowbal News & Guides': 'Tin tức & Hướng dẫn Glowbal',
-  'Insights to help you study abroad': 'Thông tin giúp bạn du học',
-  smarter: 'thông minh hơn',
-  'Expert insights, real student stories, and practical guides to help you plan, apply, and succeed.':
-    'Thông tin chuyên sâu, câu chuyện thực tế của sinh viên và hướng dẫn thiết thực giúp bạn lên kế hoạch, nộp đơn và thành công.',
-  'Search articles, topics or universities...': 'Tìm bài viết, chủ đề hoặc trường đại học...',
+  // The pre-redesign /news layout was deleted on 31/07 when the two blog routes
+  // were merged; its copy went with it ("Insights to help you study abroad",
+  // "Latest first", "Trending now", the grid/list and sort controls). What is
+  // left here is what /news/[slug] and the newsletter card still render.
   Featured: 'Nổi bật',
-  'Read full guide': 'Đọc hướng dẫn đầy đủ',
-  'Save for later': 'Lưu để đọc sau',
-  'Latest articles': 'Bài viết mới nhất',
-  'Fresh insights and expert advice': 'Thông tin mới và lời khuyên từ chuyên gia',
-  'Latest first': 'Mới nhất trước',
   'No articles match that search yet.': 'Chưa có bài viết nào khớp với tìm kiếm.',
   'Read article': 'Đọc bài viết',
   'View all articles': 'Xem tất cả bài viết',
-  'Trending now': 'Đang thịnh hành',
   'Stay updated': 'Cập nhật thông tin',
   'Get the latest study abroad tips, scholarships and guides straight to your inbox.':
     'Nhận các mẹo du học, học bổng và hướng dẫn mới nhất ngay trong hộp thư của bạn.',
@@ -185,6 +177,21 @@ export const translations: Record<string, string> = {
     'Hướng dẫn chọn trường, tìm nguồn tài chính và cách trúng tuyển — viết cho sinh viên Việt Nam.',
   'Read post': 'Đọc bài',
   'No posts in this topic yet.': 'Chưa có bài viết nào trong chủ đề này.',
+  'Search articles, topics or tags': 'Tìm bài viết, chủ đề hoặc thẻ',
+  /*
+   * The list page renders the reading time as two nodes — "12" and "min read" —
+   * rather than one interpolated string. DomTranslator matches a text node
+   * whole, so "12 min read" could never hit `{minutes} min read` above and every
+   * distinct duration would make its own round trip to /api/translate. Split,
+   * the number passes through untouched and this key is a free hit.
+   *
+   * `{minutes} min read` stays: /news/[slug] uses <T k="..."> with a real var,
+   * which interpolates through the dictionary rather than through the DOM.
+   */
+  'min read': 'phút đọc',
+  // The count line under the filters, likewise split from its number.
+  article: 'bài viết',
+  articles: 'bài viết',
   Subscribed: 'Đã đăng ký',
   'Please enter a valid email address': 'Vui lòng nhập địa chỉ email hợp lệ',
   'Successfully subscribed! Check your email.':
@@ -524,6 +531,17 @@ export const translations: Record<string, string> = {
   'Not set': 'Chưa đặt',
   Undergraduate: 'Đại học',
   Postgraduate: 'Sau đại học',
+  'Target intake':'Kỳ nhập học mục tiêu',
+  'Member since':'Tham gia từ',
+  'Fill in more sections for better course matches and stronger plans.':'Hoàn thiện thêm các mục để nhận gợi ý ngành học phù hợp và lộ trình tối ưu hơn',
+  'Keep these up to date for better recommendations and stronger application plans.':'Cập nhật thông tin thường xuyên để nhận đề xuất chính xác và tối ưu hóa chiến lược ứng tuyển',
+  'Edit profile':'Chỉnh sửa',
+  'Nationality':'Quốc gia',
+  'No documents uploaded yet.':'Chưa tải lên tài liệu nào',
+  'application in progress':'hồ sơ đang ứng tuyển',
+  'Upgrade to GlowBal Plus':'Nâng cấp lên GlowBal Plus',
+  'Not started':'Chưa có',
+  'Go to my applications':'Đến trang Ứng tuyển',
 
   // ── Auth ───────────────────────────────────────────────────────────────--
   'Welcome back 👋': 'Chào mừng trở lại 👋',
@@ -1250,6 +1268,9 @@ export const translations: Record<string, string> = {
   'Search subjects': 'Tìm ngành',
   'We do not have a subject list for this university yet. Paste a link to the course page below and it will show on your saved list.':
     'Hệ thống chưa có danh sách ngành cho trường này. Hãy dán link trang khoá học bên dưới, link sẽ hiện trong danh sách đã lưu của bạn.',
+  'Collected from this university’s own course catalogue. Check the official page before you apply.':
+    'Được thu thập từ danh mục khoá học của chính trường. Hãy kiểm tra trang chính thức trước khi nộp hồ sơ.',
+  'Open the official course page': 'Mở trang khoá học chính thức',
   'Cannot find the subject you want? Paste a link to it':
     'Nếu không tìm thấy ngành mong muốn thì paste link',
   'Optional. It shows as a link on your saved list.':
@@ -1283,6 +1304,13 @@ export const translations: Record<string, string> = {
   '6 programmes': '6 chương trình',
   '7 programmes': '7 chương trình',
   '8 programmes': '8 chương trình',
+  // Degree levels, folded to one spelling by `degreeLabel` in the api slice —
+  // the raw `catalog_programmes.degree_level` has both "master" and "Master's".
+  Bachelor: 'Cử nhân',
+  Master: 'Thạc sĩ',
+  Diploma: 'Cao đẳng',
+  // `PhD` is already covered further up, in the onboarding vocabulary.
+
   '1 year': '1 năm',
   '2 years': '2 năm',
   '3 years': '3 năm',

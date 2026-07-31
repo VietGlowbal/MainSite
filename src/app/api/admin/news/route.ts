@@ -8,8 +8,7 @@ import { createArticle, listArticlesForAdmin } from '@/lib/geo-cms';
 /** Refresh the public pages that render GEO articles after a mutation. */
 function revalidateArticle(slug?: string) {
   revalidatePath('/news');
-  revalidatePath('/guides');
-  if (slug) revalidatePath(`/guides/${slug}`);
+  if (slug) revalidatePath(`/news/${slug}`);
 }
 
 /**

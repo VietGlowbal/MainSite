@@ -1,4 +1,5 @@
 import type { MetadataRoute } from 'next';
+import { SITE_URL } from '@/lib/site-url';
 
 /**
  * While the pre-launch site lock is on (LAUNCH_PLAN.md, src/lib/site-gate.ts),
@@ -14,9 +15,10 @@ export default function robots(): MetadataRoute.Robots {
     return { rules: { userAgent: '*', disallow: '/' } };
   }
 
-  // Matches the domain sitemap.ts already publishes under.
+  // Same constant sitemap.ts publishes under — the two must agree or crawlers
+  // are pointed at a sitemap on a different host than the pages it lists.
   return {
     rules: { userAgent: '*', allow: '/' },
-    sitemap: 'https://glowbal.co/sitemap.xml',
+    sitemap: `${SITE_URL}/sitemap.xml`,
   };
 }

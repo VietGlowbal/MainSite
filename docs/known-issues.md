@@ -159,9 +159,7 @@ Related tables that were already populated: `universities` (97),
 
 Re-measured 2026-07-30: `universities` 106 rows (97 with `strengths`, 97 with
 `tuition_usd`), `user_universities` 4, `user_scholarships` 48, `scholarships`
-2877, `scholarship_universities` 374. There is **no** `programs`, `majors` or
-`university_programs` table — checked, because the "Chọn lại ngành" frame implies
-a course catalogue and it does not exist.
+2877, `scholarship_universities` 374.
 
 ⚠️ Some comments in the repo still asserted `user_universities` was missing, more
 than two days after it was applied — `src/app/dev/saved-list/page.tsx` carried a
@@ -170,23 +168,83 @@ table does not exist" note is only true on the day it was written.**
 
 ---
 
-## 1c. OUTSTANDING — `supabase-saved-program.sql` has not been run
+## 1a. NEVER conclude a table is absent from guessed names — enumerate
+
+**Cost the owner a correction on 2026-07-31.** The saved-list work reported that
+this database has **no course catalogue**, and built a `strengths`-only fallback
+around that. The evidence was three probes — `programs`, `majors`,
+`university_programs` — all missing.
+
+There are **75 tables**. The catalogue is called `catalog_programmes`, with
+`academic_units` beside it, `courses`, `course_offerings`,
+`course_academic_units`, and a whole `crawl_*` pipeline feeding them. Every one
+was one call away:
+
+```bash
+# PostgREST's OpenAPI document lists every exposed table AND its columns
+curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  | jq -r '.definitions | keys[]'
+
+# ...and the columns of one table
+curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+  | jq -r '.definitions.catalog_programmes.properties | keys[]'
+```
+
+§0 above is about trusting a `.sql` file over the database. This is the same
+mistake with a different disguise: **a miss on a name you invented is evidence
+about your naming, not about the schema.** Enumerate first, then ask what is in
+what you found.
+
+What was in it, once looked at: 404 programmes across 24 of 106 universities,
+`degree_level` in two spellings (`bachelor` and `Bachelor's`), `duration` null on
+400 of 404, and `academic_units` denormalised onto each row as the school layer.
+All of that now drives the subject picker; see
+`src/features/universities/api/programme-queries.ts`.
+
+### It is crawler output, so it needs shaping before a student sees it
+
+⚠️ **`NEEDS_REVIEW` does not mean "we think this is wrong."** It is the default
+state of anything that has not been through a rule validator — 390 of the 404
+rows carry it. `REJECTED` is the flag that means the pipeline decided against a
+row. Do not label `NEEDS_REVIEW` "unverified" in the UI, and do not filter on it:
+all 10 `RULE_VALIDATED` rows belong to one university, so filtering leaves the
+catalogue working for 1 of the 24 covered and silently drops the rest to the
+`strengths` fallback.
+
+Also true of the raw rows, and handled in
+`features/universities/domain/programs.ts`:
+
+- **names are facet soup.** Median 35 characters, p90 84, max 154 — the longest
+  repeats its school twice. `tidyProgrammeName` peels the trailing facets;
+  it must only ever peel the TAIL, because cutting at the first facet word
+  anywhere destroys "Computer Science – Online Degree (MS)".
+- **the same subject appears at several degree levels**, so anything that
+  deduplicates must key on name *and* degree.
+- **the catalogue itself contains duplicates** — Princeton lists "Computer
+  Science" twice at master's and twice at bachelor's.
+
+---
+
+## 1c. FIXED 2026-07-31 — `supabase-saved-program.sql` applied
 
 Adds `user_universities.program` and `.program_url`, which back the "Ngành …"
 line on each saved row and the "Chọn lại ngành" picker at
 `/my-universities/program` (Figma `375:12701`, `375:13546`).
 
 Additive and idempotent: two nullable `text` columns, `ADD COLUMN IF NOT EXISTS`,
-no RLS change needed (the existing `for all` policy on the row covers them).
+no RLS change needed (the existing `for all` policy on the row covers them). The
+owner ran it on 2026-07-31 and the round trip is confirmed live — picking a
+programme stores it and the saved card renders it.
 
-**Until it is run**, and this is by design rather than by accident:
+**The tolerance built while it was outstanding stays**, and is worth keeping:
 
-- the saved list still renders — the read is `select('*')`, so naming a column
-  that does not exist cannot fail the whole page;
-- every row shows "No subject chosen yet";
-- saving a subject reports *"Saving a subject is not switched on in this
-  environment yet — the user_universities.program column has not been added.
-  Nothing was changed."* instead of a generic retry prompt.
+- the saved list reads with `select('*')`, so a project without these columns
+  renders the list rather than failing whole. Do not switch that to an explicit
+  column list when adding the next field;
+- a row with no subject shows "No subject chosen yet" rather than a placeholder;
+- a write that hits a missing column reports *"Saving a subject is not switched
+  on in this environment yet — the user_universities.program column has not been
+  added. Nothing was changed."* instead of a generic retry prompt.
 
 That last one exists because a generic error sends someone retrying a write that
 can never succeed. It matches the PostgREST **code**, verified against the live
@@ -264,6 +322,49 @@ a.from('english_test_scores').select('id').then(r => console.log('anon sees', r.
 
 When the durable policies land, all six `getPublic*`/`getApproved*` helpers can
 drop back to the request-scoped client together.
+
+### The same gap hides pending mentors from the admin who has to approve them (found 2026-07-31)
+
+Found while screenshotting the rebuilt `/admin`. The console contradicts itself:
+
+| Page | Client | Shows |
+|---|---|---|
+| `/admin` overview | `createAdminClient()` — service role, on the eslint debt list | **"Mentor applications waiting: 1"** |
+| `/admin/achievers` | `createClient()` from `@/lib/supabase/server` — request-scoped | **"Pending (0)"** |
+
+Both are correct about what they can see. The select policy on
+`achiever_profiles` is scoped to `status = 'approved'`, so the request-scoped
+client cannot read a **pending** row no matter who is signed in — being an admin
+is checked in application code (`isAdmin`), not in the policy. The queue an
+admin exists to work is invisible on the only page that can action it, and the
+overview tells them there is one waiting.
+
+Confirmed 2026-07-31 — the service role sees five rows, one of them pending;
+the anon role sees none:
+
+```bash
+node --env-file=.env.local -e "
+const { createClient } = require('@supabase/supabase-js');
+const svc = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const anon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+Promise.all([svc.from('achiever_profiles').select('status'), anon.from('achiever_profiles').select('status')])
+  .then(([s, a]) => console.log('service:', s.data.map(r => r.status).join(), '| anon:', a.data.length));
+"
+```
+
+**PRE-EXISTING, and deliberately not fixed by the 31/07 console rebuild** — that
+was a UI pass, and this is a data-access boundary. The two candidate fixes are
+both bigger than a restyle:
+
+1. An admin read policy on `achiever_profiles` (the durable fix, and it also
+   retires the `getPublic*` workarounds above).
+2. Move the page's read behind an API route or a repository that may use the
+   service role. Note it **cannot** just switch to `createAdminClient()` in
+   place: eslint's `ADMIN_CLIENT_DEBT` list in `eslint.config.mjs` "may SHRINK,
+   never grow", and `src/app/admin/achievers/page.tsx` is not on it.
+
+Until one of those lands, mentor applications can only be approved by editing
+the row directly.
 
 ---
 
@@ -359,11 +460,53 @@ confidently wrong date.
 
 ---
 
+## 4b. `TopNav` silently CLIPS nav links between 768 and ~1200
+
+Found 2026-07-31 while widening the header. Not introduced by that change — it
+measures the same before and after.
+
+The desktop bar turns on at `md` (768) and its link row is `overflow-hidden`, so
+when the links do not fit they are **cut off with no indication** — they do not
+wrap, scroll, or collapse. Measured on `/about`, whose guest nav is the *small*
+case at 6 items:
+
+| Viewport | Links row needs | Gets | Hidden |
+|---|---|---|---|
+| 768 | 669px | 298px | **371px** — over half the links |
+| 1024 | 669px | 554px | **115px** |
+| 1280 | 669px | 768px | 0 — 99px spare |
+
+So on a 768–1024 tablet the bar shows roughly "About us / Build your strategy"
+and quietly drops the rest, including *Search universities*. There is no
+hamburger to fall back to either — `MobileNav` stops at `md`, exactly where this
+starts.
+
+It gets worse signed in: `navItemsFor()` in `src/components/nav-reveal.tsx` adds
+Apply and Scholarships, plus Mentor hub / Coordinator / Admin per role — up to 9
+items, so an admin can lose links at 1280 too. Untested, as it needs a live
+session.
+
+This is why every loosening of the link spacing in `src/shared/ui/top-nav.tsx` is
+gated at `2xl`: loosening below 1280 would bury more links, and **1280 itself has
+no room to give away either**. That row of the table used to read `741px / 741px`
+— the links fitting to the pixel — because the links briefly took `Button`'s `sm`
+horizontal padding from `xl`, which costs 72px across six labels. It measured as
+a fit on Windows and clipped "Blog" on CI, where the same text comes out a few px
+wider per label. The `xl` step is now the vertical padding only (the 36px pill
+height, which costs no width); the horizontal one waits for `2xl`.
+
+A real fix for 768–1024 still needs a decision from the designer — raise the
+desktop breakpoint to `lg`/`xl` so tablets get the hamburger, or give the bar an
+overflow menu. Neither is drawn in Figma.
+
+---
+
 ## 5. Fixed 2026-07-26 — do not re-introduce
 
 | What | Where |
 |---|---|
-| Password reached the URL. A submit landing before hydration falls through to a native GET, putting `email`/`password` in the query string, history and access logs. Both forms now carry `method="post"`. | `src/app/auth/auth-form.tsx`, `src/app/guides/guides-client.tsx` |
+| **The site named itself under three hostnames, two of which do not exist.** (Fixed 31/07.) `sitemap.xml`, `robots.txt` and every news article's `Article` / `BreadcrumbList` JSON-LD published under `https://glowbal.co`; the unsubscribe link in both newsletter emails used `https://glowbal.com`; the real domain is `https://glowbal-education.com` (owner, 31/07). So the canonical URL of every article pointed at a host that does not resolve, and the unsubscribe link in already-sent mail was a dead address. One resolver now — `NEXT_PUBLIC_SITE_URL`, real domain as fallback. ⚠️ Production must have that env var set to the real domain **or unset**: pointing it at the `*.vercel.app` host would publish canonicals under a URL `next.config.ts` immediately 308s away from. | `src/lib/site-url.ts` + `sitemap.ts`, `robots.ts`, `news/[slug]/page.tsx`, `api/newsletter/{subscribe,notify}/route.ts`, `lib/course-parser/extract-course.ts` |
+| Password reached the URL. A submit landing before hydration falls through to a native GET, putting `email`/`password` in the query string, history and access logs. Both forms now carry `method="post"`. | `src/app/auth/auth-form.tsx`, `src/app/news/news-client.tsx` |
 | Save failed silently — `addToShortlist` discarded the upsert error and kept the optimistic state, so the UI said "Saved" and the row vanished on reload. Now logs, rolls back, toasts. (`showToast` had to be hoisted above `addToShortlist`: a `useCallback` deps array is evaluated at the call site, so naming a `const` declared below throws on the TDZ.) | `src/features/universities/ui/explorer-context.tsx` |
 | Signed-in card click never opened the detail view. One effect wrote `?u=<id>`; the other read the URL before that write landed, saw no `?u`, and reverted to `browse`. Guests never hit it because `setView` bounces them to the login gate first — which is why the guest suite stayed green and hid it. | `useUniversityUrlSync` in `src/app/universities/university-list-client.tsx` |
 | Every blog guide fell back to empty frontmatter — `parseFrontmatter` anchored on `\n---\n` and the draft files are CRLF. Titles rendered as slugs, excerpts as `---`, dates as today. | `src/lib/geo-content.ts` |

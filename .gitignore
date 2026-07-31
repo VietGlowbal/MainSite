@@ -48,7 +48,6 @@ next-env.d.ts
 /playwright/.cache/
 
 /tmp
-/docs
 
 # Python ingestion service
 **/__pycache__/

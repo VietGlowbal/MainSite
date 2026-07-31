@@ -1,9 +1,13 @@
 import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
-import { getUniversityQueries } from '@/features/universities/api';
-import { programChoices, type CatalogueCollege } from '@/features/universities/domain';
+import {
+  degreeLabel,
+  durationYears,
+  getProgrammeQueries,
+  getUniversityQueries,
+} from '@/features/universities/api';
+import { programChoices, type CatalogueEntry } from '@/features/universities/domain';
 import { createClient } from '@/lib/supabase/server';
-import { VINUNI_UNIVERSITY_ID, vinuniColleges } from '@/lib/vinuni-content';
 import { ProgramPicker } from './program-picker';
 
 /**
@@ -29,26 +33,17 @@ import { ProgramPicker } from './program-picker';
  * matches static before dynamic, so this does not shadow /my-universities/<id>.
  * The university arrives as `?u=` rather than as a path segment for exactly that
  * reason — one fewer ambiguous route.
+ *
+ * WHERE THE OPTIONS COME FROM. `catalog_programmes` — the crawler's programme
+ * catalogue, with a denormalised `academic_units` array that is the frame's
+ * school layer. It covers 24 of the 106 universities (404 programmes), so
+ * `universities.strengths` remains the fallback for the other 82 and is the
+ * path most students will see. `programChoices` chooses between them.
  */
 
 export const metadata: Metadata = {
   title: 'Choose your subject | GlowBal',
   description: 'Pick the subject you want to apply for at a university on your saved list.',
-};
-
-/**
- * Course catalogues, by university id.
- *
- * Exactly one entry, and that is the honest size of it: `vinuni-content.ts` is
- * the only school→programme→duration data in the repo, and there is no table
- * behind the other 96 (checked live — no `programs`, `majors` or
- * `university_programs`). Everyone else picks from `universities.strengths`.
- *
- * A map rather than an `if` so adding the second catalogue is a one-line change
- * and so `programChoices` stays free of any import from `src/lib`.
- */
-const CATALOGUES: Record<number, readonly CatalogueCollege[]> = {
-  [VINUNI_UNIVERSITY_ID]: vinuniColleges,
 };
 
 export default async function ChooseProgramPage({
@@ -86,10 +81,32 @@ export default async function ChooseProgramPage({
 
   const saved = savedRow as { id: number; program?: string | null; program_url?: string | null };
 
-  const [university] = await getUniversityQueries().getByIds([universityId]);
+  const [[university], programmes] = await Promise.all([
+    getUniversityQueries().getByIds([universityId]),
+    getProgrammeQueries().byUniversityId(universityId),
+  ]);
   if (!university) notFound();
 
-  const choices = programChoices(university.strengths, CATALOGUES[universityId]);
+  /*
+   * The catalogue when there is one, `strengths` when there is not.
+   *
+   * 404 catalogued programmes cover 24 of the 106 universities (measured
+   * 2026-07-31), so the fallback is the majority path, not an edge case —
+   * `programChoices` picks between them and is unit-tested on both.
+   *
+   * Normalising here rather than in the domain module keeps the two spellings of
+   * "bachelor" and the free-text duration at the edge, where the database's
+   * shape belongs.
+   */
+  const catalogue: CatalogueEntry[] = programmes.map((programme) => ({
+    name: programme.name,
+    degree: degreeLabel(programme.degreeLevel),
+    durationYears: durationYears(programme.duration),
+    officialUrl: programme.officialUrl,
+    units: programme.units,
+  }));
+
+  const choices = programChoices(university.strengths, catalogue);
 
   return (
     <ProgramPicker

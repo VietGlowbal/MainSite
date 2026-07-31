@@ -9,7 +9,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
  * /api/admin/news routes). Never import this module into a client component:
  * it reads SUPABASE_SERVICE_ROLE_KEY.
  *
- * The public site read path (/news, /guides/[slug]) is migrated to the DB in a
+ * The public site read path (/news, /news/[slug]) is migrated to the DB in a
  * later phase — see GEO_CMS_SPEC.md. Until then this powers the admin CMS only.
  */
 

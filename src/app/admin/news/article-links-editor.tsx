@@ -1,7 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Badge, Button, Panel, PanelHeader, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { Alert } from '../_ui';
 
 type Candidate = { id: string; title: string; slug: string };
 type Relation = 'related' | 'cluster' | 'prerequisite' | 'next' | 'cites';
@@ -80,77 +82,80 @@ export function ArticleLinksEditor({ articleId, candidates }: { articleId: strin
     setMsg('Links saved');
   }
 
-  const selectClass =
-    'rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-pink-300 focus:ring-2 focus:ring-pink-100';
-
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <h3 className="text-sm font-semibold text-slate-900">Linked articles (GEO graph)</h3>
-          <p className="text-xs text-slate-500">
-            Connect this article to others to power related rails, hubs, and AI-search structure.
-          </p>
-        </div>
-        <button
-          type="button"
-          disabled={saving || loading}
-          onClick={save}
-          className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-        >
-          {saving ? 'Saving…' : 'Save links'}
-        </button>
-      </div>
+    <Panel className="flex flex-col gap-gb-xl">
+      <PanelHeader
+        title="Linked articles (GEO graph)"
+        description="Connect this article to others to power related rails, hubs, and AI-search structure."
+        action={
+          <Button variant="secondary" disabled={saving || loading} onClick={() => void save()}>
+            {saving ? 'Saving…' : 'Save links'}
+          </Button>
+        }
+      />
 
-      {err ? <p className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs text-red-700">{err}</p> : null}
-      {msg ? <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs text-emerald-700">{msg}</p> : null}
+      {err ? <Alert tone="error">{err}</Alert> : null}
+      {msg ? <Alert tone="success">{msg}</Alert> : null}
 
-      <div className="mt-4 space-y-2">
-        {loading ? (
-          <p className="text-xs text-slate-400">Loading…</p>
-        ) : links.length === 0 ? (
-          <p className="text-xs text-slate-400">No links yet.</p>
-        ) : (
-          links.map((l, i) => {
+      {loading ? (
+        <p className="text-gb-sm text-fg-muted">Loading…</p>
+      ) : links.length === 0 ? (
+        <p className="text-gb-sm text-fg-muted">No links yet.</p>
+      ) : (
+        <ul className="flex flex-col gap-gb-md">
+          {links.map((l, i) => {
             const c = byId.get(l.to_article_id);
             return (
-              <div key={`${l.to_article_id}-${l.relation}`} className="flex items-center justify-between gap-2 rounded-lg bg-slate-50 px-3 py-2">
-                <div className="min-w-0">
-                  <span className="text-sm text-slate-800">{c?.title ?? l.to_article_id}</span>
-                  <span className="ml-2 rounded bg-white px-1.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-slate-500">
+              <li
+                key={`${l.to_article_id}-${l.relation}`}
+                className="flex items-center justify-between gap-gb-lg rounded-gb-xl border border-line bg-surface-muted px-gb-xl py-gb-lg"
+              >
+                <div className="flex min-w-0 flex-wrap items-center gap-gb-md">
+                  <span className="truncate text-gb-sm text-fg">{c?.title ?? l.to_article_id}</span>
+                  <Badge variant="info-chip">
                     {RELATIONS.find((r) => r.value === l.relation)?.label ?? l.relation}
-                  </span>
+                  </Badge>
                 </div>
-                <button type="button" onClick={() => remove(i)} className="text-xs font-semibold text-red-500 hover:text-red-700">
+                <Button
+                  variant="secondary-destructive"
+                  onClick={() => remove(i)}
+                  className="shrink-0"
+                >
                   Remove
-                </button>
-              </div>
+                </Button>
+              </li>
             );
-          })
-        )}
-      </div>
+          })}
+        </ul>
+      )}
 
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <select className={`${selectClass} min-w-0 flex-1`} value={target} onChange={(e) => setTarget(e.target.value)}>
-          <option value="">Pick an article…</option>
+      <div className="flex flex-wrap items-end gap-gb-md border-t border-line pt-gb-xl">
+        <Select
+          name="link-target"
+          label="Article"
+          placeholder="Pick an article…"
+          value={target}
+          onChange={(e) => setTarget(e.target.value)}
+          fieldClassName="min-w-0 flex-1"
+        >
           {candidates.map((c) => (
             <option key={c.id} value={c.id}>{c.title}</option>
           ))}
-        </select>
-        <select className={selectClass} value={relation} onChange={(e) => setRelation(e.target.value as Relation)}>
+        </Select>
+        <Select
+          name="link-relation"
+          label="Relation"
+          value={relation}
+          onChange={(e) => setRelation(e.target.value as Relation)}
+        >
           {RELATIONS.map((r) => (
             <option key={r.value} value={r.value}>{r.label}</option>
           ))}
-        </select>
-        <button
-          type="button"
-          onClick={add}
-          disabled={!target}
-          className="rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50 disabled:opacity-50"
-        >
-          Add
-        </button>
+        </Select>
+        <Button size="lg" onClick={add} disabled={!target}>
+          Add link
+        </Button>
       </div>
-    </div>
+    </Panel>
   );
 }

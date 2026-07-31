@@ -7,7 +7,7 @@
   },
   "include": [
     "scripts/geo/**/*.ts",
-    "src/app/guides/**/*.tsx",
+    "src/app/news/**/*.tsx",
     "src/app/sitemap.ts",
     "src/lib/geo-content.ts"
   ],

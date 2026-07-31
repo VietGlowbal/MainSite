@@ -1,4 +1,5 @@
 import { listArticlesForAdmin } from '@/lib/geo-cms';
+import { AdminHeading } from '../_ui';
 import { AdminNewsClient } from './admin-news-client';
 
 /**
@@ -9,17 +10,11 @@ export default async function AdminNewsPage() {
   const articles = await listArticlesForAdmin();
 
   return (
-    <section className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-            News &amp; GEO articles
-          </h2>
-          <p className="text-sm text-slate-500">
-            Create, edit, publish, and remove GLOWBAL News articles.
-          </p>
-        </div>
-      </div>
+    <section className="flex flex-col gap-gb-3xl">
+      <AdminHeading
+        title="News & GEO articles"
+        description="Create, edit, publish, and remove GLOWBAL News articles."
+      />
 
       <AdminNewsClient
         articles={articles.map((a) => ({

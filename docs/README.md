@@ -11,12 +11,20 @@ the code, the code wins.
 1. The Figma file has **three** canvases and Figma's own page index lists only
    two. Building from the wrong one has already cost a rebuild. See the top of
    [redesign-status.md](redesign-status.md) before picking a frame.
-2. **Verify claims about the database against the database.** Two separate
-   sessions have now burned the owner's time by trusting a `.sql` file or a
-   stale to-do instead of querying — most recently four pointless re-runs of a
-   migration that could never have worked. See
-   [known-issues.md §0](known-issues.md), which includes the one-liner that
-   reads live column types.
+2. **Verify claims about the database against the database — and *enumerate*,
+   never guess at names.** Three sessions have now burned the owner's time here:
+   two by trusting a `.sql` file or a stale to-do instead of querying, and one by
+   probing three invented table names, missing on all three, and reporting that
+   the course catalogue did not exist. It did; there are 75 tables. One call
+   lists all of them:
+
+   ```bash
+   curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
+     | jq -r '.definitions | keys[]'
+   ```
+
+   See [known-issues.md §0](known-issues.md) for the migration trap and
+   [§1a](known-issues.md) for the guessing one.
 
 ## Read order
 
@@ -132,3 +140,10 @@ in a comment at the top of the file that made it.
 - **Never edit a migration that has already been applied.** `ADD COLUMN IF NOT
   EXISTS` matches names, not types, so re-running it can never repair a wrong
   column. Add a guarded follow-up instead — [known-issues.md §0](known-issues.md).
+- **Crawled data is not editorial data.** `catalog_programmes`, `courses` and the
+  `crawl_*` tables are AI-extracted: names run to 154 characters of concatenated
+  facets, `verification_status` is `NEEDS_REVIEW` on 96% of rows *by default*
+  (it is not a warning), and the same subject appears at several degree levels.
+  Shape it before it reaches a student, and shape it by measuring the whole
+  table rather than the four rows on your screen — see
+  [known-issues.md §1a](known-issues.md).

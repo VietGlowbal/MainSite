@@ -44,7 +44,7 @@
 │  │  id | email | first_name | status | source | subscribed_at   │  │
 │  │  ─────────────────────────────────────────────────────────   │  │
 │  │  1  | user@example.com | John | active | news_page | ...     │  │
-│  │  2  | jane@example.com | Jane | active | guides_page | ...   │  │
+│  │  2  | jane@example.com | Jane | active | news_page   | ...   │  │
 │  └──────────────────────────────────────────────────────────────┘  │
 │                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐  │
@@ -175,7 +175,7 @@ User                    Frontend                API                 Database
 └──────────────────────────────────────────────────────────────────────┘
 
 ┌──────────────────────────────────────────────────────────────────────┐
-│  Guides Page (/guides)                                               │
+│  Guides Page (/news)                                               │
 │  ┌────────────────────────────────────────────────────────────────┐ │
 │  │  GuidesClient                                                   │ │
 │  │  ├─ Topic Filters                                               │ │
@@ -237,7 +237,7 @@ User                    Frontend                API                 Database
 │  email           TEXT UNIQUE NOT NULL                                │
 │  first_name      TEXT                                                │
 │  status          TEXT ('active' | 'unsubscribed')                    │
-│  source          TEXT (e.g., 'news_page', 'guides_page')             │
+│  source          TEXT (e.g., 'news_page', 'news_article')             │
 │  subscribed_at   TIMESTAMPTZ                                         │
 │  unsubscribed_at TIMESTAMPTZ                                         │
 │  last_email_sent TIMESTAMPTZ                                         │

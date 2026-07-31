@@ -4,8 +4,19 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { GeoArticle, GeoArticleStatus } from '@/lib/geo-cms';
-import { ArticleLinksEditor } from './article-links-editor';
+import {
+  Button,
+  ICONS,
+  Input,
+  KitIcon,
+  Panel,
+  PanelHeader,
+  Select,
+  Textarea,
+} from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { AdminHeading, Alert } from '../_ui';
+import { ArticleLinksEditor } from './article-links-editor';
 
 const TOPICS = [
   'All topics',
@@ -115,116 +126,108 @@ export function ArticleEditor({ article, candidates = [] }: EditorProps) {
     router.refresh();
   }
 
-  const inputClass =
-    'w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-pink-300 focus:ring-2 focus:ring-pink-100';
-  const labelClass = 'block text-xs font-semibold uppercase tracking-wide text-slate-500';
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h2 className="text-2xl font-semibold tracking-tight text-slate-900">
-            {isEdit ? 'Edit article' : 'New article'}
-          </h2>
-          <p className="text-sm text-slate-500">
-            {isEdit ? `Editing /${article!.slug}` : 'Draft a new GLOWBAL News article.'}
-          </p>
-        </div>
-        <Link href="/admin/news" className="text-sm font-semibold text-slate-500 hover:text-slate-800">
-          ← Back to list
-        </Link>
-      </div>
+    <div className="flex flex-col gap-gb-3xl">
+      <AdminHeading
+        title={isEdit ? 'Edit article' : 'New article'}
+        description={isEdit ? `Editing /${article!.slug}` : 'Draft a new GLOWBAL News article.'}
+        action={
+          <Link
+            href="/admin/news"
+            className="inline-flex items-center gap-gb-md rounded-gb-md px-gb-md py-gb-xs text-gb-sm font-semibold text-fg-tertiary transition-colors hover:bg-surface-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            <KitIcon art={ICONS.arrowLeft} frame={16} className="shrink-0" />
+            Back to list
+          </Link>
+        }
+      />
 
-      {error ? (
-        <p className="rounded-xl border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>
-      ) : null}
+      {error ? <Alert tone="error">{error}</Alert> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+      <div className="grid gap-gb-3xl lg:grid-cols-[minmax(0,1fr)_340px]">
         {/* Main column */}
-        <div className="space-y-4">
-          <div>
-            <label className={labelClass} htmlFor="title">Title</label>
-            <input
-              id="title"
-              className={`${inputClass} mt-1 text-base`}
+        <div className="flex min-w-0 flex-col gap-gb-3xl">
+          <Panel className="flex flex-col gap-gb-2xl">
+            <PanelHeader title="The article" />
+
+            <Input
+              name="title"
+              label="Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Best UK Computer Science degrees for Vietnamese students"
             />
-          </div>
 
-          <div>
-            <label className={labelClass} htmlFor="slug">Slug</label>
-            <input
-              id="slug"
-              className={`${inputClass} mt-1 font-mono text-xs`}
+            <Input
+              name="slug"
+              label="Slug"
               value={effectiveSlug}
               onChange={(e) => {
                 setSlugTouched(true);
                 setSlug(e.target.value);
               }}
               placeholder="auto-generated-from-title"
+              hint={`Lives at /news/${effectiveSlug || '…'}`}
+              className="font-mono text-gb-sm"
             />
-            <p className="mt-1 text-xs text-slate-400">Lives at /guides/{effectiveSlug || '…'}</p>
-          </div>
 
-          <div>
-            <label className={labelClass} htmlFor="description">Subtitle / dek</label>
-            <textarea
-              id="description"
-              className={`${inputClass} mt-1`}
+            <Textarea
+              name="description"
+              label="Subtitle / dek"
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="One-sentence summary shown under the title."
             />
-          </div>
 
-          <div>
-            <label className={labelClass} htmlFor="key_takeaway">Key takeaway</label>
-            <textarea
-              id="key_takeaway"
-              className={`${inputClass} mt-1`}
+            <Textarea
+              name="key_takeaway"
+              label="Key takeaway"
               rows={2}
               value={keyTakeaway}
               onChange={(e) => setKeyTakeaway(e.target.value)}
               placeholder="Highlighted callout at the top of the article."
             />
-          </div>
+          </Panel>
 
-          <div>
-            <div className="flex items-center justify-between">
-              <label className={labelClass} htmlFor="body">Body (Markdown)</label>
-              <span className="text-xs text-slate-400">~{readingMinutes} min read</span>
-            </div>
-            <textarea
-              id="body"
-              className={`${inputClass} mt-1 font-mono text-xs leading-relaxed`}
-              rows={22}
+          <Panel className="flex flex-col gap-gb-2xl">
+            <PanelHeader title="Body" description={`Markdown · about ${readingMinutes} min read`} />
+
+            <Textarea
+              name="body"
+              rows={24}
               value={body}
               onChange={(e) => setBody(e.target.value)}
               placeholder={'## Section heading\n\nWrite the article in Markdown…'}
+              className="font-mono text-gb-sm leading-relaxed"
             />
-          </div>
 
-          <div>
-            <button
-              type="button"
-              onClick={() => setShowAdvanced((v) => !v)}
-              className="text-xs font-semibold text-slate-500 hover:text-slate-800"
-            >
-              {showAdvanced ? '▾' : '▸'} Advanced metadata (JSON)
-            </button>
-            {showAdvanced ? (
-              <textarea
-                className={`${inputClass} mt-2 font-mono text-xs`}
-                rows={8}
-                value={metaText}
-                onChange={(e) => setMetaText(e.target.value)}
-                placeholder={'{\n  "supportCards": [],\n  "toc": [],\n  "schema": {}\n}'}
-              />
-            ) : null}
-          </div>
+            <div className="flex flex-col gap-gb-lg border-t border-line pt-gb-xl">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced((v) => !v)}
+                aria-expanded={showAdvanced}
+                className="inline-flex w-fit items-center gap-gb-xs rounded-gb-sm text-gb-sm font-semibold text-fg-tertiary transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                Advanced metadata (JSON)
+                <KitIcon
+                  art={ICONS.chevronDown}
+                  frame={16}
+                  className={`shrink-0 transition-transform ${showAdvanced ? 'rotate-180' : ''}`}
+                />
+              </button>
+              {showAdvanced ? (
+                <Textarea
+                  name="meta"
+                  rows={8}
+                  value={metaText}
+                  onChange={(e) => setMetaText(e.target.value)}
+                  placeholder={'{\n  "supportCards": [],\n  "toc": [],\n  "schema": {}\n}'}
+                  className="font-mono text-gb-sm"
+                />
+              ) : null}
+            </div>
+          </Panel>
 
           {isEdit && article ? (
             <ArticleLinksEditor articleId={article.id} candidates={candidates} />
@@ -232,91 +235,73 @@ export function ArticleEditor({ article, candidates = [] }: EditorProps) {
         </div>
 
         {/* Sidebar */}
-        <aside className="space-y-4">
-          <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-            <div className="space-y-4">
-              <div>
-                <label className={labelClass} htmlFor="status">Status</label>
-                <select
-                  id="status"
-                  className={`${inputClass} mt-1`}
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as GeoArticleStatus)}
-                >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </div>
+        <aside className="flex flex-col gap-gb-xl">
+          <Panel padding="sm" className="flex flex-col gap-gb-2xl">
+            <PanelHeader title="Publishing" />
 
-              <div>
-                <label className={labelClass} htmlFor="topic">Topic</label>
-                <select
-                  id="topic"
-                  className={`${inputClass} mt-1`}
-                  value={topic}
-                  onChange={(e) => setTopic(e.target.value)}
-                >
-                  {TOPICS.map((t) => (
-                    <option key={t} value={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className={labelClass} htmlFor="tags">Tags (comma-separated)</label>
-                <input
-                  id="tags"
-                  className={`${inputClass} mt-1`}
-                  value={tags}
-                  onChange={(e) => setTags(e.target.value)}
-                  placeholder="UK, Computer Science"
-                />
-              </div>
-
-              <div>
-                <label className={labelClass} htmlFor="excerpt">Excerpt</label>
-                <textarea
-                  id="excerpt"
-                  className={`${inputClass} mt-1`}
-                  rows={3}
-                  value={excerpt}
-                  onChange={(e) => setExcerpt(e.target.value)}
-                  placeholder="Card + search-result summary."
-                />
-              </div>
-
-              <div>
-                <label className={labelClass} htmlFor="hero">Hero image URL</label>
-                <input
-                  id="hero"
-                  className={`${inputClass} mt-1 text-xs`}
-                  value={heroImage}
-                  onChange={(e) => setHeroImage(e.target.value)}
-                  placeholder="/generated/news/your-slug.png"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-col gap-2">
-            <button
-              type="button"
-              disabled={saving}
-              onClick={() => save()}
-              className="glow-button-primary text-sm disabled:opacity-50"
+            <Select
+              name="status"
+              label="Status"
+              value={status}
+              onChange={(e) => setStatus(e.target.value as GeoArticleStatus)}
             >
+              <option value="draft">Draft</option>
+              <option value="published">Published</option>
+              <option value="archived">Archived</option>
+            </Select>
+
+            <Select
+              name="topic"
+              label="Topic"
+              value={topic}
+              onChange={(e) => setTopic(e.target.value)}
+            >
+              {TOPICS.map((t) => (
+                <option key={t} value={t}>{t}</option>
+              ))}
+            </Select>
+
+            <Input
+              name="tags"
+              label="Tags"
+              hint="Comma-separated."
+              value={tags}
+              onChange={(e) => setTags(e.target.value)}
+              placeholder="UK, Computer Science"
+            />
+
+            <Textarea
+              name="excerpt"
+              label="Excerpt"
+              hint="Card and search-result summary."
+              rows={3}
+              value={excerpt}
+              onChange={(e) => setExcerpt(e.target.value)}
+            />
+
+            <Input
+              name="hero_image"
+              label="Hero image URL"
+              value={heroImage}
+              onChange={(e) => setHeroImage(e.target.value)}
+              placeholder="/generated/news/your-slug.png"
+              className="font-mono text-gb-sm"
+            />
+          </Panel>
+
+          <div className="flex flex-col gap-gb-md">
+            <Button size="lg" disabled={saving} onClick={() => void save()}>
               {saving ? 'Saving…' : isEdit ? 'Save changes' : 'Create article'}
-            </button>
+            </Button>
             {status !== 'published' ? (
-              <button
-                type="button"
+              <Button
+                variant="secondary"
+                size="lg"
                 disabled={saving}
-                onClick={() => save('published')}
-                className="glow-button-secondary text-sm disabled:opacity-50"
+                onClick={() => void save('published')}
               >
                 Save &amp; publish
-              </button>
+              </Button>
             ) : null}
           </div>
         </aside>

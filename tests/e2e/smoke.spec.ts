@@ -15,7 +15,6 @@ const PUBLIC_ROUTES = [
   '/how-it-works',
   '/achievers',
   '/news',
-  '/guides',
   '/auth',
   '/plus',
   '/privacy',

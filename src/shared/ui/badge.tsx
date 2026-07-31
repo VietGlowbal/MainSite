@@ -26,7 +26,9 @@ export type BadgeVariant =
   | 'recommend'
   | 'safe'
   | 'brand-chip'
-  | 'info-chip';
+  | 'info-chip'
+  | 'safe-chip'
+  | 'neutral-chip';
 
 const VARIANTS: Record<BadgeVariant, string> = {
   outline:
@@ -69,6 +71,23 @@ const VARIANTS: Record<BadgeVariant, string> = {
     'rounded-gb-full bg-brand-subtle px-gb-lg py-gb-xs text-gb-xs font-medium text-fg-brand',
   'info-chip':
     'rounded-gb-full bg-info-subtle px-gb-lg py-gb-xs text-gb-xs font-medium text-fg-info',
+  /*
+   * The other two steps of the chip set, added for the admin console's status
+   * columns (/admin/achievers, /admin/bookings, /admin/news) and the profile
+   * section cards. A status column mixes all four states in one stack of table
+   * rows, so they have to share one geometry — pairing `brand-chip` with the
+   * `sm`-sized `safe` / `neutral` pills renders two type sizes in the same
+   * column. Same tokens as those two, one step down, exactly as `brand-chip` is
+   * `brand-subtle` one step down.
+   *
+   * No new colour: `safe-chip` reuses the safe tier pair and `neutral-chip` the
+   * neutral surface. The console has no Figma frame, so nothing here should be
+   * inventing a palette — see the note on Panel in panel.tsx.
+   */
+  'safe-chip':
+    'rounded-gb-full bg-tier-safe px-gb-lg py-gb-xs text-gb-xs font-semibold text-on-tier-safe',
+  'neutral-chip':
+    'rounded-gb-full bg-surface-muted px-gb-lg py-gb-xs text-gb-xs font-medium text-fg-muted',
   reach: 'rounded-gb-full bg-tier-reach px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-reach',
   recommend:
     'rounded-gb-full bg-tier-recommend px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-tier-recommend',

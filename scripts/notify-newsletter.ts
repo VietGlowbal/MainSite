@@ -4,7 +4,7 @@
  * Script to notify newsletter subscribers about new content
  * 
  * Usage:
- *   npm run notify-newsletter -- --type guide --slug "uk-study-guide" --title "UK Study Guide" --url "https://glowbal.com/guides/uk-study-guide"
+ *   npm run notify-newsletter -- --type guide --slug "uk-study-guide" --title "UK Study Guide" --url "https://glowbal.com/news/uk-study-guide"
  *   npm run notify-newsletter -- --type news --slug "new-scholarships" --title "New Scholarships Available" --url "https://glowbal.com/news/new-scholarships"
  */
 

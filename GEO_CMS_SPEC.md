@@ -20,7 +20,7 @@ than replacing it, while opening the door to:
 | Concern | Today |
 | --- | --- |
 | Storage | Markdown files in `content/geo/{drafts,published}/<slug>.md` + sidecar `content/geo/metadata/<slug>.json` + hero image in `public/generated/news/<slug>.*` |
-| Read path | `src/lib/geo-content.ts` reads the filesystem; `/news` lists, `/guides/[slug]` renders. Pages are **statically generated** (`generateStaticParams`). |
+| Read path | `src/lib/geo-content.ts` reads the filesystem; `/news` lists, `/news/[slug]` renders. Pages are **statically generated** (`generateStaticParams`). |
 | Authoring | `.github/workflows/geo-content-pipeline.yml` runs daily: `geo:questions → cluster → draft → sources → quality → images → metadata`, then **commits generated files to `main`**, triggering a Vercel redeploy. `scripts/geo/createContentPR.ts` is an alternate PR-based flow. |
 | Pipeline inputs | `data/geo/{config.json, student-questions.json, topic-clusters.json, sources.json}` |
 | Admin auth | `isAdmin(userId)` (env `ADMIN_USER_IDS` **or** `student_profiles.is_admin`); `/admin/*` gated server-side; admin writes use the service-role `createAdminClient()` |
@@ -43,7 +43,7 @@ GEO pipeline writes generated drafts straight into the DB.
                 └───────────────┬───────────────────────────┘
                                 │ read (published only, anon-readable)
                                 ▼
-                   /news (list)   /guides/[slug] (article)
+                   /news (list)   /news/[slug] (article)
                    ISR + on-demand revalidation on publish/edit
 ```
 
@@ -156,10 +156,10 @@ edits if we guard on `source='pipeline'`.
   published `geo_articles` rows over the legacy file guides (DB wins by slug).
   Any DB failure (no env at build, table not migrated) degrades gracefully to
   files, so `next build` without Supabase env still works.
-- `/news`, `/guides`, and `/guides/[slug]` are ISR (`export const revalidate =
+- `/news` and `/news/[slug]` are ISR (`export const revalidate =
   300`); `generateStaticParams` enumerates DB + file slugs and new slugs render
   on-demand.
-- The admin API calls `revalidatePath('/news' | '/guides' | '/guides/:slug')` on
+- The admin API calls `revalidatePath('/news' | '/news/:slug')` on
   create / update / delete, so edits appear within seconds without a redeploy.
 - `sitemap.ts` is async and includes DB-published slugs.
 
@@ -184,7 +184,7 @@ needs the Supabase service-role secret added to the Action.)
   (`related`/`cluster`/`next`/`prerequisite`/`cites`), add/remove edges, save.
   Backed by `GET`/`PUT /api/admin/news/:id/links` and
   `listLinksForArticle` / `replaceArticleLinks`.
-- **Public usage**: `/guides/[slug]` "Related articles" now prefers the explicit
+- **Public usage**: `/news/[slug]` "Related articles" now prefers the explicit
   graph (`listLinkedPublishedGuides`, weight-ordered) and falls back to the
   topic heuristic when an article has no edges yet.
 - **schema.org**: each article page emits JSON-LD (`Article` + `BreadcrumbList`,
@@ -210,7 +210,7 @@ Storage so they happen in-editor rather than via the pipeline's filesystem.
    admin tab.
 2. **Phase 2 (this PR)** — DB read path (DB-first, file-fallback) + ISR +
    on-demand revalidation. Articles created/published in the CMS now appear on
-   the live `/news` and `/guides` pages.
+   the live `/news` pages.
 3. **Phase 3 (partly this PR)** — admin "Import from files" backfill shipped;
    remaining: a headless `geo:sync-db` step in the GitHub Actions pipeline.
 4. **Phase 4 (this PR)** — link-graph editor + API, graph-driven related rails,

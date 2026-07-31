@@ -112,7 +112,7 @@ npm run notify-newsletter -- \
   --type guide \
   --slug "uk-study-guide-2027" \
   --title "Complete UK Study Guide for 2027" \
-  --url "https://glowbal.com/guides/uk-study-guide-2027" \
+  --url "https://glowbal.com/news/uk-study-guide-2027" \
   --excerpt "Everything you need to know about studying in the UK"
 
 # For a news article
@@ -193,7 +193,7 @@ Authorization: Bearer your-secret-token
   "contentType": "guide",
   "contentSlug": "uk-study-guide",
   "contentTitle": "UK Study Guide",
-  "contentUrl": "https://glowbal.com/guides/uk-study-guide",
+  "contentUrl": "https://glowbal.com/news/uk-study-guide",
   "contentExcerpt": "Optional excerpt text"
 }
 ```
@@ -273,7 +273,7 @@ curl -X POST https://glowbal.com/api/newsletter/notify \
     "contentType": "guide",
     "contentSlug": "uk-study-guide",
     "contentTitle": "UK Study Guide",
-    "contentUrl": "https://glowbal.com/guides/uk-study-guide"
+    "contentUrl": "https://glowbal.com/news/uk-study-guide"
   }'
 ```
 

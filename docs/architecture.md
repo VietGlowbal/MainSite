@@ -54,6 +54,7 @@ rather than `foo?: string`: callers forward an optional straight through.
 | Port | Where | Key methods |
 |---|---|---|
 | `UniversityQueries` | `features/universities/api` | `list()` `getById()` `getByIds()` `facets()` · `listAllForLegacyExplorer()` is **deprecated** — do not add callers |
+| `ProgrammeQueries` | `features/universities/api` | `byUniversityId()`. Reads `catalog_programmes` for the subject picker (Figma `375:13546`). Returns `[]` for the 82 of 106 universities with no catalogued programmes, which is a normal answer, not an error — the caller falls back to `universities.strengths`. |
 | `ScholarshipQueries` | `features/scholarships/api` | `listPublished()` `byUniversityIds()` `byIds()` `getById()` `facets()`. `byUniversityIds` now also carries `conditions`/`insight`/`applies_to_text` (added for the saved-list scholarship detail panel, Figma `337:19349`) — one join wider rather than a second round trip per scholarship a student opens. |
 
 Both are swappable via `setUniversityQueries()` / `setScholarshipQueries()` — the

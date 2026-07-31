@@ -3,11 +3,9 @@
 import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { StudentProfile } from '@/lib/types';
+import { Input, Panel, PanelHeader, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-
-const INPUT = 'block w-full rounded-xl border border-slate-200 px-3 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-pink-400 focus:outline-none focus:ring-2 focus:ring-pink-100 transition';
-const LABEL = 'block text-xs font-semibold text-slate-700 mb-1.5';
-const SELECT = INPUT + ' bg-white';
+import { SaveBar, SelectOptions, TagInput, type SaveMessage } from '../_form-parts';
 
 const BUDGET_OPTIONS = [
   'Under $10,000 / year',
@@ -21,72 +19,6 @@ const BUDGET_OPTIONS = [
 const STUDY_MODES = ['Full-time', 'Part-time', 'Either'];
 
 const POPULAR_COUNTRIES = ['United Kingdom', 'United States', 'Australia', 'Canada', 'Germany', 'Netherlands', 'Singapore', 'Japan', 'South Korea', 'Vietnam'];
-
-function TagInput({
-  label,
-  values,
-  onChange,
-  placeholder,
-  suggestions,
-}: {
-  label: string;
-  values: string[];
-  onChange: (v: string[]) => void;
-  placeholder: string;
-  suggestions?: string[];
-}) {
-  const [input, setInput] = useState('');
-  const add = (val: string) => {
-    const t = val.trim();
-    if (t && !values.includes(t)) onChange([...values, t]);
-    setInput('');
-  };
-  return (
-    <div>
-      <label className={LABEL}>{label}</label>
-      <div className="flex gap-2">
-        <input
-          className={INPUT}
-          placeholder={placeholder}
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); add(input); } }}
-        />
-        <button
-          type="button"
-          onClick={() => add(input)}
-          className="shrink-0 rounded-xl border border-pink-300 bg-pink-50 px-4 text-sm font-semibold text-pink-600 transition hover:bg-pink-100"
-        >
-          Add
-        </button>
-      </div>
-      {suggestions && suggestions.length > 0 && (
-        <div className="mt-1.5 flex flex-wrap gap-1.5">
-          {suggestions.filter((s) => !values.includes(s)).slice(0, 6).map((s) => (
-            <button
-              key={s}
-              type="button"
-              onClick={() => add(s)}
-              className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[11px] text-slate-500 transition hover:border-pink-300 hover:bg-pink-50 hover:text-pink-600"
-            >
-              + {s}
-            </button>
-          ))}
-        </div>
-      )}
-      {values.length > 0 && (
-        <div className="mt-2 flex flex-wrap gap-2">
-          {values.map((v) => (
-            <span key={v} className="inline-flex items-center gap-1.5 rounded-full bg-blue-100 px-3 py-1 text-xs font-semibold text-blue-700">
-              {v}
-              <button type="button" onClick={() => onChange(values.filter((x) => x !== v))} className="hover:text-red-500 transition">×</button>
-            </span>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export function PreferencesForm({
   userId,
@@ -106,7 +38,7 @@ export function PreferencesForm({
   const [cycleYear, setCycleYear] = useState(String(initialProfile?.application_cycle_year ?? ''));
   const [saving, setSaving] = useState(false);
   useLoadingIndicator(saving, 'Saving your profile');
-  const [message, setMessage] = useState<{ text: string; ok: boolean } | null>(null);
+  const [message, setMessage] = useState<SaveMessage>(null);
 
   const handleSave = async () => {
     setSaving(true);
@@ -130,9 +62,15 @@ export function PreferencesForm({
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-[0_2px_8px_rgba(15,23,42,0.04)]">
-      <div className="space-y-5">
+    <div className="flex flex-col gap-gb-3xl">
+      <Panel className="flex flex-col gap-gb-2xl">
+        <PanelHeader
+          title="Where and what"
+          description="The shortlist and the tier list are built from these three lists."
+        />
+
         <TagInput
+          name="preferred_countries"
           label="Preferred countries"
           values={countries}
           onChange={setCountries}
@@ -141,80 +79,75 @@ export function PreferencesForm({
         />
 
         <TagInput
-          label="Preferred cities (optional)"
+          name="preferred_cities"
+          label="Preferred cities"
           values={cities}
           onChange={setCities}
           placeholder="e.g. London, Manchester"
+          hint="Optional. Leave empty to see courses anywhere in your chosen countries."
         />
 
         <TagInput
+          name="target_subjects"
           label="Target subjects / fields"
           values={subjects}
           onChange={setSubjects}
           placeholder="e.g. Computer Science, Law"
         />
+      </Panel>
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className={LABEL}>Budget range</label>
-            <select className={SELECT} value={budget} onChange={(e) => setBudget(e.target.value)}>
-              <option value="">Select budget…</option>
-              {BUDGET_OPTIONS.map((o) => <option key={o} value={o}>{o}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={LABEL}>Preferred study mode</label>
-            <select className={SELECT} value={studyMode} onChange={(e) => setStudyMode(e.target.value)}>
-              <option value="">Select mode…</option>
-              {STUDY_MODES.map((m) => <option key={m} value={m}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <label className={LABEL}>Target intake</label>
-            <input
-              className={INPUT}
-              placeholder="e.g. Sep 2027"
-              value={intake}
-              onChange={(e) => setIntake(e.target.value)}
-            />
-          </div>
-          <div>
-            <label className={LABEL}>Application cycle year</label>
-            <input
-              className={INPUT}
-              type="number"
-              min="2025"
-              max="2035"
-              placeholder="e.g. 2027"
-              value={cycleYear}
-              onChange={(e) => setCycleYear(e.target.value)}
-            />
-          </div>
-          <div className="sm:col-span-2">
-            <label className={LABEL}>Campus preferences (optional)</label>
-            <input
-              className={INPUT}
-              placeholder="e.g. Large city campus, close to industry hubs"
-              value={campus}
-              onChange={(e) => setCampus(e.target.value)}
-            />
-          </div>
+      <Panel className="flex flex-col gap-gb-2xl">
+        <PanelHeader title="Budget and study mode" />
+
+        <div className="grid gap-gb-2xl sm:grid-cols-2">
+          <Select
+            name="budget_range"
+            label="Budget range"
+            placeholder="Select budget…"
+            value={budget}
+            onChange={(e) => setBudget(e.target.value)}
+          >
+            <SelectOptions options={BUDGET_OPTIONS} value={budget} />
+          </Select>
+          <Select
+            name="study_mode_preference"
+            label="Preferred study mode"
+            placeholder="Select mode…"
+            value={studyMode}
+            onChange={(e) => setStudyMode(e.target.value)}
+          >
+            <SelectOptions options={STUDY_MODES} value={studyMode} />
+          </Select>
+          <Input
+            name="target_intake"
+            label="Target intake"
+            placeholder="e.g. Sep 2027"
+            value={intake}
+            onChange={(e) => setIntake(e.target.value)}
+          />
+          <Input
+            name="application_cycle_year"
+            type="number"
+            min="2025"
+            max="2035"
+            label="Application cycle year"
+            placeholder="e.g. 2027"
+            value={cycleYear}
+            onChange={(e) => setCycleYear(e.target.value)}
+          />
+          <Input
+            name="campus_preferences"
+            label="Campus preferences"
+            placeholder="e.g. Large city campus, close to industry hubs"
+            hint="Optional. Anything about the place itself that matters to you."
+            value={campus}
+            onChange={(e) => setCampus(e.target.value)}
+            fieldClassName="sm:col-span-2"
+          />
         </div>
-      </div>
 
-      <div className="mt-5 flex items-center gap-4">
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-2.5 text-sm font-semibold text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5 disabled:opacity-60 disabled:cursor-not-allowed"
-        >
-          {saving ? 'Saving…' : 'Save preferences'}
-        </button>
-        {message && (
-          <p className={`text-sm ${message.ok ? 'text-green-600' : 'text-red-500'}`}>{message.text}</p>
-        )}
-      </div>
+        <SaveBar onSave={handleSave} saving={saving} message={message} label="Save preferences" />
+      </Panel>
     </div>
   );
 }

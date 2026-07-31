@@ -54,7 +54,8 @@ export function Avatar({
           /* Plain <img> rather than next/image: avatar URLs come from OAuth
              providers and user uploads, and an unconfigured host makes
              next/image throw at runtime. At 32px there is nothing to optimise.
-             Same call as src/app/profile/profile-avatar.tsx. */
+             This is the only avatar in the app now — /profile's own scroll-
+             reactive one was deleted with the console rebuild. */
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={src}

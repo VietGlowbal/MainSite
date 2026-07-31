@@ -31,8 +31,8 @@ import { Radio } from './radio';
 export type MultiSelectOption = {
   value: string;
   label: string;
-  /** Second line under the label. */
-  description?: string | undefined;
+  /** Second line under the label. A node — see the note on Checkbox's prop. */
+  description?: React.ReactNode;
 };
 
 type Props = {
