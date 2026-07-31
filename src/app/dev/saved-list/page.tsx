@@ -47,6 +47,25 @@ import { formatTuitionForCard, officialWebsite, splitList } from '@/features/uni
  * ENABLE_DEV_ROUTES is set.
  */
 
+/**
+ * NEVER PRERENDERED — and this broke the e2e build before it was set.
+ *
+ * Since the merge this route renders `ApplicationProgressClient`, which calls
+ * `useSearchParams()` (for `?planFor` and `?openCourseSearch`). That is a
+ * request-time API, so static export fails with "useSearchParams() should be
+ * wrapped in a suspense boundary". `npm run build` did NOT catch it locally:
+ * without ENABLE_DEV_ROUTES the `notFound()` below fires first and the client
+ * is never reached. `playwright.config.ts` sets ENABLE_DEV_ROUTES=1 for its web
+ * server, so CI built the real thing and fell over. Reproduce with
+ * `ENABLE_DEV_ROUTES=1 npm run build`.
+ *
+ * A Suspense boundary would also silence it, but dynamic is the honest answer:
+ * this page reads the live directory through the real repositories, so
+ * prerendering would bake one build's universities into a design preview and
+ * then never update them.
+ */
+export const dynamic = 'force-dynamic';
+
 /** Enough rows to show the grid rhythm without turning this into a long page. */
 const PREVIEW_COUNT = 4;
 
