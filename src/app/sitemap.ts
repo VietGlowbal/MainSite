@@ -1,12 +1,13 @@
 import type { MetadataRoute } from 'next';
 import { getUniversityQueries } from '@/features/universities/api';
 import { listGeoGuides } from '@/lib/geo-content';
+import { SITE_URL } from '@/lib/site-url';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = 'https://glowbal.co';
+  const baseUrl = SITE_URL;
   const staticRoutes: MetadataRoute.Sitemap = [
     '',
-    '/guides',
+    '/news',
     '/universities',
     '/mentors',
     '/apply',
@@ -19,7 +20,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const guides = await listGeoGuides();
   const guideRoutes: MetadataRoute.Sitemap = guides.map((guide) => ({
-    url: `${baseUrl}/guides/${guide.slug}`,
+    url: `${baseUrl}/news/${guide.slug}`,
     lastModified: new Date(),
     changeFrequency: 'daily',
     priority: guide.status === 'published' ? 0.8 : 0.6,
