@@ -35,6 +35,72 @@ export {
   outdatedReviews,
 } from './staleness';
 
+export {
+  CV_SECTION_KINDS,
+  CV_STEPS,
+  DEFAULT_SECTION_KINDS,
+  OPTIONAL_SECTIONS,
+  RENAMEABLE_SECTIONS,
+  SECTION_FIELDS,
+  SECTION_LABEL,
+  countEntries,
+  defaultSections,
+  emptyEntry,
+  emptySection,
+  essentialGaps,
+  hasAnyContent,
+  isOptionalSection,
+  isRenameableSection,
+  newEntryId,
+  reorder,
+  sectionFields,
+  sectionTitle,
+  sectionUsesField,
+  structuredCvPatchSchema,
+} from './cv-sections';
+export type { CvEntryField, CvStepKey, StructuredCvPatch } from './cv-sections';
+
+export {
+  ORIGIN_LABEL,
+  TARGET_PROFILE_FIELD_DEFS,
+  filledFieldCount,
+  isNoopPatch,
+  isTargetProfileComplete,
+  targetProfileField,
+  targetProfilePatchSchema,
+} from './target-profile';
+export type { TargetProfileFieldDef, TargetProfilePatchInput } from './target-profile';
+
+export {
+  CV_LAYOUTS,
+  applyLayoutOrder,
+  canExport,
+  cvLayout,
+  isEmphasised,
+  recommendLayout,
+} from './cv-layouts';
+export type { CvLayoutDef, LayoutRecommendation } from './cv-layouts';
+
+export {
+  AACC_PILLAR_DESCRIPTION,
+  AACC_PILLAR_LABEL,
+  AACC_SCORE_FRAMING,
+  READINESS_LABEL,
+  READINESS_ORDER,
+  STATEMENT_SECTIONS,
+  countStatementWords,
+  emptyAacc,
+  hasAacc,
+  parseStatementSection,
+  scoreWording,
+  statementSectionLabel,
+  wordLimitState,
+} from './statement-sections';
+export type { StatementSectionKey, WordLimitState } from './statement-sections';
+
+export { buildHighlightRuns, matchQuote } from './quote-match';
+export type { HighlightRun, QuoteMatch, QuotedItem } from './quote-match';
+
 export { AACC_PILLARS, TARGET_PROFILE_FIELDS } from './types';
 export type {
   AaccAssessment,

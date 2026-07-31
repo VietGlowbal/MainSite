@@ -4,7 +4,8 @@ import {
   statementActionLabel,
   type StrategyOverview as OverviewData,
 } from '../domain';
-import { Panel, PanelHeader, PanelRow } from './panel';
+import { PanelHeader } from '@/shared/ui';
+import { PanelRow, StrategyPanel } from './panel';
 import { StatusPill, StatusText } from './status-pill';
 
 /**
@@ -105,8 +106,8 @@ function CvWorkspaceCard({
   const { cv } = data;
 
   return (
-    <Panel>
-      <PanelHeader title="CV" aside={<StatusText status={cv.status} />} />
+    <StrategyPanel>
+      <PanelHeader title="CV" action={<StatusText status={cv.status} />} />
 
       <div className="flex flex-col divide-y divide-line">
         <PanelRow label="Target profile">
@@ -133,7 +134,7 @@ function CvWorkspaceCard({
           {cvActionLabel(cv.status)}
         </Button>
       </div>
-    </Panel>
+    </StrategyPanel>
   );
 }
 
@@ -149,8 +150,8 @@ function StatementWorkspaceCard({
   const { statement } = data;
 
   return (
-    <Panel>
-      <PanelHeader title="Personal statement" aside={<StatusText status={statement.status} />} />
+    <StrategyPanel>
+      <PanelHeader title="Personal statement" action={<StatusText status={statement.status} />} />
 
       <div className="flex flex-col divide-y divide-line">
         <PanelRow label="Words">
@@ -184,7 +185,7 @@ function StatementWorkspaceCard({
           {statementActionLabel(statement.status)}
         </Button>
       </div>
-    </Panel>
+    </StrategyPanel>
   );
 }
 
@@ -198,7 +199,7 @@ function StatementWorkspaceCard({
  */
 function EmptyWorkspace({ cvHref, statementHref }: { cvHref: string; statementHref: string }) {
   return (
-    <Panel className="items-start">
+    <StrategyPanel className="items-start">
       <PanelHeader
         title="Start with the document you already have"
         description="Start with the document you already have, or create one from your Glowbal profile."
@@ -211,7 +212,7 @@ function EmptyWorkspace({ cvHref, statementHref }: { cvHref: string; statementHr
           Start statement
         </Button>
       </div>
-    </Panel>
+    </StrategyPanel>
   );
 }
 
