@@ -7,3 +7,4 @@ export { StrategyCategoryBoard } from './strategy-category-board';
 export { RecommendationTable } from './recommendation-table';
 export { ProgressStatusControl } from './progress-status-control';
 export { EvidenceUpload } from './evidence-upload';
+export { AiCoachPanel } from './ai-coach-panel';
