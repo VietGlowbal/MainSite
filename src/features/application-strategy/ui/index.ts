@@ -13,6 +13,8 @@ export type { StrategyOverviewProps } from './strategy-overview';
 export { AutosaveStatus } from './autosave-status';
 export { SuggestionCard } from './suggestion-card';
 export { CvSteps } from './cv-steps';
+export { TargetProfileWorkspace } from './target-profile-workspace';
+export type { TargetProfileWorkspaceProps } from './target-profile-workspace';
 export {
   AnalysisFailedState,
   AnalysisNotRunState,
