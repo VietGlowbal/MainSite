@@ -14,6 +14,11 @@ import { Button, Panel, Section } from '@/shared/ui';
  * not real student quotes — also per Open decision 1. There is no demo video
  * asset, so that section is omitted per requirements.md 2.6 rather than
  * rendering a broken embed.
+ *
+ * "Continuously Updated" describes re-analysis as a one-click action
+ * ("Re-analyse now" on a recommendation), not an automatic background
+ * process — that process doesn't exist yet (tasks.md Phase 5's note), and a
+ * "your strategy updates automatically" claim would be false today.
  */
 
 const HOW_IT_WORKS = [
@@ -29,7 +34,7 @@ const BENEFITS = [
   { title: 'AI Powered', body: 'Analyses hundreds of factors instantly.' },
   {
     title: 'Continuously Updated',
-    body: 'Improve something? Your strategy updates automatically.',
+    body: 'Improve something? Ask for a re-analysis and your strategy catches up.',
   },
   {
     title: 'Course Specific',

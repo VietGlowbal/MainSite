@@ -1,2 +1,2 @@
-export { fetchStrategyOnboardingStatus } from './onboarding-status';
+export { fetchOnboardingState, markStrategyIntroSeen } from './onboarding-status';
 export { generateRecommendations } from './generate-recommendations';

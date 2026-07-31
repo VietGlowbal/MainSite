@@ -1,23 +1,26 @@
 import { redirect } from 'next/navigation';
-import { fetchStrategyOnboardingStatus } from '@/features/ai-strategy-dashboard/api';
+import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
+import { isOnboardingComplete, nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { StrategyHome } from '@/features/ai-strategy-dashboard/ui';
 import { createClient } from '@/lib/supabase/server';
 
 /**
  * `/ai-strategy/[applicationId]/strategy` — Stage 1, Strategy Home
- * (requirements.md Requirement 2).
+ * (requirements.md Requirement 2), and the router for the whole onboarding
+ * pass.
  *
  * Ownership of `applicationId` is already enforced by the layout above this
- * page; this component only decides where "Start My Strategy" goes.
- *
- * Personal Summary and Achievements (requirements.md Requirement 3-4) are not
- * scoped to one application — they're the same student data shared across
- * every Strategy (Requirement 15.2) — so a student who has already been
- * through that flow for a different course skips straight to the AI Analysis
- * step for this one, instead of re-answering questions they've already
- * answered. Stages 3-5 (AI Analysis, AI Strategy Introduction, the Dashboard
- * itself) are tasks.md Phase 3+ and are not built yet; the CTA lands on an
- * honest "coming soon" placeholder rather than a dead link.
+ * page. `fetchOnboardingState` + `nextOnboardingStep` decide what happens
+ * next, per Requirement 1.2-1.3:
+ *  - Nothing done at all → render the marketing page below, CTA starts the
+ *    real first step (Personal Summary).
+ *  - Some steps done, some not (a returning-but-unfinished student) →
+ *    skip straight to the first unfinished step, not back to the marketing
+ *    copy — the audit's explicit ask, "handle partially completed
+ *    onboarding by returning users to the correct unfinished stage."
+ *  - Everything done → skip this page entirely and go to the Dashboard,
+ *    matching 1.3's "route them directly to the Dashboard" literally
+ *    (not "show Strategy Home again, which then links to the Dashboard").
  */
 export default async function StrategyHomePage({
   params,
@@ -33,26 +36,32 @@ export default async function StrategyHomePage({
 
   if (!user) redirect('/auth');
 
-  const [{ data: application }, { reflectionComplete }] = await Promise.all([
+  const [{ data: application }, state] = await Promise.all([
     supabase
       .from('course_applications')
       .select('course_name, university_name')
       .eq('id', applicationId)
       .eq('user_id', user.id)
       .maybeSingle(),
-    fetchStrategyOnboardingStatus(supabase, user.id),
+    fetchOnboardingState(supabase, user.id, applicationId),
   ]);
 
-  const analysisHref = `/ai-strategy/${applicationId}/strategy/analysis`;
-  const startHref = reflectionComplete
-    ? analysisHref
-    : `/ai-strategy/reflection?return=${encodeURIComponent(analysisHref)}`;
+  if (isOnboardingComplete(state)) {
+    redirect(onboardingStepHref('dashboard', applicationId));
+  }
+
+  const step = nextOnboardingStep(state);
+  const nothingDoneYet = step === 'personal-summary';
+
+  if (!nothingDoneYet) {
+    redirect(onboardingStepHref(step, applicationId));
+  }
 
   return (
     <StrategyHome
       courseName={application?.course_name ?? 'Your course'}
       universityName={application?.university_name ?? 'Your university'}
-      startHref={startHref}
+      startHref={onboardingStepHref('personal-summary', applicationId)}
     />
   );
 }

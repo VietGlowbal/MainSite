@@ -43,3 +43,6 @@ export type { StrategyCategory } from './strategy-category';
 
 export { COACH_SEED_INTENTS } from './coach';
 export type { CoachMessage, CoachRole, CoachSeedIntent, CoachThread } from './coach';
+
+export { isOnboardingComplete, nextOnboardingStep, onboardingStepHref } from './onboarding';
+export type { OnboardingState, OnboardingStep } from './onboarding';

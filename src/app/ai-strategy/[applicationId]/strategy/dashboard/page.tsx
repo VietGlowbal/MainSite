@@ -1,6 +1,10 @@
 import { redirect } from 'next/navigation';
-import { generateRecommendations } from '@/features/ai-strategy-dashboard/api';
-import { recommendationFromRow } from '@/features/ai-strategy-dashboard/domain';
+import { fetchOnboardingState, generateRecommendations } from '@/features/ai-strategy-dashboard/api';
+import {
+  nextOnboardingStep,
+  onboardingStepHref,
+  recommendationFromRow,
+} from '@/features/ai-strategy-dashboard/domain';
 import {
   DashboardSummary,
   RecommendationTable,
@@ -13,6 +17,11 @@ import { Container } from '@/shared/ui';
  * `/ai-strategy/[applicationId]/strategy/dashboard` — Stage 5, the AI
  * Strategy Dashboard (requirements.md Requirement 9-10). Ownership already
  * enforced by the layout above this route.
+ *
+ * Guards against a direct visit before onboarding is done — a bookmarked or
+ * shared dashboard URL for a Strategy with no Course Match Analysis yet
+ * would otherwise render an empty, unexplained page instead of resuming
+ * onboarding at the right step.
  *
  * Generates (and reconciles) recommendations on every visit if a Course
  * Match Analysis exists — `generateRecommendations` is idempotent and
@@ -35,6 +44,12 @@ export default async function StrategyDashboardPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
+
+  const state = await fetchOnboardingState(supabase, user.id, applicationId);
+  const step = nextOnboardingStep(state);
+  if (step !== 'dashboard') {
+    redirect(onboardingStepHref(step, applicationId));
+  }
 
   const { data: application } = await supabase
     .from('course_applications')
