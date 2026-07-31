@@ -37,6 +37,31 @@ Seven phases building the CV and Personal Statement workspace at `/ai-strategy/[
     - Default to confirm: hardcode the Vietnamese labels this spec fixes; add dictionary entries only for strings that also appear in English
     - _Requirements: 3.3, 4.2, 11.1_
 
+### Phase 0.5: Reconcile with main
+
+The branch is one commit off `main @ e5e6698`, 38 commits behind `origin/main @ 35192ca`. Verified 2026-07-31. Nothing below is new feature work; all of it blocks Phase 2 onward from being testable or from landing without duplication.
+
+- [ ] 0.5 Rebase and reconcile
+  - [ ] 0.5.1 Rebase onto `origin/main`
+    - **Mechanically clean.** `git diff --name-only e5e6698 HEAD` and `git diff --name-only e5e6698 origin/main` share zero files, so there are no textual conflicts. The collision in 0.5.2 is semantic — a new file on main against a different new file here — and git will not flag it.
+    - Re-run `npm run typecheck && npm run lint && npm test` after; the branch predates the homepage globe work, the saved-universities page, TopNav fixes and academic grading
+  - [ ] 0.5.2 Resolve the `Panel` collision — three copies exist
+    - `src/shared/ui/panel.tsx` landed on main after this branch was cut (for `/profile` and `/admin`): `PANEL_BASE = 'rounded-gb-2xl border border-line bg-surface shadow-gb-xs'`, `padding: 'sm' | 'md' | 'lg'`, plus `StatTile`
+    - `src/features/application-strategy/ui/panel.tsx` reimplements it, deliberately without a shadow per this feature's "minimal or no shadow" rule, and adds `as` and an inner `flex flex-col gap-gb-2xl`
+    - `src/app/demo-throwaway/demo-ui.tsx` has a third
+    - **Resolution:** extend the shared `Panel` with an `elevation: 'flat' | 'xs'` variant (default `xs`, so `/profile` and `/admin` are untouched) and the `as` prop; delete the feature copy. `PanelHeader` differs only cosmetically — `aside`→`action`, `headingLevel={3}`→`as="h3"`, `text-gb-lg`→`text-gb-md` — so use the shared one. Keep `PanelRow` in the feature; main has no equivalent and it is specific to the workspace sub-status lists.
+    - Migrate `strategy-overview.tsx` and its test to the shared imports
+    - _Requirements: 20.1, 20.2, 20.3_
+  - [ ] 0.5.3 Delete the throwaway demo — after harvesting it
+    - `src/app/demo-throwaway/` is 4,022 lines of dev-gated, fixture-only prototype. Its own README says `rm -rf src/app/demo-throwaway` is the whole cleanup, and it has no API calls to swap in.
+    - **Harvest before deleting.** `demo-ui.tsx` already contains working visual prototypes of four of the five primitives task 6.5 defers: `AutosaveStatus` + `SaveStatus`, `SuggestionCard`, `CvSteps` + `CV_STEPS`, `StateBlock` (the states module), plus `OriginBadge` and `CheckMark`. The six workspace files are the closest thing to a design for the screens that have none — `cv-content-workspace.tsx` (509), `statement-workspace.tsx` (527), `cv-review-workspace.tsx` (315), `cv-layout-workspace.tsx` (299), `import-flow.tsx` (249), `target-profile-workspace.tsx` (180), `overview-cards.tsx` (202).
+    - Delete it at the end of the phase that last referenced it, not before; do not wire it to anything
+    - _Requirements: 20.2_
+  - [ ] 0.5.4 Sign off the two defaulted decisions that have teeth
+    - 0.1 paywall boundary decides whether all five AI endpoints need a Plus gate — it is load-bearing for 8.4, 11.3, 14.2, 17.2 and 21.5, and retrofitting it is worse than deciding it
+    - 0.2 is still genuinely unresolved: `@react-pdf/renderer` is **not** in `package.json` (only `unpdf`, which reads PDFs and cannot write them). Phase 5 cannot start until it is added at a pinned exact version.
+    - _Requirements: 7.6, 16.3_
+
 ### Phase 1: Foundation
 
 - [ ] 1. Database schema and RLS
@@ -139,7 +164,8 @@ Seven phases building the CV and Personal Statement workspace at `/ai-strategy/[
     - Assert the static `/ai-strategy/reflection` routes still resolve alongside the new `[applicationId]` segment
     - _Requirements: 1.6_
   - [ ] 6.5 Create the shared UI primitives this feature needs
-    - **PARTIAL.** `Panel`/`PanelHeader`/`PanelRow` and `StatusPill`/`StatusText` are built — the overview needed them. `AutosaveStatus`, `SuggestionCard`, `CvSteps` and `states.tsx` are deferred to the phase that first consumes them: building them now, against no caller, is how the wrong abstraction gets locked in. `SuggestionCard` must still land before task 12.5 and 22.1 both start, per the parallelisation note.
+    - **PARTIAL.** `Panel`/`PanelHeader`/`PanelRow` and `StatusPill`/`StatusText` are built — the overview needed them. `Panel` is superseded by the shared one; see task 0.5.2. `AutosaveStatus`, `SuggestionCard`, `CvSteps` and `states.tsx` are deferred to the phase that first consumes them: building them now, against no caller, is how the wrong abstraction gets locked in. `SuggestionCard` must still land before task 12.5 and 22.1 both start, per the parallelisation note.
+    - **Not from scratch.** `demo-throwaway/demo-ui.tsx` already holds a visual prototype of each of the four, plus `OriginBadge` (task 9.3) and `CheckMark`. Promote the markup, replace the fake state — `useFakeAutosave` becomes `use-autosave.ts`, `SuggestionCard`'s local state becomes the accept/dismiss/edit callbacks — and keep the props real rather than fixture-shaped.
     - `ui/panel.tsx` — `Panel`, `PanelHeader`: `rounded-gb-2xl border border-line bg-surface p-gb-3xl`, no shadow
     - `ui/status-pill.tsx` — always pairs a `KitIcon` with the text label; never colour alone
     - `ui/autosave-status.tsx` — `Saving` / `Saved` / `Could not save`, small and restrained, not a toast
@@ -542,9 +568,10 @@ Seven phases building the CV and Personal Statement workspace at `/ai-strategy/[
   "waves": [
     {
       "wave": 1,
-      "name": "Decisions",
-      "tasks": ["0.1", "0.2", "0.3", "0.4"],
-      "dependsOn": []
+      "name": "Decisions and reconciliation",
+      "tasks": ["0.1", "0.2", "0.3", "0.4", "0.5.1", "0.5.2", "0.5.4"],
+      "dependsOn": [],
+      "note": "0.5.1 rebase and 0.5.2 the Panel collision must land before any new UI is added on top. 0.5.3 (delete the demo) runs last, after Phase 6."
     },
     {
       "wave": 2,
@@ -598,7 +625,7 @@ Seven phases building the CV and Personal Statement workspace at `/ai-strategy/[
     {
       "wave": 10,
       "name": "Completion, mobile, accessibility, verification",
-      "tasks": ["23.1", "23.2", "23.3", "24.1", "24.2", "24.3", "24.4", "25.1", "25.2", "25.3", "25.4"],
+      "tasks": ["23.1", "23.2", "23.3", "24.1", "24.2", "24.3", "24.4", "25.1", "25.2", "25.3", "25.4", "0.5.3"],
       "dependsOn": ["18.4", "22.6", "3.2"]
     }
   ]
