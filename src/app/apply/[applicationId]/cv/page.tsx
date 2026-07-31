@@ -21,43 +21,56 @@ export default async function CvHubPage({
   if (!workspace) notFound();
 
   return (
-    <main className="min-h-screen bg-[#f6f4f1] px-5 py-10 text-slate-950">
-      <div className="mx-auto max-w-6xl">
-        <Link href={`/apply/${applicationId}`} className="text-sm font-semibold text-slate-500">
+    <main className="min-h-screen bg-white px-5 py-12 text-slate-950 sm:py-20">
+      <div className="mx-auto max-w-[1216px]">
+        <Link
+          href={`/apply/${applicationId}`}
+          className="text-sm font-semibold text-slate-500 transition hover:text-rose-600"
+        >
           ← Quay lại hồ sơ
         </Link>
-        <p className="mt-10 text-xs font-bold uppercase tracking-[0.24em] text-pink-600">
+        <p className="mt-12 text-xs font-bold uppercase tracking-[0.24em] text-rose-600">
           CV Workspace
         </p>
-        <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-[-0.04em] sm:text-6xl">
+        <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-[-0.035em] sm:text-5xl">
           Bạn muốn bắt đầu từ đâu?
         </h1>
-        <p className="mt-5 text-slate-600">
+        <p className="mt-4 text-base text-slate-600">
           {workspace.application.courseName} · {workspace.application.universityName}
         </p>
 
-        <div className="mt-12 grid gap-5 md:grid-cols-2">
+        <div className="mt-10 grid gap-6 md:grid-cols-2">
           <Link
             href={`/apply/${applicationId}/cv-builder`}
-            className="group rounded-[2rem] border border-pink-200 bg-white p-8 shadow-sm transition hover:-translate-y-1 hover:border-pink-400 hover:shadow-xl"
+            className="group flex min-h-80 flex-col rounded-2xl border border-slate-200 bg-white p-8 transition hover:-translate-y-1 hover:border-rose-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.10)]"
           >
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-pink-600">01</span>
-            <h2 className="mt-12 text-3xl font-semibold tracking-tight">Build from scratch</h2>
+            <span className="text-sm font-bold tabular-nums text-slate-400">01</span>
+            <div className="mt-12 grid h-11 w-11 place-items-center rounded-xl bg-rose-50 text-xl text-rose-600">
+              ↗
+            </div>
+            <h2 className="mt-6 text-2xl font-semibold tracking-tight">Build from scratch</h2>
             <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
               Gom trải nghiệm, tạo Target Profile và xây CV tiếng Anh phù hợp với chương trình.
             </p>
-            <span className="mt-10 inline-block font-semibold text-pink-600">Bắt đầu xây CV →</span>
+            <span className="mt-auto block rounded-lg bg-rose-600 px-5 py-3 text-center text-sm font-bold text-white transition group-hover:bg-rose-700">
+              Bắt đầu xây CV
+            </span>
           </Link>
           <Link
             href={`/apply/${applicationId}/cv-review`}
-            className="group rounded-[2rem] border border-slate-200 bg-white p-8 text-slate-950 shadow-sm transition hover:-translate-y-1 hover:border-pink-400 hover:shadow-xl"
+            className="group flex min-h-80 flex-col rounded-2xl border border-slate-200 bg-white p-8 transition hover:-translate-y-1 hover:border-rose-300 hover:shadow-[0_20px_50px_rgba(15,23,42,0.10)]"
           >
-            <span className="text-xs font-bold uppercase tracking-[0.2em] text-pink-600">02</span>
-            <h2 className="mt-12 text-3xl font-semibold tracking-tight">Review existing CV</h2>
+            <span className="text-sm font-bold tabular-nums text-slate-400">02</span>
+            <div className="mt-12 grid h-11 w-11 place-items-center rounded-xl bg-rose-50 text-xl text-rose-600">
+              ⤴
+            </div>
+            <h2 className="mt-6 text-2xl font-semibold tracking-tight">Review existing CV</h2>
             <p className="mt-3 max-w-md text-sm leading-6 text-slate-600">
               Tải lên hoặc dán CV hiện có để nhận đánh giá theo dẫn chứng.
             </p>
-            <span className="mt-10 inline-block font-semibold text-pink-600">Mở CV Review →</span>
+            <span className="mt-auto block rounded-lg bg-rose-600 px-5 py-3 text-center text-sm font-bold text-white transition group-hover:bg-rose-700">
+              Mở CV Review
+            </span>
           </Link>
         </div>
       </div>

@@ -51,7 +51,7 @@ type AnyStreamEvent =
 
 const steps = ['Target Profile', 'Nội dung', 'Bản CV', 'Layout & PDF'];
 const inputClass =
-  'w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-50';
+  'w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-50';
 
 async function readNdjson(response: Response, onEvent: (event: AnyStreamEvent) => void) {
   if (!response.body) throw new Error('AI không trả stream.');
@@ -120,9 +120,65 @@ function Field({
 function SectionTitle({ number, children }: { number: string; children: React.ReactNode }) {
   return (
     <div className="mb-5 flex items-center gap-3">
-      <span className="text-xs font-bold tracking-[0.2em] text-pink-600">{number}</span>
-      <h2 className="text-xl font-semibold tracking-tight text-slate-950">{children}</h2>
+      <span className="text-xs font-bold tracking-[0.2em] text-rose-600">{number}</span>
+      <h2 className="text-lg font-semibold tracking-tight text-slate-950">{children}</h2>
     </div>
+  );
+}
+
+function WorkflowProgress({
+  step,
+  cvReady,
+  onChange,
+}: {
+  step: number;
+  cvReady: boolean;
+  onChange: (step: number) => void;
+}) {
+  return (
+    <nav aria-label="Tiến trình tạo CV" className="mx-auto w-full max-w-4xl print:hidden">
+      <ol className="grid grid-cols-4">
+        {steps.map((label, index) => (
+          <li key={label} className="relative">
+            {index < steps.length - 1 && (
+              <span
+                aria-hidden="true"
+                className={[
+                  'absolute left-1/2 top-4 h-0.5 w-full',
+                  index < step ? 'bg-rose-500' : 'bg-slate-200',
+                ].join(' ')}
+              />
+            )}
+            <button
+              type="button"
+              aria-current={index === step ? 'step' : undefined}
+              disabled={index > 1 && !cvReady}
+              className="relative z-10 flex w-full flex-col items-center gap-2 text-center disabled:cursor-not-allowed disabled:opacity-50"
+              onClick={() => onChange(index)}
+            >
+              <span
+                className={[
+                  'grid h-8 w-8 place-items-center rounded-full border text-xs font-bold transition',
+                  index <= step
+                    ? 'border-rose-600 bg-rose-600 text-white'
+                    : 'border-slate-300 bg-white text-slate-500',
+                ].join(' ')}
+              >
+                {index < step ? '✓' : index + 1}
+              </span>
+              <span
+                className={[
+                  'hidden text-xs font-semibold sm:block',
+                  index === step ? 'text-rose-700' : 'text-slate-500',
+                ].join(' ')}
+              >
+                {label}
+              </span>
+            </button>
+          </li>
+        ))}
+      </ol>
+    </nav>
   );
 }
 
@@ -135,11 +191,11 @@ function TargetProfile({
 }) {
   if (!profile) {
     return (
-      <div className="grid min-h-72 place-items-center rounded-3xl border border-dashed border-pink-200 bg-pink-50/40 p-8 text-center">
+      <div className="grid min-h-64 place-items-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-8 text-center">
         <div>
           <div
             className={`mx-auto h-3 w-3 rounded-full ${
-              status ? 'animate-pulse bg-pink-500' : 'bg-slate-300'
+              status ? 'animate-pulse bg-rose-500' : 'bg-slate-300'
             }`}
           />
           <p className="mt-4 text-sm font-semibold text-slate-700">
@@ -159,44 +215,20 @@ function TargetProfile({
   ] as const;
   return (
     <div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap justify-center gap-2">
         {profile.keywords.map((keyword) => (
           <span
             key={keyword}
-            className="rounded-full border border-pink-200 bg-pink-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-pink-700"
+            className="rounded-full border border-rose-200 bg-rose-50 px-4 py-2 text-xs font-bold uppercase tracking-wide text-rose-700"
           >
             {keyword}
           </span>
         ))}
       </div>
-      <section className="mt-6 rounded-2xl border border-pink-200 bg-pink-50/40 p-5">
-        <h2 className="text-lg font-semibold text-slate-950">CV cần chứng minh</h2>
-        <p className="mt-1 text-xs leading-5 text-slate-500">
-          Đây là rubric mục tiêu, chưa phải đánh giá CV của bạn. Độ phủ chỉ được kiểm tra sau khi bạn nhập trải nghiệm.
-        </p>
-        <ol className="mt-4 grid gap-3 sm:grid-cols-2">
-          {profile.evidenceSignals.map((signal, index) => (
-            <li key={signal.id} className="rounded-xl border border-pink-100 bg-white p-4">
-              <div className="flex items-start gap-3">
-                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-pink-500 text-xs font-bold text-white">
-                  {index + 1}
-                </span>
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-950">{signal.label}</h3>
-                  <p className="mt-1 text-xs leading-5 text-slate-600">{signal.description}</p>
-                  <p className="mt-2 text-[11px] leading-4 text-pink-700">
-                    Ví dụ dẫn chứng: {signal.evidenceExamples.join(' · ')}
-                  </p>
-                </div>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
-      <h2 className="mt-7 text-sm font-semibold text-slate-950">Căn cứ xây rubric</h2>
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <h2 className="mt-8 text-sm font-semibold text-slate-950">Thông tin dùng để định hướng CV</h2>
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {insights.map(([label, insight]) => (
-          <article key={label} className="rounded-2xl border border-slate-200 bg-white p-4">
+          <article key={label} className="min-h-44 rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</h3>
               <span
@@ -220,6 +252,30 @@ function TargetProfile({
           Dữ liệu còn thiếu: {profile.limitations.join(' · ')}
         </p>
       )}
+      <section className="mt-6 rounded-xl border border-rose-200 bg-rose-50/40 p-5">
+        <h2 className="text-lg font-semibold text-slate-950">CV cần chứng minh</h2>
+        <p className="mt-1 text-xs leading-5 text-slate-500">
+          Đây là mục tiêu cho CV, chưa phải điểm đánh giá hồ sơ hiện tại.
+        </p>
+        <ol className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {profile.evidenceSignals.map((signal, index) => (
+            <li key={signal.id} className="rounded-xl border border-rose-100 bg-white p-4">
+              <div className="flex items-start gap-3">
+                <span className="grid h-7 w-7 flex-none place-items-center rounded-full bg-rose-600 text-xs font-bold text-white">
+                  {index + 1}
+                </span>
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-950">{signal.label}</h3>
+                  <p className="mt-1 text-xs leading-5 text-slate-600">{signal.description}</p>
+                  <p className="mt-2 text-[11px] leading-4 text-rose-700">
+                    Dẫn chứng phù hợp: {signal.evidenceExamples.join(' · ')}
+                  </p>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
     </div>
   );
 }
@@ -263,8 +319,8 @@ function FormEditor({
     }));
 
   return (
-    <div className="space-y-8">
-      <section>
+    <div className="space-y-5">
+      <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
         <SectionTitle number="01">Thông tin cá nhân</SectionTitle>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Họ tên" value={form.personal.fullName} onChange={(v) => personal('fullName', v)} />
@@ -282,11 +338,11 @@ function FormEditor({
         </div>
       </section>
 
-      <section>
+      <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
         <SectionTitle number="02">Education</SectionTitle>
         <div className="space-y-3">
           {form.education.map((item, index) => (
-            <div key={item.id} className="grid gap-3 rounded-2xl border border-slate-200 p-4 sm:grid-cols-2">
+            <div key={item.id} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
               <Field label="Trường" value={item.institution} onChange={(v) => updateEducation(index, 'institution', v)} />
               <Field label="Bằng cấp" value={item.qualification} onChange={(v) => updateEducation(index, 'qualification', v)} />
               <Field label="Ngành học" value={item.fieldOfStudy} onChange={(v) => updateEducation(index, 'fieldOfStudy', v)} />
@@ -308,7 +364,7 @@ function FormEditor({
             </div>
           ))}
           <button
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-rose-300"
             onClick={() =>
               setForm((current) => ({
                 ...current,
@@ -329,14 +385,14 @@ function FormEditor({
         </div>
       </section>
 
-      <section>
+      <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
         <SectionTitle number="03">Experience Collection</SectionTitle>
         <p className="-mt-2 mb-5 text-sm text-slate-500">
           Mỗi hoạt động tối đa 5 contributions. Hãy mô tả hành động và kết quả có thật.
         </p>
         <div className="space-y-4">
           {form.entries.map((entry, index) => (
-            <div key={entry.id} className="rounded-2xl border border-slate-200 p-4">
+            <div key={entry.id} className="rounded-xl border border-slate-200 bg-white p-4">
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="block text-xs font-semibold text-slate-600">
                   Loại
@@ -435,7 +491,7 @@ function FormEditor({
               </div>
               <div className="mt-3 flex flex-wrap justify-between gap-2">
                 <button
-                  className="text-xs font-semibold text-pink-600 disabled:text-slate-300"
+                  className="text-xs font-semibold text-rose-600 disabled:text-slate-300"
                   disabled={entry.contributions.length >= 5}
                   onClick={() =>
                     setForm((current) => ({
@@ -471,7 +527,7 @@ function FormEditor({
             </div>
           ))}
           <button
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-rose-300"
             onClick={() =>
               setForm((current) => ({
                 ...current,
@@ -492,11 +548,11 @@ function FormEditor({
         </div>
       </section>
 
-      <section className="grid gap-8 lg:grid-cols-2">
-        <div>
+      <section className="grid gap-5 lg:grid-cols-2">
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
           <SectionTitle number="04">Awards</SectionTitle>
           {form.awards.map((award, index) => (
-            <div key={award.id} className="mb-3 rounded-2xl border border-slate-200 p-4">
+            <div key={award.id} className="mb-3 rounded-xl border border-slate-200 bg-white p-4">
               <Field
                 label="Giải thưởng"
                 value={award.title}
@@ -523,7 +579,7 @@ function FormEditor({
             </div>
           ))}
           <button
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-rose-300"
             onClick={() =>
               setForm((current) => ({
                 ...current,
@@ -534,10 +590,10 @@ function FormEditor({
             + Thêm award
           </button>
         </div>
-        <div>
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
           <SectionTitle number="05">Skills</SectionTitle>
           {form.skillGroups.map((group, index) => (
-            <div key={group.id} className="mb-3 rounded-2xl border border-slate-200 p-4">
+            <div key={group.id} className="mb-3 rounded-xl border border-slate-200 bg-white p-4">
               <div className="mb-3 flex justify-end">
                 <button
                   type="button"
@@ -589,7 +645,7 @@ function FormEditor({
             </div>
           ))}
           <button
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold"
+            className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold transition hover:border-rose-300"
             onClick={() =>
               setForm((current) => ({
                 ...current,
@@ -1435,7 +1491,7 @@ export function CvBuilderWorkspace({
   const reviewingCv = busy && status.includes('đánh giá CV');
 
   return (
-    <main className="cv-builder-shell min-h-screen bg-[#f6f4f1] text-slate-950 print:bg-white">
+    <main className="cv-builder-shell min-h-screen bg-white text-slate-950 print:bg-white">
       <style jsx global>{`
         @page { size: A4; margin: 11mm; }
         .cv-paper { width: 210mm; min-height: 297mm; background: white; padding: 13mm 17mm; color: #111; font-family: Arial, Helvetica, sans-serif; font-size: 9.4pt; line-height: 1.18; box-shadow: 0 18px 55px rgba(15,23,42,.12); }
@@ -1472,15 +1528,20 @@ export function CvBuilderWorkspace({
           #cv-print-area { position: absolute; inset: 0; width: 100%; min-height: 0; padding: 0; box-shadow: none; }
         }
       `}</style>
-      <header className="border-b border-slate-200 bg-white/90 px-5 py-5 backdrop-blur print:hidden">
-        <div className="mx-auto flex max-w-[1500px] flex-wrap items-center justify-between gap-4">
+      <header className="border-b border-slate-200 bg-white px-5 py-4 print:hidden">
+        <div className="mx-auto flex max-w-[1216px] flex-wrap items-center justify-between gap-4">
           <div>
-            <Link href={`/apply/${applicationId}/cv`} className="text-xs font-bold text-slate-500">← CV Workspace</Link>
-            <h1 className="mt-2 text-2xl font-semibold tracking-tight">Build My CV</h1>
+            <Link
+              href={`/apply/${applicationId}/cv`}
+              className="text-xs font-bold text-slate-500 transition hover:text-rose-600"
+            >
+              ← CV Workspace
+            </Link>
+            <h1 className="mt-1 text-xl font-semibold tracking-tight">Build My CV</h1>
             <p className="text-sm text-slate-500">{programmeName} · {universityName}</p>
           </div>
           <button
-            className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold"
+            className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold transition hover:border-rose-300 hover:text-rose-700"
             onClick={() => {
               localStorage.removeItem(storageKey);
               setForm(prefill);
@@ -1495,25 +1556,9 @@ export function CvBuilderWorkspace({
         </div>
       </header>
 
-      <div className="mx-auto grid max-w-[1500px] gap-6 px-5 py-6 lg:grid-cols-[220px_minmax(0,1fr)] print:block print:p-0">
-        <nav className="rounded-3xl border border-slate-200 bg-white p-4 lg:sticky lg:top-6 lg:h-fit print:hidden">
-          {steps.map((label, index) => (
-            <button
-              key={label}
-              className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left text-sm font-semibold ${
-                index === step ? 'bg-pink-50 text-pink-700' : 'text-slate-500'
-              }`}
-              onClick={() => setStep(index)}
-            >
-              <span className={`grid h-7 w-7 place-items-center rounded-full text-xs ${index === step ? 'bg-pink-500 text-white' : 'bg-slate-100'}`}>
-                {index + 1}
-              </span>
-              {label}
-            </button>
-          ))}
-        </nav>
-
-        <div>
+      <div className="mx-auto max-w-[1216px] px-5 py-8 print:max-w-none print:p-0">
+        <WorkflowProgress step={step} cvReady={Boolean(generatedCv)} onChange={setStep} />
+        <div className="mt-10">
           {error && (
             <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 print:hidden">
               {error}
@@ -1532,50 +1577,62 @@ export function CvBuilderWorkspace({
           )}
 
           {step === 0 && (
-            <section className="grid gap-5 xl:grid-cols-[370px_minmax(0,1fr)] print:hidden">
-              <div className="rounded-3xl border border-pink-200 bg-white p-7 text-slate-950 shadow-sm">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-pink-600">Target Profile</p>
-                <h2 className="mt-8 text-3xl font-semibold tracking-tight">Xác định CV cần chứng minh điều gì.</h2>
-                <p className="mt-4 text-sm leading-6 text-slate-600">
+            <section className="print:hidden">
+              <div className="mx-auto max-w-4xl text-center">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Target Profile</p>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Xác định CV cần chứng minh điều gì.</h2>
+                <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-600">
                   AI chỉ dùng dữ liệu trường, chương trình và hồ sơ có trong Supabase. Phần thiếu sẽ được đánh dấu, không tự bịa.
                 </p>
-                <label className="mt-8 block text-xs font-semibold text-slate-600">
+                <label className="mt-8 block text-left text-xs font-semibold text-slate-600">
                   Định hướng nghề nghiệp (không bắt buộc)
                   <textarea
-                    className="mt-2 min-h-28 w-full resize-y rounded-2xl border border-slate-200 bg-[#faf8f5] p-4 text-sm text-slate-950 outline-none transition focus:border-pink-400 focus:ring-4 focus:ring-pink-50"
+                    className="mt-2 min-h-28 w-full resize-y rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-950 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-50"
                     value={careerDirection}
                     onChange={(event) => setCareerDirection(event.target.value)}
                     placeholder="Ví dụ: Software Engineer in education technology"
                   />
                 </label>
-                <button
-                  className="mt-5 w-full rounded-full bg-pink-500 px-5 py-3 text-sm font-bold text-white disabled:opacity-50"
-                  disabled={busy}
-                  onClick={buildTarget}
-                >
-                  {busy ? 'AI đang làm…' : targetProfile ? 'Tạo lại Target Profile' : 'Tạo Target Profile'}
-                </button>
-                {targetProfile && (
-                  <button className="mt-3 w-full text-sm font-semibold text-pink-600" onClick={() => setStep(1)}>
-                    Tiếp tục nhập nội dung →
+                <div className="mt-5 flex flex-wrap justify-center gap-3">
+                  <button
+                    className="rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
+                    disabled={busy}
+                    onClick={buildTarget}
+                  >
+                    {busy ? 'AI đang làm…' : targetProfile ? 'Tạo lại Target Profile' : 'Tạo Target Profile'}
                   </button>
-                )}
+                  {targetProfile && (
+                    <button
+                      className="rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:text-rose-700"
+                      onClick={() => setStep(1)}
+                    >
+                      Tiếp tục nhập nội dung →
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="rounded-3xl border border-slate-200 bg-white p-6">
+              <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
                 <TargetProfile profile={targetProfile} status={status} />
               </div>
             </section>
           )}
 
           {step === 1 && (
-            <section className="rounded-3xl border border-slate-200 bg-white p-5 sm:p-8 print:hidden">
+            <section className="print:hidden">
+              <div className="mb-8">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Nội dung</p>
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight">Nhập dữ liệu cho CV</h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  Kiểm tra thông tin có sẵn và bổ sung trải nghiệm, giải thưởng, kỹ năng của bạn.
+                </p>
+              </div>
               <FormEditor form={form} setForm={setForm} />
               <div className="mt-10 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-6">
-                <button className="rounded-full border border-slate-300 px-5 py-3 text-sm font-semibold" onClick={() => setStep(0)}>
+                <button className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold" onClick={() => setStep(0)}>
                   Quay lại
                 </button>
                 <button
-                  className="rounded-full bg-pink-500 px-6 py-3 text-sm font-bold text-white disabled:opacity-50"
+                  className="rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
                   disabled={busy || !targetProfile}
                   onClick={() => generate()}
                 >
@@ -1587,16 +1644,25 @@ export function CvBuilderWorkspace({
 
           {step === 2 && (
             <section className="print:hidden">
+              <div className="mb-8">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Bản CV</p>
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+                  {generatedCv ? 'CV đã được tạo. Kiểm tra và chỉnh sửa.' : 'AI đang xây dựng CV của bạn.'}
+                </h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  Nhấp trực tiếp vào nội dung trong bản CV để chỉnh sửa trước khi review.
+                </p>
+              </div>
               {!generatedCv && (
-                <div className="rounded-3xl border border-slate-200 bg-white p-8">
+                <div className="rounded-2xl border border-slate-200 bg-white p-8">
                   <div className="flex items-center gap-3">
-                    <span className="h-3 w-3 animate-pulse rounded-full bg-pink-500" />
+                    <span className="h-3 w-3 animate-pulse rounded-full bg-rose-500" />
                     <p className="font-semibold">{status || 'AI đang làm…'}</p>
                   </div>
                   <div className="mt-8 space-y-3">
                     {partialSummary.map((item) => (
-                      <article key={item.title} className="rounded-2xl border border-slate-200 p-5">
-                        <p className="text-xs font-bold uppercase tracking-wider text-pink-600">{item.title}</p>
+                      <article key={item.title} className="rounded-xl border border-slate-200 p-5">
+                        <p className="text-xs font-bold uppercase tracking-wider text-rose-600">{item.title}</p>
                         <p className="mt-3 text-sm leading-6 text-slate-700"><TypingText text={item.text} /></p>
                       </article>
                     ))}
@@ -1604,21 +1670,21 @@ export function CvBuilderWorkspace({
                 </div>
               )}
               {generatedCv && (
-                <div className="grid gap-5 xl:grid-cols-[360px_minmax(0,1fr)]">
-                  <aside className="rounded-3xl border border-slate-200 bg-white p-6">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-pink-600">Độ phủ dẫn chứng</p>
-                    <h2 className="mt-3 text-2xl font-semibold">3 tín hiệu đã thể hiện tốt</h2>
+                <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+                  <aside className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 xl:sticky xl:top-6">
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-600">Độ phủ dẫn chứng</p>
+                    <h2 className="mt-3 text-xl font-semibold">3 điểm mạnh</h2>
                     <ol className="mt-5 space-y-3">
                       {generatedCv.assessment.strengths.map((strength, index) => (
                         <li key={strength} className="flex gap-3 text-sm leading-6">
-                          <span className="font-bold text-pink-600">0{index + 1}</span>{strength}
+                          <span className="font-bold text-rose-600">0{index + 1}</span>{strength}
                         </li>
                       ))}
                     </ol>
                     {generatedCv.assessment.missingSignals.length > 0 && (
                       <>
-                        <h3 className="mt-7 font-semibold">Còn thiếu tín hiệu</h3>
-                        <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-slate-600">
+                        <h3 className="mt-7 font-semibold">Cần bổ sung</h3>
+                        <ul className="mt-3 space-y-2 text-sm text-slate-600">
                           {generatedCv.assessment.missingSignals.map((signal) => <li key={signal}>{signal}</li>)}
                         </ul>
                       </>
@@ -1659,7 +1725,7 @@ export function CvBuilderWorkspace({
                         </p>
                         <button
                           type="button"
-                          className="mt-4 w-full rounded-full bg-pink-500 px-4 py-3 text-sm font-bold text-white disabled:opacity-50"
+                          className="mt-4 w-full rounded-lg bg-rose-600 px-4 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
                           aria-busy={improvingCv}
                           disabled={
                             busy ||
@@ -1677,7 +1743,7 @@ export function CvBuilderWorkspace({
                       Nhấp vào phần giới thiệu hoặc bullet trên CV để chỉnh sửa.
                     </p>
                     <button
-                      className="mt-7 w-full rounded-full border border-pink-300 px-4 py-3 text-sm font-bold text-pink-700 disabled:opacity-50"
+                      className="mt-7 w-full rounded-lg border border-rose-300 bg-white px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
                       disabled={busy || clarificationRequired}
                       onClick={reviewCv}
                     >
@@ -1688,11 +1754,11 @@ export function CvBuilderWorkspace({
                         Hãy trả lời đủ các câu hỏi và tạo lại CV trước khi chạy Review.
                       </p>
                     )}
-                    <button className="mt-3 w-full rounded-full border border-pink-300 bg-pink-50 px-4 py-3 text-sm font-bold text-pink-700" onClick={() => setStep(3)}>
+                    <button className="mt-3 w-full rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-100" onClick={() => setStep(3)}>
                       Chọn layout →
                     </button>
                   </aside>
-                  <div className="overflow-auto rounded-3xl border border-slate-200 bg-slate-200/70 p-4">
+                  <div className="overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-4 sm:p-6">
                     <div ref={previewRef} className="mx-auto w-fit">
                       <CvPaper
                         form={form}
@@ -1708,7 +1774,7 @@ export function CvBuilderWorkspace({
               {(status.includes('đánh giá CV') || reviewEvents.length > 0 || review) && (
                 <div
                   ref={reviewRef}
-                  className="mt-6 scroll-mt-6 rounded-3xl border border-slate-200 bg-white p-5"
+                  className="mt-8 scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7"
                 >
                   <CvReviewFeedback events={reviewEvents} analysis={review} streaming={busy} />
                 </div>
@@ -1717,9 +1783,17 @@ export function CvBuilderWorkspace({
           )}
 
           {step === 3 && generatedCv && (
-            <section className="grid gap-5 xl:grid-cols-[300px_minmax(0,1fr)] print:block">
-              <aside className="rounded-3xl border border-slate-200 bg-white p-5 print:hidden">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-pink-600">Layout</p>
+            <section className="print:block">
+              <div className="mb-8 print:hidden">
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Layout & PDF</p>
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight">Chọn cách trình bày CV</h2>
+                <p className="mt-2 text-sm text-slate-600">
+                  Hai layout dùng cùng nội dung; bạn có thể đổi mẫu trước khi tải PDF.
+                </p>
+              </div>
+              <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)] print:block">
+              <aside className="rounded-2xl border border-slate-200 bg-white p-5 xl:sticky xl:top-6 print:hidden">
+                <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-600">Select layout</p>
                 <div className="mt-5 space-y-3">
                   {(
                     [
@@ -1731,10 +1805,10 @@ export function CvBuilderWorkspace({
                       key={id}
                       type="button"
                       aria-pressed={template === id}
-                      className={`w-full rounded-2xl border p-4 text-left transition ${
+                      className={`w-full rounded-xl border p-4 text-left transition ${
                         template === id
-                          ? 'border-pink-400 bg-pink-50'
-                          : 'border-slate-200 bg-white hover:border-pink-200'
+                          ? 'border-rose-400 bg-rose-50'
+                          : 'border-slate-200 bg-white hover:border-rose-200'
                       }`}
                       onClick={() => setTemplate(id)}
                     >
@@ -1754,13 +1828,13 @@ export function CvBuilderWorkspace({
                   </p>
                 )}
                 <button
-                  className="mt-5 w-full rounded-full bg-pink-500 px-5 py-3 text-sm font-bold text-white"
+                  className="mt-5 w-full rounded-lg bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-rose-700"
                   onClick={() => window.print()}
                 >
                   Tải PDF / In CV
                 </button>
               </aside>
-              <div className="overflow-auto rounded-3xl bg-slate-200/70 p-4 print:overflow-visible print:bg-white print:p-0">
+              <div className="overflow-auto rounded-2xl bg-slate-100 p-4 sm:p-6 print:overflow-visible print:bg-white print:p-0">
                 <div className="mx-auto w-fit print:w-full">
                   <CvPaper
                     form={form}
@@ -1770,6 +1844,7 @@ export function CvBuilderWorkspace({
                     onCvChange={editGenerated}
                   />
                 </div>
+              </div>
               </div>
             </section>
           )}

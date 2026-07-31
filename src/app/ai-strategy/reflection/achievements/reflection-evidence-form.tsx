@@ -5,12 +5,15 @@ import { useRouter } from 'next/navigation';
 import {
   ACHIEVEMENT_CATEGORIES,
   ACTIVITY_CATEGORIES,
+  applyEvidenceCandidates,
+  evidenceExtractionResponseSchema,
   reflectionStep,
   type AchievementValues,
   type ActivityValues,
+  type EvidenceExtractionResponse,
 } from '@/features/apply/domain';
-import { ACCEPTED_DOCUMENT_TYPES, useDocumentUpload } from '@/features/apply/hooks';
-import { ReflectionShell } from '@/features/apply/ui';
+import { useDocumentUpload } from '@/features/apply/hooks';
+import { EvidenceExtractionPreview, ReflectionShell } from '@/features/apply/ui';
 import {
   Button,
   DocumentRow,
@@ -25,14 +28,9 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 /**
  * Reflection step 2 of 2 — achievements and activities.
  *
- * THE CV IS STORAGE, NOT PREFILL. The frame's Vietnamese line read "Nếu chưa có
- * CV có thể nhập thông tin ở dưới" — if you have no CV, type it in below —
- * which promises that uploading one saves you the typing. Nothing extracts a CV
- * today, so that sentence would have been a lie the first student found. The
- * copy now says what actually happens: the file is stored, and the form below
- * still needs filling in. Real prefill is a separate piece of work (extraction,
- * bilingual documents, classification into rows, confidence, duplicate
- * detection) and should be scoped as one.
+ * Uploaded PDFs are parsed into a reviewable draft. The student chooses which
+ * evidence-bound candidates are copied into the editable rows below; extraction
+ * never writes final reflection data by itself.
  *
  * ONE DETAIL FIELD, NOT TWO. The frame drew "Bổ sung thông tin chi tiết" and
  * "Tell us more" on the same achievement, with the second carrying a template
@@ -85,9 +83,15 @@ export function ReflectionEvidenceForm({
     initialActivities.length > 0 ? initialActivities : [emptyActivity()],
   );
   const [saving, setSaving] = useState(false);
+  const [extracting, setExtracting] = useState(false);
+  const [extractionResult, setExtractionResult] =
+    useState<EvidenceExtractionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useLoadingIndicator(saving, 'Saving your achievements');
+  useLoadingIndicator(
+    saving || extracting,
+    extracting ? 'AI đang đọc tài liệu' : 'Saving your achievements',
+  );
 
   function patchAchievement(index: number, changes: Partial<AchievementValues>) {
     setAchievements((prev) =>
@@ -141,14 +145,42 @@ export function ReflectionEvidenceForm({
 
           <FileDropzone
             onFiles={async (files) => {
-              setSaving(true);
-              await upload(files, 'cv');
-              setSaving(false);
+              setExtracting(true);
+              setExtractionResult(null);
+              setError(null);
+              try {
+                const uploaded = await upload(files, 'other');
+                const documentIds = uploaded.flatMap((item) =>
+                  item.status === 'complete' && item.documentId ? [item.documentId] : [],
+                );
+                if (documentIds.length === 0) return;
+
+                const response = await fetch('/api/reflection/extract-evidence', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ documentIds }),
+                });
+                const body = await response.json().catch(() => null);
+                if (!response.ok) {
+                  setError(body?.error ?? 'Không thể đọc tài liệu. Vui lòng thử lại.');
+                  return;
+                }
+                const parsed = evidenceExtractionResponseSchema.safeParse(body);
+                if (!parsed.success) {
+                  setError('Kết quả trích xuất không hợp lệ. Vui lòng thử lại.');
+                  return;
+                }
+                setExtractionResult(parsed.data);
+              } catch {
+                setError('Không thể đọc tài liệu. Vui lòng thử lại.');
+              } finally {
+                setExtracting(false);
+              }
             }}
-            accept={ACCEPTED_DOCUMENT_TYPES}
-            disabled={saving}
-            label="Tải CV hoặc kéo vào ô"
-            hint="PDF, DOC, DOCX, TXT hoặc RTF (tối đa 10MB)"
+            accept=".pdf,application/pdf"
+            disabled={saving || extracting}
+            label={extracting ? 'Đang đọc PDF…' : 'Tải CV hoặc chứng nhận PDF'}
+            hint="Có thể chọn nhiều PDF, mỗi file tối đa 10MB"
           />
 
           {items.length > 0 ? (
@@ -166,11 +198,24 @@ export function ReflectionEvidenceForm({
             </ul>
           ) : null}
 
-          {/* Says what the upload actually does. See the note at the top. */}
           <p className="text-center text-gb-sm text-fg-tertiary">
-            Tải CV để lưu vào hồ sơ, sau đó bổ sung hoặc kiểm tra thông tin bên dưới.
+            Hệ thống chỉ điền dữ liệu có đoạn nguồn trong PDF; bạn luôn được kiểm tra trước khi lưu.
           </p>
         </section>
+
+        {extractionResult ? (
+          <EvidenceExtractionPreview
+            key={extractionResult.documents.map(({ documentId }) => documentId).join(':')}
+            result={extractionResult}
+            onApply={(candidates) => {
+              const next = applyEvidenceCandidates(achievements, activities, candidates);
+              setAchievements(next.achievements);
+              setActivities(next.activities);
+              setExtractionResult(null);
+            }}
+            onDismiss={() => setExtractionResult(null)}
+          />
+        ) : null}
 
         {/* No ReflectionSection wrapper here: RepeatableFieldset renders its own
             heading, and nesting the two put "Thành tích học thuật" on the page
@@ -353,7 +398,7 @@ export function ReflectionEvidenceForm({
           <Button href={reflectionStep('about').path} variant="secondary" size="lg">
             Quay lại
           </Button>
-          <Button type="submit" size="lg" disabled={saving} className="min-w-64">
+          <Button type="submit" size="lg" disabled={saving || extracting} className="min-w-64">
             {saving ? 'Đang lưu…' : 'Hoàn tất'}
           </Button>
         </div>

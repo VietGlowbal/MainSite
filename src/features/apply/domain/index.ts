@@ -48,3 +48,14 @@ export type {
   ReflectionProfileRow,
   ReflectionValues,
 } from './reflection';
+export {
+  applyEvidenceCandidates,
+  evidenceCandidateSchema,
+  evidenceExtractionResponseSchema,
+  validateEvidenceExtraction,
+} from './reflection-extraction';
+export type {
+  EvidenceCandidate,
+  EvidenceExtractionResponse,
+  EvidenceSourcePage,
+} from './reflection-extraction';

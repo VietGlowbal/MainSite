@@ -11,13 +11,14 @@ type Props = {
   targetName: string;
   contextNote?: string | null;
   demo?: boolean;
+  reviewType?: 'statement' | 'lor';
 };
 
 type DraftState = {
   content: string;
   analysis: AIAnalysis | StoredVinUniAnalysis | null;
   statementId: number | null;
-  docType: 'personal_statement' | 'statement_of_purpose';
+  docType: 'personal_statement' | 'statement_of_purpose' | 'recommendation_letter';
 };
 
 export function StatementFeedbackWorkspace({
@@ -25,7 +26,9 @@ export function StatementFeedbackWorkspace({
   targetName,
   contextNote,
   demo = false,
+  reviewType = 'statement',
 }: Props) {
+  const isLor = reviewType === 'lor';
   const supabase = useMemo(() => (demo ? null : createClient()), [demo]);
   const [draft, setDraft] = useState<DraftState | null>(
     demo
@@ -33,7 +36,7 @@ export function StatementFeedbackWorkspace({
           content: '',
           analysis: null,
           statementId: null,
-          docType: 'personal_statement',
+          docType: isLor ? 'recommendation_letter' : 'personal_statement',
         }
       : null,
   );
@@ -45,10 +48,13 @@ export function StatementFeedbackWorkspace({
     if (!supabase) return;
     let cancelled = false;
     void (async () => {
-      const { data } = await supabase
+      const baseQuery = supabase
         .from('personal_statements')
         .select('id, content, ai_analysis, doc_type')
-        .eq('application_id', applicationId)
+        .eq('application_id', applicationId);
+      const { data } = await (isLor
+        ? baseQuery.eq('doc_type', 'recommendation_letter')
+        : baseQuery.in('doc_type', ['personal_statement', 'statement_of_purpose']))
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
@@ -59,14 +65,16 @@ export function StatementFeedbackWorkspace({
           analysis:
             (data?.ai_analysis as AIAnalysis | StoredVinUniAnalysis | null) ?? null,
           statementId: (data?.id as number) ?? null,
-          docType: (data?.doc_type as DraftState['docType']) ?? 'personal_statement',
+          docType: isLor
+            ? 'recommendation_letter'
+            : ((data?.doc_type as DraftState['docType']) ?? 'personal_statement'),
         });
       }
     })();
     return () => {
       cancelled = true;
     };
-  }, [applicationId, supabase]);
+  }, [applicationId, isLor, supabase]);
 
   return (
     <main className="min-h-screen bg-[#f5f6fa] p-3 sm:p-5 lg:p-7">
@@ -81,15 +89,15 @@ export function StatementFeedbackWorkspace({
               Quay lại Apply
             </Link>
             <p className="text-[0.65rem] font-bold uppercase tracking-[0.18em] text-pink-600">
-              AI statement feedback
+              {isLor ? 'AI LOR feedback' : 'AI statement feedback'}
             </p>
             <h1 className="mt-1 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">
-              Strengthen your statement
+              {isLor ? 'Strengthen your recommendation letter' : 'Strengthen your statement'}
             </h1>
             <p className="mt-1 truncate text-sm text-slate-500">for {targetName}</p>
           </div>
           <div className="hidden rounded-full border border-pink-100 bg-pink-50 px-3 py-1.5 text-xs font-semibold text-pink-700 sm:block">
-            Phân tích AI có dẫn chứng
+            {isLor ? 'Programme-grounded AI feedback' : 'Phân tích AI có dẫn chứng'}
           </div>
         </header>
 
@@ -97,7 +105,9 @@ export function StatementFeedbackWorkspace({
           {!draft ? (
             <div className="flex flex-1 flex-col items-center justify-center p-10">
               <div className="mb-3 h-8 w-8 animate-spin rounded-full border-[3px] border-pink-200 border-t-pink-500" />
-              <p className="text-sm text-slate-500">Loading your draft…</p>
+              <p className="text-sm text-slate-500">
+                {isLor ? 'Loading your recommendation letter…' : 'Loading your draft…'}
+              </p>
             </div>
           ) : (
             <StatementWriter
@@ -111,6 +121,7 @@ export function StatementFeedbackWorkspace({
               initialAnalysis={draft.analysis}
               statementId={draft.statementId}
               initialDocType={draft.docType}
+              reviewType={reviewType}
             />
           )}
         </div>

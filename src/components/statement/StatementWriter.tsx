@@ -42,7 +42,7 @@ export type StatementSaveTarget =
   | { kind: 'application'; applicationId: string }
   | { kind: 'demo' };
 
-type DocType = 'personal_statement' | 'statement_of_purpose';
+type DocType = 'personal_statement' | 'statement_of_purpose' | 'recommendation_letter';
 
 type Props = {
   /** Where the draft is stored. */
@@ -61,6 +61,8 @@ type Props = {
   workspace?: boolean;
   /** Explicit evaluator selection for scoped MVP entry points. */
   evaluationMode?: 'generic' | 'vinuni';
+  /** Reuse the editor and feedback UI for an application recommendation letter. */
+  reviewType?: 'statement' | 'lor';
 };
 
 type VinUniAnalysis = AaccAnalysis | AaccAnalysisV2;
@@ -395,9 +397,12 @@ export function StatementWriter({
   embedded = false,
   workspace = false,
   evaluationMode = 'generic',
+  reviewType = 'statement',
 }: Props) {
+  const isLor = reviewType === 'lor';
   const isVinUni =
-    evaluationMode === 'vinuni' || /\bvin\s*(?:university|uni)\b/i.test(targetName);
+    !isLor &&
+    (evaluationMode === 'vinuni' || /\bvin\s*(?:university|uni)\b/i.test(targetName));
   const storedVinUni = isStoredVinUniAnalysis(initialAnalysis) ? initialAnalysis : null;
   const supabase = useMemo(() => createClient(), []);
   const [text, setText] = useState(initialContent);
@@ -420,7 +425,9 @@ export function StatementWriter({
   );
   const [activeTab, setActiveTab] = useState<'score' | 'suggestions' | 'checklist'>('suggestions');
   const [hoveredSuggestion, setHoveredSuggestion] = useState<string | null>(null);
-  const [docType, setDocType] = useState<DocType>(initialDocType);
+  const [docType, setDocType] = useState<DocType>(
+    isLor ? 'recommendation_letter' : initialDocType,
+  );
   const [error, setError] = useState<string | null>(null);
   const [statementId, setStatementId] = useState<number | null>(initialStatementId);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
@@ -438,7 +445,7 @@ export function StatementWriter({
   useEffect(() => () => analysisAbortRef.current?.abort(), []);
 
   const wordCount = text.split(/\s+/).filter((w) => w.length > 0).length;
-  const minimumAnalysisLength = isVinUni ? 200 : 20;
+  const minimumAnalysisLength = isVinUni ? 200 : isLor ? 80 : 20;
 
   const saveDraft = useCallback(
     async (content: string, aiAnalysis?: unknown) => {
@@ -452,7 +459,7 @@ export function StatementWriter({
 
       const payload: Record<string, unknown> = {
         user_id: userData.user.id,
-        title: `Statement for ${targetName}`,
+        title: `${isLor ? 'Recommendation letter' : 'Statement'} for ${targetName}`,
         content,
         doc_type: docType,
         ai_analysis: aiAnalysis ?? analysis,
@@ -478,7 +485,7 @@ export function StatementWriter({
       setSaveStatus('Saved');
       setTimeout(() => setSaveStatus(null), 2000);
     },
-    [supabase, targetName, docType, analysis, saveTarget, statementId],
+    [supabase, targetName, docType, analysis, saveTarget, statementId, isLor],
   );
 
   const handleAnalyze = useCallback(async (retrySections?: VinUniRequestedSection[]) => {
@@ -522,7 +529,14 @@ export function StatementWriter({
                     ? { requestedSections: retrySections }
                     : {}),
                 }
-              : { text, docType, targetUniversity: targetName },
+              : {
+                  text,
+                  docType,
+                  targetUniversity: targetName,
+                  ...(isLor && saveTarget.kind === 'application'
+                    ? { applicationId: saveTarget.applicationId }
+                    : {}),
+                },
           ),
           signal: abortController.signal,
         },
@@ -631,6 +645,7 @@ export function StatementWriter({
     saveDraft,
     saveTarget,
     isVinUni,
+    isLor,
     minimumAnalysisLength,
     workspace,
   ]);
@@ -861,7 +876,7 @@ export function StatementWriter({
       {workspace && !vinUniWorkspaceReview && (
         <div className="grid shrink-0 grid-cols-2 border-b border-slate-200 bg-white p-2 lg:hidden">
           {[
-            ['essay', 'Bài luận'],
+            ['essay', isLor ? 'Recommendation letter' : 'Bài luận'],
             ['feedback', 'Phản hồi'],
           ].map(([pane, label]) => (
             <button
@@ -881,19 +896,25 @@ export function StatementWriter({
       )}
       {/* ── Left: Editor ── */}
       {!vinUniWorkspaceReview ? <section
-        aria-label="Bài luận"
+        aria-label={isLor ? 'Recommendation letter' : 'Bài luận'}
         className={`${workspace && workspacePane !== 'essay' ? 'hidden lg:flex' : 'flex'} min-h-0 flex-1 flex-col border-b border-slate-200 ${workspace ? 'lg:w-[42%] lg:flex-none' : 'lg:w-3/5'} lg:border-b-0 lg:border-r`}
       >
         <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 md:px-6">
           <div className="flex items-center gap-3">
-            <select
-              value={docType}
-              onChange={(e) => setDocType(e.target.value as DocType)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:border-pink-300 focus:outline-none"
-            >
-              <option value="personal_statement">Personal Statement</option>
-              <option value="statement_of_purpose">Statement of Purpose</option>
-            </select>
+            {isLor ? (
+              <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600">
+                Letter of Recommendation
+              </span>
+            ) : (
+              <select
+                value={docType}
+                onChange={(e) => setDocType(e.target.value as DocType)}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:border-pink-300 focus:outline-none"
+              >
+                <option value="personal_statement">Personal Statement</option>
+                <option value="statement_of_purpose">Statement of Purpose</option>
+              </select>
+            )}
             <span className="hidden text-xs tabular-nums text-slate-400 sm:inline">{wordCount} words</span>
             {saveStatus && <span className="text-xs font-medium text-emerald-500">{saveStatus}</span>}
           </div>
@@ -950,15 +971,19 @@ export function StatementWriter({
               ) : null}
               <div className="relative min-h-0 flex-1">
               <textarea
-                aria-label="Nội dung bài luận"
+                aria-label={isLor ? 'Letter of recommendation draft' : 'Nội dung bài luận'}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
-                placeholder={`Paste your ${docType === 'statement_of_purpose' ? 'statement of purpose' : 'personal statement'} here, or start writing. We'll give you specific feedback on how to strengthen it for ${targetName}.`}
+                placeholder={
+                  isLor
+                    ? `Paste the recommendation letter here. We'll give specific feedback grounded in ${targetName}.`
+                    : `Paste your ${docType === 'statement_of_purpose' ? 'statement of purpose' : 'personal statement'} here, or start writing. We'll give you specific feedback on how to strengthen it for ${targetName}.`
+                }
                 className="h-full min-h-[240px] w-full resize-none border-none text-base leading-relaxed text-slate-700 outline-none placeholder:text-slate-300"
               />
               <div className="pointer-events-none absolute bottom-2 right-3 text-xs text-slate-400">
                 {wordCount} words
-                {docType === 'personal_statement' && (
+                {!isLor && docType === 'personal_statement' && (
                   <span className={wordCount > 650 ? ' font-medium text-red-500' : ''}> · UCAS max: 650</span>
                 )}
               </div>
@@ -1008,8 +1033,12 @@ export function StatementWriter({
                 How it works
               </p>
               <ol className="space-y-1.5 text-sm text-slate-600">
-                <li>1. Paste or write your statement on the left.</li>
-                <li>2. Hit Analyze — we read it like an admissions officer.</li>
+                <li>
+                  1. {isLor
+                    ? 'Paste or write the recommendation letter on the left.'
+                    : 'Paste or write your statement on the left.'}
+                </li>
+                <li>2. Hit Analyze — we review it against the target programme.</li>
                 <li>3. Apply the inline suggestions to sharpen it.</li>
               </ol>
             </div>
@@ -1017,10 +1046,21 @@ export function StatementWriter({
             <div className="rounded-xl border border-slate-200 bg-white p-4">
               <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400">Tips</p>
               <ul className="space-y-1.5 text-sm text-slate-600">
-                <li>• Be specific about why this course and university.</li>
-                <li>• Show, don&apos;t tell — use concrete examples.</li>
-                <li>• Connect your past experience to your future goals.</li>
-                <li>• Keep it under 650 words for UCAS.</li>
+                {isLor ? (
+                  <>
+                    <li>• Establish the recommender&apos;s relationship to the applicant.</li>
+                    <li>• Support praise with specific examples.</li>
+                    <li>• Keep the recommender&apos;s voice natural and credible.</li>
+                    <li>• Connect the evidence to the target programme.</li>
+                  </>
+                ) : (
+                  <>
+                    <li>• Be specific about why this course and university.</li>
+                    <li>• Show, don&apos;t tell — use concrete examples.</li>
+                    <li>• Connect your past experience to your future goals.</li>
+                    <li>• Keep it under 650 words for UCAS.</li>
+                  </>
+                )}
               </ul>
             </div>
           </div>
@@ -1029,8 +1069,10 @@ export function StatementWriter({
         {status === 'analyzing' && !vinUniAnalysis && (
           <div className="flex flex-1 flex-col items-center justify-center p-8">
             <div className="mb-4 h-10 w-10 animate-spin rounded-full border-[3px] border-pink-200 border-t-pink-500" />
-            <h2 className="text-base font-semibold text-slate-600">Reading like an admissions officer…</h2>
-            <p className="mt-1 text-xs text-slate-400">Checking tone, impact, and course fit.</p>
+            <h2 className="text-base font-semibold text-slate-600">
+              {isLor ? 'Reviewing the recommendation letter…' : 'Reading like an admissions officer…'}
+            </h2>
+            <p className="mt-1 text-xs text-slate-400">Checking tone, evidence, and programme fit.</p>
           </div>
         )}
 
@@ -1130,7 +1172,7 @@ export function StatementWriter({
                   <div className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-5">
                     <div>
                       <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                        Admissions readiness
+                        {isLor ? 'Recommendation readiness' : 'Admissions readiness'}
                       </p>
                       <p className="mt-1 text-2xl font-bold text-slate-800">
                         {analysis.score}
@@ -1153,7 +1195,7 @@ export function StatementWriter({
                   {analysis.suggestions.length === 0 ? (
                     <div className="py-8 text-center">
                       <p className="text-sm text-slate-500">
-                        All suggestions applied. Your statement is looking strong.
+                        All suggestions applied. Your {isLor ? 'letter' : 'statement'} is looking strong.
                       </p>
                     </div>
                   ) : (
@@ -1203,7 +1245,7 @@ export function StatementWriter({
                 <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
                   <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
                     <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
-                      Admissions criteria
+                      {isLor ? 'Recommendation criteria' : 'Admissions criteria'}
                     </p>
                   </div>
                   <ul className="divide-y divide-slate-100">

@@ -1,6 +1,30 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
+import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import { createClient } from '@/lib/supabase/server';
 import { FREE_SOP_ANALYSES } from '@/lib/plus';
+
+const AIAnalysisSchema = z.object({
+  score: z.number().min(0).max(100),
+  summary: z.string(),
+  suggestions: z.array(
+    z.object({
+      id: z.string(),
+      type: z.enum(['weak', 'missing', 'impact']),
+      category: z.string(),
+      originalText: z.string(),
+      replacement: z.string(),
+      explanation: z.string(),
+    }),
+  ),
+  checklist: z.array(
+    z.object({
+      id: z.number(),
+      text: z.string(),
+      met: z.boolean(),
+    }),
+  ),
+});
 
 export async function POST(request: Request) {
   // Auth check
@@ -14,17 +38,32 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { text, docType, targetUniversity } = body as {
+  const { text, docType, targetUniversity, applicationId } = body as {
     text: string;
     docType?: string;
     targetUniversity?: string;
+    applicationId?: string;
   };
+  const isLor = docType === 'recommendation_letter';
+  const minimumLength = isLor ? 80 : 20;
 
-  if (!text || text.trim().length < 20) {
+  if (typeof text !== 'string' || text.trim().length < minimumLength || text.length > 15_000) {
     return NextResponse.json(
-      { error: 'Please provide at least 20 characters of text to analyze.' },
+      {
+        error: `Please provide between ${minimumLength} and 15,000 characters of text to analyze.`,
+      },
       { status: 400 },
     );
+  }
+
+  const workspace = isLor && applicationId
+    ? await fetchApplicationWorkspace(applicationId, user.id)
+    : null;
+  if (isLor && !applicationId) {
+    return NextResponse.json({ error: 'Application ID is required.' }, { status: 400 });
+  }
+  if (isLor && !workspace) {
+    return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
   }
 
   const apiKey = process.env.DEEPSEEK_API_KEY;
@@ -42,13 +81,35 @@ export async function POST(request: Request) {
   // profile for tailored strategic recommendations, with a generous token
   // budget. Everyone else gets a "limited" analysis (no CV, small budget),
   // capped at FREE_SOP_ANALYSES free runs.
-  const { data: profile } = await supabase
-    .from('student_profiles')
-    .select(
-      'plus_status, sop_analyses_used, profile_summary, bio, achievements, skills, goals, grades_summary, career_interests',
-    )
-    .eq('user_id', user.id)
-    .maybeSingle();
+  type ProfileRow = {
+    plus_status?: boolean | null;
+    sop_analyses_used?: number | null;
+    profile_summary?: string | null;
+    bio?: string | null;
+    achievements?: unknown;
+    skills?: unknown;
+    goals?: string | null;
+    grades_summary?: unknown;
+    career_interests?: unknown;
+  };
+  let profile: ProfileRow | null;
+  if (isLor) {
+    const result = await supabase
+      .from('student_profiles')
+      .select('plus_status, sop_analyses_used')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    profile = result.data;
+  } else {
+    const result = await supabase
+      .from('student_profiles')
+      .select(
+        'plus_status, sop_analyses_used, profile_summary, bio, achievements, skills, goals, grades_summary, career_interests',
+      )
+      .eq('user_id', user.id)
+      .maybeSingle();
+    profile = result.data as ProfileRow | null;
+  }
 
   const isPlus = !!profile?.plus_status;
   const usedSoFar = (profile?.sop_analyses_used as number | undefined) ?? 0;
@@ -65,7 +126,7 @@ export async function POST(request: Request) {
 
   // Build an optional "Student background" block (Plus only) from CV + profile.
   let backgroundBlock = '';
-  if (isPlus) {
+  if (isPlus && !isLor) {
     const { data: cv } = await supabase
       .from('uploaded_documents')
       .select('parsed_summary')
@@ -99,7 +160,74 @@ export async function POST(request: Request) {
 
   const maxTokens = isPlus ? 2000 : 1200;
 
-  const systemPrompt = `You are an expert university admissions consultant who reviews personal statements and statements of purpose. You provide specific, actionable feedback to help students strengthen their applications.${
+  const lorContext = workspace
+    ? [
+        `University: ${workspace.application.universityName}`,
+        `Programme: ${workspace.application.courseName}`,
+        workspace.application.degreeLevel
+          ? `Degree level: ${workspace.application.degreeLevel}`
+          : '',
+        workspace.application.subject ? `Subject: ${workspace.application.subject}` : '',
+        workspace.course?.entryRequirementsSummary
+          ? `Entry requirements: ${workspace.course.entryRequirementsSummary}`
+          : '',
+        workspace.application.aiSummary
+          ? `Programme summary: ${workspace.application.aiSummary}`
+          : '',
+        ...workspace.requirements
+          .slice(0, 8)
+          .map(({ requirementText }) => `Requirement: ${requirementText}`),
+        ...workspace.sources
+          .filter(({ isOfficial }) => isOfficial)
+          .slice(0, 5)
+          .map(({ title, description, url }) =>
+            `Official source: ${title}${description ? ` — ${description}` : ''} (${url})`,
+          ),
+      ]
+        .filter(Boolean)
+        .join('\n')
+        .slice(0, 4000)
+    : '';
+
+  const systemPrompt = isLor
+    ? `You are an expert university admissions consultant reviewing a Letter of Recommendation for a specific university programme. Give specific, actionable feedback while preserving the recommender's authentic professional voice.
+
+Use only facts present in the draft and the supplied programme context. Never invent an achievement, role, relationship, comparison, or personal detail. When evidence is missing, ask for it or use a clearly marked placeholder.
+
+Evaluate:
+- clarity of the recommender's relationship and point of view
+- specific, credible evidence of the applicant's qualities and impact
+- relevance to the target university and programme
+- authentic, professional recommender voice
+- avoidance of generic praise, unsupported claims, and CV-like listing
+- persuasive structure and conclusion
+
+You MUST respond with valid JSON only — no markdown, no code fences, no extra text. The JSON must match this exact schema:
+
+{
+  "score": <number 0-100>,
+  "summary": "<2-3 sentence overall assessment>",
+  "suggestions": [
+    {
+      "id": "<unique string like sug-1>",
+      "type": "<one of: weak, missing, impact>",
+      "category": "<e.g. Recommender Context, Evidence, Programme Fit, Voice, Structure>",
+      "originalText": "<exact quote from the letter that needs improvement>",
+      "replacement": "<improved version using no invented facts>",
+      "explanation": "<why this change matters>"
+    }
+  ],
+  "checklist": [
+    {
+      "id": <number>,
+      "text": "<LOR criterion>",
+      "met": <boolean>
+    }
+  ]
+}
+
+Provide ${isPlus ? '3-5' : '2-3'} suggestions and 5-7 checklist items. Every originalText must quote exact text from the letter.`
+    : `You are an expert university admissions consultant who reviews personal statements and statements of purpose. You provide specific, actionable feedback to help students strengthen their applications.${
     backgroundBlock
       ? `\n\nYou are also given the student's background (CV + profile). Use it to make STRATEGIC, personalised recommendations — point out concrete experiences, achievements, or skills from their background they should weave in, and tailor advice to their stated goals.`
       : ''
@@ -147,7 +275,19 @@ Checklist should include 5-7 items covering:
 - Relevant experience highlighted
 - Logical structure and flow`;
 
-  const userPrompt = `Analyze this ${docType || 'personal statement'}${targetUniversity ? ` for ${targetUniversity}` : ''}:
+  const userPrompt = isLor
+    ? `Review this Letter of Recommendation against the stored programme context.
+
+Programme context:
+${lorContext || 'No detailed programme context is available. Review the letter generally and state that programme-fit feedback is limited.'}
+
+Letter:
+---
+${text}
+---
+
+Respond with JSON only.`
+    : `Analyze this ${docType || 'personal statement'}${targetUniversity ? ` for ${targetUniversity}` : ''}:
 
 ---
 ${text}
@@ -195,7 +335,22 @@ Respond with JSON only.`;
 
     // Parse the JSON response (strip any markdown fences if present)
     const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const analysis = JSON.parse(cleaned);
+    let analysis: unknown;
+    try {
+      analysis = JSON.parse(cleaned) as unknown;
+    } catch {
+      return NextResponse.json(
+        { error: 'AI returned an invalid analysis. Please try again.' },
+        { status: 502 },
+      );
+    }
+    const parsedAnalysis = AIAnalysisSchema.safeParse(analysis);
+    if (!parsedAnalysis.success) {
+      return NextResponse.json(
+        { error: 'AI returned an invalid analysis. Please try again.' },
+        { status: 502 },
+      );
+    }
 
     // Meter free usage (best-effort; only when we have a profile row to update).
     if (!isPlus && profile) {
@@ -205,7 +360,7 @@ Respond with JSON only.`;
         .eq('user_id', user.id);
     }
 
-    return NextResponse.json({ ...analysis, limited: !isPlus });
+    return NextResponse.json({ ...parsedAnalysis.data, limited: !isPlus });
   } catch (error) {
     console.error('AI analysis error:', error);
     return NextResponse.json(

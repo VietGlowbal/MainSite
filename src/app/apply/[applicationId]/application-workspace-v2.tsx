@@ -5,8 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ApplicationWorkspaceView, ApplicationTask } from '@/lib/apply-types';
 import { StagePanel } from '@/components/apply/StagePanel';
-import { isCvTask } from '@/components/cv/is-cv-task';
-import { isStatementTask } from '@/components/statement/is-statement-task';
+import { taskFeedbackPath } from '@/components/apply/task-feedback-path';
 import { MatchInsightsPanel } from '@/components/apply/match-insights/MatchInsightsPanel';
 import {
   ApplicationBanner,
@@ -124,12 +123,9 @@ export function ApplicationWorkspaceV2({
   };
 
   const handleTaskAction = (task: ApplicationTask) => {
-    if (isCvTask(task)) {
-      router.push(`/apply/${application.id}/cv`);
-      return;
-    }
-    if (isStatementTask(task)) {
-      router.push(`/apply/${application.id}/statement-feedback`);
+    const feedbackPath = taskFeedbackPath(task);
+    if (feedbackPath) {
+      router.push(feedbackPath);
       return;
     }
     if (!task.actionType || !task.actionTarget) return;

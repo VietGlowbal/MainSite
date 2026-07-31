@@ -34,4 +34,20 @@ describe('TaskItem', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Get AI feedback' }));
     expect(onAiFeedback).toHaveBeenCalledWith(task);
   });
+
+  it('offers the AI review action for LOR tasks', async () => {
+    const lorTask = { ...task, title: 'Request a letter of recommendation' };
+    const onAiFeedback = vi.fn();
+    render(
+      <TaskItem
+        task={lorTask}
+        onToggle={vi.fn()}
+        onAction={vi.fn()}
+        onStatementFeedback={onAiFeedback}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Get AI feedback' }));
+    expect(onAiFeedback).toHaveBeenCalledWith(lorTask);
+  });
 });

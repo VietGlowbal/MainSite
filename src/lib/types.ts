@@ -234,7 +234,7 @@ export type PersonalStatement = {
   user_university_id?: number | null;
   title: string;
   content: string;
-  doc_type: 'personal_statement' | 'statement_of_purpose';
+  doc_type: 'personal_statement' | 'statement_of_purpose' | 'recommendation_letter';
   ai_analysis?: AIAnalysis | null;
   version: number;
   created_at: string;

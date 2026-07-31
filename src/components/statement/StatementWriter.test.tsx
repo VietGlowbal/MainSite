@@ -146,6 +146,21 @@ function renderDemoWriter() {
   );
 }
 
+function renderLorWriter() {
+  const props = {
+    saveTarget: { kind: 'application', applicationId: 'app-1' },
+    targetName: 'Computer Science Â· Cambridge',
+    initialContent: '',
+    initialAnalysis: null,
+    statementId: null,
+    initialDocType: 'recommendation_letter',
+    reviewType: 'lor',
+    embedded: true,
+    workspace: true,
+  } as unknown as ComponentProps<typeof StatementWriter>;
+  return render(<StatementWriter {...props} />);
+}
+
 function streamingResponse() {
   const encoder = new TextEncoder();
   let controller!: ReadableStreamDefaultController<Uint8Array>;
@@ -176,6 +191,60 @@ describe('StatementWriter VinUni routing', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it('configures the shared editor for a recommendation letter', () => {
+    renderLorWriter();
+
+    expect(screen.getByText('Letter of Recommendation')).toBeVisible();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Letter of recommendation draft')).toHaveAttribute(
+      'placeholder',
+      expect.stringContaining('recommendation letter'),
+    );
+    expect(screen.getByText(/Paste or write the recommendation letter on the left\./)).toBeVisible();
+  });
+
+  it('submits LOR analysis with the application ID', async () => {
+    const fetchMock = vi.fn(() => new Promise<Response>(() => undefined));
+    vi.stubGlobal('fetch', fetchMock);
+    renderLorWriter();
+    const text = 'A specific recommendation with evidence. '.repeat(3);
+
+    await userEvent.type(screen.getByLabelText('Letter of recommendation draft'), text);
+    await userEvent.click(screen.getByRole('button', { name: 'Analyze' }));
+
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe('/api/ai/analyze-statement');
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      applicationId: 'app-1',
+      docType: 'recommendation_letter',
+      text,
+    });
+  });
+
+  it('persists an LOR draft without mixing it with statements', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        Response.json({ score: 72, summary: 'Specific.', suggestions: [], checklist: [] }),
+      ),
+    );
+    renderLorWriter();
+    const text = 'A specific recommendation with evidence. '.repeat(3);
+
+    await userEvent.type(screen.getByLabelText('Letter of recommendation draft'), text);
+    await userEvent.click(screen.getByRole('button', { name: 'Analyze' }));
+
+    await waitFor(() =>
+      expect(mocks.insert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: 'Recommendation letter for Computer Science Â· Cambridge',
+          content: text,
+          doc_type: 'recommendation_letter',
+        }),
+      ),
+    );
   });
 
   it('keeps the full essay visible while evidence mapping is still running', async () => {

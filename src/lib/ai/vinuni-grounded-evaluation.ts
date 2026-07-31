@@ -1174,7 +1174,7 @@ function normalizeScoringOutput(value: unknown, criterionIds: string[]): unknown
   };
 }
 
-async function deepSeekCompletion(
+export async function deepSeekCompletion(
   request: DeepSeekRequest,
   apiKey: string,
 ): Promise<{ content: string; finishReason: string | null }> {

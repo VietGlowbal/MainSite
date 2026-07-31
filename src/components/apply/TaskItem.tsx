@@ -6,8 +6,7 @@
 'use client';
 
 import type { ApplicationTask } from '@/lib/apply-types';
-import { isCvTask } from '@/components/cv/is-cv-task';
-import { isStatementTask } from '@/components/statement/is-statement-task';
+import { taskFeedbackPath } from './task-feedback-path';
 
 type Props = {
   task: ApplicationTask;
@@ -59,7 +58,7 @@ export function TaskItem({ task, onToggle, onAction, onStatementFeedback }: Prop
   const showAiCta =
     !isCompleted &&
     Boolean(onStatementFeedback) &&
-    (isStatementTask(task) || isCvTask(task));
+    Boolean(taskFeedbackPath(task));
 
   return (
     <div className={`flex items-start gap-3 rounded-xl border p-4 transition ${
