@@ -110,8 +110,8 @@ Eight phases building the Applicant Analysis, Course Match Analysis and AI Strat
 
 ### Phase 6: AI Coach (needs Phase 4, parallel with Phase 5)
 
-- [ ] 16. Coach threads/messages API (Requirement 12.1, 12.3)
-- [ ] 17. Coach panel UI (Requirement 12.2, 12.4)
+- [x] 16. Coach threads/messages API (Requirement 12.1, 12.3) — `GET/POST .../recommendations/[recId]/coach`. One thread per recommendation, created lazily on first message. `src/lib/ai/strategy-dashboard/coach-reply.ts` is a plain (non-JSON-mode) OpenAI chat completion — the only AI call in this feature that isn't JSON-mode, because a coach reply is prose, not structured data.
+- [x] 17. Coach panel UI (Requirement 12.2, 12.4) — `ui/ai-coach-panel.tsx`: the four `COACH_SEED_INTENTS` as quick-start buttons on an empty thread, a scrolling message list, a composer. Non-streaming (Open decision 3) — the composer disables while waiting rather than a token-by-token render. Requirement 12.4's Suggestion_State rule doesn't apply yet: this coach is read-only conversation, nothing it says writes back into a student's document (design.md flags this as forward-compatible with Feature 2's `SuggestionCard`, not a Phase 6 obligation). Wired into the Recommendation Detail page above Evidence Upload.
 
 ### Phase 7: Multiple Strategies + completion (needs Phases 1-6)
 
@@ -163,7 +163,7 @@ Phases 5 and 6 are independent of each other once Phase 4 lands, so they can pro
 
 ## Notes
 
-**Progress so far**: Phases 0-5 are done (0 decisions, 1 foundation, 2 onboarding, 3 AI analysis, 4 dashboard, 5 recommendation detail + evidence upload). The full path from Strategy Home through a working Dashboard, a recommendation detail page, and evidence upload is real. Remaining: Phase 6's AI Coach and Phase 7's Multiple Strategies switcher + end-to-end pass. Evidence-triggered re-analysis (14.3-14.4) is currently a manual "Re-analyse now" button rather than the automatic background job originally designed — see task 14's note.
+**Progress so far**: Phases 0-6 are done (0 decisions, 1 foundation, 2 onboarding, 3 AI analysis, 4 dashboard, 5 recommendation detail + evidence upload, 6 AI Coach). The full path from Strategy Home through a working Dashboard, recommendation detail, evidence upload and a working AI Coach chat is real. Remaining: Phase 7's Multiple Strategies switcher + cross-Strategy sharing verification + an end-to-end pass. Evidence-triggered re-analysis (14.3-14.4) is currently a manual "Re-analyse now" button rather than the automatic background job originally designed — see task 14's note.
 
 **A separate, urgent fix landed alongside this work** (not tracked as a numbered task, since it predates this spec): the "Build your strategy" nav item, the university page CTA, and `/apply/[applicationId]`'s CTA all pointed at the generic `/ai-strategy` hub with no course context, which — even after Phases 2-4 landed — still showed a static "Coming soon" list because nothing else had wired it up. `/ai-strategy` is now a real hub (a card per existing Strategy, linking into each one) and `/apply/[applicationId]` deep-links straight into that course's own Strategy.
 

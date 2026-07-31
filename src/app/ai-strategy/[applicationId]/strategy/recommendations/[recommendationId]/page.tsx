@@ -1,6 +1,10 @@
 import { notFound, redirect } from 'next/navigation';
 import { recommendationFromRow } from '@/features/ai-strategy-dashboard/domain';
-import { EvidenceUpload, ProgressStatusControl } from '@/features/ai-strategy-dashboard/ui';
+import {
+  AiCoachPanel,
+  EvidenceUpload,
+  ProgressStatusControl,
+} from '@/features/ai-strategy-dashboard/ui';
 import { createClient } from '@/lib/supabase/server';
 import { Badge, Container, Panel } from '@/shared/ui';
 
@@ -90,6 +94,11 @@ export default async function RecommendationDetailPage({
             </a>
           </Panel>
         ) : null}
+
+        <Panel>
+          <p className="mb-gb-lg text-gb-sm font-semibold text-fg">AI Coach</p>
+          <AiCoachPanel applicationId={applicationId} recommendationId={rec.id} />
+        </Panel>
 
         <Panel>
           <p className="mb-gb-lg text-gb-sm font-semibold text-fg">Evidence</p>
