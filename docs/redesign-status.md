@@ -677,8 +677,8 @@ low priority.
 |---|---|---|
 | `src/app/onboarding/` | 43 | **Mostly dead code** — see [known-issues.md](known-issues.md). The wizard itself is clean. |
 | `src/components/` | 41 | `nav-reveal.tsx` (the app sidebar) is most of it. |
-| `src/app/profile/` | 41 | 9 routes. |
-| `src/app/admin/` | 29 | 8 routes, internal only — cheapest thing to cut. |
+| ~~`src/app/profile/`~~ | **0** | **Done 31/07** — see "The two consoles" below. |
+| ~~`src/app/admin/`~~ | **0** | **Done 31/07** — see "The two consoles" below. |
 | `src/app/dashboard/` | 12 | 6 routes. |
 | `src/app/coordinator/` | 8 | |
 | `src/app/my-universities/[id]/` | 3 | Task/writer pages under the rebuilt list. |
@@ -694,6 +694,64 @@ mentors tree.
 Definition of done for any of these: the grep in [verification.md](verification.md)
 returns nothing for that route's whole tree. Half-converted is the worst state —
 `globals.css` is 5,375 unlayered lines that out-rank Tailwind utilities.
+
+### The two consoles — rebuilt 31/07 with NO Figma frame
+
+`/profile` (9 routes) and `/admin` (8 routes) were brought onto the token system
+at the owner's request. **Neither is drawn anywhere in the Figma file**, so
+nothing here is measured — do not go looking for the node id, and do not
+"correct" these pages against a frame that does not exist. The rules followed
+instead were the token scale, the primitives in `src/shared/ui`, and the
+dark-band vocabulary (`bg-surface-inverse-deep` + the `fg-on-inverse-*` ramp)
+that the footer and top nav already use, so both consoles read as the same
+product as the marketing pages.
+
+Four things were added to the design system to make this possible. All are
+token-only and all carry a "no Figma source" header, the same standing as
+`ProgressBar` and the error ramp:
+
+| Added | Where | Why |
+|---|---|---|
+| `Panel` · `PanelHeader` · `StatTile` | `shared/ui/panel.tsx` | ~30 cards and 17 stat tiles across the two consoles. Hand-writing `rounded-gb-2xl border border-line bg-surface` thirty times is thirty chances to drift. |
+| `Badge` `safe-chip` / `neutral-chip` | `shared/ui/badge.tsx` | An admin status column stacks all four states in one table column, so they must share one geometry. `brand-chip` and `info-chip` already existed; these are the other two steps. |
+| `Button` `secondary-destructive` | `shared/ui/button.tsx` | Four irreversible actions in the console. **Read its comment before reaching for `className="text-fg-error"` instead** — that was tried and silently does nothing (see below). |
+| `AdminHeading` · `TableShell` · `TH`/`TD` · `Alert` · `EmptyRow` | `src/app/admin/_ui.tsx` | Console-only. Deliberately not in shared/ui: nothing outside `/admin` renders a data table. |
+| `SaveBar` · `TagInput` · `SelectOptions` | `src/app/profile/_form-parts.tsx` | Profile-only. The save row was copy-pasted five times, the tag field five times. |
+
+Deleted as dead code, all three unreferenced: `profile/personal-info-card.tsx`,
+`profile/profile-sticky-bar.tsx`, `profile/profile-avatar.tsx`.
+
+**A trap worth writing down: `className` cannot override a `Button` variant's
+colour.** `<Button variant="secondary" className="text-fg-error">` renders grey.
+Both are `color` utilities, and Tailwind resolves the conflict by stylesheet
+order, not by the order of the class attribute — `secondary`'s own
+`text-fg-secondary` wins. It shipped that way for one screenshot cycle on the
+Kick and Delete buttons before a render caught it. Anything that needs a
+different colour needs a variant, not a class.
+
+Four things the old pages did that these deliberately do not, each removed
+rather than restyled:
+
+1. **A green "Verified" tick on every student**, whatever their account. Nothing
+   in the schema verifies anything about a student.
+2. **"Active N · Submitted 0 · Offers 0"** on the profile applications card,
+   where the last two were literals. Now one figure, and it is real.
+3. **Work experience and English proficiency scored at a hard-coded 0%.** Both
+   live in their own tables and `/profile/page.tsx` fetched neither, so the
+   cards read "Get started" to a student who had already filled them in and
+   dragged the overall strength figure down. Two `head: true` counts fixed it.
+4. **A `<select>` silently showing the wrong value.** Several option lists were
+   rewritten after onboarding shipped, so real rows hold strings the current
+   list does not contain — the E2E account's `budget_range` is "Up to $25k",
+   which is not in `BUDGET_OPTIONS`. A native select whose value matches no
+   option displays the *first* one, so the page rendered "Under $10,000 / year"
+   in a field that would have overwritten the real answer on the next save.
+   `SelectOptions` appends the stored value. Six selects were affected.
+
+Verified 31/07 on a production build with `ADMIN_USER_IDS` set in the server's
+environment (no DB write — see verification.md): all 16 routes 200, no redirect,
+**no horizontal overflow at 360 or 1440**, no console errors beyond the two
+`_vercel/insights` 404s that every local page produces.
 
 ---
 

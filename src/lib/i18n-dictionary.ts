@@ -531,6 +531,17 @@ export const translations: Record<string, string> = {
   'Not set': 'Chưa đặt',
   Undergraduate: 'Đại học',
   Postgraduate: 'Sau đại học',
+  'Target intake':'Kỳ nhập học mục tiêu',
+  'Member since':'Tham gia từ',
+  'Fill in more sections for better course matches and stronger plans.':'Hoàn thiện thêm các mục để nhận gợi ý ngành học phù hợp và lộ trình tối ưu hơn',
+  'Keep these up to date for better recommendations and stronger application plans.':'Cập nhật thông tin thường xuyên để nhận đề xuất chính xác và tối ưu hóa chiến lược ứng tuyển',
+  'Edit profile':'Chỉnh sửa',
+  'Nationality':'Quốc gia',
+  'No documents uploaded yet.':'Chưa tải lên tài liệu nào',
+  'application in progress':'hồ sơ đang ứng tuyển',
+  'Upgrade to GlowBal Plus':'Nâng cấp lên GlowBal Plus',
+  'Not started':'Chưa có',
+  'Go to my applications':'Đến trang Ứng tuyển',
 
   // ── Auth ───────────────────────────────────────────────────────────────--
   'Welcome back 👋': 'Chào mừng trở lại 👋',

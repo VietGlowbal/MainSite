@@ -323,6 +323,49 @@ a.from('english_test_scores').select('id').then(r => console.log('anon sees', r.
 When the durable policies land, all six `getPublic*`/`getApproved*` helpers can
 drop back to the request-scoped client together.
 
+### The same gap hides pending mentors from the admin who has to approve them (found 2026-07-31)
+
+Found while screenshotting the rebuilt `/admin`. The console contradicts itself:
+
+| Page | Client | Shows |
+|---|---|---|
+| `/admin` overview | `createAdminClient()` — service role, on the eslint debt list | **"Mentor applications waiting: 1"** |
+| `/admin/achievers` | `createClient()` from `@/lib/supabase/server` — request-scoped | **"Pending (0)"** |
+
+Both are correct about what they can see. The select policy on
+`achiever_profiles` is scoped to `status = 'approved'`, so the request-scoped
+client cannot read a **pending** row no matter who is signed in — being an admin
+is checked in application code (`isAdmin`), not in the policy. The queue an
+admin exists to work is invisible on the only page that can action it, and the
+overview tells them there is one waiting.
+
+Confirmed 2026-07-31 — the service role sees five rows, one of them pending;
+the anon role sees none:
+
+```bash
+node --env-file=.env.local -e "
+const { createClient } = require('@supabase/supabase-js');
+const svc = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY);
+const anon = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+Promise.all([svc.from('achiever_profiles').select('status'), anon.from('achiever_profiles').select('status')])
+  .then(([s, a]) => console.log('service:', s.data.map(r => r.status).join(), '| anon:', a.data.length));
+"
+```
+
+**PRE-EXISTING, and deliberately not fixed by the 31/07 console rebuild** — that
+was a UI pass, and this is a data-access boundary. The two candidate fixes are
+both bigger than a restyle:
+
+1. An admin read policy on `achiever_profiles` (the durable fix, and it also
+   retires the `getPublic*` workarounds above).
+2. Move the page's read behind an API route or a repository that may use the
+   service role. Note it **cannot** just switch to `createAdminClient()` in
+   place: eslint's `ADMIN_CLIENT_DEBT` list in `eslint.config.mjs` "may SHRINK,
+   never grow", and `src/app/admin/achievers/page.tsx` is not on it.
+
+Until one of those lands, mentor applications can only be approved by editing
+the row directly.
+
 ---
 
 ## 2. Hydration mismatch on `/universities` — reduced, not eliminated
