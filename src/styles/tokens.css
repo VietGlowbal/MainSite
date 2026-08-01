@@ -702,24 +702,62 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   About-page team ring — a real 3D carousel
-   (src/features/marketing/ui/about-team.tsx). Replaces the flat scrolling
-   marquee the section briefly shipped with: each face sits at a fixed
-   rotateY + translateZ slot around a circle (computed once per render, not
-   per frame), and this single keyframe spins the whole ring — every card
-   orbits together as one rigid rotation, the standard pure-CSS 3D-carousel
-   technique. No JS animation loop, unlike the drag-physics reference this
-   was modelled on.
+   About-page team fan — a coverflow, not a carousel
+   (src/features/marketing/ui/about-team.tsx). One path, shared by every
+   face: enters off-screen right already tilted away, straightens and grows
+   through dead centre, tilts away again and exits off-screen left. Every
+   face runs this exact keyframe — only its `animation-delay` differs (see
+   `fanDelayMs` in the component), which is what spreads N faces along one
+   shared path instead of needing N separate animations or any per-frame JS.
+
+   Position/depth stops scale with `--gb-fan-spread` (set responsively on the
+   stage) so the path keeps the same shape at every breakpoint, just shorter
+   on a phone. Rotation and scale stay fixed across breakpoints on purpose —
+   those describe the curve's proportions, not its physical size.
+
+   Stops are asymmetric on purpose: opacity reaches 0 well before the
+   position/rotation stops finish easing out (0%→18% is invisible, 18%→26% is
+   the actual fade), so a face vanishes before it visibly snaps into its
+   next lap — the fade is the seam, not the position jump.
    ────────────────────────────────────────────────────────────────────────── */
 @theme {
-  --animate-gb-team-ring: gb-team-ring var(--gb-ring-duration, 18s) linear infinite;
+  --animate-gb-team-fan: gb-team-fan linear infinite;
 
-  @keyframes gb-team-ring {
-    from {
-      transform: rotateY(0deg);
+  @keyframes gb-team-fan {
+    0% {
+      transform: translateX(calc(40rem * var(--gb-fan-spread, 1)))
+        translateZ(calc(-16rem * var(--gb-fan-spread, 1))) rotateY(-50deg) scale(0.68);
+      opacity: 0;
     }
-    to {
-      transform: rotateY(360deg);
+    18% {
+      transform: translateX(calc(27rem * var(--gb-fan-spread, 1)))
+        translateZ(calc(-10rem * var(--gb-fan-spread, 1))) rotateY(-42deg) scale(0.78);
+      opacity: 0;
+    }
+    26% {
+      transform: translateX(calc(19rem * var(--gb-fan-spread, 1)))
+        translateZ(calc(-5rem * var(--gb-fan-spread, 1))) rotateY(-32deg) scale(0.88);
+      opacity: 1;
+    }
+    50% {
+      transform: translateX(0) translateZ(calc(2.5rem * var(--gb-fan-spread, 1))) rotateY(0deg)
+        scale(1);
+      opacity: 1;
+    }
+    74% {
+      transform: translateX(calc(-19rem * var(--gb-fan-spread, 1)))
+        translateZ(calc(-5rem * var(--gb-fan-spread, 1))) rotateY(32deg) scale(0.88);
+      opacity: 1;
+    }
+    82% {
+      transform: translateX(calc(-27rem * var(--gb-fan-spread, 1)))
+        translateZ(calc(-10rem * var(--gb-fan-spread, 1))) rotateY(42deg) scale(0.78);
+      opacity: 0;
+    }
+    100% {
+      transform: translateX(calc(-40rem * var(--gb-fan-spread, 1)))
+        translateZ(calc(-16rem * var(--gb-fan-spread, 1))) rotateY(50deg) scale(0.68);
+      opacity: 0;
     }
   }
 }
