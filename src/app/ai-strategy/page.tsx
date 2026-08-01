@@ -22,9 +22,23 @@ import { Button, Container, Footer, MobileNav, Panel, ScoreRing, TopNav } from '
  * five "Coming soon" rows that linked nowhere) but it explained nothing: a
  * student arriving from the "Build your strategy" nav item with no
  * applications yet saw a prompt to go somewhere else. This is now the help
- * page for the entire product — three areas, thirteen steps, each describing
+ * page for the entire product — three areas, fourteen steps, each describing
  * something the code actually does. Content and its provenance live in
- * features/marketing/domain/strategy-guide.ts.
+ * features/marketing/domain/strategy-guide.ts, which also records what is
+ * deliberately NOT claimed and why.
+ *
+ * ⚠️ THE FIRST VERSION OF THIS PAGE DESCRIBED THE WRONG FLOW. It taught
+ * paste-a-course-URL-into-/apply, which stopped being the way in on 01/08.
+ * See the header of strategy-guide.ts for how that happened and the rule that
+ * prevents it recurring. `/how-it-works`, which taught the same dead flow,
+ * now redirects here (next.config.ts) so there is one explainer, not two.
+ *
+ * PAYWALL, WHEN IT COMES (owner, 01/08): it goes on the Strategy — area 3 —
+ * i.e. after the application stage, not before it. Deliberately not built
+ * while the product is still being tested, and deliberately not mentioned in
+ * the guide content, because no /ai-strategy route checks an entitlement
+ * today. GlowBal Plus (Stripe, three tiers) and an entitlement service
+ * already exist and are the pieces to build it from when the time comes.
  *
  * ⚠️ IT IS PUBLIC AGAIN, AND THAT REVERSES AN EARLIER INSTRUCTION. The owner
  * asked on 31/07 for this route to require sign-in, paired with the same rule
@@ -134,16 +148,16 @@ export default async function AiStrategyPage() {
               From &ldquo;where do I even start&rdquo; to a plan that gets you in
             </h1>
             <p className="text-gb-lg text-fg-tertiary">
-              Three stages, {GUIDE_STEP_COUNT} steps. Find the universities worth your time, turn a
-              course page into a real application plan, then work through a strategy built from your
-              profile and that course&rsquo;s actual requirements.
+              Three stages, {GUIDE_STEP_COUNT} steps. Save the universities worth your time, turn one
+              into a real application plan, then work through a strategy built from your profile and
+              that course&rsquo;s actual requirements &mdash; without leaving GlowBal.
             </p>
             <div className="flex flex-wrap gap-gb-lg">
               <Button href="/universities" size="lg">
                 Start with universities
               </Button>
               <Button href="/apply" variant="secondary" size="lg">
-                I already have a course link
+                Go to My Portal
               </Button>
             </div>
           </Container>
@@ -219,7 +233,7 @@ export default async function AiStrategyPage() {
                     Search universities
                   </Button>
                   <Button href="/apply" variant="secondary" size="lg">
-                    Paste a course link
+                    Open My Portal
                   </Button>
                 </div>
               )}
