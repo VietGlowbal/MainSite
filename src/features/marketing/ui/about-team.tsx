@@ -5,44 +5,57 @@ import type { TeamAchievementCategory, TeamMember } from '@/lib/team';
 import { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon, Modal } from '@/shared/ui';
 
 /**
- * About-page team ring — a rotating 3D carousel of faces; clicking one opens
- * their full detail in a modal, which can then step through the whole
- * roster without closing.
+ * About-page team fan — a coverflow-style 3D carousel of faces, a handful
+ * visible at once in a shallow concave curve, continuously drifting sideways
+ * through centre. Clicking one opens their full detail in a modal, which can
+ * then step through the whole roster without closing.
  *
- * ─── THE RING IS REAL 3D, NOT A PROJECTED APPROXIMATION ─────────────────────
+ * ─── ONE PATH, EVERY FACE OFFSET ALONG IT ────────────────────────────────────
  *
- * Each face sits at its own fixed slot around a circle —
- * `rotateY(index * 360/N) translateZ(radius)` — inside a `perspective` +
- * `transform-style: preserve-3d` stage. One shared `@keyframes` (the
- * `gb-team-ring` block at the end of tokens.css) then spins the whole ring as
- * a single rigid rotation. That is the standard pure-CSS 3D-carousel
- * technique, and it is simpler than it sounds precisely because the browser
- * does the projection math: no per-frame JS computing sin/cos/translateZ the
- * way a manually-animated arc would (see the partner-orbit block in
- * tokens.css for why this codebase avoids that pattern generally — the same
- * reasoning applies here, just solved by native 3D transforms instead of a
- * sampled curve). `backface-visibility: hidden` is what keeps a face on the
- * far side of the ring from flashing its mirrored back at the camera as it
- * swings past 90° — it simply isn't rendered there, which reads as it having
- * rotated out of view rather than flipped inside-out.
+ * This was a full 3D ring the first time — every face fixed to its own slot
+ * around a circle, the whole ring spinning as one rigid body. That is a
+ * carousel; it is not what the reference clip shows. The reference (and the
+ * screenshot it should match) is a shallow FAN: five or so faces visible at
+ * once, each tilted like a page curling away from a flat one at the centre,
+ * continuously sliding sideways — cards enter from one edge, pass through
+ * flat-and-frontal in the middle, and exit the other edge, never completing
+ * a lap past ±90°.
  *
- * The featured member (if any) is sorted to the ring's front slot so they
- * are the one facing the camera at rest, before the ring has moved.
+ * The fix is one `@keyframes` (`gb-team-fan` at the end of tokens.css)
+ * describing that single path as a function of time — enter off-screen right
+ * and tilted away, straighten and grow through the middle, tilt away again
+ * and exit off-screen left — and every face runs the *same* animation, just
+ * offset by a different negative `animation-delay` (`fanDelayMs`). A
+ * negative delay starts an animation already partway through its cycle, so
+ * evenly spacing N faces' delays across one cycle length distributes them
+ * evenly along the path with no per-frame JS: at any instant only the faces
+ * whose current phase falls near the middle of the path are opaque and
+ * near-centre; the rest sit further out along the same curve, faded to
+ * `opacity: 0` by the keyframe itself, which is what limits how many are
+ * visible at once regardless of roster size (see the keyframe's own
+ * comment for the exact stops).
+ *
+ * `--gb-fan-spread` scales the path's horizontal/depth distances (not its
+ * rotation or scale) per breakpoint, so the curve keeps the same *shape* on
+ * a phone as on a desktop, just travelling a shorter distance.
+ *
+ * The featured member (if any) is sorted to index 0, and `fanDelayMs` is
+ * built so index 0 sits exactly at centre the moment the page loads — the
+ * roster is never bunched up or mid-transition on first paint.
  *
  * ─── PAUSE ON HOVER AND FOCUS ────────────────────────────────────────────────
  *
- * `group-hover/team-ring:` and `group-focus-within/team-ring:` pause the
- * spin via `animation-play-state` — plain CSS, no state or JS timer needed to
- * stop and restart it.
+ * `group-hover/team-fan:` and `group-focus-within/team-fan:` pause every
+ * face's animation via `animation-play-state` — plain CSS, each face just
+ * freezes wherever its own offset path currently has it.
  *
  * ─── REDUCED MOTION GETS A DIFFERENT LAYOUT, NOT A FROZEN ONE ────────────────
  *
- * Freezing the ring mid-rotation would leave most of the roster rotated 60°+
- * from the camera — barely legible, not "no motion, same information." So
- * `prefers-reduced-motion` swaps the ring out entirely for a plain wrapped
- * row of the same tiles, laid flat with no 3D transform at all. Same faces,
- * same click-to-open, just no motion and nothing hidden behind an edge-on
- * rotation.
+ * Freezing the fan mid-cycle would leave most of the roster off-screen or
+ * mid-fade — not "no motion, same information." So `prefers-reduced-motion`
+ * swaps the fan out entirely for a plain wrapped row of the same tiles, laid
+ * flat with no 3D transform at all. Same faces, same click-to-open, just no
+ * motion and nothing hidden off-canvas.
  *
  * ─── THE MODAL STEPS THROUGH THE ROSTER ──────────────────────────────────────
  *
@@ -59,9 +72,27 @@ const MAX_ACHIEVEMENTS = 4;
 /** Milliseconds between each block's arrival inside the modal. */
 const LINE_STAGGER_MS = 60;
 
-/** Seconds for one full lap of the ring — fixed, not scaled by roster size:
-    a full rotation is always 360° regardless of how many faces share it. */
-const RING_REVOLUTION_S = 18;
+/** Seconds for one face's full pass through the fan — right edge to centre to
+    left edge and back around. Fixed, not scaled by roster size: with N faces
+    spread evenly across one cycle (see `fanDelayMs`), a shorter cycle just
+    means a new face reaches centre more often, not that any one face moves
+    faster through its own path. */
+const FAN_CYCLE_S = 16;
+
+/** Where in the cycle (0–1) a face is fully visible, centred, and flat —
+    the middle of the fan. Mirrored on both sides of it below. */
+const FAN_CENTRE = 0.5;
+
+/**
+ * Delay (ms), always negative, that puts face `index` of `count` at the
+ * centre of the fan (`FAN_CENTRE`) at the moment the page loads, with the
+ * rest already spread evenly ahead of and behind it — see the header for why
+ * every face runs the identical `@keyframes` and only this offset differs.
+ */
+function fanDelayMs(index: number, count: number): number {
+  const cycleMs = FAN_CYCLE_S * 1000;
+  return -(FAN_CENTRE + index / count) * cycleMs;
+}
 
 /** Minimum horizontal drag (px) on the modal before it counts as a swipe
     rather than a click or a text selection. */
@@ -401,7 +432,6 @@ export function AboutTeam({ members }: { members: readonly TeamMember[] }) {
   }
 
   const active = openIndex === null ? null : (ordered[openIndex] ?? null);
-  const stepAngle = 360 / ordered.length;
 
   return (
     <section id="team" className="scroll-mt-gb-9xl pb-gb-9xl">
@@ -415,33 +445,33 @@ export function AboutTeam({ members }: { members: readonly TeamMember[] }) {
           </p>
         </div>
 
-        {/* The ring. `overflow-hidden` crops whichever faces have swung wide
-            of the stage rather than letting them push the page wider.
-            `[perspective:1200px]` has to sit on this ancestor, not the ring
-            itself — perspective applies to a 3D element's children, and the
-            ring is what actually needs the depth. */}
-        <div
-          className="group/team-ring relative h-[320px] overflow-hidden [perspective:1200px] motion-reduce:hidden sm:h-[380px] lg:h-[460px]"
-        >
-          <div
-            className="absolute inset-0 animate-gb-team-ring [transform-style:preserve-3d] [will-change:transform] group-hover/team-ring:[animation-play-state:paused] group-focus-within/team-ring:[animation-play-state:paused]"
-            style={{ '--gb-ring-duration': `${RING_REVOLUTION_S}s` } as CSSProperties}
-          >
-            {ordered.map((member, index) => (
+        {/* The fan. `overflow-hidden` crops whichever faces are currently
+            off-canvas at the edges of their path rather than letting them
+            push the page wider. `[perspective:1200px]` sits on this
+            ancestor, not the faces themselves — perspective applies to a 3D
+            element's children, and the faces are what actually need the
+            depth. `--gb-fan-spread` is the one responsive knob — see the
+            header. */}
+        <div className="group/team-fan relative h-[280px] overflow-hidden [perspective:1200px] [--gb-fan-spread:0.55] motion-reduce:hidden sm:h-[340px] sm:[--gb-fan-spread:0.8] lg:h-[400px] lg:[--gb-fan-spread:1]">
+          {ordered.map((member, index) => (
+            <div
+              key={member.id}
+              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 [transform-style:preserve-3d]"
+            >
               <div
-                key={member.id}
-                className="absolute left-1/2 top-1/2 [backface-visibility:hidden] [--gb-ring-radius:11rem] sm:[--gb-ring-radius:15rem] lg:[--gb-ring-radius:19rem]"
+                className="animate-gb-team-fan [will-change:transform,opacity] group-hover/team-fan:[animation-play-state:paused] group-focus-within/team-fan:[animation-play-state:paused]"
                 style={{
-                  transform: `translate(-50%, -50%) rotateY(${index * stepAngle}deg) translateZ(var(--gb-ring-radius))`,
+                  animationDuration: `${FAN_CYCLE_S}s`,
+                  animationDelay: `${fanDelayMs(index, ordered.length)}ms`,
                 }}
               >
                 <MemberFace member={member} onOpen={() => setOpenIndex(index)} />
               </div>
-            ))}
-          </div>
+            </div>
+          ))}
         </div>
 
-        {/* Reduced-motion fallback: the same faces, no ring — see the header
+        {/* Reduced-motion fallback: the same faces, no fan — see the header
             for why this is a different layout rather than a frozen one. */}
         <div className="hidden flex-wrap justify-center gap-gb-xl motion-reduce:flex">
           {ordered.map((member, index) => (
