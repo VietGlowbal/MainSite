@@ -702,28 +702,24 @@
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   About-page team row — the rotating strip of faces
-   (src/features/marketing/ui/about-team.tsx). Replaces the wrapping photo
-   grid + hover-reveal card the section shipped with: a marquee reads as more
-   alive for a roster this size, and a click-to-open detail suits a row that
-   is already moving (a hover reveal on a moving target is not reachable).
-
-   The duration is set per-instance via `--gb-marquee-duration` (a fixed pace
-   scaled by roster size, not a measured pixel speed) rather than hard-coded
-   here — see the component for why.
+   About-page team ring — a real 3D carousel
+   (src/features/marketing/ui/about-team.tsx). Replaces the flat scrolling
+   marquee the section briefly shipped with: each face sits at a fixed
+   rotateY + translateZ slot around a circle (computed once per render, not
+   per frame), and this single keyframe spins the whole ring — every card
+   orbits together as one rigid rotation, the standard pure-CSS 3D-carousel
+   technique. No JS animation loop, unlike the drag-physics reference this
+   was modelled on.
    ────────────────────────────────────────────────────────────────────────── */
 @theme {
-  --animate-gb-team-marquee: gb-team-marquee var(--gb-marquee-duration, 40s) linear infinite;
+  --animate-gb-team-ring: gb-team-ring var(--gb-ring-duration, 18s) linear infinite;
 
-  @keyframes gb-team-marquee {
+  @keyframes gb-team-ring {
     from {
-      transform: translateX(0);
+      transform: rotateY(0deg);
     }
     to {
-      /* The track holds the roster twice back-to-back (see the component), so
-         sliding exactly half its width hands off to the second copy sitting
-         in the first copy's start position — no visible seam or jump. */
-      transform: translateX(-50%);
+      transform: rotateY(360deg);
     }
   }
 }

@@ -1,45 +1,56 @@
 'use client';
 
-import { useState, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import type { TeamAchievementCategory, TeamMember } from '@/lib/team';
 import { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon, Modal } from '@/shared/ui';
 
 /**
- * About-page team row — a rotating strip of faces; clicking one opens their
- * full detail in a modal.
+ * About-page team ring — a rotating 3D carousel of faces; clicking one opens
+ * their full detail in a modal, which can then step through the whole
+ * roster without closing.
  *
- * Replaces the wrapping photo grid + hover-reveal card the section shipped
- * with. That design's "preview over pin" model depended on tiles sitting
- * still, which a moving row breaks — hovering a face that has already
- * scrolled past by the time the reveal would land is not useful. Click does
- * not have that problem, and the roster fits a horizontal strip (a "wall"
- * that only ever needed to show a handful of rows at once).
+ * ─── THE RING IS REAL 3D, NOT A PROJECTED APPROXIMATION ─────────────────────
  *
- * ─── THE LOOP IS TWO COPIES, NOT A MEASURED ANIMATION ───────────────────────
+ * Each face sits at its own fixed slot around a circle —
+ * `rotateY(index * 360/N) translateZ(radius)` — inside a `perspective` +
+ * `transform-style: preserve-3d` stage. One shared `@keyframes` (the
+ * `gb-team-ring` block at the end of tokens.css) then spins the whole ring as
+ * a single rigid rotation. That is the standard pure-CSS 3D-carousel
+ * technique, and it is simpler than it sounds precisely because the browser
+ * does the projection math: no per-frame JS computing sin/cos/translateZ the
+ * way a manually-animated arc would (see the partner-orbit block in
+ * tokens.css for why this codebase avoids that pattern generally — the same
+ * reasoning applies here, just solved by native 3D transforms instead of a
+ * sampled curve). `backface-visibility: hidden` is what keeps a face on the
+ * far side of the ring from flashing its mirrored back at the camera as it
+ * swings past 90° — it simply isn't rendered there, which reads as it having
+ * rotated out of view rather than flipped inside-out.
  *
- * The track renders the roster twice, back-to-back, and slides left by
- * exactly 50% of the track's own width on a CSS `@keyframes` loop (see the
- * team-row block at the end of tokens.css). Sliding half the width of a track
- * that is two identical copies hands off to the second copy sitting exactly
- * where the first one started — no visible seam, and no per-frame JS
- * measuring the roster's pixel width the way the partner-orbit curve or the
- * old drag-physics carousel would. The duration is `members.length` scaled
- * by a fixed per-tile pace rather than measured, so a longer roster takes
- * proportionally longer to loop instead of visibly speeding up.
- *
- * The second copy is `aria-hidden` and rendered as plain (non-interactive)
- * tiles wrapped in a `display: contents` div — `contents` keeps its children
- * as direct flex items of the track (so the shared `gap` still applies across
- * the seam) while letting one class hide the whole duplicate under
- * `prefers-reduced-motion`, where nothing is scrolling to loop into.
+ * The featured member (if any) is sorted to the ring's front slot so they
+ * are the one facing the camera at rest, before the ring has moved.
  *
  * ─── PAUSE ON HOVER AND FOCUS ────────────────────────────────────────────────
  *
- * `group-hover/team-row:` and `group-focus-within/team-row:` pause the
- * animation via `animation-play-state` — plain CSS, no state or JS. That
- * covers both a mouse resting on the row to read a name and a keyboard user
- * tabbing through it; either would otherwise be scrolling past its own
- * target.
+ * `group-hover/team-ring:` and `group-focus-within/team-ring:` pause the
+ * spin via `animation-play-state` — plain CSS, no state or JS timer needed to
+ * stop and restart it.
+ *
+ * ─── REDUCED MOTION GETS A DIFFERENT LAYOUT, NOT A FROZEN ONE ────────────────
+ *
+ * Freezing the ring mid-rotation would leave most of the roster rotated 60°+
+ * from the camera — barely legible, not "no motion, same information." So
+ * `prefers-reduced-motion` swaps the ring out entirely for a plain wrapped
+ * row of the same tiles, laid flat with no 3D transform at all. Same faces,
+ * same click-to-open, just no motion and nothing hidden behind an edge-on
+ * rotation.
+ *
+ * ─── THE MODAL STEPS THROUGH THE ROSTER ──────────────────────────────────────
+ *
+ * Opening a member no longer requires closing and reopening to see the next
+ * one: prev/next buttons, a left/right swipe (pointer-based, so it works with
+ * mouse drag too, not just touch), and the arrow keys all move `openIndex`
+ * without touching `open` — the modal itself never unmounts between members,
+ * only its content changes.
  */
 
 /** Achievement rows the modal shows before collapsing the rest into a count. */
@@ -48,11 +59,13 @@ const MAX_ACHIEVEMENTS = 4;
 /** Milliseconds between each block's arrival inside the modal. */
 const LINE_STAGGER_MS = 60;
 
-/** Seconds of loop time per tile — keeps the pace constant regardless of
-    roster size, so ten faces do not scroll noticeably faster than four. */
-const SECONDS_PER_TILE = 3.2;
-/** Floor on total loop duration, so a very short roster does not whip past. */
-const MIN_DURATION_S = 18;
+/** Seconds for one full lap of the ring — fixed, not scaled by roster size:
+    a full rotation is always 360° regardless of how many faces share it. */
+const RING_REVOLUTION_S = 18;
+
+/** Minimum horizontal drag (px) on the modal before it counts as a swipe
+    rather than a click or a text selection. */
+const SWIPE_THRESHOLD_PX = 50;
 
 /**
  * Human labels for the achievement categories in supabase-team.sql. Written
@@ -104,53 +117,49 @@ function lineStyle(step: number): CSSProperties {
   return { animationDelay: `${step * LINE_STAGGER_MS}ms` };
 }
 
-const TILE_SIZE = 'w-[9.5rem] sm:w-[12rem]';
+/** Where the featured member sits, or the top of the list if none is flagged. */
+function withFeaturedFirst(members: readonly TeamMember[]): TeamMember[] {
+  const featuredIndex = members.findIndex((member) => member.is_featured);
+  if (featuredIndex <= 0) return [...members];
+  const copy = [...members];
+  const [featured] = copy.splice(featuredIndex, 1);
+  return featured ? [featured, ...copy] : copy;
+}
+
+const TILE_SIZE = 'w-[9.5rem] sm:w-[12rem] lg:w-[13.5rem]';
 
 const TILE_CLASSES = [
-  'group/tile relative aspect-[4/5] shrink-0 overflow-hidden rounded-gb-xl bg-surface-muted text-left',
+  'group/tile relative aspect-[4/5] shrink-0 cursor-pointer overflow-hidden rounded-gb-xl bg-surface-muted text-left',
   TILE_SIZE,
-  'opacity-90 grayscale-[35%] transition duration-300 ease-out',
+  'opacity-90 grayscale-[35%] transition duration-300 ease-out hover:opacity-100 hover:grayscale-0',
   'motion-reduce:transition-none',
-].join(' ');
-
-/** The real, clickable tiles get the interactive treatment; the aria-hidden
-    duplicate copy that makes the loop seamless does not need it. */
-const TILE_INTERACTIVE = [
-  'cursor-pointer hover:opacity-100 hover:grayscale-0 hover:scale-[1.04] motion-reduce:hover:scale-100',
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
 ].join(' ');
 
-function MemberFace({
-  member,
-  onOpen,
-}: {
-  member: TeamMember;
-  /** Present only for the real, interactive copy — see the header. */
-  onOpen?: () => void;
-}) {
-  const photo = member.photo_url ? (
-    /* Plain <img>, like the avatar and the modal portrait: photo URLs come
-       from Google Drive and admin uploads, and an unconfigured host makes
-       next/image throw at runtime. alt="" because the tile's own accessible
-       name (button label, or aria-hidden on the duplicate) already covers it. */
-    /* eslint-disable-next-line @next/next/no-img-element */
-    <img
-      src={member.photo_url}
-      alt=""
-      loading="lazy"
-      className="absolute inset-0 size-full object-cover transition-transform duration-500 ease-out group-hover/tile:scale-[1.06] motion-reduce:transition-none motion-reduce:group-hover/tile:scale-100"
-    />
-  ) : (
-    <span
-      aria-hidden="true"
-      className="absolute inset-0 flex items-center justify-center bg-surface-muted font-display text-gb-display-sm font-semibold text-fg-muted"
-    >
-      {monogram(member.full_name)}
-    </span>
-  );
+function MemberFace({ member, onOpen }: { member: TeamMember; onOpen: () => void }) {
+  return (
+    <button type="button" onClick={onOpen} className={TILE_CLASSES}>
+      {member.photo_url ? (
+        /* Plain <img>, like the avatar and the modal portrait: photo URLs come
+           from Google Drive and admin uploads, and an unconfigured host makes
+           next/image throw at runtime. alt="" because the tile's own click
+           handler and the modal it opens already carry the name. */
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={member.photo_url}
+          alt=""
+          loading="lazy"
+          className="absolute inset-0 size-full object-cover transition-transform duration-500 ease-out group-hover/tile:scale-[1.06] motion-reduce:transition-none motion-reduce:group-hover/tile:scale-100"
+        />
+      ) : (
+        <span
+          aria-hidden="true"
+          className="absolute inset-0 flex items-center justify-center bg-surface-muted font-display text-gb-display-sm font-semibold text-fg-muted"
+        >
+          {monogram(member.full_name)}
+        </span>
+      )}
 
-  const overlay = (
-    <>
       {/* Scrim. Always on, not hover-only: the name sits on it at rest. */}
       <span
         aria-hidden="true"
@@ -160,29 +169,7 @@ function MemberFace({
         <span className="truncate text-gb-sm font-semibold text-white">{member.full_name}</span>
         <span className="truncate text-gb-xs font-medium text-white/80">{member.role}</span>
       </span>
-    </>
-  );
-
-  if (onOpen) {
-    return (
-      <button
-        type="button"
-        onClick={onOpen}
-        className={`${TILE_CLASSES} ${TILE_INTERACTIVE}`}
-      >
-        {photo}
-        {overlay}
-      </button>
-    );
-  }
-
-  // The visual-only duplicate: same look, out of the tab order and the
-  // accessibility tree — its parent wrapper already carries aria-hidden.
-  return (
-    <div className={TILE_CLASSES}>
-      {photo}
-      {overlay}
-    </div>
+    </button>
   );
 }
 
@@ -196,8 +183,18 @@ const CONTACT_LINK = [
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
 ].join(' ');
 
-/** The modal's content — everything the old hover card showed, now the whole
-    dialog instead of a strip beneath the row. */
+/** A round, semi-opaque icon button overlaid on the modal — close and the two
+    step controls all share this treatment so they read as one control set. */
+const MODAL_OVERLAY_BUTTON = [
+  'inline-flex size-gb-5xl items-center justify-center rounded-gb-full',
+  'bg-surface/90 text-fg-secondary shadow-gb-xs backdrop-blur-sm',
+  'transition-colors hover:text-fg',
+  'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+].join(' ');
+
+/** The modal's content — everything the tile itself has no room for, plus
+    where this member sits in the roster (the same counter the step controls
+    move through). */
 function MemberDetail({
   member,
   index,
@@ -353,18 +350,58 @@ function MemberDetail({
 }
 
 export function AboutTeam({ members }: { members: readonly TeamMember[] }) {
-  /** Index into `members` of the open modal's subject, or null when closed. */
+  /** Featured-first, so that person faces the camera at the ring's rest
+      position — see the header. Recomputed only when the roster changes. */
+  const ordered = useMemo(() => withFeaturedFirst(members), [members]);
+
+  /** Index into `ordered` of the open modal's subject, or null when closed. */
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const swipeStartX = useRef<number | null>(null);
+
+  const goPrev = useCallback(() => {
+    setOpenIndex((current) =>
+      current === null ? current : (current - 1 + ordered.length) % ordered.length,
+    );
+  }, [ordered.length]);
+
+  const goNext = useCallback(() => {
+    setOpenIndex((current) => (current === null ? current : (current + 1) % ordered.length));
+  }, [ordered.length]);
+
+  // Arrow keys step through the roster while the modal is open — Modal itself
+  // only binds Escape, so stepping is this component's own concern.
+  useEffect(() => {
+    if (openIndex === null) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === 'ArrowLeft') goPrev();
+      else if (event.key === 'ArrowRight') goNext();
+    }
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [openIndex, goPrev, goNext]);
+
+  function onSwipeStart(event: React.PointerEvent) {
+    swipeStartX.current = event.clientX;
+  }
+
+  function onSwipeEnd(event: React.PointerEvent) {
+    const startX = swipeStartX.current;
+    swipeStartX.current = null;
+    if (startX === null) return;
+    const delta = event.clientX - startX;
+    if (delta > SWIPE_THRESHOLD_PX) goPrev();
+    else if (delta < -SWIPE_THRESHOLD_PX) goNext();
+  }
 
   /* Fail-soft, exactly as getTeamMembers is: no roster (pre-migration, or a
      transient query error) hides the section but keeps the anchor, because the
      footer's "Our team" link points at #team and must still resolve. */
-  if (members.length === 0) {
+  if (ordered.length === 0) {
     return <div id="team" className="scroll-mt-gb-9xl" />;
   }
 
-  const active = openIndex === null ? null : (members[openIndex] ?? null);
-  const duration = `${Math.max(members.length * SECONDS_PER_TILE, MIN_DURATION_S)}s`;
+  const active = openIndex === null ? null : (ordered[openIndex] ?? null);
+  const stepAngle = 360 / ordered.length;
 
   return (
     <section id="team" className="scroll-mt-gb-9xl pb-gb-9xl">
@@ -378,27 +415,38 @@ export function AboutTeam({ members }: { members: readonly TeamMember[] }) {
           </p>
         </div>
 
-        {/* The row. Horizontally scrollable even with the animation running,
-            so a visitor can still drag past the loop on a touch device; the
-            edge mask fades tiles in/out rather than cropping them mid-tile. */}
-        <div className="group/team-row overflow-x-auto [mask-image:linear-gradient(to_right,transparent,black_4%,black_96%,transparent)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {/* The ring. `overflow-hidden` crops whichever faces have swung wide
+            of the stage rather than letting them push the page wider.
+            `[perspective:1200px]` has to sit on this ancestor, not the ring
+            itself — perspective applies to a 3D element's children, and the
+            ring is what actually needs the depth. */}
+        <div
+          className="group/team-ring relative h-[320px] overflow-hidden [perspective:1200px] motion-reduce:hidden sm:h-[380px] lg:h-[460px]"
+        >
           <div
-            className="flex w-max animate-gb-team-marquee gap-gb-xl group-hover/team-row:[animation-play-state:paused] group-focus-within/team-row:[animation-play-state:paused] motion-reduce:animate-none sm:gap-gb-2xl"
-            style={{ '--gb-marquee-duration': duration } as CSSProperties}
+            className="absolute inset-0 animate-gb-team-ring [transform-style:preserve-3d] [will-change:transform] group-hover/team-ring:[animation-play-state:paused] group-focus-within/team-ring:[animation-play-state:paused]"
+            style={{ '--gb-ring-duration': `${RING_REVOLUTION_S}s` } as CSSProperties}
           >
-            {members.map((member, index) => (
-              <MemberFace key={member.id} member={member} onOpen={() => setOpenIndex(index)} />
+            {ordered.map((member, index) => (
+              <div
+                key={member.id}
+                className="absolute left-1/2 top-1/2 [backface-visibility:hidden] [--gb-ring-radius:11rem] sm:[--gb-ring-radius:15rem] lg:[--gb-ring-radius:19rem]"
+                style={{
+                  transform: `translate(-50%, -50%) rotateY(${index * stepAngle}deg) translateZ(var(--gb-ring-radius))`,
+                }}
+              >
+                <MemberFace member={member} onOpen={() => setOpenIndex(index)} />
+              </div>
             ))}
-            {/* The seamless-loop duplicate — see the header. `contents` keeps
-                these as direct flex items (so the shared gap still applies
-                across the seam) while hiding the whole set under reduced
-                motion, where there is no loop to hand off into. */}
-            <div className="contents motion-reduce:hidden" aria-hidden="true">
-              {members.map((member) => (
-                <MemberFace key={`loop-${member.id}`} member={member} />
-              ))}
-            </div>
           </div>
+        </div>
+
+        {/* Reduced-motion fallback: the same faces, no ring — see the header
+            for why this is a different layout rather than a frozen one. */}
+        <div className="hidden flex-wrap justify-center gap-gb-xl motion-reduce:flex">
+          {ordered.map((member, index) => (
+            <MemberFace key={member.id} member={member} onOpen={() => setOpenIndex(index)} />
+          ))}
         </div>
       </div>
 
@@ -409,17 +457,39 @@ export function AboutTeam({ members }: { members: readonly TeamMember[] }) {
         className="max-w-gb-width-xl overflow-hidden p-0"
       >
         {active && openIndex !== null ? (
-          <>
+          <div onPointerDown={onSwipeStart} onPointerUp={onSwipeEnd}>
             <button
               type="button"
               onClick={() => setOpenIndex(null)}
               aria-label="Close"
-              className="absolute right-gb-lg top-gb-lg z-10 inline-flex size-gb-5xl items-center justify-center rounded-gb-full bg-surface/90 text-fg-secondary shadow-gb-xs backdrop-blur-sm transition-colors hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className={`absolute right-gb-lg top-gb-lg z-10 ${MODAL_OVERLAY_BUTTON}`}
             >
               <KitIcon art={ICONS.close} frame={20} />
             </button>
-            <MemberDetail member={active} index={openIndex} total={members.length} />
-          </>
+
+            {ordered.length > 1 ? (
+              <>
+                <button
+                  type="button"
+                  onClick={goPrev}
+                  aria-label="Previous team member"
+                  className={`absolute left-gb-lg top-1/2 z-10 -translate-y-1/2 ${MODAL_OVERLAY_BUTTON}`}
+                >
+                  <KitIcon art={ICONS.arrowLeft} frame={20} />
+                </button>
+                <button
+                  type="button"
+                  onClick={goNext}
+                  aria-label="Next team member"
+                  className={`absolute right-gb-lg top-1/2 z-10 -translate-y-1/2 ${MODAL_OVERLAY_BUTTON}`}
+                >
+                  <KitIcon art={ICONS.arrowRight} frame={20} />
+                </button>
+              </>
+            ) : null}
+
+            <MemberDetail member={active} index={openIndex} total={ordered.length} />
+          </div>
         ) : null}
       </Modal>
     </section>
