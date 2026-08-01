@@ -1,9 +1,11 @@
 'use client';
 
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Avatar } from './avatar';
 import { Button } from './button';
+import { isNavGroup, isNavLinkActive, type NavEntry, type NavGroup, type NavLink } from './nav-model';
 import { TID, testId } from '@/shared/lib';
 
 /**
@@ -61,11 +63,14 @@ import { TID, testId } from '@/shared/lib';
 const MEASURE =
   'mx-auto flex w-full max-w-gb-nav items-center gap-gb-xl px-gb-xl md:px-gb-4xl 2xl:px-gb-6xl';
 
-export type TopNavItem = {
-  href: string;
-  /** Already-translated label. */
-  label: string;
-};
+/**
+ * Kept as aliases of the shared model in ./nav-model so the ~15 callers that
+ * import `TopNavItem` from the barrel keep compiling. `items` now accepts a
+ * `TopNavGroup` alongside plain links — see NavDropdown below.
+ */
+export type TopNavItem = NavLink;
+export type TopNavGroup = NavGroup;
+export type TopNavEntry = NavEntry;
 
 export type TopNavUser = {
   /** Display name, shown next to the avatar at text-sm/semibold. */
@@ -83,7 +88,7 @@ type Props = {
    * wraps it in the link to `/` itself.
    */
   logo: React.ReactNode;
-  items: readonly TopNavItem[];
+  items: readonly TopNavEntry[];
   primaryAction: TopNavItem;
   /** Guest only — ignored when `user` is set, which is what the design does. */
   secondaryAction?: TopNavItem | undefined;
@@ -115,6 +120,182 @@ const LINK: Record<Tone, { idle: string; active: string }> = {
     active: 'bg-surface-muted text-fg',
   },
 };
+
+/** The dropdown panel, in the same two tones as the bar it hangs off. */
+const MENU: Record<Tone, string> = {
+  dark: 'border-white/12 bg-surface-inverse-strong',
+  light: 'border-line bg-surface',
+};
+
+/**
+ * Shared by the links and the dropdown trigger so the two are the same pill.
+ * The responsive padding notes live on the link itself, below.
+ */
+const ITEM =
+  'rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold whitespace-nowrap transition-colors xl:py-gb-md 2xl:px-gb-lg';
+
+/**
+ * Gap between the trigger and the panel it opens, in px.
+ *
+ * A number rather than a class because the panel is positioned from JS (see
+ * NavDropdown), so this is the one measurement that cannot be a token. It is
+ * --spacing-gb-md; keep the two in step.
+ */
+const MENU_GAP = 8;
+
+function IconChevronDown({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`transition-transform ${open ? 'rotate-180' : ''}`}
+      aria-hidden
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+/**
+ * A nav entry that opens a menu — "Search", holding Scholarships, Universities
+ * and Mentors.
+ *
+ * A DISCLOSURE, not an ARIA menu. `role="menu"` is a promise of roving arrow-key
+ * focus, type-ahead and a focus trap; a button with `aria-expanded` +
+ * `aria-controls` over a plain list of links promises only what this does, and
+ * Tab already walks the links because the panel follows the trigger in the DOM.
+ *
+ * ⚠️ THE PANEL IS `position: fixed`, AND THAT IS LOAD-BEARING. The `<nav>` it
+ * sits in is `overflow-hidden` — deliberately, so that a bar too narrow for its
+ * labels clips them instead of letting them slide under the action buttons (see
+ * the note on the nav element). An absolutely positioned panel is a descendant
+ * for clipping purposes and would be cut off at the nav's bottom edge; a fixed
+ * one is laid out against the viewport and escapes it. The cost is that the
+ * position has to be measured, hence `place()` and the scroll/resize listeners.
+ * No ancestor may gain `transform`, `filter` or `contain: paint` without this
+ * being revisited — any of them would make the header the containing block
+ * again and the clipping would come back.
+ */
+function NavDropdown({
+  group,
+  tone,
+  pathname,
+}: {
+  group: NavGroup;
+  tone: Tone;
+  pathname: string;
+}) {
+  const panelId = useId();
+  const [open, setOpen] = useState(false);
+  const [anchor, setAnchor] = useState({ left: 0, top: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  const active = group.items.some((item) => isNavLinkActive(pathname, item.href));
+
+  // Close on navigation. Adjusting state during render is React's documented
+  // way to reset on a changed input, and it is what MobileNav does — an onClick
+  // per link would miss browser back/forward and any programmatic push.
+  const [renderedPath, setRenderedPath] = useState(pathname);
+  if (renderedPath !== pathname) {
+    setRenderedPath(pathname);
+    setOpen(false);
+  }
+
+  const place = useCallback(() => {
+    const rect = triggerRef.current?.getBoundingClientRect();
+    if (rect) setAnchor({ left: rect.left, top: rect.bottom + MENU_GAP });
+  }, []);
+
+  useEffect(() => {
+    if (!open) return;
+
+    function onPointerDown(event: PointerEvent) {
+      const target = event.target as Node | null;
+      if (target == null) return;
+      if (triggerRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      setOpen(false);
+    }
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key !== 'Escape') return;
+      setOpen(false);
+      // Escape can be pressed with focus on a link inside the panel, which is
+      // about to be unmounted — put it somewhere deliberate.
+      triggerRef.current?.focus();
+    }
+
+    window.addEventListener('pointerdown', onPointerDown, true);
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('resize', place);
+    // Capture phase: the panel is placed against the viewport, so it has to
+    // follow the trigger when ANY scroller moves it, not only the page.
+    window.addEventListener('scroll', place, true);
+
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDown, true);
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('resize', place);
+      window.removeEventListener('scroll', place, true);
+    };
+  }, [open, place]);
+
+  return (
+    <>
+      <button
+        ref={triggerRef}
+        type="button"
+        aria-expanded={open}
+        aria-controls={panelId}
+        // Measured before the state flips so the panel's first paint is already
+        // in the right place — an effect would run a frame late and it would
+        // flash at the top-left corner.
+        onClick={() => {
+          if (!open) place();
+          setOpen((value) => !value);
+        }}
+        className={`inline-flex items-center gap-gb-xs ${ITEM} ${
+          active || open ? LINK[tone].active : LINK[tone].idle
+        }`}
+      >
+        {group.label}
+        <IconChevronDown open={open} />
+      </button>
+
+      {open ? (
+        <div
+          ref={panelRef}
+          id={panelId}
+          style={{ left: anchor.left, top: anchor.top }}
+          className={`fixed z-50 flex min-w-gb-width-xs flex-col gap-gb-xxs rounded-gb-lg border p-gb-sm shadow-gb-lg ${MENU[tone]}`}
+        >
+          {group.items.map((item) => {
+            const itemActive = isNavLinkActive(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={itemActive ? 'page' : undefined}
+                onClick={() => setOpen(false)}
+                className={`rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-semibold whitespace-nowrap transition-colors ${
+                  itemActive ? LINK[tone].active : LINK[tone].idle
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
+    </>
+  );
+}
 
 export function TopNav({
   logo,
@@ -160,44 +341,51 @@ export function TopNav({
            *
            * ⚠️ `overflow-hidden` means running out of room CLIPS links silently
            * rather than wrapping or scrolling, so every loosening is gated at
-           * `2xl`. It has to be: below 1280 the bar is ALREADY over-subscribed
-           * (371px clipped at 768, 115px at 1024 — a pre-existing bug, see
-           * docs/known-issues.md), and at 1280 the links fit with only ~99px to
-           * spare. Anything that widens them before 2xl eats that margin and
-           * buries "Blog" on the first machine that measures text differently.
+           * `2xl`. It has to be: below 1280 the bar is over-subscribed (a
+           * pre-existing bug, see docs/known-issues.md), and clipping is the
+           * least-bad failure — without it the labels slide out under the two
+           * action buttons instead.
+           *
+           * Folding Scholarships / Universities / Mentors into the "Search"
+           * dropdown took the bar from six top-level labels to four and bought
+           * back most of that margin, but the rule stands: this clips.
+           *
+           * It is also why NavDropdown's panel is `position: fixed`. Read the ⚠️
+           * on that component before changing either.
            */}
           <nav
             aria-label="Primary"
             className="flex min-w-0 items-center gap-gb-md overflow-hidden 2xl:gap-gb-xl"
           >
-            {items.map((item) => {
-              const active =
-                pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
-              return (
+            {items.map((item) =>
+              isNavGroup(item) ? (
+                <NavDropdown key={item.label} group={item} tone={tone} pathname={pathname} />
+              ) : (
                 <Link
                   key={item.href}
                   href={item.href}
-                  aria-current={active ? 'page' : undefined}
-                  /* `py-gb-md` from xl up makes the active pill exactly the 36px
-                     of the two buttons beside it instead of a squat 28px, and
-                     costs no header height: the row is already 36px because the
-                     buttons set it.
+                  aria-current={isNavLinkActive(pathname, item.href) ? 'page' : undefined}
+                  /* The pill geometry is in ITEM above, shared with the dropdown
+                     trigger. `py-gb-md` from xl up makes the active pill exactly
+                     the 36px of the two buttons beside it instead of a squat
+                     28px, and costs no header height: the row is already 36px
+                     because the buttons set it.
 
                      The matching `px-gb-lg` (which would complete Button's `sm`
                      size) waits for 2xl, and that is a hard constraint, not a
-                     taste call. It widens the six labels by 72px in total —
-                     more than the 27px of slack the bar has left at 1280, so at
-                     xl it clipped "Blog" on any machine whose text measured a
+                     taste call. It widens the labels by ~12px each — more slack
+                     than the bar had at 1280 back when it carried six of them,
+                     and it clipped "Blog" on any machine whose text measured a
                      few px wider than the author's (CI did). At 2xl there are
                      ~200px spare and it is free. */
-                  className={`rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold whitespace-nowrap transition-colors xl:py-gb-md 2xl:px-gb-lg ${
-                    active ? LINK[tone].active : LINK[tone].idle
+                  className={`${ITEM} ${
+                    isNavLinkActive(pathname, item.href) ? LINK[tone].active : LINK[tone].idle
                   }`}
                 >
                   {item.label}
                 </Link>
-              );
-            })}
+              ),
+            )}
           </nav>
         </div>
 
