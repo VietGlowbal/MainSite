@@ -1,5 +1,6 @@
 import { createAdminClient } from '@/server/db/admin';
 import type { University } from '@/lib/types';
+import { normaliseUniversityName } from '../domain/match-university';
 import {
   UNIVERSITY_LIST_COLUMNS,
   clampPage,
@@ -105,6 +106,54 @@ export class SupabaseUniversityRepository implements UniversityQueries {
       return [];
     }
     return (data ?? []) as unknown as UniversityListItem[];
+  }
+
+  /**
+   * See {@link UniversityQueries.findIdsByNames} for the contract.
+   *
+   * ⚠️ THIS READS EVERY ROW, and that is deliberate rather than an oversight —
+   * but only because of what it reads. Two columns across ~100 rows is a few KB,
+   * whereas the alternative is a `.or()` of eleven `ilike` clauses that still
+   * cannot express "compare on the normalised name", so it would have to
+   * over-fetch on a fuzzy token and re-match in memory anyway. The one caller
+   * sits behind a 12-hour `unstable_cache`, so this runs about twice a day.
+   *
+   * Do NOT reach for this as a general name search — `list({ search })` is that,
+   * and it is paginated. The bound below is a guard, not a page size: if the
+   * table ever grows past it this method starts silently missing names, so it is
+   * set far above the ~100 rows the directory holds.
+   */
+  async findIdsByNames(names: readonly string[]): Promise<Record<string, number>> {
+    if (names.length === 0) return {};
+
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('universities')
+      .select('id, name')
+      .order('id', { ascending: true })
+      .limit(5000);
+
+    if (error) {
+      console.error('UniversityRepository.findIdsByNames failed:', error.message);
+      return {};
+    }
+
+    const byNormalisedName = new Map<string, number>();
+    for (const row of (data ?? []) as Array<{ id: number; name: string | null }>) {
+      if (!row.name) continue;
+      const key = normaliseUniversityName(row.name);
+      // First id wins. Duplicates exist — `resolveUniversity` creates sparse
+      // rows from parsed course pages — and the lowest id is the imported,
+      // fully-populated one, which is the page worth linking a visitor to.
+      if (key && !byNormalisedName.has(key)) byNormalisedName.set(key, row.id);
+    }
+
+    const found: Record<string, number> = {};
+    for (const name of names) {
+      const id = byNormalisedName.get(normaliseUniversityName(name));
+      if (id !== undefined) found[name] = id;
+    }
+    return found;
   }
 
   async facets(): Promise<UniversityFacets> {
