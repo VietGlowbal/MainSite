@@ -14,6 +14,8 @@ export {
   toCurriculumGrades,
 } from './academic-grading';
 export type { CurriculumGrade, GradeFormat, GradeProblem } from './academic-grading';
+export { onboardingIsComplete } from './completion';
+export type { OnboardingAnswers } from './completion';
 export {
   EMPTY_ACADEMIC,
   EMPTY_TESTS,

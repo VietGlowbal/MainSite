@@ -30,25 +30,25 @@ export function Pagination({
 }) {
   if (pageCount <= 1) return null;
   const items = buildPageItems(page, pageCount);
-  const arrow = 'flex h-9 w-9 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 transition hover:border-pink-200 hover:text-pink-600 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:text-slate-600';
+  const arrow = 'flex h-9 w-9 items-center justify-center rounded-gb-md border border-line bg-surface text-fg-secondary shadow-gb-xs transition hover:border-brand hover:text-fg-brand disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-line disabled:hover:text-fg-secondary';
   return (
-    <nav className="flex flex-wrap items-center justify-center gap-2 pt-6" aria-label="Pagination">
+    <nav className="flex flex-wrap items-center justify-center gap-2 pt-8" aria-label="Pagination">
       <button type="button" className={arrow} onClick={() => onChange(page - 1)} disabled={page <= 1} aria-label="Previous page">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6" /></svg>
       </button>
       {items.map((item, i) =>
         item === 'ellipsis' ? (
-          <span key={`e-${i}`} className="px-1 text-sm text-slate-400 select-none">…</span>
+          <span key={`e-${i}`} className="select-none px-1 text-sm text-fg-muted">…</span>
         ) : (
           <button
             key={item}
             type="button"
             onClick={() => onChange(item)}
             aria-current={item === page ? 'page' : undefined}
-            className={`flex h-9 min-w-9 items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
+            className={`flex h-9 min-w-9 items-center justify-center rounded-gb-md px-3 text-sm font-semibold transition ${
               item === page
-                ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white shadow-[0_6px_16px_rgba(255,77,140,0.3)]'
-                : 'border border-slate-200 bg-white text-slate-600 hover:border-pink-200 hover:text-pink-600'
+                ? 'bg-brand text-on-brand shadow-gb-xs-skeuomorphic'
+                : 'border border-line bg-surface text-fg-secondary shadow-gb-xs hover:border-brand hover:text-fg-brand'
             }`}
           >
             {item}

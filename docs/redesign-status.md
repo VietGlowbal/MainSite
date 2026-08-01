@@ -453,6 +453,7 @@ honestly. `scripts/repair-stranded-applications.mjs` fixes the existing rows —
 `MARKETING_NAV_ITEMS`: `/apply` is now labelled **"Application"** (was "Plan your
 studies" / "Lập kế hoạch du học"). The CTA button keeps the old string pointing
 at `/onboarding`, so both survive and both are dictionary hits.
+**Superseded 01/08 — see "The nav became four entries" below.**
 
 ⚠️ **`/apply` and `/ai-strategy` stay visible to signed-out visitors.** Both were
 briefly hidden behind a `requiresAuth` filter on this list; the owner reversed
@@ -464,6 +465,84 @@ change (it used to render in full for anyone). Do not reintroduce a nav filter.
 and its strings were **never in the dictionary** — so the tracker's heading,
 subtitle and import bar had been sitting in English on the Vietnamese page with
 no machine fallback to hide it. Added. Every new string on this route must be.
+
+### The nav became four entries, and the Home CTA branches (01/08)
+
+Both changes are the **owner's, and both disagree with the frames.** 375:9845 and
+375:10151 still draw a flat row of six labels. Ask the designer to redraw them;
+do not "restore" the flat list from Figma.
+
+**The bar, left to right: News · Search ▾ · Build your strategy · My Portal.**
+The same four for signed-out and signed-in — the two frames differ only in which
+label the CTA slot promotes, and every page already picks its own
+`primaryAction`.
+
+| Before (6, flat) | After (4) |
+|---|---|
+| About us | **gone from the header** — still in the footer's Company column, `/about` untouched |
+| Build your strategy | 3rd |
+| Search universities | inside **Search ▾** as "Universities" |
+| Application (`/apply`) | 4th, relabelled **"My Portal"** |
+| Find a mentor | inside **Search ▾** as "Mentors" |
+| Blog (`/news`) | 1st, relabelled **"News"** |
+| — | **Search ▾** is new: Scholarships · Universities · Mentors |
+
+`/scholarships` gains a header entry for the first time; it was footer-only.
+
+Grouping cost nothing in reachability and bought width: the bar overflowed
+**371px at 768** and now overflows 74px, with 0 clipping at 1280 and 1440
+(measured). It is still `overflow-hidden` and that is still deliberate — read
+the ⚠️ on the `<nav>` element.
+
+**The dropdown panel is `position: fixed`, and that is load-bearing.** The
+`<nav>` clips its children, so an absolutely positioned panel would be cut off
+at the bar's bottom edge; a fixed one is laid out against the viewport and
+escapes. The cost is that its position is measured in JS (`place()` in
+`NavDropdown`). **No ancestor of the header may gain `transform`, `filter` or
+`contain: paint`** — any of them makes the header a containing block for fixed
+descendants and the clipping comes back.
+
+It is a **disclosure**, not an ARIA menu: `aria-expanded` + `aria-controls` over
+a plain list of links. `role="menu"` would promise roving arrow-key focus,
+type-ahead and a focus trap, none of which this implements — and Tab already
+walks the links, because the panel follows the trigger in the DOM. The mobile
+sheet renders the same group expanded in place and **open by default**: it is a
+vertical list with room, and collapsing it would bury Scholarships and
+Universities behind an extra tap.
+
+Both navigations now read one model, `src/shared/ui/nav-model.ts`
+(`NavLink | NavGroup`). `TopNavItem` / `MobileNavItem` survive as aliases so the
+~15 existing importers compile unchanged.
+
+#### `/start` — the Home hero CTA
+
+"Find matching scholarships" pointed unconditionally at `/onboarding`. It now
+points at **`/start`** (`src/app/start/route.ts`), which 307s to `/onboarding`
+for a student who has not answered the questions and **`/universities`** for one
+who has.
+
+Why a route and not a conditional `href`: `/` is prerendered (`revalidate`, 12h)
+and `HomeHero` is a server component on purpose. Reading the session on the page
+would opt every visitor out of static rendering; deciding in the browser would
+leave the href wrong until a fetch resolves, which is where it gets clicked. The
+route costs one hop, taken only by people who press the button. **`/` is still
+`○ Static` in the build output** — check that if this is ever revisited.
+
+The nav's own CTA still goes straight to `/onboarding`. That was not part of the
+instruction and its label ("Plan your studies") promises the questionnaire.
+
+⚠️ **"Completed" is now defined in three places.** `onboardingIsComplete`
+(`src/features/onboarding/domain/completion.ts`, tested) is the canonical one;
+`src/proxy.ts` and `src/app/auth/callback/route.ts` still inline the same
+expression. They agree today. **Change one, change all three** — a student who
+is complete enough for the middleware but not for the CTA ping-pongs between two
+pages. Converging those two onto the domain function is a clean follow-up.
+
+The rule is `onboarding_completed === true` **OR** (`study_level` and a non-empty
+`preferred_countries` array). The OR is not belt-and-braces: rows written by
+`onboarding-single-page` / `onboarding-globe-quiz` predate the flag, and a final
+upsert can lose a race with the redirect. Sending those students back to
+question one is the worse failure.
 
 ### Two blog routes became one (31/07)
 
