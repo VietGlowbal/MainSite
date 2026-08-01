@@ -1,5 +1,5 @@
 import { BRAND_ICONS, BrandIcon, InstagramMark } from '@/shared/ui';
-import type { FooterColumn, FooterSocial, TopNavItem } from '@/shared/ui';
+import type { FooterColumn, FooterSocial, TopNavEntry, TopNavItem } from '@/shared/ui';
 
 /**
  * The site chrome's link configuration — what the header and footer point at.
@@ -17,13 +17,21 @@ import type { FooterColumn, FooterSocial, TopNavItem } from '@/shared/ui';
  * Primary navigation. Figma 375:9845 (guest) and 375:10151 (signed in), both on
  * the "Khanh Linh - Chi" canvas, which supersedes 104:7114 / 203:12356.
  *
- * ONE LIST SERVES BOTH STATES, still — but for a narrower reason than before.
- * The two frames no longer draw the same items: signed in drops "Lập kế hoạch
- * du học" because that frame promotes it to the CTA button. That is a property
- * of the CTA slot, not of the item list, and every page here already picks its
- * own `primaryAction` (the merged applications page uses "Search universities").
- * Note the guest frame duplicates the label in both slots anyway, so the design
- * is not consistent on the point.
+ * ⚠️ THE ORDER AND THE GROUPING BELOW ARE THE OWNER'S, NOT THE FRAME'S
+ * (01/08). Both frames still draw a flat row of six; the owner asked for four
+ * entries with the three "go and look at something" destinations folded behind
+ * one "Search" dropdown, and for that same bar to serve signed-out and
+ * signed-in alike. Where this file and the frames disagree, this is current —
+ * ask the designer to redraw 375:9845, do not "restore" the flat list.
+ *
+ * The order, left to right: News · Search · Build your strategy · My Portal.
+ * It reads as a funnel — what's happening, what exists, what you should do,
+ * what you have done — and it is the reason "My Portal" is last rather than
+ * beside the other authenticated page.
+ *
+ * ONE LIST SERVES BOTH AUDIENCES. The signed-in frame drops an item only
+ * because it promotes it to the CTA button, which is a property of the CTA
+ * slot: every page picks its own `primaryAction` already.
  *
  * ⚠️ /apply AND /ai-strategy STAY VISIBLE TO GUESTS, on the owner's instruction
  * (31/07). Both were briefly hidden behind a signed-in check on the grounds
@@ -32,33 +40,51 @@ import type { FooterColumn, FooterSocial, TopNavItem } from '@/shared/ui';
  * out the features exist. Each page forces sign-in when it is opened, which is
  * where that belongs. Do not reintroduce an auth filter on this list.
  *
- * "Tìm trường đại học" is the sixth, added on the product owner's instruction so
- * the desktop bar matches the mobile sheet (375:12205, unchanged from 179:12826)
- * and the university directory keeps a direct entry for the two audiences the
- * design file names at 105:8246: people who want to look around first, and
- * people who already know what they want. The newest frames do not draw it;
- * kept on the owner's standing instruction.
+ * ⚠️ "About us" IS NO LONGER HERE. It was the first item; the owner's list of
+ * four does not include it. It is still reachable from the footer's Company
+ * column, which is the conventional home for it, and /about itself is
+ * untouched. Removing it is the only deletion in this change — everything else
+ * moved or was renamed.
  */
-export const MARKETING_NAV_ITEMS: readonly TopNavItem[] = [
-  // Figma "Về chúng tôi". The page itself is Figma 153:11401.
-  { href: '/about', label: 'About us' },
+export const MARKETING_NAV_ITEMS: readonly TopNavEntry[] = [
+  /*
+   * Figma "Blog", relabelled "News" on the owner's instruction (01/08) to match
+   * the destination: /guides and /news used to render the same listGeoGuides()
+   * data through two designs and were merged on 31/07 — the redesign is the UI,
+   * /news is the URL, and /guides now 308s here.
+   */
+  { href: '/news', label: 'News' },
+  /*
+   * The one grouped entry. Scholarships, Universities and Mentors are the three
+   * browse-and-compare surfaces; they were three of the six top-level items and
+   * competed with the two things a student is actually meant to DO. Behind one
+   * label they stop competing, and the bar drops from six labels to four —
+   * which is also what bought back the width the header was short of below
+   * 1280 (see the ⚠️ in shared/ui/top-nav.tsx).
+   *
+   * "Search" is a group, so it has no href and nothing to navigate to. See the
+   * note on NavGroup for why that is deliberate rather than an omission.
+   */
+  {
+    label: 'Search',
+    items: [
+      { href: '/scholarships', label: 'Scholarships' },
+      { href: '/universities', label: 'Universities' },
+      { href: '/mentors', label: 'Mentors' },
+    ],
+  },
   // Figma "Lên Chiến lược Du học" — renamed from "AI lên chiến lược" on the new
   // canvas. See the note below; this is a product pillar, not a dead link.
   // The FOOTER still says "Chiến lược AI" (its frame did not change), so the two
   // deliberately carry different labels for the same route.
   { href: '/ai-strategy', label: 'Build your strategy' },
-  { href: '/universities', label: 'Search universities' },
   /*
-   * Was "Plan your studies" ("Lập kế hoạch du học"). Renamed on the owner's
-   * instruction, 31/07, when /apply absorbed the saved list: the destination is
-   * now the student's applications, not a plan they have yet to make.
+   * Was "Plan your studies", then "Application" (31/07, when /apply absorbed
+   * the saved list), now "My Portal" on the owner's instruction (01/08). The
+   * page is everything the student owns — applications, deadlines, saved
+   * universities and scholarships — and "Application" undersold it as one form.
    */
-  { href: '/apply', label: 'Application' },
-  { href: '/mentors', label: 'Find a mentor' },
-  // Figma "Blog". /guides and /news used to render the same listGeoGuides()
-  // data through two different designs; they were merged on 31/07 — the
-  // redesign is the UI, /news is the URL, and /guides now 308s here.
-  { href: '/news', label: 'Blog' },
+  { href: '/apply', label: 'My Portal' },
 ];
 
 /**

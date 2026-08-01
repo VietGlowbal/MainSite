@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SavedNavLink } from '@/components/saved-nav-link';
+import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
 import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
-import { MobileNav, TopNav, type MobileNavItem } from '@/shared/ui';
+import { MobileNav, TopNav, isNavGroup, type MobileNavEntry } from '@/shared/ui';
 
 /* ─────────────────────────────────────────────────────────────────────────
    Persisted nav preferences
@@ -60,64 +61,57 @@ function useNavPrefFlag(key: string): boolean {
   return useSyncExternalStore(subscribeToNavPrefs, getSnapshot, () => false);
 }
 
-/*
- * `mobile` used to hold the abbreviated caption for the bottom tab bar ("Fund",
- * "News"). That bar is gone; the hamburger sheet is a full-width list, so the
- * field now carries the longer wording from the designer's mobile mockup.
+/**
+ * Role-gated extras. Everything a normal student sees comes from
+ * `MARKETING_NAV_ITEMS`; these three are appended per role and have no
+ * marketing equivalent, because nothing about them is public.
  */
-const NAV_ITEMS = [
-  { href: '/',                label: 'Home',          mobile: 'Home',               activeMatch: 'exact' as const },
-  { href: '/universities',    label: 'Search',        mobile: 'Search universities', activeMatch: 'prefix' as const },
-  { href: '/apply',           label: 'Application',   mobile: 'Application',        activeMatch: 'prefix' as const, requiresAuth: true },
-  { href: '/scholarships',    label: 'Scholarships',  mobile: 'Scholarships',       activeMatch: 'prefix' as const, requiresAuth: true },
-  { href: '/mentors',         label: 'Mentorship',    mobile: 'Mentorship',         activeMatch: 'prefix' as const },
-  { href: '/news',            label: 'GLOWBAL News',  mobile: 'GLOWBAL News',       activeMatch: 'prefix' as const },
-];
-
-// Extra item shown only to users who have a mentor profile (any status).
-const MENTOR_DASHBOARD_ITEM = {
-  href: '/dashboard/mentor',
-  label: 'Mentor hub',
-  mobile: 'Mentor',
-  activeMatch: 'prefix' as const,
-};
-
-// Extra item shown only to users with the coordinator role.
-const COORDINATOR_ITEM = {
-  href: '/coordinator',
-  label: 'Coordinator',
-  mobile: 'Coordinator',
-  activeMatch: 'prefix' as const,
-};
-
-const ADMIN_ITEM = {
-  href: '/admin',
-  label: 'Admin',
-  mobile: 'Admin',
-  activeMatch: 'prefix' as const,
-};
-
-type NavItem = {
-  href: string;
-  label: string;
-  mobile: string;
-  activeMatch: 'exact' | 'prefix';
-  requiresAuth?: boolean;
-};
+const MENTOR_DASHBOARD_ITEM = { href: '/dashboard/mentor', label: 'Mentor hub' };
+const COORDINATOR_ITEM = { href: '/coordinator', label: 'Coordinator' };
+const ADMIN_ITEM = { href: '/admin', label: 'Admin' };
 
 /**
  * The destinations this user can see, in order.
  *
- * Desktop and mobile derive from this same list so the two navigations can
- * never drift — previously the sidebar, the bottom tab bar, and the hamburger
- * drawer each kept their own hand-written subset, and none of the three agreed.
+ * ⚠️ THE SEVEN-ITEM APP LIST THAT USED TO LIVE HERE IS GONE (01/08). It named
+ * the same destinations as `MARKETING_NAV_ITEMS` under different labels, in a
+ * different order, with a `mobile` field that differed again — so a signed-in
+ * student crossing from `/apply` (own chrome, marketing list) to `/scholarships`
+ * (this chrome, app list) watched the whole bar rewrite itself. The owner asked
+ * for one menu for both audiences, which makes that list redundant rather than
+ * merely inconsistent.
+ *
+ * Two things went with it and are worth knowing:
+ *  - **`requiresAuth` is gone.** It hid `/apply` and `/scholarships` from
+ *    guests; the marketing list deliberately shows them (owner, 31/07 — the
+ *    links are how a guest finds out the features exist, and each page forces
+ *    sign-in when opened).
+ *  - **"Home" is gone.** The marketing bar has never carried it: the wordmark
+ *    is the home affordance, and `TopNav` links it itself.
+ *
+ * Role extras are appended, not merged, so they always sit after the four
+ * shared entries.
  */
-function navItemsFor(user: UserSummary | null): NavItem[] {
-  const items: NavItem[] = user ? [...NAV_ITEMS] : NAV_ITEMS.filter((i) => !i.requiresAuth);
-  if (user?.isMentor) items.push(MENTOR_DASHBOARD_ITEM);
-  if (user?.isCoordinator) items.push(COORDINATOR_ITEM);
-  if (user?.isAdmin) items.push(ADMIN_ITEM);
-  return items;
+function navEntriesFor(
+  user: UserSummary | null,
+  t: (key: string) => string,
+): MobileNavEntry[] {
+  const shared: MobileNavEntry[] = MARKETING_NAV_ITEMS.map((entry) =>
+    isNavGroup(entry)
+      ? {
+          label: t(entry.label),
+          items: entry.items.map((child) => ({ href: child.href, label: t(child.label) })),
+        }
+      : { href: entry.href, label: t(entry.label) },
+  );
+
+  const extras = [
+    ...(user?.isMentor ? [MENTOR_DASHBOARD_ITEM] : []),
+    ...(user?.isCoordinator ? [COORDINATOR_ITEM] : []),
+    ...(user?.isAdmin ? [ADMIN_ITEM] : []),
+  ];
+
+  return [...shared, ...extras.map((item) => ({ href: item.href, label: t(item.label) }))];
 }
 
 // ── Language Switcher ────────────────────────────────────────────────────────
@@ -162,10 +156,7 @@ function LanguageSwitcher() {
 function MobileNavigation({ user }: { user: UserSummary | null }) {
   const { t, lang: language, toggle: toggleLanguage } = useLanguage();
 
-  const items: MobileNavItem[] = navItemsFor(user).map((item) => ({
-    href: item.href,
-    label: t(item.mobile),
-  }));
+  const items = navEntriesFor(user, t);
 
   return (
     <MobileNav
@@ -234,10 +225,7 @@ type UserSummary = {
 function AppTopNav({ user }: { user: UserSummary | null }) {
   const { t } = useLanguage();
 
-  const items = navItemsFor(user).map((item) => ({
-    href: item.href,
-    label: t(item.label),
-  }));
+  const items = navEntriesFor(user, t);
 
   return (
     <TopNav
