@@ -10,6 +10,7 @@ import {
   formatDeadlineLabel,
   formatUsdCompact,
   scholarshipCandidates,
+  scholarshipLabel,
 } from '@/features/universities/domain';
 import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarships';
 import { createClient } from '@/lib/supabase/client';
@@ -278,6 +279,51 @@ function ProgramRow({ row }: { row: SavedRow }) {
   );
 }
 
+/**
+ * The awards the student has attached to this row — Figma 375:12841's badge row.
+ *
+ * ⚠️ THIS IS THE ONE SLOT ON THE CARD HOLDING AN UNBOUNDED PROVIDER STRING, and
+ * it shipped printing it whole. `Badge` bakes `whitespace-nowrap` (the primitive
+ * documents this as its known trap), so a real name — "Amsterdam Merit
+ * Scholarships for Master's Students at University of Amsterdam 2026 (Fully
+ * Funded) · 2,000–25,900 EUR" — rendered an 840px pill inside a 779px card and
+ * hung 87px out over the page. Reported by the owner 01/08 with a screenshot,
+ * reproduced and measured at 1440 before this was written.
+ *
+ * Two fixes, in this order, because they are not alternatives:
+ *
+ *  1. `scholarshipLabel` drops the " at <university>" the card's own heading
+ *     already says. That is 26 of those 96 characters and, unlike an ellipsis,
+ *     it costs the reader nothing.
+ *  2. What is left truncates against the card. `min-w-0` at every level down to
+ *     the pill is what makes that possible — a flex item defaults to
+ *     `min-width: auto`, i.e. "never shrink below my content", which is
+ *     precisely how a nowrap pill grows past its parent. The untouched name
+ *     stays reachable on `title`.
+ *
+ * THE MONEY DOES NOT TRUNCATE. `amountLabel` is short, exact, and the reason a
+ * student scans this row at all, so it is `shrink-0` and the name gives way
+ * first — the same priority the picker's card sets by drawing the value largest.
+ */
+function AttachedScholarships({ row }: { row: SavedRow }) {
+  return (
+    <ul className="flex min-w-0 flex-wrap gap-gb-md">
+      {row.attached.map((s) => (
+        /* `title` on the wrapper, not the pill: `Badge` takes only `variant`
+           and `className`, as the tuition badge above also notes. */
+        <li key={s.savedId} className="flex min-w-0 max-w-full" title={s.name}>
+          <Badge variant="brand-subtle" className="min-w-0 max-w-full">
+            <span className="min-w-0 truncate">{scholarshipLabel(s.name, row.name)}</span>
+            {s.amountLabel ? (
+              <span className="shrink-0">{' · '}{s.amountLabel}</span>
+            ) : null}
+          </Badge>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function SavedRowItem({
   row,
   selected,
@@ -407,17 +453,7 @@ function SavedRowItem({
           ) : null}
           <TuitionBadges row={row} />
           <ProgramRow row={row} />
-          {row.attached.length > 0 ? (
-            <ul className="flex flex-wrap gap-gb-md">
-              {row.attached.map((s) => (
-                <li key={s.savedId}>
-                  <Badge variant="brand-subtle">
-                    {s.amountLabel ? `${s.name} · ${s.amountLabel}` : s.name}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          {row.attached.length > 0 ? <AttachedScholarships row={row} /> : null}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-gb-lg">

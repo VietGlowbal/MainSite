@@ -18,7 +18,12 @@ export {
 
 export { leadFragment, splitList } from './highlights';
 
-export { attachedOptions, bestCoveragePercent, scholarshipCandidates } from './saved-list';
+export {
+  attachedOptions,
+  bestCoveragePercent,
+  scholarshipCandidates,
+  scholarshipLabel,
+} from './saved-list';
 export type {
   CoverageLike,
   SavedListScholarship,

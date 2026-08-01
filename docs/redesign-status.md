@@ -127,6 +127,27 @@ Each is documented in a comment at the top of the relevant file.
      the same white as the rows above them.
   5. **A Rose/50 bloom behind the first heading**, fading out before the first
      row. Both empty states are on the same Rose/50 + Rose/100 pairing.
+- **`/apply` saved rows: the attached-scholarship pill is the card's only
+  unbounded string, and it overflowed** (owner screenshot, 01/08). `Badge` bakes
+  `whitespace-nowrap` — `design-system.md` flags this as the primitive's known
+  trap — and the row printed the provider's name whole. Measured at 1440: an
+  840px pill inside a 779px card, hanging 87px out over the page. Fixed in two
+  layers, and both are needed:
+  - `scholarshipLabel()` (`features/universities/domain/saved-list.ts`, tested)
+    strips the `" at <university>"` that the card's own heading already says —
+    26 of those 96 characters. Handles the parenthetical acronym in
+    `universities.name` ("University of Amsterdam (UvA)" vs "at UvA") and
+    refuses to strip a name down to nothing.
+  - `min-w-0` from the `<li>` down to the pill, plus `truncate` on the name, so
+    what is left ellipses against the card. `min-w-0` is the load-bearing part:
+    a flex item defaults to `min-width: auto`, which is exactly "never shrink
+    below my content". The amount is `shrink-0` and the untouched name stays on
+    `title`.
+
+  ⚠️ If another unbounded provider string ever lands in a `Badge`, expect the
+  same failure. Sweep with a Playwright check comparing each descendant's
+  `getBoundingClientRect().right` against its card's — this page is clean at
+  1920/1440/1280/1024/768/390.
 - **`/about` hero** — the frame claims "offices all around the world" over a world
   map. Untrue for a Vietnamese student startup; replaced with honest copy.
 - **`/news` cards** — no author byline (`GeoGuide` has no author field).
