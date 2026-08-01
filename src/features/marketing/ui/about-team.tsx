@@ -5,57 +5,57 @@ import type { TeamAchievementCategory, TeamMember } from '@/lib/team';
 import { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon, Modal } from '@/shared/ui';
 
 /**
- * About-page team fan — a coverflow-style 3D carousel of faces, a handful
- * visible at once in a shallow concave curve, continuously drifting sideways
- * through centre. Clicking one opens their full detail in a modal, which can
- * then step through the whole roster without closing.
+ * About-page team carousel — a direct port of the owner-supplied reference's
+ * cylindrical-arc math, not an approximation of it. Clicking a face opens
+ * their full detail in a modal, which can then step through the whole
+ * roster without closing.
  *
- * ─── ONE PATH, EVERY FACE OFFSET ALONG IT ────────────────────────────────────
+ * ─── WHY THIS IS A PER-FRAME LOOP, NOT A CSS ANIMATION ───────────────────────
  *
- * This was a full 3D ring the first time — every face fixed to its own slot
- * around a circle, the whole ring spinning as one rigid body. That is a
- * carousel; it is not what the reference clip shows. The reference (and the
- * screenshot it should match) is a shallow FAN: five or so faces visible at
- * once, each tilted like a page curling away from a flat one at the centre,
- * continuously sliding sideways — cards enter from one edge, pass through
- * flat-and-frontal in the middle, and exit the other edge, never completing
- * a lap past ±90°.
+ * Two earlier passes tried to approximate the reference with pure CSS (a
+ * full spinning ring, then a single shared `@keyframes` fan) and both
+ * produced a visibly different shape. The reference's motion is not a fixed
+ * path — every face's on-screen position is `relativeX = (index*step +
+ * currentX) mod totalSpan`, recentred, and only THEN projected through
+ * `angle = relativeX / radius; x = radius·sin(angle); z = (1−cos(angle))·
+ * radius·depthScale/2; rotateY = −angle`. `currentX` drifts continuously
+ * (autoplay) and is what makes the curve itself slide, not any one face
+ * moving along a pre-baked track. A CSS `@keyframes` can express one face's
+ * fixed path; it cannot express "the whole curve's centre moves," which is
+ * what actually produces the reference's look. So this is `updateCardTransforms`
+ * and `renderPhysicsLoop` from the reference, ported near-verbatim to a
+ * `requestAnimationFrame` loop that writes `card.style.transform` directly —
+ * the same imperative-DOM-write-per-frame technique `home-partners.tsx`
+ * already uses for the partner-logo orbit, for the identical reason: eleven
+ * (here, N) `next/image`-backed React re-renders per frame is real cost a
+ * ref write is not.
  *
- * The fix is one `@keyframes` (`gb-team-fan` at the end of tokens.css)
- * describing that single path as a function of time — enter off-screen right
- * and tilted away, straighten and grow through the middle, tilt away again
- * and exit off-screen left — and every face runs the *same* animation, just
- * offset by a different negative `animation-delay` (`fanDelayMs`). A
- * negative delay starts an animation already partway through its cycle, so
- * evenly spacing N faces' delays across one cycle length distributes them
- * evenly along the path with no per-frame JS: at any instant only the faces
- * whose current phase falls near the middle of the path are opaque and
- * near-centre; the rest sit further out along the same curve, faded to
- * `opacity: 0` by the keyframe itself, which is what limits how many are
- * visible at once regardless of roster size (see the keyframe's own
- * comment for the exact stops).
+ * Kept from the reference: the exact projection formula, the opacity falloff
+ * by distance-from-centre, the z-index-by-depth, and the 0.14 lerp smoothing
+ * between `currentX` and `targetX`. Dropped: pointer drag, velocity/friction,
+ * the settings drawer, sound, and CSV import — none of that is the
+ * "carousel," and this file has its own click-to-open modal already.
  *
- * `--gb-fan-spread` scales the path's horizontal/depth distances (not its
- * rotation or scale) per breakpoint, so the curve keeps the same *shape* on
- * a phone as on a desktop, just travelling a shorter distance.
+ * `TeamCarousel` also owns responsive card sizing, the same formula as the
+ * reference's `updateResponsiveDimensions`: fit five cards across ~88% of
+ * the stage width, clamped to a legible range, remeasured on resize via
+ * `ResizeObserver`.
  *
- * The featured member (if any) is sorted to index 0, and `fanDelayMs` is
- * built so index 0 sits exactly at centre the moment the page loads — the
- * roster is never bunched up or mid-transition on first paint.
+ * ─── PAUSE ON HOVER ───────────────────────────────────────────────────────────
  *
- * ─── PAUSE ON HOVER AND FOCUS ────────────────────────────────────────────────
- *
- * `group-hover/team-fan:` and `group-focus-within/team-fan:` pause every
- * face's animation via `animation-play-state` — plain CSS, each face just
- * freezes wherever its own offset path currently has it.
+ * Not in the reference (there, only the drawer's Pause button stops
+ * autoplay), but added here so a visitor's pointer resting on the carousel
+ * to read a name — or aim a click — doesn't have to fight the drift. A ref
+ * flag checked once per frame, not React state, so hovering never re-renders.
  *
  * ─── REDUCED MOTION GETS A DIFFERENT LAYOUT, NOT A FROZEN ONE ────────────────
  *
- * Freezing the fan mid-cycle would leave most of the roster off-screen or
- * mid-fade — not "no motion, same information." So `prefers-reduced-motion`
- * swaps the fan out entirely for a plain wrapped row of the same tiles, laid
- * flat with no 3D transform at all. Same faces, same click-to-open, just no
- * motion and nothing hidden off-canvas.
+ * Freezing mid-drift would leave most of the roster off to the sides at the
+ * curve's low-opacity floor, some likely clipped by the stage's
+ * `overflow-hidden` — not "no motion, same information." So
+ * `prefers-reduced-motion` swaps the carousel out entirely for a plain
+ * wrapped row of the same tiles, laid flat with no 3D transform. Same faces,
+ * same click-to-open, just no motion and nothing hidden off-canvas.
  *
  * ─── THE MODAL STEPS THROUGH THE ROSTER ──────────────────────────────────────
  *
@@ -72,27 +72,32 @@ const MAX_ACHIEVEMENTS = 4;
 /** Milliseconds between each block's arrival inside the modal. */
 const LINE_STAGGER_MS = 60;
 
-/** Seconds for one face's full pass through the fan — right edge to centre to
-    left edge and back around. Fixed, not scaled by roster size: with N faces
-    spread evenly across one cycle (see `fanDelayMs`), a shorter cycle just
-    means a new face reaches centre more often, not that any one face moves
-    faster through its own path. */
-const FAN_CYCLE_S = 16;
-
-/** Where in the cycle (0–1) a face is fully visible, centred, and flat —
-    the middle of the fan. Mirrored on both sides of it below. */
-const FAN_CENTRE = 0.5;
-
 /**
- * Delay (ms), always negative, that puts face `index` of `count` at the
- * centre of the fan (`FAN_CENTRE`) at the moment the page loads, with the
- * rest already spread evenly ahead of and behind it — see the header for why
- * every face runs the identical `@keyframes` and only this offset differs.
+ * The reference's own defaults (`state` in the pasted code), used verbatim:
+ * `radius` and `depthScale` shape the cylindrical projection, `autoPlaySpeed`
+ * is px of `targetX` drift per animation frame, `cardGap` the px between
+ * cards at the reference's own `cardWidth`. Not re-tuned — see the header for
+ * why guessing new numbers is exactly how the previous two passes drifted
+ * from what was actually asked for.
  */
-function fanDelayMs(index: number, count: number): number {
-  const cycleMs = FAN_CYCLE_S * 1000;
-  return -(FAN_CENTRE + index / count) * cycleMs;
-}
+const CAROUSEL_RADIUS_PX = 750;
+const CAROUSEL_DEPTH_SCALE = 3.2;
+const CAROUSEL_AUTOPLAY_SPEED = 1.2;
+const CAROUSEL_CARD_GAP_PX = 6;
+/** `updateResponsiveDimensions`'s clamp: never narrower than legible, never
+    wider than the reference's own ceiling. */
+const CAROUSEL_CARD_MIN_WIDTH_PX = 160;
+const CAROUSEL_CARD_MAX_WIDTH_PX = 250;
+/** How much of the stage width the five-cards-ideal-width formula targets. */
+const CAROUSEL_FIT_FRACTION = 0.88;
+const CAROUSEL_FIT_CARDS = 5;
+/** `1 − (0.14 lerp factor)`; currentX closes 14% of the gap to targetX each
+    frame, exactly the reference's smoothing constant. */
+const CAROUSEL_LERP = 0.14;
+/** The reference's own aspect ratio (height = 1.12 × width) is close to
+    square; ours keeps the site's existing 4:5 portrait tiles instead — see
+    the header on why card-internal styling stayed ours, not copied. */
+const CAROUSEL_CARD_ASPECT = 5 / 4;
 
 /** Minimum horizontal drag (px) on the modal before it counts as a swipe
     rather than a click or a text selection. */
@@ -157,19 +162,30 @@ function withFeaturedFirst(members: readonly TeamMember[]): TeamMember[] {
   return featured ? [featured, ...copy] : copy;
 }
 
-const TILE_SIZE = 'w-[9.5rem] sm:w-[12rem] lg:w-[13.5rem]';
-
-const TILE_CLASSES = [
-  'group/tile relative aspect-[4/5] shrink-0 cursor-pointer overflow-hidden rounded-gb-xl bg-surface-muted text-left',
-  TILE_SIZE,
+const TILE_CLASSES_BASE = [
+  'group/tile relative shrink-0 cursor-pointer overflow-hidden rounded-gb-xl bg-surface-muted text-left',
   'opacity-90 grayscale-[35%] transition duration-300 ease-out hover:opacity-100 hover:grayscale-0',
   'motion-reduce:transition-none',
   'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
 ].join(' ');
 
-function MemberFace({ member, onOpen }: { member: TeamMember; onOpen: () => void }) {
+/** For the reduced-motion static grid, where Tailwind's own breakpoints size
+    the tile. The carousel below sizes each tile itself (measured px, matching
+    the reference's own responsive formula), so it passes `size-full` instead. */
+const TILE_CLASSES = `${TILE_CLASSES_BASE} aspect-[4/5] w-[9.5rem] sm:w-[12rem] lg:w-[13.5rem]`;
+const TILE_CLASSES_FLUID = `${TILE_CLASSES_BASE} size-full`;
+
+function MemberFace({
+  member,
+  onOpen,
+  className = TILE_CLASSES,
+}: {
+  member: TeamMember;
+  onOpen: () => void;
+  className?: string;
+}) {
   return (
-    <button type="button" onClick={onOpen} className={TILE_CLASSES}>
+    <button type="button" onClick={onOpen} className={className}>
       {member.photo_url ? (
         /* Plain <img>, like the avatar and the modal portrait: photo URLs come
            from Google Drive and admin uploads, and an unconfigured host makes
@@ -201,6 +217,136 @@ function MemberFace({ member, onOpen }: { member: TeamMember; onOpen: () => void
         <span className="truncate text-gb-xs font-medium text-white/80">{member.role}</span>
       </span>
     </button>
+  );
+}
+
+/**
+ * The carousel itself — see the file header. `members[0]` is dead centre at
+ * rest (index 0's `relativeX` is 0 before `currentX` starts drifting), which
+ * is why the caller passes the featured-first `ordered` array rather than
+ * the raw roster.
+ */
+function TeamCarousel({
+  members,
+  onOpen,
+}: {
+  members: readonly TeamMember[];
+  onOpen: (index: number) => void;
+}) {
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const cardRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const pausedRef = useRef(false);
+
+  /** `cardWidth`, in px — the one thing `updateResponsiveDimensions` recomputes;
+      everything else in the reference's `state` is a fixed constant (above). */
+  const [cardWidth, setCardWidth] = useState(CAROUSEL_CARD_MAX_WIDTH_PX);
+  const cardHeight = Math.round(cardWidth * CAROUSEL_CARD_ASPECT);
+
+  // `updateResponsiveDimensions`: fit CAROUSEL_FIT_CARDS across
+  // CAROUSEL_FIT_FRACTION of the stage, clamped to a legible range.
+  useEffect(() => {
+    const viewport = viewportRef.current;
+    if (viewport === null) return;
+    const measure = () => {
+      const vpWidth = viewport.offsetWidth;
+      const ideal = Math.floor(
+        (vpWidth * CAROUSEL_FIT_FRACTION - CAROUSEL_FIT_CARDS * CAROUSEL_CARD_GAP_PX) /
+          CAROUSEL_FIT_CARDS,
+      );
+      setCardWidth(Math.max(CAROUSEL_CARD_MIN_WIDTH_PX, Math.min(ideal, CAROUSEL_CARD_MAX_WIDTH_PX)));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(viewport);
+    return () => observer.disconnect();
+  }, []);
+
+  // `renderPhysicsLoop` + `updateCardTransforms`, ported to refs/rAF instead
+  // of a global `state` object and direct `document` DOM lookups — see the
+  // file header for why this stays imperative rather than becoming React
+  // state driving a re-render every frame.
+  useEffect(() => {
+    if (members.length === 0) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const cardState = { currentX: 0, targetX: 0 };
+    let frame: number | null = null;
+
+    function step() {
+      if (!pausedRef.current && !reduced.matches) {
+        cardState.targetX -= CAROUSEL_AUTOPLAY_SPEED;
+      }
+      cardState.currentX += (cardState.targetX - cardState.currentX) * CAROUSEL_LERP;
+      updateCardTransforms(cardState.currentX);
+      frame = requestAnimationFrame(step);
+    }
+
+    function updateCardTransforms(currentX: number) {
+      const step = cardWidth + CAROUSEL_CARD_GAP_PX;
+      const totalSpan = members.length * step;
+      const viewportWidth = viewportRef.current?.offsetWidth ?? 0;
+      const maxDist = viewportWidth * 0.65;
+
+      cardRefs.current.forEach((card, index) => {
+        if (card === null) return;
+
+        const basePosition = index * step + currentX;
+        let relativeX = ((basePosition % totalSpan) + totalSpan) % totalSpan;
+        if (relativeX > totalSpan / 2) relativeX -= totalSpan;
+
+        // True cylindrical arc trigonometry — verbatim from the reference.
+        const angle = relativeX / CAROUSEL_RADIUS_PX;
+        const posX = CAROUSEL_RADIUS_PX * Math.sin(angle);
+        const translateZ =
+          (1 - Math.cos(angle)) * CAROUSEL_RADIUS_PX * (CAROUSEL_DEPTH_SCALE * 0.5);
+        const rotateY = -angle * (180 / Math.PI);
+
+        const absDist = Math.abs(relativeX);
+        const normalizedDist = maxDist > 0 ? Math.min(absDist / maxDist, 1) : 0;
+        const opacity = Math.max(1 - normalizedDist * 0.35, 0.4);
+
+        card.style.transform = `translate(-50%, -50%) translateX(${posX}px) translateZ(${translateZ}px) rotateY(${rotateY}deg)`;
+        card.style.opacity = String(opacity);
+        card.style.zIndex = String(Math.round(1000 - absDist));
+      });
+    }
+
+    // Reduced motion still needs one frame to lay every face out along the
+    // curve (currentX frozen at 0) instead of leaving them at their
+    // pre-mount default position — it just never advances after that.
+    updateCardTransforms(0);
+    frame = requestAnimationFrame(step);
+    return () => {
+      if (frame !== null) cancelAnimationFrame(frame);
+    };
+  }, [members.length, cardWidth]);
+
+  return (
+    <div
+      ref={viewportRef}
+      onPointerEnter={() => {
+        pausedRef.current = true;
+      }}
+      onPointerLeave={() => {
+        pausedRef.current = false;
+      }}
+      className="relative h-[280px] overflow-hidden [perspective:1200px] motion-reduce:hidden sm:h-[340px] lg:h-[400px]"
+    >
+      <div ref={trackRef} className="absolute inset-0 [transform-style:preserve-3d]">
+        {members.map((member, index) => (
+          <div
+            key={member.id}
+            ref={(node) => {
+              cardRefs.current[index] = node;
+            }}
+            className="absolute left-1/2 top-1/2 [backface-visibility:hidden]"
+            style={{ width: cardWidth, height: cardHeight }}
+          >
+            <MemberFace member={member} onOpen={() => onOpen(index)} className={TILE_CLASSES_FLUID} />
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -445,34 +591,11 @@ export function AboutTeam({ members }: { members: readonly TeamMember[] }) {
           </p>
         </div>
 
-        {/* The fan. `overflow-hidden` crops whichever faces are currently
-            off-canvas at the edges of their path rather than letting them
-            push the page wider. `[perspective:1200px]` sits on this
-            ancestor, not the faces themselves — perspective applies to a 3D
-            element's children, and the faces are what actually need the
-            depth. `--gb-fan-spread` is the one responsive knob — see the
-            header. */}
-        <div className="group/team-fan relative h-[280px] overflow-hidden [perspective:1200px] [--gb-fan-spread:0.55] motion-reduce:hidden sm:h-[340px] sm:[--gb-fan-spread:0.8] lg:h-[400px] lg:[--gb-fan-spread:1]">
-          {ordered.map((member, index) => (
-            <div
-              key={member.id}
-              className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 [transform-style:preserve-3d]"
-            >
-              <div
-                className="animate-gb-team-fan [will-change:transform,opacity] group-hover/team-fan:[animation-play-state:paused] group-focus-within/team-fan:[animation-play-state:paused]"
-                style={{
-                  animationDuration: `${FAN_CYCLE_S}s`,
-                  animationDelay: `${fanDelayMs(index, ordered.length)}ms`,
-                }}
-              >
-                <MemberFace member={member} onOpen={() => setOpenIndex(index)} />
-              </div>
-            </div>
-          ))}
-        </div>
+        <TeamCarousel members={ordered} onOpen={setOpenIndex} />
 
-        {/* Reduced-motion fallback: the same faces, no fan — see the header
-            for why this is a different layout rather than a frozen one. */}
+        {/* Reduced-motion fallback: the same faces, no carousel — see the
+            header for why this is a different layout rather than a frozen
+            one. */}
         <div className="hidden flex-wrap justify-center gap-gb-xl motion-reduce:flex">
           {ordered.map((member, index) => (
             <MemberFace key={member.id} member={member} onOpen={() => setOpenIndex(index)} />
