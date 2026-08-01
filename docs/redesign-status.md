@@ -109,6 +109,24 @@ Each is documented in a comment at the top of the relevant file.
   `?openCourseSearch` entry point from `/scholarships`) are retained.
 - **`/apply` crests fall back to initials.** Only 4 of 29 live rows carry a
   `university_id` to join a `logo_url` from.
+- **`/apply` adds five things `562:15078` does not draw** (01/08, after the owner
+  called the page boring). All five are recorded in the file headers of
+  `my-application-section.tsx` and `saved-list-section.tsx`; the reason they are
+  additions rather than fidelity is that Figma has no clock, no cursor and no
+  selection model, so a live list has to supply those itself:
+  1. **The deadline is banded** — `features/apply/domain/deadline.ts`. Rose
+     inside a fortnight, amber inside a month, struck through once passed, with
+     a "N days left" countdown. The frame prints all three dates in one grey.
+  2. **The tracker row answers the pointer** — a rose rail unrolls at its left
+     edge, the border goes Rose/300 and the card lifts.
+  3. **A ticked saved row shows it on the card** — brand border + ring, not a
+     Rose/50 fill: every pill on that card *is* Rose/50, so a wash erases the
+     rankings, the tuition and any attached scholarship. Measured, not guessed.
+  4. **The scholarship bar is a Rose/50 panel** rather than a hairline rule. Its
+     gift icon, headline, link and CTA were already rose and were floating on
+     the same white as the rows above them.
+  5. **A Rose/50 bloom behind the first heading**, fading out before the first
+     row. Both empty states are on the same Rose/50 + Rose/100 pairing.
 - **`/about` hero** — the frame claims "offices all around the world" over a world
   map. Untrue for a Vietnamese student startup; replaced with honest copy.
 - **`/news` cards** — no author byline (`GeoGuide` has no author field).
@@ -299,6 +317,17 @@ name. Find it by height: 2461 vs 1771/1563.
 **The tracker block is unchanged.** `562:15393` is h680 with three h184 rows —
 byte-identical to `375:12994`, which the code was already built from. Nothing in
 `ApplicationRow` needed touching.
+
+⚠️ **THE FRAME IS NAMED "My Portal ", NOT "Trang lưu".** The name above was read
+off the *cluster*, which is what the owner calls it; the frame's own layer name
+is "My Portal " (trailing space). Both headings on it are **`Colors/Rose/600`**,
+and each carries a mark the first build dropped — a 56px Rose/50 disc holding a
+40px globe (`562:15622` / `562:15637`) beside "My application", and a 32px
+Rose/50 disc holding the kit's heart (`562:15559`) beside "Saved University".
+They shipped in `text-fg` with no marks at all, which is what made the owner
+call the page boring on 01/08. Both are now in
+`src/app/apply/section-heading.tsx`; the globe is committed at
+`public/brand/apply-globe.png` (the export is a 2048² PNG, resized to 160²).
 
 **The saved row shrank 272px → 188px**, and the removed element is `Frame 162`,
 the "Ngành … / Chọn lại ngành tại đây" line. **It is kept anyway** (owner, 31/07)

@@ -1186,6 +1186,15 @@ export const translations: Record<string, string> = {
     'Chưa có gì ở đây — lên kế hoạch từ danh sách đã lưu bên dưới, hoặc thêm khoá học bằng link.',
   'Continue applying': 'Tiếp tục apply',
   // `Deadline` is already keyed further up (line ~442) and covers this row too.
+  //
+  // The countdown under the date (features/apply/domain/deadline.ts). Same
+  // split as the scholarship bar's "Scholarship 50%": the number is its own
+  // text node in the component, so only the noun needs a key here — an
+  // interpolated "3 days left" could never be a dictionary hit on this route.
+  'day left': 'ngày nữa',
+  'days left': 'ngày nữa',
+  'Due today': 'Hạn hôm nay',
+  'Deadline passed': 'Đã quá hạn',
   'Add a course': 'Thêm khoá học',
   'Paste a university course page URL': 'Dán link trang khoá học của trường',
   'Add course': 'Thêm khoá học',
