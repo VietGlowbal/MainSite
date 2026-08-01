@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { attachedOptions, bestCoveragePercent, scholarshipCandidates } from '../saved-list';
+import {
+  attachedOptions,
+  bestCoveragePercent,
+  scholarshipCandidates,
+  scholarshipLabel,
+} from '../saved-list';
 
 type Option = { id: number; name: string };
 
@@ -144,5 +149,84 @@ describe('bestCoveragePercent', () => {
 
   it('returns null for an empty list', () => {
     expect(bestCoveragePercent([])).toBeNull();
+  });
+});
+
+describe('scholarshipLabel', () => {
+  /* The three awards from the owner's 01/08 screenshot, verbatim. The middle
+     one is the pill that hung 87px past the card. */
+  it('strips the university from an award named after it', () => {
+    expect(
+      scholarshipLabel(
+        "Amsterdam Merit Scholarships for Master's Students at University of Amsterdam 2026 (Fully Funded)",
+        'University of Amsterdam (UvA)',
+      ),
+    ).toBe("Amsterdam Merit Scholarships for Master's Students 2026 (Fully Funded)");
+
+    expect(
+      scholarshipLabel(
+        'Amsterdam Economics and Business Talent Fund at University of Amsterdam 2026 (Fully Funded)',
+        'University of Amsterdam (UvA)',
+      ),
+    ).toBe('Amsterdam Economics and Business Talent Fund 2026 (Fully Funded)');
+
+    expect(
+      scholarshipLabel(
+        'Free Tuition at Ludwig Maximilian University of Munich 2026 (Full Tuition)',
+        'Ludwig Maximilian University of Munich (LMU)',
+      ),
+    ).toBe('Free Tuition 2026 (Full Tuition)');
+  });
+
+  it('matches the parenthetical acronym when the award uses it', () => {
+    expect(
+      scholarshipLabel('Presidential Fellowship at MIT 2026', 'Massachusetts Institute of Technology (MIT)'),
+    ).toBe('Presidential Fellowship 2026');
+  });
+
+  it('matches the full stored name, parenthetical included', () => {
+    expect(
+      scholarshipLabel('Global Leaders Award at University of Amsterdam (UvA)', 'University of Amsterdam (UvA)'),
+    ).toBe('Global Leaders Award');
+  });
+
+  it('is case-insensitive about the university', () => {
+    expect(scholarshipLabel('Merit Award at university of amsterdam', 'University of Amsterdam (UvA)')).toBe(
+      'Merit Award',
+    );
+  });
+
+  it('leaves a name that merely opens with the university alone', () => {
+    // Only the connective " at <university>" is removed — see the header.
+    expect(
+      scholarshipLabel('MIT Presidential Fellowship', 'Massachusetts Institute of Technology (MIT)'),
+    ).toBe('MIT Presidential Fellowship');
+  });
+
+  it('leaves a name with no university in it alone', () => {
+    expect(scholarshipLabel("President's PhD Scholarships", 'Imperial College London')).toBe(
+      "President's PhD Scholarships",
+    );
+  });
+
+  it('does not match a longer word that merely starts with the acronym', () => {
+    expect(scholarshipLabel('Award at MITacs Institute', 'Massachusetts Institute of Technology (MIT)')).toBe(
+      'Award at MITacs Institute',
+    );
+  });
+
+  it('refuses to strip itself down to nothing', () => {
+    // Everything but the university would leave a badge naming no award.
+    expect(scholarshipLabel('at University of Amsterdam', 'University of Amsterdam (UvA)')).toBe(
+      'at University of Amsterdam',
+    );
+  });
+
+  it('survives a university name full of regex metacharacters', () => {
+    expect(scholarshipLabel('Grant at Foo (Bar+) [x]', 'Foo (Bar+) [x]')).toBe('Grant');
+  });
+
+  it('returns the name untouched when the university is blank', () => {
+    expect(scholarshipLabel('Some Award', '   ')).toBe('Some Award');
   });
 });
