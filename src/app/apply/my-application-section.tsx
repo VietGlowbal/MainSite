@@ -6,10 +6,12 @@ import { useRouter } from 'next/navigation';
 import { UpgradePromptModal } from '@/components/upgrade-prompt-modal';
 import {
   courseUrlLabel,
+  deadlineUrgency,
   displayCourseName,
   displayUniversityName,
   isParsePending,
 } from '@/features/apply/domain';
+import type { DeadlineTone } from '@/features/apply/domain';
 import { ResearchingInline } from '@/features/apply/ui';
 import type { CourseApplication } from '@/lib/apply-types';
 import {
@@ -22,6 +24,7 @@ import {
   ScoreRing,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { ApplySectionHeading } from './section-heading';
 
 /**
  * "My application" — the applications tracker. A SECTION, not a page: it renders
@@ -70,6 +73,17 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
  *     are the three nav menus. The row reflows here: the gauge and deadline drop
  *     under the text block below `lg`.
  *
+ *  7. THE DEADLINE IS BANDED. The frame prints all three dates in one grey,
+ *     which a mockup can afford and a nine-row live list cannot — see
+ *     features/apply/domain/deadline.ts. Rose inside a fortnight, amber inside a
+ *     month, grey beyond, struck through once it has passed.
+ *
+ * Colour, added 01/08 after the owner called the page boring: the heading is
+ * Rose/600 with the globe mark the frame draws beside it (both were missing —
+ * see section-heading.tsx), and the row answers the pointer. The hover state is
+ * NOT in the frame: Figma draws one resting state per row and has no notion of
+ * a cursor, so a list whose rows lead somewhere has to say so itself.
+ *
  * Dropped from the previous dashboard because the frame does not draw them and
  * they were not load-bearing: the overview stat card, the upcoming-deadlines
  * card, the mentor and "improve your profile" promos and the trial banner. All
@@ -96,6 +110,40 @@ function formatDeadline(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+/** The date itself, banded. See departure (7) in the header. */
+const DEADLINE_TEXT: Record<DeadlineTone, string> = {
+  passed: 'text-fg-muted line-through',
+  urgent: 'text-brand',
+  soon: 'text-fg',
+  normal: 'text-fg-tertiary',
+};
+
+/**
+ * The countdown under the date.
+ *
+ * Every string here is a static dictionary key and the number is its own text
+ * node, for the reason the saved list's scholarship bar documents at length:
+ * /apply is a PII route, machine translation is off, and an interpolated
+ * "3 days left" could never be a dictionary hit.
+ */
+function DeadlineCountdown({ tone, days }: { tone: DeadlineTone; days: number }) {
+  if (tone === 'passed') {
+    return <span className="text-gb-sm font-medium text-fg-muted">Deadline passed</span>;
+  }
+  if (days === 0) {
+    return <span className="text-gb-sm font-semibold text-brand">Due today</span>;
+  }
+
+  const colour =
+    tone === 'urgent' ? 'text-brand' : tone === 'soon' ? 'text-fg-secondary' : 'text-fg-muted';
+
+  return (
+    <span className={`text-gb-sm font-medium ${colour}`}>
+      {days} <span>{days === 1 ? 'day left' : 'days left'}</span>
+    </span>
+  );
 }
 
 function isPending(app: CourseApplication): boolean {
@@ -157,9 +205,21 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
   const urlLabel = courseUrlLabel(app.courseUrl);
   const pending = isPending(app);
   const failed = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
+  const urgency = deadlineUrgency(app.deadline);
 
   return (
-    <li className="flex flex-col gap-gb-3xl rounded-gb-2xl border border-line p-gb-xl lg:flex-row lg:items-center lg:justify-between">
+    <li className="group relative flex flex-col gap-gb-3xl overflow-hidden rounded-gb-2xl border border-line bg-surface p-gb-xl transition duration-200 hover:-translate-y-gb-xxs hover:border-gb-brand-300 hover:shadow-gb-lg lg:flex-row lg:items-center lg:justify-between">
+      {/*
+        The rose rail that unrolls on hover. Purely an affordance: the whole row
+        is a link target in everything but markup (the CTA is the accessible
+        one), and a bordered rectangle that does nothing on approach is what
+        made the list read as a table.
+      */}
+      <span
+        aria-hidden
+        className="absolute inset-y-0 left-0 w-gb-xs origin-top scale-y-0 bg-brand transition-transform duration-200 group-hover:scale-y-100 motion-reduce:transition-none"
+      />
+
       {/* Figma 337:18790 "_Job post" */}
       <div className="flex min-w-0 flex-1 items-center gap-gb-2xl">
         <Avatar
@@ -210,7 +270,11 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
             ) : null}
             {app.deadline ? (
               <span className="flex items-center gap-gb-sm">
-                <KitIcon art={ICONS.clock} frame={20} className="shrink-0 text-fg-tertiary" />
+                <KitIcon
+                  art={ICONS.clock}
+                  frame={20}
+                  className={`shrink-0 ${urgency?.tone === 'urgent' ? 'text-brand' : 'text-fg-tertiary'}`}
+                />
                 <span className="text-gb-sm font-semibold text-fg-tertiary">
                   Deadline: {formatDeadline(app.deadline)}
                 </span>
@@ -227,16 +291,25 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
         <div className="flex flex-col justify-center gap-gb-xl">
           <div className="flex flex-col gap-gb-xxs">
             <span className="text-gb-sm text-fg-secondary">Deadline</span>
-            <span className="text-gb-xl font-semibold text-fg-tertiary">
+            <span
+              className={`text-gb-xl font-semibold ${
+                urgency ? DEADLINE_TEXT[urgency.tone] : 'text-fg-tertiary'
+              }`}
+            >
               {app.deadline ? formatDeadline(app.deadline) : 'No deadline set'}
             </span>
+            {urgency ? <DeadlineCountdown tone={urgency.tone} days={urgency.days} /> : null}
           </div>
           <Link
             href={`/apply/${app.id}`}
-            className="flex items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            className="group/cta flex items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             Continue applying
-            <KitIcon art={ICONS.arrowUpRight} frame={20} />
+            <KitIcon
+              art={ICONS.arrowUpRight}
+              frame={20}
+              className="transition-transform duration-200 group-hover/cta:-translate-y-gb-xxs group-hover/cta:translate-x-gb-xxs motion-reduce:transition-none"
+            />
           </Link>
         </div>
       </div>
@@ -379,16 +452,11 @@ export function MyApplicationSection({
       className="flex scroll-mt-gb-9xl flex-col gap-gb-6xl"
     >
       {/* Figma 562:15387 */}
-      <div className="flex flex-col gap-gb-lg">
-        <h1 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
-          My application
-        </h1>
-        <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
-          {applications.length > 0
-            ? 'The courses you are applying to, how far along each one is, and what is due next.'
-            : 'Nothing here yet — plan one from your saved list below, or add a course by URL.'}
-        </p>
-      </div>
+      <ApplySectionHeading as="h1" title="My application" mark="globe">
+        {applications.length > 0
+          ? 'The courses you are applying to, how far along each one is, and what is due next.'
+          : 'Nothing here yet — plan one from your saved list below, or add a course by URL.'}
+      </ApplySectionHeading>
 
       {showImportBar ? <ImportBar /> : null}
 
@@ -410,7 +478,12 @@ export function MyApplicationSection({
           merge this offered "Search universities", because the saved list was a
           different URL; it is the next section, so say so.
         */
-        <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
+        <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-gb-brand-100 bg-brand-subtle p-gb-5xl">
+          {/* An empty list is the first thing most students see here, so it is
+              the one place on the page worth spending a little colour on. */}
+          <span className="flex size-gb-6xl items-center justify-center rounded-gb-full bg-surface text-brand">
+            <KitIcon art={ICONS.zapFast} frame={28} />
+          </span>
           <p className="text-gb-md text-fg-tertiary">
             Tick a university in your saved list below and plan its application, or paste a course
             page URL above.

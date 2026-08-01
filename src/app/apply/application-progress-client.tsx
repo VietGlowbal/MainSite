@@ -257,8 +257,29 @@ export function ApplicationProgressClient({
       />
 
       {/* Figma 562:15091 — both sections live in this one column. */}
-      <main className="min-h-screen pb-gb-9xl pt-gb-6xl">
-        <Container className="flex flex-col gap-gb-7xl">
+      {/* `relative` only — deliberately NOT `overflow-hidden`. The bloom below
+          is inset inside `main` and needs no clipping, and this element is the
+          ancestor of both the scholarship dialogs and the saved list's toast,
+          which are `position: fixed`. */}
+      <main className="relative min-h-screen pb-gb-9xl pt-gb-6xl">
+        {/*
+          A rose bloom behind the first heading. Decorative and not in the frame,
+          which paints the page flat white: the two headings and their marks are
+          the only colour above the fold, and on a 1440 canvas they sat in the
+          top-left corner of a very large empty rectangle. This gives that
+          rectangle the same rose the marks are made of and fades it out before
+          the first row. Token value, not a hex — Rose/50, as everywhere else.
+        */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 top-0 h-[480px]"
+          style={{
+            background:
+              'radial-gradient(70% 100% at 12% 0%, var(--color-gb-brand-50), transparent 72%)',
+          }}
+        />
+
+        <Container className="relative flex flex-col gap-gb-7xl">
           <MyApplicationSection
             applications={applications}
             logoByUniversityId={logoByUniversityId}

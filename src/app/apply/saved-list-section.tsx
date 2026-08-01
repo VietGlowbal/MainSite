@@ -15,6 +15,7 @@ import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarships';
 import { createClient } from '@/lib/supabase/client';
 import { TID, testId } from '@/shared/lib';
 import { Badge, Button, ICONS, KitIcon, Modal } from '@/shared/ui';
+import { ApplySectionHeading } from './section-heading';
 
 /**
  * The saved list — the cart. A SECTION, not a page: it renders inside
@@ -77,6 +78,19 @@ import { Badge, Button, ICONS, KitIcon, Modal } from '@/shared/ui';
  *
  *  5. NO MOBILE FRAME EXISTS for this page, so the row reflows here: the
  *     checkbox and Remove share a top line, then the cover, then the card.
+ *
+ *  6. TICKING A ROW SHOWS ON THE ROW. The frame draws a checked box (562:15100)
+ *     and changes nothing else, which was survivable when the tick only fed a
+ *     dialog and is not now: the tick decides which universities "Apply
+ *     scholarship" and "Plan my application" act on, and a 16px box at the far
+ *     left of a 188px card is not enough signal for a destructive-ish batch
+ *     action. The chosen row gets the brand border and a rose wash.
+ *
+ * Colour, added 01/08 after the owner called the page boring: the heading is
+ * Rose/600 with the heart mark the frame draws beside it (both were missing —
+ * see section-heading.tsx), the scholarship bar became the rose panel its own
+ * rose gift icon and rose headline were already asking for, and the cover
+ * answers the pointer.
  */
 
 export type ScholarshipOption = {
@@ -282,7 +296,7 @@ function SavedRowItem({
   return (
     <li
       {...testId(TID.uniCard)}
-      className={`flex flex-wrap items-center gap-gb-lg lg:gap-gb-3xl ${
+      className={`group flex flex-wrap items-center gap-gb-lg lg:gap-gb-3xl ${
         removing ? 'pointer-events-none opacity-50' : ''
       }`}
     >
@@ -302,7 +316,11 @@ function SavedRowItem({
         Remove
       </button>
 
-      <div className="order-3 w-full overflow-hidden rounded-gb-2xl bg-surface-muted lg:order-2 lg:h-[188px] lg:w-[260px] lg:shrink-0">
+      <div
+        className={`order-3 w-full overflow-hidden rounded-gb-2xl bg-surface-muted transition-shadow duration-200 lg:order-2 lg:h-[188px] lg:w-[260px] lg:shrink-0 ${
+          selected ? 'ring-2 ring-brand' : ''
+        }`}
+      >
         {row.imageUrl ? (
           /* Plain <img>, matching FadeInImage on /universities: cover images come
              from arbitrary hosts and next/image would reject anything not in
@@ -312,7 +330,7 @@ function SavedRowItem({
             src={row.imageUrl}
             alt=""
             loading="lazy"
-            className="aspect-[260/188] w-full object-cover lg:h-full"
+            className="aspect-[260/188] w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100 lg:h-full"
           />
         ) : (
           <div className="flex aspect-[260/188] w-full items-center justify-center lg:h-full">
@@ -338,7 +356,23 @@ function SavedRowItem({
         subject renders neither). Pinning 272 would leave that row padded with
         empty space instead of closing up.
       */}
-      <article className="order-4 flex w-full flex-col justify-between gap-gb-2xl rounded-gb-2xl border border-line bg-surface p-gb-3xl lg:order-3 lg:min-h-[188px] lg:min-w-0 lg:flex-1">
+      <article
+        className={`order-4 flex w-full flex-col justify-between gap-gb-2xl rounded-gb-2xl border p-gb-3xl transition duration-200 group-hover:shadow-gb-lg lg:order-3 lg:min-h-[188px] lg:min-w-0 lg:flex-1 ${
+          /*
+            Departure (6): the tick has to be legible from across the card.
+            A DOUBLED ROSE EDGE, NOT A ROSE FILL. Washing the card in Rose/50
+            was the first attempt and it erases the row's own content — the
+            rank pills, the tuition badge and any attached scholarship are all
+            `brand-subtle`, i.e. that exact Rose/50, so they vanish into the
+            card the moment it is ticked. The border keeps the surface white
+            and the badges readable; the cover's ring and the rose checkbox
+            carry the rest of the signal.
+          */
+          selected
+            ? 'border-brand bg-surface shadow-gb-lg ring-1 ring-brand'
+            : 'border-line bg-surface group-hover:border-gb-brand-300'
+        }`}
+      >
         <div className="flex flex-col gap-gb-xl">
           <div className="flex flex-col gap-gb-md">
             {/* h3: this row sits under the section's own h2 ("Saved list"),
@@ -1038,25 +1072,23 @@ export function SavedListSection({
 
   return (
     <section id="saved" className="flex scroll-mt-gb-9xl flex-col gap-gb-6xl">
-      {/* Figma 562:15092 */}
-      <div className="flex flex-col gap-gb-lg">
-        {/*
-          h2, not h1. On 562:15078 this heading and "My application" are both
-          drawn at display size, but they are now two sections of one page and
-          only one of them can be its title.
-        */}
-        <h2 className="font-display text-gb-display-xs font-medium tracking-gb-display-tight text-fg md:text-gb-display-md">
-          Saved list
-        </h2>
-        <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
-          {rows.length > 0
-            ? 'The universities you have saved, with their deadlines and any scholarships you have attached.'
-            : 'Nothing saved yet — the universities you save while browsing show up here.'}
-        </p>
-      </div>
+      {/*
+        Figma 562:15092. h2, not h1 — on 562:15078 this heading and
+        "My application" are drawn identically, but they are two sections of one
+        page and only one of them can be its title. The frame's own wording is
+        "Saved University"; shipped in the plural, since it labels a list.
+      */}
+      <ApplySectionHeading as="h2" title="Saved universities" mark="heart">
+        {rows.length > 0
+          ? 'The universities you have saved, with their deadlines and any scholarships you have attached.'
+          : 'Nothing saved yet — the universities you save while browsing show up here.'}
+      </ApplySectionHeading>
 
       {rows.length === 0 ? (
-        <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
+        <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-gb-brand-100 bg-brand-subtle p-gb-5xl">
+          <span className="flex size-gb-6xl items-center justify-center rounded-gb-full bg-surface text-brand">
+            <KitIcon art={ICONS.heart} frame={28} />
+          </span>
           <p className="text-gb-md text-fg-tertiary">
             Save a university from the search page and it will appear here with its deadline and the
             scholarships attached to it.
@@ -1092,9 +1124,16 @@ export function SavedListSection({
         dialog with different scope: the link browses everything linked to the
         saved list, the button attaches one award to the ticked rows. See the
         `candidates` memo.
+
+        THE ROSE PANEL IS NOT IN THE FRAME, which draws a hairline rule and
+        white. Everything inside it already is rose — the gift icon, the
+        "Học bổng 50%" headline, the link and the CTA — so the strip was four
+        rose elements floating on the same white as the rows above it, reading
+        as more list rather than as the page's one summary. Rose/50 with a
+        Rose/100 edge is the pairing the empty states and the heading marks use.
       */}
       {rows.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-gb-xl border-t border-line pt-gb-3xl">
+        <div className="flex flex-wrap items-center justify-between gap-gb-xl rounded-gb-2xl border border-gb-brand-100 bg-brand-subtle px-gb-4xl py-gb-3xl">
           <div className="flex flex-wrap items-center gap-gb-5xl">
             <span className="flex items-center gap-gb-xl">
               <KitIcon art={ICONS.gift01} frame={32} className="shrink-0 text-brand" />
