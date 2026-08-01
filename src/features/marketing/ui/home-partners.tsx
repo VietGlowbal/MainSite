@@ -386,9 +386,17 @@ function StudyWord({ word }: { word: string }) {
 
   /* The gradient is painted through the glyphs, so the text itself has no
      colour of its own — `text-transparent` is what makes the fill visible, not
-     an accident. */
+     an accident.
+
+     `text-left` OVERRIDES the `text-center` inherited from the h2. Without it,
+     a short word (MIT, NUS, HKU) centres inside the reservation cell above —
+     which is sized for "Cambridge"/"ETH Zürich" — and ends up floating well
+     right of "Study" with a big gap in between. Left-aligning pins every word
+     flush against "Study "; the leftover reserved width still trails invisibly
+     after the word, so the line's total width (and therefore "Study"'s
+     position) still never jitters as words change. */
   const wordClasses =
-    'col-start-1 row-start-1 whitespace-nowrap bg-[image:var(--gb-partner-word)] bg-clip-text text-transparent';
+    'col-start-1 row-start-1 whitespace-nowrap text-left bg-[image:var(--gb-partner-word)] bg-clip-text text-transparent';
 
   /* inline-grid, not inline-block: every word below shares ONE cell
      (col-start-1 row-start-1), which both stacks them and makes the cell as wide
@@ -736,20 +744,6 @@ export function HomePartners({ universityIds }: HomePartnersProps = {}) {
             <h2 className="text-center font-display text-gb-display-sm font-semibold tracking-gb-display-open lg:whitespace-nowrap lg:text-[4.7059cqw] lg:leading-[6.2745cqw]">
               Study <StudyWord word={hovered?.shortName ?? DEFAULT_STUDY_WORD} />
             </h2>
-            {/* The institution's full, formal name — the heading only has room
-                for what people call it. Reserves its own line so nothing shifts as
-                a logo passes under the cursor. Empty until one does. Desktop only:
-                it answers a hover, and there is no hover on the mobile layout.
-
-                aria-hidden because it is a duplicate — the name it shows is the
-                alt text of the logo being hovered, which is already in the tree,
-                and is now also that logo's link text. */}
-            <p
-              aria-hidden="true"
-              className="hidden h-gb-3xl text-center text-gb-md text-white/70 lg:block"
-            >
-              {hovered?.name}
-            </p>
           </div>
 
           <ul className="flex flex-wrap justify-center gap-gb-3xl lg:block">
