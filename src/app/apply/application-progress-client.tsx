@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SavedNavLink } from '@/components/saved-nav-link';
-import { CourseSearchSessionModal } from '@/components/course-search-session-modal';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
@@ -38,6 +37,15 @@ import { SavedListSection, type SavedRow } from './saved-list-section';
  * The child routes did NOT move: /apply/[applicationId] is the per-course
  * workspace, and /my-universities/program is still the subject picker the saved
  * rows link to.
+ *
+ * ⚠️ THE ONLY WAY TO CREATE AN APPLICATION IS `planApplications` (01/08). The
+ * paste-a-course-URL bar and the CourseSearchSessionModal that used to sit
+ * alongside it are gone, along with the `?universityId` + `?openCourseSearch`
+ * entry point that opened the modal. That param had no caller left outside the
+ * modal's own post-auth return trip — `/scholarships` sends `?focus=<id>`, which
+ * is handled below — so nothing external broke. The endpoint behind the bar,
+ * `/api/applications/from-course-url`, is still there and still supports the
+ * ingestion pipeline; it simply has no button.
  */
 
 /** Everything the shell hands to the saved list, resolved on the server. */
@@ -49,13 +57,6 @@ export type ApplicationProgressClientProps = {
   savedRows: SavedRow[];
   userName?: string | null;
   userAvatarUrl?: string | null;
-  /**
-   * Target of the ?universityId=..&openCourseSearch=true entry point, resolved
-   * server-side. `domain` is '' when the name is not in the websites lookup —
-   * the modal already treats that as "unknown", as the previous dashboard did.
-   */
-  courseSearchUniversity: { id: number; name: string; domain: string } | null;
-  openCourseSearch: boolean;
   isLoggedOut?: boolean;
 };
 
@@ -65,30 +66,20 @@ export function ApplicationProgressClient({
   savedRows,
   userName,
   userAvatarUrl,
-  courseSearchUniversity,
-  openCourseSearch,
   isLoggedOut = false,
 }: ApplicationProgressClientProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  // Keeps the list moving while a pasted URL is still being read. Also covers
-  // the rows `planApplications` creates — they arrive parse_status='pending'.
+  // Keeps the list moving while an enrichment parse is still running. Only rows
+  // planned for a university with a catalogued course link are ever pending.
   useParseRefresh(anyParsePending(applications));
-
-  /*
-   * /scholarships links here with ?universityId=..&openCourseSearch=true.
-   *
-   * Derived at mount rather than set from inside the effect below: the flag is a
-   * prop, so opening the modal is initial state, not a reaction to one.
-   */
-  const [searchOpen, setSearchOpen] = useState(
-    () => openCourseSearch && courseSearchUniversity != null,
-  );
 
   const applicationsRef = useRef<HTMLElement>(null);
   const [planning, setPlanning] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
+  /** Set by ?focus=<universityId> below; the saved list ticks and scrolls to it. */
+  const [focusUniversityId, setFocusUniversityId] = useState<number | null>(null);
   useLoadingIndicator(planning, 'Setting up your application');
 
   /**
@@ -111,26 +102,31 @@ export function ApplicationProgressClient({
 
   /**
    * "Lên kế hoạch ứng tuyển" — turn ticked saved universities into tracked
-   * applications, then scroll up to them.
+   * applications, then scroll up to them. This is now the ONLY way an
+   * application is created.
    *
-   * NO NEW ENDPOINT. `POST /api/applications/from-course-url` already creates
-   * the row and queues the parse job that produces the checklist, the deadline
-   * and the progress the donut reads; it also answers 409 with
-   * `existingApplicationId` when the course is already tracked, which is
-   * exactly the "you already planned this one, here it is" case. Posting the
-   * saved row's own programme URL is the whole implementation.
+   * IT POSTS A UNIVERSITY, NOT A URL. It used to post each row's `program_url`
+   * to `/api/applications/from-course-url`, which meant a saved row without one
+   * could not become an application at all — and most cannot: the programme
+   * catalogue covers 24 of the 106 universities, so for the other 82 the subject
+   * list comes from `universities.strengths`, which is names with no links
+   * behind it. That bounced the student to the subject picker and, when the
+   * picker had no URL to save either, told them to go and find one. The new
+   * endpoint takes `{ universityId }`, reads the subject off the saved row, and
+   * seeds the baseline checklist itself; the course link is optional and only
+   * decides whether an AI enrichment pass is queued on top.
    *
-   * A row with no subject chosen has no URL to post, and an application with no
-   * course parses into nothing — no checklist, no deadline, a donut frozen at
-   * 0%. So that row goes to the subject picker first and comes back through
-   * `?planFor`, rather than being created hollow. (Owner's call, 31/07.)
+   * A row with no SUBJECT still goes to the picker first, because an application
+   * is "I am applying to study X at Y" and without X there is nothing to track.
+   * The endpoint enforces that too (409 SUBJECT_REQUIRED) — this is the same
+   * check made early so the student is not charged a round trip to be told.
    */
   const planApplications = useCallback(
     async (rows: SavedRow[]) => {
       if (rows.length === 0) return;
       setPlanError(null);
 
-      const needsSubject = rows.find((row) => !row.programUrl);
+      const needsSubject = rows.find((row) => !row.program);
       if (needsSubject) {
         const back = `/apply?planFor=${needsSubject.universityId}`;
         router.push(
@@ -141,15 +137,30 @@ export function ApplicationProgressClient({
 
       setPlanning(true);
       const failed: string[] = [];
+      let quotaReached = false;
+
       for (const row of rows) {
         try {
-          const res = await fetch('/api/applications/from-course-url', {
+          const res = await fetch('/api/applications/from-saved-university', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ courseUrl: row.programUrl, universityId: row.universityId }),
+            body: JSON.stringify({ universityId: row.universityId }),
           });
-          // 409 means it is already on the list — the goal, not a failure.
-          if (!res.ok && res.status !== 409) failed.push(row.name);
+
+          if (res.ok) continue;
+
+          const body = await res.json().catch(() => ({}));
+          // 409 + duplicate means it is already on the plan — the goal, not a
+          // failure. 409 + SUBJECT_REQUIRED is a race with the picker and is
+          // reported like any other refusal.
+          if (res.status === 409 && body.duplicate) continue;
+          /* The free plan allows five active courses. Say so once rather than
+             naming every row that hit the same wall. */
+          if (res.status === 403) {
+            quotaReached = true;
+            break;
+          }
+          failed.push(row.name);
         } catch {
           failed.push(row.name);
         }
@@ -161,7 +172,9 @@ export function ApplicationProgressClient({
        * would be the worst outcome: the student scrolls up, counts fewer rows
        * than they ticked, and has no way to know which.
        */
-      if (failed.length > 0) {
+      if (quotaReached) {
+        setPlanError('You have reached the number of courses your plan allows.');
+      } else if (failed.length > 0) {
         setPlanError(
           failed.length === rows.length
             ? 'We could not set those applications up. Please try again.'
@@ -179,10 +192,14 @@ export function ApplicationProgressClient({
   /*
    * The return trip from the subject picker: /apply?planFor=<universityId>.
    *
-   * Consumed once and stripped from the URL, for the same reason
-   * ?openCourseSearch is below — otherwise a refresh or a back-navigation
-   * re-fires it. The row is looked up in the freshly-rendered `savedRows`, so
-   * by this point it has the programme the student just picked.
+   * Consumed once and stripped from the URL — otherwise a refresh or a
+   * back-navigation re-fires it. The row is looked up in the freshly-rendered
+   * `savedRows`, so by this point it has the subject the student just picked.
+   *
+   * ⚠️ THE DEAD END HERE IS GONE. This used to require `programUrl` and, when
+   * the picker had none to save — the common case, not an edge one, for the 82
+   * universities with no catalogue — told the student to go and find a course
+   * link themselves. A subject is now enough.
    */
   const planFor = searchParams.get('planFor');
   useEffect(() => {
@@ -192,22 +209,12 @@ export function ApplicationProgressClient({
     router.replace(params.size ? `/apply?${params}` : '/apply', { scroll: false });
 
     const row = savedRows.find((r) => String(r.universityId) === planFor);
-    if (row?.programUrl) {
+    if (row?.program) {
       void planApplications([row]);
     } else if (row) {
-      /*
-       * Back from the picker, still no URL — and this is the common case, not
-       * an edge one. The catalogue covers 24 of 106 universities; for the other
-       * 82 the subject list comes from `universities.strengths`, which is a
-       * list of names with no links behind it, so there is nothing for the
-       * picker to have saved.
-       *
-       * Say so instead of pushing them back to the picker, which would be a
-       * loop, or doing nothing, which would look like the button is broken.
-       */
-      setPlanError(
-        'We need the course page link to build a checklist. Open "Change subject here" on that university and paste the link to the course.',
-      );
+      // Came back without choosing anything. Not an error — say what is missing
+      // rather than bouncing them into the picker again, which would be a loop.
+      setPlanError('Choose a subject for that university to plan its application.');
     }
     // `savedRows` and `planApplications` are deliberately out of the dep list:
     // this must fire once per arrival, not again when the refresh above
@@ -215,14 +222,29 @@ export function ApplicationProgressClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planFor]);
 
-  // Drop the trigger from the URL once it has been consumed, so a refresh or a
-  // back-navigation does not re-open the modal. This part is a real side effect.
+  /*
+   * /apply?focus=<universityId>, sent by /scholarships when the student presses
+   * "go to my plan" from a scholarship attached to a university
+   * (scholarship-directory-client.tsx). It has been sent since that page was
+   * built and IGNORED here the whole time — the owner's own screenshot is of
+   * /apply?focus=82 doing nothing. It now scrolls the saved row into view and
+   * ticks it, so "Plan my application" acts on the one they arrived for.
+   *
+   * Consumed once and stripped from the URL, like ?planFor above.
+   */
+  const focus = searchParams.get('focus');
   useEffect(() => {
-    if (!openCourseSearch || !courseSearchUniversity) return;
+    if (!focus) return;
     const params = new URLSearchParams(searchParams.toString());
-    params.delete('openCourseSearch');
+    params.delete('focus');
     router.replace(params.size ? `/apply?${params}` : '/apply', { scroll: false });
-  }, [openCourseSearch, courseSearchUniversity, router, searchParams]);
+
+    const universityId = Number.parseInt(focus, 10);
+    if (!Number.isFinite(universityId)) return;
+    if (!savedRows.some((row) => row.universityId === universityId)) return;
+    setFocusUniversityId(universityId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focus]);
 
   const isSignedIn = !isLoggedOut && !!userName;
   const primaryAction = useMemo(() => ({ href: '/universities', label: 'Search universities' }), []);
@@ -283,7 +305,6 @@ export function ApplicationProgressClient({
           <MyApplicationSection
             applications={applications}
             logoByUniversityId={logoByUniversityId}
-            showImportBar={!isLoggedOut}
             sectionRef={applicationsRef}
           />
 
@@ -308,6 +329,7 @@ export function ApplicationProgressClient({
               onPlan={planApplications}
               onGoToApplications={scrollToApplications}
               planning={planning}
+              focusUniversityId={focusUniversityId}
             />
           )}
         </Container>
@@ -321,16 +343,6 @@ export function ApplicationProgressClient({
         copyright={FOOTER_COPYRIGHT}
         ratings={FOOTER_RATINGS}
       />
-
-      {searchOpen && courseSearchUniversity ? (
-        <CourseSearchSessionModal
-          isOpen
-          onClose={() => setSearchOpen(false)}
-          universityId={courseSearchUniversity.id}
-          universityName={courseSearchUniversity.name}
-          universityDomain={courseSearchUniversity.domain}
-        />
-      ) : null}
     </div>
   );
 }

@@ -1,9 +1,8 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UpgradePromptModal } from '@/components/upgrade-prompt-modal';
 import {
   courseUrlLabel,
   deadlineUrgency,
@@ -14,15 +13,7 @@ import {
 import type { DeadlineTone } from '@/features/apply/domain';
 import { ResearchingInline } from '@/features/apply/ui';
 import type { CourseApplication } from '@/lib/apply-types';
-import {
-  Avatar,
-  Button,
-  ICONS,
-  Input,
-  KitIcon,
-  ProgressBar,
-  ScoreRing,
-} from '@/shared/ui';
+import { Avatar, Button, ICONS, KitIcon, ProgressBar, ScoreRing } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { ApplySectionHeading } from './section-heading';
 
@@ -63,11 +54,16 @@ import { ApplySectionHeading } from './section-heading';
  *     Only 7 of 29 live rows have a deadline at all, so the block collapses to
  *     "No deadline set" instead of inventing one.
  *
- *  5. THE IMPORTER IS KEPT. The frame draws no way to add an application, which
- *     would leave the page a dead end — and would drop the Smart Course Importer,
- *     a headline feature. The paste-a-URL bar is retained above the list, in
- *     tokens. Same for CourseSearchSessionModal, which /scholarships links into
- *     with ?openCourseSearch=true; removing it would break that funnel.
+ *  5. THERE IS NO IMPORTER, AND THE FRAME IS RIGHT ABOUT THAT. This section used
+ *     to carry a paste-a-course-URL bar, on the reasoning that the frame drew no
+ *     way to add an application and removing it would leave a dead end. The
+ *     owner confirmed on 01/08 that the frame is the intent: applications are
+ *     created from the saved list below — tick a university, attach a
+ *     scholarship if there is one, press "Plan my application" — and this
+ *     section is a read-only view of what that produced. The bar, the
+ *     CourseSearchSessionModal it shared the page with, and the
+ *     ?openCourseSearch entry point all went with it. See
+ *     app/api/applications/from-saved-university/route.ts.
  *
  *  6. NO MOBILE FRAME EXISTS for this page — the only 375-wide frames in the file
  *     are the three nav menus. The row reflows here: the gauge and deadline drop
@@ -317,127 +313,14 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
   );
 }
 
-/**
- * Paste-a-course-URL importer. Ported from the previous dashboard's ImportBar
- * with its behaviour intact — same endpoint, same 409 duplicate and 403 quota
- * branches — and restyled onto tokens.
- */
-function ImportBar() {
-  const router = useRouter();
-  const [url, setUrl] = useState('');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [loading, setLoading] = useState(false);
-  useLoadingIndicator(loading, 'Loading your applications');
-  const [quota, setQuota] = useState<{ currentUsage: number; currentLimit: number } | null>(null);
-
-  const handleSubmit = useCallback(
-    async (e: React.FormEvent) => {
-      e.preventDefault();
-      if (!url.trim()) {
-        setError('Please paste a course URL first.');
-        return;
-      }
-      try {
-        new URL(url);
-      } catch {
-        setError("This doesn't appear to be a valid course page. Double-check the URL.");
-        return;
-      }
-
-      setError('');
-      setSuccess('');
-      setLoading(true);
-      try {
-        const response = await fetch('/api/applications/from-course-url', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ courseUrl: url }),
-        });
-        const data = await response.json();
-
-        if (!response.ok) {
-          if (response.status === 409 && data.duplicate) {
-            setError('This course is already in your list.');
-          } else if (response.status === 403 && data.upgradeRequired) {
-            setQuota({
-              currentUsage: data.usage?.coursesAdded ?? 0,
-              currentLimit: data.usage?.courseAddLimit ?? 5,
-            });
-          } else {
-            setError(data.error || 'Failed to add course. Please try again.');
-          }
-          return;
-        }
-
-        setSuccess('Course added. Building your checklist in the background.');
-        setUrl('');
-        // Server-rendered list — re-read rather than guess at the new row.
-        router.refresh();
-      } catch {
-        setError('Could not reach the server. Please try again.');
-      } finally {
-        setLoading(false);
-      }
-    },
-    [url, router],
-  );
-
-  return (
-    <div className="flex flex-col gap-gb-md rounded-gb-2xl border border-line p-gb-3xl">
-      <form onSubmit={handleSubmit} method="post" className="flex flex-col gap-gb-lg sm:flex-row sm:items-start">
-        <Input
-          name="courseUrl"
-          type="url"
-          value={url}
-          onChange={(e) => {
-            setUrl(e.target.value);
-            setError('');
-            setSuccess('');
-          }}
-          label="Add a course"
-          placeholder="Paste a university course page URL"
-          disabled={loading}
-          fieldClassName="flex-1"
-          {...(error ? { error } : {})}
-          {...(success && !error ? { hint: success } : {})}
-        />
-        <Button type="submit" size="lg" disabled={loading} className="sm:mt-[26px]">
-          {loading ? 'Adding…' : 'Add course'}
-        </Button>
-      </form>
-      <p className="text-gb-sm text-fg-muted">
-        We parse the official course page and build your application checklist from it.
-      </p>
-
-      {quota ? (
-        <UpgradePromptModal
-          isOpen
-          onClose={() => setQuota(null)}
-          limitType="courses"
-          currentUsage={quota.currentUsage}
-          currentLimit={quota.currentLimit}
-        />
-      ) : null}
-    </div>
-  );
-}
-
-
 export function MyApplicationSection({
   applications,
   logoByUniversityId,
-  showImportBar = true,
   sectionRef,
 }: {
   applications: CourseApplication[];
   /** universities.logo_url keyed by universities.id, for the row crest. */
   logoByUniversityId: Record<number, string | null>;
-  /**
-   * False in the signed-out shell, where there is nothing to import into.
-   * The bar itself is a deliberate departure from the frame — see (5) above.
-   */
-  showImportBar?: boolean;
   /**
    * Scroll target for "Lên kế hoạch ứng tuyển" and the scholarship
    * confirmation, both of which live in the saved list below and both of which
@@ -455,10 +338,8 @@ export function MyApplicationSection({
       <ApplySectionHeading as="h1" title="My application" mark="globe">
         {applications.length > 0
           ? 'The courses you are applying to, how far along each one is, and what is due next.'
-          : 'Nothing here yet — plan one from your saved list below, or add a course by URL.'}
+          : 'Nothing here yet — tick a university in your saved list below and plan its application.'}
       </ApplySectionHeading>
-
-      {showImportBar ? <ImportBar /> : null}
 
       {applications.length > 0 ? (
         <ul className="flex flex-col gap-gb-5xl">
@@ -485,8 +366,8 @@ export function MyApplicationSection({
             <KitIcon art={ICONS.zapFast} frame={28} />
           </span>
           <p className="text-gb-md text-fg-tertiary">
-            Tick a university in your saved list below and plan its application, or paste a course
-            page URL above.
+            Tick a university in your saved list below, choose the subject you want, and plan its
+            application. It will appear here.
           </p>
           <Button href="#saved" variant="secondary" size="lg">
             Go to my saved list

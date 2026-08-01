@@ -51,7 +51,7 @@ import { formatTuitionForCard, officialWebsite, splitList } from '@/features/uni
  * NEVER PRERENDERED — and this broke the e2e build before it was set.
  *
  * Since the merge this route renders `ApplicationProgressClient`, which calls
- * `useSearchParams()` (for `?planFor` and `?openCourseSearch`). That is a
+ * `useSearchParams()` (for `?planFor` and `?focus`). That is a
  * request-time API, so static export fails with "useSearchParams() should be
  * wrapped in a suspense boundary". `npm run build` did NOT catch it locally:
  * without ENABLE_DEV_ROUTES the `notFound()` below fires first and the client
@@ -150,8 +150,6 @@ export default async function SavedListPreviewPage() {
       savedRows={rows}
       userName="Preview user"
       userAvatarUrl={null}
-      courseSearchUniversity={null}
-      openCourseSearch={false}
     />
   );
 }

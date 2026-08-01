@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -79,6 +79,15 @@ import { ApplySectionHeading } from './section-heading';
  *
  *  5. NO MOBILE FRAME EXISTS for this page, so the row reflows here: the
  *     checkbox and Remove share a top line, then the cover, then the card.
+ *
+ *  7. "PLAN MY APPLICATION" IS THE PRIMARY ACTION, NOT A STATE THE SCHOLARSHIP
+ *     BAR SWAPS INTO. 375:12841 draws it replacing "Apply Học bổng" once an
+ *     award is attached, which made creating an application conditional on
+ *     having one — and a university with no scholarship in the directory could
+ *     therefore never be planned at all. Since this is the only way to create
+ *     an application (the URL importer is gone, 01/08), the two are now
+ *     independent: plan whenever something is ticked, attach an award when
+ *     there is one to attach. See the note on the buttons.
  *
  *  6. TICKING A ROW SHOWS ON THE ROW. The frame draws a checked box (562:15100)
  *     and changes nothing else, which was survivable when the tick only fed a
@@ -342,6 +351,10 @@ function SavedRowItem({
   return (
     <li
       {...testId(TID.uniCard)}
+      /* The scroll target for ?focus=<universityId> — see the effect in
+         SavedListSection. A data attribute rather than an id: `id` on a list row
+         is a document-wide name, and these are already keyed by university. */
+      data-university-id={row.universityId}
       className={`group flex flex-wrap items-center gap-gb-lg lg:gap-gb-3xl ${
         removing ? 'pointer-events-none opacity-50' : ''
       }`}
@@ -957,6 +970,7 @@ export function SavedListSection({
   onPlan,
   onGoToApplications,
   planning = false,
+  focusUniversityId = null,
 }: {
   rows: SavedRow[];
   /**
@@ -972,6 +986,11 @@ export function SavedListSection({
   onGoToApplications: () => void;
   /** Disables the CTA while the shell is mid-create. */
   planning?: boolean;
+  /**
+   * The university `?focus=<id>` arrived pointing at. Ticked and scrolled to on
+   * arrival so "Plan my application" acts on the one they came for.
+   */
+  focusUniversityId?: number | null;
 }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -1000,6 +1019,33 @@ export function SavedListSection({
         : [...prev, universityId],
     );
   }, []);
+
+  /*
+   * ?focus=<universityId>: tick that row and bring it into view. Ticking is the
+   * useful half — the student arrived from /scholarships intending to plan this
+   * one, and the CTAs act on the ticked rows.
+   *
+   * The tick is applied DURING RENDER rather than from an effect. React
+   * documents this as the way to adjust state when a prop changes, and the
+   * lint rule that bans `setState` inside an effect is pointing at the real
+   * cost: from an effect this would render the list unticked, then immediately
+   * again ticked. `focusedRow` is the "previous prop" guard that keeps it to
+   * one extra render and lets the student untick afterwards.
+   */
+  const [focusedRow, setFocusedRow] = useState<number | null>(null);
+  if (focusUniversityId != null && focusUniversityId !== focusedRow) {
+    setFocusedRow(focusUniversityId);
+    setSelected((prev) => (prev.includes(focusUniversityId) ? prev : [...prev, focusUniversityId]));
+  }
+
+  // The scroll is a real side effect and stays in one, after the row is drawn.
+  useEffect(() => {
+    if (focusUniversityId == null) return;
+    const node = document.querySelector(`[data-university-id="${focusUniversityId}"]`);
+    if (!node) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    node.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+  }, [focusUniversityId]);
 
   const remove = useCallback(
     async (row: SavedRow) => {
@@ -1212,21 +1258,35 @@ export function SavedListSection({
             </button>
           </div>
           {/*
-            On 375:12841 the ticked row already HAS its scholarship, and the
-            CTA there is "Lên kế hoạch ứng tuyển" — there is nothing left to
-            apply, so the next step is the application. That is the rule, not
-            "any award anywhere switches the button": a student with three
-            saved universities and one award still needs to be able to attach
-            an award to the other two, and hiding this behind an attached
-            count would strand them.
+            ⚠️ "PLAN MY APPLICATION" IS ALWAYS THE PRIMARY ACTION NOW (01/08).
 
-            SINCE THE MERGE THIS BUTTON DOES SOMETHING. It used to be
-            `href="/apply"` — a link to the page this section now lives on,
-            which after the merge would have scrolled the student to where they
-            already were. It now creates the applications for the ticked rows
-            and hands off to the shell to scroll up to them.
+            These two buttons used to swap, on the rule "once the ticked rows
+            have no scholarship left to attach and at least one is attached, the
+            next step is the application". Read against the live data that rule
+            hides the only way to create an application behind a scholarship:
+            a university with NO scholarships in the directory has
+            `applyCandidates.length === 0` and `attachedCount === 0`, which fell
+            to the else branch and offered "Apply scholarship" — a button whose
+            dialog opens to say there are none. A dead end, on the page's one
+            job.
+
+            The owner's flow is "tick a university, attach a scholarship IF
+            there is one, then plan". So planning is the primary action whenever
+            anything is ticked, and attaching an award is the secondary one,
+            shown only when the ticked rows actually have an award to attach.
+            Both frames' states are still reachable; neither blocks the other.
           */}
-          {applyCandidates.length === 0 && attachedCount > 0 ? (
+          <div className="flex flex-wrap items-center gap-gb-lg">
+            {applyCandidates.length > 0 ? (
+              <Button
+                variant="secondary"
+                size="lg"
+                disabled={selected.length === 0}
+                onClick={() => setPicker('apply')}
+              >
+                Apply scholarship
+              </Button>
+            ) : null}
             <Button
               size="lg"
               disabled={planning || selectedRows.length === 0}
@@ -1234,19 +1294,15 @@ export function SavedListSection({
             >
               Plan my application
             </Button>
-          ) : (
-            <Button size="lg" disabled={selected.length === 0} onClick={() => setPicker('apply')}>
-              Apply scholarship
-            </Button>
-          )}
+          </div>
         </div>
       ) : null}
 
-      {/* The button above is disabled rather than hidden when nothing is
+      {/* The buttons above are disabled rather than hidden when nothing is
           ticked, so say what to do about it. */}
-      {rows.length > 0 && attachedCount === 0 && selected.length === 0 ? (
+      {rows.length > 0 && selected.length === 0 ? (
         <p className="-mt-gb-4xl text-gb-sm text-fg-muted">
-          Tick a university to attach a scholarship to it.
+          Tick a university to plan its application.
         </p>
       ) : null}
 

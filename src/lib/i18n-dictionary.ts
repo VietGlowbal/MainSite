@@ -629,6 +629,80 @@ export const translations: Record<string, string> = {
   'View official course page': 'Xem trang khóa học chính thức',
   'More options': 'Thêm tùy chọn',
 
+  /*
+   * The five stages (STAGE_TEMPLATE in lib/course-parser/extract-course.ts) and
+   * the baseline checklist written onto every application at creation
+   * (lib/course-parser/baseline-checklist.ts).
+   *
+   * These are stored in the database as English rows, not rendered from code,
+   * but the workspace is under /apply and therefore a PII route with machine
+   * translation switched off — so each one has to be a static key or it sits in
+   * English forever. AI-extracted task titles cannot be covered this way and do
+   * not appear here; they are the course page's own wording.
+   *
+   * `Research` is already keyed above (as a funding type) and covers the stage.
+   */
+  'Check eligibility': 'Kiểm tra điều kiện',
+  'Prepare documents': 'Chuẩn bị hồ sơ',
+  'Improve application': 'Cải thiện hồ sơ',
+  /*
+   * `Submit` is NOT keyed here. It already exists in the common-actions block
+   * near the top as 'Gửi', and this dictionary keys on the English string with
+   * no notion of context — so a second entry is a duplicate-key error, and
+   * changing the first to 'Nộp hồ sơ' would repaint every generic Submit button
+   * in the product. 'Gửi' reads correctly enough as a stage name; disambiguating
+   * properly needs a namespaced key, which this dictionary does not have.
+   */
+  'Understand the course, the university and whether it fits your plans.':
+    'Tìm hiểu khoá học, trường và mức độ phù hợp với dự định của bạn.',
+  'Confirm you meet the academic, English and test requirements.':
+    'Xác nhận bạn đáp ứng yêu cầu học thuật, tiếng Anh và các bài thi.',
+  'Gather and write everything the application asks you to submit.':
+    'Chuẩn bị và viết mọi giấy tờ mà hồ sơ yêu cầu.',
+  'Strengthen the parts of your application that are weakest.':
+    'Củng cố những phần yếu nhất trong hồ sơ của bạn.',
+  'Send the application and track its progress.': 'Nộp hồ sơ và theo dõi tiến độ.',
+
+  'Read the official course page': 'Đọc trang khoá học chính thức',
+  'Confirm the course is the one you want: what it covers, how long it runs and where it is taught.':
+    'Xác nhận đây đúng là khoá học bạn muốn: nội dung, thời lượng và nơi đào tạo.',
+  'Find the application deadline': 'Tìm hạn nộp hồ sơ',
+  'Deadlines differ by course and by round. Note the one that applies to you and work back from it.':
+    'Hạn nộp khác nhau theo khoá học và theo đợt. Ghi lại hạn áp dụng cho bạn và lên kế hoạch ngược từ đó.',
+  'Check the academic requirements': 'Kiểm tra yêu cầu học thuật',
+  'Compare your grades and subjects against what the course asks for.':
+    'Đối chiếu điểm và môn học của bạn với yêu cầu của khoá học.',
+  'Check the English language requirement': 'Kiểm tra yêu cầu tiếng Anh',
+  'Find the minimum score and whether individual band scores are set separately.':
+    'Tìm điểm tối thiểu và xem trường có yêu cầu điểm từng kỹ năng riêng không.',
+  'Check whether any admission test is required': 'Kiểm tra xem có bài thi đầu vào nào không',
+  'Some courses and countries require an entrance or aptitude test with its own deadline.':
+    'Một số khoá học và quốc gia yêu cầu bài thi đầu vào hoặc thi năng lực, có hạn nộp riêng.',
+  'Gather your academic transcripts': 'Chuẩn bị bảng điểm',
+  'Official transcripts for every year of study, translated if they are not in English.':
+    'Bảng điểm chính thức của tất cả các năm học, dịch thuật nếu không phải tiếng Anh.',
+  'Write your personal statement': 'Viết bài luận cá nhân',
+  'Why this subject, why this university, and what you have done that shows it.':
+    'Vì sao chọn ngành này, vì sao chọn trường này, và bạn đã làm gì để chứng minh điều đó.',
+  'Request your letters of recommendation': 'Xin thư giới thiệu',
+  'Ask early. Referees need time, and most portals want their details before you submit.':
+    'Hãy hỏi sớm. Người giới thiệu cần thời gian, và hầu hết hệ thống yêu cầu thông tin của họ trước khi bạn nộp.',
+  'Prepare your CV': 'Chuẩn bị CV',
+  'Education, work, activities and achievements on one or two pages.':
+    'Học vấn, kinh nghiệm, hoạt động và thành tích trong một đến hai trang.',
+  'Review your personal statement': 'Rà soát lại bài luận cá nhân',
+  'Read it back against the course page and cut anything that is not about this course.':
+    'Đọc lại bài luận cùng với trang khoá học và bỏ đi những gì không liên quan đến khoá học này.',
+  'Strengthen your weakest requirement': 'Củng cố yêu cầu bạn còn yếu nhất',
+  'Whichever requirement you are furthest from meeting is the one worth the remaining time.':
+    'Yêu cầu bạn còn cách xa nhất là yêu cầu đáng dành thời gian còn lại nhất.',
+  'Complete the online application form': 'Hoàn thành mẫu đơn trực tuyến',
+  'Fill in the university or national portal and attach every document it asks for.':
+    'Điền vào hệ thống của trường hoặc hệ thống quốc gia và đính kèm mọi giấy tờ được yêu cầu.',
+  'Pay the application fee and submit': 'Đóng lệ phí và nộp hồ sơ',
+  'Keep the confirmation — it is what you quote if you need to chase the application.':
+    'Giữ lại xác nhận — đó là thứ bạn cần khi hỏi lại về hồ sơ.',
+
   // ── Admin ────────────────────────────────────────────────────────────────
   'Admin Console': 'Bảng quản trị',
   'Manage Glowbal': 'Quản lý Glowbal',
@@ -1182,8 +1256,8 @@ export const translations: Record<string, string> = {
   'My application': 'Hồ sơ ứng tuyển của tôi',
   'The courses you are applying to, how far along each one is, and what is due next.':
     'Các khoá học bạn đang ứng tuyển, tiến độ từng hồ sơ và việc cần làm tiếp theo.',
-  'Nothing here yet — plan one from your saved list below, or add a course by URL.':
-    'Chưa có gì ở đây — lên kế hoạch từ danh sách đã lưu bên dưới, hoặc thêm khoá học bằng link.',
+  'Nothing here yet — tick a university in your saved list below and plan its application.':
+    'Chưa có gì ở đây — tích chọn một trường trong danh sách đã lưu bên dưới và lên kế hoạch ứng tuyển.',
   'Continue applying': 'Tiếp tục apply',
   // `Deadline` is already keyed further up (line ~442) and covers this row too.
   //
@@ -1195,12 +1269,12 @@ export const translations: Record<string, string> = {
   'days left': 'ngày nữa',
   'Due today': 'Hạn hôm nay',
   'Deadline passed': 'Đã quá hạn',
-  'Add a course': 'Thêm khoá học',
-  'Paste a university course page URL': 'Dán link trang khoá học của trường',
-  'Add course': 'Thêm khoá học',
-  'Adding…': 'Đang thêm…',
-  'We parse the official course page and build your application checklist from it.':
-    'Chúng tôi đọc trang khoá học chính thức và dựng danh sách việc cần làm từ đó.',
+  /*
+   * The paste-a-URL importer's six strings were removed here on 01/08 along
+   * with the bar itself ('Add a course', 'Paste a university course page URL',
+   * 'Add course', 'Adding…', and the two lines under them). Applications are
+   * created from the saved list now — see my-application-section.tsx (5).
+   */
   'GlowBal’s AI is reading the course page and building your checklist…':
     'AI của GlowBal đang đọc trang khoá học và dựng danh sách việc cần làm…',
   'Could not reach the server. Please try again.':
@@ -1219,12 +1293,19 @@ export const translations: Record<string, string> = {
   'Saved list': 'Danh sách đã lưu',
   // Added with the merge — the two sections now talk to each other.
   'Go to my saved list': 'Đến danh sách đã lưu',
-  'Tick a university in your saved list below and plan its application, or paste a course page URL above.':
-    'Chọn một trường trong danh sách đã lưu bên dưới và lên kế hoạch ứng tuyển, hoặc dán link trang khoá học ở trên.',
+  'Tick a university in your saved list below, choose the subject you want, and plan its application. It will appear here.':
+    'Tích chọn một trường trong danh sách đã lưu bên dưới, chọn ngành bạn muốn và lên kế hoạch ứng tuyển. Hồ sơ sẽ hiện ở đây.',
   'We could not set those applications up. Please try again.':
     'Chúng tôi không thiết lập được các hồ sơ đó. Vui lòng thử lại.',
-  'We need the course page link to build a checklist. Open "Change subject here" on that university and paste the link to the course.':
-    'Chúng tôi cần link trang khoá học để dựng danh sách việc cần làm. Mở "Đổi ngành tại đây" ở trường đó và dán link khoá học.',
+  /*
+   * Replaces "We need the course page link to build a checklist…". A subject is
+   * now enough to plan an application, so the student is never sent looking for
+   * a URL — see planApplications in application-progress-client.tsx.
+   */
+  'Choose a subject for that university to plan its application.':
+    'Hãy chọn ngành cho trường đó để lên kế hoạch ứng tuyển.',
+  'You have reached the number of courses your plan allows.':
+    'Bạn đã dùng hết số khoá học mà gói của bạn cho phép.',
   'Setting up your application': 'Đang thiết lập hồ sơ ứng tuyển của bạn',
   'The universities you have saved, with their deadlines and any scholarships you have attached.':
     'Các trường bạn đã lưu, kèm hạn chót và học bổng bạn đã áp dụng.',
@@ -1265,8 +1346,8 @@ export const translations: Record<string, string> = {
   'scholarships attached': 'học bổng đã áp dụng',
   'Apply scholarship': 'Áp học bổng',
   'Plan my application': 'Lên kế hoạch ứng tuyển',
-  'Tick a university to attach a scholarship to it.':
-    'Tích chọn một trường để áp học bổng cho trường đó.',
+  'Tick a university to plan its application.':
+    'Tích chọn một trường để lên kế hoạch ứng tuyển.',
 
   // The picker (375:13295)
   'Apply a scholarship': 'Áp học bổng',
@@ -1321,8 +1402,12 @@ export const translations: Record<string, string> = {
   'Collected from this university’s own course catalogue. Check the official page before you apply.':
     'Được thu thập từ danh mục khoá học của chính trường. Hãy kiểm tra trang chính thức trước khi nộp hồ sơ.',
   'Open the official course page': 'Mở trang khoá học chính thức',
-  'Cannot find the subject you want? Paste a link to it':
-    'Nếu không tìm thấy ngành mong muốn thì paste link',
+  // Was "Cannot find the subject you want? Paste a link to it", when a link was
+  // the only route to an application. It is optional now — see the note in
+  // program-picker.tsx.
+  'Have a link to the course page? (optional)': 'Có link trang khoá học? (không bắt buộc)',
+  'We will read it and build a checklist specific to this course. Without one you still get the standard application checklist.':
+    'Chúng tôi sẽ đọc link và dựng danh sách việc cần làm riêng cho khoá học này. Không có link thì bạn vẫn nhận được danh sách việc cần làm tiêu chuẩn.',
   'Optional. It shows as a link on your saved list.':
     'Không bắt buộc. Link sẽ hiện trong danh sách đã lưu của bạn.',
   'That does not look like a course page link — it needs to start with http:// or https://':

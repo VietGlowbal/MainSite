@@ -117,10 +117,20 @@ async function settleApplication(
 /**
  * Write the checklist.
  *
- * Deletes this application's AI-generated stages first, which cascades to their
- * tasks. That is what makes a retry safe — without it, a second successful
- * parse would double every task. Stages the *user* added survive, because the
- * delete is scoped to `ai_generated`.
+ * ⚠️ MATCHES STAGES ON SLUG; IT DOES NOT RECREATE THEM. This used to delete the
+ * application's `ai_generated` stages and insert five fresh ones, which was
+ * correct while a parse was the only thing that ever wrote a stage. It is not
+ * any more: every application is now seeded with the same five stages at
+ * creation (baseline-checklist.ts), flagged `ai_generated: false`. Deleting only
+ * the `ai_generated` ones would have left those five in place and inserted five
+ * more beside them — a duplicate spine, ten stages, on the first successful
+ * parse of every application.
+ *
+ * So the spine is upserted by `slug`, which is stable and canonical, and only
+ * the *tasks* are replaced — scoped to `created_by = 'ai'`, so the baseline
+ * tasks the student has already ticked off survive a parse landing on top of
+ * them, and so do any they added themselves. A retry is still safe: the second
+ * run replaces the first run's tasks rather than doubling them.
  */
 async function writeChecklist(
   applicationId: string,
@@ -128,39 +138,63 @@ async function writeChecklist(
 ): Promise<{ stages: number; tasks: number }> {
   const supabase = createAdminClient();
 
-  await supabase
-    .from('application_stages')
-    .delete()
-    .eq('application_id', applicationId)
-    .eq('ai_generated', true);
-
   const grouped = groupTasksByStage(extraction.tasks);
+  const confidence = confidenceToNumber(extraction.confidence);
 
-  const { data: createdStages, error: stageError } = await supabase
+  const { data: existingStages, error: readError } = await supabase
     .from('application_stages')
-    .insert(
-      grouped.map(({ stage }, index) => ({
-        application_id: applicationId,
-        name: stage.name,
-        slug: stage.slug,
-        description: stage.description,
-        order_num: index + 1,
-        status: 'not_started',
-        is_required: true,
-        ai_generated: true,
-        confidence: confidenceToNumber(extraction.confidence),
-      })),
-    )
-    .select('id, slug');
+    .select('id, slug')
+    .eq('application_id', applicationId);
 
-  if (stageError || !createdStages) {
-    throw new Error(`Failed to write stages: ${stageError?.message ?? 'no rows returned'}`);
+  if (readError) {
+    throw new Error(`Failed to read stages: ${readError.message}`);
   }
 
-  // Insert order is not a contract — match on slug rather than array index.
   const stageIdBySlug = new Map<string, string>(
-    createdStages.map((s) => [s.slug as string, s.id as string]),
+    (existingStages ?? []).map((s) => [s.slug as string, s.id as string]),
   );
+
+  const missing = grouped.filter(({ stage }) => !stageIdBySlug.has(stage.slug));
+
+  if (missing.length > 0) {
+    const { data: createdStages, error: stageError } = await supabase
+      .from('application_stages')
+      .insert(
+        missing.map(({ stage }) => ({
+          application_id: applicationId,
+          name: stage.name,
+          slug: stage.slug,
+          description: stage.description,
+          // Position in the template, not in `missing` — otherwise a stage
+          // added on a later parse sorts above the ones already there.
+          order_num: grouped.findIndex((g) => g.stage.slug === stage.slug) + 1,
+          status: 'not_started',
+          is_required: true,
+          ai_generated: true,
+          confidence,
+        })),
+      )
+      .select('id, slug');
+
+    if (stageError || !createdStages) {
+      throw new Error(`Failed to write stages: ${stageError?.message ?? 'no rows returned'}`);
+    }
+    for (const stage of createdStages) {
+      stageIdBySlug.set(stage.slug as string, stage.id as string);
+    }
+  }
+
+  // Clear out the previous extraction's tasks only. `created_by` is what
+  // separates them from the baseline and from the student's own.
+  const { error: clearError } = await supabase
+    .from('application_tasks')
+    .delete()
+    .eq('application_id', applicationId)
+    .eq('created_by', 'ai');
+
+  if (clearError) {
+    throw new Error(`Failed to clear previous AI tasks: ${clearError.message}`);
+  }
 
   const taskRows = grouped.flatMap(({ stage, tasks }) =>
     tasks.map((task, index) => ({
@@ -185,7 +219,9 @@ async function writeChecklist(
     }
   }
 
-  return { stages: createdStages.length, tasks: taskRows.length };
+  // `stages` counts what this run had to create, which on an application that
+  // already carries the baseline spine is normally zero.
+  return { stages: missing.length, tasks: taskRows.length };
 }
 
 /**
