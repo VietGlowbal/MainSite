@@ -38,19 +38,31 @@ export const translations: Record<string, string> = {
   // frame (104:7413) was not. Keep both keys.
   'Build your strategy': 'Lên Chiến lược Du học', // header, Figma 375:9845
   'AI strategy': 'Chiến lược AI', // footer, Figma 104:7413
+  // No longer a nav label — /news is "News" above since 01/08. Kept because
+  // DomTranslator matches any node whose text is exactly this.
   Blog: 'Blog',
   Contact: 'Liên hệ',
   // 'Find a mentor' is already defined further down, under the mentorship copy.
+  // The three destinations behind the "Search" dropdown translate through keys
+  // that already exist: Search, Mentors (above) and Scholarships / Universities
+  // (further down, under Topics). Do not add second copies of them here — a
+  // duplicate key in this object silently wins or loses by source order.
   // Mobile hamburger sheet. "Plan your studies" is the designer's CTA copy.
   Menu: 'Menu',
   'Close menu': 'Đóng menu',
   // Still the CTA button's copy (MARKETING_NAV_ACTIONS.primary -> /onboarding),
   // which is what a guest sees. The nav ITEM that used to share this string is
-  // now "Application" below.
+  // now "My Portal" below.
   'Plan your studies': 'Lập kế hoạch du học',
   'Build your application strategy':'Lên chiến lược ứng tuyển',
-  // Nav item -> /apply, signed-in only. Renamed from "Plan your studies" on
-  // 31/07 when that page absorbed the saved list.
+  /*
+   * Nav item -> /apply. "Plan your studies" until 31/07, "Application" until
+   * 01/08. "Hồ sơ của tôi" rather than a literal "Cổng của tôi": the page is
+   * the student's own applications and saved lists, and it already ships that
+   * exact wording as its H1 ('My Applications', further down).
+   */
+  'My Portal': 'Hồ sơ của tôi',
+  // Superseded as a nav label by 'My Portal'. Kept for the same reason as Blog.
   Application: 'Ứng tuyển',
 
   // ── Home hero (Figma 375:9857) ───────────────────────────────────────────
