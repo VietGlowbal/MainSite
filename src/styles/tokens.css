@@ -701,63 +701,12 @@
   }
 }
 
-/* ──────────────────────────────────────────────────────────────────────────
-   About-page team fan — a coverflow, not a carousel
-   (src/features/marketing/ui/about-team.tsx). One path, shared by every
-   face: enters off-screen right already tilted away, straightens and grows
-   through dead centre, tilts away again and exits off-screen left. Every
-   face runs this exact keyframe — only its `animation-delay` differs (see
-   `fanDelayMs` in the component), which is what spreads N faces along one
-   shared path instead of needing N separate animations or any per-frame JS.
-
-   Position/depth stops scale with `--gb-fan-spread` (set responsively on the
-   stage) so the path keeps the same shape at every breakpoint, just shorter
-   on a phone. Rotation and scale stay fixed across breakpoints on purpose —
-   those describe the curve's proportions, not its physical size.
-
-   Stops are asymmetric on purpose: opacity reaches 0 well before the
-   position/rotation stops finish easing out (0%→18% is invisible, 18%→26% is
-   the actual fade), so a face vanishes before it visibly snaps into its
-   next lap — the fade is the seam, not the position jump.
-   ────────────────────────────────────────────────────────────────────────── */
-@theme {
-  --animate-gb-team-fan: gb-team-fan linear infinite;
-
-  @keyframes gb-team-fan {
-    0% {
-      transform: translateX(calc(40rem * var(--gb-fan-spread, 1)))
-        translateZ(calc(-16rem * var(--gb-fan-spread, 1))) rotateY(-50deg) scale(0.68);
-      opacity: 0;
-    }
-    18% {
-      transform: translateX(calc(27rem * var(--gb-fan-spread, 1)))
-        translateZ(calc(-10rem * var(--gb-fan-spread, 1))) rotateY(-42deg) scale(0.78);
-      opacity: 0;
-    }
-    26% {
-      transform: translateX(calc(19rem * var(--gb-fan-spread, 1)))
-        translateZ(calc(-5rem * var(--gb-fan-spread, 1))) rotateY(-32deg) scale(0.88);
-      opacity: 1;
-    }
-    50% {
-      transform: translateX(0) translateZ(calc(2.5rem * var(--gb-fan-spread, 1))) rotateY(0deg)
-        scale(1);
-      opacity: 1;
-    }
-    74% {
-      transform: translateX(calc(-19rem * var(--gb-fan-spread, 1)))
-        translateZ(calc(-5rem * var(--gb-fan-spread, 1))) rotateY(32deg) scale(0.88);
-      opacity: 1;
-    }
-    82% {
-      transform: translateX(calc(-27rem * var(--gb-fan-spread, 1)))
-        translateZ(calc(-10rem * var(--gb-fan-spread, 1))) rotateY(42deg) scale(0.78);
-      opacity: 0;
-    }
-    100% {
-      transform: translateX(calc(-40rem * var(--gb-fan-spread, 1)))
-        translateZ(calc(-16rem * var(--gb-fan-spread, 1))) rotateY(50deg) scale(0.68);
-      opacity: 0;
-    }
-  }
-}
+/* About-page team carousel (src/features/marketing/ui/about-team.tsx) needs
+   no tokens here — it is a direct requestAnimationFrame port of the
+   owner-supplied reference's cylindrical-arc math, driving each card's
+   `transform`/`opacity`/`z-index` straight from a ref every frame rather
+   than through a CSS `@keyframes`. See that file's header for why: the
+   reference's curve is not a fixed per-card path (which a `@keyframes` can
+   express), it is the whole arrangement recentring around a continuously
+   drifting `currentX`. Two earlier CSS-only passes here (a rotating ring,
+   then a shared-path coverflow) are gone along with their tokens.*/
