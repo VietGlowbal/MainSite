@@ -700,3 +700,30 @@
     }
   }
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   About-page team row — the rotating strip of faces
+   (src/features/marketing/ui/about-team.tsx). Replaces the wrapping photo
+   grid + hover-reveal card the section shipped with: a marquee reads as more
+   alive for a roster this size, and a click-to-open detail suits a row that
+   is already moving (a hover reveal on a moving target is not reachable).
+
+   The duration is set per-instance via `--gb-marquee-duration` (a fixed pace
+   scaled by roster size, not a measured pixel speed) rather than hard-coded
+   here — see the component for why.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --animate-gb-team-marquee: gb-team-marquee var(--gb-marquee-duration, 40s) linear infinite;
+
+  @keyframes gb-team-marquee {
+    from {
+      transform: translateX(0);
+    }
+    to {
+      /* The track holds the roster twice back-to-back (see the component), so
+         sliding exactly half its width hands off to the second copy sitting
+         in the first copy's start position — no visible seam or jump. */
+      transform: translateX(-50%);
+    }
+  }
+}
