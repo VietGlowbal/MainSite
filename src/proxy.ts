@@ -104,16 +104,26 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL(redirectTarget, request.url));
     }
 
+    /*
+     * The post-login landing. Was /my-universities until the saved list and the
+     * applications tracker were merged onto /apply (Figma 562:15078) — that URL
+     * now 308s here anyway (next.config.ts), but sending a fresh sign-in
+     * through a redirect hop to reach their own homepage is not the thing to do.
+     */
     const url = request.nextUrl.clone();
-    url.pathname = '/my-universities';
+    url.pathname = '/apply';
     url.search = '';
     return NextResponse.redirect(url);
   }
 
   // Onboarding gate: signed-in users without a completed profile shouldn't
-  // see /my-universities/* or /profile until they finish onboarding.
+  // see /apply, /my-universities/* or /profile until they finish onboarding.
   // /universities and /mentors remain browseable so users can preview value.
-  const ONBOARDING_GATED = ['/my-universities', '/profile'];
+  //
+  // /apply joined this list with the merge: it is where the saved list lives
+  // now, and that is what this gate was protecting. /my-universities stays for
+  // the child routes (/program, /[id]) that did not move.
+  const ONBOARDING_GATED = ['/apply', '/my-universities', '/profile'];
   const needsOnboardingCheck =
     user &&
     ONBOARDING_GATED.some((route) => pathname.startsWith(route)) &&

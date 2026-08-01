@@ -68,7 +68,7 @@ function useNavPrefFlag(key: string): boolean {
 const NAV_ITEMS = [
   { href: '/',                label: 'Home',          mobile: 'Home',               activeMatch: 'exact' as const },
   { href: '/universities',    label: 'Search',        mobile: 'Search universities', activeMatch: 'prefix' as const },
-  { href: '/apply',           label: 'Apply',         mobile: 'Plan your studies',  activeMatch: 'prefix' as const, requiresAuth: true },
+  { href: '/apply',           label: 'Application',   mobile: 'Application',        activeMatch: 'prefix' as const, requiresAuth: true },
   { href: '/scholarships',    label: 'Scholarships',  mobile: 'Scholarships',       activeMatch: 'prefix' as const, requiresAuth: true },
   { href: '/mentors',         label: 'Mentorship',    mobile: 'Mentorship',         activeMatch: 'prefix' as const },
   { href: '/news',            label: 'GLOWBAL News',  mobile: 'GLOWBAL News',       activeMatch: 'prefix' as const },
@@ -304,16 +304,19 @@ export function NavReveal() {
     // app chrome until 153:20197 is built. Was '/guides' until the two blog
     // routes were merged onto /news on 31/07.
     '/news',
-    // Also exact: the saved list is rebuilt (Figma 375:12701), the
-    // /my-universities/[id] task pages under it are not.
-    '/my-universities',
-    // The "Chọn lại ngành" subject picker (Figma 375:13546). Listed alongside its
-    // parent rather than folded into a /my-universities prefix, because the
-    // [id] task pages in between are still on the app chrome — a prefix here
-    // would silently strip their sidebar.
+    /*
+     * The "Chọn lại ngành" subject picker (Figma 375:13546).
+     *
+     * `/my-universities` itself is gone — the saved list merged into /apply
+     * (Figma 562:15078) and the bare path now 308s there. This entry is what is
+     * left of that subtree that ships its own chrome; the [id] task pages
+     * beside it are still on the app chrome, which is why this is an exact
+     * match and not a /my-universities prefix.
+     */
     '/my-universities/program',
-    // The applications list. The workspace under it is covered by the prefix
-    // rule below rather than listed here.
+    // The merged "Application Progress" page — My application above the saved
+    // list. The workspace under it is covered by the prefix rule below rather
+    // than listed here.
     '/apply',
     // And again: the mentor browse is rebuilt (Figma 154:8345). /mentors/[id]
     // is now rebuilt too and is matched below by its uuid, but /mentors/apply

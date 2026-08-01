@@ -61,6 +61,10 @@ export function ReflectionPreview({ step }: { step: 'about' | 'evidence' }) {
           fundingSource: 'Personal savings or parents',
           budgetRange: '270000000-500000000',
           tuitionBudgetUsd: '$20,000 - $30,000',
+          languages: ['Vietnamese', 'English'],
+          currentSubjects: ['Design'],
+          interestAreas: ['Projects'],
+          learningStyle: ['Creative'],
         }}
       />
     </Container>

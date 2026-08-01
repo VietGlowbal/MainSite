@@ -141,12 +141,13 @@ async function submitContact(
   }
 
   const fullName = [firstName, lastName].filter(Boolean).join(' ');
-  const noteLines = [notes, phone ? `Phone: ${dialCode} ${phone}`.trim() : ''].filter(Boolean);
 
   const result = await recordWaitlistSignup({
     email,
     firstName: fullName,
-    notes: noteLines.join('\n\n'),
+    notes,
+    phone: phone ? `${dialCode} ${phone}`.trim() : '',
+    dateOfBirth: '',
   });
 
   if (result.outcome === 'table-missing' || result.outcome === 'error') {

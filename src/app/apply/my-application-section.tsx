@@ -1,51 +1,40 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useState } from 'react';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SavedNavLink } from '@/components/saved-nav-link';
-import { CourseSearchSessionModal } from '@/components/course-search-session-modal';
+import { useRouter } from 'next/navigation';
 import { UpgradePromptModal } from '@/components/upgrade-prompt-modal';
-import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
-} from '@/features/marketing/ui';
 import {
   courseUrlLabel,
   displayCourseName,
   displayUniversityName,
   isParsePending,
 } from '@/features/apply/domain';
-import { anyParsePending, useParseRefresh } from '@/features/apply/hooks';
 import { ResearchingInline } from '@/features/apply/ui';
 import type { CourseApplication } from '@/lib/apply-types';
 import {
   Avatar,
   Button,
-  Container,
-  Footer,
   ICONS,
   Input,
   KitIcon,
-  MobileNav,
   ProgressBar,
   ScoreRing,
-  TopNav,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
- * The applications list — Figma 337:18767 ("Trang my apply", titled "My
- * application") on the "UI Final - Dev" canvas.
+ * "My application" — the applications tracker. A SECTION, not a page: it renders
+ * at the top of `ApplicationProgressClient`, above the saved list, and ships no
+ * chrome of its own.
  *
- * This frame supersedes 224:14068 / 224:14957 on the older "Tính năng" canvas.
- * Both of those are named "Trang lưu" and sit under a "My applications" banner;
- * this one is the migrated redraw and is the one to build against.
+ * Figma 562:15386 inside 562:15078 ("Trang lưu"), the frame that merges the
+ * tracker and the saved list into one screen. That block is unchanged from the
+ * standalone 337:18767 / 375:12975 this file was built against — same 680px
+ * list of three 184px rows — so everything below carries over; only the heading
+ * above it grew (562:15387, h98 vs h86).
+ *
+ * Where this departs from the frame, and why:
  *
  * Where this departs from the frame, and why:
  *
@@ -83,10 +72,13 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
  *
  * Dropped from the previous dashboard because the frame does not draw them and
  * they were not load-bearing: the overview stat card, the upcoming-deadlines
- * card, the mentor and "improve your profile" promos, the trial banner and the
- * shortlist section. The shortlist read from `user_universities`, which does not
- * exist on the database (see docs/known-issues.md), so it rendered empty
- * regardless. All of it is in git history at apply-dashboard.tsx.
+ * card, the mentor and "improve your profile" promos and the trial banner. All
+ * of it is in git history at apply-dashboard.tsx.
+ *
+ * ⚠️ That list used to name the shortlist section too, on the grounds that
+ * `user_universities` "does not exist on the database". It does — ten columns,
+ * verified live, `program` and `program_url` included. The saved list it fed is
+ * now the section directly below this one.
  */
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -358,161 +350,76 @@ function ImportBar() {
   );
 }
 
-export type ApplyListClientProps = {
+
+export function MyApplicationSection({
+  applications,
+  logoByUniversityId,
+  showImportBar = true,
+  sectionRef,
+}: {
   applications: CourseApplication[];
   /** universities.logo_url keyed by universities.id, for the row crest. */
   logoByUniversityId: Record<number, string | null>;
-  userName?: string | null;
-  userAvatarUrl?: string | null;
   /**
-   * Target of the ?universityId=..&openCourseSearch=true entry point, resolved
-   * server-side. `domain` is '' when the name is not in the websites lookup —
-   * the modal already treats that as "unknown", as the previous dashboard did.
+   * False in the signed-out shell, where there is nothing to import into.
+   * The bar itself is a deliberate departure from the frame — see (5) above.
    */
-  courseSearchUniversity: { id: number; name: string; domain: string } | null;
-  openCourseSearch: boolean;
-  isLoggedOut?: boolean;
-};
-
-export function ApplyListClient({
-  applications,
-  logoByUniversityId,
-  userName,
-  userAvatarUrl,
-  courseSearchUniversity,
-  openCourseSearch,
-  isLoggedOut = false,
-}: ApplyListClientProps) {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
-  // Keeps the list moving while a pasted URL is still being read.
-  useParseRefresh(anyParsePending(applications));
-
-  /*
-   * /scholarships links here with ?universityId=..&openCourseSearch=true.
-   *
-   * Derived at mount rather than set from inside the effect below: the flag is a
-   * prop, so opening the modal is initial state, not a reaction to one.
+  showImportBar?: boolean;
+  /**
+   * Scroll target for "Lên kế hoạch ứng tuyển" and the scholarship
+   * confirmation, both of which live in the saved list below and both of which
+   * mean "show me what this became". The shell owns the ref.
    */
-  const [searchOpen, setSearchOpen] = useState(
-    () => openCourseSearch && courseSearchUniversity != null,
-  );
-
-  // Drop the trigger from the URL once it has been consumed, so a refresh or a
-  // back-navigation does not re-open the modal. This part is a real side effect.
-  useEffect(() => {
-    if (!openCourseSearch || !courseSearchUniversity) return;
-    const params = new URLSearchParams(searchParams.toString());
-    params.delete('openCourseSearch');
-    router.replace(params.size ? `/apply?${params}` : '/apply', { scroll: false });
-  }, [openCourseSearch, courseSearchUniversity, router, searchParams]);
-
-  const isSignedIn = !isLoggedOut && !!userName;
-  const primaryAction = useMemo(() => ({ href: '/universities', label: 'Search universities' }), []);
-
+  sectionRef?: React.Ref<HTMLElement>;
+}) {
   return (
-    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        utility={<SavedNavLink />}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+    <section
+      id="my-application"
+      ref={sectionRef}
+      className="flex scroll-mt-gb-9xl flex-col gap-gb-6xl"
+    >
+      {/* Figma 562:15387 */}
+      <div className="flex flex-col gap-gb-lg">
+        <h1 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
+          My application
+        </h1>
+        <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
+          {applications.length > 0
+            ? 'The courses you are applying to, how far along each one is, and what is due next.'
+            : 'Nothing here yet — plan one from your saved list below, or add a course by URL.'}
+        </p>
+      </div>
 
-      {/* Figma 337:18779 "Features section" */}
-      <main className="min-h-screen pb-gb-9xl pt-gb-6xl">
-        <Container className="flex flex-col gap-gb-6xl">
-          {/* Figma 337:18782 */}
-          <div className="flex flex-col gap-gb-lg">
-            <h1 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
-              My application
-            </h1>
-            <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
-              {applications.length > 0
-                ? 'The courses you are applying to, how far along each one is, and what is due next.'
-                : 'Nothing here yet — add a course below and we will build its application checklist.'}
-            </p>
-          </div>
+      {showImportBar ? <ImportBar /> : null}
 
-          {isLoggedOut ? (
-            <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
-              <p className="text-gb-md text-fg-tertiary">
-                Sign in to keep track of the courses you are applying to.
-              </p>
-              <Button href="/auth" size="lg">
-                Sign in
-              </Button>
-            </div>
-          ) : (
-            <>
-              <ImportBar />
-
-              {applications.length > 0 ? (
-                <ul className="flex flex-col gap-gb-5xl">
-                  {applications.map((app) => (
-                    <ApplicationRow
-                      key={app.id}
-                      app={app}
-                      logoUrl={
-                        app.universityId != null
-                          ? (logoByUniversityId[app.universityId] ?? null)
-                          : null
-                      }
-                    />
-                  ))}
-                </ul>
-              ) : (
-                <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
-                  <p className="text-gb-md text-fg-tertiary">
-                    Paste a course page URL above, or browse universities to find one.
-                  </p>
-                  <Button href="/universities" size="lg">
-                    Search universities
-                  </Button>
-                </div>
-              )}
-            </>
-          )}
-        </Container>
-      </main>
-
-      <Footer
-        logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
-      />
-
-      {searchOpen && courseSearchUniversity ? (
-        <CourseSearchSessionModal
-          isOpen
-          onClose={() => setSearchOpen(false)}
-          universityId={courseSearchUniversity.id}
-          universityName={courseSearchUniversity.name}
-          universityDomain={courseSearchUniversity.domain}
-        />
-      ) : null}
-    </div>
+      {applications.length > 0 ? (
+        <ul className="flex flex-col gap-gb-5xl">
+          {applications.map((app) => (
+            <ApplicationRow
+              key={app.id}
+              app={app}
+              logoUrl={
+                app.universityId != null ? (logoByUniversityId[app.universityId] ?? null) : null
+              }
+            />
+          ))}
+        </ul>
+      ) : (
+        /*
+          The empty state points DOWN the page now, not away from it. Before the
+          merge this offered "Search universities", because the saved list was a
+          different URL; it is the next section, so say so.
+        */
+        <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
+          <p className="text-gb-md text-fg-tertiary">
+            Tick a university in your saved list below and plan its application, or paste a course
+            page URL above.
+          </p>
+          <Button href="#saved" variant="secondary" size="lg">
+            Go to my saved list
+          </Button>
+        </div>
+      )}
+    </section>
   );
 }

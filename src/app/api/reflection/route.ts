@@ -6,6 +6,7 @@ import {
   achievementSchema,
   activitySchema,
   aspirationsSchema,
+  personalSummarySchema,
   profileUpdateFromReflection,
 } from '@/features/apply/domain';
 
@@ -24,7 +25,7 @@ import {
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-const aboutPayload = aboutYouSchema.merge(aspirationsSchema);
+const aboutPayload = aboutYouSchema.merge(aspirationsSchema).merge(personalSummarySchema);
 
 const bodySchema = z.object({
   about: aboutPayload.optional(),
@@ -61,9 +62,14 @@ export async function PATCH(request: Request) {
 
   if (about) {
     const update = profileUpdateFromReflection(about);
-    const { error } = await supabase
-      .from('student_profiles')
-      .upsert({ user_id: user.id, ...update }, { onConflict: 'user_id' });
+    const { error } = await supabase.from('student_profiles').upsert(
+      // Marked on every save, not just the first: requirements.md 3.5 wants
+      // an edit to a field an existing analysis used to mark that analysis
+      // stale, and re-stamping the timestamp here is what a future
+      // staleness check would compare against.
+      { user_id: user.id, ...update, personal_summary_completed_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    );
 
     if (error) {
       console.error('[reflection] profile upsert failed:', error);
@@ -121,6 +127,22 @@ export async function PATCH(request: Request) {
         console.error('[reflection] activities insert failed:', error);
         return NextResponse.json({ error: 'Could not save your activities' }, { status: 500 });
       }
+    }
+  }
+
+  // The Achievements step's form always sends both keys together (even as
+  // empty arrays — requirements.md 4.3 allows finishing with zero records),
+  // so either key present means "this was that step's submit," not "the
+  // student happens to have rows."
+  if (achievements !== undefined || activities !== undefined) {
+    const { error } = await supabase.from('student_profiles').upsert(
+      { user_id: user.id, achievements_completed_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    );
+    if (error) {
+      // Achievements/activities themselves already saved above; don't fail
+      // the whole request over the completion stamp alone.
+      console.error('[reflection] achievements_completed_at upsert failed:', error);
     }
   }
 

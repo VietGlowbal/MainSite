@@ -38,13 +38,18 @@ async function joinWaitlist(_prevState: WaitlistState, formData: FormData): Prom
   const email = String(formData.get('email') || '').trim().toLowerCase();
   const firstName = String(formData.get('firstName') || '').trim();
   const notes = String(formData.get('notes') || '').trim();
+  const phone = String(formData.get('phone') || '').trim();
+  const dateOfBirth = String(formData.get('dateOfBirth') || '').trim();
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { status: 'error', message: 'Please enter a valid email address.' };
   }
+  if (dateOfBirth && !/^\d{4}-\d{2}-\d{2}$/.test(dateOfBirth)) {
+    return { status: 'error', message: 'Please enter a valid date of birth.' };
+  }
 
   try {
-    const result = await recordWaitlistSignup({ email, firstName, notes });
+    const result = await recordWaitlistSignup({ email, firstName, notes, phone, dateOfBirth });
 
     if (result.outcome === 'table-missing') {
       return { status: 'error', message: 'The waitlist table is not set up yet. Create `waitlist_signups` in Supabase.' };

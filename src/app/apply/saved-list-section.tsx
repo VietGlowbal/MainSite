@@ -3,16 +3,6 @@
 import { useCallback, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SavedNavLink } from '@/components/saved-nav-link';
-import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
-} from '@/features/marketing/ui';
 import {
   attachedOptions,
   bestCoveragePercent,
@@ -24,23 +14,27 @@ import {
 import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarships';
 import { createClient } from '@/lib/supabase/client';
 import { TID, testId } from '@/shared/lib';
-import {
-  Badge,
-  Button,
-  Container,
-  Footer,
-  ICONS,
-  KitIcon,
-  MobileNav,
-  Modal,
-  TopNav,
-} from '@/shared/ui';
+import { Badge, Button, ICONS, KitIcon, Modal } from '@/shared/ui';
 
 /**
- * The saved list — the cart. Figma 375:12701 ("Trang lưu" / "Danh sách đã lưu")
- * on the authoritative "Khanh Linh - Chi" canvas, with 375:12841 for the
+ * The saved list — the cart. A SECTION, not a page: it renders inside
+ * `ApplicationProgressClient`, below "My application", and ships no chrome of
+ * its own.
+ *
+ * Figma 562:15078 ("Trang lưu"), which draws the applications tracker and this
+ * list as one screen — 562:15092 is the heading here, 562:15098 the rows. It
+ * supersedes 375:12701, the standalone page this file used to be, and which
+ * lived at /my-universities until that URL was folded into /apply. The
+ * satellite frames are unchanged and still apply: 375:12841 for the
  * scholarship-attached state, 375:13295 for the picker, 375:13369 for the
  * scholarship detail panel and 502:18462 for the confirmation.
+ *
+ * ONE DEPARTURE FROM 562:15078, on the owner's instruction: the new frame drops
+ * the "Ngành … / Chọn lại ngành tại đây" line from every row (it is why the
+ * rows shrink 272px → 188px). It is kept. That line is the only entry to
+ * /my-universities/program, and since the merge it is load-bearing — "Plan my
+ * application" needs a chosen subject to have a course URL to track. Ship the
+ * tighter row, keep the link.
  *
  * ⚠️ FIRST BUILT FROM THE RETIRED CANVAS. The original version of this file was
  * written against 223:8824 / 223:13621 / 223:13022, which are the pre-migration
@@ -347,7 +341,10 @@ function SavedRowItem({
       <article className="order-4 flex w-full flex-col justify-between gap-gb-2xl rounded-gb-2xl border border-line bg-surface p-gb-3xl lg:order-3 lg:min-h-[188px] lg:min-w-0 lg:flex-1">
         <div className="flex flex-col gap-gb-xl">
           <div className="flex flex-col gap-gb-md">
-            <h2 className="text-gb-md font-semibold text-fg">{row.name}</h2>
+            {/* h3: this row sits under the section's own h2 ("Saved list"),
+                which sits under the page's h1 ("My application"). It was an h2
+                when this section was a page with its own h1. */}
+            <h3 className="text-gb-md font-semibold text-fg">{row.name}</h3>
             <div className="flex flex-wrap gap-gb-lg">
               {/*
                 Number and label as separate text nodes, for the reason given on
@@ -833,10 +830,12 @@ function ScholarshipPicker({
 function ScholarshipApplied({
   open,
   onClose,
+  onGoToApplications,
   scholarshipName,
 }: {
   open: boolean;
   onClose: () => void;
+  onGoToApplications: () => void;
   scholarshipName: string | null;
 }) {
   return (
@@ -869,7 +868,12 @@ function ScholarshipApplied({
           <Button variant="secondary" size="lg" onClick={onClose}>
             Back to my saved list
           </Button>
-          <Button href="/apply" size="lg">
+          {/*
+            Was `href="/apply"`. Since the merge that is this same page, so the
+            CTA scrolls to "My application" instead of navigating — which is
+            also what it always meant: "show me what this is now part of".
+          */}
+          <Button size="lg" onClick={onGoToApplications}>
             Go to my plan
           </Button>
         </div>
@@ -878,14 +882,26 @@ function ScholarshipApplied({
   );
 }
 
-export function SavedListClient({
+export function SavedListSection({
   rows: initialRows,
-  userName,
-  userAvatarUrl,
+  onPlan,
+  onGoToApplications,
+  planning = false,
 }: {
   rows: SavedRow[];
-  userName: string | null;
-  userAvatarUrl: string | null;
+  /**
+   * "Lên kế hoạch ứng tuyển" — hand the ticked rows up to the shell, which
+   * creates their applications and scrolls to "My application".
+   *
+   * The shell owns it rather than this section because the scroll target and
+   * the `?planFor` return trip from the subject picker both live up there. This
+   * section's job stops at "these are the rows the student ticked".
+   */
+  onPlan: (rows: SavedRow[]) => void;
+  /** The confirmation modal's CTA — scroll up rather than navigate. */
+  onGoToApplications: () => void;
+  /** Disables the CTA while the shell is mid-create. */
+  planning?: boolean;
 }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -1003,6 +1019,15 @@ export function SavedListClient({
 
   const attachedCount = rows.reduce((sum, row) => sum + row.attached.length, 0);
   /**
+   * The ticked rows themselves, not just their ids — "Plan my application"
+   * needs each row's `programUrl` to know whether it can create the application
+   * outright or has to send the student to pick a subject first.
+   */
+  const selectedRows = useMemo(
+    () => rows.filter((row) => selected.includes(row.universityId)),
+    [rows, selected],
+  );
+  /**
    * The bar's headline on 375:12841 reads "Học bổng 50%".
    *
    * Null whenever no attached award states a percentage — many are cash sums, and
@@ -1010,169 +1035,145 @@ export function SavedListClient({
    * falls back to the count, which is still true.
    */
   const coveragePercent = bestCoveragePercent(rows);
-  const isSignedIn = !!userName;
-  const primaryAction = { href: '/universities', label: 'Search universities' };
 
   return (
-    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        utility={<SavedNavLink />}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        utility={<SavedNavLink variant="row" />}
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+    <section id="saved" className="flex scroll-mt-gb-9xl flex-col gap-gb-6xl">
+      {/* Figma 562:15092 */}
+      <div className="flex flex-col gap-gb-lg">
+        {/*
+          h2, not h1. On 562:15078 this heading and "My application" are both
+          drawn at display size, but they are now two sections of one page and
+          only one of them can be its title.
+        */}
+        <h2 className="font-display text-gb-display-xs font-medium tracking-gb-display-tight text-fg md:text-gb-display-md">
+          Saved list
+        </h2>
+        <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
+          {rows.length > 0
+            ? 'The universities you have saved, with their deadlines and any scholarships you have attached.'
+            : 'Nothing saved yet — the universities you save while browsing show up here.'}
+        </p>
+      </div>
 
-      <main className="min-h-screen py-gb-6xl">
-        <Container className="flex flex-col gap-gb-6xl">
-          {/* Figma 223:8840 */}
-          <div className="flex flex-col gap-gb-lg">
-            <h1 className="font-display text-gb-display-xs font-medium tracking-gb-display-tight text-fg md:text-gb-display-md">
-              Saved list
-            </h1>
-            <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
-              {rows.length > 0
-                ? 'The universities you have saved, with their deadlines and any scholarships you have attached.'
-                : 'Nothing saved yet — the universities you save while browsing show up here.'}
-            </p>
-          </div>
+      {rows.length === 0 ? (
+        <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
+          <p className="text-gb-md text-fg-tertiary">
+            Save a university from the search page and it will appear here with its deadline and the
+            scholarships attached to it.
+          </p>
+          <Button href="/universities" size="lg">
+            Search universities
+          </Button>
+        </div>
+      ) : (
+        <ul {...testId(TID.uniResultsGrid)} className="flex flex-col gap-gb-5xl">
+          {rows.map((row) => (
+            <SavedRowItem
+              key={row.id}
+              row={row}
+              selected={selected.includes(row.universityId)}
+              onToggle={toggle}
+              onRemove={remove}
+              removing={removing.includes(row.universityId)}
+            />
+          ))}
+        </ul>
+      )}
 
-          {rows.length === 0 ? (
-            <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
-              <p className="text-gb-md text-fg-tertiary">
-                Save a university from the search page and it will appear here with its deadline and
-                the scholarships attached to it.
-              </p>
-              <Button href="/universities" size="lg">
-                Search universities
-              </Button>
-            </div>
-          ) : (
-            <ul {...testId(TID.uniResultsGrid)} className="flex flex-col gap-gb-5xl">
-              {rows.map((row) => (
-                <SavedRowItem
-                  key={row.id}
-                  row={row}
-                  selected={selected.includes(row.universityId)}
-                  onToggle={toggle}
-                  onRemove={remove}
-                  removing={removing.includes(row.universityId)}
-                />
-              ))}
-            </ul>
-          )}
+      {/*
+        Scholarship bar — Figma 562:15184 (375:12813 before the merge), and
+        375:12841 for the state after an award is attached. Three things change
+        between the two frames: the headline becomes the discount, and the
+        primary button stops being "Apply Học bổng" and becomes "Lên kế hoạch
+        ứng tuyển" — once a scholarship is on the plan, the next step is the
+        application, not another award.
 
-          {/*
-            Scholarship bar — Figma 375:12813, and 375:12841 for the state after an
-            award is attached. Three things change between the two frames: the
-            headline becomes the discount, and the primary button stops being
-            "Apply Học bổng" and becomes "Lên kế hoạch ứng tuyển" — once a
-            scholarship is on the plan, the next step is the application, not
-            another award.
-
-            "Scholarships here" and the primary button are two doors to the same
-            dialog with different scope: the link browses everything linked to the
-            saved list, the button attaches one award to the ticked rows. See the
-            `candidates` memo.
-          */}
-          {rows.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-gb-xl border-t border-line pt-gb-3xl">
-              <div className="flex flex-wrap items-center gap-gb-5xl">
-                <span className="flex items-center gap-gb-xl">
-                  <KitIcon art={ICONS.gift01} frame={32} className="shrink-0 text-brand" />
-                  {/*
-                    The label and the number are separate text nodes throughout.
-                    /my-universities is a PII route, so DomTranslator's machine
-                    fallback is switched off here (dom-translate.tsx) and every
-                    string must be a static dictionary hit — an interpolated
-                    "Scholarship 50%" would never be one, and would sit in English
-                    on a Vietnamese page forever.
-                  */}
-                  <span
-                    className={`text-gb-md font-semibold ${
-                      coveragePercent != null ? 'text-brand' : 'text-fg'
-                    }`}
-                  >
-                    {coveragePercent != null ? (
-                      <>
-                        <span>Scholarship</span> {coveragePercent}%
-                      </>
-                    ) : attachedCount > 0 ? (
-                      <>
-                        {attachedCount}{' '}
-                        <span>{attachedCount === 1 ? 'scholarship attached' : 'scholarships attached'}</span>
-                      </>
-                    ) : (
-                      'See all the scholarships you could apply for'
-                    )}
-                  </span>
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setPicker('browse')}
-                  className="flex items-center gap-gb-xs rounded-gb-md text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                >
-                  Scholarships here
-                  <KitIcon art={ICONS.arrowUpRight} frame={20} />
-                </button>
-              </div>
+        "Scholarships here" and the primary button are two doors to the same
+        dialog with different scope: the link browses everything linked to the
+        saved list, the button attaches one award to the ticked rows. See the
+        `candidates` memo.
+      */}
+      {rows.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-gb-xl border-t border-line pt-gb-3xl">
+          <div className="flex flex-wrap items-center gap-gb-5xl">
+            <span className="flex items-center gap-gb-xl">
+              <KitIcon art={ICONS.gift01} frame={32} className="shrink-0 text-brand" />
               {/*
-                On 375:12841 the ticked row already HAS its scholarship, and the
-                CTA there is "Lên kế hoạch ứng tuyển" — there is nothing left to
-                apply, so the next step is the application. That is the rule, not
-                "any award anywhere switches the button": a student with three
-                saved universities and one award still needs to be able to attach
-                an award to the other two, and hiding this behind an attached
-                count would strand them.
+                The label and the number are separate text nodes throughout.
+                /apply is a PII route, so DomTranslator's machine fallback is
+                switched off here (dom-translate.tsx) and every string must be a
+                static dictionary hit — an interpolated "Scholarship 50%" would
+                never be one, and would sit in English on a Vietnamese page
+                forever.
               */}
-              {applyCandidates.length === 0 && attachedCount > 0 ? (
-                <Button href="/apply" size="lg">
-                  Plan my application
-                </Button>
-              ) : (
-                <Button size="lg" disabled={selected.length === 0} onClick={() => setPicker('apply')}>
-                  Apply scholarship
-                </Button>
-              )}
-            </div>
-          ) : null}
+              <span
+                className={`text-gb-md font-semibold ${
+                  coveragePercent != null ? 'text-brand' : 'text-fg'
+                }`}
+              >
+                {coveragePercent != null ? (
+                  <>
+                    <span>Scholarship</span> {coveragePercent}%
+                  </>
+                ) : attachedCount > 0 ? (
+                  <>
+                    {attachedCount}{' '}
+                    <span>
+                      {attachedCount === 1 ? 'scholarship attached' : 'scholarships attached'}
+                    </span>
+                  </>
+                ) : (
+                  'See all the scholarships you could apply for'
+                )}
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setPicker('browse')}
+              className="flex items-center gap-gb-xs rounded-gb-md text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              Scholarships here
+              <KitIcon art={ICONS.arrowUpRight} frame={20} />
+            </button>
+          </div>
+          {/*
+            On 375:12841 the ticked row already HAS its scholarship, and the
+            CTA there is "Lên kế hoạch ứng tuyển" — there is nothing left to
+            apply, so the next step is the application. That is the rule, not
+            "any award anywhere switches the button": a student with three
+            saved universities and one award still needs to be able to attach
+            an award to the other two, and hiding this behind an attached
+            count would strand them.
 
-          {/* The button above is disabled rather than hidden when nothing is
-              ticked, so say what to do about it. */}
-          {rows.length > 0 && attachedCount === 0 && selected.length === 0 ? (
-            <p className="-mt-gb-4xl text-gb-sm text-fg-muted">
-              Tick a university to attach a scholarship to it.
-            </p>
-          ) : null}
-        </Container>
-      </main>
+            SINCE THE MERGE THIS BUTTON DOES SOMETHING. It used to be
+            `href="/apply"` — a link to the page this section now lives on,
+            which after the merge would have scrolled the student to where they
+            already were. It now creates the applications for the ticked rows
+            and hands off to the shell to scroll up to them.
+          */}
+          {applyCandidates.length === 0 && attachedCount > 0 ? (
+            <Button
+              size="lg"
+              disabled={planning || selectedRows.length === 0}
+              onClick={() => onPlan(selectedRows)}
+            >
+              Plan my application
+            </Button>
+          ) : (
+            <Button size="lg" disabled={selected.length === 0} onClick={() => setPicker('apply')}>
+              Apply scholarship
+            </Button>
+          )}
+        </div>
+      ) : null}
 
-      <Footer
-        logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
-      />
+      {/* The button above is disabled rather than hidden when nothing is
+          ticked, so say what to do about it. */}
+      {rows.length > 0 && attachedCount === 0 && selected.length === 0 ? (
+        <p className="-mt-gb-4xl text-gb-sm text-fg-muted">
+          Tick a university to attach a scholarship to it.
+        </p>
+      ) : null}
 
       <ScholarshipPicker
         open={picker !== null}
@@ -1186,6 +1187,10 @@ export function SavedListClient({
       <ScholarshipApplied
         open={applied !== null}
         onClose={() => setApplied(null)}
+        onGoToApplications={() => {
+          setApplied(null);
+          onGoToApplications();
+        }}
         scholarshipName={applied}
       />
 
@@ -1198,6 +1203,6 @@ export function SavedListClient({
           {toast}
         </div>
       ) : null}
-    </div>
+    </section>
   );
 }

@@ -67,8 +67,8 @@ Both carry banner frames naming them:
 | `/universities` | `105:8300`, `105:8247` | UI Final | Globe dropped for a flat filterable grid (owner's call). Kept `explorer-context` verbatim. **Cards navigate to `/universities/[id]` as of 30/07** — `detail-view.tsx` is deleted, see §Wiring below. Only 3 of 6 filter chips ship — the rest need DB columns that do not exist. |
 | `/auth` | `105:8004`, `105:8037` | UI Final | Centered card, login + signup. All Supabase branches preserved. |
 | `/onboarding` | `107:10574` + câu 1–8, plus `375:11536`/`375:11616` | mixed | **EIGHT steps since 30/07** (was nine). Câu 6 and câu 7 — the academic screens — sit at positions 6 and 7. ⚠️ **`supabase-academic-intake.sql` must be run before this ships**; it was extended on 30/07 and is safe to re-run. See the three owner decisions below. Câu 8 (awards) is still not built; it duplicates the /ai-strategy achievements input and nobody has decided which owns it. |
-| `/apply` | `337:18767` | UI Final | **"My application".** Progress donut banded by `progress_percentage`, deadline, "Continue applying" → `/apply/[applicationId]`. Replaced the 1,455-line `apply-dashboard.tsx`. |
-| `/my-universities` | `375:12701`, `375:12841`, `375:13295`, `375:13369`, `502:18462` | **Khanh Linh - Chi** | Saved list — the cart. **Rebuilt onto the authoritative canvas 30/07**; it had been built from `223:8824`/`223:13621`/`223:13022` on the retired Tính năng canvas, which draws a strictly smaller card. See §"The saved list was a canvas behind" below. |
+| `/apply` | **`562:15078`** (+ `375:12841`, `375:13295`, `375:13369`, `502:18462`) | **Khanh Linh - Chi** | **"Application"** — the MERGED page, 31/07. `/apply` and `/my-universities` were two halves of one journey on two URLs; `562:15078` draws them stacked. "My application" (`562:15386`) over "Danh sách đã lưu" (`562:15092` + `562:15098`). See §"Two pages became one" below. |
+| ~~`/my-universities`~~ | `375:12701` | — | **GONE 31/07.** 308s to `/apply` (`next.config.ts`, exact source). The children did not move — `/my-universities/program` and `/my-universities/[id]` are still there. |
 | `/my-universities/program` | `375:13546` | **Khanh Linh - Chi** | **Built 30/07.** "Chọn lại ngành", the subject re-picker a saved row links to. ⚠️ Needs `supabase-saved-program.sql` — see below. |
 | `/mentors` | `154:8345` | **Tính năng** | Search + 4-across card grid. ⚠️ Not yet migrated — expect a pass when it is. |
 | `/about` | `153:11401` | **Tính năng** | Net-new route. Real team from `lib/team.ts`. ⚠️ Same provenance risk. |
@@ -87,6 +87,12 @@ Each is documented in a comment at the top of the relevant file.
   frames** (`337:18767`, `154:8345`, and the saved list). It is the university
   search page's subtitle, left on the layer when those screens were duplicated
   from it. Rewritten each time to describe the actual page.
+- **The saved row keeps "Ngành … / Chọn lại ngành tại đây".** `562:15078` drops
+  it from every row — that is the whole reason those rows shrink 272px → 188px —
+  and the owner said keep it (31/07). It is the only entry to
+  `/my-universities/program`, and since the merge it is load-bearing: "Plan my
+  application" needs a chosen subject to have a course URL to post. Row height
+  follows the frame, the line stays.
 - **The kit's job-post card leaks "Remote" onto a map pin** on both the saved
   list and the applications list. There is no city column, so the pin carries
   country instead — a pin means a place.
@@ -268,10 +274,80 @@ fiction. Add the column (or a join) before review authorship means anything.
 
 | Route | Figma | Canvas | Blocker |
 |---|---|---|---|
-| `/ai-strategy` | 18 frames, listed in [nav-items.tsx](../src/features/marketing/ui/nav-items.tsx) — landing `375:18445`, candidate info `375:19260`, achievements `375:18839`, reflection modals `407:17291`/`408:17403`/`409:17502`/`409:17626`, reflection `375:18328`, portrait `375:18185`, fit `375:18645`, strategy `375:19502`/`405:6526`, essay `375:17961`, CV `375:18038`, pricing `375:19705`, submit `375:18117`, confirmation `375:18594`, major picker `375:13546` | **Khanh Linh - Chi** | Net-new route, largest group, **404s today** from both nav and footer. No longer a provenance risk — it has migrated onto the dev canvas. `/ai-strategy` is already registered in `OWN_CHROME_PREFIXES`. |
+| `/ai-strategy` | 18 frames, listed in [nav-items.tsx](../src/features/marketing/ui/nav-items.tsx) — landing `375:18445`, candidate info `375:19260`, achievements `375:18839`, reflection modals `407:17291`/`408:17403`/`409:17502`/`409:17626`, reflection `375:18328`, portrait `375:18185`, fit `375:18645`, strategy `375:19502`/`405:6526`, essay `375:17961`, CV `375:18038`, pricing `375:19705`, submit `375:18117`, confirmation `375:18594`, major picker `375:13546` | **Khanh Linh - Chi** | Net-new route, largest group, **404s today** from both nav and footer. No longer a provenance risk — it has migrated onto the dev canvas. `/ai-strategy` is already registered in `OWN_CHROME_PREFIXES`. ⚠️ **portrait / fit / strategy (candidate portrait, course fit, and the AI recommendation dashboard) now have a written behaviour spec**, `.kiro/specs/ai-strategy-dashboard/` (added 2026-07-31, branch `feat/ai-strategy-dashboard`) — read it alongside these node ids before building any of the three; it also documents how this overlaps with the separate, unmerged `.kiro/specs/ai-application-strategy/` (CV `375:18038` / essay `375:17961`) spec on `feat/strategy-1..4-*`. |
 | `/plus` | `115:13253`, `132:9601`, `196:16799`, `115:17014` | **Tính năng** | 3 tiers (free / $10 / $100). Sales are off (`PLUS_SALES_ENABLED=false`) — build as static preview. |
 | `/news/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
 | `/privacy` | `153:22478` | **Tính năng** | Frame is named `Desktop`. |
+
+### Two pages became one: `/apply` + `/my-universities` (31/07)
+
+The designer drew the merge on **`562:15078`** ("Trang lưu", 1440×2461) — a
+frame that is *invisible* to anyone reading the older ones, because it sits in
+the same "Trang lưu" cluster as `375:12701` and `375:12841` and carries the same
+name. Find it by height: 2461 vs 1771/1563.
+
+```
+562:15078  Trang lưu
+├─ 562:15079  Dropdown header navigation
+└─ 562:15091  Features section
+   ├─ 562:15386  h 874   "My application"   ← heading 562:15387 + list 562:15393
+   ├─ 562:15092  h  86   "Danh sách đã lưu" heading
+   ├─ 562:15098  h 868   saved rows + selection bar (562:15184)
+   └─ 562:15192  Footer
+```
+
+**The tracker block is unchanged.** `562:15393` is h680 with three h184 rows —
+byte-identical to `375:12994`, which the code was already built from. Nothing in
+`ApplicationRow` needed touching.
+
+**The saved row shrank 272px → 188px**, and the removed element is `Frame 162`,
+the "Ngành … / Chọn lại ngành tại đây" line. **It is kept anyway** (owner, 31/07)
+— see the departures list above. Rows 2–3 also lack the tuition badge that row 1
+has; that is an unfilled placeholder, not a variant.
+
+#### What the merge actually changed, beyond layout
+
+Nothing on the saved list ever *created* an application. "Lên kế hoạch ứng
+tuyển" was `<Button href="/apply">` — a link to the page it now lives on. It
+posts the saved row's `program_url` to `POST /api/applications/from-course-url`
+and the shell scrolls to `#my-application`. **No new endpoint**: that route
+already creates the row, queues the parse job, and answers 409 with
+`existingApplicationId` for the already-tracked case.
+
+Two things had to be fixed for that to work at all:
+
+1. **`program-picker.tsx` never saved a URL for a catalogue pick.** It wrote
+   `urlProvided ? url.trim() : null`, so choosing a subject and not pasting a
+   link stored the subject with no URL — while `chosenOfficialUrl` sat two
+   blocks below being rendered as "Open the official course page". Harmless
+   while it fed a display line; a redirect loop the moment "Plan my application"
+   needed a URL. It now falls back to the catalogue's own `official_url`.
+2. **The catalogue covers 24 of 106 universities.** For the other 82 the subject
+   list comes from `universities.strengths`, which has no links behind it, so a
+   student can come back from the picker still URL-less. That case says so
+   explicitly rather than bouncing them back.
+
+⚠️ `POST /api/applications/from-course-url` can still refuse: with
+`getIngestionProvider()` on `'ingestion'` it 400s unless the university has
+`domain_review_status = 'approved'` and a `primary_domain`. Not measured. If the
+CTA starts failing broadly, look there first.
+
+#### Nav
+
+`MARKETING_NAV_ITEMS`: `/apply` is now labelled **"Application"** (was "Plan your
+studies" / "Lập kế hoạch du học"). The CTA button keeps the old string pointing
+at `/onboarding`, so both survive and both are dictionary hits.
+
+⚠️ **`/apply` and `/ai-strategy` stay visible to signed-out visitors.** Both were
+briefly hidden behind a `requiresAuth` filter on this list; the owner reversed
+that the same day — the links are how a guest discovers the features, and each
+page forces sign-in when opened. `/ai-strategy` gained that redirect in the same
+change (it used to render in full for anyone). Do not reintroduce a nav filter.
+
+⚠️ **`/apply` was already in `PII_ROUTE_PREFIXES`** (`src/lib/dom-translate.tsx`)
+and its strings were **never in the dictionary** — so the tracker's heading,
+subtitle and import bar had been sitting in English on the Vietnamese page with
+no machine fallback to hide it. Added. Every new string on this route must be.
 
 ### Two blog routes became one (31/07)
 
@@ -313,6 +389,11 @@ is still on the legacy pink styling that page uses. It goes when `153:20197` is
 built.
 
 ### The saved list was a canvas behind (found 30/07)
+
+> Superseded 31/07 — the saved list is now a section of `/apply`, drawn on
+> `562:15078`. Kept because the lesson is about node-id provenance, not about
+> this page, and because the `375:*` frames below are still the source for
+> everything inside the row.
 
 `/my-universities` was built from `223:8824` / `223:13621` / `223:13022` on the
 **retired "Tính năng" canvas**. The migrated frames — `375:12701` and friends —
@@ -763,10 +844,11 @@ since 28/07:
 
 - `OWN_CHROME_ROUTES`, matched **exactly**: `/`, `/dev/home`, `/universities`,
   `/auth`, `/coming-soon`, `/onboarding`, `/about`, `/news`,
-  `/my-universities`, `/apply`, `/mentors`, `/dev/saved-list`. Exact, because
-  the child routes under most of them (`/apply/[applicationId]`,
-  `/news/[slug]`, `/my-universities/[id]`, `/universities/vinuni`,
-  `/mentors/apply`) are still on the app chrome.
+  `/my-universities/program`, `/apply`, `/mentors`, `/dev/saved-list`. Exact,
+  because the child routes under most of them (`/news/[slug]`,
+  `/my-universities/[id]`, `/universities/vinuni`, `/mentors/apply`) are still
+  on the app chrome. `/my-universities` itself came off this list on 31/07 when
+  it stopped being a page — only the subject picker under it remains.
 - Two **id-shaped** matchers, for rebuilt detail pages whose siblings are not
   rebuilt and so cannot take a prefix: `/universities/<digits>` and
   `/mentors/<uuid>`. The shape is what separates them from `/universities/vinuni`

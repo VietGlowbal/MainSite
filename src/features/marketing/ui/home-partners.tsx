@@ -9,6 +9,7 @@ import {
   orbitArcDistance,
   orbitPointAt,
 } from '../domain/orbit-path';
+import { TID, testId } from '@/shared/lib';
 import { PARTNER_LOGOS } from './partner-logos';
 
 /**
@@ -551,7 +552,7 @@ export function HomePartners() {
   }, []);
 
   return (
-    <section className="bg-surface-inverse-strong text-white">
+    <section {...testId(TID.heroPartners)} className="bg-surface-inverse-strong text-white">
       <div className="mx-auto w-full max-w-[1440px] px-gb-xl py-gb-9xl">
         {/* The stage is the orbit's coordinate space: its aspect ratio is the
             curve's viewBox, so a percentage of it is a point on the curve, and

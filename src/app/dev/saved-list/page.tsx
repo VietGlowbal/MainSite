@@ -1,12 +1,22 @@
 import { notFound } from 'next/navigation';
-import { SavedListClient, type SavedRow } from '@/app/my-universities/saved-list-client';
+import { ApplicationProgressClient } from '@/app/apply/application-progress-client';
+import type { SavedRow } from '@/app/apply/saved-list-section';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
 import { formatTuitionForCard, officialWebsite, splitList } from '@/features/universities/domain';
 
 /**
- * /dev/saved-list — design preview for /my-universities (Figma 375:12701,
- * 375:12841, 375:13295, 375:13369, 502:18462).
+ * /dev/saved-list — design preview for the saved list, which since the merge is
+ * the lower half of /apply (Figma 562:15078; the satellite frames 375:12841,
+ * 375:13295, 375:13369 and 502:18462 are unchanged).
+ *
+ * It renders the whole merged page, with "My application" empty above the
+ * preview rows — the empty tracker is a state worth being able to look at, and
+ * a preview that omitted it would no longer resemble the page.
+ *
+ * ⚠️ NOTHING HERE IS SIGNED IN, so the controls that need a session (the import
+ * bar, "Plan my application", attaching a scholarship) will fail if pressed.
+ * This route previews layout; use the real /apply to exercise behaviour.
  *
  * Exists because the real route is the hardest page in the app to look at: it
  * sits behind the auth gate AND the onboarding gate in src/proxy.ts, so reviewing
@@ -36,6 +46,25 @@ import { formatTuitionForCard, officialWebsite, splitList } from '@/features/uni
  * Same gate as /dev/home and /dev/kitchen-sink: hidden in production unless
  * ENABLE_DEV_ROUTES is set.
  */
+
+/**
+ * NEVER PRERENDERED — and this broke the e2e build before it was set.
+ *
+ * Since the merge this route renders `ApplicationProgressClient`, which calls
+ * `useSearchParams()` (for `?planFor` and `?openCourseSearch`). That is a
+ * request-time API, so static export fails with "useSearchParams() should be
+ * wrapped in a suspense boundary". `npm run build` did NOT catch it locally:
+ * without ENABLE_DEV_ROUTES the `notFound()` below fires first and the client
+ * is never reached. `playwright.config.ts` sets ENABLE_DEV_ROUTES=1 for its web
+ * server, so CI built the real thing and fell over. Reproduce with
+ * `ENABLE_DEV_ROUTES=1 npm run build`.
+ *
+ * A Suspense boundary would also silence it, but dynamic is the honest answer:
+ * this page reads the live directory through the real repositories, so
+ * prerendering would bake one build's universities into a design preview and
+ * then never update them.
+ */
+export const dynamic = 'force-dynamic';
 
 /** Enough rows to show the grid rhythm without turning this into a long page. */
 const PREVIEW_COUNT = 4;
@@ -114,5 +143,15 @@ export default async function SavedListPreviewPage() {
     };
   });
 
-  return <SavedListClient rows={rows} userName="Preview user" userAvatarUrl={null} />;
+  return (
+    <ApplicationProgressClient
+      applications={[]}
+      logoByUniversityId={{}}
+      savedRows={rows}
+      userName="Preview user"
+      userAvatarUrl={null}
+      courseSearchUniversity={null}
+      openCourseSearch={false}
+    />
+  );
 }

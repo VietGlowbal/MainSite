@@ -1,33 +1,27 @@
 import { notFound, redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { aiJourneySteps } from '@/features/apply/domain';
-import { Stepper } from '@/shared/ui';
-import { StrategyChrome } from '../strategy-chrome';
+import { ReflectionChrome } from '../reflection-chrome';
 
 /**
- * The shell every page under /ai-strategy/[applicationId] sits inside.
+ * Shell for every `/ai-strategy/[applicationId]/*` page (the AI Strategy
+ * Dashboard feature — see .kiro/specs/ai-strategy-dashboard/).
  *
- * WHY THE OWNERSHIP CHECK IS HERE. Six pages need the same three things: a
- * session, an application the caller owns, and the chrome. Doing it in the layout
- * means a new sub-page cannot forget it — the failure mode of per-page checks
- * being that the seventh page ships without one and nobody notices, because it
- * renders perfectly for the developer who owns the row they tested with.
+ * Resolves the session and the ownership check exactly once, the same
+ * decision Feature 2's design.md documents for the sibling CV/Statement
+ * workspace: `/ai-strategy` ships its own chrome (nav-reveal.tsx suppresses
+ * the app shell for this subtree), so every page under here needs it, and an
+ * `applicationId` that is not this student's own must 404 rather than reveal
+ * that it exists.
  *
- * The pages still re-read their own slice. A layout in Next.js does not pass data
- * to children, and threading it through context would make every page a client
- * component. Two cheap indexed reads is the better trade.
- *
- * WHY THE GLOBAL STEPPER IS HERE TOO. It is the same on all six pages, and the
- * per-document indicators have to read as subordinate to it. Rendering it once,
- * above the page content, is what makes that ordering structural rather than a
- * thing each page remembers to do.
+ * Each page still re-reads its own slice of `course_applications` — this
+ * layout does not thread data down via context, matching the same precedent.
  */
-export default async function ApplicationStrategyLayout({
-  params,
+export default async function StrategyApplicationLayout({
   children,
+  params,
 }: {
-  params: Promise<{ applicationId: string }>;
   children: React.ReactNode;
+  params: Promise<{ applicationId: string }>;
 }) {
   const { applicationId } = await params;
 
@@ -36,16 +30,7 @@ export default async function ApplicationStrategyLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect('/auth');
-
-  /*
-   * A non-uuid segment would make Postgres raise 22P02 rather than return no
-   * rows, which surfaces as a 500 instead of the 404 it should be. Checked
-   * before the query for the same reason requireApplicationOwner does.
-   */
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(applicationId)) {
-    notFound();
-  }
+  if (!user) redirect(`/auth?redirect=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy`)}`);
 
   const { data: application } = await supabase
     .from('course_applications')
@@ -54,22 +39,7 @@ export default async function ApplicationStrategyLayout({
     .eq('user_id', user.id)
     .maybeSingle();
 
-  // notFound(), not a permission error: confirming the row exists tells the
-  // caller something about another student's data.
   if (!application) notFound();
 
-  return (
-    <StrategyChrome user={user} containerWidth="wide">
-      <div className="flex flex-col gap-gb-4xl">
-        <Stepper
-          /* Unlocked: the student is standing in this step, so drawing it as a
-             paywall would contradict the page they are looking at. */
-          steps={aiJourneySteps({ unlock: ['strategy'] })}
-          currentIndex={3}
-          label="Your Glowbal application journey"
-        />
-        {children}
-      </div>
-    </StrategyChrome>
-  );
+  return <ReflectionChrome user={user}>{children}</ReflectionChrome>;
 }
