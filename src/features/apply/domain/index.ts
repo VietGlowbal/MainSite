@@ -38,6 +38,8 @@ export {
 } from './course-name';
 export { activeStageIndex, stageProgressLabel, summariseTasks } from './progress';
 export type { TaskCounts } from './progress';
+export { deadlineUrgency } from './deadline';
+export type { DeadlineTone, DeadlineUrgency } from './deadline';
 export type {
   AboutYouValues,
   AchievementCategory,
