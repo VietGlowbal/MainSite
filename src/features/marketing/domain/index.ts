@@ -7,5 +7,6 @@ export {
   flattenGuide,
   GUIDE_STEP_COUNT,
   STRATEGY_GUIDE,
+  stepIndexForPath,
 } from './strategy-guide';
 export type { FlatGuideStep, GuideArea, GuideStep } from './strategy-guide';

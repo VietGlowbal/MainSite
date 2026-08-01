@@ -344,6 +344,50 @@ export const STRATEGY_GUIDE: readonly GuideArea[] = [
   },
 ];
 
+/**
+ * Which step is most relevant to the page a student is currently on — what the
+ * floating help button opens to, so pressing "?" on the subject picker starts
+ * at "Choose your subject" rather than at step 1.1 every time.
+ *
+ * ORDER MATTERS: matched top-down, most specific first. `/apply/[id]` is the
+ * application workspace and must be tested before the bare `/apply` portal, or
+ * every application would open the guide at "Open My Portal".
+ *
+ * Returns 0 for anything unmatched, which is the honest default — the start of
+ * the journey — rather than guessing.
+ */
+const PATH_TO_STEP: readonly (readonly [RegExp, string])[] = [
+  // Area 3 — most specific first: the strategy sub-pages sit under the same
+  // /ai-strategy/[id] prefix as the strategy landing page.
+  [/^\/ai-strategy\/[^/]+\/strategy\/dashboard/, '3.5'],
+  [/^\/ai-strategy\/[^/]+\/strategy\/recommendations/, '3.5'],
+  [/^\/ai-strategy\/[^/]+\/strategy\/analysis/, '3.4'],
+  [/^\/ai-strategy\/[^/]+\/strategy\/intro/, '3.4'],
+  [/^\/ai-strategy\/reflection\/achievements/, '3.3'],
+  [/^\/ai-strategy\/reflection/, '3.2'],
+  [/^\/ai-strategy\/[^/]+\/strategy/, '3.1'],
+  [/^\/ai-strategy\/[^/]+\/cv/, '3.5'],
+  // Area 2
+  [/^\/my-universities\/program/, '2.3'],
+  [/^\/apply\/[^/]+/, '2.4'],
+  [/^\/apply/, '2.1'],
+  [/^\/profile\/documents/, '2.5'],
+  // Area 1
+  [/^\/scholarships/, '1.3'],
+  [/^\/universities\/[^/]+/, '1.2'],
+  [/^\/universities/, '1.1'],
+];
+
+export function stepIndexForPath(pathname: string): number {
+  const flat = flattenGuide(STRATEGY_GUIDE);
+  for (const [pattern, stepNumber] of PATH_TO_STEP) {
+    if (!pattern.test(pathname)) continue;
+    const index = flat.findIndex((entry) => entry.step.number === stepNumber);
+    if (index !== -1) return index;
+  }
+  return 0;
+}
+
 /** Flat step list with its area — what the scroll position maps onto. */
 export type FlatGuideStep = {
   readonly area: GuideArea;
