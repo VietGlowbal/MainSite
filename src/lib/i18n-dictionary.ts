@@ -1019,6 +1019,14 @@ export const translations: Record<string, string> = {
   // The design writes these in Vietnamese; the English above is the source
   // string, so these entries are the designer's own wording restored.
   'Scholarship library': 'Kho học bổng',
+  'Funding opportunities, curated for you': 'Cơ hội hỗ trợ tài chính dành riêng cho bạn',
+  'Explore verified funding opportunities, save your strongest fits, and turn your university plans into a clearer path forward.':
+    'Khám phá các cơ hội hỗ trợ tài chính đã được xác thực, lưu những lựa chọn phù hợp nhất và biến kế hoạch chọn trường thành lộ trình rõ ràng hơn.',
+  opportunities: 'cơ hội',
+  'matched to you': 'phù hợp với bạn',
+  saved: 'đã lưu',
+  'Find your next opportunity': 'Tìm cơ hội tiếp theo của bạn',
+  'Narrow the vault by eligibility, funding, and destination.': 'Lọc theo điều kiện, mức hỗ trợ và điểm đến du học.',
   'Browse a preview for free. Create your profile to unlock the full eligibility criteria and required documents, and to save opportunities into your plan.':
     'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
   'See more': 'Xem thêm',

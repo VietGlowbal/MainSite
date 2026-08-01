@@ -269,7 +269,7 @@ export function ScholarshipDirectoryClient({
   };
 
   const renderGrid = (items: DirectoryScholarship[]) => (
-    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" {...testId(TID.scholarshipList)}>
+    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" {...testId(TID.scholarshipList)}>
       {items.map((s) => (
         <ScholarshipDirectoryCard
           key={s.id}
@@ -287,22 +287,41 @@ export function ScholarshipDirectoryClient({
   return (
     // Extra bottom padding when the floating "Continue to Apply" bar is shown,
     // so it doesn't overlap the pagination control at the end of the list.
-    <div className={`space-y-6 ${savedIds.size > 0 ? 'pb-28' : ''}`}>
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900">{t('Scholarships')}</h1>
-        <p className="mt-1 max-w-2xl text-sm text-slate-500">
-          {t('Browse curated scholarships and find funding you can apply for.')}
-        </p>
-      </div>
+    <div className={`space-y-8 ${savedIds.size > 0 ? 'pb-28' : ''}`}>
+      {/* Header — the high contrast editorial treatment is shared with the new
+          university screens, while the data-driven highlights make the directory
+          feel useful before a student has entered a filter. */}
+      <section className="relative isolate overflow-hidden rounded-[28px] bg-surface-inverse-deep px-6 py-8 text-fg-on-inverse shadow-gb-lg sm:px-10 sm:py-10">
+        <div className="absolute -right-20 -top-28 h-72 w-72 rounded-full bg-brand opacity-90 blur-3xl" aria-hidden />
+        <div className="absolute bottom-0 right-1/4 h-40 w-40 rounded-full border border-line-on-inverse opacity-60" aria-hidden />
+        <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-2xl">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-line-on-inverse bg-white/10 px-3 py-1.5 text-xs font-semibold tracking-wide text-fg-on-inverse-secondary">
+              <span className="h-1.5 w-1.5 rounded-full bg-brand" />
+              {t('Funding opportunities, curated for you')}
+            </div>
+            <h1 className="font-[family-name:var(--font-gb-display)] text-4xl font-semibold tracking-[-0.035em] text-fg-on-inverse sm:text-5xl">
+              {t('Scholarship library')}
+            </h1>
+            <p className="mt-4 max-w-xl text-base leading-7 text-fg-on-inverse-secondary sm:text-lg">
+              {t('Explore verified funding opportunities, save your strongest fits, and turn your university plans into a clearer path forward.')}
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-w-[430px]">
+            <HeroMetric value={scholarships.length.toLocaleString()} label={t('opportunities')} />
+            <HeroMetric value={String(matchedIds.size)} label={t('matched to you')} />
+            <HeroMetric value={String(savedIds.size)} label={t('saved')} className="col-span-2 sm:col-span-1" />
+          </div>
+        </div>
+      </section>
 
       {/* Tabs */}
-      <div className="flex gap-1 rounded-full bg-slate-100 p-1 w-fit">
+      <div className="flex w-full gap-1 rounded-2xl border border-line bg-surface p-1.5 shadow-gb-xs sm:w-fit">
         <button
           type="button"
           onClick={() => setTab('directory')}
-          className={`rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-            tab === 'directory' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            tab === 'directory' ? 'bg-surface-inverse text-fg-on-inverse shadow-sm' : 'text-fg-tertiary hover:bg-surface-muted hover:text-fg'
           }`}
         >
           {t('Directory')}
@@ -310,8 +329,8 @@ export function ScholarshipDirectoryClient({
         <button
           type="button"
           onClick={() => setTab('ai')}
-          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-semibold transition ${
-            tab === 'ai' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+          className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition ${
+            tab === 'ai' ? 'bg-surface-inverse text-fg-on-inverse shadow-sm' : 'text-fg-tertiary hover:bg-surface-muted hover:text-fg'
           }`}
         >
           <SparklesIcon />
@@ -324,10 +343,25 @@ export function ScholarshipDirectoryClient({
       ) : (
         <>
           {/* Filter bar */}
-          <Card size="md" padding="sm" flat className="space-y-3">
+          <Card size="md" padding="md" flat className="space-y-5 border-line bg-surface shadow-gb-xs">
+            <div className="flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold text-fg">{t('Find your next opportunity')}</p>
+                <p className="mt-1 text-sm text-fg-tertiary">{t('Narrow the vault by eligibility, funding, and destination.')}</p>
+              </div>
+              {hasActiveFilters && (
+                <button
+                  type="button"
+                  onClick={clearFilters}
+                  className="text-sm font-semibold text-fg-brand transition hover:text-brand-hover"
+                >
+                  {t('Clear filters')}
+                </button>
+              )}
+            </div>
             {/* Search */}
             <div className="relative">
-              <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-fg-muted">
                 <SearchIcon />
               </span>
               <input
@@ -335,13 +369,13 @@ export function ScholarshipDirectoryClient({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={t('Search scholarships by name')}
-                className="w-full rounded-full border border-slate-200 bg-white py-2 pl-9 pr-4 text-sm text-slate-700 placeholder:text-slate-400 focus:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-100"
+                className="w-full rounded-xl border border-line-strong bg-surface py-3 pl-11 pr-4 text-sm text-fg placeholder:text-fg-muted outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
               />
             </div>
 
             {/* Scope chips */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs font-semibold text-slate-400">{t('Scope')}:</span>
+              <span className="mr-1 text-xs font-semibold text-fg-muted">{t('Scope')}:</span>
               <FilterChip active={scope === 'all'} onClick={() => setScope('all')}>
                 {t('All')} ({scholarships.length})
               </FilterChip>
@@ -354,7 +388,7 @@ export function ScholarshipDirectoryClient({
 
             {/* Funding type chips (multi) */}
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs font-semibold text-slate-400">{t('Funding type')}:</span>
+              <span className="mr-1 text-xs font-semibold text-fg-muted">{t('Funding type')}:</span>
               {fundingPresent.map((ft) => (
                 <FilterChip key={ft} active={funding.has(ft)} onClick={() => toggleFunding(ft)}>
                   {t(FUNDING_TYPE_LABELS[ft])}
@@ -364,12 +398,12 @@ export function ScholarshipDirectoryClient({
 
             {/* Country + sort + clear */}
             <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-fg-muted">
                 {t('Country')}:
                 <select
                   value={country}
                   onChange={(e) => setCountry(e.target.value)}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none"
+                  className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-fg outline-none focus:border-brand"
                 >
                   <option value="all">{t('All countries')}</option>
                   {countriesPresent.map((c) => (
@@ -380,12 +414,12 @@ export function ScholarshipDirectoryClient({
                 </select>
               </label>
 
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-400">
+              <label className="flex items-center gap-1.5 text-xs font-semibold text-fg-muted">
                 {t('Sort by')}:
                 <select
                   value={sort}
                   onChange={(e) => setSort(e.target.value as SortKey)}
-                  className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-700 focus:outline-none"
+                  className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-fg outline-none focus:border-brand"
                 >
                   <option value="relevance">{t('Relevance')}</option>
                   <option value="deadline">{t('Deadline (soonest)')}</option>
@@ -393,15 +427,6 @@ export function ScholarshipDirectoryClient({
                 </select>
               </label>
 
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="ml-auto text-xs font-medium text-pink-600 hover:text-pink-700"
-                >
-                  {t('Clear filters')}
-                </button>
-              )}
             </div>
           </Card>
 
@@ -459,8 +484,8 @@ export function ScholarshipDirectoryClient({
 
               {/* Personalized note */}
               {sort === 'relevance' && matchedIds.size > 0 && !hasActiveFilters && (
-                <p className="flex items-center gap-2 text-xs font-medium text-pink-600">
-                  <span className="inline-block h-2 w-2 rounded-full bg-pink-500" />
+                <p className="flex items-center gap-2 rounded-full border border-brand-subtle bg-surface px-3 py-2 text-xs font-semibold text-fg-brand shadow-gb-xs w-fit">
+                  <span className="inline-block h-2 w-2 rounded-full bg-brand shadow-[0_0_0_4px_var(--color-brand-subtle)]" />
                   {t('Matched to your saved universities')}
                 </p>
               )}
@@ -501,15 +526,15 @@ export function ScholarshipDirectoryClient({
 
       {/* Sticky "Continue to Apply" bar — appears once anything is saved. */}
       {savedIds.size > 0 && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-6 z-40 flex justify-center px-4">
-          <div className="pointer-events-auto flex items-center gap-4 rounded-full border border-pink-200 bg-white/95 py-2 pl-5 pr-2 shadow-[0_10px_30px_rgba(255,77,140,0.25)] backdrop-blur">
-            <span className="text-sm font-semibold text-slate-700">
+        <div className="pointer-events-none fixed inset-x-0 bottom-5 z-40 flex justify-center px-4 sm:bottom-8">
+          <div className="pointer-events-auto flex max-w-full items-center gap-3 rounded-gb-xl border border-brand bg-surface px-3 py-3 shadow-gb-lg backdrop-blur sm:gap-5 sm:pl-5">
+            <span className="min-w-0 truncate text-sm font-semibold text-fg-secondary">
               {t('{count} scholarship(s) saved', { count: savedIds.size })}
             </span>
             <button
               type="button"
               onClick={goToApply}
-              className="inline-flex h-10 items-center gap-1.5 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(255,77,140,0.3)] transition hover:-translate-y-0.5"
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-gb-md bg-brand px-4 text-sm font-semibold text-on-brand shadow-gb-xs-skeuomorphic transition hover:bg-brand-hover sm:px-5"
             >
               {t('Continue to Apply')}
               <span aria-hidden>→</span>
@@ -527,8 +552,17 @@ export function ScholarshipDirectoryClient({
 
 function SectionBanner({ children }: { children: React.ReactNode }) {
   return (
-    <div className="mb-4 inline-flex items-center rounded-lg bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-4 py-2 text-sm font-bold text-white shadow-[0_4px_14px_rgba(255,77,140,0.25)]">
+    <div className="mb-5 inline-flex items-center rounded-full bg-brand px-4 py-2 text-sm font-semibold text-on-brand shadow-gb-xs">
       {children}
+    </div>
+  );
+}
+
+function HeroMetric({ value, label, className = '' }: { value: string; label: string; className?: string }) {
+  return (
+    <div className={`rounded-2xl border border-line-on-inverse bg-white/10 px-4 py-3 backdrop-blur-sm ${className}`}>
+      <p className="font-[family-name:var(--font-gb-display)] text-2xl font-semibold tracking-tight text-fg-on-inverse">{value}</p>
+      <p className="mt-0.5 text-xs font-medium text-fg-on-inverse-secondary">{label}</p>
     </div>
   );
 }
@@ -551,7 +585,7 @@ function FilterChip({
       type="button"
       onClick={onClick}
       className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-        active ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+        active ? 'bg-surface-inverse text-fg-on-inverse' : 'border border-line bg-surface-muted text-fg-tertiary hover:border-line-strong hover:bg-surface'
       }`}
     >
       {children}
@@ -585,7 +619,7 @@ function ScholarshipDirectoryCard({
       size="md"
       padding="md"
       interactive
-      className="group relative flex cursor-pointer flex-col"
+      className="group relative flex min-h-[342px] cursor-pointer flex-col border-line bg-surface shadow-gb-xs hover:border-line-strong"
       onClick={onOpen}
       {...testId(TID.scholarshipCard)}
     >
@@ -598,27 +632,23 @@ function ScholarshipDirectoryCard({
           e.stopPropagation();
           onToggleSave();
         }}
-        className={`absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-300 ${
-          saved ? 'border-pink-200 bg-pink-50 text-pink-600' : 'border-slate-200 bg-white text-slate-400 hover:border-pink-200 hover:text-pink-500'
+        className={`absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+          saved ? 'border-brand-subtle bg-brand-subtle text-brand' : 'border-line bg-surface text-fg-muted hover:border-brand hover:text-brand'
         }`}
       >
         <HeartIcon filled={saved} />
       </button>
 
       {/* Header */}
-      <div className="mb-3 pr-9">
-        <div className="mb-1 flex flex-wrap items-center gap-1.5">
-          <Badge tone="info" size="sm">
+      <div className="mb-5 pr-11">
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <span className="rounded-full bg-surface-muted px-2.5 py-1 text-[11px] font-semibold text-fg-secondary">
             {t(SCHOLARSHIP_SCOPE_LABELS[s.scope])}
-          </Badge>
-          {matched && (
-            <Badge tone="match" size="sm">
-              {t('For you')}
-            </Badge>
-          )}
+          </span>
+          {matched && <span className="rounded-full bg-brand-subtle px-2.5 py-1 text-[11px] font-semibold text-fg-brand">{t('For you')}</span>}
         </div>
-        <h3 className="text-base font-semibold leading-snug text-slate-900 line-clamp-2 transition group-hover:text-pink-600">{s.name}</h3>
-        <p className="mt-1 truncate text-xs text-slate-400">
+        <h3 className="font-[family-name:var(--font-gb-display)] text-xl font-semibold leading-[1.15] tracking-[-0.025em] text-fg line-clamp-2 transition group-hover:text-fg-brand">{s.name}</h3>
+        <p className="mt-2 truncate text-sm text-fg-tertiary">
           {s.countryFlag && <span className="mr-1">{s.countryFlag}</span>}
           {s.provider || s.country || t(SCHOLARSHIP_SCOPE_LABELS[s.scope])}
         </p>
@@ -626,25 +656,25 @@ function ScholarshipDirectoryCard({
 
       {/* Amount / coverage */}
       {(s.amountLabel || s.coverage) && (
-        <div className="mb-3 rounded-2xl bg-pink-50 px-3.5 py-2.5">
+        <div className="mb-4 rounded-2xl border border-brand-subtle bg-brand-subtle px-4 py-3">
           {s.amountLabel ? (
-            <p className="text-base font-bold text-pink-700">{s.amountLabel}</p>
+            <p className="font-[family-name:var(--font-gb-display)] text-xl font-semibold tracking-tight text-fg-brand">{s.amountLabel}</p>
           ) : (
             <AutoTranslate
               as="p"
-              className="text-sm font-semibold text-pink-700 line-clamp-2"
+              className="text-sm font-semibold text-fg-brand line-clamp-2"
               text={s.coverage}
             />
           )}
           {s.amountLabel && s.coverage && (
-            <AutoTranslate as="p" className="mt-0.5 text-[11px] text-pink-500/80 line-clamp-1" text={s.coverage} />
+            <AutoTranslate as="p" className="mt-1 text-xs text-fg-brand/80 line-clamp-1" text={s.coverage} />
           )}
         </div>
       )}
 
       {/* Funding-type tags */}
       {s.funding_type.length > 0 && (
-        <div className="mb-3 flex flex-wrap gap-1.5">
+        <div className="mb-4 flex flex-wrap gap-1.5">
           {s.funding_type.slice(0, 2).map((ft) => (
             <Badge key={ft} tone="neutral" size="sm">
               {t(FUNDING_TYPE_LABELS[ft as keyof typeof FUNDING_TYPE_LABELS] ?? ft)}
@@ -657,22 +687,22 @@ function ScholarshipDirectoryCard({
       {s.eligibility && (
         <AutoTranslate
           as="p"
-          className="mb-3 text-xs leading-relaxed text-slate-500 line-clamp-2"
+          className="mb-4 text-sm leading-6 text-fg-tertiary line-clamp-2"
           text={s.eligibility}
         />
       )}
 
       {/* Footer */}
-      <div className="mt-auto flex items-center justify-between border-t border-slate-100 pt-3">
+      <div className="mt-auto flex items-center justify-between border-t border-line pt-4">
         {s.deadlineLabel ? (
-          <span className="inline-flex items-center gap-1 text-xs text-slate-500">
+          <span className="inline-flex items-center gap-1.5 text-xs font-medium text-fg-tertiary">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>
             {s.deadlineLabel}
           </span>
         ) : (
           <span />
         )}
-        <span className="text-xs font-semibold text-pink-600 transition group-hover:translate-x-0.5">{t('View details')} →</span>
+        <span className="text-sm font-semibold text-fg-brand transition group-hover:translate-x-0.5">{t('View details')} →</span>
       </div>
     </Card>
   );
@@ -680,7 +710,7 @@ function ScholarshipDirectoryCard({
 
 function HeartIcon({ filled }: { filled: boolean }) {
   return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill={filled ? '#ec4899' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <svg width="15" height="15" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
     </svg>
   );
@@ -717,85 +747,67 @@ function ScholarshipDetailModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/40 p-4 backdrop-blur-sm sm:p-8"
+      className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/65 p-4 backdrop-blur-sm sm:items-center sm:p-8"
       onClick={onClose}
       role="presentation"
     >
-      <Card
-        size="lg"
-        className="relative my-auto w-full max-w-2xl"
+      <div
+        className="my-auto w-full max-w-[806px] rounded-gb-xl border border-line bg-surface p-4 shadow-gb-lg sm:p-gb-4xl"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close"
-          className="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200"
-        >
-          ✕
-        </button>
+        {/* Figma 337:19483 — an intentional, compact voucher detail layout. */}
+        <header className="flex items-start gap-4 rounded-gb-lg border border-line bg-surface px-4 py-3 sm:items-center sm:px-6 sm:py-4">
+          <h2 className="min-w-0 flex-1 font-[family-name:var(--font-gb-display)] text-xl font-semibold leading-7 tracking-[-0.02em] text-fg sm:text-2xl">
+            {s.name}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            className="shrink-0 rounded-gb-md border border-line-strong bg-surface px-3 py-2 text-sm font-semibold text-fg-secondary shadow-gb-xs-skeuomorphic transition hover:bg-surface-hover"
+          >
+            {t('Back')}
+          </button>
+        </header>
 
-        {/* Header */}
-        <div className="-mx-1 -mt-1 mb-1 rounded-2xl bg-[linear-gradient(135deg,#FFE4F1,#F3E8FF)] px-4 py-3 pr-10">
-          <h2 className="text-lg font-bold text-slate-900">{s.name}</h2>
-          <p className="mt-1 text-sm text-slate-500">
-            {s.countryFlag && <span className="mr-1">{s.countryFlag}</span>}
-            {[s.provider, s.country].filter(Boolean).join(' · ') || t(SCHOLARSHIP_SCOPE_LABELS[s.scope])}
-          </p>
-        </div>
-
-        {/* Badges */}
-        <div className="mt-3 flex flex-wrap gap-1.5">
-          <Badge tone="info" size="sm">
-            {t(SCHOLARSHIP_SCOPE_LABELS[s.scope])}
-          </Badge>
+        <div className="mt-5 flex flex-wrap gap-2">
+          <DetailBadge>{t(SCHOLARSHIP_SCOPE_LABELS[s.scope])}</DetailBadge>
           {s.funding_type.map((ft) => (
-            <Badge key={ft} tone="neutral" size="sm">
-              {t(FUNDING_TYPE_LABELS[ft as keyof typeof FUNDING_TYPE_LABELS] ?? ft)}
-            </Badge>
+            <DetailBadge key={ft}>{t(FUNDING_TYPE_LABELS[ft as keyof typeof FUNDING_TYPE_LABELS] ?? ft)}</DetailBadge>
           ))}
         </div>
 
-        {/* Key facts */}
-        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {(s.amountLabel || s.coverage) && (
-            <Fact label={t('Coverage')}>
-              {s.amountLabel && <span className="font-semibold text-slate-900">{s.amountLabel}</span>}
-              {s.coverage && <AutoTranslate as="span" className="block text-slate-600" text={s.coverage} />}
-            </Fact>
-          )}
-          {(s.slots != null || s.slots_text) && (
-            <Fact label={t('Slots')}>
-              {s.slots != null ? String(s.slots) : <AutoTranslate text={s.slots_text} />}
-            </Fact>
-          )}
-          {s.deadlineLabel && <Fact label={t('Deadline')}>{s.deadlineLabel}</Fact>}
-          {s.ranking_note && (
-            <Fact label={t('Ranking / acceptance')}>
-              <AutoTranslate text={s.ranking_note} />
-            </Fact>
-          )}
-        </div>
+        <section className="mt-6 rounded-gb-lg border border-line bg-surface p-4 sm:p-6">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+            <div className="flex h-20 w-full shrink-0 items-center justify-center rounded-gb-md border-b border-line pb-5 text-3xl sm:h-24 sm:w-40 sm:border-b-0 sm:border-r sm:pb-0 sm:pr-5">
+              {s.countryFlag ?? '🎓'}
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-fg-secondary">{t('Scholarship value')}</p>
+              {s.amountLabel && <p className="mt-1 font-[family-name:var(--font-gb-display)] text-3xl font-semibold tracking-[-0.03em] text-fg-brand">{s.amountLabel}</p>}
+              {s.coverage && <AutoTranslate as="p" className="mt-2 text-sm leading-6 text-fg-secondary" text={s.coverage} />}
+              {s.deadlineLabel && <p className="mt-3 text-sm font-semibold text-fg-tertiary">{t('Deadline')}: {s.deadlineLabel}</p>}
+            </div>
+          </div>
+        </section>
 
-        {/* Long-form sections */}
-        <div className="mt-4 space-y-4">
+        <div className="mt-6 space-y-5">
           <Section label={t('Eligibility')} text={s.eligibility} />
           <Section label={t('Conditions')} text={s.conditions} />
           <Section label={t('Insight')} text={s.insight} />
+          {s.ranking_note && <Section label={t('Ranking / acceptance')} text={s.ranking_note} />}
         </div>
 
         {/* Applicable universities */}
         {s.universities.length > 0 && (
-          <div className="mt-4">
-            <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          <div className="mt-6">
+            <h3 className="mb-2 text-sm font-semibold text-fg">
               {t('Applicable universities')}
             </h3>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {s.universities.map((u) => (
                 <span
                   key={u.id}
-                  className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-700"
+                  className="inline-flex items-center gap-1 rounded-full border border-brand-subtle bg-brand-subtle px-3 py-1.5 text-xs font-medium text-fg-brand"
                 >
                   {u.name}
                 </span>
@@ -805,13 +817,13 @@ function ScholarshipDetailModal({
         )}
 
         {/* Actions */}
-        <div className="mt-6 flex flex-wrap items-center gap-2">
+        <div className="mt-7 flex flex-wrap items-center gap-3">
           <button
             type="button"
             aria-pressed={saved}
             onClick={onToggleSave}
-            className={`inline-flex h-11 items-center justify-center gap-2 rounded-full border-2 border-pink-500 px-5 text-sm font-semibold transition ${
-              saved ? 'bg-pink-50 text-pink-600 hover:bg-pink-100' : 'bg-white text-pink-600 hover:bg-pink-50'
+            className={`inline-flex h-11 items-center justify-center gap-2 rounded-gb-md border-2 border-brand px-5 text-sm font-semibold transition ${
+              saved ? 'bg-brand-subtle text-fg-brand hover:bg-brand-surface' : 'bg-surface text-fg-brand hover:bg-brand-subtle'
             }`}
           >
             <HeartIcon filled={saved} />
@@ -822,33 +834,30 @@ function ScholarshipDetailModal({
               href={s.source_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex h-11 items-center gap-2 rounded-full bg-slate-900 px-5 text-sm font-semibold text-white hover:bg-slate-700"
+              className="inline-flex h-11 items-center gap-2 rounded-gb-md bg-surface-inverse px-5 text-sm font-semibold text-fg-on-inverse shadow-gb-xs-skeuomorphic transition hover:bg-surface-inverse-strong"
             >
               {t('Official link')} <span aria-hidden>→</span>
             </a>
           )}
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
 
-function Fact({ label, children }: { label: string; children: React.ReactNode }) {
+function DetailBadge({ children }: { children: React.ReactNode }) {
   return (
-    <div className="rounded-lg bg-slate-50 px-3 py-2">
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">{label}</p>
-      <div className="mt-0.5 text-sm text-slate-700">{children}</div>
-    </div>
+    <span className="rounded-full border border-brand-subtle bg-brand-subtle px-3 py-1.5 text-xs font-medium text-fg-brand">{children}</span>
   );
 }
 
 function Section({ label, text }: { label: string; text: string | null }) {
   if (!text) return null;
   return (
-    <div>
-      <h3 className="mb-1 text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</h3>
-      <AutoTranslate as="p" className="whitespace-pre-line text-sm leading-relaxed text-slate-600" text={text} />
-    </div>
+    <section>
+      <h3 className="mb-2 text-sm font-semibold text-fg">{label}</h3>
+      <AutoTranslate as="p" className="whitespace-pre-line text-sm leading-6 text-fg-secondary" text={text} />
+    </section>
   );
 }
 

@@ -3,6 +3,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LanguageSwitcher } from './language-switcher';
 import { isNavGroup, isNavLinkActive, type NavEntry, type NavGroup, type NavLink } from './nav-model';
 import { TID, testId } from '@/shared/lib';
 
@@ -22,10 +23,10 @@ import { TID, testId } from '@/shared/lib';
  *   footer   24 top/bottom, two 40px buttons 12px apart
  *   text     Inter 14/20 semibold ("Text sm/Semibold")
  *
- * Deviation, deliberate: the mockup's footer has no language switch. Mobile has
- * no other language control (the switcher lives in the desktop sidebar), so
- * dropping it would strand Vietnamese users; it renders in `utility` above the
- * buttons.
+ * Deviation, deliberate: the mockup's footer has no language switch. The app is
+ * bilingual and dropping it would strand Vietnamese users, so it renders above
+ * the buttons. It used to be passed in through `utility` by whichever caller
+ * remembered; this component renders it itself now, so every sheet has one.
  */
 
 /**
@@ -47,7 +48,15 @@ type Props = {
   primaryAction: MobileNavAction;
   /** Outlined button beneath it — sign in, or the profile link once signed in. */
   secondaryAction: MobileNavAction;
-  /** Rendered between the item list and the buttons. Holds the language switch. */
+  /**
+   * A page-specific control between the item list and the buttons —
+   * `SavedNavLink`, in practice.
+   *
+   * ⚠️ The language switch used to be passed in here by the one caller that
+   * remembered to. It is rendered below `utility` by this component now, so
+   * every sheet has it; passing another would show two. See
+   * ./language-switcher.tsx.
+   */
   utility?: React.ReactNode;
   /** Accessible name for the hamburger, translated by the caller. */
   openLabel: string;
@@ -268,6 +277,9 @@ export function MobileNav({
 
             <div className="border-t border-line px-gb-xl py-gb-3xl pb-[calc(env(safe-area-inset-bottom)+var(--spacing-gb-3xl))]">
               {utility}
+              {/* After `utility` so the order matches the desktop bar, where
+                  SavedNavLink sits left of the switcher. */}
+              <LanguageSwitcher variant="row" />
               <div className="flex flex-col gap-gb-lg">
                 <Link href={primaryAction.href} className={`${BUTTON} bg-brand text-on-brand hover:bg-brand-hover`}>
                   {primaryAction.label}

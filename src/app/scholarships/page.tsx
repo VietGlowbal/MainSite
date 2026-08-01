@@ -96,8 +96,8 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-transparent px-4 py-6 md:px-8 md:py-8">
-      <div className="mx-auto w-full max-w-6xl">
+    <main className="min-h-screen bg-surface-muted px-4 pb-12 pt-6 md:px-8 md:pb-16 md:pt-10">
+      <div className="mx-auto w-full max-w-7xl">
         <ScholarshipDirectoryClient
           scholarships={scholarships}
           savedUniversityIds={savedUniversityIds}

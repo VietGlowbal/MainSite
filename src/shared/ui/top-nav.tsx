@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Avatar } from './avatar';
 import { Button } from './button';
+import { LanguageSwitcher } from './language-switcher';
 import { isNavGroup, isNavLinkActive, type NavEntry, type NavGroup, type NavLink } from './nav-model';
 import { TID, testId } from '@/shared/lib';
 
@@ -97,12 +98,14 @@ type Props = {
   /** Defaults to the dark bar the marketing pages use. */
   tone?: Tone | undefined;
   /**
-   * A control that sits before the actions — the language switcher, in practice.
+   * A page-specific control sitting before the actions — `SavedNavLink`, in
+   * practice.
    *
-   * Not in the Figma frames, which draw the header for an English-only mockup.
-   * It is here because the app is bilingual and the switcher used to live in
-   * the sidebar footer: with the sidebar gone there is nowhere else on desktop
-   * for it, and MobileNav has had the equivalent `utility` slot all along.
+   * ⚠️ NOT THE LANGUAGE SWITCHER, not any more. This prop was documented as
+   * being for it, and exactly one of the seventeen call sites ever passed one —
+   * so the switcher shipped on `/profile` and `/scholarships` and on no page
+   * that carries its own header. It is now rendered by this component directly;
+   * passing another here would show two. See ./language-switcher.tsx.
    */
   utility?: React.ReactNode;
 };
@@ -392,7 +395,13 @@ export function TopNav({
         {/* 24px between the actions and the avatar block (203:12466); the
             buttons themselves stay 12px apart in both states. */}
         <div className="flex shrink-0 items-center gap-gb-3xl">
-          {utility ? <div className="flex shrink-0 items-center">{utility}</div> : null}
+          {/* Never empty — the switcher is unconditional — so this div can be
+              rendered flat rather than guarded. A guarded-but-present empty div
+              would still take the 24px gap beside it. */}
+          <div className="flex shrink-0 items-center gap-gb-lg">
+            {utility}
+            <LanguageSwitcher tone={tone} />
+          </div>
 
           <div className="flex shrink-0 items-center gap-gb-lg">
             {/* Signed in, the design shows no "Sign in" button at all. */}

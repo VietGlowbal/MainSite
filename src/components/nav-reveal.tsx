@@ -114,35 +114,15 @@ function navEntriesFor(
   return [...shared, ...extras.map((item) => ({ href: item.href, label: t(item.label) }))];
 }
 
-// ── Language Switcher ────────────────────────────────────────────────────────
-/**
- * EN / VI toggle for the desktop header.
- *
- * Restyled with tokens rather than kept on `.glowbal-language-switcher`: that
- * rule is `width: 100%` with a hover lift, sized for the sidebar footer it used
- * to sit in, and it is one of the legacy selectors CLAUDE.md quarantines.
- *
- * The flag stays but the language name goes — a header has no room for
- * "Tiếng Việt" beside five nav items and two buttons, and the two-letter code
- * is what the mobile sheet already shows.
+/*
+ * The EN / VI toggle that used to be defined here is now
+ * `src/shared/ui/language-switcher.tsx`, rendered by `TopNav` and `MobileNav`
+ * themselves. It lived here because this was the only header that had one — and
+ * that WAS the bug: fifteen pages ship their own header and none of them
+ * remembered to fill the `utility` slot, so `/profile` and `/scholarships` were
+ * the only two pages on the site where a Vietnamese student could switch
+ * language. Do not pass one into `utility` from here or it renders twice.
  */
-function LanguageSwitcher() {
-  const { lang: language, toggle: toggleLanguage } = useLanguage();
-  const next = language === 'en' ? 'Vietnamese' : 'English';
-
-  return (
-    <button
-      type="button"
-      onClick={toggleLanguage}
-      aria-label={`Switch to ${next}`}
-      title={`Switch to ${next}`}
-      className="flex items-center gap-gb-sm rounded-gb-md border border-line px-gb-lg py-gb-sm text-gb-sm font-semibold text-fg-secondary transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-    >
-      <span aria-hidden="true">{language === 'en' ? '🇬🇧' : '🇻🇳'}</span>
-      <span>{language === 'en' ? 'EN' : 'VI'}</span>
-    </button>
-  );
-}
 
 // ── Mobile navigation ────────────────────────────────────────────────────────
 /**
@@ -154,7 +134,7 @@ function LanguageSwitcher() {
  * hamburger, so the destinations they carried between them all land here.
  */
 function MobileNavigation({ user }: { user: UserSummary | null }) {
-  const { t, lang: language, toggle: toggleLanguage } = useLanguage();
+  const { t } = useLanguage();
 
   const items = navEntriesFor(user, t);
 
@@ -174,24 +154,7 @@ function MobileNavigation({ user }: { user: UserSummary | null }) {
       }
       openLabel={t('Menu')}
       closeLabel={t('Close menu')}
-      utility={
-        <>
-          {/* Mobile has no header row to hang a count pill on, so the saved list
-              gets a drawer row instead. Renders nothing when signed out. */}
-          <SavedNavLink variant="row" />
-          <button
-            type="button"
-            onClick={toggleLanguage}
-            className="mb-gb-lg flex w-full items-center justify-between rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-medium text-fg-tertiary transition-colors hover:bg-surface-hover"
-            aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
-          >
-            <span>{language === 'en' ? '🇬🇧 English' : '🇻🇳 Tiếng Việt'}</span>
-            <span className="text-gb-xs font-semibold tracking-wide text-fg-muted">
-              {language === 'en' ? 'EN' : 'VI'}
-            </span>
-          </button>
-        </>
-      }
+      utility={<SavedNavLink variant="row" />}
     />
   );
 }
@@ -233,14 +196,7 @@ function AppTopNav({ user }: { user: UserSummary | null }) {
       logo={<GlowbalLogo height={28} />}
       items={items}
       primaryAction={{ href: '/apply', label: t('Plan your studies') }}
-      /* Two controls in the one utility slot. SavedNavLink renders nothing when
-         signed out, so the guest header is unchanged. */
-      utility={
-        <span className="flex items-center gap-gb-lg">
-          <SavedNavLink />
-          <LanguageSwitcher />
-        </span>
-      }
+      utility={<SavedNavLink />}
       {...(user
         ? { user: { name: user.name, avatarUrl: user.avatarUrl, href: '/profile' } }
         : { secondaryAction: { href: '/auth', label: t('Sign in') } })}
