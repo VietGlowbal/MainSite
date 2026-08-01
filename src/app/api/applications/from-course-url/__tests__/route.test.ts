@@ -53,6 +53,7 @@ interface SupabaseFixture {
 
 function buildSupabase(fixture: SupabaseFixture = {}) {
   const inserts: Record<string, unknown>[] = [];
+  const updates: Record<string, unknown>[] = [];
   const from = vi.fn((table: string) => {
     let operation = 'select';
     const builder: Record<string, ReturnType<typeof vi.fn>> = {};
@@ -60,6 +61,11 @@ function buildSupabase(fixture: SupabaseFixture = {}) {
     builder.eq = vi.fn(() => builder);
     builder.neq = vi.fn(() => builder);
     builder.delete = vi.fn(() => builder);
+    builder.update = vi.fn((value: Record<string, unknown>) => {
+      operation = 'update';
+      updates.push(value);
+      return builder;
+    });
     builder.insert = vi.fn((value: Record<string, unknown>) => {
       operation = 'insert';
       inserts.push(value);
@@ -92,6 +98,7 @@ function buildSupabase(fixture: SupabaseFixture = {}) {
     },
     from,
     inserts,
+    updates,
   };
 }
 
@@ -118,6 +125,10 @@ describe('POST /api/applications/from-course-url', () => {
     process.env.COURSE_URL_INGESTION_PROVIDER = 'ingestion';
     mockEntitlement.mockResolvedValue({ allowed: true });
     mockLegacyValidator.mockResolvedValue({ isValid: true });
+    // `createParseJob` returns the queued row, and returns null when the write
+    // fails. The route now branches on that instead of ignoring it, so the mock
+    // has to answer like the real one.
+    mockLegacyJob.mockResolvedValue({ id: 'parse-job-1' });
     mockCreateJob.mockResolvedValue({ id: 'job-1' });
     mockCacheLookup.mockResolvedValue({ found: false });
   });
@@ -228,5 +239,31 @@ describe('POST /api/applications/from-course-url', () => {
     );
     expect(mockCreateJob).not.toHaveBeenCalled();
     expect(supabase.inserts[0]).not.toHaveProperty('course_url_canonical');
+  });
+
+  it('settles the row instead of stranding it when the legacy queue refuses', async () => {
+    /*
+     * The row is inserted parse_status:'pending'. `createParseJob` reports a
+     * write failure by returning null, and this used to be swallowed as
+     * "best-effort", leaving an application that told its owner the AI was
+     * reading a page while no job existed. Measured 2026-08-01: 13 of 37 live
+     * applications are in that state, the oldest since 15 June.
+     */
+    process.env.COURSE_URL_INGESTION_PROVIDER = 'legacy';
+    mockLegacyJob.mockResolvedValue(null);
+    const supabase = buildSupabase({ university: APPROVED_UNIVERSITY });
+    mockCreateClient.mockResolvedValue(supabase);
+
+    const response = await POST(
+      request({ courseUrl: 'https://example.edu/program', universityId: 123 })
+    );
+
+    // The application is still the thing the student asked for, so this is not
+    // an error — but it must not keep claiming a parse is running.
+    expect(response.status).toBe(200);
+    expect((await response.json()).parseQueued).toBe(false);
+    expect(supabase.updates).toContainEqual(
+      expect.objectContaining({ parse_status: 'failed' })
+    );
   });
 });

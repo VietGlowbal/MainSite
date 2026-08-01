@@ -389,11 +389,31 @@ export function ProgramPicker({
               </>
             )}
 
-            {/* 375:13729 — the paste-a-link fallback. */}
+            {/*
+              375:13729 — the paste-a-link field.
+
+              ⚠️ IT IS OPTIONAL NOW, AND IT LOOKS IT (01/08). This used to read
+              "Cannot find the subject you want? Paste a link to it" as an h2 in
+              full-weight foreground, because a link was the only thing that
+              could become an application — /apply posted it to
+              from-course-url. Since applications are created from the saved
+              university itself, a subject alone is enough, and the paste-a-URL
+              bar on /apply is gone entirely.
+
+              It is kept rather than removed (owner's call) because it is still
+              the only way a university outside the programme catalogue — 82 of
+              106 — can ever get an AI-read checklist rather than the baseline.
+              So it stays, stated as what it now buys, one type step down and in
+              muted ink so it no longer competes with the subject list above it.
+            */}
             <div className="flex flex-col gap-gb-lg border-t border-line pt-gb-3xl">
-              <h2 className="text-gb-md font-semibold text-fg">
-                Cannot find the subject you want? Paste a link to it
+              <h2 className="text-gb-sm font-semibold text-fg-tertiary">
+                Have a link to the course page? (optional)
               </h2>
+              <p className="text-gb-sm text-fg-muted">
+                We will read it and build a checklist specific to this course. Without one you still
+                get the standard application checklist.
+              </p>
               <Input
                 name="programUrl"
                 label="Course page"

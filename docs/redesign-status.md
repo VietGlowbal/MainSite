@@ -103,12 +103,17 @@ Each is documented in a comment at the top of the relevant file.
 - **`/mentors` does not use the frame's footer.** `154:8345` still carries the
   stock Untitled UI footer — "Untitled UI", "© 2077 Untitled UI. All rights
   reserved." — which the designer has not replaced.
-- **`/apply` keeps the course importer.** The frame draws no way to add an
-  application, which would make the page a dead end and drop the Smart Course
-  Importer. The paste-a-URL bar and `CourseSearchSessionModal` (the
-  `?openCourseSearch` entry point from `/scholarships`) are retained.
+- ~~**`/apply` keeps the course importer.**~~ **REVERSED 01/08 — the frame was
+  right.** The owner confirmed applications are created from the saved list, not
+  from a pasted URL. The paste-a-URL bar, `CourseSearchSessionModal` and the
+  `?universityId` + `?openCourseSearch` entry point are all gone; the modal
+  component and its three test files are deleted. Nothing external linked with
+  those params (the "funnel from `/scholarships`" this note claimed was already
+  stale — that page sends `?focus=<id>`). See §"Applications now come from the
+  saved list" below.
 - **`/apply` crests fall back to initials.** Only 4 of 29 live rows carry a
-  `university_id` to join a `logo_url` from.
+  `university_id` to join a `logo_url` from. ⚠️ This shrinks by itself from
+  01/08: every application created from a saved university carries one.
 - **`/apply` adds five things `562:15078` does not draw** (01/08, after the owner
   called the page boring). All five are recorded in the file headers of
   `my-application-section.tsx` and `saved-list-section.tsx`; the reason they are
@@ -379,8 +384,69 @@ Two things had to be fixed for that to work at all:
 
 ⚠️ `POST /api/applications/from-course-url` can still refuse: with
 `getIngestionProvider()` on `'ingestion'` it 400s unless the university has
-`domain_review_status = 'approved'` and a `primary_domain`. Not measured. If the
-CTA starts failing broadly, look there first.
+`domain_review_status = 'approved'` and a `primary_domain`. **Now measured — see
+below. It was 20 of 106.**
+
+### Applications now come from the saved list (01/08)
+
+The paste-a-course-URL importer is gone from `/apply`. "Plan my application" is
+the only way an application is created, and it no longer needs a course URL.
+
+**What forced it.** The old CTA posted each ticked row's `program_url` to
+`/api/applications/from-course-url`. Measured against the live database on
+2026-08-01:
+
+| | |
+|---|---|
+| Universities | 106 |
+| …with a programme catalogue (`catalog_programmes`, 404 rows, all with `official_url`) | **24** |
+| …also clearing the ingestion domain gate | **20** (all US, all inside the 24) |
+| Saved rows with a `program_url` | **1 of 9** |
+| Applications with no `university_id` | **29 of 37** |
+
+So for 82 of 106 universities the subject list comes from
+`universities.strengths` — names with no links — and the flow dead-ended. Worse,
+the CTA itself was nearly unreachable: it only rendered when
+`applyCandidates.length === 0 && attachedCount > 0`, so a university with **no**
+scholarship in the directory showed "Apply scholarship", whose dialog opens to
+say there are none.
+
+**What replaced it.**
+
+- `POST /api/applications/from-saved-university` takes `{ universityId }`, reads
+  the subject off `user_universities`, and 409s `SUBJECT_REQUIRED` if there is
+  none. Every field is real at insert — no `"Loading course details..."`
+  placeholder, and always a `university_id`.
+- `lib/course-parser/baseline-checklist.ts` seeds the five `STAGE_TEMPLATE`
+  stages plus 13 universal tasks (`created_by: 'system'`), so no application
+  opens empty. A course URL is now *optional* and only decides whether an AI
+  enrichment pass is queued on top.
+- `writeChecklist` in `job-processor.ts` **no longer deletes and recreates the
+  spine.** It matches stages on `slug` and replaces only `created_by = 'ai'`
+  tasks. Without that change the first successful parse of every application
+  would have produced **ten** stages, and would have wiped baseline tasks the
+  student had already ticked.
+- "Plan my application" is now the primary action whenever a row is ticked;
+  "Apply scholarship" is secondary and appears only when the ticked rows have an
+  award to attach.
+- `supabase-apply-baseline-checklist.sql` — a **guarded follow-up** (§0), adding
+  `'system'` to `valid_created_by` and dropping `NOT NULL` from
+  `course_applications.course_url`. **Must be applied before the new endpoint
+  works**; `seedBaselineChecklist` throws `BaselineNotEnabledError` naming the
+  file if it has not been.
+- The subject picker keeps its paste-a-link field, restyled as optional — it is
+  the only way one of the 82 ever gets an AI-read checklist.
+- `?focus=<universityId>` is handled at last. `/scholarships` has been sending it
+  since it was built and `/apply` ignored it; it now ticks and scrolls to that
+  saved row.
+
+⚠️ **13 of 37 live applications were stranded** at `parse_status = 'pending'`
+with **no job row in either queue**, the oldest since 15 June, each rendering
+"GlowBal's AI is reading the course page…" forever. Cause: `createParseJob`
+returns `null` on a write failure and the enqueue sat in a catch commented
+"Best-effort — don't fail the request". Both endpoints now settle the row
+honestly. `scripts/repair-stranded-applications.mjs` fixes the existing rows —
+**dry run by default, `--apply` to write**, and it needs the migration first.
 
 #### Nav
 
