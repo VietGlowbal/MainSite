@@ -499,6 +499,30 @@ A real fix for 768–1024 still needs a decision from the designer — raise the
 desktop breakpoint to `lg`/`xl` so tablets get the hamburger, or give the bar an
 overflow menu. Neither is drawn in Figma.
 
+### Much smaller since 01/08, but not gone
+
+The owner's nav rework took the marketing bar from six top-level labels to four
+by folding Scholarships / Universities / Mentors behind a **Search** dropdown.
+Re-measured on `/` at the same widths:
+
+| Viewport | Hidden, 6 items | Hidden, 4 items |
+|---|---|---|
+| 768 | 371px | **74px** |
+| 1280 | 0 (99px spare) | **0** |
+| 1440 | 0 | **0** |
+
+So the tablet case is now "the last label is clipped", not "half the bar is
+gone". The paragraph above still stands: `overflow-hidden` is still the
+behaviour, the `2xl` gate on horizontal padding is still load-bearing, and the
+signed-in `navItemsFor()` list in `nav-reveal.tsx` is **untouched** by this — it
+still builds up to 9 items and is still the worse case.
+
+⚠️ One new constraint. `NavDropdown`'s panel is `position: fixed` precisely
+*because* the row clips, and that only works while nothing above the header
+establishes a containing block for fixed descendants. **Adding `transform`,
+`filter` or `contain: paint` to `<body>`, the page shell, or the header itself
+would silently re-clip the dropdown** — it would open, and be invisible.
+
 ---
 
 ## 5. Fixed 2026-07-26 — do not re-introduce
