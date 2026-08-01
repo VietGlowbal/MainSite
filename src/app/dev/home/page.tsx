@@ -43,9 +43,12 @@ import { Footer, MobileNav, TopNav } from '@/shared/ui';
  *   [x] 104:7361  contact
  *   [x] 104:7404  footer
  *
- * ⚠️ THE PREVIEW RENDERS NO REAL DATA. The rail is empty here and the contact
- * form is inert on purpose — both need server reads that belong to the route,
- * not to a design preview. Check either against "/", not against this page.
+ * ⚠️ THE PREVIEW RENDERS NO REAL DATA. The rail is empty here, the contact form
+ * is inert, and the partner crests all link to /universities rather than to
+ * eleven specific pages — all three need server reads that belong to the route,
+ * not to a design preview. Check any of them against "/", not against this page.
+ * The orbit's animation, the heading's flip and the shockwave are unaffected;
+ * they are the reason this preview exists.
  *
  * Two sections are still blocked on copy the owner has to write, not on code.
  * When both land, delete the showPlaceholders prop and the two omissions in

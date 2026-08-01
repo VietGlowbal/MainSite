@@ -1,3 +1,4 @@
+import { normaliseUniversityName } from '../../domain/match-university';
 import {
   clampPage,
   clampPageSize,
@@ -64,6 +65,20 @@ export class InMemoryUniversityRepository implements UniversityQueries {
     if (ids.length === 0) return [];
     const wanted = new Set(ids);
     return this.rows.filter((r) => wanted.has(r.id));
+  }
+
+  async findIdsByNames(names: readonly string[]): Promise<Record<string, number>> {
+    const byNormalisedName = new Map<string, number>();
+    for (const row of this.rows) {
+      const key = normaliseUniversityName(row.name);
+      if (key && !byNormalisedName.has(key)) byNormalisedName.set(key, row.id);
+    }
+    const found: Record<string, number> = {};
+    for (const name of names) {
+      const id = byNormalisedName.get(normaliseUniversityName(name));
+      if (id !== undefined) found[name] = id;
+    }
+    return found;
   }
 
   async facets(): Promise<UniversityFacets> {

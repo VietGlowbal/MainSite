@@ -1,5 +1,8 @@
 import type { Metadata } from 'next';
+import { unstable_cache } from 'next/cache';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { getUniversityQueries } from '@/features/universities/api';
+import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
@@ -15,6 +18,7 @@ import {
   HomeScholarships,
   MARKETING_NAV_ACTIONS,
   MARKETING_NAV_ITEMS,
+  PARTNER_LOGOS,
   type ContactState,
 } from '@/features/marketing/ui';
 import { recordWaitlistSignup } from '@/features/marketing/api';
@@ -76,10 +80,39 @@ export const metadata: Metadata = {
   ],
 };
 
-// Nothing on this page reads per-request state, so it prerenders. The 12h
-// window is kept from the previous landing page, ready for the first section
-// that does take a Supabase read.
+// Nothing on this page reads PER-REQUEST state, so it still prerenders. The 12h
+// window was kept from the previous landing page "ready for the first section
+// that does take a Supabase read" — the partner orbit below is now that section.
 export const revalidate = 43200;
+
+/**
+ * Row ids for the eleven crests in the partner orbit, so each one can link to
+ * its university's page.
+ *
+ * The ids cannot live next to the logos: `/universities/[id]` is keyed on the
+ * numeric row id (there is no slug column — see that page's header), and the
+ * logo list is a static file. So the names are matched to rows here, once, and
+ * handed down positionally.
+ *
+ * Cached rather than read per render for the obvious reason, but note the two
+ * layers are not redundant: `revalidate` above regenerates the page, while this
+ * entry is also tagged, so `revalidateUniversities()` after an import corrects
+ * the links immediately instead of up to twelve hours later.
+ *
+ * Unresolved names come back absent, and HomePartners falls back to the
+ * directory index for those — see the ⚠️ on `findIdsByNames`. That is what keeps
+ * a rename in the `universities` table from turning a crest into a 404.
+ */
+const getPartnerUniversityIds = unstable_cache(
+  async (): Promise<(number | null)[]> => {
+    const idsByName = await getUniversityQueries().findIdsByNames(
+      PARTNER_LOGOS.map((logo) => logo.name),
+    );
+    return PARTNER_LOGOS.map((logo) => idsByName[logo.name] ?? null);
+  },
+  ['home-partner-university-ids'],
+  { revalidate: CACHE_TTL_LONG, tags: [CACHE_TAGS.universities] },
+);
 
 /**
  * The consultation form (Figma 104:7361).
@@ -170,7 +203,9 @@ async function submitContact(
   return { status: 'ok', message: "Thanks — we'll be in touch shortly." };
 }
 
-export default function Home() {
+export default async function Home() {
+  const partnerUniversityIds = await getPartnerUniversityIds();
+
   return (
     /* gb-page-full-bleed tells globals.css to drop the sidebar gutter and the
        mobile header offset — this page owns its own chrome. It also has to be
@@ -201,7 +236,7 @@ export default function Home() {
       />
       <main>
         <HomeHero />
-        <HomePartners />
+        <HomePartners universityIds={partnerUniversityIds} />
         <HomeMetrics />
         <HomeFeatures showPlaceholders={false} />
         <HomeHowItWorks />
