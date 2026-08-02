@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import type { Recommendation } from '../domain';
-import { SEEDED_CATEGORIES, groupByCategory } from '../domain';
+import { SEEDED_CATEGORIES, groupByCategory, recommendationHelp } from '../domain';
 import { ProgressStatusControl } from './progress-status-control';
 import { Badge, type BadgeVariant } from '@/shared/ui';
 
@@ -16,6 +16,49 @@ const PRIORITY_VARIANT: Record<Recommendation['priority'], BadgeVariant> = {
 function categoryLabel(key: string | null): string {
   if (!key) return 'General';
   return SEEDED_CATEGORIES.find((c) => c.key === key)?.label ?? key;
+}
+
+/**
+ * The "Help" cell — the tool that finishes this task, or the AI's own link.
+ *
+ * This used to render `rec.actionTarget` directly, which meant it was almost
+ * always a dash: `actionTarget` comes from the match-insights prompt, and the
+ * model has never been told GlowBal's internal routes exist. `recommendationHelp`
+ * resolves a first-party workspace from the row's pillar instead, and falls back
+ * to the AI's link only when there is no tool for the job. See
+ * domain/strategy-tool.ts.
+ *
+ * A first-party tool is a `next/link` (client-side nav, keeps the student in the
+ * Strategy); an external one is a plain anchor with the usual new-tab safety.
+ */
+function HelpCell({
+  recommendation,
+  applicationId,
+}: {
+  recommendation: Recommendation;
+  applicationId: string;
+}) {
+  const help = recommendationHelp(recommendation, applicationId);
+  if (!help) return <span className="text-fg-muted">—</span>;
+
+  if (help.external) {
+    return (
+      <a
+        href={help.href}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="font-semibold text-fg-brand hover:underline"
+      >
+        {help.label}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={help.href} className="font-semibold text-fg-brand hover:underline">
+      {help.label}
+    </Link>
+  );
 }
 
 /**
@@ -87,18 +130,7 @@ export function RecommendationTable({
                       />
                     </td>
                     <td className="px-gb-lg py-gb-lg align-top text-gb-sm">
-                      {rec.actionTarget ? (
-                        <a
-                          href={rec.actionTarget}
-                          target={rec.actionType === 'external_url' ? '_blank' : undefined}
-                          rel={rec.actionType === 'external_url' ? 'noopener noreferrer' : undefined}
-                          className="font-semibold text-fg-brand hover:underline"
-                        >
-                          {rec.actionLabel ?? 'View'}
-                        </a>
-                      ) : (
-                        <span className="text-fg-muted">—</span>
-                      )}
+                      <HelpCell recommendation={rec} applicationId={applicationId} />
                     </td>
                   </tr>
                 ))}
