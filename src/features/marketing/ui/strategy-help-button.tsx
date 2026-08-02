@@ -135,7 +135,15 @@ export function StrategyHelpButton() {
           </div>
 
           <div className="min-h-0 flex-1 p-gb-3xl">
-            <GuidePanel flat={flat} activeIndex={activeIndex} onSelect={setActiveIndex} />
+            {/* `-mx-gb-3xl` cancels this block's own padding for the one
+                element that wants the dialog's full width: the rule under the
+                area cards. See `bleedClassName` on GuidePanel. */}
+            <GuidePanel
+              flat={flat}
+              activeIndex={activeIndex}
+              onSelect={setActiveIndex}
+              bleedClassName="-mx-gb-3xl"
+            />
           </div>
         </div>
       </Modal>
