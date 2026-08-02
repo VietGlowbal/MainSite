@@ -63,6 +63,14 @@ export type { CourseMatchAnalysis, CourseMatchSubScore } from './course-match';
 export { SEEDED_CATEGORIES, categoryByPillar } from './strategy-category';
 export type { StrategyCategory } from './strategy-category';
 
+export {
+  STRATEGY_TOOLS,
+  recommendationHelp,
+  strategyToolHref,
+  toolForRecommendation,
+} from './strategy-tool';
+export type { RecommendationLink, StrategyTool, StrategyToolKey } from './strategy-tool';
+
 export { COACH_SEED_INTENTS } from './coach';
 export type { CoachMessage, CoachRole, CoachSeedIntent, CoachThread } from './coach';
 

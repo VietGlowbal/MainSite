@@ -1,5 +1,6 @@
+import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
-import { recommendationFromRow } from '@/features/ai-strategy-dashboard/domain';
+import { recommendationFromRow, recommendationHelp } from '@/features/ai-strategy-dashboard/domain';
 import {
   AiCoachPanel,
   EvidenceUpload,
@@ -46,6 +47,7 @@ export default async function RecommendationDetailPage({
   if (!row) notFound();
 
   const rec = recommendationFromRow(row);
+  const help = recommendationHelp(rec, applicationId);
 
   return (
     <Container className="max-w-3xl py-gb-7xl">
@@ -81,17 +83,31 @@ export default async function RecommendationDetailPage({
           </Panel>
         ) : null}
 
-        {rec.actionTarget ? (
+        {/* The tool that finishes this task, or the AI's own link — resolved by
+            the same `recommendationHelp` the Dashboard table uses, so the detail
+            page and the row that led here cannot offer different next steps.
+            Previously this rendered `actionTarget` raw, which the model almost
+            never populates. See domain/strategy-tool.ts. */}
+        {help ? (
           <Panel>
             <p className="text-gb-sm font-semibold text-fg">Suggested next step</p>
-            <a
-              href={rec.actionTarget}
-              target={rec.actionType === 'external_url' ? '_blank' : undefined}
-              rel={rec.actionType === 'external_url' ? 'noopener noreferrer' : undefined}
-              className="mt-gb-xs inline-block text-gb-sm font-semibold text-fg-brand hover:underline"
-            >
-              {rec.actionLabel ?? 'View'}
-            </a>
+            {help.external ? (
+              <a
+                href={help.href}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-gb-xs inline-block text-gb-sm font-semibold text-fg-brand hover:underline"
+              >
+                {help.label}
+              </a>
+            ) : (
+              <Link
+                href={help.href}
+                className="mt-gb-xs inline-block text-gb-sm font-semibold text-fg-brand hover:underline"
+              >
+                {help.label}
+              </Link>
+            )}
           </Panel>
         ) : null}
 

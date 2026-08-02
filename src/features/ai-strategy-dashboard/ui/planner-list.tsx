@@ -3,7 +3,14 @@
 import Link from 'next/link';
 import type { Recommendation } from '../domain';
 import { daysRemaining } from '../domain';
-import { DueChip, PRIORITY_LABEL, PRIORITY_VARIANT, categoryLabel, formatDate } from './planner-shared';
+import {
+  DueChip,
+  HelpLink,
+  PRIORITY_LABEL,
+  PRIORITY_VARIANT,
+  categoryLabel,
+  formatDate,
+} from './planner-shared';
 import { ProgressStatusControl } from './progress-status-control';
 import { Badge } from '@/shared/ui';
 
@@ -102,20 +109,15 @@ export function PlannerList({
                     ) : null}
                   </Link>
                   {/* The old table's "Help" column. Kept as a second link inside
-                      the same cell rather than an eighth column — it is present
-                      on only some tasks, so a whole column of dashes bought
-                      nothing. Outside the title Link because nesting anchors is
-                      invalid HTML. */}
-                  {rec.actionTarget ? (
-                    <a
-                      href={rec.actionTarget}
-                      target={rec.actionType === 'external_url' ? '_blank' : undefined}
-                      rel={rec.actionType === 'external_url' ? 'noopener noreferrer' : undefined}
-                      className="self-start rounded-gb-sm text-gb-xs font-semibold text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-                    >
-                      {rec.actionLabel ?? 'View'}
-                    </a>
-                  ) : null}
+                      the same cell rather than an eighth column — it resolves
+                      to nothing on plenty of rows, so a whole column of dashes
+                      bought nothing. Outside the title Link because nesting
+                      anchors is invalid HTML. */}
+                  <HelpLink
+                    recommendation={rec}
+                    applicationId={applicationId}
+                    className="text-gb-xs"
+                  />
                 </div>
               </td>
 

@@ -111,7 +111,7 @@ export default async function StrategyDashboardPage({
           </p>
         ) : null}
 
-        <StrategyCategoryBoard recommendations={recommendations} />
+        <StrategyCategoryBoard applicationId={applicationId} recommendations={recommendations} />
 
         {/* `today` is resolved on the server and passed down so the client
             agrees with it — computing `new Date()` inside the planner would

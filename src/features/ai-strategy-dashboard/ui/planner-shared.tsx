@@ -2,7 +2,13 @@
 
 import Link from 'next/link';
 import type { Recommendation } from '../domain';
-import { SEEDED_CATEGORIES, dueLabel, dueTone, type DueTone } from '../domain';
+import {
+  SEEDED_CATEGORIES,
+  dueLabel,
+  dueTone,
+  recommendationHelp,
+  type DueTone,
+} from '../domain';
 import { Badge, type BadgeVariant } from '@/shared/ui';
 
 /**
@@ -59,6 +65,49 @@ export function formatDate(iso: string | null): string {
     year: 'numeric',
     timeZone: 'UTC',
   });
+}
+
+/**
+ * The "Help" link for a task — the workspace that finishes it.
+ *
+ * Carried over from the recommendation table this planner replaces. It does
+ * NOT render `actionTarget` directly: that comes from the match-insights
+ * prompt, and the model has never been told GlowBal's internal routes exist,
+ * so it was almost always a dash. `recommendationHelp` resolves a first-party
+ * tool from the row's pillar and falls back to the AI's link only when there
+ * is no tool for the job. See domain/strategy-tool.ts.
+ *
+ * A first-party tool is a `next/link` — client-side nav, keeps the student
+ * inside the Strategy. An external one is a plain anchor with the usual
+ * new-tab safety.
+ */
+export function HelpLink({
+  recommendation,
+  applicationId,
+  className,
+}: {
+  recommendation: Recommendation;
+  applicationId: string;
+  className?: string;
+}) {
+  const help = recommendationHelp(recommendation, applicationId);
+  if (!help) return null;
+
+  const classes = `self-start rounded-gb-sm font-semibold text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${className ?? ''}`;
+
+  if (help.external) {
+    return (
+      <a href={help.href} target="_blank" rel="noopener noreferrer" className={classes}>
+        {help.label}
+      </a>
+    );
+  }
+
+  return (
+    <Link href={help.href} className={classes}>
+      {help.label}
+    </Link>
+  );
 }
 
 /**
