@@ -301,6 +301,25 @@ export const ICONS = {
     strokeWidth: 2,
     d: ['M18 6L6 18', 'M6 6L18 18'],
   },
+  /**
+   * Magnifier ("search-lg") — NOT FROM A FIGMA EXPORT, same story as `close`
+   * and `trash`. Used on the guide's call-to-action when the step's link goes
+   * to a directory the student searches rather than a page they fill in.
+   *
+   * Coordinates are the standard 24px glyph translated to the origin (x−2,
+   * y−2), which is the convention the exported entries above follow: the
+   * viewBox is the stroked bounds of the artwork, not the icon frame.
+   */
+  search: {
+    w: 20,
+    h: 20,
+    frame: 24,
+    strokeWidth: 2,
+    d: [
+      'M19 19L14.65 14.65',
+      'M17 9C17 13.4183 13.4183 17 9 17C4.58172 17 1 13.4183 1 9C1 4.58172 4.58172 1 9 1C13.4183 1 17 4.58172 17 9Z',
+    ],
+  },
 } as const satisfies Record<string, KitIconArt>;
 
 /* ──────────────────────────────────────────────────────────────────────────

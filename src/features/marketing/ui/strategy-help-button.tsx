@@ -1,13 +1,8 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import {
-  flattenGuide,
-  STRATEGY_GUIDE,
-  stepIndexForPath,
-} from '../domain/strategy-guide';
+import { flattenGuide, STRATEGY_GUIDE, stepIndexForPath } from '../domain/strategy-guide';
 import { GuidePanel } from './strategy-guide';
 import { ICONS, KitIcon, Modal } from '@/shared/ui';
 
@@ -42,15 +37,23 @@ import { ICONS, KitIcon, Modal } from '@/shared/ui';
  *
  * ─── WHERE IT DOES NOT APPEAR ────────────────────────────────────────────────
  *
- * Suppressed on `/ai-strategy` itself (a help button that opens the page you
- * are already reading), and on auth, admin, coordinator and the dev/demo
- * canvases — none of which are the student journey this explains. Everything
- * else gets it, which is what "on whatever page you're on" asks for.
+ * Suppressed on auth, admin, coordinator, onboarding and the dev/demo canvases
+ * — none of which is the student journey this explains — and on `/ai-strategy`
+ * exactly, since that route IS the walkthrough and a help button there would
+ * open the page already on screen.
+ *
+ * ⚠️ `/ai-strategy` IS AN EXACT MATCH, NOT A PREFIX (02/08, owner). It was a
+ * prefix, which silently took the button off the most actionable screens in
+ * the product: the reflection questions, the achievements form, the two AI
+ * reports and the whole improvement dashboard all sit under `/ai-strategy/`.
+ * Area 3 of the guide describes those screens step by step, and `PATH_TO_STEP`
+ * has always had entries for them — the popup was simply never mounted there
+ * to use them. Everything under the prefix now gets it; only the explainer
+ * itself does not.
  */
 
-/** Route prefixes that get no help button. See the header. */
+/** Route prefixes that get no help button, matching the path or any child. */
 const SUPPRESSED_PREFIXES = [
-  '/ai-strategy',
   '/auth',
   '/admin',
   '/coordinator',
@@ -59,7 +62,11 @@ const SUPPRESSED_PREFIXES = [
   '/onboarding',
 ];
 
+/** Routes that get no help button, matched exactly — children still do. */
+const SUPPRESSED_EXACT = ['/ai-strategy'];
+
 function isSuppressed(pathname: string): boolean {
+  if (SUPPRESSED_EXACT.includes(pathname)) return true;
   return SUPPRESSED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
   );
@@ -83,8 +90,6 @@ export function StrategyHelpButton() {
 
   if (isSuppressed(pathname)) return null;
 
-  const active = flat[activeIndex] ?? flat[0];
-
   return (
     <>
       <button
@@ -105,38 +110,18 @@ export function StrategyHelpButton() {
         label="How GlowBal works"
         className="max-w-[72rem] p-0"
       >
-        <div className="flex h-[min(80vh,44rem)] flex-col">
-          <div className="flex shrink-0 items-center justify-between gap-gb-lg border-b border-line px-gb-3xl py-gb-xl">
+        {/* A DEFINITE height, not `max-h`: `GuidePanel` is `h-full` and its
+            step column is `min-h-0 overflow-y-auto`, both of which need a
+            parent height to resolve against. With an auto height the column
+            would grow instead of scrolling and push Previous/Next out of the
+            dialog on a short viewport. */}
+        <div className="flex h-[min(88vh,46rem)] flex-col">
+          <div className="flex shrink-0 items-start justify-between gap-gb-lg px-gb-3xl pt-gb-3xl">
             <div className="flex flex-col">
               <p className="text-gb-sm font-semibold text-fg">How GlowBal works</p>
               <p className="text-gb-xs text-fg-muted">
                 Step {activeIndex + 1} of {flat.length}
               </p>
-            </div>
-
-            {/* Area jump. Lands on each area's first step, so a student can get
-                to a different stage without stepping through the one they are
-                in. */}
-            <div className="hidden items-center gap-gb-xs sm:flex">
-              {STRATEGY_GUIDE.map((area) => {
-                const firstIndex = flat.findIndex((entry) => entry.area.id === area.id);
-                const isCurrent = active?.area.id === area.id;
-                return (
-                  <button
-                    key={area.id}
-                    type="button"
-                    onClick={() => setActiveIndex(firstIndex)}
-                    aria-current={isCurrent ? 'true' : undefined}
-                    className={`rounded-gb-md px-gb-lg py-gb-sm text-gb-xs font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                      isCurrent
-                        ? 'bg-brand-subtle text-fg-brand'
-                        : 'text-fg-muted hover:bg-surface-muted hover:text-fg-secondary'
-                    }`}
-                  >
-                    {area.number}. {area.title}
-                  </button>
-                );
-              })}
             </div>
 
             <button
@@ -151,33 +136,6 @@ export function StrategyHelpButton() {
 
           <div className="min-h-0 flex-1 p-gb-3xl">
             <GuidePanel flat={flat} activeIndex={activeIndex} onSelect={setActiveIndex} />
-          </div>
-
-          <div className="flex shrink-0 items-center justify-between gap-gb-lg border-t border-line px-gb-3xl py-gb-xl">
-            <button
-              type="button"
-              onClick={() => setActiveIndex((i) => Math.max(0, i - 1))}
-              disabled={activeIndex === 0}
-              className="inline-flex items-center gap-gb-md rounded-gb-md px-gb-lg py-gb-sm text-gb-sm font-semibold text-fg-secondary transition-colors hover:bg-surface-muted disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              <KitIcon art={ICONS.arrowLeft} frame={20} />
-              Previous
-            </button>
-            <Link
-              href="/ai-strategy"
-              className="text-gb-sm font-medium text-fg-muted underline-offset-4 hover:text-fg-secondary hover:underline"
-            >
-              Open the full guide
-            </Link>
-            <button
-              type="button"
-              onClick={() => setActiveIndex((i) => Math.min(flat.length - 1, i + 1))}
-              disabled={activeIndex === flat.length - 1}
-              className="inline-flex items-center gap-gb-md rounded-gb-md px-gb-lg py-gb-sm text-gb-sm font-semibold text-fg-secondary transition-colors hover:bg-surface-muted disabled:pointer-events-none disabled:opacity-40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              Next
-              <KitIcon art={ICONS.arrowRight} frame={20} />
-            </button>
           </div>
         </div>
       </Modal>

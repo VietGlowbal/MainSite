@@ -127,9 +127,11 @@ export default function RootLayout({
           <main className="glowbal-main-content">{children}</main>
           {/* The floating "?" — opens the product walkthrough over whatever
               page the student is on, at the step matching that page. Mounted
-              here so it is genuinely everywhere; it suppresses itself on the
-              routes that are not the student journey (auth, admin, dev) and on
-              /ai-strategy, which IS the walkthrough. */}
+              here so it is genuinely everywhere: universities, scholarships,
+              My Portal, the subject picker and every Strategy screen. It
+              suppresses itself on the routes that are not the student journey
+              (auth, admin, coordinator, onboarding, dev) and on /ai-strategy
+              exactly, which IS the walkthrough — its child routes keep it. */}
           <StrategyHelpButton />
           {/* Inside LanguageProvider: the loader's rotating line is bilingual.
               Mounted once here so every page gets it — see loading-overlay.tsx
