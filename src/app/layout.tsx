@@ -7,6 +7,7 @@ import { NavReveal } from '@/components/nav-reveal';
 import { RouteLoading } from '@/components/route-loading';
 import { LanguageProvider } from '@/lib/i18n';
 import { DomTranslator } from '@/lib/dom-translate';
+import { StrategyHelpButton } from '@/features/marketing/ui';
 import { GlobalLoadingOverlay } from '@/shared/ui';
 import './globals.css';
 
@@ -124,6 +125,12 @@ export default function RootLayout({
               nothing itself — it only drives the loading store. */}
           <RouteLoading />
           <main className="glowbal-main-content">{children}</main>
+          {/* The floating "?" — opens the product walkthrough over whatever
+              page the student is on, at the step matching that page. Mounted
+              here so it is genuinely everywhere; it suppresses itself on the
+              routes that are not the student journey (auth, admin, dev) and on
+              /ai-strategy, which IS the walkthrough. */}
+          <StrategyHelpButton />
           {/* Inside LanguageProvider: the loader's rotating line is bilingual.
               Mounted once here so every page gets it — see loading-overlay.tsx
               for why callers do not need a provider of their own. */}

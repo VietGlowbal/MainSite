@@ -20,6 +20,8 @@ export type { ScholarshipTeaser } from './home-scholarships';
 export { HomeTestimonials } from './home-testimonials';
 export type { Testimonial } from './home-testimonials';
 export { MissingContent } from './missing-content';
+export { GuidePanel, StrategyGuide } from './strategy-guide';
+export { StrategyHelpButton } from './strategy-help-button';
 export {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,

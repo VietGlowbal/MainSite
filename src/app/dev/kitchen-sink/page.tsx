@@ -407,8 +407,9 @@ export default function KitchenSinkPage() {
   );
 }
 
-/** The five labels on Figma node 104:7114. Reference only — the real nav is
- *  wired from navItemsFor() in nav-reveal.tsx. */
+/** The five labels on Figma node 104:7114. Reference only, and deliberately
+ *  frozen at what that frame drew — the real nav is MARKETING_NAV_ITEMS, which
+ *  since 01/08 is four entries with a dropdown and no longer matches this. */
 const DEMO_NAV_ITEMS = [
   { href: '/about', label: 'Về chúng tôi' },
   { href: '/ai-strategy', label: 'AI lên chiến lược' },

@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,11 +10,13 @@ import {
   formatDeadlineLabel,
   formatUsdCompact,
   scholarshipCandidates,
+  scholarshipLabel,
 } from '@/features/universities/domain';
 import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarships';
 import { createClient } from '@/lib/supabase/client';
 import { TID, testId } from '@/shared/lib';
 import { Badge, Button, ICONS, KitIcon, Modal } from '@/shared/ui';
+import { ApplySectionHeading } from './section-heading';
 
 /**
  * The saved list — the cart. A SECTION, not a page: it renders inside
@@ -77,6 +79,28 @@ import { Badge, Button, ICONS, KitIcon, Modal } from '@/shared/ui';
  *
  *  5. NO MOBILE FRAME EXISTS for this page, so the row reflows here: the
  *     checkbox and Remove share a top line, then the cover, then the card.
+ *
+ *  7. "PLAN MY APPLICATION" IS THE PRIMARY ACTION, NOT A STATE THE SCHOLARSHIP
+ *     BAR SWAPS INTO. 375:12841 draws it replacing "Apply Học bổng" once an
+ *     award is attached, which made creating an application conditional on
+ *     having one — and a university with no scholarship in the directory could
+ *     therefore never be planned at all. Since this is the only way to create
+ *     an application (the URL importer is gone, 01/08), the two are now
+ *     independent: plan whenever something is ticked, attach an award when
+ *     there is one to attach. See the note on the buttons.
+ *
+ *  6. TICKING A ROW SHOWS ON THE ROW. The frame draws a checked box (562:15100)
+ *     and changes nothing else, which was survivable when the tick only fed a
+ *     dialog and is not now: the tick decides which universities "Apply
+ *     scholarship" and "Plan my application" act on, and a 16px box at the far
+ *     left of a 188px card is not enough signal for a destructive-ish batch
+ *     action. The chosen row gets the brand border and a rose wash.
+ *
+ * Colour, added 01/08 after the owner called the page boring: the heading is
+ * Rose/600 with the heart mark the frame draws beside it (both were missing —
+ * see section-heading.tsx), the scholarship bar became the rose panel its own
+ * rose gift icon and rose headline were already asking for, and the cover
+ * answers the pointer.
  */
 
 export type ScholarshipOption = {
@@ -264,6 +288,51 @@ function ProgramRow({ row }: { row: SavedRow }) {
   );
 }
 
+/**
+ * The awards the student has attached to this row — Figma 375:12841's badge row.
+ *
+ * ⚠️ THIS IS THE ONE SLOT ON THE CARD HOLDING AN UNBOUNDED PROVIDER STRING, and
+ * it shipped printing it whole. `Badge` bakes `whitespace-nowrap` (the primitive
+ * documents this as its known trap), so a real name — "Amsterdam Merit
+ * Scholarships for Master's Students at University of Amsterdam 2026 (Fully
+ * Funded) · 2,000–25,900 EUR" — rendered an 840px pill inside a 779px card and
+ * hung 87px out over the page. Reported by the owner 01/08 with a screenshot,
+ * reproduced and measured at 1440 before this was written.
+ *
+ * Two fixes, in this order, because they are not alternatives:
+ *
+ *  1. `scholarshipLabel` drops the " at <university>" the card's own heading
+ *     already says. That is 26 of those 96 characters and, unlike an ellipsis,
+ *     it costs the reader nothing.
+ *  2. What is left truncates against the card. `min-w-0` at every level down to
+ *     the pill is what makes that possible — a flex item defaults to
+ *     `min-width: auto`, i.e. "never shrink below my content", which is
+ *     precisely how a nowrap pill grows past its parent. The untouched name
+ *     stays reachable on `title`.
+ *
+ * THE MONEY DOES NOT TRUNCATE. `amountLabel` is short, exact, and the reason a
+ * student scans this row at all, so it is `shrink-0` and the name gives way
+ * first — the same priority the picker's card sets by drawing the value largest.
+ */
+function AttachedScholarships({ row }: { row: SavedRow }) {
+  return (
+    <ul className="flex min-w-0 flex-wrap gap-gb-md">
+      {row.attached.map((s) => (
+        /* `title` on the wrapper, not the pill: `Badge` takes only `variant`
+           and `className`, as the tuition badge above also notes. */
+        <li key={s.savedId} className="flex min-w-0 max-w-full" title={s.name}>
+          <Badge variant="brand-subtle" className="min-w-0 max-w-full">
+            <span className="min-w-0 truncate">{scholarshipLabel(s.name, row.name)}</span>
+            {s.amountLabel ? (
+              <span className="shrink-0">{' · '}{s.amountLabel}</span>
+            ) : null}
+          </Badge>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function SavedRowItem({
   row,
   selected,
@@ -282,7 +351,11 @@ function SavedRowItem({
   return (
     <li
       {...testId(TID.uniCard)}
-      className={`flex flex-wrap items-center gap-gb-lg lg:gap-gb-3xl ${
+      /* The scroll target for ?focus=<universityId> — see the effect in
+         SavedListSection. A data attribute rather than an id: `id` on a list row
+         is a document-wide name, and these are already keyed by university. */
+      data-university-id={row.universityId}
+      className={`group flex flex-wrap items-center gap-gb-lg lg:gap-gb-3xl ${
         removing ? 'pointer-events-none opacity-50' : ''
       }`}
     >
@@ -302,7 +375,11 @@ function SavedRowItem({
         Remove
       </button>
 
-      <div className="order-3 w-full overflow-hidden rounded-gb-2xl bg-surface-muted lg:order-2 lg:h-[188px] lg:w-[260px] lg:shrink-0">
+      <div
+        className={`order-3 w-full overflow-hidden rounded-gb-2xl bg-surface-muted transition-shadow duration-200 lg:order-2 lg:h-[188px] lg:w-[260px] lg:shrink-0 ${
+          selected ? 'ring-2 ring-brand' : ''
+        }`}
+      >
         {row.imageUrl ? (
           /* Plain <img>, matching FadeInImage on /universities: cover images come
              from arbitrary hosts and next/image would reject anything not in
@@ -312,7 +389,7 @@ function SavedRowItem({
             src={row.imageUrl}
             alt=""
             loading="lazy"
-            className="aspect-[260/188] w-full object-cover lg:h-full"
+            className="aspect-[260/188] w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100 lg:h-full"
           />
         ) : (
           <div className="flex aspect-[260/188] w-full items-center justify-center lg:h-full">
@@ -338,7 +415,23 @@ function SavedRowItem({
         subject renders neither). Pinning 272 would leave that row padded with
         empty space instead of closing up.
       */}
-      <article className="order-4 flex w-full flex-col justify-between gap-gb-2xl rounded-gb-2xl border border-line bg-surface p-gb-3xl lg:order-3 lg:min-h-[188px] lg:min-w-0 lg:flex-1">
+      <article
+        className={`order-4 flex w-full flex-col justify-between gap-gb-2xl rounded-gb-2xl border p-gb-3xl transition duration-200 group-hover:shadow-gb-lg lg:order-3 lg:min-h-[188px] lg:min-w-0 lg:flex-1 ${
+          /*
+            Departure (6): the tick has to be legible from across the card.
+            A DOUBLED ROSE EDGE, NOT A ROSE FILL. Washing the card in Rose/50
+            was the first attempt and it erases the row's own content — the
+            rank pills, the tuition badge and any attached scholarship are all
+            `brand-subtle`, i.e. that exact Rose/50, so they vanish into the
+            card the moment it is ticked. The border keeps the surface white
+            and the badges readable; the cover's ring and the rose checkbox
+            carry the rest of the signal.
+          */
+          selected
+            ? 'border-brand bg-surface shadow-gb-lg ring-1 ring-brand'
+            : 'border-line bg-surface group-hover:border-gb-brand-300'
+        }`}
+      >
         <div className="flex flex-col gap-gb-xl">
           <div className="flex flex-col gap-gb-md">
             {/* h3: this row sits under the section's own h2 ("Saved list"),
@@ -373,17 +466,7 @@ function SavedRowItem({
           ) : null}
           <TuitionBadges row={row} />
           <ProgramRow row={row} />
-          {row.attached.length > 0 ? (
-            <ul className="flex flex-wrap gap-gb-md">
-              {row.attached.map((s) => (
-                <li key={s.savedId}>
-                  <Badge variant="brand-subtle">
-                    {s.amountLabel ? `${s.name} · ${s.amountLabel}` : s.name}
-                  </Badge>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+          {row.attached.length > 0 ? <AttachedScholarships row={row} /> : null}
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-gb-lg">
@@ -887,6 +970,7 @@ export function SavedListSection({
   onPlan,
   onGoToApplications,
   planning = false,
+  focusUniversityId = null,
 }: {
   rows: SavedRow[];
   /**
@@ -902,6 +986,11 @@ export function SavedListSection({
   onGoToApplications: () => void;
   /** Disables the CTA while the shell is mid-create. */
   planning?: boolean;
+  /**
+   * The university `?focus=<id>` arrived pointing at. Ticked and scrolled to on
+   * arrival so "Plan my application" acts on the one they came for.
+   */
+  focusUniversityId?: number | null;
 }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
@@ -930,6 +1019,33 @@ export function SavedListSection({
         : [...prev, universityId],
     );
   }, []);
+
+  /*
+   * ?focus=<universityId>: tick that row and bring it into view. Ticking is the
+   * useful half — the student arrived from /scholarships intending to plan this
+   * one, and the CTAs act on the ticked rows.
+   *
+   * The tick is applied DURING RENDER rather than from an effect. React
+   * documents this as the way to adjust state when a prop changes, and the
+   * lint rule that bans `setState` inside an effect is pointing at the real
+   * cost: from an effect this would render the list unticked, then immediately
+   * again ticked. `focusedRow` is the "previous prop" guard that keeps it to
+   * one extra render and lets the student untick afterwards.
+   */
+  const [focusedRow, setFocusedRow] = useState<number | null>(null);
+  if (focusUniversityId != null && focusUniversityId !== focusedRow) {
+    setFocusedRow(focusUniversityId);
+    setSelected((prev) => (prev.includes(focusUniversityId) ? prev : [...prev, focusUniversityId]));
+  }
+
+  // The scroll is a real side effect and stays in one, after the row is drawn.
+  useEffect(() => {
+    if (focusUniversityId == null) return;
+    const node = document.querySelector(`[data-university-id="${focusUniversityId}"]`);
+    if (!node) return;
+    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    node.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'center' });
+  }, [focusUniversityId]);
 
   const remove = useCallback(
     async (row: SavedRow) => {
@@ -1038,25 +1154,23 @@ export function SavedListSection({
 
   return (
     <section id="saved" className="flex scroll-mt-gb-9xl flex-col gap-gb-6xl">
-      {/* Figma 562:15092 */}
-      <div className="flex flex-col gap-gb-lg">
-        {/*
-          h2, not h1. On 562:15078 this heading and "My application" are both
-          drawn at display size, but they are now two sections of one page and
-          only one of them can be its title.
-        */}
-        <h2 className="font-display text-gb-display-xs font-medium tracking-gb-display-tight text-fg md:text-gb-display-md">
-          Saved list
-        </h2>
-        <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
-          {rows.length > 0
-            ? 'The universities you have saved, with their deadlines and any scholarships you have attached.'
-            : 'Nothing saved yet — the universities you save while browsing show up here.'}
-        </p>
-      </div>
+      {/*
+        Figma 562:15092. h2, not h1 — on 562:15078 this heading and
+        "My application" are drawn identically, but they are two sections of one
+        page and only one of them can be its title. The frame's own wording is
+        "Saved University"; shipped in the plural, since it labels a list.
+      */}
+      <ApplySectionHeading as="h2" title="Saved universities" mark="heart">
+        {rows.length > 0
+          ? 'The universities you have saved, with their deadlines and any scholarships you have attached.'
+          : 'Nothing saved yet — the universities you save while browsing show up here.'}
+      </ApplySectionHeading>
 
       {rows.length === 0 ? (
-        <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
+        <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-gb-brand-100 bg-brand-subtle p-gb-5xl">
+          <span className="flex size-gb-6xl items-center justify-center rounded-gb-full bg-surface text-brand">
+            <KitIcon art={ICONS.heart} frame={28} />
+          </span>
           <p className="text-gb-md text-fg-tertiary">
             Save a university from the search page and it will appear here with its deadline and the
             scholarships attached to it.
@@ -1092,9 +1206,16 @@ export function SavedListSection({
         dialog with different scope: the link browses everything linked to the
         saved list, the button attaches one award to the ticked rows. See the
         `candidates` memo.
+
+        THE ROSE PANEL IS NOT IN THE FRAME, which draws a hairline rule and
+        white. Everything inside it already is rose — the gift icon, the
+        "Học bổng 50%" headline, the link and the CTA — so the strip was four
+        rose elements floating on the same white as the rows above it, reading
+        as more list rather than as the page's one summary. Rose/50 with a
+        Rose/100 edge is the pairing the empty states and the heading marks use.
       */}
       {rows.length > 0 ? (
-        <div className="flex flex-wrap items-center justify-between gap-gb-xl border-t border-line pt-gb-3xl">
+        <div className="flex flex-wrap items-center justify-between gap-gb-xl rounded-gb-2xl border border-gb-brand-100 bg-brand-subtle px-gb-4xl py-gb-3xl">
           <div className="flex flex-wrap items-center gap-gb-5xl">
             <span className="flex items-center gap-gb-xl">
               <KitIcon art={ICONS.gift01} frame={32} className="shrink-0 text-brand" />
@@ -1137,21 +1258,35 @@ export function SavedListSection({
             </button>
           </div>
           {/*
-            On 375:12841 the ticked row already HAS its scholarship, and the
-            CTA there is "Lên kế hoạch ứng tuyển" — there is nothing left to
-            apply, so the next step is the application. That is the rule, not
-            "any award anywhere switches the button": a student with three
-            saved universities and one award still needs to be able to attach
-            an award to the other two, and hiding this behind an attached
-            count would strand them.
+            ⚠️ "PLAN MY APPLICATION" IS ALWAYS THE PRIMARY ACTION NOW (01/08).
 
-            SINCE THE MERGE THIS BUTTON DOES SOMETHING. It used to be
-            `href="/apply"` — a link to the page this section now lives on,
-            which after the merge would have scrolled the student to where they
-            already were. It now creates the applications for the ticked rows
-            and hands off to the shell to scroll up to them.
+            These two buttons used to swap, on the rule "once the ticked rows
+            have no scholarship left to attach and at least one is attached, the
+            next step is the application". Read against the live data that rule
+            hides the only way to create an application behind a scholarship:
+            a university with NO scholarships in the directory has
+            `applyCandidates.length === 0` and `attachedCount === 0`, which fell
+            to the else branch and offered "Apply scholarship" — a button whose
+            dialog opens to say there are none. A dead end, on the page's one
+            job.
+
+            The owner's flow is "tick a university, attach a scholarship IF
+            there is one, then plan". So planning is the primary action whenever
+            anything is ticked, and attaching an award is the secondary one,
+            shown only when the ticked rows actually have an award to attach.
+            Both frames' states are still reachable; neither blocks the other.
           */}
-          {applyCandidates.length === 0 && attachedCount > 0 ? (
+          <div className="flex flex-wrap items-center gap-gb-lg">
+            {applyCandidates.length > 0 ? (
+              <Button
+                variant="secondary"
+                size="lg"
+                disabled={selected.length === 0}
+                onClick={() => setPicker('apply')}
+              >
+                Apply scholarship
+              </Button>
+            ) : null}
             <Button
               size="lg"
               disabled={planning || selectedRows.length === 0}
@@ -1159,19 +1294,15 @@ export function SavedListSection({
             >
               Plan my application
             </Button>
-          ) : (
-            <Button size="lg" disabled={selected.length === 0} onClick={() => setPicker('apply')}>
-              Apply scholarship
-            </Button>
-          )}
+          </div>
         </div>
       ) : null}
 
-      {/* The button above is disabled rather than hidden when nothing is
+      {/* The buttons above are disabled rather than hidden when nothing is
           ticked, so say what to do about it. */}
-      {rows.length > 0 && attachedCount === 0 && selected.length === 0 ? (
+      {rows.length > 0 && selected.length === 0 ? (
         <p className="-mt-gb-4xl text-gb-sm text-fg-muted">
-          Tick a university to attach a scholarship to it.
+          Tick a university to plan its application.
         </p>
       ) : null}
 

@@ -45,13 +45,14 @@ the code, the code wins.
 
 ## Figma
 
-- **File key:** `5Ip9znpaxp6RVByU7Qr35l` — confirmed live 2026-07-31 from a URL
+- **File key:** `SQ74qw05FiTg5NivzY8Djv` — confirmed live 2026-08-01 from a URL
   the owner supplied. The file is named "GLOWBAL - Edtech (Copy)".
-  URL shape: `https://figma.com/design/5Ip9znpaxp6RVByU7Qr35l/...?node-id=<a>-<b>`
-  ⚠️ **FOUR stale keys have now been recorded in this repo.** None resolve:
-  `Ut5pryBVlc1MpxI4IrnkIm` (believed live on 2026-07-28 — this line said so),
-  `oveiFvtHONGfkZwXqfmPKc` (an earlier version of THIS file, believed live on
-  2026-07-27), `aGN2e7Ms9HpD5EdUSydowr` (older still), and
+  URL shape: `https://figma.com/design/SQ74qw05FiTg5NivzY8Djv/...?node-id=<a>-<b>`
+  ⚠️ **FIVE stale keys have now been recorded in this repo.** None resolve:
+  `5Ip9znpaxp6RVByU7Qr35l` (believed live on 2026-07-31 — this line said so),
+  `Ut5pryBVlc1MpxI4IrnkIm` (believed live on 2026-07-28 — this line said so
+  then, too), `oveiFvtHONGfkZwXqfmPKc` (an earlier version of THIS file,
+  believed live on 2026-07-27), `aGN2e7Ms9HpD5EdUSydowr` (older still), and
   `4gHWPze5ngIizbTtujEcQL` (still in the header comment of
   `src/styles/tokens.css`). **The key moves roughly every time the owner sends a
   link.** Do not trust this line either — take the key from whatever URL they
@@ -67,6 +68,14 @@ the code, the code wins.
   ⚠️ `375:9842` **does not appear** when `get_metadata` is called without a
   `nodeId` — that lists only the other two. You will not find this canvas by
   browsing; pass the node id directly.
+
+  ⚠️ On the 2026-08-01 key the owner's links point at **`375:9843`**, a
+  *section* named "Dev" that wraps the same 58 frames. `get_metadata` on it
+  returns 1.3M characters — too large to read back, so it lands in a
+  `tool-results` file. Parse that file rather than re-requesting: it is one JSON
+  array of `{type, text}`, and joining the `text` fields gives the whole canvas
+  as indented XML you can grep for a frame name offline. That is the cheapest
+  way to find a node id in this file and costs one MCP call.
 
   `375:9842` is a superset of `104:2941`: on 2026-07-28 every frame the code had
   already been built from was **byte-identical** across the two. Only four

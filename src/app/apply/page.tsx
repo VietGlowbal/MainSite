@@ -18,14 +18,16 @@ import type { SavedRow, ScholarshipOption } from './saved-list-section';
  * next.config.ts for why the redirect is an exact match and not a prefix.
  *
  * The merge is not only layout. Nothing on the saved list used to CREATE an
- * application — its "Lên kế hoạch ứng tuyển" was a bare link to this page. Now
- * it posts the saved row's programme URL to /api/applications/from-course-url
- * and the page scrolls up to the new row. See `planApplications` in the client.
+ * application — its "Lên kế hoạch ứng tuyển" was a bare link to this page. It
+ * now posts to /api/applications/from-saved-university and the page scrolls up
+ * to the new row. See `planApplications` in the client.
  *
- * Auth: this page gates itself below rather than through src/proxy.ts, because
- * ?openCourseSearch=true has to stay reachable signed-out — /scholarships
- * funnels students straight into the course search. proxy.ts does apply the
- * onboarding gate to this path.
+ * ⚠️ AND IT IS THE ONLY WAY IN (01/08). The paste-a-course-URL bar and the
+ * course-search modal are gone. That removed this page's whole reason for
+ * gating itself in the body rather than in src/proxy.ts — the gate was
+ * conditional so `?openCourseSearch=true` could stay reachable signed-out. The
+ * redirect below is now unconditional; proxy.ts still applies the onboarding
+ * gate to this path.
  */
 
 export const metadata: Metadata = {
@@ -90,36 +92,6 @@ async function fetchLogos(applications: CourseApplication[]): Promise<Record<num
   const map: Record<number, string | null> = {};
   for (const uni of universities) map[uni.id] = uni.logo_url ?? null;
   return map;
-}
-
-/**
- * Name + domain for the course-search modal, resolved here rather than in a
- * client effect the way the previous dashboard did it.
- *
- * There is no domain column on `universities` — the old code read
- * `primary_domain` and swallowed the error when it turned out not to exist, so
- * the modal always received ''. `officialWebsite` is the project's actual answer
- * to "where does this university live", and it is honest about partial coverage:
- * when it misses, the domain stays '' exactly as before.
- */
-async function fetchCourseSearchUniversity(
-  universityId: number | null,
-): Promise<{ id: number; name: string; domain: string } | null> {
-  if (universityId == null) return null;
-
-  const [uni] = await getUniversityQueries().getByIds([universityId]);
-  if (!uni) return null;
-
-  const website = officialWebsite(uni.name);
-  let domain = '';
-  if (website) {
-    try {
-      domain = new URL(website).hostname;
-    } catch {
-      domain = '';
-    }
-  }
-  return { id: uni.id, name: uni.name, domain };
 }
 
 /**
@@ -264,52 +236,45 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
 }
 
 type Props = {
-  // ?universityId=<id>&openCourseSearch=true — /scholarships links here to open
-  // the course search straight onto a university.
-  // ?planFor=<universityId> — the return trip from /my-universities/program,
-  // consumed once by the client.
+  /*
+   * ?planFor=<universityId> — the return trip from /my-universities/program.
+   * ?focus=<universityId>   — /scholarships sends the student here pointed at
+   *                           the university they just attached an award to.
+   *
+   * Both are read by the client and stripped from the URL once consumed, so
+   * neither is declared here beyond the type. `?universityId` +
+   * `?openCourseSearch` are gone with the course-search modal — see the header.
+   */
   searchParams: Promise<{
-    universityId?: string;
-    openCourseSearch?: string;
     planFor?: string;
+    focus?: string;
   }>;
 };
 
 export default async function ApplyPage({ searchParams }: Props) {
-  const params = await searchParams;
-
-  const parsedUniversityId = params.universityId ? Number.parseInt(params.universityId, 10) : NaN;
-  const courseSearchUniversityId = Number.isFinite(parsedUniversityId) ? parsedUniversityId : null;
-  const openCourseSearch = params.openCourseSearch === 'true';
+  // Awaited but not read: the params above belong to the client component,
+  // which takes them from useSearchParams. Awaiting keeps this a dynamic render
+  // rather than one Next.js may try to cache across students.
+  await searchParams;
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Signing in is required to track applications, but not to open the course
-  // search — /scholarships funnels signed-out students straight into it.
-  if (!user && !openCourseSearch) {
+  /*
+   * Signing in is now required outright. It used to be conditional, because
+   * ?openCourseSearch had to stay reachable signed-out for the /scholarships
+   * funnel; that entry point is gone, and every remaining thing on this page is
+   * the student's own data.
+   */
+  if (!user) {
     redirect('/auth?redirect=%2Fapply');
   }
 
-  if (!user) {
-    return (
-      <ApplicationProgressClient
-        applications={[]}
-        logoByUniversityId={{}}
-        savedRows={[]}
-        courseSearchUniversity={await fetchCourseSearchUniversity(courseSearchUniversityId)}
-        openCourseSearch={openCourseSearch}
-        isLoggedOut
-      />
-    );
-  }
-
   const applications = await fetchApplications(user.id);
-  const [logoByUniversityId, courseSearchUniversity, savedRows] = await Promise.all([
+  const [logoByUniversityId, savedRows] = await Promise.all([
     fetchLogos(applications),
-    fetchCourseSearchUniversity(courseSearchUniversityId),
     fetchSavedRows(user.id),
   ]);
 
@@ -324,8 +289,6 @@ export default async function ApplyPage({ searchParams }: Props) {
       savedRows={savedRows}
       userName={userName}
       userAvatarUrl={userAvatarUrl}
-      courseSearchUniversity={courseSearchUniversity}
-      openCourseSearch={openCourseSearch}
     />
   );
 }

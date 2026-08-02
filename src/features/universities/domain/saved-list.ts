@@ -66,6 +66,82 @@ export function scholarshipCandidates<S extends SavedListScholarship>(
     });
 }
 
+/* ──────────────────────────────────────────────────────────────────────────
+   Naming an award on the card of the university that offers it
+   ────────────────────────────────────────────────────────────────────────── */
+
+/** Escape a university name for use inside a RegExp — several contain "(...)". */
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * The ways a university's name can appear inside a scholarship's name.
+ *
+ * `universities.name` frequently carries a parenthetical acronym — "University
+ * of Amsterdam (UvA)", "Massachusetts Institute of Technology (MIT)" — while
+ * the scholarship spells it either way ("at University of Amsterdam", "at
+ * MIT"). Matching only the stored string would miss both.
+ *
+ * Longest first, so the fullest spelling is stripped when it is present and the
+ * bare acronym is only reached as a last resort.
+ */
+function universitySpellings(universityName: string): string[] {
+  const full = universityName.trim();
+  const spellings = [full];
+
+  const parenthetical = /^(.*?)\s*\(([^()]+)\)$/.exec(full);
+  if (parenthetical) {
+    const base = parenthetical[1]?.trim();
+    const acronym = parenthetical[2]?.trim();
+    if (base) spellings.push(base);
+    if (acronym) spellings.push(acronym);
+  }
+
+  return spellings.sort((a, b) => b.length - a.length);
+}
+
+/**
+ * A scholarship's name with the university stripped out of it, for use on that
+ * university's own card.
+ *
+ * REAL AWARD NAMES CARRY THEIR UNIVERSITY: the directory is full of rows shaped
+ * "<award> at <university> <year> (<funding>)", e.g. "Amsterdam Merit
+ * Scholarships for Master's Students at University of Amsterdam 2026 (Fully
+ * Funded)" — 96 characters, of which 26 restate the card's own heading. Printed
+ * whole into `Badge`, which bakes `whitespace-nowrap`, that pill measured 840px
+ * inside a 779px card and hung 87px past its right edge (owner's screenshot,
+ * 01/08; reproduced at 1440). The row truncates as a backstop, but truncating a
+ * string whose tail is the redundant part throws away the useful part first, so
+ * the redundancy comes out before the ellipsis goes in.
+ *
+ * `ScholarshipCandidateCard` in the picker already makes this call the other way
+ * round — it hides the *university* line when the name contains it. Same fact,
+ * same reason: never print the university twice on its own card.
+ *
+ * CONSERVATIVE BY DESIGN. Only the connective " at <university>" is removed, so
+ * a name that merely opens with the university ("MIT Presidential Fellowship")
+ * is left exactly as the provider wrote it. Anything that would leave less than
+ * a word behind is left alone too — a badge reading "2026" names nothing.
+ */
+export function scholarshipLabel(name: string, universityName: string): string {
+  const trimmed = name.trim();
+  if (!trimmed || !universityName.trim()) return trimmed;
+
+  for (const spelling of universitySpellings(universityName)) {
+    /* `(?!\w)` rather than `\b`: half these spellings end in ")", and a word
+       boundary after a non-word character never matches the space that follows
+       it — "…(UvA) 2026" would slip straight through. */
+    const pattern = new RegExp(`\\s+at\\s+${escapeRegExp(spelling)}(?!\\w)`, 'i');
+    if (!pattern.test(trimmed)) continue;
+
+    const stripped = trimmed.replace(pattern, ' ').replace(/\s{2,}/g, ' ').trim();
+    if (stripped.length >= 3) return stripped;
+  }
+
+  return trimmed;
+}
+
 /** The fields a coverage percentage can be read from. Structural, as above. */
 export interface CoverageLike extends SavedListScholarship {
   coverage: string | null;
