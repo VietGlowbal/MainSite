@@ -575,3 +575,138 @@
   --color-loader-plate: var(--gb-loader-plate);
   --color-scrim-soft: var(--gb-scrim-soft);
 }
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Home partner orbit — the swapping word in "Study <university>"
+   (src/features/marketing/ui/home-partners.tsx). ⚠️ NOT DESIGN-CONFIRMED.
+
+   No frame draws this: the heading in Figma 104:7135 is the flat "Our featured
+   partners" that section shipped with, and both the flip and the colour come
+   from a reference prototype the owner supplied. Recorded here rather than
+   inlined for the reason at the top of this file — the alternative is a
+   component inventing its own gradient and its own two keyframes.
+
+   WHY TWO KEYFRAMES AND NOT A CROSSFADE. The prototype rotates the word about
+   the horizontal axis, and the direction is load-bearing: the outgoing word's
+   face ends pointing DOWN (rotateX is negative, so its top edge comes toward
+   the viewer) and the incoming word arrives from above through the same
+   negative sweep, +90deg -> 0. Both halves therefore turn the same way, which
+   is what makes it read as one flap falling rather than two separate cards. Flip
+   either sign and it becomes a word rotating up while the next rotates down.
+
+   The translateY is on the outside of the transform so it stays a screen-space
+   nudge, and it exaggerates the drop the perspective alone only hints at.
+
+   Timings are two thirds of the section's own hover ease (IMPACT_EASE_*): the
+   word has to have finished before a visitor moving along the ring triggers the
+   next swap, or the heading queues up flips it never finishes.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --animate-gb-word-flip-in: gb-word-flip-in 300ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-gb-word-flip-out: gb-word-flip-out 260ms cubic-bezier(0.4, 0, 1, 1) both;
+
+  @keyframes gb-word-flip-in {
+    from {
+      opacity: 0;
+      transform: translateY(-0.45em) rotateX(90deg);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes gb-word-flip-out {
+    from {
+      opacity: 1;
+      transform: none;
+    }
+    to {
+      opacity: 0;
+      transform: translateY(0.45em) rotateX(-90deg);
+    }
+  }
+}
+
+:root {
+  /* The word's fill, painted through background-clip: text.
+     Built from the globe's flash palette above rather than a new set of hues —
+     those five are already the vetted "colourful but still GLOWBAL" ramp (see
+     the note on why the prototype's twenty-one were cut to five), and this word
+     sits on the same near-black band the globe does. Rose 600 is left out on
+     purpose: it is the CTA fill, and a heading wearing the button's colour
+     reads as something you can press. */
+  --gb-partner-word: linear-gradient(
+    100deg,
+    var(--gb-globe-flash-2) 0%,
+    var(--gb-globe-flash-3) 38%,
+    var(--gb-globe-flash-4) 70%,
+    var(--gb-globe-flash-5) 100%
+  );
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   About-page team mosaic — the hover-to-reveal card
+   (src/features/marketing/ui/about-team.tsx). ⚠️ NOT DESIGN-CONFIRMED.
+
+   No frame draws this. Figma 153:11401 draws eight static team cards; the
+   owner asked for a photo grid that reveals one person's detail card beneath
+   it, so the motion is specified here rather than inlined in the component,
+   for the same reason as the partner-orbit block above: the alternative is a
+   composition inventing its own keyframes.
+
+   TWO keyframes, not one, because two different things move:
+
+   - `gb-team-card-in` is the card's whole text column arriving. It rises 12px
+     and settles, on the same overshoot-free ease as the loader card: the card
+     is an answer to a hover, and a bouncy answer reads as a notification.
+
+   - `gb-team-line-in` is each block INSIDE that column (name, facts, quote,
+     achievements) arriving a beat after the one above it, staggered by
+     animation-delay at the call site. The stagger is the "satisfying" part of
+     the brief and it is deliberately small — 6px and 60ms steps. Anything
+     larger and a visitor brushing across twelve faces sees twelve half-played
+     animations rather than one card resolving.
+
+   The portrait is NOT animated by either. Every member's photo is rendered
+   stacked in the card and crossfaded with opacity, so switching faces never
+   unmounts an <img> — a remounted image flashes its empty box for a frame
+   even when the file is already in cache, which is the one thing that would
+   make the reveal feel cheap. See the note in the component.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --animate-gb-team-card-in: gb-team-card-in 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-gb-team-line-in: gb-team-line-in 380ms cubic-bezier(0.16, 1, 0.3, 1) both;
+
+  @keyframes gb-team-card-in {
+    from {
+      opacity: 0;
+      transform: translateY(12px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes gb-team-line-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+}
+
+/* About-page team carousel (src/features/marketing/ui/about-team.tsx) needs
+   no tokens here — it is a direct requestAnimationFrame port of the
+   owner-supplied reference's cylindrical-arc math, driving each card's
+   `transform`/`opacity`/`z-index` straight from a ref every frame rather
+   than through a CSS `@keyframes`. See that file's header for why: the
+   reference's curve is not a fixed per-card path (which a `@keyframes` can
+   express), it is the whole arrangement recentring around a continuously
+   drifting `currentX`. Two earlier CSS-only passes here (a rotating ring,
+   then a shared-path coverflow) are gone along with their tokens.*/

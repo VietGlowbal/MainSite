@@ -10,12 +10,15 @@ export {
   EDUCATION_LEVELS,
   FUNDING_SOURCES,
   INTENDED_LEVELS,
+  INTEREST_AREAS,
+  LEARNING_STYLE_OPTIONS,
   TUITION_BUDGETS_USD,
   aboutYouSchema,
   achievementSchema,
   activitySchema,
   aspirationsSchema,
   evidenceSchema,
+  personalSummarySchema,
   profileUpdateFromReflection,
   reflectionCompleteness,
   reflectionFromProfile,
@@ -38,6 +41,8 @@ export {
 } from './course-name';
 export { activeStageIndex, stageProgressLabel, summariseTasks } from './progress';
 export type { TaskCounts } from './progress';
+export { deadlineUrgency } from './deadline';
+export type { DeadlineTone, DeadlineUrgency } from './deadline';
 export type {
   AboutYouValues,
   AchievementCategory,
@@ -45,6 +50,7 @@ export type {
   ActivityCategory,
   ActivityValues,
   AspirationsValues,
+  PersonalSummaryValues,
   ReflectionProfileRow,
   ReflectionValues,
 } from './reflection';

@@ -47,7 +47,18 @@ export function HomeHero() {
         </div>
 
         <div className="flex max-w-gb-width-sm">
-          <Button href="/onboarding" size="xl" variant="primary-on-dark">
+          {/* /start, not /onboarding: the destination depends on whether this
+              student has already answered the onboarding questions, and "/" is
+              prerendered so it cannot know. src/app/start/route.ts decides —
+              /onboarding for a new student, /universities for a returning one.
+
+              `prefetch={false}` because /start is a route handler, not a page.
+              This button is above the fold, so the default would fire a request
+              at it on every home page view — and each one costs a Supabase
+              session read to compute a redirect nobody asked for yet. There is
+              nothing to prefetch either way: the response is a 307, so the
+              router cannot warm the page it lands on. */}
+          <Button href="/start" prefetch={false} size="xl" variant="primary-on-dark">
             Find matching scholarships
           </Button>
         </div>

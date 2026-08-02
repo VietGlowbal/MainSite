@@ -49,11 +49,21 @@ export const metadata: Metadata = {
 export default async function ChooseProgramPage({
   searchParams,
 }: {
-  searchParams: Promise<{ u?: string }>;
+  // `next` is where saving returns to. /apply sends the student here mid-flow
+  // when "Plan my application" hits a row with no subject, and wants them back
+  // on ?planFor=<id> so the application can be created. Defaults to /apply.
+  searchParams: Promise<{ u?: string; next?: string }>;
 }) {
-  const { u } = await searchParams;
+  const { u, next } = await searchParams;
   const universityId = Number.parseInt(u ?? '', 10);
   if (!Number.isFinite(universityId)) notFound();
+
+  /*
+   * Only same-origin paths, the same guard src/proxy.ts uses on its own
+   * ?redirect. A `next` off this site would turn a saved subject into an open
+   * redirect.
+   */
+  const returnTo = next?.startsWith('/') ? next : '/apply';
 
   const supabase = await createClient();
   const {
@@ -116,6 +126,7 @@ export default async function ChooseProgramPage({
       choices={choices}
       initialProgram={saved.program ?? null}
       initialProgramUrl={saved.program_url ?? null}
+      returnTo={returnTo}
     />
   );
 }

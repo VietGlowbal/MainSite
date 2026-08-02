@@ -4,13 +4,18 @@
 -- ============================================================================
 
 create table if not exists public.waitlist_signups (
-  id          bigserial primary key,
-  email       text not null unique,
-  first_name  text,
-  notes       text,
-  source      text default 'website_waitlist',
-  created_at  timestamptz not null default now()
+  id            bigserial primary key,
+  email         text not null unique,
+  first_name    text,
+  phone         text,
+  date_of_birth date,
+  notes         text,
+  source        text default 'website_waitlist',
+  created_at    timestamptz not null default now()
 );
+
+alter table public.waitlist_signups add column if not exists phone text;
+alter table public.waitlist_signups add column if not exists date_of_birth date;
 
 alter table public.waitlist_signups enable row level security;
 

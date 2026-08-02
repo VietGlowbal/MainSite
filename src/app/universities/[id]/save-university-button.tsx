@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ICONS, KitIcon } from '@/shared/ui';
 import { createClient } from '@/lib/supabase/client';
@@ -26,17 +27,18 @@ import { createClient } from '@/lib/supabase/client';
  * same route the homepage funnel uses. Showing them an optimistic filled heart
  * that no row exists behind would be a lie.
  */
-export function SaveUniversityButton({
-  universityId,
-  universityName,
-  isSignedIn,
-  initialSaved,
-}: {
+type SaveUniversityProps = {
   universityId: number;
   universityName: string;
   isSignedIn: boolean;
   initialSaved: boolean;
-}) {
+};
+
+function useSaveUniversity({
+  universityId,
+  isSignedIn,
+  initialSaved,
+}: SaveUniversityProps) {
   const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [pending, startTransition] = useTransition();
@@ -89,6 +91,73 @@ export function SaveUniversityButton({
     // /my-universities and the nav count read this on the server.
     startTransition(() => router.refresh());
   }
+
+  return { saved, pending, error, toggle };
+}
+
+export function UniversitySaveHeader(props: SaveUniversityProps) {
+  const { universityName } = props;
+  const { saved, pending, error, toggle } = useSaveUniversity(props);
+
+  const label = saved
+    ? `Remove ${universityName} from your list`
+    : `Save ${universityName} to your list`;
+
+  return (
+    <div className="flex flex-col gap-gb-xl">
+      {/* Tokens, not raw `red-*`: the notice is brand-tinted, and tokens.css is the
+          single source of truth for colour. `border-brand bg-brand-subtle
+          text-fg-brand` is the same trio status-pill.tsx uses for its own soft
+          brand state, so this reads as part of the system rather than as a second,
+          hand-mixed pink. */}
+      {saved ? (
+        <div className="rounded-gb-xl border border-brand bg-brand-subtle px-gb-xl py-gb-lg text-fg-brand">
+          <p className="flex flex-wrap items-center gap-x-gb-sm gap-y-gb-xs text-gb-sm font-medium">
+            <span>Check out your favourite unis</span>
+            <Link
+              href="/apply#saved"
+              className="font-semibold underline underline-offset-2 transition-colors hover:text-brand-hover"
+            >
+              on My Portal
+            </Link>
+          </p>
+        </div>
+      ) : null}
+
+      <div className="flex items-start justify-between gap-gb-2xl">
+        <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg md:text-gb-display-lg">
+          {universityName}
+        </h1>
+        <span className="flex flex-col items-end gap-gb-xs">
+          <button
+            type="button"
+            onClick={() => void toggle()}
+            aria-pressed={saved}
+            aria-label={label}
+            title={label}
+            data-saved={saved ? 'true' : 'false'}
+            className={`flex size-[32px] shrink-0 items-center justify-center rounded-gb-full transition-colors ${
+              saved
+                ? 'bg-brand text-on-brand hover:bg-brand-hover'
+                : 'bg-brand-subtle text-brand hover:bg-brand hover:text-on-brand'
+            } ${pending ? 'opacity-70' : ''}`}
+          >
+            <KitIcon art={ICONS.heart} frame={32} filled={saved} />
+          </button>
+          {error ? (
+            <span role="status" className="text-gb-xs text-fg-error">
+              {error}
+            </span>
+          ) : null}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+export function SaveUniversityButton(props: SaveUniversityProps) {
+  const { universityName } = props;
+  const { saved, pending, error, toggle } = useSaveUniversity(props);
 
   const label = saved
     ? `Remove ${universityName} from your list`

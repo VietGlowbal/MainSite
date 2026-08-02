@@ -9,11 +9,21 @@ import { expect, test } from '@playwright/test';
  * lands.
  */
 
-/** Mirrors PROTECTED_ROUTES in src/proxy.ts. */
+/**
+ * Mirrors PROTECTED_ROUTES in src/proxy.ts.
+ *
+ * ⚠️ `/my-universities/program`, not the bare `/my-universities`. The saved list
+ * merged into /apply on 31/07 and the bare path is now a 308 to it — a guest
+ * asking for it lands on `/auth?redirect=%2Fapply`, so asserting the round-trip
+ * against `/my-universities` would fail on the *redirect*, not on the gate.
+ * PROTECTED_ROUTES still carries the `/my-universities` prefix precisely
+ * because the children below it are still real pages; this is one of them, so
+ * it is what actually exercises that entry.
+ */
 const PROTECTED = [
   '/profile',
   '/dashboard',
-  '/my-universities',
+  '/my-universities/program',
   '/admin',
   '/onboarding/complete',
 ];
@@ -44,7 +54,21 @@ test('scholarships requires an account', async ({ page }) => {
   await expect(page).toHaveURL(/\/auth/);
 });
 
-test('statement feedback workspace requires an account', async ({ page }) => {
-  await page.goto('/apply/e2e-placeholder/statement-feedback');
-  await expect(page).toHaveURL(/\/auth/);
+test('the old saved-list URL is a permanent redirect into /apply', async ({ page }) => {
+  /*
+   * /my-universities and /apply merged into one page on 31/07 (Figma
+   * 562:15078). The old URL was the post-login landing for months, so it is in
+   * histories and bookmarks; next.config.ts 308s it. The children under it did
+   * NOT move, and a careless `/:path*` there would swallow them — which is what
+   * the second half of this test guards.
+   */
+  const response = await page.goto('/my-universities');
+  expect(new URL(page.url()).pathname, '/my-universities should land on /apply').toBe('/auth');
+  // Signed out, so /apply's own gate takes over and names itself as the return.
+  expect(new URL(page.url()).searchParams.get('redirect')).toBe('/apply');
+  expect(response?.status(), 'the redirect chain should end in a real page').toBeLessThan(400);
+
+  // The picker below it is still its own page, not swallowed by the redirect.
+  await page.goto('/my-universities/program?u=1');
+  expect(new URL(page.url()).searchParams.get('redirect')).toContain('/my-universities/program');
 });

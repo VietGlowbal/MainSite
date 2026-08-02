@@ -1,36 +1,39 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
+import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
-import { officialWebsite } from '@/features/universities/domain';
+import { formatTuitionForCard, officialWebsite } from '@/features/universities/domain';
 import { createClient } from '@/lib/supabase/server';
 import type { CourseApplication } from '@/lib/apply-types';
-import { ApplyListClient } from './apply-list-client';
+import { ApplicationProgressClient } from './application-progress-client';
+import type { SavedRow, ScholarshipOption } from './saved-list-section';
 
 /**
- * /apply — "My application", Figma 337:18767 ("Trang my apply") on the
- * "UI Final - Dev" canvas.
+ * /apply — "Application Progress", Figma 562:15078 ("Trang lưu") on the
+ * authoritative "Khanh Linh - Chi" canvas.
  *
- * That frame supersedes 224:14068 / 224:14957 on the older "Tính năng" canvas:
- * both of those are named "Trang lưu" and sit under a "My applications" banner,
- * and this one is the migrated redraw. Build against the migrated frame — the
- * saved list learned the hard way that the two canvases diverge (its own frames
- * gained two dialogs on migration).
+ * ONE PAGE FROM TWO. This route was the applications tracker (337:18767) and
+ * /my-universities was the saved list (375:12701); 562:15078 draws them stacked
+ * on one screen, tracker first. /my-universities now 308s here — see
+ * next.config.ts for why the redirect is an exact match and not a prefix.
  *
- * /apply is not /my-universities. This is the applications tracker; the saved
- * list is the shortlist of universities. They are separate destinations.
+ * The merge is not only layout. Nothing on the saved list used to CREATE an
+ * application — its "Lên kế hoạch ứng tuyển" was a bare link to this page. It
+ * now posts to /api/applications/from-saved-university and the page scrolls up
+ * to the new row. See `planApplications` in the client.
  *
- * The dashboard this replaced also rendered an overview stat card, an upcoming
- * deadlines card, mentor and profile promos, a trial banner and a shortlist
- * section. None are in the frame, so the reads that fed them are gone with them
- * (they are in git history at apply-dashboard.tsx). The shortlist read
- * `user_universities`, which does not exist on the database — see
- * docs/known-issues.md — so it rendered empty regardless.
+ * ⚠️ AND IT IS THE ONLY WAY IN (01/08). The paste-a-course-URL bar and the
+ * course-search modal are gone. That removed this page's whole reason for
+ * gating itself in the body rather than in src/proxy.ts — the gate was
+ * conditional so `?openCourseSearch=true` could stay reachable signed-out. The
+ * redirect below is now unconditional; proxy.ts still applies the onboarding
+ * gate to this path.
  */
 
 export const metadata: Metadata = {
-  title: 'My application | GlowBal',
+  title: 'Application Progress | GlowBal',
   description:
-    'The courses you are applying to, how far along each one is, and what is due next.',
+    'The courses you are applying to, how far along each one is, and the universities you have saved.',
 };
 
 async function fetchApplications(userId: string): Promise<CourseApplication[]> {
@@ -74,7 +77,7 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
 }
 
 /**
- * Crests for the row's avatar slot (Figma 337:18792).
+ * Crests for the tracker row's avatar slot (Figma 562:15468).
  *
  * course_applications has no logo column of its own — it carries a nullable
  * university_id, and most rows are imported straight from a course URL without
@@ -92,78 +95,187 @@ async function fetchLogos(applications: CourseApplication[]): Promise<Record<num
 }
 
 /**
- * Name + domain for the course-search modal, resolved here rather than in a
- * client effect the way the previous dashboard did it.
+ * The saved list — moved here verbatim from my-universities/page.tsx.
  *
- * There is no domain column on `universities` — the old code read
- * `primary_domain` and swallowed the error when it turned out not to exist, so
- * the modal always received ''. `officialWebsite` is the project's actual answer
- * to "where does this university live", and it is honest about partial coverage:
- * when it misses, the domain stays '' exactly as before.
+ * `select('*')` rather than a column list, and that is deliberate.
+ *
+ * `program` / `program_url` (supabase-saved-program.sql) back the "Ngành …"
+ * line, the re-pick link and — since the merge — the course URL that "Plan my
+ * application" posts. Naming them explicitly would make this read fail
+ * outright, with the whole saved list rather than just the subject, on any
+ * project where that file has not been run yet. A star select returns whatever
+ * the table actually has, and the two fields are then read as optional below.
+ * The table is ten narrow columns, so there is nothing to save by listing them.
  */
-async function fetchCourseSearchUniversity(
-  universityId: number | null,
-): Promise<{ id: number; name: string; domain: string } | null> {
-  if (universityId == null) return null;
+async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
+  const supabase = await createClient();
 
-  const [uni] = await getUniversityQueries().getByIds([universityId]);
-  if (!uni) return null;
+  const { data: savedRows, error: savedError } = await supabase
+    .from('user_universities')
+    .select('*')
+    .eq('user_id', userId)
+    .order('added_at', { ascending: false });
 
-  const website = officialWebsite(uni.name);
-  let domain = '';
-  if (website) {
-    try {
-      domain = new URL(website).hostname;
-    } catch {
-      domain = '';
-    }
+  /*
+   * A failed read and an empty list render identically — an empty saved list —
+   * so the error has to be logged or the page lies about the student having
+   * saved nothing. Logging mirrors what the feature repositories already do.
+   */
+  if (savedError) {
+    console.error('apply: reading user_universities failed:', savedError.message);
   }
-  return { id: uni.id, name: uni.name, domain };
+
+  const saved = (savedRows ?? []) as Array<{
+    id: number;
+    university_id: number;
+    added_at: string | null;
+    /** Absent until supabase-saved-program.sql has been applied. */
+    program?: string | null;
+    program_url?: string | null;
+  }>;
+  const universityIds = saved.map((row) => row.university_id);
+
+  /*
+   * Three reads, one round trip each:
+   *   - the universities themselves, hydrated from the saved ids
+   *   - the scholarships the user has already attached to them
+   *     (user_scholarships.university_id is what makes that link possible)
+   *   - every scholarship linked to those universities, which is what the
+   *     "Apply scholarship" picker chooses from
+   */
+  const [universities, savedScholarshipRows, linkedScholarships] = await Promise.all([
+    getUniversityQueries().getByIds(universityIds),
+    universityIds.length > 0
+      ? supabase
+          .from('user_scholarships')
+          .select('id, scholarship_id, university_id')
+          .eq('user_id', userId)
+          .in('university_id', universityIds)
+      : Promise.resolve({ data: [] }),
+    getScholarshipQueries().byUniversityIds(universityIds),
+  ]);
+
+  const savedScholarships = (savedScholarshipRows.data ?? []) as Array<{
+    id: number;
+    scholarship_id: number;
+    university_id: number | null;
+  }>;
+  const labels = await getScholarshipQueries().byIds(
+    savedScholarships.map((row) => row.scholarship_id),
+  );
+
+  const byId = new Map(universities.map((uni) => [uni.id, uni]));
+
+  // getByIds returns rows in whatever order the database hands back, so the
+  // saved order (newest first) is reapplied here rather than lost.
+  return saved.flatMap((row) => {
+    const uni = byId.get(row.university_id);
+    if (!uni) return [];
+
+    const attached = savedScholarships
+      .filter((s) => s.university_id === row.university_id)
+      .flatMap((s) => {
+        const label = labels.get(s.scholarship_id);
+        return label
+          ? [{ savedId: s.id, id: label.id, name: label.name, amountLabel: label.amountLabel }]
+          : [];
+      });
+
+    const options: ScholarshipOption[] = (linkedScholarships.get(row.university_id) ?? []).map(
+      (s) => ({
+        id: s.id,
+        name: s.name,
+        amountLabel: s.amountLabel,
+        deadlineLabel: s.deadlineLabel,
+        coverage: s.coverage,
+        /* What the discount maths reads — `bestCoveragePercent` on the bar and
+           `computeNetTuition` on the row. Carried on the option rather than on
+           `attached`, because `byIds` (which builds `attached`) has no coverage
+           in its projection and the same awards appear on both sides. */
+        fundingType: s.fundingType,
+        amountMin: s.amountMin,
+        amountMax: s.amountMax,
+        amountCurrency: s.amountCurrency,
+        // The detail panel's fields — Figma 375:13369.
+        scope: s.scope,
+        eligibility: s.eligibility,
+        conditions: s.conditions,
+        insight: s.insight,
+        appliesToText: s.appliesToText,
+        sourceUrl: s.sourceUrl,
+      }),
+    );
+
+    return [
+      {
+        id: row.id,
+        universityId: row.university_id,
+        name: uni.name,
+        country: uni.country,
+        type: uni.type ?? null,
+        qsRank: uni.qs_rank ?? null,
+        theRank: uni.the_rank ?? null,
+        deadline: uni.application_deadline ?? null,
+        summary: uni.best_for ?? uni.strengths ?? null,
+        imageUrl: uni.image_url ?? null,
+        logoUrl: uni.logo_url ?? null,
+        website: officialWebsite(uni.name),
+        /* The frame's rose badge (562:15117). `tuition_usd` is editorial prose,
+           not a number — "32,000–44,000 (intl UG, Medicine higher)" — so it goes
+           through the same formatter the university cards use, and the full
+           string stays reachable as a title attribute. */
+        tuition: formatTuitionForCard(uni.tuition_usd),
+        tuitionRaw: uni.tuition_usd ?? null,
+        program: row.program ?? null,
+        programUrl: row.program_url ?? null,
+        attached,
+        options,
+      },
+    ];
+  });
 }
 
 type Props = {
-  // ?universityId=<id>&openCourseSearch=true — /scholarships links here to open
-  // the course search straight onto a university.
+  /*
+   * ?planFor=<universityId> — the return trip from /my-universities/program.
+   * ?focus=<universityId>   — /scholarships sends the student here pointed at
+   *                           the university they just attached an award to.
+   *
+   * Both are read by the client and stripped from the URL once consumed, so
+   * neither is declared here beyond the type. `?universityId` +
+   * `?openCourseSearch` are gone with the course-search modal — see the header.
+   */
   searchParams: Promise<{
-    universityId?: string;
-    openCourseSearch?: string;
+    planFor?: string;
+    focus?: string;
   }>;
 };
 
 export default async function ApplyPage({ searchParams }: Props) {
-  const params = await searchParams;
-
-  const parsedUniversityId = params.universityId ? Number.parseInt(params.universityId, 10) : NaN;
-  const courseSearchUniversityId = Number.isFinite(parsedUniversityId) ? parsedUniversityId : null;
-  const openCourseSearch = params.openCourseSearch === 'true';
+  // Awaited but not read: the params above belong to the client component,
+  // which takes them from useSearchParams. Awaiting keeps this a dynamic render
+  // rather than one Next.js may try to cache across students.
+  await searchParams;
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Signing in is required to track applications, but not to open the course
-  // search — /scholarships funnels signed-out students straight into it.
-  if (!user && !openCourseSearch) {
+  /*
+   * Signing in is now required outright. It used to be conditional, because
+   * ?openCourseSearch had to stay reachable signed-out for the /scholarships
+   * funnel; that entry point is gone, and every remaining thing on this page is
+   * the student's own data.
+   */
+  if (!user) {
     redirect('/auth?redirect=%2Fapply');
   }
 
-  if (!user) {
-    return (
-      <ApplyListClient
-        applications={[]}
-        logoByUniversityId={{}}
-        courseSearchUniversity={await fetchCourseSearchUniversity(courseSearchUniversityId)}
-        openCourseSearch={openCourseSearch}
-        isLoggedOut
-      />
-    );
-  }
-
   const applications = await fetchApplications(user.id);
-  const [logoByUniversityId, courseSearchUniversity] = await Promise.all([
+  const [logoByUniversityId, savedRows] = await Promise.all([
     fetchLogos(applications),
-    fetchCourseSearchUniversity(courseSearchUniversityId),
+    fetchSavedRows(user.id),
   ]);
 
   const userName =
@@ -171,13 +283,12 @@ export default async function ApplyPage({ searchParams }: Props) {
   const userAvatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
 
   return (
-    <ApplyListClient
+    <ApplicationProgressClient
       applications={applications}
       logoByUniversityId={logoByUniversityId}
+      savedRows={savedRows}
       userName={userName}
       userAvatarUrl={userAvatarUrl}
-      courseSearchUniversity={courseSearchUniversity}
-      openCourseSearch={openCourseSearch}
     />
   );
 }

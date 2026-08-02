@@ -39,6 +39,22 @@ export function ComingSoonWaitlistForm({ action }: { action: WaitlistAction }) {
           maxLength={190}
         />
       </div>
+      <div className="grid gap-gb-lg sm:grid-cols-2">
+        <Input
+          name="phone"
+          type="tel"
+          label="Phone number"
+          placeholder="+84 912 345 678"
+          autoComplete="tel"
+          maxLength={32}
+        />
+        <Input
+          name="dateOfBirth"
+          type="date"
+          label="Date of birth"
+          autoComplete="bday"
+        />
+      </div>
       <Textarea
         name="notes"
         label="What are you hoping to study, and where?"

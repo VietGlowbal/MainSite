@@ -36,7 +36,7 @@ export {
   VerifiedMark,
 } from './icons';
 export type { BrandIconArt, KitIconArt } from './icons';
-export { GlobeLoader, LoadingScreen, PageLoaderOverlay } from './globe-loader';
+export { GlobeLoader, LoadingScreen, PageLoaderOverlay, usePrefersReducedMotion } from './globe-loader';
 export type { GlobeLoaderSize } from './globe-loader';
 export { LOADING_PHRASES, nextPhraseIndex } from './loading-phrases';
 export type { LoadingPhrase } from './loading-phrases';
@@ -74,12 +74,14 @@ export { Stepper } from './stepper';
 export type { StepperStep } from './stepper';
 export { Metric } from './metric';
 export { Panel, PanelHeader, StatTile } from './panel';
-export type { PanelPadding, StatTone } from './panel';
+export type { PanelElevation, PanelPadding, StatTone } from './panel';
 export { MultiSelect } from './multi-select';
 export type { MultiSelectOption } from './multi-select';
 export { Modal } from './modal';
 export { MobileNav } from './mobile-nav';
 export { Section } from './section';
-export type { MobileNavAction, MobileNavItem } from './mobile-nav';
+export type { MobileNavAction, MobileNavEntry, MobileNavGroup, MobileNavItem } from './mobile-nav';
+export { isNavGroup, isNavLinkActive } from './nav-model';
+export type { NavEntry, NavGroup, NavLink } from './nav-model';
 export { TopNav } from './top-nav';
-export type { TopNavItem } from './top-nav';
+export type { TopNavEntry, TopNavGroup, TopNavItem } from './top-nav';

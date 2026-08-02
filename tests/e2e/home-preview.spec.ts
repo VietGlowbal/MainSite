@@ -52,15 +52,29 @@ async function settle(page: import('@playwright/test').Page) {
 }
 
 /**
- * The hero globe, which every screenshot here has to mask.
+ * The two decorative animations every screenshot here has to mask.
  *
- * It rotates continuously, tips as the page scrolls, and lights dots at random,
- * so no two frames of it are alike and no baseline can ever match it. This used
- * to be a static PNG and `settle` waited for that image to load; the wait went
- * stale when the PNG was replaced, and the mask is what should have replaced it.
+ * The hero globe rotates continuously, tips as the page scrolls, and lights
+ * dots at random, so no two frames of it are alike and no baseline can ever
+ * match it. It used to be a static PNG and `settle` waited for that image to
+ * load; the wait went stale when the PNG was replaced, and the mask is what
+ * should have replaced it.
+ *
+ * ⚠️ The "Our featured partners" orbit is the SAME problem and was missed when
+ * the logos were set orbiting. It is worse than a mismatch: an element that
+ * never stops moving means `toHaveScreenshot` cannot get two identical frames
+ * in a row, so it times out with "Failed to take two consecutive stable
+ * screenshots" and never reaches the pixel comparison at all. The desktop
+ * baseline failed on this 3 runs out of 3 — it is not a flake.
+ *
+ * If a third decorative animation is ever added to this page, it belongs here
+ * too.
  */
-function globe(page: import('@playwright/test').Page) {
-  return [page.locator(`[data-testid="${TID.heroGlobe}"]`)];
+function masked(page: import('@playwright/test').Page) {
+  return [
+    page.locator(`[data-testid="${TID.heroGlobe}"]`),
+    page.locator(`[data-testid="${TID.heroPartners}"]`),
+  ];
 }
 
 test.describe('home preview — desktop', () => {
@@ -217,7 +231,7 @@ test.describe('home preview — desktop', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
     await settle(page);
-    await expect(page).toHaveScreenshot('home-desktop.png', { fullPage: true, mask: globe(page) });
+    await expect(page).toHaveScreenshot('home-desktop.png', { fullPage: true, mask: masked(page) });
   });
 });
 
@@ -338,6 +352,6 @@ test.describe('home preview — mobile', () => {
     await page.setViewportSize(MOBILE);
     await page.goto('/dev/home');
     await settle(page);
-    await expect(page).toHaveScreenshot('home-mobile.png', { fullPage: true, mask: globe(page) });
+    await expect(page).toHaveScreenshot('home-mobile.png', { fullPage: true, mask: masked(page) });
   });
 });

@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { LanguageSwitcher } from './language-switcher';
+import { isNavGroup, isNavLinkActive, type NavEntry, type NavGroup, type NavLink } from './nav-model';
 import { TID, testId } from '@/shared/lib';
 
 /**
@@ -21,29 +23,40 @@ import { TID, testId } from '@/shared/lib';
  *   footer   24 top/bottom, two 40px buttons 12px apart
  *   text     Inter 14/20 semibold ("Text sm/Semibold")
  *
- * Deviation, deliberate: the mockup's footer has no language switch. Mobile has
- * no other language control (the switcher lives in the desktop sidebar), so
- * dropping it would strand Vietnamese users; it renders in `utility` above the
- * buttons.
+ * Deviation, deliberate: the mockup's footer has no language switch. The app is
+ * bilingual and dropping it would strand Vietnamese users, so it renders above
+ * the buttons. It used to be passed in through `utility` by whichever caller
+ * remembered; this component renders it itself now, so every sheet has one.
  */
 
-export type MobileNavItem = {
-  href: string;
-  /** Already-translated label. */
-  label: string;
-};
+/**
+ * Aliases of the shared model in ./nav-model, kept so the existing importers of
+ * `MobileNavItem` compile unchanged. `items` also accepts a `MobileNavGroup` —
+ * the sheet renders one as a collapsible section rather than a popover.
+ */
+export type MobileNavItem = NavLink;
+export type MobileNavGroup = NavGroup;
+export type MobileNavEntry = NavEntry;
 
 export type MobileNavAction = MobileNavItem;
 
 type Props = {
   /** Wordmark, 28px tall in the design. */
   logo: React.ReactNode;
-  items: readonly MobileNavItem[];
+  items: readonly MobileNavEntry[];
   /** Filled brand button at the bottom of the panel. */
   primaryAction: MobileNavAction;
   /** Outlined button beneath it — sign in, or the profile link once signed in. */
   secondaryAction: MobileNavAction;
-  /** Rendered between the item list and the buttons. Holds the language switch. */
+  /**
+   * A page-specific control between the item list and the buttons —
+   * `SavedNavLink`, in practice.
+   *
+   * ⚠️ The language switch used to be passed in here by the one caller that
+   * remembered to. It is rendered below `utility` by this component now, so
+   * every sheet has it; passing another would show two. See
+   * ./language-switcher.tsx.
+   */
   utility?: React.ReactNode;
   /** Accessible name for the hamburger, translated by the caller. */
   openLabel: string;
@@ -81,6 +94,84 @@ const BELOW_HEADER = 'top-[calc(env(safe-area-inset-top)+var(--gb-header-mobile)
 const BUTTON =
   'flex h-gb-5xl items-center justify-center rounded-gb-md text-gb-sm font-semibold ' +
   'transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand';
+
+/** The 44px row the sheet is built from: 12 + a 20px text-sm line + 12. */
+const ROW = 'px-gb-xl py-gb-lg text-gb-sm font-semibold transition-colors';
+
+function rowTone(active: boolean): string {
+  return active ? 'text-brand' : 'text-fg hover:bg-surface-hover';
+}
+
+function IconChevronDown({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`shrink-0 transition-transform ${open ? 'rotate-180' : ''}`}
+      aria-hidden
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+/**
+ * A grouped entry ("Search") in the sheet.
+ *
+ * The desktop bar shows this as a popover because a horizontal bar has nowhere
+ * to put three more items. The sheet is a vertical list and does, so the group
+ * expands IN PLACE and starts OPEN: collapsing it by default would bury
+ * Scholarships and Universities — two of the four things this app is for —
+ * behind an extra tap, to save scroll the sheet is not short of.
+ *
+ * Still a disclosure rather than a plain heading, so the grouping is announced
+ * and someone who wants the list shorter can close it.
+ */
+function MobileNavGroupRow({ group, pathname }: { group: NavGroup; pathname: string }) {
+  const panelId = useId();
+  const [open, setOpen] = useState(true);
+
+  return (
+    <div className="flex flex-col gap-gb-xxs">
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        aria-controls={panelId}
+        className={`flex w-full items-center justify-between ${ROW} ${rowTone(false)}`}
+      >
+        <span>{group.label}</span>
+        <IconChevronDown open={open} />
+      </button>
+
+      {open ? (
+        <div id={panelId} className="flex flex-col gap-gb-xxs">
+          {group.items.map((item) => {
+            const active = isNavLinkActive(pathname, item.href);
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                aria-current={active ? 'page' : undefined}
+                /* Indented by one row's padding so the nesting is visible
+                   without a second type size or a rule down the left. */
+                className={`${ROW} pl-gb-5xl font-medium ${rowTone(active)}`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function MobileNav({
   logo,
@@ -168,26 +259,27 @@ export function MobileNav({
             {...testId(TID.navMobileSheet)}
           >
             <nav aria-label={openLabel} className="flex flex-col gap-gb-xxs py-gb-2xl">
-              {items.map((item) => {
-                const active =
-                  pathname === item.href || (item.href !== '/' && pathname.startsWith(`${item.href}/`));
-                return (
+              {items.map((item) =>
+                isNavGroup(item) ? (
+                  <MobileNavGroupRow key={item.label} group={item} pathname={pathname} />
+                ) : (
                   <Link
                     key={item.href}
                     href={item.href}
-                    aria-current={active ? 'page' : undefined}
-                    className={`px-gb-xl py-gb-lg text-gb-sm font-semibold transition-colors ${
-                      active ? 'text-brand' : 'text-fg hover:bg-surface-hover'
-                    }`}
+                    aria-current={isNavLinkActive(pathname, item.href) ? 'page' : undefined}
+                    className={`${ROW} ${rowTone(isNavLinkActive(pathname, item.href))}`}
                   >
                     {item.label}
                   </Link>
-                );
-              })}
+                ),
+              )}
             </nav>
 
             <div className="border-t border-line px-gb-xl py-gb-3xl pb-[calc(env(safe-area-inset-bottom)+var(--spacing-gb-3xl))]">
               {utility}
+              {/* After `utility` so the order matches the desktop bar, where
+                  SavedNavLink sits left of the switcher. */}
+              <LanguageSwitcher variant="row" />
               <div className="flex flex-col gap-gb-lg">
                 <Link href={primaryAction.href} className={`${BUTTON} bg-brand text-on-brand hover:bg-brand-hover`}>
                   {primaryAction.label}

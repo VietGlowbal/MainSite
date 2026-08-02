@@ -5,5 +5,5 @@
  * feature permitted to reach the database. Consumers import the port type, not
  * the adapter, so the implementation stays swappable (and fake-able in tests).
  */
-export * from './draft-storage';
-export * from './onboarding-repository';
+export { readOnboardingStatus } from './onboarding-status';
+export type { OnboardingStatus } from './onboarding-status';

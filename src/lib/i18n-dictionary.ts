@@ -38,14 +38,32 @@ export const translations: Record<string, string> = {
   // frame (104:7413) was not. Keep both keys.
   'Build your strategy': 'Lên Chiến lược Du học', // header, Figma 375:9845
   'AI strategy': 'Chiến lược AI', // footer, Figma 104:7413
+  // No longer a nav label — /news is "News" above since 01/08. Kept because
+  // DomTranslator matches any node whose text is exactly this.
   Blog: 'Blog',
   Contact: 'Liên hệ',
   // 'Find a mentor' is already defined further down, under the mentorship copy.
+  // The three destinations behind the "Search" dropdown translate through keys
+  // that already exist: Search, Mentors (above) and Scholarships / Universities
+  // (further down, under Topics). Do not add second copies of them here — a
+  // duplicate key in this object silently wins or loses by source order.
   // Mobile hamburger sheet. "Plan your studies" is the designer's CTA copy.
   Menu: 'Menu',
   'Close menu': 'Đóng menu',
+  // Still the CTA button's copy (MARKETING_NAV_ACTIONS.primary -> /onboarding),
+  // which is what a guest sees. The nav ITEM that used to share this string is
+  // now "My Portal" below.
   'Plan your studies': 'Lập kế hoạch du học',
   'Build your application strategy':'Lên chiến lược ứng tuyển',
+  /*
+   * Nav item -> /apply. "Plan your studies" until 31/07, "Application" until
+   * 01/08. "Hồ sơ của tôi" rather than a literal "Cổng của tôi": the page is
+   * the student's own applications and saved lists, and it already ships that
+   * exact wording as its H1 ('My Applications', further down).
+   */
+  'My Portal': 'Hồ sơ của tôi',
+  // Superseded as a nav label by 'My Portal'. Kept for the same reason as Blog.
+  Application: 'Ứng tuyển',
 
   // ── Home hero (Figma 375:9857) ───────────────────────────────────────────
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
@@ -63,7 +81,24 @@ export const translations: Record<string, string> = {
   // ── Home partner wall (Figma 104:7135) ───────────────────────────────────
   // University names live in alt attributes, which DomTranslator never touches,
   // so there is nothing here to accidentally translate.
-  'Our featured partners': 'Đối tác tiêu biểu của chúng tôi',
+  //
+  // The heading is now "Study <university>", where the second word flips over as
+  // a crest is hovered. Only the FIRST word is a key: "Study" is a separate text
+  // node from the word beside it, and every value that word can take is an
+  // institution name, so each is marked data-no-auto-translate at the call site
+  // (see StudyWord in features/marketing/ui/home-partners.tsx) rather than
+  // listed here. "Anywhere", the resting value, is the one exception and already
+  // has a key further down — do not add a second one.
+  //
+  // "Học tại" ("study at"), not "Học", because the word that follows is a place:
+  // "Học Cambridge" reads as studying the subject of Cambridge.
+  Study: 'Học tại',
+  // 'Our featured partners': 'Đối tác tiêu biểu của chúng tôi' was here. Removed
+  // rather than left behind: nothing renders that string any more (/dev/home
+  // renders the same component), and a key with no caller is indistinguishable
+  // from one whose caller is broken. It is recorded in the commit if the heading
+  // is ever reinstated — but see the ⚠️ in features/marketing/ui/partner-logos.ts
+  // before doing that.
 
   // ── Home metrics (Figma 375:9879) ────────────────────────────────────────
   // Five adoption figures supplied by the designer. Listed here rather than
@@ -623,6 +658,80 @@ export const translations: Record<string, string> = {
   'View official course page': 'Xem trang khóa học chính thức',
   'More options': 'Thêm tùy chọn',
 
+  /*
+   * The five stages (STAGE_TEMPLATE in lib/course-parser/extract-course.ts) and
+   * the baseline checklist written onto every application at creation
+   * (lib/course-parser/baseline-checklist.ts).
+   *
+   * These are stored in the database as English rows, not rendered from code,
+   * but the workspace is under /apply and therefore a PII route with machine
+   * translation switched off — so each one has to be a static key or it sits in
+   * English forever. AI-extracted task titles cannot be covered this way and do
+   * not appear here; they are the course page's own wording.
+   *
+   * `Research` is already keyed above (as a funding type) and covers the stage.
+   */
+  'Check eligibility': 'Kiểm tra điều kiện',
+  'Prepare documents': 'Chuẩn bị hồ sơ',
+  'Improve application': 'Cải thiện hồ sơ',
+  /*
+   * `Submit` is NOT keyed here. It already exists in the common-actions block
+   * near the top as 'Gửi', and this dictionary keys on the English string with
+   * no notion of context — so a second entry is a duplicate-key error, and
+   * changing the first to 'Nộp hồ sơ' would repaint every generic Submit button
+   * in the product. 'Gửi' reads correctly enough as a stage name; disambiguating
+   * properly needs a namespaced key, which this dictionary does not have.
+   */
+  'Understand the course, the university and whether it fits your plans.':
+    'Tìm hiểu khoá học, trường và mức độ phù hợp với dự định của bạn.',
+  'Confirm you meet the academic, English and test requirements.':
+    'Xác nhận bạn đáp ứng yêu cầu học thuật, tiếng Anh và các bài thi.',
+  'Gather and write everything the application asks you to submit.':
+    'Chuẩn bị và viết mọi giấy tờ mà hồ sơ yêu cầu.',
+  'Strengthen the parts of your application that are weakest.':
+    'Củng cố những phần yếu nhất trong hồ sơ của bạn.',
+  'Send the application and track its progress.': 'Nộp hồ sơ và theo dõi tiến độ.',
+
+  'Read the official course page': 'Đọc trang khoá học chính thức',
+  'Confirm the course is the one you want: what it covers, how long it runs and where it is taught.':
+    'Xác nhận đây đúng là khoá học bạn muốn: nội dung, thời lượng và nơi đào tạo.',
+  'Find the application deadline': 'Tìm hạn nộp hồ sơ',
+  'Deadlines differ by course and by round. Note the one that applies to you and work back from it.':
+    'Hạn nộp khác nhau theo khoá học và theo đợt. Ghi lại hạn áp dụng cho bạn và lên kế hoạch ngược từ đó.',
+  'Check the academic requirements': 'Kiểm tra yêu cầu học thuật',
+  'Compare your grades and subjects against what the course asks for.':
+    'Đối chiếu điểm và môn học của bạn với yêu cầu của khoá học.',
+  'Check the English language requirement': 'Kiểm tra yêu cầu tiếng Anh',
+  'Find the minimum score and whether individual band scores are set separately.':
+    'Tìm điểm tối thiểu và xem trường có yêu cầu điểm từng kỹ năng riêng không.',
+  'Check whether any admission test is required': 'Kiểm tra xem có bài thi đầu vào nào không',
+  'Some courses and countries require an entrance or aptitude test with its own deadline.':
+    'Một số khoá học và quốc gia yêu cầu bài thi đầu vào hoặc thi năng lực, có hạn nộp riêng.',
+  'Gather your academic transcripts': 'Chuẩn bị bảng điểm',
+  'Official transcripts for every year of study, translated if they are not in English.':
+    'Bảng điểm chính thức của tất cả các năm học, dịch thuật nếu không phải tiếng Anh.',
+  'Write your personal statement': 'Viết bài luận cá nhân',
+  'Why this subject, why this university, and what you have done that shows it.':
+    'Vì sao chọn ngành này, vì sao chọn trường này, và bạn đã làm gì để chứng minh điều đó.',
+  'Request your letters of recommendation': 'Xin thư giới thiệu',
+  'Ask early. Referees need time, and most portals want their details before you submit.':
+    'Hãy hỏi sớm. Người giới thiệu cần thời gian, và hầu hết hệ thống yêu cầu thông tin của họ trước khi bạn nộp.',
+  'Prepare your CV': 'Chuẩn bị CV',
+  'Education, work, activities and achievements on one or two pages.':
+    'Học vấn, kinh nghiệm, hoạt động và thành tích trong một đến hai trang.',
+  'Review your personal statement': 'Rà soát lại bài luận cá nhân',
+  'Read it back against the course page and cut anything that is not about this course.':
+    'Đọc lại bài luận cùng với trang khoá học và bỏ đi những gì không liên quan đến khoá học này.',
+  'Strengthen your weakest requirement': 'Củng cố yêu cầu bạn còn yếu nhất',
+  'Whichever requirement you are furthest from meeting is the one worth the remaining time.':
+    'Yêu cầu bạn còn cách xa nhất là yêu cầu đáng dành thời gian còn lại nhất.',
+  'Complete the online application form': 'Hoàn thành mẫu đơn trực tuyến',
+  'Fill in the university or national portal and attach every document it asks for.':
+    'Điền vào hệ thống của trường hoặc hệ thống quốc gia và đính kèm mọi giấy tờ được yêu cầu.',
+  'Pay the application fee and submit': 'Đóng lệ phí và nộp hồ sơ',
+  'Keep the confirmation — it is what you quote if you need to chase the application.':
+    'Giữ lại xác nhận — đó là thứ bạn cần khi hỏi lại về hồ sơ.',
+
   // ── Admin ────────────────────────────────────────────────────────────────
   'Admin Console': 'Bảng quản trị',
   'Manage Glowbal': 'Quản lý Glowbal',
@@ -927,6 +1036,14 @@ export const translations: Record<string, string> = {
   // The design writes these in Vietnamese; the English above is the source
   // string, so these entries are the designer's own wording restored.
   'Scholarship library': 'Kho học bổng',
+  'Funding opportunities, curated for you': 'Cơ hội hỗ trợ tài chính dành riêng cho bạn',
+  'Explore verified funding opportunities, save your strongest fits, and turn your university plans into a clearer path forward.':
+    'Khám phá các cơ hội hỗ trợ tài chính đã được xác thực, lưu những lựa chọn phù hợp nhất và biến kế hoạch chọn trường thành lộ trình rõ ràng hơn.',
+  opportunities: 'cơ hội',
+  'matched to you': 'phù hợp với bạn',
+  saved: 'đã lưu',
+  'Find your next opportunity': 'Tìm cơ hội tiếp theo của bạn',
+  'Narrow the vault by eligibility, funding, and destination.': 'Lọc theo điều kiện, mức hỗ trợ và điểm đến du học.',
   'Browse a preview for free. Create your profile to unlock the full eligibility criteria and required documents, and to save opportunities into your plan.':
     'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
   'See more': 'Xem thêm',
@@ -1166,16 +1283,67 @@ export const translations: Record<string, string> = {
   'See all scholarships': 'Xem tất cả học bổng',
   'Colleges and programmes': 'Các trường & chương trình',
 
-  // ── Saved list, /my-universities (Figma 375:12701 · 375:12841 · 375:13295 ·
-  //    375:13369 · 502:18462) and the subject picker (375:13546) ─────────────
+  // ── "My application", the upper half of /apply (Figma 562:15386) ──────────
   //
-  // ⚠️ EVERY string on these two routes has to be here. `/my-universities` is in
+  // ⚠️ These were MISSING until the merge, and the omission was invisible for
+  // the same reason it mattered: /apply has been in PII_ROUTE_PREFIXES all
+  // along, so there was no machine fallback to paper over them — the tracker's
+  // heading, its subtitle and the import bar simply sat in English on the
+  // Vietnamese page. Same rule as the saved-list block below: every string.
+  'My application': 'Hồ sơ ứng tuyển của tôi',
+  'The courses you are applying to, how far along each one is, and what is due next.':
+    'Các khoá học bạn đang ứng tuyển, tiến độ từng hồ sơ và việc cần làm tiếp theo.',
+  'Nothing here yet — tick a university in your saved list below and plan its application.':
+    'Chưa có gì ở đây — tích chọn một trường trong danh sách đã lưu bên dưới và lên kế hoạch ứng tuyển.',
+  'Continue applying': 'Tiếp tục apply',
+  // `Deadline` is already keyed further up (line ~442) and covers this row too.
+  //
+  // The countdown under the date (features/apply/domain/deadline.ts). Same
+  // split as the scholarship bar's "Scholarship 50%": the number is its own
+  // text node in the component, so only the noun needs a key here — an
+  // interpolated "3 days left" could never be a dictionary hit on this route.
+  'day left': 'ngày nữa',
+  'days left': 'ngày nữa',
+  'Due today': 'Hạn hôm nay',
+  'Deadline passed': 'Đã quá hạn',
+  /*
+   * The paste-a-URL importer's six strings were removed here on 01/08 along
+   * with the bar itself ('Add a course', 'Paste a university course page URL',
+   * 'Add course', 'Adding…', and the two lines under them). Applications are
+   * created from the saved list now — see my-application-section.tsx (5).
+   */
+  'GlowBal’s AI is reading the course page and building your checklist…':
+    'AI của GlowBal đang đọc trang khoá học và dựng danh sách việc cần làm…',
+  'Could not reach the server. Please try again.':
+    'Không kết nối được máy chủ. Vui lòng thử lại.',
+
+  // ── Saved list, now the lower half of /apply (Figma 562:15078, previously
+  //    375:12701 · 375:12841 · 375:13295 · 375:13369 · 502:18462) and the
+  //    subject picker (375:13546) ────────────────────────────────────────────
+  //
+  // ⚠️ EVERY string on these two routes has to be here. `/apply` is in
   // PII_ROUTE_PREFIXES (src/lib/dom-translate.tsx), so whole-page machine
   // translation is switched OFF — there is no fallback, and anything missing
   // sits in English on a Vietnamese page permanently. That is also why the
   // components split labels away from values: an interpolated "Scholarship 50%"
   // or "Deadline: 5 Jan 2026" could never be a dictionary hit.
   'Saved list': 'Danh sách đã lưu',
+  // Added with the merge — the two sections now talk to each other.
+  'Go to my saved list': 'Đến danh sách đã lưu',
+  'Tick a university in your saved list below, choose the subject you want, and plan its application. It will appear here.':
+    'Tích chọn một trường trong danh sách đã lưu bên dưới, chọn ngành bạn muốn và lên kế hoạch ứng tuyển. Hồ sơ sẽ hiện ở đây.',
+  'We could not set those applications up. Please try again.':
+    'Chúng tôi không thiết lập được các hồ sơ đó. Vui lòng thử lại.',
+  /*
+   * Replaces "We need the course page link to build a checklist…". A subject is
+   * now enough to plan an application, so the student is never sent looking for
+   * a URL — see planApplications in application-progress-client.tsx.
+   */
+  'Choose a subject for that university to plan its application.':
+    'Hãy chọn ngành cho trường đó để lên kế hoạch ứng tuyển.',
+  'You have reached the number of courses your plan allows.':
+    'Bạn đã dùng hết số khoá học mà gói của bạn cho phép.',
+  'Setting up your application': 'Đang thiết lập hồ sơ ứng tuyển của bạn',
   'The universities you have saved, with their deadlines and any scholarships you have attached.':
     'Các trường bạn đã lưu, kèm hạn chót và học bổng bạn đã áp dụng.',
   'Nothing saved yet — the universities you save while browsing show up here.':
@@ -1215,8 +1383,8 @@ export const translations: Record<string, string> = {
   'scholarships attached': 'học bổng đã áp dụng',
   'Apply scholarship': 'Áp học bổng',
   'Plan my application': 'Lên kế hoạch ứng tuyển',
-  'Tick a university to attach a scholarship to it.':
-    'Tích chọn một trường để áp học bổng cho trường đó.',
+  'Tick a university to plan its application.':
+    'Tích chọn một trường để lên kế hoạch ứng tuyển.',
 
   // The picker (375:13295)
   'Apply a scholarship': 'Áp học bổng',
@@ -1271,8 +1439,12 @@ export const translations: Record<string, string> = {
   'Collected from this university’s own course catalogue. Check the official page before you apply.':
     'Được thu thập từ danh mục khoá học của chính trường. Hãy kiểm tra trang chính thức trước khi nộp hồ sơ.',
   'Open the official course page': 'Mở trang khoá học chính thức',
-  'Cannot find the subject you want? Paste a link to it':
-    'Nếu không tìm thấy ngành mong muốn thì paste link',
+  // Was "Cannot find the subject you want? Paste a link to it", when a link was
+  // the only route to an application. It is optional now — see the note in
+  // program-picker.tsx.
+  'Have a link to the course page? (optional)': 'Có link trang khoá học? (không bắt buộc)',
+  'We will read it and build a checklist specific to this course. Without one you still get the standard application checklist.':
+    'Chúng tôi sẽ đọc link và dựng danh sách việc cần làm riêng cho khoá học này. Không có link thì bạn vẫn nhận được danh sách việc cần làm tiêu chuẩn.',
   'Optional. It shows as a link on your saved list.':
     'Không bắt buộc. Link sẽ hiện trong danh sách đã lưu của bạn.',
   'That does not look like a course page link — it needs to start with http:// or https://':

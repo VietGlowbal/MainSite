@@ -1,0 +1,10 @@
+export { StrategyHome } from './strategy-home';
+export { ApplicantAnalysisReport } from './applicant-analysis-report';
+export { CourseMatchReport } from './course-match-report';
+export { AnalysisWorkspace } from './analysis-workspace';
+export { DashboardSummary } from './dashboard-summary';
+export { StrategyCategoryBoard } from './strategy-category-board';
+export { RecommendationTable } from './recommendation-table';
+export { ProgressStatusControl } from './progress-status-control';
+export { EvidenceUpload } from './evidence-upload';
+export { AiCoachPanel } from './ai-coach-panel';

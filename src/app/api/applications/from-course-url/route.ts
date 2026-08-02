@@ -331,16 +331,51 @@ export async function POST(request: Request) {
     // -----------------------------------------------------------------------
     // LEGACY PROVIDER PATH (preserved for rollback)
     // -----------------------------------------------------------------------
+    /*
+     * ⚠️ THIS USED TO BE BEST-EFFORT AND SILENT, AND IT STRANDED ROWS.
+     *
+     * The row is inserted `parse_status: 'pending'` above, and the enqueue below
+     * used to sit in a catch commented "Best-effort — don't fail the request".
+     * `createParseJob` also returns null on a write failure instead of throwing,
+     * so a failed enqueue left an application permanently claiming a parse was
+     * running with no job behind it. Measured 2026-08-01: 13 of 37 live
+     * applications are in exactly that state, the oldest since 15 June, each one
+     * rendering "GlowBal's AI is reading the course page…" forever.
+     *
+     * The request still succeeds — the application exists and is the thing the
+     * student asked for — but the row is settled honestly so the UI stops
+     * promising work nobody is doing. `scripts/repair-stranded-applications.mjs`
+     * cleans up the ones already in the database.
+     */
+    let job: Awaited<ReturnType<typeof createParseJob>> = null;
     try {
-      await createParseJob(newApp.id, courseUrl, universityId ?? null);
+      job = await createParseJob(newApp.id, courseUrl, universityId ?? null);
     } catch (jobError) {
       console.error('Error creating parse job (legacy):', jobError);
-      // Best-effort — don't fail the request
+    }
+
+    if (!job) {
+      await supabase
+        .from('course_applications')
+        .update({
+          parse_status: 'failed',
+          parse_error: 'We could not start reading that course page. Try again from your plan.',
+        })
+        .eq('id', newApp.id)
+        .eq('user_id', user.id);
+
+      return NextResponse.json({
+        success: true,
+        applicationId: newApp.id,
+        parseQueued: false,
+        message: 'Course added to your shortlist, but we could not start reading the page.',
+      });
     }
 
     return NextResponse.json({
       success: true,
       applicationId: newApp.id,
+      parseQueued: true,
       message: 'Course added to your shortlist. Building checklist in background...',
     });
   } catch (error) {

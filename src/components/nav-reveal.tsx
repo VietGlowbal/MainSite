@@ -5,9 +5,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SavedNavLink } from '@/components/saved-nav-link';
+import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
 import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
-import { MobileNav, TopNav, type MobileNavItem } from '@/shared/ui';
+import { MobileNav, TopNav, isNavGroup, type MobileNavEntry } from '@/shared/ui';
 
 /* ─────────────────────────────────────────────────────────────────────────
    Persisted nav preferences
@@ -60,95 +61,68 @@ function useNavPrefFlag(key: string): boolean {
   return useSyncExternalStore(subscribeToNavPrefs, getSnapshot, () => false);
 }
 
-/*
- * `mobile` used to hold the abbreviated caption for the bottom tab bar ("Fund",
- * "News"). That bar is gone; the hamburger sheet is a full-width list, so the
- * field now carries the longer wording from the designer's mobile mockup.
+/**
+ * Role-gated extras. Everything a normal student sees comes from
+ * `MARKETING_NAV_ITEMS`; these three are appended per role and have no
+ * marketing equivalent, because nothing about them is public.
  */
-const NAV_ITEMS = [
-  { href: '/',                label: 'Home',          mobile: 'Home',               activeMatch: 'exact' as const },
-  { href: '/universities',    label: 'Search',        mobile: 'Search universities', activeMatch: 'prefix' as const },
-  { href: '/apply',           label: 'Apply',         mobile: 'Plan your studies',  activeMatch: 'prefix' as const, requiresAuth: true },
-  { href: '/scholarships',    label: 'Scholarships',  mobile: 'Scholarships',       activeMatch: 'prefix' as const, requiresAuth: true },
-  { href: '/mentors',         label: 'Mentorship',    mobile: 'Mentorship',         activeMatch: 'prefix' as const },
-  { href: '/news',            label: 'GLOWBAL News',  mobile: 'GLOWBAL News',       activeMatch: 'prefix' as const },
-];
-
-// Extra item shown only to users who have a mentor profile (any status).
-const MENTOR_DASHBOARD_ITEM = {
-  href: '/dashboard/mentor',
-  label: 'Mentor hub',
-  mobile: 'Mentor',
-  activeMatch: 'prefix' as const,
-};
-
-// Extra item shown only to users with the coordinator role.
-const COORDINATOR_ITEM = {
-  href: '/coordinator',
-  label: 'Coordinator',
-  mobile: 'Coordinator',
-  activeMatch: 'prefix' as const,
-};
-
-const ADMIN_ITEM = {
-  href: '/admin',
-  label: 'Admin',
-  mobile: 'Admin',
-  activeMatch: 'prefix' as const,
-};
-
-type NavItem = {
-  href: string;
-  label: string;
-  mobile: string;
-  activeMatch: 'exact' | 'prefix';
-  requiresAuth?: boolean;
-};
+const MENTOR_DASHBOARD_ITEM = { href: '/dashboard/mentor', label: 'Mentor hub' };
+const COORDINATOR_ITEM = { href: '/coordinator', label: 'Coordinator' };
+const ADMIN_ITEM = { href: '/admin', label: 'Admin' };
 
 /**
  * The destinations this user can see, in order.
  *
- * Desktop and mobile derive from this same list so the two navigations can
- * never drift — previously the sidebar, the bottom tab bar, and the hamburger
- * drawer each kept their own hand-written subset, and none of the three agreed.
- */
-function navItemsFor(user: UserSummary | null): NavItem[] {
-  const items: NavItem[] = user ? [...NAV_ITEMS] : NAV_ITEMS.filter((i) => !i.requiresAuth);
-  if (user?.isMentor) items.push(MENTOR_DASHBOARD_ITEM);
-  if (user?.isCoordinator) items.push(COORDINATOR_ITEM);
-  if (user?.isAdmin) items.push(ADMIN_ITEM);
-  return items;
-}
-
-// ── Language Switcher ────────────────────────────────────────────────────────
-/**
- * EN / VI toggle for the desktop header.
+ * ⚠️ THE SEVEN-ITEM APP LIST THAT USED TO LIVE HERE IS GONE (01/08). It named
+ * the same destinations as `MARKETING_NAV_ITEMS` under different labels, in a
+ * different order, with a `mobile` field that differed again — so a signed-in
+ * student crossing from `/apply` (own chrome, marketing list) to `/scholarships`
+ * (this chrome, app list) watched the whole bar rewrite itself. The owner asked
+ * for one menu for both audiences, which makes that list redundant rather than
+ * merely inconsistent.
  *
- * Restyled with tokens rather than kept on `.glowbal-language-switcher`: that
- * rule is `width: 100%` with a hover lift, sized for the sidebar footer it used
- * to sit in, and it is one of the legacy selectors CLAUDE.md quarantines.
+ * Two things went with it and are worth knowing:
+ *  - **`requiresAuth` is gone.** It hid `/apply` and `/scholarships` from
+ *    guests; the marketing list deliberately shows them (owner, 31/07 — the
+ *    links are how a guest finds out the features exist, and each page forces
+ *    sign-in when opened).
+ *  - **"Home" is gone.** The marketing bar has never carried it: the wordmark
+ *    is the home affordance, and `TopNav` links it itself.
  *
- * The flag stays but the language name goes — a header has no room for
- * "Tiếng Việt" beside five nav items and two buttons, and the two-letter code
- * is what the mobile sheet already shows.
+ * Role extras are appended, not merged, so they always sit after the four
+ * shared entries.
  */
-function LanguageSwitcher() {
-  const { lang: language, toggle: toggleLanguage } = useLanguage();
-  const next = language === 'en' ? 'Vietnamese' : 'English';
-
-  return (
-    <button
-      type="button"
-      onClick={toggleLanguage}
-      aria-label={`Switch to ${next}`}
-      title={`Switch to ${next}`}
-      className="flex items-center gap-gb-sm rounded-gb-md border border-line px-gb-lg py-gb-sm text-gb-sm font-semibold text-fg-secondary transition-colors hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-    >
-      <span aria-hidden="true">{language === 'en' ? '🇬🇧' : '🇻🇳'}</span>
-      <span>{language === 'en' ? 'EN' : 'VI'}</span>
-    </button>
+function navEntriesFor(
+  user: UserSummary | null,
+  t: (key: string) => string,
+): MobileNavEntry[] {
+  const shared: MobileNavEntry[] = MARKETING_NAV_ITEMS.map((entry) =>
+    isNavGroup(entry)
+      ? {
+          label: t(entry.label),
+          items: entry.items.map((child) => ({ href: child.href, label: t(child.label) })),
+        }
+      : { href: entry.href, label: t(entry.label) },
   );
+
+  const extras = [
+    ...(user?.isMentor ? [MENTOR_DASHBOARD_ITEM] : []),
+    ...(user?.isCoordinator ? [COORDINATOR_ITEM] : []),
+    ...(user?.isAdmin ? [ADMIN_ITEM] : []),
+  ];
+
+  return [...shared, ...extras.map((item) => ({ href: item.href, label: t(item.label) }))];
 }
+
+/*
+ * The EN / VI toggle that used to be defined here is now
+ * `src/shared/ui/language-switcher.tsx`, rendered by `TopNav` and `MobileNav`
+ * themselves. It lived here because this was the only header that had one — and
+ * that WAS the bug: fifteen pages ship their own header and none of them
+ * remembered to fill the `utility` slot, so `/profile` and `/scholarships` were
+ * the only two pages on the site where a Vietnamese student could switch
+ * language. Do not pass one into `utility` from here or it renders twice.
+ */
 
 // ── Mobile navigation ────────────────────────────────────────────────────────
 /**
@@ -160,12 +134,9 @@ function LanguageSwitcher() {
  * hamburger, so the destinations they carried between them all land here.
  */
 function MobileNavigation({ user }: { user: UserSummary | null }) {
-  const { t, lang: language, toggle: toggleLanguage } = useLanguage();
+  const { t } = useLanguage();
 
-  const items: MobileNavItem[] = navItemsFor(user).map((item) => ({
-    href: item.href,
-    label: t(item.mobile),
-  }));
+  const items = navEntriesFor(user, t);
 
   return (
     <MobileNav
@@ -183,24 +154,7 @@ function MobileNavigation({ user }: { user: UserSummary | null }) {
       }
       openLabel={t('Menu')}
       closeLabel={t('Close menu')}
-      utility={
-        <>
-          {/* Mobile has no header row to hang a count pill on, so the saved list
-              gets a drawer row instead. Renders nothing when signed out. */}
-          <SavedNavLink variant="row" />
-          <button
-            type="button"
-            onClick={toggleLanguage}
-            className="mb-gb-lg flex w-full items-center justify-between rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-medium text-fg-tertiary transition-colors hover:bg-surface-hover"
-            aria-label={`Switch to ${language === 'en' ? 'Vietnamese' : 'English'}`}
-          >
-            <span>{language === 'en' ? '🇬🇧 English' : '🇻🇳 Tiếng Việt'}</span>
-            <span className="text-gb-xs font-semibold tracking-wide text-fg-muted">
-              {language === 'en' ? 'EN' : 'VI'}
-            </span>
-          </button>
-        </>
-      }
+      utility={<SavedNavLink variant="row" />}
     />
   );
 }
@@ -234,10 +188,7 @@ type UserSummary = {
 function AppTopNav({ user }: { user: UserSummary | null }) {
   const { t } = useLanguage();
 
-  const items = navItemsFor(user).map((item) => ({
-    href: item.href,
-    label: t(item.label),
-  }));
+  const items = navEntriesFor(user, t);
 
   return (
     <TopNav
@@ -245,14 +196,7 @@ function AppTopNav({ user }: { user: UserSummary | null }) {
       logo={<GlowbalLogo height={28} />}
       items={items}
       primaryAction={{ href: '/apply', label: t('Plan your studies') }}
-      /* Two controls in the one utility slot. SavedNavLink renders nothing when
-         signed out, so the guest header is unchanged. */
-      utility={
-        <span className="flex items-center gap-gb-lg">
-          <SavedNavLink />
-          <LanguageSwitcher />
-        </span>
-      }
+      utility={<SavedNavLink />}
       {...(user
         ? { user: { name: user.name, avatarUrl: user.avatarUrl, href: '/profile' } }
         : { secondaryAction: { href: '/auth', label: t('Sign in') } })}
@@ -305,16 +249,19 @@ export function NavReveal() {
     // app chrome until 153:20197 is built. Was '/guides' until the two blog
     // routes were merged onto /news on 31/07.
     '/news',
-    // Also exact: the saved list is rebuilt (Figma 375:12701), the
-    // /my-universities/[id] task pages under it are not.
-    '/my-universities',
-    // The "Chọn lại ngành" subject picker (Figma 375:13546). Listed alongside its
-    // parent rather than folded into a /my-universities prefix, because the
-    // [id] task pages in between are still on the app chrome — a prefix here
-    // would silently strip their sidebar.
+    /*
+     * The "Chọn lại ngành" subject picker (Figma 375:13546).
+     *
+     * `/my-universities` itself is gone — the saved list merged into /apply
+     * (Figma 562:15078) and the bare path now 308s there. This entry is what is
+     * left of that subtree that ships its own chrome; the [id] task pages
+     * beside it are still on the app chrome, which is why this is an exact
+     * match and not a /my-universities prefix.
+     */
     '/my-universities/program',
-    // The applications list. The workspace under it is covered by the prefix
-    // rule below rather than listed here.
+    // The merged "Application Progress" page — My application above the saved
+    // list. The workspace under it is covered by the prefix rule below rather
+    // than listed here.
     '/apply',
     // And again: the mentor browse is rebuilt (Figma 154:8345). /mentors/[id]
     // is now rebuilt too and is matched below by its uuid, but /mentors/apply

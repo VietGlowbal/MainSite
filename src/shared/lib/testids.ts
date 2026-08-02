@@ -33,6 +33,22 @@ export const TID = {
    */
   heroGlobe: 'hero-globe',
 
+  /**
+   * The whole "Our featured partners" SECTION. Decorative, like `heroGlobe`,
+   * and here for the same reason: the logos orbit continuously, so consecutive
+   * frames are never identical and `toHaveScreenshot` cannot even reach the
+   * comparison — it fails with "Failed to take two consecutive stable
+   * screenshots". The globe was masked when it stopped being a static PNG; this
+   * one was set orbiting in the same batch of work and was missed.
+   *
+   * ⚠️ ON THE SECTION, NOT THE ORBIT STAGE INSIDE IT, and that is not a
+   * preference. Playwright masks by bounding box, and the logos orbit a curve
+   * that runs OUTSIDE the stage's box (it is capped at `min(88%,1120px)`), so
+   * masking the stage left a ring of moving tiles poking out on both sides and
+   * the screenshot stayed unstable. Verified from the diff image.
+   */
+  heroPartners: 'hero-partners',
+
   // ── Auth ──────────────────────────────────────────────────────────────
   authEmailInput: 'auth-email',
   authPasswordInput: 'auth-password',

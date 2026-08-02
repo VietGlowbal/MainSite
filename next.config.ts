@@ -54,6 +54,39 @@ const nextConfig: NextConfig = {
        */
       { source: '/guides/:slug', destination: '/news/:slug', permanent: true },
       { source: '/guides', destination: '/news', permanent: true },
+      /*
+       * /my-universities -> /apply, permanently.
+       *
+       * The saved list and the applications tracker were two halves of one
+       * journey on two URLs; Figma 562:15078 draws them as one page and /apply
+       * is the surviving address (its /apply/[applicationId] workspace already
+       * lives under it). src/proxy.ts sent every fresh sign-in to
+       * /my-universities for months, so that URL is in browser histories and
+       * bookmarks — a 308 is what carries them over.
+       *
+       * EXACT SOURCE, deliberately no /:path*. The children did NOT move:
+       * /my-universities/program is the subject picker the merged page links
+       * to, and /my-universities/[id] + /[id]/writer are the legacy task pages.
+       * A wildcard here would redirect all three into a page that cannot serve
+       * them.
+       */
+      { source: '/my-universities', destination: '/apply', permanent: true },
+      /*
+       * /how-it-works -> /ai-strategy, permanently.
+       *
+       * Two pages explained the product and they disagreed. /how-it-works
+       * taught the pre-01/08 flow — "find courses on the university's site,
+       * copy the course URL, paste it on GlowBal Apply" — which stopped being
+       * possible when the paste-a-URL bar was removed from /apply and
+       * applications started being created from a saved university instead.
+       * /ai-strategy is now the explainer and describes the real flow, so this
+       * one redirects rather than being maintained in parallel.
+       *
+       * Nothing in the app linked here (its only inbound reference was
+       * src/components/JourneySteps.tsx, itself unrendered), so this is purely
+       * for external links and anyone who bookmarked it.
+       */
+      { source: '/how-it-works', destination: '/ai-strategy', permanent: true },
     ];
   },
   images: {

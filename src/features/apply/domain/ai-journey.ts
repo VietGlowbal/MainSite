@@ -61,7 +61,13 @@ export const AI_JOURNEY: StepDef[] = [
     label: 'Application Strategy',
     blurb: 'AI feedback on your essay and your CV, one draft at a time.',
     paid: true,
-    href: null,
+    /*
+     * The journey entry, not a per-application URL. This step is scoped to one
+     * application and the journey definition has no application in hand, so it
+     * points at /ai-strategy and that page routes on to
+     * /ai-strategy/<applicationId> once the student picks one.
+     */
+    href: '/ai-strategy',
   },
   {
     key: 'audit',
@@ -77,12 +83,21 @@ export const AI_JOURNEY: StepDef[] = [
  *
  * A step with no route yet is not linkified — an anchor that does not navigate
  * is worse than plain text, and this journey is mostly unbuilt.
+ *
+ * `unlock` names steps that must NOT render as locked on this particular screen.
+ * It exists because `Stepper` gives `locked` priority over `current`: a student
+ * standing inside Application Strategy would otherwise see the step they are on
+ * drawn as a paywall, with the connector unfilled behind them. The paywall is
+ * enforced on the AI endpoints, so a student who has reached the page has passed
+ * it and the wall has nothing left to say.
  */
-export function aiJourneySteps(): StepperStep[] {
+export function aiJourneySteps(options?: { unlock?: readonly AiJourneyStep[] }): StepperStep[] {
+  const unlocked = new Set(options?.unlock ?? []);
+
   return AI_JOURNEY.map((step) => ({
     key: step.key,
     label: step.label,
-    ...(step.paid ? { locked: true } : {}),
+    ...(step.paid && !unlocked.has(step.key) ? { locked: true } : {}),
     ...(step.href ? { href: step.href } : {}),
   }));
 }

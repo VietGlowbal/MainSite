@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { createClient } from '@/lib/supabase/server';
-import { getTeamMembers, type TeamMember } from '@/lib/team';
+import { getTeamMembers } from '@/lib/team';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import {
+  AboutTeam,
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
@@ -11,7 +12,7 @@ import {
   HomeFaq,
   MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
-import { Avatar, Container, Footer, MobileNav, TopNav } from '@/shared/ui';
+import { Container, Footer, MobileNav, TopNav } from '@/shared/ui';
 
 /**
  * /about — net-new, built from Figma 153:11401 ("About us").
@@ -27,6 +28,11 @@ import { Avatar, Container, Footer, MobileNav, TopNav } from '@/shared/ui';
  *     are replaced with the REAL roster from lib/team.ts (the same source the
  *     old home page used), which is fail-soft: no rows → the section hides.
  *
+ * The roster is no longer a wall of identical cards either. It is a grid of
+ * photos with one detail card beneath it that resolves to whoever the pointer
+ * is on — features/marketing/ui/about-team.tsx, which owns that interaction and
+ * the #team anchor the footer links to.
+ *
  * The FAQ block is the same component as Home (its answers are still awaiting
  * copy, so it shows MissingContent). Footer + nav match the other rebuilt pages.
  */
@@ -39,45 +45,6 @@ export const metadata: Metadata = {
 
 // Team roster changes rarely; mirror the home page's 12h ISR.
 export const revalidate = 43200;
-
-function TeamCard({ member }: { member: TeamMember }) {
-  const contactHref = member.linkedin_url ?? (member.email ? `mailto:${member.email}` : null);
-  return (
-    <article className="flex flex-col gap-gb-lg">
-      <div className="aspect-square w-full overflow-hidden rounded-gb-xl bg-surface-muted">
-        {member.photo_url ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
-            src={member.photo_url}
-            alt={member.full_name}
-            loading="lazy"
-            className="h-full w-full object-cover"
-          />
-        ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <Avatar name={member.full_name} className="size-gb-9xl" />
-          </div>
-        )}
-      </div>
-      <div className="flex flex-col gap-gb-xs">
-        <h3 className="text-gb-lg font-semibold text-fg">{member.full_name}</h3>
-        <p className="text-gb-sm font-medium text-fg-brand">{member.role}</p>
-        {member.short_bio ? (
-          <p className="text-gb-sm text-fg-tertiary">{member.short_bio}</p>
-        ) : null}
-      </div>
-      {contactHref ? (
-        <a
-          href={contactHref}
-          {...(member.linkedin_url ? { target: '_blank', rel: 'noreferrer noopener' } : {})}
-          className="text-gb-sm font-semibold text-fg-brand underline-offset-4 hover:underline"
-        >
-          Contact →
-        </a>
-      ) : null}
-    </article>
-  );
-}
 
 export default async function AboutPage() {
   const supabase = await createClient();
@@ -131,33 +98,11 @@ export default async function AboutPage() {
           </Container>
         </section>
 
-        {/* Team */}
-        {team.length > 0 ? (
-          <section className="pb-gb-9xl">
-            <Container className="flex flex-col gap-gb-6xl">
-              <div className="mx-auto max-w-gb-width-xl text-center">
-                <h2 className="font-display text-gb-display-xs font-semibold md:text-gb-display-sm">
-                  Meet our team
-                </h2>
-                <p className="mt-gb-lg text-gb-md text-fg-tertiary">
-                  The people behind GlowBal, and the experience they bring to your application.
-                </p>
-              </div>
-              {/* id="team" is the anchor the footer's "Our team" link points at. */}
-              <div
-                id="team"
-                className="grid scroll-mt-gb-9xl grid-cols-1 gap-gb-4xl sm:grid-cols-2 lg:grid-cols-4"
-              >
-                {team.map((member) => (
-                  <TeamCard key={member.id} member={member} />
-                ))}
-              </div>
-            </Container>
-          </section>
-        ) : (
-          // Anchor still has to resolve even before the roster is seeded.
-          <div id="team" className="scroll-mt-gb-9xl" />
-        )}
+        {/* Team. AboutTeam carries the #team anchor in both states — with a
+            roster and without one — so the footer link always resolves. */}
+        <Container>
+          <AboutTeam members={team} />
+        </Container>
 
         {/* FAQ — shared with Home; answers await copy (MissingContent). */}
         <HomeFaq />

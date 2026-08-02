@@ -261,8 +261,11 @@ export function ApplicationWorkspaceV2({
             </a>
           ) : null}
 
-          {/* Figma: the "Ready to study at ..." card. The CTA is the AI strategy
-              journey; it is a plain link until that route exists. */}
+          {/* Figma: the "Ready to study at ..." card. Deep-links straight into
+              this application's own AI Strategy Dashboard journey — see
+              .kiro/specs/ai-strategy-dashboard/requirements.md Requirement 1.1 —
+              rather than the contextless /ai-strategy hub, which has no way to
+              know which course this student means. */}
           <section className="flex flex-col gap-gb-lg rounded-gb-2xl border border-line bg-surface-muted p-gb-3xl">
             <h2 className="text-gb-md font-semibold text-fg">
               Ready to strengthen this application?
@@ -270,7 +273,7 @@ export function ApplicationWorkspaceV2({
             <p className="text-gb-sm text-fg-tertiary">
               Build your strategy with GlowBal&rsquo;s AI and see how well you match this course.
             </p>
-            <Button href="/ai-strategy" size="lg" className="w-full">
+            <Button href={`/ai-strategy/${application.id}/strategy`} size="lg" className="w-full">
               Continue
             </Button>
           </section>
