@@ -182,6 +182,44 @@ diagnosis pattern in §1c below.
 
 ---
 
+## 0c. `applicant_analyses.emerging_themes` — the one column the Evaluation Engine adds
+
+**Owner must run `supabase-evaluation-engine.sql`** (Supabase SQL editor, like
+every migration here — see §0). One `ADD COLUMN IF NOT EXISTS`, nothing else.
+
+Until it runs, `POST /api/applications/[id]/strategy/applicant-analysis`
+fails at the insert with PostgREST `PGRST204` and the student sees "Could not
+save your analysis." The route logs the file name on that specific code so it
+does not have to be bisected:
+
+```
+[strategy/applicant-analysis] applicant_analyses is missing a column the
+engine writes. Run supabase-evaluation-engine.sql (adds emerging_themes).
+```
+
+**Reading the page does not need the migration.** `narrativeFromRow` reads
+`emerging_themes` defensively, so an analysis generated before this ran shows
+five portrait sections instead of six plus a prompt to refresh — the same
+handling as any other section without content. Only *writing* a new analysis
+is blocked.
+
+**Why the column names do not match the section names.** The engine's sections
+are `coreIdentity` / `drivingForce` / `signaturePattern` / `personalPositioning`;
+the columns are still `personality_summary` / `motivation_analysis` /
+`competitive_advantages` / `suggested_positioning`. Rows written before the
+engine existed hold real analyses for real students, and renaming would have
+stranded them for a cosmetic gain. The two vocabularies meet in exactly one
+place, `narrativeFromRow` — do not add a second.
+
+**`student_activities` has no `evidence_key`.** `student_achievements` does.
+So an activity can never reach the `verified` tier of the F3 Evidence
+Hierarchy no matter what a student does. That is a real product gap, not a
+rule worth defending; it is recorded as `ACTIVITY_EVIDENCE_UNSUPPORTED` in
+`domain/evaluation/evidence.ts`, and activities are excluded from the "worth
+attaching proof for" list so the UI never asks a student to do something the
+form will not let them do. Closing it means an `evidence_key` column on
+`student_activities` and an upload control on the activities form.
+
 ## 1. FIXED 2026-07-27 — `public.user_universities` migration applied
 
 Was: PostgREST answered `Could not find the table 'public.user_universities' in

@@ -1,6 +1,14 @@
 export { StrategyHome } from './strategy-home';
-export { ApplicantAnalysisReport } from './applicant-analysis-report';
-export { CourseMatchReport } from './course-match-report';
+/**
+ * `ApplicantAnalysisReport` and `CourseMatchReport` were here. The analysis is
+ * now two pages rather than two panels stacked on one — see
+ * `applicant-portrait.tsx` and `programme-fit-report.tsx`, both of which render
+ * from the shared evaluation engine instead of from their own row shape.
+ */
+export { ApplicantPortrait } from './applicant-portrait';
+export { ProgrammeFitReport } from './programme-fit-report';
+export { ReportPanel, ReportTabs, StageBar, useReportTabs } from './report-chrome';
+export type { ReportTab, StageKey } from './report-chrome';
 export { AnalysisWorkspace } from './analysis-workspace';
 export { DashboardSummary } from './dashboard-summary';
 export { StrategyCategoryBoard } from './strategy-category-board';

@@ -33,10 +33,8 @@ export default async function StrategyAnalysisPage({
     redirect(onboardingStepHref(step, applicationId));
   }
 
-  return (
-    <AnalysisWorkspace
-      applicationId={applicationId}
-      improveHref={`/ai-strategy/${applicationId}/strategy/intro`}
-    />
-  );
+  // Generates whichever of the two analyses is missing, then hands off to
+  // `analysis/portrait`. The reports themselves are server-rendered pages —
+  // see analysis-workspace.tsx on why generation stays in one place.
+  return <AnalysisWorkspace applicationId={applicationId} />;
 }

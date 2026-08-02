@@ -1599,6 +1599,139 @@ export const translations: Record<string, string> = {
   'Explore scholarships': 'Khám phá học bổng',
   'Go to My Portal': 'Đến Hồ sơ của tôi',
 
+  // ── AI Strategy: the two analysis reports ────────────────────────────────
+  // Where the design mockups supplied Vietnamese, that wording is kept
+  // verbatim rather than retranslated — "Phân tích chân dung ứng viên",
+  // "Nhập học yêu cầu" and the fit page's title all come straight off the
+  // frames. Everything else follows the tone already set above.
+
+  // Stage bar
+  'Strategy stages': 'Các bước chiến lược',
+  Reflections: 'Tự đánh giá',
+  'Personal Report': 'Báo cáo cá nhân',
+  'GlowBal Matching Report': 'Báo cáo mức độ phù hợp GlowBal',
+  'Personalized Strategy': 'Chiến lược cá nhân hoá',
+  'Application Planner': 'Kế hoạch nộp hồ sơ',
+  'Available once your analysis has run': 'Sẽ mở khi phân tích của bạn hoàn tất',
+
+  // Applicant Portrait
+  'Applicant portrait analysis': 'Phân tích chân dung ứng viên',
+  'Welcome back, {name}': 'Chào mừng trở lại, {name}',
+  'Portrait sections': 'Các phần của chân dung',
+  // NOT "Profile strength" — that key is already taken above by the profile
+  // COMPLETENESS meter ('Độ hoàn thiện hồ sơ'). This is a different quantity
+  // and reusing the key would have relabelled one of them wrongly.
+  'Portrait strength': 'Độ mạnh chân dung',
+  'Core identity': 'Bản sắc cốt lõi',
+  'Driving force': 'Động lực',
+  'Signature pattern': 'Dấu ấn riêng (USP)',
+  'Emerging themes': 'Chủ đề nổi lên',
+  'Personal positioning': 'Định vị cá nhân',
+  'Proof of me': 'Bằng chứng về tôi',
+  'Who you are on paper, before any one course is considered.':
+    'Bạn là ai trên hồ sơ, trước khi xét tới bất kỳ khoá học nào.',
+  'What is actually pushing you towards this subject.':
+    'Điều thực sự thúc đẩy bạn đến với ngành học này.',
+  'The combination only you can claim — your USP.':
+    'Sự kết hợp chỉ riêng bạn có — điểm khác biệt của bạn.',
+  'Patterns that keep recurring across what you have done.':
+    'Những mô-típ lặp lại xuyên suốt những gì bạn đã làm.',
+  'How to present all of this to an admissions reader.':
+    'Cách trình bày tất cả những điều này với hội đồng tuyển sinh.',
+  'What you can actually evidence, strongest first.':
+    'Những gì bạn thực sự chứng minh được, mạnh nhất trước.',
+  'Brief summary': 'Mô tả ngắn',
+  'What drives you': 'Điều thúc đẩy bạn',
+  'Only you can claim this combination': 'Chỉ riêng bạn có sự kết hợp này',
+  'Patterns running through your record': 'Những mô-típ xuyên suốt hồ sơ của bạn',
+  'How to present yourself': 'Cách bạn nên thể hiện bản thân',
+  'Academic strengths': 'Thế mạnh học thuật',
+  'How you learn': 'Cách bạn học',
+  "Where you're still building": 'Những điểm bạn còn đang xây dựng',
+  'See how you match your course': 'Xem mức độ phù hợp với khoá học của bạn',
+  'Your portrait is not ready yet': 'Chân dung của bạn chưa sẵn sàng',
+  'Add your personal summary and achievements, and this page fills in with what we can evidence.':
+    'Hãy bổ sung phần giới thiệu bản thân và thành tích, trang này sẽ hiển thị những gì chúng tôi chứng minh được.',
+  'Start your reflections': 'Bắt đầu phần tự đánh giá',
+  'Update your reflections': 'Cập nhật phần tự đánh giá',
+  '{n} more sections unlock as you add detail':
+    'Thêm {n} phần nữa sẽ mở khi bạn bổ sung chi tiết',
+
+  // Evidence hierarchy (F3). "Verified" is already translated above and is not
+  // repeated here. The reach labels all carry "level" — partly for
+  // consistency, and partly because a bare "School" is already a key meaning
+  // the institution ('Trường/Viện'), which is not what this band means.
+  Checkable: 'Có thể kiểm chứng',
+  'Self-reported': 'Tự khai',
+  'International level': 'Cấp quốc tế',
+  'National level': 'Cấp quốc gia',
+  'Provincial level': 'Cấp tỉnh',
+  'District level': 'Cấp huyện',
+  'School level': 'Cấp trường',
+  'Unstated level': 'Chưa nêu cấp độ',
+  '{n} verified': '{n} đã xác minh',
+  '{n} checkable': '{n} có thể kiểm chứng',
+  '{n} self-reported': '{n} tự khai',
+  'No detail given': 'Chưa có thông tin chi tiết',
+  'Worth attaching proof for': 'Nên đính kèm bằng chứng cho',
+  'A document moves each of these up a tier. Admissions readers weigh what they can check.':
+    'Một tài liệu đính kèm sẽ nâng mỗi mục lên một bậc. Hội đồng tuyển sinh đánh giá cao những gì họ kiểm chứng được.',
+
+  // Confidence (shared by both reports)
+  'Well evidenced': 'Bằng chứng đầy đủ',
+  'Partly evidenced': 'Bằng chứng một phần',
+  'Thin evidence': 'Bằng chứng còn mỏng',
+
+  // Vagueness gate (F6)
+  'Nothing written yet': 'Bạn chưa viết gì',
+  'Too short to show your reasoning': 'Quá ngắn để thấy được lập luận của bạn',
+  'Opens with a stock phrase': 'Mở đầu bằng câu sáo rỗng',
+  'No names, numbers or dates a reader could picture':
+    'Không có tên, con số hay mốc thời gian nào để người đọc hình dung',
+  'Career goals': 'Mục tiêu nghề nghiệp',
+  'What motivates you': 'Điều gì thúc đẩy bạn',
+  'Your goals': 'Mục tiêu của bạn',
+  'Dream career': 'Nghề nghiệp mơ ước',
+  'Why study abroad': 'Vì sao du học',
+
+  // Programme Fit
+  'How well you match this course, university and its scholarships':
+    'Phân tích mức độ phù hợp (giữa ứng viên với ngành - trường - học bổng)',
+  // "Why this university", "Admission requirements", "Costs and scholarships"
+  // and "Scholarships" are already translated above for the university detail
+  // page, which uses the same section names. Reusing those keys is the point of
+  // an English-keyed dictionary — a second entry would be a second answer.
+  'Fit report sections': 'Các phần của báo cáo phù hợp',
+  'Overall fit': 'Mức độ phù hợp tổng quan',
+  'Programme overview': 'Tổng quan chương trình',
+  'Persona alignment': 'Mức độ tương thích cá nhân',
+  'Profile gaps': 'Khoảng trống hồ sơ',
+  'Why this university was recommended': 'Vì sao trường này được gợi ý',
+  Costs: 'Chi phí',
+  '#{n} QS world ranking': 'Hạng {n} xếp hạng QS thế giới',
+  '#{n} THE ranking': 'Hạng {n} xếp hạng THE',
+  'What the course asks for. We do not tick these off against your grades — marking systems differ too much between countries for that to be safe.':
+    'Đây là yêu cầu của khoá học. Chúng tôi không tự đánh dấu đạt/chưa đạt dựa trên điểm của bạn — hệ thống chấm điểm giữa các nước khác nhau quá nhiều để làm điều đó một cách an toàn.',
+  'The distance between where you are ({current}%) and where you could be ({goal}%).':
+    'Khoảng cách giữa vị trí hiện tại của bạn ({current}%) và mức bạn có thể đạt được ({goal}%).',
+  'Ready to study at {university}?': 'Sẵn sàng để học tại {university}?',
+  'Turn this report into a plan for {course}, built around the gaps above.':
+    'Biến báo cáo này thành kế hoạch cho {course}, dựa trên những khoảng trống ở trên.',
+  'Build my strategy': 'Lên chiến lược cho tôi',
+  'Check the official course page': 'Xem trang chính thức của khoá học',
+  'We do not have enough on this course yet': 'Chúng tôi chưa có đủ dữ liệu về khoá học này',
+  'Run your analysis, and the details we hold for this university will appear here.':
+    'Hãy chạy phân tích, thông tin chúng tôi có về trường này sẽ hiển thị ở đây.',
+
+  // Analysis loading gate
+  'Loading your reports...': 'Đang tải báo cáo của bạn...',
+  'Analysing profile...': 'Đang phân tích hồ sơ...',
+  'Understanding achievements...': 'Đang tìm hiểu thành tích...',
+  'Comparing against course...': 'Đang đối chiếu với khoá học...',
+  'Building recommendations...': 'Đang xây dựng gợi ý...',
+  'This usually takes 30–60 seconds.': 'Việc này thường mất 30–60 giây.',
+  'Analysis failed.': 'Phân tích thất bại.',
+
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',
   'Tiếng Việt': 'Tiếng Việt',
