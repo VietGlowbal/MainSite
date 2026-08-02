@@ -1,12 +1,15 @@
 'use client';
 
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import type { ProgressStatus, Recommendation } from '../domain';
 import {
   PLANNER_VIEWS,
   PLANNER_VIEW_LABEL,
+  PLANNER_VIEW_PARAM,
   PROGRESS_STATUS_LABEL,
   matchesQuery,
+  parsePlannerView,
   sortByPriority,
   type PlannerView,
 } from '../domain';
@@ -31,14 +34,18 @@ import { PlannerList } from './planner-list';
  * columns and one full. The control is hidden rather than ignored on that
  * view, so it never looks like it is on and doing nothing.
  *
- * ─── VIEW STATE IS LOCAL, NOT IN THE URL ─────────────────────────────────────
+ * ─── THE VIEW LIVES IN THE URL ───────────────────────────────────────────────
  *
- * Deliberate for now: the three views are a way of looking at one plan, not
- * three destinations, and a student switching to the board and back does not
- * expect that in their history. If sharing a link to "my board" becomes a real
- * need, this is one `useSearchParams` away — but the page is a server
- * component today and adding a query param would make it dynamic, which is a
- * cost worth paying only for a feature someone asked for.
+ * `?view=calendar`. It was local state, on the reasoning that the three views
+ * are one plan seen three ways rather than three destinations. That reasoning
+ * held right up until navigation became the problem: with the switch invisible
+ * to the router, the ONLY way to a board was to open the planner and find the
+ * control, so nothing could link to it and nobody could bookmark it.
+ *
+ * `router.replace`, not `push`: flipping between views is looking at one thing,
+ * and a student who clicked all three should not have to press Back three times
+ * to leave. `scroll: false` because the page must not jump to the top when the
+ * view under the cursor changes.
  *
  * ─── `today` IS A PROP ───────────────────────────────────────────────────────
  *
@@ -56,9 +63,25 @@ export function ApplicationPlanner({
   recommendations: readonly Recommendation[];
   today: Date;
 }) {
-  const [view, setView] = useState<PlannerView>('list');
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const view = parsePlannerView(searchParams.get(PLANNER_VIEW_PARAM));
+
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProgressStatus | 'all'>('all');
+
+  function selectView(next: PlannerView) {
+    const params = new URLSearchParams(searchParams.toString());
+    // `list` is the default, so it is expressed by the param's absence rather
+    // than by `?view=list` — otherwise the plain dashboard URL and the one the
+    // switcher produces are two spellings of the same page.
+    if (next === 'list') params.delete(PLANNER_VIEW_PARAM);
+    else params.set(PLANNER_VIEW_PARAM, next);
+
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  }
 
   const filtered = useMemo(() => {
     const matching = recommendations.filter(
@@ -103,7 +126,7 @@ export function ApplicationPlanner({
                 type="button"
                 role="tab"
                 aria-selected={isActive}
-                onClick={() => setView(candidate)}
+                onClick={() => selectView(candidate)}
                 className={`rounded-gb-md px-gb-xl py-gb-sm text-gb-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                   isActive
                     ? 'bg-surface text-fg shadow-gb-xs'

@@ -1732,6 +1732,38 @@ export const translations: Record<string, string> = {
   'This usually takes 30–60 seconds.': 'Việc này thường mất 30–60 giây.',
   'Analysis failed.': 'Phân tích thất bại.',
 
+  // ── Navigation: breadcrumbs and the application context bar ──────────────
+  // Crumb labels come from the route registry (shared/lib/app-routes.ts) and
+  // are translated; the dynamic ones — a course, a university, a person's name
+  // — deliberately are not. See the note in shared/ui/breadcrumbs.tsx.
+  // "My Portal", "Build your strategy" and "Become a mentor" are already
+  // translated above and are not repeated. The crumb for a course is
+  // "Your application", NOT "Application" — that key is taken above by the nav
+  // label for the act of applying ('Ứng tuyển'), which is a different word in
+  // Vietnamese and would have mislabelled every breadcrumb.
+  Breadcrumb: 'Đường dẫn',
+  'Application sections': 'Các mục của hồ sơ',
+  'Finish your AI analysis to unlock this': 'Hoàn tất phân tích AI để mở mục này',
+  'Your application': 'Hồ sơ ứng tuyển của bạn',
+  Planner: 'Kế hoạch',
+  Task: 'Công việc',
+  'AI Analysis': 'Phân tích AI',
+  'Your Strategy': 'Chiến lược của bạn',
+  'CV builder': 'Trình tạo CV',
+  'Statement writer': 'Trình viết bài luận',
+  Statement: 'Bài luận',
+  'Matching Report': 'Báo cáo phù hợp',
+  'How GlowBal Works': 'GlowBal hoạt động thế nào',
+  'Choose your subject': 'Chọn ngành học',
+  University: 'Trường đại học',
+  Mentor: 'Cố vấn',
+  Article: 'Bài viết',
+  'Application sent': 'Đã gửi đơn',
+  Welcome: 'Chào mừng',
+  // My Portal row quick links
+  Report: 'Báo cáo',
+  Board: 'Bảng',
+
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',
   'Tiếng Việt': 'Tiếng Việt',

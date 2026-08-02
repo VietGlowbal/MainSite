@@ -195,7 +195,16 @@ function RetryParse({ applicationId }: { applicationId: string }) {
 }
 
 /** Figma 337:18787 — one application row. */
-function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: string | null }) {
+function ApplicationRow({
+  app,
+  logoUrl,
+  strategyReady,
+}: {
+  app: CourseApplication;
+  logoUrl: string | null;
+  /** False until the AI analysis is done — see `RowQuickLinks`. */
+  strategyReady: boolean;
+}) {
   const course = courseLine(app);
   const university = displayUniversityName(app.universityName);
   const urlLabel = courseUrlLabel(app.courseUrl);
@@ -307,20 +316,89 @@ function ApplicationRow({ app, logoUrl }: { app: CourseApplication; logoUrl: str
               className="transition-transform duration-200 group-hover/cta:-translate-y-gb-xxs group-hover/cta:translate-x-gb-xxs motion-reduce:transition-none"
             />
           </Link>
+
+          <RowQuickLinks applicationId={app.id} strategyReady={strategyReady} />
         </div>
       </div>
     </li>
   );
 }
 
+/**
+ * Jump straight into this application's real destinations.
+ *
+ * ─── THE PROBLEM ─────────────────────────────────────────────────────────────
+ *
+ * Reaching a board from here used to be: open the row, find the strategy CTA,
+ * walk the onboarding chain, land on the dashboard, then find a view switcher
+ * that was not in the URL. Five navigations to look at a list of deadlines the
+ * student had already produced. These are the same destinations, one click
+ * away, which is only possible because the planner's view now lives in `?view=`.
+ *
+ * ─── ONE LINK, NOT FOUR, WHEN THERE IS NOTHING TO OPEN ───────────────────────
+ *
+ * Before the analysis has run, all four of these routes redirect back into
+ * onboarding. Showing them anyway would trade one confusing funnel for four
+ * doors that lead to the same form, so a row without a strategy gets the one
+ * honest link that starts it.
+ */
+function RowQuickLinks({
+  applicationId,
+  strategyReady,
+}: {
+  applicationId: string;
+  strategyReady: boolean;
+}) {
+  if (!strategyReady) {
+    return (
+      <Link
+        href={`/ai-strategy/${applicationId}/strategy`}
+        className="text-gb-xs font-semibold text-fg-tertiary hover:text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        Build your strategy
+      </Link>
+    );
+  }
+
+  const strategy = `/ai-strategy/${applicationId}/strategy`;
+  const links = [
+    { href: `${strategy}/analysis/portrait`, label: 'Report' },
+    { href: `${strategy}/dashboard`, label: 'List' },
+    { href: `${strategy}/dashboard?view=calendar`, label: 'Calendar' },
+    { href: `${strategy}/dashboard?view=kanban`, label: 'Board' },
+  ];
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-gb-lg gap-y-gb-xs">
+      {links.map((link) => (
+        <Link
+          key={link.label}
+          href={link.href}
+          className="rounded-gb-sm text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          {link.label}
+        </Link>
+      ))}
+    </div>
+  );
+}
+
 export function MyApplicationSection({
   applications,
   logoByUniversityId,
+  strategyReadyById,
   sectionRef,
 }: {
   applications: CourseApplication[];
   /** universities.logo_url keyed by universities.id, for the row crest. */
   logoByUniversityId: Record<number, string | null>;
+  /**
+   * Whether each application's strategy is finished, keyed by application id.
+   * Decides between the four quick links and the single "build your strategy"
+   * one — see `RowQuickLinks`. Computed page-side in two queries for the whole
+   * list rather than per row.
+   */
+  strategyReadyById: Record<string, boolean>;
   /**
    * Scroll target for "Lên kế hoạch ứng tuyển" and the scholarship
    * confirmation, both of which live in the saved list below and both of which
@@ -350,6 +428,7 @@ export function MyApplicationSection({
               logoUrl={
                 app.universityId != null ? (logoByUniversityId[app.universityId] ?? null) : null
               }
+              strategyReady={strategyReadyById[app.id] ?? false}
             />
           ))}
         </ul>

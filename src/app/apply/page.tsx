@@ -71,9 +71,60 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
     importStatus: app.import_status,
     aiSummary: app.ai_summary,
     userNotes: app.user_notes,
+    strategyIntroSeenAt: app.strategy_intro_seen_at ?? null,
     createdAt: app.created_at,
     updatedAt: app.updated_at,
   })) as CourseApplication[];
+}
+
+/**
+ * Which applications have a finished strategy, so the tracker rows can link
+ * straight into the planner instead of only offering "continue applying".
+ *
+ * ─── TWO QUERIES FOR THE WHOLE PAGE, NOT TWO PER ROW ─────────────────────────
+ *
+ * `nextOnboardingStep` needs three facts: the student's profile flags (one row,
+ * shared by every application), whether an analysis exists for this application,
+ * and whether the intro has been seen. The first is read once and the second in
+ * a single `in (...)` across every id; the third is already on the
+ * `course_applications` rows this page has. Calling `fetchOnboardingState` per
+ * application would have been N round trips to render a list.
+ *
+ * ─── WHY THE ROWS NEED IT AT ALL ─────────────────────────────────────────────
+ *
+ * `strategy/dashboard` redirects back into onboarding until every step is done.
+ * A "Calendar" link on a row that has not been analysed yet would bounce the
+ * student into a form — which is the funnel this navigation work exists to
+ * remove. Rows without a strategy get one honest link that starts it instead.
+ */
+async function fetchStrategyReadiness(
+  userId: string,
+  applications: CourseApplication[],
+): Promise<Record<string, boolean>> {
+  if (applications.length === 0) return {};
+
+  const supabase = await createClient();
+  const ids = applications.map((app) => app.id);
+
+  const [{ data: profile }, { data: analyses }] = await Promise.all([
+    supabase
+      .from('student_profiles')
+      .select('personal_summary_completed_at, achievements_completed_at')
+      .eq('user_id', userId)
+      .maybeSingle(),
+    supabase.from('applicant_analyses').select('application_id').in('application_id', ids),
+  ]);
+
+  const analysed = new Set((analyses ?? []).map((row) => String(row.application_id)));
+  const profileDone = Boolean(
+    profile?.personal_summary_completed_at && profile?.achievements_completed_at,
+  );
+
+  const readiness: Record<string, boolean> = {};
+  for (const app of applications) {
+    readiness[app.id] = profileDone && analysed.has(app.id) && Boolean(app.strategyIntroSeenAt);
+  }
+  return readiness;
 }
 
 /**
@@ -273,9 +324,10 @@ export default async function ApplyPage({ searchParams }: Props) {
   }
 
   const applications = await fetchApplications(user.id);
-  const [logoByUniversityId, savedRows] = await Promise.all([
+  const [logoByUniversityId, savedRows, strategyReadyById] = await Promise.all([
     fetchLogos(applications),
     fetchSavedRows(user.id),
+    fetchStrategyReadiness(user.id, applications),
   ]);
 
   const userName =
@@ -287,6 +339,7 @@ export default async function ApplyPage({ searchParams }: Props) {
       applications={applications}
       logoByUniversityId={logoByUniversityId}
       savedRows={savedRows}
+      strategyReadyById={strategyReadyById}
       userName={userName}
       userAvatarUrl={userAvatarUrl}
     />

@@ -74,6 +74,14 @@ type Props = {
   logoUrl?: string | null;
   userName?: string | null;
   userAvatarUrl?: string | null;
+  /**
+   * Breadcrumbs + the application context bar, rendered by the server page.
+   *
+   * A slot rather than a component this file imports, because `ApplicationNav`
+   * is an async server component that reads the onboarding state — it cannot
+   * be rendered from inside a client component, only passed through one.
+   */
+  nav?: React.ReactNode;
 };
 
 export function ApplicationWorkspaceV2({
@@ -83,6 +91,7 @@ export function ApplicationWorkspaceV2({
   logoUrl = null,
   userName = null,
   userAvatarUrl = null,
+  nav = null,
 }: Props) {
   const router = useRouter();
   const { application, stages, sources } = workspace;
@@ -193,15 +202,16 @@ export function ApplicationWorkspaceV2({
 
       <main className="min-h-screen pb-gb-9xl pt-gb-4xl">
         <Container className="flex flex-col gap-gb-5xl">
-          {/* Without the sidebar there is no persistent route back to the list,
-              so the workspace carries its own. */}
-          <Link
-            href="/apply"
-            className="inline-flex w-fit items-center gap-gb-sm text-gb-sm font-semibold text-fg-tertiary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-          >
-            <KitIcon art={ICONS.arrowLeft} frame={20} className="shrink-0" />
-            All applications
-          </Link>
+          {/*
+           * Was a hand-rolled "← All applications" link, added because
+           * dropping the sidebar left no route back to the list. `nav` is the
+           * general version of that: breadcrumbs (which still get you to the
+           * list, and now also name where you are) plus the context bar for
+           * everything else that belongs to this application. Passed in from
+           * the server page rather than rendered here, because it reads the
+           * onboarding state to know which entries are open yet.
+           */}
+          {nav}
 
           <ApplicationBanner
             {...(universityName ? { universityName } : {})}
