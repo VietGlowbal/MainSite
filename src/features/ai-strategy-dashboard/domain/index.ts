@@ -50,12 +50,18 @@ export {
 } from './planner';
 export type { CalendarDay, DueTone, PlannerView } from './planner';
 
-export { APPLICANT_ANALYSIS_SECTIONS, hasSectionContent } from './applicant-analysis';
+export { applicantAnalysisFromRow, narrativeFromRow } from './applicant-analysis';
 export type {
-  ApplicantAnalysis,
   ApplicantAnalysisInputsPresent,
-  ApplicantAnalysisSection,
+  ApplicantAnalysisRecord,
 } from './applicant-analysis';
+
+/**
+ * The Shared Evaluation Engine (F1–F6). One evaluation every AI surface reads
+ * from, so the Report, Feedback, Strategy and Breakdown cannot disagree about
+ * the same student. See evaluation/framework.ts.
+ */
+export * from './evaluation';
 
 export { deriveCourseMatchAnalysis } from './course-match';
 export type { CourseMatchAnalysis, CourseMatchSubScore } from './course-match';

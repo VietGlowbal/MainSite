@@ -1,12 +1,11 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import type { ApplicantAnalysis, CourseMatchAnalysis } from '../domain';
-import { ApplicantAnalysisReport } from './applicant-analysis-report';
-import { CourseMatchReport } from './course-match-report';
 import { Button, usePrefersReducedMotion } from '@/shared/ui';
+import { useLanguage } from '@/lib/i18n';
 
-/** requirements.md 5.1 — cycled while both reports are generating. */
+/** Cycled while the analysis is generating. */
 const LOADING_MESSAGES = [
   'Analysing profile...',
   'Understanding achievements...',
@@ -14,31 +13,37 @@ const LOADING_MESSAGES = [
   'Building recommendations...',
 ] as const;
 
-type LoadState = 'checking' | 'generating' | 'ready' | 'error';
+type LoadState = 'checking' | 'generating' | 'error';
 
 /**
- * `/ai-strategy/[applicationId]/strategy/analysis` — Stage 3 (requirements.md
- * Requirement 5-7).
+ * `/ai-strategy/[applicationId]/strategy/analysis` — the generation gate.
  *
- * On mount: read whatever's already stored for this application; generate
- * whichever of the two reports is missing; render both once both exist.
- * Course Match generation POSTs to the pre-existing
- * `/api/applications/[id]/match-insights` endpoint rather than a new one —
- * see the note on `strategy/course-match/route.ts`.
+ * ─── THIS PAGE NO LONGER RENDERS THE REPORTS ─────────────────────────────────
+ *
+ * It used to generate both analyses and then render them stacked. They are now
+ * two pages — `analysis/portrait` and `analysis/fit` — so all this does is make
+ * sure both have been generated, then hand off to the first of them.
+ *
+ * Generation stays here, in one place, rather than moving into the two report
+ * pages. Those are server components that render from stored rows; if each
+ * generated its own half on demand, opening the fit page first would run one
+ * model call, opening the portrait would run another, and a student switching
+ * tabs could pay for the same analysis twice. One gate, both calls, then
+ * navigate.
+ *
+ * The redirect is `replace`, not `push`: this page has nothing on it once its
+ * job is done, and leaving it in history means Back lands on a spinner that
+ * immediately forwards again.
  */
-export function AnalysisWorkspace({
-  applicationId,
-  improveHref,
-}: {
-  applicationId: string;
-  improveHref: string;
-}) {
+export function AnalysisWorkspace({ applicationId }: { applicationId: string }) {
+  const router = useRouter();
+  const { t } = useLanguage();
   const [state, setState] = useState<LoadState>('checking');
-  const [applicant, setApplicant] = useState<ApplicantAnalysis | null>(null);
-  const [courseMatch, setCourseMatch] = useState<CourseMatchAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [messageIndex, setMessageIndex] = useState(0);
   const ran = useRef(false);
+
+  const portraitHref = `/ai-strategy/${applicationId}/strategy/analysis/portrait`;
 
   useEffect(() => {
     if (state !== 'generating') return;
@@ -73,9 +78,7 @@ export function AnalysisWorkspace({
         const needsMatch = !matchJson.analysis;
 
         if (!needsApplicant && !needsMatch) {
-          setApplicant(mapApplicant(applicantJson.analysis));
-          setCourseMatch(matchJson.analysis);
-          setState('ready');
+          router.replace(portraitHref);
           return;
         }
 
@@ -100,30 +103,18 @@ export function AnalysisWorkspace({
           return;
         }
 
-        setApplicant(mapApplicant(applicantFinal.analysis));
-
-        // The match-insights POST returns the raw stored row, not the
-        // reshaped view — re-read through our own GET so both paths agree.
-        const reshaped = needsMatch
-          ? await fetch(`/api/applications/${applicationId}/strategy/course-match`).then((r) =>
-              r.json(),
-            )
-          : matchJson;
-        setCourseMatch(reshaped.analysis);
-        setState('ready');
+        router.replace(portraitHref);
       } catch {
-        setError('Something went wrong. Please try again.');
+        setError(t('Something went wrong. Please try again.'));
         setState('error');
       }
     }
-  }, [applicationId]);
-
-  if (state === 'checking') return null;
+  }, [applicationId, portraitHref, router, t]);
 
   if (state === 'error') {
     return (
       <div className="flex flex-col items-center gap-gb-lg py-gb-7xl text-center">
-        <p className="text-gb-md text-fg-error">{error ?? 'Analysis failed.'}</p>
+        <p className="text-gb-md text-fg-error">{error ?? t('Analysis failed.')}</p>
         <Button
           onClick={() => {
             ran.current = false;
@@ -131,28 +122,24 @@ export function AnalysisWorkspace({
             setError(null);
           }}
         >
-          Try again
+          {t('Try again')}
         </Button>
       </div>
     );
   }
 
-  if (state === 'generating') {
-    return (
-      <div className="flex flex-col items-center gap-gb-xl py-gb-6xl text-center">
-        <AnalysisLoadingVideo />
-        <p className="text-gb-xl font-semibold text-fg">{LOADING_MESSAGES[messageIndex]}</p>
-        <p className="text-gb-sm text-fg-tertiary">This usually takes 30–60 seconds.</p>
-      </div>
-    );
-  }
-
-  if (!applicant || !courseMatch) return null;
-
+  // `checking` shows the same treatment as `generating` rather than nothing:
+  // the two GETs still take a moment, and a blank screen in that window is the
+  // bug this page was already fixed for once.
   return (
-    <div className="flex flex-col gap-gb-3xl">
-      <ApplicantAnalysisReport analysis={applicant} />
-      <CourseMatchReport analysis={courseMatch} onImproveHref={improveHref} />
+    <div className="flex flex-col items-center gap-gb-xl py-gb-6xl text-center">
+      <AnalysisLoadingVideo />
+      <p className="text-gb-xl font-semibold text-fg">
+        {state === 'generating' ? t(LOADING_MESSAGES[messageIndex] ?? '') : t('Loading your reports...')}
+      </p>
+      {state === 'generating' ? (
+        <p className="text-gb-sm text-fg-tertiary">{t('This usually takes 30–60 seconds.')}</p>
+      ) : null}
     </div>
   );
 }
@@ -188,30 +175,4 @@ function AnalysisLoadingVideo() {
       )}
     </div>
   );
-}
-
-/** The applicant-analysis API returns the raw DB row (snake_case); map it. */
-function mapApplicant(row: Record<string, unknown> | null): ApplicantAnalysis | null {
-  if (!row) return null;
-  return {
-    id: row.id as string,
-    applicationId: row.application_id as string,
-    profileVersion: row.profile_version as number,
-    personalitySummary: (row.personality_summary as string) ?? null,
-    learningStyle: (row.learning_style as string[]) ?? [],
-    academicStrengths: (row.academic_strengths as string[]) ?? [],
-    growthAreas: (row.growth_areas as string[]) ?? [],
-    motivationAnalysis: (row.motivation_analysis as string) ?? null,
-    competitiveAdvantages: (row.competitive_advantages as string[]) ?? [],
-    suggestedPositioning: (row.suggested_positioning as string) ?? null,
-    overallRating: (row.overall_rating as number) ?? null,
-    inputsPresent: (row.inputs_present as ApplicantAnalysis['inputsPresent']) ?? {
-      personalSummary: false,
-      achievements: false,
-      evidence: false,
-    },
-    modelName: (row.model_name as string) ?? null,
-    promptVersion: (row.prompt_version as string) ?? null,
-    createdAt: row.created_at as string,
-  };
 }
