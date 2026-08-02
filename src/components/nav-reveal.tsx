@@ -269,6 +269,18 @@ export function NavReveal() {
     '/dev/saved-list',
     // The AI strategy journey's entry page ships TopNav + MobileNav + Footer.
     '/ai-strategy',
+    /*
+     * GlowBal Plus. Rebuilt on the design system 02/08 (there is no Figma frame
+     * for it — see the header of src/app/plus/page.tsx) and it ships its own
+     * TopNav + MobileNav + Footer.
+     *
+     * /plus/success is listed separately rather than as a prefix, and stays a
+     * bare centred card with no navigation at all: it is the return leg of a
+     * Stripe redirect that ACTIVATES a subscription on render, and a header full
+     * of links is an invitation to navigate away mid-write.
+     */
+    '/plus',
+    '/plus/success',
     // Previews the workspace, which ships its own chrome. Listed for the same
     // reason as the two above: a dev route that renders the app chrome as well
     // would preview a page nobody can navigate to.

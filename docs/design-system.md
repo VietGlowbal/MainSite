@@ -115,7 +115,8 @@ Matching is **exact** by default, so `/news` gets its own chrome while
 
 Current members: `/` `/dev/home` `/universities` `/auth` `/onboarding` `/about`
 `/news` `/my-universities` `/my-universities/program` `/apply` `/mentors`
-`/dev/saved-list` `/coming-soon` `/ai-strategy` `/dev/apply-workspace`.
+`/dev/saved-list` `/coming-soon` `/ai-strategy` `/dev/apply-workspace` `/plus`
+`/plus/success`.
 Forgetting to add a route here is the actual failure mode, not a hypothetical —
 it happened to `/apply` and was caught by screenshotting the finished page.
 

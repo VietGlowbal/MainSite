@@ -1475,6 +1475,113 @@ export const translations: Record<string, string> = {
   '7 years': '7 năm',
   '8 years': '8 năm',
 
+  // ── GlowBal Plus (/plus, /plus/success) ──────────────────────────────────
+  // Added 2026-08-02 with the page's rebuild. It had ONE key before that
+  // ('Upgrade to GlowBal Plus', further up, which belongs to /profile), so the
+  // whole pricing page — every tier name, price caption and comparison row —
+  // was reaching /api/translate on a Vietnamese visitor's first paint and
+  // rendering whatever came back unread. The tier names, taglines, duration
+  // labels and comparison rows below are the literals in src/lib/plus.ts; the
+  // rest are in src/app/plus/*.
+  'GlowBal Plus': 'GlowBal Plus',
+  'Unlock your full scholarship plan': 'Mở khóa kế hoạch săn học bổng đầy đủ của bạn',
+  'Go beyond searching — more AI application strategies, full scholarship details, a document checklist, and priority student-supporter access. Designed to help you apply with a clearer, stronger strategy.':
+    'Không chỉ dừng lại ở việc tìm kiếm — thêm chiến lược ứng tuyển từ AI, thông tin học bổng đầy đủ, danh sách hồ sơ cần chuẩn bị và quyền hỗ trợ ưu tiên từ đội ngũ sinh viên. Được thiết kế để bạn nộp hồ sơ với một chiến lược rõ ràng và mạnh mẽ hơn.',
+  'More AI strategy credits': 'Thêm tín dụng chiến lược AI',
+  'Full scholarship details': 'Thông tin học bổng đầy đủ',
+  'Priority supporter access': 'Ưu tiên kết nối người hỗ trợ',
+  '🎉 Your profile is set up': '🎉 Hồ sơ của bạn đã sẵn sàng',
+  'Get the most from GlowBal with Plus — or keep exploring for free.':
+    'Tận dụng tối đa GlowBal với Plus — hoặc tiếp tục khám phá miễn phí.',
+  'Maybe later — see my matches →': 'Để sau — xem trường phù hợp với tôi →',
+  'Checkout cancelled': 'Đã hủy thanh toán',
+  'Nothing was charged. Your plan is unchanged — pick it up again whenever you are ready.':
+    'Bạn chưa bị trừ khoản nào. Gói của bạn không thay đổi — hãy quay lại bất cứ khi nào bạn sẵn sàng.',
+  'You’re on GlowBal Plus': 'Bạn đang dùng GlowBal Plus',
+  'Thanks for your support — you can extend your plan any time below.':
+    'Cảm ơn bạn đã ủng hộ — bạn có thể gia hạn gói bất cứ lúc nào ở bên dưới.',
+  'GlowBal Plus is coming soon': 'GlowBal Plus sắp ra mắt',
+  'The plans below are a preview — they are not on sale yet. Everything in the Free plan is fully available in the meantime.':
+    'Các gói dưới đây chỉ là bản xem trước — chúng chưa được mở bán. Trong thời gian này, mọi tính năng của gói Miễn phí vẫn hoạt động đầy đủ.',
+
+  'Show prices in': 'Hiển thị giá bằng',
+  'Display currency': 'Đơn vị tiền tệ hiển thị',
+  // The three tier names, from PLUS_PACKAGES. Short enough to collide with an
+  // unrelated node elsewhere on the site; none exists today, and either reading
+  // is correct Vietnamese for the word on its own.
+  Starter: 'Khởi đầu',
+  Pro: 'Chuyên nghiệp',
+  Premium: 'Cao cấp',
+  'Everything you need to apply with confidence': 'Mọi thứ bạn cần để tự tin nộp hồ sơ',
+  'Our most popular plan for serious applicants':
+    'Gói phổ biến nhất dành cho những ứng viên nghiêm túc',
+  'The complete, hands-on plan': 'Gói đầy đủ, đồng hành sát sao',
+  '6 months of Plus access': '6 tháng sử dụng Plus',
+  '12 months of Plus access': '12 tháng sử dụng Plus',
+  '24 months of Plus access': '24 tháng sử dụng Plus',
+  'AI strategy credits': 'Tín dụng chiến lược AI',
+  'Most popular': 'Phổ biến nhất',
+  'Coming soon': 'Sắp ra mắt',
+  'Choose this plan': 'Chọn gói này',
+  'Sign up & choose': 'Đăng ký & chọn gói',
+  'Starting checkout…': 'Đang mở thanh toán…',
+  'No account yet? Selecting a plan signs you up first — it’s free to start.':
+    'Chưa có tài khoản? Chọn một gói sẽ đưa bạn đến bước đăng ký trước — hoàn toàn miễn phí.',
+
+  // Card highlights + comparison rows (PLUS_PACKAGES.highlights, PLUS_COMPARISON).
+  'Full scholarship details & deadlines': 'Thông tin học bổng đầy đủ & hạn nộp',
+  'Application roadmap + document checklist': 'Lộ trình ứng tuyển + danh sách hồ sơ',
+  'Strategy history — revisit & compare': 'Lịch sử chiến lược — xem lại & so sánh',
+  'Everything in Starter': 'Toàn bộ gói Khởi đầu',
+  'Plus-only & premium scholarships': 'Học bổng dành riêng cho Plus & học bổng cao cấp',
+  'Priority student-supporter access': 'Ưu tiên kết nối người hỗ trợ là sinh viên',
+  'Everything in Pro': 'Toàn bộ gói Chuyên nghiệp',
+  '1:1 onboarding & dedicated support': 'Hướng dẫn 1:1 & hỗ trợ riêng',
+  'A mentor session credit included': 'Tặng kèm 1 buổi với cố vấn',
+  'University search & matching': 'Tìm kiếm & gợi ý trường phù hợp',
+  'Save universities & scholarships': 'Lưu trường & học bổng',
+  'Full scholarship details (eligibility, documents, deadlines)':
+    'Thông tin học bổng đầy đủ (điều kiện, hồ sơ, hạn nộp)',
+  'Mentor session credit included': 'Tặng kèm buổi với cố vấn',
+  'Plus access': 'Thời hạn dùng Plus',
+  '6 months': '6 tháng',
+  '12 months': '12 tháng',
+  '24 months': '24 tháng',
+
+  'Compare Free & Plus': 'So sánh Miễn phí & Plus',
+  'Start free, upgrade when you’re ready. Here’s exactly what each option includes.':
+    'Bắt đầu miễn phí, nâng cấp khi bạn sẵn sàng. Dưới đây là chính xác những gì mỗi lựa chọn bao gồm.',
+  // Screen-reader labels on the tick / dash cells.
+  Included: 'Có',
+  'Not included': 'Không có',
+  'Scroll the table sideways to see every plan.': 'Vuốt ngang bảng để xem toàn bộ các gói.',
+
+  'Continue with the Free plan': 'Tiếp tục với gói Miễn phí',
+  'Everything you need to start — no payment required.':
+    'Mọi thứ bạn cần để bắt đầu — không cần thanh toán.',
+  'View limited scholarship previews': 'Xem thông tin học bổng ở mức giới hạn',
+  'Save scholarships': 'Lưu học bổng',
+  'Create a basic profile': 'Tạo hồ sơ cơ bản',
+  '2 AI strategy suggestions': '2 lượt gợi ý chiến lược AI',
+  'Continue free': 'Tiếp tục miễn phí',
+  'Not sure which plan fits you?': 'Chưa rõ gói nào phù hợp với bạn?',
+  'Payments are processed securely by Stripe.': 'Thanh toán được xử lý an toàn qua Stripe.',
+  'Choose your currency above — you’ll be charged in the currency you select; conversions from VND are approximate. GlowBal helps you discover opportunities and prepare stronger applications; it does not guarantee scholarship outcomes.':
+    'Chọn đơn vị tiền tệ ở trên — bạn sẽ được tính phí bằng đơn vị đã chọn; tỷ giá quy đổi từ VND chỉ là tương đối. GlowBal giúp bạn tìm cơ hội và chuẩn bị hồ sơ tốt hơn; chúng tôi không cam kết kết quả học bổng.',
+  'GlowBal helps you discover opportunities and prepare stronger applications; it does not guarantee scholarship outcomes.':
+    'GlowBal giúp bạn tìm cơ hội và chuẩn bị hồ sơ tốt hơn; chúng tôi không cam kết kết quả học bổng.',
+
+  // /plus/success — the return leg from Stripe.
+  'Confirming your payment…': 'Đang xác nhận thanh toán của bạn…',
+  'We couldn’t confirm this payment automatically yet. If you completed checkout and Plus doesn’t appear shortly, contact':
+    'Chúng tôi chưa thể tự động xác nhận khoản thanh toán này. Nếu bạn đã hoàn tất thanh toán mà Plus vẫn chưa xuất hiện, hãy liên hệ',
+  'You’re already on Plus': 'Bạn đã dùng Plus rồi',
+  'Welcome to GlowBal Plus': 'Chào mừng bạn đến với GlowBal Plus',
+  'This plan is already active on your account — you’re all set.':
+    'Gói này đã được kích hoạt trên tài khoản của bạn — mọi thứ đã sẵn sàng.',
+  'Explore scholarships': 'Khám phá học bổng',
+  'Go to My Portal': 'Đến Hồ sơ của tôi',
+
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',
   'Tiếng Việt': 'Tiếng Việt',
