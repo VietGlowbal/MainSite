@@ -14,6 +14,7 @@ export {
   reconcileRecommendations,
   recommendationFromImprovementAction,
   recommendationFromRow,
+  recommendationPatchSchema,
   recommendationStatusPatchSchema,
   sortByPriority,
 } from './recommendation';
@@ -22,11 +23,32 @@ export type {
   ProgressStatus,
   ReconcilePlan,
   Recommendation,
+  RecommendationPatch,
   RecommendationPriority,
   RecommendationSeed,
   RecommendationStatusPatch,
   RecommendationUpdate,
 } from './recommendation';
+
+export {
+  KANBAN_COLUMNS,
+  KANBAN_COLUMN_LABEL,
+  PLANNER_VIEWS,
+  PLANNER_VIEW_LABEL,
+  calendarMonthGrid,
+  daysRemaining,
+  dueLabel,
+  dueTone,
+  groupByStatus,
+  matchesQuery,
+  monthLabel,
+  parseIsoDate,
+  scheduledByDay,
+  shiftMonth,
+  toIsoDate,
+  unscheduled,
+} from './planner';
+export type { CalendarDay, DueTone, PlannerView } from './planner';
 
 export { APPLICANT_ANALYSIS_SECTIONS, hasSectionContent } from './applicant-analysis';
 export type {

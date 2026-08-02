@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { recommendationStatusPatchSchema } from '@/features/ai-strategy-dashboard/domain';
+import { recommendationPatchSchema } from '@/features/ai-strategy-dashboard/domain';
 import { createClient } from '@/lib/supabase/server';
 
 /**
@@ -37,17 +37,24 @@ export async function PATCH(
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const parsed = recommendationStatusPatchSchema.safeParse(raw);
+  const parsed = recommendationPatchSchema.safeParse(raw);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: 'Invalid status', details: parsed.error.issues },
+      { error: 'Invalid update', details: parsed.error.issues },
       { status: 400 },
     );
   }
 
+  /* Only the fields actually sent are written. The board patches a status and
+     the calendar patches a deadline; spreading both unconditionally would let
+     a stale `undefined` from one view wipe a change just made in the other. */
+  const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (parsed.data.status !== undefined) patch.status = parsed.data.status;
+  if (parsed.data.deadline !== undefined) patch.deadline = parsed.data.deadline;
+
   const { data: updated, error } = await supabase
     .from('application_recommendations')
-    .update({ status: parsed.data.status, updated_at: new Date().toISOString() })
+    .update(patch)
     .eq('id', recId)
     .eq('application_id', applicationId)
     .select()
@@ -55,7 +62,7 @@ export async function PATCH(
 
   if (error) {
     console.error('[strategy/recommendations/:id] update failed', error);
-    return NextResponse.json({ error: 'Could not update status' }, { status: 500 });
+    return NextResponse.json({ error: 'Could not save that change' }, { status: 500 });
   }
   if (!updated) return NextResponse.json({ error: 'Recommendation not found' }, { status: 404 });
 
