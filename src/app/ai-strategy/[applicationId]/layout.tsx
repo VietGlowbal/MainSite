@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { ApplicationNav } from '@/components/application-nav';
 import { createClient } from '@/lib/supabase/server';
 import { ReflectionChrome } from '../reflection-chrome';
 
@@ -34,12 +35,27 @@ export default async function StrategyApplicationLayout({
 
   const { data: application } = await supabase
     .from('course_applications')
-    .select('id')
+    .select('id, course_name')
     .eq('id', applicationId)
     .eq('user_id', user.id)
     .maybeSingle();
 
   if (!application) notFound();
 
-  return <ReflectionChrome user={user}>{children}</ReflectionChrome>;
+  return (
+    <ReflectionChrome user={user}>
+      {/*
+       * The context bar sits above every strategy page rather than inside each
+       * one. These screens are reached through a redirect chain and then rarely
+       * again — the reports especially — so the one thing they all needed was a
+       * permanent statement of where you are and what else belongs to this
+       * application. Mounting it here is also what stops six pages each
+       * growing their own slightly different version.
+       */}
+      <div className="mb-gb-3xl">
+        <ApplicationNav applicationId={applicationId} courseName={application.course_name} />
+      </div>
+      {children}
+    </ReflectionChrome>
+  );
 }

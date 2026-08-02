@@ -45,6 +45,32 @@ export const PLANNER_VIEW_LABEL: Record<PlannerView, string> = {
   kanban: 'Board',
 };
 
+/** The query parameter the selected view lives in — see `parsePlannerView`. */
+export const PLANNER_VIEW_PARAM = 'view';
+
+/**
+ * Read a view out of a URL.
+ *
+ * THE VIEW MOVED INTO THE URL because the navigation rework needs to link
+ * straight at a calendar or a board. It was local state on the reasoning that
+ * the three views are one plan seen three ways rather than three destinations —
+ * true, but it also meant the only route to the board was: open the planner,
+ * find the switcher, click. Nothing could link to it, nobody could bookmark it,
+ * and a student sent "check your deadlines" had to be told where to click.
+ *
+ * Anything unrecognised falls back to `list` rather than erroring. A hand-typed
+ * or truncated URL should show the plan, not a stack trace.
+ */
+export function parsePlannerView(value: string | null | undefined): PlannerView {
+  return PLANNER_VIEWS.includes(value as PlannerView) ? (value as PlannerView) : 'list';
+}
+
+/** The planner URL for one view. `list` is the default and carries no param. */
+export function plannerViewHref(applicationId: string, view: PlannerView): string {
+  const base = `/ai-strategy/${applicationId}/strategy/dashboard`;
+  return view === 'list' ? base : `${base}?${PLANNER_VIEW_PARAM}=${view}`;
+}
+
 /**
  * The board's columns, left to right.
  *

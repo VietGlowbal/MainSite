@@ -55,6 +55,13 @@ export type ApplicationProgressClientProps = {
   logoByUniversityId: Record<number, string | null>;
   /** Empty in the signed-out shell — there is no saved list without an account. */
   savedRows: SavedRow[];
+  /**
+   * Whether each application's strategy is finished, keyed by id. Drives the
+   * per-row quick links into the planner's three views. Defaults to empty, so
+   * the signed-out shell and any caller that has not computed it get the
+   * conservative "build your strategy" link rather than four dead ones.
+   */
+  strategyReadyById?: Record<string, boolean>;
   userName?: string | null;
   userAvatarUrl?: string | null;
   isLoggedOut?: boolean;
@@ -64,6 +71,7 @@ export function ApplicationProgressClient({
   applications,
   logoByUniversityId,
   savedRows,
+  strategyReadyById = {},
   userName,
   userAvatarUrl,
   isLoggedOut = false,
@@ -305,6 +313,7 @@ export function ApplicationProgressClient({
           <MyApplicationSection
             applications={applications}
             logoByUniversityId={logoByUniversityId}
+            strategyReadyById={strategyReadyById}
             sectionRef={applicationsRef}
           />
 

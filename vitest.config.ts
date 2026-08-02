@@ -42,6 +42,12 @@ export default defineConfig({
             'src/app/api/**/*.test.ts',
             'src/features/**/domain/**/*.test.ts',
             'src/features/**/api/**/*.test.ts',
+            // Pure logic in shared/ — the route registry, pagination. The `dom`
+            // project already picks up `src/shared/**/*.test.tsx` for component
+            // tests; this is the .ts half, which needs no window and was
+            // previously matched by neither project (so a test file there ran
+            // nowhere and silently counted as passing).
+            'src/shared/**/*.test.ts',
             'src/server/**/*.test.ts',
             'src/__tests__/**/*.test.ts',
           ],

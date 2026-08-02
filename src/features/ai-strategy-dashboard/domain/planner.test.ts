@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  PLANNER_VIEWS,
+  parsePlannerView,
+  plannerViewHref,
   calendarMonthGrid,
   daysRemaining,
   dueLabel,
@@ -218,5 +221,47 @@ describe('matchesQuery', () => {
 
   it('tolerates a null reason and category', () => {
     expect(matchesQuery(rec({ reason: null, category: null }), 'ielts')).toBe(true);
+  });
+});
+
+describe('parsePlannerView', () => {
+  it('reads each real view', () => {
+    expect(parsePlannerView('list')).toBe('list');
+    expect(parsePlannerView('calendar')).toBe('calendar');
+    expect(parsePlannerView('kanban')).toBe('kanban');
+  });
+
+  /* A hand-typed or truncated URL should show the plan, not an error. */
+  it('falls back to the list for anything unrecognised', () => {
+    expect(parsePlannerView('board')).toBe('list');
+    expect(parsePlannerView('')).toBe('list');
+    expect(parsePlannerView(null)).toBe('list');
+    expect(parsePlannerView(undefined)).toBe('list');
+  });
+});
+
+describe('plannerViewHref', () => {
+  /* `list` is the default, so it is expressed by the param's absence — the
+     plain dashboard URL and the switcher's must not be two spellings of one
+     page. */
+  it('leaves the default view out of the URL', () => {
+    expect(plannerViewHref('app_1', 'list')).toBe('/ai-strategy/app_1/strategy/dashboard');
+  });
+
+  it('names the other two', () => {
+    expect(plannerViewHref('app_1', 'calendar')).toBe(
+      '/ai-strategy/app_1/strategy/dashboard?view=calendar',
+    );
+    expect(plannerViewHref('app_1', 'kanban')).toBe(
+      '/ai-strategy/app_1/strategy/dashboard?view=kanban',
+    );
+  });
+
+  it('round-trips through parsePlannerView', () => {
+    for (const view of PLANNER_VIEWS) {
+      const href = plannerViewHref('app_1', view);
+      const param = new URL(href, 'https://example.com').searchParams.get('view');
+      expect(parsePlannerView(param)).toBe(view);
+    }
   });
 });
