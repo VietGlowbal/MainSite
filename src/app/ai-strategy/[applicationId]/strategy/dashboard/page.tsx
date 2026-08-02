@@ -111,7 +111,7 @@ export default async function StrategyDashboardPage({
           </p>
         ) : null}
 
-        <StrategyCategoryBoard recommendations={recommendations} />
+        <StrategyCategoryBoard applicationId={applicationId} recommendations={recommendations} />
 
         <RecommendationTable applicationId={applicationId} recommendations={recommendations} />
       </div>

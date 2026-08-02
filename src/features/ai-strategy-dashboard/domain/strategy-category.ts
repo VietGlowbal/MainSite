@@ -1,4 +1,5 @@
 import type { PillarKey } from '@/lib/match-insights';
+import type { StrategyToolKey } from './strategy-tool';
 
 /**
  * Strategy Category — one AI-selected grouping shown on the Dashboard
@@ -13,17 +14,36 @@ export type StrategyCategory = {
   key: string;
   label: string;
   pillar: PillarKey | null;
-  /** True while this category has no real workspace yet (requirements.md 9.6). */
-  comingSoon: boolean;
+  /**
+   * The workspace this category opens into, if it has one.
+   *
+   * ⚠️ REPLACED A `comingSoon: boolean`. That flag said the CV / Portfolio
+   * category had no workspace yet, and by the time anyone read it that was
+   * false — the four-step CV builder existed and shipped a PDF export. It was
+   * simply not linked from anywhere a student would look.
+   *
+   * It cannot be fixed by flipping the flag to `false` either, which is the
+   * trap: no recommendation is ever assigned `cv-portfolio` (the category has
+   * no pillar, and `categoryByPillar` is the only thing that assigns
+   * categories), so its count is permanently 0 and the board's
+   * "show if count > 0" rule would drop the card altogether. A category
+   * earns its place on the board by having a tool OR having tasks — which is
+   * what this field expresses and a boolean could not.
+   */
+  tool: StrategyToolKey | null;
 };
 
 export const SEEDED_CATEGORIES: readonly StrategyCategory[] = [
-  { key: 'academics', label: 'Academics', pillar: 'academic', comingSoon: false },
-  { key: 'activities', label: 'Activities', pillar: 'activities', comingSoon: false },
-  { key: 'personal-statement', label: 'Personal Statement', pillar: 'essays', comingSoon: false },
-  { key: 'impact', label: 'Impact', pillar: 'impact', comingSoon: false },
-  { key: 'personal', label: 'Personal', pillar: 'personal', comingSoon: false },
-  { key: 'cv-portfolio', label: 'CV / Portfolio', pillar: null, comingSoon: true },
+  { key: 'academics', label: 'Academics', pillar: 'academic', tool: null },
+  { key: 'activities', label: 'Activities', pillar: 'activities', tool: null },
+  // The one category that is both: it collects the `essays` pillar's
+  // recommendations AND opens the writer that acts on them.
+  { key: 'personal-statement', label: 'Personal Statement', pillar: 'essays', tool: 'statement' },
+  { key: 'impact', label: 'Impact', pillar: 'impact', tool: null },
+  { key: 'personal', label: 'Personal', pillar: 'personal', tool: null },
+  // No pillar on purpose — a CV carries academics, activities and impact at
+  // once, so it is a workspace rather than a bucket of tasks.
+  { key: 'cv-portfolio', label: 'CV / Portfolio', pillar: null, tool: 'cv' },
 ];
 
 export function categoryByPillar(pillar: PillarKey): StrategyCategory | undefined {
