@@ -373,7 +373,13 @@ const PATH_TO_STEP: readonly (readonly [RegExp, string])[] = [
   [/^\/ai-strategy\/reflection\/achievements/, '3.3'],
   [/^\/ai-strategy\/reflection/, '3.2'],
   [/^\/ai-strategy\/[^/]+\/strategy/, '3.1'],
+  /* The CV builder and the statement writer are both reached FROM the
+     improvement plan (the category board links to them, and an essays-pillar
+     task routes to the writer), so 3.5 is where a student on either of them
+     came from. Neither tool has a step of its own — see the "deliberately not
+     claimed" note at the top of this file for why. */
   [/^\/ai-strategy\/[^/]+\/cv/, '3.5'],
+  [/^\/ai-strategy\/[^/]+\/statement/, '3.5'],
   // Area 2
   [/^\/my-universities\/program/, '2.3'],
   [/^\/apply\/[^/]+/, '2.4'],
@@ -393,6 +399,28 @@ export function stepIndexForPath(pathname: string): number {
     if (index !== -1) return index;
   }
   return 0;
+}
+
+/**
+ * Where a step's link goes, in plain words — rendered under the button so a
+ * student knows what pressing it does before they lose the page they are on.
+ *
+ * KEYED ON `href`, NOT STORED PER STEP, and that is the point: a caption held
+ * next to the step could end up describing one destination while the link
+ * pointed at another, which is the precise class of drift this file has
+ * already suffered once. An unrecognised href gets no caption rather than a
+ * guessed one.
+ */
+const DESTINATION_LABELS: Readonly<Record<string, string>> = {
+  '/universities': 'the university directory',
+  '/scholarships': 'the scholarship list',
+  '/apply': 'My Portal',
+  '/ai-strategy/reflection': 'the questions about you',
+  '/ai-strategy/reflection/achievements': 'your achievements',
+};
+
+export function destinationLabel(href: string): string | null {
+  return DESTINATION_LABELS[href] ?? null;
 }
 
 /** Flat step list with its area — what the scroll position maps onto. */
