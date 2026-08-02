@@ -114,16 +114,31 @@ function areaBadgeVariant(areaId: string): BadgeVariant {
  * The clip slot. Renders the real video once one exists, and until then an
  * honest placeholder naming the file it is waiting for — see the header.
  *
- * Fixed `aspect-video` in every state, so swapping steps never changes its
- * size and nothing around it shifts.
+ * ─── IT FILLS THE ROW FROM `lg` UP, AND IS 16:9 BELOW IT ─────────────────────
+ *
+ * A fixed `aspect-video` box beside the step's detail left the two columns
+ * visibly different heights — the clip ran out ~300px above the bottom of the
+ * text column, so the panel read as a short black rectangle floating next to a
+ * tall column. `lg:h-full` makes it match the row, which is a grid row of
+ * definite height (see `GuidePanel`), so it is still the same size on every
+ * step and still cannot shift anything around it.
+ *
+ * Below `lg` the grid stacks and scrolls as one, where the row height is auto
+ * and `h-full` would collapse to nothing — hence `aspect-video` there.
+ *
+ * THE VIDEO IS `object-contain`, NOT `object-cover`, and that pairs with the
+ * above: the clips are 16:9 screen recordings and the box is no longer 16:9,
+ * so `cover` would crop the sides off a recording of the actual UI. Contained,
+ * a 16:9 clip letterboxes inside the box — and since the box is already black,
+ * there are no visible bars.
  */
 function StepMedia({ step }: { step: GuideStep }) {
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-gb-xl bg-surface-inverse-strong">
+    <div className="relative aspect-video w-full overflow-hidden rounded-gb-xl bg-surface-inverse-strong lg:aspect-auto lg:h-full">
       {step.videoSrc ? (
         <video
           key={step.videoSrc}
-          className="size-full object-cover"
+          className="size-full object-contain"
           src={step.videoSrc}
           autoPlay
           loop
@@ -223,7 +238,9 @@ function AreaTabs({
                   {area.number}
                 </span>
                 <span
-                  className={`text-gb-sm font-semibold ${isCurrent ? 'text-fg' : 'text-fg-secondary'}`}
+                  className={`text-gb-sm font-semibold ${
+                    isCurrent ? 'text-fg-brand' : 'text-fg-secondary'
+                  }`}
                 >
                   {area.title}
                 </span>
@@ -320,10 +337,22 @@ export function GuidePanel({
   flat,
   activeIndex,
   onSelect,
+  bleedClassName,
 }: {
   flat: readonly FlatGuideStep[];
   activeIndex: number;
   onSelect: (flatIndex: number) => void;
+  /**
+   * Negative horizontal margin for the rule under the area cards, so it can
+   * reach the edges of a container that pads this panel. The popup passes
+   * `-mx-gb-3xl` to match its own inset and get an edge-to-edge line; the page
+   * passes nothing, because there are no edges there for a line to reach.
+   *
+   * A prop rather than a fixed negative margin because the two callers inset
+   * this panel by different amounts, and a rule that overshoots is worse than
+   * one that stops short.
+   */
+  bleedClassName?: string | undefined;
 }) {
   const active = flat[activeIndex] ?? flat[0];
   if (active === undefined) return null;
@@ -334,13 +363,16 @@ export function GuidePanel({
        a flex ITEM of the sticky container, and a flex item sizes to its content
        unless told otherwise, so without it the two columns collapse to
        max-content instead of splitting the pane. */
-    <div className="flex h-full w-full min-h-0 flex-col gap-gb-2xl">
+    <div className="flex h-full w-full min-h-0 flex-col gap-gb-xl">
       <AreaTabs flat={flat} active={active} onSelect={onSelect} />
 
-      {/* Two columns from `lg`, where the step's own detail does the scrolling.
-          Below that they stack, the clip alone would fill a short viewport, so
-          the whole thing scrolls as one instead. */}
-      <div className="grid min-h-0 flex-1 gap-gb-3xl overflow-y-auto lg:grid-cols-2 lg:gap-gb-4xl lg:overflow-hidden">
+      <hr className={`shrink-0 border-line ${bleedClassName ?? ''}`} />
+
+      {/* Two columns from `lg`, the clip the wider of them (the step's detail
+          is a narrow measure; the clip is the thing worth the space). Below
+          `lg` they stack: the clip alone would fill a short viewport, so the
+          whole thing scrolls as one instead of scrolling the detail inside it. */}
+      <div className="grid min-h-0 flex-1 gap-gb-3xl overflow-y-auto lg:grid-cols-[1.22fr_1fr] lg:gap-gb-4xl lg:overflow-hidden">
         {/* Clip — left. Fixed aspect, fixed offset, so it cannot shift. */}
         <div>
           <StepMedia step={step} />
