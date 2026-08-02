@@ -1,8 +1,66 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SavedNavLink } from '@/components/saved-nav-link';
+import {
+  FOOTER_COLUMNS,
+  FOOTER_COPYRIGHT,
+  FOOTER_RATINGS,
+  FOOTER_SOCIAL,
+  FOOTER_TAGLINE,
+  MARKETING_NAV_ACTIONS,
+  MARKETING_NAV_ITEMS,
+} from '@/features/marketing/ui';
+import {
+  FREE_FEATURES,
+  GLOWBAL_FB_CHAT_URL,
+  PLUS_SALES_ENABLED,
+  getPlusPackage,
+} from '@/lib/plus';
 import { createClient } from '@/lib/supabase/server';
-import { FREE_FEATURES, GLOWBAL_FB_CHAT_URL, PLUS_SALES_ENABLED } from '@/lib/plus';
-import { PlusPricing } from '@/components/plus/plus-pricing';
+import {
+  Badge,
+  Button,
+  Container,
+  Footer,
+  ICONS,
+  KitIcon,
+  MobileNav,
+  TopNav,
+} from '@/shared/ui';
+import { PlusPricing } from './plus-pricing';
+
+/**
+ * /plus — GlowBal Plus, rebuilt on the design system 2026-08-02.
+ *
+ * ⚠️ THERE IS NO FIGMA FRAME FOR THIS PAGE, and that is the whole reason it
+ * looked out of date. docs/redesign-status.md files /plus under "designed but
+ * not built" against 115:13253 / 132:9601 / 196:16799 / 115:17014 — four frames
+ * on the RETIRED "Tính năng" canvas, drawing a free/$10/$100 split that
+ * lib/plus.ts stopped matching long ago. Nothing was ever redrawn onto "Khanh
+ * Linh - Chi", so the page kept its pre-redesign styling (slate/pink literals,
+ * rounded-3xl, gradient pills) while every route around it moved to the tokens.
+ * The owner confirmed the page was missed and asked for it to be brought up to
+ * the current UI, with room to make it more interesting than the frames were.
+ *
+ * So this is built from `src/styles/tokens.css` and `src/shared/ui` only — the
+ * same standing as `Panel`, `StatTile` and the admin console. Nothing here
+ * invents a colour, a radius or a type step, and the three-band rhythm (black
+ * hero → muted plans → white comparison → muted close) is the one Home already
+ * uses. Two things beyond a straight restyle, both deliberate:
+ *
+ *  1. The plan cards straddle the hero's bottom edge. See the note in
+ *     plus-pricing.tsx for why that is an absolutely positioned strip and not a
+ *     negative margin.
+ *  2. `?status=cancelled` is answered. Stripe's `cancel_url` has pointed here
+ *     since checkout was written (src/app/api/plus/checkout/route.ts) and the
+ *     page ignored it, so abandoning payment returned you to an unchanged
+ *     pricing page with no confirmation that nothing had been charged.
+ *
+ * Page chrome is its own (TopNav + MobileNav + Footer), so '/plus' had to be
+ * added to OWN_CHROME_ROUTES in src/components/nav-reveal.tsx or the app header
+ * renders on top of this one.
+ */
 
 export const metadata: Metadata = {
   title: 'GlowBal Plus | Unlock your full scholarship plan',
@@ -10,13 +68,48 @@ export const metadata: Metadata = {
     'Upgrade to GlowBal Plus for more AI application strategies, full scholarship details, a document checklist, and priority student-supporter access.',
 };
 
+/** What Plus adds, as three claims short enough to read on the hero. */
+const HERO_POINTS: readonly { icon: keyof typeof ICONS; label: string }[] = [
+  { icon: 'zapFast', label: 'More AI strategy credits' },
+  { icon: 'gift01', label: 'Full scholarship details' },
+  { icon: 'messageChatCircle', label: 'Priority supporter access' },
+];
+
+/**
+ * A frosted panel on the black band, for the four states the page can arrive
+ * in: fresh from onboarding, back from a cancelled checkout, already on Plus,
+ * or sent here by a gated application.
+ *
+ * Frosted rather than a white card: a white block on the hero reads as a modal
+ * that failed to open, and three of the four states are informational.
+ */
+function HeroNotice({
+  emphasis = false,
+  children,
+}: {
+  /** Rose hairline instead of the white one — used for "you are on Plus". */
+  emphasis?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`flex w-full max-w-gb-width-xl flex-col items-center gap-gb-xs rounded-gb-xl border bg-white/8 px-gb-3xl py-gb-2xl text-center ${
+        emphasis ? 'border-brand' : 'border-white/12'
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export default async function PlusPage({
   searchParams,
 }: {
-  searchParams: Promise<{ welcome?: string; application?: string }>;
+  searchParams: Promise<{ welcome?: string; application?: string; status?: string }>;
 }) {
-  const { welcome, application } = await searchParams;
+  const { welcome, application, status } = await searchParams;
   const isWelcome = welcome === '1';
+  const isCancelled = status === 'cancelled';
   const applicationId = application ?? null;
 
   const supabase = await createClient();
@@ -36,130 +129,250 @@ export default async function PlusPage({
     planLabel = profile?.plus_plan ?? null;
   }
 
+  const currentPlan = getPlusPackage(planLabel);
+
+  const userName =
+    (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
+  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
+  const isSignedIn = !!user;
+
   return (
-    <main className="min-h-screen bg-[linear-gradient(180deg,#FBFBFF,#ffffff)] px-5 py-14 sm:px-6">
-      <div className="mx-auto max-w-6xl">
-        {isWelcome ? (
-          <div className="mx-auto mb-8 flex max-w-3xl flex-col items-center gap-3 rounded-3xl border border-pink-100 bg-white px-6 py-5 text-center shadow-[0_12px_30px_rgba(30,40,80,0.05)] sm:flex-row sm:justify-between sm:text-left">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">🎉 You’re all set!</p>
-              <p className="text-sm text-slate-500">Get the most from GlowBal with Plus — or keep exploring for free.</p>
+    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
+      <TopNav
+        logo={<GlowbalLogo height={28} />}
+        items={MARKETING_NAV_ITEMS}
+        primaryAction={MARKETING_NAV_ACTIONS.primary}
+        utility={<SavedNavLink />}
+        {...(isSignedIn && userName
+          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
+          : { secondaryAction: MARKETING_NAV_ACTIONS.secondary })}
+      />
+      <MobileNav
+        logo={
+          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
+            <GlowbalLogo height={28} />
+          </Link>
+        }
+        items={MARKETING_NAV_ITEMS}
+        primaryAction={MARKETING_NAV_ACTIONS.primary}
+        secondaryAction={
+          isSignedIn ? { href: '/profile', label: 'Profile' } : MARKETING_NAV_ACTIONS.secondary
+        }
+        openLabel="Menu"
+        closeLabel="Close menu"
+        utility={<SavedNavLink variant="row" />}
+      />
+
+      <main>
+        {/* ── Hero ─────────────────────────────────────────────────────────
+            The rose bloom is a radial gradient on the brand token rather than a
+            blurred element: `filter` would make this a containing block for
+            fixed descendants, which is exactly what the header dropdown's
+            position note in shared/ui/top-nav.tsx warns about. */}
+        <section className="relative isolate overflow-hidden bg-surface-inverse-strong pt-gb-9xl pb-gb-6xl">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-x-0 -top-1/3 -z-10 h-[120%] bg-[radial-gradient(50%_45%_at_50%_45%,var(--color-gb-brand-600),transparent_70%)] opacity-25"
+          />
+
+          <Container className="flex flex-col items-center gap-gb-3xl text-center">
+            {isWelcome ? (
+              <HeroNotice>
+                <p className="text-gb-md font-semibold text-white">
+                  🎉 Your profile is set up
+                </p>
+                <p className="text-gb-sm text-fg-on-inverse-muted">
+                  Get the most from GlowBal with Plus — or keep exploring for free.
+                </p>
+                <Link
+                  href="/universities"
+                  className="mt-gb-xs text-gb-sm font-semibold text-white underline-offset-4 hover:underline"
+                >
+                  Maybe later — see my matches →
+                </Link>
+              </HeroNotice>
+            ) : null}
+
+            {isCancelled ? (
+              <HeroNotice>
+                <p className="text-gb-md font-semibold text-white">Checkout cancelled</p>
+                <p className="text-gb-sm text-fg-on-inverse-muted">
+                  Nothing was charged. Your plan is unchanged — pick it up again whenever you are
+                  ready.
+                </p>
+              </HeroNotice>
+            ) : null}
+
+            {isPlus ? (
+              <HeroNotice emphasis>
+                <p className="text-gb-md font-semibold text-white">You&rsquo;re on GlowBal Plus</p>
+                <p className="text-gb-sm text-fg-on-inverse-muted">
+                  Thanks for your support — you can extend your plan any time below.
+                </p>
+                {/* The stored plan id is not a label; only render a tier name we
+                    can resolve, so a stale or unknown id shows nothing rather
+                    than "plus-pro". */}
+                {currentPlan ? <Badge variant="outline">{currentPlan.name}</Badge> : null}
+              </HeroNotice>
+            ) : null}
+
+            <Badge variant="outline">GlowBal Plus</Badge>
+
+            <h1 className="max-w-gb-width-xl font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-white md:text-gb-display-xl">
+              Unlock your full scholarship plan
+            </h1>
+
+            <p className="max-w-gb-width-xl text-gb-md text-fg-on-inverse-muted md:text-gb-xl">
+              Go beyond searching — more AI application strategies, full scholarship details, a
+              document checklist, and priority student-supporter access. Designed to help you apply
+              with a clearer, stronger strategy.
+            </p>
+
+            <ul className="flex flex-wrap items-center justify-center gap-gb-lg">
+              {HERO_POINTS.map((point) => (
+                <li
+                  key={point.label}
+                  className="inline-flex items-center gap-gb-md rounded-gb-full border border-white/12 bg-white/8 px-gb-2xl py-gb-lg text-gb-sm font-medium text-white"
+                >
+                  <span className="text-brand">
+                    <KitIcon art={ICONS[point.icon]} frame={20} />
+                  </span>
+                  {point.label}
+                </li>
+              ))}
+            </ul>
+
+            {applicationId ? (
+              <HeroNotice>
+                <p className="text-gb-sm font-medium text-white">
+                  Unlock the full application plan to keep building this application.
+                </p>
+                <Link
+                  href={`/apply/${applicationId}?sop=1`}
+                  className="text-gb-sm font-semibold text-fg-on-inverse-muted underline-offset-4 transition-colors hover:text-white hover:underline"
+                >
+                  Continue with limited plan →
+                </Link>
+              </HeroNotice>
+            ) : null}
+
+            {!PLUS_SALES_ENABLED ? (
+              <HeroNotice>
+                <p className="text-gb-sm font-semibold text-white">
+                  GlowBal Plus is coming soon
+                </p>
+                <p className="text-gb-sm text-fg-on-inverse-muted">
+                  The plans below are a preview — they are not on sale yet. Everything in the Free
+                  plan is fully available in the meantime.
+                </p>
+              </HeroNotice>
+            ) : null}
+          </Container>
+        </section>
+
+        {/* Currency switcher (still on the black band) + tier cards + the
+            Free-vs-paid comparison. */}
+        <PlusPricing signedIn={isSignedIn} applicationId={applicationId} />
+
+        {/* ── Free plan, and the way out of the funnel ───────────────────── */}
+        <section className="bg-surface-muted py-gb-9xl">
+          <Container className="flex flex-col gap-gb-4xl">
+            <div className="flex flex-col gap-gb-4xl rounded-gb-2xl border border-line bg-surface p-gb-4xl md:flex-row md:items-center md:justify-between">
+              <div className="flex min-w-0 flex-col gap-gb-2xl">
+                <div className="flex flex-col gap-gb-xs">
+                  <h2 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">
+                    Continue with the Free plan
+                  </h2>
+                  <p className="text-gb-md text-fg-tertiary">
+                    Everything you need to start — no payment required.
+                  </p>
+                </div>
+                <ul className="grid gap-gb-lg sm:grid-cols-2">
+                  {FREE_FEATURES.map((feature) => (
+                    <li key={feature} className="flex items-start gap-gb-md">
+                      <span className="mt-gb-xxs shrink-0 text-brand">
+                        <KitIcon art={ICONS.checkCircle} frame={20} />
+                      </span>
+                      <span className="text-gb-sm text-fg-tertiary">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              <Button href="/universities" size="xl" className="shrink-0">
+                Continue free
+                <KitIcon art={ICONS.arrowRight} frame={20} />
+              </Button>
             </div>
-            <Link href="/universities" className="shrink-0 text-sm font-semibold text-slate-500 transition hover:text-slate-900">
-              Maybe later — see my matches →
-            </Link>
-          </div>
-        ) : null}
 
-        <div className="mx-auto max-w-3xl text-center">
-          <span className="inline-block text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">
-            GlowBal Plus
-          </span>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em] text-slate-900 sm:text-4xl">
-            Unlock your full scholarship plan
-          </h1>
-          <p className="mt-4 text-base leading-7 text-slate-600 sm:text-lg">
-            Go beyond searching — more AI application strategies, full scholarship
-            details, a document checklist, and priority student-supporter access.
-            Designed to help you apply with a clearer, stronger strategy.
-          </p>
-
-          {applicationId ? (
-            <div className="mt-6 flex flex-col items-center gap-2">
-              <p className="text-sm font-medium text-slate-700">
-                Unlock the full application plan to keep building this application.
-              </p>
-              <Link
-                href={`/apply/${applicationId}?sop=1`}
-                className="text-sm font-semibold text-slate-500 underline-offset-2 transition hover:text-slate-900 hover:underline"
+            {/* Talk to a person. The Messenger link is the only support channel
+                that exists today, so it is a real destination, not a promise. */}
+            <div className="flex flex-col items-center gap-gb-lg rounded-gb-2xl border border-line bg-brand-subtle p-gb-4xl text-center">
+              <span className="flex size-gb-6xl items-center justify-center rounded-gb-full bg-brand text-on-brand">
+                <KitIcon art={ICONS.messageSmileCircle} frame={24} />
+              </span>
+              <h2 className="font-display text-gb-xl font-semibold text-fg">
+                Not sure which plan fits you?
+              </h2>
+              <Button
+                href={GLOWBAL_FB_CHAT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                size="lg"
+                variant="secondary"
               >
-                Continue with limited plan →
-              </Link>
+                Not sure? Chat with our in-house team for more info
+              </Button>
             </div>
-          ) : null}
-        </div>
 
-        {!PLUS_SALES_ENABLED ? (
-          <div className="mx-auto mt-8 max-w-2xl rounded-2xl border border-slate-200 bg-white px-5 py-4 text-center text-sm text-slate-600">
-            <p className="font-semibold text-slate-900">GlowBal Plus is coming soon</p>
-            <p className="mt-1">
-              The plans below are a preview — they are not on sale yet. Everything in the Free plan
-              is fully available in the meantime.
-            </p>
-          </div>
-        ) : null}
-
-        {isPlus ? (
-          <div className="mx-auto mt-8 max-w-xl rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-4 text-center text-sm text-emerald-700">
-            You’re on <strong>GlowBal Plus</strong>
-            {planLabel ? <> ({planLabel})</> : null}. Thanks for your support — you can extend your plan any time below.
-          </div>
-        ) : null}
-
-        {/* Currency switcher + tier cards + Free-vs-paid comparison */}
-        <PlusPricing signedIn={!!user} applicationId={applicationId} />
-
-        {/* Talk-to-a-human CTA */}
-        <div className="mx-auto mt-8 max-w-2xl text-center">
-          <a
-            href={GLOWBAL_FB_CHAT_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-[0_4px_14px_rgba(30,40,80,0.05)] transition hover:border-pink-300 hover:text-pink-600"
-          >
-            <span aria-hidden>💬</span>
-            Not sure? Chat with our in-house team for more info
-          </a>
-        </div>
-
-        {/* Free tier — the whole box is a link that continues into the app
-            for free, with the same hover-lift cue as the paid tiers. */}
-        <Link
-          href="/universities"
-          className="group mx-auto mt-10 block max-w-2xl rounded-3xl border border-slate-200 bg-white p-6 outline-none transition-all duration-200 hover:-translate-y-1 hover:border-pink-200 hover:shadow-[0_22px_48px_rgba(30,40,80,0.12)] focus-visible:ring-2 focus-visible:ring-pink-300 focus-visible:ring-offset-2"
-        >
-          <div className="flex items-start justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-900">Continue with the Free plan</p>
-              <p className="mt-1 text-sm text-slate-500">Everything you need to start — no payment required.</p>
+            {/* Fine print. With sales off nothing is being charged, so the
+                payment reassurance is withheld rather than shown against a
+                checkout that refuses. */}
+            <div className="mx-auto flex max-w-gb-width-xl flex-col items-center gap-gb-md text-center text-gb-xs text-fg-muted">
+              {PLUS_SALES_ENABLED ? (
+                <>
+                  <p className="inline-flex items-center gap-gb-sm">
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden="true"
+                    >
+                      <rect x="3" y="11" width="18" height="11" rx="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
+                    Payments are processed securely by Stripe.
+                  </p>
+                  <p>
+                    Choose your currency above — you&rsquo;ll be charged in the currency you select;
+                    conversions from VND are approximate. GlowBal helps you discover opportunities
+                    and prepare stronger applications; it does not guarantee scholarship outcomes.
+                  </p>
+                </>
+              ) : (
+                <p>
+                  GlowBal helps you discover opportunities and prepare stronger applications; it
+                  does not guarantee scholarship outcomes.
+                </p>
+              )}
             </div>
-            <span className="shrink-0 text-sm font-semibold text-pink-600 transition group-hover:translate-x-0.5">
-              Continue free →
-            </span>
-          </div>
-          <ul className="mt-4 grid gap-2 sm:grid-cols-2">
-            {FREE_FEATURES.map((f) => (
-              <li key={f} className="flex items-start gap-2 text-sm text-slate-600">
-                <span className="mt-0.5 text-slate-400">✓</span>{f}
-              </li>
-            ))}
-          </ul>
-        </Link>
+          </Container>
+        </section>
+      </main>
 
-        <div className="mx-auto mt-8 flex max-w-2xl flex-col items-center gap-2 text-center text-xs text-slate-400">
-          {/* Nothing is being charged while sales are off, so the payment
-              reassurance is withheld rather than shown against no checkout. */}
-          {PLUS_SALES_ENABLED ? (
-            <>
-              <p className="inline-flex items-center gap-1.5">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>
-                Payments are processed securely by Stripe.
-              </p>
-              <p>
-                Choose your currency above — you’ll be charged in the currency you
-                select; conversions from VND are approximate. GlowBal helps you
-                discover opportunities and prepare stronger applications; it does not
-                guarantee scholarship outcomes.
-              </p>
-            </>
-          ) : (
-            <p>
-              GlowBal helps you discover opportunities and prepare stronger applications; it does
-              not guarantee scholarship outcomes.
-            </p>
-          )}
-        </div>
-      </div>
-    </main>
+      <Footer
+        logo={<GlowbalLogo height={28} />}
+        tagline={FOOTER_TAGLINE}
+        columns={FOOTER_COLUMNS}
+        social={FOOTER_SOCIAL}
+        copyright={FOOTER_COPYRIGHT}
+        ratings={FOOTER_RATINGS}
+      />
+    </div>
   );
 }

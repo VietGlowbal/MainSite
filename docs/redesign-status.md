@@ -77,6 +77,7 @@ Both carry banner frames naming them:
 | `/dev/home` | `375:9844` | **Khanh Linh - Chi** | Still here after the swap, on purpose: it keeps every section INCLUDING the placeholders, so the copy gaps stay visible. Renders no real data — check data against `/`. |
 | `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07, wired up + extended 30/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
 | `/mentors/[id]` | `375:21633` | **Khanh Linh - Chi** | **Built 29/07.** Replaced `MentorProfile.tsx` + `BookMentorModal.tsx` + `MentorAvailabilityGrid.tsx`, all three deleted. Real 7-column booking calendar (the frame's is a broken 10-column instance — see below). Fixed two live bugs in the process: the page 404'd for every signed-out visitor, and it serialised the mentor's PII into the client payload. |
+| `/plus` | **none** | — | **Rebuilt 02/08 — the one page with NO frame.** See §"/plus had no design" below. Tokens + `shared/ui` only. `/plus/success` restyled with it. |
 | `/dev/saved-list` | — | — | Dev-only preview of `/my-universities`, hydrated from the real repositories. |
 
 ### Deliberate departures from the frames
@@ -322,6 +323,78 @@ fiction. Add the column (or a join) before review authorship means anything.
 | `/plus` | `115:13253`, `132:9601`, `196:16799`, `115:17014` | **Tính năng** | 3 tiers (free / $10 / $100). Sales are off (`PLUS_SALES_ENABLED=false`) — build as static preview. |
 | `/news/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
 | `/privacy` | `153:22478` | **Tính năng** | Frame is named `Desktop`. |
+
+### `/plus` had no design, and that is why it looked old (02/08)
+
+The owner reported on 2026-08-02 that `/plus` "is still using the old UI" and
+confirmed the page had been **missed in the redesign** — there is no frame for
+it on "Khanh Linh - Chi". This file listed it under *designed but not built*
+against `115:13253` / `132:9601` / `196:16799` / `115:17014`, four frames on the
+**retired "Tính năng" canvas** drawing a free / $10 / $100 split that
+`src/lib/plus.ts` (Starter / Pro / Premium, five currencies) stopped matching
+long ago. So the frames were not a usable source and nothing replaced them.
+
+**Built from the design system instead, on the owner's instruction** — same
+standing as `Panel`, `StatTile` and the admin console: tokens + `shared/ui`
+only, no invented colour, radius or type step. Rhythm follows Home: black hero →
+muted plans → white comparison → muted close.
+
+The four things worth not re-deriving:
+
+1. **The cards straddle the hero's bottom edge**, and the 96px of black behind
+   their top is an **absolutely positioned strip, not a negative margin**. A
+   negative top margin on the first in-flow child collapses through `Container`
+   and drags the whole light band up with it — which hides the overlap instead
+   of creating it.
+2. **The featured card uses `lg:-my-gb-3xl` and NO `h-full`.** The grid already
+   stretches every card to the row height; a definite height is exactly what
+   stops the featured one growing past it. With `auto` height the negative
+   margins make the stretched box 48px taller than its grid area, so Pro stands
+   24px proud at *both* ends. With `h-full` (tried first) it slid up 24px and
+   left its foot 24px short of its neighbours'.
+3. **`[contain:paint]` on the comparison table's scroll wrapper is load-bearing.**
+   The table is `min-w-[720px]` inside `overflow-x-auto`, which is correct — but
+   Chrome still counts a scroll container's overflow toward the **root**
+   element's `scrollWidth`, so `<html>` measured 687px on a 390px phone. Nothing
+   could actually scroll (body is `overflow-x: clip` — see §sticky above for why
+   it is `clip` and not `hidden`), yet the page measured as overflowing and
+   full-page screenshots came out 687px wide with a dead band down the right.
+   Paint containment was the **only** fix: `max-width: 100%`, `overflow-x:
+   scroll`, clipping the section and clipping `<html>` all left it at 687.
+4. **`?status=cancelled` is answered at last.** Stripe's `cancel_url` has
+   pointed at `/plus?status=cancelled` since checkout was written and the page
+   ignored the param, so abandoning payment returned you to an unchanged pricing
+   page with nothing saying you had not been charged.
+
+Smaller corrections made in the same pass, each visible in a diff and easy to
+lose:
+
+- **The card CTA is a real `Button`.** The card used to be `role="button"` with
+  a styled `<span>` inside it pretending to be one, and with `PLUS_SALES_ENABLED
+  = false` it rendered a control that looked live and did nothing. It is now a
+  `disabled` button reading "Coming soon" — three of them, asserted inert.
+- **`PLUS_PACKAGES.highlights` lost its leading "<n> AI strategy credits"
+  bullet** on all three tiers. Credits get their own plate directly above the
+  list, so the bullet printed the same number twice in the same card. There is a
+  ⚠️ on the field in `lib/plus.ts` so it does not come back.
+- **The comparison's Free column shows a formatted zero**, not the word "Free"
+  under a column already headed "Free" — that was the one column with no price
+  to compare against the three that had one.
+- **`/plus/success` no longer shows a green tick over "Confirming your
+  payment…"**, which said the opposite of the sentence under it. Unverified gets
+  the clock; activated gets the tick.
+- **Its second button pointed at `/universities`** — the search page — while
+  labelled "Go to my universities". The student's own list has been on `/apply`
+  since the 31/07 merge, so it now says "Go to My Portal" and goes there.
+- **The whole page was machine-translated.** `/plus` had exactly ONE dictionary
+  key before this (`'Upgrade to GlowBal Plus'`, which belongs to `/profile`), so
+  every tier name, price caption and comparison row was hitting `/api/translate`
+  on a Vietnamese visitor's first paint and rendering whatever came back unread.
+  ~70 keys added, including the literals in `lib/plus.ts`.
+
+Verified at 1440 / 1280 / 768 / 390 signed-out and signed-in: 0 overflow, 0
+console errors, one `nav-header`, currency switch updates both the cards and the
+table header.
 
 ### Two pages became one: `/apply` + `/my-universities` (31/07)
 

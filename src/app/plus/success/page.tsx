@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getStripe } from '@/lib/stripe';
 import { getPlusPackage, computeExpiry, formatChargedAmount, isDisplayCurrency } from '@/lib/plus';
+import { Button, ICONS, KitIcon } from '@/shared/ui';
 
 export const metadata: Metadata = {
   title: 'Welcome to GlowBal Plus',
@@ -117,28 +117,44 @@ export default async function PlusSuccessPage({
     }
   }
 
+  const activated = state !== 'unverified';
+
   return (
-    <main className="flex min-h-screen items-center justify-center bg-[linear-gradient(180deg,#FBFBFF,#ffffff)] px-5 py-14">
-      <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-[0_24px_56px_rgba(30,40,80,0.10)]">
-        <span className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>
+    <main className="gb-page-full-bleed flex min-h-screen items-center justify-center bg-surface-muted px-gb-xl py-gb-9xl">
+      <div className="w-full max-w-gb-width-sm rounded-gb-2xl border border-line bg-surface p-gb-5xl text-center shadow-gb-lg">
+        {/* The mark follows the state. A green tick over "Confirming your
+            payment…" said the opposite of the sentence under it. */}
+        <span
+          className={`mx-auto flex size-gb-7xl items-center justify-center rounded-gb-full ${
+            activated ? 'bg-brand text-on-brand' : 'bg-surface-muted text-fg-tertiary'
+          }`}
+        >
+          <KitIcon art={activated ? ICONS.checkCircle : ICONS.clock} frame={28} />
         </span>
 
         {state === 'unverified' ? (
           <>
-            <h1 className="mt-5 text-2xl font-semibold text-slate-900">Confirming your payment…</h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">
-              We couldn’t confirm this payment automatically yet. If you completed
-              checkout and Plus doesn’t appear shortly, contact{' '}
-              <a href="mailto:hello@glowbal.com" className="font-semibold text-pink-600">hello@glowbal.com</a>.
+            <h1 className="mt-gb-3xl font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">
+              Confirming your payment…
+            </h1>
+            <p className="mt-gb-lg text-gb-sm text-fg-tertiary">
+              We couldn&rsquo;t confirm this payment automatically yet. If you completed checkout
+              and Plus doesn&rsquo;t appear shortly, contact{' '}
+              <a
+                href="mailto:hello@glowbal.com"
+                className="font-semibold text-fg-brand underline-offset-4 hover:underline"
+              >
+                hello@glowbal.com
+              </a>
+              .
             </p>
           </>
         ) : (
           <>
-            <h1 className="mt-5 text-2xl font-semibold text-slate-900">
+            <h1 className="mt-gb-3xl font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">
               {state === 'already' ? 'You’re already on Plus' : 'Welcome to GlowBal Plus'}
             </h1>
-            <p className="mt-3 text-sm leading-7 text-slate-600">
+            <p className="mt-gb-lg text-gb-sm text-fg-tertiary">
               {state === 'already'
                 ? 'This plan is already active on your account — you’re all set.'
                 : `Your ${pkg?.durationLabel} plan is active, with ${pkg?.aiCredits} AI strategy credits added. Let’s build your scholarship plan.`}
@@ -146,19 +162,22 @@ export default async function PlusSuccessPage({
           </>
         )}
 
-        <div className="mt-7 flex flex-col gap-2.5">
+        <div className="mt-gb-4xl flex flex-col gap-gb-lg">
           {applicationId ? (
-            <Link href={`/apply/${applicationId}`} className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5">
+            <Button href={`/apply/${applicationId}`} size="lg">
               Continue to your application →
-            </Link>
+            </Button>
           ) : (
-            <Link href="/scholarships" className="inline-flex items-center justify-center rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-6 py-3 text-sm font-semibold text-white shadow-[0_12px_28px_rgba(255,77,140,0.28)] transition hover:-translate-y-0.5">
+            <Button href="/scholarships" size="lg">
               Explore scholarships
-            </Link>
+            </Button>
           )}
-          <Link href="/universities" className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50">
-            Go to my universities
-          </Link>
+          {/* Was /universities labelled "Go to my universities" — the search
+              page, not the student's own list. The saved list lives on /apply
+              since the merge (31/07), and the nav calls it My Portal. */}
+          <Button href="/apply" size="lg" variant="secondary">
+            Go to My Portal
+          </Button>
         </div>
       </div>
     </main>
