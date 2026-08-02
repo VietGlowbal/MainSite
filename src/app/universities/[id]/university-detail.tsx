@@ -33,7 +33,7 @@ import { TID, testId } from '@/shared/lib/testids';
 import type { University } from '@/lib/types';
 import { FadeInImage } from '../fade-in-image';
 import { DetailNav, type DetailSection } from './detail-nav';
-import { SaveUniversityButton } from './save-university-button';
+import { UniversitySaveHeader } from './save-university-button';
 
 /**
  * /universities/[id] — Figma 375:10629 "Detail trường" (1440x4505).
@@ -318,18 +318,12 @@ export function UniversityDetail({
           </Link>
 
           <div className="flex flex-col gap-gb-3xl">
-            {/* Figma 522:8633 — the title row, heading left, save heart right. */}
-            <div className="flex items-start justify-between gap-gb-2xl">
-              <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg md:text-gb-display-lg">
-                {university.name}
-              </h1>
-              <SaveUniversityButton
-                universityId={university.id}
-                universityName={university.name}
-                isSignedIn={isSignedIn}
-                initialSaved={isSaved}
-              />
-            </div>
+            <UniversitySaveHeader
+              universityId={university.id}
+              universityName={university.name}
+              isSignedIn={isSignedIn}
+              initialSaved={isSaved}
+            />
 
             {/* Figma 375:10655. Ranks are brand-subtle, facts are neutral. */}
             <div className="flex flex-wrap items-start gap-gb-3xl">
