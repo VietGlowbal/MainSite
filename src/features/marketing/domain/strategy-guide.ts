@@ -31,11 +31,18 @@
  *     the note on Requirement 14.3-14.4).
  *   - that GlowBal submits an application, or has any relationship with the
  *     universities. It does not.
- *   - the calendar view, the kanban view, and the CV builder as part of the
- *     Strategy. The first two do not exist at all; the CV tools at
- *     /ai-strategy/[id]/cv/* do exist and work but are not reachable from the
- *     Strategy dashboard, and the dashboard's own "CV / Portfolio" category is
- *     still flagged `comingSoon`. When those are wired up, add the steps.
+ *   - the calendar view and the kanban view. Neither exists at all. The task
+ *     plan is a table today.
+ *
+ *     ⚠️ The CV builder and statement writer USED to be on this list, for the
+ *     reason that they existed but were unreachable from the Strategy. They are
+ *     now wired up — the Dashboard's category board links to both, and the
+ *     recommendation table's "Help" column routes an essays-pillar task to the
+ *     writer (see ai-strategy-dashboard/domain/strategy-tool.ts). So the guide
+ *     MAY now describe them. It still does not, because the steps below are
+ *     paired with demo clips the owner is producing separately and adding a
+ *     step means adding a `videoFileName` for it; that is a content decision,
+ *     not a code one. The blocker is a clip, no longer a lie.
  *   - anything about payment. The owner confirmed (01/08) that a paywall is
  *     planned for the Strategy — after the application stage, i.e. between
  *     area 2 and area 3 below — but is deliberately not being built while the
