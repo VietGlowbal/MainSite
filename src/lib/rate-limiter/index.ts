@@ -23,6 +23,8 @@ export {
   RateLimiter,
   courseSearchSessionLimiter,
   applyShortlistLimiter,
+  strategyAiLimiter,
+  strategyExportLimiter,
   type RateLimitConfig,
   type RateLimitResult,
 } from './rate-limiter';

@@ -121,10 +121,14 @@ export function splitTeam(members: TeamMember[]): {
 } {
   if (members.length === 0) return { featured: null, rest: [] };
   const featuredIndex = members.findIndex((m) => m.is_featured);
+  /* The `?? null` on both reads is not dead code under the length check above:
+     this module is now imported from src/features (the About team mosaic), so it
+     is typechecked under tsconfig.strict.json, where noUncheckedIndexedAccess
+     types an index read as `T | undefined` and the return type says `| null`. */
   if (featuredIndex === -1) {
-    return { featured: members[0], rest: members.slice(1) };
+    return { featured: members[0] ?? null, rest: members.slice(1) };
   }
-  const featured = members[featuredIndex];
+  const featured = members[featuredIndex] ?? null;
   const rest = members.filter((_, i) => i !== featuredIndex);
   return { featured, rest };
 }

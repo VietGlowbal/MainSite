@@ -183,3 +183,29 @@ export const applyShortlistLimiter = new RateLimiter({
   maxRequests: 5,
   windowMs: 60000, // 1 minute
 });
+
+/**
+ * Application Strategy AI operations — target profile generation, CV review,
+ * per-entry CV suggestions, statement brief, statement analysis.
+ *
+ * Deliberately generous per minute but shared across all five operations: a
+ * student iterating on a draft legitimately re-analyses several times in a row,
+ * and a per-operation limiter would let them run five in parallel and pay for
+ * five model calls at once. One bucket is what actually caps the spend.
+ */
+export const strategyAiLimiter = new RateLimiter({
+  maxRequests: 8,
+  windowMs: 60000, // 1 minute
+});
+
+/**
+ * PDF export — max 5/minute per user.
+ *
+ * Tighter than the AI bucket because an export renders the whole document and
+ * uploads it, and because a stuck "Generating PDF" button is the kind of thing a
+ * student clicks repeatedly.
+ */
+export const strategyExportLimiter = new RateLimiter({
+  maxRequests: 5,
+  windowMs: 60000, // 1 minute
+});

@@ -81,7 +81,24 @@ export const translations: Record<string, string> = {
   // ── Home partner wall (Figma 104:7135) ───────────────────────────────────
   // University names live in alt attributes, which DomTranslator never touches,
   // so there is nothing here to accidentally translate.
-  'Our featured partners': 'Đối tác tiêu biểu của chúng tôi',
+  //
+  // The heading is now "Study <university>", where the second word flips over as
+  // a crest is hovered. Only the FIRST word is a key: "Study" is a separate text
+  // node from the word beside it, and every value that word can take is an
+  // institution name, so each is marked data-no-auto-translate at the call site
+  // (see StudyWord in features/marketing/ui/home-partners.tsx) rather than
+  // listed here. "Anywhere", the resting value, is the one exception and already
+  // has a key further down — do not add a second one.
+  //
+  // "Học tại" ("study at"), not "Học", because the word that follows is a place:
+  // "Học Cambridge" reads as studying the subject of Cambridge.
+  Study: 'Học tại',
+  // 'Our featured partners': 'Đối tác tiêu biểu của chúng tôi' was here. Removed
+  // rather than left behind: nothing renders that string any more (/dev/home
+  // renders the same component), and a key with no caller is indistinguishable
+  // from one whose caller is broken. It is recorded in the commit if the heading
+  // is ever reinstated — but see the ⚠️ in features/marketing/ui/partner-logos.ts
+  // before doing that.
 
   // ── Home metrics (Figma 375:9879) ────────────────────────────────────────
   // Five adoption figures supplied by the designer. Listed here rather than

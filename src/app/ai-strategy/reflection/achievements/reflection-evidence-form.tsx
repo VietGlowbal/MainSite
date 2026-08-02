@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ACHIEVEMENT_CATEGORIES,
   ACTIVITY_CATEGORIES,
@@ -76,6 +76,8 @@ export function ReflectionEvidenceForm({
   initialActivities: ActivityValues[];
 }) {
   const router = useRouter();
+  /** See the matching note in reflection-about-form.tsx. */
+  const returnTo = useSearchParams().get('return');
   const { items, upload, remove } = useDocumentUpload();
 
   const [achievements, setAchievements] = useState<AchievementValues[]>(
@@ -124,7 +126,7 @@ export function ReflectionEvidenceForm({
         return;
       }
 
-      router.push('/ai-strategy');
+      router.push(returnTo || '/ai-strategy');
     } catch {
       setError('We could not save that. Please try again.');
       setSaving(false);
@@ -136,7 +138,7 @@ export function ReflectionEvidenceForm({
       <form onSubmit={handleSubmit} className="flex flex-col gap-gb-3xl">
         <section className="flex flex-col gap-gb-lg">
           <h2 className="text-gb-lg font-semibold text-fg-brand">
-            Thành tích học thuật và hoạt động phi học thuật
+            Academic Achievements and Extracurricular Activities
           </h2>
 
           <FileDropzone
@@ -147,8 +149,8 @@ export function ReflectionEvidenceForm({
             }}
             accept={ACCEPTED_DOCUMENT_TYPES}
             disabled={saving}
-            label="Tải CV hoặc kéo vào ô"
-            hint="PDF, DOC, DOCX, TXT hoặc RTF (tối đa 10MB)"
+            label="Upload your CV or drag it here"
+            hint="PDF, DOC, DOCX, TXT or RTF (max 10MB)"
           />
 
           {items.length > 0 ? (
@@ -168,7 +170,7 @@ export function ReflectionEvidenceForm({
 
           {/* Says what the upload actually does. See the note at the top. */}
           <p className="text-center text-gb-sm text-fg-tertiary">
-            Tải CV để lưu vào hồ sơ, sau đó bổ sung hoặc kiểm tra thông tin bên dưới.
+            Uploading saves your CV to your profile — add or check the details below as well.
           </p>
         </section>
 
@@ -177,11 +179,11 @@ export function ReflectionEvidenceForm({
             twice. The plate is kept, the second heading is not. */}
         <div className="rounded-gb-2xl bg-surface-muted p-gb-3xl">
           <RepeatableFieldset
-            legend="Thành tích học thuật"
+            legend="Academic Achievements"
             entries={achievements}
             keyOf={(entry, index) => entry.id ?? `achievement-${index}`}
-            entryLabel={(index) => `Thành tích ${index + 1}`}
-            addLabel="Thêm thành tích"
+            entryLabel={(index) => `Achievement ${index + 1}`}
+            addLabel="Add achievement"
             max={20}
             onAdd={() => setAchievements((prev) => [...prev, emptyAchievement()])}
             onRemove={(index) =>
@@ -192,7 +194,7 @@ export function ReflectionEvidenceForm({
                 <div className="grid gap-gb-2xl sm:grid-cols-2">
                   <Select
                     name={`achievement-${index}-category`}
-                    label="Loại thành tích học thuật"
+                    label="Achievement category"
                     value={item.category}
                     onChange={(e) =>
                       patchAchievement(index, {
@@ -209,15 +211,15 @@ export function ReflectionEvidenceForm({
 
                   <Input
                     name={`achievement-${index}-title`}
-                    label="Tên thành tích"
-                    placeholder="Giải Nhất cuộc thi Olympic Toán Thành Phố Hà Nội năm 2026"
+                    label="Achievement title"
+                    placeholder="First Prize, Hanoi City Maths Olympiad 2026"
                     value={item.title}
                     onChange={(e) => patchAchievement(index, { title: e.target.value })}
                   />
 
                   <Input
                     name={`achievement-${index}-competition`}
-                    label="Tên cuộc thi / tên tổ chức"
+                    label="Competition / organisation name"
                     value={item.competition ?? ''}
                     onChange={(e) =>
                       patchAchievement(index, { competition: e.target.value || undefined })
@@ -226,7 +228,7 @@ export function ReflectionEvidenceForm({
 
                   <Input
                     name={`achievement-${index}-organisation`}
-                    label="Đơn vị tổ chức"
+                    label="Organising body"
                     value={item.organisation ?? ''}
                     onChange={(e) =>
                       patchAchievement(index, { organisation: e.target.value || undefined })
@@ -235,8 +237,8 @@ export function ReflectionEvidenceForm({
 
                   <Input
                     name={`achievement-${index}-level`}
-                    label="Cấp độ"
-                    placeholder="Cấp thành phố"
+                    label="Level"
+                    placeholder="City-level"
                     value={item.level ?? ''}
                     onChange={(e) => patchAchievement(index, { level: e.target.value || undefined })}
                   />
@@ -244,7 +246,7 @@ export function ReflectionEvidenceForm({
                   <Input
                     name={`achievement-${index}-year`}
                     type="number"
-                    label="Năm cấp"
+                    label="Year awarded"
                     placeholder="2026"
                     value={item.year != null ? String(item.year) : ''}
                     onChange={(e) => {
@@ -259,9 +261,9 @@ export function ReflectionEvidenceForm({
                 {/* The one detail field. See the note at the top of this file. */}
                 <Textarea
                   name={`achievement-${index}-detail`}
-                  label="Mô tả chi tiết"
+                  label="Detailed description"
                   rows={5}
-                  placeholder="Nêu quy mô cuộc thi hoặc chương trình, mức độ cạnh tranh, tiêu chí xét chọn, vai trò của bạn, kết quả đạt được và ý nghĩa của thành tích."
+                  placeholder="Describe the scale of the competition or programme, how competitive it was, the selection criteria, your role, what you achieved, and why it matters."
                   value={item.detail ?? ''}
                   onChange={(e) => patchAchievement(index, { detail: e.target.value || undefined })}
                 />
@@ -272,11 +274,11 @@ export function ReflectionEvidenceForm({
 
         <div className="rounded-gb-2xl bg-surface-muted p-gb-3xl">
           <RepeatableFieldset
-            legend="Hoạt động phi học thuật"
+            legend="Extracurricular Activities"
             entries={activities}
             keyOf={(entry, index) => entry.id ?? `activity-${index}`}
-            entryLabel={(index) => `Hoạt động ${index + 1}`}
-            addLabel="Thêm hoạt động"
+            entryLabel={(index) => `Activity ${index + 1}`}
+            addLabel="Add activity"
             max={20}
             onAdd={() => setActivities((prev) => [...prev, emptyActivity()])}
             onRemove={(index) => setActivities((prev) => prev.filter((_, i) => i !== index))}
@@ -285,7 +287,7 @@ export function ReflectionEvidenceForm({
                 <div className="grid gap-gb-2xl sm:grid-cols-2">
                   <Select
                     name={`activity-${index}-category`}
-                    label="Loại hoạt động phi học thuật"
+                    label="Activity category"
                     value={item.category}
                     onChange={(e) =>
                       patchActivity(index, {
@@ -334,9 +336,9 @@ export function ReflectionEvidenceForm({
 
                 <Textarea
                   name={`activity-${index}-description`}
-                  label="Mô tả chi tiết"
+                  label="Detailed description"
                   rows={5}
-                  placeholder="Lí do tham gia, vai trò, đóng góp chính, kết quả đạt được, tác động hoặc điều khiến hoạt động này có ý nghĩa với bạn."
+                  placeholder="Why you got involved, your role, your main contributions, what you achieved, the impact, or why it mattered to you."
                   value={item.description ?? ''}
                   onChange={(e) =>
                     patchActivity(index, { description: e.target.value || undefined })
@@ -350,11 +352,19 @@ export function ReflectionEvidenceForm({
         {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
 
         <div className="flex flex-wrap justify-center gap-gb-lg">
-          <Button href={reflectionStep('about').path} variant="secondary" size="lg">
-            Quay lại
+          <Button
+            href={
+              returnTo
+                ? `${reflectionStep('about').path}?return=${encodeURIComponent(returnTo)}`
+                : reflectionStep('about').path
+            }
+            variant="secondary"
+            size="lg"
+          >
+            Back
           </Button>
           <Button type="submit" size="lg" disabled={saving} className="min-w-64">
-            {saving ? 'Đang lưu…' : 'Hoàn tất'}
+            {saving ? 'Saving…' : 'Finish'}
           </Button>
         </div>
       </form>

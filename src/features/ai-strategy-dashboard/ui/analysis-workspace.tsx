@@ -1,0 +1,217 @@
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import type { ApplicantAnalysis, CourseMatchAnalysis } from '../domain';
+import { ApplicantAnalysisReport } from './applicant-analysis-report';
+import { CourseMatchReport } from './course-match-report';
+import { Button, usePrefersReducedMotion } from '@/shared/ui';
+
+/** requirements.md 5.1 — cycled while both reports are generating. */
+const LOADING_MESSAGES = [
+  'Analysing profile...',
+  'Understanding achievements...',
+  'Comparing against course...',
+  'Building recommendations...',
+] as const;
+
+type LoadState = 'checking' | 'generating' | 'ready' | 'error';
+
+/**
+ * `/ai-strategy/[applicationId]/strategy/analysis` — Stage 3 (requirements.md
+ * Requirement 5-7).
+ *
+ * On mount: read whatever's already stored for this application; generate
+ * whichever of the two reports is missing; render both once both exist.
+ * Course Match generation POSTs to the pre-existing
+ * `/api/applications/[id]/match-insights` endpoint rather than a new one —
+ * see the note on `strategy/course-match/route.ts`.
+ */
+export function AnalysisWorkspace({
+  applicationId,
+  improveHref,
+}: {
+  applicationId: string;
+  improveHref: string;
+}) {
+  const [state, setState] = useState<LoadState>('checking');
+  const [applicant, setApplicant] = useState<ApplicantAnalysis | null>(null);
+  const [courseMatch, setCourseMatch] = useState<CourseMatchAnalysis | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [messageIndex, setMessageIndex] = useState(0);
+  const ran = useRef(false);
+
+  useEffect(() => {
+    if (state !== 'generating') return;
+    const timer = setInterval(() => {
+      setMessageIndex((i) => (i + 1) % LOADING_MESSAGES.length);
+    }, 3000);
+    return () => clearInterval(timer);
+  }, [state]);
+
+  // Arriving here is a client-side push from wherever the previous step left
+  // the scroll position (often the bottom of a long form) — without this the
+  // loading video renders off-screen and looks like a blank/broken page.
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
+  useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+    void run();
+
+    async function run() {
+      try {
+        const [applicantRes, matchRes] = await Promise.all([
+          fetch(`/api/applications/${applicationId}/strategy/applicant-analysis`),
+          fetch(`/api/applications/${applicationId}/strategy/course-match`),
+        ]);
+        const applicantJson = await applicantRes.json();
+        const matchJson = await matchRes.json();
+
+        const needsApplicant = !applicantJson.analysis;
+        const needsMatch = !matchJson.analysis;
+
+        if (!needsApplicant && !needsMatch) {
+          setApplicant(mapApplicant(applicantJson.analysis));
+          setCourseMatch(matchJson.analysis);
+          setState('ready');
+          return;
+        }
+
+        setState('generating');
+
+        const [applicantFinal, matchFinal] = await Promise.all([
+          needsApplicant
+            ? fetch(`/api/applications/${applicationId}/strategy/applicant-analysis`, {
+                method: 'POST',
+              }).then((r) => r.json())
+            : Promise.resolve(applicantJson),
+          needsMatch
+            ? fetch(`/api/applications/${applicationId}/match-insights`, { method: 'POST' }).then(
+                (r) => r.json(),
+              )
+            : Promise.resolve(matchJson),
+        ]);
+
+        if (applicantFinal.error || matchFinal.error) {
+          setError(applicantFinal.error || matchFinal.error);
+          setState('error');
+          return;
+        }
+
+        setApplicant(mapApplicant(applicantFinal.analysis));
+
+        // The match-insights POST returns the raw stored row, not the
+        // reshaped view — re-read through our own GET so both paths agree.
+        const reshaped = needsMatch
+          ? await fetch(`/api/applications/${applicationId}/strategy/course-match`).then((r) =>
+              r.json(),
+            )
+          : matchJson;
+        setCourseMatch(reshaped.analysis);
+        setState('ready');
+      } catch {
+        setError('Something went wrong. Please try again.');
+        setState('error');
+      }
+    }
+  }, [applicationId]);
+
+  if (state === 'checking') return null;
+
+  if (state === 'error') {
+    return (
+      <div className="flex flex-col items-center gap-gb-lg py-gb-7xl text-center">
+        <p className="text-gb-md text-fg-error">{error ?? 'Analysis failed.'}</p>
+        <Button
+          onClick={() => {
+            ran.current = false;
+            setState('checking');
+            setError(null);
+          }}
+        >
+          Try again
+        </Button>
+      </div>
+    );
+  }
+
+  if (state === 'generating') {
+    return (
+      <div className="flex flex-col items-center gap-gb-xl py-gb-6xl text-center">
+        <AnalysisLoadingVideo />
+        <p className="text-gb-xl font-semibold text-fg">{LOADING_MESSAGES[messageIndex]}</p>
+        <p className="text-gb-sm text-fg-tertiary">This usually takes 30–60 seconds.</p>
+      </div>
+    );
+  }
+
+  if (!applicant || !courseMatch) return null;
+
+  return (
+    <div className="flex flex-col gap-gb-3xl">
+      <ApplicantAnalysisReport analysis={applicant} />
+      <CourseMatchReport analysis={courseMatch} onImproveHref={improveHref} />
+    </div>
+  );
+}
+
+/**
+ * Loops for as long as the "generating" state lasts (typically 30-60s, so
+ * several loops of the ~10s clip) — same treatment `GlobeLoader`'s `Globe`
+ * uses for `/loading-globe.mp4`: muted + `playsInline` (required for iOS
+ * Safari autoplay), a `poster` for the gap before the first frame decodes,
+ * and a static image instead of motion when the OS asks for reduced motion.
+ */
+function AnalysisLoadingVideo() {
+  const reduced = usePrefersReducedMotion();
+
+  return (
+    <div className="w-full max-w-2xl overflow-hidden rounded-gb-2xl shadow-gb-lg" aria-hidden="true">
+      {reduced ? (
+        <div
+          className="aspect-[960/668] w-full bg-cover bg-center"
+          style={{ backgroundImage: 'url(/ai-strategy-loading-poster.jpg)' }}
+        />
+      ) : (
+        <video
+          className="w-full"
+          src="/ai-strategy-loading.mp4"
+          poster="/ai-strategy-loading-poster.jpg"
+          autoPlay
+          loop
+          muted
+          playsInline
+          preload="auto"
+        />
+      )}
+    </div>
+  );
+}
+
+/** The applicant-analysis API returns the raw DB row (snake_case); map it. */
+function mapApplicant(row: Record<string, unknown> | null): ApplicantAnalysis | null {
+  if (!row) return null;
+  return {
+    id: row.id as string,
+    applicationId: row.application_id as string,
+    profileVersion: row.profile_version as number,
+    personalitySummary: (row.personality_summary as string) ?? null,
+    learningStyle: (row.learning_style as string[]) ?? [],
+    academicStrengths: (row.academic_strengths as string[]) ?? [],
+    growthAreas: (row.growth_areas as string[]) ?? [],
+    motivationAnalysis: (row.motivation_analysis as string) ?? null,
+    competitiveAdvantages: (row.competitive_advantages as string[]) ?? [],
+    suggestedPositioning: (row.suggested_positioning as string) ?? null,
+    overallRating: (row.overall_rating as number) ?? null,
+    inputsPresent: (row.inputs_present as ApplicantAnalysis['inputsPresent']) ?? {
+      personalSummary: false,
+      achievements: false,
+      evidence: false,
+    },
+    modelName: (row.model_name as string) ?? null,
+    promptVersion: (row.prompt_version as string) ?? null,
+    createdAt: row.created_at as string,
+  };
+}

@@ -119,6 +119,32 @@ export interface UniversityQueries {
   /** Hydrate a shortlist without re-fetching the world. */
   getByIds(ids: number[]): Promise<UniversityListItem[]>;
 
+  /**
+   * Row ids for a known set of institution names, keyed by the name as GIVEN.
+   *
+   * For a caller that has a hard-coded list of universities and needs to link
+   * to their pages — the home partner wall is the one today. The route is
+   * `/universities/[id]` keyed on the numeric id (there is no `slug` column, see
+   * that page's header), so a static list of names cannot build a link on its
+   * own.
+   *
+   * Two things about the contract:
+   *
+   *  - MATCHING IS ON THE NORMALISED NAME, not on string equality. The caller's
+   *    spelling and the row's disagree constantly in ways that mean nothing —
+   *    "ETH Zürich" vs "ETH Zurich", "The University of Hong Kong" vs
+   *    "University of Hong Kong". See `normaliseUniversityName`.
+   *
+   *  - A NAME THAT DOES NOT MATCH IS SIMPLY ABSENT from the result. It is not
+   *    an error: the directory is imported, and a university a marketing page
+   *    names may genuinely not be in it. Callers are expected to have a
+   *    fallback, and must not assume `names.length` entries came back.
+   *
+   * Returns a plain object rather than a Map so the result survives
+   * `unstable_cache`, which serializes through JSON.
+   */
+  findIdsByNames(names: readonly string[]): Promise<Record<string, number>>;
+
   facets(): Promise<UniversityFacets>;
 
   /**

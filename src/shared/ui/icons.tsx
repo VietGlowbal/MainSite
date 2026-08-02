@@ -287,6 +287,20 @@ export const ICONS = {
     strokeWidth: 2,
     d: 'M15.9932 9.21872C13.9938 6.8813 10.6597 6.25255 8.15469 8.39292C5.64964 10.5333 5.29697 14.1119 7.2642 16.6433C8.89982 18.748 13.8498 23.187 15.4721 24.6237C15.6536 24.7845 15.7444 24.8648 15.8502 24.8964C15.9426 24.924 16.0437 24.924 16.1361 24.8964C16.2419 24.8648 16.3327 24.7845 16.5142 24.6237C18.1365 23.187 23.0865 18.748 24.7221 16.6433C26.6893 14.1119 26.3797 10.5108 23.8316 8.39292C21.2835 6.27506 17.9925 6.8813 15.9932 9.21872Z',
   },
+  /**
+   * Generic close ("X") glyph — NOT FROM A FIGMA EXPORT, unlike every other
+   * entry here. There is no kit export for one, and a dialog's close button
+   * is a functional necessity, not a design decision that needs the frame.
+   * Native 24px box in a 24px frame, same stroke treatment as the rest so it
+   * does not read as a one-off inline SVG next to them.
+   */
+  close: {
+    w: 24,
+    h: 24,
+    frame: 24,
+    strokeWidth: 2,
+    d: ['M18 6L6 18', 'M6 6L18 18'],
+  },
 } as const satisfies Record<string, KitIconArt>;
 
 /* ──────────────────────────────────────────────────────────────────────────

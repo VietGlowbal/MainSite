@@ -16,6 +16,10 @@ import {
 const EMPTY: ReflectionValues = {
   majors: [],
   countries: [],
+  languages: [],
+  currentSubjects: [],
+  interestAreas: [],
+  learningStyle: [],
   achievements: [],
   activities: [],
 };
@@ -47,6 +51,10 @@ describe('reflectionFromProfile', () => {
       fundingSource: 'Personal savings or parents',
       budgetRange: '270000000-500000000',
       tuitionBudgetUsd: '$20,000 - $30,000',
+      languages: [],
+      currentSubjects: [],
+      interestAreas: [],
+      learningStyle: [],
       achievements: [],
       activities: [],
     });
@@ -126,6 +134,10 @@ describe('profileUpdateFromReflection', () => {
       fundingSource: FUNDING_SOURCES[1],
       budgetRange: '100000000-200000000',
       tuitionBudgetUsd: TUITION_BUDGETS_USD[2],
+      languages: [],
+      currentSubjects: [],
+      interestAreas: [],
+      learningStyle: [],
       achievements: [],
       activities: [],
     };
@@ -152,6 +164,10 @@ describe('reflectionCompleteness', () => {
         fundingSource: FUNDING_SOURCES[0],
         budgetRange: '1-2',
         tuitionBudgetUsd: TUITION_BUDGETS_USD[0],
+        languages: [],
+        currentSubjects: [],
+        interestAreas: [],
+        learningStyle: [],
         achievements: [{ category: 'academic_award', title: 'Olympiad' }],
         activities: [{ category: 'leadership', title: 'Student council' }],
       }),

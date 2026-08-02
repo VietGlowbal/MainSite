@@ -103,7 +103,31 @@ export const ACTIVITY_CATEGORIES = [
   { value: 'innovation', label: 'Innovation & Projects' },
   { value: 'personal_growth', label: 'Personal Growth' },
   { value: 'mentoring', label: 'Mentoring & Tutoring' },
+  { value: 'employment', label: 'Employment' },
   { value: 'other', label: 'Other' },
+] as const;
+
+/**
+ * Personal Summary — V2's additions (ai-strategy-dashboard requirements.md
+ * Requirement 3). Interests and Learning Style are self-described areas, not
+ * structured records — those stay in student_achievements/student_activities.
+ */
+export const LEARNING_STYLE_OPTIONS = [
+  'Independent',
+  'Group',
+  'Creative',
+  'Technical',
+  'Research',
+  'Practical',
+] as const;
+
+export const INTEREST_AREAS = [
+  'Hobbies',
+  'Sports',
+  'Competitions',
+  'Projects',
+  'Leadership',
+  'Volunteering',
 ] as const;
 
 export type AchievementCategory = (typeof ACHIEVEMENT_CATEGORIES)[number]['value'];
@@ -157,6 +181,27 @@ export const aspirationsSchema = z.object({
   tuitionBudgetUsd: z.enum(TUITION_BUDGETS_USD).optional(),
 });
 
+/** Part 2B — Personal Summary's remaining sections (Requirement 3.2). */
+export const personalSummarySchema = z.object({
+  country: optionalText(120),
+  languages: z.array(z.string().trim().min(1)).max(10).default([]),
+  age: z.number().int().min(10).max(100).optional(),
+  schoolName: optionalText(200),
+  currentYear: optionalText(60),
+  currentSubjects: z.array(z.string().trim().min(1)).max(10).default([]),
+  predictedGrades: optionalText(200),
+  studyStyle: optionalText(200),
+  careerGoals: optionalText(1000),
+  interestAreas: z.array(z.enum(INTEREST_AREAS)).max(INTEREST_AREAS.length).default([]),
+  learningStyle: z.array(z.enum(LEARNING_STYLE_OPTIONS)).max(LEARNING_STYLE_OPTIONS.length).default([]),
+  psMotivations: optionalText(2000),
+  psGoals: optionalText(2000),
+  psDreamCareer: optionalText(2000),
+  psReasonsAbroad: optionalText(2000),
+});
+
+export type PersonalSummaryValues = z.infer<typeof personalSummarySchema>;
+
 export const achievementSchema = z.object({
   id: z.string().optional(),
   category: z.enum(['academic_award', 'competition', 'research', 'certification', 'other']),
@@ -187,6 +232,7 @@ export const activitySchema = z.object({
     'innovation',
     'personal_growth',
     'mentoring',
+    'employment',
     'other',
   ]),
   title: z.string().trim().min(1, 'Give this activity a name.').max(200),
@@ -201,7 +247,10 @@ export const evidenceSchema = z.object({
   activities: z.array(activitySchema).max(20).default([]),
 });
 
-export const reflectionSchema = aboutYouSchema.merge(aspirationsSchema).merge(evidenceSchema);
+export const reflectionSchema = aboutYouSchema
+  .merge(aspirationsSchema)
+  .merge(personalSummarySchema)
+  .merge(evidenceSchema);
 
 export type AboutYouValues = z.infer<typeof aboutYouSchema>;
 export type AspirationsValues = z.infer<typeof aspirationsSchema>;
@@ -224,6 +273,19 @@ export type ReflectionProfileRow = {
   funding_source?: string | null;
   tuition_budget_usd?: string | null;
   grades_summary?: Record<string, unknown> | null;
+  // Personal Summary additions (supabase-strategy-personal-summary.sql)
+  country?: string | null;
+  languages?: string[] | null;
+  age?: number | null;
+  school_name?: string | null;
+  current_year?: string | null;
+  current_subjects?: string[] | null;
+  predicted_grades?: string | null;
+  study_style?: string | null;
+  goals?: string | null;
+  interest_areas?: string[] | null;
+  learning_style?: string[] | null;
+  personal_statement_answers?: Record<string, unknown> | null;
 };
 
 /** Narrow an unknown stored value to a non-empty string. */
@@ -256,6 +318,7 @@ export function reflectionFromProfile(
   activities: ActivityValues[] = [],
 ): ReflectionValues {
   const grades = (profile?.grades_summary ?? {}) as Record<string, unknown>;
+  const psAnswers = (profile?.personal_statement_answers ?? {}) as Record<string, unknown>;
 
   return {
     ...(oneOf(EDUCATION_LEVELS, profile?.current_qualification) !== undefined
@@ -279,6 +342,40 @@ export function reflectionFromProfile(
       : {}),
     ...(oneOf(TUITION_BUDGETS_USD, profile?.tuition_budget_usd) !== undefined
       ? { tuitionBudgetUsd: oneOf(TUITION_BUDGETS_USD, profile?.tuition_budget_usd) }
+      : {}),
+    ...(text(profile?.country) !== undefined ? { country: text(profile?.country) } : {}),
+    languages: profile?.languages ?? [],
+    ...(typeof profile?.age === 'number' ? { age: profile.age } : {}),
+    ...(text(profile?.school_name) !== undefined
+      ? { schoolName: text(profile?.school_name) }
+      : {}),
+    ...(text(profile?.current_year) !== undefined
+      ? { currentYear: text(profile?.current_year) }
+      : {}),
+    currentSubjects: profile?.current_subjects ?? [],
+    ...(text(profile?.predicted_grades) !== undefined
+      ? { predictedGrades: text(profile?.predicted_grades) }
+      : {}),
+    ...(text(profile?.study_style) !== undefined
+      ? { studyStyle: text(profile?.study_style) }
+      : {}),
+    ...(text(profile?.goals) !== undefined ? { careerGoals: text(profile?.goals) } : {}),
+    interestAreas: (profile?.interest_areas ?? []).filter((v): v is (typeof INTEREST_AREAS)[number] =>
+      (INTEREST_AREAS as readonly string[]).includes(v),
+    ),
+    learningStyle: (profile?.learning_style ?? []).filter(
+      (v): v is (typeof LEARNING_STYLE_OPTIONS)[number] =>
+        (LEARNING_STYLE_OPTIONS as readonly string[]).includes(v),
+    ),
+    ...(text(psAnswers['motivations']) !== undefined
+      ? { psMotivations: text(psAnswers['motivations']) }
+      : {}),
+    ...(text(psAnswers['goals']) !== undefined ? { psGoals: text(psAnswers['goals']) } : {}),
+    ...(text(psAnswers['dreamCareer']) !== undefined
+      ? { psDreamCareer: text(psAnswers['dreamCareer']) }
+      : {}),
+    ...(text(psAnswers['reasonsAbroad']) !== undefined
+      ? { psReasonsAbroad: text(psAnswers['reasonsAbroad']) }
       : {}),
     achievements,
     activities,
@@ -309,14 +406,42 @@ export function profileUpdateFromReflection(
     | 'fundingSource'
     | 'budgetRange'
     | 'tuitionBudgetUsd'
+    | 'country'
+    | 'languages'
+    | 'age'
+    | 'schoolName'
+    | 'currentYear'
+    | 'currentSubjects'
+    | 'predictedGrades'
+    | 'studyStyle'
+    | 'careerGoals'
+    | 'interestAreas'
+    | 'learningStyle'
+    | 'psMotivations'
+    | 'psGoals'
+    | 'psDreamCareer'
+    | 'psReasonsAbroad'
   >,
   existingGrades: Record<string, unknown> | null = null,
+  existingPsAnswers: Record<string, unknown> | null = null,
 ): Record<string, unknown> {
   const grades: Record<string, unknown> = { ...(existingGrades ?? {}) };
   if (values.gpa) grades['gpa'] = values.gpa;
   else delete grades['gpa'];
   if (values.ielts) grades['ielts'] = values.ielts;
   else delete grades['ielts'];
+
+  const psAnswers: Record<string, unknown> = { ...(existingPsAnswers ?? {}) };
+  const psFields: Array<[string, string | undefined]> = [
+    ['motivations', values.psMotivations],
+    ['goals', values.psGoals],
+    ['dreamCareer', values.psDreamCareer],
+    ['reasonsAbroad', values.psReasonsAbroad],
+  ];
+  for (const [key, value] of psFields) {
+    if (value) psAnswers[key] = value;
+    else delete psAnswers[key];
+  }
 
   return {
     current_qualification: values.highestEducation ?? null,
@@ -328,6 +453,18 @@ export function profileUpdateFromReflection(
     budget_range: values.budgetRange ?? null,
     tuition_budget_usd: values.tuitionBudgetUsd ?? null,
     grades_summary: Object.keys(grades).length > 0 ? grades : null,
+    country: values.country ?? null,
+    languages: values.languages.length > 0 ? values.languages : null,
+    age: values.age ?? null,
+    school_name: values.schoolName ?? null,
+    current_year: values.currentYear ?? null,
+    current_subjects: values.currentSubjects.length > 0 ? values.currentSubjects : null,
+    predicted_grades: values.predictedGrades ?? null,
+    study_style: values.studyStyle ?? null,
+    goals: values.careerGoals ?? null,
+    interest_areas: values.interestAreas.length > 0 ? values.interestAreas : null,
+    learning_style: values.learningStyle.length > 0 ? values.learningStyle : null,
+    personal_statement_answers: Object.keys(psAnswers).length > 0 ? psAnswers : null,
   };
 }
 

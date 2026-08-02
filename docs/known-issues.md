@@ -132,6 +132,56 @@ curriculum (see `docs/redesign-status.md`), which needs:
 
 ---
 
+## 0b. `application_recommendations` shipped with RLS enabled but no INSERT policy — every AI Strategy Dashboard recommendation write was silently rejected
+
+**Found from a live bug report**: `/ai-strategy/[id]/strategy/dashboard` showed
+"We couldn't refresh your recommendations just now" and an empty
+recommendation table for a student with a completed Course Match Analysis
+(60/80 match score) — i.e. exactly the "AI matching is completely
+empty/broken" symptom.
+
+`supabase-apply-v2.sql` turns RLS on for `application_recommendations` and
+adds a SELECT policy and an UPDATE policy, but **never an INSERT policy**:
+
+```sql
+ALTER TABLE public.application_recommendations ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Users can view recommendations for their applications" ...
+CREATE POLICY "Users can update recommendations for their applications" ...
+-- no INSERT policy — Postgres RLS defaults to deny
+```
+
+`generateRecommendations` (`src/features/ai-strategy-dashboard/api/generate-recommendations.ts`)
+runs on the request-scoped, RLS-respecting Supabase client
+(`await createClient()`), so its `.insert(...)` for a student's *first*
+recommendation has been rejected by RLS since the Dashboard shipped (#112).
+Reads and status updates of already-existing rows work fine — which is why
+this stayed hidden: nothing in the current codebase actually inserts into
+this table except `generateRecommendations`, so no student could ever get a
+first row created, and the failure looked identical to "nothing to
+recommend yet" until the fix in #112/#114 started surfacing it as an
+explicit error banner instead of a silent empty table.
+
+**Fix**: `supabase-strategy-recommendations-insert-policy.sql` — additive,
+adds only the missing INSERT policy, does not touch existing rows or the
+SELECT/UPDATE policies. ⚠️ **Owner must run it** (Supabase SQL editor, like
+every migration here — see §0). Verify with:
+
+```sql
+select policyname, cmd from pg_policies
+where tablename = 'application_recommendations';
+```
+should list `INSERT`, `SELECT`, and `UPDATE` rows.
+
+If `supabase-strategy-recommendation-fields.sql` (adds `estimated_impact`,
+`pillar`, `source_analysis_id`, `archived_at`) hasn't been run either, run
+that one first — `generateRecommendations` selects those columns too and
+will fail with `PGRST204` ("Could not find the '...' column") until it has.
+`generateRecommendations` now logs which of the two is missing
+(`logMigrationHint`) instead of just "insert failed", matching the
+diagnosis pattern in §1c below.
+
+---
+
 ## 1. FIXED 2026-07-27 — `public.user_universities` migration applied
 
 Was: PostgREST answered `Could not find the table 'public.user_universities' in

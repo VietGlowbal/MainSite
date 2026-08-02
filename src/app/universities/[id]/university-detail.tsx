@@ -33,7 +33,7 @@ import { TID, testId } from '@/shared/lib/testids';
 import type { University } from '@/lib/types';
 import { FadeInImage } from '../fade-in-image';
 import { DetailNav, type DetailSection } from './detail-nav';
-import { SaveUniversityButton } from './save-university-button';
+import { UniversitySaveHeader } from './save-university-button';
 
 /**
  * /universities/[id] — Figma 375:10629 "Detail trường" (1440x4505).
@@ -318,18 +318,12 @@ export function UniversityDetail({
           </Link>
 
           <div className="flex flex-col gap-gb-3xl">
-            {/* Figma 522:8633 — the title row, heading left, save heart right. */}
-            <div className="flex items-start justify-between gap-gb-2xl">
-              <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg md:text-gb-display-lg">
-                {university.name}
-              </h1>
-              <SaveUniversityButton
-                universityId={university.id}
-                universityName={university.name}
-                isSignedIn={isSignedIn}
-                initialSaved={isSaved}
-              />
-            </div>
+            <UniversitySaveHeader
+              universityId={university.id}
+              universityName={university.name}
+              isSignedIn={isSignedIn}
+              initialSaved={isSaved}
+            />
 
             {/* Figma 375:10655. Ranks are brand-subtle, facts are neutral. */}
             <div className="flex flex-wrap items-start gap-gb-3xl">
@@ -670,11 +664,13 @@ export function UniversityDetail({
                 </p>
               </div>
               {/*
-               * The frame's label is "Lên Chiến lược Ứng tuyển ngay" and points
-               * at the strategy flow. /ai-strategy does not exist yet — the nav
-               * and footer already carry that deliberate, tracked 404 (see
-               * nav-items.tsx), so this is consistent rather than a new dead
-               * end. It starts working when Phase 2 lands.
+               * The frame's label is "Lên Chiến lược Ứng tuyển ngay". This page
+               * is university-level — no course is selected yet, so there is no
+               * applicationId to deep-link a specific Strategy into (see
+               * .kiro/specs/ai-strategy-dashboard/requirements.md Requirement
+               * 1.1, "one Strategy per course"). /ai-strategy is the right
+               * target: a signed-in student sees their existing strategies
+               * there, or a prompt to pick a course if they have none.
                */}
               <Button href="/ai-strategy" className="w-full">
                 Build your application strategy

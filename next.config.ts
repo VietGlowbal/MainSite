@@ -71,6 +71,22 @@ const nextConfig: NextConfig = {
        * them.
        */
       { source: '/my-universities', destination: '/apply', permanent: true },
+      /*
+       * /how-it-works -> /ai-strategy, permanently.
+       *
+       * Two pages explained the product and they disagreed. /how-it-works
+       * taught the pre-01/08 flow — "find courses on the university's site,
+       * copy the course URL, paste it on GlowBal Apply" — which stopped being
+       * possible when the paste-a-URL bar was removed from /apply and
+       * applications started being created from a saved university instead.
+       * /ai-strategy is now the explainer and describes the real flow, so this
+       * one redirects rather than being maintained in parallel.
+       *
+       * Nothing in the app linked here (its only inbound reference was
+       * src/components/JourneySteps.tsx, itself unrendered), so this is purely
+       * for external links and anyone who bookmarked it.
+       */
+      { source: '/how-it-works', destination: '/ai-strategy', permanent: true },
     ];
   },
   images: {

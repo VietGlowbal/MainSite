@@ -1,6 +1,7 @@
 'use client';
 
 import Image from 'next/image';
+import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   ORBIT_SAMPLES,
@@ -77,6 +78,39 @@ import { PARTNER_LOGOS } from './partner-logos';
  * surfaces only the institution's real name. Also left out: the reference's
  * demo header (speed/sound/pause toggles, the "Scale AI Engine" badge) —
  * prototype chrome for exploring the animation, not part of the section.
+ *
+ * ─── THE HEADING IS THE HOVER'S ANSWER, AND THE LOGOS GO SOMEWHERE ──────────
+ *
+ * The heading reads "Study <somewhere>" and the second word flips over as the
+ * pointer moves round the ring: "Study Anywhere" at rest, "Study Cambridge"
+ * while Cambridge is under the cursor. It replaced the flat "Our featured
+ * partners", which is the claim ./partner-logos.ts had a standing ⚠️ against.
+ *
+ * Two details are load-bearing:
+ *
+ * 1. THE LINE'S WIDTH IS RESERVED BY EVERY WORD AT ONCE, not by the longest
+ *    one guessed by character count. `StudyWord` stacks all twelve candidates,
+ *    invisible, in a single grid cell, so the cell is as wide as the widest one
+ *    actually renders. Guessing was tried first and is not safe: this heading is
+ *    centred, so if the reserved width is even slightly short the whole line —
+ *    "Study" included — re-centres the instant a wider word lands, and in a bold
+ *    display face "Cambridge" and "ETH Zürich" swap places depending on the
+ *    tracking. Twelve invisible spans cost nothing and cannot be wrong.
+ *
+ * 2. THE OUTGOING WORD IS A SEPARATE ELEMENT, kept alive for the length of its
+ *    own animation. One element cannot flip out and in at the same time, and a
+ *    crossfade is not what the reference does — see the note on
+ *    --animate-gb-word-flip-* in src/styles/tokens.css for why the direction of
+ *    the rotation matters.
+ *
+ * EVERY LOGO IS A LINK to that university's page in the directory, which is the
+ * question a visitor who just hovered a crest is asking. The route is
+ * `/universities/[id]` on the numeric row id — there is no slug column, see that
+ * page's header — so the ids cannot be written down beside the logos and are
+ * resolved by name at the page level and passed in. `universityIds` is therefore
+ * allowed to be short, sparse or absent, and anything unresolved falls back to
+ * the directory index rather than to a dead 404 or a logo that is silently not
+ * clickable. See `findIdsByNames` in features/universities/api.
  *
  * ─── WHAT CARRIED OVER FROM EARLIER BUILDS ──────────────────────────────────
  *
@@ -162,6 +196,22 @@ const TILT_DEG_PER_STEP = 3;
     why the heading must always render above every possible logo z-index. */
 const FOCUS_Z_INDEX = 200;
 const ORBIT_Z_CEILING = FOCUS_Z_INDEX + 1;
+
+/** What the heading says while nothing is hovered: "Study Anywhere". */
+const DEFAULT_STUDY_WORD = 'Anywhere';
+/** Every word the heading's second slot can hold, which is what reserves its
+    width. Order is irrelevant — they all occupy the same grid cell. */
+const STUDY_WORDS: readonly string[] = [
+  DEFAULT_STUDY_WORD,
+  ...PARTNER_LOGOS.map((logo) => logo.shortName),
+];
+/** Must be ≥ the flip-out animation in tokens.css, or the outgoing word is
+    unmounted mid-rotation and disappears instead of finishing. */
+const WORD_FLIP_OUT_MS = 260;
+/** The directory index — where a logo points when its row could not be
+    resolved. Not a 404 and not an inert logo: the visitor still lands somewhere
+    they can find the university themselves. */
+const DIRECTORY_HREF = '/universities';
 
 type Wave = {
   readonly sourceProgress: number;
@@ -297,13 +347,124 @@ const NODE_CLASSES = [
   'lg:[will-change:transform]',
 ].join(' ');
 
-export function HomePartners() {
+/**
+ * The second word of "Study <somewhere>", rotating down as it changes.
+ *
+ * The gradient fill and both keyframes are tokens — see the partner-orbit block
+ * at the end of src/styles/tokens.css, which also explains why the rotation goes
+ * the way it does.
+ */
+function StudyWord({ word }: { word: string }) {
+  /** `nonce` exists to key the two animated spans: React reuses a DOM node when
+      only its text changes, and a reused node does not replay a CSS animation.
+      Bumping it on every swap forces a fresh element, which is what makes the
+      flip run at all. */
+  const [shown, setShown] = useState({ word, leaving: null as string | null, nonce: 0 });
+
+  /* Adjusted during render rather than in an effect. An effect runs after paint,
+     so the browser would show the new word once, sitting still in its resting
+     position, and only then start the flip — a visible stutter on every hover.
+     Setting state while rendering makes React discard this output and re-render
+     immediately, before anything is painted. This is the documented pattern for
+     state derived from a prop, not a workaround. */
+  if (shown.word !== word) {
+    setShown({ word, leaving: shown.word, nonce: shown.nonce + 1 });
+  }
+
+  /* Retire the outgoing word once its animation has played. Keyed on `nonce`, so
+     a second swap arriving mid-flip cancels this timer and starts its own —
+     without that, the first timer would fire during the second flip and drop the
+     wrong word out of the DOM. */
+  useEffect(() => {
+    if (shown.leaving === null) return;
+    const timer = setTimeout(
+      () => setShown((current) => ({ ...current, leaving: null })),
+      WORD_FLIP_OUT_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [shown.nonce, shown.leaving]);
+
+  /* The gradient is painted through the glyphs, so the text itself has no
+     colour of its own — `text-transparent` is what makes the fill visible, not
+     an accident.
+
+     `text-left` OVERRIDES the `text-center` inherited from the h2. Without it,
+     a short word (MIT, NUS, HKU) centres inside the reservation cell above —
+     which is sized for "Cambridge"/"ETH Zürich" — and ends up floating well
+     right of "Study" with a big gap in between. Left-aligning pins every word
+     flush against "Study "; the leftover reserved width still trails invisibly
+     after the word, so the line's total width (and therefore "Study"'s
+     position) still never jitters as words change. */
+  const wordClasses =
+    'col-start-1 row-start-1 whitespace-nowrap text-left bg-[image:var(--gb-partner-word)] bg-clip-text text-transparent';
+
+  /* inline-grid, not inline-block: every word below shares ONE cell
+     (col-start-1 row-start-1), which both stacks them and makes the cell as wide
+     as the widest of them. `perspective` is what turns the keyframes' rotateX
+     into a rotation you can see rather than a vertical squash. */
+  return (
+    <span className="inline-grid align-baseline [perspective:600px]">
+      {/* The width reservation. Invisible but laid out, all twelve in one cell,
+          so the column is as wide as the widest word truly renders — see the ⚠️
+          in this file's header for why this is not a `longest by length` guess.
+          data-no-auto-translate: these are institution names, and translating
+          text nobody can see would be a round trip for nothing. */}
+      <span aria-hidden="true" data-no-auto-translate className="invisible col-start-1 row-start-1 grid">
+        {STUDY_WORDS.map((candidate) => (
+          <span key={candidate} className="col-start-1 row-start-1 whitespace-nowrap">
+            {candidate}
+          </span>
+        ))}
+      </span>
+
+      {shown.leaving !== null ? (
+        /* motion-reduce hides it outright: with the animation off, `both` never
+           applies the closing frame, so it would sit at full opacity on top of
+           the incoming word for the length of the timer. */
+        <span
+          key={`out-${shown.nonce}`}
+          aria-hidden="true"
+          data-no-auto-translate
+          className={`${wordClasses} animate-gb-word-flip-out motion-reduce:animate-none motion-reduce:opacity-0`}
+        >
+          {shown.leaving}
+        </span>
+      ) : null}
+
+      {/* Only the default word is translatable; the rest are university names,
+          which the i18n rules say are never translated. The attribute is
+          conditional rather than always-on for exactly that reason. */}
+      <span
+        key={`in-${shown.nonce}`}
+        {...(shown.word === DEFAULT_STUDY_WORD ? {} : { 'data-no-auto-translate': true })}
+        className={`${wordClasses} animate-gb-word-flip-in motion-reduce:animate-none`}
+      >
+        {shown.word}
+      </span>
+    </span>
+  );
+}
+
+export type HomePartnersProps = {
+  /**
+   * Row id in `universities` for each logo, positionally aligned with
+   * PARTNER_LOGOS. `null` — or a short/absent array — means "not resolved", and
+   * that logo links to the directory index instead. See this file's header.
+   */
+  readonly universityIds?: readonly (number | null)[];
+};
+
+export function HomePartners({ universityIds }: HomePartnersProps = {}) {
   const stageRef = useRef<HTMLDivElement>(null);
   /** Which logo is hovered, and since when — read every frame by the loop, so
       kept in a ref rather than state (a state update would re-render eleven
       `next/image` nodes for something only the imperative loop needs). */
   const hoveredIndexRef = useRef<number | null>(null);
-  const [hoveredName, setHoveredName] = useState<string | null>(null);
+  /** The hovered logo, mirrored into state because the heading and the caption
+      under it are rendered by React rather than written by the loop. Held as an
+      index, not a name, so both lines read from one source. */
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+  const hovered = hoveredIndex === null ? null : (PARTNER_LOGOS[hoveredIndex] ?? null);
 
   useEffect(() => {
     const stage = stageRef.current;
@@ -338,7 +499,7 @@ export function HomePartners() {
         clearTimeout(hoverLockTimer);
         hoverLockTimer = null;
       }
-      setHoveredName(null);
+      setHoveredIndex(null);
       activeWave = null;
       activeReleaseWave = {
         sourceProgress: states[index]!.progress,
@@ -514,7 +675,7 @@ export function HomePartners() {
           startTime: performance.now(),
           playedNodes: new Set([index]),
         };
-        setHoveredName(PARTNER_LOGOS[index]?.name ?? null);
+        setHoveredIndex(index);
       };
       const onLeave = () => {
         const elapsed = performance.now() - hoverStartedAt;
@@ -530,9 +691,18 @@ export function HomePartners() {
       };
       node.addEventListener('mouseenter', onEnter);
       node.addEventListener('mouseleave', onLeave);
+      /* Keyboard parity, now that each logo is a link and therefore in the tab
+         order: tabbing onto one fires the same wave and moves the heading, so
+         someone who never touches a pointer gets the same section. `focusin` /
+         `focusout` rather than `focus` / `blur` because the focus lands on the
+         anchor INSIDE this node, and only the -in/-out pair bubbles. */
+      node.addEventListener('focusin', onEnter);
+      node.addEventListener('focusout', onLeave);
       teardownListeners.push(() => {
         node.removeEventListener('mouseenter', onEnter);
         node.removeEventListener('mouseleave', onLeave);
+        node.removeEventListener('focusin', onEnter);
+        node.removeEventListener('focusout', onLeave);
       });
     });
 
@@ -572,39 +742,42 @@ export function HomePartners() {
             style={{ zIndex: ORBIT_Z_CEILING }}
           >
             <h2 className="text-center font-display text-gb-display-sm font-semibold tracking-gb-display-open lg:whitespace-nowrap lg:text-[4.7059cqw] lg:leading-[6.2745cqw]">
-              Our featured partners
+              Study <StudyWord word={hovered?.shortName ?? DEFAULT_STUDY_WORD} />
             </h2>
-            {/* Reserves its own line so nothing shifts as a logo passes under the
-                cursor. Empty until one does. Desktop only: it answers a hover, and
-                there is no hover on the mobile layout.
-
-                aria-hidden because it is a duplicate — the name it shows is the
-                alt text of the logo being hovered, which is already in the tree. */}
-            <p
-              aria-hidden="true"
-              className="hidden h-gb-3xl text-center text-gb-md text-white/70 lg:block"
-            >
-              {hoveredName}
-            </p>
           </div>
 
           <ul className="flex flex-wrap justify-center gap-gb-3xl lg:block">
-            {PARTNER_LOGOS.map((logo, index) => (
-              <li
-                key={logo.name}
-                data-orbit-node
-                className={NODE_CLASSES}
-                style={orbitStyle(orbitVars(index / PARTNER_LOGOS.length, 0, 0, 0))}
-              >
-                <Image
-                  src={logo.src}
-                  alt={logo.name}
-                  fill
-                  sizes="(min-width: 1024px) 128px, 88px"
-                  className="object-cover"
-                />
-              </li>
-            ))}
+            {PARTNER_LOGOS.map((logo, index) => {
+              const universityId = universityIds?.[index] ?? null;
+              return (
+                <li
+                  key={logo.name}
+                  data-orbit-node
+                  className={NODE_CLASSES}
+                  style={orbitStyle(orbitVars(index / PARTNER_LOGOS.length, 0, 0, 0))}
+                >
+                  {/* The whole tile is the hit area, and the link's accessible
+                      name is the logo's alt text — so no aria-label, which would
+                      override it with a second wording of the same thing.
+
+                      The focus ring is inset (`-outline-offset`) because this
+                      node is `overflow-hidden` for the rounded corners, and an
+                      outset ring would be clipped away to nothing. */}
+                  <Link
+                    href={universityId === null ? DIRECTORY_HREF : `/universities/${universityId}`}
+                    className="absolute inset-0 block rounded-gb-md focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-white"
+                  >
+                    <Image
+                      src={logo.src}
+                      alt={logo.name}
+                      fill
+                      sizes="(min-width: 1024px) 128px, 88px"
+                      className="object-cover"
+                    />
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>

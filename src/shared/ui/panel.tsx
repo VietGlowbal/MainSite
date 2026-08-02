@@ -35,19 +35,48 @@ const PADDING = {
 
 export type PanelPadding = keyof typeof PADDING;
 
-const PANEL_BASE = 'rounded-gb-2xl border border-line bg-surface shadow-gb-xs';
+/**
+ * Whether the card lifts off the page.
+ *
+ * `raised` is the console default and stays the default, so /profile and /admin
+ * are untouched. `flat` exists for the Application Strategy workspace, whose
+ * design rules call for "flat, restrained cards" and "minimal or no shadow"
+ * explicitly — those screens put ten or more panels on one page, and at that
+ * density the shadow reads as noise rather than as hierarchy.
+ *
+ * A variant here rather than a second Panel component in the feature: two cards
+ * with the same radius, border and padding but independent implementations is
+ * how the border colour ends up different on one page.
+ */
+const ELEVATION = {
+  raised: ' shadow-gb-xs',
+  flat: '',
+} as const;
+
+export type PanelElevation = keyof typeof ELEVATION;
+
+const PANEL_BASE = 'rounded-gb-2xl border border-line bg-surface';
 
 export function Panel({
   padding = 'md',
+  elevation = 'raised',
+  as: Tag = 'div',
   className,
   children,
 }: {
   padding?: PanelPadding | undefined;
+  elevation?: PanelElevation | undefined;
+  /**
+   * The element to render. A panel that is one of a list of workspace cards is
+   * an `li`; one that is a labelled region of a page is a `section`. Neither is
+   * a decision this component can make for its caller.
+   */
+  as?: 'div' | 'section' | 'article' | 'li' | undefined;
   className?: string | undefined;
   children: React.ReactNode;
 }) {
-  const classes = `${PANEL_BASE} ${PADDING[padding]}${className ? ` ${className}` : ''}`;
-  return <div className={classes}>{children}</div>;
+  const classes = `${PANEL_BASE}${ELEVATION[elevation]} ${PADDING[padding]}${className ? ` ${className}` : ''}`;
+  return <Tag className={classes}>{children}</Tag>;
 }
 
 /**
@@ -149,7 +178,7 @@ export function StatTile({
     </>
   );
 
-  const shell = `${PANEL_BASE} flex flex-col gap-gb-xs p-gb-2xl`;
+  const shell = `${PANEL_BASE}${ELEVATION.raised} flex flex-col gap-gb-xs p-gb-2xl`;
 
   if (href) {
     return (
