@@ -521,11 +521,12 @@ describe('VinUni V2 two-pass stream', () => {
       requestedSections: ['A'],
       stream: provider as VinUniTextStream,
     })) {
+      if ((event as { type: string }).type === 'evidence_map') order.push('evidence_map');
       if (event.type === 'diagnostics') order.push('diagnostics');
       if (event.type === 'section' && event.section === 'A') order.push('A');
     }
 
-    expect(order).toEqual(['diagnostics', 'A']);
+    expect(order).toEqual(['evidence_map', 'diagnostics', 'A']);
   });
 
   it('completes with grounded fallback sections when every provider response is empty', async () => {

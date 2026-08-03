@@ -6,7 +6,6 @@ import {
   useCallback,
   useContext,
   useEffect,
-  useRef,
   useState,
   type ReactNode,
 } from 'react';
@@ -67,22 +66,7 @@ export function reviewClaimElementId(claim: ReviewClaim) {
 }
 
 function TypingQueue({ children }: { children: React.ReactNode }) {
-  const tail = useRef(Promise.resolve());
-  const reserveTurn = useCallback(() => {
-    const wait = tail.current;
-    let release = () => {};
-    const done = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    tail.current = wait.then(() => done);
-    return { wait, release };
-  }, []);
-
-  return (
-    <TypingQueueContext.Provider value={reserveTurn}>
-      {children}
-    </TypingQueueContext.Provider>
-  );
+  return <>{children}</>;
 }
 
 function Chapter({
@@ -1163,58 +1147,56 @@ function EssayDiagnosticBoard({
       </header>
 
       <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:p-6">
-        <article className="min-h-[540px] rounded-[1.75rem] border border-slate-200 bg-white px-6 py-8 shadow-[0_16px_42px_rgba(15,23,42,0.05)] md:px-10">
-          <div className="mx-auto max-w-3xl">{manuscript}</div>
-        </article>
-
-        <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
-          <div className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_42px_rgba(15,23,42,0.05)]">
-            <DiagnosticRadar
-              diagnostics={diagnostics}
-              active={activeDefinition}
-              onActivate={setActiveDefinition}
-            />
-            <div className="mt-4 min-h-36 border-t border-slate-200 pt-4">
-              <h3 className="font-semibold text-slate-950">
-                {DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.label}
-              </h3>
-              <p className="mt-1 text-sm leading-5 text-slate-700">
-                {DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.definition}
-              </p>
-            </div>
+        <div className="grid gap-5 rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_42px_rgba(15,23,42,0.05)] lg:col-start-2 lg:row-start-1">
+          <DiagnosticRadar
+            diagnostics={diagnostics}
+            active={activeDefinition}
+            onActivate={setActiveDefinition}
+          />
+          <div className="min-h-36 border-t border-slate-200 pt-4">
+            <h3 className="font-semibold text-slate-950">
+              {DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.label}
+            </h3>
+            <p className="mt-1 text-sm leading-5 text-slate-700">
+              {DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.definition}
+            </p>
           </div>
+        </div>
 
-          {issues.length ? (
-            <div className="space-y-2.5">
-              {issues.map((issue) => {
-                const active = evidence.activeClaimKeys.has(reviewClaimKey(issue));
-                return (
-                  <button
-                    key={reviewClaimKey(issue)}
-                    id={reviewClaimElementId(issue)}
-                    type="button"
-                    aria-label={issue.text}
-                    data-active={active ? 'true' : 'false'}
-                    onClick={() => evidence.onSelect?.(issue)}
-                    className={`w-full cursor-pointer rounded-2xl border bg-white px-4 py-3 text-left text-sm leading-5 text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-colors duration-200 hover:border-amber-300 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
-                      active ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-200' : 'border-slate-200'
-                    }`}
-                  >
-                    <span className="mb-1 flex items-center justify-between gap-3">
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        {DIAGNOSTIC_META.find(({ key }) => key === issue.criterion)?.label}
-                      </span>
-                      <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
-                        {PRIORITY_LABEL[issue.priority]}
-                      </span>
+        <div className="contents">
+          <article className="min-h-[540px] rounded-[1.75rem] border border-slate-200 bg-white px-6 py-8 shadow-[0_16px_42px_rgba(15,23,42,0.05)] md:px-10 lg:col-start-1 lg:row-span-2 lg:row-start-1">
+            <div className="mx-auto max-w-3xl">{manuscript}</div>
+          </article>
+
+          {issues.length ? <aside className="space-y-2.5 lg:col-start-2 lg:row-start-2 lg:sticky lg:top-4 lg:self-start">
+            {issues.map((issue) => {
+              const active = evidence.activeClaimKeys.has(reviewClaimKey(issue));
+              return (
+                <button
+                  key={reviewClaimKey(issue)}
+                  id={reviewClaimElementId(issue)}
+                  type="button"
+                  aria-label={issue.text}
+                  data-active={active ? 'true' : 'false'}
+                  onClick={() => evidence.onSelect?.(issue)}
+                  className={`w-full cursor-pointer rounded-2xl border bg-white px-4 py-3 text-left text-sm leading-5 text-slate-700 shadow-[0_10px_24px_rgba(15,23,42,0.04)] transition-colors duration-200 hover:border-amber-300 hover:bg-amber-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
+                    active ? 'border-amber-400 bg-amber-50 ring-2 ring-amber-200' : 'border-slate-200'
+                  }`}
+                >
+                  <span className="mb-1 flex items-center justify-between gap-3">
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      {DIAGNOSTIC_META.find(({ key }) => key === issue.criterion)?.label}
                     </span>
-                    {issue.text}
-                  </button>
-                );
-              })}
-            </div>
-          ) : null}
-        </aside>
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+                      {PRIORITY_LABEL[issue.priority]}
+                    </span>
+                  </span>
+                  {issue.text}
+                </button>
+              );
+            })}
+          </aside> : null}
+        </div>
       </div>
     </section>
   );
@@ -1232,12 +1214,9 @@ function EssayDiagnosticSkeleton({ manuscript }: { manuscript: ReactNode }) {
         </h2>
       </header>
       <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:p-6">
-        <article className="min-h-[540px] rounded-2xl border border-slate-200 bg-white px-6 py-8 shadow-sm md:px-10">
-          <div className="mx-auto max-w-3xl">{manuscript}</div>
-        </article>
         <aside
           data-testid="diagnostic-score-skeleton"
-          className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:self-start"
+          className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm lg:col-start-2 lg:row-start-1"
         >
           <svg
             data-testid="diagnostic-radar-skeleton"
@@ -1267,6 +1246,9 @@ function EssayDiagnosticSkeleton({ manuscript }: { manuscript: ReactNode }) {
             <span className="block h-3 w-4/5 animate-pulse rounded-full bg-slate-100" />
           </div>
         </aside>
+        <article className="min-h-[540px] rounded-2xl border border-slate-200 bg-white px-6 py-8 shadow-sm md:px-10 lg:col-start-1 lg:row-start-1">
+          <div className="mx-auto max-w-3xl">{manuscript}</div>
+        </article>
       </div>
     </section>
   );
@@ -1329,6 +1311,11 @@ export function VinUniAaccFeedback({
     (analysis.overall.score > 0 || !loading);
   const anySectionReady =
     overallReady || ideasReady || hookReady || readyPillars.length > 0 || nextStepsReady;
+  const summaryReady =
+    ideasReady && hookReady && readyPillars.length === VINUNI_AACC_PILLARS.length;
+  const narrativeReady = ['creativity', 'aspirations'].every((key) =>
+    readyPillars.some((pillar) => pillar.key === key),
+  );
   const firstStrength = ideas.strengths[0] ?? overallItems[0];
   const firstGap = ideas.weaknesses.find(({ items }) => items.length)?.items[0];
   const strengthCount =
@@ -1398,7 +1385,7 @@ export function VinUniAaccFeedback({
       </header>
 
       <div className="px-5 py-8 md:px-10 md:py-10">
-        {anySectionReady ? <div
+        {summaryReady ? <div
           aria-label="Tóm tắt chẩn đoán"
           data-layout="editorial-rail"
           className="mb-10 grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.04)] sm:grid-cols-3"
@@ -1416,12 +1403,12 @@ export function VinUniAaccFeedback({
             <span><strong className="mr-1 text-2xl tabular-nums text-slate-950">{missingCount}</strong><span className="text-xs font-semibold">nội dung còn thiếu</span></span>
           </span>
         </div> : null}
-        <NarrativeJourneyChart
+        {narrativeReady ? <NarrativeJourneyChart
           analysis={analysis}
           diagnostics={diagnostics}
           strength={firstStrength}
           gap={firstGap}
-        />
+        /> : null}
         {overallReady ? (
           <ProgressiveChapter letter="A" title="Tổng quan" animate={streaming}>
             {v2Analysis?.evidenceMap ? (

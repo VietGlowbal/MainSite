@@ -1,7 +1,6 @@
 import { Suspense } from 'react';
 import { createClient } from '@/lib/supabase/server';
-import { OnboardingContainer, ONBOARDING_FLOW_ID, ONBOARDING_FLOW_VERSION } from '@/features/onboarding';
-import type { StoredOnboardingResponse } from '@/features/onboarding';
+import { OnboardingWizard } from './onboarding-wizard';
 
 /**
  * GLOWBAL onboarding entry — rebuilt from Figma câu 1–9.
@@ -16,28 +15,24 @@ export default async function OnboardingPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [{ data: profile }, { data: response }] = user
-    ? await Promise.all([
-      supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
-      supabase
-        .from('student_onboarding_responses')
-        .select('flow_id, flow_version, answers, completed_steps, status')
-        .eq('user_id', user.id)
-        .eq('flow_id', ONBOARDING_FLOW_ID)
-        .eq('flow_version', ONBOARDING_FLOW_VERSION)
-        .maybeSingle(),
-    ])
-    : [{ data: null }, { data: null }];
+  const profile = user
+    ? (await supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle()).data
+    : null;
+
+  const userName =
+    (user?.user_metadata?.full_name as string | undefined) ||
+    user?.email?.split('@')[0] ||
+    null;
+  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
 
   return (
-    <main className="onboarding-page-redesign relative min-h-screen overflow-hidden bg-[var(--color-bg)]">
-      <Suspense fallback={null}>
-        <OnboardingContainer
-          initialProfile={profile}
-          initialResponse={response as StoredOnboardingResponse}
-          isSignedIn={!!user}
-        />
-      </Suspense>
-    </main>
+    <Suspense fallback={null}>
+      <OnboardingWizard
+        initialProfile={profile}
+        isSignedIn={!!user}
+        userName={userName}
+        userAvatarUrl={userAvatarUrl}
+      />
+    </Suspense>
   );
 }

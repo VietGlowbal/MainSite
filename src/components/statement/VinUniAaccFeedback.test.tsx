@@ -183,7 +183,7 @@ describe('VinUniAaccFeedback', () => {
     expect(screen.getAllByTestId('typing-text').length).toBeGreaterThan(0);
   });
 
-  it('types one streamed feedback item at a time', async () => {
+  it('types arrived feedback items concurrently', async () => {
     vi.useFakeTimers();
     const sequential = structuredClone(analysis);
     sequential.sections!.overallSummary = ['First feedback item.', 'Second feedback item.'];
@@ -205,7 +205,7 @@ describe('VinUniAaccFeedback', () => {
     });
     expect(firstItem.textContent?.length).toBeGreaterThan(0);
     expect(firstItem.textContent).not.toBe(firstText);
-    expect(secondItem).toBeEmptyDOMElement();
+    expect(secondItem.textContent?.length).toBeGreaterThan(0);
 
     await act(async () => {
       vi.advanceTimersByTime(firstText.length * 6);
@@ -268,6 +268,23 @@ describe('VinUniAaccFeedback', () => {
     expect(screen.getByTestId('diagnostic-radar')).toBeVisible();
     expect(screen.getByTestId('diagnostic-radar-current')).toBeVisible();
     expect(screen.getByTestId('diagnostic-radar-potential')).toBeVisible();
+    expect(
+      screen.getByTestId('diagnostic-radar').parentElement?.parentElement,
+    ).toHaveClass(
+      'lg:col-start-2',
+      'lg:row-start-1',
+    );
+    expect(screen.getByText('I led a robotics workshop.').closest('article')).toHaveClass(
+      'lg:col-start-1',
+      'lg:row-start-1',
+    );
+    expect(
+      Boolean(
+        screen.getByTestId('diagnostic-radar').compareDocumentPosition(
+          screen.getByText('I led a robotics workshop.'),
+        ) & Node.DOCUMENT_POSITION_FOLLOWING,
+      ),
+    ).toBe(true);
     for (const label of ['Writing', 'Detail', 'Voice', 'Character', 'Curiosity', 'Contribution']) {
       expect(screen.getByRole('button', { name: new RegExp(label) })).toBeVisible();
     }
@@ -282,6 +299,46 @@ describe('VinUniAaccFeedback', () => {
     expect(within(diagnosticIssue).getByText('Ưu tiên cao')).toBeVisible();
     expect(within(diagnosticIssue).queryByText('+0.5')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /A\./ })).toBeVisible();
+  });
+
+  it('hides the narrative chart until creativity and aspirations scores arrive', () => {
+    const partial = structuredClone(analysis) as AaccAnalysisV2;
+    for (const key of ['creativity', 'aspirations'] as const) {
+      partial.pillars[key] = {
+        score: 0,
+        analysis: [],
+        strengths: [],
+        gaps: [],
+        evidenceQuotes: [],
+      };
+    }
+    partial.diagnostics = {
+      dimensions: {
+        writing: { score: 6, summary: '' },
+        detail: { score: 6, summary: '' },
+        voice: { score: 6, summary: '' },
+        character: { score: 6, summary: '' },
+        curiosity: { score: 6, summary: '' },
+        contribution: { score: 6, summary: '' },
+      },
+      issues: [],
+      achievability: {
+        currentScore: 6,
+        potentialScore: 7,
+        dimensions: {
+          writing: { current: 6, potential: 7 },
+          detail: { current: 6, potential: 7 },
+          voice: { current: 6, potential: 7 },
+          character: { current: 6, potential: 7 },
+          curiosity: { current: 6, potential: 7 },
+          contribution: { current: 6, potential: 7 },
+        },
+      },
+    };
+
+    render(<VinUniAaccFeedback analysis={partial} onTryAgain={vi.fn()} loading />);
+
+    expect(screen.queryByTestId('narrative-plot')).not.toBeInTheDocument();
   });
 
   it('turns the A-F report into evidence, comparison, score and action visuals', () => {

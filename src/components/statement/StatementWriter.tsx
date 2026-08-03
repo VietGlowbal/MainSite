@@ -30,6 +30,7 @@ import {
   VINUNI_DEFAULT_ESSAY_PROMPT,
   VINUNI_DEMO_APPLICATION_ID,
 } from '@/lib/ai/vinuni-evaluation-shared';
+import type { LorReview } from '@/lib/ai/lor';
 import type { AIAnalysis, AISuggestion } from '@/lib/types';
 import {
   reviewClaimElementId,
@@ -49,10 +50,10 @@ type Props = {
   saveTarget: StatementSaveTarget;
   /** University / course name — used in the AI prompt and the draft title. */
   targetName: string;
-  /** Optional "what this university looks for" context shown before analysis. */
+  /** Optional programme context kept for caller compatibility. */
   contextNote?: string | null;
   initialContent: string;
-  initialAnalysis: AIAnalysis | StoredVinUniAnalysis | null;
+  initialAnalysis: AIAnalysis | LorReview | StoredVinUniAnalysis | null;
   statementId: number | null;
   initialDocType?: DocType;
   /** Compact layout tuned for a modal (no fixed full-screen height). */
@@ -63,9 +64,14 @@ type Props = {
   evaluationMode?: 'generic' | 'vinuni';
   /** Reuse the editor and feedback UI for an application recommendation letter. */
   reviewType?: 'statement' | 'lor';
+  onAnalysisStart?: () => void;
+  onAnalysisComplete?: () => void;
+  onAnalysisError?: () => void;
+  requestedWorkspacePane?: 'essay' | 'feedback';
 };
 
 type VinUniAnalysis = AaccAnalysis | AaccAnalysisV2;
+type ReviewAnalysis = AIAnalysis | LorReview;
 
 export type StoredVinUniAnalysis = {
   schemaVersion: string;
@@ -75,6 +81,15 @@ export type StoredVinUniAnalysis = {
   inputHash: string;
   analysis: AaccAnalysisV2;
 };
+
+function isLorReview(analysis: ReviewAnalysis): analysis is LorReview {
+  return 'dimensions' in analysis && Array.isArray(analysis.dimensions);
+}
+
+function formatCoverageStatus(status: LorReview['profileCoverage'][number]['status']) {
+  const words = status.replaceAll('_', ' ');
+  return words[0].toUpperCase() + words.slice(1);
+}
 
 function scoreColor(score: number) {
   if (score >= 80) return '#10b981'; // emerald
@@ -389,7 +404,6 @@ async function readNdjson(
 export function StatementWriter({
   saveTarget,
   targetName,
-  contextNote,
   initialContent,
   initialAnalysis,
   statementId: initialStatementId,
@@ -398,6 +412,10 @@ export function StatementWriter({
   workspace = false,
   evaluationMode = 'generic',
   reviewType = 'statement',
+  onAnalysisStart,
+  onAnalysisComplete,
+  onAnalysisError,
+  requestedWorkspacePane,
 }: Props) {
   const isLor = reviewType === 'lor';
   const isVinUni =
@@ -406,7 +424,7 @@ export function StatementWriter({
   const storedVinUni = isStoredVinUniAnalysis(initialAnalysis) ? initialAnalysis : null;
   const supabase = useMemo(() => createClient(), []);
   const [text, setText] = useState(initialContent);
-  const [analysis, setAnalysis] = useState<AIAnalysis | null>(
+  const [analysis, setAnalysis] = useState<ReviewAnalysis | null>(
     isVinUni || isStoredVinUniAnalysis(initialAnalysis) ? null : initialAnalysis,
   );
   const [vinUniAnalysis, setVinUniAnalysis] = useState<VinUniAnalysis | null>(
@@ -443,6 +461,9 @@ export function StatementWriter({
   promptRef.current = essayPrompt;
 
   useEffect(() => () => analysisAbortRef.current?.abort(), []);
+  useEffect(() => {
+    if (requestedWorkspacePane) setWorkspacePane(requestedWorkspacePane);
+  }, [requestedWorkspacePane]);
 
   const wordCount = text.split(/\s+/).filter((w) => w.length > 0).length;
   const minimumAnalysisLength = isVinUni ? 200 : isLor ? 80 : 20;
@@ -490,6 +511,7 @@ export function StatementWriter({
 
   const handleAnalyze = useCallback(async (retrySections?: VinUniRequestedSection[]) => {
     if (text.trim().length < minimumAnalysisLength) return;
+    onAnalysisStart?.();
     analysisAbortRef.current?.abort();
     const abortController = new AbortController();
     analysisAbortRef.current = abortController;
@@ -559,6 +581,11 @@ export function StatementWriter({
         await readNdjson(res, (event) => {
           if (event.type === 'status') {
             setVinUniStatus(event.message);
+          } else if (event.type === 'evidence_map') {
+            setVinUniAnalysis((current) => ({
+              ...ensureV2Analysis(current ?? emptyVinUniAnalysis()),
+              evidenceMap: event.data,
+            }));
           } else if (event.type === 'diagnostics') {
             setVinUniAnalysis((current) => ({
               ...ensureV2Analysis(current ?? emptyVinUniAnalysis()),
@@ -624,16 +651,18 @@ export function StatementWriter({
       }
 
       setVinUniAnalysis(null);
-      const genericResult = (await res.json()) as AIAnalysis;
+      const genericResult = (await res.json()) as ReviewAnalysis;
       setAnalysis(genericResult);
       setStatus('done');
       setActiveTab('suggestions');
       setViewMode('review');
       await saveDraft(text, genericResult);
+      onAnalysisComplete?.();
     } catch (err) {
       if (err instanceof DOMException && err.name === 'AbortError') return;
       setError(err instanceof Error ? err.message : 'Analysis failed. Please try again.');
       setStatus('idle');
+      onAnalysisError?.();
     } finally {
       if (analysisAbortRef.current === abortController) analysisAbortRef.current = null;
     }
@@ -648,9 +677,13 @@ export function StatementWriter({
     isLor,
     minimumAnalysisLength,
     workspace,
+    onAnalysisStart,
+    onAnalysisComplete,
+    onAnalysisError,
   ]);
 
   const acceptSuggestion = (suggestion: AISuggestion) => {
+    if (!suggestion.originalText || !text.includes(suggestion.originalText)) return;
     setText((prev) => prev.replace(suggestion.originalText, suggestion.replacement));
     if (analysis) {
       setAnalysis({
@@ -744,7 +777,10 @@ export function StatementWriter({
       const index = text.indexOf(segment.text, cursor);
       if (index < 0) continue;
       if (index > cursor) elements.push(text.slice(cursor, index));
-      if (!linkedEvidenceIds.has(segment.evidence_id)) {
+      if (
+        !linkedEvidenceIds.has(segment.evidence_id) &&
+        !diagnosticEvidenceIds.has(segment.evidence_id)
+      ) {
         elements.push(segment.text);
         cursor = index + segment.text.length;
         continue;
@@ -868,13 +904,13 @@ export function StatementWriter({
   const outerClass = vinUniWorkspaceReview
     ? 'block min-h-0 flex-1 overflow-y-auto bg-slate-50'
     : embedded
-      ? 'flex min-h-0 flex-1 flex-col lg:flex-row'
-      : 'flex flex-1 flex-col overflow-hidden lg:flex-row';
+      ? 'flex min-h-0 min-w-0 w-full flex-1 flex-col gap-10 bg-[#FAFAFA] lg:flex-row'
+      : 'flex min-w-0 w-full flex-1 flex-col gap-10 overflow-hidden bg-[#FAFAFA] lg:flex-row';
 
   return (
     <div className={outerClass}>
       {workspace && !vinUniWorkspaceReview && (
-        <div className="grid shrink-0 grid-cols-2 border-b border-slate-200 bg-white p-2 lg:hidden">
+        <div className="grid shrink-0 grid-cols-2 rounded-lg border border-neutral-200 bg-white p-2 lg:hidden">
           {[
             ['essay', isLor ? 'Recommendation letter' : 'Bài luận'],
             ['feedback', 'Phản hồi'],
@@ -897,25 +933,28 @@ export function StatementWriter({
       {/* ── Left: Editor ── */}
       {!vinUniWorkspaceReview ? <section
         aria-label={isLor ? 'Recommendation letter' : 'Bài luận'}
-        className={`${workspace && workspacePane !== 'essay' ? 'hidden lg:flex' : 'flex'} min-h-0 flex-1 flex-col border-b border-slate-200 ${workspace ? 'lg:w-[42%] lg:flex-none' : 'lg:w-3/5'} lg:border-b-0 lg:border-r`}
+        className={`${workspace && workspacePane !== 'essay' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-neutral-300 bg-white lg:basis-0`}
       >
-        <div className="flex shrink-0 items-center justify-between gap-3 border-b border-slate-100 bg-slate-50/60 px-4 py-3 md:px-6">
+        <div className="flex shrink-0 flex-col items-stretch gap-4 px-4 pt-6 md:px-6">
+          <h2 className="font-display text-2xl font-medium leading-8 text-neutral-900">
+            {isLor ? 'Your recommendation letter' : 'Your essay'}
+          </h2>
           <div className="flex items-center gap-3">
             {isLor ? (
-              <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600">
+              <span className="rounded-full bg-rose-50 px-4 py-1 text-sm font-medium text-rose-600">
                 Letter of Recommendation
               </span>
             ) : (
               <select
                 value={docType}
                 onChange={(e) => setDocType(e.target.value as DocType)}
-                className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:border-pink-300 focus:outline-none"
+                className={isLor ? 'rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 focus:border-pink-300 focus:outline-none' : 'rounded-full border-0 bg-rose-50 px-4 py-1 text-sm font-medium text-rose-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600'}
               >
                 <option value="personal_statement">Personal Statement</option>
                 <option value="statement_of_purpose">Statement of Purpose</option>
               </select>
             )}
-            <span className="hidden text-xs tabular-nums text-slate-400 sm:inline">{wordCount} words</span>
+            <span className="rounded-full bg-rose-50 px-4 py-1 text-sm font-medium tabular-nums text-rose-600">{wordCount} words</span>
             {saveStatus && <span className="text-xs font-medium text-emerald-500">{saveStatus}</span>}
           </div>
           <div className="flex items-center gap-2">
@@ -937,18 +976,6 @@ export function StatementWriter({
                 Save draft
               </button>
             )}
-            <button
-              type="button"
-              onClick={() => void handleAnalyze()}
-              disabled={status === 'analyzing' || text.trim().length < minimumAnalysisLength}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-4 py-1.5 text-xs font-bold text-white shadow-[0_4px_12px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-50 disabled:shadow-none"
-            >
-              {status === 'analyzing'
-                ? 'Analyzing…'
-                : status === 'done'
-                  ? 'Re-analyze'
-                  : 'Analyze'}
-            </button>
           </div>
         </div>
 
@@ -979,7 +1006,7 @@ export function StatementWriter({
                     ? `Paste the recommendation letter here. We'll give specific feedback grounded in ${targetName}.`
                     : `Paste your ${docType === 'statement_of_purpose' ? 'statement of purpose' : 'personal statement'} here, or start writing. We'll give you specific feedback on how to strengthen it for ${targetName}.`
                 }
-                className="h-full min-h-[240px] w-full resize-none border-none text-base leading-relaxed text-slate-700 outline-none placeholder:text-slate-300"
+                className="h-full min-h-[240px] w-full resize-none rounded-lg border border-rose-100 p-3 text-base leading-relaxed text-neutral-700 shadow-sm outline-none transition placeholder:text-neutral-400 focus:border-rose-300 focus:ring-2 focus:ring-rose-100"
               />
               <div className="pointer-events-none absolute bottom-2 right-3 text-xs text-slate-400">
                 {wordCount} words
@@ -1000,6 +1027,21 @@ export function StatementWriter({
             </div>
           )}
         </div>
+        <div className="shrink-0 px-4 pb-6 md:px-6">
+          <button
+            type="button"
+            onClick={() => void handleAnalyze()}
+            disabled={status === 'analyzing' || text.trim().length < minimumAnalysisLength}
+            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-rose-600 px-5 text-base font-semibold text-white shadow-sm transition hover:bg-rose-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-600 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <span aria-hidden="true">✦</span>
+            {status === 'analyzing'
+              ? 'Analyzing…'
+              : status === 'done'
+                ? 'Re-analyze'
+                : 'Analyze'}
+          </button>
+        </div>
       </section> : null}
 
       {/* ── Right: Analysis Panel ── */}
@@ -1007,8 +1049,13 @@ export function StatementWriter({
         aria-label="Phản hồi"
         className={vinUniWorkspaceReview
           ? 'block w-full bg-slate-50'
-          : `${workspace && workspacePane !== 'feedback' ? 'hidden lg:flex' : 'flex'} min-h-0 flex-1 flex-col bg-slate-50 ${workspace ? 'lg:w-[58%] lg:flex-none' : 'lg:w-2/5'}`}
+          : `${workspace && workspacePane !== 'feedback' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-neutral-300 bg-white lg:basis-0`}
       >
+        {!vinUniWorkspaceReview && (
+          <h2 className="px-4 pt-6 font-display text-2xl font-medium leading-8 text-neutral-900 md:px-6">
+            AI Feedback
+          </h2>
+        )}
         {isVinUni && !vinUniAnalysis ? (
           <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-white px-4 py-3 text-[11px] font-semibold text-slate-600">
             <span className="rounded-full border border-slate-200 px-3 py-1.5">Essay</span>
@@ -1018,51 +1065,13 @@ export function StatementWriter({
           </div>
         ) : null}
         {status === 'idle' && !analysis && !vinUniAnalysis && (
-          <div className="flex-1 space-y-4 overflow-y-auto p-5">
-            {contextNote && (
-              <div className="rounded-xl border border-slate-200 bg-white p-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400">
-                  What {targetName} looks for
-                </p>
-                <p className="text-sm leading-relaxed text-slate-600">{contextNote}</p>
-              </div>
-            )}
-
-            <div className="rounded-xl border border-pink-100 bg-gradient-to-br from-pink-50 to-white p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-pink-500">
-                How it works
-              </p>
-              <ol className="space-y-1.5 text-sm text-slate-600">
-                <li>
-                  1. {isLor
-                    ? 'Paste or write the recommendation letter on the left.'
-                    : 'Paste or write your statement on the left.'}
-                </li>
-                <li>2. Hit Analyze — we review it against the target programme.</li>
-                <li>3. Apply the inline suggestions to sharpen it.</li>
-              </ol>
+          <div className="flex flex-1 flex-col items-center justify-center gap-6 overflow-y-auto p-6 text-center">
+            <div className="flex h-20 w-20 items-center justify-center rounded-full bg-rose-50 text-4xl text-rose-600" aria-hidden="true">
+              ✦
             </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-slate-400">Tips</p>
-              <ul className="space-y-1.5 text-sm text-slate-600">
-                {isLor ? (
-                  <>
-                    <li>• Establish the recommender&apos;s relationship to the applicant.</li>
-                    <li>• Support praise with specific examples.</li>
-                    <li>• Keep the recommender&apos;s voice natural and credible.</li>
-                    <li>• Connect the evidence to the target programme.</li>
-                  </>
-                ) : (
-                  <>
-                    <li>• Be specific about why this course and university.</li>
-                    <li>• Show, don&apos;t tell — use concrete examples.</li>
-                    <li>• Connect your past experience to your future goals.</li>
-                    <li>• Keep it under 650 words for UCAS.</li>
-                  </>
-                )}
-              </ul>
-            </div>
+            <p className="text-sm text-neutral-500">
+              Your feedback will appear here once you submit your {isLor ? 'letter' : 'essay'}
+            </p>
           </div>
         )}
 
@@ -1187,6 +1196,105 @@ export function StatementWriter({
                     </p>
                     <p className="text-sm leading-relaxed text-slate-600">{analysis.summary}</p>
                   </div>
+                  {isLor && isLorReview(analysis) ? (
+                    <>
+                      <div className="rounded-xl border border-pink-200 bg-pink-50 p-5">
+                        <p className="text-xs font-semibold uppercase tracking-widest text-pink-600">
+                          Overall quality
+                        </p>
+                        <div className="mt-2 flex flex-wrap items-baseline justify-between gap-2">
+                          <p className="text-lg font-bold text-slate-900">{analysis.recommendation}</p>
+                          <p className="font-mono text-sm font-bold text-slate-600">
+                            {analysis.rawScore}/85
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="overflow-hidden rounded-xl border border-slate-200 bg-white">
+                        <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+                          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">
+                            Quality dimensions
+                          </p>
+                        </div>
+                        <ol className="divide-y divide-slate-100">
+                          {analysis.dimensions.map((dimension) => (
+                            <li key={dimension.id} className="px-4 py-3">
+                              <div className="flex items-center justify-between gap-3">
+                                <p className="text-sm font-semibold text-slate-800">
+                                  {dimension.label}
+                                </p>
+                                <span className="shrink-0 font-mono text-xs font-bold text-pink-600">
+                                  {dimension.score}/{dimension.maxScore}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">
+                                {dimension.rationale}
+                              </p>
+                            </li>
+                          ))}
+                        </ol>
+                      </div>
+
+                      <div className="rounded-xl border border-slate-200 bg-white p-5">
+                        <p className="text-xs font-bold tracking-[0.14em] text-emerald-700">
+                          WHAT WORKS WELL
+                        </p>
+                        <div className="mt-3 space-y-4">
+                          {analysis.whatWorksWell.map((item) => (
+                            <article key={item.title}>
+                              <h4 className="text-sm font-semibold text-slate-900">{item.title}</h4>
+                              <p className="mt-1 text-sm leading-6 text-slate-600">{item.explanation}</p>
+                              {item.evidenceQuote ? (
+                                <blockquote className="mt-2 border-l-2 border-emerald-300 pl-3 text-xs italic text-slate-500">
+                                  “{item.evidenceQuote}”
+                                </blockquote>
+                              ) : null}
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+
+                      {analysis.improvements.length ? (
+                        <div className="rounded-xl border border-slate-200 bg-white p-5">
+                          <p className="text-xs font-bold tracking-[0.14em] text-amber-700">
+                            WHAT COULD BE STRONGER
+                          </p>
+                          <div className="mt-3 space-y-4">
+                            {analysis.improvements.map((item) => (
+                              <article key={item.title}>
+                                <h4 className="text-sm font-semibold text-slate-900">{item.title}</h4>
+                                <p className="mt-1 text-sm leading-6 text-slate-600">{item.explanation}</p>
+                              {!isLor ? (
+                                <p className="mt-2 rounded-lg bg-amber-50 p-3 text-xs leading-5 text-slate-700">
+                                  <span className="font-semibold">Suggestion:</span> {item.suggestion}
+                                </p>
+                              ) : null}
+                              </article>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <div className="rounded-xl border border-slate-200 bg-white p-5">
+                        <p className="text-xs font-bold tracking-[0.14em] text-slate-500">
+                          PROFILE COVERAGE
+                        </p>
+                        <div className="mt-3 space-y-3">
+                          {analysis.profileCoverage.map((item) => (
+                            <article key={item.trait} className="rounded-lg bg-slate-50 p-3">
+                              <div className="flex flex-wrap items-center justify-between gap-2">
+                                <h4 className="text-sm font-semibold text-slate-900">{item.trait}</h4>
+                                <span className="text-xs font-semibold text-pink-600">
+                                  {formatCoverageStatus(item.status)}
+                                </span>
+                              </div>
+                              <p className="mt-1 text-xs leading-5 text-slate-500">{item.explanation}</p>
+                            </article>
+                          ))}
+                        </div>
+                      </div>
+                    </>
+                  ) : null}
                 </div>
               )}
 
@@ -1201,6 +1309,7 @@ export function StatementWriter({
                   ) : (
                     analysis.suggestions.map((sug) => {
                       const styles = SUGGESTION_STYLES[sug.type];
+                      const canApply = Boolean(sug.originalText && text.includes(sug.originalText));
                       return (
                         <div
                           key={sug.id}
@@ -1214,26 +1323,44 @@ export function StatementWriter({
                             {sug.category}
                           </span>
 
-                          <div className="space-y-2 text-sm">
-                            <div className="border-l-2 border-rose-200 pl-3">
-                              <p className="text-slate-400 line-through">{sug.originalText}</p>
+                          {isLor ? (
+                            <div className={`rounded-lg border-l-2 p-3 text-sm ${styles.highlight} ${styles.bar}`}>
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                                {sug.originalText ? 'Review this part' : 'Information to add'}
+                              </p>
+                              <p className="mt-1 font-medium text-slate-700">
+                                {sug.originalText || 'Add a truthful, directly observed detail to strengthen this point.'}
+                              </p>
                             </div>
-                            <div className="border-l-2 border-emerald-400 pl-3">
-                              <p className="font-medium text-slate-700">{sug.replacement}</p>
+                          ) : (
+                            <div className="space-y-2 text-sm">
+                              <div className="border-l-2 border-rose-200 pl-3">
+                                <p className="text-slate-400 line-through">{sug.originalText}</p>
+                              </div>
+                              <div className="border-l-2 border-emerald-400 pl-3">
+                                <p className="font-medium text-slate-700">{sug.replacement}</p>
+                              </div>
                             </div>
-                          </div>
+                          )}
 
                           <p className="mt-3 rounded-lg bg-slate-50 p-2.5 text-xs leading-relaxed text-slate-500">
                             {sug.explanation}
                           </p>
 
-                          <button
-                            type="button"
-                            onClick={() => acceptSuggestion(sug)}
-                            className="mt-3 w-full rounded-lg border border-pink-300 bg-white py-2 text-xs font-semibold text-pink-600 transition hover:bg-pink-50"
-                          >
-                            Apply change
-                          </button>
+                          {isLor ? (
+                            <p className="mt-3 text-xs font-medium text-slate-500">
+                              Update this directly in the letter draft using facts your recommender can verify.
+                            </p>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => acceptSuggestion(sug)}
+                              disabled={!canApply}
+                              className="mt-3 w-full rounded-lg border border-pink-300 bg-white py-2 text-xs font-semibold text-pink-600 transition hover:bg-pink-50 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                            >
+                              {canApply ? 'Apply change' : 'Manual edit required'}
+                            </button>
+                          )}
                         </div>
                       );
                     })

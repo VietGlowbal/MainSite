@@ -28,7 +28,3 @@ export {
   toCurriculumList,
 } from './draft';
 export type { Academic, Tests } from './draft';
-export * from './answers';
-export * from './content';
-export * from './mappers';
-export * from './types';

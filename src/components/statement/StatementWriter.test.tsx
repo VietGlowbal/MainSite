@@ -7,6 +7,7 @@ import {
   VINUNI_DEFAULT_ESSAY_PROMPT,
   VINUNI_DEMO_APPLICATION_ID,
 } from '@/lib/ai/vinuni-evaluation-shared';
+import { finalizeLorReview } from '@/lib/ai/lor';
 import type { AaccAnalysisV2 } from '@/lib/ai/vinuni-evaluation-v2';
 import { StatementWriter } from './StatementWriter';
 
@@ -91,6 +92,30 @@ const vinUniAnalysis = {
   },
 };
 
+const vinUniDiagnostics: NonNullable<AaccAnalysisV2['diagnostics']> = {
+  dimensions: {
+    writing: { score: 6, summary: '' },
+    detail: { score: 6, summary: '' },
+    voice: { score: 6, summary: '' },
+    character: { score: 6, summary: '' },
+    curiosity: { score: 6, summary: '' },
+    contribution: { score: 6, summary: '' },
+  },
+  issues: [],
+  achievability: {
+    currentScore: 6,
+    potentialScore: 7,
+    dimensions: {
+      writing: { current: 6, potential: 7 },
+      detail: { current: 6, potential: 7 },
+      voice: { current: 6, potential: 7 },
+      character: { current: 6, potential: 7 },
+      curiosity: { current: 6, potential: 7 },
+      contribution: { current: 6, potential: 7 },
+    },
+  },
+};
+
 function renderVinUniWriter() {
   return render(
     <StatementWriter
@@ -146,20 +171,54 @@ function renderDemoWriter() {
   );
 }
 
-function renderLorWriter() {
+function renderLorWriter(initialAnalysis: unknown = null, onAnalysisStart?: () => void) {
   const props = {
     saveTarget: { kind: 'application', applicationId: 'app-1' },
     targetName: 'Computer Science Â· Cambridge',
     initialContent: '',
-    initialAnalysis: null,
+    initialAnalysis,
     statementId: null,
     initialDocType: 'recommendation_letter',
     reviewType: 'lor',
     embedded: true,
     workspace: true,
+    onAnalysisStart,
   } as unknown as ComponentProps<typeof StatementWriter>;
   return render(<StatementWriter {...props} />);
 }
+
+const lorReview = finalizeLorReview({
+  summary: 'A credible letter with strong programme-relevant evidence.',
+  dimensions: [
+    { id: 'recommender_context', score: 5, rationale: 'The relationship is clear.' },
+    { id: 'specific_evidence', score: 9, rationale: 'The letter uses a concrete project.' },
+    { id: 'quality_depth', score: 8, rationale: 'Claims are explained.' },
+    { id: 'recommender_voice', score: 8, rationale: 'The perspective feels personal.' },
+    { id: 'evidence_credibility', score: 8, rationale: 'Claims fit the relationship.' },
+    { id: 'applicant_differentiation', score: 8, rationale: 'Peer context is present.' },
+    { id: 'growth_potential', score: 10, rationale: 'Growth is demonstrated.' },
+    { id: 'complementarity', score: 10, rationale: 'The letter adds new insight.' },
+    { id: 'recommendation_strength', score: 5, rationale: 'The endorsement is direct.' },
+  ],
+  whatWorksWell: [
+    { title: 'Clear recommender relationship', explanation: 'Authority is established.' },
+  ],
+  improvements: [
+    {
+      title: 'Limited comparative context',
+      explanation: 'The peer comparison could be clearer.',
+      suggestion: 'Add an accurate comparison if the recommender supports it.',
+    },
+  ],
+  profileCoverage: [
+    {
+      trait: 'Analytical thinking',
+      status: 'strongly_supported',
+      explanation: 'Supported by the research example.',
+    },
+  ],
+  suggestions: [],
+}, '');
 
 function streamingResponse() {
   const encoder = new TextEncoder();
@@ -193,6 +252,52 @@ describe('StatementWriter VinUni routing', () => {
     vi.unstubAllGlobals();
   });
 
+  it.each([
+    ['generic', false],
+    ['VinUni', true],
+  ])('uses the approved two-card essay-review theme in %s mode', (_, vinUni) => {
+    render(
+      <StatementWriter
+        saveTarget={{ kind: 'application', applicationId: 'app-1' }}
+        targetName={vinUni ? 'Business Administration · VinUniversity' : 'Computer Science · Cambridge'}
+        initialContent=""
+        initialAnalysis={null}
+        statementId={null}
+        embedded
+        workspace
+        evaluationMode={vinUni ? 'vinuni' : 'generic'}
+      />,
+    );
+
+    const essayCard = screen.getByLabelText('Nội dung bài luận').closest('section');
+    const feedbackCard = screen
+      .getByText('Your feedback will appear here once you submit your essay')
+      .closest('section');
+
+    expect(essayCard?.parentElement).toHaveClass('w-full', 'min-w-0', 'gap-10', 'bg-[#FAFAFA]');
+    expect(essayCard).toHaveClass('min-w-0', 'rounded-2xl', 'border-neutral-300', 'bg-white');
+    expect(feedbackCard).toHaveClass('min-w-0', 'rounded-2xl', 'border-neutral-300', 'bg-white');
+    expect(screen.getByRole('button', { name: 'Analyze' })).toHaveClass('bg-rose-600');
+  });
+
+  it('does not show the programme context note in the empty essay feedback state', () => {
+    render(
+      <StatementWriter
+        saveTarget={{ kind: 'demo' }}
+        targetName="Bachelor of Computer Science · VinUniversity"
+        contextNote="VinUniversity AACC · Demo essay-only · Profile chưa có"
+        initialContent=""
+        initialAnalysis={null}
+        statementId={null}
+        embedded
+        workspace
+        evaluationMode="vinuni"
+      />,
+    );
+
+    expect(screen.queryByText('VinUniversity AACC · Demo essay-only · Profile chưa có')).not.toBeInTheDocument();
+  });
+
   it('configures the shared editor for a recommendation letter', () => {
     renderLorWriter();
 
@@ -202,13 +307,28 @@ describe('StatementWriter VinUni routing', () => {
       'placeholder',
       expect.stringContaining('recommendation letter'),
     );
-    expect(screen.getByText(/Paste or write the recommendation letter on the left\./)).toBeVisible();
+    expect(screen.getByText('Your feedback will appear here once you submit your letter')).toBeVisible();
+  });
+
+  it('uses the updated two-card essay-review layout for LOR', () => {
+    renderLorWriter();
+
+    const letterCard = screen.getByLabelText('Letter of recommendation draft').closest('section');
+    const feedbackCard = screen
+      .getByText('Your feedback will appear here once you submit your letter')
+      .closest('section');
+
+    expect(letterCard?.parentElement).toHaveClass('w-full', 'min-w-0', 'gap-10', 'bg-[#FAFAFA]');
+    expect(letterCard).toHaveClass('min-w-0', 'rounded-2xl', 'border-neutral-300', 'bg-white');
+    expect(feedbackCard).toHaveClass('min-w-0', 'rounded-2xl', 'border-neutral-300', 'bg-white');
+    expect(screen.getByRole('button', { name: 'Analyze' })).toHaveClass('bg-rose-600');
   });
 
   it('submits LOR analysis with the application ID', async () => {
     const fetchMock = vi.fn(() => new Promise<Response>(() => undefined));
+    const onAnalysisStart = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
-    renderLorWriter();
+    renderLorWriter(null, onAnalysisStart);
     const text = 'A specific recommendation with evidence. '.repeat(3);
 
     await userEvent.type(screen.getByLabelText('Letter of recommendation draft'), text);
@@ -221,6 +341,48 @@ describe('StatementWriter VinUni routing', () => {
       docType: 'recommendation_letter',
       text,
     });
+    expect(onAnalysisStart).toHaveBeenCalledOnce();
+  });
+
+  it('renders the complete F7.3 quality review', async () => {
+    renderLorWriter(lorReview);
+
+    await userEvent.click(screen.getByRole('button', { name: 'score' }));
+
+    expect(screen.getByText('Strong and credible')).toBeVisible();
+    expect(screen.getByText('71/85')).toBeVisible();
+    expect(screen.getByText('Recommender Context')).toBeVisible();
+    expect(screen.getByText('Recommendation Strength')).toBeVisible();
+    expect(screen.getByText('WHAT WORKS WELL')).toBeVisible();
+    expect(screen.getByText('Clear recommender relationship')).toBeVisible();
+    expect(screen.getByText('WHAT COULD BE STRONGER')).toBeVisible();
+    expect(screen.getByText('Limited comparative context')).toBeVisible();
+    expect(screen.getByText('PROFILE COVERAGE')).toBeVisible();
+    expect(screen.getByText('Analytical thinking')).toBeVisible();
+    expect(screen.getByText('Strongly supported')).toBeVisible();
+  });
+
+  it('does not auto-apply a missing-content suggestion without an exact source quote', () => {
+    renderLorWriter({
+      ...lorReview,
+      suggestions: [
+        {
+          id: 'sug-missing',
+          type: 'missing',
+          category: 'Applicant Differentiation',
+          originalText: '',
+          replacement: '[Add an accurate comparison if supported.]',
+          explanation: 'This needs a new sentence rather than a text replacement.',
+        },
+      ],
+    });
+
+    expect(screen.queryByRole('button', { name: 'Manual edit required' })).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Update this directly in the letter draft using facts your recommender can verify.'),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(screen.getByLabelText('Letter of recommendation draft')).toHaveValue('');
   });
 
   it('persists an LOR draft without mixing it with statements', async () => {
@@ -261,6 +423,44 @@ describe('StatementWriter VinUni routing', () => {
     const manuscript = await screen.findByTestId('essay-manuscript');
     expect(manuscript).toHaveTextContent(original);
     expect(manuscript.querySelectorAll('button')).toHaveLength(0);
+  });
+
+  it('highlights diagnostic evidence before the VinUni stream completes', async () => {
+    const stream = streamingResponse();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(stream.response));
+    renderWorkspaceWriter();
+    const original = 'I led a robotics team. '.repeat(10).trim();
+
+    fireEvent.change(screen.getAllByRole('textbox')[1], {
+      target: { value: original },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Analyze' }));
+    stream.send({
+      type: 'evidence_map',
+      data: {
+        ...vinUniAnalysis.evidenceMap,
+        essaySegments: [{ evidence_id: 'U001', text: 'I led a robotics team.' }],
+      },
+    });
+    stream.send({
+      type: 'diagnostics',
+      data: {
+        ...vinUniDiagnostics,
+        issues: [{
+          id: 'DIAG-1',
+          criterion: 'detail',
+          text: 'Add a concrete reaction.',
+          evidenceRefs: [{ source: 'essay', id: 'U001' }],
+          priority: 'high',
+        }],
+      },
+    });
+
+    await waitFor(() =>
+      expect(document.getElementById('evidence-U001')).toBeInTheDocument(),
+    );
+    expect(screen.getByTestId('essay-manuscript')).toHaveTextContent(original);
+    stream.close();
   });
 
   it('sends a VinUniversity SOP to the grounded DeepSeek route', async () => {
@@ -484,15 +684,13 @@ describe('StatementWriter VinUni routing', () => {
     );
   });
 
-  it('uses a wider feedback pane and mobile pane tabs in workspace mode', async () => {
+  it('uses balanced cards and mobile pane tabs in workspace mode', async () => {
     renderWorkspaceWriter();
 
     const essay = screen.getByRole('region', { name: 'Bài luận' });
     const feedback = screen.getByRole('region', { name: 'Phản hồi' });
-    expect(essay).toHaveClass('lg:w-[42%]');
-    expect(essay).toHaveClass('lg:flex-none');
-    expect(feedback).toHaveClass('lg:w-[58%]');
-    expect(feedback).toHaveClass('lg:flex-none');
+    expect(essay).toHaveClass('lg:basis-0', 'rounded-2xl');
+    expect(feedback).toHaveClass('lg:basis-0', 'rounded-2xl');
 
     await userEvent.click(screen.getByRole('button', { name: 'Phản hồi' }));
     expect(essay).toHaveClass('hidden');
@@ -595,6 +793,16 @@ describe('StatementWriter VinUni routing', () => {
       ],
       priority: 'high',
     }];
+    reviewed.diagnostics = {
+      ...vinUniDiagnostics,
+      issues: [{
+        id: 'DIAG-2',
+        criterion: 'detail',
+        text: 'Clarify why the students feared mistakes.',
+        evidenceRefs: [{ source: 'essay', id: 'U002' }],
+        priority: 'high',
+      }],
+    };
     render(
       <StatementWriter
         saveTarget={{ kind: 'demo' }}
@@ -618,8 +826,8 @@ describe('StatementWriter VinUni routing', () => {
     const manuscript = screen.getByTestId('essay-manuscript');
     expect(manuscript.textContent).toBe(original);
     expect(screen.queryByText('U001')).not.toBeInTheDocument();
-    expect(manuscript.querySelectorAll('button')).toHaveLength(2);
-    expect(document.getElementById('evidence-U002')).toBeNull();
+    expect(manuscript.querySelectorAll('button')).toHaveLength(3);
+    expect(document.getElementById('evidence-U002')).toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole('button', { name: 'Nhận xét dẫn đến hai câu trong bản thảo.' }),

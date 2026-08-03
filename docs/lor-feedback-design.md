@@ -1,91 +1,117 @@
-# LOR Feedback Design
+# LOR Strategy & Quality Review Design
 
 Date: 2026-07-31
+Status: Approved
 
 ## Understanding summary
 
-- Add a dedicated `/apply/[applicationId]/lor-feedback` page.
-- The user pastes an existing Letter of Recommendation draft; file upload and letter generation are out of scope.
-- Recommendation-related application tasks open the new page.
-- Reuse Essay Review's editor, score, summary, inline suggestions, checklist, loading states, quota, and autosave behavior.
-- Evaluate with an LOR-specific rubric and application context already stored in Supabase.
-- Do not use the student's CV/profile or browse external websites.
-- Persist the latest LOR draft and feedback so the user can continue later.
+- Keep the dedicated `/apply/[applicationId]/lor-feedback` page and turn it into one guided workspace for F7.1, F7.2, drafting, and F7.3.
+- F7.1 captures who the recommender is, how and how long they know the applicant, and which saved experiences they directly observed.
+- F7.2 recommends credible traits and experiences, warns against weakly supported topics, and produces a Recommendation Brief.
+- The user writes or pastes the letter after completing the strategy steps; file upload and submission remain out of scope.
+- F7.3 evaluates the letter against nine fixed quality dimensions and returns complete, actionable feedback.
+- Use trusted application, programme, activity, and achievement data already stored in Supabase. Do not read a CV or browse external sources.
+- Preserve Essay Review's editor, inline suggestions, loading, quota, and autosave behavior wherever they still fit the LOR contract.
 
 ## Assumptions
 
-- Only the authenticated owner of an application may read, review, or update its LOR draft.
-- Missing programme context does not block a general LOR review; the UI explains that fit feedback is limited.
-- Each review uses one AI request and follows the existing Essay Review free/Plus policy.
-- One latest LOR draft is stored per application.
-- The feature gives writing feedback; it does not verify the recommender's identity or submit the letter.
-- Existing Essay Review behavior must remain backward compatible.
+- Only the authenticated owner may read or change an application's LOR strategy, draft, or review.
+- The MVP stores one recommender strategy and one latest LOR draft per application.
+- `student_activities` and `student_achievements` are the available structured reflection evidence. There is no separate persisted Applicant Identity Model, so the AI must not invent identity traits beyond stored evidence.
+- Missing activities do not block the flow. The strategy explicitly reports limited evidence and lets the user continue.
+- Missing programme context does not block a general review; programme-fit guidance is marked as limited.
+- One AI request produces F7.1 and F7.2 together, and a second request performs F7.3 after a letter exists.
+- The feature supports preparation and feedback; it does not verify recommender identity, send the brief, or submit a recommendation.
+- Existing Essay Review behavior remains backward compatible.
 
 ## Final design
 
-### Architecture
+### User flow
 
-Add a server page that authenticates the user and loads `ApplicationWorkspaceView` in the same way as Statement Feedback. Extend the existing statement workspace/writer with a minimal `reviewType: 'statement' | 'lor'` configuration whose default is `statement`.
+The LOR page uses three stages:
 
-In LOR mode the shared writer:
+1. **Recommender Strategy** — collect the four F7.1 answers and generate F7.1/F7.2.
+2. **Letter Draft** — show the Recommendation Brief beside the existing LOR editor.
+3. **Quality Review** — run F7.3 and render the complete review.
 
-- uses LOR labels, instructions, and placeholder text;
-- hides the Personal Statement/SOP selector;
-- retains the existing editor and feedback presentation;
-- reads and writes only drafts whose `doc_type` is `recommendation_letter`.
+The visual direction is an editorial review desk: restrained application styling, a clear stage rail, evidence badges, and a nine-dimension score ledger. The existing application typography and tokens remain authoritative. The design feasibility and impact index is 13: strong context fit, feasibility, performance, and maintainability with enough visual distinction in the evidence and scoring views.
 
-Extend `/api/ai/analyze-statement` with an LOR branch. The server receives `applicationId`, verifies ownership, and derives trusted context from `course_applications`, `courses`, `application_requirements`, and `application_sources`. Client-supplied university/programme names are not trusted for LOR evaluation.
+The workspace uses the same shared shell as the current Apply experience: `TopNav`, `MobileNav`, `Container`, `bg-surface`, semantic foreground and border colors, and the `gb-*` typography, spacing, and radius scales. The stage rail is the distinguishing anchor. No new visual dependency, data request, animation system, or LOR behavior is introduced by the theme alignment.
 
-Add `isLorTask()` to recognize recommendation-letter/reference/referee/recommender tasks and route them to the dedicated page. Extend the `personal_statements.doc_type` constraint through an idempotent migration rather than adding another draft table.
+### F7.1 — Recommender–Evidence Matching
 
-### Data flow
+Collect:
 
-1. The user opens a recommendation-related task and pastes the LOR draft.
-2. The client submits `text`, `applicationId`, and `docType: 'recommendation_letter'`.
-3. The server authenticates the user, verifies application ownership, and loads bounded programme context from Supabase.
-4. The AI returns the existing `AIAnalysis` shape: `score`, `summary`, `suggestions`, and `checklist`.
-5. The shared UI renders the result and autosaves the draft plus analysis.
+- recommender type: subject teacher, homeroom teacher, school counselor, research supervisor, club advisor, internship supervisor, employer, volunteer supervisor, coach, academic mentor, or other;
+- a free-text relationship description;
+- relationship duration: less than 6 months, 6–12 months, 1–2 years, or more than 2 years;
+- optional observed experiences selected from the owner's `student_activities` and `student_achievements` rows.
 
-Inputs are limited to approximately 80-15,000 characters. A superseded request is aborted when the user starts another review.
+The output contains a relationship summary, `strongInsights`, and `limitedInsights`. Every insight must be traceable to the relationship or a selected evidence row. Unselected experiences are not evidence that the recommender observed them.
 
-### LOR rubric
+### F7.2 — Recommended Traits & Experiences
 
-- Clear recommender relationship and point of view.
-- Specific, credible evidence of the applicant's qualities and impact.
-- Relevance to the target university and programme.
-- Authentic, professional recommender voice.
-- Avoidance of generic praise, unsupported claims, and CV repetition.
-- Persuasive structure and conclusion.
+The same strategy request ranks possible topics using relevance to the programme, observation likelihood, evidence strength, distinctiveness, and complementarity.
 
-The AI must not invent achievements, roles, or relationships. When facts are missing, it should request evidence or use a placeholder instead of fabricating content.
+Each recommended topic contains the trait, rationale, selected evidence reference, a natural way to raise it with the recommender, priority, and confidence. The response also identifies topics not to prioritize and why. A generated Recommendation Brief uses conditional language, preserves the recommender's independence, and never asks them to claim an unobserved fact.
 
-### Errors and edge cases
+### F7.3 — Complete LOR Quality Review
 
-- `401` for unauthenticated requests.
-- `404` for missing applications and applications owned by another user.
-- `400` for invalid or out-of-range text.
-- `402` when the existing review allowance is exhausted.
-- `502` when the AI response is absent or invalid.
-- Missing programme context falls back to a general review with a limited-fit notice.
-- Autosave failure keeps the editor content intact and exposes a retryable unsaved state.
+The review returns exactly these dimensions:
+
+| Dimension | Maximum |
+| --- | ---: |
+| Recommender Context | 5 |
+| Specific Evidence | 10 |
+| Quality Depth | 10 |
+| Recommender Voice | 10 |
+| Evidence Credibility | 10 |
+| Applicant Differentiation | 10 |
+| Growth & Potential | 10 |
+| Complementarity | 10 |
+| Recommendation Strength | 5 |
+
+The server validates all nine scores, sums the raw score out of 85, and computes `Math.round(rawScore * 100 / 85)`. It derives the recommendation label deterministically: 80–100 `Strong and credible`, 65–79 `Credible but needs strengthening`, 45–64 `Limited or uneven`, and 0–44 `Weak or generic`.
+
+The complete response includes the normalized score, recommendation label, summary, dimension rationales, What Works Well, What Could Be Stronger with safe suggestions, Profile Coverage, inline suggestions, and a checklist. Exact quotes must come from the submitted letter. Missing evidence produces a question or clearly marked placeholder, never a fabricated claim.
+
+### Architecture and persistence
+
+Add `application_lor_strategies` with one owner-scoped row per application. It stores the four recommender inputs, selected evidence references, F7.1 perspective, F7.2 recommendations, Recommendation Brief, and timestamps. Row-level security checks both `user_id` and application ownership.
+
+Add `/api/ai/lor-strategy`. It authenticates the user, verifies application ownership, reloads selected activity and achievement IDs under the same user, loads bounded programme context, validates the AI response, and saves the strategy.
+
+Keep `/api/ai/analyze-statement` as the existing LOR review entry point. Its LOR branch loads the saved strategy and selected evidence server-side, then returns a validated LOR-specific extension of `AIAnalysis`. The statement branch is unchanged. Draft content and the latest F7.3 result continue to live in `personal_statements` with `doc_type = 'recommendation_letter'`.
+
+### Security, reliability, and scale
+
+- Treat all free text and stored content as untrusted data, never instructions.
+- Never accept evidence text, programme facts, or total scores from the client.
+- Bound relationship text, evidence count, programme context, strategy output, and letter length.
+- Return `401` for unauthenticated requests, `404` for inaccessible applications, `400` for invalid input or evidence IDs, `402` for exhausted review allowance, and `502` for invalid AI output.
+- Preserve editor text when strategy generation, review, or autosave fails and expose a retry action.
+- One strategy and one review request per explicit user action are sufficient for expected individual-application scale.
 
 ### Verification
 
-- Unit-test LOR task recognition, including negative cases.
-- Verify LOR, Essay, and CV tasks route to their respective pages.
-- Verify draft queries isolate `recommendation_letter` from existing statement types.
-- Test authentication, ownership, input bounds, quota, and invalid AI responses.
-- Assert LOR prompts contain Supabase programme context and exclude CV/profile context.
-- Test saving and restoring LOR drafts and analyses.
-- Run the existing Essay Review tests to catch regressions.
+Use test-driven development:
+
+- schema and deterministic score-normalization tests;
+- F7.1/F7.2 API authentication, ownership, evidence scoping, prompt-boundary, invalid-response, and persistence tests;
+- F7.3 tests for all nine dimensions, recommendation thresholds, saved-strategy context, missing-strategy fallback, and CV/profile exclusion;
+- workspace tests for activity selection, restored state, step transitions, Recommendation Brief, dimension ledger, feedback sections, and retry states;
+- regression tests for Essay Review, statement draft isolation, LOR task routing, typecheck, lint, full unit suite, and production build.
 
 ## Decision log
 
 | Decision | Alternatives | Reason |
 | --- | --- | --- |
-| Dedicated LOR page with shared writer | Selector inside Essay Review | Clear entry point without duplicating the editor |
-| Extend the current draft table with `recommendation_letter` | New LOR table | Smallest schema and persistence change |
-| Extend the current analysis endpoint with an LOR branch | Separate LOR endpoint; generic document framework | Reuses existing auth, quota, model call, and response shape |
-| Use only stored application/course data | CV/profile context; live web retrieval | Matches the requested scope and keeps review deterministic |
-| Preserve the current `AIAnalysis` response | New LOR response schema | Reuses the complete feedback UI |
-| No generic document-review framework | Refactor Essay and LOR into a new abstraction | Avoids speculative architecture before more document types exist |
+| One three-stage LOR workspace | Separate pages; a mode selector inside Essay Review | Keeps the flow understandable without duplicating navigation or the editor |
+| One `application_lor_strategies` row per application | Store strategy inside `personal_statements.ai_analysis`; fully normalized child tables | Prevents strategy/review overwrite with the smallest durable schema |
+| Generate F7.1 and F7.2 in one request | One call per phase; deterministic templates only | Both phases use the same trusted context and can share validation and persistence |
+| Dedicated F7.1/F7.2 API, existing F7.3 API branch | One generic LOR endpoint; three endpoints | Separates preparation from review while retaining the working review path |
+| Reload selected evidence server-side | Trust evidence content from the browser | Prevents cross-user access and prompt manipulation |
+| Use reflection evidence but never CV data | CV/profile context; programme-only context | F7.1/F7.2 need observed experiences, while the stated LOR scope excludes CV-derived claims |
+| Validate nine raw dimension scores and derive totals server-side | Trust the model's total | Makes the 85-point rubric and `/100` score internally consistent |
+| Preserve Essay Review primitives and add an LOR result extension | Force LOR into the old generic shape; build a new editor | Reuses proven interactions without discarding F7.3 detail |
+| Apply shared website chrome and design tokens across the dedicated LOR page | Recolor the existing fullscreen layout; embed LOR inside the application workspace | Matches the current Apply experience without changing the LOR architecture or state flow |

@@ -183,3 +183,21 @@ export const applyShortlistLimiter = new RateLimiter({
   maxRequests: 5,
   windowMs: 60000, // 1 minute
 });
+
+/** Shared LOR AI budget guard: strategy generation + quality review. */
+export const lorAiLimiter = new RateLimiter({
+  maxRequests: process.env.NODE_ENV === 'development' ? 1000 : 3,
+  windowMs: 60000,
+});
+
+/** Shared budget guard for the Application Strategy AI routes added on main. */
+export const strategyAiLimiter = new RateLimiter({
+  maxRequests: 8,
+  windowMs: 60000,
+});
+
+/** PDF export guard for Application Strategy. */
+export const strategyExportLimiter = new RateLimiter({
+  maxRequests: 5,
+  windowMs: 60000,
+});

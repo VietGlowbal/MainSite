@@ -232,6 +232,7 @@ export type VinUniV2StreamEvent =
       message: string;
     }
   | VinUniV2SectionEvent
+  | { type: 'evidence_map'; data: EvidenceCoverageMap }
   | { type: 'diagnostics'; data: EssayDiagnostics }
   | {
       type: 'complete';
@@ -1304,6 +1305,8 @@ Trả JSON ngắn gọn, đầy đủ và đóng mọi dấu ngoặc.`,
   if (!evidenceMap) {
     evidenceMap = fallbackEvidenceCoverageMap(essaySegments, essayPrompt);
   }
+
+  yield { type: 'evidence_map', data: evidenceMap };
 
   yield {
     type: 'status',
