@@ -33,11 +33,19 @@ export const translations: Record<string, string> = {
   'Search universities': 'Tìm trường đại học',
   Coordinator: 'Điều phối viên',
   'About us': 'Về chúng tôi',
-  // The header and the footer point at /ai-strategy under different labels, on
-  // purpose: the nav was relabelled on Figma 375:9845 / 375:10151, the footer
-  // frame (104:7413) was not. Keep both keys.
-  'Build your strategy': 'Lên Chiến lược Du học', // header, Figma 375:9845
-  'AI strategy': 'Chiến lược AI', // footer, Figma 104:7413
+  /*
+   * The header nav item, pointing at /how-it-works since 03/08 — the general
+   * help page. Note the casing: 'How GLOWBAL works' (further down) is the Home
+   * section heading and a SEPARATE key, because DomTranslator matches exact
+   * text and the two strings differ.
+   */
+  'How GlowBal works': 'Cách GlowBal hoạt động',
+  // Superseded as a nav label by 'How GlowBal works' when /ai-strategy stopped
+  // being the whole explainer. Kept for the same reason as Blog below: any node
+  // whose text is still exactly this should translate.
+  'Build your strategy': 'Lên Chiến lược Du học', // header until 03/08, Figma 375:9845
+  'AI strategy': 'Chiến lược AI', // footer -> /ai-strategy, Figma 104:7413
+  'GlowBal Strategy': 'Chiến lược GlowBal', // the stage's own name, /ai-strategy H1 area
   // No longer a nav label — /news is "News" above since 01/08. Kept because
   // DomTranslator matches any node whose text is exactly this.
   Blog: 'Blog',

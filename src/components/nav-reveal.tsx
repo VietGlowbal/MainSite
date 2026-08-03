@@ -269,6 +269,9 @@ export function NavReveal() {
     '/dev/saved-list',
     // The AI strategy journey's entry page ships TopNav + MobileNav + Footer.
     '/ai-strategy',
+    // The product help page, split off /ai-strategy on 03/08. Same chrome, so
+    // without this entry it would get the app header on top of its own.
+    '/how-it-works',
     /*
      * GlowBal Plus. Rebuilt on the design system 02/08 (there is no Figma frame
      * for it — see the header of src/app/plus/page.tsx) and it ships its own

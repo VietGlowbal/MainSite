@@ -352,6 +352,27 @@ export const STRATEGY_GUIDE: readonly GuideArea[] = [
 ];
 
 /**
+ * One area on its own, for a page that explains a single stage rather than the
+ * whole journey — `/ai-strategy`, which since 03/08 is area 3 and nothing else.
+ * `/how-it-works` is the page that renders all three.
+ *
+ * IT THROWS ON AN UNKNOWN ID, deliberately. The only way to reach that is to
+ * rename an area above without following it here, and this is content read at
+ * render time on a server component: an exception names the mistake in the
+ * build output, whereas returning `undefined` would ship a page with an empty
+ * walkthrough and a hero promising steps that never appear. That failure mode
+ * is exactly what the ⚠️ at the top of this file is about.
+ */
+export function guideArea(id: string): GuideArea {
+  const area = STRATEGY_GUIDE.find((candidate) => candidate.id === id);
+  if (area === undefined) {
+    const known = STRATEGY_GUIDE.map((candidate) => candidate.id).join(', ');
+    throw new Error(`Unknown guide area "${id}". The ids are: ${known}.`);
+  }
+  return area;
+}
+
+/**
  * Which step is most relevant to the page a student is currently on — what the
  * floating help button opens to, so pressing "?" on the subject picker starts
  * at "Choose your subject" rather than at step 1.1 every time.

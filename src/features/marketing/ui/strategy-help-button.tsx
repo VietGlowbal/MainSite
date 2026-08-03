@@ -62,8 +62,14 @@ const SUPPRESSED_PREFIXES = [
   '/onboarding',
 ];
 
-/** Routes that get no help button, matched exactly — children still do. */
-const SUPPRESSED_EXACT = ['/ai-strategy'];
+/**
+ * Routes that get no help button, matched exactly — children still do.
+ *
+ * Both entries are the walkthrough itself, split in two on 03/08:
+ * `/how-it-works` renders all three stages and `/ai-strategy` renders stage 3.
+ * A help button on either would open a popup over the page it came from.
+ */
+const SUPPRESSED_EXACT = ['/ai-strategy', '/how-it-works'];
 
 function isSuppressed(pathname: string): boolean {
   if (SUPPRESSED_EXACT.includes(pathname)) return true;

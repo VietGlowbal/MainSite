@@ -134,9 +134,25 @@ const MENU: Record<Tone, string> = {
 /**
  * Shared by the links and the dropdown trigger so the two are the same pill.
  * The responsive padding notes live on the link itself, below.
+ *
+ * ─── THE HOVER OUTLINE IS AN INSET RING, NOT A BORDER (owner, 03/08) ─────────
+ *
+ * The ask was a red border on hover. `hover:border` cannot deliver it here: a
+ * 1px border is part of the box, so the pill would grow 2px in each direction
+ * the moment the pointer touched it — every label nudging its neighbours, and
+ * the active pill losing the 36px that makes it exactly the height of the two
+ * buttons beside it (see the padding note on the link below, which is measured
+ * against those buttons).
+ *
+ * `ring-1 ring-inset` paints the same 1px line on the same edge as a box
+ * shadow, which takes no space at all. Nothing moves, and the pill stays 36px.
+ * `ring-inset` rather than a plain ring so the line sits on the pill's edge
+ * instead of a pixel outside it, where it would crowd the 8px gap between
+ * labels. Same treatment in both tones: brand red reads on the black bar and
+ * on the white one.
  */
 const ITEM =
-  'rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold whitespace-nowrap transition-colors xl:py-gb-md 2xl:px-gb-lg';
+  'rounded-gb-md px-gb-sm py-gb-xs text-gb-sm font-semibold whitespace-nowrap transition-colors hover:ring-1 hover:ring-inset hover:ring-brand xl:py-gb-md 2xl:px-gb-lg';
 
 /**
  * Gap between the trigger and the panel it opens, in px.
@@ -296,7 +312,12 @@ function NavDropdown({
                 href={item.href}
                 aria-current={itemActive ? 'page' : undefined}
                 onClick={() => setOpen(false)}
-                className={`rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-semibold whitespace-nowrap transition-colors ${
+                /* Same hover ring as the top-level pills (see ITEM) — these are
+                   nav options too, and a menu whose rows highlighted
+                   differently from the bar above them would read as a different
+                   control. Not `ITEM` itself: these rows are wider (px-gb-lg at
+                   every width) because a dropdown has the room. */
+                className={`rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-semibold whitespace-nowrap transition-colors hover:ring-1 hover:ring-inset hover:ring-brand ${
                   itemActive ? LINK[tone].active : LINK[tone].idle
                 }`}
               >

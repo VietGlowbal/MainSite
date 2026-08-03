@@ -121,7 +121,14 @@ const ROUTES: readonly RoutePattern[] = [
     trail: ['My Portal', 'Reflections', 'Achievements'],
   },
   { pattern: '/ai-strategy/reflection', trail: ['My Portal', 'Reflections'] },
-  { pattern: '/ai-strategy', trail: ['How GlowBal Works'] },
+  /*
+   * Split on 03/08: /how-it-works explains the whole product, /ai-strategy is
+   * stage 3 on its own. The Strategy page hangs off the help page, which is
+   * both where the nav sends a student and where its own "See the whole
+   * journey" button goes — so the crumb out matches the two links they can see.
+   */
+  { pattern: '/ai-strategy', trail: ['How GlowBal works', 'GlowBal Strategy'] },
+  { pattern: '/how-it-works', trail: ['How GlowBal works'] },
 
   // ── My Portal ────────────────────────────────────────────────────────────
   {
@@ -172,6 +179,8 @@ const CRUMB_HREFS: readonly { pattern: string; hrefs: readonly (string | null)[]
   { pattern: '/ai-strategy/:id/statement', hrefs: ['/apply', '/apply/:id', null] },
   { pattern: '/ai-strategy/reflection/achievements', hrefs: ['/apply', '/ai-strategy/reflection', null] },
   { pattern: '/ai-strategy/reflection', hrefs: ['/apply', null] },
+  // Stage 3's explainer, under the help page it was split out of on 03/08.
+  { pattern: '/ai-strategy', hrefs: ['/how-it-works', null] },
   { pattern: '/apply/:id', hrefs: ['/apply', null] },
   { pattern: '/my-universities/program', hrefs: ['/apply', null] },
   { pattern: '/universities/:id', hrefs: ['/universities', null] },
