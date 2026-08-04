@@ -170,6 +170,15 @@ export type CourseApplication = {
   importStatus: string;
   aiSummary?: string;
   userNotes?: string;
+  /**
+   * When the Strategy Introduction was opened — the last onboarding step.
+   *
+   * Read by My Portal to decide whether a row can link straight into the
+   * planner or has to offer "build your strategy" instead: the planner route
+   * redirects back into onboarding until this is set, and a link that bounces
+   * is the confusion the navigation rework exists to remove.
+   */
+  strategyIntroSeenAt?: string | null;
   createdAt: string;
   updatedAt: string;
 };

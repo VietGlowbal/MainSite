@@ -116,6 +116,38 @@ export const recommendationStatusPatchSchema = z.object({
 
 export type RecommendationStatusPatch = z.infer<typeof recommendationStatusPatchSchema>;
 
+/**
+ * What `PATCH .../recommendations/[recId]` accepts.
+ *
+ * Both fields optional, at least one required — the board sends a status, the
+ * calendar sends a deadline, and neither should have to echo the other back
+ * and risk clobbering a change made in the other view a moment earlier.
+ *
+ * `deadline` is nullable because unscheduling is a real action: dragging a
+ * task off the calendar and back into the tray sends `null`. A plain
+ * `.optional()` could not express that — omitted would mean "leave it alone"
+ * and there would be no way to say "clear it".
+ *
+ * The date is validated as a bare `YYYY-MM-DD` rather than a datetime,
+ * because the column is a Postgres DATE. Accepting an ISO timestamp here
+ * would silently truncate in the database and hand back a different value
+ * than the one that was sent.
+ */
+export const recommendationPatchSchema = z
+  .object({
+    status: z.enum(PROGRESS_STATUS).optional(),
+    deadline: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a YYYY-MM-DD date')
+      .nullable()
+      .optional(),
+  })
+  .refine((patch) => patch.status !== undefined || patch.deadline !== undefined, {
+    message: 'Provide a status, a deadline, or both',
+  });
+
+export type RecommendationPatch = z.infer<typeof recommendationPatchSchema>;
+
 /** The unstarted, highest-priority recommendation — the Dashboard's "Next Priority" (9.1). */
 export function nextPriority(recommendations: readonly Recommendation[]): Recommendation | null {
   const open = recommendations.filter((r) => r.status !== 'completed');

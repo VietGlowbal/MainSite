@@ -6,8 +6,8 @@ import {
   recommendationFromRow,
 } from '@/features/ai-strategy-dashboard/domain';
 import {
+  ApplicationPlanner,
   DashboardSummary,
-  RecommendationTable,
   StrategyCategoryBoard,
 } from '@/features/ai-strategy-dashboard/ui';
 import { createClient } from '@/lib/supabase/server';
@@ -111,9 +111,17 @@ export default async function StrategyDashboardPage({
           </p>
         ) : null}
 
-        <StrategyCategoryBoard recommendations={recommendations} />
+        <StrategyCategoryBoard applicationId={applicationId} recommendations={recommendations} />
 
-        <RecommendationTable applicationId={applicationId} recommendations={recommendations} />
+        {/* `today` is resolved on the server and passed down so the client
+            agrees with it — computing `new Date()` inside the planner would
+            give the two sides different answers and hydrate mismatched
+            ("3d left" flickering to "2d left"). */}
+        <ApplicationPlanner
+          applicationId={applicationId}
+          recommendations={recommendations}
+          today={new Date()}
+        />
       </div>
     </Container>
   );

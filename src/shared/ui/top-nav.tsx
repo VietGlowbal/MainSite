@@ -7,6 +7,7 @@ import { Avatar } from './avatar';
 import { Button } from './button';
 import { LanguageSwitcher } from './language-switcher';
 import { isNavGroup, isNavLinkActive, type NavEntry, type NavGroup, type NavLink } from './nav-model';
+import { NAV_HIDDEN_EVENT, useNavReveal } from './use-nav-reveal';
 import { TID, testId } from '@/shared/lib';
 
 /**
@@ -234,18 +235,27 @@ function NavDropdown({
       triggerRef.current?.focus();
     }
 
+    // The bar can slide out from under an open panel (useNavReveal). The panel
+    // is placed against the viewport and only re-measures on scroll, so it
+    // would be left mid-air; closing with the bar is the honest behaviour.
+    function onNavHidden() {
+      setOpen(false);
+    }
+
     window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('resize', place);
     // Capture phase: the panel is placed against the viewport, so it has to
     // follow the trigger when ANY scroller moves it, not only the page.
     window.addEventListener('scroll', place, true);
+    window.addEventListener(NAV_HIDDEN_EVENT, onNavHidden);
 
     return () => {
       window.removeEventListener('pointerdown', onPointerDown, true);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('resize', place);
       window.removeEventListener('scroll', place, true);
+      window.removeEventListener(NAV_HIDDEN_EVENT, onNavHidden);
     };
   }, [open, place]);
 
@@ -310,10 +320,27 @@ export function TopNav({
   utility,
 }: Props) {
   const pathname = usePathname();
+  // Destructured rather than held as one object: react-hooks/refs treats a
+  // value carrying a ref as a ref itself, and reading `.top` off it during
+  // render trips the rule even though `top` is ordinary state.
+  const { ref: navRef, top: navTop, isFloating } = useNavReveal();
 
   return (
     <header
-      className={`hidden border-b py-gb-xl md:block ${BAR[tone]}`}
+      ref={navRef}
+      /*
+       * Sticky, and moved by `top` rather than `transform` — see
+       * use-nav-reveal.ts. A transform here would make this element the
+       * containing block for NavDropdown's fixed panel and bring back the
+       * clipping the ⚠️ note on that component describes.
+       *
+       * `z-40` sits under the dropdown panel (z-50) and under Modal, so a bar
+       * that follows the page cannot cover a dialog.
+       */
+      style={{ top: navTop }}
+      className={`sticky z-40 hidden border-b py-gb-xl transition-[top] duration-200 ease-out motion-reduce:transition-none md:block ${BAR[tone]}${
+        isFloating ? ' shadow-gb-xs' : ''
+      }`}
       {...testId(TID.navHeader)}
     >
       <div className={MEASURE}>

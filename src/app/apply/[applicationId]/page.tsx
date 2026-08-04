@@ -1,4 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
+import { ApplicationNav } from '@/components/application-nav';
 import { getUniversityQueries } from '@/features/universities/api';
 import { createClient } from '@/lib/supabase/server';
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
@@ -72,6 +73,12 @@ export default async function ApplicationPage({
       logoUrl={logoUrl}
       userName={userName}
       userAvatarUrl={userAvatarUrl}
+      nav={
+        <ApplicationNav
+          applicationId={applicationId}
+          courseName={workspace.application.courseName}
+        />
+      }
     />
   );
 }

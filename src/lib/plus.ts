@@ -149,7 +149,14 @@ export type PlusPackage = {
   amountVnd: number;
   /** AI strategy credits granted by this tier. */
   aiCredits: number;
-  /** Short bullet highlights for the card (full detail lives in the table). */
+  /**
+   * Short bullet highlights for the card (full detail lives in the table).
+   *
+   * ⚠️ Do NOT re-add "<n> AI strategy credits" here. Every tier used to lead
+   * with it and the rebuilt card (src/app/plus/plus-pricing.tsx) gives credits
+   * their own plate directly above this list, so the bullet printed the same
+   * number twice in the same card.
+   */
   highlights: string[];
   /** Highlight the middle "most popular" card. */
   highlighted: boolean;
@@ -165,9 +172,9 @@ export const PLUS_PACKAGES: PlusPackage[] = [
     amountVnd: 455000,
     aiCredits: 25,
     highlights: [
-      '25 AI strategy credits',
       'Full scholarship details & deadlines',
       'Application roadmap + document checklist',
+      'Strategy history — revisit & compare',
     ],
     highlighted: false,
   },
@@ -180,7 +187,6 @@ export const PLUS_PACKAGES: PlusPackage[] = [
     amountVnd: 1999000,
     aiCredits: 120,
     highlights: [
-      '120 AI strategy credits',
       'Everything in Starter',
       'Plus-only & premium scholarships',
       'Priority student-supporter access',
@@ -196,7 +202,6 @@ export const PLUS_PACKAGES: PlusPackage[] = [
     amountVnd: 8950000,
     aiCredits: 500,
     highlights: [
-      '500 AI strategy credits',
       'Everything in Pro',
       '1:1 onboarding & dedicated support',
       'A mentor session credit included',

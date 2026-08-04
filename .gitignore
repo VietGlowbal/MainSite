@@ -48,6 +48,10 @@ next-env.d.ts
 /playwright/.cache/
 
 /tmp
+# Scratch output from throwaway verification runs (rendered PDFs, text dumps).
+# A glob rather than one name: these get created ad hoc during debugging and the
+# next one will not be called tmp-verify either.
+/tmp-*
 
 # Python ingestion service
 **/__pycache__/

@@ -121,13 +121,11 @@ export const translations: Record<string, string> = {
   'Pieces of feedback shaping the product': 'Feedbacks để hoàn thiện hệ thống',
 
   // ── Home features (Figma 104:7164) ───────────────────────────────────────
-  // Only the first block is written; the other two show `MissingContent`,
-  // which is marked data-no-auto-translate and needs no keys.
+  // Figma supplies English placeholder copy for the two demo-video rows.
+  // All three rows have keys while final product copy and video assets are prepared.
   Features: 'Tính năng',
-  'See the scholarships tied to the university you picked':
-    'Xem các học bổng liên kết với trường đại học bạn đã chọn',
-  'Browse a free preview. Create your profile to unlock the full eligibility rules, the documents you need, and to save opportunities into your plan.':
-    'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
+  'Learn how GlowBal helps you find scholarships from A to Z with just two simple features':
+    'Tìm hiểu cách GlowBal giúp bạn săn học bổng từ A-Z, chỉ với 2 tính năng đơn giản',
   // A product name — kept as-is in both languages, like the university names.
   'GlowBal Matcher': 'GlowBal Matcher',
   'Answer simple questions about you. With our G-Matching technology, we can pair you with the best future opportunity from:':
@@ -135,6 +133,23 @@ export const translations: Record<string, string> = {
   '200+ top universities globally': 'Hơn 200 trường đại học hàng đầu thế giới',
   '100+ different majors, even the rarest ones': 'Hơn 100 chuyên ngành, kể cả những ngành hiếm nhất',
   '3000+ scholarships': 'Hơn 3000 học bổng',
+  'Demo Video 2': 'Video demo 2',
+  'An all-in-one customer service platform that helps you balance everything your customers need to be happy.':
+    'Một nền tảng dịch vụ khách hàng tất cả trong một giúp bạn cân bằng mọi thứ khách hàng cần để hài lòng.',
+  'Keep your customers in the loop with live chat':
+    'Luôn cập nhật cho khách hàng bằng trò chuyện trực tiếp',
+  'Embed help articles right on your website': 'Nhúng các bài viết trợ giúp ngay trên website của bạn',
+  'Customers never have to leave the page to find an answer':
+    'Khách hàng không cần rời khỏi trang để tìm câu trả lời',
+  'Demo Video 3': 'Video demo 3',
+  'Measure what matters with Untitled’s easy-to-use reports. You can filter, export, and drilldown on the data in a couple clicks.':
+    'Đo lường những điều quan trọng với báo cáo dễ sử dụng của Untitled. Bạn có thể lọc, xuất và xem chi tiết dữ liệu chỉ với vài cú nhấp chuột.',
+  'Filter, export, and drilldown on the data quickly':
+    'Lọc, xuất và xem chi tiết dữ liệu nhanh chóng',
+  'Save, schedule, and automate reports to your inbox':
+    'Lưu, lên lịch và tự động gửi báo cáo đến hộp thư của bạn',
+  'Connect the tools you already use with 100+ integrations':
+    'Kết nối các công cụ bạn đang dùng với hơn 100 tích hợp',
 
   // ── Home "How GLOWBAL works" (Figma 104:7211) ────────────────────────────
   // 'Learn more' is already defined above, under the common actions.
@@ -1036,6 +1051,9 @@ export const translations: Record<string, string> = {
   // The design writes these in Vietnamese; the English above is the source
   // string, so these entries are the designer's own wording restored.
   'Scholarship library': 'Kho học bổng',
+  'Scholarship library ....': 'Kho học bổng ....',
+  'Browse a free preview. Create your profile to unlock full eligibility requirements and required documents, then save opportunities to your plan.':
+    'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
   'Funding opportunities, curated for you': 'Cơ hội hỗ trợ tài chính dành riêng cho bạn',
   'Explore verified funding opportunities, save your strongest fits, and turn your university plans into a clearer path forward.':
     'Khám phá các cơ hội hỗ trợ tài chính đã được xác thực, lưu những lựa chọn phù hợp nhất và biến kế hoạch chọn trường thành lộ trình rõ ràng hơn.',
@@ -1052,7 +1070,7 @@ export const translations: Record<string, string> = {
     'Cuộn hoặc vuốt để xem thêm học bổng.',
 
   // ── Home: testimonials (Figma 104:7265) ──────────────────────────────────
-  'Learn from students who made it': 'Học hỏi từ những sinh viên đã thành công',
+  'Learn from students who have succeeded': 'Học hỏi từ những sinh viên đã thành công',
   'GlowBal connects you with students all over the world who share real experience of universities, scholarships, applications and student life.':
     'GlowBal kết nối bạn với những sinh viên trên khắp thế giới, những người chia sẻ kinh nghiệm thực tế về các trường đại học, học bổng, hồ sơ và cuộc sống sinh viên.',
 
@@ -1067,6 +1085,18 @@ export const translations: Record<string, string> = {
   'Do I need to know which university I want?':
     'Tôi có cần biết trường đại học của mình không?',
   'Why do I need to create a profile?': 'Tại sao tôi cần tạo một hồ sơ?',
+  'GlowBal is a study-abroad planning platform that helps you explore universities, discover scholarships and organise your next steps in one place.':
+    'GlowBal là nền tảng lập kế hoạch du học, giúp bạn khám phá các trường đại học, tìm học bổng và sắp xếp các bước tiếp theo tại một nơi.',
+  'You can explore universities and start building your profile for free. Any optional paid service is clearly explained before it applies.':
+    'Bạn có thể khám phá các trường đại học và bắt đầu tạo hồ sơ miễn phí. Mọi dịch vụ trả phí tùy chọn đều được giải thích rõ trước khi áp dụng.',
+  'It turns the information you add into practical next steps for your university and scholarship plan. It is guidance, so always check official requirements before you apply.':
+    'Tính năng này biến thông tin bạn cung cấp thành các bước tiếp theo thiết thực cho kế hoạch chọn trường và học bổng. Đây là gợi ý, vì vậy hãy luôn kiểm tra yêu cầu chính thức trước khi nộp đơn.',
+  'They are students and graduates who share first-hand experience of applications, scholarships and student life. Their availability and areas of expertise vary.':
+    'Họ là sinh viên và cựu sinh viên chia sẻ kinh nghiệm trực tiếp về hồ sơ, học bổng và đời sống sinh viên. Thời gian hỗ trợ và lĩnh vực chuyên môn của mỗi người có thể khác nhau.',
+  'No. You can begin with a country, subject or budget and use GlowBal to compare universities before deciding where to apply.':
+    'Không. Bạn có thể bắt đầu với quốc gia, ngành học hoặc ngân sách, rồi dùng GlowBal để so sánh các trường đại học trước khi quyết định nơi nộp đơn.',
+  'Your profile gives GlowBal the context to organise relevant opportunities, save your shortlist and make your next steps more personal.':
+    'Hồ sơ giúp GlowBal có đủ thông tin để sắp xếp các cơ hội phù hợp, lưu danh sách lựa chọn và cá nhân hóa các bước tiếp theo của bạn.',
 
   // ── Home: contact (Figma 104:7361) ───────────────────────────────────────
   'Leave your details for a consultation': 'Để lại thông tin để nhận tư vấn',
@@ -1491,6 +1521,278 @@ export const translations: Record<string, string> = {
   '6 years': '6 năm',
   '7 years': '7 năm',
   '8 years': '8 năm',
+
+  // ── GlowBal Plus (/plus, /plus/success) ──────────────────────────────────
+  // Added 2026-08-02 with the page's rebuild. It had ONE key before that
+  // ('Upgrade to GlowBal Plus', further up, which belongs to /profile), so the
+  // whole pricing page — every tier name, price caption and comparison row —
+  // was reaching /api/translate on a Vietnamese visitor's first paint and
+  // rendering whatever came back unread. The tier names, taglines, duration
+  // labels and comparison rows below are the literals in src/lib/plus.ts; the
+  // rest are in src/app/plus/*.
+  'GlowBal Plus': 'GlowBal Plus',
+  'Unlock your full scholarship plan': 'Mở khóa kế hoạch săn học bổng đầy đủ của bạn',
+  'Go beyond searching — more AI application strategies, full scholarship details, a document checklist, and priority student-supporter access. Designed to help you apply with a clearer, stronger strategy.':
+    'Không chỉ dừng lại ở việc tìm kiếm — thêm chiến lược ứng tuyển từ AI, thông tin học bổng đầy đủ, danh sách hồ sơ cần chuẩn bị và quyền hỗ trợ ưu tiên từ đội ngũ sinh viên. Được thiết kế để bạn nộp hồ sơ với một chiến lược rõ ràng và mạnh mẽ hơn.',
+  'More AI strategy credits': 'Thêm tín dụng chiến lược AI',
+  'Full scholarship details': 'Thông tin học bổng đầy đủ',
+  'Priority supporter access': 'Ưu tiên kết nối người hỗ trợ',
+  '🎉 Your profile is set up': '🎉 Hồ sơ của bạn đã sẵn sàng',
+  'Get the most from GlowBal with Plus — or keep exploring for free.':
+    'Tận dụng tối đa GlowBal với Plus — hoặc tiếp tục khám phá miễn phí.',
+  'Maybe later — see my matches →': 'Để sau — xem trường phù hợp với tôi →',
+  'Checkout cancelled': 'Đã hủy thanh toán',
+  'Nothing was charged. Your plan is unchanged — pick it up again whenever you are ready.':
+    'Bạn chưa bị trừ khoản nào. Gói của bạn không thay đổi — hãy quay lại bất cứ khi nào bạn sẵn sàng.',
+  'You’re on GlowBal Plus': 'Bạn đang dùng GlowBal Plus',
+  'Thanks for your support — you can extend your plan any time below.':
+    'Cảm ơn bạn đã ủng hộ — bạn có thể gia hạn gói bất cứ lúc nào ở bên dưới.',
+  'GlowBal Plus is coming soon': 'GlowBal Plus sắp ra mắt',
+  'The plans below are a preview — they are not on sale yet. Everything in the Free plan is fully available in the meantime.':
+    'Các gói dưới đây chỉ là bản xem trước — chúng chưa được mở bán. Trong thời gian này, mọi tính năng của gói Miễn phí vẫn hoạt động đầy đủ.',
+
+  'Show prices in': 'Hiển thị giá bằng',
+  'Display currency': 'Đơn vị tiền tệ hiển thị',
+  // The three tier names, from PLUS_PACKAGES. Short enough to collide with an
+  // unrelated node elsewhere on the site; none exists today, and either reading
+  // is correct Vietnamese for the word on its own.
+  Starter: 'Khởi đầu',
+  Pro: 'Chuyên nghiệp',
+  Premium: 'Cao cấp',
+  'Everything you need to apply with confidence': 'Mọi thứ bạn cần để tự tin nộp hồ sơ',
+  'Our most popular plan for serious applicants':
+    'Gói phổ biến nhất dành cho những ứng viên nghiêm túc',
+  'The complete, hands-on plan': 'Gói đầy đủ, đồng hành sát sao',
+  '6 months of Plus access': '6 tháng sử dụng Plus',
+  '12 months of Plus access': '12 tháng sử dụng Plus',
+  '24 months of Plus access': '24 tháng sử dụng Plus',
+  'AI strategy credits': 'Tín dụng chiến lược AI',
+  'Most popular': 'Phổ biến nhất',
+  'Coming soon': 'Sắp ra mắt',
+  'Choose this plan': 'Chọn gói này',
+  'Sign up & choose': 'Đăng ký & chọn gói',
+  'Starting checkout…': 'Đang mở thanh toán…',
+  'No account yet? Selecting a plan signs you up first — it’s free to start.':
+    'Chưa có tài khoản? Chọn một gói sẽ đưa bạn đến bước đăng ký trước — hoàn toàn miễn phí.',
+
+  // Card highlights + comparison rows (PLUS_PACKAGES.highlights, PLUS_COMPARISON).
+  'Full scholarship details & deadlines': 'Thông tin học bổng đầy đủ & hạn nộp',
+  'Application roadmap + document checklist': 'Lộ trình ứng tuyển + danh sách hồ sơ',
+  'Strategy history — revisit & compare': 'Lịch sử chiến lược — xem lại & so sánh',
+  'Everything in Starter': 'Toàn bộ gói Khởi đầu',
+  'Plus-only & premium scholarships': 'Học bổng dành riêng cho Plus & học bổng cao cấp',
+  'Priority student-supporter access': 'Ưu tiên kết nối người hỗ trợ là sinh viên',
+  'Everything in Pro': 'Toàn bộ gói Chuyên nghiệp',
+  '1:1 onboarding & dedicated support': 'Hướng dẫn 1:1 & hỗ trợ riêng',
+  'A mentor session credit included': 'Tặng kèm 1 buổi với cố vấn',
+  'University search & matching': 'Tìm kiếm & gợi ý trường phù hợp',
+  'Save universities & scholarships': 'Lưu trường & học bổng',
+  'Full scholarship details (eligibility, documents, deadlines)':
+    'Thông tin học bổng đầy đủ (điều kiện, hồ sơ, hạn nộp)',
+  'Mentor session credit included': 'Tặng kèm buổi với cố vấn',
+  'Plus access': 'Thời hạn dùng Plus',
+  '6 months': '6 tháng',
+  '12 months': '12 tháng',
+  '24 months': '24 tháng',
+
+  'Compare Free & Plus': 'So sánh Miễn phí & Plus',
+  'Start free, upgrade when you’re ready. Here’s exactly what each option includes.':
+    'Bắt đầu miễn phí, nâng cấp khi bạn sẵn sàng. Dưới đây là chính xác những gì mỗi lựa chọn bao gồm.',
+  // Screen-reader labels on the tick / dash cells.
+  Included: 'Có',
+  'Not included': 'Không có',
+  'Scroll the table sideways to see every plan.': 'Vuốt ngang bảng để xem toàn bộ các gói.',
+
+  'Continue with the Free plan': 'Tiếp tục với gói Miễn phí',
+  'Everything you need to start — no payment required.':
+    'Mọi thứ bạn cần để bắt đầu — không cần thanh toán.',
+  'View limited scholarship previews': 'Xem thông tin học bổng ở mức giới hạn',
+  'Save scholarships': 'Lưu học bổng',
+  'Create a basic profile': 'Tạo hồ sơ cơ bản',
+  '2 AI strategy suggestions': '2 lượt gợi ý chiến lược AI',
+  'Continue free': 'Tiếp tục miễn phí',
+  'Not sure which plan fits you?': 'Chưa rõ gói nào phù hợp với bạn?',
+  'Payments are processed securely by Stripe.': 'Thanh toán được xử lý an toàn qua Stripe.',
+  'Choose your currency above — you’ll be charged in the currency you select; conversions from VND are approximate. GlowBal helps you discover opportunities and prepare stronger applications; it does not guarantee scholarship outcomes.':
+    'Chọn đơn vị tiền tệ ở trên — bạn sẽ được tính phí bằng đơn vị đã chọn; tỷ giá quy đổi từ VND chỉ là tương đối. GlowBal giúp bạn tìm cơ hội và chuẩn bị hồ sơ tốt hơn; chúng tôi không cam kết kết quả học bổng.',
+  'GlowBal helps you discover opportunities and prepare stronger applications; it does not guarantee scholarship outcomes.':
+    'GlowBal giúp bạn tìm cơ hội và chuẩn bị hồ sơ tốt hơn; chúng tôi không cam kết kết quả học bổng.',
+
+  // /plus/success — the return leg from Stripe.
+  'Confirming your payment…': 'Đang xác nhận thanh toán của bạn…',
+  'We couldn’t confirm this payment automatically yet. If you completed checkout and Plus doesn’t appear shortly, contact':
+    'Chúng tôi chưa thể tự động xác nhận khoản thanh toán này. Nếu bạn đã hoàn tất thanh toán mà Plus vẫn chưa xuất hiện, hãy liên hệ',
+  'You’re already on Plus': 'Bạn đã dùng Plus rồi',
+  'Welcome to GlowBal Plus': 'Chào mừng bạn đến với GlowBal Plus',
+  'This plan is already active on your account — you’re all set.':
+    'Gói này đã được kích hoạt trên tài khoản của bạn — mọi thứ đã sẵn sàng.',
+  'Explore scholarships': 'Khám phá học bổng',
+  'Go to My Portal': 'Đến Hồ sơ của tôi',
+
+  // ── AI Strategy: the two analysis reports ────────────────────────────────
+  // Where the design mockups supplied Vietnamese, that wording is kept
+  // verbatim rather than retranslated — "Phân tích chân dung ứng viên",
+  // "Nhập học yêu cầu" and the fit page's title all come straight off the
+  // frames. Everything else follows the tone already set above.
+
+  // Stage bar
+  'Strategy stages': 'Các bước chiến lược',
+  Reflections: 'Tự đánh giá',
+  'Personal Report': 'Báo cáo cá nhân',
+  'GlowBal Matching Report': 'Báo cáo mức độ phù hợp GlowBal',
+  'Personalized Strategy': 'Chiến lược cá nhân hoá',
+  'Application Planner': 'Kế hoạch nộp hồ sơ',
+  'Available once your analysis has run': 'Sẽ mở khi phân tích của bạn hoàn tất',
+
+  // Applicant Portrait
+  'Applicant portrait analysis': 'Phân tích chân dung ứng viên',
+  'Welcome back, {name}': 'Chào mừng trở lại, {name}',
+  'Portrait sections': 'Các phần của chân dung',
+  // NOT "Profile strength" — that key is already taken above by the profile
+  // COMPLETENESS meter ('Độ hoàn thiện hồ sơ'). This is a different quantity
+  // and reusing the key would have relabelled one of them wrongly.
+  'Portrait strength': 'Độ mạnh chân dung',
+  'Core identity': 'Bản sắc cốt lõi',
+  'Driving force': 'Động lực',
+  'Signature pattern': 'Dấu ấn riêng (USP)',
+  'Emerging themes': 'Chủ đề nổi lên',
+  'Personal positioning': 'Định vị cá nhân',
+  'Proof of me': 'Bằng chứng về tôi',
+  'Who you are on paper, before any one course is considered.':
+    'Bạn là ai trên hồ sơ, trước khi xét tới bất kỳ khoá học nào.',
+  'What is actually pushing you towards this subject.':
+    'Điều thực sự thúc đẩy bạn đến với ngành học này.',
+  'The combination only you can claim — your USP.':
+    'Sự kết hợp chỉ riêng bạn có — điểm khác biệt của bạn.',
+  'Patterns that keep recurring across what you have done.':
+    'Những mô-típ lặp lại xuyên suốt những gì bạn đã làm.',
+  'How to present all of this to an admissions reader.':
+    'Cách trình bày tất cả những điều này với hội đồng tuyển sinh.',
+  'What you can actually evidence, strongest first.':
+    'Những gì bạn thực sự chứng minh được, mạnh nhất trước.',
+  'Brief summary': 'Mô tả ngắn',
+  'What drives you': 'Điều thúc đẩy bạn',
+  'Only you can claim this combination': 'Chỉ riêng bạn có sự kết hợp này',
+  'Patterns running through your record': 'Những mô-típ xuyên suốt hồ sơ của bạn',
+  'How to present yourself': 'Cách bạn nên thể hiện bản thân',
+  'Academic strengths': 'Thế mạnh học thuật',
+  'How you learn': 'Cách bạn học',
+  "Where you're still building": 'Những điểm bạn còn đang xây dựng',
+  'See how you match your course': 'Xem mức độ phù hợp với khoá học của bạn',
+  'Your portrait is not ready yet': 'Chân dung của bạn chưa sẵn sàng',
+  'Add your personal summary and achievements, and this page fills in with what we can evidence.':
+    'Hãy bổ sung phần giới thiệu bản thân và thành tích, trang này sẽ hiển thị những gì chúng tôi chứng minh được.',
+  'Start your reflections': 'Bắt đầu phần tự đánh giá',
+  'Update your reflections': 'Cập nhật phần tự đánh giá',
+  '{n} more sections unlock as you add detail':
+    'Thêm {n} phần nữa sẽ mở khi bạn bổ sung chi tiết',
+
+  // Evidence hierarchy (F3). "Verified" is already translated above and is not
+  // repeated here. The reach labels all carry "level" — partly for
+  // consistency, and partly because a bare "School" is already a key meaning
+  // the institution ('Trường/Viện'), which is not what this band means.
+  Checkable: 'Có thể kiểm chứng',
+  'Self-reported': 'Tự khai',
+  'International level': 'Cấp quốc tế',
+  'National level': 'Cấp quốc gia',
+  'Provincial level': 'Cấp tỉnh',
+  'District level': 'Cấp huyện',
+  'School level': 'Cấp trường',
+  'Unstated level': 'Chưa nêu cấp độ',
+  '{n} verified': '{n} đã xác minh',
+  '{n} checkable': '{n} có thể kiểm chứng',
+  '{n} self-reported': '{n} tự khai',
+  'No detail given': 'Chưa có thông tin chi tiết',
+  'Worth attaching proof for': 'Nên đính kèm bằng chứng cho',
+  'A document moves each of these up a tier. Admissions readers weigh what they can check.':
+    'Một tài liệu đính kèm sẽ nâng mỗi mục lên một bậc. Hội đồng tuyển sinh đánh giá cao những gì họ kiểm chứng được.',
+
+  // Confidence (shared by both reports)
+  'Well evidenced': 'Bằng chứng đầy đủ',
+  'Partly evidenced': 'Bằng chứng một phần',
+  'Thin evidence': 'Bằng chứng còn mỏng',
+
+  // Vagueness gate (F6)
+  'Nothing written yet': 'Bạn chưa viết gì',
+  'Too short to show your reasoning': 'Quá ngắn để thấy được lập luận của bạn',
+  'Opens with a stock phrase': 'Mở đầu bằng câu sáo rỗng',
+  'No names, numbers or dates a reader could picture':
+    'Không có tên, con số hay mốc thời gian nào để người đọc hình dung',
+  'Career goals': 'Mục tiêu nghề nghiệp',
+  'What motivates you': 'Điều gì thúc đẩy bạn',
+  'Your goals': 'Mục tiêu của bạn',
+  'Dream career': 'Nghề nghiệp mơ ước',
+  'Why study abroad': 'Vì sao du học',
+
+  // Programme Fit
+  'How well you match this course, university and its scholarships':
+    'Phân tích mức độ phù hợp (giữa ứng viên với ngành - trường - học bổng)',
+  // "Why this university", "Admission requirements", "Costs and scholarships"
+  // and "Scholarships" are already translated above for the university detail
+  // page, which uses the same section names. Reusing those keys is the point of
+  // an English-keyed dictionary — a second entry would be a second answer.
+  'Fit report sections': 'Các phần của báo cáo phù hợp',
+  'Overall fit': 'Mức độ phù hợp tổng quan',
+  'Programme overview': 'Tổng quan chương trình',
+  'Persona alignment': 'Mức độ tương thích cá nhân',
+  'Profile gaps': 'Khoảng trống hồ sơ',
+  'Why this university was recommended': 'Vì sao trường này được gợi ý',
+  Costs: 'Chi phí',
+  '#{n} QS world ranking': 'Hạng {n} xếp hạng QS thế giới',
+  '#{n} THE ranking': 'Hạng {n} xếp hạng THE',
+  'What the course asks for. We do not tick these off against your grades — marking systems differ too much between countries for that to be safe.':
+    'Đây là yêu cầu của khoá học. Chúng tôi không tự đánh dấu đạt/chưa đạt dựa trên điểm của bạn — hệ thống chấm điểm giữa các nước khác nhau quá nhiều để làm điều đó một cách an toàn.',
+  'The distance between where you are ({current}%) and where you could be ({goal}%).':
+    'Khoảng cách giữa vị trí hiện tại của bạn ({current}%) và mức bạn có thể đạt được ({goal}%).',
+  'Ready to study at {university}?': 'Sẵn sàng để học tại {university}?',
+  'Turn this report into a plan for {course}, built around the gaps above.':
+    'Biến báo cáo này thành kế hoạch cho {course}, dựa trên những khoảng trống ở trên.',
+  'Build my strategy': 'Lên chiến lược cho tôi',
+  'Check the official course page': 'Xem trang chính thức của khoá học',
+  'We do not have enough on this course yet': 'Chúng tôi chưa có đủ dữ liệu về khoá học này',
+  'Run your analysis, and the details we hold for this university will appear here.':
+    'Hãy chạy phân tích, thông tin chúng tôi có về trường này sẽ hiển thị ở đây.',
+
+  // Analysis loading gate
+  'Loading your reports...': 'Đang tải báo cáo của bạn...',
+  'Analysing profile...': 'Đang phân tích hồ sơ...',
+  'Understanding achievements...': 'Đang tìm hiểu thành tích...',
+  'Comparing against course...': 'Đang đối chiếu với khoá học...',
+  'Building recommendations...': 'Đang xây dựng gợi ý...',
+  'This usually takes 30–60 seconds.': 'Việc này thường mất 30–60 giây.',
+  'Analysis failed.': 'Phân tích thất bại.',
+
+  // ── Navigation: breadcrumbs and the application context bar ──────────────
+  // Crumb labels come from the route registry (shared/lib/app-routes.ts) and
+  // are translated; the dynamic ones — a course, a university, a person's name
+  // — deliberately are not. See the note in shared/ui/breadcrumbs.tsx.
+  // "My Portal", "Build your strategy" and "Become a mentor" are already
+  // translated above and are not repeated. The crumb for a course is
+  // "Your application", NOT "Application" — that key is taken above by the nav
+  // label for the act of applying ('Ứng tuyển'), which is a different word in
+  // Vietnamese and would have mislabelled every breadcrumb.
+  Breadcrumb: 'Đường dẫn',
+  'Application sections': 'Các mục của hồ sơ',
+  'Finish your AI analysis to unlock this': 'Hoàn tất phân tích AI để mở mục này',
+  'Your application': 'Hồ sơ ứng tuyển của bạn',
+  Planner: 'Kế hoạch',
+  Task: 'Công việc',
+  'AI Analysis': 'Phân tích AI',
+  'Your Strategy': 'Chiến lược của bạn',
+  'CV builder': 'Trình tạo CV',
+  'Statement writer': 'Trình viết bài luận',
+  Statement: 'Bài luận',
+  'Matching Report': 'Báo cáo phù hợp',
+  'How GlowBal Works': 'GlowBal hoạt động thế nào',
+  'Choose your subject': 'Chọn ngành học',
+  University: 'Trường đại học',
+  Mentor: 'Cố vấn',
+  Article: 'Bài viết',
+  'Application sent': 'Đã gửi đơn',
+  Welcome: 'Chào mừng',
+  // My Portal row quick links
+  Report: 'Báo cáo',
+  Board: 'Bảng',
 
   // ── Language switcher ────────────────────────────────────────────────────
   English: 'Tiếng Anh',

@@ -31,11 +31,18 @@
  *     the note on Requirement 14.3-14.4).
  *   - that GlowBal submits an application, or has any relationship with the
  *     universities. It does not.
- *   - the calendar view, the kanban view, and the CV builder as part of the
- *     Strategy. The first two do not exist at all; the CV tools at
- *     /ai-strategy/[id]/cv/* do exist and work but are not reachable from the
- *     Strategy dashboard, and the dashboard's own "CV / Portfolio" category is
- *     still flagged `comingSoon`. When those are wired up, add the steps.
+ *   - the calendar view and the kanban view. Neither exists at all. The task
+ *     plan is a table today.
+ *
+ *     ⚠️ The CV builder and statement writer USED to be on this list, for the
+ *     reason that they existed but were unreachable from the Strategy. They are
+ *     now wired up — the Dashboard's category board links to both, and the
+ *     recommendation table's "Help" column routes an essays-pillar task to the
+ *     writer (see ai-strategy-dashboard/domain/strategy-tool.ts). So the guide
+ *     MAY now describe them. It still does not, because the steps below are
+ *     paired with demo clips the owner is producing separately and adding a
+ *     step means adding a `videoFileName` for it; that is a content decision,
+ *     not a code one. The blocker is a clip, no longer a lie.
  *   - anything about payment. The owner confirmed (01/08) that a paywall is
  *     planned for the Strategy — after the application stage, i.e. between
  *     area 2 and area 3 below — but is deliberately not being built while the
@@ -366,7 +373,13 @@ const PATH_TO_STEP: readonly (readonly [RegExp, string])[] = [
   [/^\/ai-strategy\/reflection\/achievements/, '3.3'],
   [/^\/ai-strategy\/reflection/, '3.2'],
   [/^\/ai-strategy\/[^/]+\/strategy/, '3.1'],
+  /* The CV builder and the statement writer are both reached FROM the
+     improvement plan (the category board links to them, and an essays-pillar
+     task routes to the writer), so 3.5 is where a student on either of them
+     came from. Neither tool has a step of its own — see the "deliberately not
+     claimed" note at the top of this file for why. */
   [/^\/ai-strategy\/[^/]+\/cv/, '3.5'],
+  [/^\/ai-strategy\/[^/]+\/statement/, '3.5'],
   // Area 2
   [/^\/my-universities\/program/, '2.3'],
   [/^\/apply\/[^/]+/, '2.4'],
@@ -386,6 +399,28 @@ export function stepIndexForPath(pathname: string): number {
     if (index !== -1) return index;
   }
   return 0;
+}
+
+/**
+ * Where a step's link goes, in plain words — rendered under the button so a
+ * student knows what pressing it does before they lose the page they are on.
+ *
+ * KEYED ON `href`, NOT STORED PER STEP, and that is the point: a caption held
+ * next to the step could end up describing one destination while the link
+ * pointed at another, which is the precise class of drift this file has
+ * already suffered once. An unrecognised href gets no caption rather than a
+ * guessed one.
+ */
+const DESTINATION_LABELS: Readonly<Record<string, string>> = {
+  '/universities': 'the university directory',
+  '/scholarships': 'the scholarship list',
+  '/apply': 'My Portal',
+  '/ai-strategy/reflection': 'the questions about you',
+  '/ai-strategy/reflection/achievements': 'your achievements',
+};
+
+export function destinationLabel(href: string): string | null {
+  return DESTINATION_LABELS[href] ?? null;
 }
 
 /** Flat step list with its area — what the scroll position maps onto. */

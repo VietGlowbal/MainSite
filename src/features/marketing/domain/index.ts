@@ -4,6 +4,7 @@
  * server component and a client component alike.
  */
 export {
+  destinationLabel,
   flattenGuide,
   GUIDE_STEP_COUNT,
   STRATEGY_GUIDE,

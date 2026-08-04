@@ -1,11 +1,21 @@
+import type { NarrativeProfile } from './evaluation';
+
 /**
- * Applicant Analysis — the candidate-portrait report (V2 Stage 3, Report 1).
+ * `applicant_analyses` — the stored F1/F4 narrative.
  *
- * Mirrors `applicant_analyses` (append-only; latest `createdAt` per
- * `applicationId` is "the" analysis, same convention as `cv_reviews` /
- * `statement_analyses` in the ai-application-strategy spec). This module is
- * pure — it knows the shape of the report and nothing about Supabase, the AI
+ * Append-only; the latest `createdAt` per `applicationId` is "the" analysis,
+ * the same convention `cv_reviews` and `statement_analyses` use. This module is
+ * pure: it knows the shape of the row and nothing about Supabase, the model
  * call, or React.
+ *
+ * ─── COLUMN NAMES AND SECTION NAMES DIFFER ON PURPOSE ────────────────────────
+ *
+ * The engine's sections are coreIdentity / drivingForce / signaturePattern /
+ * personalPositioning. The columns are still personality_summary /
+ * motivation_analysis / competitive_advantages / suggested_positioning, because
+ * rows written before the engine existed hold real analyses for real students
+ * and renaming would strand them. `narrativeFromRow` is the single place the
+ * two vocabularies meet — see supabase-evaluation-engine.sql.
  */
 
 export type ApplicantAnalysisInputsPresent = {
@@ -14,59 +24,68 @@ export type ApplicantAnalysisInputsPresent = {
   evidence: boolean;
 };
 
-export type ApplicantAnalysis = {
+export type ApplicantAnalysisRecord = {
   id: string;
   applicationId: string;
   profileVersion: number;
-  personalitySummary: string | null;
-  learningStyle: string[];
-  academicStrengths: string[];
-  growthAreas: string[];
-  motivationAnalysis: string | null;
-  competitiveAdvantages: string[];
-  suggestedPositioning: string | null;
-  /** 0-100. Rendered visually (requirements.md 6.1), never as a bare number. */
-  overallRating: number | null;
+  narrative: NarrativeProfile;
   inputsPresent: ApplicantAnalysisInputsPresent;
   modelName: string | null;
   promptVersion: string | null;
   createdAt: string;
 };
 
-export type ApplicantAnalysisSection = {
-  key: keyof Pick<
-    ApplicantAnalysis,
-    | 'personalitySummary'
-    | 'learningStyle'
-    | 'academicStrengths'
-    | 'growthAreas'
-    | 'motivationAnalysis'
-    | 'competitiveAdvantages'
-    | 'suggestedPositioning'
-  >;
-  label: string;
-  kind: 'prose' | 'list';
+const EMPTY_INPUTS: ApplicantAnalysisInputsPresent = {
+  personalSummary: false,
+  achievements: false,
+  evidence: false,
 };
 
-/** Iterated by the report UI so a new section is added in one place. */
-export const APPLICANT_ANALYSIS_SECTIONS: readonly ApplicantAnalysisSection[] = [
-  { key: 'personalitySummary', label: 'Personality Summary', kind: 'prose' },
-  { key: 'learningStyle', label: 'Learning Style', kind: 'list' },
-  { key: 'academicStrengths', label: 'Academic Strengths', kind: 'list' },
-  { key: 'growthAreas', label: 'Growth Areas', kind: 'list' },
-  { key: 'motivationAnalysis', label: 'Motivation Analysis', kind: 'prose' },
-  { key: 'competitiveAdvantages', label: 'Competitive Advantages', kind: 'list' },
-  { key: 'suggestedPositioning', label: 'Suggested Positioning', kind: 'prose' },
-];
+function strings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+    : [];
+}
+
+function prose(value: unknown): string | null {
+  return typeof value === 'string' && value.trim().length > 0 ? value : null;
+}
 
 /**
- * A section is worth rendering only once it has content — requirements.md
- * 6.3: omit or soften a dependent section rather than show it empty.
+ * A stored row as the engine's narrative.
+ *
+ * Every field is read defensively. `emerging_themes` in particular is absent
+ * from every row written before supabase-evaluation-engine.sql ran, and a
+ * student whose analysis predates it must still get a page rather than a crash
+ * — they get five sections and a prompt to refresh, which is the correct
+ * outcome and is what `availablePortraitSections` already handles.
  */
-export function hasSectionContent(
-  analysis: ApplicantAnalysis,
-  section: ApplicantAnalysisSection,
-): boolean {
-  const value = analysis[section.key];
-  return section.kind === 'list' ? Array.isArray(value) && value.length > 0 : Boolean(value);
+export function narrativeFromRow(row: Record<string, unknown>): NarrativeProfile {
+  return {
+    coreIdentity: prose(row.personality_summary),
+    learningStyle: strings(row.learning_style),
+    academicStrengths: strings(row.academic_strengths),
+    drivingForce: prose(row.motivation_analysis),
+    signaturePattern: strings(row.competitive_advantages),
+    emergingThemes: strings(row.emerging_themes),
+    personalPositioning: prose(row.suggested_positioning),
+    growthAreas: strings(row.growth_areas),
+    overallRating: typeof row.overall_rating === 'number' ? row.overall_rating : null,
+  };
+}
+
+export function applicantAnalysisFromRow(row: Record<string, unknown>): ApplicantAnalysisRecord {
+  return {
+    id: String(row.id ?? ''),
+    applicationId: String(row.application_id ?? ''),
+    profileVersion: typeof row.profile_version === 'number' ? row.profile_version : 0,
+    narrative: narrativeFromRow(row),
+    inputsPresent:
+      row.inputs_present && typeof row.inputs_present === 'object'
+        ? { ...EMPTY_INPUTS, ...(row.inputs_present as Partial<ApplicantAnalysisInputsPresent>) }
+        : EMPTY_INPUTS,
+    modelName: prose(row.model_name),
+    promptVersion: prose(row.prompt_version),
+    createdAt: String(row.created_at ?? ''),
+  };
 }

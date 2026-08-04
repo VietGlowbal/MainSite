@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, type RefObject } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  destinationLabel,
   flattenGuide,
   STRATEGY_GUIDE,
   type FlatGuideStep,
@@ -17,12 +18,19 @@ import { Badge, Button, ICONS, KitIcon, type BadgeVariant } from '@/shared/ui';
  *
  * ─── ONE PANEL, TWO DRIVERS ──────────────────────────────────────────────────
  *
- * `GuidePanel` is the presentation — area header, the step's clip, the step
- * list — and knows nothing about how the active step got chosen. Two things
- * drive it: `GuideScroller` (this page; scroll position picks the step) and
- * the help popup in ./strategy-help-button.tsx (clicks pick it). Factoring it
- * this way is not tidiness — it is the only reason the popup and the page
- * cannot drift into describing the product differently.
+ * `GuidePanel` is the presentation — the three area cards, the step's clip,
+ * the step's own detail, and Previous/Next — and knows nothing about how the
+ * active step got chosen. Two things drive it: `GuideScroller` (this page;
+ * scroll position picks the step) and the help popup in
+ * ./strategy-help-button.tsx (clicks pick it). Factoring it this way is not
+ * tidiness — it is the only reason the popup and the page cannot drift into
+ * describing the product differently.
+ *
+ * IT ALSO OWNS THE CHROME NOW (02/08 redesign). The area switcher and the
+ * Previous/Next pair used to live in the popup's header and footer bars, which
+ * meant the page had neither: on /ai-strategy the only way forward was to keep
+ * scrolling, and the areas were invisible. Both moved in here, so both drivers
+ * get them and the popup is down to a title, a step count and a close button.
  *
  * ─── HOW THE SCROLL DRIVES IT ────────────────────────────────────────────────
  *
@@ -33,11 +41,13 @@ import { Badge, Button, ICONS, KitIcon, type BadgeVariant } from '@/shared/ui';
  * behaves exactly as the reader expects, which is why this survives a
  * trackpad, a wheel, a keyboard PageDown and a phone fling equally.
  *
- * TWO KINDS OF SCROLL STATE, ON PURPOSE. The active step index is React state
- * — it changes ~14 times over the whole page, so a re-render is the right
- * cost. The within-step progress changes every frame, so it is written
- * straight to the progress bar's `style.width` through a ref: in state it
- * would re-render the whole pane 60 times a second to move one div.
+ * THE ONLY SCROLL STATE IS THE ACTIVE STEP INDEX. It changes ~14 times over
+ * the whole page, so a re-render is the right cost. There used to be a second
+ * kind — within-step progress, written straight to a thin bar's `style.width`
+ * through a ref because it changes every frame — and it went with the 02/08
+ * redesign: the area cards carry a dot per step, so position in the journey is
+ * already shown, and a hairline bar measuring sub-step progress next to them
+ * was the less legible of the two.
  *
  * ─── NOTHING MOVES WITHIN AN AREA (owner, 01/08) ─────────────────────────────
  *
@@ -48,23 +58,24 @@ import { Badge, Button, ICONS, KitIcon, type BadgeVariant } from '@/shared/ui';
  *      thing and shifted every element vertically;
  *   2. the area header sat inside the same column as the step list, so the
  *      list expanding pushed the header;
- *   3. the step list grows when a step expands (it gains a summary, details
+ *   3. the step list grew when a step expanded (it gained a summary, details
  *      and a button), changing the container height on every step.
  *
- * The fix is structural. The area header now spans the full width above the
- * grid and is derived from the AREA, so it is byte-identical for every step
- * within one area and cannot move. The pane is a fixed height anchored to the
- * top (`items-start`), never centred. And the step list is the only thing
- * allowed to change size: it lives in its own `min-h-0 overflow-y-auto`
- * column, so its growth is absorbed internally instead of resizing its
- * parent. The clip keeps a fixed `aspect-video` at a fixed offset, so it
- * cannot shift either.
+ * The fix is structural, and the 02/08 redesign keeps every part of it. The
+ * area cards span the full width above the grid and are derived from the AREAS,
+ * so they are byte-identical for all fourteen steps and cannot move — only
+ * which dot is filled changes. The pane is a fixed height anchored to the top
+ * (`items-start`), never centred. The step's own detail is the only thing
+ * allowed to change size, and it sits in a `min-h-0 overflow-y-auto` block, so
+ * a long step scrolls internally instead of resizing its parent or pushing
+ * Previous/Next off the bottom. The clip keeps a fixed `aspect-video` at a
+ * fixed offset, so it cannot shift either.
  *
  * ─── THE CLIP IS ON THE LEFT (owner, 01/08) ──────────────────────────────────
  *
- * Steps were on the left and the clip on the right. The step list is much the
- * taller of the two, which left a tall column beside a short one and read as
- * unbalanced. Swapped: clip left (and the wider 7 of 12), steps right.
+ * Steps were on the left and the clip on the right, which left a tall column
+ * beside a short one and read as unbalanced. Swapped: clip left, the step's
+ * detail right, an even half each.
  *
  * ─── MOBILE IS A DIFFERENT LAYOUT, NOT A SQUEEZED ONE ────────────────────────
  *
@@ -103,16 +114,31 @@ function areaBadgeVariant(areaId: string): BadgeVariant {
  * The clip slot. Renders the real video once one exists, and until then an
  * honest placeholder naming the file it is waiting for — see the header.
  *
- * Fixed `aspect-video` in every state, so swapping steps never changes its
- * size and nothing around it shifts.
+ * ─── IT FILLS THE ROW FROM `lg` UP, AND IS 16:9 BELOW IT ─────────────────────
+ *
+ * A fixed `aspect-video` box beside the step's detail left the two columns
+ * visibly different heights — the clip ran out ~300px above the bottom of the
+ * text column, so the panel read as a short black rectangle floating next to a
+ * tall column. `lg:h-full` makes it match the row, which is a grid row of
+ * definite height (see `GuidePanel`), so it is still the same size on every
+ * step and still cannot shift anything around it.
+ *
+ * Below `lg` the grid stacks and scrolls as one, where the row height is auto
+ * and `h-full` would collapse to nothing — hence `aspect-video` there.
+ *
+ * THE VIDEO IS `object-contain`, NOT `object-cover`, and that pairs with the
+ * above: the clips are 16:9 screen recordings and the box is no longer 16:9,
+ * so `cover` would crop the sides off a recording of the actual UI. Contained,
+ * a 16:9 clip letterboxes inside the box — and since the box is already black,
+ * there are no visible bars.
  */
 function StepMedia({ step }: { step: GuideStep }) {
   return (
-    <div className="relative aspect-video w-full overflow-hidden rounded-gb-xl bg-surface-inverse-strong">
+    <div className="relative aspect-video w-full overflow-hidden rounded-gb-xl bg-surface-inverse-strong lg:aspect-auto lg:h-full">
       {step.videoSrc ? (
         <video
           key={step.videoSrc}
-          className="size-full object-cover"
+          className="size-full object-contain"
           src={step.videoSrc}
           autoPlay
           loop
@@ -156,6 +182,154 @@ function StepDetails({ step }: { step: GuideStep }) {
 }
 
 /**
+ * The three areas as one row of cards, with a dot per step.
+ *
+ * REPLACES THE OLD STEP LIST, and that is the substance of the 02/08 redesign.
+ * Before, the right-hand column was a list of every step in the current area
+ * with the active one expanded inline; the areas themselves only appeared as
+ * text chips in the popup's header and not at all on the page. Two problems:
+ * the student could not see the shape of the journey (three stages, fourteen
+ * steps) without reading a list, and the expanding list was the one thing in
+ * the panel that changed height, which is what all the layout-stability
+ * scaffolding below exists to contain.
+ *
+ * The dots are decorative, not controls. A button per dot would be a button
+ * nested inside the card's button — invalid, and unfocusable in that order —
+ * and within-area movement is what Previous/Next is for. Clicking a card jumps
+ * to that area's first step, which is the one navigation the old header chips
+ * got right.
+ */
+function AreaTabs({
+  flat,
+  active,
+  onSelect,
+}: {
+  flat: readonly FlatGuideStep[];
+  active: FlatGuideStep;
+  onSelect: (flatIndex: number) => void;
+}) {
+  return (
+    /* Three columns from `sm` up; below it they scroll sideways rather than
+       stacking. Stacked, three cards ate a third of the popup's height on a
+       phone, and the popup is the only place this panel renders at that width
+       — the page has `GuideStacked` for small screens. */
+    <ol className="flex shrink-0 gap-gb-md overflow-x-auto pb-gb-xxs sm:grid sm:grid-cols-3 sm:gap-gb-lg sm:overflow-visible sm:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      {STRATEGY_GUIDE.map((area) => {
+        const isCurrent = area.id === active.area.id;
+        const firstIndex = flat.findIndex((entry) => entry.area.id === area.id);
+        return (
+          <li key={area.id} className="min-w-[13rem] sm:min-w-0">
+            <button
+              type="button"
+              onClick={() => onSelect(firstIndex)}
+              aria-current={isCurrent ? 'step' : undefined}
+              className={`flex h-full w-full flex-col gap-gb-lg rounded-gb-xl border px-gb-xl py-gb-lg text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                isCurrent
+                  ? 'border-brand bg-brand-subtle'
+                  : 'border-line bg-surface hover:bg-surface-muted'
+              }`}
+            >
+              <span className="flex items-center gap-gb-lg">
+                <span
+                  className={`flex size-gb-3xl shrink-0 items-center justify-center rounded-gb-full text-gb-xs font-semibold ${
+                    isCurrent ? 'bg-brand text-on-brand' : 'bg-surface-muted text-fg-muted'
+                  }`}
+                >
+                  {area.number}
+                </span>
+                <span
+                  className={`text-gb-sm font-semibold ${
+                    isCurrent ? 'text-fg-brand' : 'text-fg-secondary'
+                  }`}
+                >
+                  {area.title}
+                </span>
+              </span>
+              <span className="flex items-center gap-gb-sm" aria-hidden="true">
+                {area.steps.map((areaStep, index) => (
+                  <span
+                    key={areaStep.number}
+                    className={`size-gb-md rounded-gb-full ${
+                      isCurrent && index === active.indexInArea ? 'bg-brand' : 'bg-line-strong'
+                    }`}
+                  />
+                ))}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+/**
+ * The step's call to action.
+ *
+ * The magnifier goes on the destinations a student SEARCHES (the directory,
+ * the scholarship list) and the arrow on the ones they work in. Derived from
+ * `href` rather than stored per step: two hrefs is not worth a field on all
+ * fourteen steps, and the pairing is a property of the destination anyway.
+ *
+ * The caption under it is `destinationLabel(href)` — see the note on that
+ * function for why the text is keyed on the href instead of written per step.
+ */
+const SEARCH_DESTINATIONS = new Set(['/universities', '/scholarships']);
+
+function StepAction({ step }: { step: GuideStep }) {
+  if (step.href === null || step.linkLabel === null) return null;
+  const caption = destinationLabel(step.href);
+  return (
+    <div className="flex flex-col gap-gb-md">
+      <Button href={step.href} size="lg" className="w-full gap-gb-md">
+        <KitIcon
+          art={SEARCH_DESTINATIONS.has(step.href) ? ICONS.search : ICONS.arrowRight}
+          frame={20}
+        />
+        {step.linkLabel}
+      </Button>
+      {caption ? <p className="text-gb-xs text-fg-muted">Takes you to {caption}</p> : null}
+    </div>
+  );
+}
+
+/** Previous / Next. Moves through the FLAT list, so it walks from the end of
+    one area into the start of the next rather than dead-ending. */
+function GuideNav({
+  activeIndex,
+  total,
+  onSelect,
+}: {
+  activeIndex: number;
+  total: number;
+  onSelect: (flatIndex: number) => void;
+}) {
+  return (
+    <div className="flex shrink-0 items-center justify-between gap-gb-lg">
+      <Button
+        variant="secondary"
+        size="lg"
+        className="gap-gb-md"
+        onClick={() => onSelect(Math.max(0, activeIndex - 1))}
+        disabled={activeIndex === 0}
+      >
+        <KitIcon art={ICONS.arrowLeft} frame={20} />
+        Previous
+      </Button>
+      <Button
+        size="lg"
+        className="gap-gb-md"
+        onClick={() => onSelect(Math.min(total - 1, activeIndex + 1))}
+        disabled={activeIndex === total - 1}
+      >
+        Next
+        <KitIcon art={ICONS.arrowRight} frame={20} />
+      </Button>
+    </div>
+  );
+}
+
+/**
  * The shared two-column presentation. Deliberately has no idea how
  * `activeIndex` is chosen — see the header.
  */
@@ -163,99 +337,65 @@ export function GuidePanel({
   flat,
   activeIndex,
   onSelect,
-  progressRef,
+  bleedClassName,
 }: {
   flat: readonly FlatGuideStep[];
   activeIndex: number;
   onSelect: (flatIndex: number) => void;
-  /** Only the scrolling page has within-step progress to show. Omitted by the
-      popup, where the bar would be measuring nothing. */
-  progressRef?: RefObject<HTMLDivElement | null>;
+  /**
+   * Negative horizontal margin for the rule under the area cards, so it can
+   * reach the edges of a container that pads this panel. The popup passes
+   * `-mx-gb-3xl` to match its own inset and get an edge-to-edge line; the page
+   * passes nothing, because there are no edges there for a line to reach.
+   *
+   * A prop rather than a fixed negative margin because the two callers inset
+   * this panel by different amounts, and a rule that overshoots is worse than
+   * one that stops short.
+   */
+  bleedClassName?: string | undefined;
 }) {
   const active = flat[activeIndex] ?? flat[0];
   if (active === undefined) return null;
   const { area, step } = active;
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-gb-3xl">
-      {/* Area header. Spans the full width and is derived entirely from the
-          AREA — identical for every step within it, so it cannot move when the
-          step changes. See the header's note on layout stability. */}
-      <div className="flex shrink-0 flex-col gap-gb-md">
-        <div className="flex items-center gap-gb-lg">
-          <Badge variant={areaBadgeVariant(area.id)}>
-            Area {area.number} of {STRATEGY_GUIDE.length}
-          </Badge>
-          <span className="text-gb-sm text-fg-muted">
-            Step {active.indexInArea + 1} of {area.steps.length}
-          </span>
-        </div>
-        <h2 className="font-display text-gb-display-xs font-semibold text-fg">{area.title}</h2>
-        <p className="text-gb-md text-fg-tertiary">{area.summary}</p>
-        {progressRef ? (
-          <div className="h-gb-xs w-full overflow-hidden rounded-gb-full bg-surface-muted">
-            <div ref={progressRef} className="h-full w-0 rounded-gb-full bg-brand" />
-          </div>
-        ) : null}
-      </div>
+    /* `w-full` is load-bearing on the page, not decoration: there the panel is
+       a flex ITEM of the sticky container, and a flex item sizes to its content
+       unless told otherwise, so without it the two columns collapse to
+       max-content instead of splitting the pane. */
+    <div className="flex h-full w-full min-h-0 flex-col gap-gb-xl">
+      <AreaTabs flat={flat} active={active} onSelect={onSelect} />
 
-      <div className="grid min-h-0 flex-1 gap-gb-4xl lg:grid-cols-12">
-        {/* Clip — left, and the wider column. Fixed aspect, fixed offset. */}
-        <div className="lg:col-span-7">
+      <hr className={`shrink-0 border-line ${bleedClassName ?? ''}`} />
+
+      {/* Two columns from `lg`, the clip the wider of them (the step's detail
+          is a narrow measure; the clip is the thing worth the space). Below
+          `lg` they stack: the clip alone would fill a short viewport, so the
+          whole thing scrolls as one instead of scrolling the detail inside it. */}
+      <div className="grid min-h-0 flex-1 gap-gb-3xl overflow-y-auto lg:grid-cols-[1.22fr_1fr] lg:gap-gb-4xl lg:overflow-hidden">
+        {/* Clip — left. Fixed aspect, fixed offset, so it cannot shift. */}
+        <div>
           <StepMedia step={step} />
         </div>
 
-        {/* Steps — right. The ONLY thing allowed to change size, and it
-            absorbs that change internally rather than resizing its parent. */}
-        <div className="min-h-0 overflow-y-auto lg:col-span-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <ol className="flex flex-col gap-gb-md">
-            {area.steps.map((areaStep) => {
-              const isActive = areaStep.number === step.number;
-              const flatIndex = flat.findIndex((f) => f.step.number === areaStep.number);
-              return (
-                <li key={areaStep.number}>
-                  <button
-                    type="button"
-                    onClick={() => onSelect(flatIndex)}
-                    aria-current={isActive ? 'step' : undefined}
-                    className={`flex w-full items-start gap-gb-lg rounded-gb-lg border p-gb-lg text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                      isActive
-                        ? 'border-brand bg-brand-subtle'
-                        : 'border-transparent hover:bg-surface-muted'
-                    }`}
-                  >
-                    <span
-                      className={`mt-gb-xxs flex size-gb-4xl shrink-0 items-center justify-center rounded-gb-md text-gb-xs font-semibold ${
-                        isActive ? 'bg-brand text-white' : 'bg-surface-muted text-fg-muted'
-                      }`}
-                    >
-                      {areaStep.number}
-                    </span>
-                    <span className="flex min-w-0 flex-col gap-gb-xxs">
-                      <span
-                        className={`text-gb-sm font-semibold ${isActive ? 'text-fg' : 'text-fg-secondary'}`}
-                      >
-                        {areaStep.title}
-                      </span>
-                      {isActive ? (
-                        <span className="text-gb-sm text-fg-tertiary">{areaStep.summary}</span>
-                      ) : null}
-                    </span>
-                  </button>
-                  {isActive ? (
-                    <div className="flex flex-col gap-gb-lg py-gb-lg pl-[3.5rem]">
-                      <StepDetails step={areaStep} />
-                      {areaStep.href && areaStep.linkLabel ? (
-                        <Button href={areaStep.href} variant="secondary" size="sm">
-                          {areaStep.linkLabel}
-                        </Button>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </li>
-              );
-            })}
-          </ol>
+        {/* The step itself — right. The ONLY thing allowed to change size, and
+            it absorbs that change internally (its body scrolls) rather than
+            resizing its parent. See the header on layout stability. */}
+        <div className="flex min-h-0 flex-col gap-gb-2xl">
+          <div className="flex min-h-0 flex-1 flex-col gap-gb-lg overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <h2 className="font-display text-gb-display-xs font-semibold text-fg">{step.title}</h2>
+            <div className="flex flex-col gap-gb-xs">
+              <p className="text-gb-sm font-semibold text-fg-brand">
+                Step {active.indexInArea + 1} of {area.steps.length}
+              </p>
+              <p className="text-gb-md text-fg-tertiary">{step.summary}</p>
+            </div>
+            <hr className="border-line" />
+            <StepDetails step={step} />
+            <StepAction step={step} />
+          </div>
+
+          <GuideNav activeIndex={activeIndex} total={flat.length} onSelect={onSelect} />
         </div>
       </div>
     </div>
@@ -266,7 +406,6 @@ export function GuidePanel({
 
 function GuideScroller({ flat }: { flat: readonly FlatGuideStep[] }) {
   const trackRef = useRef<HTMLDivElement | null>(null);
-  const progressRef = useRef<HTMLDivElement | null>(null);
   const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
@@ -284,12 +423,7 @@ function GuideScroller({ flat }: { flat: readonly FlatGuideStep[] }) {
       const progress = travelled / scrollable;
 
       // Guard the exact end: progress === 1 would index one past the last step.
-      const raw = Math.min(progress * flat.length, flat.length - 0.0001);
-      const index = Math.floor(raw);
-
-      if (progressRef.current !== null) {
-        progressRef.current.style.width = `${Math.round((raw - index) * 100)}%`;
-      }
+      const index = Math.floor(Math.min(progress * flat.length, flat.length - 0.0001));
       setActiveIndex((current) => (current === index ? current : index));
     };
 
@@ -328,12 +462,7 @@ function GuideScroller({ flat }: { flat: readonly FlatGuideStep[] }) {
     >
       {/* `items-start`, never centred — see the header on layout stability. */}
       <div className="sticky top-gb-6xl flex h-[calc(100vh-8rem)] items-start py-gb-2xl">
-        <GuidePanel
-          flat={flat}
-          activeIndex={activeIndex}
-          onSelect={jumpToStep}
-          progressRef={progressRef}
-        />
+        <GuidePanel flat={flat} activeIndex={activeIndex} onSelect={jumpToStep} />
       </div>
     </div>
   );

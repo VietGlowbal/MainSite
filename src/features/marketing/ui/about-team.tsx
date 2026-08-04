@@ -102,15 +102,18 @@ const CAROUSEL_RADIUS_PX = 750;
 const CAROUSEL_DEPTH_SCALE = 3.2;
 const CAROUSEL_AUTOPLAY_SPEED = 1.2;
 const CAROUSEL_CARD_GAP_PX = 6;
-/** `updateResponsiveDimensions`'s clamp: never narrower than legible, never
-    wider than the reference's own ceiling. The floor is below the reference's
-    160 because seven cards have to share the width five used to. */
-const CAROUSEL_CARD_MIN_WIDTH_PX = 132;
+/**
+ * The identity on a card is its person's name. Keep enough horizontal room for
+ * every roster name to stay at the established 14px size on one line; a
+ * smaller floor would force either an ellipsis or an unreadably small font.
+ */
+const CAROUSEL_CARD_MIN_WIDTH_PX = 176;
 const CAROUSEL_CARD_MAX_WIDTH_PX = 250;
 /** How much of the stage width the fit-N-cards width formula targets. */
 const CAROUSEL_FIT_FRACTION = 0.88;
-/** Seven across, up from the reference's five, per the owner's request. */
-const CAROUSEL_FIT_CARDS = 7;
+/** Five across preserves sufficient text space; the remaining members stay
+    discoverable through the draggable carousel rather than shrinking names. */
+const CAROUSEL_FIT_CARDS = 5;
 /** `1 − (0.14 lerp factor)`; currentX closes 14% of the gap to targetX each
     frame, exactly the reference's smoothing constant. */
 const CAROUSEL_LERP = 0.14;
@@ -277,8 +280,8 @@ function MemberFace({
         className="absolute inset-x-0 bottom-0 h-3/5 bg-linear-to-t from-scrim to-transparent"
       />
       <span className="absolute inset-x-0 bottom-0 flex flex-col gap-gb-xxs p-gb-lg">
-        <span className="truncate text-gb-sm font-semibold text-white">{member.full_name}</span>
-        <span className="truncate text-gb-xs font-medium text-white/80">{member.role}</span>
+        <span className="whitespace-nowrap text-gb-sm font-semibold text-white">{member.full_name}</span>
+        <span className="line-clamp-2 text-gb-xs leading-tight font-medium text-white/80">{member.role}</span>
       </span>
     </button>
   );

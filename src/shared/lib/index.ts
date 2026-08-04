@@ -10,3 +10,17 @@ export {
   toPage,
   type Page,
 } from './pagination';
+/**
+ * The route registry — where things are, read by both the breadcrumbs and the
+ * application sub-navigation so the two cannot disagree.
+ */
+export {
+  APPLICATION_LABEL_KEY,
+  activeSubNavKey,
+  applicationIdFromPath,
+  applicationSubNav,
+  breadcrumbTrail,
+  matchRoute,
+  type Crumb,
+  type SubNavItem,
+} from './app-routes';

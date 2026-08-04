@@ -121,6 +121,59 @@ The auth/onboarding gating itself is unchanged:
 Consequence: `/my-universities` is double-gated and hard to reach in a test.
 That is why `/dev/saved-list` exists.
 
+## Navigation strategy (added 02/08)
+
+Three layers, deliberately separate. If you are adding a page, you touch layer 3
+and usually nothing else.
+
+**1. Global — the top bar.** `shared/ui/top-nav.tsx`. Same on every page; its
+contents are owner-owned, do not add product-specific entries to it. It is now
+`position: sticky` and hides off the top edge once scrolled, returning when the
+pointer comes within 90px of the top, when focus enters it, or on scroll-up
+(`shared/ui/use-nav-reveal.ts`).
+
+> ⚠️ It moves by animating `top`, **never** `transform`. `NavDropdown`'s panel is
+> `position: fixed` to escape the nav's `overflow-hidden`; any `transform` on an
+> ancestor makes the header a containing block again and the panel gets clipped.
+> The ⚠️ note on `NavDropdown` says the same thing from the other side.
+
+**2. Contextual — the application bar.** `components/application-nav.tsx`
+(server, reads onboarding state) → `components/application-sub-nav.tsx` (client,
+resolves the active entry) → `shared/ui/sub-nav.tsx` (dumb primitive). Mounted
+once in `app/ai-strategy/[applicationId]/layout.tsx` and passed as the `nav` slot
+into the `/apply/[applicationId]` workspace. Answers "what else belongs to THIS
+application" — a different question per row in My Portal, which is why it is not
+in the top bar.
+
+Entries a student cannot reach yet render **locked, not hidden**: the planner
+route redirects into onboarding until the analysis is done, so linking it early
+bounces them, and hiding it tells them nothing about what finishing unlocks.
+
+**3. Positional — breadcrumbs.** `shared/ui/breadcrumbs.tsx`, driven entirely by
+`shared/lib/app-routes.ts`. A new page needs a row in `ROUTES` (+ `CRUMB_HREFS`
+if it has ancestors) and nothing else — no per-page trail, no wiring.
+
+> **The trail is not the URL.** Parents come from the registry because the
+> journey's shape and the path's shape differ: the parent of
+> `/ai-strategy/<id>/strategy/analysis/portrait` is `/apply/<id>`, which shares
+> no prefix with it. Chopping segments would offer `/ai-strategy/<id>/strategy/
+> analysis` (redirects on arrival) and `/ai-strategy/<id>` (not a page).
+
+An empty trail is a real answer — `/auth`, `/onboarding`, `/coming-soon` and `/`
+return `[]` on purpose, and a one-crumb trail is suppressed as furniture.
+
+### Rules
+
+- **Dynamic crumbs** declare `{ key, fallback }`. Pass the real name via
+  `labels={{ application: courseName }}`; the fallback shows when you cannot.
+  The key is a separate field from the display label on purpose — deriving one
+  from the other meant a rename silently broke every caller.
+- **Never translate a dynamic crumb.** It holds a course or a person's name.
+  `breadcrumbs.tsx` only runs registry labels through `t()`.
+- **A view worth linking to belongs in the URL.** The planner's list/calendar/
+  board is `?view=` (`domain/planner.ts#parsePlannerView`) for exactly this
+  reason — it was local state, and that made the board unreachable by link.
+
 ## Test-id contract
 
 `src/shared/lib/testids.ts` is a contract between Playwright and the UI. Tests

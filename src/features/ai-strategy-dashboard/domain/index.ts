@@ -14,6 +14,7 @@ export {
   reconcileRecommendations,
   recommendationFromImprovementAction,
   recommendationFromRow,
+  recommendationPatchSchema,
   recommendationStatusPatchSchema,
   sortByPriority,
 } from './recommendation';
@@ -22,24 +23,62 @@ export type {
   ProgressStatus,
   ReconcilePlan,
   Recommendation,
+  RecommendationPatch,
   RecommendationPriority,
   RecommendationSeed,
   RecommendationStatusPatch,
   RecommendationUpdate,
 } from './recommendation';
 
-export { APPLICANT_ANALYSIS_SECTIONS, hasSectionContent } from './applicant-analysis';
+export {
+  KANBAN_COLUMNS,
+  KANBAN_COLUMN_LABEL,
+  PLANNER_VIEWS,
+  PLANNER_VIEW_LABEL,
+  PLANNER_VIEW_PARAM,
+  parsePlannerView,
+  plannerViewHref,
+  calendarMonthGrid,
+  daysRemaining,
+  dueLabel,
+  dueTone,
+  groupByStatus,
+  matchesQuery,
+  monthLabel,
+  parseIsoDate,
+  scheduledByDay,
+  shiftMonth,
+  toIsoDate,
+  unscheduled,
+} from './planner';
+export type { CalendarDay, DueTone, PlannerView } from './planner';
+
+export { applicantAnalysisFromRow, narrativeFromRow } from './applicant-analysis';
 export type {
-  ApplicantAnalysis,
   ApplicantAnalysisInputsPresent,
-  ApplicantAnalysisSection,
+  ApplicantAnalysisRecord,
 } from './applicant-analysis';
+
+/**
+ * The Shared Evaluation Engine (F1–F6). One evaluation every AI surface reads
+ * from, so the Report, Feedback, Strategy and Breakdown cannot disagree about
+ * the same student. See evaluation/framework.ts.
+ */
+export * from './evaluation';
 
 export { deriveCourseMatchAnalysis } from './course-match';
 export type { CourseMatchAnalysis, CourseMatchSubScore } from './course-match';
 
 export { SEEDED_CATEGORIES, categoryByPillar } from './strategy-category';
 export type { StrategyCategory } from './strategy-category';
+
+export {
+  STRATEGY_TOOLS,
+  recommendationHelp,
+  strategyToolHref,
+  toolForRecommendation,
+} from './strategy-tool';
+export type { RecommendationLink, StrategyTool, StrategyToolKey } from './strategy-tool';
 
 export { COACH_SEED_INTENTS } from './coach';
 export type { CoachMessage, CoachRole, CoachSeedIntent, CoachThread } from './coach';

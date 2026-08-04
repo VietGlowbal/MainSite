@@ -126,23 +126,37 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       application_id: applicationId,
       user_id: user.id,
       profile_version: profile.profile_version ?? 1,
-      personality_summary: result.personalitySummary,
+      // Column names are the pre-engine ones; the engine's section names live
+      // in the domain and meet these in `narrativeFromRow`. See
+      // supabase-evaluation-engine.sql on why they were not renamed.
+      personality_summary: result.coreIdentity,
       learning_style: result.learningStyle,
       academic_strengths: result.academicStrengths,
       growth_areas: result.growthAreas,
-      motivation_analysis: result.motivationAnalysis,
-      competitive_advantages: result.competitiveAdvantages,
-      suggested_positioning: result.suggestedPositioning,
+      motivation_analysis: result.drivingForce,
+      competitive_advantages: result.signaturePattern,
+      emerging_themes: result.emergingThemes,
+      suggested_positioning: result.personalPositioning,
       overall_rating: result.overallRating,
       inputs_present: result.inputsPresent,
       model_name: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      prompt_version: 'applicant-analysis-v1',
+      prompt_version: 'evaluation-engine-f1-f4-v1',
     })
     .select()
     .single();
 
   if (insErr) {
     console.error('[strategy/applicant-analysis] store failed', insErr);
+    // PGRST204 is PostgREST's "column not in the schema cache" — here it means
+    // one specific thing, so say which file fixes it rather than making the
+    // next person bisect the migrations. Same hint pattern as
+    // api/generate-recommendations.ts.
+    if (insErr.code === 'PGRST204') {
+      console.error(
+        '[strategy/applicant-analysis] applicant_analyses is missing a column the engine writes. ' +
+          'Run supabase-evaluation-engine.sql (adds emerging_themes).',
+      );
+    }
     return NextResponse.json(
       { error: 'Could not save your analysis. If this persists, the database migration may be missing.' },
       { status: 500 },
