@@ -1,5 +1,25 @@
-import { describe, expect, it } from 'vitest';
-import { buildCvBuilderContextData } from './cv-builder-context';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  buildCvBuilderContextData,
+  isCvBuilderEnabled,
+} from './cv-builder-context';
+
+afterEach(() => vi.unstubAllEnvs());
+
+describe('isCvBuilderEnabled', () => {
+  it('keeps the visible CV builder available in production when the flag is omitted', () => {
+    vi.stubEnv('NODE_ENV', 'production');
+    vi.stubEnv('CV_BUILDER_MVP_ENABLED', '');
+
+    expect(isCvBuilderEnabled()).toBe(true);
+  });
+
+  it('does not disable the CV builder through the legacy flag', () => {
+    vi.stubEnv('CV_BUILDER_MVP_ENABLED', 'false');
+
+    expect(isCvBuilderEnabled()).toBe(true);
+  });
+});
 
 describe('buildCvBuilderContextData', () => {
   it('maps Supabase fields into cited target sources and an editable CV prefill', () => {

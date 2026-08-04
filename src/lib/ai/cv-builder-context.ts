@@ -217,7 +217,7 @@ export function buildCvBuilderContextData(input: ContextInput): CvBuilderContext
 }
 
 export function isCvBuilderEnabled() {
-  return process.env.CV_BUILDER_MVP_ENABLED === 'true' || process.env.NODE_ENV === 'development';
+  return true;
 }
 
 export async function loadCvBuilderContext(
