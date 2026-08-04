@@ -168,7 +168,11 @@ function FeatureBlock({ block, video }: { block: Block; video?: FeatureDemoVideo
         </CheckList>
       </div>
 
-      <BlockMedia node={block.mediaNode} side={block.media} title={block.title} video={video} />
+      {video ? (
+        <BlockMedia node={block.mediaNode} side={block.media} title={block.title} video={video} />
+      ) : (
+        <BlockMedia node={block.mediaNode} side={block.media} title={block.title} />
+      )}
     </div>
   );
 }
@@ -193,9 +197,15 @@ export function HomeFeatures({
         </div>
       </div>
 
-      {BLOCKS.map((block) => (
-        <FeatureBlock key={block.node} block={block} video={videos[block.demoKey]} />
-      ))}
+      {BLOCKS.map((block) => {
+        const video = videos[block.demoKey];
+
+        return video ? (
+          <FeatureBlock key={block.node} block={block} video={video} />
+        ) : (
+          <FeatureBlock key={block.node} block={block} />
+        );
+      })}
     </Section>
   );
 }
