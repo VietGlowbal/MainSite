@@ -1,89 +1,49 @@
-import { Button, Container, KitIcon, ICONS } from '@/shared/ui';
-import { MissingContent } from './missing-content';
+import { Button, Container, ICONS, KitIcon } from '@/shared/ui';
 
-/**
- * Home scholarship rail — Figma 104:7225 (1280x780).
- *
- * A heading with a "See more" action on the right, then a horizontally
- * scrolling rail of scholarship cards with prev/next controls beneath.
- *
- * Scrolling is CSS (`overflow-x-auto` + scroll snap) rather than a carousel
- * library: it keeps the section a Server Component, gives touch and trackpad
- * users the swipe they already expect, and keeps keyboard access without
- * managing focus by hand. The design's two round buttons are anchor links to
- * the rail edges — they cannot animate scroll without client JS, so they are
- * rendered only when there is content to move through.
- *
- * ⚠️ THE CARDS ARE UNTITLED UI'S. The heading in Figma is literally
- * "Kho học bổng ...." — trailing dots, unfinished — and every card below it
- * still reads "Layers / Untitled has saved us thousands of hours of work / Read
- * case study". None of that is a scholarship. The rail therefore renders real
- * scholarships when given them and MissingContent when not; it never invents an
- * award, a value, or a deadline.
- *
- * ⚠️ AND THE DATABASE CANNOT FILL THEM. Measured 28/07 across all 2,877
- * published rows: `provider` is null on 2,877 of them and `country` on 2,859.
- * The card's bold line and its logo slot are both the awarding body, so there
- * is nothing real to print — `name`, `coverage`, `deadline_text` and `insight`
- * are the columns that are actually populated. Filling the slot from the linked
- * university was considered and rejected: it is right for
- * "Excellence Scholarship – Institut Galilée" and wrong for Chevening or DAAD,
- * and a card that misattributes an award is worse than no card.
- *
- * So "/" passes showPlaceholders={false} and no entries: the heading, the blurb
- * and the "See more" link are real and useful, and nothing fake ships under
- * them. Populate `scholarships.provider` (or agree a card that does not need
- * it) and the rail lights up with no change here.
- */
-
+/** A compact, public-safe projection for the Home scholarship rail. */
 export type ScholarshipTeaser = {
   id: string;
-  /** Awarding body, e.g. "Chevening". */
-  provider: string;
-  /** The award itself, one line. */
   title: string;
   href: string;
-  /** Optional provider mark under /public. */
-  logoSrc?: string;
+  /** A university the scholarship applies to, when the awarding body is unknown. */
+  university?: string;
+  coverage?: string | null;
+  deadline?: string | null;
 };
 
+/**
+ * Scholarship library — Figma 375:9956. The rail keeps the 384 × 504 card
+ * geometry and horizontal overflow from the design, while its content comes
+ * from verified scholarship records instead of the source file's case-study
+ * placeholder cards.
+ */
 export function HomeScholarships({
   entries = [],
   seeMoreHref = '/scholarships',
-  showPlaceholders = true,
 }: {
   entries?: readonly ScholarshipTeaser[];
   seeMoreHref?: string;
-  /** false on "/" — see the note above; the dashed box is for the preview only. */
-  showPlaceholders?: boolean;
 }) {
   return (
     <section className="bg-surface py-gb-9xl">
       <Container className="flex flex-col gap-gb-6xl">
         <div className="flex flex-wrap items-start justify-between gap-gb-3xl">
           <div className="min-w-0 max-w-gb-width-xl">
-            <h2 className="font-display text-gb-display-xs font-medium md:text-gb-display-sm">
+            <h2 className="font-display text-gb-display-sm font-semibold text-fg md:text-gb-display-md">
               Scholarship library
             </h2>
-            <p className="mt-gb-lg text-gb-md text-fg-tertiary">
-              Browse a preview for free. Create your profile to unlock the full eligibility
-              criteria and required documents, and to save opportunities into your plan.
+            <p className="mt-gb-2xl text-gb-lg text-fg-tertiary md:text-gb-xl">
+              Browse a free preview. Create your profile to unlock full eligibility requirements
+              and required documents, then save opportunities to your plan.
             </p>
           </div>
-          <Button href={seeMoreHref}>See more</Button>
+          <Button href={seeMoreHref} size="xl">
+            See more
+          </Button>
         </div>
 
-        {entries.length === 0 ? (
-          showPlaceholders ? (
-            <MissingContent
-              node="104:7225"
-              label='Thẻ học bổng — Figma còn tiêu đề "Kho học bổng ...." bỏ dở và nội dung mẫu "Layers / Read case study"'
-            />
-          ) : null
-        ) : (
+        {entries.length > 0 ? (
           <>
-            {/* -mx + px so the cards can bleed to the viewport edge on mobile
-                while the first one still lines up with the container. */}
             <div
               id="scholarship-rail"
               className="-mx-gb-xl flex snap-x snap-mandatory gap-gb-4xl overflow-x-auto px-gb-xl pb-gb-md md:mx-0 md:px-0"
@@ -91,37 +51,46 @@ export function HomeScholarships({
               {entries.map((entry) => (
                 <article
                   key={entry.id}
-                  className="flex w-[280px] shrink-0 snap-start flex-col overflow-hidden rounded-gb-xl border border-line"
+                  className="flex h-[504px] w-[384px] shrink-0 snap-start flex-col bg-surface-muted p-gb-2xl"
                 >
-                  <div className="flex h-[140px] items-center justify-center bg-surface-muted p-gb-3xl">
-                    {entry.logoSrc ? (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={entry.logoSrc} alt="" className="max-h-gb-5xl w-auto" />
-                    ) : (
-                      <span className="text-gb-md font-semibold text-fg-muted">
-                        {entry.provider}
-                      </span>
-                    )}
+                  <div className="flex flex-1 flex-col justify-between gap-gb-3xl p-gb-xl">
+                    <p className="text-gb-lg font-semibold text-fg">
+                      {entry.university ?? 'Scholarship opportunity'}
+                    </p>
+                    <div className="flex flex-wrap gap-gb-md text-gb-sm text-fg-tertiary">
+                      {entry.coverage ? <span>{entry.coverage}</span> : null}
+                      {entry.deadline ? <span>Deadline: {entry.deadline}</span> : null}
+                    </div>
                   </div>
-                  <div className="flex flex-1 flex-col gap-gb-lg bg-brand p-gb-3xl text-on-brand">
-                    <p className="text-gb-md font-semibold">{entry.provider}</p>
-                    <p className="flex-1 text-gb-sm">{entry.title}</p>
+                  <div className="flex min-h-[240px] flex-col gap-gb-3xl bg-brand px-gb-3xl py-gb-4xl text-on-brand">
+                    <h3 className="font-display text-gb-display-xs font-semibold">{entry.title}</h3>
                     <a
                       href={entry.href}
-                      className="inline-flex items-center gap-gb-md text-gb-sm font-semibold underline-offset-4 hover:underline"
+                      className="mt-auto inline-flex items-center gap-gb-sm self-start text-gb-md font-semibold text-on-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                     >
-                      View scholarship
+                      View opportunity
                       <KitIcon art={ICONS.arrowRight} frame={20} />
                     </a>
                   </div>
                 </article>
               ))}
             </div>
-
-            <p className="text-gb-sm text-fg-muted">
-              Scroll or swipe to see more scholarships.
-            </p>
+            <p className="text-gb-sm text-fg-muted">Scroll or swipe to see more scholarships.</p>
           </>
+        ) : (
+          <div className="flex min-h-[280px] items-center justify-center border border-line bg-surface-muted p-gb-5xl text-center">
+            <div className="max-w-gb-width-sm">
+              <h3 className="font-display text-gb-display-xs font-semibold text-fg">
+                Find scholarships that fit your goals
+              </h3>
+              <p className="mt-gb-lg text-gb-md text-fg-tertiary">
+                Create a free profile to save opportunities and build a focused application plan.
+              </p>
+              <Button href="/onboarding" className="mt-gb-3xl">
+                Create a profile
+              </Button>
+            </div>
+          </div>
         )}
       </Container>
     </section>

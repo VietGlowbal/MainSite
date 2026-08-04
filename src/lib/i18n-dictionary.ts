@@ -121,13 +121,11 @@ export const translations: Record<string, string> = {
   'Pieces of feedback shaping the product': 'Feedbacks để hoàn thiện hệ thống',
 
   // ── Home features (Figma 104:7164) ───────────────────────────────────────
-  // Only the first block is written; the other two show `MissingContent`,
-  // which is marked data-no-auto-translate and needs no keys.
+  // Figma supplies English placeholder copy for the two demo-video rows.
+  // All three rows have keys while final product copy and video assets are prepared.
   Features: 'Tính năng',
-  'See the scholarships tied to the university you picked':
-    'Xem các học bổng liên kết với trường đại học bạn đã chọn',
-  'Browse a free preview. Create your profile to unlock the full eligibility rules, the documents you need, and to save opportunities into your plan.':
-    'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
+  'Learn how GlowBal helps you find scholarships from A to Z with just two simple features':
+    'Tìm hiểu cách GlowBal giúp bạn săn học bổng từ A-Z, chỉ với 2 tính năng đơn giản',
   // A product name — kept as-is in both languages, like the university names.
   'GlowBal Matcher': 'GlowBal Matcher',
   'Answer simple questions about you. With our G-Matching technology, we can pair you with the best future opportunity from:':
@@ -135,6 +133,23 @@ export const translations: Record<string, string> = {
   '200+ top universities globally': 'Hơn 200 trường đại học hàng đầu thế giới',
   '100+ different majors, even the rarest ones': 'Hơn 100 chuyên ngành, kể cả những ngành hiếm nhất',
   '3000+ scholarships': 'Hơn 3000 học bổng',
+  'Demo Video 2': 'Video demo 2',
+  'An all-in-one customer service platform that helps you balance everything your customers need to be happy.':
+    'Một nền tảng dịch vụ khách hàng tất cả trong một giúp bạn cân bằng mọi thứ khách hàng cần để hài lòng.',
+  'Keep your customers in the loop with live chat':
+    'Luôn cập nhật cho khách hàng bằng trò chuyện trực tiếp',
+  'Embed help articles right on your website': 'Nhúng các bài viết trợ giúp ngay trên website của bạn',
+  'Customers never have to leave the page to find an answer':
+    'Khách hàng không cần rời khỏi trang để tìm câu trả lời',
+  'Demo Video 3': 'Video demo 3',
+  'Measure what matters with Untitled’s easy-to-use reports. You can filter, export, and drilldown on the data in a couple clicks.':
+    'Đo lường những điều quan trọng với báo cáo dễ sử dụng của Untitled. Bạn có thể lọc, xuất và xem chi tiết dữ liệu chỉ với vài cú nhấp chuột.',
+  'Filter, export, and drilldown on the data quickly':
+    'Lọc, xuất và xem chi tiết dữ liệu nhanh chóng',
+  'Save, schedule, and automate reports to your inbox':
+    'Lưu, lên lịch và tự động gửi báo cáo đến hộp thư của bạn',
+  'Connect the tools you already use with 100+ integrations':
+    'Kết nối các công cụ bạn đang dùng với hơn 100 tích hợp',
 
   // ── Home "How GLOWBAL works" (Figma 104:7211) ────────────────────────────
   // 'Learn more' is already defined above, under the common actions.
@@ -1036,6 +1051,9 @@ export const translations: Record<string, string> = {
   // The design writes these in Vietnamese; the English above is the source
   // string, so these entries are the designer's own wording restored.
   'Scholarship library': 'Kho học bổng',
+  'Scholarship library ....': 'Kho học bổng ....',
+  'Browse a free preview. Create your profile to unlock full eligibility requirements and required documents, then save opportunities to your plan.':
+    'Duyệt xem trước miễn phí. Tạo hồ sơ của bạn để mở khóa đầy đủ điều kiện, tài liệu cần thiết và lưu cơ hội vào kế hoạch của bạn.',
   'Funding opportunities, curated for you': 'Cơ hội hỗ trợ tài chính dành riêng cho bạn',
   'Explore verified funding opportunities, save your strongest fits, and turn your university plans into a clearer path forward.':
     'Khám phá các cơ hội hỗ trợ tài chính đã được xác thực, lưu những lựa chọn phù hợp nhất và biến kế hoạch chọn trường thành lộ trình rõ ràng hơn.',
@@ -1052,7 +1070,7 @@ export const translations: Record<string, string> = {
     'Cuộn hoặc vuốt để xem thêm học bổng.',
 
   // ── Home: testimonials (Figma 104:7265) ──────────────────────────────────
-  'Learn from students who made it': 'Học hỏi từ những sinh viên đã thành công',
+  'Learn from students who have succeeded': 'Học hỏi từ những sinh viên đã thành công',
   'GlowBal connects you with students all over the world who share real experience of universities, scholarships, applications and student life.':
     'GlowBal kết nối bạn với những sinh viên trên khắp thế giới, những người chia sẻ kinh nghiệm thực tế về các trường đại học, học bổng, hồ sơ và cuộc sống sinh viên.',
 
@@ -1067,6 +1085,18 @@ export const translations: Record<string, string> = {
   'Do I need to know which university I want?':
     'Tôi có cần biết trường đại học của mình không?',
   'Why do I need to create a profile?': 'Tại sao tôi cần tạo một hồ sơ?',
+  'GlowBal is a study-abroad planning platform that helps you explore universities, discover scholarships and organise your next steps in one place.':
+    'GlowBal là nền tảng lập kế hoạch du học, giúp bạn khám phá các trường đại học, tìm học bổng và sắp xếp các bước tiếp theo tại một nơi.',
+  'You can explore universities and start building your profile for free. Any optional paid service is clearly explained before it applies.':
+    'Bạn có thể khám phá các trường đại học và bắt đầu tạo hồ sơ miễn phí. Mọi dịch vụ trả phí tùy chọn đều được giải thích rõ trước khi áp dụng.',
+  'It turns the information you add into practical next steps for your university and scholarship plan. It is guidance, so always check official requirements before you apply.':
+    'Tính năng này biến thông tin bạn cung cấp thành các bước tiếp theo thiết thực cho kế hoạch chọn trường và học bổng. Đây là gợi ý, vì vậy hãy luôn kiểm tra yêu cầu chính thức trước khi nộp đơn.',
+  'They are students and graduates who share first-hand experience of applications, scholarships and student life. Their availability and areas of expertise vary.':
+    'Họ là sinh viên và cựu sinh viên chia sẻ kinh nghiệm trực tiếp về hồ sơ, học bổng và đời sống sinh viên. Thời gian hỗ trợ và lĩnh vực chuyên môn của mỗi người có thể khác nhau.',
+  'No. You can begin with a country, subject or budget and use GlowBal to compare universities before deciding where to apply.':
+    'Không. Bạn có thể bắt đầu với quốc gia, ngành học hoặc ngân sách, rồi dùng GlowBal để so sánh các trường đại học trước khi quyết định nơi nộp đơn.',
+  'Your profile gives GlowBal the context to organise relevant opportunities, save your shortlist and make your next steps more personal.':
+    'Hồ sơ giúp GlowBal có đủ thông tin để sắp xếp các cơ hội phù hợp, lưu danh sách lựa chọn và cá nhân hóa các bước tiếp theo của bạn.',
 
   // ── Home: contact (Figma 104:7361) ───────────────────────────────────────
   'Leave your details for a consultation': 'Để lại thông tin để nhận tư vấn',
