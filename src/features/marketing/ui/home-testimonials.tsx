@@ -72,7 +72,10 @@ export function HomeTestimonials({
                 className="flex h-full min-h-[392px] flex-col rounded-gb-xl border border-line bg-surface p-gb-4xl shadow-gb-xs"
               >
                 <div className="flex min-h-[228px] flex-col gap-gb-lg">
-                  <UniversityLogo name={entry.university} src={entry.universityLogoUrl} />
+                  <UniversityLogo
+                    name={entry.university ?? null}
+                    src={entry.universityLogoUrl ?? null}
+                  />
                   <blockquote className="line-clamp-7 text-gb-md text-fg-tertiary">
                     {entry.quote}
                   </blockquote>
