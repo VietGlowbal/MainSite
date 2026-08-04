@@ -103,6 +103,10 @@ describe('applicationSubNav', () => {
       'cv',
       'statement',
     ]);
+    expect(items.find((item) => item.key === 'cv')?.href).toBe('/apply/app_1/cv');
+    expect(items.find((item) => item.key === 'statement')?.href).toBe(
+      '/apply/app_1/statement-feedback',
+    );
   });
 
   it('shows the planner locked rather than hiding it', () => {
@@ -132,6 +136,10 @@ describe('activeSubNavKey', () => {
   it('resolves the tools and the workspace', () => {
     expect(activeSubNavKey('/ai-strategy/a/cv/target-profile')).toBe('cv');
     expect(activeSubNavKey('/ai-strategy/a/statement')).toBe('statement');
+    expect(activeSubNavKey('/apply/a/cv')).toBe('cv');
+    expect(activeSubNavKey('/apply/a/cv-builder')).toBe('cv');
+    expect(activeSubNavKey('/apply/a/cv-review')).toBe('cv');
+    expect(activeSubNavKey('/apply/a/statement-feedback')).toBe('statement');
     expect(activeSubNavKey('/apply/app_1')).toBe('overview');
   });
 

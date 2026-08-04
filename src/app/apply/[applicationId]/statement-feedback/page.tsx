@@ -3,6 +3,7 @@ import { StatementFeedbackWorkspace } from '@/components/statement/StatementFeed
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import { createClient } from '@/lib/supabase/server';
 import { VINUNI_DEMO_APPLICATION_ID } from '@/lib/ai/vinuni-evaluation-shared';
+import { VINUNI_UNIVERSITY_ID } from '@/lib/vinuni-content';
 
 export default async function StatementFeedbackPage({
   params,
@@ -18,6 +19,7 @@ export default async function StatementFeedbackPage({
         applicationId={VINUNI_DEMO_APPLICATION_ID}
         targetName="Bachelor of Computer Science · VinUniversity"
         contextNote="VinUniversity AACC · Demo essay-only · Profile chưa có"
+        evaluationMode="vinuni"
         demo
       />
     );
@@ -39,6 +41,7 @@ export default async function StatementFeedbackPage({
       applicationId={application.id}
       targetName={`${application.courseName} · ${application.universityName}`}
       contextNote={workspace.course?.entryRequirementsSummary ?? application.aiSummary}
+      evaluationMode={application.universityId === VINUNI_UNIVERSITY_ID ? 'vinuni' : 'generic'}
     />
   );
 }

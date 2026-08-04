@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
+import Image from 'next/image';
 import type { TeamAchievementCategory, TeamMember } from '@/lib/team';
 import { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon, Modal } from '@/shared/ui';
 
@@ -255,11 +256,11 @@ function MemberFace({
            from Google Drive and admin uploads, and an unconfigured host makes
            next/image throw at runtime. alt="" because the tile's own click
            handler and the modal it opens already carry the name. */
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
+        <Image
           src={member.photo_url}
           alt=""
-          loading="lazy"
+          fill
+          sizes="(max-width: 640px) 152px, (max-width: 1024px) 192px, 250px"
           /* Native image dragging would start a file-drag the moment a
              carousel drag begins on a photo, stealing the gesture. */
           draggable={false}
@@ -370,8 +371,18 @@ function TeamCarousel({
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
     let currentX = 0;
     let frame: number | null = null;
+    let inViewport = false;
+    let pageVisible = !document.hidden;
+
+    function schedule() {
+      if (frame === null && inViewport && pageVisible && !reduced.matches) {
+        frame = requestAnimationFrame(step);
+      }
+    }
 
     function step() {
+      frame = null;
+      if (!inViewport || !pageVisible || reduced.matches) return;
       const drag = dragRef.current;
 
       if (drag.isDragging) {
@@ -395,7 +406,7 @@ function TeamCarousel({
 
       currentX += (targetXRef.current - currentX) * CAROUSEL_LERP;
       updateCardTransforms(currentX);
-      frame = requestAnimationFrame(step);
+      schedule();
     }
 
     function updateCardTransforms(x: number) {
@@ -445,8 +456,39 @@ function TeamCarousel({
     // curve (currentX frozen at 0) instead of leaving them at their
     // pre-mount default position — it just never advances after that.
     updateCardTransforms(0);
-    frame = requestAnimationFrame(step);
+    const observer = new IntersectionObserver(([entry]) => {
+      inViewport = entry?.isIntersecting === true;
+      if (!inViewport && frame !== null) {
+        cancelAnimationFrame(frame);
+        frame = null;
+      }
+      schedule();
+    });
+    if (viewportRef.current) observer.observe(viewportRef.current);
+
+    function onVisibilityChange() {
+      pageVisible = !document.hidden;
+      if (!pageVisible && frame !== null) {
+        cancelAnimationFrame(frame);
+        frame = null;
+      }
+      schedule();
+    }
+
+    function onMotionChange() {
+      if (reduced.matches && frame !== null) {
+        cancelAnimationFrame(frame);
+        frame = null;
+      }
+      schedule();
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    reduced.addEventListener('change', onMotionChange);
     return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      reduced.removeEventListener('change', onMotionChange);
       if (frame !== null) cancelAnimationFrame(frame);
     };
   }, [members.length, cardWidth]);
@@ -576,11 +618,11 @@ function MemberDetail({
     >
       <div className="relative aspect-[4/5] bg-surface-muted sm:aspect-auto">
         {member.photo_url ? (
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+          <Image
             src={member.photo_url}
             alt={member.full_name}
-            loading="lazy"
+            fill
+            sizes="(max-width: 640px) 100vw, 224px"
             className="size-full object-cover"
           />
         ) : (

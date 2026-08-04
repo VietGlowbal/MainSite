@@ -148,7 +148,7 @@ describe('StatementFeedbackWorkspace', () => {
 
     expect(screen.getByRole('link', { name: /Quay lại Apply/i })).toHaveAttribute(
       'href',
-      '/apply',
+      '/apply/application-1',
     );
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveClass('bg-[#FAFAFA]', 'pb-24');
@@ -190,6 +190,10 @@ describe('StatementFeedbackWorkspace', () => {
     expect(screen.getByTestId('statement-writer')).toHaveAttribute(
       'data-doc-type',
       'recommendation_letter',
+    );
+    expect(screen.getByRole('link', { name: /Quay lại Apply/i })).toHaveAttribute(
+      'href',
+      '/apply/application-1',
     );
     expect(mocks.query.eq).toHaveBeenCalledWith('doc_type', 'recommendation_letter');
   });
@@ -239,6 +243,21 @@ describe('StatementFeedbackWorkspace', () => {
     expect(await screen.findByTestId('statement-writer')).toHaveAttribute(
       'data-evaluation-mode',
       'vinuni',
+    );
+  });
+
+  it('uses the route-selected evaluation mode instead of inferring it from the title', async () => {
+    render(
+      <StatementFeedbackWorkspace
+        applicationId="application-1"
+        targetName="Computer Science Â· VinUniversity"
+        evaluationMode="generic"
+      />,
+    );
+
+    expect(await screen.findByTestId('statement-writer')).toHaveAttribute(
+      'data-evaluation-mode',
+      'generic',
     );
   });
 

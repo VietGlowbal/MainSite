@@ -303,8 +303,8 @@ export function applicationSubNav(
       href: `${strategy}/strategy/dashboard`,
       ...(options.plannerReady ? {} : { locked: true }),
     },
-    { key: 'cv', label: 'CV builder', href: `${strategy}/cv/target-profile` },
-    { key: 'statement', label: 'Statement', href: `${strategy}/statement` },
+    { key: 'cv', label: 'CV builder', href: `/apply/${applicationId}/cv` },
+    { key: 'statement', label: 'Statement', href: `/apply/${applicationId}/statement-feedback` },
   ];
 }
 
@@ -321,8 +321,8 @@ export function activeSubNavKey(pathname: string): string | null {
   if (/\/strategy\/analysis$/.test(clean)) return 'portrait';
   if (/\/strategy\/(dashboard|recommendations)/.test(clean)) return 'planner';
   if (/\/strategy(\/intro)?$/.test(clean)) return 'planner';
-  if (/\/cv\//.test(clean)) return 'cv';
-  if (/\/statement$/.test(clean)) return 'statement';
+  if (/\/cv(?:-|\/|$)/.test(clean)) return 'cv';
+  if (/\/statement(?:-feedback)?$/.test(clean)) return 'statement';
   if (/^\/apply\/[^/]+$/.test(clean)) return 'overview';
   return null;
 }

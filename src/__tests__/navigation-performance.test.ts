@@ -28,8 +28,15 @@ describe('authenticated navigation performance', () => {
     });
   });
 
-  it('validates the session locally instead of fetching the user over the network', async () => {
+  it('skips auth entirely for guest-first marketing routes', async () => {
     await proxy(new NextRequest('http://localhost/universities'));
+
+    expect(auth.getClaims).not.toHaveBeenCalled();
+    expect(auth.getUser).not.toHaveBeenCalled();
+  });
+
+  it('validates protected routes locally instead of fetching the user over the network', async () => {
+    await proxy(new NextRequest('http://localhost/dashboard'));
 
     expect(auth.getClaims).toHaveBeenCalledOnce();
     expect(auth.getUser).not.toHaveBeenCalled();

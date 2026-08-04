@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Image from 'next/image';
 
 export function FadeInImage({
   src,
@@ -15,14 +16,14 @@ export function FadeInImage({
 }) {
   const [loaded, setLoaded] = useState(false);
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       key={src}
       src={src}
       alt={alt}
-      loading="lazy"
+      fill
+      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
       onLoad={() => setLoaded(true)}
-      onError={onError}
+      onError={() => onError?.()}
       className={`transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'} ${className}`}
     />
   );

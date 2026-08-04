@@ -61,6 +61,7 @@ export interface ExplorerActions {
   showToast: (message: string) => void;
   universities: ExplorerUniversity[];
   isLoggedIn: boolean;
+  authPending: boolean;
   hasProfile: boolean;
   /** Whether Reach/Recommended/Safe grouping is unlocked (CV or SOP uploaded). */
   admissionUnlocked: boolean;
@@ -100,6 +101,7 @@ interface ProviderProps {
   initialShortlist: number[];
   initialApplications: ApplicationEntry[];
   isLoggedIn: boolean;
+  authPending?: boolean;
   hasProfile: boolean;
   admissionUnlocked: boolean;
   profileStrength: number | null;
@@ -111,6 +113,7 @@ export function UniversityExplorerProvider({
   initialShortlist,
   initialApplications,
   isLoggedIn,
+  authPending = false,
   hasProfile,
   admissionUnlocked,
   profileStrength,
@@ -186,11 +189,6 @@ export function UniversityExplorerProvider({
 
   const addToShortlist = useCallback(
     async (id: number) => {
-      setShortlist((prev) => {
-        if (prev.includes(id)) return prev;
-        return [...prev, id];
-      });
-
       // Remember the chosen university so other pages (e.g. /scholarships) can
       // restore this focus after the user navigates away (see selection-cache).
       const chosen = initialUniversities.find((u) => u.id === id);
@@ -198,7 +196,10 @@ export function UniversityExplorerProvider({
         setFocusUniversity({ id: chosen.id, name: chosen.name, country: chosen.country });
       }
 
-      if (!isLoggedIn) return;
+      if (!isLoggedIn) {
+        setShortlist((prev) => (prev.includes(id) ? prev : [...prev, id]));
+        return;
+      }
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
@@ -231,10 +232,11 @@ export function UniversityExplorerProvider({
        */
       if (insertError) {
         console.error('addToShortlist: saving to user_universities failed:', insertError.message);
-        setShortlist((prev) => prev.filter((x) => x !== id));
         showToast('Could not save that university. Please try again.');
         return;
       }
+
+      setShortlist((prev) => (prev.includes(id) ? prev : [...prev, id]));
 
       // Generate tasks from templates
       if (inserted) {
@@ -264,20 +266,27 @@ export function UniversityExplorerProvider({
 
   const removeFromShortlist = useCallback(
     async (id: number) => {
-      setShortlist((prev) => prev.filter((x) => x !== id));
-
-      if (!isLoggedIn) return;
+      if (!isLoggedIn) {
+        setShortlist((prev) => prev.filter((x) => x !== id));
+        return;
+      }
 
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
-      await supabase
+      const { error } = await supabase
         .from('user_universities')
         .delete()
         .eq('user_id', userData.user.id)
         .eq('university_id', id);
+      if (error) {
+        console.error('removeFromShortlist: deleting user_universities failed:', error.message);
+        showToast('Could not update your list. Please try again.');
+        return;
+      }
+      setShortlist((prev) => prev.filter((x) => x !== id));
     },
-    [isLoggedIn, supabase],
+    [isLoggedIn, supabase, showToast],
   );
 
   const isShortlisted = useCallback(
@@ -414,6 +423,7 @@ export function UniversityExplorerProvider({
     advanceApplication,
     showToast,
     isLoggedIn,
+    authPending,
     hasProfile,
     admissionUnlocked,
     profileStrength,

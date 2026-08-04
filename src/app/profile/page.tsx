@@ -1,6 +1,5 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import type { UploadedDocument } from '@/lib/types';
 import { getMentorSummary } from '@/lib/mentor-status';
 import { ProfileClient } from './profile-client';
 
@@ -18,10 +17,14 @@ export default async function ProfilePage() {
     workCountResult,
     englishCountResult,
   ] = await Promise.all([
-    supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle(),
+    supabase
+      .from('student_profiles')
+      .select('phone, date_of_birth, location, nationality, bio, study_level, current_institution, current_qualification, predicted_grades, academic_background, preferred_countries, target_subjects, budget_range, study_mode_preference, target_intake, achievements, skills, goals, career_interests, application_cycle_year, plus_status, plus_plan')
+      .eq('user_id', user.id)
+      .maybeSingle(),
     supabase
       .from('uploaded_documents')
-      .select('*')
+      .select('id, type, file_name, created_at')
       .eq('user_id', user.id)
       .order('created_at', { ascending: false }),
     getMentorSummary(),
@@ -39,7 +42,7 @@ export default async function ProfilePage() {
   ]);
 
   const profile = profileResult.data;
-  const documents = (documentsResult.data ?? []) as UploadedDocument[];
+  const documents = documentsResult.data ?? [];
   const activeApplications = appsCountResult.count ?? 0;
 
   const displayName =

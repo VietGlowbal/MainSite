@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
-import { createClient } from '@/lib/supabase/server';
 import { getTeamMembers } from '@/lib/team';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { MarketingNavigation } from '@/components/marketing-navigation';
 import {
   AboutTeam,
   FOOTER_COLUMNS,
@@ -10,9 +10,8 @@ import {
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
   HomeFaq,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
-import { Container, Footer, MobileNav, TopNav } from '@/shared/ui';
+import { Container, Footer } from '@/shared/ui';
 
 /**
  * /about — net-new, built from Figma 153:11401 ("About us").
@@ -47,42 +46,11 @@ export const metadata: Metadata = {
 export const revalidate = 43200;
 
 export default async function AboutPage() {
-  const supabase = await createClient();
-  const [{ data: { user } }, team] = await Promise.all([
-    supabase.auth.getUser(),
-    getTeamMembers(),
-  ]);
-
-  const userName =
-    (user?.user_metadata?.full_name as string | undefined) ||
-    user?.email?.split('@')[0] ||
-    null;
-  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
-  const isSignedIn = !!user;
-
-  const primaryAction = { href: '/onboarding', label: 'Plan your studies' };
+  const team = await getTeamMembers();
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <MarketingNavigation />
 
       <main>
         {/* Hero — honest copy, no world map of offices GlowBal does not have. */}

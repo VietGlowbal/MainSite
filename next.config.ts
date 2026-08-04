@@ -114,6 +114,8 @@ const nextConfig: NextConfig = {
       // to the same Wikipedia city image (see seed-university-images.mjs).
       { protocol: 'https', hostname: 'images.unsplash.com' },
       { protocol: 'https', hostname: 'source.unsplash.com' },
+      // Campus photography currently referenced by a curated university row.
+      { protocol: 'https', hostname: 'wp.technologyreview.com' },
       // Google favicons — used as a no-key logo fallback for universities
       // whose Wikidata logo claims are missing.
       { protocol: 'https', hostname: 'www.google.com' },

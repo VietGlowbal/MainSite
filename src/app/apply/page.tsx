@@ -41,7 +41,7 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
 
   const { data, error } = await supabase
     .from('course_applications')
-    .select('*')
+    .select('id, user_id, university_id, university_name, course_name, course_url, country, deadline, status, progress_percentage, parse_status, parse_error, import_status, strategy_intro_seen_at, created_at, updated_at')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -57,20 +57,13 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
     universityName: app.university_name,
     courseName: app.course_name,
     courseUrl: app.course_url,
-    degreeLevel: app.degree_level,
-    subject: app.subject,
-    studyMode: app.study_mode,
-    intake: app.intake,
     country: app.country,
-    countryFlag: app.country_flag,
     deadline: app.deadline,
     status: app.status,
     progressPercentage: app.progress_percentage,
     parseStatus: app.parse_status,
     parseError: app.parse_error,
     importStatus: app.import_status,
-    aiSummary: app.ai_summary,
-    userNotes: app.user_notes,
     strategyIntroSeenAt: app.strategy_intro_seen_at ?? null,
     createdAt: app.created_at,
     updatedAt: app.updated_at,
@@ -323,10 +316,12 @@ export default async function ApplyPage({ searchParams }: Props) {
     redirect('/auth?redirect=%2Fapply');
   }
 
-  const applications = await fetchApplications(user.id);
-  const [logoByUniversityId, savedRows, strategyReadyById] = await Promise.all([
-    fetchLogos(applications),
+  const [applications, savedRows] = await Promise.all([
+    fetchApplications(user.id),
     fetchSavedRows(user.id),
+  ]);
+  const [logoByUniversityId, strategyReadyById] = await Promise.all([
+    fetchLogos(applications),
     fetchStrategyReadiness(user.id, applications),
   ]);
 

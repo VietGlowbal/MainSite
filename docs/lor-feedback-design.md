@@ -10,7 +10,7 @@ Status: Approved
 - F7.2 recommends credible traits and experiences, warns against weakly supported topics, and produces a Recommendation Brief.
 - The user writes or pastes the letter after completing the strategy steps; file upload and submission remain out of scope.
 - F7.3 evaluates the letter against nine fixed quality dimensions and returns complete, actionable feedback.
-- Use trusted application, programme, activity, and achievement data already stored in Supabase. Do not read a CV or browse external sources.
+- Use trusted application, programme, activity, and achievement data already stored in Supabase. Do not read a CV or browse external sorun durces.
 - Preserve Essay Review's editor, inline suggestions, loading, quota, and autosave behavior wherever they still fit the LOR contract.
 
 ## Assumptions
@@ -59,17 +59,17 @@ Each recommended topic contains the trait, rationale, selected evidence referenc
 
 The review returns exactly these dimensions:
 
-| Dimension | Maximum |
-| --- | ---: |
-| Recommender Context | 5 |
-| Specific Evidence | 10 |
-| Quality Depth | 10 |
-| Recommender Voice | 10 |
-| Evidence Credibility | 10 |
-| Applicant Differentiation | 10 |
-| Growth & Potential | 10 |
-| Complementarity | 10 |
-| Recommendation Strength | 5 |
+| Dimension                 | Maximum |
+| ------------------------- | ------: |
+| Recommender Context       |       5 |
+| Specific Evidence         |      10 |
+| Quality Depth             |      10 |
+| Recommender Voice         |      10 |
+| Evidence Credibility      |      10 |
+| Applicant Differentiation |      10 |
+| Growth & Potential        |      10 |
+| Complementarity           |      10 |
+| Recommendation Strength   |       5 |
 
 The server validates all nine scores, sums the raw score out of 85, and computes `Math.round(rawScore * 100 / 85)`. It derives the recommendation label deterministically: 80–100 `Strong and credible`, 65–79 `Credible but needs strengthening`, 45–64 `Limited or uneven`, and 0–44 `Weak or generic`.
 
@@ -104,14 +104,14 @@ Use test-driven development:
 
 ## Decision log
 
-| Decision | Alternatives | Reason |
-| --- | --- | --- |
-| One three-stage LOR workspace | Separate pages; a mode selector inside Essay Review | Keeps the flow understandable without duplicating navigation or the editor |
-| One `application_lor_strategies` row per application | Store strategy inside `personal_statements.ai_analysis`; fully normalized child tables | Prevents strategy/review overwrite with the smallest durable schema |
-| Generate F7.1 and F7.2 in one request | One call per phase; deterministic templates only | Both phases use the same trusted context and can share validation and persistence |
-| Dedicated F7.1/F7.2 API, existing F7.3 API branch | One generic LOR endpoint; three endpoints | Separates preparation from review while retaining the working review path |
-| Reload selected evidence server-side | Trust evidence content from the browser | Prevents cross-user access and prompt manipulation |
-| Use reflection evidence but never CV data | CV/profile context; programme-only context | F7.1/F7.2 need observed experiences, while the stated LOR scope excludes CV-derived claims |
-| Validate nine raw dimension scores and derive totals server-side | Trust the model's total | Makes the 85-point rubric and `/100` score internally consistent |
-| Preserve Essay Review primitives and add an LOR result extension | Force LOR into the old generic shape; build a new editor | Reuses proven interactions without discarding F7.3 detail |
-| Apply shared website chrome and design tokens across the dedicated LOR page | Recolor the existing fullscreen layout; embed LOR inside the application workspace | Matches the current Apply experience without changing the LOR architecture or state flow |
+| Decision                                                                    | Alternatives                                                                            | Reason                                                                                     |
+| --------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| One three-stage LOR workspace                                               | Separate pages; a mode selector inside Essay Review                                     | Keeps the flow understandable without duplicating navigation or the editor                 |
+| One`application_lor_strategies` row per application                       | Store strategy inside`personal_statements.ai_analysis`; fully normalized child tables | Prevents strategy/review overwrite with the smallest durable schema                        |
+| Generate F7.1 and F7.2 in one request                                       | One call per phase; deterministic templates only                                        | Both phases use the same trusted context and can share validation and persistence          |
+| Dedicated F7.1/F7.2 API, existing F7.3 API branch                           | One generic LOR endpoint; three endpoints                                               | Separates preparation from review while retaining the working review path                  |
+| Reload selected evidence server-side                                        | Trust evidence content from the browser                                                 | Prevents cross-user access and prompt manipulation                                         |
+| Use reflection evidence but never CV data                                   | CV/profile context; programme-only context                                              | F7.1/F7.2 need observed experiences, while the stated LOR scope excludes CV-derived claims |
+| Validate nine raw dimension scores and derive totals server-side            | Trust the model's total                                                                 | Makes the 85-point rubric and`/100` score internally consistent                          |
+| Preserve Essay Review primitives and add an LOR result extension            | Force LOR into the old generic shape; build a new editor                                | Reuses proven interactions without discarding F7.3 detail                                  |
+| Apply shared website chrome and design tokens across the dedicated LOR page | Recolor the existing fullscreen layout; embed LOR inside the application workspace      | Matches the current Apply experience without changing the LOR architecture or state flow   |

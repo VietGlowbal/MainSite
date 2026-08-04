@@ -1,11 +1,7 @@
 import type { Metadata } from 'next';
+import { unstable_cache } from 'next/cache';
 import { getApprovedMentors } from '@/lib/mentors';
-import { createClient } from '@/lib/supabase/server';
 import { MentorsClient } from './mentors-client';
-
-type Props = {
-  searchParams: Promise<{ university?: string; country?: string; date?: string }>;
-};
 
 /**
  * /mentors — "Tìm cố vấn", Figma 154:8345. The legacy /achievers route still
@@ -23,32 +19,16 @@ export const metadata: Metadata = {
     'Talk to a student who has already been admitted where you are applying.',
 };
 
-export default async function MentorsBrowsePage({ searchParams }: Props) {
-  const params = await searchParams;
-  const initialUniversityId = params.university ? Number(params.university) : undefined;
+export const revalidate = 300;
 
-  const supabase = await createClient();
-  const [mentors, { data: authData }] = await Promise.all([
-    getApprovedMentors({
-      university_id: initialUniversityId,
-      country: params.country,
-      available_from: params.date,
-    }),
-    supabase.auth.getUser(),
-  ]);
+const getCachedApprovedMentors = unstable_cache(
+  getApprovedMentors,
+  ['approved-mentors'],
+  { revalidate: 300 },
+);
 
-  const user = authData?.user ?? null;
-  const userName = user
-    ? (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || null
-    : null;
-  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
+export default async function MentorsBrowsePage() {
+  const mentors = await getCachedApprovedMentors({});
 
-  return (
-    <MentorsClient
-      mentors={mentors}
-      initialUniversityId={initialUniversityId}
-      userName={userName}
-      userAvatarUrl={userAvatarUrl}
-    />
-  );
+  return <MentorsClient mentors={mentors} />;
 }

@@ -1,15 +1,16 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useSyncExternalStore } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { MarketingNavigation } from '@/components/marketing-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
 import type { PublicMentor } from '@/lib/mentors';
 import {
@@ -20,11 +21,16 @@ import {
   ICONS,
   Input,
   KitIcon,
-  MobileNav,
   Pagination,
   Select,
-  TopNav,
 } from '@/shared/ui';
+
+const subscribeToUrl = () => () => {};
+const getServerUniversityId = () => undefined;
+const getUniversityIdFromUrl = () => {
+  const value = Number(new URLSearchParams(window.location.search).get('university'));
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+};
 
 /**
  * /mentors — "Tìm cố vấn", Figma 154:8345 on the "Tính năng" canvas.
@@ -67,21 +73,22 @@ import {
 
 const PAGE_SIZE = 8;
 
-function MentorCard({ mentor }: { mentor: PublicMentor }) {
+function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolean }) {
   const course = [mentor.degree_level, mentor.subject].filter(Boolean).join(' · ');
 
   return (
     <li className="flex flex-col gap-gb-xl">
-      <div className="aspect-[4/3] w-full overflow-hidden rounded-gb-2xl bg-surface-muted">
+      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-gb-2xl bg-surface-muted">
         {mentor.avatar_url ? (
           /* Avatars come from user uploads and OAuth providers, so a plain <img>
              rather than next/image — an unconfigured host throws at runtime.
              Same call as the saved list's covers. */
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+          <Image
             src={mentor.avatar_url}
             alt=""
-            loading="lazy"
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+            preload={preload}
             className="size-full object-cover"
           />
         ) : (
@@ -122,17 +129,12 @@ function MentorCard({ mentor }: { mentor: PublicMentor }) {
   );
 }
 
-export function MentorsClient({
-  mentors,
-  initialUniversityId,
-  userName,
-  userAvatarUrl,
-}: {
-  mentors: PublicMentor[];
-  initialUniversityId?: number | undefined;
-  userName?: string | null;
-  userAvatarUrl?: string | null;
-}) {
+export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
+  const initialUniversityId = useSyncExternalStore(
+    subscribeToUrl,
+    getUniversityIdFromUrl,
+    getServerUniversityId,
+  );
   const [search, setSearch] = useState('');
   const [country, setCountry] = useState('');
   const [subject, setSubject] = useState('');
@@ -169,34 +171,11 @@ export function MentorsClient({
   const safePage = Math.min(page, totalPages);
   const visible = results.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const isSignedIn = !!userName;
   const primaryAction = { href: '/mentors/apply', label: 'Become a mentor' };
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <MarketingNavigation primaryAction={primaryAction} />
 
       <main className="min-h-screen pb-gb-9xl pt-gb-6xl">
         <Container className="flex flex-col gap-gb-6xl">
@@ -262,8 +241,8 @@ export function MentorsClient({
           {results.length > 0 ? (
             <>
               <ul className="grid grid-cols-1 gap-gb-5xl sm:grid-cols-2 lg:grid-cols-4">
-                {visible.map((m) => (
-                  <MentorCard key={m.id} mentor={m} />
+                {visible.map((m, index) => (
+                  <MentorCard key={m.id} mentor={m} preload={index === 0} />
                 ))}
               </ul>
               <Pagination page={safePage} totalPages={totalPages} onPageChange={setPage} />

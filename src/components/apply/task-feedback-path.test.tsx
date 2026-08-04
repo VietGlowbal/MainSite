@@ -21,6 +21,9 @@ describe('taskFeedbackPath', () => {
     ['Request a recommendation letter', '/apply/app-1/lor-feedback'],
     ['Review your CV', '/apply/app-1/cv'],
     ['Draft your personal statement', '/apply/app-1/statement-feedback'],
+    ['Viết bài luận cá nhân', '/apply/app-1/statement-feedback'],
+    ['Xin thư giới thiệu', '/apply/app-1/lor-feedback'],
+    ['Chuẩn bị CV', '/apply/app-1/cv'],
   ])('routes %s to its feedback workspace', (title, path) => {
     expect(taskFeedbackPath(task(title))).toBe(path);
   });

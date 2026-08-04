@@ -25,6 +25,7 @@ type Props = {
   initialLorStrategy?: StoredLorStrategy | null;
   userName?: string | null;
   userAvatarUrl?: string | null;
+  evaluationMode?: 'generic' | 'vinuni';
 };
 
 type DraftState = {
@@ -48,6 +49,7 @@ export function StatementFeedbackWorkspace({
   initialLorStrategy = null,
   userName = null,
   userAvatarUrl = null,
+  evaluationMode: requestedEvaluationMode,
 }: Props) {
   const isLor = reviewType === 'lor';
   const supabase = useMemo(() => (demo ? null : createClient()), [demo]);
@@ -64,9 +66,9 @@ export function StatementFeedbackWorkspace({
   const [lorStage, setLorStage] = useState<'strategy' | 'draft' | 'review'>('strategy');
   const [strategyReady, setStrategyReady] = useState(Boolean(initialLorStrategy));
   const [reviewReady, setReviewReady] = useState(false);
-  const evaluationMode = /\bvin\s*(?:university|uni)\b/i.test(targetName)
+  const evaluationMode = requestedEvaluationMode ?? (/\bvin\s*(?:university|uni)\b/i.test(targetName)
     ? 'vinuni'
-    : 'generic';
+    : 'generic');
   const primaryAction = { href: '/apply', label: 'My applications' };
   const currentLorStageIndex = ['strategy', 'draft', 'review'].indexOf(lorStage);
 
@@ -142,7 +144,7 @@ export function StatementFeedbackWorkspace({
         <header className={isLor ? 'flex shrink-0 items-start justify-between gap-gb-xl bg-surface px-gb-xl py-gb-xl sm:px-gb-2xl' : 'flex shrink-0 items-start justify-between gap-8 py-8'}>
           <div className="min-w-0">
             <Link
-              href="/apply"
+              href={`/apply/${applicationId}`}
               className="mb-gb-sm inline-flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <span aria-hidden="true">←</span>

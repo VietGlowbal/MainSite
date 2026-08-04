@@ -19,6 +19,7 @@ export default async function CvHubPage({
   if (!user) redirect('/auth');
   const workspace = await fetchApplicationWorkspace(applicationId, user.id);
   if (!workspace) notFound();
+  const { application } = workspace;
 
   return (
     <main className="min-h-screen bg-white px-5 py-12 text-slate-950 sm:py-20">

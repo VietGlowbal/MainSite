@@ -4,13 +4,13 @@ import { useMemo, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { MarketingNavigation } from '@/components/marketing-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
 import type { GeoGuide } from '@/lib/geo-content';
 import {
@@ -21,10 +21,8 @@ import {
   ICONS,
   Input,
   KitIcon,
-  MobileNav,
   Pagination,
   SearchMark,
-  TopNav,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
@@ -322,13 +320,9 @@ function SubscribeRow() {
 export function NewsClient({
   allGuides,
   topics,
-  userName = null,
-  userAvatarUrl = null,
 }: {
   allGuides: GeoGuide[];
   topics: string[];
-  userName?: string | null;
-  userAvatarUrl?: string | null;
 }) {
   const [topic, setTopic] = useState(ALL_TOPICS);
   const [query, setQuery] = useState('');
@@ -373,34 +367,9 @@ export function NewsClient({
   }
 
   const isFiltering = search !== '' || topic !== ALL_TOPICS;
-  const isSignedIn = !!userName;
-  const primaryAction = { href: '/onboarding', label: 'Plan your studies' };
-
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <MarketingNavigation />
 
       <main>
         {/* Header band — Figma 153:18279. Grey, and it ends flush under the

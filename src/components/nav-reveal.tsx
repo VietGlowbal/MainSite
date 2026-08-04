@@ -295,17 +295,10 @@ export function NavReveal() {
    * a prefix entry silently covers routes that do not exist yet, so a legacy
    * page added underneath one would lose its navigation with nothing to say so.
    */
-  const OWN_CHROME_PREFIXES = [
-    '/ai-strategy',
-    /*
-     * `/apply` and everything under it. The per-course workspace was rebuilt
-     * with its own chrome in #85/#86 and this prefix went with it, but the
-     * mentor-detail change (536755a) restructured this list and dropped it —
-     * which put the app header AND the workspace's own header on the same page.
-     * The whole tree is rebuilt, so the prefix is correct.
-     */
-    '/apply',
-  ];
+  const OWN_CHROME_PREFIXES = ['/ai-strategy'];
+
+  // The dashboard owns its header; its document workspaces use the shared one.
+  const isApplicationWorkspaceRoute = /^\/apply\/[^/]+$/.test(pathname);
 
   /*
    * `/universities/<id>` — the rebuilt detail page (Figma 375:10629) — ships
@@ -328,6 +321,7 @@ export function NavReveal() {
 
   const rendersOwnChrome =
     OWN_CHROME_ROUTES.has(pathname) ||
+    isApplicationWorkspaceRoute ||
     isNumericUniversityRoute ||
     isMentorProfileRoute ||
     OWN_CHROME_PREFIXES.some((base) => pathname === base || pathname.startsWith(`${base}/`));
@@ -390,12 +384,14 @@ export function NavReveal() {
       });
     }
 
-    supabase.auth.getUser().then(({ data }) => {
-      loadUser(data.user ?? null);
-    });
+    if (!rendersOwnChrome) {
+      supabase.auth.getUser().then(({ data }) => {
+        loadUser(data.user ?? null);
+      });
+    }
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      loadUser(session?.user ?? null);
+      if (!rendersOwnChrome) loadUser(session?.user ?? null);
 
       // Record a login once per browser session. @supabase/ssr fires
       // INITIAL_SESSION (not SIGNED_IN) when restoring a session, so this only
@@ -419,7 +415,7 @@ export function NavReveal() {
       window.removeEventListener('glowbal:reveal-nav', onReveal);
       subscription.unsubscribe();
     };
-  }, []);
+  }, [rendersOwnChrome]);
 
   // Non-landing pages always show the nav, and the server knows that, so the
   // first client render matches the server HTML exactly.

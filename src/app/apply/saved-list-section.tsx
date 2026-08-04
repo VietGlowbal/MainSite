@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -376,7 +377,7 @@ function SavedRowItem({
       </button>
 
       <div
-        className={`order-3 w-full overflow-hidden rounded-gb-2xl bg-surface-muted transition-shadow duration-200 lg:order-2 lg:h-[188px] lg:w-[260px] lg:shrink-0 ${
+        className={`relative order-3 w-full overflow-hidden rounded-gb-2xl bg-surface-muted transition-shadow duration-200 lg:order-2 lg:h-[188px] lg:w-[260px] lg:shrink-0 ${
           selected ? 'ring-2 ring-brand' : ''
         }`}
       >
@@ -384,11 +385,11 @@ function SavedRowItem({
           /* Plain <img>, matching FadeInImage on /universities: cover images come
              from arbitrary hosts and next/image would reject anything not in
              next.config.ts's remotePatterns. */
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+          <Image
             src={row.imageUrl}
             alt=""
-            loading="lazy"
+            fill
+            sizes="(max-width: 1024px) 100vw, 260px"
             className="aspect-[260/188] w-full object-cover transition-transform duration-300 group-hover:scale-105 motion-reduce:transition-none motion-reduce:group-hover:scale-100 lg:h-full"
           />
         ) : (
@@ -568,11 +569,11 @@ function ScholarshipDetail({
       <div className="flex items-start gap-gb-xl rounded-gb-xl border border-line p-gb-xl">
         {universityLogoUrl ? (
           /* Crests come from arbitrary hosts, so a plain <img> as elsewhere. */
-          /* eslint-disable-next-line @next/next/no-img-element */
-          <img
+          <Image
             src={universityLogoUrl}
             alt=""
-            loading="lazy"
+            width={64}
+            height={64}
             className="size-gb-7xl shrink-0 object-contain"
           />
         ) : null}
@@ -671,11 +672,11 @@ function ScholarshipCandidateCard({
       {universityLogoUrl ? (
         /* Same reason as the row cover: crests come from arbitrary hosts, so a
            plain <img> rather than next/image. */
-        /* eslint-disable-next-line @next/next/no-img-element */
-        <img
+        <Image
           src={universityLogoUrl}
           alt=""
-          loading="lazy"
+          width={110}
+          height={48}
           className="h-gb-6xl w-[110px] shrink-0 object-contain"
         />
       ) : (

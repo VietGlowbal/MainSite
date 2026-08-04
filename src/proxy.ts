@@ -5,6 +5,7 @@ import { SITE_GATE_COOKIE, isSiteLockEnabled, verifyGateCookie } from '@/lib/sit
 
 // Routes that require authentication
 const PROTECTED_ROUTES = [
+  '/apply',
   '/profile',
   '/dashboard',
   '/my-universities',
@@ -12,6 +13,8 @@ const PROTECTED_ROUTES = [
   '/admin',
   '/onboarding/complete',
 ];
+
+const PUBLIC_MARKETING_ROUTES = new Set(['/about', '/news', '/universities', '/mentors']);
 
 // Paths that stay reachable even while the site lock (below) is on: static
 // assets, API routes (already individually authed — cron secrets, webhooks,
@@ -58,6 +61,20 @@ export async function proxy(request: NextRequest) {
     pathname.match(/\.(svg|png|jpg|jpeg|gif|ico|css|js|woff2?)$/)
   ) {
     return NextResponse.next();
+  }
+
+  // These pages render guest-only HTML and hydrate identity in the browser.
+  // Avoid an auth round trip on every public request; the query-backed
+  // university directory is identical for all visitors and safe to edge-cache.
+  if (PUBLIC_MARKETING_ROUTES.has(pathname)) {
+    const publicResponse = NextResponse.next();
+    if (pathname === '/universities') {
+      publicResponse.headers.set(
+        'Vercel-CDN-Cache-Control',
+        'public, s-maxage=43200, stale-while-revalidate=86400',
+      );
+    }
+    return publicResponse;
   }
 
   // Create a Supabase client that can read cookies from the request

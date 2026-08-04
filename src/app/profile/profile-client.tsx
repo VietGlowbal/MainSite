@@ -48,13 +48,15 @@ import {
  * instead.
  */
 
+type ProfileDocument = Pick<UploadedDocument, 'id' | 'type' | 'file_name' | 'created_at'>;
+
 type Props = {
   displayName: string;
   email: string;
   avatarUrl?: string;
   memberSince: string;
   profile: StudentProfile | null;
-  documents: UploadedDocument[];
+  documents: ProfileDocument[];
   activeApplications: number;
   workEntries: number;
   englishScores: number;
@@ -91,7 +93,7 @@ function filled(value: unknown): boolean {
 
 type SectionInputs = {
   profile: StudentProfile | null;
-  documents: UploadedDocument[];
+  documents: ProfileDocument[];
   workEntries: number;
   englishScores: number;
 };
@@ -364,7 +366,7 @@ function SectionCard({ section, input }: { section: SectionDef; input: SectionIn
    RIGHT RAIL
 ───────────────────────────────────────────────────────────────────────── */
 
-function DocumentsCard({ documents }: { documents: UploadedDocument[] }) {
+function DocumentsCard({ documents }: { documents: ProfileDocument[] }) {
   const shown = documents.slice(0, 4);
 
   return (

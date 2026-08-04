@@ -2,16 +2,16 @@
 
 import Link from 'next/link';
 import {
-  Suspense,
   startTransition,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SavedNavLink } from '@/components/saved-nav-link';
+import { createClient } from '@/lib/supabase/client';
 import {
   MARKETING_NAV_ITEMS,
   FOOTER_COLUMNS,
@@ -36,7 +36,6 @@ import { TID, testId } from '@/shared/lib';
 import {
   UniversityExplorerProvider,
   useExplorer,
-  type ApplicationEntry,
   type ExplorerUniversity,
 } from '@/features/universities/ui';
 import { FadeInImage } from './fade-in-image';
@@ -118,6 +117,7 @@ function IconHeart({ filled }: { filled: boolean }) {
 function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
   const {
     isLoggedIn,
+    authPending,
     requireLogin,
     isShortlisted,
     addToShortlist,
@@ -154,7 +154,7 @@ function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
      */
     <div
       {...testId(TID.uniCard)}
-      className="group relative flex flex-col overflow-hidden rounded-gb-xl bg-surface-muted text-left transition-shadow hover:shadow-gb-md focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand"
+      className={`group relative flex flex-col overflow-hidden rounded-gb-xl bg-surface-muted text-left transition-shadow hover:shadow-gb-md focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-brand ${authPending ? 'pointer-events-none' : ''}`}
     >
       {/* Cover image (226px in the design). Empty until the wiki resolver fills
           it in; the muted card background shows through as the placeholder. */}
@@ -315,6 +315,8 @@ function Chip({
 
 // ── Browse view (the whole redesigned list) ─────────────────────────────────
 
+// Kept temporarily as the UI reference while the URL-backed directory settles.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function BrowseView() {
   const { universities } = useExplorer();
   const resultsRef = useRef<HTMLDivElement>(null);
@@ -510,6 +512,131 @@ function BrowseView() {
 
 // ── Login gate (guest funnel) ───────────────────────────────────────────────
 
+function DirectoryBrowseView({
+  total,
+  page,
+  pageSize,
+  initialSearch,
+  initialCountry,
+  countries,
+}: {
+  total: number;
+  page: number;
+  pageSize: number;
+  initialSearch: string;
+  initialCountry: string;
+  countries: string[];
+}) {
+  const { universities } = useExplorer();
+  const router = useRouter();
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const [name, setName] = useState(initialSearch);
+  const [country, setCountry] = useState(initialCountry);
+
+  useEffect(() => {
+    const query = name.trim();
+    if (query === initialSearch) return;
+    const timeout = window.setTimeout(() => {
+      const params = new URLSearchParams();
+      if (query) params.set('q', query);
+      if (country) params.set('country', country);
+      const queryString = params.toString();
+      router.replace(queryString ? `/universities?${queryString}` : '/universities');
+    }, 300);
+    return () => window.clearTimeout(timeout);
+  }, [name, initialSearch, country, router]);
+
+  function href(nextPage: number) {
+    const params = new URLSearchParams();
+    const query = name.trim();
+    if (query) params.set('q', query);
+    if (country) params.set('country', country);
+    if (nextPage > 1) params.set('page', String(nextPage));
+    const queryString = params.toString();
+    return queryString ? `/universities?${queryString}` : '/universities';
+  }
+
+  function submit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    router.push(href(1));
+  }
+
+  function goToPage(nextPage: number) {
+    router.push(href(nextPage));
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  const currentPage = Math.min(page, totalPages);
+
+  return (
+    <Container className="flex flex-col gap-gb-4xl py-gb-6xl">
+      <div className="flex max-w-gb-width-xl flex-col gap-gb-lg">
+        <h1 className="font-display text-gb-display-xs font-semibold md:text-gb-display-sm">
+          Find the university that&apos;s right for you
+        </h1>
+        <p className="text-gb-md text-fg-tertiary md:text-gb-lg">
+          Explore universities worldwide and find your perfect fit.
+        </p>
+      </div>
+
+      <form className="grid gap-gb-lg md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]" onSubmit={submit}>
+        <label className="relative flex items-center">
+          <span className="pointer-events-none absolute left-gb-input-x text-fg-muted">
+            <IconSearch />
+          </span>
+          <input
+            {...testId(TID.uniSearchInput)}
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="Search by university name"
+            aria-label="Search by university name"
+            className="w-full rounded-gb-md border border-line-strong bg-surface py-gb-input-y pl-gb-6xl pr-gb-input-x text-gb-md text-fg shadow-gb-xs placeholder:text-fg-muted focus:outline-2 focus:outline-offset-0 focus:outline-brand"
+          />
+        </label>
+        <Select
+          name="country"
+          aria-label="Country"
+          value={country}
+          onChange={(event) => setCountry(event.target.value)}
+        >
+          <option value="">All countries</option>
+          {countries.map((value) => (
+            <option key={value} value={value}>{value}</option>
+          ))}
+        </Select>
+        <Button type="submit" size="md">Find universities</Button>
+      </form>
+
+      <div ref={resultsRef} className="scroll-mt-gb-9xl">
+        {universities.length === 0 ? (
+          <div className="rounded-gb-xl border border-line bg-surface-muted px-gb-3xl py-gb-7xl text-center">
+            <p className="text-gb-lg font-semibold text-fg">No universities match your filters</p>
+            <p className="mt-gb-sm text-gb-md text-fg-tertiary">
+              Try clearing a filter or searching a different name.
+            </p>
+          </div>
+        ) : (
+          <div
+            {...testId(TID.uniResultsGrid)}
+            className="grid grid-cols-1 gap-gb-4xl sm:grid-cols-2 lg:grid-cols-3"
+          >
+            {universities.map((university) => (
+              <UniversityCard key={university.id} uni={university} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {totalPages > 1 ? (
+        <div {...testId(TID.uniPagination)}>
+          <Pagination page={currentPage} totalPages={totalPages} onPageChange={goToPage} />
+        </div>
+      ) : null}
+    </Container>
+  );
+}
+
 function LoginGateModal() {
   const { loginGateOpen, closeLoginGate } = useExplorer();
   const router = useRouter();
@@ -575,15 +702,14 @@ function Toast() {
  */
 function useLegacyDetailParamRedirect() {
   const router = useRouter();
-  const searchParams = useSearchParams();
 
   useEffect(() => {
-    const param = searchParams.get('u');
+    const param = new URLSearchParams(window.location.search).get('u');
     if (!param) return;
     const id = Number.parseInt(param, 10);
     if (!Number.isFinite(id)) return;
     router.replace(`/universities/${id}`);
-  }, [searchParams, router]);
+  }, [router]);
 }
 
 // ── Page chrome + view switch ────────────────────────────────────────────────
@@ -592,10 +718,22 @@ function Chrome({
   userName,
   userAvatarUrl,
   isLoggedIn,
+  total,
+  page,
+  pageSize,
+  search,
+  country,
+  countries,
 }: {
   userName: string | null;
   userAvatarUrl: string | null;
   isLoggedIn: boolean;
+  total: number;
+  page: number;
+  pageSize: number;
+  search: string;
+  country: string;
+  countries: string[];
 }) {
   useLegacyDetailParamRedirect();
 
@@ -635,7 +773,15 @@ function Chrome({
       />
 
       <main className="min-h-screen">
-        <BrowseView />
+        <DirectoryBrowseView
+          key={`${search}\u0000${country}`}
+          total={total}
+          page={page}
+          pageSize={pageSize}
+          initialSearch={search}
+          initialCountry={country}
+          countries={countries}
+        />
       </main>
 
       <Footer
@@ -657,38 +803,92 @@ function Chrome({
 
 interface Props {
   universities: ExplorerUniversity[];
-  initialShortlist: number[];
-  initialApplications: ApplicationEntry[];
-  isLoggedIn: boolean;
-  hasProfile: boolean;
-  admissionUnlocked: boolean;
-  profileStrength: number | null;
-  userName: string | null;
-  userAvatarUrl: string | null;
+  total: number;
+  page: number;
+  pageSize: number;
+  search: string;
+  country: string;
+  countries: string[];
   wikiPairs?: Array<[string, string]>;
 }
 
 export function UniversityListClient({
   universities,
-  initialShortlist,
-  initialApplications,
-  isLoggedIn,
-  hasProfile,
-  admissionUnlocked,
-  profileStrength,
-  userName,
-  userAvatarUrl,
+  total,
+  page,
+  pageSize,
+  search,
+  country,
+  countries,
   wikiPairs = [],
 }: Props) {
+  const supabase = useMemo(() => createClient(), []);
   const [withImages, setWithImages] = useState<ExplorerUniversity[]>(universities);
+  const [authState, setAuthState] = useState<{
+    id: string;
+    name: string;
+    avatarUrl: string | null;
+    shortlist: number[];
+  } | null>(null);
+  const [authResolved, setAuthResolved] = useState(false);
+
+  useEffect(() => {
+    setWithImages(universities);
+  }, [universities]);
+
+  useEffect(() => {
+    let active = true;
+    let generation = 0;
+
+    async function hydrate(authUser: {
+      id: string;
+      email?: string | null;
+      user_metadata?: Record<string, unknown>;
+    } | null) {
+      const current = ++generation;
+      if (active) setAuthResolved(false);
+      if (!authUser) {
+        if (active && current === generation) {
+          setAuthState(null);
+          setAuthResolved(true);
+        }
+        return;
+      }
+      const { data } = await supabase
+        .from('user_universities')
+        .select('university_id')
+        .eq('user_id', authUser.id);
+      if (!active || current !== generation) return;
+      setAuthState({
+        id: authUser.id,
+        name:
+          (authUser.user_metadata?.full_name as string | undefined) ||
+          authUser.email?.split('@')[0] ||
+          'Profile',
+        avatarUrl: (authUser.user_metadata?.avatar_url as string | undefined) ?? null,
+        shortlist: (data ?? []).map((row) => row.university_id as number),
+      });
+      setAuthResolved(true);
+    }
+
+    void supabase.auth.getUser().then(({ data }) => hydrate(data.user ?? null));
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      void hydrate(session?.user ?? null);
+    });
+    return () => {
+      active = false;
+      subscription.unsubscribe();
+    };
+  }, [supabase]);
 
   /*
    * Hydration gate for the imagery patch below.
    *
    * The patch replaces the university array that the card subtree renders from,
-   * and that subtree sits inside the <Suspense> boundary at the bottom of this
-   * component (it has to: Chrome reads useSearchParams). A Suspense child can
-   * still be hydrating when this component's own effects have already run — so
+   * and that subtree can still be hydrating when this component's own effects
+   * have already run — so
    * swapping its data straight from an effect races hydration, and React reports
    * a mismatch, throws away the server HTML, and re-renders the whole tree on
    * the client. The symptom is not subtle: the cards that were still awaiting
@@ -757,17 +957,27 @@ export function UniversityListClient({
 
   return (
     <UniversityExplorerProvider
+      key={authState?.id ?? 'guest'}
       initialUniversities={withImages}
-      initialShortlist={initialShortlist}
-      initialApplications={initialApplications}
-      isLoggedIn={isLoggedIn}
-      hasProfile={hasProfile}
-      admissionUnlocked={admissionUnlocked}
-      profileStrength={profileStrength}
+      initialShortlist={authState?.shortlist ?? []}
+      initialApplications={[]}
+      isLoggedIn={authState !== null}
+      authPending={!authResolved}
+      hasProfile={false}
+      admissionUnlocked={false}
+      profileStrength={null}
     >
-      <Suspense fallback={null}>
-        <Chrome userName={userName} userAvatarUrl={userAvatarUrl} isLoggedIn={isLoggedIn} />
-      </Suspense>
+      <Chrome
+        userName={authState?.name ?? null}
+        userAvatarUrl={authState?.avatarUrl ?? null}
+        isLoggedIn={authState !== null}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        search={search}
+        country={country}
+        countries={countries}
+      />
     </UniversityExplorerProvider>
   );
 }
