@@ -154,6 +154,7 @@ function toHomeMentorStories(mentors: readonly PublicMentor[]): Testimonial[] {
           role: [mentor.subject, mentor.university?.name].filter(Boolean).join(' · '),
           avatarUrl: mentor.avatar_url,
           university: mentor.university?.name,
+          universityLogoUrl: mentor.university?.logo_url,
         },
       ];
     })
