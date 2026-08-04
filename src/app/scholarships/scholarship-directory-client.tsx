@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { Badge, Button, Card, EmptyState, Pagination } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
 import { getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
@@ -11,7 +12,6 @@ import { AutoTranslate } from '@/lib/use-auto-translate';
 import {
   FUNDING_TYPES,
   FUNDING_TYPE_LABELS,
-  SCHOLARSHIP_SCOPES,
   SCHOLARSHIP_SCOPE_LABELS,
 } from '@/lib/scholarships';
 import { scorePersonalMatch, type DirectoryScholarship } from '@/lib/scholarships-data';
@@ -52,6 +52,35 @@ type Props = {
 };
 
 type SortKey = 'relevance' | 'deadline' | 'name';
+type MajorFilter = 'all' | 'business' | 'stem' | 'arts' | 'health' | 'law';
+type DegreeFilter = 'all' | 'undergraduate' | 'postgraduate' | 'doctoral';
+
+const MAJOR_FILTERS: ReadonlyArray<{ value: MajorFilter; label: string; keywords: readonly string[] }> = [
+  { value: 'business', label: 'Business & economics', keywords: ['business', 'economics', 'finance', 'management', 'marketing'] },
+  { value: 'stem', label: 'STEM', keywords: ['engineering', 'computer', 'science', 'mathematics', 'technology'] },
+  { value: 'arts', label: 'Arts & humanities', keywords: ['art', 'design', 'music', 'humanities'] },
+  { value: 'health', label: 'Health & medicine', keywords: ['health', 'medical', 'nursing', 'pharmacy'] },
+  { value: 'law', label: 'Law', keywords: ['law', 'legal'] },
+];
+
+const DEGREE_FILTERS: ReadonlyArray<{ value: DegreeFilter; label: string; keywords: readonly string[] }> = [
+  { value: 'undergraduate', label: 'Undergraduate', keywords: ['undergraduate', 'bachelor', 'high school', 'secondary school'] },
+  { value: 'postgraduate', label: 'Postgraduate', keywords: ['postgraduate', 'master', 'graduate', 'mba'] },
+  { value: 'doctoral', label: 'Doctoral / PhD', keywords: ['doctoral', 'doctorate', 'phd'] },
+];
+
+function scholarshipSearchText(scholarship: DirectoryScholarship) {
+  return [
+    scholarship.name,
+    scholarship.eligibility,
+    scholarship.applies_to_text,
+    scholarship.conditions,
+    scholarship.insight,
+  ]
+    .filter((value): value is string => Boolean(value))
+    .join(' ')
+    .toLowerCase();
+}
 
 export function ScholarshipDirectoryClient({
   scholarships,
@@ -149,7 +178,9 @@ export function ScholarshipDirectoryClient({
 
   // Filters
   const [query, setQuery] = useState('');
-  const [scope, setScope] = useState<string>('all');
+  const [universityQuery, setUniversityQuery] = useState('');
+  const [major, setMajor] = useState<MajorFilter>('all');
+  const [degree, setDegree] = useState<DegreeFilter>('all');
   const [funding, setFunding] = useState<Set<string>>(new Set());
   const [country, setCountry] = useState<string>('all');
   const [sort, setSort] = useState<SortKey>('relevance');
@@ -178,11 +209,6 @@ export function ScholarshipDirectoryClient({
     return set;
   }, [scholarships, savedUniversityIds, savedCountries]);
 
-  // Facets present in the data (so we never show an empty filter chip).
-  const scopesPresent = useMemo(
-    () => SCHOLARSHIP_SCOPES.filter((sc) => scholarships.some((s) => s.scope === sc)),
-    [scholarships],
-  );
   const fundingPresent = useMemo(
     () => FUNDING_TYPES.filter((ft) => scholarships.some((s) => s.funding_type.includes(ft))),
     [scholarships],
@@ -192,15 +218,28 @@ export function ScholarshipDirectoryClient({
     [scholarships],
   );
 
-  const hasActiveFilters = query.trim() !== '' || scope !== 'all' || funding.size > 0 || country !== 'all';
+  const hasActiveFilters =
+    query.trim() !== '' ||
+    universityQuery.trim() !== '' ||
+    major !== 'all' ||
+    degree !== 'all' ||
+    funding.size > 0 ||
+    country !== 'all' ||
+    sort !== 'relevance';
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
+    const universityNeedle = universityQuery.trim().toLowerCase();
+    const selectedMajor = MAJOR_FILTERS.find((filter) => filter.value === major);
+    const selectedDegree = DEGREE_FILTERS.find((filter) => filter.value === degree);
     const rows = scholarships.filter((s) => {
       if (q && !s.name.toLowerCase().includes(q)) return false;
-      if (scope !== 'all' && s.scope !== scope) return false;
+      if (universityNeedle && !s.universities.some((university) => university.name.toLowerCase().includes(universityNeedle))) return false;
       if (country !== 'all' && s.country !== country) return false;
       if (funding.size > 0 && !s.funding_type.some((ft) => funding.has(ft))) return false;
+      const searchableText = scholarshipSearchText(s);
+      if (selectedMajor && !selectedMajor.keywords.some((keyword) => searchableText.includes(keyword))) return false;
+      if (selectedDegree && !selectedDegree.keywords.some((keyword) => searchableText.includes(keyword))) return false;
       return true;
     });
 
@@ -217,10 +256,10 @@ export function ScholarshipDirectoryClient({
       return a.name.localeCompare(b.name);
     });
     return rows;
-  }, [scholarships, query, scope, country, funding, sort, matchedIds]);
+  }, [scholarships, query, universityQuery, major, degree, country, funding, sort, matchedIds]);
 
   // Reset to the first page whenever the result set changes (filters/search/sort).
-  useEffect(() => setPage(1), [query, scope, country, funding, sort]);
+  useEffect(() => setPage(1), [query, universityQuery, major, degree, country, funding, sort]);
 
   const SCHOLARSHIPS_PER_PAGE = 9; // 3 columns × 3 rows
   const pageCount = Math.max(1, Math.ceil(filtered.length / SCHOLARSHIPS_PER_PAGE));
@@ -253,19 +292,14 @@ export function ScholarshipDirectoryClient({
     [sectioned, focusCountry, focusIds, filtered],
   );
 
-  const toggleFunding = (ft: string) =>
-    setFunding((prev) => {
-      const next = new Set(prev);
-      if (next.has(ft)) next.delete(ft);
-      else next.add(ft);
-      return next;
-    });
-
   const clearFilters = () => {
     setQuery('');
-    setScope('all');
+    setUniversityQuery('');
+    setMajor('all');
+    setDegree('all');
     setFunding(new Set());
     setCountry('all');
+    setSort('relevance');
   };
 
   const renderGrid = (items: DirectoryScholarship[]) => (
@@ -343,78 +377,146 @@ export function ScholarshipDirectoryClient({
       ) : (
         <>
           {/* Filter bar */}
-          <Card size="md" padding="md" flat className="space-y-5 border-line bg-surface shadow-gb-xs">
-            <div className="flex flex-wrap items-end justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-fg">{t('Find your next opportunity')}</p>
-                <p className="mt-1 text-sm text-fg-tertiary">{t('Narrow the vault by eligibility, funding, and destination.')}</p>
-              </div>
-              {hasActiveFilters && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="text-sm font-semibold text-fg-brand transition hover:text-brand-hover"
-                >
-                  {t('Clear filters')}
-                </button>
-              )}
-            </div>
-            {/* Search */}
-            <div className="relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-fg-muted">
-                <SearchIcon />
-              </span>
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={t('Search scholarships by name')}
-                className="w-full rounded-xl border border-line-strong bg-surface py-3 pl-11 pr-4 text-sm text-fg placeholder:text-fg-muted outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
-              />
-            </div>
+          <section className="space-y-4">
+            <form
+              className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_auto]"
+              onSubmit={(event) => {
+                event.preventDefault();
+                resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+              }}
+            >
+              <label className="relative block">
+                <span className="sr-only">{t('Search scholarships by name')}</span>
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted">
+                  <SearchIcon />
+                </span>
+                <input
+                  type="search"
+                  value={query}
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder={t('Search by scholarship name')}
+                  className="h-11 w-full rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm text-fg shadow-gb-xs outline-none placeholder:text-fg-muted transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
+                />
+              </label>
 
-            {/* Scope chips */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs font-semibold text-fg-muted">{t('Scope')}:</span>
-              <FilterChip active={scope === 'all'} onClick={() => setScope('all')}>
-                {t('All')} ({scholarships.length})
-              </FilterChip>
-              {scopesPresent.map((sc) => (
-                <FilterChip key={sc} active={scope === sc} onClick={() => setScope(sc)}>
-                  {t(SCHOLARSHIP_SCOPE_LABELS[sc])} ({scholarships.filter((s) => s.scope === sc).length})
-                </FilterChip>
-              ))}
-            </div>
-
-            {/* Funding type chips (multi) */}
-            <div className="flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs font-semibold text-fg-muted">{t('Funding type')}:</span>
-              {fundingPresent.map((ft) => (
-                <FilterChip key={ft} active={funding.has(ft)} onClick={() => toggleFunding(ft)}>
-                  {t(FUNDING_TYPE_LABELS[ft])}
-                </FilterChip>
-              ))}
-            </div>
-
-            {/* Country + sort + clear */}
-            <div className="flex flex-wrap items-center gap-3">
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-fg-muted">
-                {t('Country')}:
+              <label className="relative block">
+                <span className="sr-only">{t('Where do you want to study')}</span>
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2">
+                  <Image src="/brand/scholarship-filter-map-pin.svg" alt="" width={14} height={17} />
+                </span>
                 <select
                   value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-fg outline-none focus:border-brand"
+                  onChange={(event) => setCountry(event.target.value)}
+                  className="h-11 w-full appearance-none rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-9 text-sm text-fg shadow-gb-xs outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 >
-                  <option value="all">{t('All countries')}</option>
-                  {countriesPresent.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
+                  <option value="all">{t('Where do you want to study')}</option>
+                  {countriesPresent.map((item) => (
+                    <option key={item} value={item}>
+                      {item}
                     </option>
                   ))}
                 </select>
+                <FilterChevron />
               </label>
 
-              <label className="flex items-center gap-1.5 text-xs font-semibold text-fg-muted">
+              <label className="relative block">
+                <span className="sr-only">{t('Select major')}</span>
+                <select
+                  value={major}
+                  onChange={(event) => setMajor(event.target.value as MajorFilter)}
+                  className="h-11 w-full appearance-none rounded-gb-md border border-line-strong bg-surface px-3 pr-9 text-sm text-fg shadow-gb-xs outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
+                >
+                  <option value="all">{t('Select major')}</option>
+                  {MAJOR_FILTERS.map((filter) => (
+                    <option key={filter.value} value={filter.value}>
+                      {t(filter.label)}
+                    </option>
+                  ))}
+                </select>
+                <FilterChevron />
+              </label>
+
+              <label className="relative block">
+                <span className="sr-only">{t('Search by university name')}</span>
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-muted">
+                  <SearchIcon />
+                </span>
+                <input
+                  type="search"
+                  value={universityQuery}
+                  onChange={(event) => setUniversityQuery(event.target.value)}
+                  placeholder={t('Search by university name')}
+                  className="h-11 w-full rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm text-fg shadow-gb-xs outline-none placeholder:text-fg-muted transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
+                />
+              </label>
+
+              <button
+                type="submit"
+                className="inline-flex h-11 items-center justify-center rounded-gb-md bg-gb-blue-600 px-gb-lg text-sm font-semibold text-white shadow-gb-xs-skeuomorphic transition hover:brightness-95 focus:outline-none focus-visible:ring-4 focus-visible:ring-gb-blue-600/25"
+              >
+                {t('Find scholarships')}
+              </button>
+            </form>
+            <p className="text-gb-xl text-fg">{t('Choose by criteria')}</p>
+
+            <div className="flex flex-wrap items-center gap-2.5">
+              <button
+                type="button"
+                aria-pressed={sort === 'relevance'}
+                onClick={() => setSort('relevance')}
+                className="inline-flex h-11 items-center rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic transition hover:bg-surface-hover focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-subtle"
+              >
+                {t('Popular')}
+              </button>
+
+              <label className="relative block">
+                <span className="sr-only">{t('Study level')}</span>
+                <select
+                  value={degree}
+                  onChange={(event) => setDegree(event.target.value as DegreeFilter)}
+                  className="h-11 appearance-none rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl pr-10 text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
+                >
+                  <option value="all">{t('Study level')}</option>
+                  {DEGREE_FILTERS.map((filter) => (
+                    <option key={filter.value} value={filter.value}>
+                      {t(filter.label)}
+                    </option>
+                  ))}
+                </select>
+                <FilterChevron />
+              </label>
+              <label className="relative block">
+                <span className="sr-only">{t('Scholarship value')}</span>
+                <select
+                  value={funding.size === 1 ? [...funding][0] : 'all'}
+                  onChange={(event) => setFunding(event.target.value === 'all' ? new Set() : new Set([event.target.value]))}
+                  className="h-11 appearance-none rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl pr-10 text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
+                >
+                  <option value="all">{t('Scholarship value')}</option>
+                  {fundingPresent.map((type) => (
+                    <option key={type} value={type}>
+                      {t(FUNDING_TYPE_LABELS[type])}
+                    </option>
+                  ))}
+                </select>
+                <FilterChevron />
+              </label>
+
+              <label className="relative block">
+                <span className="sr-only">{t('Competition rate')}</span>
+                <select
+                  value={sort}
+                  onChange={(event) => setSort(event.target.value as SortKey)}
+                  className="h-11 appearance-none rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl pr-10 text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
+                >
+                  <option value="relevance">{t('Competition rate')}</option>
+                  <option value="deadline">{t('Deadline (soonest)')}</option>
+                  <option value="name">{t('Name (A-Z)')}</option>
+                </select>
+                <FilterChevron />
+              </label>
+
+              <label className="hidden">
                 {t('Sort by')}:
                 <select
                   value={sort}
@@ -428,7 +530,7 @@ export function ScholarshipDirectoryClient({
               </label>
 
             </div>
-          </Card>
+          </section>
 
           {sectioned ? (
             /* Deep-linked from a university → two labelled sections. */
@@ -571,25 +673,11 @@ function HeroMetric({ value, label, className = '' }: { value: string; label: st
    FILTER CHIP
 ───────────────────────────────────────────────────────────────────────── */
 
-function FilterChip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
+function FilterChevron() {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-        active ? 'bg-surface-inverse text-fg-on-inverse' : 'border border-line bg-surface-muted text-fg-tertiary hover:border-line-strong hover:bg-surface'
-      }`}
-    >
-      {children}
-    </button>
+    <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2">
+      <Image src="/brand/scholarship-filter-chevron-down.svg" alt="" width={12} height={7} />
+    </span>
   );
 }
 
