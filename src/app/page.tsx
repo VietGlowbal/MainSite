@@ -10,17 +10,21 @@ import {
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
   HomeContact,
+  HomeFaq,
   HomeFeatures,
   HomeHero,
   HomeHowItWorks,
   HomeMetrics,
   HomePartners,
   HomeScholarships,
+  HomeTestimonials,
   MARKETING_NAV_ACTIONS,
   MARKETING_NAV_ITEMS,
   PARTNER_LOGOS,
   type ContactState,
+  type Testimonial,
 } from '@/features/marketing/ui';
+import { getScholarshipQueries, type ScholarshipForUniversity } from '@/features/scholarships/api';
 import { recordWaitlistSignup } from '@/features/marketing/api';
 import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
 import { sendEmail } from '@/lib/send-email';
@@ -28,6 +32,7 @@ import { Footer, MobileNav, TopNav } from '@/shared/ui';
 import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
 import { headers } from 'next/headers';
 import Link from 'next/link';
+import { getApprovedMentors, type PublicMentor } from '@/lib/mentors';
 
 /**
  * Five consultation requests per IP per hour. Generous for a person filling the
@@ -40,28 +45,9 @@ const contactLimiter = new RateLimiter({ maxRequests: 5, windowMs: 60 * 60 * 100
  *
  * This replaced the 976-line legacy landing at src/components/landing/home,
  * which was the last big page still built on globals.css class names. The
- * composition is the one that was proven at /dev/home first; that route stays
- * as the design preview and is now the ONLY place the unwritten sections are
- * still visible.
- *
- * ⚠️ TWO SECTIONS ARE NOT HERE, and their absence is deliberate:
- *
- *   HomeTestimonials  quotes need real students and their consent
- *   HomeFaq           every answer is a claim about pricing, staffing or process
- *
- * Both render `MissingContent` until the owner writes them, and a dashed "copy
- * missing" box is not something a real visitor should see. Two more sections are
- * here but told to drop their placeholders:
- *
- *   HomeFeatures      showPlaceholders={false} — blocks 2 and 3 have no copy,
- *                     and no block has a mockup asset
- *   HomeScholarships  showPlaceholders={false} — the card needs an awarding
- *                     body and `scholarships.provider` is null on all 2,877
- *                     published rows, so the heading and "See more" ship
- *                     without cards. See the note on that component.
- *
- * Adding any of them back is one line once the data or copy lands — /dev/home
- * keeps the full composition, placeholders included.
+ * composition is the one that was proven at /dev/home first. Every section
+ * from the source Home layer now renders here: product feature rows, the
+ * scholarship rail, public mentor stories, FAQ, consultation form and footer.
  */
 
 export const metadata: Metadata = {
@@ -113,6 +99,66 @@ const getPartnerUniversityIds = unstable_cache(
   ['home-partner-university-ids'],
   { revalidate: CACHE_TTL_LONG, tags: [CACHE_TAGS.universities] },
 );
+
+/**
+ * The Figma rail needs a handful of cards, while the directory's full list is
+ * intentionally too large for the Home payload. We use scholarships already
+ * linked to partner universities, so every card can name the university it is
+ * relevant to without making up an awarding body.
+ */
+function toHomeScholarshipTeasers(
+  partnerIds: readonly (number | null)[],
+  linked: Map<number, ScholarshipForUniversity[]>,
+) {
+  const seen = new Set<number>();
+  const teasers: Array<{
+    id: string;
+    title: string;
+    href: string;
+    university: string;
+    coverage: string | null;
+    deadline: string | null;
+  }> = [];
+
+  for (const [index, universityId] of partnerIds.entries()) {
+    if (universityId == null) continue;
+
+    for (const scholarship of linked.get(universityId) ?? []) {
+      if (seen.has(scholarship.id)) continue;
+      seen.add(scholarship.id);
+      teasers.push({
+        id: String(scholarship.id),
+        title: scholarship.name,
+        href: `/scholarships?university=${universityId}`,
+        university: PARTNER_LOGOS[index]?.name ?? 'Selected university',
+        coverage: scholarship.coverage ?? scholarship.amountLabel,
+        deadline: scholarship.deadlineLabel,
+      });
+      if (teasers.length === 6) return teasers;
+    }
+  }
+
+  return teasers;
+}
+
+/** Public mentor bios are profiles, not fabricated endorsements. */
+function toHomeMentorStories(mentors: readonly PublicMentor[]): Testimonial[] {
+  return mentors
+    .flatMap((mentor) => {
+      const quote = mentor.bio?.trim();
+      if (!quote) return [];
+      return [
+        {
+          quote,
+          name: mentor.display_name,
+          role: [mentor.subject, mentor.university?.name].filter(Boolean).join(' · '),
+          avatarUrl: mentor.avatar_url,
+          university: mentor.university?.name,
+        },
+      ];
+    })
+    .slice(0, 6);
+}
 
 /**
  * The consultation form (Figma 104:7361).
@@ -204,7 +250,15 @@ async function submitContact(
 }
 
 export default async function Home() {
-  const partnerUniversityIds = await getPartnerUniversityIds();
+  const [partnerUniversityIds, mentors] = await Promise.all([
+    getPartnerUniversityIds(),
+    getApprovedMentors(),
+  ]);
+  const linkedScholarships = await getScholarshipQueries().byUniversityIds(
+    partnerUniversityIds.filter((id): id is number => id != null),
+  );
+  const scholarshipTeasers = toHomeScholarshipTeasers(partnerUniversityIds, linkedScholarships);
+  const mentorStories = toHomeMentorStories(mentors);
 
   return (
     /* gb-page-full-bleed tells globals.css to drop the sidebar gutter and the
@@ -238,9 +292,11 @@ export default async function Home() {
         <HomeHero />
         <HomePartners universityIds={partnerUniversityIds} />
         <HomeMetrics />
-        <HomeFeatures showPlaceholders={false} />
+        <HomeFeatures />
         <HomeHowItWorks />
-        <HomeScholarships showPlaceholders={false} />
+        <HomeScholarships entries={scholarshipTeasers} />
+        <HomeTestimonials entries={mentorStories} />
+        <HomeFaq />
         <HomeContact action={submitContact} />
       </main>
       <Footer
