@@ -7,7 +7,38 @@ export type Testimonial = {
   role: string;
   avatarUrl?: string | null;
   university?: string | null;
+  universityLogoUrl?: string | null;
 };
+
+function UniversityLogo({
+  name,
+  src,
+}: {
+  name?: string | null;
+  src?: string | null;
+}) {
+  return (
+    <div className="flex h-gb-4xl items-center">
+      {src ? (
+        /* A university logo comes from the mentor's joined university record.
+           It may be on a university-owned or Wikimedia host, so Next Image
+           would need an open-ended allowlist. Fixed dimensions prevent layout
+           shift while retaining the real supplied mark. */
+        /* eslint-disable-next-line @next/next/no-img-element */
+        <img
+          src={src}
+          alt={name ?? ''}
+          loading="lazy"
+          className="h-full max-w-[132px] object-contain object-left"
+        />
+      ) : name ? (
+        <p data-no-auto-translate className="line-clamp-2 text-gb-sm font-semibold text-fg-brand">
+          {name}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 /**
  * Student stories — Figma 375:9996. This uses public mentor bios rather than
@@ -33,18 +64,20 @@ export function HomeTestimonials({
       </div>
 
       {entries.length > 0 ? (
-        <div className="[mask-image:linear-gradient(to_bottom,black_78%,transparent_100%)]">
-          <div className="columns-1 gap-gb-4xl sm:columns-2 lg:columns-3">
+        <div>
+          <div className="grid auto-rows-fr grid-cols-1 gap-gb-4xl md:grid-cols-2 xl:grid-cols-3">
             {entries.map((entry) => (
               <figure
                 key={`${entry.name}-${entry.quote.slice(0, 24)}`}
-                className="mb-gb-4xl break-inside-avoid rounded-gb-xl border border-line bg-surface p-gb-4xl shadow-gb-xs"
+                className="flex h-full min-h-[392px] flex-col rounded-gb-xl border border-line bg-surface p-gb-4xl shadow-gb-xs"
               >
-                {entry.university ? (
-                  <p className="mb-gb-lg text-gb-sm font-semibold text-fg-brand">{entry.university}</p>
-                ) : null}
-                <blockquote className="text-gb-md text-fg-tertiary">{entry.quote}</blockquote>
-                <figcaption className="mt-gb-6xl flex items-center gap-gb-lg">
+                <div className="flex min-h-[228px] flex-col gap-gb-lg">
+                  <UniversityLogo name={entry.university} src={entry.universityLogoUrl} />
+                  <blockquote className="line-clamp-7 text-gb-md text-fg-tertiary">
+                    {entry.quote}
+                  </blockquote>
+                </div>
+                <figcaption className="mt-auto flex items-center gap-gb-lg pt-gb-4xl">
                   <Avatar name={entry.name} src={entry.avatarUrl} />
                   <span className="min-w-0">
                     <span className="block text-gb-md font-semibold text-fg">{entry.name}</span>
