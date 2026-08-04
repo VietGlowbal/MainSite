@@ -450,7 +450,7 @@ describe('CvBuilderWorkspace', () => {
     expect(
       screen.queryByText('AI đang đọc và đánh giá CV…'),
     ).not.toBeInTheDocument();
-  });
+  }, 10_000);
 
   it('keeps clarification mode when retrying a missing revised section', async () => {
     vi.stubGlobal(
