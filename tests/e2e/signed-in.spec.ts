@@ -71,6 +71,76 @@ test('saving a university survives a reload', async ({ page }) => {
   await expect(afterReload).toHaveAttribute('aria-label', /save/i);
 });
 
+test('scholarship directory is server-paginated and a save survives reload', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/universities');
+  await page.evaluate(() => localStorage.removeItem('glowbal-focus-university'));
+  await page.goto('/scholarships');
+
+  const cards = page.getByTestId(TID.scholarshipCard);
+  await expect(cards.first()).toBeVisible();
+  expect(await cards.count()).toBeLessThanOrEqual(9);
+
+  const save = cards.first().locator('button[aria-pressed]');
+  if ((await save.getAttribute('aria-pressed')) === 'true') await save.click();
+
+  try {
+    await save.click();
+    await expect(save).toHaveAttribute('aria-pressed', 'true');
+    await expect(save).toBeEnabled();
+    await page.reload();
+    await expect(page.getByTestId(TID.scholarshipCard).first().locator('button[aria-pressed]'))
+      .toHaveAttribute('aria-pressed', 'true');
+
+    const next = page.getByRole('button', { name: 'Next page' }).last();
+    if (await next.isEnabled()) {
+      await next.click();
+      await expect(page).toHaveURL(/(?:\?|&)page=2(?:&|$)/);
+      expect(await page.getByTestId(TID.scholarshipCard).count()).toBeLessThanOrEqual(9);
+      await page.goBack();
+      await expect(page).not.toHaveURL(/(?:\?|&)page=2(?:&|$)/);
+    }
+  } finally {
+    const saved = page.getByTestId(TID.scholarshipCard).first().locator('button[aria-pressed]');
+    if ((await saved.getAttribute('aria-pressed')) === 'true') await saved.click();
+  }
+});
+
+test('scholarship focus mode keeps two independent pages and apply focus', async ({ page }) => {
+  await signIn(page);
+  await page.goto('/scholarships?university=82');
+  test.skip(!page.url().includes('university=82'), 'University 82 is unavailable in this environment.');
+
+  const lists = page.getByTestId(TID.scholarshipList);
+  test.skip((await lists.count()) < 2, 'University 82 has fewer than two scholarship sections.');
+  expect(await lists.nth(0).getByTestId(TID.scholarshipCard).count()).toBeLessThanOrEqual(9);
+  expect(await lists.nth(1).getByTestId(TID.scholarshipCard).count()).toBeLessThanOrEqual(9);
+
+  const names = await page.getByTestId(TID.scholarshipCard).locator('h3').allTextContents();
+  expect(new Set(names).size).toBe(names.length);
+
+  const firstSave = lists.nth(0).getByTestId(TID.scholarshipCard).first().locator('button[aria-pressed]');
+  const wasSaved = (await firstSave.getAttribute('aria-pressed')) === 'true';
+  if (!wasSaved) {
+    await firstSave.click();
+    await expect(firstSave).toBeEnabled();
+  }
+  try {
+    await page.getByTestId(TID.scholarshipContinueToApply).click();
+    await expect(page).toHaveURL(/\/apply\?focus=82(?:&|$)/);
+  } finally {
+    if (!wasSaved) {
+      await page.goto('/scholarships?university=82');
+      const saved = page.getByTestId(TID.scholarshipList).nth(0)
+        .getByTestId(TID.scholarshipCard).first().locator('button[aria-pressed]');
+      if ((await saved.getAttribute('aria-pressed')) === 'true') {
+        await saved.click();
+        await expect(saved).toBeEnabled();
+      }
+    }
+  }
+});
+
 test('a VinUni application opens the V2 statement feedback workspace', async ({ page }) => {
   await signIn(page);
   const response = await page.request.get('/api/applications');

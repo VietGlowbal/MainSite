@@ -4,7 +4,7 @@
  * Per-concern hooks. Prefer several small hooks over one context exposing a
  * dozen unrelated fields, so a component re-renders only for the slice it uses.
  */
-export { anyParsePending, useParseRefresh } from './use-parse-refresh';
+export { useParseRefresh } from './use-parse-refresh';
 
 /**
  * Document upload now lives in `src/shared/hooks`, re-exported here.

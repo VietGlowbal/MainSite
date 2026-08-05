@@ -1,6 +1,15 @@
+import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/server/db/admin';
 import { clampPage, clampPageSize, pageOffset, toPage, type Page } from '@/shared/lib';
-import { getPublishedScholarships, type DirectoryScholarship } from '@/lib/scholarships-data';
+import {
+  getPublishedScholarships,
+  SCHOLARSHIPS_REVALIDATE,
+  SCHOLARSHIPS_SELECT,
+  toDirectoryScholarship,
+  type DirectoryScholarship,
+  type ScholarshipRow,
+} from '@/lib/scholarships-data';
+import type { ScholarshipDegree, ScholarshipMajor } from '../domain/query-state';
 import {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   SCHOLARSHIP_PAGE_SIZE_MAX,
@@ -10,6 +19,170 @@ import {
   type ScholarshipListQuery,
   type ScholarshipQueries,
 } from './scholarship-queries';
+
+const MAJOR_KEYWORDS: Record<Exclude<ScholarshipMajor, 'all'>, readonly string[]> = {
+  business: ['business', 'economics', 'finance', 'management', 'marketing'],
+  stem: ['engineering', 'computer', 'science', 'mathematics', 'technology'],
+  arts: ['art', 'design', 'music', 'humanities'],
+  health: ['health', 'medical', 'nursing', 'pharmacy'],
+  law: ['law', 'legal'],
+};
+const DEGREE_KEYWORDS: Record<Exclude<ScholarshipDegree, 'all'>, readonly string[]> = {
+  undergraduate: ['undergraduate', 'bachelor', 'high school', 'secondary school'],
+  postgraduate: ['postgraduate', 'master', 'graduate', 'mba'],
+  doctoral: ['doctoral', 'doctorate', 'phd'],
+};
+const SEARCH_COLUMNS = ['eligibility', 'applies_to_text', 'conditions', 'insight'] as const;
+
+async function linkedScholarshipIds(
+  filter: { universityId?: number; universityName?: string; universityCountry?: string },
+): Promise<number[]> {
+  const admin = createAdminClient();
+  let query = admin
+    .from('scholarship_universities')
+    .select(
+      filter.universityName || filter.universityCountry
+        ? 'scholarship_id, universities!inner(id)'
+        : 'scholarship_id',
+    );
+  if (filter.universityId != null) query = query.eq('university_id', filter.universityId);
+  if (filter.universityName) {
+    query = query.ilike('universities.name', `%${filter.universityName}%`);
+  }
+  if (filter.universityCountry) {
+    query = query.eq('universities.country', filter.universityCountry);
+  }
+  const { data, error } = await query;
+  if (error) throw new Error(`Scholarship links query failed: ${error.message}`);
+  const rows = (data ?? []) as unknown as Array<{ scholarship_id: number }>;
+  return [...new Set(rows.map((row) => Number(row.scholarship_id)).filter(Number.isFinite))];
+}
+
+async function countryScholarshipIds(country: string): Promise<number[]> {
+  const { data, error } = await createAdminClient()
+    .from('scholarships')
+    .select('id')
+    .eq('status', 'published')
+    .eq('country', country);
+  if (error) throw new Error(`Scholarship country query failed: ${error.message}`);
+  return (data ?? []).map((row) => Number(row.id)).filter(Number.isFinite);
+}
+
+function intersect(left: number[] | null, right: number[]): number[] {
+  if (left == null) return right;
+  const allowed = new Set(right);
+  return left.filter((id) => allowed.has(id));
+}
+
+function keywordFilter(keywords: readonly string[]): string {
+  return keywords.flatMap((keyword) => SEARCH_COLUMNS.map((column) => `${column}.ilike.%${keyword}%`)).join(',');
+}
+
+async function listPublishedUncached(query: ScholarshipListQuery): Promise<Page<DirectoryScholarship>> {
+  const page = clampPage(query.page);
+  const pageSize = clampPageSize(
+    query.pageSize,
+    SCHOLARSHIP_PAGE_SIZE_MAX,
+    SCHOLARSHIP_PAGE_SIZE_DEFAULT,
+  );
+
+  const [universityIds, schoolIds, excludedIds, relatedLinks, relatedCountry] = await Promise.all([
+    query.universityId != null
+      ? linkedScholarshipIds({ universityId: query.universityId })
+      : Promise.resolve(null),
+    query.universitySearch
+      ? linkedScholarshipIds({ universityName: query.universitySearch })
+      : Promise.resolve(null),
+    query.excludeUniversityId != null
+      ? linkedScholarshipIds({ universityId: query.excludeUniversityId })
+      : Promise.resolve([]),
+    query.relatedUniversityCountry
+      ? linkedScholarshipIds({ universityCountry: query.relatedUniversityCountry })
+      : Promise.resolve([]),
+    query.relatedUniversityCountry
+      ? countryScholarshipIds(query.relatedUniversityCountry)
+      : Promise.resolve([]),
+  ]);
+
+  let included: number[] | null = null;
+  if (universityIds) included = intersect(included, universityIds);
+  if (schoolIds) included = intersect(included, schoolIds);
+  if (query.relatedUniversityCountry) {
+    const excluded = new Set(excludedIds);
+    included = intersect(
+      included,
+      [...new Set([...relatedLinks, ...relatedCountry])].filter((id) => !excluded.has(id)),
+    );
+  }
+  if (included?.length === 0) return toPage([], 0, page, pageSize);
+
+  const admin = createAdminClient();
+  let databaseQuery = admin
+    .from('scholarships')
+    .select(SCHOLARSHIPS_SELECT, { count: 'exact' })
+    .eq('status', 'published');
+  if (query.search) databaseQuery = databaseQuery.ilike('name', `%${query.search}%`);
+  if (query.country) databaseQuery = databaseQuery.eq('country', query.country);
+  if (query.scope) databaseQuery = databaseQuery.eq('scope', query.scope);
+  if (query.funding?.length) databaseQuery = databaseQuery.overlaps('funding_type', query.funding);
+  if (included) databaseQuery = databaseQuery.in('id', included);
+  if (excludedIds.length) databaseQuery = databaseQuery.not('id', 'in', `(${excludedIds.join(',')})`);
+  if (query.major && query.major !== 'all') {
+    databaseQuery = databaseQuery.or(keywordFilter(MAJOR_KEYWORDS[query.major]));
+  }
+  if (query.degree && query.degree !== 'all') {
+    databaseQuery = databaseQuery.or(keywordFilter(DEGREE_KEYWORDS[query.degree]));
+  }
+
+  if (query.sort === 'deadline') {
+    databaseQuery = databaseQuery.order('deadline_date', { ascending: true, nullsFirst: false });
+  } else {
+    databaseQuery = databaseQuery.order('name', { ascending: true });
+  }
+  databaseQuery = databaseQuery
+    .order('id', { ascending: true })
+    .range(pageOffset(page, pageSize), pageOffset(page, pageSize) + pageSize - 1);
+
+  const { data, error, count } = await databaseQuery;
+  if (error) throw new Error(`Scholarship list query failed: ${error.message}`);
+  const items = ((data ?? []) as unknown as ScholarshipRow[]).map(toDirectoryScholarship);
+  return toPage(items, count ?? items.length, page, pageSize);
+}
+
+const listPublishedCached = unstable_cache(
+  listPublishedUncached,
+  ['published-scholarship-page'],
+  { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
+);
+
+const facetsCached = unstable_cache(
+  async (): Promise<ScholarshipFacets> => {
+    const rows: Array<{ country: string | null; funding_type: string[] | null }> = [];
+    for (let from = 0; ; from += 1000) {
+      const { data, error } = await createAdminClient()
+        .from('scholarships')
+        .select('country, funding_type')
+        .eq('status', 'published')
+        .order('id', { ascending: true })
+        .range(from, from + 999);
+      if (error) throw new Error(`Scholarship facets query failed: ${error.message}`);
+      rows.push(...((data ?? []) as Array<{ country: string | null; funding_type: string[] | null }>));
+      if ((data ?? []).length < 1000) break;
+    }
+    const tally = new Map<string, number>();
+    for (const row of rows) {
+      if (row.country) tally.set(row.country, (tally.get(row.country) ?? 0) + 1);
+    }
+    return {
+      countries: [...tally.entries()]
+        .map(([value, count]) => ({ value, count }))
+        .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value)),
+      total: rows.length,
+    };
+  },
+  ['published-scholarship-facets'],
+  { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
+);
 
 /**
  * Columns the "scholarships available here" strip on a university needs.
@@ -84,39 +257,22 @@ function formatDeadline(date: string | null, text: string | null): string | null
 /**
  * Supabase-backed implementation of {@link ScholarshipQueries}.
  *
- * `listPublished` and `getById` currently read through the existing cached
- * `getPublishedScholarships()` and slice in memory. That is deliberate for
- * Phase 0: it preserves the exact payload the directory client already
- * receives, so this change is provably behaviour-neutral. Track A replaces the
- * body with a real ranged query once the client stops needing the full set.
- *
- * `byUniversityIds` is the one method that queries directly, because it has no
- * existing equivalent — it is the replacement for the whole-table load that
- * `/universities` performs today.
+ * Directory pages use ranged public queries; personalized joins remain direct
+ * and outside that cache.
  */
 export class SupabaseScholarshipRepository implements ScholarshipQueries {
   readonly name = 'supabase';
 
   async listPublished(query: ScholarshipListQuery): Promise<Page<DirectoryScholarship>> {
-    const page = clampPage(query.page);
-    const pageSize = clampPageSize(
-      query.pageSize,
-      SCHOLARSHIP_PAGE_SIZE_MAX,
-      SCHOLARSHIP_PAGE_SIZE_DEFAULT,
-    );
-
-    const all = await getPublishedScholarships();
-
-    const search = query.search?.trim().toLowerCase();
-    const filtered = all.filter((s) => {
-      if (query.country && s.country !== query.country) return false;
-      if (query.scope && s.scope !== query.scope) return false;
-      if (search && !s.name.toLowerCase().includes(search)) return false;
-      return true;
+    return listPublishedCached({
+      ...query,
+      page: clampPage(query.page),
+      pageSize: clampPageSize(
+        query.pageSize,
+        SCHOLARSHIP_PAGE_SIZE_MAX,
+        SCHOLARSHIP_PAGE_SIZE_DEFAULT,
+      ),
     });
-
-    const from = pageOffset(page, pageSize);
-    return toPage(filtered.slice(from, from + pageSize), filtered.length, page, pageSize);
   }
 
   async byUniversityIds(ids: number[]): Promise<Map<number, ScholarshipForUniversity[]>> {
@@ -215,16 +371,6 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
   }
 
   async facets(): Promise<ScholarshipFacets> {
-    const all = await getPublishedScholarships();
-    const tally = new Map<string, number>();
-    for (const s of all) {
-      if (!s.country) continue;
-      tally.set(s.country, (tally.get(s.country) ?? 0) + 1);
-    }
-    const countries = [...tally.entries()]
-      .map(([value, count]) => ({ value, count }))
-      .sort((a, b) => b.count - a.count || a.value.localeCompare(b.value));
-
-    return { countries, total: all.length };
+    return facetsCached();
   }
 }

@@ -70,6 +70,7 @@ export const TID = {
   // ── Scholarships ──────────────────────────────────────────────────────
   scholarshipList: 'scholarship-list',
   scholarshipCard: 'scholarship-card',
+  scholarshipContinueToApply: 'scholarship-continue-to-apply',
 
   // ── Onboarding ────────────────────────────────────────────────────────
   onboardingStep: 'onboarding-step',

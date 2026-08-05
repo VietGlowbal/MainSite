@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
 import { formatTuitionForCard, officialWebsite } from '@/features/universities/domain';
+import { formatAmount } from '@/lib/scholarships-data';
 import { createClient } from '@/lib/supabase/server';
 import type { CourseApplication } from '@/lib/apply-types';
 import { ApplicationProgressClient } from './application-progress-client';
@@ -192,7 +193,7 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
     universityIds.length > 0
       ? supabase
           .from('user_scholarships')
-          .select('id, scholarship_id, university_id')
+          .select('id, university_id, scholarships(id, name, amount_min, amount_max, amount_currency)')
           .eq('user_id', userId)
           .in('university_id', universityIds)
       : Promise.resolve({ data: [] }),
@@ -201,12 +202,24 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
 
   const savedScholarships = (savedScholarshipRows.data ?? []) as Array<{
     id: number;
-    scholarship_id: number;
     university_id: number | null;
+    scholarships:
+      | {
+          id: number;
+          name: string;
+          amount_min: number | null;
+          amount_max: number | null;
+          amount_currency: string | null;
+        }
+      | Array<{
+          id: number;
+          name: string;
+          amount_min: number | null;
+          amount_max: number | null;
+          amount_currency: string | null;
+        }>
+      | null;
   }>;
-  const labels = await getScholarshipQueries().byIds(
-    savedScholarships.map((row) => row.scholarship_id),
-  );
 
   const byId = new Map(universities.map((uni) => [uni.id, uni]));
 
@@ -219,9 +232,14 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
     const attached = savedScholarships
       .filter((s) => s.university_id === row.university_id)
       .flatMap((s) => {
-        const label = labels.get(s.scholarship_id);
+        const label = Array.isArray(s.scholarships) ? s.scholarships[0] : s.scholarships;
         return label
-          ? [{ savedId: s.id, id: label.id, name: label.name, amountLabel: label.amountLabel }]
+          ? [{
+              savedId: s.id,
+              id: label.id,
+              name: label.name,
+              amountLabel: formatAmount(label.amount_min, label.amount_max, label.amount_currency),
+            }]
           : [];
       });
 
@@ -316,11 +334,11 @@ export default async function ApplyPage({ searchParams }: Props) {
     redirect('/auth?redirect=%2Fapply');
   }
 
-  const [applications, savedRows] = await Promise.all([
-    fetchApplications(user.id),
-    fetchSavedRows(user.id),
-  ]);
-  const [logoByUniversityId, strategyReadyById] = await Promise.all([
+  const applicationsPromise = fetchApplications(user.id);
+  const savedRowsPromise = fetchSavedRows(user.id);
+  const applications = await applicationsPromise;
+  const [savedRows, logoByUniversityId, strategyReadyById] = await Promise.all([
+    savedRowsPromise,
     fetchLogos(applications),
     fetchStrategyReadiness(user.id, applications),
   ]);

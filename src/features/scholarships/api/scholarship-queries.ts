@@ -1,5 +1,11 @@
 import type { DirectoryScholarship, ScholarshipUniversityLite } from '@/lib/scholarships-data';
 import type { Page } from '@/shared/lib';
+import type {
+  ScholarshipDegree,
+  ScholarshipFunding,
+  ScholarshipMajor,
+  ScholarshipSort,
+} from '../domain/query-state';
 
 export type { Page };
 
@@ -45,9 +51,17 @@ export interface ScholarshipListQuery {
   /** Country of the awarding body. */
   country?: string;
   scope?: DirectoryScholarship['scope'];
+  universitySearch?: string;
+  major?: ScholarshipMajor;
+  degree?: ScholarshipDegree;
+  funding?: ScholarshipFunding[];
+  sort?: ScholarshipSort;
+  universityId?: number;
+  relatedUniversityCountry?: string;
+  excludeUniversityId?: number;
 }
 
-export const SCHOLARSHIP_PAGE_SIZE_DEFAULT = 24;
+export const SCHOLARSHIP_PAGE_SIZE_DEFAULT = 9;
 export const SCHOLARSHIP_PAGE_SIZE_MAX = 100;
 
 export interface ScholarshipFacets {
@@ -59,13 +73,7 @@ export interface ScholarshipQueries {
   /** Adapter name, e.g. "supabase". */
   readonly name: string;
 
-  /**
-   * ⚠️ Reads the WHOLE published set through `getPublishedScholarships()` and
-   * slices in memory — about 6MB today, which is over Next's 2MB data-cache
-   * ceiling, so the cache write throws an unhandled rejection. Callers that
-   * need a handful of rows should not reach for this; a ranged query is the
-   * fix, and Track A owns replacing the body.
-   */
+  /** Reads one stable, counted page from the published directory. */
   listPublished(query: ScholarshipListQuery): Promise<Page<DirectoryScholarship>>;
 
   /**

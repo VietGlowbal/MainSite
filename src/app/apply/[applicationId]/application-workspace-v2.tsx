@@ -102,7 +102,7 @@ export function ApplicationWorkspaceV2({
      later. Without this the student sits on "we're reading the course page"
      until they reload — the exact bug the applications list already fixed. */
   const researching = isParsePending(application.parseStatus);
-  useParseRefresh(researching);
+  useParseRefresh(researching ? [application] : []);
 
   const courseName = displayCourseName(application.courseName, application.parseStatus);
   const universityName = displayUniversityName(application.universityName);

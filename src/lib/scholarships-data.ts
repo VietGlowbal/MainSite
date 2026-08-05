@@ -72,7 +72,7 @@ const COUNTRY_FLAGS: Record<string, string> = {
 
 const NUM = new Intl.NumberFormat('en-US');
 
-function formatAmount(
+export function formatAmount(
   min: number | null,
   max: number | null,
   currency: string | null,
@@ -99,7 +99,7 @@ function formatDeadline(date: string | null, text: string | null): string | null
 }
 
 // Shape returned by the nested select (loose — Supabase types aren't generated here).
-type ScholarshipRow = {
+export type ScholarshipRow = {
   id: number;
   name: string;
   slug: string | null;
@@ -131,7 +131,7 @@ type ScholarshipRow = {
   }> | null;
 };
 
-function toDirectoryScholarship(row: ScholarshipRow): DirectoryScholarship {
+export function toDirectoryScholarship(row: ScholarshipRow): DirectoryScholarship {
   const joins = row.scholarship_universities ?? [];
   const universities = joins
     .map((j) => j.universities)
@@ -177,7 +177,7 @@ function toDirectoryScholarship(row: ScholarshipRow): DirectoryScholarship {
 // full published set (2877+ rows) must be paged in with .range() until exhausted —
 // a bare .limit() can't exceed a server-side hard cap.
 const SCHOLARSHIPS_PAGE_SIZE = 1000;
-const SCHOLARSHIPS_SELECT = `id, name, slug, scope, country, provider, funding_type, coverage,
+export const SCHOLARSHIPS_SELECT = `id, name, slug, scope, country, provider, funding_type, coverage,
    amount_min, amount_max, amount_currency, slots, slots_text,
    eligibility, applies_to_text, conditions, insight,
    deadline_date, deadline_text, source_url, source_lang, ranking_note, status,

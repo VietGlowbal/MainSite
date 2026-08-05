@@ -4,57 +4,64 @@ import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { isParsePending } from '../domain';
 
-/**
- * Re-read the server component while a course parse is still running.
- *
- * A pasted course URL is read in the background — a queued job the cron worker
- * drains, usually inside a minute. The row exists immediately with placeholder
- * text, so without this a student sits on "we're reading the course page" until
- * they happen to reload.
- *
- * `router.refresh()` rather than polling /api/applications/[id]/parse-status:
- * the parse changes the course name, the country, the deadline, the checklist
- * and the progress, and re-reading the server component picks all of them up in
- * one request. Polling the status endpoint would tell us the parse had finished
- * and then require a refresh anyway.
- *
- * Extracted from the applications list so the workspace polls on exactly the
- * same terms — two timers with independently drifting ceilings is how one
- * screen ends up self-healing and the other doesn't.
- */
-
 const POLL_MS = 4000;
-
-/**
- * Give up refreshing after this long. The worker retries with quadratic
- * backoff, so a job still pending at four minutes is waiting on a retry that is
- * minutes away — long past the point where a student is watching the tab.
- */
 const POLL_CEILING_MS = 4 * 60 * 1000;
 
-/** @param waiting whether anything on the page is still awaiting its parse. */
-export function useParseRefresh(waiting: boolean): void {
+type ParseTarget = {
+  id: string;
+  parseStatus?: string | null;
+};
+
+type PollResult = 'pending' | 'changed' | 'retry' | 'stop';
+
+async function pollStatus(id: string): Promise<PollResult> {
+  try {
+    const response = await fetch(`/api/applications/${id}/parse-status`);
+    if (response.status === 401 || response.status === 403) return 'stop';
+    if (response.status === 404) return 'changed';
+    if (!response.ok) return 'retry';
+    const body = (await response.json()) as { parseStatus?: string | null };
+    return isParsePending(body.parseStatus) ? 'pending' : 'changed';
+  } catch {
+    return 'retry';
+  }
+}
+
+/** Poll only the tiny status endpoint; refresh the Server Component once data changes. */
+export function useParseRefresh(applications: ReadonlyArray<ParseTarget>): void {
   const router = useRouter();
+  const pendingKey = applications
+    .filter((application) => isParsePending(application.parseStatus))
+    .map((application) => application.id)
+    .sort()
+    .join(',');
 
   useEffect(() => {
-    if (!waiting) return undefined;
-
+    if (!pendingKey) return undefined;
+    const ids = pendingKey.split(',');
     const startedAt = Date.now();
-    const timer = setInterval(() => {
-      if (Date.now() - startedAt > POLL_CEILING_MS) {
+    let polling = false;
+
+    const timer = setInterval(async () => {
+      if (Date.now() - startedAt >= POLL_CEILING_MS) {
         clearInterval(timer);
         return;
       }
-      router.refresh();
+      if (document.visibilityState === 'hidden' || polling) return;
+      polling = true;
+      const settled = await Promise.allSettled(ids.map(pollStatus));
+      polling = false;
+      const results = settled
+        .filter((result): result is PromiseFulfilledResult<PollResult> => result.status === 'fulfilled')
+        .map((result) => result.value);
+      if (results.includes('stop')) {
+        clearInterval(timer);
+      } else if (results.includes('changed')) {
+        clearInterval(timer);
+        router.refresh();
+      }
     }, POLL_MS);
 
     return () => clearInterval(timer);
-  }, [waiting, router]);
-}
-
-/** True when any of these applications is still being parsed. */
-export function anyParsePending(
-  applications: ReadonlyArray<{ parseStatus?: string | null | undefined }>,
-): boolean {
-  return applications.some((app) => isParsePending(app.parseStatus));
+  }, [pendingKey, router]);
 }

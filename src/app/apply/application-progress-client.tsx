@@ -13,7 +13,7 @@ import {
   FOOTER_TAGLINE,
   MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
-import { anyParsePending, useParseRefresh } from '@/features/apply/hooks';
+import { useParseRefresh } from '@/features/apply/hooks';
 import type { CourseApplication } from '@/lib/apply-types';
 import { Button, Container, Footer, MobileNav, TopNav } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
@@ -81,7 +81,7 @@ export function ApplicationProgressClient({
 
   // Keeps the list moving while an enrichment parse is still running. Only rows
   // planned for a university with a catalogued course link are ever pending.
-  useParseRefresh(anyParsePending(applications));
+  useParseRefresh(applications);
 
   const applicationsRef = useRef<HTMLElement>(null);
   const [planning, setPlanning] = useState(false);

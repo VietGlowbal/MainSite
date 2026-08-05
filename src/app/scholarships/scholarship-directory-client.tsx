@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Badge, Button, Card, EmptyState, Pagination } from '@/components/ui';
 import { createClient } from '@/lib/supabase/client';
-import { getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
+import { clearFocusUniversity, getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
 import { TID, testId } from '@/shared/lib';
 import { useLanguage } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
@@ -15,6 +15,15 @@ import {
   SCHOLARSHIP_SCOPE_LABELS,
 } from '@/lib/scholarships';
 import { scorePersonalMatch, type DirectoryScholarship } from '@/lib/scholarships-data';
+import {
+  scholarshipSearchParams,
+  type Page,
+  type ScholarshipFacets,
+  type ScholarshipDegree,
+  type ScholarshipMajor,
+  type ScholarshipQueryState,
+  type ScholarshipSort,
+} from '@/features/scholarships';
 import { ScholarshipDashboard } from './scholarship-dashboard';
 
 /* Shapes mirror ScholarshipDashboard's props (which doesn't export them). */
@@ -39,8 +48,14 @@ type ExistingScholarship = {
   confidence: string;
 };
 
+const RESTORING_FOCUS_KEY = 'glowbal-restoring-focus-university';
+
 type Props = {
-  scholarships: DirectoryScholarship[];
+  queryState: ScholarshipQueryState;
+  directoryPage: Page<DirectoryScholarship> | null;
+  focusPage: Page<DirectoryScholarship> | null;
+  countryPage: Page<DirectoryScholarship> | null;
+  facets: ScholarshipFacets;
   savedUniversityIds: number[];
   savedCountries: string[];
   applications: Application[];
@@ -51,39 +66,26 @@ type Props = {
   savedScholarshipIds?: number[];
 };
 
-type SortKey = 'relevance' | 'deadline' | 'name';
-type MajorFilter = 'all' | 'business' | 'stem' | 'arts' | 'health' | 'law';
-type DegreeFilter = 'all' | 'undergraduate' | 'postgraduate' | 'doctoral';
-
-const MAJOR_FILTERS: ReadonlyArray<{ value: MajorFilter; label: string; keywords: readonly string[] }> = [
-  { value: 'business', label: 'Business & economics', keywords: ['business', 'economics', 'finance', 'management', 'marketing'] },
-  { value: 'stem', label: 'STEM', keywords: ['engineering', 'computer', 'science', 'mathematics', 'technology'] },
-  { value: 'arts', label: 'Arts & humanities', keywords: ['art', 'design', 'music', 'humanities'] },
-  { value: 'health', label: 'Health & medicine', keywords: ['health', 'medical', 'nursing', 'pharmacy'] },
-  { value: 'law', label: 'Law', keywords: ['law', 'legal'] },
+const MAJOR_FILTERS: ReadonlyArray<{ value: ScholarshipMajor; label: string }> = [
+  { value: 'business', label: 'Business & economics' },
+  { value: 'stem', label: 'STEM' },
+  { value: 'arts', label: 'Arts & humanities' },
+  { value: 'health', label: 'Health & medicine' },
+  { value: 'law', label: 'Law' },
 ];
 
-const DEGREE_FILTERS: ReadonlyArray<{ value: DegreeFilter; label: string; keywords: readonly string[] }> = [
-  { value: 'undergraduate', label: 'Undergraduate', keywords: ['undergraduate', 'bachelor', 'high school', 'secondary school'] },
-  { value: 'postgraduate', label: 'Postgraduate', keywords: ['postgraduate', 'master', 'graduate', 'mba'] },
-  { value: 'doctoral', label: 'Doctoral / PhD', keywords: ['doctoral', 'doctorate', 'phd'] },
+const DEGREE_FILTERS: ReadonlyArray<{ value: ScholarshipDegree; label: string }> = [
+  { value: 'undergraduate', label: 'Undergraduate' },
+  { value: 'postgraduate', label: 'Postgraduate' },
+  { value: 'doctoral', label: 'Doctoral / PhD' },
 ];
-
-function scholarshipSearchText(scholarship: DirectoryScholarship) {
-  return [
-    scholarship.name,
-    scholarship.eligibility,
-    scholarship.applies_to_text,
-    scholarship.conditions,
-    scholarship.insight,
-  ]
-    .filter((value): value is string => Boolean(value))
-    .join(' ')
-    .toLowerCase();
-}
 
 export function ScholarshipDirectoryClient({
-  scholarships,
+  queryState,
+  directoryPage,
+  focusPage,
+  countryPage,
+  facets,
   savedUniversityIds,
   savedCountries,
   applications,
@@ -100,25 +102,34 @@ export function ScholarshipDirectoryClient({
   // param (focusUniversityProp); when absent we restore the last-chosen one
   // from localStorage so it survives navigation (Universities → News →
   // Scholarships). When the param IS present we cache it for future visits.
-  const [focusUniversity, setFocusUniversityState] =
-    useState<{ id: number; name: string; country: string | null } | null>(focusUniversityProp);
+  const focusUniversity = focusUniversityProp;
   useEffect(() => {
     if (focusUniversityProp) {
+      sessionStorage.removeItem(RESTORING_FOCUS_KEY);
       setFocusUniversity({
         id: focusUniversityProp.id,
         name: focusUniversityProp.name,
         country: focusUniversityProp.country ?? '',
       });
     } else {
+      if (sessionStorage.getItem(RESTORING_FOCUS_KEY)) {
+        sessionStorage.removeItem(RESTORING_FOCUS_KEY);
+        clearFocusUniversity();
+        return;
+      }
       const cached = getFocusUniversity();
-      if (cached) setFocusUniversityState(cached);
+      if (cached) {
+        sessionStorage.setItem(RESTORING_FOCUS_KEY, String(cached.id));
+        const params = scholarshipSearchParams(queryState, { universityId: cached.id });
+        router.replace(`/scholarships?${params}`);
+      }
     }
     // Run once on mount; the param is fixed for the page's lifetime.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [focusUniversityProp, queryState, router]);
 
   // Saved-scholarship bucket (persists to user_scholarships + user_universities).
   const [savedIds, setSavedIds] = useState<Set<number>>(() => new Set(savedScholarshipIds));
+  const [savingIds, setSavingIds] = useState<Set<number>>(() => new Set());
   const [lastSavedUniversityId, setLastSavedUniversityId] = useState<number | null>(focusUniversity?.id ?? null);
 
   const toggleSave = async (s: DirectoryScholarship) => {
@@ -131,6 +142,7 @@ export function ScholarshipDirectoryClient({
       return next;
     });
     if (willSave && universityId != null) setLastSavedUniversityId(universityId);
+    setSavingIds((prev) => new Set(prev).add(s.id));
 
     try {
       const {
@@ -142,23 +154,30 @@ export function ScholarshipDirectoryClient({
       }
       if (willSave) {
         // Save the scholarship to the bucket...
-        await supabase
+        const { error: scholarshipError } = await supabase
           .from('user_scholarships')
           .upsert(
             { user_id: user.id, scholarship_id: s.id, university_id: universityId },
             { onConflict: 'user_id,scholarship_id', ignoreDuplicates: true },
           );
+        if (scholarshipError) throw scholarshipError;
         // ...and idempotently add its university to My Universities.
         if (universityId != null) {
-          await supabase
+          const { error: universityError } = await supabase
             .from('user_universities')
             .upsert(
               { user_id: user.id, university_id: universityId, status: 'interested' },
               { onConflict: 'user_id,university_id', ignoreDuplicates: true },
             );
+          if (universityError) throw universityError;
         }
       } else {
-        await supabase.from('user_scholarships').delete().eq('user_id', user.id).eq('scholarship_id', s.id);
+        const { error } = await supabase
+          .from('user_scholarships')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('scholarship_id', s.id);
+        if (error) throw error;
       }
     } catch {
       // Revert optimistic update on failure.
@@ -166,6 +185,12 @@ export function ScholarshipDirectoryClient({
         const next = new Set(prev);
         if (willSave) next.delete(s.id);
         else next.add(s.id);
+        return next;
+      });
+    } finally {
+      setSavingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(s.id);
         return next;
       });
     }
@@ -177,28 +202,49 @@ export function ScholarshipDirectoryClient({
   };
 
   // Filters
-  const [query, setQuery] = useState('');
-  const [universityQuery, setUniversityQuery] = useState('');
-  const [major, setMajor] = useState<MajorFilter>('all');
-  const [degree, setDegree] = useState<DegreeFilter>('all');
-  const [funding, setFunding] = useState<Set<string>>(new Set());
-  const [country, setCountry] = useState<string>('all');
-  const [sort, setSort] = useState<SortKey>('relevance');
   const [selected, setSelected] = useState<DirectoryScholarship | null>(null);
 
   // Pagination for the full directory: 9 cards per page (3 columns × 3 rows).
-  const [page, setPage] = useState(1);
   const resultsTopRef = useRef<HTMLDivElement>(null);
 
+  const navigate = useCallback(
+    (patch: Partial<ScholarshipQueryState>, replace = false) => {
+      const params = scholarshipSearchParams(queryState, patch);
+      const href = params.size > 0 ? `/scholarships?${params}` : '/scholarships';
+      if (replace) router.replace(href);
+      else router.push(href);
+    },
+    [queryState, router],
+  );
+
+  const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const universityTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debounceFilter = (
+    timer: MutableRefObject<ReturnType<typeof setTimeout> | null>,
+    patch: Partial<ScholarshipQueryState>,
+  ) => {
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => navigate(patch, true), 300);
+  };
+  useEffect(
+    () => () => {
+      if (searchTimer.current) clearTimeout(searchTimer.current);
+      if (universityTimer.current) clearTimeout(universityTimer.current);
+    },
+    [],
+  );
+
+  const scholarships = useMemo(
+    () => [
+      ...(directoryPage?.items ?? []),
+      ...(focusPage?.items ?? []),
+      ...(countryPage?.items ?? []),
+    ],
+    [countryPage, directoryPage, focusPage],
+  );
+
   // Deep-link focus: split the directory into "at this university" + "same country".
-  const [focusActive, setFocusActive] = useState(true);
-  const focusIds = useMemo(() => {
-    if (!focusUniversity) return null;
-    const set = new Set<number>();
-    for (const s of scholarships) if (s.universityIds.includes(focusUniversity.id)) set.add(s.id);
-    return set;
-  }, [scholarships, focusUniversity]);
-  const focusHasMatches = !!focusIds && focusIds.size > 0;
+  const focusHasMatches = (focusPage?.total ?? 0) > 0;
 
   // Personalization: which scholarships match the user's saved universities.
   const matchedIds = useMemo(() => {
@@ -209,97 +255,57 @@ export function ScholarshipDirectoryClient({
     return set;
   }, [scholarships, savedUniversityIds, savedCountries]);
 
-  const fundingPresent = useMemo(
-    () => FUNDING_TYPES.filter((ft) => scholarships.some((s) => s.funding_type.includes(ft))),
-    [scholarships],
-  );
-  const countriesPresent = useMemo(
-    () => [...new Set(scholarships.map((s) => s.country).filter((c): c is string => !!c))].sort(),
-    [scholarships],
-  );
+  const fundingPresent = FUNDING_TYPES;
+  const countriesPresent = facets.countries.map(({ value }) => value);
+  const funding = new Set(queryState.funding);
 
   const hasActiveFilters =
-    query.trim() !== '' ||
-    universityQuery.trim() !== '' ||
-    major !== 'all' ||
-    degree !== 'all' ||
+    queryState.search !== '' ||
+    queryState.universitySearch !== '' ||
+    queryState.major !== 'all' ||
+    queryState.degree !== 'all' ||
     funding.size > 0 ||
-    country !== 'all' ||
-    sort !== 'relevance';
+    queryState.country !== 'all' ||
+    queryState.sort !== 'relevance';
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    const universityNeedle = universityQuery.trim().toLowerCase();
-    const selectedMajor = MAJOR_FILTERS.find((filter) => filter.value === major);
-    const selectedDegree = DEGREE_FILTERS.find((filter) => filter.value === degree);
-    const rows = scholarships.filter((s) => {
-      if (q && !s.name.toLowerCase().includes(q)) return false;
-      if (universityNeedle && !s.universities.some((university) => university.name.toLowerCase().includes(universityNeedle))) return false;
-      if (country !== 'all' && s.country !== country) return false;
-      if (funding.size > 0 && !s.funding_type.some((ft) => funding.has(ft))) return false;
-      const searchableText = scholarshipSearchText(s);
-      if (selectedMajor && !selectedMajor.keywords.some((keyword) => searchableText.includes(keyword))) return false;
-      if (selectedDegree && !selectedDegree.keywords.some((keyword) => searchableText.includes(keyword))) return false;
-      return true;
+  const sortVisible = (items: DirectoryScholarship[]) => {
+    if (queryState.sort !== 'relevance') return items;
+    return [...items].sort((a, b) => {
+      const matched = Number(matchedIds.has(b.id)) - Number(matchedIds.has(a.id));
+      return matched || a.name.localeCompare(b.name);
     });
-
-    rows.sort((a, b) => {
-      if (sort === 'deadline') {
-        if (a.deadlineSortValue !== b.deadlineSortValue) return a.deadlineSortValue - b.deadlineSortValue;
-        return a.name.localeCompare(b.name);
-      }
-      if (sort === 'relevance') {
-        const am = matchedIds.has(a.id) ? 0 : 1;
-        const bm = matchedIds.has(b.id) ? 0 : 1;
-        if (am !== bm) return am - bm;
-      }
-      return a.name.localeCompare(b.name);
-    });
-    return rows;
-  }, [scholarships, query, universityQuery, major, degree, country, funding, sort, matchedIds]);
+  };
+  const directoryItems = sortVisible(directoryPage?.items ?? []);
+  const sectionAtUni = sortVisible(focusPage?.items ?? []);
+  const sectionSameCountry = sortVisible(countryPage?.items ?? []);
 
   // Reset to the first page whenever the result set changes (filters/search/sort).
-  useEffect(() => setPage(1), [query, universityQuery, major, degree, country, funding, sort]);
+  const pageCount = (value: Page<DirectoryScholarship> | null) =>
+    Math.max(1, Math.ceil((value?.total ?? 0) / 9));
 
-  const SCHOLARSHIPS_PER_PAGE = 9; // 3 columns × 3 rows
-  const pageCount = Math.max(1, Math.ceil(filtered.length / SCHOLARSHIPS_PER_PAGE));
-  const currentPage = Math.min(page, pageCount);
-  const paged = filtered.slice(
-    (currentPage - 1) * SCHOLARSHIPS_PER_PAGE,
-    currentPage * SCHOLARSHIPS_PER_PAGE,
-  );
-  const goToPage = (p: number) => {
-    setPage(p);
+  const goToPage = (key: 'page' | 'countryPage', page: number) => {
+    navigate({ [key]: page });
     resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   // When deep-linked from a university, split the filtered list into two sections.
-  const sectioned = !!focusUniversity && focusActive && focusHasMatches;
-  const focusCountry = focusUniversity?.country ?? null;
-  const sectionAtUni = useMemo(
-    () => (sectioned && focusIds ? filtered.filter((s) => focusIds.has(s.id)) : []),
-    [sectioned, focusIds, filtered],
-  );
-  const sectionSameCountry = useMemo(
-    () =>
-      sectioned && focusCountry
-        ? filtered.filter(
-            (s) =>
-              !focusIds!.has(s.id) &&
-              (s.country === focusCountry || s.universityCountries.includes(focusCountry)),
-          )
-        : [],
-    [sectioned, focusCountry, focusIds, filtered],
-  );
+  const sectioned = Boolean(focusUniversity && focusHasMatches);
 
   const clearFilters = () => {
-    setQuery('');
-    setUniversityQuery('');
-    setMajor('all');
-    setDegree('all');
-    setFunding(new Set());
-    setCountry('all');
-    setSort('relevance');
+    navigate({
+      search: '',
+      universitySearch: '',
+      major: 'all',
+      degree: 'all',
+      funding: [],
+      country: 'all',
+      sort: 'relevance',
+    });
+  };
+
+  const showAllScholarships = () => {
+    clearFocusUniversity();
+    navigate({ universityId: null, countryPage: 1 });
   };
 
   const renderGrid = (items: DirectoryScholarship[]) => (
@@ -310,6 +316,7 @@ export function ScholarshipDirectoryClient({
           scholarship={s}
           matched={matchedIds.has(s.id)}
           saved={savedIds.has(s.id)}
+          busy={savingIds.has(s.id)}
           onOpen={() => setSelected(s)}
           onToggleSave={() => toggleSave(s)}
           t={t}
@@ -342,8 +349,8 @@ export function ScholarshipDirectoryClient({
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:min-w-[430px]">
-            <HeroMetric value={scholarships.length.toLocaleString()} label={t('opportunities')} />
-            <HeroMetric value={String(matchedIds.size)} label={t('matched to you')} />
+            <HeroMetric value={facets.total.toLocaleString()} label={t('opportunities')} />
+            <HeroMetric value={String(matchedIds.size)} label={t('matched on this page')} />
             <HeroMetric value={String(savedIds.size)} label={t('saved')} className="col-span-2 sm:col-span-1" />
           </div>
         </div>
@@ -391,9 +398,12 @@ export function ScholarshipDirectoryClient({
                   <SearchIcon />
                 </span>
                 <input
+                  key={queryState.search}
                   type="search"
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
+                  defaultValue={queryState.search}
+                  onChange={(event) =>
+                    debounceFilter(searchTimer, { search: event.target.value.slice(0, 100) })
+                  }
                   placeholder={t('Search by scholarship name')}
                   className="h-11 w-full rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm text-fg shadow-gb-xs outline-none placeholder:text-fg-muted transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 />
@@ -405,8 +415,8 @@ export function ScholarshipDirectoryClient({
                   <Image src="/brand/scholarship-filter-map-pin.svg" alt="" width={14} height={17} />
                 </span>
                 <select
-                  value={country}
-                  onChange={(event) => setCountry(event.target.value)}
+                  value={queryState.country}
+                  onChange={(event) => navigate({ country: event.target.value })}
                   className="h-11 w-full appearance-none rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-9 text-sm text-fg shadow-gb-xs outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 >
                   <option value="all">{t('Where do you want to study')}</option>
@@ -422,8 +432,8 @@ export function ScholarshipDirectoryClient({
               <label className="relative block">
                 <span className="sr-only">{t('Select major')}</span>
                 <select
-                  value={major}
-                  onChange={(event) => setMajor(event.target.value as MajorFilter)}
+                  value={queryState.major}
+                  onChange={(event) => navigate({ major: event.target.value as ScholarshipMajor })}
                   className="h-11 w-full appearance-none rounded-gb-md border border-line-strong bg-surface px-3 pr-9 text-sm text-fg shadow-gb-xs outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 >
                   <option value="all">{t('Select major')}</option>
@@ -442,9 +452,14 @@ export function ScholarshipDirectoryClient({
                   <SearchIcon />
                 </span>
                 <input
+                  key={queryState.universitySearch}
                   type="search"
-                  value={universityQuery}
-                  onChange={(event) => setUniversityQuery(event.target.value)}
+                  defaultValue={queryState.universitySearch}
+                  onChange={(event) =>
+                    debounceFilter(universityTimer, {
+                      universitySearch: event.target.value.slice(0, 100),
+                    })
+                  }
                   placeholder={t('Search by university name')}
                   className="h-11 w-full rounded-gb-md border border-line-strong bg-surface py-2 pl-9 pr-3 text-sm text-fg shadow-gb-xs outline-none placeholder:text-fg-muted transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 />
@@ -462,8 +477,8 @@ export function ScholarshipDirectoryClient({
             <div className="flex flex-wrap items-center gap-2.5">
               <button
                 type="button"
-                aria-pressed={sort === 'relevance'}
-                onClick={() => setSort('relevance')}
+                aria-pressed={queryState.sort === 'relevance'}
+                onClick={() => navigate({ sort: 'relevance' })}
                 className="inline-flex h-11 items-center rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic transition hover:bg-surface-hover focus:outline-none focus-visible:ring-4 focus-visible:ring-brand-subtle"
               >
                 {t('Popular')}
@@ -472,8 +487,8 @@ export function ScholarshipDirectoryClient({
               <label className="relative block">
                 <span className="sr-only">{t('Study level')}</span>
                 <select
-                  value={degree}
-                  onChange={(event) => setDegree(event.target.value as DegreeFilter)}
+                  value={queryState.degree}
+                  onChange={(event) => navigate({ degree: event.target.value as ScholarshipDegree })}
                   className="h-11 appearance-none rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl pr-10 text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 >
                   <option value="all">{t('Study level')}</option>
@@ -489,7 +504,14 @@ export function ScholarshipDirectoryClient({
                 <span className="sr-only">{t('Scholarship value')}</span>
                 <select
                   value={funding.size === 1 ? [...funding][0] : 'all'}
-                  onChange={(event) => setFunding(event.target.value === 'all' ? new Set() : new Set([event.target.value]))}
+                  onChange={(event) =>
+                    navigate({
+                      funding:
+                        event.target.value === 'all'
+                          ? []
+                          : [event.target.value as ScholarshipQueryState['funding'][number]],
+                    })
+                  }
                   className="h-11 appearance-none rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl pr-10 text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 >
                   <option value="all">{t('Scholarship value')}</option>
@@ -505,8 +527,8 @@ export function ScholarshipDirectoryClient({
               <label className="relative block">
                 <span className="sr-only">{t('Competition rate')}</span>
                 <select
-                  value={sort}
-                  onChange={(event) => setSort(event.target.value as SortKey)}
+                  value={queryState.sort}
+                  onChange={(event) => navigate({ sort: event.target.value as ScholarshipSort })}
                   className="h-11 appearance-none rounded-gb-md border border-line-strong bg-surface px-gb-btn-xl pr-10 text-sm text-fg-tertiary shadow-gb-xs-skeuomorphic outline-none transition focus:border-brand focus:ring-4 focus:ring-brand-subtle"
                 >
                   <option value="relevance">{t('Competition rate')}</option>
@@ -519,8 +541,8 @@ export function ScholarshipDirectoryClient({
               <label className="hidden">
                 {t('Sort by')}:
                 <select
-                  value={sort}
-                  onChange={(e) => setSort(e.target.value as SortKey)}
+                  value={queryState.sort}
+                  onChange={(e) => navigate({ sort: e.target.value as ScholarshipSort })}
                   className="rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs font-medium text-fg outline-none focus:border-brand"
                 >
                   <option value="relevance">{t('Relevance')}</option>
@@ -541,7 +563,7 @@ export function ScholarshipDirectoryClient({
                 </p>
                 <button
                   type="button"
-                  onClick={() => setFocusActive(false)}
+                  onClick={showAllScholarships}
                   className="shrink-0 text-xs font-medium text-pink-600 hover:text-pink-700"
                 >
                   {t('Show all scholarships')}
@@ -551,23 +573,33 @@ export function ScholarshipDirectoryClient({
               <section>
                 <SectionBanner>{t('Scholarships at {name}', { name: focusUniversity!.name })}</SectionBanner>
                 {renderGrid(sectionAtUni)}
+                <Pagination
+                  page={focusPage!.page}
+                  pageCount={pageCount(focusPage)}
+                  onChange={(page) => goToPage('page', page)}
+                />
               </section>
 
-              {sectionSameCountry.length > 0 && (
+              {(countryPage?.total ?? 0) > 0 && (
                 <section>
                   <SectionBanner>
-                    {focusCountry
-                      ? t('Other scholarships in {country}', { country: focusCountry })
+                    {focusUniversity!.country
+                      ? t('Other scholarships in {country}', { country: focusUniversity!.country })
                       : t('Other scholarships')}
                   </SectionBanner>
                   {renderGrid(sectionSameCountry)}
+                  <Pagination
+                    page={countryPage!.page}
+                    pageCount={pageCount(countryPage)}
+                    onChange={(page) => goToPage('countryPage', page)}
+                  />
                 </section>
               )}
             </div>
           ) : (
             <>
               {/* Focus uni had no linked scholarships → note + full directory. */}
-              {focusUniversity && focusActive && !focusHasMatches && (
+              {focusUniversity && !focusHasMatches && (
                 <div className="flex flex-wrap items-center gap-2 rounded-xl border border-pink-200 bg-pink-50/70 px-3 py-2 text-sm">
                   <span className="text-slate-600">
                     {t('No scholarships are linked to {name} yet — showing the full directory.', {
@@ -576,7 +608,7 @@ export function ScholarshipDirectoryClient({
                   </span>
                   <button
                     type="button"
-                    onClick={() => setFocusActive(false)}
+                    onClick={showAllScholarships}
                     className="ml-auto text-xs font-medium text-pink-600 hover:text-pink-700"
                   >
                     {t('Dismiss')}
@@ -585,15 +617,15 @@ export function ScholarshipDirectoryClient({
               )}
 
               {/* Personalized note */}
-              {sort === 'relevance' && matchedIds.size > 0 && !hasActiveFilters && (
+              {queryState.sort === 'relevance' && matchedIds.size > 0 && !hasActiveFilters && (
                 <p className="flex items-center gap-2 rounded-full border border-brand-subtle bg-surface px-3 py-2 text-xs font-semibold text-fg-brand shadow-gb-xs w-fit">
                   <span className="inline-block h-2 w-2 rounded-full bg-brand shadow-[0_0_0_4px_var(--color-brand-subtle)]" />
-                  {t('Matched to your saved universities')}
+                  {t('Matched to your saved universities on this page')}
                 </p>
               )}
 
               {/* Results */}
-              {filtered.length === 0 ? (
+              {directoryItems.length === 0 ? (
                 <EmptyState
                   icon="🔍"
                   title={t('No scholarships match these filters')}
@@ -607,8 +639,12 @@ export function ScholarshipDirectoryClient({
                 />
               ) : (
                 <div ref={resultsTopRef} className="scroll-mt-4">
-                  {renderGrid(paged)}
-                  <Pagination page={currentPage} pageCount={pageCount} onChange={goToPage} />
+                  {renderGrid(directoryItems)}
+                  <Pagination
+                    page={directoryPage!.page}
+                    pageCount={pageCount(directoryPage)}
+                    onChange={(page) => goToPage('page', page)}
+                  />
                 </div>
               )}
             </>
@@ -636,7 +672,9 @@ export function ScholarshipDirectoryClient({
             <button
               type="button"
               onClick={goToApply}
-              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-gb-md bg-brand px-4 text-sm font-semibold text-on-brand shadow-gb-xs-skeuomorphic transition hover:bg-brand-hover sm:px-5"
+              disabled={savingIds.size > 0}
+              {...testId(TID.scholarshipContinueToApply)}
+              className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-gb-md bg-brand px-4 text-sm font-semibold text-on-brand shadow-gb-xs-skeuomorphic transition hover:bg-brand-hover disabled:cursor-wait disabled:opacity-60 sm:px-5"
             >
               {t('Continue to Apply')}
               <span aria-hidden>→</span>
@@ -691,6 +729,7 @@ function ScholarshipDirectoryCard({
   scholarship: s,
   matched,
   saved,
+  busy,
   onOpen,
   onToggleSave,
   t,
@@ -698,6 +737,7 @@ function ScholarshipDirectoryCard({
   scholarship: DirectoryScholarship;
   matched: boolean;
   saved: boolean;
+  busy: boolean;
   onOpen: () => void;
   onToggleSave: () => void;
   t: Translate;
@@ -715,6 +755,8 @@ function ScholarshipDirectoryCard({
       <button
         type="button"
         aria-pressed={saved}
+        aria-busy={busy}
+        disabled={busy}
         aria-label={saved ? t('Saved to My Universities') : t('Save to My Universities')}
         onClick={(e) => {
           e.stopPropagation();
