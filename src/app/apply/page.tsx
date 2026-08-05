@@ -42,7 +42,7 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
 
   const { data, error } = await supabase
     .from('course_applications')
-    .select('id, user_id, university_id, university_name, course_name, course_url, country, deadline, status, progress_percentage, parse_status, parse_error, import_status, strategy_intro_seen_at, created_at, updated_at')
+    .select('id, user_id, university_id, university_name, course_name, course_url, country, deadline, status, progress_percentage, parse_status, parse_error, import_status, strategy_intro_seen_at, created_at, updated_at, university:universities(logo_url)')
     .eq('user_id', userId)
     .order('created_at', { ascending: false });
 
@@ -51,24 +51,28 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
     return [];
   }
 
-  return (data ?? []).map((app) => ({
-    id: app.id,
-    userId: app.user_id,
-    universityId: app.university_id,
-    universityName: app.university_name,
-    courseName: app.course_name,
-    courseUrl: app.course_url,
-    country: app.country,
-    deadline: app.deadline,
-    status: app.status,
-    progressPercentage: app.progress_percentage,
-    parseStatus: app.parse_status,
-    parseError: app.parse_error,
-    importStatus: app.import_status,
-    strategyIntroSeenAt: app.strategy_intro_seen_at ?? null,
-    createdAt: app.created_at,
-    updatedAt: app.updated_at,
-  })) as CourseApplication[];
+  return (data ?? []).map((app) => {
+    const university = Array.isArray(app.university) ? app.university[0] : app.university;
+    return {
+      id: app.id,
+      userId: app.user_id,
+      universityId: app.university_id,
+      universityName: app.university_name,
+      logoUrl: university?.logo_url ?? null,
+      courseName: app.course_name,
+      courseUrl: app.course_url,
+      country: app.country,
+      deadline: app.deadline,
+      status: app.status,
+      progressPercentage: app.progress_percentage,
+      parseStatus: app.parse_status,
+      parseError: app.parse_error,
+      importStatus: app.import_status,
+      strategyIntroSeenAt: app.strategy_intro_seen_at ?? null,
+      createdAt: app.created_at,
+      updatedAt: app.updated_at,
+    };
+  }) as CourseApplication[];
 }
 
 /**
@@ -93,19 +97,22 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
  */
 async function fetchStrategyReadiness(
   userId: string,
-  applications: CourseApplication[],
+  applicationsPromise: Promise<CourseApplication[]>,
 ): Promise<Record<string, boolean>> {
+  const supabase = await createClient();
+  const profilePromise = supabase
+    .from('student_profiles')
+    .select('personal_summary_completed_at, achievements_completed_at')
+    .eq('user_id', userId)
+    .maybeSingle()
+    .then((result) => result);
+  const applications = await applicationsPromise;
   if (applications.length === 0) return {};
 
-  const supabase = await createClient();
   const ids = applications.map((app) => app.id);
 
   const [{ data: profile }, { data: analyses }] = await Promise.all([
-    supabase
-      .from('student_profiles')
-      .select('personal_summary_completed_at, achievements_completed_at')
-      .eq('user_id', userId)
-      .maybeSingle(),
+    profilePromise,
     supabase.from('applicant_analyses').select('application_id').in('application_id', ids),
   ]);
 
@@ -124,18 +131,15 @@ async function fetchStrategyReadiness(
 /**
  * Crests for the tracker row's avatar slot (Figma 562:15468).
  *
- * course_applications has no logo column of its own — it carries a nullable
- * university_id, and most rows are imported straight from a course URL without
- * one. Only the rows that resolved to a university get a real crest; the rest
- * fall back to initials in `Avatar`.
+ * `fetchApplications` joins the crest through the nullable university_id, so
+ * the tracker builds this map without a second universities round trip.
+ * Unresolved course imports still fall back to initials in `Avatar`.
  */
-async function fetchLogos(applications: CourseApplication[]): Promise<Record<number, string | null>> {
-  const ids = [...new Set(applications.flatMap((a) => (a.universityId != null ? [a.universityId] : [])))];
-  if (ids.length === 0) return {};
-
-  const universities = await getUniversityQueries().getByIds(ids);
+function applicationLogos(applications: CourseApplication[]): Record<number, string | null> {
   const map: Record<number, string | null> = {};
-  for (const uni of universities) map[uni.id] = uni.logo_url ?? null;
+  for (const app of applications) {
+    if (app.universityId != null) map[app.universityId] = app.logoUrl ?? null;
+  }
   return map;
 }
 
@@ -336,11 +340,12 @@ export default async function ApplyPage({ searchParams }: Props) {
 
   const applicationsPromise = fetchApplications(user.id);
   const savedRowsPromise = fetchSavedRows(user.id);
+  const strategyReadyPromise = fetchStrategyReadiness(user.id, applicationsPromise);
   const applications = await applicationsPromise;
   const [savedRows, logoByUniversityId, strategyReadyById] = await Promise.all([
     savedRowsPromise,
-    fetchLogos(applications),
-    fetchStrategyReadiness(user.id, applications),
+    applicationLogos(applications),
+    strategyReadyPromise,
   ]);
 
   const userName =

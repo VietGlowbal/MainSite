@@ -20,7 +20,7 @@ export async function fetchApplicationWorkspace(
   // Fetch application
   const { data: application, error: appError } = await supabase
     .from('course_applications')
-    .select('*')
+    .select('*, university:universities(logo_url)')
     .eq('id', applicationId)
     .eq('user_id', userId)
     .single();
@@ -30,35 +30,60 @@ export async function fetchApplicationWorkspace(
     return null;
   }
 
-  // Fetch course (if linked)
-  let course = null;
-  if (application.course_id) {
-    const { data: courseData } = await supabase
-      .from('courses')
-      .select('*')
-      .eq('id', application.course_id)
-      .single();
-    course = courseData;
-  }
+  const coursePromise = application.course_id
+    ? supabase.from('courses').select('*').eq('id', application.course_id).single()
+    : Promise.resolve({ data: null });
 
-  // Fetch stages with tasks
-  const { data: stages, error: stagesError } = await supabase
-    .from('application_stages')
-    .select('*')
-    .eq('application_id', applicationId)
-    .order('order_num', { ascending: true });
+  const [
+    { data: course },
+    { data: stages, error: stagesError },
+    { data: tasks },
+    { data: requirements },
+    { data: sources },
+    { data: matchAnalysis },
+    { data: recommendations },
+  ] = await Promise.all([
+    coursePromise,
+    supabase
+      .from('application_stages')
+      .select('*')
+      .eq('application_id', applicationId)
+      .order('order_num', { ascending: true }),
+    supabase
+      .from('application_tasks')
+      .select('*')
+      .eq('application_id', applicationId)
+      .order('sort_order', { ascending: true }),
+    supabase
+      .from('application_requirements')
+      .select('*')
+      .eq('application_id', applicationId),
+    supabase
+      .from('application_sources')
+      .select('*')
+      .eq('application_id', applicationId)
+      .order('display_priority', { ascending: true }),
+    supabase
+      .from('application_match_analyses')
+      .select('*')
+      .eq('application_id', applicationId)
+      .eq('analysis_status', 'complete')
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single(),
+    supabase
+      .from('application_recommendations')
+      .select('*')
+      .eq('application_id', applicationId)
+      .eq('is_dismissed', false)
+      .is('category', null)
+      .order('priority', { ascending: false }),
+  ]);
 
   if (stagesError) {
     console.error('Error fetching stages:', stagesError);
     return null;
   }
-
-  // Fetch all tasks
-  const { data: tasks } = await supabase
-    .from('application_tasks')
-    .select('*')
-    .eq('application_id', applicationId)
-    .order('sort_order', { ascending: true });
 
   // Attach tasks to stages
   const stagesWithTasks = (stages || []).map(stage => ({
@@ -68,42 +93,11 @@ export async function fetchApplicationWorkspace(
       .map(transformTask),
   }));
 
-  // Fetch requirements
-  const { data: requirements } = await supabase
-    .from('application_requirements')
-    .select('*')
-    .eq('application_id', applicationId);
-
-  // Fetch sources
-  const { data: sources } = await supabase
-    .from('application_sources')
-    .select('*')
-    .eq('application_id', applicationId)
-    .order('display_priority', { ascending: true });
-
-  // Fetch latest match analysis
-  const { data: matchAnalysis } = await supabase
-    .from('application_match_analyses')
-    .select('*')
-    .eq('application_id', applicationId)
-    .eq('analysis_status', 'complete')
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .single();
-
   // Fetch recommendations — sidebar tips only. `category` is set exclusively
   // by the AI Strategy Dashboard's recommendation generator
   // (ai-strategy-dashboard/domain/recommendation.ts); excluding it here keeps
   // that feature's rows out of this free per-course checklist sidebar, which
   // reads this table with no other way to tell the two producers apart.
-  const { data: recommendations } = await supabase
-    .from('application_recommendations')
-    .select('*')
-    .eq('application_id', applicationId)
-    .eq('is_dismissed', false)
-    .is('category', null)
-    .order('priority', { ascending: false });
-
   // Calculate metrics
   const metrics = calculateMetrics(
     application,
@@ -138,6 +132,7 @@ function transformApplication(app: any) {
     courseId: app.course_id,
     universityId: app.university_id,
     universityName: app.university_name,
+    logoUrl: app.university?.logo_url ?? null,
     courseName: app.course_name,
     courseUrl: app.course_url,
     degreeLevel: app.degree_level,

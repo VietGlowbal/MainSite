@@ -141,6 +141,7 @@ export type CourseApplication = {
   courseId?: string;
   universityId?: number;
   universityName: string;
+  logoUrl?: string | null;
   courseName: string;
   courseUrl?: string;
   degreeLevel?: string;
