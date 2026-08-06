@@ -90,7 +90,7 @@ describe('programme matching analysis', () => {
 
     expect(result.programmeFit.classification).toBe('reach');
     expect(result.programmeFit.dimensions.academicCompetitiveness.score).toBe(2);
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.deepseek.com/chat/completions');
+    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://api.openai.com/v1/chat/completions');
     const request = JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string) as {
       messages: Array<{ content: string }>;
     };

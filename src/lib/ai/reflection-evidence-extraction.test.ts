@@ -29,8 +29,8 @@ describe('extractReflectionEvidenceCandidates', () => {
     }));
 
     const result = await extractReflectionEvidenceCandidates({
-      apiKey: 'deepseek-key',
-      model: 'deepseek-v4-flash',
+      apiKey: 'openai-key',
+      model: 'gpt-4o-mini',
       completion,
       documents: [
         {
@@ -46,7 +46,7 @@ describe('extractReflectionEvidenceCandidates', () => {
     expect(result.candidates).toHaveLength(1);
     expect(completion).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'deepseek-v4-flash',
+        model: 'gpt-4o-mini',
         thinking: 'disabled',
         temperature: 0,
         messages: expect.arrayContaining([
@@ -57,7 +57,7 @@ describe('extractReflectionEvidenceCandidates', () => {
           }),
         ]),
       }),
-      'deepseek-key',
+      'openai-key',
     );
   });
 
@@ -65,8 +65,8 @@ describe('extractReflectionEvidenceCandidates', () => {
     const completion = vi.fn();
 
     const result = await extractReflectionEvidenceCandidates({
-      apiKey: 'deepseek-key',
-      model: 'deepseek-v4-flash',
+      apiKey: 'openai-key',
+      model: 'gpt-4o-mini',
       completion,
       documents: [{ documentId: 'doc-1', fileName: 'scan.pdf', pages: [] }],
     });

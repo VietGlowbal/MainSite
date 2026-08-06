@@ -79,9 +79,8 @@ describe('POST /api/ai/analyze-statement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     lorAiLimiter.resetAll();
-    vi.stubEnv('DEEPSEEK_API_KEY', 'deepseek-key');
-    vi.stubEnv('DEEPSEEK_MODEL', 'deepseek-v4-pro');
-    vi.stubEnv('OPENAI_API_KEY', '');
+    vi.stubEnv('OPENAI_API_KEY', 'openai-key');
+    vi.stubEnv('OPENAI_MODEL', 'gpt-4o');
     profileResultMock.mockResolvedValue({
       data: { plus_status: false, sop_analyses_used: 0 },
     });
@@ -180,7 +179,7 @@ describe('POST /api/ai/analyze-statement', () => {
     expect(response.status).toBe(400);
   });
 
-  it('uses DeepSeek directly for non-VinUni statement reviews', async () => {
+  it('uses OpenAI directly for non-VinUni statement reviews', async () => {
     const response = await POST(
       new Request('http://localhost/api/ai/analyze-statement', {
         method: 'POST',
@@ -194,9 +193,9 @@ describe('POST /api/ai/analyze-statement', () => {
 
     expect(response.status).toBe(200);
     expect(fetch).toHaveBeenCalledWith(
-      'https://api.deepseek.com/chat/completions',
+      'https://api.openai.com/v1/chat/completions',
       expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer deepseek-key' }),
+        headers: expect.objectContaining({ Authorization: 'Bearer openai-key' }),
         signal: expect.any(AbortSignal),
       }),
     );
@@ -204,8 +203,7 @@ describe('POST /api/ai/analyze-statement', () => {
       (fetch as ReturnType<typeof vi.fn>).mock.calls[0][1].body as string,
     );
     expect(requestBody).toMatchObject({
-      model: 'deepseek-v4-pro',
-      thinking: { type: 'disabled' },
+      model: 'gpt-4o',
       max_tokens: 1200,
     });
   });

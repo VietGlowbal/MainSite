@@ -7,7 +7,7 @@ import {
 import { candidateConfidence, programmeFitSchema } from '@/features/apply/domain';
 import { analyzeCourseMatchInsights } from '@/lib/ai/match-insights';
 import { extractDocumentText } from '@/lib/ai/document-text';
-import { defaultDeepSeekModel } from '@/lib/ai/deepseek-client';
+import { defaultOpenAIModel } from '@/lib/ai/openai-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import {
@@ -62,7 +62,7 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = user.id;
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
 
   const { data: application, error: appError } = await supabase
@@ -254,7 +254,7 @@ export async function POST(
       essayText,
       notes,
       apiKey,
-      model: defaultDeepSeekModel(),
+      model: defaultOpenAIModel(),
     });
   } catch (error) {
     console.error('[match-insights] analysis failed', {
@@ -326,7 +326,7 @@ export async function POST(
       weaknesses,
       improvement_actions: improvementActions,
       explanation,
-      model_name: defaultDeepSeekModel(),
+      model_name: defaultOpenAIModel(),
       prompt_version: MATCH_PROMPT_VERSION,
       input_hash: inputHash,
       fit_dimensions: fit.dimensions,

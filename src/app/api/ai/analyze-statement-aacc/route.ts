@@ -15,8 +15,7 @@
 
 import { NextResponse } from 'next/server';
 import {
-  streamDeepSeekText,
-  streamOpenRouterText,
+  streamOpenAIText,
   streamVinUniEvaluation,
   VINUNI_EVALUATION_CONFIG,
   type VinUniStreamEvent,
@@ -184,21 +183,14 @@ export async function POST(request: Request) {
       );
     }
     const evaluationConfig = VINUNI_EVALUATION_CONFIG!;
-    const provider = process.env.VINUNI_AI_PROVIDER === 'openrouter' ? 'openrouter' : 'deepseek';
-    const apiKeyName = provider === 'openrouter' ? 'OPENROUTER_API_KEY' : 'DEEPSEEK_API_KEY';
-    const apiKey = process.env[apiKeyName];
+    const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: `AI service not configured. Set ${apiKeyName} in .env.local.` },
+        { error: 'AI service not configured. Set OPENAI_API_KEY in .env.local.' },
         { status: 500 },
       );
     }
-    const model =
-      provider === 'openrouter'
-        ? process.env.OPENROUTER_MODEL || 'qwen/qwen3.5-flash-02-23'
-        : process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro';
-    const providerStream =
-      provider === 'openrouter' ? streamOpenRouterText : streamDeepSeekText;
+    const model = process.env.OPENAI_MODEL || 'gpt-4o';
     const abortController = new AbortController();
     request.signal.addEventListener('abort', () => abortController.abort(), { once: true });
     const encoder = new TextEncoder();
@@ -219,7 +211,7 @@ export async function POST(request: Request) {
                 ...(v2Input!.requestedSections
                   ? { requestedSections: v2Input!.requestedSections }
                   : {}),
-                stream: providerStream,
+                stream: streamOpenAIText,
                 signal: abortController.signal,
               })
             : streamVinUniEvaluation({
@@ -227,14 +219,14 @@ export async function POST(request: Request) {
                 config: evaluationConfig,
                 apiKey,
                 model,
-                stream: providerStream,
+                stream: streamOpenAIText,
                 signal: abortController.signal,
               });
           for await (const event of events) {
             controller.enqueue(encodeEvent(event));
             if (event.type === 'complete') {
               console.info('VinUni AI stream complete', {
-                provider,
+                provider: 'openai',
                 model,
                 pipeline: useV2 ? 'v2' : 'v1',
                 firstSectionMs: event.timing.firstSectionMs,
@@ -245,7 +237,7 @@ export async function POST(request: Request) {
         } catch (error) {
           if (abortController.signal.aborted) return;
           console.error('VinUni AI stream failed', {
-            provider,
+            provider: 'openai',
             model,
             code: 'STREAM_FAILED',
             message: error instanceof Error ? error.message : String(error),

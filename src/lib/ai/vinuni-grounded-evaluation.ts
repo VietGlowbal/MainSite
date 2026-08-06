@@ -33,8 +33,9 @@ export type VinUniEvaluationConfig = {
   prompts: { passA: string; passB: string; passC: string; repair: string };
 };
 
-export type DeepSeekRequest = {
+export type AiCompletionRequest = {
   model: string;
+  /** Reasoning-model toggles some providers accept; OpenAI's chat models ignore both. */
   thinking: 'enabled' | 'disabled';
   reasoningEffort?: 'high' | 'max';
   temperature?: number;
@@ -42,14 +43,14 @@ export type DeepSeekRequest = {
   messages: { role: 'system' | 'user'; content: string }[];
 };
 
-export type DeepSeekCompletion = (
-  request: DeepSeekRequest,
+export type AiCompletion = (
+  request: AiCompletionRequest,
   apiKey: string,
 ) => Promise<{ content: string; finishReason: string | null }>;
 
 export type VinUniTextStreamRequest = {
   model: string;
-  messages: DeepSeekRequest['messages'];
+  messages: AiCompletionRequest['messages'];
   temperature: number;
   maxTokens: number;
 };
@@ -77,11 +78,11 @@ export type EvaluationModels = {
   repair: string;
 };
 
-const DEEPSEEK_MODELS: EvaluationModels = {
-  passA: 'deepseek-v4-flash',
-  passB: 'deepseek-v4-flash',
-  passC: 'deepseek-v4-flash',
-  repair: 'deepseek-v4-pro',
+const DEFAULT_EVALUATION_MODELS: EvaluationModels = {
+  passA: 'gpt-4o-mini',
+  passB: 'gpt-4o-mini',
+  passC: 'gpt-4o-mini',
+  repair: 'gpt-4o',
 };
 
 export const VINUNI_FEEDBACK_PROMPT_VI = `Bạn là chuyên gia phản biện bài luận học bổng VinUniversity.
@@ -635,7 +636,7 @@ export async function* streamVinUniEvaluation({
   config,
   apiKey,
   model,
-  stream = streamDeepSeekText,
+  stream = streamOpenAIText,
   signal,
 }: StreamEvaluationArgs): AsyncGenerator<VinUniStreamEvent> {
   const startedAt = Date.now();
@@ -882,14 +883,14 @@ export async function runVinUniEvaluation(args: {
   essay: string;
   config: VinUniEvaluationConfig;
   apiKey: string;
-  complete?: DeepSeekCompletion;
+  complete?: AiCompletion;
   models?: Partial<EvaluationModels>;
 }): Promise<
   | { status: 'passed'; internalResult: { pack: ReturnType<typeof buildEvaluationPack>; evidenceMap: EvidenceMap; scoring: Scoring; audit: Audit | null }; response: AaccAnalysis }
   | { status: 'partial_result'; message: string }
 > {
-  const { essay, config, apiKey, complete = deepSeekCompletion } = args;
-  const models = { ...DEEPSEEK_MODELS, ...args.models };
+  const { essay, config, apiKey, complete = openAiCompletion } = args;
+  const models = { ...DEFAULT_EVALUATION_MODELS, ...args.models };
   const pack = buildEvaluationPack(essay, config);
   const criterionRequirement = `criterion_results must contain exactly one item for each criterion_id: ${config.rubric.criteria.map(({ id }) => id).join(', ')}.`;
   const evidenceMap = await completeJson(
@@ -950,7 +951,7 @@ export async function runVinUniEvaluation(args: {
   };
 }
 
-function jsonMessages(systemPrompt: string, example: unknown, input: unknown): DeepSeekRequest['messages'] {
+function jsonMessages(systemPrompt: string, example: unknown, input: unknown): AiCompletionRequest['messages'] {
   return [
     {
       role: 'system',
@@ -961,9 +962,9 @@ function jsonMessages(systemPrompt: string, example: unknown, input: unknown): D
 }
 
 async function completeJson<T>(
-  complete: DeepSeekCompletion,
+  complete: AiCompletion,
   apiKey: string,
-  request: DeepSeekRequest,
+  request: AiCompletionRequest,
   schema: z.ZodType<T>,
   normalize: (value: unknown) => unknown = (value) => value,
   attempts = 2,
@@ -972,7 +973,7 @@ async function completeJson<T>(
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
       const response = await complete(request, apiKey);
-      if (!response.content.trim()) throw new Error('DeepSeek returned empty JSON');
+      if (!response.content.trim()) throw new Error('AI returned empty JSON');
       return schema.parse(normalize(JSON.parse(response.content)));
     } catch (error) {
       lastError = error;
@@ -1174,24 +1175,22 @@ function normalizeScoringOutput(value: unknown, criterionIds: string[]): unknown
   };
 }
 
-export async function deepSeekCompletion(
-  request: DeepSeekRequest,
+export async function openAiCompletion(
+  request: AiCompletionRequest,
   apiKey: string,
 ): Promise<{ content: string; finishReason: string | null }> {
-  const response = await fetch('https://api.deepseek.com/chat/completions', {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
     body: JSON.stringify({
       model: request.model,
       messages: request.messages,
-      thinking: { type: request.thinking },
-      reasoning_effort: request.reasoningEffort,
       temperature: request.temperature,
       max_tokens: request.maxTokens,
       response_format: { type: 'json_object' },
     }),
   });
-  if (!response.ok) throw new Error(`DeepSeek request failed (${response.status})`);
+  if (!response.ok) throw new Error(`OpenAI request failed (${response.status})`);
   const data = await response.json();
   return {
     content: data.choices?.[0]?.message?.content ?? '',
@@ -1246,97 +1245,6 @@ async function* streamProviderResponse(response: Response): AsyncGenerator<Provi
     const chunk = parseEvent(buffer);
     if (chunk) yield chunk;
   }
-}
-
-export async function* streamDeepSeekText(
-  request: VinUniTextStreamRequest,
-  apiKey: string,
-  signal?: AbortSignal,
-): AsyncGenerator<ProviderStreamChunk> {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    let emitted = false;
-    try {
-      const response = await fetch('https://api.deepseek.com/chat/completions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-        signal,
-        body: JSON.stringify({
-          model: request.model,
-          messages: request.messages,
-          stream: true,
-          stream_options: { include_usage: true },
-          thinking: { type: 'disabled' },
-          temperature: request.temperature,
-          max_tokens: request.maxTokens,
-        }),
-      });
-      if (!response.ok && (response.status === 429 || response.status >= 500) && attempt < 2) {
-        await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
-        continue;
-      }
-      for await (const chunk of streamProviderResponse(response)) {
-        emitted = true;
-        yield chunk;
-      }
-      return;
-    } catch (error) {
-      if (
-        signal?.aborted ||
-        (error instanceof Error && error.name === 'AbortError') ||
-        emitted ||
-        attempt === 2
-      ) {
-        throw error;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
-    }
-  }
-}
-
-export async function* streamOpenRouterText(
-  request: VinUniTextStreamRequest,
-  apiKey: string,
-  signal?: AbortSignal,
-): AsyncGenerator<ProviderStreamChunk> {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    signal,
-    body: JSON.stringify({
-      model: request.model,
-      messages: request.messages,
-      stream: true,
-      stream_options: { include_usage: true },
-      reasoning: { effort: 'none' },
-      temperature: request.temperature,
-      max_tokens: request.maxTokens,
-    }),
-  });
-  yield* streamProviderResponse(response);
-}
-
-export async function openRouterCompletion(
-  request: DeepSeekRequest,
-  apiKey: string,
-): Promise<{ content: string; finishReason: string | null }> {
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify({
-      model: request.model,
-      messages: request.messages,
-      reasoning: { effort: 'none' },
-      temperature: request.temperature,
-      max_tokens: request.maxTokens,
-      response_format: { type: 'json_object' },
-    }),
-  });
-  if (!response.ok) throw new Error(`OpenRouter request failed (${response.status})`);
-  const data = await response.json();
-  return {
-    content: data.choices?.[0]?.message?.content ?? '',
-    finishReason: data.choices?.[0]?.finish_reason ?? null,
-  };
 }
 
 export async function* streamOpenAIText(
@@ -1434,7 +1342,7 @@ function validateScoring(
 }
 
 async function auditScoring(
-  complete: DeepSeekCompletion,
+  complete: AiCompletion,
   apiKey: string,
   config: VinUniEvaluationConfig,
   pack: ReturnType<typeof buildEvaluationPack>,

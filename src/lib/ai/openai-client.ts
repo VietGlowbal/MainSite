@@ -12,6 +12,8 @@
 
 import OpenAI from 'openai';
 
+export const OPENAI_CHAT_COMPLETIONS_URL = 'https://api.openai.com/v1/chat/completions';
+
 let cachedClient: OpenAI | null = null;
 
 /**
@@ -44,4 +46,64 @@ export const openai = new Proxy({} as OpenAI, {
  */
 export function isOpenAIConfigured(): boolean {
   return Boolean(process.env.OPENAI_API_KEY);
+}
+
+export function defaultOpenAIModel(): string {
+  return process.env.OPENAI_MODEL || 'gpt-4o';
+}
+
+/**
+ * A single non-streaming, JSON-mode chat completion — the shape several
+ * routes and `lib/ai/*` modules were built around when they called DeepSeek
+ * directly. Kept as a raw `fetch` (rather than the `openai` SDK) so callers
+ * that already hold an explicit `apiKey` (validated earlier in the request)
+ * don't need to thread it through a second client construction.
+ */
+export async function openAiJsonCompletion(args: {
+  apiKey: string;
+  model: string;
+  messages: Array<{ role: 'system' | 'user'; content: string }>;
+  temperature: number;
+  maxTokens: number;
+  timeoutMs?: number;
+}): Promise<string> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), args.timeoutMs ?? 45_000);
+
+  try {
+    const response = await fetch(OPENAI_CHAT_COMPLETIONS_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${args.apiKey}`,
+      },
+      signal: controller.signal,
+      body: JSON.stringify({
+        model: args.model,
+        messages: args.messages,
+        temperature: args.temperature,
+        max_tokens: args.maxTokens,
+        response_format: { type: 'json_object' },
+      }),
+    });
+
+    if (!response.ok) {
+      const detail = await response.text().catch(() => '');
+      throw new Error(`OpenAI request failed (${response.status}): ${detail.slice(0, 160)}`);
+    }
+
+    const data = await response.json();
+    const choice = data.choices?.[0];
+    if (choice?.finish_reason === 'length') {
+      throw new Error('OpenAI response exceeded the token limit.');
+    }
+    const content = choice?.message?.content;
+    if (typeof content === 'string' && content.trim()) return content.trim();
+    throw new Error('OpenAI returned empty JSON content.');
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error('OpenAI request timed out.');
+    throw error instanceof Error ? error : new Error('OpenAI request failed.');
+  } finally {
+    clearTimeout(timeout);
+  }
 }

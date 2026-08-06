@@ -5,13 +5,13 @@ const {
   createAdminClientMock,
   extractPdfWithOcrFallbackMock,
   extractReflectionEvidenceCandidatesMock,
-  deepSeekCompletionMock,
+  openAiCompletionMock,
 } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
   createAdminClientMock: vi.fn(),
   extractPdfWithOcrFallbackMock: vi.fn(),
   extractReflectionEvidenceCandidatesMock: vi.fn(),
-  deepSeekCompletionMock: vi.fn(),
+  openAiCompletionMock: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: createClientMock }));
@@ -23,7 +23,7 @@ vi.mock('@/lib/ai/reflection-evidence-extraction', () => ({
   extractReflectionEvidenceCandidates: extractReflectionEvidenceCandidatesMock,
 }));
 vi.mock('@/lib/ai/vinuni-grounded-evaluation', () => ({
-  deepSeekCompletion: deepSeekCompletionMock,
+  openAiCompletion: openAiCompletionMock,
 }));
 
 import { POST } from './route';
@@ -46,8 +46,8 @@ function userClient(documents: unknown[]) {
 describe('POST /api/reflection/extract-evidence', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('DEEPSEEK_API_KEY', 'deepseek-key');
-    vi.stubEnv('DEEPSEEK_DOCUMENT_MODEL', 'deepseek-v4-flash');
+    vi.stubEnv('OPENAI_API_KEY', 'openai-key');
+    vi.stubEnv('OPENAI_DOCUMENT_MODEL', 'gpt-4o-mini');
     const updateEq = vi.fn(async () => ({ error: null }));
     createAdminClientMock.mockReturnValue({
       storage: {
@@ -108,7 +108,7 @@ describe('POST /api/reflection/extract-evidence', () => {
     );
     expect(body.candidates).toHaveLength(1);
     expect(extractReflectionEvidenceCandidatesMock).toHaveBeenCalledWith(
-      expect.objectContaining({ model: 'deepseek-v4-flash', apiKey: 'deepseek-key' }),
+      expect.objectContaining({ model: 'gpt-4o-mini', apiKey: 'openai-key' }),
     );
   });
 

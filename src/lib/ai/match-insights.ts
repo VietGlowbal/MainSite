@@ -25,7 +25,7 @@ import {
   programmeFitSchema,
   type ProgrammeFit,
 } from '@/features/apply/domain';
-import { deepSeekJsonCompletion, defaultDeepSeekModel } from './deepseek-client';
+import { openAiJsonCompletion, defaultOpenAIModel } from './openai-client';
 
 export type MatchCourseInput = {
   universityName: string;
@@ -243,7 +243,7 @@ export async function analyzeCourseMatchInsights(args: {
   apiKey: string;
   model?: string;
 }): Promise<MatchInsights & { programmeFit: ProgrammeFit }> {
-  const { course, profile, cvText, essayText, notes, apiKey, model = defaultDeepSeekModel() } = args;
+  const { course, profile, cvText, essayText, notes, apiKey, model = defaultOpenAIModel() } = args;
 
   const inputsPresent: MatchInputsPresent = {
     profile: Boolean(profile.academicBackground || profile.grades || profile.testScores),
@@ -252,7 +252,7 @@ export async function analyzeCourseMatchInsights(args: {
     activities: Boolean(profile.activities || profile.achievements),
   };
 
-  const content = await deepSeekJsonCompletion({
+  const content = await openAiJsonCompletion({
     apiKey,
     model,
     messages: [

@@ -430,7 +430,7 @@ describe('VinUni V2 two-pass stream', () => {
       context,
       config: VINUNI_EVALUATION_CONFIG_V2,
       apiKey: 'key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       requestedSections: ['A'],
       stream: provider as VinUniTextStream,
     })) {
@@ -517,7 +517,7 @@ describe('VinUni V2 two-pass stream', () => {
       context,
       config: VINUNI_EVALUATION_CONFIG_V2,
       apiKey: 'key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       requestedSections: ['A'],
       stream: provider as VinUniTextStream,
     })) {
@@ -546,7 +546,7 @@ describe('VinUni V2 two-pass stream', () => {
       context,
       config: VINUNI_EVALUATION_CONFIG_V2,
       apiKey: 'key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       stream: provider as VinUniTextStream,
     })) {
       events.push(event);
@@ -625,7 +625,7 @@ describe('VinUni V2 two-pass stream', () => {
       context,
       config: VINUNI_EVALUATION_CONFIG_V2,
       apiKey: 'key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       requestedSections: ['A'],
       stream: provider as VinUniTextStream,
     })) {
@@ -710,7 +710,7 @@ describe('VinUni V2 two-pass stream', () => {
       context,
       config: VINUNI_EVALUATION_CONFIG_V2,
       apiKey: 'key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       requestedSections: ['A', 'D:ability'],
       stream: provider as VinUniTextStream,
     })) {
@@ -787,7 +787,7 @@ describe('VinUni V2 two-pass stream', () => {
       context,
       config: VINUNI_EVALUATION_CONFIG_V2,
       apiKey: 'key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       requestedSections: ['A'],
       stream: provider as VinUniTextStream,
     })) {
@@ -910,7 +910,7 @@ describe('VinUni V2 two-pass stream', () => {
       context,
       config: VINUNI_EVALUATION_CONFIG_V2,
       apiKey: 'key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       stream: provider as VinUniTextStream,
     })) {
       events.push(event);

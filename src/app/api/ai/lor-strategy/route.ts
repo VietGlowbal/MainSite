@@ -38,7 +38,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'AI service not configured.' }, { status: 500 });
   }
@@ -92,7 +92,7 @@ Return JSON only with this exact shape:
   });
 
   try {
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -100,12 +100,11 @@ Return JSON only with this exact shape:
       },
       signal: AbortSignal.any([request.signal, AbortSignal.timeout(60_000)]),
       body: JSON.stringify({
-        model: process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro',
+        model: process.env.OPENAI_MODEL || 'gpt-4o',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        thinking: { type: 'disabled' },
         temperature: 0.3,
         max_tokens: 3_500,
         response_format: { type: 'json_object' },
