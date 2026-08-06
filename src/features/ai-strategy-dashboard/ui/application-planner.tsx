@@ -1,6 +1,6 @@
 'use client';
 
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 import type { ProgressStatus, Recommendation } from '../domain';
 import {
@@ -35,7 +35,7 @@ import { usePlannerRecommendations } from './use-planner-recommendations';
  * columns and one full. The control is hidden rather than ignored on that
  * view, so it never looks like it is on and doing nothing.
  *
- * ─── THE VIEW LIVES IN THE URL ───────────────────────────────────────────────
+ * ─── THE VIEW LIVES IN THE URL — BUT SWITCHING IT NEVER ASKS THE SERVER ─────
  *
  * `?view=calendar`. It was local state, on the reasoning that the three views
  * are one plan seen three ways rather than three destinations. That reasoning
@@ -43,10 +43,22 @@ import { usePlannerRecommendations } from './use-planner-recommendations';
  * to the router, the ONLY way to a board was to open the planner and find the
  * control, so nothing could link to it and nobody could bookmark it.
  *
- * `router.replace`, not `push`: flipping between views is looking at one thing,
- * and a student who clicked all three should not have to press Back three times
- * to leave. `scroll: false` because the page must not jump to the top when the
- * view under the cursor changes.
+ * `window.history.replaceState`, NOT `router.replace`. This page is dynamic —
+ * it reads the signed-in user and reconciles recommendations against the
+ * latest Course Match Analysis on every load — so `router.replace` (which
+ * goes through the Next.js Router and re-fetches the Server Component payload
+ * for the new URL) re-ran that entire pipeline just to swap which client
+ * component was showing, and a student switching tabs felt every one of those
+ * round trips. All three views already render from the same client-side
+ * `liveRecommendations` below; switching between them is not new data and
+ * never needed the server at all. `window.history.replaceState` is the
+ * pattern Next.js documents for exactly this — updating the URL so it stays
+ * linkable and bookmarkable, without a Router navigation. `usePathname` and
+ * `useSearchParams` still pick up the change because Next patches into the
+ * History API, so `view` below re-reads correctly with no extra wiring.
+ * `replaceState`, not `pushState`, for the same reason it was `replace` before:
+ * flipping between views is looking at one thing, and a student who clicked
+ * all three should not have to press Back three times to leave.
  *
  * ─── `today` IS A PROP ───────────────────────────────────────────────────────
  *
@@ -73,7 +85,6 @@ export function ApplicationPlanner({
   recommendations: readonly Recommendation[];
   today: Date;
 }) {
-  const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const view = parsePlannerView(searchParams.get(PLANNER_VIEW_PARAM));
@@ -98,7 +109,7 @@ export function ApplicationPlanner({
     else params.set(PLANNER_VIEW_PARAM, next);
 
     const query = params.toString();
-    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+    window.history.replaceState(null, '', query ? `${pathname}?${query}` : pathname);
   }
 
   const filtered = useMemo(() => {
