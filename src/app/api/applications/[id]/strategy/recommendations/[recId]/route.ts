@@ -5,8 +5,11 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * PATCH /api/applications/[id]/strategy/recommendations/[recId]
  *
- * Progress Tracker (requirements.md Requirement 13): set one of the five
- * Progress_Status values on a recommendation the student owns.
+ * The one write path for a recommendation's mutable, student-owned fields —
+ * `status` (Progress Tracker, requirements.md Requirement 13), `deadline`
+ * (set from the list or dragged on the calendar), and `contentValue` (the
+ * detail page's content block — see `recommendationPatchSchema`'s doc
+ * comment for why all three live in one schema/route rather than three).
  */
 export const runtime = 'nodejs';
 
@@ -45,12 +48,14 @@ export async function PATCH(
     );
   }
 
-  /* Only the fields actually sent are written. The board patches a status and
-     the calendar patches a deadline; spreading both unconditionally would let
-     a stale `undefined` from one view wipe a change just made in the other. */
+  /* Only the fields actually sent are written. The board patches a status,
+     the calendar patches a deadline, the detail page's content block patches
+     contentValue; spreading all three unconditionally would let a stale
+     `undefined` from one caller wipe a change just made by another. */
   const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (parsed.data.status !== undefined) patch.status = parsed.data.status;
   if (parsed.data.deadline !== undefined) patch.deadline = parsed.data.deadline;
+  if (parsed.data.contentValue !== undefined) patch.content_value = parsed.data.contentValue;
 
   const { data: updated, error } = await supabase
     .from('application_recommendations')

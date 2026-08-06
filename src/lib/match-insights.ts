@@ -68,6 +68,52 @@ export type ImprovementActionType =
   | 'book_mentor'
   | 'none';
 
+/**
+ * Content Block — the genUI vocabulary for a recommendation's detail page.
+ *
+ * Deliberately a CLOSED, three-member union rather than free-form generated
+ * markup: the model picks one of three known-good shapes and fills in that
+ * shape's fields, it never invents layout. This is the same discipline
+ * `actionType` already applies to "what happens when you click the primary
+ * button" — here it's "what does the body of the page look like".
+ *
+ * `null` when the task is completed elsewhere entirely (`actionType` is
+ * `internal_route`/`external_url`/`book_mentor` — the Statement Writer, the
+ * CV builder, a mentor booking) — there is nothing to fill in on this page,
+ * only a brief and a link to the tool that does the work.
+ */
+export const CONTENT_BLOCK_TYPES = ['structured_table', 'long_text', 'checklist'] as const;
+export type ContentBlockType = (typeof CONTENT_BLOCK_TYPES)[number];
+
+export type ContentBlockColumnType = 'text' | 'number' | 'date' | 'select';
+
+export type ContentBlockColumn = {
+  /** Stable key for this column's cells — becomes a key in each row of `ContentBlockValue['rows']`. */
+  key: string;
+  label: string;
+  type: ContentBlockColumnType;
+  /** Only meaningful when `type` is `'select'`. */
+  options?: string[];
+};
+
+export type ContentBlock =
+  /** Repeatable rows — courses, activities, projects, awards: anything that's a LIST of similar entries. */
+  | { type: 'structured_table'; columns: ContentBlockColumn[] }
+  /** A single narrative answer — motivation, impact, personal story: anything that doesn't decompose into rows. */
+  | { type: 'long_text'; prompt: string; minWords?: number }
+  /** Discrete steps to complete rather than content to write, e.g. "request official transcripts". */
+  | { type: 'checklist'; items: string[] };
+
+/**
+ * The student's saved answer for a `ContentBlock`, shaped to match it.
+ * `null` until the student has saved anything.
+ */
+export type ContentBlockValue =
+  | { type: 'structured_table'; rows: Record<string, string>[] }
+  | { type: 'long_text'; text: string }
+  /** The subset of `ContentBlock['items']` (by exact text) the student has ticked. */
+  | { type: 'checklist'; checkedItems: string[] };
+
 export type ImprovementAction = {
   id: string;
   pillar: PillarKey;
@@ -79,6 +125,14 @@ export type ImprovementAction = {
   estimatedUplift: number;
   actionType: ImprovementActionType;
   actionTarget?: string;
+  /** See `ContentBlock`'s doc comment — the detail page's genUI body, or null when a tool handles it. */
+  contentBlock: ContentBlock | null;
+  /** The "What to submit" checklist on the detail page. */
+  submitChecklist: string[];
+  /** The "Tips" accordion on the detail page. */
+  tips: string[];
+  /** Starter chips for the AI Coach panel, e.g. "What results should I include?". */
+  suggestedQuestions: string[];
 };
 
 export type PillarBreakdown = {

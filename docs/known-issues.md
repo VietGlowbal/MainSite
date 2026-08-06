@@ -241,6 +241,35 @@ attaching proof for" list so the UI never asks a student to do something the
 form will not let them do. Closing it means an `evidence_key` column on
 `student_activities` and an upload control on the activities form.
 
+## 0d. `application_recommendations` genUI columns — the detail-page content block
+
+The repository contains `supabase-strategy-recommendation-content-blocks.sql`
+(five `ADD COLUMN IF NOT EXISTS`: `content_schema`, `content_value`,
+`submit_checklist`, `tips`, `suggested_questions`). Written 2026-08-06,
+**never run against production** — verify before deciding whether the owner
+must run it:
+
+```sql
+select column_name from information_schema.columns
+where table_name = 'application_recommendations'
+  and column_name in ('content_schema', 'content_value', 'submit_checklist', 'tips', 'suggested_questions');
+```
+should return all five.
+
+Until it runs, `generateRecommendations` fails inserting/updating any
+recommendation with PostgREST `PGRST204` (`logMigrationHint` in
+`src/features/ai-strategy-dashboard/api/generate-recommendations.ts` now
+names both this file and `supabase-strategy-recommendation-fields.sql` on
+that code, same diagnosis pattern as §1c).
+
+**Reading does not need the migration to have run for existing rows** — a row
+written before these columns existed just has them `NULL`, and
+`recommendationFromRow` (`domain/recommendation.ts`) treats a missing/malformed
+`content_schema`/`content_value` the same as a genuinely absent one (`null`,
+via `parseContentBlock`/`parseContentBlockValue`): the detail page renders the
+brief with no content block rather than throwing. Only inserting/updating a
+recommendation is blocked until the columns exist.
+
 ## 1. FIXED 2026-07-27 — `public.user_universities` migration applied
 
 Was: PostgREST answered `Could not find the table 'public.user_universities' in

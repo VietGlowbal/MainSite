@@ -18,10 +18,23 @@ type Row = { id?: string; role: 'user' | 'assistant'; content: string; createdAt
 export function AiCoachPanel({
   applicationId,
   recommendationId,
+  suggestedQuestions,
 }: {
   applicationId: string;
   recommendationId: string;
+  /**
+   * Starter chips shown before the conversation begins. Defaults to the
+   * four generic `COACH_SEED_INTENTS` — a task's own AI-generated
+   * `suggestedQuestions` (see `ContentBlock`'s doc comment in
+   * `@/lib/match-insights`) take over when there are any, since "What
+   * results should I include?" is a more useful first tap on THIS task than
+   * a generic "How do I improve this?".
+   */
+  suggestedQuestions?: readonly string[];
 }) {
+  const seedIntents = suggestedQuestions && suggestedQuestions.length > 0
+    ? suggestedQuestions
+    : COACH_SEED_INTENTS;
   const [messages, setMessages] = useState<Row[]>([]);
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
@@ -88,7 +101,7 @@ export function AiCoachPanel({
     <div className="flex flex-col gap-gb-lg">
       {loaded && messages.length === 0 ? (
         <div className="flex flex-wrap gap-gb-md">
-          {COACH_SEED_INTENTS.map((intent) => (
+          {seedIntents.map((intent) => (
             <Button key={intent} variant="secondary" size="sm" onClick={() => send(intent)}>
               {intent}
             </Button>

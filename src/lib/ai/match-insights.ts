@@ -9,8 +9,12 @@
 // ============================================================================
 
 import {
+  CONTENT_BLOCK_TYPES,
   MATCH_PILLARS,
   PILLAR_ORDER,
+  type ContentBlock,
+  type ContentBlockColumn,
+  type ContentBlockColumnType,
   type MatchInsights,
   type MatchInputsPresent,
   type PillarBreakdown,
@@ -93,6 +97,13 @@ SCORING RULES:
 - "improvements": 1–3 concrete, course-specific actions per pillar. Each has an "estimatedUplift" (points it would add to THAT pillar, 0–40) and an "actionType" from: ${VALID_ACTION_TYPES.join(', ')}. Use "upload_document" when the fix is to provide/upload a CV or essay; "book_mentor" for getting expert review; "none" otherwise. Sum of a pillar's uplifts should not exceed (max - current).
 - Reward specific, quantified, lived evidence. Penalise generic claims with no proof.
 
+EACH IMPROVEMENT ALSO BUILDS ITS OWN TASK PAGE. Every improvement becomes a task the candidate opens and works through, and you choose what that page looks like from a FIXED set of three content blocks — never invent a layout, only pick one of these three and fill it in, or use none:
+- "structured_table": the task is a LIST of similar entries (courses, activities, projects, awards). Declare 3–6 "columns", each { "key": "<short_snake_case>", "label": "<column header>", "type": "text | number | date | select", "options": [only for type "select"] }.
+- "long_text": the task is ONE narrative answer (motivation, impact, personal story) that doesn't decompose into rows. Declare a "prompt" (what to write about, 1 sentence) and an optional "minWords".
+- "checklist": the task is a set of 2–5 discrete STEPS to complete (e.g. "request official transcripts"), not content to write. Declare "items" as short imperative strings.
+- Use "contentBlock": null whenever "actionType" is "internal_route", "external_url", or "book_mentor" — the task is completed in another tool (the Statement Writer, the CV builder, a mentor booking), so its page needs no inline content block, only the brief and the link to that tool.
+- Also give each improvement: "submitChecklist" (1–4 short strings — what evidence/content counts as done, for a "What to submit" list), "tips" (1–3 short strings of practical advice), and "suggestedQuestions" (2–4 short first-person questions a candidate might ask an AI coach about this specific task, e.g. "What results should I include?").
+
 PROGRAMME FIT (F5) — separate from the document-match pillars:
 - Evaluate exactly five dimensions on a 1–5 rubric: academic competitiveness, persona–programme alignment, financial feasibility, career direction alignment, application readiness.
 - A missing metric is not neutral. Set status "not_available", score null, explain the limitation, and do not fabricate a value.
@@ -107,7 +118,7 @@ Respond with VALID JSON ONLY (no markdown, no commentary) matching exactly:
 {
   "confidence": <0-100 — how much real evidence backed this analysis>,
   "pillars": {
-    "academic":   { "assessed": <bool>, "current": <0-100>, "max": <0-100>, "verdict": "<2-4 words>", "summary": "<1-2 sentences>", "evidenceQuotes": ["..."], "strengths": ["..."], "gaps": ["..."], "improvements": [ { "label": "<imperative>", "detail": "<why/how>", "estimatedUplift": <0-40>, "actionType": "<type>", "actionTarget": "<optional route/url or empty>" } ] },
+    "academic":   { "assessed": <bool>, "current": <0-100>, "max": <0-100>, "verdict": "<2-4 words>", "summary": "<1-2 sentences>", "evidenceQuotes": ["..."], "strengths": ["..."], "gaps": ["..."], "improvements": [ { "label": "<imperative>", "detail": "<why/how>", "estimatedUplift": <0-40>, "actionType": "<type>", "actionTarget": "<optional route/url or empty>", "contentBlock": { "type": "structured_table | long_text | checklist", "...": "the fields for that type, see above" } | null, "submitChecklist": ["..."], "tips": ["..."], "suggestedQuestions": ["..."] } ] },
     "activities": { ...same shape... },
     "essays":     { ...same shape... },
     "impact":     { ...same shape... },
@@ -190,6 +201,56 @@ function toStringArray(v: unknown, max: number): string[] {
   return v.filter((x): x is string => typeof x === 'string' && x.trim().length > 0).slice(0, max);
 }
 
+const VALID_COLUMN_TYPES: ContentBlockColumnType[] = ['text', 'number', 'date', 'select'];
+
+function normalizeContentBlockColumns(v: unknown): ContentBlockColumn[] {
+  if (!Array.isArray(v)) return [];
+  const columns: ContentBlockColumn[] = [];
+  for (const raw of v.slice(0, 6)) {
+    const r = (raw ?? {}) as Record<string, unknown>;
+    const key = typeof r.key === 'string' ? r.key.trim().slice(0, 40) : '';
+    const label = typeof r.label === 'string' ? r.label.trim().slice(0, 60) : '';
+    if (!key || !label) continue;
+    const type = VALID_COLUMN_TYPES.includes(r.type as ContentBlockColumnType)
+      ? (r.type as ContentBlockColumnType)
+      : 'text';
+    const options = type === 'select' ? toStringArray(r.options, 12) : [];
+    columns.push(options.length > 0 ? { key, label, type, options } : { key, label, type });
+  }
+  return columns;
+}
+
+/**
+ * `contentBlock` is forced to `null` whenever `actionType` routes the task to
+ * another tool (the prompt already says so, but the model restating
+ * "actionType": "internal_route" and still filling in a contentBlock is
+ * exactly the kind of prompt-compliance slip normalisation exists to catch,
+ * not trust) — enforced here rather than left to the caller.
+ */
+function normalizeContentBlock(v: unknown, actionType: ImprovementActionType): ContentBlock | null {
+  if (actionType === 'internal_route' || actionType === 'external_url' || actionType === 'book_mentor') {
+    return null;
+  }
+  if (v === null || typeof v !== 'object') return null;
+  const r = v as Record<string, unknown>;
+  if (!CONTENT_BLOCK_TYPES.includes(r.type as ContentBlock['type'])) return null;
+
+  if (r.type === 'structured_table') {
+    const columns = normalizeContentBlockColumns(r.columns);
+    return columns.length > 0 ? { type: 'structured_table', columns } : null;
+  }
+  if (r.type === 'long_text') {
+    const prompt = typeof r.prompt === 'string' ? r.prompt.trim().slice(0, 200) : '';
+    if (!prompt) return null;
+    const minWords =
+      typeof r.minWords === 'number' && r.minWords > 0 ? Math.round(r.minWords) : undefined;
+    return minWords !== undefined ? { type: 'long_text', prompt, minWords } : { type: 'long_text', prompt };
+  }
+  // 'checklist'
+  const items = toStringArray(r.items, 5);
+  return items.length > 0 ? { type: 'checklist', items } : null;
+}
+
 function normalizeImprovements(v: unknown, pillar: PillarKey): ImprovementAction[] {
   if (!Array.isArray(v)) return [];
   return v.slice(0, 3).map((raw, i) => {
@@ -206,6 +267,10 @@ function normalizeImprovements(v: unknown, pillar: PillarKey): ImprovementAction
       estimatedUplift: Math.min(40, Math.max(0, clampScore(r.estimatedUplift))),
       actionType,
       actionTarget: target,
+      contentBlock: normalizeContentBlock(r.contentBlock, actionType),
+      submitChecklist: toStringArray(r.submitChecklist, 4),
+      tips: toStringArray(r.tips, 3),
+      suggestedQuestions: toStringArray(r.suggestedQuestions, 4),
     };
   });
 }

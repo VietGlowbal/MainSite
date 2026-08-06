@@ -20,6 +20,14 @@ files, tokens only, and verified (see [verification.md](verification.md)).
   Statement. LOR remains separate by design.
 - Planner list/calendar/board edits share optimistic state, and view switching
   updates `?view=` without a server navigation.
+- The recommendation detail page's body is now genUI from a fixed
+  vocabulary: match-insights' AI call declares one `contentBlock` per
+  improvement (`structured_table` / `long_text` / `checklist`, or `null`
+  when the task routes to a tool instead) alongside `submitChecklist`,
+  `tips`, and `suggestedQuestions` (seeds the AI Coach's starter chips). See
+  `ContentBlock` in `src/lib/match-insights.ts` and `docs/known-issues.md
+  §0d` for the still-unrun migration
+  (`supabase-strategy-recommendation-content-blocks.sql`) this depends on.
 - CV Builder generation, target-profile generation, and review use OpenAI and
   English source copy; Vietnamese is provided through the dictionary.
 - `/how-it-works` and `/ai-strategy` are separate pages. The global nav points to

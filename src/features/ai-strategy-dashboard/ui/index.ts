@@ -22,3 +22,11 @@ export { ApplicationPlanner } from './application-planner';
 export { ProgressStatusControl } from './progress-status-control';
 export { EvidenceUpload } from './evidence-upload';
 export { AiCoachPanel } from './ai-coach-panel';
+export { ContentBlockInput } from './content-block';
+/**
+ * The detail page needs the same category/priority pill mappings the
+ * planner table and board already use, so a task's chips can't read
+ * differently on its own page than they do everywhere else it's listed —
+ * see `planner-shared.tsx`'s own header comment.
+ */
+export { PRIORITY_LABEL, PRIORITY_VARIANT, categoryLabel, categoryVariant, formatDate } from './planner-shared';
