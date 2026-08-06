@@ -5,13 +5,13 @@ const {
   loadCvBuilderContextMock,
   streamCvBuilderGenerationMock,
   validateTargetProfileMock,
-  streamDeepSeekTextMock,
+  streamOpenAITextMock,
 } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
   loadCvBuilderContextMock: vi.fn(),
   streamCvBuilderGenerationMock: vi.fn(),
   validateTargetProfileMock: vi.fn((value) => value),
-  streamDeepSeekTextMock: vi.fn(),
+  streamOpenAITextMock: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: createClientMock }));
@@ -28,7 +28,7 @@ vi.mock('@/lib/ai/cv-builder', async (importOriginal) => {
   };
 });
 vi.mock('@/lib/ai/vinuni-grounded-evaluation', () => ({
-  streamDeepSeekText: streamDeepSeekTextMock,
+  streamOpenAIText: streamOpenAITextMock,
 }));
 
 import { POST } from './route';
@@ -53,8 +53,8 @@ const form = {
 describe('POST cv-builder/generate', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('DEEPSEEK_API_KEY', 'deepseek-key');
-    vi.stubEnv('DEEPSEEK_MODEL', 'deepseek-v4-pro');
+    vi.stubEnv('OPENAI_API_KEY', 'openai-key');
+    vi.stubEnv('OPENAI_MODEL', 'gpt-4o');
     createClientMock.mockResolvedValue({
       auth: {
         getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } } })),
@@ -73,7 +73,7 @@ describe('POST cv-builder/generate', () => {
     });
   });
 
-  it('streams validated generated sections through DeepSeek', async () => {
+  it('streams validated generated sections through OpenAI', async () => {
     const response = await POST(
       new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
         method: 'POST',
@@ -91,14 +91,14 @@ describe('POST cv-builder/generate', () => {
     expect(events.map(({ type }) => type)).toEqual(['section', 'complete']);
     expect(streamCvBuilderGenerationMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        apiKey: 'deepseek-key',
-        model: 'deepseek-v4-pro',
-        stream: streamDeepSeekTextMock,
+        apiKey: 'openai-key',
+        model: 'gpt-4o',
+        stream: streamOpenAITextMock,
       }),
     );
   });
 
-  it('uses DeepSeek V4 Flash only for clarification improvements', async () => {
+  it('uses gpt-4o-mini only for clarification improvements', async () => {
     await POST(
       new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
         method: 'POST',
@@ -114,7 +114,7 @@ describe('POST cv-builder/generate', () => {
 
     expect(streamCvBuilderGenerationMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'deepseek-v4-flash',
+        model: 'gpt-4o-mini',
         clarification: true,
       }),
     );

@@ -5,13 +5,13 @@ const {
   extractDocumentBytesMock,
   fetchApplicationWorkspaceMock,
   streamCvReviewMock,
-  streamDeepSeekTextMock,
+  streamOpenAITextMock,
 } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
   extractDocumentBytesMock: vi.fn(),
   fetchApplicationWorkspaceMock: vi.fn(),
   streamCvReviewMock: vi.fn(),
-  streamDeepSeekTextMock: vi.fn(),
+  streamOpenAITextMock: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: createClientMock }));
@@ -25,7 +25,7 @@ vi.mock('@/lib/ai/cv-review', () => ({
   streamCvReview: streamCvReviewMock,
 }));
 vi.mock('@/lib/ai/vinuni-grounded-evaluation', () => ({
-  streamDeepSeekText: streamDeepSeekTextMock,
+  streamOpenAIText: streamOpenAITextMock,
 }));
 
 import { POST } from './route';
@@ -47,8 +47,8 @@ function jsonRequest(text = cvText) {
 describe('POST /api/applications/[id]/cv-review', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.stubEnv('DEEPSEEK_API_KEY', 'deepseek-key');
-    vi.stubEnv('DEEPSEEK_MODEL', '');
+    vi.stubEnv('OPENAI_API_KEY', 'openai-key');
+    vi.stubEnv('OPENAI_MODEL', '');
     createClientMock.mockResolvedValue({
       auth: {
         getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } } })),
@@ -80,7 +80,7 @@ describe('POST /api/applications/[id]/cv-review', () => {
     });
   });
 
-  it('authenticates, derives target context and streams NDJSON through DeepSeek', async () => {
+  it('authenticates, derives target context and streams NDJSON through OpenAI', async () => {
     const response = await POST(jsonRequest(), context);
     const events = (await response.text())
       .trim()
@@ -95,9 +95,9 @@ describe('POST /api/applications/[id]/cv-review', () => {
     expect(streamCvReviewMock).toHaveBeenCalledWith(
       expect.objectContaining({
         cvText,
-        apiKey: 'deepseek-key',
-        model: 'deepseek-v4-pro',
-        stream: streamDeepSeekTextMock,
+        apiKey: 'openai-key',
+        model: 'gpt-4o',
+        stream: streamOpenAITextMock,
         targetProfile: {
           universityName: 'VinUniversity',
           programmeName: 'BSc Computer Science',
@@ -162,7 +162,7 @@ describe('POST /api/applications/[id]/cv-review', () => {
     expect(response.status).toBe(400);
   });
 
-  it('rejects oversized pasted CV text before sending it to DeepSeek', async () => {
+  it('rejects oversized pasted CV text before sending it to OpenAI', async () => {
     const response = await POST(jsonRequest('A'.repeat(15_001)), context);
 
     expect(response.status).toBe(413);

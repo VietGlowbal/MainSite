@@ -84,22 +84,22 @@ const generatedCv: GeneratedCvV1 = {
   ],
   assessment: {
     strengths: ['Builder', 'Analytical', 'Collaborative'],
-    missingSignals: ['Thiếu kết quả cụ thể.'],
-    improvementActions: ['Bổ sung tác động.'],
+    missingSignals: ['Missing a concrete result.'],
+    improvementActions: ['Add impact.'],
     followUpQuestions: [
       {
         id: 'Q001',
         evidenceId: 'K001',
         targetSection: 'projects',
-        question: 'Dự án đã giúp được bao nhiêu người?',
-        reason: 'Bullet hiện chưa có tác động rõ.',
+        question: 'How many people did the project help?',
+        reason: 'The bullet currently has no clear impact.',
       },
       {
         id: 'Q002',
         evidenceId: 'K002',
         targetSection: 'projects',
-        question: 'Bạn đã tự làm phần nào trong dự án?',
-        reason: 'Vai trò cá nhân chưa rõ.',
+        question: 'Which part of the project did you build yourself?',
+        reason: 'The individual role is unclear.',
       },
     ],
   },
@@ -108,7 +108,7 @@ const generatedCv: GeneratedCvV1 = {
 };
 
 const unavailable = {
-  text: 'Chưa đủ dữ liệu',
+  text: 'Not enough data',
   status: 'unavailable' as const,
   sourceRefs: [],
 };
@@ -133,36 +133,36 @@ const targetProfile: CvTargetProfileV1 = {
     {
       id: 'S001',
       label: 'Problem solving',
-      description: 'CV cần chứng minh cách bạn giải quyết một vấn đề cụ thể.',
-      evidenceExamples: ['Một dự án có mô tả cách làm và kết quả'],
+      description: 'The CV needs to prove how you solve a specific problem.',
+      evidenceExamples: ['A project describing the approach and the outcome'],
       sourceRefs: ['course:subject'],
     },
     {
       id: 'S002',
       label: 'Programming',
-      description: 'CV cần có dẫn chứng về khả năng lập trình thực tế.',
-      evidenceExamples: ['Sản phẩm hoặc công cụ bạn đã xây dựng'],
+      description: 'The CV needs evidence of real programming ability.',
+      evidenceExamples: ['A product or tool you built'],
       sourceRefs: ['course:subject'],
     },
     {
       id: 'S003',
       label: 'Collaboration',
-      description: 'CV cần chứng minh bạn có thể làm việc cùng người khác.',
-      evidenceExamples: ['Vai trò cụ thể trong một nhóm'],
+      description: 'The CV needs to prove you can work with others.',
+      evidenceExamples: ['A specific role within a team'],
       sourceRefs: ['university:best_for'],
     },
     {
       id: 'S004',
       label: 'Academic readiness',
-      description: 'CV cần thể hiện nền tảng học tập phù hợp.',
-      evidenceExamples: ['Môn học hoặc dự án học thuật liên quan'],
+      description: 'The CV needs to show a suitable academic foundation.',
+      evidenceExamples: ['A relevant subject or academic project'],
       sourceRefs: ['course:entry_requirements_summary'],
     },
     {
       id: 'S005',
       label: 'Career direction',
-      description: 'CV cần kết nối trải nghiệm với định hướng nghề nghiệp.',
-      evidenceExamples: ['Trải nghiệm liên quan đến ngành dự định theo đuổi'],
+      description: 'The CV needs to connect experience to the career direction.',
+      evidenceExamples: ['Experience relevant to the intended career field'],
       sourceRefs: ['profile:career_interests'],
     },
   ],
@@ -196,10 +196,10 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'CV cần chứng minh' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'What the CV needs to prove' })).toBeVisible();
     expect(screen.getAllByText('Problem solving')).toHaveLength(2);
-    expect(screen.queryByText(/đã có dẫn chứng/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/còn thiếu tín hiệu/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/has evidence/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/missing signal/i)).not.toBeInTheDocument();
   });
 
   it('opens the content step and enforces five contributions per entry', async () => {
@@ -213,7 +213,7 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Nội dung/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Content/ }));
     expect(screen.getByRole('button', { name: '+ Contribution (5/5)' })).toBeDisabled();
     expect(screen.getAllByLabelText(/Contribution \d/)).toHaveLength(5);
   });
@@ -229,14 +229,14 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Nội dung/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Content/ }));
     await userEvent.click(
-      screen.getByRole('button', { name: 'Xóa nhóm kỹ năng 1' }),
+      screen.getByRole('button', { name: 'Remove skill group 1' }),
     );
 
     expect(screen.queryByDisplayValue('Core skills')).not.toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: '+ Thêm nhóm kỹ năng' }),
+      screen.getByRole('button', { name: '+ Add skill group' }),
     ).toBeVisible();
   });
 
@@ -309,12 +309,12 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Bản CV/ }));
+    await userEvent.click(screen.getByRole('button', { name: /CV Draft/ }));
     expect(
-      await screen.findByRole('heading', { name: 'AI cần bạn bổ sung' }),
+      await screen.findByRole('heading', { name: 'AI needs more from you' }),
     ).toBeVisible();
     expect(
-      screen.getByLabelText('Dự án đã giúp được bao nhiêu người?'),
+      screen.getByLabelText('How many people did the project help?'),
     ).toBeVisible();
     expect(screen.getByRole('article', { name: 'CV Harvard' })).toHaveClass(
       'cv-harvard',
@@ -329,11 +329,11 @@ describe('CvBuilderWorkspace', () => {
     ).toBeGreaterThan(0);
     expect(
       screen.getByRole('textbox', {
-        name: 'Chỉnh sửa tiêu đề University Projects',
+        name: 'Edit University Projects heading',
       }),
     ).toHaveTextContent('University Projects');
     const educationHeader = screen
-      .getByRole('textbox', { name: 'Chỉnh sửa tiêu đề Education' })
+      .getByRole('textbox', { name: 'Edit Education heading' })
       .closest('h2');
     const educationSection = educationHeader?.closest('section');
     const educationEntryHeader = educationSection?.querySelector('h3');
@@ -347,38 +347,38 @@ describe('CvBuilderWorkspace', () => {
       '12px',
     );
     expect(
-      screen.queryByRole('button', { name: 'Sửa trực tiếp trên CV' }),
+      screen.queryByRole('button', { name: 'Edit directly on the CV' }),
     ).not.toBeInTheDocument();
     [
-      'Chỉnh sửa họ tên',
-      'Chỉnh sửa email',
-      'Chỉnh sửa số điện thoại',
-      'Chỉnh sửa địa điểm',
-      'Chỉnh sửa liên kết 1',
-      'Chỉnh sửa tiêu đề Profile',
-      'Chỉnh sửa phần giới thiệu',
-      'Chỉnh sửa tiêu đề Education',
-      'Chỉnh sửa bằng cấp 1',
-      'Chỉnh sửa trường học 1',
-      'Chỉnh sửa ngành học 1',
-      'Chỉnh sửa chi tiết học vấn 1.1',
-      'Chỉnh sửa tiêu đề University Projects',
-      'Chỉnh sửa tiêu đề dự án 1',
-      'Chỉnh sửa tổ chức dự án 1',
-      'Chỉnh sửa thời gian dự án 1',
-      'Chỉnh sửa Robotics project — bullet 1',
-      'Chỉnh sửa tiêu đề Awards',
-      'Chỉnh sửa giải thưởng 1',
-      'Chỉnh sửa đơn vị trao giải 1',
-      'Chỉnh sửa tiêu đề Skills',
-      'Chỉnh sửa tên nhóm kỹ năng 1',
-      'Chỉnh sửa kỹ năng nhóm 1',
+      'Edit full name',
+      'Edit email',
+      'Edit phone number',
+      'Edit location',
+      'Edit link 1',
+      'Edit Profile heading',
+      'Edit the introduction',
+      'Edit Education heading',
+      'Edit qualification 1',
+      'Edit school 1',
+      'Edit field of study 1',
+      'Edit education detail 1.1',
+      'Edit University Projects heading',
+      'Edit project 1 title',
+      'Edit project 1 organization',
+      'Edit project 1 dates',
+      'Edit Robotics project — bullet 1',
+      'Edit Awards heading',
+      'Edit award 1',
+      'Edit award issuer 1',
+      'Edit Skills heading',
+      'Edit skill group name 1',
+      'Edit skills in group 1',
     ].forEach((name) =>
       expect(screen.getByRole('textbox', { name })).toBeVisible(),
     );
 
     const aboutMe = screen.getByRole('textbox', {
-      name: 'Chỉnh sửa phần giới thiệu',
+      name: 'Edit the introduction',
     });
     fireEvent.input(aboutMe, {
       currentTarget: { textContent: 'Applicant building accessible robotics.' },
@@ -387,7 +387,7 @@ describe('CvBuilderWorkspace', () => {
     fireEvent.blur(aboutMe);
     expect(aboutMe).toHaveTextContent('Applicant building accessible robotics.');
     const educationHeading = screen.getByRole('textbox', {
-      name: 'Chỉnh sửa tiêu đề Education',
+      name: 'Edit Education heading',
     });
     fireEvent.input(educationHeading, {
       target: { textContent: 'ACADEMIC BACKGROUND' },
@@ -395,22 +395,22 @@ describe('CvBuilderWorkspace', () => {
     fireEvent.blur(educationHeading);
     expect(educationHeading).toHaveTextContent('ACADEMIC BACKGROUND');
 
-    const reviewButton = screen.getByRole('button', { name: 'Chạy CV Review' });
+    const reviewButton = screen.getByRole('button', { name: 'Run CV Review' });
     const submitButton = screen.getByRole('button', {
-      name: 'Dùng câu trả lời để cải thiện CV',
+      name: 'Use these answers to improve the CV',
     });
     expect(reviewButton).toBeDisabled();
     expect(submitButton).toBeDisabled();
-    expect(screen.getByText('Đã trả lời 0/2 câu')).toBeVisible();
+    expect(screen.getByText('Answered 0/2 questions')).toBeVisible();
 
     await userEvent.type(
-      screen.getByLabelText('Dự án đã giúp được bao nhiêu người?'),
-      '20 học sinh.',
+      screen.getByLabelText('How many people did the project help?'),
+      '20 students.',
     );
     expect(submitButton).toBeDisabled();
     await userEvent.type(
-      screen.getByLabelText('Bạn đã tự làm phần nào trong dự án?'),
-      'Tôi thiết kế và lập trình bộ điều khiển.',
+      screen.getByLabelText('Which part of the project did you build yourself?'),
+      'I designed and programmed the controller.',
     );
     expect(submitButton).toBeEnabled();
     await userEvent.click(submitButton);
@@ -420,19 +420,19 @@ describe('CvBuilderWorkspace', () => {
       JSON.parse(String(vi.mocked(fetch).mock.calls[0]?.[1]?.body)),
     ).toEqual(expect.objectContaining({ mode: 'clarification' }));
     expect(
-      screen.getByRole('button', { name: 'AI đang cải thiện CV…' }),
+      screen.getByRole('button', { name: 'AI is improving the CV…' }),
     ).toBeDisabled();
     expect(
-      screen.queryByText('AI đang chuẩn hóa và sắp xếp CV…'),
+      screen.queryByText('AI is normalizing and arranging the CV…'),
     ).not.toBeInTheDocument();
     finishGenerate();
     await waitFor(() =>
       expect(
-        screen.queryByRole('heading', { name: 'AI cần bạn bổ sung' }),
+        screen.queryByRole('heading', { name: 'AI needs more from you' }),
       ).not.toBeInTheDocument(),
     );
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Chạy CV Review' })).toBeEnabled(),
+      expect(screen.getByRole('button', { name: 'Run CV Review' })).toBeEnabled(),
     );
     expect(screen.getByRole('article', { name: 'CV Harvard' })).toHaveTextContent(
       '20 students',
@@ -442,13 +442,13 @@ describe('CvBuilderWorkspace', () => {
       () => new Promise<Response>(() => {}),
     );
     await userEvent.click(
-      screen.getByRole('button', { name: 'Chạy CV Review' }),
+      screen.getByRole('button', { name: 'Run CV Review' }),
     );
     expect(
-      screen.getByRole('button', { name: 'AI đang review…' }),
+      screen.getByRole('button', { name: 'AI is reviewing…' }),
     ).toBeDisabled();
     expect(
-      screen.queryByText('AI đang đọc và đánh giá CV…'),
+      screen.queryByText('AI is reading and evaluating the CV…'),
     ).not.toBeInTheDocument();
   }, 10_000);
 
@@ -492,22 +492,22 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Bản CV/ }));
+    await userEvent.click(screen.getByRole('button', { name: /CV Draft/ }));
     await userEvent.type(
-      screen.getByLabelText('Dự án đã giúp được bao nhiêu người?'),
-      '20 học sinh.',
+      screen.getByLabelText('How many people did the project help?'),
+      '20 students.',
     );
     await userEvent.type(
-      screen.getByLabelText('Bạn đã tự làm phần nào trong dự án?'),
-      'Tôi thiết kế và lập trình bộ điều khiển.',
+      screen.getByLabelText('Which part of the project did you build yourself?'),
+      'I designed and programmed the controller.',
     );
     await userEvent.click(
       screen.getByRole('button', {
-        name: 'Dùng câu trả lời để cải thiện CV',
+        name: 'Use these answers to improve the CV',
       }),
     );
     await userEvent.click(
-      await screen.findByRole('button', { name: 'Thử lại phần thiếu' }),
+      await screen.findByRole('button', { name: 'Retry the missing sections' }),
     );
 
     await waitFor(() => expect(fetch).toHaveBeenCalledTimes(2));
@@ -538,8 +538,8 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Bản CV/ }));
-    await userEvent.click(screen.getByRole('button', { name: /Chọn layout/ }));
+    await userEvent.click(screen.getByRole('button', { name: /CV Draft/ }));
+    await userEvent.click(screen.getByRole('button', { name: /Choose layout/ }));
 
     const harvard = screen.getByRole('button', { name: /Harvard/ });
     const aacc = screen.getByRole('button', { name: /AACC/ });
@@ -588,20 +588,20 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Bản CV/ }));
+    await userEvent.click(screen.getByRole('button', { name: /CV Draft/ }));
     const profile = screen.getByRole('region', { name: 'Section Profile' });
     const education = screen.getByRole('region', { name: 'Section Education' });
     expect(profile).toHaveStyle({ order: '0' });
     expect(education).toHaveStyle({ order: '1' });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Đưa Profile xuống' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Move Profile down' }));
     expect(education).toHaveStyle({ order: '0' });
     expect(profile).toHaveStyle({ order: '1' });
 
     const projects = screen.getByRole('region', {
       name: 'Section University Projects',
     });
-    fireEvent.dragStart(screen.getByRole('button', { name: 'Kéo Profile' }));
+    fireEvent.dragStart(screen.getByRole('button', { name: 'Drag Profile' }));
     fireEvent.dragOver(projects);
     expect(profile).toHaveClass('cv-section-dragging');
     expect(projects).toHaveClass('cv-section-drop-target');
@@ -649,15 +649,15 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    await userEvent.click(screen.getByRole('button', { name: /Bản CV/ }));
+    await userEvent.click(screen.getByRole('button', { name: /CV Draft/ }));
     expect(
-      screen.getByRole('toolbar', { name: 'Sắp xếp Education' }),
+      screen.getByRole('toolbar', { name: 'Reorder Education' }),
     ).toBeInTheDocument();
-    const deleteButton = screen.getByRole('button', { name: 'Xóa Education' });
-    expect(deleteButton).toHaveTextContent('Xóa');
+    const deleteButton = screen.getByRole('button', { name: 'Remove Education' });
+    expect(deleteButton).toHaveTextContent('Remove');
 
     await userEvent.click(deleteButton);
-    expect(confirm).toHaveBeenCalledWith('Xóa section Education khỏi CV?');
+    expect(confirm).toHaveBeenCalledWith('Remove the Education section from the CV?');
     expect(
       screen.queryByRole('region', { name: 'Section Education' }),
     ).not.toBeInTheDocument();

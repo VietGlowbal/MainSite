@@ -4,7 +4,7 @@ import {
   isCvBuilderEnabled,
   loadCvBuilderContext,
 } from '@/lib/ai/cv-builder-context';
-import { streamDeepSeekText } from '@/lib/ai/vinuni-grounded-evaluation';
+import { streamOpenAIText } from '@/lib/ai/vinuni-grounded-evaluation';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -35,21 +35,21 @@ export async function POST(
     careerDirection !== undefined &&
     (typeof careerDirection !== 'string' || careerDirection.trim().length > 300)
   ) {
-    return NextResponse.json({ error: 'Định hướng nghề nghiệp không hợp lệ.' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid career direction.' }, { status: 400 });
   }
 
   const { id } = await params;
   const context = await loadCvBuilderContext(id, user);
   if (!context) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'AI service not configured. Set DEEPSEEK_API_KEY in .env.local.' },
+      { error: 'AI service not configured. Set OPENAI_API_KEY in .env.local.' },
       { status: 500 },
     );
   }
-  const model = process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro';
+  const model = process.env.OPENAI_MODEL || 'gpt-4o';
   const startedAt = Date.now();
   const encoder = new TextEncoder();
   const encode = (event: unknown) => encoder.encode(`${JSON.stringify(event)}\n`);
@@ -63,14 +63,14 @@ export async function POST(
           encode({
             type: 'status',
             stage: 'preparing_context',
-            message: 'Đang chuẩn bị dữ liệu hồ sơ và chương trình…',
+            message: 'Preparing profile and programme data…',
           }),
         );
         controller.enqueue(
           encode({
             type: 'status',
             stage: 'building_target',
-            message: 'AI đang xây dựng Target Profile…',
+            message: 'AI is building the Target Profile…',
           }),
         );
         try {
@@ -79,7 +79,7 @@ export async function POST(
             careerDirection,
             apiKey,
             model,
-            stream: streamDeepSeekText,
+            stream: streamOpenAIText,
             signal: abortController.signal,
           });
           controller.enqueue(
@@ -92,7 +92,7 @@ export async function POST(
         } catch (error) {
           if (!abortController.signal.aborted) {
             console.error('CV target profile failed', {
-              provider: 'deepseek',
+              provider: 'openai',
               model,
               code: 'TARGET_PROFILE_FAILED',
               message: error instanceof Error ? error.message : String(error),
@@ -101,7 +101,7 @@ export async function POST(
               encode({
                 type: 'error',
                 code: 'TARGET_PROFILE_FAILED',
-                message: 'Chưa thể tạo Target Profile. Vui lòng thử lại.',
+                message: 'Could not create the Target Profile. Please try again.',
                 retryable: true,
               }),
             );

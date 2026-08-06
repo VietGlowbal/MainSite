@@ -1339,6 +1339,50 @@ export async function openRouterCompletion(
   };
 }
 
+export async function* streamOpenAIText(
+  request: VinUniTextStreamRequest,
+  apiKey: string,
+  signal?: AbortSignal,
+): AsyncGenerator<ProviderStreamChunk> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    let emitted = false;
+    try {
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+        signal,
+        body: JSON.stringify({
+          model: request.model,
+          messages: request.messages,
+          stream: true,
+          stream_options: { include_usage: true },
+          temperature: request.temperature,
+          max_tokens: request.maxTokens,
+        }),
+      });
+      if (!response.ok && (response.status === 429 || response.status >= 500) && attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
+        continue;
+      }
+      for await (const chunk of streamProviderResponse(response)) {
+        emitted = true;
+        yield chunk;
+      }
+      return;
+    } catch (error) {
+      if (
+        signal?.aborted ||
+        (error instanceof Error && error.name === 'AbortError') ||
+        emitted ||
+        attempt === 2
+      ) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt));
+    }
+  }
+}
+
 function validateEvidenceMap(
   evidenceMap: EvidenceMap,
   segments: { evidence_id: string; text: string }[],

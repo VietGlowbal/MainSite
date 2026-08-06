@@ -10,6 +10,7 @@ import {
   type DragEvent,
   type SetStateAction,
 } from 'react';
+import { useT } from '@/lib/i18n';
 import type {
   CvReviewAnalysis,
   CvReviewSectionEvent,
@@ -51,7 +52,7 @@ type AnyStreamEvent =
       timing: { totalMs: number };
     };
 
-const steps = ['Target Profile', 'Nội dung', 'Bản CV', 'Layout & PDF'];
+const steps = ['Target Profile', 'Content', 'CV Draft', 'Layout & PDF'];
 const inputClass =
   'w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-50';
 const cvSectionOrder: CvDisplaySectionKey[] = [
@@ -69,7 +70,7 @@ const cvSectionOrder: CvDisplaySectionKey[] = [
 ];
 
 async function readNdjson(response: Response, onEvent: (event: AnyStreamEvent) => void) {
-  if (!response.body) throw new Error('AI không trả stream.');
+  if (!response.body) throw new Error('The AI did not return a stream.');
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
@@ -150,8 +151,9 @@ function WorkflowProgress({
   cvReady: boolean;
   onChange: (step: number) => void;
 }) {
+  const t = useT();
   return (
-    <nav aria-label="Tiến trình tạo CV" className="mx-auto w-full max-w-4xl print:hidden">
+    <nav aria-label={t('CV creation progress')} className="mx-auto w-full max-w-4xl print:hidden">
       <ol className="grid grid-cols-4">
         {steps.map((label, index) => (
           <li key={label} className="relative">
@@ -187,7 +189,7 @@ function WorkflowProgress({
                   index === step ? 'text-rose-700' : 'text-slate-500',
                 ].join(' ')}
               >
-                {label}
+                {t(label)}
               </span>
             </button>
           </li>
@@ -204,6 +206,7 @@ function TargetProfile({
   profile: CvTargetProfileV1 | null;
   status: string;
 }) {
+  const t = useT();
   if (!profile) {
     return (
       <div className="grid min-h-64 place-items-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-8 text-center">
@@ -214,18 +217,20 @@ function TargetProfile({
             }`}
           />
           <p className="mt-4 text-sm font-semibold text-slate-700">
-            {status || 'Chưa có Target Profile. Hãy nhập định hướng và bắt đầu tạo.'}
+            {status
+              ? t(status)
+              : t('No Target Profile yet. Enter a career direction and start generating.')}
           </p>
         </div>
       </div>
     );
   }
   const insights = [
-    ['Định vị trường', profile.universityDna.positioning],
-    ['Triết lý giáo dục', profile.universityDna.educationalPhilosophy],
-    ['Môi trường', profile.universityDna.environment],
-    ['Mục tiêu chương trình', profile.programmeDna.objectives[0]],
-    ['Năng lực ưu tiên', profile.programmeDna.competencies[0]],
+    ['University positioning', profile.universityDna.positioning],
+    ['Educational philosophy', profile.universityDna.educationalPhilosophy],
+    ['Environment', profile.universityDna.environment],
+    ['Programme objectives', profile.programmeDna.objectives[0]],
+    ['Priority competencies', profile.programmeDna.competencies[0]],
     ['Career alignment', profile.careerAlignment[0]],
   ] as const;
   return (
@@ -240,12 +245,12 @@ function TargetProfile({
           </span>
         ))}
       </div>
-      <h2 className="mt-8 text-sm font-semibold text-slate-950">Thông tin dùng để định hướng CV</h2>
+      <h2 className="mt-8 text-sm font-semibold text-slate-950">{t('Information used to position the CV')}</h2>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {insights.map(([label, insight]) => (
           <article key={label} className="min-h-44 rounded-xl border border-slate-200 bg-white p-5">
             <div className="flex items-center justify-between gap-2">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</h3>
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">{t(label)}</h3>
               <span
                 className={`rounded-full px-2 py-1 text-[10px] font-bold ${
                   insight?.status === 'unavailable'
@@ -257,20 +262,20 @@ function TargetProfile({
               </span>
             </div>
             <p className="mt-3 text-sm leading-6 text-slate-700">
-              {insight?.text ?? 'Chưa đủ dữ liệu'}
+              {insight?.text ?? t('Not enough data')}
             </p>
           </article>
         ))}
       </div>
       {profile.limitations.length > 0 && (
         <p className="mt-4 rounded-xl bg-amber-50 px-4 py-3 text-xs leading-5 text-amber-800">
-          Dữ liệu còn thiếu: {profile.limitations.join(' · ')}
+          {t('Missing data: {items}', { items: profile.limitations.join(' · ') })}
         </p>
       )}
       <section className="mt-6 rounded-xl border border-rose-200 bg-rose-50/40 p-5">
-        <h2 className="text-lg font-semibold text-slate-950">CV cần chứng minh</h2>
+        <h2 className="text-lg font-semibold text-slate-950">{t('What the CV needs to prove')}</h2>
         <p className="mt-1 text-xs leading-5 text-slate-500">
-          Đây là mục tiêu cho CV, chưa phải điểm đánh giá hồ sơ hiện tại.
+          {t('This is the target for the CV, not a score of the current profile.')}
         </p>
         <ol className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {profile.evidenceSignals.map((signal, index) => (
@@ -283,7 +288,7 @@ function TargetProfile({
                   <h3 className="text-sm font-semibold text-slate-950">{signal.label}</h3>
                   <p className="mt-1 text-xs leading-5 text-slate-600">{signal.description}</p>
                   <p className="mt-2 text-[11px] leading-4 text-rose-700">
-                    Dẫn chứng phù hợp: {signal.evidenceExamples.join(' · ')}
+                    {t('Suggested evidence: {items}', { items: signal.evidenceExamples.join(' · ') })}
                   </p>
                 </div>
               </div>
@@ -302,6 +307,7 @@ function FormEditor({
   form: CvBuilderFormV1;
   setForm: Dispatch<SetStateAction<CvBuilderFormV1>>;
 }) {
+  const t = useT();
   const personal = (key: keyof CvBuilderFormV1['personal'], value: string) =>
     setForm((current) => ({
       ...current,
@@ -336,15 +342,15 @@ function FormEditor({
   return (
     <div className="space-y-5">
       <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
-        <SectionTitle number="01">Thông tin cá nhân</SectionTitle>
+        <SectionTitle number="01">{t('Personal information')}</SectionTitle>
         <div className="grid gap-4 sm:grid-cols-2">
-          <Field label="Họ tên" value={form.personal.fullName} onChange={(v) => personal('fullName', v)} />
+          <Field label={t('Full name')} value={form.personal.fullName} onChange={(v) => personal('fullName', v)} />
           <Field label="Email" type="email" value={form.personal.email} onChange={(v) => personal('email', v)} />
-          <Field label="Điện thoại" value={form.personal.phone} onChange={(v) => personal('phone', v)} />
-          <Field label="Địa điểm" value={form.personal.location} onChange={(v) => personal('location', v)} />
+          <Field label={t('Phone')} value={form.personal.phone} onChange={(v) => personal('phone', v)} />
+          <Field label={t('Location')} value={form.personal.location} onChange={(v) => personal('location', v)} />
           <div className="sm:col-span-2">
             <Field
-              label="Links — ngăn cách bằng dấu phẩy"
+              label={t('Links — comma separated')}
               value={form.personal.links.join(', ')}
               onChange={(v) => personal('links', v)}
               placeholder="LinkedIn, portfolio, GitHub"
@@ -358,12 +364,12 @@ function FormEditor({
         <div className="space-y-3">
           {form.education.map((item, index) => (
             <div key={item.id} className="grid gap-3 rounded-xl border border-slate-200 bg-white p-4 sm:grid-cols-2">
-              <Field label="Trường" value={item.institution} onChange={(v) => updateEducation(index, 'institution', v)} />
-              <Field label="Bằng cấp" value={item.qualification} onChange={(v) => updateEducation(index, 'qualification', v)} />
-              <Field label="Ngành học" value={item.fieldOfStudy} onChange={(v) => updateEducation(index, 'fieldOfStudy', v)} />
+              <Field label={t('Institution')} value={item.institution} onChange={(v) => updateEducation(index, 'institution', v)} />
+              <Field label={t('Qualification')} value={item.qualification} onChange={(v) => updateEducation(index, 'qualification', v)} />
+              <Field label={t('Field of study')} value={item.fieldOfStudy} onChange={(v) => updateEducation(index, 'fieldOfStudy', v)} />
               <div className="grid grid-cols-2 gap-3">
-                <Field label="Bắt đầu" type="month" value={item.startDate} onChange={(v) => updateEducation(index, 'startDate', v)} />
-                <Field label="Kết thúc" type="month" value={item.endDate} onChange={(v) => updateEducation(index, 'endDate', v)} />
+                <Field label={t('Start')} type="month" value={item.startDate} onChange={(v) => updateEducation(index, 'startDate', v)} />
+                <Field label={t('End')} type="month" value={item.endDate} onChange={(v) => updateEducation(index, 'endDate', v)} />
               </div>
               <button
                 className="text-left text-xs font-semibold text-red-600"
@@ -374,7 +380,7 @@ function FormEditor({
                   }))
                 }
               >
-                Xóa mục này
+                {t('Remove this entry')}
               </button>
             </div>
           ))}
@@ -395,7 +401,7 @@ function FormEditor({
               }))
             }
           >
-            + Thêm education
+            {t('+ Add education')}
           </button>
         </div>
       </section>
@@ -403,14 +409,14 @@ function FormEditor({
       <section className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
         <SectionTitle number="03">Experience Collection</SectionTitle>
         <p className="-mt-2 mb-5 text-sm text-slate-500">
-          Mỗi hoạt động tối đa 5 contributions. Hãy mô tả hành động và kết quả có thật.
+          {t('Each entry allows up to 5 contributions. Describe real actions and results.')}
         </p>
         <div className="space-y-4">
           {form.entries.map((entry, index) => (
             <div key={entry.id} className="rounded-xl border border-slate-200 bg-white p-4">
               <div className="grid gap-3 sm:grid-cols-3">
                 <label className="block text-xs font-semibold text-slate-600">
-                  Loại
+                  {t('Type')}
                   <select
                     className={`${inputClass} mt-1.5`}
                     value={entry.category}
@@ -423,8 +429,8 @@ function FormEditor({
                     <option value="volunteering">Volunteering</option>
                   </select>
                 </label>
-                <Field label="Vai trò / tiêu đề" value={entry.title} onChange={(v) => updateEntry(index, 'title', v)} />
-                <Field label="Tổ chức" value={entry.organization} onChange={(v) => updateEntry(index, 'organization', v)} />
+                <Field label={t('Role / title')} value={entry.title} onChange={(v) => updateEntry(index, 'title', v)} />
+                <Field label={t('Organization')} value={entry.organization} onChange={(v) => updateEntry(index, 'organization', v)} />
               </div>
               <div className="mt-4 space-y-3">
                 {entry.contributions.map((contribution, contributionIndex) => (
@@ -480,7 +486,7 @@ function FormEditor({
                       }
                     />
                     <button
-                      aria-label="Xóa contribution"
+                      aria-label={t('Remove contribution')}
                       className="px-2 text-red-500"
                       disabled={entry.contributions.length === 1}
                       onClick={() =>
@@ -536,7 +542,7 @@ function FormEditor({
                     }))
                   }
                 >
-                  Xóa hoạt động
+                  {t('Remove entry')}
                 </button>
               </div>
             </div>
@@ -558,7 +564,7 @@ function FormEditor({
               }))
             }
           >
-            + Thêm trải nghiệm
+            {t('+ Add entry')}
           </button>
         </div>
       </section>
@@ -569,7 +575,7 @@ function FormEditor({
           {form.awards.map((award, index) => (
             <div key={award.id} className="mb-3 rounded-xl border border-slate-200 bg-white p-4">
               <Field
-                label="Giải thưởng"
+                label={t('Award')}
                 value={award.title}
                 onChange={(value) =>
                   setForm((current) => ({
@@ -589,7 +595,7 @@ function FormEditor({
                   }))
                 }
               >
-                Xóa
+                {t('Remove')}
               </button>
             </div>
           ))}
@@ -602,7 +608,7 @@ function FormEditor({
               }))
             }
           >
-            + Thêm award
+            {t('+ Add award')}
           </button>
         </div>
         <div className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 sm:p-6">
@@ -612,7 +618,7 @@ function FormEditor({
               <div className="mb-3 flex justify-end">
                 <button
                   type="button"
-                  aria-label={`Xóa nhóm kỹ năng ${index + 1}`}
+                  aria-label={t('Remove skill group {index}', { index: index + 1 })}
                   className="rounded-full border border-rose-200 bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100"
                   onClick={() =>
                     setForm((current) => ({
@@ -623,11 +629,11 @@ function FormEditor({
                     }))
                   }
                 >
-                  Xóa nhóm
+                  {t('Remove group')}
                 </button>
               </div>
               <Field
-                label="Nhóm"
+                label={t('Group')}
                 value={group.label}
                 onChange={(value) =>
                   setForm((current) => ({
@@ -640,7 +646,7 @@ function FormEditor({
               />
               <div className="mt-3">
                 <Field
-                  label="Kỹ năng — ngăn cách bằng dấu phẩy"
+                  label={t('Skills — comma separated')}
                   value={group.skills.join(', ')}
                   onChange={(value) =>
                     setForm((current) => ({
@@ -671,7 +677,7 @@ function FormEditor({
               }))
             }
           >
-            + Thêm nhóm kỹ năng
+            {t('+ Add skill group')}
           </button>
         </div>
       </section>
@@ -694,6 +700,7 @@ function CvPaper({
   onFormChange?: (form: CvBuilderFormV1) => void;
   onCvChange?: (cv: GeneratedCvV1) => void;
 }) {
+  const t = useT();
   const editable = Boolean(onFormChange || onCvChange);
   const draggedSection = useRef<CvDisplaySectionKey | null>(null);
   const [draggingSection, setDraggingSection] = useState<CvDisplaySectionKey | null>(null);
@@ -723,7 +730,7 @@ function CvPaper({
     onCvChange?.({ ...cv, sectionOrder: next });
   };
   const sectionProps = (section: CvDisplaySectionKey, label: string) => ({
-    'aria-label': `Section ${label}`,
+    'aria-label': t('Section {label}', { label }),
     className: onCvChange
       ? [
           'cv-section-editable',
@@ -765,14 +772,14 @@ function CvPaper({
       <div
         className="cv-section-toolbar print:hidden"
         role="toolbar"
-        aria-label={`Sắp xếp ${label}`}
+        aria-label={t('Reorder {label}', { label })}
       >
         <button
           type="button"
-          aria-label={`Kéo ${label}`}
+          aria-label={t('Drag {label}', { label })}
           className="cv-section-drag"
           draggable
-          title="Kéo để đổi vị trí"
+          title={t('Drag to reorder')}
           onDragStart={() => {
             draggedSection.current = section;
             setDraggingSection(section);
@@ -789,9 +796,9 @@ function CvPaper({
         </button>
         <button
           type="button"
-          aria-label={`Đưa ${label} lên`}
+          aria-label={t('Move {label} up', { label })}
           disabled={index <= 0}
-          title="Đưa lên"
+          title={t('Move up')}
           onClick={() => moveSection(section, index - 1)}
         >
           <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -800,9 +807,9 @@ function CvPaper({
         </button>
         <button
           type="button"
-          aria-label={`Đưa ${label} xuống`}
+          aria-label={t('Move {label} down', { label })}
           disabled={index === visibleSectionOrder.length - 1}
-          title="Đưa xuống"
+          title={t('Move down')}
           onClick={() => moveSection(section, index + 1)}
         >
           <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -812,10 +819,10 @@ function CvPaper({
         <button
           type="button"
           className="cv-section-delete"
-          aria-label={`Xóa ${label}`}
-          title="Xóa section"
+          aria-label={t('Remove {label}', { label })}
+          title={t('Remove section')}
           onClick={() => {
-            if (!window.confirm(`Xóa section ${label} khỏi CV?`)) return;
+            if (!window.confirm(t('Remove the {label} section from the CV?', { label }))) return;
             onCvChange({
               ...cv,
               sectionOrder: visibleSectionOrder.filter((item) => item !== section),
@@ -823,7 +830,7 @@ function CvPaper({
             });
           }}
         >
-          Xóa
+          {t('Remove')}
         </button>
       </div>
     );
@@ -841,7 +848,7 @@ function CvPaper({
       role="textbox"
       suppressContentEditableWarning
       tabIndex={0}
-      title="Nhấp để chỉnh sửa"
+      title={t('Click to edit')}
       onKeyDown={(event) => {
         if (inline && event.key === 'Enter') {
           event.preventDefault();
@@ -879,14 +886,14 @@ function CvPaper({
   ) => {
     const itemLabel =
       section === 'experience'
-        ? 'kinh nghiệm'
+        ? t('experience')
         : section === 'projects'
-          ? 'dự án'
-          : 'hoạt động';
+          ? t('project')
+          : t('activity');
     return items.length ? (
       <section {...sectionProps(section, title)}>
         {sectionToolbar(section, title)}
-        <h2>{editSectionTitle(section, title, `Chỉnh sửa tiêu đề ${title}`)}</h2>
+        <h2>{editSectionTitle(section, title, t('Edit {title} heading', { title }))}</h2>
         {items.map((item, itemIndex) => (
           <article key={item.sourceId}>
             <div className="cv-harvard-entry-row cv-harvard-entry-row--primary">
@@ -895,7 +902,7 @@ function CvPaper({
                   ? editable
                     ? inlineEditor(
                         item.organization,
-                        `Chỉnh sửa tổ chức ${itemLabel} ${itemIndex + 1}`,
+                        t('Edit {itemLabel} {index} organization', { itemLabel, index: itemIndex + 1 }),
                         (value) =>
                           onCvChange?.({
                             ...cv,
@@ -911,7 +918,7 @@ function CvPaper({
                   : editable
                     ? inlineEditor(
                         item.title,
-                        `Chỉnh sửa tiêu đề ${itemLabel} ${itemIndex + 1}`,
+                        t('Edit {itemLabel} {index} title', { itemLabel, index: itemIndex + 1 }),
                         (value) =>
                           onCvChange?.({
                             ...cv,
@@ -930,7 +937,7 @@ function CvPaper({
                   {editable
                     ? inlineEditor(
                         item.title,
-                        `Chỉnh sửa tiêu đề ${itemLabel} ${itemIndex + 1}`,
+                        t('Edit {itemLabel} {index} title', { itemLabel, index: itemIndex + 1 }),
                         (value) =>
                           onCvChange?.({
                             ...cv,
@@ -950,7 +957,7 @@ function CvPaper({
                 {editable
                   ? inlineEditor(
                       item.dates,
-                      `Chỉnh sửa thời gian ${itemLabel} ${itemIndex + 1}`,
+                      t('Edit {itemLabel} {index} dates', { itemLabel, index: itemIndex + 1 }),
                       (value) =>
                         onCvChange?.({
                           ...cv,
@@ -970,7 +977,7 @@ function CvPaper({
                   {editable ? (
                     inlineEditor(
                       bullet.text,
-                      `Chỉnh sửa ${item.title} — bullet ${index + 1}`,
+                      t('Edit {title} — bullet {index}', { title: item.title, index: index + 1 }),
                       (value) =>
                         onCvChange?.({
                           ...cv,
@@ -1013,7 +1020,7 @@ function CvPaper({
           {editable
             ? inlineEditor(
                 form.personal.fullName,
-                'Chỉnh sửa họ tên',
+                t('Edit full name'),
                 (value) =>
                   onFormChange?.({
                     ...form,
@@ -1026,13 +1033,13 @@ function CvPaper({
         <p className="cv-harvard-contact">
           {(
             [
-              ['email', form.personal.email, 'Chỉnh sửa email'],
-              ['phone', form.personal.phone, 'Chỉnh sửa số điện thoại'],
-              ['location', form.personal.location, 'Chỉnh sửa địa điểm'],
+              ['email', form.personal.email, t('Edit email')],
+              ['phone', form.personal.phone, t('Edit phone number')],
+              ['location', form.personal.location, t('Edit location')],
               ...form.personal.links.map((link, index) => [
                 `link:${index}`,
                 link,
-                `Chỉnh sửa liên kết ${index + 1}`,
+                t('Edit link {index}', { index: index + 1 }),
               ]),
             ] as const
           )
@@ -1067,10 +1074,10 @@ function CvPaper({
       </header>
       <section {...sectionProps('profile', 'Profile')}>
         {sectionToolbar('profile', 'Profile')}
-        <h2>{editSectionTitle('profile', 'Profile', 'Chỉnh sửa tiêu đề Profile')}</h2>
+        <h2>{editSectionTitle('profile', 'Profile', t('Edit Profile heading'))}</h2>
         {editable ? (
           <p>
-            {inlineEditor(cv.aboutMe, 'Chỉnh sửa phần giới thiệu', (value) =>
+            {inlineEditor(cv.aboutMe, t('Edit the introduction'), (value) =>
               onCvChange?.({ ...cv, aboutMe: value }),
             )}
           </p>
@@ -1096,7 +1103,7 @@ function CvPaper({
         <section {...sectionProps('education', 'Education')}>
           {sectionToolbar('education', 'Education')}
           <h2>
-            {editSectionTitle('education', 'Education', 'Chỉnh sửa tiêu đề Education')}
+            {editSectionTitle('education', 'Education', t('Edit Education heading'))}
           </h2>
           {cv.education.map((item, itemIndex) => (
             <article key={item.sourceId}>
@@ -1105,7 +1112,7 @@ function CvPaper({
                 {editable
                   ? inlineEditor(
                       item.institution,
-                      `Chỉnh sửa trường học ${itemIndex + 1}`,
+                      t('Edit school {index}', { index: itemIndex + 1 }),
                       (value) =>
                         onCvChange?.({
                           ...cv,
@@ -1125,7 +1132,7 @@ function CvPaper({
                   {editable
                     ? inlineEditor(
                         item.qualification,
-                        `Chỉnh sửa bằng cấp ${itemIndex + 1}`,
+                        t('Edit qualification {index}', { index: itemIndex + 1 }),
                         (value) =>
                           onCvChange?.({
                             ...cv,
@@ -1144,7 +1151,7 @@ function CvPaper({
                     {editable
                       ? inlineEditor(
                           item.dates,
-                          `Chỉnh sửa thời gian học ${itemIndex + 1}`,
+                          t('Edit study dates {index}', { index: itemIndex + 1 }),
                           (value) =>
                             onCvChange?.({
                               ...cv,
@@ -1165,7 +1172,7 @@ function CvPaper({
                   {editable
                     ? inlineEditor(
                         item.fieldOfStudy,
-                        `Chỉnh sửa ngành học ${itemIndex + 1}`,
+                        t('Edit field of study {index}', { index: itemIndex + 1 }),
                         (value) =>
                           onCvChange?.({
                             ...cv,
@@ -1186,7 +1193,7 @@ function CvPaper({
                       {editable
                         ? inlineEditor(
                             detail,
-                            `Chỉnh sửa chi tiết học vấn ${itemIndex + 1}.${detailIndex + 1}`,
+                            t('Edit education detail {index}', { index: `${itemIndex + 1}.${detailIndex + 1}` }),
                             (value) =>
                               onCvChange?.({
                                 ...cv,
@@ -1217,14 +1224,14 @@ function CvPaper({
       {cv.awards.length > 0 && (
         <section {...sectionProps('awards', 'Awards')}>
           {sectionToolbar('awards', 'Awards')}
-          <h2>{editSectionTitle('awards', 'Awards', 'Chỉnh sửa tiêu đề Awards')}</h2>
+          <h2>{editSectionTitle('awards', 'Awards', t('Edit Awards heading'))}</h2>
           {cv.awards.map((award, index) => (
             <p key={award.sourceId}>
               <strong>
                 {editable
                   ? inlineEditor(
                       award.title,
-                      `Chỉnh sửa giải thưởng ${index + 1}`,
+                      t('Edit award {index}', { index: index + 1 }),
                       (value) =>
                         onCvChange?.({
                           ...cv,
@@ -1242,7 +1249,7 @@ function CvPaper({
                   {editable
                     ? inlineEditor(
                         award.issuer,
-                        `Chỉnh sửa đơn vị trao giải ${index + 1}`,
+                        t('Edit award issuer {index}', { index: index + 1 }),
                         (value) =>
                           onCvChange?.({
                             ...cv,
@@ -1262,14 +1269,14 @@ function CvPaper({
       {cv.skillGroups.length > 0 && (
         <section {...sectionProps('skills', 'Skills')}>
           {sectionToolbar('skills', 'Skills')}
-          <h2>{editSectionTitle('skills', 'Skills', 'Chỉnh sửa tiêu đề Skills')}</h2>
+          <h2>{editSectionTitle('skills', 'Skills', t('Edit Skills heading'))}</h2>
           {cv.skillGroups.map((group, index) => (
             <p key={group.sourceId}>
               <strong>
                 {editable
                   ? inlineEditor(
                       group.label,
-                      `Chỉnh sửa tên nhóm kỹ năng ${index + 1}`,
+                      t('Edit skill group name {index}', { index: index + 1 }),
                       (value) =>
                         onCvChange?.({
                           ...cv,
@@ -1285,7 +1292,7 @@ function CvPaper({
               {editable
                 ? inlineEditor(
                     group.skills.join(', '),
-                    `Chỉnh sửa kỹ năng nhóm ${index + 1}`,
+                    t('Edit skills in group {index}', { index: index + 1 }),
                     (value) =>
                       onCvChange?.({
                         ...cv,
@@ -1325,6 +1332,7 @@ export function CvBuilderWorkspace({
   programmeName: string;
   prefill: CvBuilderFormV1;
 }) {
+  const t = useT();
   const storageKey = cvBuilderDraftKey(userId, applicationId);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(prefill);
@@ -1402,7 +1410,7 @@ export function CvBuilderWorkspace({
 
   const buildTarget = async () => {
     const controller = startRequest();
-    setStatus('AI đang chuẩn bị Target Profile…');
+    setStatus('AI is preparing the Target Profile…');
     try {
       const response = await fetch(`/api/applications/${applicationId}/cv-builder/target-profile`, {
         method: 'POST',
@@ -1410,7 +1418,7 @@ export function CvBuilderWorkspace({
         body: JSON.stringify({ careerDirection }),
         signal: controller.signal,
       });
-      if (!response.ok) throw new Error((await response.json()).error ?? 'Không thể tạo Target Profile.');
+      if (!response.ok) throw new Error((await response.json()).error ?? 'Could not create the Target Profile.');
       await readNdjson(response, (event) => {
         if (event.type === 'status') setStatus(event.message);
         else if (event.type === 'complete' && 'targetProfile' in event) {
@@ -1422,7 +1430,7 @@ export function CvBuilderWorkspace({
         }
       });
     } catch (reason) {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Không thể tạo Target Profile.');
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Could not create the Target Profile.');
     } finally {
       if (!controller.signal.aborted) {
         setBusy(false);
@@ -1436,7 +1444,7 @@ export function CvBuilderWorkspace({
     formOverride = form,
     clarificationRound = false,
   ) => {
-    if (!targetProfile) return setError('Hãy tạo Target Profile trước.');
+    if (!targetProfile) return setError('Create a Target Profile first.');
     const validatedForm = CvBuilderFormSchema.safeParse(formOverride);
     if (!validatedForm.success) {
       setStatus('');
@@ -1460,7 +1468,7 @@ export function CvBuilderWorkspace({
     setMissingSections([]);
     setReview(null);
     setReviewEvents([]);
-    setStatus('AI đang chuẩn hóa và sắp xếp CV…');
+    setStatus('AI is normalizing and arranging the CV…');
     setStep(2);
     try {
       const response = await fetch(`/api/applications/${applicationId}/cv-builder/generate`, {
@@ -1474,7 +1482,7 @@ export function CvBuilderWorkspace({
         }),
         signal: controller.signal,
       });
-      if (!response.ok) throw new Error((await response.json()).error ?? 'Không thể tạo CV.');
+      if (!response.ok) throw new Error((await response.json()).error ?? 'Could not create the CV.');
       const received: CvBuilderModelEvent[] = [];
       let receivedComplete = false;
       let rebuiltComplete = false;
@@ -1555,7 +1563,7 @@ export function CvBuilderWorkspace({
         if (clarificationRound) setClarificationAnswers({});
       }
     } catch (reason) {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Không thể tạo CV.');
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Could not create the CV.');
     } finally {
       if (!controller.signal.aborted) {
         setBusy(false);
@@ -1569,7 +1577,7 @@ export function CvBuilderWorkspace({
     const controller = startRequest();
     setReview(null);
     setReviewEvents([]);
-    setStatus('AI đang đánh giá CV hiện tại…');
+    setStatus('AI is evaluating the current CV…');
     window.setTimeout(
       () => reviewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }),
       100,
@@ -1582,7 +1590,7 @@ export function CvBuilderWorkspace({
         body: JSON.stringify({ text }),
         signal: controller.signal,
       });
-      if (!response.ok) throw new Error((await response.json()).error ?? 'Không thể review CV.');
+      if (!response.ok) throw new Error((await response.json()).error ?? 'Could not review the CV.');
       await readNdjson(response, (event) => {
         if (event.type === 'section') setReviewEvents((current) => [...current, event as CvReviewSectionEvent]);
         else if (event.type === 'complete' && 'analysis' in event) setReview(event.analysis);
@@ -1590,7 +1598,7 @@ export function CvBuilderWorkspace({
       });
       setStatus('');
     } catch (reason) {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Không thể review CV.');
+      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Could not review the CV.');
     } finally {
       if (!controller.signal.aborted) setBusy(false);
     }
@@ -1641,10 +1649,10 @@ export function CvBuilderWorkspace({
         const data = event.data as { items?: unknown[]; groups?: unknown[] };
         return {
           title: event.section.replace('_', ' '),
-          text: `${data.items?.length ?? data.groups?.length ?? 0} mục đã hoàn tất`,
+          text: t('{count} items completed', { count: data.items?.length ?? data.groups?.length ?? 0 }),
         };
       }),
-    [partial],
+    [partial, t],
   );
   const followUpQuestions = generatedCv?.assessment.followUpQuestions ?? [];
   const clarificationRequired = followUpQuestions.length > 0;
@@ -1654,8 +1662,8 @@ export function CvBuilderWorkspace({
   const allClarificationsAnswered =
     clarificationRequired &&
     answeredClarificationCount === followUpQuestions.length;
-  const improvingCv = busy && status.includes('chuẩn hóa và sắp xếp CV');
-  const reviewingCv = busy && status.includes('đánh giá CV');
+  const improvingCv = busy && status.includes('normalizing and arranging the CV');
+  const reviewingCv = busy && status.includes('evaluating the current CV');
 
   return (
     <main className="cv-builder-shell min-h-screen bg-white text-slate-950 print:bg-white">
@@ -1727,7 +1735,7 @@ export function CvBuilderWorkspace({
               setStep(0);
             }}
           >
-            Xóa bản nháp trên thiết bị
+            {t('Clear the draft on this device')}
           </button>
         </div>
       </header>
@@ -1737,7 +1745,7 @@ export function CvBuilderWorkspace({
         <div className="mt-10">
           {error && (
             <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 print:hidden">
-              {error}
+              {t(error)}
               {missingSections.length > 0 && (
                 <button
                   className="ml-4 rounded-full border border-red-300 px-3 py-1.5 font-bold"
@@ -1746,7 +1754,7 @@ export function CvBuilderWorkspace({
                     generate(missingSections, form, retryClarification.current)
                   }
                 >
-                  Thử lại phần thiếu
+                  {t('Retry the missing sections')}
                 </button>
               )}
             </div>
@@ -1756,17 +1764,17 @@ export function CvBuilderWorkspace({
             <section className="print:hidden">
               <div className="mx-auto max-w-4xl text-center">
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Target Profile</p>
-                <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">Xác định CV cần chứng minh điều gì.</h2>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{t('Decide what the CV needs to prove.')}</h2>
                 <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-600">
-                  AI chỉ dùng dữ liệu trường, chương trình và hồ sơ có trong Supabase. Phần thiếu sẽ được đánh dấu, không tự bịa.
+                  {t('The AI only uses university, programme and profile data stored in Supabase. Missing pieces are flagged, never invented.')}
                 </p>
                 <label className="mt-8 block text-left text-xs font-semibold text-slate-600">
-                  Định hướng nghề nghiệp (không bắt buộc)
+                  {t('Career direction (optional)')}
                   <textarea
                     className="mt-2 min-h-28 w-full resize-y rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-950 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-50"
                     value={careerDirection}
                     onChange={(event) => setCareerDirection(event.target.value)}
-                    placeholder="Ví dụ: Software Engineer in education technology"
+                    placeholder={t('e.g. Software Engineer in education technology')}
                   />
                 </label>
                 <div className="mt-5 flex flex-wrap justify-center gap-3">
@@ -1775,14 +1783,18 @@ export function CvBuilderWorkspace({
                     disabled={busy}
                     onClick={buildTarget}
                   >
-                    {busy ? 'AI đang làm…' : targetProfile ? 'Tạo lại Target Profile' : 'Tạo Target Profile'}
+                    {busy
+                      ? t('AI is working…')
+                      : targetProfile
+                        ? t('Regenerate Target Profile')
+                        : t('Create Target Profile')}
                   </button>
                   {targetProfile && (
                     <button
                       className="rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:text-rose-700"
                       onClick={() => setStep(1)}
                     >
-                      Tiếp tục nhập nội dung →
+                      {t('Continue to content →')}
                     </button>
                   )}
                 </div>
@@ -1796,23 +1808,23 @@ export function CvBuilderWorkspace({
           {step === 1 && (
             <section className="print:hidden">
               <div className="mb-8">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Nội dung</p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight">Nhập dữ liệu cho CV</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">{t('Content')}</p>
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight">{t('Enter your CV data')}</h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  Kiểm tra thông tin có sẵn và bổ sung trải nghiệm, giải thưởng, kỹ năng của bạn.
+                  {t('Review the existing information and add your experience, awards and skills.')}
                 </p>
               </div>
               <FormEditor form={form} setForm={setForm} />
               <div className="mt-10 flex flex-wrap justify-end gap-3 border-t border-slate-200 pt-6">
                 <button className="rounded-lg border border-slate-300 px-5 py-3 text-sm font-semibold" onClick={() => setStep(0)}>
-                  Quay lại
+                  {t('Back')}
                 </button>
                 <button
                   className="rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
                   disabled={busy || !targetProfile}
                   onClick={() => generate()}
                 >
-                  Tạo CV bằng AI
+                  {t('Generate CV with AI')}
                 </button>
               </div>
             </section>
@@ -1821,19 +1833,19 @@ export function CvBuilderWorkspace({
           {step === 2 && (
             <section className="print:hidden">
               <div className="mb-8">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Bản CV</p>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">{t('CV Draft')}</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-                  {generatedCv ? 'CV đã được tạo. Kiểm tra và chỉnh sửa.' : 'AI đang xây dựng CV của bạn.'}
+                  {generatedCv ? t('Your CV is ready. Review and edit it.') : t('AI is building your CV.')}
                 </h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  Nhấp trực tiếp vào nội dung trong bản CV để chỉnh sửa trước khi review.
+                  {t('Click directly on the CV content to edit it before running a review.')}
                 </p>
               </div>
               {!generatedCv && (
                 <div className="rounded-2xl border border-slate-200 bg-white p-8">
                   <div className="flex items-center gap-3">
                     <span className="h-3 w-3 animate-pulse rounded-full bg-rose-500" />
-                    <p className="font-semibold">{status || 'AI đang làm…'}</p>
+                    <p className="font-semibold">{status ? t(status) : t('AI is working…')}</p>
                   </div>
                   <div className="mt-8 space-y-3">
                     {partialSummary.map((item) => (
@@ -1848,8 +1860,8 @@ export function CvBuilderWorkspace({
               {generatedCv && (
                 <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
                   <aside className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 xl:sticky xl:top-6">
-                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-600">Độ phủ dẫn chứng</p>
-                    <h2 className="mt-3 text-xl font-semibold">3 điểm mạnh</h2>
+                    <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-600">{t('Evidence coverage')}</p>
+                    <h2 className="mt-3 text-xl font-semibold">{t('3 strengths')}</h2>
                     <ol className="mt-5 space-y-3">
                       {generatedCv.assessment.strengths.map((strength, index) => (
                         <li key={strength} className="flex gap-3 text-sm leading-6">
@@ -1859,7 +1871,7 @@ export function CvBuilderWorkspace({
                     </ol>
                     {generatedCv.assessment.missingSignals.length > 0 && (
                       <>
-                        <h3 className="mt-7 font-semibold">Cần bổ sung</h3>
+                        <h3 className="mt-7 font-semibold">{t('Needs more evidence')}</h3>
                         <ul className="mt-3 space-y-2 text-sm text-slate-600">
                           {generatedCv.assessment.missingSignals.map((signal) => <li key={signal}>{signal}</li>)}
                         </ul>
@@ -1867,9 +1879,9 @@ export function CvBuilderWorkspace({
                     )}
                     {(generatedCv.assessment.followUpQuestions?.length ?? 0) > 0 && (
                       <section className="mt-7 border-t border-slate-200 pt-5">
-                        <h3 className="font-semibold">AI cần bạn bổ sung</h3>
+                        <h3 className="font-semibold">{t('AI needs more from you')}</h3>
                         <p className="mt-1 text-xs leading-5 text-slate-500">
-                          Trả lời bằng dữ kiện thật. AI sẽ chỉ viết lại phần liên quan.
+                          {t('Answer with real facts. The AI will only rewrite the affected sections.')}
                         </p>
                         <div className="mt-4 space-y-4">
                           {generatedCv.assessment.followUpQuestions?.map((question) => (
@@ -1897,7 +1909,10 @@ export function CvBuilderWorkspace({
                           ))}
                         </div>
                         <p className="mt-3 text-xs font-semibold text-slate-500">
-                          Đã trả lời {answeredClarificationCount}/{followUpQuestions.length} câu
+                          {t('Answered {count}/{total} questions', {
+                            count: answeredClarificationCount,
+                            total: followUpQuestions.length,
+                          })}
                         </p>
                         <button
                           type="button"
@@ -1910,28 +1925,28 @@ export function CvBuilderWorkspace({
                           onClick={applyClarifications}
                         >
                           {improvingCv
-                            ? 'AI đang cải thiện CV…'
-                            : 'Dùng câu trả lời để cải thiện CV'}
+                            ? t('AI is improving the CV…')
+                            : t('Use these answers to improve the CV')}
                         </button>
                       </section>
                     )}
                     <p className="mt-7 rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600">
-                      Nhấp vào phần giới thiệu hoặc bullet trên CV để chỉnh sửa.
+                      {t('Click the introduction or any bullet on the CV to edit it.')}
                     </p>
                     <button
                       className="mt-7 w-full rounded-lg border border-rose-300 bg-white px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-50 disabled:opacity-50"
                       disabled={busy || clarificationRequired}
                       onClick={reviewCv}
                     >
-                      {reviewingCv ? 'AI đang review…' : 'Chạy CV Review'}
+                      {reviewingCv ? t('AI is reviewing…') : t('Run CV Review')}
                     </button>
                     {clarificationRequired && (
                       <p className="mt-2 text-xs leading-5 text-amber-700">
-                        Hãy trả lời đủ các câu hỏi và tạo lại CV trước khi chạy Review.
+                        {t('Answer every question and regenerate the CV before running Review.')}
                       </p>
                     )}
                     <button className="mt-3 w-full rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-100" onClick={() => setStep(3)}>
-                      Chọn layout →
+                      {t('Choose layout →')}
                     </button>
                   </aside>
                   <div className="overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-4 sm:p-6">
@@ -1947,7 +1962,7 @@ export function CvBuilderWorkspace({
                   </div>
                 </div>
               )}
-              {(status.includes('đánh giá CV') || reviewEvents.length > 0 || review) && (
+              {(status.includes('evaluating the current CV') || reviewEvents.length > 0 || review) && (
                 <div
                   ref={reviewRef}
                   className="mt-8 scroll-mt-6 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7"
@@ -1962,9 +1977,9 @@ export function CvBuilderWorkspace({
             <section className="print:block">
               <div className="mb-8 print:hidden">
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Layout & PDF</p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight">Chọn cách trình bày CV</h2>
+                <h2 className="mt-2 text-3xl font-semibold tracking-tight">{t('Choose how the CV is presented')}</h2>
                 <p className="mt-2 text-sm text-slate-600">
-                  Hai layout dùng cùng nội dung; bạn có thể đổi mẫu trước khi tải PDF.
+                  {t('Both layouts use the same content; you can switch templates before downloading the PDF.')}
                 </p>
               </div>
               <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)] print:block">
@@ -1973,8 +1988,8 @@ export function CvBuilderWorkspace({
                 <div className="mt-5 space-y-3">
                   {(
                     [
-                      ['academic', 'Harvard', 'Đen trắng, một cột, tối ưu ATS.'],
-                      ['technical', 'AACC', 'Light hồng–slate, nhấn mạnh dấu ấn cá nhân.'],
+                      ['academic', 'Harvard', 'Black and white, single column, ATS-optimized.'],
+                      ['technical', 'AACC', 'Light rose–slate, emphasizes personal character.'],
                     ] as const
                   ).map(([id, name, description]) => (
                     <button
@@ -1990,24 +2005,24 @@ export function CvBuilderWorkspace({
                     >
                       <strong className="block">{name}</strong>
                       <span className="mt-1 block text-xs leading-5 text-slate-500">
-                        {description}
+                        {t(description)}
                       </span>
                     </button>
                   ))}
                 </div>
                 <p className="mt-5 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-                  AI đề xuất: {generatedCv.layout.rationale}
+                  {t('AI suggests: {rationale}', { rationale: generatedCv.layout.rationale })}
                 </p>
                 {tooLong && (
                   <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
-                    CV có thể vượt hai trang. Hãy rút gọn phần giới thiệu hoặc các bullet.
+                    {t('The CV may run past two pages. Shorten the introduction or the bullets.')}
                   </p>
                 )}
                 <button
                   className="mt-5 w-full rounded-lg bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-rose-700"
                   onClick={() => window.print()}
                 >
-                  Tải PDF / In CV
+                  {t('Download PDF / Print CV')}
                 </button>
               </aside>
               <div className="overflow-auto rounded-2xl bg-slate-100 p-4 sm:p-6 print:overflow-visible print:bg-white print:p-0">
