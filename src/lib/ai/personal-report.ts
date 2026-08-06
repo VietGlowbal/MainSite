@@ -7,9 +7,9 @@ import {
   type PersonalReportDraft,
 } from '@/features/apply/domain';
 import {
-  deepSeekJsonCompletion,
-  defaultDeepSeekModel,
-} from './deepseek-client';
+  openAiJsonCompletion,
+  defaultOpenAIModel,
+} from './openai-client';
 
 const PERSONAL_REPORT_JSON_CONTRACT = `{
   "summary": "string tiếng Việt",
@@ -91,10 +91,10 @@ export function personalReportMessages(context: CandidateContext) {
 
 export async function generatePersonalReportDraft(
   context: CandidateContext,
-  model = defaultDeepSeekModel(),
+  model = defaultOpenAIModel(),
 ): Promise<{ draft: PersonalReportDraft; model: string }> {
-  const apiKey = process.env.DEEPSEEK_API_KEY;
-  if (!apiKey) throw new Error('DEEPSEEK_NOT_CONFIGURED');
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error('OPENAI_NOT_CONFIGURED');
   const baseMessages = personalReportMessages(context);
   let repairContext = '';
   let lastError: Error | null = null;
@@ -109,7 +109,7 @@ export async function generatePersonalReportDraft(
           },
         ]
       : baseMessages;
-    const content = await deepSeekJsonCompletion({
+    const content = await openAiJsonCompletion({
       apiKey,
       model,
       messages,

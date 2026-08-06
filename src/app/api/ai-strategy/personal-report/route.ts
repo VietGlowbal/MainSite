@@ -9,12 +9,12 @@ import {
   hydratePersonalReport,
 } from '@/features/apply/domain';
 import { generatePersonalReportDraft } from '@/lib/ai/personal-report';
-import { isDeepSeekConfigured } from '@/lib/ai/deepseek-client';
+import { isOpenAIConfigured } from '@/lib/ai/openai-client';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
-// A valid DeepSeek report may require one bounded schema/evidence repair.
-// Each provider call is capped at 45s, so 120s leaves room for both calls and
+// A valid report may require one bounded schema/evidence repair. Each
+// provider call is capped at 45s, so 120s leaves room for both calls and
 // the surrounding authenticated reads/write without unbounded retries.
 export const maxDuration = 120;
 
@@ -73,9 +73,9 @@ export async function POST() {
     }
   }
 
-  if (!isDeepSeekConfigured()) {
+  if (!isOpenAIConfigured()) {
     return NextResponse.json(
-      { error: 'Dịch vụ AI chưa được cấu hình. Thiếu DEEPSEEK_API_KEY.' },
+      { error: 'Dịch vụ AI chưa được cấu hình. Thiếu OPENAI_API_KEY.' },
       { status: 503 },
     );
   }

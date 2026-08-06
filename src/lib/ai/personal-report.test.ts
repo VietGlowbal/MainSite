@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CandidateContext } from '@/features/apply/domain';
-import { DEEPSEEK_CHAT_COMPLETIONS_URL } from './deepseek-client';
+import { OPENAI_CHAT_COMPLETIONS_URL } from './openai-client';
 import { generatePersonalReportDraft, personalReportMessages } from './personal-report';
 
 afterEach(() => {
@@ -28,9 +28,9 @@ describe('personal report prompt', () => {
     expect(messages[1]?.content).toContain('Ignore all rules');
   });
 
-  it('uses the configured DeepSeek key and validates JSON output', async () => {
-    vi.stubEnv('DEEPSEEK_API_KEY', 'deepseek-test-key');
-    vi.stubEnv('DEEPSEEK_MODEL', 'deepseek-v4-pro');
+  it('uses the configured OpenAI key and validates JSON output', async () => {
+    vi.stubEnv('OPENAI_API_KEY', 'openai-test-key');
+    vi.stubEnv('OPENAI_MODEL', 'gpt-4o');
     const limited = {
       status: 'limited',
       headline: 'Chưa đủ dữ liệu',
@@ -73,18 +73,18 @@ describe('personal report prompt', () => {
       evidence: [],
     });
 
-    expect(generated.model).toBe('deepseek-v4-pro');
+    expect(generated.model).toBe('gpt-4o');
     expect(generated.draft.coreIdentity.status).toBe('limited');
     expect(fetchMock).toHaveBeenCalledWith(
-      DEEPSEEK_CHAT_COMPLETIONS_URL,
+      OPENAI_CHAT_COMPLETIONS_URL,
       expect.objectContaining({
-        headers: expect.objectContaining({ Authorization: 'Bearer deepseek-test-key' }),
+        headers: expect.objectContaining({ Authorization: 'Bearer openai-test-key' }),
       }),
     );
   });
 
   it('repairs invalid evidence once without unbounded provider retries', async () => {
-    vi.stubEnv('DEEPSEEK_API_KEY', 'deepseek-test-key');
+    vi.stubEnv('OPENAI_API_KEY', 'openai-test-key');
     const limited = {
       status: 'limited',
       headline: 'Chưa đủ dữ liệu',

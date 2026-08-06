@@ -463,7 +463,7 @@ describe('StatementWriter VinUni routing', () => {
     stream.close();
   });
 
-  it('sends a VinUniversity SOP to the grounded DeepSeek route', async () => {
+  it('sends a VinUniversity SOP to the grounded AACC route', async () => {
     const fetchMock = vi.fn(() => new Promise<Response>(() => undefined));
     vi.stubGlobal('fetch', fetchMock);
     renderVinUniWriter();

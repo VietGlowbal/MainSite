@@ -3,8 +3,8 @@ import {
   type EvidenceSourcePage,
 } from '@/features/apply/domain';
 import type {
-  DeepSeekCompletion,
-  DeepSeekRequest,
+  AiCompletion,
+  AiCompletionRequest,
 } from './vinuni-grounded-evaluation';
 
 type ExtractionDocument = {
@@ -51,7 +51,7 @@ export async function extractReflectionEvidenceCandidates({
   documents: ExtractionDocument[];
   apiKey: string;
   model: string;
-  completion: DeepSeekCompletion;
+  completion: AiCompletion;
 }) {
   const readableDocuments = pagesWithinBudget(documents).filter(
     (document) => document.pages.length > 0,
@@ -60,7 +60,7 @@ export async function extractReflectionEvidenceCandidates({
     return { candidates: [], rejectedCount: 0 };
   }
 
-  const request: DeepSeekRequest = {
+  const request: AiCompletionRequest = {
     model,
     thinking: 'disabled',
     temperature: 0,

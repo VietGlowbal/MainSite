@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
-import { deepSeekJsonCompletion } from '@/lib/ai/deepseek-client';
+import { openAiJsonCompletion } from '@/lib/ai/openai-client';
 import { LorStrategyInputSchema } from '@/lib/ai/lor';
 import { applyRateLimit, lorAiLimiter } from '@/lib/rate-limiter';
 import { createClient } from '@/lib/supabase/server';
@@ -37,15 +37,15 @@ export async function POST(request: Request) {
   const workspace = await fetchApplicationWorkspace(input.data.applicationId, user.id);
   if (!workspace) return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) return NextResponse.json({ error: 'AI service not configured.' }, { status: 500 });
   const rateLimitResponse = applyRateLimit(lorAiLimiter, user.id, 'LOR email template');
   if (rateLimitResponse) return rateLimitResponse;
 
   try {
-    const content = await deepSeekJsonCompletion({
+    const content = await openAiJsonCompletion({
       apiKey,
-      model: 'deepseek-v4-flash',
+      model: 'gpt-4o-mini',
       temperature: 0.3,
       maxTokens: 600,
       messages: [
@@ -72,7 +72,7 @@ Do not invent dates, achievements, deadlines, relationships, or names. Keep plac
     return NextResponse.json(templateSchema.parse(parseJson(content)));
   } catch (error) {
     console.warn('[lor-email-template] generation failed', {
-      model: 'deepseek-v4-flash',
+      model: 'gpt-4o-mini',
       code: error instanceof Error ? error.message.slice(0, 120) : 'unknown',
     });
     return NextResponse.json({ error: 'Could not create the email template.' }, { status: 502 });

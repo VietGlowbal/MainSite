@@ -1,9 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   parseVinUniSectionLine,
-  streamDeepSeekText,
+  streamOpenAIText,
   streamVinUniEvaluation,
-  streamOpenRouterText,
   VINUNI_EVALUATION_CONFIG,
   type VinUniTextStream,
 } from './vinuni-grounded-evaluation';
@@ -24,7 +23,7 @@ function responseFromChunks(chunks: string[]) {
 describe('VinUni provider streaming', () => {
   afterEach(() => vi.unstubAllGlobals());
 
-  it('streams DeepSeek content with thinking disabled and no reasoning_effort', async () => {
+  it('streams OpenAI content without any DeepSeek-only reasoning fields', async () => {
     const fetchMock = vi.fn<typeof fetch>(async () =>
       responseFromChunks([
         'data: {"choices":[{"delta":{"content":"{\\"section\\":\\"A\\""},"finish_reason":null}]}\n',
@@ -36,14 +35,14 @@ describe('VinUni provider streaming', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const chunks = [];
-    for await (const chunk of streamDeepSeekText(
+    for await (const chunk of streamOpenAIText(
       {
-        model: 'deepseek-v4-pro',
+        model: 'gpt-4o',
         messages: [{ role: 'user', content: 'Evaluate' }],
         maxTokens: 2600,
         temperature: 0.2,
       },
-      'deepseek-key',
+      'openai-key',
     )) {
       chunks.push(chunk);
     }
@@ -55,50 +54,18 @@ describe('VinUni provider streaming', () => {
     });
 
     const [, init] = fetchMock.mock.calls[0];
-    expect(init?.headers).toMatchObject({ Authorization: 'Bearer deepseek-key' });
+    expect(init?.headers).toMatchObject({ Authorization: 'Bearer openai-key' });
     const body = JSON.parse(String(init?.body));
     expect(body).toMatchObject({
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       stream: true,
       stream_options: { include_usage: true },
-      thinking: { type: 'disabled' },
       temperature: 0.2,
       max_tokens: 2600,
     });
+    expect(body).not.toHaveProperty('thinking');
     expect(body).not.toHaveProperty('reasoning_effort');
     expect(body).not.toHaveProperty('response_format');
-  });
-
-  it('uses OpenRouter only through its explicit streaming adapter', async () => {
-    const fetchMock = vi.fn<typeof fetch>(async () =>
-      responseFromChunks([
-        'data: {"choices":[{"delta":{"content":"ok"},"finish_reason":"stop"}]}\n\n',
-        'data: [DONE]\n\n',
-      ]),
-    );
-    vi.stubGlobal('fetch', fetchMock);
-
-    const chunks = [];
-    for await (const chunk of streamOpenRouterText(
-      {
-        model: 'qwen/qwen3.5-flash-02-23',
-        messages: [{ role: 'user', content: 'Evaluate' }],
-        maxTokens: 2600,
-        temperature: 0.2,
-      },
-      'openrouter-key',
-    )) {
-      chunks.push(chunk);
-    }
-
-    expect(chunks[0]?.content).toBe('ok');
-    expect(fetchMock.mock.calls[0]?.[0]).toBe('https://openrouter.ai/api/v1/chat/completions');
-    const body = JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body));
-    expect(body).toMatchObject({
-      stream: true,
-      reasoning: { effort: 'none' },
-    });
-    expect(body).not.toHaveProperty('thinking');
   });
 });
 
@@ -204,7 +171,7 @@ describe('VinUni one-call evaluation', () => {
       essay: 'I led a robotics team and improved the workshop.',
       config: VINUNI_EVALUATION_CONFIG!,
       apiKey: 'key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       stream: provider as VinUniTextStream,
     })) {
       events.push(event);
@@ -261,14 +228,14 @@ describe('VinUni one-call evaluation', () => {
       essay: 'I led a robotics team and improved the workshop.',
       config: VINUNI_EVALUATION_CONFIG!,
       apiKey: 'key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       stream: provider as VinUniTextStream,
     })) {
       events.push(event);
     }
 
     expect(provider).toHaveBeenCalledTimes(2);
-    expect(models).toEqual(['deepseek-v4-pro', 'deepseek-v4-pro']);
+    expect(models).toEqual(['gpt-4o', 'gpt-4o']);
     expect(requests[1]).toMatchObject({ maxTokens: 2400 });
     expect(requests[1]?.messages[0]?.content).toContain('E');
     expect(requests[1]?.messages[0]?.content).not.toContain('Chỉ xuất đúng 8 JSON object');

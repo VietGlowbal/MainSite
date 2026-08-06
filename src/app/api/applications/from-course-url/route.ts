@@ -12,7 +12,7 @@
  * When provider=legacy (or flag unset in non-dev):
  *   - legacy TypeScript/OpenAI parser is used (preserved for rollback)
  *
- * This endpoint does NOT call Python, DeepSeek or OpenAI directly.
+ * This endpoint does NOT call Python or OpenAI directly.
  */
 
 import { NextResponse } from 'next/server';

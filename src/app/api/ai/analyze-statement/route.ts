@@ -134,10 +134,10 @@ export async function POST(request: Request) {
     ? await loadLorStrategyContext(supabase, applicationId, user.id)
     : '';
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'AI service not configured. Please set DEEPSEEK_API_KEY in .env.local.' },
+      { error: 'AI service not configured. Please set OPENAI_API_KEY in .env.local.' },
       { status: 500 },
     );
   }
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
     if (rateLimitResponse) return rateLimitResponse;
   }
 
-  const model = process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro';
+  const model = process.env.OPENAI_MODEL || 'gpt-4o';
 
   // ── Tiering ────────────────────────────────────────────────────────────────
   // Plus subscribers get a "full" analysis that draws on their uploaded CV +
@@ -376,7 +376,7 @@ ${backgroundBlock ? `\nStudent background (use for strategic, personalised recom
 Respond with JSON only.`;
 
   try {
-    const response = await fetch('https://api.deepseek.com/chat/completions', {
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -389,7 +389,6 @@ Respond with JSON only.`;
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt },
         ],
-        thinking: { type: 'disabled' },
         temperature: isLor ? 0.2 : 0.7,
         max_tokens: maxTokens,
         response_format: { type: 'json_object' },
@@ -397,7 +396,7 @@ Respond with JSON only.`;
     });
 
     if (!response.ok) {
-      console.error('DeepSeek API error:', response.status);
+      console.error('OpenAI API error:', response.status);
       return NextResponse.json(
         { error: 'AI analysis failed. Please try again.' },
         { status: 502 },

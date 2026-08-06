@@ -2,12 +2,12 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   buildEvaluationPack,
   calculateFinalScore,
-  openRouterCompletion,
+  openAiCompletion,
   runVinUniEvaluation,
   segmentEssay,
-  streamDeepSeekText,
+  streamOpenAIText,
   VINUNI_EVALUATION_CONFIG,
-  type DeepSeekCompletion,
+  type AiCompletion,
   type VinUniEvaluationConfig,
 } from './vinuni-grounded-evaluation';
 
@@ -158,7 +158,7 @@ function audit(
   };
 }
 
-function fakeCompletion(outputs: unknown[]): DeepSeekCompletion {
+function fakeCompletion(outputs: unknown[]): AiCompletion {
   return vi.fn(async () => {
     const output = outputs.shift();
     return {
@@ -223,9 +223,9 @@ describe('VinUni grounded evaluation', () => {
 
     const calls = vi.mocked(complete).mock.calls.map(([request]) => request);
     expect(calls.map(({ model }) => model)).toEqual([
-      'deepseek-v4-flash',
-      'deepseek-v4-flash',
-      'deepseek-v4-flash',
+      'gpt-4o-mini',
+      'gpt-4o-mini',
+      'gpt-4o-mini',
     ]);
     expect(calls.map(({ thinking }) => thinking)).toEqual(['disabled', 'disabled', 'disabled']);
     expect(calls[1].reasoningEffort).toBeUndefined();
@@ -233,7 +233,7 @@ describe('VinUni grounded evaluation', () => {
     expect(calls.every((request) => !('tools' in request))).toBe(true);
   });
 
-  it('can run every pass through one OpenRouter test model', async () => {
+  it('can run every pass with a custom model override', async () => {
     const complete = fakeCompletion([evidenceMap, scoring(), audit()]);
     await runVinUniEvaluation({
       essay,
@@ -241,19 +241,19 @@ describe('VinUni grounded evaluation', () => {
       apiKey: 'test-key',
       complete,
       models: {
-        passA: 'qwen/qwen3.5-flash-02-23',
-        passB: 'qwen/qwen3.5-flash-02-23',
-        passC: 'qwen/qwen3.5-flash-02-23',
-        repair: 'qwen/qwen3.5-flash-02-23',
+        passA: 'gpt-4o',
+        passB: 'gpt-4o',
+        passC: 'gpt-4o',
+        repair: 'gpt-4o',
       },
     });
 
     expect(
       vi.mocked(complete).mock.calls.map(([request]) => request.model),
-    ).toEqual(Array(3).fill('qwen/qwen3.5-flash-02-23'));
+    ).toEqual(Array(3).fill('gpt-4o'));
   });
 
-  it('calls OpenRouter with JSON output and reasoning disabled', async () => {
+  it('calls OpenAI with JSON output', async () => {
     const fetchMock = vi.fn<typeof fetch>(async () =>
       new Response(
         JSON.stringify({
@@ -264,9 +264,9 @@ describe('VinUni grounded evaluation', () => {
     );
     vi.stubGlobal('fetch', fetchMock);
 
-    const result = await openRouterCompletion(
+    const result = await openAiCompletion(
       {
-        model: 'qwen/qwen3.5-flash-02-23',
+        model: 'gpt-4o-mini',
         thinking: 'disabled',
         maxTokens: 100,
         messages: [{ role: 'user', content: 'Return JSON.' }],
@@ -277,16 +277,15 @@ describe('VinUni grounded evaluation', () => {
     expect(result).toEqual({ content: '{"ok":true}', finishReason: 'stop' });
     const [, init] = fetchMock.mock.calls[0];
     expect(fetchMock.mock.calls[0][0]).toBe(
-      'https://openrouter.ai/api/v1/chat/completions',
+      'https://api.openai.com/v1/chat/completions',
     );
     expect(JSON.parse(String(init?.body))).toMatchObject({
-      model: 'qwen/qwen3.5-flash-02-23',
-      reasoning: { effort: 'none' },
+      model: 'gpt-4o-mini',
       response_format: { type: 'json_object' },
     });
   });
 
-  it('retries a transient DeepSeek connection failure before streaming starts', async () => {
+  it('retries a transient OpenAI connection failure before streaming starts', async () => {
     const fetchMock = vi
       .fn<typeof fetch>()
       .mockRejectedValueOnce(new TypeError('fetch failed'))
@@ -299,9 +298,9 @@ describe('VinUni grounded evaluation', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     const chunks = [];
-    for await (const chunk of streamDeepSeekText(
+    for await (const chunk of streamOpenAIText(
       {
-        model: 'deepseek-v4-pro',
+        model: 'gpt-4o',
         temperature: 0,
         maxTokens: 10,
         messages: [{ role: 'user', content: 'OK' }],
@@ -315,9 +314,9 @@ describe('VinUni grounded evaluation', () => {
     expect(chunks).toContainEqual(expect.objectContaining({ content: 'OK' }));
   });
 
-  it('accepts complete valid JSON even when DeepSeek reports a length finish reason', async () => {
+  it('accepts complete valid JSON even when the model reports a length finish reason', async () => {
     const outputs = [evidenceMap, scoring(), audit()];
-    const complete: DeepSeekCompletion = vi.fn(async () => ({
+    const complete: AiCompletion = vi.fn(async () => ({
       content: JSON.stringify(outputs.shift()),
       finishReason: outputs.length === 2 ? 'length' : 'stop',
     }));
@@ -403,7 +402,7 @@ describe('VinUni grounded evaluation', () => {
       { claim_id: 'C099', reason: 'Không đủ bằng chứng cho nhận định này.' },
     ];
     let call = 0;
-    const complete: DeepSeekCompletion = vi.fn(async (request) => {
+    const complete: AiCompletion = vi.fn(async (request) => {
       call += 1;
       if (call === 1) {
         return { content: JSON.stringify(evidenceMap), finishReason: 'stop' };
@@ -447,7 +446,7 @@ describe('VinUni grounded evaluation', () => {
       },
     ] as never;
     let call = 0;
-    const complete: DeepSeekCompletion = vi.fn(async (request) => {
+    const complete: AiCompletion = vi.fn(async (request) => {
       call += 1;
       if (call === 1) return { content: JSON.stringify(evidenceMap), finishReason: 'stop' };
       if (call === 2) return { content: JSON.stringify(malformed), finishReason: 'stop' };
@@ -493,7 +492,7 @@ describe('VinUni grounded evaluation', () => {
     ).toEqual(['disabled', 'disabled', 'disabled']);
     expect(
       vi.mocked(complete).mock.calls.map(([request]) => request.model),
-    ).toEqual(['deepseek-v4-flash', 'deepseek-v4-flash', 'deepseek-v4-flash']);
+    ).toEqual(['gpt-4o-mini', 'gpt-4o-mini', 'gpt-4o-mini']);
   });
 
   it('returns validated scoring when the advisory audit mismatches claim evidence', async () => {
@@ -510,7 +509,7 @@ describe('VinUni grounded evaluation', () => {
   });
 
   it('returns validated scoring when the advisory audit returns invalid JSON', async () => {
-    const complete: DeepSeekCompletion = vi
+    const complete: AiCompletion = vi
       .fn()
       .mockResolvedValueOnce({ content: JSON.stringify(evidenceMap), finishReason: 'stop' })
       .mockResolvedValueOnce({ content: JSON.stringify(scoring()), finishReason: 'stop' })

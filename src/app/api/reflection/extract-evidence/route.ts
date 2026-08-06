@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { extractPdfWithOcrFallback } from '@/lib/ai/document-text';
 import { extractReflectionEvidenceCandidates } from '@/lib/ai/reflection-evidence-extraction';
-import { deepSeekCompletion } from '@/lib/ai/vinuni-grounded-evaluation';
+import { openAiCompletion } from '@/lib/ai/vinuni-grounded-evaluation';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -92,15 +92,15 @@ export async function POST(request: Request) {
     >;
 
     if (hasReadableText) {
-      const apiKey = process.env.DEEPSEEK_API_KEY;
+      const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) {
         return NextResponse.json({ error: 'AI service not configured.' }, { status: 500 });
       }
       result = await extractReflectionEvidenceCandidates({
         documents: readableDocuments,
         apiKey,
-        model: process.env.DEEPSEEK_DOCUMENT_MODEL ?? 'deepseek-v4-flash',
-        completion: deepSeekCompletion,
+        model: process.env.OPENAI_DOCUMENT_MODEL ?? 'gpt-4o-mini',
+        completion: openAiCompletion,
       });
     }
 

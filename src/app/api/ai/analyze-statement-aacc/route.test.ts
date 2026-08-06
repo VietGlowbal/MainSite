@@ -3,16 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   streamVinUniEvaluationMock,
   streamVinUniEvaluationV2Mock,
-  streamDeepSeekTextMock,
-  streamOpenRouterTextMock,
+  streamOpenAITextMock,
   buildVinUniEvaluationContextMock,
   fetchApplicationWorkspaceMock,
   createClientMock,
 } = vi.hoisted(() => ({
   streamVinUniEvaluationMock: vi.fn(),
   streamVinUniEvaluationV2Mock: vi.fn(),
-  streamDeepSeekTextMock: vi.fn(),
-  streamOpenRouterTextMock: vi.fn(),
+  streamOpenAITextMock: vi.fn(),
   buildVinUniEvaluationContextMock: vi.fn(),
   fetchApplicationWorkspaceMock: vi.fn(),
   createClientMock: vi.fn(),
@@ -21,8 +19,7 @@ const {
 vi.mock('@/lib/ai/vinuni-grounded-evaluation', () => ({
   VINUNI_EVALUATION_CONFIG: { schemaVersion: 'trial' },
   streamVinUniEvaluation: streamVinUniEvaluationMock,
-  streamDeepSeekText: streamDeepSeekTextMock,
-  streamOpenRouterText: streamOpenRouterTextMock,
+  streamOpenAIText: streamOpenAITextMock,
 }));
 
 vi.mock('@/lib/ai/vinuni-evaluation-v2', () => ({
@@ -63,9 +60,8 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
     vi.clearAllMocks();
     vi.stubEnv('VINUNI_GROUNDED_PIPELINE_ENABLED', 'true');
     vi.stubEnv('VINUNI_ESSAY_PIPELINE_VERSION', 'v1');
-    vi.stubEnv('VINUNI_AI_PROVIDER', 'deepseek');
-    vi.stubEnv('DEEPSEEK_API_KEY', 'deepseek-key');
-    vi.stubEnv('DEEPSEEK_MODEL', '');
+    vi.stubEnv('OPENAI_API_KEY', 'openai-key');
+    vi.stubEnv('OPENAI_MODEL', '');
     createClientMock.mockResolvedValue({
       auth: {
         getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } } })),
@@ -107,7 +103,7 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
     });
   });
 
-  it('streams NDJSON through the direct DeepSeek provider by default', async () => {
+  it('streams NDJSON through the OpenAI provider by default', async () => {
     const response = await POST(request());
     const events = (await response.text())
       .trim()
@@ -120,31 +116,14 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
     expect(events.map(({ type }) => type)).toEqual(['section', 'complete']);
     expect(streamVinUniEvaluationMock).toHaveBeenCalledWith(
       expect.objectContaining({
-        apiKey: 'deepseek-key',
-        model: 'deepseek-v4-pro',
-        stream: streamDeepSeekTextMock,
-      }),
-    );
-    expect(streamOpenRouterTextMock).not.toHaveBeenCalled();
-  });
-
-  it('uses OpenRouter only when explicitly selected', async () => {
-    vi.stubEnv('VINUNI_AI_PROVIDER', 'openrouter');
-    vi.stubEnv('OPENROUTER_API_KEY', 'openrouter-key');
-    vi.stubEnv('OPENROUTER_MODEL', 'qwen/qwen3.5-flash-02-23');
-
-    await (await POST(request())).text();
-
-    expect(streamVinUniEvaluationMock).toHaveBeenCalledWith(
-      expect.objectContaining({
-        apiKey: 'openrouter-key',
-        model: 'qwen/qwen3.5-flash-02-23',
-        stream: streamOpenRouterTextMock,
+        apiKey: 'openai-key',
+        model: 'gpt-4o',
+        stream: streamOpenAITextMock,
       }),
     );
   });
 
-  it('does not impose a hard timeout on long DeepSeek generations', async () => {
+  it('does not impose a hard timeout on long generations', async () => {
     const timeoutSpy = vi.spyOn(globalThis, 'setTimeout');
 
     await (await POST(request())).text();
@@ -152,7 +131,7 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
     expect(timeoutSpy.mock.calls.some(([, delay]) => delay === 60_000)).toBe(false);
   });
 
-  it('emits a stream error without retrying through another provider', async () => {
+  it('emits a stream error without retrying', async () => {
     streamVinUniEvaluationMock.mockImplementation(async function* () {
       yield { type: 'section', section: 'A', data: { items: [] } };
       throw new Error('provider unavailable');
@@ -170,7 +149,6 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
       retryable: true,
     });
     expect(streamVinUniEvaluationMock).toHaveBeenCalledTimes(1);
-    expect(streamOpenRouterTextMock).not.toHaveBeenCalled();
   });
 
   it('validates application ownership and streams the V2 two-pass workflow', async () => {
@@ -210,7 +188,7 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
         essay: 'A'.repeat(200),
         essayPrompt: 'Describe a meaningful achievement and what you learned from it.',
         requestedSections: ['B', 'D:ability'],
-        stream: streamDeepSeekTextMock,
+        stream: streamOpenAITextMock,
       }),
     );
     expect(events.map(({ type }) => type)).toEqual(['status', 'complete']);

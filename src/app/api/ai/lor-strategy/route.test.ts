@@ -82,7 +82,7 @@ describe('POST /api/ai/lor-strategy', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     lorAiLimiter.resetAll();
-    process.env.DEEPSEEK_API_KEY = 'test-key';
+    process.env.OPENAI_API_KEY = 'test-key';
 
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.fetchApplicationWorkspace.mockResolvedValue({
