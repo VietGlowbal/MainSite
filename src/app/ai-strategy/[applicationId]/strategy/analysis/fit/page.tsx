@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { fetchOnboardingState, loadEvaluation } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { ProgrammeFitReport } from '@/features/ai-strategy-dashboard/ui';
@@ -31,7 +31,10 @@ export default async function ProgrammeFitPage({
   }
 
   const evaluation = await loadEvaluation(supabase, user.id, applicationId);
-  if (!evaluation) redirect('/ai-strategy');
+  // Was redirect('/ai-strategy'), which threw a student out of their own
+  // Matching Report and onto the marketing explainer. Same reasoning as the
+  // portrait route — see the note there.
+  if (!evaluation) notFound();
 
   return (
     <ProgrammeFitReport

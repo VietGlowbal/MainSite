@@ -141,28 +141,15 @@ export default async function HowItWorksPage() {
           </Container>
         </section>
 
-        {/* Where the split points. Area 3 has a page of its own. */}
-        <section className="pt-gb-9xl">
-          <Container>
-            <Panel className="flex flex-col items-start gap-gb-lg">
-              <h2 className="font-display text-gb-xl font-semibold text-fg">
-                Just want the Strategy?
-              </h2>
-              <p className="max-w-2xl text-gb-md text-fg-tertiary">
-                The third stage &mdash; the two AI reports and the improvement plan built from them
-                &mdash; has a page of its own.
-              </p>
-              <Button href="/ai-strategy" variant="secondary" size="lg">
-                Read about GlowBal Strategy
-              </Button>
-            </Panel>
-          </Container>
-        </section>
-
         {/* Signed-out visitors get the sign-up close. Signed-in students have
-            nothing to sign up for. */}
+            nothing to sign up for.
+
+            The top padding here was pt-gb-3xl while a "Just want the Strategy?"
+            cross-link sat between this and the walkthrough above. That panel was
+            removed on the owner's instruction (06/08), so this is now the first
+            thing after the guide and takes the full section gap back. */}
         {isSignedIn ? null : (
-          <section className="pt-gb-3xl">
+          <section className="pt-gb-9xl">
             <Container>
               <Panel className="flex flex-col items-start gap-gb-lg">
                 <h2 className="font-display text-gb-xl font-semibold text-fg">
