@@ -10,6 +10,7 @@ import {
   PRIORITY_LABEL,
   PRIORITY_VARIANT,
   categoryLabel,
+  categoryVariant,
   formatDate,
 } from './planner-shared';
 import { ProgressStatusControl } from './progress-status-control';
@@ -89,6 +90,9 @@ export function PlannerList({
       <table className="w-full min-w-[56rem] border-collapse text-left">
         <thead>
           <tr className="border-b border-line bg-surface-muted">
+            <th scope="col" className="px-gb-xl py-gb-lg">
+              <span className="sr-only">Completed</span>
+            </th>
             <th scope="col" className="px-gb-xl py-gb-lg text-gb-xs font-semibold uppercase tracking-wide text-fg-brand">
               Category
             </th>
@@ -116,7 +120,20 @@ export function PlannerList({
           {recommendations.map((rec) => (
             <tr key={rec.id} className="border-b border-line last:border-b-0 hover:bg-surface-muted">
               <td className="px-gb-xl py-gb-lg align-top">
-                <span className="text-gb-sm text-fg-tertiary">{categoryLabel(rec.category)}</span>
+                {/* Read-only reflection of the Status column, not a second
+                    control a student could set out of sync with it — see
+                    the `STATUS_VARIANT`/`ProgressStatusControl` note. */}
+                <span
+                  aria-hidden="true"
+                  className={`block h-gb-xl w-gb-xl rounded-gb-full border-2 ${
+                    rec.status === 'completed'
+                      ? 'border-tier-safe bg-tier-safe'
+                      : 'border-line bg-surface'
+                  }`}
+                />
+              </td>
+              <td className="px-gb-xl py-gb-lg align-top">
+                <Badge variant={categoryVariant(rec.category)}>{categoryLabel(rec.category)}</Badge>
               </td>
 
               <td className="px-gb-xl py-gb-lg align-top">

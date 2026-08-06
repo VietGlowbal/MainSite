@@ -17,6 +17,7 @@ export {
   recommendationPatchSchema,
   recommendationStatusPatchSchema,
   sortByPriority,
+  taskCounts,
 } from './recommendation';
 export type {
   ExistingRecommendation,

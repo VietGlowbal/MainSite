@@ -260,6 +260,64 @@ export const ICONS = {
     d: 'M9.16667 4.16667V9.16667L12.5 10.8333M17.5 9.16667C17.5 13.769 13.769 17.5 9.16667 17.5C4.56429 17.5 0.833333 13.769 0.833333 9.16667C0.833333 4.56429 4.56429 0.833333 9.16667 0.833333C13.769 0.833333 17.5 4.56429 17.5 9.16667Z',
   },
   /**
+   * ⚠️ NOT A FIGMA EXPORT, same story as `plus`/`trash`/`close`/`search` above
+   * — the AI Strategy Dashboard's Planner needs a calendar glyph (Final
+   * Deadline stat, the planner table's Deadline column) and the file has no
+   * export of one. Straight lines only, following this file's own convention
+   * for hand-built icons: a body rect, a header divider, and two ring tabs.
+   */
+  calendar: {
+    w: 20,
+    h: 20,
+    frame: 24,
+    strokeWidth: 2,
+    d: ['M1 4H19V19H1V4Z', 'M1 8H19', 'M6 1V6', 'M14 1V6'],
+  },
+  /**
+   * ⚠️ NOT A FIGMA EXPORT. Adapted from Feather Icons' `edit-2` (MIT
+   * licensed), the standard "square + pencil" glyph — used for the Planner's
+   * Next Priority stat and the Personal Statement category card.
+   */
+  edit02: {
+    w: 24,
+    h: 24,
+    frame: 24,
+    strokeWidth: 2,
+    d: [
+      'M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7',
+      'M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z',
+    ],
+  },
+  /**
+   * ⚠️ NOT A FIGMA EXPORT. Adapted from Feather Icons' `users` (MIT
+   * licensed) — the Planner's Activities category card.
+   */
+  usersTwo: {
+    w: 24,
+    h: 22,
+    frame: 24,
+    strokeWidth: 2,
+    d: [
+      'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2',
+      'M9 11a4 4 0 100-8 4 4 0 000 8',
+      'M23 21v-2a4 4 0 00-3-3.87',
+      'M16 3.13a4 4 0 010 7.75',
+    ],
+  },
+  /**
+   * ⚠️ NOT A FIGMA EXPORT. No Feather equivalent either, so this is fully
+   * hand-built, matching the straight-line-only simplicity of `calendar`
+   * above: a flattened diamond mortarboard, a band underneath, and a tassel
+   * — for the Planner's Academics category card.
+   */
+  graduationCap: {
+    w: 24,
+    h: 20,
+    frame: 24,
+    strokeWidth: 2,
+    d: ['M12 3L22 8L12 13L2 8Z', 'M7 9.5V16H17V9.5', 'M12 13V17.5', 'M12 17.5L14 19'],
+  },
+  /**
    * Figma 223:9567 — the scholarship bar under the saved list. Exported at 32px
    * with no inset, so `frame` is 32 here rather than the usual 20/24.
    */

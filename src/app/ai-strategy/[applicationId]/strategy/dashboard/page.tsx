@@ -10,6 +10,7 @@ import {
   DashboardSummary,
   StrategyCategoryBoard,
 } from '@/features/ai-strategy-dashboard/ui';
+import { getUniversityQueries } from '@/features/universities/api';
 import { createClient } from '@/lib/supabase/server';
 import { Container } from '@/shared/ui';
 
@@ -53,10 +54,12 @@ export default async function StrategyDashboardPage({
 
   const { data: application } = await supabase
     .from('course_applications')
-    .select('course_name, university_name')
+    .select('course_name, university_name, university_id, deadline')
     .eq('id', applicationId)
     .eq('user_id', user.id)
     .maybeSingle();
+
+  const hero = await fetchUniversityHero(application?.university_id ?? null);
 
   const { data: latestMatch } = await supabase
     .from('application_match_analyses')
@@ -85,13 +88,6 @@ export default async function StrategyDashboardPage({
     .order('priority', { ascending: false });
 
   const recommendations = (recommendationRows ?? []).map(recommendationFromRow);
-  const completionPercent =
-    recommendations.length === 0
-      ? 0
-      : Math.round(
-          (recommendations.filter((r) => r.status === 'completed').length / recommendations.length) *
-            100,
-        );
 
   return (
     <Container className="max-w-6xl py-gb-7xl">
@@ -99,9 +95,10 @@ export default async function StrategyDashboardPage({
         <DashboardSummary
           universityName={application?.university_name ?? 'Your university'}
           courseName={application?.course_name ?? 'Your course'}
+          imageUrl={hero.imageUrl}
+          location={hero.country}
           currentMatchPercent={latestMatch?.current_match_score ?? 0}
-          goalMatchPercent={latestMatch?.max_possible_match_score ?? 0}
-          completionPercent={completionPercent}
+          deadline={application?.deadline ?? null}
           recommendations={recommendations}
         />
 
@@ -125,4 +122,20 @@ export default async function StrategyDashboardPage({
       </div>
     </Container>
   );
+}
+
+/**
+ * The hero card's photo and country, when there is one.
+ *
+ * Same rule as `[applicationId]/page.tsx`'s `fetchLogo`: `course_applications`
+ * carries only a nullable `university_id`, and rows imported straight from a
+ * course URL have none. `DashboardSummary` renders its own placeholder when
+ * either field misses rather than a broken image or an empty location row.
+ */
+async function fetchUniversityHero(
+  universityId: number | null,
+): Promise<{ imageUrl: string | null; country: string | null }> {
+  if (universityId == null) return { imageUrl: null, country: null };
+  const [uni] = await getUniversityQueries().getByIds([universityId]);
+  return { imageUrl: uni?.image_url ?? null, country: uni?.country ?? null };
 }
