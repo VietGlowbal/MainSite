@@ -241,6 +241,56 @@ attaching proof for" list so the UI never asks a student to do something the
 form will not let them do. Closing it means an `evidence_key` column on
 `student_activities` and an upload control on the activities form.
 
+## 0e. `supabase-ai-strategy-reports.sql` never run — Matching Report 503s and the Planner shows zero tasks for every application
+
+**Confirmed live and broken 2026-08-06** (a real student's screenshot of
+`/ai-strategy/[id]/strategy/matching`): the page shows only "Matching Report
+cần được cập nhật cơ sở dữ liệu trước khi sử dụng." ("Matching Report needs
+the database updated before use.") and a "Try again" button that cannot
+succeed.
+
+**Root cause**: `supabase-ai-strategy-reports.sql` (adds `input_hash`,
+`fit_dimensions`, `fit_eligibility`, `fit_classification`, `fit_confidence`,
+`fit_limitations` to `application_match_analyses`, plus the whole
+`student_personal_reports` table) has never been run against production.
+`POST /api/applications/[id]/match-insights`'s `migrationMissing()` helper
+(`route.ts:42-51`) catches the resulting `42703`/`PGRST204` and returns the
+Vietnamese message above with a 503 rather than a raw Postgres error — which
+is correct behaviour, but it means the underlying cause reads as a UI error
+rather than what it is.
+
+**This is why an application's Planner shows 0 tasks even after the student
+has done everything right.** The Dashboard page only calls
+`generateRecommendations` when a `application_match_analyses` row with
+`analysis_status = 'complete'` exists (`dashboard/page.tsx`'s `if
+(latestMatch)` guard) — and no such row can ever be *inserted* while this
+migration is missing, so `latestMatch` stays null and recommendation
+generation is silently skipped, not failing loudly. The Planner's "No tasks
+yet" / "Nothing left — nicely done" copy is honest about what exists in the
+database, it just can't say *why* nothing exists.
+
+**Also blocks Personal Report** — `student_personal_reports` is the same
+migration's table; `/api/ai-strategy/personal-report` and
+`src/features/apply/api/ai-reports-repository.ts` both depend on it.
+
+**Fix**: run `supabase-ai-strategy-reports.sql` in the Supabase SQL editor.
+It is additive and idempotent (`CREATE TABLE IF NOT EXISTS` /
+`ADD COLUMN IF NOT EXISTS`) — safe against a database that already has some
+of these objects. Verify first:
+
+```sql
+select column_name from information_schema.columns
+where table_name = 'application_match_analyses'
+  and column_name in ('input_hash', 'fit_dimensions', 'fit_eligibility', 'fit_classification', 'fit_confidence', 'fit_limitations');
+```
+should return all six; and `select 1 from information_schema.tables where table_name = 'student_personal_reports';` should return a row.
+
+**After that migration runs, §0d below still applies** — a student's first
+Matching Report will then successfully call `generateRecommendations`, which
+needs `supabase-strategy-recommendation-content-blocks.sql` to have run too
+or the recommendation *inserts* themselves will fail the same way, one layer
+further in.
+
 ## 0d. `application_recommendations` genUI columns — the detail-page content block
 
 The repository contains `supabase-strategy-recommendation-content-blocks.sql`
