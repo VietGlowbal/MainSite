@@ -6,6 +6,7 @@
 export {
   destinationLabel,
   flattenGuide,
+  guideArea,
   GUIDE_STEP_COUNT,
   STRATEGY_GUIDE,
   stepIndexForPath,

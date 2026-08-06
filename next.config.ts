@@ -72,21 +72,27 @@ const nextConfig: NextConfig = {
        */
       { source: '/my-universities', destination: '/apply', permanent: true },
       /*
-       * /how-it-works -> /ai-strategy, permanently.
+       * ⚠️ /how-it-works -> /ai-strategy IS GONE (03/08, owner). Both routes are
+       * real pages again, and they are not the same page:
        *
-       * Two pages explained the product and they disagreed. /how-it-works
-       * taught the pre-01/08 flow — "find courses on the university's site,
-       * copy the course URL, paste it on GlowBal Apply" — which stopped being
-       * possible when the paste-a-URL bar was removed from /apply and
-       * applications started being created from a saved university instead.
-       * /ai-strategy is now the explainer and describes the real flow, so this
-       * one redirects rather than being maintained in parallel.
+       *   /how-it-works  the help page for the product — three stages,
+       *                  fourteen steps. Reached from the top nav.
+       *   /ai-strategy   stage 3, the Strategy, on its own.
        *
-       * Nothing in the app linked here (its only inbound reference was
-       * src/components/JourneySteps.tsx, itself unrendered), so this is purely
-       * for external links and anyone who bookmarked it.
+       * The redirect existed because an older /how-it-works taught the
+       * pre-01/08 flow ("copy a course URL, paste it on GlowBal Apply") and
+       * disagreed with /ai-strategy about how the product worked. Folding them
+       * into one page fixed that by deletion; the split re-separates the pages
+       * but keeps the fix, because both now render the same content file
+       * (features/marketing/domain/strategy-guide.ts) instead of describing the
+       * product in their own words. Do not restore this entry — it would take
+       * the nav's own destination and 308 it away.
+       *
+       * ⚠️ It was `permanent: true`, so browsers that followed it have it cached
+       * and will keep skipping the new page until the entry expires or the
+       * visitor hard-reloads. Pre-launch, so the blast radius is small; if a
+       * link looks broken this is the first thing to check.
        */
-      { source: '/how-it-works', destination: '/ai-strategy', permanent: true },
     ];
   },
   images: {

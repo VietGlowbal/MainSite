@@ -199,6 +199,18 @@ function StepDetails({ step }: { step: GuideStep }) {
  * to that area's first step, which is the one navigation the old header chips
  * got right.
  */
+/**
+ * How many columns the card row takes, by how many areas are on the page.
+ *
+ * Static strings because Tailwind reads class names out of the source — an
+ * interpolated `sm:grid-cols-${n}` compiles to nothing at all.
+ */
+const AREA_COLUMNS: Readonly<Record<number, string>> = {
+  1: 'sm:grid-cols-1',
+  2: 'sm:grid-cols-2',
+  3: 'sm:grid-cols-3',
+};
+
 function AreaTabs({
   flat,
   active,
@@ -208,13 +220,27 @@ function AreaTabs({
   active: FlatGuideStep;
   onSelect: (flatIndex: number) => void;
 }) {
+  /* Derived from what is on the page, NOT from STRATEGY_GUIDE, and that is the
+     whole reason `/ai-strategy` can render area 3 by itself: reading the module
+     constant here would draw three cards on a page that has one area's steps,
+     two of them jumping to steps that are not in `flat`. Areas are shared
+     object references, so identity dedupe is enough. */
+  const areas: GuideArea[] = [];
+  for (const entry of flat) {
+    if (!areas.includes(entry.area)) areas.push(entry.area);
+  }
+
   return (
     /* Three columns from `sm` up; below it they scroll sideways rather than
        stacking. Stacked, three cards ate a third of the popup's height on a
        phone, and the popup is the only place this panel renders at that width
        — the page has `GuideStacked` for small screens. */
-    <ol className="flex shrink-0 gap-gb-md overflow-x-auto pb-gb-xxs sm:grid sm:grid-cols-3 sm:gap-gb-lg sm:overflow-visible sm:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      {STRATEGY_GUIDE.map((area) => {
+    <ol
+      className={`flex shrink-0 gap-gb-md overflow-x-auto pb-gb-xxs sm:grid sm:gap-gb-lg sm:overflow-visible sm:pb-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden ${
+        AREA_COLUMNS[areas.length] ?? 'sm:grid-cols-3'
+      }`}
+    >
+      {areas.map((area) => {
         const isCurrent = area.id === active.area.id;
         const firstIndex = flat.findIndex((entry) => entry.area.id === area.id);
         return (
@@ -476,8 +502,12 @@ function GuideStacked({ areas }: { areas: readonly GuideArea[] }) {
       {areas.map((area) => (
         <section key={area.id} id={`area-${area.id}`} className="flex flex-col gap-gb-3xl">
           <div className="flex flex-col gap-gb-lg">
+            {/* `STRATEGY_GUIDE.length`, not `areas.length`: the journey has
+                three stages whichever of them this page happens to show, and
+                on /ai-strategy — which renders area 3 alone — the local count
+                would read "Area 3 of 1". */}
             <Badge variant={areaBadgeVariant(area.id)}>
-              Area {area.number} of {areas.length}
+              Area {area.number} of {STRATEGY_GUIDE.length}
             </Badge>
             <h2 className="font-display text-gb-display-xs font-semibold text-fg">{area.title}</h2>
             <p className="text-gb-md text-fg-tertiary">{area.summary}</p>
@@ -511,12 +541,23 @@ function GuideStacked({ areas }: { areas: readonly GuideArea[] }) {
   );
 }
 
-export function StrategyGuide() {
-  const flat = flattenGuide(STRATEGY_GUIDE);
+/**
+ * The walkthrough. Defaults to the whole journey — what `/how-it-works` renders
+ * — and takes a subset for a page that explains one stage, which is how
+ * `/ai-strategy` shows area 3 and nothing else.
+ *
+ * A PROP RATHER THAN A SECOND COMPONENT. The two pages differ by which areas
+ * they pass and nothing else; a `StrategyArea` component beside this one would
+ * be the same markup twice, and the two would eventually describe the product
+ * differently — the failure this whole feature has already had once (see the
+ * header of ../domain/strategy-guide.ts).
+ */
+export function StrategyGuide({ areas = STRATEGY_GUIDE }: { areas?: readonly GuideArea[] }) {
+  const flat = flattenGuide(areas);
   return (
     <>
       <GuideScroller flat={flat} />
-      <GuideStacked areas={STRATEGY_GUIDE} />
+      <GuideStacked areas={areas} />
     </>
   );
 }

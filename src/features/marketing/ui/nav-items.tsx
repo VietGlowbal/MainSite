@@ -73,11 +73,27 @@ export const MARKETING_NAV_ITEMS: readonly TopNavEntry[] = [
       { href: '/mentors', label: 'Mentors' },
     ],
   },
-  // Figma "Lên Chiến lược Du học" — renamed from "AI lên chiến lược" on the new
-  // canvas. See the note below; this is a product pillar, not a dead link.
-  // The FOOTER still says "Chiến lược AI" (its frame did not change), so the two
-  // deliberately carry different labels for the same route.
-  { href: '/ai-strategy', label: 'Build your strategy' },
+  /*
+   * ⚠️ WAS "Build your strategy" -> /ai-strategy UNTIL 03/08. The owner split the
+   * one explainer in two: /how-it-works is the help page for the whole product
+   * and /ai-strategy is stage 3 (the Strategy) on its own. The nav points at the
+   * help page, which is the owner's instruction and also the better of the two
+   * for a visitor who has just arrived — it explains all three stages and links
+   * on to the Strategy.
+   *
+   * IT REPLACES THAT ENTRY RATHER THAN JOINING IT, and that is a width
+   * constraint, not a preference: the bar clips silently below 1280 (see the ⚠️
+   * on `overflow-hidden` in shared/ui/top-nav.tsx) and four labels is what it
+   * fits. "How GlowBal works" is two characters shorter than the label it
+   * replaces, so it costs nothing. /ai-strategy is still reachable — from this
+   * page, from the footer's "AI strategy" link, and from the strategy prompt on
+   * every application.
+   *
+   * Figma drew this slot as "Lên Chiến lược Du học" (375:9845). The frame is
+   * now behind the product on this item; the VI string for the new label is in
+   * src/lib/i18n-dictionary.ts.
+   */
+  { href: '/how-it-works', label: 'How GlowBal works' },
   /*
    * Was "Plan your studies", then "Application" (31/07, when /apply absorbed
    * the saved list), now "My Portal" on the owner's instruction (01/08). The
