@@ -155,3 +155,145 @@ describe('programme matching analysis', () => {
     ).rejects.toThrow('Invalid Programme Fit output');
   });
 });
+
+describe('improvement content blocks', () => {
+  const programmeFit = {
+    classification: 'match',
+    confidence: 60,
+    limitations: [],
+    eligibility: {
+      requiredSubjects: 'met',
+      minimumQualification: 'met',
+      languageRequirement: 'met',
+      citizenshipRequirement: 'met',
+      deadline: 'met',
+    },
+    dimensions: {
+      academicCompetitiveness: dimension,
+      personaAlignment: dimension,
+      financialFeasibility: dimension,
+      careerDirection: dimension,
+      applicationReadiness: dimension,
+    },
+  };
+
+  function respondWith(academicImprovement: Record<string, unknown>) {
+    const responseBody = {
+      confidence: 60,
+      pillars: {
+        academic: { ...pillar, improvements: [academicImprovement] },
+        activities: pillar,
+        essays: pillar,
+        impact: pillar,
+        personal: pillar,
+      },
+      programmeFit,
+    };
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ choices: [{ message: { content: JSON.stringify(responseBody) } }] }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+  }
+
+  it('parses a structured_table content block with its columns', async () => {
+    respondWith({
+      label: 'Provide detailed academic history',
+      detail: 'Required for entry.',
+      estimatedUplift: 15,
+      actionType: 'none',
+      contentBlock: {
+        type: 'structured_table',
+        columns: [
+          { key: 'subject', label: 'Subject / Module', type: 'text' },
+          { key: 'grade', label: 'Grade', type: 'select', options: ['A*', 'A', 'B'] },
+          { key: 'year', label: 'Year', type: 'number' },
+        ],
+      },
+      submitChecklist: ['Subjects studied', 'Grades achieved'],
+      tips: ['Use official transcripts where possible.'],
+      suggestedQuestions: ['What results should I include?'],
+    });
+
+    const result = await analyzeCourseMatchInsights({
+      course: { universityName: 'Example University', courseName: 'BSc Data Science' },
+      profile: {},
+      apiKey: 'test-key',
+    });
+
+    const improvement = result.pillars.academic.improvements[0];
+    expect(improvement?.contentBlock).toEqual({
+      type: 'structured_table',
+      columns: [
+        { key: 'subject', label: 'Subject / Module', type: 'text' },
+        { key: 'grade', label: 'Grade', type: 'select', options: ['A*', 'A', 'B'] },
+        { key: 'year', label: 'Year', type: 'number' },
+      ],
+    });
+    expect(improvement?.submitChecklist).toEqual(['Subjects studied', 'Grades achieved']);
+    expect(improvement?.tips).toEqual(['Use official transcripts where possible.']);
+    expect(improvement?.suggestedQuestions).toEqual(['What results should I include?']);
+  });
+
+  it('forces contentBlock to null when actionType routes to another tool, even if the model filled one in', async () => {
+    respondWith({
+      label: 'Draft a compelling personal statement',
+      detail: 'Open the statement writer.',
+      estimatedUplift: 20,
+      actionType: 'internal_route',
+      actionTarget: '/apply/app-1/statement',
+      contentBlock: { type: 'long_text', prompt: 'Should be dropped' },
+    });
+
+    const result = await analyzeCourseMatchInsights({
+      course: { universityName: 'Example University', courseName: 'BSc Data Science' },
+      profile: {},
+      apiKey: 'test-key',
+    });
+
+    expect(result.pillars.academic.improvements[0]?.contentBlock).toBeNull();
+  });
+
+  it('defaults contentBlock and the string-array fields when the model omits them', async () => {
+    respondWith({
+      label: 'Improve Mathematics grade',
+      detail: 'Required for entry.',
+      estimatedUplift: 15,
+      actionType: 'none',
+    });
+
+    const result = await analyzeCourseMatchInsights({
+      course: { universityName: 'Example University', courseName: 'BSc Data Science' },
+      profile: {},
+      apiKey: 'test-key',
+    });
+
+    const improvement = result.pillars.academic.improvements[0];
+    expect(improvement?.contentBlock).toBeNull();
+    expect(improvement?.submitChecklist).toEqual([]);
+    expect(improvement?.tips).toEqual([]);
+    expect(improvement?.suggestedQuestions).toEqual([]);
+  });
+
+  it('drops a structured_table block with no valid columns rather than rendering an empty table', async () => {
+    respondWith({
+      label: 'List extracurricular activities',
+      detail: 'Include clubs and societies.',
+      estimatedUplift: 10,
+      actionType: 'none',
+      contentBlock: { type: 'structured_table', columns: [{ label: 'missing a key' }] },
+    });
+
+    const result = await analyzeCourseMatchInsights({
+      course: { universityName: 'Example University', courseName: 'BSc Data Science' },
+      profile: {},
+      apiKey: 'test-key',
+    });
+
+    expect(result.pillars.academic.improvements[0]?.contentBlock).toBeNull();
+  });
+});

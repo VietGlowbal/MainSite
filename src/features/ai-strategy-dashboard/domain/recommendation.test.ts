@@ -6,6 +6,7 @@ import {
   nextPriority,
   reconcileRecommendations,
   recommendationFromImprovementAction,
+  recommendationPatchSchema,
   sortByPriority,
   type ExistingRecommendation,
   type Recommendation,
@@ -19,6 +20,10 @@ function action(overrides: Partial<ImprovementAction> = {}): ImprovementAction {
     detail: 'Required for entry.',
     estimatedUplift: 15,
     actionType: 'none',
+    contentBlock: null,
+    submitChecklist: [],
+    tips: [],
+    suggestedQuestions: [],
     ...overrides,
   };
 }
@@ -187,6 +192,11 @@ describe('sortByPriority / groupByCategory / completionPercent / nextPriority', 
       actionLabel: null,
       actionType: null,
       actionTarget: null,
+      contentSchema: null,
+      contentValue: null,
+      submitChecklist: [],
+      tips: [],
+      suggestedQuestions: [],
       confidence: 0.7,
       isDismissed: false,
       sourceAnalysisId: null,
@@ -230,5 +240,52 @@ describe('sortByPriority / groupByCategory / completionPercent / nextPriority', 
       rec({ id: 'open-high', status: 'in_progress', priority: 'high' }),
     ]);
     expect(next?.id).toBe('open-high');
+  });
+});
+
+describe('recommendationPatchSchema', () => {
+  it('rejects an empty patch', () => {
+    expect(recommendationPatchSchema.safeParse({}).success).toBe(false);
+  });
+
+  it('accepts a status-only patch, unchanged from before contentValue existed', () => {
+    expect(recommendationPatchSchema.safeParse({ status: 'completed' }).success).toBe(true);
+  });
+
+  it('accepts each contentValue shape matching its own type', () => {
+    expect(
+      recommendationPatchSchema.safeParse({
+        contentValue: { type: 'structured_table', rows: [{ subject: 'Maths', grade: 'A' }] },
+      }).success,
+    ).toBe(true);
+    expect(
+      recommendationPatchSchema.safeParse({
+        contentValue: { type: 'long_text', text: 'I want to study here because...' },
+      }).success,
+    ).toBe(true);
+    expect(
+      recommendationPatchSchema.safeParse({
+        contentValue: { type: 'checklist', checkedItems: ['Email the registrar'] },
+      }).success,
+    ).toBe(true);
+  });
+
+  it('accepts a null contentValue, for clearing a saved answer', () => {
+    expect(recommendationPatchSchema.safeParse({ contentValue: null }).success).toBe(true);
+  });
+
+  it('rejects a contentValue whose fields do not match its own declared type', () => {
+    // A "long_text" value has no "rows" — this is a checklist's shape wearing the wrong tag.
+    expect(
+      recommendationPatchSchema.safeParse({
+        contentValue: { type: 'long_text', rows: [{ subject: 'Maths' }] },
+      }).success,
+    ).toBe(false);
+  });
+
+  it('rejects an unrecognised contentValue type', () => {
+    expect(
+      recommendationPatchSchema.safeParse({ contentValue: { type: 'freeform', text: 'x' } }).success,
+    ).toBe(false);
   });
 });

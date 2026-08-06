@@ -1,5 +1,12 @@
 import { z } from 'zod';
-import type { ImprovementAction, ImprovementActionType, PillarKey } from '@/lib/match-insights';
+import {
+  CONTENT_BLOCK_TYPES,
+  type ContentBlock,
+  type ContentBlockValue,
+  type ImprovementAction,
+  type ImprovementActionType,
+  type PillarKey,
+} from '@/lib/match-insights';
 import { categoryByPillar } from './strategy-category';
 
 /**
@@ -54,6 +61,13 @@ export type Recommendation = {
   actionLabel: string | null;
   actionType: ImprovementActionType | null;
   actionTarget: string | null;
+  /** The detail page's genUI body — see `ContentBlock`'s doc comment in `@/lib/match-insights`. AI-authored, refreshed on regenerate. */
+  contentSchema: ContentBlock | null;
+  /** The student's saved answer, shaped to match `contentSchema`. Never touched by regenerate — see `reconcileRecommendations`. */
+  contentValue: ContentBlockValue | null;
+  submitChecklist: string[];
+  tips: string[];
+  suggestedQuestions: string[];
   confidence: number;
   isDismissed: boolean;
   /** The Course Match Analysis run that produced (or last refreshed) this row. */
@@ -131,17 +145,36 @@ export const recommendationStatusPatchSchema = z.object({
 
 export type RecommendationStatusPatch = z.infer<typeof recommendationStatusPatchSchema>;
 
+/** A structured-table row: arbitrary column keys, string cells (the table's own inputs are all text/number/date/select, and Postgres JSONB has no reason to prefer any of those over a string here). */
+const contentTableRowSchema = z.record(z.string(), z.string());
+
+/**
+ * What `content_value` may hold — the student's saved answer to a
+ * `content_schema` (`ContentBlock` in `@/lib/match-insights`). A discriminated
+ * union mirroring the block it answers, so a `long_text` answer can never be
+ * saved against a `checklist` schema by a client bug.
+ */
+const contentValueSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('structured_table'), rows: z.array(contentTableRowSchema).max(50) }),
+  z.object({ type: z.literal('long_text'), text: z.string().max(20_000) }),
+  z.object({ type: z.literal('checklist'), checkedItems: z.array(z.string()).max(50) }),
+]);
+
 /**
  * What `PATCH .../recommendations/[recId]` accepts.
  *
- * Both fields optional, at least one required — the board sends a status, the
- * calendar sends a deadline, and neither should have to echo the other back
- * and risk clobbering a change made in the other view a moment earlier.
+ * All three fields optional, at least one required — the board sends a
+ * status, the calendar sends a deadline, the detail page's content block
+ * sends `contentValue`, and none of the three should have to echo the others
+ * back and risk clobbering a change made elsewhere a moment earlier.
  *
- * `deadline` is nullable because unscheduling is a real action: dragging a
- * task off the calendar and back into the tray sends `null`. A plain
- * `.optional()` could not express that — omitted would mean "leave it alone"
- * and there would be no way to say "clear it".
+ * `deadline` and `contentValue` are both nullable because clearing either is
+ * a real action: dragging a task off the calendar sends `deadline: null`;
+ * clearing a long-text answer back to empty sends `contentValue: null`
+ * rather than an empty-string content value, so a re-generated
+ * `contentSchema` isn't left validating a value that no longer answers it. A
+ * plain `.optional()` could not express either — omitted means "leave it
+ * alone", there'd be no way to say "clear it".
  *
  * The date is validated as a bare `YYYY-MM-DD` rather than a datetime,
  * because the column is a Postgres DATE. Accepting an ISO timestamp here
@@ -156,10 +189,13 @@ export const recommendationPatchSchema = z
       .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a YYYY-MM-DD date')
       .nullable()
       .optional(),
+    contentValue: contentValueSchema.nullable().optional(),
   })
-  .refine((patch) => patch.status !== undefined || patch.deadline !== undefined, {
-    message: 'Provide a status, a deadline, or both',
-  });
+  .refine(
+    (patch) =>
+      patch.status !== undefined || patch.deadline !== undefined || patch.contentValue !== undefined,
+    { message: 'Provide a status, a deadline, a content value, or a combination' },
+  );
 
 export type RecommendationPatch = z.infer<typeof recommendationPatchSchema>;
 
@@ -167,6 +203,29 @@ export type RecommendationPatch = z.infer<typeof recommendationPatchSchema>;
 export function nextPriority(recommendations: readonly Recommendation[]): Recommendation | null {
   const open = recommendations.filter((r) => r.status !== 'completed');
   return sortByPriority(open)[0] ?? null;
+}
+
+/**
+ * Defensively reads a `content_schema`/`content_value` JSONB column back into
+ * its typed shape. Trusts nothing about the stored JSON beyond its own
+ * `type` discriminant matching one of `CONTENT_BLOCK_TYPES` — a row written
+ * by a future/different shape (or corrupted by hand in the SQL editor)
+ * degrades to `null` (no content block) rather than throwing and taking the
+ * whole detail page down with it.
+ */
+function parseContentBlock(raw: unknown): ContentBlock | null {
+  if (raw === null || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  if (!CONTENT_BLOCK_TYPES.includes(r.type as ContentBlock['type'])) return null;
+  return r as unknown as ContentBlock;
+}
+
+/** Same defensiveness as `parseContentBlock`, for the student-authored value column. */
+function parseContentBlockValue(raw: unknown): ContentBlockValue | null {
+  if (raw === null || typeof raw !== 'object') return null;
+  const r = raw as Record<string, unknown>;
+  if (!CONTENT_BLOCK_TYPES.includes(r.type as ContentBlockValue['type'])) return null;
+  return r as unknown as ContentBlockValue;
 }
 
 /** The `application_recommendations` API/DB row shape (snake_case) → `Recommendation`. */
@@ -188,6 +247,13 @@ export function recommendationFromRow(row: Record<string, unknown>): Recommendat
     actionLabel: (row.action_label as string | null) ?? null,
     actionType: (row.action_type as ImprovementActionType | null) ?? null,
     actionTarget: (row.action_target as string | null) ?? null,
+    contentSchema: parseContentBlock(row.content_schema),
+    contentValue: parseContentBlockValue(row.content_value),
+    submitChecklist: Array.isArray(row.submit_checklist) ? (row.submit_checklist as string[]) : [],
+    tips: Array.isArray(row.tips) ? (row.tips as string[]) : [],
+    suggestedQuestions: Array.isArray(row.suggested_questions)
+      ? (row.suggested_questions as string[])
+      : [],
     confidence: (row.confidence as number) ?? 0,
     isDismissed: Boolean(row.is_dismissed),
     sourceAnalysisId: (row.source_analysis_id as string | null) ?? null,
@@ -224,6 +290,10 @@ export type RecommendationSeed = Pick<
   | 'actionLabel'
   | 'actionType'
   | 'actionTarget'
+  | 'contentSchema'
+  | 'submitChecklist'
+  | 'tips'
+  | 'suggestedQuestions'
   | 'sourceAnalysisId'
 >;
 
@@ -253,6 +323,10 @@ export function recommendationFromImprovementAction(
     actionLabel: action.label,
     actionType: action.actionType,
     actionTarget: action.actionTarget ?? null,
+    contentSchema: action.contentBlock,
+    submitChecklist: action.submitChecklist,
+    tips: action.tips,
+    suggestedQuestions: action.suggestedQuestions,
     sourceAnalysisId,
   };
 }
@@ -340,6 +414,16 @@ export function reconcileRecommendations(
         actionLabel: seed.actionLabel,
         actionType: seed.actionType,
         actionTarget: seed.actionTarget,
+        // Refreshes with the rest of the AI-authored fields. `contentValue`
+        // is deliberately absent here, same as `status` above it — it's the
+        // student's own answer, not something a regenerate may overwrite.
+        // If a new `contentSchema`'s shape has moved on from what the
+        // student already filled in, the content-block components render
+        // whatever still matches and drop the rest; see `parseContentBlockValue`.
+        contentSchema: seed.contentSchema,
+        submitChecklist: seed.submitChecklist,
+        tips: seed.tips,
+        suggestedQuestions: seed.suggestedQuestions,
         sourceAnalysisId: seed.sourceAnalysisId,
       },
     });

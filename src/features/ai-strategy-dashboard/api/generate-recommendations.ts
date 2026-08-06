@@ -28,7 +28,7 @@ function logMigrationHint(context: string, error: { code?: string; message?: str
   if (!error) return;
   if (error.code === 'PGRST204') {
     console.error(
-      `[generateRecommendations] ${context}: looks like a missing column — run supabase-strategy-recommendation-fields.sql against the production database.`,
+      `[generateRecommendations] ${context}: looks like a missing column — run supabase-strategy-recommendation-fields.sql and/or supabase-strategy-recommendation-content-blocks.sql against the production database.`,
     );
   } else if (error.code === '42501') {
     console.error(
@@ -59,6 +59,10 @@ function seedToRow(seed: RecommendationSeed) {
     deadline: seed.deadline,
     evidence_required: seed.evidenceRequired,
     related_requirement: seed.relatedRequirement,
+    content_schema: seed.contentSchema,
+    submit_checklist: seed.submitChecklist,
+    tips: seed.tips,
+    suggested_questions: seed.suggestedQuestions,
     source_analysis_id: seed.sourceAnalysisId,
     archived_at: null,
   };
