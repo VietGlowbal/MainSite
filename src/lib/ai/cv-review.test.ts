@@ -32,8 +32,8 @@ function validLines() {
     criterion,
     data: {
       score: 7,
-      strengths: [bullet('Nhận xét có căn cứ.')],
-      weaknesses: [bullet('Cần diễn đạt cụ thể hơn.')],
+      strengths: [bullet('Well-supported feedback.')],
+      weaknesses: [bullet('Needs more concrete wording.')],
     },
   }));
   const cvSections = [
@@ -46,25 +46,25 @@ function validLines() {
     sectionName,
     data: {
       score: 7,
-      strengths: [bullet('Thông tin liên quan được trình bày rõ.', evidenceId)],
-      improvements: [bullet('Bổ sung ngữ cảnh để tăng sức thuyết phục.', evidenceId)],
+      strengths: [bullet('Relevant information is presented clearly.', evidenceId)],
+      improvements: [bullet('Add context to make it more persuasive.', evidenceId)],
       missingOpportunities: [],
-      recommendations: [bullet('Ưu tiên chi tiết có tác động đo lường được.', evidenceId)],
+      recommendations: [bullet('Prioritize details with a measurable impact.', evidenceId)],
     },
   }));
   return [
     {
       section: 'summary',
       data: {
-        communicationReadiness: 'CV dễ đọc nhưng cần làm rõ tác động.',
-        programmeAlignment: 'Nội dung có liên hệ với Computer Science.',
-        firstImpression: 'Ứng viên có định hướng kỹ thuật rõ.',
-        biggestStrengths: [bullet('Kinh nghiệm kỹ thuật có số liệu.', 'C002')],
-        biggestWeaknesses: [bullet('Education còn thiếu thành tích nổi bật.', 'C001')],
+        communicationReadiness: 'The CV is readable but needs clearer impact.',
+        programmeAlignment: 'The content connects to Computer Science.',
+        firstImpression: 'The applicant shows a clear technical direction.',
+        biggestStrengths: [bullet('Technical experience backed by numbers.', 'C002')],
+        biggestWeaknesses: [bullet('Education is missing standout achievements.', 'C001')],
         priorities: [
-          bullet('Làm rõ kết quả trong phần Experience.', 'C002'),
-          bullet('Bổ sung coursework liên quan.', 'C001'),
-          bullet('Nhóm kỹ năng theo chuyên môn.', 'C003'),
+          bullet('Clarify the results in the Experience section.', 'C002'),
+          bullet('Add relevant coursework.', 'C001'),
+          bullet('Group skills by specialty.', 'C003'),
         ],
       },
     },
@@ -73,9 +73,9 @@ function validLines() {
     {
       section: 'recommendations',
       data: {
-        high: [bullet('Viết lại Experience theo action và impact.', 'C002')],
-        medium: [bullet('Thêm coursework phù hợp chương trình.', 'C001')],
-        low: [bullet('Chuẩn hóa cách viết tên kỹ năng.', 'C003')],
+        high: [bullet('Rewrite Experience around action and impact.', 'C002')],
+        medium: [bullet('Add coursework matching the programme.', 'C001')],
+        low: [bullet('Standardize how skill names are written.', 'C003')],
       },
     },
   ];
@@ -112,9 +112,9 @@ describe('CV review streaming evaluation', () => {
         JSON.stringify({
           section: 'summary',
           data: {
-            communicationReadiness: 'CV được trình bày tương đối rõ.',
-            programmeAlignment: 'Nội dung có liên quan chương trình.',
-            firstImpression: 'Định hướng được truyền tải tập trung.',
+            communicationReadiness: 'The CV is presented fairly clearly.',
+            programmeAlignment: 'The content is relevant to the programme.',
+            firstImpression: 'The direction comes across in a focused way.',
             biggestStrengths: [bullet('Unsupported.', 'C999')],
             biggestWeaknesses: [bullet('Weak.', 'C001')],
             priorities: [
@@ -135,8 +135,8 @@ describe('CV review streaming evaluation', () => {
         JSON.stringify({
           section: 'recommendations',
           data: {
-            high: [bullet('Ưu tiên viết lại Experience.', 'C001')],
-            medium: [{ text: '[CẦN USER BỔ SUNG: kết quả định lượng]', evidenceIds: [] }],
+            high: [bullet('Prioritize rewriting Experience.', 'C001')],
+            medium: [{ text: '[NEEDS USER INPUT: a quantified result]', evidenceIds: [] }],
             low: [],
           },
         }),
@@ -184,7 +184,7 @@ describe('CV review streaming evaluation', () => {
         programmeName: 'BSc Computer Science',
       },
       apiKey: 'test-key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       stream,
     })) {
       if (event.type !== 'section') continue;
@@ -222,7 +222,7 @@ describe('CV review streaming evaluation', () => {
         programmeName: 'BSc Computer Science',
       },
       apiKey: 'test-key',
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       stream,
     })) {
       events.push(event);
@@ -238,7 +238,7 @@ describe('CV review streaming evaluation', () => {
     });
     expect(stream).toHaveBeenCalledTimes(2);
     expect(vi.mocked(stream).mock.calls[0][0]).toMatchObject({
-      model: 'deepseek-v4-pro',
+      model: 'gpt-4o',
       temperature: 0,
     });
     expect(
@@ -250,19 +250,16 @@ describe('CV review streaming evaluation', () => {
       ]),
     );
     expect(vi.mocked(stream).mock.calls[0][0].messages[0].content).toContain(
-      'TẤT CẢ nội dung phản hồi phải bằng tiếng Việt',
-    );
-    expect(vi.mocked(stream).mock.calls[0][0].messages[0].content).not.toContain(
-      'giữ ngôn ngữ gốc của CV',
+      'ALL response content must be in English',
     );
     expect(vi.mocked(stream).mock.calls[0][0].messages[0].content).toContain(
-      'không đánh giá độ mạnh',
+      "do not assess the overall strength/weakness",
     );
     expect(vi.mocked(stream).mock.calls[0][0].messages[0].content).toContain(
-      'học sinh cấp 2 hoặc cấp 3',
+      'middle or high school student',
     );
     expect(vi.mocked(stream).mock.calls[0][0].messages[0].content).toContain(
-      'Tránh thuật ngữ tuyển sinh',
+      'Avoid admissions jargon',
     );
   });
 });

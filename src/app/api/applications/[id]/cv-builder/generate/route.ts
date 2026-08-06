@@ -10,7 +10,7 @@ import {
   isCvBuilderEnabled,
   loadCvBuilderContext,
 } from '@/lib/ai/cv-builder-context';
-import { streamDeepSeekText } from '@/lib/ai/vinuni-grounded-evaluation';
+import { streamOpenAIText } from '@/lib/ai/vinuni-grounded-evaluation';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -62,7 +62,7 @@ export async function POST(
   try {
     targetProfile = validateTargetProfile(payload?.targetProfile, context.validSourceRefs);
   } catch {
-    return NextResponse.json({ error: 'Target Profile không hợp lệ.' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid Target Profile.' }, { status: 400 });
   }
   const requestedSections = payload?.requestedSections;
   if (
@@ -70,24 +70,24 @@ export async function POST(
     (!Array.isArray(requestedSections) ||
       requestedSections.some((section) => typeof section !== 'string' || !sections.has(section)))
   ) {
-    return NextResponse.json({ error: 'Danh sách phần cần tạo không hợp lệ.' }, { status: 400 });
+    return NextResponse.json({ error: 'Invalid list of sections to generate.' }, { status: 400 });
   }
 
   if (payload?.mode !== undefined && payload.mode !== 'clarification') {
     return NextResponse.json({ error: 'Invalid CV generation mode.' }, { status: 400 });
   }
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'AI service not configured. Set DEEPSEEK_API_KEY in .env.local.' },
+      { error: 'AI service not configured. Set OPENAI_API_KEY in .env.local.' },
       { status: 500 },
     );
   }
   const model =
     payload?.mode === 'clarification'
-      ? 'deepseek-v4-flash'
-      : process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro';
+      ? 'gpt-4o-mini'
+      : process.env.OPENAI_MODEL || 'gpt-4o';
   const encoder = new TextEncoder();
   const encode = (event: CvBuilderStreamEvent) =>
     encoder.encode(`${JSON.stringify(event)}\n`);
@@ -105,13 +105,13 @@ export async function POST(
             model,
             requestedSections,
             clarification: payload?.mode === 'clarification',
-            stream: streamDeepSeekText,
+            stream: streamOpenAIText,
             signal: abortController.signal,
           })) {
             controller.enqueue(encode(event));
             if (event.type === 'complete') {
               console.info('CV builder stream complete', {
-                provider: 'deepseek',
+                provider: 'openai',
                 model,
                 firstSectionMs: event.timing.firstSectionMs,
                 totalMs: event.timing.totalMs,
@@ -128,7 +128,7 @@ export async function POST(
                 .map((section) => section.trim())
                 .filter(Boolean) ?? requestedSections ?? [];
             console.error('CV builder stream failed', {
-              provider: 'deepseek',
+              provider: 'openai',
               model,
               code: 'STREAM_FAILED',
               message: detail,
@@ -138,7 +138,7 @@ export async function POST(
                 type: 'error',
                 code: 'STREAM_FAILED',
                 missingSections,
-                message: 'Chưa thể hoàn tất CV. Vui lòng thử lại phần còn thiếu.',
+                message: 'Could not finish the CV. Please retry the missing sections.',
                 retryable: true,
               }),
             );

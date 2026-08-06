@@ -33,10 +33,10 @@ const targetJson = {
     ],
   },
   programmeDna: {
-    objectives: [{ text: 'Chưa đủ dữ liệu', status: 'unavailable', sourceRefs: [] }],
-    modules: [{ text: 'Chưa đủ dữ liệu', status: 'unavailable', sourceRefs: [] }],
+    objectives: [{ text: 'Not enough data', status: 'unavailable', sourceRefs: [] }],
+    modules: [{ text: 'Not enough data', status: 'unavailable', sourceRefs: [] }],
     learningOutcomes: [
-      { text: 'Chưa đủ dữ liệu', status: 'unavailable', sourceRefs: [] },
+      { text: 'Not enough data', status: 'unavailable', sourceRefs: [] },
     ],
     competencies: [
       {
@@ -64,36 +64,36 @@ const targetJson = {
     {
       id: 'S001',
       label: 'Analytical problem solving',
-      description: 'CV cần đưa ra ví dụ cho thấy cách ứng viên phân tích và giải quyết vấn đề.',
-      evidenceExamples: ['Dự án kỹ thuật có mô tả cách làm và kết quả'],
+      description: 'The CV needs examples showing how the applicant analyzes and solves problems.',
+      evidenceExamples: ['A technical project describing the approach and the outcome'],
       sourceRefs: ['course:subject'],
     },
     {
       id: 'S002',
       label: 'Practical builder',
-      description: 'CV cần chứng minh khả năng biến ý tưởng thành sản phẩm hoặc kết quả cụ thể.',
-      evidenceExamples: ['Sản phẩm, công cụ hoặc hoạt động do ứng viên trực tiếp xây dựng'],
+      description: 'The CV needs to prove the ability to turn ideas into a concrete product or outcome.',
+      evidenceExamples: ['A product, tool or activity the applicant built directly'],
       sourceRefs: ['university:best_for'],
     },
     {
       id: 'S003',
       label: 'Academic readiness',
-      description: 'CV cần thể hiện nền tảng học thuật phù hợp với yêu cầu chương trình.',
-      evidenceExamples: ['Môn học, kết quả học tập hoặc dự án học thuật liên quan'],
+      description: "The CV needs an academic foundation matching the programme's requirements.",
+      evidenceExamples: ['A relevant subject, academic result or project'],
       sourceRefs: ['course:entry_requirements_summary'],
     },
     {
       id: 'S004',
       label: 'Collaboration',
-      description: 'CV cần có dẫn chứng về cách ứng viên làm việc hiệu quả với người khác.',
-      evidenceExamples: ['Vai trò rõ ràng trong nhóm hoặc hoạt động cộng đồng'],
+      description: 'The CV needs evidence of how the applicant works effectively with others.',
+      evidenceExamples: ['A clear role in a team or community activity'],
       sourceRefs: ['university:teaching_style'],
     },
     {
       id: 'S005',
       label: 'Career direction',
-      description: 'CV cần kết nối trải nghiệm đã có với định hướng nghề nghiệp đã chọn.',
-      evidenceExamples: ['Trải nghiệm liên quan trực tiếp đến Software Engineering'],
+      description: "The CV needs to connect existing experience to the chosen career direction.",
+      evidenceExamples: ['Experience directly relevant to Software Engineering'],
       sourceRefs: ['profile:career_interests'],
     },
   ],
@@ -141,8 +141,8 @@ describe('CV builder model streams', () => {
     const profile = await generateCvTargetProfile({
       context: targetContext,
       careerDirection: 'Software Engineering',
-      apiKey: 'deepseek-key',
-      model: 'deepseek-v4-pro',
+      apiKey: 'openai-key',
+      model: 'gpt-4o',
       stream,
     });
 
@@ -168,8 +168,8 @@ describe('CV builder model streams', () => {
       generateCvTargetProfile({
         context: targetContext,
         careerDirection: 'Software Engineering',
-        apiKey: 'deepseek-key',
-        model: 'deepseek-v4-pro',
+        apiKey: 'openai-key',
+        model: 'gpt-4o',
         stream,
       }),
     ).resolves.toMatchObject({ universityName: 'Example University' });
@@ -245,8 +245,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
-      apiKey: 'deepseek-key',
-      model: 'deepseek-v4-pro',
+      apiKey: 'openai-key',
+      model: 'gpt-4o',
       stream,
     })) {
       events.push(event);
@@ -332,8 +332,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
-      apiKey: 'deepseek-key',
-      model: 'deepseek-v4-pro',
+      apiKey: 'openai-key',
+      model: 'gpt-4o',
       stream,
     })) {
       events.push(event);
@@ -429,8 +429,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
-      apiKey: 'deepseek-key',
-      model: 'deepseek-v4-pro',
+      apiKey: 'openai-key',
+      model: 'gpt-4o',
       stream,
     })) {
       events.push(event);
@@ -522,8 +522,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
-      apiKey: 'deepseek-key',
-      model: 'deepseek-v4-flash',
+      apiKey: 'openai-key',
+      model: 'gpt-4o-mini',
       requestedSections: ['experience'],
       clarification: true,
       stream,
@@ -575,8 +575,8 @@ describe('CV builder model streams', () => {
       for await (const event of streamCvBuilderGeneration({
         form,
         targetProfile: targetJson,
-        apiKey: 'deepseek-key',
-        model: 'deepseek-v4-flash',
+        apiKey: 'openai-key',
+        model: 'gpt-4o-mini',
         requestedSections: ['assessment'],
         stream,
       })) {
@@ -630,8 +630,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
-      apiKey: 'deepseek-key',
-      model: 'deepseek-v4-flash',
+      apiKey: 'openai-key',
+      model: 'gpt-4o-mini',
       requestedSections: ['about_me'],
       clarification: true,
       stream,

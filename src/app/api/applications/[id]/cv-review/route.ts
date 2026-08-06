@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import { streamCvReview, type CvReviewStreamEvent } from '@/lib/ai/cv-review';
 import { extractDocumentBytes } from '@/lib/ai/document-text';
-import { streamDeepSeekText } from '@/lib/ai/vinuni-grounded-evaluation';
+import { streamOpenAIText } from '@/lib/ai/vinuni-grounded-evaluation';
 import { createClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
@@ -16,9 +16,9 @@ async function readCvText(request: Request) {
   if (contentType.includes('multipart/form-data')) {
     const formData = await request.formData();
     const file = formData.get('file');
-    if (!(file instanceof File)) return { error: 'Vui lòng chọn file CV.', status: 400 };
+    if (!(file instanceof File)) return { error: 'Please choose a CV file.', status: 400 };
     if (file.size > MAX_FILE_BYTES) {
-      return { error: 'File CV không được vượt quá 5 MB.', status: 413 };
+      return { error: 'The CV file must not exceed 5 MB.', status: 413 };
     }
     try {
       const text = await extractDocumentBytes(
@@ -29,12 +29,12 @@ async function readCvText(request: Request) {
       return text
         ? { text }
         : {
-            error: 'Không thể đọc CV. Hãy dùng PDF/DOCX có text hoặc dán nội dung.',
+            error: 'Could not read the CV. Use a PDF/DOCX with selectable text, or paste the content instead.',
             status: 400,
           };
     } catch {
       return {
-        error: 'Không thể đọc CV. Hãy dùng PDF/DOCX có text hoặc dán nội dung.',
+        error: 'Could not read the CV. Use a PDF/DOCX with selectable text, or paste the content instead.',
         status: 400,
       };
     }
@@ -64,25 +64,25 @@ export async function POST(
   }
   if (input.text.length > MAX_TEXT_LENGTH) {
     return NextResponse.json(
-      { error: `CV không được vượt quá ${MAX_TEXT_LENGTH.toLocaleString('vi-VN')} ký tự.` },
+      { error: `The CV must not exceed ${MAX_TEXT_LENGTH.toLocaleString('en-US')} characters.` },
       { status: 413 },
     );
   }
   if (!input.text || input.text.length < MIN_TEXT_LENGTH) {
     return NextResponse.json(
-      { error: `CV cần có ít nhất ${MIN_TEXT_LENGTH} ký tự.` },
+      { error: `The CV needs at least ${MIN_TEXT_LENGTH} characters.` },
       { status: 400 },
     );
   }
 
-  const apiKey = process.env.DEEPSEEK_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
     return NextResponse.json(
-      { error: 'AI service not configured. Set DEEPSEEK_API_KEY in .env.local.' },
+      { error: 'AI service not configured. Set OPENAI_API_KEY in .env.local.' },
       { status: 500 },
     );
   }
-  const model = process.env.DEEPSEEK_MODEL || 'deepseek-v4-pro';
+  const model = process.env.OPENAI_MODEL || 'gpt-4o';
   const targetProfile = {
     universityName: workspace.application.universityName,
     programmeName: workspace.application.courseName,
@@ -108,13 +108,13 @@ export async function POST(
           targetProfile,
           apiKey,
           model,
-          stream: streamDeepSeekText,
+          stream: streamOpenAIText,
           signal: abortController.signal,
         })) {
           controller.enqueue(encode(event));
           if (event.type === 'complete') {
             console.info('CV review stream complete', {
-              provider: 'deepseek',
+              provider: 'openai',
               model,
               firstSectionMs: event.timing.firstSectionMs,
               totalMs: event.timing.totalMs,
@@ -124,7 +124,7 @@ export async function POST(
       } catch (error) {
         if (abortController.signal.aborted) return;
         console.error('CV review stream failed', {
-          provider: 'deepseek',
+          provider: 'openai',
           model,
           code: 'STREAM_FAILED',
           message: error instanceof Error ? error.message : String(error),
@@ -134,7 +134,7 @@ export async function POST(
             type: 'error',
             code: 'STREAM_FAILED',
             missingSections: [],
-            message: 'Phân tích CV chưa hoàn tất. Vui lòng thử lại.',
+            message: 'The CV analysis did not finish. Please try again.',
             retryable: true,
           }),
         );

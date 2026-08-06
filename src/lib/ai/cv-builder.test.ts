@@ -69,13 +69,13 @@ const targetProfile: CvTargetProfileV1 = {
   },
   programmeDna: {
     objectives: [
-      { text: 'Chưa đủ dữ liệu', status: 'unavailable', sourceRefs: [] },
+      { text: 'Not enough data', status: 'unavailable', sourceRefs: [] },
     ],
     modules: [
-      { text: 'Chưa đủ dữ liệu', status: 'unavailable', sourceRefs: [] },
+      { text: 'Not enough data', status: 'unavailable', sourceRefs: [] },
     ],
     learningOutcomes: [
-      { text: 'Chưa đủ dữ liệu', status: 'unavailable', sourceRefs: [] },
+      { text: 'Not enough data', status: 'unavailable', sourceRefs: [] },
     ],
     competencies: [
       {
@@ -102,8 +102,8 @@ const targetProfile: CvTargetProfileV1 = {
   evidenceSignals: Array.from({ length: 5 }, (_, index) => ({
     id: `S00${index + 1}`,
     label: ['Analytical thinking', 'Practical builder', 'Academic readiness', 'Collaboration', 'Career direction'][index],
-    description: 'CV cần cung cấp một dẫn chứng cụ thể phù hợp với mục tiêu chương trình.',
-    evidenceExamples: ['Một trải nghiệm có mô tả hành động và kết quả'],
+    description: 'The CV needs a specific piece of evidence matching the programme goal.',
+    evidenceExamples: ['An experience describing the action taken and the result'],
     sourceRefs: ['course:subject'],
   })),
   keywords: ['Builder', 'Analytical', 'Collaborative'],
@@ -196,7 +196,7 @@ describe('CV builder contracts', () => {
     expect(invalid.success).toBe(false);
     if (!invalid.success) {
       expect(cvBuilderFormErrorMessage(invalid.error)).toBe(
-        'Trải nghiệm 1, contribution 1: nội dung đang để trống.',
+        'Entry 1, contribution 1: the content is empty.',
       );
     }
   });
@@ -210,7 +210,7 @@ describe('CV builder contracts', () => {
   it('rejects an unavailable Target Profile card when its source exists', () => {
     const incomplete = structuredClone(targetProfile);
     incomplete.universityDna.educationalPhilosophy = {
-      text: 'Chưa đủ dữ liệu',
+      text: 'Not enough data',
       status: 'unavailable',
       sourceRefs: [],
     };
@@ -395,7 +395,7 @@ describe('CV builder contracts', () => {
           section: 'layout',
           data: {
             templateId: 'technical',
-            rationale: 'Lý do chọn bố cục phù hợp với hồ sơ. '.repeat(12),
+            rationale: 'Reason for choosing this layout to match the profile. '.repeat(12),
           },
         }),
         form,
@@ -482,7 +482,7 @@ describe('CV builder contracts', () => {
           section: 'layout',
           data: {
             templateId: 'technical',
-            rationale: 'Nên ưu tiên CV 1 trang để nội dung chính dễ đọc.',
+            rationale: 'A 1-page CV should be preferred so the main content stays easy to read.',
           },
         }),
         form,
@@ -529,15 +529,15 @@ describe('CV builder contracts', () => {
           section: 'assessment',
           data: {
             strengths: ['Builder', 'Analytical', 'Collaborative'],
-            missingSignals: ['Thiếu kết quả đo lường.'],
-            improvementActions: ['Bổ sung tác động cụ thể.'],
+            missingSignals: ['Missing a measurable result.'],
+            improvementActions: ['Add a concrete impact.'],
             followUpQuestions: [
               {
                 id: 'Q001',
                 evidenceId: 'K999',
                 targetSection: 'projects',
-                question: 'Dự án đã tạo ra kết quả cụ thể nào?',
-                reason: 'Bullet hiện chưa có tác động.',
+                question: 'What specific result did the project produce?',
+                reason: 'The bullet currently has no impact.',
               },
             ],
           },
@@ -554,15 +554,15 @@ describe('CV builder contracts', () => {
           section: 'assessment',
           data: {
             strengths: ['Builder', 'Analytical', 'Collaborative'],
-            missingSignals: ['Thiếu kết quả đo lường.'],
-            improvementActions: ['Bổ sung tác động cụ thể.'],
+            missingSignals: ['Missing a measurable result.'],
+            improvementActions: ['Add a concrete impact.'],
             followUpQuestions: [
               {
                 id: 'Q001',
                 evidenceId: 'K001',
                 targetSection: 'activities',
-                question: 'Dự án đã tạo ra kết quả cụ thể nào?',
-                reason: 'Bullet hiện chưa có tác động.',
+                question: 'What specific result did the project produce?',
+                reason: 'The bullet currently has no impact.',
               },
             ],
           },
@@ -580,15 +580,15 @@ describe('CV builder contracts', () => {
           id: 'Q001',
           evidenceId: 'K001',
           targetSection: 'projects',
-          question: 'Dự án đã tạo ra kết quả cụ thể nào?',
-          reason: 'Bullet hiện chưa có tác động.',
+          question: 'What specific result did the project produce?',
+          reason: 'The bullet currently has no impact.',
         },
       ],
-      { Q001: 'Giúp mười hai học sinh hoàn thành sản phẩm.' },
+      { Q001: 'Helped twelve students complete the product.' },
     );
 
     expect(result.form.entries[0].contributions[0].text).toContain(
-      'Giúp mười hai học sinh hoàn thành sản phẩm.',
+      'Helped twelve students complete the product.',
     );
     expect(result.sections).toEqual(['about_me', 'projects', 'assessment']);
   });
@@ -614,15 +614,15 @@ describe('CV builder contracts', () => {
           id: 'Q001',
           evidenceId: 'K001',
           targetSection: 'projects',
-          question: 'Kết quả cụ thể là gì?',
-          reason: 'Thiếu kết quả.',
+          question: 'What is the specific result?',
+          reason: 'Missing a result.',
         },
         {
           id: 'Q002',
           evidenceId: 'K001',
           targetSection: 'projects',
-          question: 'Vai trò cụ thể của bạn là gì?',
-          reason: 'Thiếu vai trò.',
+          question: 'What was your specific role?',
+          reason: 'Missing a role.',
         },
       ],
       { Q001: firstAnswer, Q002: secondAnswer },
