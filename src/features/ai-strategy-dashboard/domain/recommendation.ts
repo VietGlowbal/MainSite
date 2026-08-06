@@ -110,6 +110,21 @@ export function completionPercent(recommendations: readonly Recommendation[]): n
   return Math.round((completed / recommendations.length) * 100);
 }
 
+/**
+ * The raw `{ completed, total }` pair behind `completionPercent` — the hero's
+ * "N of M tasks completed" and each category card's "X / Y tasks completed"
+ * need the counts themselves, not just the rounded percentage.
+ */
+export function taskCounts(recommendations: readonly Recommendation[]): {
+  completed: number;
+  total: number;
+} {
+  return {
+    completed: recommendations.filter((r) => r.status === 'completed').length,
+    total: recommendations.length,
+  };
+}
+
 export const recommendationStatusPatchSchema = z.object({
   status: z.enum(PROGRESS_STATUS),
 });

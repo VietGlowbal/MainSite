@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
-import type { Recommendation } from '../domain';
+import type { ProgressStatus, Recommendation } from '../domain';
 import {
   SEEDED_CATEGORIES,
   dueLabel,
@@ -10,7 +10,7 @@ import {
   recommendationHelp,
   type DueTone,
 } from '../domain';
-import { Badge, type BadgeVariant } from '@/shared/ui';
+import { Badge, KitIcon, type BadgeVariant, type KitIconArt } from '@/shared/ui';
 
 /**
  * Pieces shared by all three Application Planner views — the task card, the
@@ -39,6 +39,84 @@ export const PRIORITY_LABEL: Record<Recommendation['priority'], string> = {
 export function categoryLabel(key: string | null): string {
   if (!key) return 'General';
   return SEEDED_CATEGORIES.find((category) => category.key === key)?.label ?? key;
+}
+
+/**
+ * Status → Badge variant, for the Planner's read-only status pills (the
+ * hero and category cards' progress text, and the list's leading indicator).
+ * `ProgressStatusControl` itself stays an editable `<select>` — this is only
+ * for the places status is shown, not changed.
+ */
+export const STATUS_VARIANT: Record<ProgressStatus, BadgeVariant> = {
+  not_started: 'neutral-chip',
+  in_progress: 'info-chip',
+  completed: 'safe-chip',
+  needs_review: 'brand-chip',
+  blocked: 'reach',
+};
+
+/**
+ * The same colours as `STATUS_VARIANT`, as plain classes rather than a
+ * `Badge`'s markup — `ProgressStatusControl` is a `<select>`, which can't be
+ * wrapped in `Badge`'s `<span>` and stay a real form control.
+ */
+export const STATUS_SELECT_CLASS: Record<ProgressStatus, string> = {
+  not_started: 'bg-surface-muted text-fg-muted',
+  in_progress: 'bg-info-subtle text-fg-info',
+  completed: 'bg-tier-safe text-on-tier-safe',
+  needs_review: 'bg-brand-subtle text-fg-brand',
+  blocked: 'bg-tier-reach text-on-tier-reach',
+};
+
+/**
+ * Category → Badge variant, for the list view's Category column. Only the
+ * three categories the Planner's hero board surfaces get a distinct colour;
+ * everything else (Impact, Personal, CV/Portfolio, or an unrecognised key)
+ * reads as a plain neutral pill rather than inventing more colours than the
+ * hero board uses.
+ */
+const CATEGORY_VARIANT: Partial<Record<string, BadgeVariant>> = {
+  academics: 'safe-chip',
+  activities: 'info-chip',
+  'personal-statement': 'brand-chip',
+};
+
+export function categoryVariant(key: string | null): BadgeVariant {
+  if (!key) return 'neutral-chip';
+  return CATEGORY_VARIANT[key] ?? 'neutral-chip';
+}
+
+/**
+ * A colour-toned circle around a `KitIcon` — the Planner hero's Next
+ * Priority/Final Deadline stats and the category board's per-category icon.
+ * Three tones only, matching the token pairs `Badge`'s chip variants already
+ * use (`brand-subtle`/`fg-brand`, `info-subtle`/`fg-info`,
+ * `tier-safe`/`on-tier-safe`) — no new colour is introduced at this layer,
+ * matching the rule `Panel`'s header comment sets for this feature slice.
+ */
+const ICON_CIRCLE_TONE = {
+  brand: 'bg-brand-subtle text-fg-brand',
+  info: 'bg-info-subtle text-fg-info',
+  safe: 'bg-tier-safe text-on-tier-safe',
+} as const;
+
+export function IconCircle({
+  icon,
+  tone,
+  size = 48,
+}: {
+  icon: KitIconArt;
+  tone: keyof typeof ICON_CIRCLE_TONE;
+  size?: number;
+}) {
+  return (
+    <div
+      className={`flex shrink-0 items-center justify-center rounded-gb-full ${ICON_CIRCLE_TONE[tone]}`}
+      style={{ width: size, height: size }}
+    >
+      <KitIcon art={icon} frame={Math.round(size * 0.42)} />
+    </div>
+  );
 }
 
 /** Text colour for the "days left" cell. Overdue and due-today are the two a
