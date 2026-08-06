@@ -1,4 +1,4 @@
-import { redirect } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { fetchOnboardingState, loadEvaluation } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { ApplicantPortrait } from '@/features/ai-strategy-dashboard/ui';
@@ -36,7 +36,24 @@ export default async function ApplicantPortraitPage({
   }
 
   const evaluation = await loadEvaluation(supabase, user.id, applicationId);
-  if (!evaluation) redirect('/ai-strategy');
+  /*
+   * ⚠️ THIS USED TO redirect('/ai-strategy'), AND THAT WAS A BUG (06/08).
+   *
+   * `/ai-strategy` is the product explainer — marketing copy about how GlowBal
+   * works. A student who clicked "Personal Report" and got bounced onto a
+   * help page has been told nothing about their own report and lost the
+   * application they were inside; there is no way back to it from there since
+   * the "your strategies" list was removed on 02/08.
+   *
+   * It is also the wrong condition to treat as "no analysis yet".
+   * `loadEvaluation` returns null ONLY when `course_applications` has no row
+   * for this id and user — a missing narrative still returns a real evaluation
+   * (see its header, "A MISSING NARRATIVE IS NOT A MISSING PAGE"). So this
+   * branch means the application does not exist or is not this student's,
+   * which is precisely what the layout above already answers with notFound().
+   * Matching it keeps one answer for one condition.
+   */
+  if (!evaluation) notFound();
 
   const studentName =
     (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || 'there';
