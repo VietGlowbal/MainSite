@@ -4,6 +4,7 @@ import { useState } from 'react';
 import type { ProgressStatus, Recommendation } from '../domain';
 import { KANBAN_COLUMNS, KANBAN_COLUMN_LABEL, groupByStatus } from '../domain';
 import { TaskCard } from './planner-shared';
+import type { PlannerRecommendationsController } from './use-planner-recommendations';
 
 /**
  * Application Planner — board view, from the supplied mockup's kanban.
@@ -18,14 +19,12 @@ import { TaskCard } from './planner-shared';
  *
  * ─── DRAG IS OPTIMISTIC, AND PUTS THE CARD BACK IF THE SAVE FAILS ────────────
  *
- * Dropping a card moves it immediately and PATCHes in the background. A
- * status change that waited for the round trip would feel broken on a slow
- * connection — the card would sit under the cursor for a beat before jumping.
- * The trade is that a failed save has to be undone visibly rather than
- * silently: `pending` holds the override, and a rejection clears it so the
- * card returns to where the server still has it, with an error message. A
- * silent revert would be worse than no optimism at all, because the student
- * would believe work was saved that wasn't.
+ * `onStatusChange` — `usePlannerRecommendations().updateStatus` — moves the
+ * card immediately and PATCHes in the background, so a status change does
+ * not wait for the round trip and feel broken on a slow connection. The
+ * optimism, the PATCH, and the rollback-on-failure all live in that shared
+ * hook rather than here, which is also what makes a drag on the board show
+ * up on the list and the calendar without a reload — see the hook's comment.
  *
  * Native HTML5 drag rather than a library — the stack is fixed (CLAUDE.md),
  * and this is the case the native API handles well. Keyboard users are not
@@ -35,58 +34,19 @@ import { TaskCard } from './planner-shared';
 export function PlannerBoard({
   applicationId,
   recommendations,
+  onStatusChange,
 }: {
   applicationId: string;
   recommendations: readonly Recommendation[];
+  onStatusChange: PlannerRecommendationsController['updateStatus'];
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overColumn, setOverColumn] = useState<ProgressStatus | null>(null);
-  /** Optimistic status overrides, by recommendation id. */
-  const [pending, setPending] = useState<Record<string, ProgressStatus>>({});
-  const [error, setError] = useState<string | null>(null);
 
-  const withPending = recommendations.map((rec) => {
-    const override = pending[rec.id];
-    return override === undefined ? rec : { ...rec, status: override };
-  });
-  const columns = groupByStatus(withPending);
-
-  async function moveTo(id: string, status: ProgressStatus) {
-    const original = recommendations.find((rec) => rec.id === id);
-    if (!original || original.status === status) return;
-
-    setPending((current) => ({ ...current, [id]: status }));
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `/api/applications/${applicationId}/strategy/recommendations/${id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status }),
-        },
-      );
-      if (!response.ok) throw new Error('save failed');
-    } catch {
-      // Put it back where the server still has it, and say so — see the header.
-      setPending((current) => {
-        const next = { ...current };
-        delete next[id];
-        return next;
-      });
-      setError('That change did not save. Please try again.');
-    }
-  }
+  const columns = groupByStatus(recommendations);
 
   return (
     <div className="flex flex-col gap-gb-lg">
-      {error ? (
-        <p role="alert" className="px-gb-xl text-gb-sm text-fg-error">
-          {error}
-        </p>
-      ) : null}
-
       <div className="grid gap-gb-lg p-gb-xl md:grid-cols-3 xl:grid-cols-5">
         {KANBAN_COLUMNS.map((status) => {
           const items = columns[status];
@@ -106,7 +66,7 @@ export function PlannerBoard({
                 const id = draggingId ?? event.dataTransfer.getData('text/plain');
                 setOverColumn(null);
                 setDraggingId(null);
-                if (id) void moveTo(id, status);
+                if (id) void onStatusChange(id, status);
               }}
               className={`flex min-h-[16rem] flex-col gap-gb-lg rounded-gb-xl border p-gb-lg transition-colors ${
                 isTarget ? 'border-brand bg-brand-subtle' : 'border-line bg-surface-muted'

@@ -11,6 +11,7 @@ import {
   unscheduled,
 } from '../domain';
 import { TaskCard } from './planner-shared';
+import type { PlannerRecommendationsController } from './use-planner-recommendations';
 import { ICONS, KitIcon } from '@/shared/ui';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -38,9 +39,11 @@ const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
  *
  * ─── OPTIMISTIC, WITH A VISIBLE UNDO ─────────────────────────────────────────
  *
- * Same contract as the board: the card moves immediately, the PATCH follows,
- * and a failure puts it back where the server still has it with an error
- * rather than silently pretending. See planner-board.tsx's header.
+ * `onDeadlineChange` — `usePlannerRecommendations().updateDeadline` — moves
+ * the card immediately, PATCHes in the background, and rolls the field back
+ * with an error if the save fails. That logic lives in the shared hook, not
+ * here, which is also what lets a date dragged here show up on the list and
+ * the board without a reload — see the hook's own comment.
  *
  * ─── SIX FIXED WEEKS ─────────────────────────────────────────────────────────
  *
@@ -51,10 +54,12 @@ export function PlannerCalendar({
   applicationId,
   recommendations,
   today,
+  onDeadlineChange,
 }: {
   applicationId: string;
   recommendations: readonly Recommendation[];
   today: Date;
+  onDeadlineChange: PlannerRecommendationsController['updateDeadline'];
 }) {
   const [cursor, setCursor] = useState(() => ({
     year: today.getUTCFullYear(),
@@ -62,45 +67,11 @@ export function PlannerCalendar({
   }));
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [overDay, setOverDay] = useState<string | null>(null);
-  /** Optimistic deadline overrides, by id. `null` means "cleared". */
-  const [pending, setPending] = useState<Record<string, string | null>>({});
-  const [error, setError] = useState<string | null>(null);
-
-  const withPending = recommendations.map((rec) =>
-    rec.id in pending ? { ...rec, deadline: pending[rec.id] ?? null } : rec,
-  );
 
   const weeks = calendarMonthGrid(cursor.year, cursor.month);
-  const byDay = scheduledByDay(withPending);
-  const tray = unscheduled(withPending);
+  const byDay = scheduledByDay(recommendations);
+  const tray = unscheduled(recommendations);
   const todayIso = toIsoDate(today);
-
-  async function schedule(id: string, deadline: string | null) {
-    const original = recommendations.find((rec) => rec.id === id);
-    if (!original || original.deadline === deadline) return;
-
-    setPending((current) => ({ ...current, [id]: deadline }));
-    setError(null);
-
-    try {
-      const response = await fetch(
-        `/api/applications/${applicationId}/strategy/recommendations/${id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ deadline }),
-        },
-      );
-      if (!response.ok) throw new Error('save failed');
-    } catch {
-      setPending((current) => {
-        const next = { ...current };
-        delete next[id];
-        return next;
-      });
-      setError('That date did not save. Please try again.');
-    }
-  }
 
   function dropHandlers(target: string | null) {
     return {
@@ -115,19 +86,13 @@ export function PlannerCalendar({
         const id = draggingId ?? event.dataTransfer.getData('text/plain');
         setOverDay(null);
         setDraggingId(null);
-        if (id) void schedule(id, target);
+        if (id) void onDeadlineChange(id, target);
       },
     };
   }
 
   return (
     <div className="flex flex-col gap-gb-lg p-gb-xl">
-      {error ? (
-        <p role="alert" className="text-gb-sm text-fg-error">
-          {error}
-        </p>
-      ) : null}
-
       <div className="grid gap-gb-2xl xl:grid-cols-[minmax(0,1fr)_18rem]">
         {/* The month */}
         <div className="flex flex-col gap-gb-lg">
