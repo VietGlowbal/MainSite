@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { activeSubNavKey, type SubNavItem } from '@/shared/lib';
-import { SubNav } from '@/shared/ui';
+import { SubNav, type SubNavTone } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
 
 /**
@@ -17,7 +17,13 @@ import { useLanguage } from '@/lib/i18n';
  * because the strategy pages navigate client-side between each other — a
  * server-computed active entry would be one navigation stale.
  */
-export function ApplicationSubNav({ items }: { items: readonly SubNavItem[] }) {
+export function ApplicationSubNav({
+  items,
+  tone,
+}: {
+  items: readonly SubNavItem[];
+  tone?: SubNavTone | undefined;
+}) {
   const pathname = usePathname();
   const { t } = useLanguage();
 
@@ -27,6 +33,7 @@ export function ApplicationSubNav({ items }: { items: readonly SubNavItem[] }) {
       activeKey={activeSubNavKey(pathname)}
       label={t('Application sections')}
       lockedHint={t('Finish your AI analysis to unlock this')}
+      tone={tone}
     />
   );
 }

@@ -21,9 +21,21 @@ import { Container, Footer, MobileNav, TopNav } from '@/shared/ui';
  */
 export function ReflectionChrome({
   user,
+  nav,
   children,
 }: {
   user: User | null;
+  /**
+   * Full-bleed band between the header and the content — in practice
+   * `ApplicationNav`, for the pages scoped to one application.
+   *
+   * A slot outside `<main>`'s `Container` rather than something callers put in
+   * `children`, because the band spans the viewport and carries its own
+   * measure. Passed through `children` it would land inside `max-w-4xl` and
+   * render as an inset red box. The reflection steps pass nothing and get the
+   * layout they had.
+   */
+  nav?: React.ReactNode | undefined;
   children: React.ReactNode;
 }) {
   const userName =
@@ -58,6 +70,8 @@ export function ReflectionChrome({
         openLabel="Menu"
         closeLabel="Close menu"
       />
+
+      {nav}
 
       <main className="min-h-screen pb-gb-9xl pt-gb-5xl">
         <Container className="max-w-4xl">{children}</Container>

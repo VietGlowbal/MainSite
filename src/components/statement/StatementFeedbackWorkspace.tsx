@@ -143,13 +143,24 @@ export function StatementFeedbackWorkspace({
       <Container className={`flex min-h-[calc(100dvh-1.5rem)] flex-col sm:min-h-[calc(100dvh-2.5rem)] lg:min-h-[calc(100dvh-3.5rem)] ${isLor ? '' : '!max-w-[1600px]'}`}>
         <header className={isLor ? 'flex shrink-0 items-start justify-between gap-gb-xl bg-surface px-gb-xl py-gb-xl sm:px-gb-2xl' : 'flex shrink-0 items-start justify-between gap-8 py-8'}>
           <div className="min-w-0">
-            <Link
-              href={`/apply/${applicationId}`}
-              className="mb-gb-sm inline-flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-            >
-              <span aria-hidden="true">←</span>
-              Quay lại Apply
-            </Link>
+            {/*
+             * LOR only. The statement route is one of the six application
+             * destinations and now sits under `ApplicationNav`'s band, whose
+             * breadcrumb already links `/apply/<id>` and also names the course —
+             * two back links stacked a few pixels apart is a choice the student
+             * should not have to read twice. `/apply/<id>/lor-feedback` is NOT
+             * one of the six, gets no band, and so keeps the link as its only
+             * way out.
+             */}
+            {isLor ? (
+              <Link
+                href={`/apply/${applicationId}`}
+                className="mb-gb-sm inline-flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              >
+                <span aria-hidden="true">←</span>
+                Quay lại Apply
+              </Link>
+            ) : null}
             <p className="text-gb-xs font-bold uppercase tracking-[0.18em] text-fg-brand">
               {isLor ? 'AI LOR feedback' : 'AI statement feedback'}
             </p>

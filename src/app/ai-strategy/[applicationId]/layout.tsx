@@ -43,18 +43,22 @@ export default async function StrategyApplicationLayout({
   if (!application) notFound();
 
   return (
-    <ReflectionChrome user={user}>
-      {/*
-       * The context bar sits above every strategy page rather than inside each
-       * one. These screens are reached through a redirect chain and then rarely
-       * again — the reports especially — so the one thing they all needed was a
-       * permanent statement of where you are and what else belongs to this
-       * application. Mounting it here is also what stops six pages each
-       * growing their own slightly different version.
-       */}
-      <div className="mb-gb-3xl">
-        <ApplicationNav applicationId={applicationId} courseName={application.course_name} />
-      </div>
+    /*
+     * The context bar sits above every strategy page rather than inside each
+     * one. These screens are reached through a redirect chain and then rarely
+     * again — the reports especially — so the one thing they all needed was a
+     * permanent statement of where you are and what else belongs to this
+     * application. Mounting it here is also what stops six pages each growing
+     * their own slightly different version.
+     *
+     * It goes in the chrome's `nav` slot, not in `children`: the band is
+     * full-bleed and brings its own measure, and `children` is rendered inside
+     * a `max-w-4xl` Container.
+     */
+    <ReflectionChrome
+      user={user}
+      nav={<ApplicationNav applicationId={applicationId} courseName={application.course_name} />}
+    >
       {children}
     </ReflectionChrome>
   );

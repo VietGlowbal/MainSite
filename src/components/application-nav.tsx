@@ -1,12 +1,28 @@
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep } from '@/features/ai-strategy-dashboard/domain';
 import { applicationSubNav } from '@/shared/lib';
-import { Breadcrumbs } from '@/shared/ui';
+import { Breadcrumbs, Container } from '@/shared/ui';
 import { createClient } from '@/lib/supabase/server';
 import { ApplicationSubNav } from './application-sub-nav';
 
 /**
- * Breadcrumbs plus the context bar, for every page scoped to one application.
+ * The brand-red band at the top of every page scoped to one application:
+ * breadcrumbs above the six-entry context bar.
+ *
+ * ─── WHY IT IS A BAND AND NOT JUST A ROW OF LINKS ────────────────────────────
+ *
+ * It used to be black-on-white text sitting in the page's own measure, which
+ * made it read as part of whichever screen it happened to be on — and the six
+ * screens look nothing like each other (a checklist, two reports, a planner, a
+ * CV workspace, an essay editor). A student who had just navigated could not
+ * tell the bar was the same bar. Painting it `bg-brand` and running it
+ * full-bleed makes it chrome: the one region that does not change between the
+ * six, so it is recognisable as the way between them.
+ *
+ * ⚠️ IT MUST BE RENDERED OUTSIDE ANY `Container`. The band spans the viewport
+ * and puts its own `Container` inside, so its content still lines up with the
+ * page below it. Nested inside a page's measure it becomes an inset red box
+ * with the content aligned to nothing.
  *
  * ─── WHY IT LIVES IN `src/components` ────────────────────────────────────────
  *
@@ -59,9 +75,16 @@ export async function ApplicationNav({
   });
 
   return (
-    <div className="flex flex-col gap-gb-lg">
-      <Breadcrumbs {...(courseName ? { labels: { application: courseName } } : {})} />
-      <ApplicationSubNav items={items} />
+    <div className="bg-brand">
+      {/* No bottom padding: the sub-nav's own underline is the band's edge, so
+          the active entry's marker sits flush with where the white starts. */}
+      <Container className="flex flex-col gap-gb-lg pt-gb-2xl">
+        <Breadcrumbs
+          tone="on-brand"
+          {...(courseName ? { labels: { application: courseName } } : {})}
+        />
+        <ApplicationSubNav items={items} tone="on-brand" />
+      </Container>
     </div>
   );
 }

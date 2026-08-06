@@ -86,5 +86,7 @@ export type { NavEntry, NavGroup, NavLink } from './nav-model';
 export { TopNav } from './top-nav';
 export { NAV_HIDDEN_EVENT, useNavReveal } from './use-nav-reveal';
 export { Breadcrumbs } from './breadcrumbs';
+export type { BreadcrumbsTone } from './breadcrumbs';
 export { SubNav } from './sub-nav';
+export type { SubNavTone } from './sub-nav';
 export type { TopNavEntry, TopNavGroup, TopNavItem } from './top-nav';

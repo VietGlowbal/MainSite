@@ -198,19 +198,23 @@ export function ApplicationWorkspaceV2({
         closeLabel="Close menu"
       />
 
+      {/*
+       * Was a hand-rolled "← All applications" link, added because dropping the
+       * sidebar left no route back to the list. `nav` is the general version of
+       * that: breadcrumbs (which still get you to the list, and now also name
+       * where you are) plus the context bar for everything else that belongs to
+       * this application. Passed in from the server page rather than rendered
+       * here, because it reads the onboarding state to know which entries are
+       * open yet.
+       *
+       * Directly under the header and OUTSIDE `<main>`'s Container: it is a
+       * full-bleed red band with its own measure inside, so nesting it in the
+       * page's Container would inset it and double the gutter.
+       */}
+      {nav}
+
       <main className="min-h-screen pb-gb-9xl pt-gb-4xl">
         <Container className="flex flex-col gap-gb-5xl">
-          {/*
-           * Was a hand-rolled "← All applications" link, added because
-           * dropping the sidebar left no route back to the list. `nav` is the
-           * general version of that: breadcrumbs (which still get you to the
-           * list, and now also name where you are) plus the context bar for
-           * everything else that belongs to this application. Passed in from
-           * the server page rather than rendered here, because it reads the
-           * onboarding state to know which entries are open yet.
-           */}
-          {nav}
-
           <ApplicationBanner
             {...(universityName ? { universityName } : {})}
             {...(courseName ? { courseName } : {})}

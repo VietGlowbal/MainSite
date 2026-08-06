@@ -32,6 +32,29 @@ import { useLanguage } from '@/lib/i18n';
  * a sign-in wall is an invitation to abandon it. A single-crumb trail is also
  * suppressed — "My Portal" alone, on My Portal, is furniture.
  */
+/**
+ * Which surface the trail is drawn on. `on-brand` is the brand-red band at the
+ * top of every application page: the same hierarchy (current crumb strongest,
+ * parents one step back) expressed in white rather than in greys, which lose
+ * all contrast against a saturated red.
+ */
+export type BreadcrumbsTone = 'light' | 'on-brand';
+
+const TONES: Record<BreadcrumbsTone, { current: string; parent: string; separator: string }> = {
+  light: {
+    current: 'text-fg',
+    parent:
+      'text-fg-tertiary hover:text-fg-brand focus-visible:outline-brand',
+    separator: 'text-fg-muted',
+  },
+  'on-brand': {
+    current: 'text-on-brand',
+    parent:
+      'text-on-brand/75 hover:text-on-brand focus-visible:outline-on-brand',
+    separator: 'text-on-brand/60',
+  },
+};
+
 export function Breadcrumbs({
   /**
    * Names for dynamic crumbs, e.g. `{ application: 'MSc Health Admin' }`.
@@ -39,15 +62,19 @@ export function Breadcrumbs({
    */
   labels,
   className,
+  tone = 'light',
 }: {
   labels?: Readonly<Record<string, string>>;
   className?: string;
+  tone?: BreadcrumbsTone | undefined;
 }) {
   const pathname = usePathname();
   const { t } = useLanguage();
   const trail = breadcrumbTrail(pathname, labels);
 
   if (trail.length < 2) return null;
+
+  const palette = TONES[tone];
 
   return (
     <nav
@@ -57,8 +84,13 @@ export function Breadcrumbs({
       <ol className="flex min-w-0 flex-wrap items-center gap-x-gb-md gap-y-gb-xxs">
         {trail.map((crumb, index) => (
           <li key={`${crumb.label}-${index}`} className="flex min-w-0 items-center gap-x-gb-md">
-            {index > 0 ? <Separator /> : null}
-            <CrumbLabel crumb={crumb} isLast={index === trail.length - 1} translate={t} />
+            {index > 0 ? <Separator className={palette.separator} /> : null}
+            <CrumbLabel
+              crumb={crumb}
+              isLast={index === trail.length - 1}
+              translate={t}
+              palette={palette}
+            />
           </li>
         ))}
       </ol>
@@ -70,10 +102,12 @@ function CrumbLabel({
   crumb,
   isLast,
   translate,
+  palette,
 }: {
   crumb: Crumb;
   isLast: boolean;
   translate: (key: string) => string;
+  palette: { current: string; parent: string };
 }) {
   /*
    * Dynamic crumbs carry real names — a course, a university, a person — and
@@ -89,7 +123,7 @@ function CrumbLabel({
     return (
       <span
         aria-current={isLast ? 'page' : undefined}
-        className="truncate text-gb-sm font-medium text-fg"
+        className={`truncate text-gb-sm font-medium ${palette.current}`}
         title={label}
       >
         {label}
@@ -100,7 +134,7 @@ function CrumbLabel({
   return (
     <Link
       href={crumb.href}
-      className="truncate rounded-gb-sm text-gb-sm text-fg-tertiary transition-colors hover:text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className={`truncate rounded-gb-sm text-gb-sm transition-colors hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 ${palette.parent}`}
       title={label}
     >
       {label}
@@ -108,7 +142,7 @@ function CrumbLabel({
   );
 }
 
-function Separator() {
+function Separator({ className }: { className: string }) {
   return (
     <svg
       width="16"
@@ -119,7 +153,7 @@ function Separator() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      className="shrink-0 text-fg-muted"
+      className={`shrink-0 ${className}`}
       aria-hidden
     >
       <polyline points="9 18 15 12 9 6" />

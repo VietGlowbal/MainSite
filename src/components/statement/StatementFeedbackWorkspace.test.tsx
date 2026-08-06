@@ -146,10 +146,14 @@ describe('StatementFeedbackWorkspace', () => {
       />,
     );
 
-    expect(screen.getByRole('link', { name: /Quay lại Apply/i })).toHaveAttribute(
-      'href',
-      '/apply/application-1',
-    );
+    /*
+     * No back link in statement mode. The route is one of the six application
+     * destinations and renders under `ApplicationNav`'s band, whose breadcrumb
+     * links /apply/<id> already — the header's own link was the same
+     * destination twice. LOR keeps it (asserted below) because
+     * /apply/<id>/lor-feedback has no band.
+     */
+    expect(screen.queryByRole('link', { name: /Quay lại Apply/i })).not.toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('main')).toHaveClass('bg-[#FAFAFA]', 'pb-24');
     expect(screen.getByRole('main').firstElementChild).toHaveClass('!max-w-[1600px]');

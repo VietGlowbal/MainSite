@@ -19,18 +19,15 @@ export default async function CvHubPage({
   if (!user) redirect('/auth');
   const workspace = await fetchApplicationWorkspace(applicationId, user.id);
   if (!workspace) notFound();
-  const { application } = workspace;
 
   return (
-    <main className="min-h-screen bg-white px-5 py-12 text-slate-950 sm:py-20">
+    <div className="min-h-screen bg-white px-5 py-12 text-slate-950 sm:py-16">
       <div className="mx-auto max-w-[1216px]">
-        <Link
-          href={`/apply/${applicationId}`}
-          className="text-sm font-semibold text-slate-500 transition hover:text-rose-600"
-        >
-          ← Quay lại hồ sơ
-        </Link>
-        <p className="mt-12 text-xs font-bold uppercase tracking-[0.24em] text-rose-600">
+        {/* The hand-rolled "← Quay lại hồ sơ" link that used to sit here is
+            gone: the breadcrumb in the band above says the same thing, names
+            where you are as well as where back is, and is on all six pages
+            rather than only this one. */}
+        <p className="text-xs font-bold uppercase tracking-[0.24em] text-rose-600">
           CV Workspace
         </p>
         <h1 className="mt-3 max-w-3xl text-4xl font-semibold tracking-[-0.035em] sm:text-5xl">
@@ -75,6 +72,6 @@ export default async function CvHubPage({
           </Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

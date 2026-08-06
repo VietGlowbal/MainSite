@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
 import type {
   CvReviewAnalysis,
@@ -101,13 +100,10 @@ export function CvReviewWorkspace({
       <div className="mx-auto max-w-[1440px]">
         <header className="mb-6 flex flex-wrap items-start justify-between gap-4">
           <div>
-            <Link
-              href={`/apply/${applicationId}`}
-              className="text-sm font-semibold text-slate-500 transition hover:text-pink-600"
-            >
-              ← Quay lại hồ sơ
-            </Link>
-            <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em] text-pink-600">
+            {/* The "← Quay lại hồ sơ" link that used to sit here is gone: this
+                is one of the six application destinations, so the breadcrumb in
+                the band above already links /apply/<id> and names the course. */}
+            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pink-600">
               Chiến lược hồ sơ
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">
