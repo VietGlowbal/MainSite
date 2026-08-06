@@ -16,6 +16,7 @@ import {
 import { PlannerBoard } from './planner-board';
 import { PlannerCalendar } from './planner-calendar';
 import { PlannerList } from './planner-list';
+import { usePlannerRecommendations } from './use-planner-recommendations';
 
 /**
  * Application Planner — the shell from the supplied mockups: a title, the
@@ -53,6 +54,15 @@ import { PlannerList } from './planner-list';
  * on what day it is. Computing it during render would give a different answer
  * on each side and hydrate mismatched — the exact bug that makes "3d left"
  * flicker to "2d left" on load.
+ *
+ * ─── EDITS LIVE HERE TOO, NOT IN EACH VIEW ───────────────────────────────────
+ *
+ * `usePlannerRecommendations` owns the one array all three views read from and
+ * write to, and its `updateStatus`/`updateDeadline`/`syncStatus` are handed
+ * down rather than each view PATCHing on its own. A status dragged on the
+ * board or a date dragged on the calendar therefore shows up immediately if a
+ * student switches to the list — see that hook's own comment for why this
+ * used to require a reload.
  */
 export function ApplicationPlanner({
   applicationId,
@@ -71,6 +81,14 @@ export function ApplicationPlanner({
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<ProgressStatus | 'all'>('all');
 
+  const {
+    recommendations: liveRecommendations,
+    error: saveError,
+    updateStatus,
+    updateDeadline,
+    syncStatus,
+  } = usePlannerRecommendations(applicationId, recommendations);
+
   function selectView(next: PlannerView) {
     const params = new URLSearchParams(searchParams.toString());
     // `list` is the default, so it is expressed by the param's absence rather
@@ -84,16 +102,16 @@ export function ApplicationPlanner({
   }
 
   const filtered = useMemo(() => {
-    const matching = recommendations.filter(
+    const matching = liveRecommendations.filter(
       (rec) =>
         matchesQuery(rec, query) &&
         // The board ignores the status filter — see the header.
         (view === 'kanban' || statusFilter === 'all' || rec.status === statusFilter),
     );
     return sortByPriority(matching);
-  }, [recommendations, query, statusFilter, view]);
+  }, [liveRecommendations, query, statusFilter, view]);
 
-  if (recommendations.length === 0) {
+  if (liveRecommendations.length === 0) {
     return (
       <section className="rounded-gb-2xl border border-line bg-surface p-gb-4xl">
         <h2 className="font-display text-gb-xl font-semibold text-fg">Application Planner</h2>
@@ -140,6 +158,12 @@ export function ApplicationPlanner({
         </div>
       </div>
 
+      {saveError ? (
+        <p role="alert" className="text-gb-sm text-fg-error">
+          {saveError}
+        </p>
+      ) : null}
+
       <div className="overflow-hidden rounded-gb-2xl border border-line bg-surface">
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-gb-lg border-b border-line p-gb-xl">
@@ -176,7 +200,7 @@ export function ApplicationPlanner({
           )}
 
           <span className="text-gb-sm text-fg-muted">
-            {filtered.length} of {recommendations.length}
+            {filtered.length} of {liveRecommendations.length}
           </span>
         </div>
 
@@ -185,6 +209,8 @@ export function ApplicationPlanner({
             applicationId={applicationId}
             recommendations={filtered}
             today={today}
+            onDeadlineChange={updateDeadline}
+            onStatusSaved={syncStatus}
           />
         ) : null}
         {view === 'calendar' ? (
@@ -192,10 +218,15 @@ export function ApplicationPlanner({
             applicationId={applicationId}
             recommendations={filtered}
             today={today}
+            onDeadlineChange={updateDeadline}
           />
         ) : null}
         {view === 'kanban' ? (
-          <PlannerBoard applicationId={applicationId} recommendations={filtered} />
+          <PlannerBoard
+            applicationId={applicationId}
+            recommendations={filtered}
+            onStatusChange={updateStatus}
+          />
         ) : null}
       </div>
     </section>

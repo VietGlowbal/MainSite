@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import type { Recommendation } from '../domain';
 import {
   SEEDED_CATEGORIES,
@@ -52,6 +53,57 @@ const DUE_TONE_CLASS: Record<DueTone, string> = {
 
 export function DueChip({ days }: { days: number | null }) {
   return <span className={`text-gb-sm ${DUE_TONE_CLASS[dueTone(days)]}`}>{dueLabel(days)}</span>;
+}
+
+/**
+ * The list view's deadline cell — a plain date input, styled to match
+ * `ProgressStatusControl`'s `<select>` so the two editable cells in the same
+ * row read as one family of control.
+ *
+ * `onChange` is the list's route into `usePlannerRecommendations.updateDeadline`
+ * — the same PATCH, the same optimism, the same rollback the calendar's drag
+ * uses, just triggered by typing a date instead of dropping a card. Because
+ * both write to the one shared array, a deadline set here appears on the
+ * calendar (and its "days left" on the list itself) without a reload.
+ *
+ * Clearing the field sends `null` — the native date input's own "x" already
+ * does this, so there is no separate clear button to build or explain.
+ *
+ * `disabled` while a save is in flight, the same reason `ProgressStatusControl`
+ * disables its `<select>`: a second edit landing before the first PATCH
+ * resolves could send the two out of order.
+ */
+export function DeadlineControl({
+  deadline,
+  label,
+  onChange,
+}: {
+  deadline: string | null;
+  /** Accessible name — the list passes the row's title. */
+  label: string;
+  onChange: (deadline: string | null) => Promise<void>;
+}) {
+  const [saving, setSaving] = useState(false);
+
+  async function handleChange(value: string) {
+    setSaving(true);
+    try {
+      await onChange(value === '' ? null : value);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <input
+      type="date"
+      aria-label={label}
+      value={deadline ?? ''}
+      disabled={saving}
+      onChange={(event) => void handleChange(event.target.value)}
+      className="rounded-gb-md border border-line bg-surface px-gb-md py-gb-xs text-gb-sm text-fg"
+    />
+  );
 }
 
 /** `2026-08-14` → `14 Aug 2026`. UTC, for the reason given in domain/planner.ts. */

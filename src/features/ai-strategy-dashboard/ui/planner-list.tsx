@@ -4,6 +4,7 @@ import Link from 'next/link';
 import type { Recommendation } from '../domain';
 import { daysRemaining } from '../domain';
 import {
+  DeadlineControl,
   DueChip,
   HelpLink,
   PRIORITY_LABEL,
@@ -12,6 +13,7 @@ import {
   formatDate,
 } from './planner-shared';
 import { ProgressStatusControl } from './progress-status-control';
+import type { PlannerRecommendationsController } from './use-planner-recommendations';
 import { Badge } from '@/shared/ui';
 
 /**
@@ -42,15 +44,35 @@ import { Badge } from '@/shared/ui';
  * three — "Needs review" and "Blocked" are states a student is genuinely in,
  * and collapsing them into "Declined" would lose the difference between
  * "waiting on someone" and "cannot start this".
+ *
+ * `ProgressStatusControl` PATCHes itself (it also runs standalone on the
+ * detail page, which has no shared planner state to update); `onStatusSaved`
+ * — `usePlannerRecommendations().syncStatus` — only records that result into
+ * the array the board and the calendar also read from, so a change made here
+ * shows up there without a second PATCH.
+ *
+ * ─── THE DEADLINE COLUMN IS NOW HOW A STUDENT SETS ONE ───────────────────────
+ *
+ * Previously read-only: the calendar was the only place a deadline could be
+ * given, by dragging a card onto a day. `DeadlineControl` is a plain date
+ * input wired to `onDeadlineChange` — `updateDeadline` — so typing a date
+ * here PATCHes it exactly like a drag does, and the task appears on that day
+ * on the calendar immediately, no reload required. Clearing the field (its
+ * native "x", or deleting the text) unschedules it back into the calendar's
+ * tray, same as dragging it off a day.
  */
 export function PlannerList({
   applicationId,
   recommendations,
   today,
+  onDeadlineChange,
+  onStatusSaved,
 }: {
   applicationId: string;
   recommendations: readonly Recommendation[];
   today: Date;
+  onDeadlineChange: PlannerRecommendationsController['updateDeadline'];
+  onStatusSaved: PlannerRecommendationsController['syncStatus'];
 }) {
   if (recommendations.length === 0) {
     return (
@@ -133,6 +155,7 @@ export function PlannerList({
                   recommendationId={rec.id}
                   status={rec.status}
                   label={`Status for ${rec.title}`}
+                  onChange={(status) => onStatusSaved(rec.id, status)}
                 />
               </td>
 
@@ -143,9 +166,11 @@ export function PlannerList({
               </td>
 
               <td className="px-gb-xl py-gb-lg align-top">
-                <span className="whitespace-nowrap text-gb-sm text-fg-tertiary">
-                  {formatDate(rec.deadline)}
-                </span>
+                <DeadlineControl
+                  deadline={rec.deadline}
+                  label={`Deadline for ${rec.title}`}
+                  onChange={(deadline) => onDeadlineChange(rec.id, deadline)}
+                />
               </td>
 
               <td className="px-gb-xl py-gb-lg align-top">
