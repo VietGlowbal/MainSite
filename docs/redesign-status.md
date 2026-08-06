@@ -1,9 +1,31 @@
 # Redesign status — route by route
 
-As of 2026-07-28, branch `feat/UI-redesign`. 58 `page.tsx` files.
+Original route/frame ledger started on 2026-07-28 on `feat/UI-redesign`.
+Reconciled with `main` at `de4a7fe` on **2026-08-06**; the repository now has
+**93** `page.tsx` files. Use [current-status.md](current-status.md) for the live
+project handoff and this file for Figma provenance, route-level decisions, and
+redesign history.
 
 "Rebuilt" means: built from a Figma frame, 0 legacy class names in the page's own
 files, tokens only, and verified (see [verification.md](verification.md)).
+
+## 2026-08-06 reconciliation
+
+- The earlier "`/ai-strategy` 404s" status is retired. The landing/help split,
+  Reflection, applicant portrait, programme-fit report, Strategy dashboard,
+  recommendations, Planner, CV, Statement, Personal Report, and Matching Report
+  routes are present. See the current inventory below.
+- The application context band now connects the six primary per-application
+  surfaces: Overview, Personal Report, Matching Report, Planner, CV builder, and
+  Statement. LOR remains separate by design.
+- Planner list/calendar/board edits share optimistic state, and view switching
+  updates `?view=` without a server navigation.
+- CV Builder generation, target-profile generation, and review use OpenAI and
+  English source copy; Vietnamese is provided through the dictionary.
+- `/how-it-works` and `/ai-strategy` are separate pages. The global nav points to
+  the former; application routes link into the latter.
+- `/plus` was rebuilt without a current-canvas Figma source. It must not be
+  reclassified as "designed but not built" from the retired pricing frames.
 
 ---
 
@@ -66,7 +88,7 @@ Both carry banner frames naming them:
 |---|---|---|---|
 | `/universities` | `105:8300`, `105:8247` | UI Final | Globe dropped for a flat filterable grid (owner's call). Kept `explorer-context` verbatim. **Cards navigate to `/universities/[id]` as of 30/07** — `detail-view.tsx` is deleted, see §Wiring below. Only 3 of 6 filter chips ship — the rest need DB columns that do not exist. |
 | `/auth` | `105:8004`, `105:8037` | UI Final | Centered card, login + signup. All Supabase branches preserved. |
-| `/onboarding` | `107:10574` + câu 1–8, plus `375:11536`/`375:11616` | mixed | **EIGHT steps since 30/07** (was nine). Câu 6 and câu 7 — the academic screens — sit at positions 6 and 7. ⚠️ **`supabase-academic-intake.sql` must be run before this ships**; it was extended on 30/07 and is safe to re-run. See the three owner decisions below. Câu 8 (awards) is still not built; it duplicates the /ai-strategy achievements input and nobody has decided which owns it. |
+| `/onboarding` | `107:10574` + câu 1–8, plus `375:11536`/`375:11616` | mixed | **EIGHT steps since 30/07** (was nine). Câu 6 and câu 7 — the academic screens — sit at positions 6 and 7. The code depends on the columns in `supabase-academic-intake.sql`; live application status was not re-queried in the 2026-08-06 docs pass, so verify the schema rather than re-running the file by assumption. Câu 8 (awards) is still not built; it duplicates the `/ai-strategy` achievements input and nobody has decided which owns it. |
 | `/apply` | **`562:15078`** (+ `375:12841`, `375:13295`, `375:13369`, `502:18462`) | **Khanh Linh - Chi** | **"Application"** — the MERGED page, 31/07. `/apply` and `/my-universities` were two halves of one journey on two URLs; `562:15078` draws them stacked. "My application" (`562:15386`) over "Danh sách đã lưu" (`562:15092` + `562:15098`). See §"Two pages became one" below. |
 | ~~`/my-universities`~~ | `375:12701` | — | **GONE 31/07.** 308s to `/apply` (`next.config.ts`, exact source). The children did not move — `/my-universities/program` and `/my-universities/[id]` are still there. |
 | `/my-universities/program` | `375:13546` | **Khanh Linh - Chi** | **Built 30/07.** "Chọn lại ngành", the subject re-picker a saved row links to. ⚠️ Needs `supabase-saved-program.sql` — see below. |
@@ -78,7 +100,7 @@ Both carry banner frames naming them:
 | `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07, wired up + extended 30/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
 | `/mentors/[id]` | `375:21633` | **Khanh Linh - Chi** | **Built 29/07.** Replaced `MentorProfile.tsx` + `BookMentorModal.tsx` + `MentorAvailabilityGrid.tsx`, all three deleted. Real 7-column booking calendar (the frame's is a broken 10-column instance — see below). Fixed two live bugs in the process: the page 404'd for every signed-out visitor, and it serialised the mentor's PII into the client payload. |
 | `/plus` | **none** | — | **Rebuilt 02/08 — the one page with NO frame.** See §"/plus had no design" below. Tokens + `shared/ui` only. `/plus/success` restyled with it. |
-| `/dev/saved-list` | — | — | Dev-only preview of `/my-universities`, hydrated from the real repositories. |
+| `/dev/saved-list` | — | — | Dev-only preview of the saved-list section now hosted by `/apply`, hydrated from the real repositories. |
 
 ### Deliberate departures from the frames
 
@@ -315,14 +337,14 @@ fiction. Add the column (or a join) before review authorship means anything.
 
 ---
 
-## Designed but not built
+## Design inventory — reconciled implementation status
 
-| Route | Figma | Canvas | Blocker |
-|---|---|---|---|
-| `/ai-strategy` | 18 frames, listed in [nav-items.tsx](../src/features/marketing/ui/nav-items.tsx) — landing `375:18445`, candidate info `375:19260`, achievements `375:18839`, reflection modals `407:17291`/`408:17403`/`409:17502`/`409:17626`, reflection `375:18328`, portrait `375:18185`, fit `375:18645`, strategy `375:19502`/`405:6526`, essay `375:17961`, CV `375:18038`, pricing `375:19705`, submit `375:18117`, confirmation `375:18594`, major picker `375:13546` | **Khanh Linh - Chi** | Net-new route, largest group, **404s today** from both nav and footer. No longer a provenance risk — it has migrated onto the dev canvas. `/ai-strategy` is already registered in `OWN_CHROME_PREFIXES`. ⚠️ **portrait / fit / strategy (candidate portrait, course fit, and the AI recommendation dashboard) now have a written behaviour spec**, `.kiro/specs/ai-strategy-dashboard/` (added 2026-07-31, branch `feat/ai-strategy-dashboard`) — read it alongside these node ids before building any of the three; it also documents how this overlaps with the separate, unmerged `.kiro/specs/ai-application-strategy/` (CV `375:18038` / essay `375:17961`) spec on `feat/strategy-1..4-*`. ⚠️ **portrait `375:18185` and fit `375:18645` were BUILT 2026-08-02 from owner-supplied mockups, not from these Figma nodes** — the owner sent two dark-mode screenshots with a different section structure (six tabs each) and those were treated as the authority. The nodes are left here because they are still the Figma record; if the two ever need reconciling, the shipped pages are `src/features/ai-strategy-dashboard/ui/{applicant-portrait,programme-fit-report}.tsx` and the mockups won. Both render from the Shared Evaluation Engine (F1–F6) in `domain/evaluation/` — see `known-issues.md §0c`. |
-| `/plus` | `115:13253`, `132:9601`, `196:16799`, `115:17014` | **Tính năng** | 3 tiers (free / $10 / $100). Sales are off (`PLUS_SALES_ENABLED=false`) — build as static preview. |
-| `/news/[slug]` | `153:20197` | **Tính năng** | Detail page still on app chrome. |
-| `/privacy` | `153:22478` | **Tính năng** | Frame is named `Desktop`. |
+| Route or cluster | Figma | Current status |
+|---|---|---|
+| `/ai-strategy` and application Strategy | 18-frame cluster beginning at `375:18445`; portrait `375:18185`, fit `375:18645`, strategy `375:19502`/`405:6526`, essay `375:17961`, CV `375:18038` | **Implemented.** The landing and nested routes no longer 404. Portrait and fit were built on 2026-08-02 from owner-supplied dark mockups rather than the older Figma section structure; those mockups won. The Shared Evaluation Engine is under `src/features/ai-strategy-dashboard/domain/evaluation/`. Application Strategy/CV work is under `src/features/application-strategy/`, with compatibility pages under `/apply/[applicationId]`. |
+| `/plus` | No authoritative current-canvas frame. Retired frames: `115:13253`, `132:9601`, `196:16799`, `115:17014`. | **Rebuilt 2026-08-02 without a Figma source.** Uses the current product tiers from `src/lib/plus.ts`; the retired free/$10/$100 frames are not implementation requirements. |
+| `/news/[slug]` | `153:20197` on **Tính năng** | **Still not reconciled to that frame.** Detail pages remain on app chrome and legacy article styling. |
+| `/privacy` | `153:22478` on **Tính năng** | **Frame not adopted as the source of the current legal-page implementation.** Treat as a remaining design decision, not an unambiguous build task. |
 
 ### `/plus` had no design, and that is why it looked old (02/08)
 
@@ -997,9 +1019,8 @@ The header is `375:10642`, the anchor bar `375:10665`, the sidebar card
 - **`weaknesses` is shown**, though the frame has no counterweight to "why
   students choose". It is populated on all 97 rows and is the honest other half
   of a shortlisting decision.
-- **The sidebar CTA points at `/ai-strategy`**, which 404s until Phase 2 — the
-  same deliberate, tracked dead link the nav and footer already carry, not a new
-  one.
+- **The original sidebar CTA points at `/ai-strategy`.** That destination is now
+  live; the historical dead-link warning ended when the Strategy landing shipped.
 
 #### Two traps this hit
 

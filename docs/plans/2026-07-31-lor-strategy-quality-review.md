@@ -1,6 +1,15 @@
 # LOR Strategy & Quality Review Implementation Plan
 
-> **For Codex:** REQUIRED SUB-SKILL: Use test-driven-development and execute this plan task-by-task in the current feature branch.
+Status: **Implemented across 2026-07-31 to 2026-08-04; retained as the original
+TDD plan.**
+
+Reconciled: 2026-08-06 at `de4a7fe`.
+
+This is no longer an execution checklist. The contracts, owner-scoped SQL,
+strategy route, LOR review branch, three-stage workspace, and rendering tests
+described below all exist. See [the reconciled design](../lor-feedback-design.md).
+The repository contains `supabase-lor-strategy.sql`; verify the live database
+before claiming the migration is applied.
 
 **Goal:** Deliver the approved F7.1 recommender matching, F7.2 trait/brief generation, and F7.3 nine-dimension quality review in the existing LOR workspace.
 

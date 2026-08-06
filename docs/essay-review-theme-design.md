@@ -1,5 +1,16 @@
 # Essay Review Theme Design
 
+Date: 2026-07-29
+
+Status: **Implemented and regression-tested**
+
+Reconciled: 2026-08-06 at `de4a7fe`
+
+Implementation lives in `src/components/statement/StatementFeedbackWorkspace.tsx`
+and `StatementWriter.tsx`; generic and VinUni theme assertions pass in
+`StatementWriter.test.tsx`. The earlier warning about unrelated uncommitted LOR
+work is historical—the LOR workflow is now committed and implemented.
+
 ## Understanding
 
 - Restyle the generic and VinUni essay-review experiences using the supplied theme.
@@ -32,4 +43,7 @@
 
 ## Risk
 
-`StatementFeedbackWorkspace.tsx` and `StatementWriter.tsx` contain unrelated uncommitted LOR work. Implementation must preserve it and limit edits to shared essay-review layout and styles.
+The shared components now serve generic Essay Review, VinUni review, and LOR.
+Future visual changes must keep mode-specific routing and LOR stage behavior
+intact; use the existing component tests rather than treating the files as a
+presentation-only surface.

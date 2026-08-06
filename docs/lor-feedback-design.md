@@ -1,7 +1,18 @@
 # LOR Strategy & Quality Review Design
 
 Date: 2026-07-31
-Status: Approved
+
+Status: **Implemented**
+
+Reconciled: 2026-08-06 at `de4a7fe`
+
+The three-stage workspace is live at `/apply/[applicationId]/lor-feedback` via
+`StatementFeedbackWorkspace` and `LorStrategyWorkspace`. F7.1/F7.2 generation
+uses `/api/ai/lor-strategy`; the LOR branch of `/api/ai/analyze-statement`
+performs F7.3. Contracts and deterministic scoring live in `src/lib/ai/lor.ts`.
+The implementation still uses DeepSeek for these two AI paths. Repository SQL
+exists in `supabase-lor-strategy.sql`, but its live application status was not
+revalidated in the 2026-08-06 documentation pass.
 
 ## Understanding summary
 
@@ -10,7 +21,7 @@ Status: Approved
 - F7.2 recommends credible traits and experiences, warns against weakly supported topics, and produces a Recommendation Brief.
 - The user writes or pastes the letter after completing the strategy steps; file upload and submission remain out of scope.
 - F7.3 evaluates the letter against nine fixed quality dimensions and returns complete, actionable feedback.
-- Use trusted application, programme, activity, and achievement data already stored in Supabase. Do not read a CV or browse external sorun durces.
+- Use trusted application, programme, activity, and achievement data already stored in Supabase. Do not read a CV or browse external sources.
 - Preserve Essay Review's editor, inline suggestions, loading, quota, and autosave behavior wherever they still fit the LOR contract.
 
 ## Assumptions

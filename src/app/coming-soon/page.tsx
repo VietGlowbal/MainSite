@@ -17,8 +17,8 @@ export const metadata: Metadata = {
 };
 
 /**
- * The pre-launch site lock's public face — see LAUNCH_PLAN.md and
- * src/lib/site-gate.ts. src/proxy.ts sends every visitor here while
+ * The pre-launch site lock's public face — see src/lib/site-gate.ts.
+ * src/proxy.ts sends every visitor here while
  * SITE_LOCK_ENABLED=1 and they don't have a valid gate cookie yet.
  *
  * Two halves on one page, like a standard staging password screen:

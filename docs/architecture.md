@@ -1,7 +1,10 @@
 # Architecture
 
-`eslint.config.mjs` is the authority — it enforces every boundary below with
-`no-restricted-imports`. This file only explains why, and records the traps.
+Last reconciled with `main` at `de4a7fe` on **2026-08-06**.
+
+`eslint.config.mjs` is the authority for the boundaries it actually registers.
+This file explains the intended shape and records both the enforced rules and
+the current enforcement gap.
 
 ```
 src/app/                              thin routes; orchestrate only
@@ -11,8 +14,17 @@ src/server/{db,auth,cache,observability}/
 src/components/, src/lib/             pre-FSD; still load-bearing
 ```
 
-Features: `universities` `scholarships` `apply` `onboarding` `mentorship` `auth`
-`marketing`. (`marketing` is `ui/` only — public page compositions, no repository.)
+Current feature directories: `ai-strategy-dashboard`, `application-strategy`,
+`apply`, `auth`, `marketing`, `mentorship`, `onboarding`, `scholarships`, and
+`universities`. (`marketing` is primarily public page composition.)
+
+⚠️ `eslint.config.mjs` registers every directory above **except
+`ai-strategy-dashboard`** in its `FEATURES` array. That means the boundary rules
+below are intended for it but are not currently applied to it. The omission is
+not safe to repair blindly: `ai-strategy-dashboard/ui/evidence-upload.tsx`
+currently imports `@/features/apply/hooks`, which would become a cross-feature
+lint error. Move that upload behavior to `shared/` or choose an explicit feature
+owner before adding the missing registry entry.
 
 ## Rules
 
@@ -54,7 +66,7 @@ rather than `foo?: string`: callers forward an optional straight through.
 | Port | Where | Key methods |
 |---|---|---|
 | `UniversityQueries` | `features/universities/api` | `list()` `getById()` `getByIds()` `facets()` · `listAllForLegacyExplorer()` is **deprecated** — do not add callers |
-| `ProgrammeQueries` | `features/universities/api` | `byUniversityId()`. Reads `catalog_programmes` for the subject picker (Figma `375:13546`). Returns `[]` for the 82 of 106 universities with no catalogued programmes, which is a normal answer, not an error — the caller falls back to `universities.strengths`. |
+| `ProgrammeQueries` | `features/universities/api` | `byUniversityId()`. Reads `catalog_programmes` for the subject picker (Figma `375:13546`). An empty catalogue is a normal answer and the caller falls back to `universities.strengths`. The earlier 82-of-106 count was a 2026-07-31 production snapshot, not a code invariant. |
 | `ScholarshipQueries` | `features/scholarships/api` | `listPublished()` `byUniversityIds()` `byIds()` `getById()` `facets()`. `byUniversityIds` now also carries `conditions`/`insight`/`applies_to_text` (added for the saved-list scholarship detail panel, Figma `337:19349`) — one join wider rather than a second round trip per scholarship a student opens. |
 
 Both are swappable via `setUniversityQueries()` / `setScholarshipQueries()` — the
@@ -103,23 +115,28 @@ request-scoped client once the anon read policies exist.
 
 `src/proxy.ts` (Next middleware) runs before every page. As of this session it
 also carries a **pre-launch site lock** (`src/lib/site-gate.ts`,
-`src/app/coming-soon/`) — see `LAUNCH_PLAN.md` for the launch-week context. That
-lock is checked first and is independent of everything below: it decides whether
-the site is reachable at all; the auth/onboarding logic decides who's signed in
-once it is. Not part of the Figma redesign work this pack otherwise documents.
+`src/app/coming-soon/`). That lock is checked first and is independent of
+everything below: it decides whether the site is reachable at all; the
+auth/onboarding logic decides who's signed in once it is.
 
-The auth/onboarding gating itself is unchanged:
+Current auth/onboarding gating:
 
-- `PROTECTED_ROUTES` = `/profile` `/dashboard` `/my-universities` `/writer`
-  `/admin` `/onboarding/complete` → signed-out users get
+- `PROTECTED_ROUTES` = `/apply` `/profile` `/dashboard` `/my-universities`
+  `/writer` `/admin` `/onboarding/complete` → signed-out users get
   `/auth?redirect=<path>`.
 - Signed-in users hitting `/auth` are redirected to `?redirect` if present,
-  otherwise **`/my-universities`** — so that page is the post-login landing.
-- Onboarding gate: `/my-universities` and `/profile` also require a completed
-  `student_profiles` row, else `/onboarding`.
+  otherwise **`/apply`** — that is the current post-login landing after the
+  saved-list/application merge.
+- Onboarding gate: `/apply`, `/my-universities/*`, and `/profile` require either
+  `onboarding_completed` or the legacy completion fallback (`study_level` plus
+  at least one `preferred_countries` value), else `/onboarding`.
+- Exact `/about`, `/news`, `/universities`, and `/mentors` requests bypass the
+  Supabase auth round trip. `/universities` also receives a 12-hour CDN cache
+  policy with a 24-hour stale-while-revalidate window.
 
-Consequence: `/my-universities` is double-gated and hard to reach in a test.
-That is why `/dev/saved-list` exists.
+Consequence: `/apply` is double-gated and can be hard to reach in a test.
+`/dev/saved-list` remains the preview for the saved-list portion; the full
+application workspace has `/dev/apply-workspace`.
 
 ## Navigation strategy (added 02/08)
 
@@ -140,10 +157,17 @@ pointer comes within 90px of the top, when focus enters it, or on scroll-up
 **2. Contextual — the application bar.** `components/application-nav.tsx`
 (server, reads onboarding state) → `components/application-sub-nav.tsx` (client,
 resolves the active entry) → `shared/ui/sub-nav.tsx` (dumb primitive). Mounted
-once in `app/ai-strategy/[applicationId]/layout.tsx` and passed as the `nav` slot
-into the `/apply/[applicationId]` workspace. Answers "what else belongs to THIS
-application" — a different question per row in My Portal, which is why it is not
-in the top bar.
+in `app/ai-strategy/[applicationId]/layout.tsx`, passed as the `nav` slot into
+the `/apply/[applicationId]` overview, and mounted for the `/apply` document
+tools by `app/apply/[applicationId]/(features)/layout.tsx`. The route group does
+not change URLs. It answers "what else belongs to THIS application" — a
+different question per row in My Portal, which is why it is not in the top bar.
+
+As of 2026-08-06 the bar is a full-bleed `bg-brand` band with `tone="on-brand"`
+breadcrumbs/sub-navigation. It covers the six primary surfaces: Overview,
+Personal Report, Matching Report, Planner, CV builder, and Statement. The LOR
+workspace is deliberately outside that six-item model and keeps its own return
+link.
 
 Entries a student cannot reach yet render **locked, not hidden**: the planner
 route redirects into onboarding until the analysis is done, so linking it early
@@ -172,7 +196,10 @@ return `[]` on purpose, and a one-crumb trail is suppressed as furniture.
   `breadcrumbs.tsx` only runs registry labels through `t()`.
 - **A view worth linking to belongs in the URL.** The planner's list/calendar/
   board is `?view=` (`domain/planner.ts#parsePlannerView`) for exactly this
-  reason — it was local state, and that made the board unreachable by link.
+  reason. Since `de4a7fe`, changing it uses `history.replaceState` rather than
+  a Next Router navigation: the URL stays linkable without refetching the
+  dynamic Server Component. List, calendar, and board also share one optimistic
+  recommendation state, so edits made in one view appear in the other two.
 
 ## Test-id contract
 

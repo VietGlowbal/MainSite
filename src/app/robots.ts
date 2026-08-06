@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { SITE_URL } from '@/lib/site-url';
 
 /**
- * While the pre-launch site lock is on (LAUNCH_PLAN.md, src/lib/site-gate.ts),
+ * While the pre-launch site lock is on (src/lib/site-gate.ts),
  * every crawler gets told to stay out — a half-redesigned site sitting behind
  * a "coming soon" gate has nothing worth indexing, and letting it in risks a
  * stale/thin page getting ranked before launch. Reverts to the normal

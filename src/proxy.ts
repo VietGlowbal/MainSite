@@ -37,7 +37,7 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // ── Pre-launch site lock ────────────────────────────────────────────────
-  // See LAUNCH_PLAN.md and src/lib/site-gate.ts. SITE_LOCK_ENABLED=1 walls the
+  // See src/lib/site-gate.ts. SITE_LOCK_ENABLED=1 walls the
   // whole site off behind one shared team password; unset it at launch and
   // this whole block is a no-op. Deliberately checked before, and separate
   // from, everything below — this decides whether the site is visible at

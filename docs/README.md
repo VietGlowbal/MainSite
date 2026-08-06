@@ -1,10 +1,13 @@
-# docs/ — session handoff notes
+# docs/ — project context and session handoff
 
-Written 2026-07-26 at the end of the Figma redesign push, updated through
-2026-07-30, so a fresh session can skip re-deriving what a previous one already
-established. **Not product documentation** — `AGENTS.md` bans that, and these
-files exist because the owner asked for a handoff pack. If they ever contradict
-the code, the code wins.
+Reconciled with `main` at `de4a7fe` on **2026-08-06** so a fresh coding session
+can recover the current implementation, the latest completed work, its impact,
+and the verification state without re-deriving them. If these files contradict
+the code, the code wins. Point-in-time plans and audits are labelled as such and
+must not be mistaken for a live status board.
+
+The durable handoff is [current-status.md](current-status.md). Update it after
+material work; keep detailed design history in the topic-specific documents.
 
 **Two facts worth more than the rest of this pack:**
 
@@ -15,8 +18,8 @@ the code, the code wins.
    never guess at names.** Three sessions have now burned the owner's time here:
    two by trusting a `.sql` file or a stale to-do instead of querying, and one by
    probing three invented table names, missing on all three, and reporting that
-   the course catalogue did not exist. It did; there are 75 tables. One call
-   lists all of them:
+   the course catalogue did not exist. It did. Do not preserve a table count in
+   prose; enumerate the current schema with one call:
 
    ```bash
    curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
@@ -30,18 +33,21 @@ the code, the code wins.
 
 | File | Read it when |
 |---|---|
-| [redesign-status.md](redesign-status.md) | **Always first.** What is rebuilt, what is still legacy, which Figma node maps to which route. |
+| [current-status.md](current-status.md) | **Always first.** Current commit, latest work and impact, implemented surfaces, verification, risks, and resume point. |
+| [redesign-status.md](redesign-status.md) | When changing a route or comparing it with Figma. It is the route/frame decision ledger, not the primary current-status file. |
 | [known-issues.md](known-issues.md) | Before touching `/universities`, `/my-universities`, `/mentors`, saving, auth — **or any `supabase-*.sql` file**. §0 is the migration trap; §1b is the mentorship RLS gap. |
 | [design-system.md](design-system.md) | Before writing any component. Token names, the primitives that already exist. |
 | [architecture.md](architecture.md) | Before adding a file under `features/`, `shared/`, or `server/`. |
-| [verification.md](verification.md) | Before claiming anything works. Commands, baselines, how to see gated pages. |
+| [verification.md](verification.md) | Before claiming anything works. Commands, the latest measured local baseline, CI behavior, and how to see gated pages. |
+| [audit-2026-08-03.md](audit-2026-08-03.md) | For the security/operations audit evidence. It is a dated snapshot; use its revalidation banner before quoting a finding as current. |
+| [plans/](plans/) and the `*-design.md` files | For original intent and decisions. Their headers say whether implementation completed and where it landed. |
 
 ## Things NOT written here, on purpose
 
-- **Product brief, tech stack, Figma coding rules** → `CLAUDE.md`. Still current.
+- **Product brief, tech stack, Figma coding rules** → `CLAUDE.md`; verify version
+  claims against `package.json` before relying on them.
 - **The FSD boundary rules as enforced** → `eslint.config.mjs`. It is the authority; `architecture.md` only explains the intent.
 - **Token values** → `src/styles/tokens.css`. It is the authority; `design-system.md` lists names, not numbers.
-- **The launch plan** → `LAUNCH_PLAN.md` (untracked, at repo root).
 
 ## Figma
 

@@ -4,7 +4,7 @@
  * `marketing` was ui/-only until now (see eslint.config.mjs's FEATURES
  * comment): its one page, "/", inlines its admin-client waitlist insert
  * directly and is tracked in ADMIN_CLIENT_DEBT — a list that may shrink but
- * must never grow. The pre-launch "/coming-soon" gate (LAUNCH_PLAN.md) needs
+ * must never grow. The pre-launch "/coming-soon" gate needs
  * the same waitlist insert, so rather than adding a second frozen-debt entry,
  * it gets a real repository function here instead — the one place this
  * feature is allowed to reach the database directly.

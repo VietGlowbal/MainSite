@@ -1,7 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 
 /**
- * Pre-launch site lock — see LAUNCH_PLAN.md.
+ * Pre-launch site lock.
  *
  * Walls the whole site behind one shared team password until launch, while
  * leaving real Supabase auth (login/signup/admin) completely untouched

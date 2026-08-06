@@ -1,6 +1,8 @@
 # Design system — what already exists
 
-`src/styles/tokens.css` (532 lines) is the single source of truth for values.
+Last reconciled with `main` at `de4a7fe` on **2026-08-06**.
+
+`src/styles/tokens.css` (712 lines at this snapshot) is the single source of truth for values.
 This file lists **names**, so you can reach for the right utility without opening
 it. Never hard-code a colour, spacing step or radius; eslint blocks raw hex in
 `src/features/**` and `src/shared/ui/**`.
@@ -23,6 +25,7 @@ exception, the loading hooks; see that row.
 | `Section` | |
 | `TopNav` | `tone`: `dark` \| `light`. Optional `user` (avatar + name) for the signed-in state, or `secondaryAction`. ⚠️ **Does not use `Container`** — it is the one piece of chrome on a wider measure (`max-w-gb-nav`, 1728, gutter opening to 48 at `2xl`). Figma only draws the bar at 1440, and at 1280 the actions stopped at a centred column's edge with a few hundred px of empty band beyond them; the owner asked for them anchored right (inset, not flush) with the links given the room back on 31/07. Right-edge inset is now 32 at 1280/1440 and 144 at 1920, vs 32/112/352 before. Link spacing opens up at `xl` (vertical only — the active pill matches the 36px buttons) and at `2xl` (horizontal, completing `Button`'s `sm` padding). Widening anything horizontally before `2xl` clips labels: 1280 fits with 99px spare and the horizontal step costs 72 of it, which read as a fit locally and clipped "Blog" on CI. Below 1280 the row clips regardless: **known-issues §4b**. `items` takes `NavLink | NavGroup` (`nav-model.ts`) — a group renders as a **disclosure dropdown**, not an ARIA menu, and its panel is `position: fixed` so the clipping row cannot cut it off. Read the ⚠️ on `NavDropdown` before touching either. |
 | `MobileNav` | Fixed header + full-screen sheet. Takes the same `NavLink \| NavGroup` list as `TopNav`; a group renders expanded in place (open by default) rather than as a popover — the sheet is a vertical list with room, and collapsing it would bury two destinations behind an extra tap. |
+| `Breadcrumbs`, `SubNav` | Both support `tone="light" \| "on-brand"`. The application context bar uses `on-brand` inside a full-bleed `bg-brand` band; keep the white secondary text and underline behavior together rather than recoloring individual children. |
 | `Footer` | Dark band, columns, social, optional `ratings`. |
 | `Avatar` | `size`: `sm`(32, default) · `lg`(60 — the applications-list crest slot). Initials fallback either way. |
 | `Badge` | `outline` · `brand-subtle` · `neutral` · `reach` · `recommend` · `safe` · `brand-chip` · `info-chip` · `safe-chip` · `neutral-chip`. Use `admissionBadgeVariant()` to map an `AdmissionCategory`. The **four** `-chip` variants are `brand-subtle`'s geometry one type step down (`text-gb-xs`, not `sm`) — the mentor profile's chip rows bind `Text xs/Medium`, so they cannot reuse the pills without rendering 2px larger. `info-chip` is blue because a help topic is a *category*, not a risk level; see the note on `--color-gb-blue-*` for why it is not the visually identical `recommend`. `safe-chip` / `neutral-chip` (added 31/07) complete the set so an admin status column, which stacks all four states in one column of table rows, renders at one type size. ⚠️ Bakes in `whitespace-nowrap` — a long real value (a university name, not the mockup's short placeholder) overflows past its container into whatever sits next to it in a flex/grid row. Give it its own line and put `truncate` on a wrapping `<span>` inside, don't rely on the pill to wrap or shrink. |
@@ -106,17 +109,17 @@ Pages that render their own `TopNav`/`Footer` must:
    `gb-has-mobile-header` if they also ship their own fixed `MobileNav` — that
    modifier restores the mobile top offset the plain full-bleed class removes.
 2. Add the exact pathname to `OWN_CHROME_ROUTES` in
-   `src/components/nav-reveal.tsx`, or the global sidebar + mobile nav double up
+   `src/components/nav-reveal.tsx`, or the global app top bar + mobile nav double up
    (two elements behind the `nav-header` test id, which the testid contract
    forbids, and two mobile navs — exactly what `mobile-nav.spec.ts` guards).
 
 Matching is **exact** by default, so `/news` gets its own chrome while
 `/news/[slug]` stays on the app chrome.
 
-Current members: `/` `/dev/home` `/universities` `/auth` `/onboarding` `/about`
-`/news` `/my-universities` `/my-universities/program` `/apply` `/mentors`
-`/dev/saved-list` `/coming-soon` `/ai-strategy` `/dev/apply-workspace` `/plus`
-`/plus/success`.
+Current exact members: `/` `/dev/home` `/universities` `/auth` `/coming-soon`
+`/onboarding` `/about` `/news` `/my-universities/program` `/apply` `/mentors`
+`/dev/saved-list` `/ai-strategy` `/how-it-works` `/plus` `/plus/success`
+`/dev/apply-workspace`.
 Forgetting to add a route here is the actual failure mode, not a hypothetical —
 it happened to `/apply` and was caught by screenshotting the finished page.
 
@@ -124,12 +127,16 @@ Note `/my-universities/program` is listed separately rather than folded into a
 `/my-universities` prefix: the `[id]` task pages between them are still on the
 app chrome, so a prefix would silently strip their sidebar.
 
-Two escapes from exact matching, both in the same file:
+Four escapes from exact matching, all in the same file:
 
 - `OWN_CHROME_PREFIXES` — currently just `/ai-strategy`. Only for subtrees where
   **every** descendant is rebuilt; a prefix silently covers routes that do not
   exist yet, so a legacy page added underneath one loses its navigation with
   nothing to say so.
+- `/apply/<applicationId>` is matched as the application overview workspace.
+  Document-tool descendants are not covered by this matcher; their route-group
+  layout supplies the application context band while the global app chrome stays
+  available as designed.
 - **Id-shaped matchers**, for a rebuilt detail page whose siblings are not
   rebuilt and so cannot take a prefix: `/universities/<digits>` (vs the legacy
   `/universities/vinuni`) and `/mentors/<uuid>` (vs `/mentors/apply`). The id's
@@ -140,7 +147,7 @@ Two escapes from exact matching, both in the same file:
 
 ## CSS quarantine
 
-`src/app/globals.css` is 5,379 **unlayered** lines that out-rank Tailwind
+`src/app/globals.css` is 5,022 **unlayered** lines at this snapshot that out-rank Tailwind
 utilities. A new component is immune as long as it:
 
 - uses none of `.glowbal-*` `.auth-*` `.glow-*` `.profile-*` `.cosmic-*`
@@ -189,7 +196,7 @@ Things that follow from how the translator works, each of which has bitten:
   news/guide pages use it because they already translate via the dictionary.
 - **PII routes are excluded from machine translation entirely**, so nothing
   personal reaches OpenAI: `/profile` `/apply` `/dashboard` `/admin`
-  `/onboarding` `/my-universities` `/auth`. Those pages still localise through
+  `/onboarding` `/my-universities` `/auth` `/ai-strategy`. Those pages still localise through
   the static dictionary. ⚠️ A new route holding user data must be added to
   `PII_ROUTE_PREFIXES`. `/mentors/[id]` is **not** on the list and does not need
   to be — it renders only the public `PublicMentor` projection — but a page

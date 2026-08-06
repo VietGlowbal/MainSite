@@ -1,13 +1,22 @@
 # Verification
 
+Last reconciled with `main` at `de4a7fe` on **2026-08-06**. The latest measured
+results are also summarized in [current-status.md](current-status.md).
+
 ## Gates — run after every page, not at the end of a wave
 
-```bash
-npm run typecheck && npm run typecheck:strict
-npm run lint            # 0 errors. 30 warnings are pre-existing; do not add any.
-npm test                # baseline: 474 pass / 2 todo (was 355 before the apply-primitives merge)
-npm run build           # the only gate that catches what Vercel catches
+```powershell
+npm.cmd run typecheck
+npm.cmd run typecheck:strict
+npm.cmd run lint
+npm.cmd test
+npm.cmd run build
 ```
+
+Run `npm ci` first on a fresh or suspect checkout. This local `node_modules` was
+out of sync on 2026-08-06: `mammoth` and `@react-pdf/renderer` were present in
+both manifests but not installed. Do not diagnose the resulting import failures
+as product regressions before repairing the install.
 
 ⚠️ **`npm run build` is not optional.** A branch that was behind `origin` once
 merged cleanly, passed typecheck, and still failed on Vercel with
@@ -15,24 +24,44 @@ merged cleanly, passed typecheck, and still failed on Vercel with
 the other side's imports. Neither `tsc --noEmit` on the pre-merge tree nor the
 tests caught it. Run the build after every merge, not only before a PR.
 
+Current local snapshot before a clean reinstall:
+
+| Gate | 2026-08-06 result |
+|---|---|
+| Lint | **Pass:** 0 errors, 23 warnings. |
+| Base typecheck | Blocked by missing installed `mammoth` and `@react-pdf/renderer`; the missing renderer types also produce three follow-on implicit-`any` errors. |
+| Strict typecheck | Blocked by missing installed `mammoth`. |
+| Vitest | **1511 pass / 19 fail / 2 todo** across **127 passing / 3 failing** files. The observed failures all come from the two missing packages: CV PDF import, CV review API import, and CV target-profile API import. |
+| Build | Not rerun after the install drift was confirmed. |
+| E2E | Not rerun in the docs refresh. |
+
+These numbers describe this checkout, not the expected clean-CI baseline. After
+`npm ci`, rerun all five gates and replace this table with the clean result.
+
 Per wave, plus a legacy sweep of the page's whole tree:
 
-```bash
-npm run test:e2e        # baseline: 50 pass / 3 skipped / 0 fail (see below)
-grep -rE 'class(Name)?="[^"]*\b(glowbal|auth|glow|profile|cosmic|cosmos|onboarding|geo|explorer)-' <page-tree>
+```powershell
+npm.cmd run test:e2e
+rg 'class(Name)?="[^"]*\b(glowbal|auth|glow|profile|cosmic|cosmos|onboarding|geo|explorer)-' <page-tree>
 # must return nothing
 ```
 
-### e2e baseline, post-migration
+### E2E status and historical baseline
+
+CI now runs Playwright on pull requests after the unit/build job. It intentionally
+does not run for the daily GEO push to `main`, and it uploads `playwright-report/`
+when the job fails. This corrects the 2026-08-03 audit statement that CI had no
+E2E job.
 
 `public.user_universities` was created 2026-07-27 (see known-issues.md §1), so
-the one expected failure this doc used to document is gone. Current baseline
-(re-measured 2026-07-30): **52 pass / 1 fail** with `E2E_EMAIL`/`E2E_PASSWORD`
+the missing-table failure this doc used to document is gone. The last historical
+baseline, measured 2026-07-30 and not yet rerun, was
+**52 pass / 1 fail** with `E2E_EMAIL`/`E2E_PASSWORD`
 set in the Playwright process, **49 pass / 1 fail / 3 skipped** without them (the
 signed-in specs skip rather than fail).
 
-⚠️ **The 1 failure is `kitchen-sink.spec.ts` → "design tokens render as
-expected", and it is PRE-EXISTING on `feat/saved-uni-page`.** Verified by
+⚠️ **In that historical run, the 1 failure was `kitchen-sink.spec.ts` → "design
+tokens render as expected", and it was pre-existing on `feat/saved-uni-page`.** Verified by
 stashing all working-tree changes and re-running on a clean tree: it fails with
 byte-identical numbers (expected 1280×7876, received 1280×7761, 1,293,946 pixels
 different). Something committed on this branch changed that page's height and the
@@ -217,6 +246,11 @@ Compare each shot against the Figma node id recorded in
 [redesign-status.md](redesign-status.md) — not against memory.
 
 ## Inspecting the database
+
+⚠️ `npm run check:migrations` is **not read-only** despite its name: it calls
+`claim_course_parse_jobs` with a test worker id and a batch size of one. Use the
+schema/read queries below for a status audit unless you explicitly intend to
+exercise the queue. Do not run that script merely to update documentation.
 
 ```bash
 node --env-file=.env.local -e "

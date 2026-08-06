@@ -1,12 +1,29 @@
 # Personal Report và Matching Report Implementation Plan
 
-> **For Codex:** REQUIRED SUB-SKILL: Use `executing-plans` and `test-driven-development` to implement this plan task-by-task.
+Status: **Implemented on 2026-07-31; retained as the original plan.**
+
+Reconciled: 2026-08-06 at `de4a7fe`.
+
+This is no longer an execution checklist. The implemented routes are
+`/ai-strategy/report`, `/ai-strategy/matching`,
+`/ai-strategy/matching/[applicationId]`,
+`POST /api/ai-strategy/personal-report`, and
+`POST /api/applications/[id]/match-insights`. Contracts, context loading,
+repositories, and views live under `src/features/apply/` and `src/lib/ai/`.
+
+Implementation delta: Personal Report and Match Insights currently use
+DeepSeek-backed paths, despite the plan's OpenAI wording. A later, separate
+application-specific system now provides portrait, fit, recommendations, and
+Planner routes under `/ai-strategy/[applicationId]/strategy/*`; do not merge the
+two generations by assumption. `supabase-ai-strategy-reports.sql` exists in the
+repository, but its live application status was not revalidated during this
+documentation pass.
 
 **Goal:** Hoàn thiện ba bước đầu của AI Journey: Reflection → Personal Report → GlowBal Matching Report.
 
 **Architecture:** Tái sử dụng hồ sơ, Reflection và Match Insights hiện có. Personal Report có contract và bảng latest-only riêng; Matching Report tiếp tục gắn với từng `course_application` và mở rộng `application_match_analyses` bằng input hash để cache đúng phiên bản dữ liệu.
 
-**Tech Stack:** Next.js 16 App Router, React 19, TypeScript, Supabase/Postgres RLS, OpenAI structured output, Zod, Vitest và Playwright.
+**Planned Tech Stack:** Next.js 16 App Router, React 19, TypeScript, Supabase/Postgres RLS, OpenAI structured output, Zod, Vitest và Playwright.
 
 ---
 

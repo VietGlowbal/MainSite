@@ -1,6 +1,25 @@
 # Known issues
 
-Ordered by how likely they are to waste your time.
+Last code-only reconciliation: **2026-08-06**, `main` at `de4a7fe`. Production
+database state was **not** re-queried in that pass, so every "owner must run"
+statement below is historical evidence until the live schema/policies prove it
+is still pending. Never re-run a migration solely because this file says so.
+
+Ordered by how likely the underlying trap is to waste your time. Some sections
+are regression records for fixed bugs, not open work:
+
+| Area | Current reading |
+|---|---|
+| §00 draft compatibility | Guarded in `features/onboarding/domain/draft.ts`; keep the migration/coercion tests when shapes change. |
+| §0, §0b, §0c database migrations | Code still depends on the repaired academic columns, recommendation INSERT policy/fields, and `emerging_themes`; live application status was not revalidated on 2026-08-06. |
+| §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
+| §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
+| §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
+| §5–§5d | Fixed regression history; preserve the tests and constraints. |
+| §6 | Owner/designer decisions, not implementation bugs. |
+
+For current branch, recent-work, and verification status, read
+[current-status.md](current-status.md).
 
 ---
 
@@ -105,7 +124,8 @@ Two rules come out of this:
 
    `{type:'array'}` means converted; `{type:'string',format:'text'}` means not.
 
-⚠️ **Still outstanding:** the owner must run the repaired file once more.
+⚠️ **Last known status (2026-07-30):** the owner still needed to run the
+repaired file once more. **Not revalidated on 2026-08-06.**
 `src/app/onboarding/onboarding-wizard.tsx` was hardened to coerce a `string` or
 `string[]` into a list (`toCurriculumList`) so a half-migrated database cannot
 crash câu 6 on `curriculum.join(' · ')` — delete that helper once every
@@ -161,10 +181,10 @@ first row created, and the failure looked identical to "nothing to
 recommend yet" until the fix in #112/#114 started surfacing it as an
 explicit error banner instead of a silent empty table.
 
-**Fix**: `supabase-strategy-recommendations-insert-policy.sql` — additive,
+**Repository fix**: `supabase-strategy-recommendations-insert-policy.sql` — additive,
 adds only the missing INSERT policy, does not touch existing rows or the
-SELECT/UPDATE policies. ⚠️ **Owner must run it** (Supabase SQL editor, like
-every migration here — see §0). Verify with:
+SELECT/UPDATE policies. Its **live application status was not revalidated on
+2026-08-06**. Verify before deciding whether the owner must run it:
 
 ```sql
 select policyname, cmd from pg_policies
@@ -184,8 +204,9 @@ diagnosis pattern in §1c below.
 
 ## 0c. `applicant_analyses.emerging_themes` — the one column the Evaluation Engine adds
 
-**Owner must run `supabase-evaluation-engine.sql`** (Supabase SQL editor, like
-every migration here — see §0). One `ADD COLUMN IF NOT EXISTS`, nothing else.
+The repository contains `supabase-evaluation-engine.sql` (one
+`ADD COLUMN IF NOT EXISTS`). Its **live application status was not revalidated
+on 2026-08-06**; query the column before deciding whether to apply it.
 
 Until it runs, `POST /api/applications/[id]/strategy/applicant-analysis`
 fails at the insert with PostgREST `PGRST204` and the student sees "Could not
