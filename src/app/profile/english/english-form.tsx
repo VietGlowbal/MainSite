@@ -1,36 +1,85 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import {
+  ENGLISH_TEST_FORMATS,
+  STANDARDIZED_TEST_FORMATS,
+  type GradeProblem,
+} from '@/features/onboarding/domain';
 import { createClient } from '@/lib/supabase/client';
-import type { EnglishTestScore } from '@/lib/types';
-import { Input, Panel, RepeatableFieldset, Select } from '@/shared/ui';
+import type { EnglishTestScore, StandardizedTestScore } from '@/lib/types';
+import { Input, Panel, PanelHeader, RepeatableFieldset, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { SaveBar, SelectOptions, type SaveMessage } from '../_form-parts';
 
-const TEST_TYPES = ['IELTS Academic', 'IELTS General', 'TOEFL iBT', 'PTE Academic', 'Duolingo English Test', 'Cambridge C1 Advanced', 'Cambridge C2 Proficiency', 'Other'];
+const ENGLISH_TEST_TYPES = [
+  ...Object.keys(ENGLISH_TEST_FORMATS),
+  'IELTS General',
+  'Cambridge C1 Advanced',
+  'Cambridge C2 Proficiency',
+  'Other',
+];
+const STANDARDIZED_TEST_TYPES = Object.keys(STANDARDIZED_TEST_FORMATS);
 
 const BANDS = ['listening', 'reading', 'writing', 'speaking'] as const;
 
-type DraftScore = Omit<EnglishTestScore, 'id' | 'user_id' | 'created_at' | 'updated_at'> & { _localId: string; id?: string };
+type DraftEnglishScore = Omit<
+  EnglishTestScore,
+  'id' | 'user_id' | 'created_at' | 'updated_at'
+> & {
+  _localId: string;
+  id?: string;
+};
+
+type DraftStandardizedScore = Omit<
+  StandardizedTestScore,
+  'id' | 'user_id' | 'created_at' | 'updated_at'
+> & {
+  _localId: string;
+  id?: string;
+};
+
+function problemText(problem: GradeProblem | null): string | undefined {
+  if (problem === null) return undefined;
+  return problem.message.replace(/\{(\w+)\}/g, (_match, key: string) =>
+    problem.vars[key] === undefined ? `{${key}}` : String(problem.vars[key]),
+  );
+}
+
+function scoreError(
+  testType: string,
+  raw: string,
+  formats: typeof ENGLISH_TEST_FORMATS | typeof STANDARDIZED_TEST_FORMATS,
+): string | undefined {
+  if (raw.trim() === '') return undefined;
+  const format = formats[testType];
+  return format ? problemText(format.check(raw)) : undefined;
+}
 
 export function EnglishForm({
   userId,
-  initialScores,
+  initialEnglishScores,
+  initialStandardizedScores,
 }: {
   userId: string;
-  initialScores: EnglishTestScore[];
+  initialEnglishScores: EnglishTestScore[];
+  initialStandardizedScores: StandardizedTestScore[];
 }) {
   const supabase = useMemo(() => createClient(), []);
-  const [scores, setScores] = useState<DraftScore[]>(
-    initialScores.map((s) => ({ ...s, _localId: s.id }))
+  const [englishScores, setEnglishScores] = useState<DraftEnglishScore[]>(
+    initialEnglishScores.map((score) => ({ ...score, _localId: score.id })),
   );
+  const [standardizedScores, setStandardizedScores] = useState<DraftStandardizedScore[]>(
+    initialStandardizedScores.map((score) => ({ ...score, _localId: score.id })),
+  );
+  const [showErrors, setShowErrors] = useState(false);
   const [saving, setSaving] = useState(false);
   useLoadingIndicator(saving, 'Saving your profile');
   const [message, setMessage] = useState<SaveMessage>(null);
 
-  const addScore = () => {
-    setScores((prev) => [
-      ...prev,
+  const addEnglishScore = () => {
+    setEnglishScores((current) => [
+      ...current,
       {
         _localId: crypto.randomUUID(),
         test_type: '',
@@ -45,125 +94,423 @@ export function EnglishForm({
     ]);
   };
 
-  const update = (localId: string, field: string, value: unknown) => {
-    setScores((prev) =>
-      prev.map((s) => (s._localId === localId ? { ...s, [field]: value } : s))
+  const addStandardizedScore = () => {
+    setStandardizedScores((current) => [
+      ...current,
+      {
+        _localId: crypto.randomUUID(),
+        test_type: '',
+        score: null,
+        test_date: null,
+      },
+    ]);
+  };
+
+  const updateEnglish = (
+    localId: string,
+    field: keyof DraftEnglishScore,
+    value: DraftEnglishScore[keyof DraftEnglishScore],
+  ) => {
+    setEnglishScores((current) =>
+      current.map((score) =>
+        score._localId === localId ? { ...score, [field]: value } : score,
+      ),
     );
   };
 
-  const removeAt = async (index: number) => {
-    const score = scores[index];
-    if (!score) return;
-    if (score.id) {
-      await supabase.from('english_test_scores').delete().eq('id', score.id);
-    }
-    setScores((prev) => prev.filter((s) => s._localId !== score._localId));
+  const updateStandardized = (
+    localId: string,
+    field: keyof DraftStandardizedScore,
+    value: DraftStandardizedScore[keyof DraftStandardizedScore],
+  ) => {
+    setStandardizedScores((current) =>
+      current.map((score) =>
+        score._localId === localId ? { ...score, [field]: value } : score,
+      ),
+    );
   };
 
-  const parseScore = (val: string) => val === '' ? null : parseFloat(val);
+  const removeEnglishAt = async (index: number) => {
+    const score = englishScores[index];
+    if (!score) return;
+    setMessage(null);
+
+    if (score.id) {
+      setSaving(true);
+      try {
+        const { error } = await supabase
+          .from('english_test_scores')
+          .delete()
+          .eq('id', score.id)
+          .eq('user_id', userId);
+        if (error) throw new Error(error.message);
+      } catch (error) {
+        setMessage({
+          text: `Could not remove English test: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+          ok: false,
+        });
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    setEnglishScores((current) =>
+      current.filter((entry) => entry._localId !== score._localId),
+    );
+  };
+
+  const removeStandardizedAt = async (index: number) => {
+    const score = standardizedScores[index];
+    if (!score) return;
+    setMessage(null);
+
+    if (score.id) {
+      setSaving(true);
+      try {
+        const { error } = await supabase
+          .from('standardized_test_scores')
+          .delete()
+          .eq('id', score.id)
+          .eq('user_id', userId);
+        if (error) throw new Error(error.message);
+      } catch (error) {
+        setMessage({
+          text: `Could not remove standardized test: ${
+            error instanceof Error ? error.message : 'Unknown error'
+          }`,
+          ok: false,
+        });
+        return;
+      } finally {
+        setSaving(false);
+      }
+    }
+
+    setStandardizedScores((current) =>
+      current.filter((entry) => entry._localId !== score._localId),
+    );
+  };
+
+  const parseScore = (value: string) => (value === '' ? null : Number.parseFloat(value));
 
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
+    setShowErrors(true);
 
-    for (const score of scores) {
-      if (!score.test_type) continue;
-      const payload = {
-        test_type: score.test_type,
-        overall_score: score.overall_score,
-        listening_score: score.listening_score,
-        reading_score: score.reading_score,
-        writing_score: score.writing_score,
-        speaking_score: score.speaking_score,
-        test_date: score.test_date || null,
-        expiry_date: score.expiry_date || null,
-      };
-      if (score.id) {
-        await supabase.from('english_test_scores').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', score.id);
-      } else {
-        const { data } = await supabase.from('english_test_scores').insert({ user_id: userId, ...payload }).select('id').single();
-        if (data) {
-          setScores((prev) => prev.map((s) => (s._localId === score._localId ? { ...s, id: data.id } : s)));
-        }
-      }
+    const invalidEnglish = englishScores.find((score) => {
+      if (!score.test_type || score.overall_score == null) return false;
+      return scoreError(
+        score.test_type,
+        String(score.overall_score),
+        ENGLISH_TEST_FORMATS,
+      ) !== undefined;
+    });
+    const invalidStandardized = standardizedScores.find((score) => {
+      if (!score.test_type || !score.score?.trim()) return false;
+      return (
+        scoreError(score.test_type, score.score, STANDARDIZED_TEST_FORMATS) !== undefined
+      );
+    });
+    const englishWithoutType = englishScores.some(
+      (score) =>
+        !score.test_type &&
+        (score.overall_score != null ||
+          BANDS.some((band) => score[`${band}_score`] != null) ||
+          Boolean(score.test_date) ||
+          Boolean(score.expiry_date)),
+    );
+    const standardizedWithoutType = standardizedScores.some(
+      (score) => !score.test_type && (Boolean(score.score?.trim()) || Boolean(score.test_date)),
+    );
+
+    if (englishWithoutType || standardizedWithoutType) {
+      setMessage({ text: 'Choose a test type for every result before saving.', ok: false });
+      setSaving(false);
+      return;
     }
 
-    setMessage({ text: 'Saved successfully.', ok: true });
-    setSaving(false);
+    if (invalidEnglish || invalidStandardized) {
+      setMessage({ text: 'Correct the highlighted test score before saving.', ok: false });
+      setSaving(false);
+      return;
+    }
+
+    const englishIds = new Map<string, string>();
+    const standardizedIds = new Map<string, string>();
+
+    try {
+      for (const score of englishScores) {
+        if (!score.test_type) continue;
+        const payload = {
+          test_type: score.test_type,
+          overall_score: score.overall_score,
+          listening_score: score.listening_score,
+          reading_score: score.reading_score,
+          writing_score: score.writing_score,
+          speaking_score: score.speaking_score,
+          test_date: score.test_date || null,
+          expiry_date: score.expiry_date || null,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (score.id) {
+          const { error } = await supabase
+            .from('english_test_scores')
+            .update(payload)
+            .eq('id', score.id)
+            .eq('user_id', userId);
+          if (error) throw new Error(`Could not save ${score.test_type}: ${error.message}`);
+        } else {
+          const { data, error } = await supabase
+            .from('english_test_scores')
+            .insert({ user_id: userId, ...payload })
+            .select('id')
+            .single();
+          if (error) throw new Error(`Could not save ${score.test_type}: ${error.message}`);
+          if (data?.id) englishIds.set(score._localId, String(data.id));
+        }
+      }
+
+      for (const score of standardizedScores) {
+        if (!score.test_type) continue;
+        const payload = {
+          test_type: score.test_type,
+          score: score.score?.trim() || null,
+          test_date: score.test_date || null,
+          updated_at: new Date().toISOString(),
+        };
+
+        if (score.id) {
+          const { error } = await supabase
+            .from('standardized_test_scores')
+            .update(payload)
+            .eq('id', score.id)
+            .eq('user_id', userId);
+          if (error) throw new Error(`Could not save ${score.test_type}: ${error.message}`);
+        } else {
+          const { data, error } = await supabase
+            .from('standardized_test_scores')
+            .insert({ user_id: userId, ...payload })
+            .select('id')
+            .single();
+          if (error) throw new Error(`Could not save ${score.test_type}: ${error.message}`);
+          if (data?.id) standardizedIds.set(score._localId, String(data.id));
+        }
+      }
+
+      setMessage({ text: 'Saved successfully.', ok: true });
+    } catch (error) {
+      setMessage({
+        text: error instanceof Error ? error.message : 'Could not save test scores.',
+        ok: false,
+      });
+    } finally {
+      // Keep IDs even when a later row fails. Otherwise retrying after a
+      // partial save inserts the successful rows a second time.
+      if (englishIds.size > 0) {
+        setEnglishScores((current) =>
+          current.map((score) => {
+            const id = englishIds.get(score._localId);
+            return id ? { ...score, id } : score;
+          }),
+        );
+      }
+      if (standardizedIds.size > 0) {
+        setStandardizedScores((current) =>
+          current.map((score) => {
+            const id = standardizedIds.get(score._localId);
+            return id ? { ...score, id } : score;
+          }),
+        );
+      }
+      setSaving(false);
+    }
   };
 
   return (
-    <Panel className="flex flex-col gap-gb-4xl">
-      <RepeatableFieldset
-        legend="Test scores"
-        description="Add every test you have sat. An expired score still helps us judge your level."
-        entries={scores}
-        keyOf={(score) => score._localId}
-        entryLabel={(i) => `Test ${i + 1}`}
-        addLabel="Add test score"
-        onAdd={addScore}
-        onRemove={(index) => void removeAt(index)}
-        emptyState="No test scores yet. Add your IELTS, TOEFL, or other English proficiency results."
-        renderEntry={(score) => (
-          <div className="flex flex-col gap-gb-2xl">
-            <div className="grid gap-gb-2xl sm:grid-cols-2">
-              <Select
-                name={`test_type-${score._localId}`}
-                label="Test type"
-                placeholder="Select test…"
-                value={score.test_type}
-                onChange={(e) => update(score._localId, 'test_type', e.target.value)}
-                fieldClassName="sm:col-span-2"
-              >
-                <SelectOptions options={TEST_TYPES} value={score.test_type} />
-              </Select>
-              <Input
-                name={`overall_score-${score._localId}`}
-                type="number"
-                step="0.5"
-                label="Overall score"
-                placeholder="e.g. 7.5"
-                value={score.overall_score ?? ''}
-                onChange={(e) => update(score._localId, 'overall_score', parseScore(e.target.value))}
-              />
-              <Input
-                name={`test_date-${score._localId}`}
-                type="date"
-                label="Test date"
-                value={score.test_date ?? ''}
-                onChange={(e) => update(score._localId, 'test_date', e.target.value || null)}
-              />
-              <Input
-                name={`expiry_date-${score._localId}`}
-                type="date"
-                label="Expiry date"
-                value={score.expiry_date ?? ''}
-                onChange={(e) => update(score._localId, 'expiry_date', e.target.value || null)}
-              />
-            </div>
+    <div className="flex flex-col gap-gb-3xl">
+      <Panel className="flex flex-col gap-gb-4xl">
+        <PanelHeader
+          title="English proficiency"
+          description="IELTS, TOEFL, PTE, Duolingo, Cambridge English, or another language test."
+        />
 
-            <div className="flex flex-col gap-gb-lg">
-              <p className="text-gb-sm font-medium text-fg-secondary">Sub-scores (optional)</p>
-              <div className="grid grid-cols-2 gap-gb-lg sm:grid-cols-4">
-                {BANDS.map((band) => (
+        <RepeatableFieldset
+          legend="English-language tests"
+          description="Add every result you have. An expired score still helps us judge your level."
+          entries={englishScores}
+          keyOf={(score) => score._localId}
+          entryLabel={(index) => `English test ${index + 1}`}
+          addLabel="Add English test"
+          onAdd={addEnglishScore}
+          onRemove={(index) => void removeEnglishAt(index)}
+          emptyState="No English-language scores yet."
+          renderEntry={(score) => {
+            const overallError = showErrors
+              ? scoreError(
+                  score.test_type,
+                  score.overall_score == null ? '' : String(score.overall_score),
+                  ENGLISH_TEST_FORMATS,
+                )
+              : undefined;
+            return (
+              <div className="flex flex-col gap-gb-2xl">
+                <div className="grid gap-gb-2xl sm:grid-cols-2">
+                  <Select
+                    name={`english-test-type-${score._localId}`}
+                    label="Test type"
+                    placeholder="Select test…"
+                    value={score.test_type}
+                    onChange={(event) => {
+                      updateEnglish(score._localId, 'test_type', event.target.value);
+                      updateEnglish(score._localId, 'overall_score', null);
+                    }}
+                    fieldClassName="sm:col-span-2"
+                  >
+                    <SelectOptions options={ENGLISH_TEST_TYPES} value={score.test_type} />
+                  </Select>
                   <Input
-                    key={band}
-                    name={`${band}_score-${score._localId}`}
+                    name={`english-overall-score-${score._localId}`}
                     type="number"
-                    step="0.5"
-                    label={band.charAt(0).toUpperCase() + band.slice(1)}
-                    placeholder="—"
-                    value={score[`${band}_score`] ?? ''}
-                    onChange={(e) => update(score._localId, `${band}_score`, parseScore(e.target.value))}
+                    step="any"
+                    label="Overall score"
+                    placeholder={ENGLISH_TEST_FORMATS[score.test_type]?.placeholder ?? 'e.g. 7.5'}
+                    hint={ENGLISH_TEST_FORMATS[score.test_type]?.hint}
+                    error={overallError}
+                    value={score.overall_score ?? ''}
+                    onChange={(event) =>
+                      updateEnglish(
+                        score._localId,
+                        'overall_score',
+                        parseScore(event.target.value),
+                      )
+                    }
                   />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      />
+                  <Input
+                    name={`english-test-date-${score._localId}`}
+                    type="date"
+                    label="Test date"
+                    value={score.test_date ?? ''}
+                    onChange={(event) =>
+                      updateEnglish(score._localId, 'test_date', event.target.value || null)
+                    }
+                  />
+                  <Input
+                    name={`english-expiry-date-${score._localId}`}
+                    type="date"
+                    label="Expiry date"
+                    value={score.expiry_date ?? ''}
+                    onChange={(event) =>
+                      updateEnglish(score._localId, 'expiry_date', event.target.value || null)
+                    }
+                  />
+                </div>
 
-      <SaveBar onSave={handleSave} saving={saving} message={message} label="Save scores" />
-    </Panel>
+                <div className="flex flex-col gap-gb-lg">
+                  <p className="text-gb-sm font-medium text-fg-secondary">
+                    Sub-scores (optional)
+                  </p>
+                  <div className="grid grid-cols-2 gap-gb-lg sm:grid-cols-4">
+                    {BANDS.map((band) => (
+                      <Input
+                        key={band}
+                        name={`english-${band}-score-${score._localId}`}
+                        type="number"
+                        step="any"
+                        label={band.charAt(0).toUpperCase() + band.slice(1)}
+                        placeholder="—"
+                        value={score[`${band}_score`] ?? ''}
+                        onChange={(event) =>
+                          updateEnglish(
+                            score._localId,
+                            `${band}_score`,
+                            parseScore(event.target.value),
+                          )
+                        }
+                      />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            );
+          }}
+        />
+      </Panel>
+
+      <Panel className="flex flex-col gap-gb-4xl">
+        <PanelHeader
+          title="Standardized tests"
+          description="SAT, ACT, AP, IB, A-Level, and GCSE / IGCSE results saved by your education-planning test."
+        />
+
+        <RepeatableFieldset
+          legend="Standardized test results"
+          entries={standardizedScores}
+          keyOf={(score) => score._localId}
+          entryLabel={(index) => `Standardized test ${index + 1}`}
+          addLabel="Add standardized test"
+          onAdd={addStandardizedScore}
+          onRemove={(index) => void removeStandardizedAt(index)}
+          emptyState="No standardized test scores yet."
+          renderEntry={(score) => {
+            const format = STANDARDIZED_TEST_FORMATS[score.test_type];
+            const error = showErrors
+              ? scoreError(score.test_type, score.score ?? '', STANDARDIZED_TEST_FORMATS)
+              : undefined;
+            return (
+              <div className="grid gap-gb-2xl sm:grid-cols-2">
+                <Select
+                  name={`standardized-test-type-${score._localId}`}
+                  label="Test type"
+                  placeholder="Select test…"
+                  value={score.test_type}
+                  onChange={(event) => {
+                    updateStandardized(score._localId, 'test_type', event.target.value);
+                    updateStandardized(score._localId, 'score', null);
+                  }}
+                >
+                  <SelectOptions
+                    options={STANDARDIZED_TEST_TYPES}
+                    value={score.test_type}
+                  />
+                </Select>
+                <Input
+                  name={`standardized-score-${score._localId}`}
+                  label={format?.fieldLabel ?? 'Score'}
+                  inputMode={format?.numeric === false ? 'text' : 'decimal'}
+                  placeholder={format?.placeholder ?? 'Enter your score'}
+                  hint={format?.hint}
+                  error={error}
+                  value={score.score ?? ''}
+                  onChange={(event) =>
+                    updateStandardized(score._localId, 'score', event.target.value)
+                  }
+                />
+                <Input
+                  name={`standardized-test-date-${score._localId}`}
+                  type="date"
+                  label="Test date"
+                  value={score.test_date ?? ''}
+                  onChange={(event) =>
+                    updateStandardized(
+                      score._localId,
+                      'test_date',
+                      event.target.value || null,
+                    )
+                  }
+                  fieldClassName="sm:col-span-2"
+                />
+              </div>
+            );
+          }}
+        />
+      </Panel>
+
+      <SaveBar onSave={handleSave} saving={saving} message={message} label="Save test scores" />
+    </div>
   );
 }
