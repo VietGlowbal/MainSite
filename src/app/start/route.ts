@@ -26,9 +26,9 @@ import { readOnboardingStatus } from '@/features/onboarding/api';
  * actually press the button. 307, not 308: the destination depends on who is
  * asking, so it must never be cached as if it did not.
  *
- * The nav's own CTA (MARKETING_NAV_ACTIONS.primary) still points at /onboarding
- * directly. That was not part of the instruction and its label — "Plan your
- * studies" — promises the questionnaire, so it is not the same button.
+ * The navigation's "Plan your Global Education" action also points directly
+ * to /onboarding. Its shared session state retires that action after completion,
+ * and the onboarding page itself redirects completed students as a final guard.
  */
 
 // The session lives in a cookie, so this is per-request by definition. Stated
