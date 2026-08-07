@@ -7,8 +7,8 @@ import { NavReveal } from '@/components/nav-reveal';
 import { RouteLoading } from '@/components/route-loading';
 import { LanguageProvider } from '@/lib/i18n';
 import { DomTranslator } from '@/lib/dom-translate';
-import { StrategyHelpButton } from '@/features/marketing/ui';
-import { GlobalLoadingOverlay } from '@/shared/ui';
+import { StrategyHelpButton } from '@/features/marketing/strategy-help';
+import { GlobalLoadingOverlay } from '@/shared/ui/loading-overlay';
 import './globals.css';
 
 // Body face, per the Figma variable "Font family/font-family-body".

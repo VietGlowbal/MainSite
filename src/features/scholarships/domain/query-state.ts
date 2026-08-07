@@ -7,6 +7,9 @@ export type ScholarshipDegree = (typeof SCHOLARSHIP_DEGREES)[number];
 export const SCHOLARSHIP_SORTS = ['relevance', 'deadline', 'name'] as const;
 export type ScholarshipSort = (typeof SCHOLARSHIP_SORTS)[number];
 
+export const SCHOLARSHIP_VIEWS = ['directory', 'ai'] as const;
+export type ScholarshipView = (typeof SCHOLARSHIP_VIEWS)[number];
+
 export const SCHOLARSHIP_FUNDING = FUNDING_TYPES;
 export type ScholarshipFunding = (typeof SCHOLARSHIP_FUNDING)[number];
 
@@ -21,6 +24,7 @@ export type ScholarshipQueryState = {
   page: number;
   universityId: number | null;
   countryPage: number;
+  view: ScholarshipView;
 };
 
 type RawSearchParams = Record<string, string | string[] | undefined>;
@@ -55,6 +59,7 @@ export function parseScholarshipSearchParams(params: RawSearchParams): Scholarsh
     page: positiveInt(params.page),
     universityId: Number.isSafeInteger(universityId) && universityId > 0 ? universityId : null,
     countryPage: positiveInt(params.countryPage),
+    view: member(first(params.view), SCHOLARSHIP_VIEWS, 'directory'),
   };
 }
 
@@ -92,6 +97,7 @@ export function scholarshipSearchParams(
   if (next.page > 1) params.set('page', String(next.page));
   if (next.universityId != null) params.set('university', String(next.universityId));
   if (next.countryPage > 1) params.set('countryPage', String(next.countryPage));
+  if (next.view === 'ai') params.set('view', 'ai');
   return params;
 }
-import { FUNDING_TYPES } from '@/lib/scholarships';
+import { FUNDING_TYPES } from '@/lib/scholarship-constants';

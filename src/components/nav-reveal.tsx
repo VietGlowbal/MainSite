@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SavedNavLink } from '@/components/saved-nav-link';
-import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
+import { MARKETING_NAV_ITEMS } from '@/features/marketing/navigation';
 import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
-import { MobileNav, TopNav, isNavGroup, type MobileNavEntry } from '@/shared/ui';
+import { MobileNav, type MobileNavEntry } from '@/shared/ui/mobile-nav';
+import { isNavGroup } from '@/shared/ui/nav-model';
+import { TopNav } from '@/shared/ui/top-nav';
 import { suppressesGlobalNavigation } from './navigation-visibility';
 
 /* ─────────────────────────────────────────────────────────────────────────

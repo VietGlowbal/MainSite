@@ -1,7 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  getServerIdentity: vi.fn(),
   getByIds: vi.fn(),
   byUniversityIds: vi.fn(),
   redirect: vi.fn(),
@@ -9,6 +11,9 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('next/navigation', () => ({ redirect: mocks.redirect }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
+vi.mock('@/server/auth/server-identity', () => ({
+  getServerIdentity: mocks.getServerIdentity,
+}));
 vi.mock('@/features/universities/api', () => ({
   getUniversityQueries: () => ({ getByIds: mocks.getByIds }),
 }));
@@ -40,6 +45,19 @@ function queryPromise(resolved: Promise<unknown>) {
 }
 
 const query = (result: unknown) => queryPromise(Promise.resolve(result));
+
+function mockIdentity(supabase: unknown) {
+  mocks.getServerIdentity.mockResolvedValue({
+    supabase,
+    identity: {
+      id: 'user-1',
+      email: 'student@example.com',
+      name: 'student',
+      avatarUrl: null,
+      userMetadata: {},
+    },
+  });
+}
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -96,7 +114,12 @@ describe('ApplyPage logo loading', () => {
         error: null,
       },
       user_universities: {
-        data: [{ id: 1, university_id: 82, added_at: '2026-08-01T00:00:00Z' }],
+        data: [{
+          id: 1,
+          university_id: 82,
+          added_at: '2026-08-01T00:00:00Z',
+          universities: university,
+        }],
         error: null,
       },
       user_scholarships: { data: [], error: null },
@@ -112,13 +135,50 @@ describe('ApplyPage logo loading', () => {
       from: vi.fn((table: string) => query(results[table])),
     };
     mocks.createClient.mockResolvedValue(supabase);
+    mockIdentity(supabase);
 
     const page = await ApplyPage({ searchParams: Promise.resolve({}) });
 
-    expect(page.props.logoByUniversityId).toEqual({
+    expect(page.props.children.props.logoByUniversityId).toEqual({
       82: 'https://example.com/application-logo.png',
     });
-    expect(mocks.getByIds).toHaveBeenCalledTimes(1);
+    expect(page.props.children.props.savedRowsPromise).toBeInstanceOf(Promise);
+    expect(mocks.getByIds).not.toHaveBeenCalled();
+  });
+
+  it('returns the application section without waiting for saved rows', async () => {
+    const savedRows = deferred<unknown>();
+    const started: string[] = [];
+    mocks.getByIds.mockResolvedValue([]);
+    mocks.byUniversityIds.mockResolvedValue(new Map());
+
+    const results: Record<string, unknown> = {
+      course_applications: { data: [], error: null },
+      user_scholarships: { data: [], error: null },
+      student_profiles: { data: null, error: null },
+      applicant_analyses: { data: [], error: null },
+    };
+    const supabase = {
+      auth: {
+        getUser: vi.fn().mockResolvedValue({
+          data: { user: { id: 'user-1', email: 'student@example.com', user_metadata: {} } },
+        }),
+      },
+      from: vi.fn((table: string) => {
+        started.push(table);
+        return table === 'user_universities' ? queryPromise(savedRows.promise) : query(results[table]);
+      }),
+    };
+    mocks.createClient.mockResolvedValue(supabase);
+    mockIdentity(supabase);
+
+    const page = await ApplyPage({ searchParams: Promise.resolve({}) });
+    const savedRowsPromise = page.props.children.props.savedRowsPromise as Promise<unknown>;
+    expect(savedRowsPromise).toBeInstanceOf(Promise);
+    expect(started).toContain('user_scholarships');
+
+    savedRows.resolve({ data: [], error: null });
+    await expect(savedRowsPromise).resolves.toEqual([]);
   });
 
   it('starts the strategy profile read before applications finish loading', async () => {
@@ -130,10 +190,11 @@ describe('ApplyPage logo loading', () => {
 
     const results: Record<string, unknown> = {
       user_universities: { data: [], error: null },
+      user_scholarships: { data: [], error: null },
       student_profiles: { data: null, error: null },
       applicant_analyses: { data: [], error: null },
     };
-    mocks.createClient.mockResolvedValue({
+    const supabase = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: { user: { id: 'user-1', email: 'student@example.com', user_metadata: {} } },
@@ -160,7 +221,9 @@ describe('ApplyPage logo loading', () => {
           ? queryPromise(applications.promise)
           : query(results[table]);
       }),
-    });
+    };
+    mocks.createClient.mockResolvedValue(supabase);
+    mockIdentity(supabase);
 
     const pagePromise = ApplyPage({ searchParams: Promise.resolve({}) });
     await vi.waitFor(() => expect(started).toContain('course_applications'));
@@ -169,6 +232,7 @@ describe('ApplyPage logo loading', () => {
     let schedulingError: unknown;
     try {
       expect(executed).toContain('student_profiles');
+      expect(started).toContain('applicant_analyses');
     } catch (error) {
       schedulingError = error;
     }
@@ -199,5 +263,12 @@ describe('ApplyPage logo loading', () => {
     });
     await pagePromise;
     if (schedulingError) throw schedulingError;
+  });
+
+  it('keeps the browser Supabase SDK out of the saved-list chunk until a mutation', () => {
+    const client = readFileSync('src/app/apply/saved-list-section.tsx', 'utf8');
+
+    expect(client).not.toContain("import { createClient } from '@/lib/supabase/client'");
+    expect(client.match(/await import\('\@\/lib\/supabase\/client'\)/g)).toHaveLength(2);
   });
 });

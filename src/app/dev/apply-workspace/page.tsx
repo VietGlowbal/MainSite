@@ -6,6 +6,14 @@ import type {
   TaskStatus,
 } from '@/lib/apply-types';
 import { ApplicationWorkspaceV2 } from '@/app/apply/[applicationId]/application-workspace-v2';
+import { ApplicationWorkspaceShell } from '@/app/apply/[applicationId]/application-workspace-shell';
+import {
+  courseUrlLabel,
+  displayCourseName,
+  displayUniversityName,
+  isParsePending,
+} from '@/features/apply/workspace-domain';
+import { ApplicationBanner } from '@/features/apply/workspace-ui';
 
 /**
  * /dev/apply-workspace — design preview for /apply/[applicationId].
@@ -218,13 +226,29 @@ export default async function DevApplyWorkspacePage({
   const which =
     state === 'pending' || state === 'researching' || state === 'failed' ? state : 'active';
 
-  // No wrapping <main>: the workspace ships its own chrome, same as the route.
+  const workspace = view(which);
+  const application = workspace.application;
+  const courseName = displayCourseName(application.courseName, application.parseStatus);
+  const universityName = displayUniversityName(application.universityName);
+
   return (
-    <ApplicationWorkspaceV2
-      workspace={view(which)}
-      isPlus={false}
-      matchInputs={{ cv: false, essay: false, academic: false }}
+    <ApplicationWorkspaceShell
       userName="Demo Student"
-    />
+      banner={
+        <ApplicationBanner
+          {...(universityName ? { universityName } : {})}
+          {...(courseName ? { courseName } : {})}
+          urlLabel={courseUrlLabel(application.courseUrl)}
+          logoUrl={application.logoUrl ?? null}
+          researching={isParsePending(application.parseStatus)}
+        />
+      }
+    >
+      <ApplicationWorkspaceV2
+        workspace={workspace}
+        isPlus={false}
+        matchInputs={{ cv: false, essay: false, academic: false }}
+      />
+    </ApplicationWorkspaceShell>
   );
 }

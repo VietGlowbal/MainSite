@@ -1,4 +1,4 @@
-import { ProgressBar } from '@/shared/ui';
+import { ProgressBar } from '@/shared/ui/progress-bar';
 
 /**
  * "GlowBal's AI is reading this course page" — the state between pasting a URL

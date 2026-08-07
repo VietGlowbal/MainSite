@@ -1,7 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { StatementFeedbackWorkspace } from '@/components/statement/StatementFeedbackWorkspace';
-import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
-import { createClient } from '@/lib/supabase/server';
+import { getApplicationDocumentContext } from '@/features/apply/application-document-context';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import { VINUNI_DEMO_APPLICATION_ID } from '@/lib/ai/vinuni-evaluation-shared';
 import { VINUNI_UNIVERSITY_ID } from '@/lib/vinuni-content';
 
@@ -25,23 +25,18 @@ export default async function StatementFeedbackPage({
     );
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
-  const workspace = await fetchApplicationWorkspace(applicationId, user.id);
-  if (!workspace) notFound();
+  const context = await getApplicationDocumentContext(applicationId, user.id);
+  if (!context) notFound();
 
-  const { application } = workspace;
   return (
     <StatementFeedbackWorkspace
-      applicationId={application.id}
-      targetName={`${application.courseName} · ${application.universityName}`}
-      contextNote={workspace.course?.entryRequirementsSummary ?? application.aiSummary}
-      evaluationMode={application.universityId === VINUNI_UNIVERSITY_ID ? 'vinuni' : 'generic'}
+      applicationId={context.id}
+      targetName={`${context.courseName ?? ''} · ${context.universityName ?? ''}`}
+      contextNote={context.entryRequirementsSummary ?? context.aiSummary}
+      evaluationMode={context.universityId === VINUNI_UNIVERSITY_ID ? 'vinuni' : 'generic'}
     />
   );
 }

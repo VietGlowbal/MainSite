@@ -1,5 +1,6 @@
-import { BRAND_ICONS, BrandIcon, InstagramMark } from '@/shared/ui';
-import type { FooterColumn, FooterSocial, TopNavEntry, TopNavItem } from '@/shared/ui';
+import { BRAND_ICONS, BrandIcon, InstagramMark } from '@/shared/ui/icons';
+import type { FooterColumn, FooterSocial } from '@/shared/ui/footer';
+import type { TopNavEntry, TopNavItem } from '@/shared/ui/top-nav';
 
 /**
  * The site chrome's link configuration — what the header and footer point at.

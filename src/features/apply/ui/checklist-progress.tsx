@@ -1,5 +1,6 @@
-import { ProgressBar, ScoreRing } from '@/shared/ui';
-import type { TaskCounts } from '../domain';
+import { ProgressBar } from '@/shared/ui/progress-bar';
+import { ScoreRing } from '@/shared/ui/score-ring';
+import type { TaskCounts } from '../domain/progress';
 
 /**
  * Application progress, counted from the checklist.

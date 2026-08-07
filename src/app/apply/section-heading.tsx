@@ -1,5 +1,5 @@
 import Image from 'next/image';
-import { ICONS, KitIcon } from '@/shared/ui';
+import { ICONS, KitIcon } from '@/shared/ui/icons';
 
 /**
  * The two section headings on /apply — Figma 562:15387 ("My application") and

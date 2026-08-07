@@ -15,11 +15,8 @@ vi.mock('@/lib/supabase/client', () => ({
     },
   }),
 }));
-vi.mock('@/shared/ui', async (importOriginal) => ({
-  ...(await importOriginal<typeof import('@/shared/ui')>()),
-  TopNav: () => <div data-testid="site-top-nav" />,
-  MobileNav: () => <div data-testid="site-mobile-nav" />,
-}));
+vi.mock('@/shared/ui/top-nav', () => ({ TopNav: () => <div data-testid="site-top-nav" /> }));
+vi.mock('@/shared/ui/mobile-nav', () => ({ MobileNav: () => <div data-testid="site-mobile-nav" /> }));
 
 import { NavReveal } from './nav-reveal';
 

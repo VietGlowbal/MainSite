@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import {
+  useCallback,
   startTransition,
   useEffect,
   useMemo,
@@ -11,33 +12,27 @@ import {
 import { useRouter } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SavedNavLink } from '@/components/saved-nav-link';
-import { createClient } from '@/lib/supabase/client';
 import {
   MARKETING_NAV_ITEMS,
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
-import {
-  Badge,
-  Button,
-  Container,
-  Footer,
-  MobileNav,
-  Modal,
-  Pagination,
-  SearchMark,
-  Select,
-  TopNav,
-} from '@/shared/ui';
-import { TID, testId } from '@/shared/lib';
+} from '@/features/marketing/navigation';
+import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
+import { Container } from '@/shared/ui/container';
+import { MobileNav } from '@/shared/ui/mobile-nav';
+import { Modal } from '@/shared/ui/modal';
+import { Pagination } from '@/shared/ui/pagination';
+import { SearchMark } from '@/shared/ui/icons';
+import { Select } from '@/shared/ui/select';
+import { TopNav } from '@/shared/ui/top-nav';
+import { TID, testId } from '@/shared/lib/testids';
 import {
   UniversityExplorerProvider,
   useExplorer,
-  type ExplorerUniversity,
 } from '@/features/universities/ui';
+import type { ExplorerUniversity } from '@/lib/explorer-utils';
+import type { UniversityDirectoryResponse } from '@/features/universities/directory-loader';
+import { universitySearchParams } from '@/features/universities/directory-query';
+import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
 import { FadeInImage } from './fade-in-image';
 
 /**
@@ -68,7 +63,6 @@ import { FadeInImage } from './fade-in-image';
  * and now asserts the redesigned page.
  */
 
-const PAGE_SIZE = 9; // 3x3, matching the design.
 const AUTH_REDIRECT = '/auth?redirect=/universities';
 
 // ── Card data helpers ─────────────────────────────────────────────────────
@@ -95,15 +89,6 @@ function metric(value: string | number | null | undefined): string {
 // SearchMark. Kept as a local alias so the call sites below read unchanged.
 const IconSearch = () => <SearchMark frame={20} />;
 
-function IconPin() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-      <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
 function IconHeart({ filled }: { filled: boolean }) {
   return (
     <svg width="20" height="20" viewBox="0 0 24 24" fill={filled ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -114,7 +99,13 @@ function IconHeart({ filled }: { filled: boolean }) {
 
 // ── University card ────────────────────────────────────────────────────────
 
-function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
+function UniversityCard({
+  uni,
+  preloadImage = false,
+}: {
+  uni: ExplorerUniversity;
+  preloadImage?: boolean;
+}) {
   const {
     isLoggedIn,
     authPending,
@@ -163,11 +154,13 @@ function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
           <FadeInImage
             src={uni.image_url}
             alt={uni.name}
+            preload={preloadImage}
             className="h-full w-full object-cover"
           />
         ) : null}
         <button
           type="button"
+          data-no-auto-translate
           onClick={toggleSave}
           {...testId(TID.uniCardSaveButton)}
           aria-pressed={saved}
@@ -257,261 +250,6 @@ function UniversityCard({ uni }: { uni: ExplorerUniversity }) {
 
 // ── Filters + sort ──────────────────────────────────────────────────────────
 
-type SortKey = 'popular' | 'price-asc' | 'price-desc';
-
-/** Criteria chips that map to data we actually have. See the note in page copy. */
-type Criterion = 'ranked' | 'scholarships' | 'acceptance';
-
-const CRITERIA: { key: Criterion; label: string }[] = [
-  { key: 'ranked', label: 'World QS ranking' },
-  { key: 'scholarships', label: 'Scholarships' },
-  { key: 'acceptance', label: 'Acceptance rate' },
-];
-
-const SORTS: { key: SortKey; label: string }[] = [
-  { key: 'popular', label: 'Popular' },
-  { key: 'price-desc', label: 'Price: high to low' },
-  { key: 'price-asc', label: 'Price: low to high' },
-];
-
-/** First integer in a tuition string ("$52,000/year" -> 52000), or null. */
-function tuitionValue(raw: string | null | undefined): number | null {
-  if (!raw) return null;
-  const digits = raw.replace(/[^0-9]/g, '');
-  return digits === '' ? null : Number(digits);
-}
-
-const MAJORS: { value: string; label: string; tag: string }[] = [
-  { value: 'stem', label: 'Engineering & Technology', tag: 'STEM' },
-  { value: 'business', label: 'Business', tag: 'Business' },
-  { value: 'arts', label: 'Arts & Humanities', tag: 'Arts' },
-  { value: 'medicine', label: 'Medicine & Health', tag: 'Medicine' },
-];
-
-function Chip({
-  active,
-  onClick,
-  children,
-}: {
-  active: boolean;
-  onClick: () => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-pressed={active}
-      className={`shrink-0 rounded-gb-md border px-gb-lg py-gb-md text-gb-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-        active
-          ? 'border-brand bg-brand-subtle text-fg-brand'
-          : 'border-line-strong bg-surface text-fg-secondary hover:bg-surface-hover'
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
-// ── Browse view (the whole redesigned list) ─────────────────────────────────
-
-// Kept temporarily as the UI reference while the URL-backed directory settles.
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-function BrowseView() {
-  const { universities } = useExplorer();
-  const resultsRef = useRef<HTMLDivElement>(null);
-
-  const [name, setName] = useState('');
-  const [location, setLocation] = useState('');
-  const [major, setMajor] = useState('');
-  const [criteria, setCriteria] = useState<Set<Criterion>>(new Set());
-  const [sort, setSort] = useState<SortKey>('popular');
-  const [page, setPage] = useState(1);
-
-  function toggleCriterion(key: Criterion) {
-    setPage(1);
-    setCriteria((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  }
-
-  const filtered = useMemo(() => {
-    const q = name.trim().toLowerCase();
-    const loc = location.trim().toLowerCase();
-    const majorTag = MAJORS.find((m) => m.value === major)?.tag;
-
-    const list = universities.filter((u) => {
-      if (q && !u.name.toLowerCase().includes(q) && !(u.local_name ?? '').toLowerCase().includes(q)) {
-        return false;
-      }
-      if (loc && !u.country.toLowerCase().includes(loc)) return false;
-      if (majorTag && !u.tags.includes(majorTag)) return false;
-      if (criteria.has('ranked') && u.qs_rank == null) return false;
-      if (criteria.has('scholarships') && u.scholarships.length === 0) return false;
-      if (criteria.has('acceptance') && !u.accept_rate) return false;
-      return true;
-    });
-
-    if (sort === 'popular') return list; // server already ordered by match/rank
-    const dir = sort === 'price-asc' ? 1 : -1;
-    // Universities with no tuition datum sort to the end regardless of direction.
-    return [...list].sort((a, b) => {
-      const av = tuitionValue(a.tuition_usd);
-      const bv = tuitionValue(b.tuition_usd);
-      if (av == null && bv == null) return 0;
-      if (av == null) return 1;
-      if (bv == null) return -1;
-      return (av - bv) * dir;
-    });
-  }, [universities, name, location, major, criteria, sort]);
-
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const current = Math.min(page, totalPages);
-  const pageItems = filtered.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
-
-  function goToPage(p: number) {
-    setPage(p);
-    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-  }
-
-  return (
-    <Container className="flex flex-col gap-gb-4xl py-gb-6xl">
-        {/* Hero */}
-        <div className="flex max-w-gb-width-xl flex-col gap-gb-lg">
-          <h1 className="font-display text-gb-display-xs font-semibold md:text-gb-display-sm">
-            Find the university that&apos;s right for you
-          </h1>
-          <p className="text-gb-md text-fg-tertiary md:text-gb-lg">
-            Explore universities worldwide and find your perfect fit.
-          </p>
-        </div>
-
-        {/* Search row */}
-        <form
-          className="grid gap-gb-lg md:grid-cols-[1fr_1fr_1fr_auto]"
-          onSubmit={(e) => {
-            e.preventDefault();
-            resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          }}
-        >
-          <label className="relative flex items-center">
-            <span className="pointer-events-none absolute left-gb-input-x text-fg-muted">
-              <IconSearch />
-            </span>
-            <input
-              {...testId(TID.uniSearchInput)}
-              value={name}
-              onChange={(e) => {
-                setName(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by university name"
-              aria-label="Search by university name"
-              className="w-full rounded-gb-md border border-line-strong bg-surface py-gb-input-y pl-gb-6xl pr-gb-input-x text-gb-md text-fg shadow-gb-xs placeholder:text-fg-muted focus:outline-2 focus:outline-offset-0 focus:outline-brand"
-            />
-          </label>
-          <label className="relative flex items-center">
-            <span className="pointer-events-none absolute left-gb-input-x text-fg-muted">
-              <IconPin />
-            </span>
-            <input
-              value={location}
-              onChange={(e) => {
-                setLocation(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Where do you want to study"
-              aria-label="Where do you want to study"
-              className="w-full rounded-gb-md border border-line-strong bg-surface py-gb-input-y pl-gb-6xl pr-gb-input-x text-gb-md text-fg shadow-gb-xs placeholder:text-fg-muted focus:outline-2 focus:outline-offset-0 focus:outline-brand"
-            />
-          </label>
-          <Select
-            name="major"
-            aria-label="Select a major"
-            placeholder="Select a major"
-            value={major}
-            onChange={(e) => {
-              setMajor(e.target.value);
-              setPage(1);
-            }}
-          >
-            {MAJORS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </Select>
-          <Button type="submit" size="md">
-            Find universities
-          </Button>
-        </form>
-
-        {/* Criteria chips */}
-        <div className="flex flex-col gap-gb-lg">
-          <h2 className="text-gb-md font-semibold text-fg">Filter by criteria</h2>
-          <div className="flex flex-wrap gap-gb-md">
-            {CRITERIA.map((c) => (
-              <Chip key={c.key} active={criteria.has(c.key)} onClick={() => toggleCriterion(c.key)}>
-                {c.label}
-              </Chip>
-            ))}
-          </div>
-        </div>
-
-        {/* Sort chips */}
-        <div className="flex flex-col gap-gb-lg">
-          <h2 className="text-gb-md font-semibold text-fg">Sort by</h2>
-          <div className="flex flex-wrap gap-gb-md">
-            {SORTS.map((s) => (
-              <Chip
-                key={s.key}
-                active={sort === s.key}
-                onClick={() => {
-                  setSort(s.key);
-                  setPage(1);
-                }}
-              >
-                {s.label}
-              </Chip>
-            ))}
-          </div>
-        </div>
-
-        {/* Results */}
-        <div ref={resultsRef} className="scroll-mt-gb-9xl">
-          {pageItems.length === 0 ? (
-            <div className="rounded-gb-xl border border-line bg-surface-muted px-gb-3xl py-gb-7xl text-center">
-              <p className="text-gb-lg font-semibold text-fg">No universities match your filters</p>
-              <p className="mt-gb-sm text-gb-md text-fg-tertiary">
-                Try clearing a filter or searching a different name.
-              </p>
-            </div>
-          ) : (
-            <div
-              {...testId(TID.uniResultsGrid)}
-              className="grid grid-cols-1 gap-gb-4xl sm:grid-cols-2 lg:grid-cols-3"
-            >
-              {pageItems.map((uni) => (
-                <UniversityCard key={uni.id} uni={uni} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {totalPages > 1 ? (
-          <div {...testId(TID.uniPagination)}>
-            <Pagination page={current} totalPages={totalPages} onPageChange={goToPage} />
-          </div>
-        ) : null}
-      </Container>
-  );
-}
-
-// ── Login gate (guest funnel) ───────────────────────────────────────────────
-
 function DirectoryBrowseView({
   total,
   page,
@@ -519,6 +257,9 @@ function DirectoryBrowseView({
   initialSearch,
   initialCountry,
   countries,
+  busy,
+  error,
+  onNavigate,
 }: {
   total: number;
   page: number;
@@ -526,25 +267,27 @@ function DirectoryBrowseView({
   initialSearch: string;
   initialCountry: string;
   countries: string[];
+  busy: boolean;
+  error: string | null;
+  onNavigate: (href: string, replace?: boolean) => void;
 }) {
   const { universities } = useExplorer();
-  const router = useRouter();
   const resultsRef = useRef<HTMLDivElement>(null);
   const [name, setName] = useState(initialSearch);
   const [country, setCountry] = useState(initialCountry);
 
   useEffect(() => {
     const query = name.trim();
-    if (query === initialSearch) return;
+    if (query === initialSearch && country === initialCountry) return;
     const timeout = window.setTimeout(() => {
       const params = new URLSearchParams();
       if (query) params.set('q', query);
       if (country) params.set('country', country);
       const queryString = params.toString();
-      router.replace(queryString ? `/universities?${queryString}` : '/universities');
+      onNavigate(queryString ? `/universities?${queryString}` : '/universities', true);
     }, 300);
     return () => window.clearTimeout(timeout);
-  }, [name, initialSearch, country, router]);
+  }, [name, initialSearch, country, initialCountry, onNavigate]);
 
   function href(nextPage: number) {
     const params = new URLSearchParams();
@@ -558,11 +301,11 @@ function DirectoryBrowseView({
 
   function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    router.push(href(1));
+    onNavigate(href(1), true);
   }
 
   function goToPage(nextPage: number) {
-    router.push(href(nextPage));
+    onNavigate(href(nextPage));
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -570,7 +313,10 @@ function DirectoryBrowseView({
   const currentPage = Math.min(page, totalPages);
 
   return (
-    <Container className="flex flex-col gap-gb-4xl py-gb-6xl">
+    <Container
+      className="flex flex-col gap-gb-4xl py-gb-6xl"
+      aria-busy={busy}
+    >
       <div className="flex max-w-gb-width-xl flex-col gap-gb-lg">
         <h1 className="font-display text-gb-display-xs font-semibold md:text-gb-display-sm">
           Find the university that&apos;s right for you
@@ -621,8 +367,12 @@ function DirectoryBrowseView({
             {...testId(TID.uniResultsGrid)}
             className="grid grid-cols-1 gap-gb-4xl sm:grid-cols-2 lg:grid-cols-3"
           >
-            {universities.map((university) => (
-              <UniversityCard key={university.id} uni={university} />
+            {universities.map((university, index) => (
+              <UniversityCard
+                key={university.id}
+                uni={university}
+                preloadImage={index === 0}
+              />
             ))}
           </div>
         )}
@@ -633,6 +383,7 @@ function DirectoryBrowseView({
           <Pagination page={currentPage} totalPages={totalPages} onPageChange={goToPage} />
         </div>
       ) : null}
+      {error ? <p role="alert" className="text-gb-sm text-error-primary">{error}</p> : null}
     </Container>
   );
 }
@@ -724,6 +475,9 @@ function Chrome({
   search,
   country,
   countries,
+  busy,
+  error,
+  onNavigate,
 }: {
   userName: string | null;
   userAvatarUrl: string | null;
@@ -734,16 +488,16 @@ function Chrome({
   search: string;
   country: string;
   countries: string[];
+  busy: boolean;
+  error: string | null;
+  onNavigate: (href: string, replace?: boolean) => void;
 }) {
   useLegacyDetailParamRedirect();
 
   const primaryAction = { href: '/onboarding', label: 'Plan your studies' };
 
   return (
-    /* gb-has-mobile-header: this full-bleed page ships its own MobileNav (a
-       fixed header), so globals.css must keep the mobile top offset that plain
-       full-bleed pages drop. */
-    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
+    <>
       {/* `utility` carries the way back to the saved list. This page is where a
           student saves from, so it is the one header that must have it. */}
       <TopNav
@@ -781,21 +535,15 @@ function Chrome({
           initialSearch={search}
           initialCountry={country}
           countries={countries}
+          busy={busy}
+          error={error}
+          onNavigate={onNavigate}
         />
       </main>
 
-      <Footer
-        logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
-      />
-
       <LoginGateModal />
       <Toast />
-    </div>
+    </>
   );
 }
 
@@ -810,6 +558,13 @@ interface Props {
   country: string;
   countries: string[];
   wikiPairs?: Array<[string, string]>;
+  canonicalSearch: string;
+}
+
+function universityPrefetchHrefs(data: UniversityDirectoryResponse) {
+  if (!data.page.hasMore) return [];
+  const params = universitySearchParams(data.query, { page: data.page.page + 1 });
+  return [`/universities?${params}`];
 }
 
 export function UniversityListClient({
@@ -821,9 +576,22 @@ export function UniversityListClient({
   country,
   countries,
   wikiPairs = [],
+  canonicalSearch,
 }: Props) {
-  const supabase = useMemo(() => createClient(), []);
-  const [withImages, setWithImages] = useState<ExplorerUniversity[]>(universities);
+  const initialDirectory = useMemo<UniversityDirectoryResponse>(() => ({
+    query: { search, country, page },
+    page: { items: universities, total, page, pageSize, hasMore: page * pageSize < total },
+    wikiPairs,
+    canonicalSearch,
+  }), [canonicalSearch, country, page, pageSize, search, total, universities, wikiPairs]);
+  const getPrefetchHrefs = useCallback(universityPrefetchHrefs, []);
+  const directory = useDirectoryNavigation({
+    pathname: '/universities',
+    endpoint: '/api/directory/universities',
+    initialData: initialDirectory,
+    getPrefetchHrefs,
+  });
+  const [withImages, setWithImages] = useState<ExplorerUniversity[]>(directory.data.page.items);
   const [authState, setAuthState] = useState<{
     id: string;
     name: string;
@@ -833,55 +601,69 @@ export function UniversityListClient({
   const [authResolved, setAuthResolved] = useState(false);
 
   useEffect(() => {
-    setWithImages(universities);
-  }, [universities]);
+    setWithImages(directory.data.page.items);
+  }, [directory.data.page.items]);
 
   useEffect(() => {
     let active = true;
     let generation = 0;
+    let unsubscribe = () => {};
 
-    async function hydrate(authUser: {
-      id: string;
-      email?: string | null;
-      user_metadata?: Record<string, unknown>;
-    } | null) {
-      const current = ++generation;
-      if (active) setAuthResolved(false);
-      if (!authUser) {
-        if (active && current === generation) {
-          setAuthState(null);
-          setAuthResolved(true);
+    async function connect() {
+      const { createClient } = await import('@/lib/supabase/client');
+      if (!active) return;
+      const supabase = createClient();
+      async function hydrate(authUser: {
+        id: string;
+        email?: string | null;
+        user_metadata?: Record<string, unknown>;
+      } | null) {
+        const current = ++generation;
+        if (active) setAuthResolved(false);
+        if (!authUser) {
+          if (active && current === generation) {
+            setAuthState(null);
+            setAuthResolved(true);
+          }
+          return;
         }
-        return;
+        const { data } = await supabase
+          .from('user_universities')
+          .select('university_id')
+          .eq('user_id', authUser.id);
+        if (!active || current !== generation) return;
+        setAuthState({
+          id: authUser.id,
+          name:
+            (authUser.user_metadata?.full_name as string | undefined) ||
+            authUser.email?.split('@')[0] ||
+            'Profile',
+          avatarUrl: (authUser.user_metadata?.avatar_url as string | undefined) ?? null,
+          shortlist: (data ?? []).map((row) => row.university_id as number),
+        });
+        setAuthResolved(true);
       }
-      const { data } = await supabase
-        .from('user_universities')
-        .select('university_id')
-        .eq('user_id', authUser.id);
-      if (!active || current !== generation) return;
-      setAuthState({
-        id: authUser.id,
-        name:
-          (authUser.user_metadata?.full_name as string | undefined) ||
-          authUser.email?.split('@')[0] ||
-          'Profile',
-        avatarUrl: (authUser.user_metadata?.avatar_url as string | undefined) ?? null,
-        shortlist: (data ?? []).map((row) => row.university_id as number),
+      void supabase.auth.getUser()
+        .then(({ data }) => hydrate(data.user ?? null))
+        .catch(() => active && setAuthResolved(true));
+      const {
+        data: { subscription },
+      } = supabase.auth.onAuthStateChange((_event, session) => {
+        void hydrate(session?.user ?? null);
       });
-      setAuthResolved(true);
+      unsubscribe = () => subscription.unsubscribe();
     }
 
-    void supabase.auth.getUser().then(({ data }) => hydrate(data.user ?? null));
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      void hydrate(session?.user ?? null);
-    });
+    const run = () => void connect().catch(() => active && setAuthResolved(true));
+    const idleId = window.requestIdleCallback?.(run, { timeout: 1000 }) ?? null;
+    const timeoutId = idleId === null ? window.setTimeout(run, 0) : null;
     return () => {
       active = false;
-      subscription.unsubscribe();
+      if (idleId !== null) window.cancelIdleCallback(idleId);
+      if (timeoutId !== null) window.clearTimeout(timeoutId);
+      unsubscribe();
     };
-  }, [supabase]);
+  }, []);
 
   /*
    * Hydration gate for the imagery patch below.
@@ -909,7 +691,7 @@ export function UniversityListClient({
   // so the response is instant; one batch request to /api/university-images then
   // patches campus + logo URLs in place.
   useEffect(() => {
-    if (wikiPairs.length === 0) return;
+    if (directory.data.wikiPairs.length === 0) return;
     let cancelled = false;
     const ac = new AbortController();
     let frame = 0;
@@ -919,7 +701,7 @@ export function UniversityListClient({
       fetch('/api/university-images', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(wikiPairs),
+        body: JSON.stringify(directory.data.wikiPairs),
         signal: ac.signal,
       })
         .then((r) => (r.ok ? r.json() : null))
@@ -953,11 +735,10 @@ export function UniversityListClient({
       if (frame) cancelAnimationFrame(frame);
       ac.abort();
     };
-  }, [wikiPairs]);
+  }, [directory.data.wikiPairs]);
 
   return (
     <UniversityExplorerProvider
-      key={authState?.id ?? 'guest'}
       initialUniversities={withImages}
       initialShortlist={authState?.shortlist ?? []}
       initialApplications={[]}
@@ -971,12 +752,15 @@ export function UniversityListClient({
         userName={authState?.name ?? null}
         userAvatarUrl={authState?.avatarUrl ?? null}
         isLoggedIn={authState !== null}
-        total={total}
-        page={page}
-        pageSize={pageSize}
-        search={search}
-        country={country}
+        total={directory.data.page.total}
+        page={directory.data.page.page}
+        pageSize={directory.data.page.pageSize}
+        search={directory.data.query.search}
+        country={directory.data.query.country}
         countries={countries}
+        busy={directory.busy}
+        error={directory.error}
+        onNavigate={directory.navigate}
       />
     </UniversityExplorerProvider>
   );

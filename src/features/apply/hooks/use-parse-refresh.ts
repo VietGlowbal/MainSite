@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isParsePending } from '../domain';
+import { isParsePending } from '../domain/course-name';
 
 const POLL_MS = 4000;
 const POLL_CEILING_MS = 4 * 60 * 1000;

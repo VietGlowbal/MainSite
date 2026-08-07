@@ -5,8 +5,8 @@ import type {
   StoredLorStrategy,
 } from '@/components/statement/LorStrategyWorkspace';
 import { LorStrategyInputSchema, LorStrategySchema } from '@/lib/ai/lor';
-import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
-import { createClient } from '@/lib/supabase/server';
+import { getApplicationDocumentContext } from '@/features/apply/application-document-context';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 const storedLorStrategySchema = LorStrategyInputSchema.omit({ applicationId: true }).and(
   LorStrategySchema,
@@ -18,18 +18,11 @@ export default async function LorFeedbackPage({
   params: Promise<{ applicationId: string }>;
 }) {
   const { applicationId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+  const { supabase, identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
 
-  const workspace = await fetchApplicationWorkspace(applicationId, user.id);
-  if (!workspace) notFound();
-
-  const { application } = workspace;
-  const [activitiesResult, achievementsResult, strategyResult] = await Promise.all([
+  const [context, activitiesResult, achievementsResult, strategyResult] = await Promise.all([
+    getApplicationDocumentContext(applicationId, user.id),
     supabase
       .from('student_activities')
       .select('id, title, description')
@@ -43,10 +36,11 @@ export default async function LorFeedbackPage({
     supabase
       .from('application_lor_strategies')
       .select('recommender_type, relationship_context, known_duration, observed_evidence, perspective, recommendations, do_not_prioritize, recommendation_brief')
-      .eq('application_id', application.id)
+      .eq('application_id', applicationId)
       .eq('user_id', user.id)
       .maybeSingle(),
   ]);
+  if (!context) notFound();
   const lorEvidence: LorEvidenceOption[] = [
     ...((activitiesResult.data ?? []) as Array<Record<string, unknown>>).map((row) => ({
       kind: 'activity' as const,
@@ -76,20 +70,16 @@ export default async function LorFeedbackPage({
     : null;
   const initialLorStrategy: StoredLorStrategy | null =
     parsedStrategy?.success ? parsedStrategy.data : null;
-  const userName =
-    (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || null;
-  const userAvatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
-
   return (
     <StatementFeedbackWorkspace
-      applicationId={application.id}
-      targetName={`${application.courseName} · ${application.universityName}`}
-      contextNote={workspace.course?.entryRequirementsSummary ?? application.aiSummary}
+      applicationId={context.id}
+      targetName={`${context.courseName ?? ''} · ${context.universityName ?? ''}`}
+      contextNote={context.entryRequirementsSummary ?? context.aiSummary}
       reviewType="lor"
       lorEvidence={lorEvidence}
       initialLorStrategy={initialLorStrategy}
-      userName={userName}
-      userAvatarUrl={userAvatarUrl}
+      userName={user.name}
+      userAvatarUrl={user.avatarUrl}
     />
   );
 }

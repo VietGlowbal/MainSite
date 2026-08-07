@@ -1,8 +1,8 @@
 'use client';
 
-import { Stepper, type StepperStep } from '@/shared/ui';
+import { Stepper, type StepperStep } from '@/shared/ui/stepper';
 import type { ApplicationStage } from '@/lib/apply-types';
-import { stageProgressLabel } from '../domain';
+import { stageProgressLabel } from '../domain/progress';
 import { ResearchProgress } from './research-progress';
 
 /**
