@@ -6,6 +6,14 @@ const mocks = vi.hoisted(() => ({ pathname: '/apply/application-1/cv' }));
 vi.mock('next/navigation', () => ({ usePathname: () => mocks.pathname }));
 vi.mock('@/components/glowbal-logo', () => ({ GlowbalLogo: () => <span>GlowBal</span> }));
 vi.mock('@/components/saved-nav-link', () => ({ SavedNavLink: () => <span>Saved</span> }));
+vi.mock('@/components/navigation-session', () => ({
+  useNavigationSession: () => ({
+    ready: true,
+    signedIn: false,
+    user: null,
+    completed: false,
+  }),
+}));
 vi.mock('@/lib/i18n', () => ({ useLanguage: () => ({ t: (value: string) => value }) }));
 vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({
