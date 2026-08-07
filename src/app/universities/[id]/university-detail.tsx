@@ -346,11 +346,17 @@ export function UniversityDetail({
              * the page's white surface loses its own edges. A surface behind it
              * gives every row the same frame whatever the asset turns out to be.
              */
-            <FadeInImage
-              src={university.image_url}
-              alt=""
-              className="aspect-[1216/640] w-full rounded-gb-xl bg-surface-muted object-cover ring-1 ring-line"
-            />
+            <div
+              {...testId(TID.uniDetailHero)}
+              className="relative aspect-[1216/640] w-full overflow-hidden rounded-gb-xl bg-surface-muted ring-1 ring-line"
+            >
+              <FadeInImage
+                src={university.image_url}
+                alt=""
+                sizes="(max-width: 767px) calc(100vw - 32px), (max-width: 1279px) calc(100vw - 64px), 1216px"
+                className="object-cover"
+              />
+            </div>
           ) : null}
 
           {stats.length >= 2 ? (

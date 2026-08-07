@@ -33,7 +33,10 @@ export default defineConfig({
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
 
   webServer: {
-    command: 'npm run build && npm run start',
+    // `npm start` intentionally enables Node's system CA store for local
+    // development, but GitHub's Node version may not support that flag. E2E
+    // does not need it, so invoke the Next CLI directly for a portable CI run.
+    command: 'npm run build && node node_modules/next/dist/bin/next start',
     url: 'http://localhost:3000',
     /**
      * ⚠️ Locally this attaches to whatever already answers on :3000 — including

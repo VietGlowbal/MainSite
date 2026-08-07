@@ -65,3 +65,4 @@ next-env.d.ts
 
 /output
 /.playwright-cli
+/.codex-tmp

@@ -6,6 +6,7 @@
 export {
   CACHE_TAGS,
   CACHE_TTL_LONG,
+  expireUniversitiesNow,
   revalidateUniversities,
   revalidateScholarships,
   revalidateTeam,

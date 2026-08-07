@@ -60,6 +60,8 @@ export const TID = {
   uniCard: 'uni-card',
   uniCardSaveButton: 'uni-card-save',
   uniDetailPanel: 'uni-detail-panel',
+  /** Bounded hero frame on /universities/[id]; its child image uses `fill`. */
+  uniDetailHero: 'uni-detail-hero',
   /** Server-side pagination control (3x3 grid in the new design). */
   uniPagination: 'uni-pagination',
 
