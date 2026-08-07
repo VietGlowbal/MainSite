@@ -77,6 +77,8 @@ export type TopNavEntry = NavEntry;
 export type TopNavUser = {
   /** Display name, shown next to the avatar at text-sm/semibold. */
   name: string;
+  /** Optional action copy shown beside the avatar (for example, User Profile). */
+  label?: string | undefined;
   avatarUrl?: string | null | undefined;
   /** Where the avatar block links — the account area. */
   href: string;
@@ -91,7 +93,8 @@ type Props = {
    */
   logo: React.ReactNode;
   items: readonly TopNavEntry[];
-  primaryAction: TopNavItem;
+  /** Omitted while a user-aware action is still being resolved. */
+  primaryAction?: TopNavItem | undefined;
   /** Guest only — ignored when `user` is set, which is what the design does. */
   secondaryAction?: TopNavItem | undefined;
   /** Present => signed-in state (203:12356). */
@@ -397,9 +400,10 @@ export function TopNav({
            * least-bad failure — without it the labels slide out under the two
            * action buttons instead.
            *
-           * Folding Scholarships / Universities / Mentors into the "Search"
-           * dropdown took the bar from six top-level labels to four and bought
-           * back most of that margin, but the rule stands: this clips.
+           * Folding Scholarships / Universities / Advisors into the "Search"
+           * dropdown keeps the audience-aware bar to four or five top-level
+           * labels and buys back most of that margin, but the rule stands: this
+           * clips if a future change oversubscribes it.
            *
            * It is also why NavDropdown's panel is `position: fixed`. Read the ⚠️
            * on that component before changing either.
@@ -461,9 +465,11 @@ export function TopNav({
                 {secondaryAction.label}
               </Button>
             ) : null}
-            <Button href={primaryAction.href} variant="primary-on-dark">
-              {primaryAction.label}
-            </Button>
+            {primaryAction ? (
+              <Button href={primaryAction.href} variant="primary-on-dark">
+                {primaryAction.label}
+              </Button>
+            ) : null}
           </div>
 
           {user ? (
@@ -479,7 +485,7 @@ export function TopNav({
                   tone === 'dark' ? 'text-fg-on-inverse' : 'text-fg'
                 }`}
               >
-                {user.name}
+                {user.label ?? user.name}
               </span>
             </Link>
           ) : null}

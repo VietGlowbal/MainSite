@@ -45,9 +45,9 @@ type Props = {
   logo: React.ReactNode;
   items: readonly MobileNavEntry[];
   /** Filled brand button at the bottom of the panel. */
-  primaryAction: MobileNavAction;
+  primaryAction?: MobileNavAction | undefined;
   /** Outlined button beneath it — sign in, or the profile link once signed in. */
-  secondaryAction: MobileNavAction;
+  secondaryAction?: MobileNavAction | undefined;
   /**
    * A page-specific control between the item list and the buttons —
    * `SavedNavLink`, in practice.
@@ -280,17 +280,23 @@ export function MobileNav({
               {/* After `utility` so the order matches the desktop bar, where
                   SavedNavLink sits left of the switcher. */}
               <LanguageSwitcher variant="row" />
-              <div className="flex flex-col gap-gb-lg">
-                <Link href={primaryAction.href} className={`${BUTTON} bg-brand text-on-brand hover:bg-brand-hover`}>
-                  {primaryAction.label}
-                </Link>
-                <Link
-                  href={secondaryAction.href}
-                  className={`${BUTTON} border border-line-strong bg-surface text-fg-secondary shadow-gb-xs hover:bg-surface-hover`}
-                >
-                  {secondaryAction.label}
-                </Link>
-              </div>
+              {primaryAction || secondaryAction ? (
+                <div className="flex flex-col gap-gb-lg">
+                  {primaryAction ? (
+                    <Link href={primaryAction.href} className={`${BUTTON} bg-brand text-on-brand hover:bg-brand-hover`}>
+                      {primaryAction.label}
+                    </Link>
+                  ) : null}
+                  {secondaryAction ? (
+                    <Link
+                      href={secondaryAction.href}
+                      className={`${BUTTON} border border-line-strong bg-surface text-fg-secondary shadow-gb-xs hover:bg-surface-hover`}
+                    >
+                      {secondaryAction.label}
+                    </Link>
+                  ) : null}
+                </div>
+              ) : null}
             </div>
           </div>
         </>
