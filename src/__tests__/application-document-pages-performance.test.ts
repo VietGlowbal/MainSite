@@ -65,13 +65,31 @@ describe('application document page data loading', () => {
   });
 
   it.each([
-    ['CV review', CvReviewPage],
     ['statement feedback', StatementFeedbackPage],
   ])('%s uses the narrow document context instead of the full workspace', async (_label, page) => {
     await page({ params: Promise.resolve({ applicationId: 'app-1' }) });
 
     expect(mocks.getContext).toHaveBeenCalledWith('app-1', 'user-1');
     expect(mocks.fetchWorkspace).not.toHaveBeenCalled();
+  });
+
+  it('redirects the legacy CV review route to the redesigned workspace', async () => {
+    mocks.redirect.mockImplementationOnce(() => {
+      throw new Error('NEXT_REDIRECT');
+    });
+
+    await expect(
+      CvReviewPage({ params: Promise.resolve({ applicationId: 'app-1' }) }),
+    ).rejects.toThrow('NEXT_REDIRECT');
+
+    expect(mocks.redirect).toHaveBeenCalledWith('/ai-strategy/app-1/cv/review');
+    expect(mocks.getContext).not.toHaveBeenCalled();
+  });
+
+  it('links the CV hub review choice directly to the redesigned workspace', () => {
+    const hub = readFileSync('src/app/apply/[applicationId]/(features)/cv/page.tsx', 'utf8');
+
+    expect(hub).toContain('`/ai-strategy/${applicationId}/cv/review`');
   });
 
   it('reuses the request-scoped identity in the feature layout and navigation', () => {
