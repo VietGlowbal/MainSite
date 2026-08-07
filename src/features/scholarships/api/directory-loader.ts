@@ -36,11 +36,11 @@ export function scholarshipListQuery(
   return {
     page,
     pageSize: 9,
-    search: state.search || undefined,
-    universitySearch: state.universitySearch || undefined,
+    ...(state.search ? { search: state.search } : {}),
+    ...(state.universitySearch ? { universitySearch: state.universitySearch } : {}),
     major: state.major,
     degree: state.degree,
-    country: state.country === 'all' ? undefined : state.country,
+    ...(state.country === 'all' ? {} : { country: state.country }),
     funding: state.funding,
     sort: state.sort,
   };

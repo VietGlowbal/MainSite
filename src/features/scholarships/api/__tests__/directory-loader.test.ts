@@ -11,7 +11,7 @@ vi.mock('next/cache', () => ({
 }));
 vi.mock('@/server/directory/university-focus', () => ({ getPublicUniversityFocus }));
 
-import { loadScholarshipDirectory } from '../directory-loader';
+import { loadScholarshipDirectory, scholarshipListQuery } from '../directory-loader';
 
 const page = (requested: number, total = 1): Page<DirectoryScholarship> => ({
   items: requested === 1 ? [{ id: 1 } as DirectoryScholarship] : [],
@@ -27,6 +27,14 @@ afterEach(() => {
 });
 
 describe('loadScholarshipDirectory', () => {
+  it('omits empty optional filters from repository queries', () => {
+    const query = scholarshipListQuery(parseScholarshipSearchParams({}), 1);
+
+    expect(query).not.toHaveProperty('search');
+    expect(query).not.toHaveProperty('universitySearch');
+    expect(query).not.toHaveProperty('country');
+  });
+
   it('does not allow the AI view through the public loader', async () => {
     await expect(
       loadScholarshipDirectory(parseScholarshipSearchParams({ view: 'ai' })),
