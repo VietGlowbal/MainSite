@@ -46,7 +46,7 @@ function UniversityLogo({
  */
 export function HomeTestimonials({
   entries = [],
-  ctaHref = '/mentors',
+  ctaHref = '/advisors',
 }: {
   entries?: readonly Testimonial[];
   ctaHref?: string;
@@ -101,7 +101,7 @@ export function HomeTestimonials({
 
       <div className="flex justify-center">
         <Button href={ctaHref} size="xl">
-          Find a mentor
+          Find an advisor
         </Button>
       </div>
     </Section>

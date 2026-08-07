@@ -548,7 +548,7 @@ insert into public.application_tasks (
   ('aaa00000-0000-4000-a000-000000000001', (select id from public.application_stages where application_id='aaa00000-0000-4000-a000-000000000001' and slug='documents'),   'Upload your CV', 'Upload your latest CV so we can tailor suggestions.', 'document', 'not_started', 'medium', null, 'Upload CV', 'upload_document', null, null, 0.8, 3, null, 'ai'),
   ('aaa00000-0000-4000-a000-000000000001', (select id from public.application_stages where application_id='aaa00000-0000-4000-a000-000000000001' and slug='submit'),      'Complete the UCAS form', 'Fill in every UCAS section and double-check before submitting.', 'submission', 'not_started', 'high', current_date + 25, null, 'none', null, null, 0.8, 1, null, 'ai'),
   ('aaa00000-0000-4000-a000-000000000001', (select id from public.application_stages where application_id='aaa00000-0000-4000-a000-000000000001' and slug='submit'),      'Submit application', 'Submit at least 24 hours before the deadline.', 'deadline', 'not_started', 'urgent', current_date + 30, null, 'none', null, null, 0.9, 2, null, 'ai'),
-  ('aaa00000-0000-4000-a000-000000000001', (select id from public.application_stages where application_id='aaa00000-0000-4000-a000-000000000001' and slug='decision'),    'Book a mock interview', 'Practise a technical interview with a Glowbal mentor.', 'mentor', 'not_started', 'medium', null, 'Book a mentor', 'book_mentor', '/mentors', null, 0.8, 1, null, 'ai');
+  ('aaa00000-0000-4000-a000-000000000001', (select id from public.application_stages where application_id='aaa00000-0000-4000-a000-000000000001' and slug='decision'),    'Book a mock interview', 'Practise a technical interview with a Glowbal advisor.', 'mentor', 'not_started', 'medium', null, 'Book an advisor', 'book_mentor', '/advisors', null, 0.8, 1, null, 'ai');
 
 -- A2 (Manchester)
 insert into public.application_tasks (
@@ -673,7 +673,7 @@ insert into public.application_recommendations (
   action_type, action_target, confidence, is_dismissed
 ) values
   ('aaa00000-0000-4000-a000-000000000001', 'next_action', 'Finish your personal statement', 'Your draft is in progress — completing it is the highest-impact next step.', 'high', 'Open AI writer', 'internal_route', '/tools/personal-statement', 0.9, false),
-  ('aaa00000-0000-4000-a000-000000000001', 'mentor', 'Practise the technical interview', 'A Cambridge CS mentor can run a realistic mock interview with you.', 'medium', 'Browse mentors', 'internal_route', '/mentors', 0.85, false),
+  ('aaa00000-0000-4000-a000-000000000001', 'mentor', 'Practise the technical interview', 'A Cambridge CS advisor can run a realistic mock interview with you.', 'medium', 'Browse advisors', 'internal_route', '/advisors', 0.85, false),
   ('aaa00000-0000-4000-a000-000000000003', 'warning', 'Confirm prerequisites before applying', 'Double-check the quantitative prerequisites so you don''t waste an application.', 'high', 'Check requirements', 'open_modal', null, 0.8, false),
   ('aaa00000-0000-4000-a000-000000000004', 'tip', 'Compare your scholarship offers', 'Review the scholarship package carefully before accepting your offer.', 'medium', null, null, null, 0.8, false);
 
@@ -737,7 +737,7 @@ begin
     'UAT-PAY-0001', s1_at - interval '1 day', 'https://meet.glowbal-uat.test/0001',
     'Want feedback on my Cambridge personal statement draft.',
     'Personal statement review', 'How do I make my opening paragraph stand out?',
-    'Mentor gave detailed line-by-line edits and structure tips.'
+    'Advisor gave detailed line-by-line edits and structure tips.'
   ) returning id into book1;
   update public.mentor_availability_slots set booking_id = book1 where id = slot1;
 
@@ -813,7 +813,7 @@ where email = 'lead.unsubscribed@glowbal-uat.test';
 
 insert into public.waitlist_signups (email, first_name, notes, source) values
   ('waitlist.a@glowbal-uat.test', 'Hoa',  'Interested in UK undergraduate support.', 'website_waitlist'),
-  ('waitlist.b@glowbal-uat.test', 'Tuan', 'Wants mentorship for US applications.',  'website_waitlist'),
+  ('waitlist.b@glowbal-uat.test', 'Tuan', 'Wants advising support for US applications.',  'website_waitlist'),
   ('waitlist.c@glowbal-uat.test', 'Ngoc', 'Asked about scholarship guidance.',      'website_waitlist');
 
 -- ============================================================================

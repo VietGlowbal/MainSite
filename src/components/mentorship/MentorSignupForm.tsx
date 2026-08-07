@@ -346,7 +346,7 @@ export function MentorSignupForm({
     }
 
     setSubmitting(false);
-    router.push('/mentors/apply/success');
+    router.push('/advisors/apply/success');
   }
 
   // ── Render helpers ─────────────────────────────────────────────────────
@@ -541,7 +541,7 @@ export function MentorSignupForm({
       {step === 'documents' && (
         <Section
           title="Verification documents"
-          description="We review every mentor manually. These four documents are stored privately and only seen by Glowbal admins."
+          description="We review every advisor manually. These four documents are stored privately and only seen by Glowbal admins."
         >
           <div className="grid gap-3">
             {(['cv', 'acceptance_letter', 'transcript', 'student_card'] as DocumentSlot[]).map((slot) => (
@@ -570,7 +570,7 @@ export function MentorSignupForm({
       {/* Profile */}
       {step === 'profile' && (
         <Section
-          title="Build your mentor profile"
+          title="Build your advisor profile"
           description="This is what mentees see. Be specific about what you can help with — vague profiles get fewer bookings."
         >
           {/* Avatar */}
@@ -767,7 +767,7 @@ export function MentorSignupForm({
             </div>
           </Field>
 
-          <Field label="Languages you can mentor in" required>
+          <Field label="Languages you can advise in" required>
             <ChipPicker
               options={SUGGESTED_LANGUAGES}
               selected={languages}
@@ -1330,7 +1330,7 @@ function MonthlyAvailabilityPicker({
       )}
 
       <p className="text-xs text-slate-500">
-        You can change all of this any time from your mentor dashboard.
+        You can change all of this any time from your advisor dashboard.
       </p>
     </div>
   );

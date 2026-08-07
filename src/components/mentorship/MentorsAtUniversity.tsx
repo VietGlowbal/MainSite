@@ -26,14 +26,14 @@ export async function MentorsAtUniversity({
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           <h3 className="text-base font-semibold text-slate-900">
-            Talk to a mentor who studies here
+            Talk to an advisor who studies here
           </h3>
           <p className="mt-0.5 text-xs text-slate-500">
             Real advice from current students and recent alumni at {universityName}.
           </p>
         </div>
         <Link
-          href={`/mentors?university=${universityId}`}
+          href={`/advisors?university=${universityId}`}
           className="whitespace-nowrap text-xs font-semibold text-cyan-600 hover:underline"
         >
           See all →
@@ -42,12 +42,12 @@ export async function MentorsAtUniversity({
 
       {mentors.length === 0 ? (
         <div className="rounded-xl border border-dashed border-slate-200 bg-white/60 px-4 py-6 text-center">
-          <p className="text-sm text-slate-500">No mentors at {universityName} yet.</p>
+          <p className="text-sm text-slate-500">No advisors at {universityName} yet.</p>
           <Link
-            href="/mentors/apply"
+            href="/advisors/apply"
             className="mt-2 inline-flex text-xs font-semibold text-pink-600 hover:underline"
           >
-            Are you a student here? Become a mentor →
+            Are you a student here? Become an advisor →
           </Link>
         </div>
       ) : (
@@ -57,7 +57,7 @@ export async function MentorsAtUniversity({
             return (
               <Link
                 key={m.id}
-                href={`/mentors/${m.id}`}
+                href={`/advisors/${m.id}`}
                 className="space-y-2 rounded-xl border border-slate-200 bg-white px-3 py-3 transition hover:shadow-md"
               >
                 <div className="flex items-center gap-2">

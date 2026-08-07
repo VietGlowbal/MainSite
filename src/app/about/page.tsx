@@ -60,7 +60,7 @@ export default async function AboutPage() {
               The team helping students go global
             </h1>
             <p className="max-w-gb-width-lg text-gb-lg text-fg-tertiary">
-              GlowBal is built by students and mentors who have been through the study-abroad
+              GlowBal is built by students and advisors who have been through the study-abroad
               journey themselves — and want to make it clearer for everyone who comes next.
             </p>
           </Container>

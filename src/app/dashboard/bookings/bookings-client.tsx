@@ -93,7 +93,7 @@ export function BookingsDashboardClient({
             </p>
             <p className="text-emerald-700/80">
               {justConfirmed
-                ? 'We\u2019ve emailed you and your mentor with the meeting link and calendar invite. You can also see it below.'
+                ? 'We\u2019ve emailed you and your advisor with the meeting link and calendar invite. You can also see it below.'
                 : 'Your session is confirmed. The meeting link is in your email and on the card below.'}
               {highlightedBookingId ? ` (booking #${highlightedBookingId})` : ''}
             </p>
@@ -139,8 +139,8 @@ export function BookingsDashboardClient({
         <div className="glow-card text-center py-12">
           <p className="text-slate-500">No {tab} sessions.</p>
           {tab === 'upcoming' && (
-            <Link href="/mentors" className="glow-button-primary text-sm px-5 py-2.5 mt-4 inline-flex">
-              Find a mentor
+            <Link href="/advisors" className="glow-button-primary text-sm px-5 py-2.5 mt-4 inline-flex">
+              Find an advisor
             </Link>
           )}
         </div>

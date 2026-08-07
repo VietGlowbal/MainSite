@@ -199,7 +199,7 @@ function BookingCard({
       </span>
 
       <div className="mt-gb-3xl flex flex-col gap-gb-xs">
-        <p className="text-gb-md font-semibold text-fg-brand">Book this mentor</p>
+        <p className="text-gb-md font-semibold text-fg-brand">Book this advisor</p>
         <p className="text-gb-xl font-semibold text-fg">
           {formatMoney(amount, currency)}
           <span className="text-fg-tertiary">/hour</span>
@@ -328,7 +328,7 @@ export function MentorDetail({
         tone="light"
         logo={<GlowbalLogo height={28} />}
         items={MARKETING_NAV_ITEMS}
-        primaryAction={{ href: '/mentors', label: 'Find a mentor' }}
+        primaryAction={{ href: '/advisors', label: 'Find an advisor' }}
         {...navUser}
       />
       <MobileNav
@@ -338,7 +338,7 @@ export function MentorDetail({
           </Link>
         }
         items={MARKETING_NAV_ITEMS}
-        primaryAction={{ href: '/mentors', label: 'Find a mentor' }}
+        primaryAction={{ href: '/advisors', label: 'Find an advisor' }}
         secondaryAction={
           isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
         }
@@ -352,10 +352,10 @@ export function MentorDetail({
               only way back to the directory is the browser button — the same
               gap /universities/[id] fills with its own back link. */}
           <Link
-            href="/mentors"
+            href="/advisors"
             className="inline-flex items-center gap-gb-sm text-gb-sm font-semibold text-fg-tertiary transition-colors hover:text-fg"
           >
-            <span aria-hidden="true">←</span> All mentors
+            <span aria-hidden="true">←</span> All advisors
           </Link>
         </Container>
 
@@ -434,14 +434,14 @@ export function MentorDetail({
                 <div className="rounded-gb-2xl border border-line bg-surface p-gb-4xl">
                   <p className="text-gb-md font-semibold text-fg">Not bookable yet</p>
                   <p className="mt-gb-md text-gb-sm text-fg-tertiary">
-                    This mentor hasn&rsquo;t set a session price. Browse the directory for mentors
+                    This advisor hasn&rsquo;t set a session price. Browse the directory for advisors
                     who are taking bookings.
                   </p>
                   <Link
-                    href="/mentors"
+                    href="/advisors"
                     className="mt-gb-2xl flex w-full items-center justify-center rounded-gb-md border border-line bg-surface px-gb-xl py-gb-lg text-gb-md font-semibold text-fg transition-colors hover:bg-surface-hover"
                   >
-                    Find a mentor
+                    Find an advisor
                   </Link>
                 </div>
               )}

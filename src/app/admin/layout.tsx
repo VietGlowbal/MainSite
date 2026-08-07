@@ -38,7 +38,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
               Manage GlowBal
             </h1>
             <p className="max-w-gb-width-xl text-gb-md text-fg-on-inverse-muted">
-              Approve mentors, confirm bookings, and manage the user base.
+              Approve advisors, confirm bookings, and manage the user base.
             </p>
           </div>
 

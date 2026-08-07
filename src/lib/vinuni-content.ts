@@ -153,7 +153,7 @@ export const vinuniColleges: College[] = [
         durationYears: 4,
         curriculumHighlights: [
           'Robotics + EV/automotive track partnered with VinFast',
-          'Senior design studio with industry mentors',
+          'Senior design studio with industry advisors',
         ],
         graduationMode: 'Capstone Project',
       },

@@ -1600,10 +1600,10 @@ export function VinUniAaccFeedback({
             Chỉnh sửa & phân tích lại
           </button>
           <Link
-            href="/mentors"
+            href="/advisors"
             className="inline-flex h-11 items-center justify-center rounded-full border-2 border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:border-pink-300 hover:bg-pink-50 hover:text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
           >
-            Trao đổi với mentor VinUni
+            Trao đổi với cố vấn VinUni
           </Link>
         </div>
       </div>

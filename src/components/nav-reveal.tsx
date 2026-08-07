@@ -67,7 +67,7 @@ function useNavPrefFlag(key: string): boolean {
  * `MARKETING_NAV_ITEMS`; these three are appended per role and have no
  * marketing equivalent, because nothing about them is public.
  */
-const MENTOR_DASHBOARD_ITEM = { href: '/dashboard/mentor', label: 'Mentor hub' };
+const MENTOR_DASHBOARD_ITEM = { href: '/dashboard/advisor', label: 'Advisor hub' };
 const COORDINATOR_ITEM = { href: '/coordinator', label: 'Coordinator' };
 const ADMIN_ITEM = { href: '/admin', label: 'Admin' };
 
@@ -267,7 +267,7 @@ export function NavReveal() {
     // And again: the mentor browse is rebuilt (Figma 154:8345). /mentors/[id]
     // is now rebuilt too and is matched below by its uuid, but /mentors/apply
     // and its success page still take the app chrome, so this stays exact.
-    '/mentors',
+    '/advisors',
     '/dev/saved-list',
     // The AI strategy journey's entry page ships TopNav + MobileNav + Footer.
     '/ai-strategy',
@@ -321,7 +321,7 @@ export function NavReveal() {
    * what separates the two — `apply` cannot match this shape.
    */
   const isMentorProfileRoute =
-    /^\/mentors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname);
+    /^\/advisors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname);
 
   const rendersOwnChrome =
     suppressesGlobalNavigation(pathname) ||

@@ -11,7 +11,7 @@ const PUBLIC_ROUTES = [
   '/',
   '/about',
   '/universities',
-  '/mentors',
+  '/advisors',
   '/how-it-works',
   '/achievers',
   '/news',

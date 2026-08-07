@@ -208,7 +208,7 @@ ${studentName || '[Your name]'}`;
               <option value="employer">Employer</option>
               <option value="volunteer_supervisor">Volunteer supervisor</option>
               <option value="coach">Coach</option>
-              <option value="academic_mentor">Academic mentor</option>
+              <option value="academic_mentor">Academic advisor</option>
               <option value="other">Other</option>
             </select>
           </label>

@@ -85,7 +85,7 @@ export function UpgradePromptModal({
           <polyline points="20 6 9 17 4 12" />
         </svg>
       ),
-      text: 'Advanced mentorship matching',
+      text: 'Advanced advisor matching',
     },
     {
       icon: (

@@ -39,7 +39,7 @@ describe('breadcrumbTrail', () => {
       '/apply',
       '/apply/app_1',
       '/ai-strategy/app_1/strategy/dashboard',
-      '/mentors/apply/success',
+      '/advisors/apply/success',
     ]) {
       const trail = breadcrumbTrail(path);
       expect(trail.at(-1)?.href).toBeUndefined();
@@ -77,7 +77,7 @@ describe('breadcrumbTrail', () => {
     expect(breadcrumbTrail('/ai-strategy/reflection/achievements').at(-1)?.label).toBe(
       'Achievements',
     );
-    expect(breadcrumbTrail('/mentors/apply').at(-1)?.label).toBe('Become a mentor');
+    expect(breadcrumbTrail('/advisors/apply').at(-1)?.label).toBe('Become an advisor');
   });
 
   it('routes a task detail back through the planner', () => {

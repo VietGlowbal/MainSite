@@ -19,7 +19,7 @@ const EXACT_ROUTES_WITHOUT_GLOBAL_NAV = new Set([
   '/dev/home',
   '/dev/saved-list',
   '/how-it-works',
-  '/mentors',
+  '/advisors',
   '/my-universities/program',
   '/news',
   '/onboarding',
@@ -51,7 +51,7 @@ export function suppressesGlobalNavigation(rawPathname: string): boolean {
   // Their legacy/static siblings still depend on the root header.
   if (/^\/universities\/\d+$/.test(pathname)) return true;
   if (
-    /^\/mentors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+    /^\/advisors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
       pathname,
     )
   ) {

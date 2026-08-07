@@ -5,14 +5,14 @@ type Props = {
 };
 
 /**
- * Legacy /achievers route — superseded by the new /mentors mentorship hub.
- * We forward query params so existing links (e.g. "see mentors at Oxford")
+ * Legacy /achievers route — superseded by the new /advisors directory.
+ * We forward query params so existing links (e.g. "see advisors at Oxford")
  * keep working without breakage.
  */
 export default async function AchieversLegacyRedirect({ searchParams }: Props) {
   const params = await searchParams;
   const target = params.university
-    ? `/mentors?university=${encodeURIComponent(params.university)}`
-    : '/mentors';
+    ? `/advisors?university=${encodeURIComponent(params.university)}`
+    : '/advisors';
   redirect(target);
 }

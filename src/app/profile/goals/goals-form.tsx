@@ -47,7 +47,7 @@ export function GoalsForm({
       <Panel className="flex flex-col gap-gb-2xl">
         <PanelHeader
           title="What you are aiming for"
-          description="Written in your own words. This is the part a mentor reads first."
+          description="Written in your own words. This is the part an advisor reads first."
         />
 
         <Textarea

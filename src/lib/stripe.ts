@@ -24,7 +24,7 @@ export function getStripe(): Stripe {
     apiVersion: '2025-08-27.basil',
     typescript: true,
     appInfo: {
-      name: 'Glowbal Mentorship Hub',
+      name: 'Glowbal Advisor Hub',
       version: '1.0.0',
     },
   });

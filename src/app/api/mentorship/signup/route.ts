@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
   if (existing) {
     return NextResponse.json(
-      { error: 'You already have a mentor profile', status: existing.status },
+      { error: 'You already have an advisor profile', status: existing.status },
       { status: 409 },
     );
   }
@@ -250,7 +250,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         {
           error:
-            'Mentor signups are temporarily unavailable due to a database update. Please try again shortly.',
+            'Advisor signups are temporarily unavailable due to a database update. Please try again shortly.',
         },
         { status: 503 },
       );

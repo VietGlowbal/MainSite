@@ -35,7 +35,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const mentor = await getPublicMentorById((await params).id);
-  if (!mentor) return { title: 'Mentor not found | GlowBal' };
+  if (!mentor) return { title: 'Advisor not found | GlowBal' };
 
   const where = mentor.university?.name ? ` at ${mentor.university.name}` : '';
   // `bio` is the mentor's own words and the only prose on the row, so it is

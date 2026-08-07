@@ -211,10 +211,10 @@ function Hero({
               <ArrowRight />
             </a>
             <Link
-              href="/mentors"
+              href="/advisors"
               className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/40 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
             >
-              Talk to a VinUni mentor
+              Talk to a VinUni advisor
             </Link>
             <button
               type="button"
@@ -808,7 +808,7 @@ function BottomCta({ isLoggedIn }: { isLoggedIn: boolean }) {
           Apply to VinUniversity through Glowbal
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-sm text-white/85 md:text-base">
-          Build your VinUni application with mentors who studied there. Track your tasks,
+          Build your VinUni application with advisors who studied there. Track your tasks,
           drafts and deadlines in one place — and save VinUni to your shortlist.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -828,10 +828,10 @@ function BottomCta({ isLoggedIn }: { isLoggedIn: boolean }) {
             {isLoggedIn ? 'Open my shortlist' : 'Sign in to save VinUni'}
           </Link>
           <Link
-            href="/mentors"
+            href="/advisors"
             className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/40 bg-white/10 px-6 text-sm font-semibold text-white backdrop-blur transition hover:bg-white/20"
           >
-            Book a VinUni mentor
+            Book a VinUni advisor
           </Link>
         </div>
         <p className="mt-6 text-xs text-white/60">
@@ -1341,10 +1341,10 @@ function AaccResult({ analysis, onTryAgain }: { analysis: AaccAnalysis; onTryAga
           Edit & re-analyze
         </button>
         <Link
-          href="/mentors"
+          href="/advisors"
           className="inline-flex h-11 items-center justify-center gap-2 rounded-full bg-[linear-gradient(135deg,#7B2FBE,#FF3D9A)] px-6 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(123,47,190,0.28)] transition hover:-translate-y-0.5"
         >
-          Book a VinUni mentor to deepen this
+          Book a VinUni advisor to deepen this
           <ArrowRight />
         </Link>
       </div>

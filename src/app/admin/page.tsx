@@ -33,7 +33,7 @@ export default async function AdminOverviewPage() {
    */
   const cards: { label: string; value: number; href: string; hint: string; tone: StatTone }[] = [
     {
-      label: 'Mentor applications waiting',
+      label: 'Advisor applications waiting',
       value: pendingMentors.count ?? 0,
       href: '/admin/achievers',
       hint: 'Needs a decision',
@@ -54,7 +54,7 @@ export default async function AdminOverviewPage() {
       tone: 'info',
     },
     {
-      label: 'Approved mentors',
+      label: 'Approved advisors',
       value: approvedMentors.count ?? 0,
       href: '/admin/achievers',
       hint: 'Live on the directory',
@@ -94,7 +94,7 @@ export default async function AdminOverviewPage() {
         <PanelHeader title="Quick actions" />
         <div className="flex flex-wrap gap-gb-lg">
           <Button href="/admin/achievers" size="lg">
-            Review mentor applications
+            Review advisor applications
           </Button>
           <Button href="/admin/bookings" variant="secondary" size="lg">
             Confirm payments

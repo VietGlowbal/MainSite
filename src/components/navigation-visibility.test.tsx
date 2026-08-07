@@ -26,8 +26,8 @@ describe('navigation visibility', () => {
     '/news',
     '/onboarding',
     '/plus',
-    '/mentors',
-    '/mentors/123e4567-e89b-12d3-a456-426614174000',
+    '/advisors',
+    '/advisors/123e4567-e89b-12d3-a456-426614174000',
   ])('suppresses the root header when %s owns page chrome', (pathname) => {
     expect(suppressesGlobalNavigation(pathname)).toBe(true);
   });
@@ -37,7 +37,7 @@ describe('navigation visibility', () => {
     '/scholarships',
     '/news/article-slug',
     '/universities/vinuni',
-    '/mentors/apply',
+    '/advisors/apply',
     '/apply/application-1/cv',
     '/apply/application-1/statement',
   ])('keeps the root header on %s', (pathname) => {

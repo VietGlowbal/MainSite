@@ -298,8 +298,8 @@ function ProfileHero({
             Edit profile
           </Button>
           {isMentor ? (
-            <Button href="/dashboard/mentor" variant="secondary-on-dark" size="lg">
-              Mentor dashboard
+            <Button href="/dashboard/advisor" variant="secondary-on-dark" size="lg">
+              Advisor dashboard
             </Button>
           ) : null}
         </div>

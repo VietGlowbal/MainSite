@@ -11,7 +11,7 @@ export default async function MentorApplyPage({
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/auth?redirect=/mentors/apply');
+    redirect('/auth?redirect=/advisors/apply');
   }
 
   // Fast-track ("quick signup"): a token-gated link we share with people we
@@ -32,7 +32,7 @@ export default async function MentorApplyPage({
     .eq('id', user.id)
     .maybeSingle();
   if (existing) {
-    redirect('/dashboard/mentor');
+    redirect('/dashboard/advisor');
   }
 
   // Universities for the picker — names + countries only, public read OK.
@@ -50,7 +50,7 @@ export default async function MentorApplyPage({
     <main className="min-h-screen bg-transparent px-4 py-10 md:px-8 md:py-16">
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
-          <span className="glow-pill">Become a mentor</span>
+          <span className="glow-pill">Become an advisor</span>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
             Help the next generation of students
           </h1>
@@ -59,7 +59,7 @@ export default async function MentorApplyPage({
             get into your university.{' '}
             {quickSignup
               ? 'You’ve been invited via a fast-track link, so you can skip the document-evidence step.'
-              : 'We verify every mentor manually.'}
+              : 'We verify every advisor manually.'}
           </p>
         </div>
 

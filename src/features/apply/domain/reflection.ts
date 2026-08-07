@@ -102,7 +102,7 @@ export const ACTIVITY_CATEGORIES = [
   { value: 'leadership', label: 'Leadership & Initiative' },
   { value: 'innovation', label: 'Innovation & Projects' },
   { value: 'personal_growth', label: 'Personal Growth' },
-  { value: 'mentoring', label: 'Mentoring & Tutoring' },
+  { value: 'mentoring', label: 'Advising & Tutoring' },
   { value: 'other', label: 'Other' },
 ] as const;
 

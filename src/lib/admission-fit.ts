@@ -38,7 +38,7 @@ export const ADMISSION_CATEGORY_META: Record<
     label: 'Reach universities',
     tagline: 'Harder to get into',
     description:
-      'Ambitious choices that sit above your current profile. They’re a stretch — but realistic with the right coaching, a stronger statement and mentorship support to close the gap.',
+      'Ambitious choices that sit above your current profile. They’re a stretch — but realistic with the right coaching, a stronger statement and advisor support to close the gap.',
   },
   recommended: {
     label: 'Recommended universities',

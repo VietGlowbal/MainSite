@@ -36,9 +36,9 @@ export function buildIcsForBooking(opts: {
     d.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 
   const uid = `booking-${opts.bookingId}@glowbal.app`;
-  const summary = `Glowbal mentorship — ${opts.mentorName} & ${opts.menteeName}`;
+  const summary = `Glowbal advising — ${opts.mentorName} & ${opts.menteeName}`;
   const description = [
-    `Mentorship session via Glowbal.`,
+    `Advising session via Glowbal.`,
     opts.helpTopic ? `Topic: ${opts.helpTopic}` : null,
     `Join: ${opts.meetingLink}`,
   ]

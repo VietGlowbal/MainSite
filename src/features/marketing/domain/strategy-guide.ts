@@ -119,7 +119,7 @@ export const STRATEGY_GUIDE: readonly GuideArea[] = [
           'Overview, subjects taught, and what getting in requires',
           'Campus and location, career outcomes after graduation',
           '“The honest view” — the trade-offs, not just the sales pitch',
-          'Mentors you can ask, where any are listed for that university',
+          'Advisors you can ask, where any are listed for that university',
         ],
         href: '/universities',
         linkLabel: 'Browse universities',

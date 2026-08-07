@@ -630,7 +630,7 @@ export function UniversityDetail({
               <div className="flex">
                 {/* The frame labels this "AI lên chiến lược" — see the note at
                     the top of this file. */}
-                <Button href="/mentors">Find a mentor</Button>
+                <Button href="/advisors">Find an advisor</Button>
               </div>
             </section>
           </div>

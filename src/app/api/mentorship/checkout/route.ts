@@ -86,24 +86,24 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (mentorErr || !mentor) {
-    return NextResponse.json({ error: 'Mentor not found' }, { status: 404 });
+    return NextResponse.json({ error: 'Advisor not found' }, { status: 404 });
   }
   if (mentor.status !== 'approved') {
     return NextResponse.json(
-      { error: 'Mentor is not currently accepting bookings' },
+      { error: 'Advisor is not currently accepting bookings' },
       { status: 403 },
     );
   }
 
   if (!isSupportedCurrency(mentor.hourly_rate_currency)) {
     return NextResponse.json(
-      { error: 'Mentor pricing is not configured. Please try another mentor.' },
+      { error: 'Advisor pricing is not configured. Please try another advisor.' },
       { status: 400 },
     );
   }
   if (!mentor.hourly_rate_amount || mentor.hourly_rate_amount <= 0) {
     return NextResponse.json(
-      { error: 'Mentor pricing is not configured.' },
+      { error: 'Advisor pricing is not configured.' },
       { status: 400 },
     );
   }
@@ -192,13 +192,13 @@ export async function POST(request: NextRequest) {
       customer_email: user.email,
       client_reference_id: String(booking.id),
       success_url: `${baseUrl}/dashboard/bookings/${booking.id}?status=success`,
-      cancel_url: `${baseUrl}/mentors/${mentor.id}?status=cancelled&booking=${booking.id}`,
+      cancel_url: `${baseUrl}/advisors/${mentor.id}?status=cancelled&booking=${booking.id}`,
       line_items: [
         {
           price_data: {
             currency: currency.toLowerCase(),
             product_data: {
-              name: `Glowbal mentorship — ${mentor.display_name}`,
+              name: `Glowbal advising — ${mentor.display_name}`,
               description: `${durationMins} min session • ${input.help_topic.slice(0, 80)}`,
             },
             unit_amount: total,
@@ -213,7 +213,7 @@ export async function POST(request: NextRequest) {
         slot_id: String(input.slot_id),
       },
       payment_intent_data: {
-        description: `Glowbal mentorship booking #${booking.id}`,
+        description: `Glowbal advising booking #${booking.id}`,
         metadata: {
           booking_id: String(booking.id),
           mentor_id: mentor.id,

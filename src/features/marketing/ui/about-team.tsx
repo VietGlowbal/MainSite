@@ -176,7 +176,7 @@ const SWIPE_THRESHOLD_PX = 50;
  */
 const ACHIEVEMENT_LABELS: Record<TeamAchievementCategory, string> = {
   scholarship: 'Scholarship',
-  mentoring: 'Mentoring',
+  mentoring: 'Advising',
   education: 'Education',
   leadership: 'Leadership',
   award: 'Award',

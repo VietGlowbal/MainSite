@@ -414,7 +414,7 @@ const DEMO_NAV_ITEMS = [
   { href: '/about', label: 'Về chúng tôi' },
   { href: '/ai-strategy', label: 'AI lên chiến lược' },
   { href: '/apply', label: 'Lập kế hoạch du học' },
-  { href: '/mentors', label: 'Tìm cố vấn' },
+  { href: '/advisors', label: 'Tìm cố vấn' },
   { href: '/news', label: 'Blog' },
 ];
 

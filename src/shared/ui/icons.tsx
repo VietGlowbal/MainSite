@@ -518,7 +518,7 @@ export function SearchMark({ frame = 20 }: { frame?: number }) {
  */
 export function VerifiedMark({
   frame = 16,
-  title = 'Verified mentor',
+  title = 'Verified advisor',
   className,
 }: {
   frame?: number;

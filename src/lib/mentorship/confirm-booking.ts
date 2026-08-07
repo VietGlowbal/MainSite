@@ -147,7 +147,7 @@ async function sendBookingEmails(args: {
     (menteeEmail ? menteeEmail.split('@')[0] : 'Mentee');
   const mentorEmail = mentorUser?.user?.email ?? null;
   const mentorName =
-    (booking.achiever as { display_name?: string } | null)?.display_name ?? 'Your mentor';
+    (booking.achiever as { display_name?: string } | null)?.display_name ?? 'Your advisor';
 
   if (!menteeEmail || !mentorEmail) {
     console.warn('[confirm-booking] missing emails for booking', bookingId, {
