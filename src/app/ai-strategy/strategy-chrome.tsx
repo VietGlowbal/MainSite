@@ -1,21 +1,20 @@
-import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
-import { Container, Footer, MobileNav, TopNav } from '@/shared/ui';
+import { Container, Footer } from '@/shared/ui';
 
 /**
  * The header/footer wrapper every page under /ai-strategy shares.
  *
  * WHY IT IS HERE AND NOT IN src/features/application-strategy/ui. It needs
- * MARKETING_NAV_ITEMS and the FOOTER_* constants from @/features/marketing, and
+ * SiteNavigation and the FOOTER_* constants from app-level features, and
  * eslint's noCrossFeature rule forbids one feature importing another. The app
  * layer is the composition root that is allowed to reach both, so the chrome
  * belongs here. Same reason `reflection-chrome.tsx` was always in this folder.
@@ -44,7 +43,6 @@ const WIDTH: Record<ChromeWidth, string> = {
 };
 
 export function StrategyChrome({
-  user,
   containerWidth = 'narrow',
   children,
 }: {
@@ -52,38 +50,9 @@ export function StrategyChrome({
   containerWidth?: ChromeWidth;
   children: React.ReactNode;
 }) {
-  const userName =
-    (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
-  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
-  const isSignedIn = Boolean(user);
-
-  const primaryAction = { href: '/universities', label: 'Tìm trường đại học' };
-
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Đăng nhập' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Đăng nhập' }
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <SiteNavigation tone="light" />
 
       <main className="min-h-screen pb-gb-9xl pt-gb-5xl">
         <Container className={WIDTH[containerWidth]}>{children}</Container>

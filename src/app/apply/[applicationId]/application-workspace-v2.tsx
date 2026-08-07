@@ -1,7 +1,6 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { ApplicationWorkspaceView, ApplicationTask } from '@/lib/apply-types';
 import { StagePanel } from '@/components/apply/StagePanel';
@@ -23,15 +22,15 @@ import {
 } from '@/features/apply/domain';
 import { useParseRefresh } from '@/features/apply/hooks';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
-import { Button, Container, Footer, KitIcon, ICONS, MobileNav, TopNav } from '@/shared/ui';
+import { Button, Container, Footer, KitIcon, ICONS } from '@/shared/ui';
 
 /**
  * The course workspace — Figma "Lập kế hoạch du học", the per-course screen.
@@ -88,8 +87,6 @@ export function ApplicationWorkspaceV2({
   isPlus = false,
   matchInputs = { cv: false, essay: false, academic: false },
   logoUrl = null,
-  userName = null,
-  userAvatarUrl = null,
   nav = null,
 }: Props) {
   const router = useRouter();
@@ -164,39 +161,14 @@ export function ApplicationWorkspaceV2({
 
   const hasChecklist = stages.length > 0;
 
-  const isSignedIn = Boolean(userName);
-  const primaryAction = { href: '/apply', label: 'My applications' };
-
   return (
     /* gb-page-full-bleed: the app sidebar is suppressed for /apply/* in
        nav-reveal.tsx, so this page ships its own chrome and must reclaim the
        240px gutter globals.css reserves for a sidebar that is not there.
-       gb-has-mobile-header keeps the top offset, because the MobileNav below is
-       fixed and content has to clear it. */
+       gb-has-mobile-header keeps the top offset, because SiteNavigation's
+       mobile header is fixed and content has to clear it. */
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <SiteNavigation tone="light" />
 
       {/*
        * Was a hand-rolled "← All applications" link, added because dropping the

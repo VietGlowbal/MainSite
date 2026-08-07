@@ -1,21 +1,19 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import Link from 'next/link';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SavedNavLink } from '@/components/saved-nav-link';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
 import { useParseRefresh } from '@/features/apply/hooks';
 import type { CourseApplication } from '@/lib/apply-types';
-import { Button, Container, Footer, MobileNav, TopNav } from '@/shared/ui';
+import { Button, Container, Footer } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { MyApplicationSection } from './my-application-section';
 import { SavedListSection, type SavedRow } from './saved-list-section';
@@ -72,8 +70,6 @@ export function ApplicationProgressClient({
   logoByUniversityId,
   savedRows,
   strategyReadyById = {},
-  userName,
-  userAvatarUrl,
   isLoggedOut = false,
 }: ApplicationProgressClientProps) {
   const router = useRouter();
@@ -254,37 +250,9 @@ export function ApplicationProgressClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [focus]);
 
-  const isSignedIn = !isLoggedOut && !!userName;
-  const primaryAction = useMemo(() => ({ href: '/universities', label: 'Search universities' }), []);
-  const navItems = MARKETING_NAV_ITEMS;
-
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={navItems}
-        primaryAction={primaryAction}
-        utility={<SavedNavLink />}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={navItems}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        utility={<SavedNavLink variant="row" />}
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <SiteNavigation tone="light" showSaved />
 
       {/* Figma 562:15091 — both sections live in this one column. */}
       {/* `relative` only — deliberately NOT `overflow-hidden`. The bloom below

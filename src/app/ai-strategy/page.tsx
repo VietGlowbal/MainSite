@@ -1,18 +1,17 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
   StrategyGuide,
 } from '@/features/marketing/ui';
 import { guideArea } from '@/features/marketing/domain';
 import { createClient } from '@/lib/supabase/server';
-import { Button, Container, Footer, MobileNav, Panel, TopNav } from '@/shared/ui';
+import { Button, Container, Footer, Panel } from '@/shared/ui';
 
 /**
  * /ai-strategy — what GlowBal Strategy is, and nothing else.
@@ -70,38 +69,11 @@ export default async function AiStrategyPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const userName =
-    (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
-  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
   const isSignedIn = Boolean(user);
-
-  const primaryAction = { href: '/apply', label: 'Open My Portal' };
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <SiteNavigation tone="light" />
 
       <main>
         {/* Hero */}

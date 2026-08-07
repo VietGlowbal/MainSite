@@ -46,12 +46,18 @@ describe('authenticated navigation performance', () => {
     expect(existsSync(path.join(process.cwd(), 'src/app/apply/loading.tsx'))).toBe(true);
   });
 
-  it('does not reload role flags for duplicate auth events from the same user', () => {
+  it('uses one auth source and deduplicates completion reads for the same user', () => {
     const nav = readFileSync(
       path.join(process.cwd(), 'src/components/nav-reveal.tsx'),
       'utf8',
     );
+    const session = readFileSync(
+      path.join(process.cwd(), 'src/components/navigation-session.tsx'),
+      'utf8',
+    );
 
-    expect(nav).toContain('if (loadedUserId.current === authUser.id) return;');
+    expect(nav).not.toContain('auth.getUser');
+    expect(nav).not.toContain('onAuthStateChange');
+    expect(session).toContain('if (currentUserId === authUser.id)');
   });
 });

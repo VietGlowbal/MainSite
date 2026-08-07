@@ -1,15 +1,14 @@
-import Link from 'next/link';
 import type { User } from '@supabase/supabase-js';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
-import { Container, Footer, MobileNav, TopNav } from '@/shared/ui';
+import { Container, Footer } from '@/shared/ui';
 
 /**
  * The header/footer wrapper both reflection steps share.
@@ -20,7 +19,6 @@ import { Container, Footer, MobileNav, TopNav } from '@/shared/ui';
  * step config is one file.
  */
 export function ReflectionChrome({
-  user,
   nav,
   children,
 }: {
@@ -38,38 +36,9 @@ export function ReflectionChrome({
   nav?: React.ReactNode | undefined;
   children: React.ReactNode;
 }) {
-  const userName =
-    (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
-  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
-  const isSignedIn = Boolean(user);
-
-  const primaryAction = { href: '/universities', label: 'Tìm trường đại học' };
-
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Đăng nhập' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Đăng nhập' }
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <SiteNavigation tone="light" />
 
       {nav}
 
