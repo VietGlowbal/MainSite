@@ -23,8 +23,8 @@ function baselineExists(name: string): boolean {
  * section, before it replaces "/".
  *
  * The assertions here are about the failure this layout is most likely to hit:
- * the marketing nav carries six nowrap labels plus two buttons inside a 1280px
- * container, and the Figma measurements put that at roughly the full width. If
+ * the new-user nav carries five nowrap labels plus two buttons inside a 1280px
+ * container, including the long onboarding CTA. If
  * it ever stops fitting, the labels must not be clipped or wrap — the gap
  * shrinks instead.
  */
