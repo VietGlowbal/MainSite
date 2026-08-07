@@ -1,14 +1,14 @@
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
-import { Badge, Container, Footer, MobileNav, TopNav, VerifiedMark } from '@/shared/ui';
+import { Badge, Container, Footer, VerifiedMark } from '@/shared/ui';
 import { formatMoney } from '@/lib/currency';
 import type { PublicMentor, PublicMentorReview } from '@/lib/mentors';
 import type { Currency, MentorAvailabilitySlot } from '@/types/mentorship';
@@ -45,7 +45,7 @@ import { MentorBooking } from './mentor-booking';
  *    invented paragraph does not.
  *
  * 4. **The header shows the pre-rename nav** ("AI lên chiến lược"). 375:9845
- *    is newer and won that rename; `MARKETING_NAV_ITEMS` is the single source.
+ *    is newer and won that rename; `SiteNavigation` is the single source.
  *
  * 5. **The frame draws only the empty state for reviews.** There is no design
  *    for a populated list, so one is composed from the same card and type
@@ -302,8 +302,6 @@ export function MentorDetail({
   reviews,
   reviewCount,
   isSignedIn,
-  userName,
-  userAvatarUrl,
 }: {
   mentor: PublicMentor;
   slots: readonly MentorAvailabilitySlot[];
@@ -313,38 +311,13 @@ export function MentorDetail({
   userName?: string | null;
   userAvatarUrl?: string | null;
 }) {
-  const navUser =
-    isSignedIn && userName
-      ? { user: { name: userName, avatarUrl: userAvatarUrl ?? null, href: '/profile' } }
-      : { secondaryAction: { href: '/auth', label: 'Sign in' } };
-
   const currency = mentor.hourly_rate_currency;
   const amount = Number(mentor.hourly_rate_amount ?? 0);
   const hasPrice = amount > 0;
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={{ href: '/advisors', label: 'Find an advisor' }}
-        {...navUser}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={{ href: '/advisors', label: 'Find an advisor' }}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <SiteNavigation tone="light" />
 
       <main>
         <Container className="pt-gb-5xl">

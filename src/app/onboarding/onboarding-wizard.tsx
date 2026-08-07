@@ -2,9 +2,9 @@
 
 import { useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
-import { GlowbalLogo } from '@/components/glowbal-logo';
-import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
-import { Button, Input, MultiSelect, Radio, TopNav } from '@/shared/ui';
+import { notifyNavigationOnboardingCompleted } from '@/components/navigation-session';
+import { SiteNavigation } from '@/components/site-navigation';
+import { Button, Input, MultiSelect, Radio } from '@/shared/ui';
 import type { MultiSelectOption } from '@/shared/ui';
 import {
   EMPTY_ACADEMIC,
@@ -270,6 +270,7 @@ function isAnswered(answers: Answers, key: StepKey): boolean {
   if (key === 'tests') {
     return (
       answers.tests.english.length > 0 &&
+      answers.tests.standardized.length > 0 &&
       testScoresValid(answers.tests.english, answers.tests.englishScores, ENGLISH_TEST_FORMATS) &&
       testScoresValid(
         answers.tests.standardized,
@@ -286,14 +287,23 @@ function isAnswered(answers: Answers, key: StepKey): boolean {
 function buildInitialAnswers(initialProfile?: StudentProfile | null): Answers {
   if (!initialProfile) return { ...EMPTY_ANSWERS };
   const firstSupport = (initialProfile.support_needs || '').split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
-  const firstSubject = initialProfile.target_subjects?.[0] || '';
+  const savedSubject = initialProfile.target_subjects?.[0] || '';
+  // Older builds stored the first example inside a subject family (for
+  // example, choosing "Technology" wrote "Computer Science"). Restore either
+  // shape to the answer the student actually saw, while preserving custom
+  // values that may have been entered from User Profile.
+  const firstSubject =
+    subjectFamilies.find(
+      (family) => family.label === savedSubject || family.children.includes(savedSubject),
+    )?.label ?? savedSubject;
   const firstStudyLevel = (initialProfile.study_level || '').split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
   const firstCampus = (initialProfile.campus_preferences || '').split(',').map((s) => s.trim()).filter(Boolean)[0] || '';
 
   const preferredCountries = initialProfile.preferred_countries || [];
   let region = '';
   if (preferredCountries.length) {
-    if (preferredCountries.some((c) => ['United Kingdom', 'Ireland'].includes(c))) region = 'UK & Ireland';
+    if (preferredCountries.includes('Open to ideas')) region = 'Open to ideas';
+    else if (preferredCountries.some((c) => ['United Kingdom', 'Ireland'].includes(c))) region = 'UK & Ireland';
     else if (preferredCountries.some((c) => ['United States', 'Canada'].includes(c))) region = 'North America';
     else if (preferredCountries.some((c) => ['Singapore', 'Australia', 'New Zealand', 'Japan', 'South Korea', 'Hong Kong'].includes(c))) region = 'Asia-Pacific';
     else if (preferredCountries.some((c) => ['United Arab Emirates', 'Qatar'].includes(c))) region = 'Middle East';
@@ -373,6 +383,10 @@ function mapRegionToCountries(region: string): string[] {
     case 'North America': return ['United States', 'Canada'];
     case 'Asia-Pacific': return ['Singapore', 'Australia', 'New Zealand', 'Japan', 'South Korea', 'Hong Kong'];
     case 'Middle East': return ['United Arab Emirates', 'Qatar'];
+    // Keep the literal answer in the profile. Matching treats this sentinel as
+    // an open preference, while the Profile editor can faithfully show and
+    // change what the student chose.
+    case 'Open to ideas': return ['Open to ideas'];
     default: return [];
   }
 }
@@ -385,7 +399,6 @@ function answersToProfile(a: Answers): StudentProfile {
     budget_range: a.budget || null,
     // No `goals`: câu 9 was removed and this form no longer collects it. The
     // upsert omits the column entirely so a value from /profile/goals survives.
-    career_interests: a.subjects ? [a.subjects] : [],
     campus_preferences: a.campus || null,
     support_needs: a.support || null,
   };
@@ -491,13 +504,9 @@ function ScoreField({
 export function OnboardingWizard({
   initialProfile = null,
   isSignedIn = false,
-  userName = null,
-  userAvatarUrl = null,
 }: {
   initialProfile?: StudentProfile | null;
   isSignedIn?: boolean;
-  userName?: string | null;
-  userAvatarUrl?: string | null;
 }) {
   const router = useRouter();
   const t = useT();
@@ -655,17 +664,16 @@ export function OnboardingWizard({
     const comparable = grades.find(
       (row) => row.value !== null && row.value <= GPA_COLUMN_MAX,
     );
-    const { error } = await supabase.from('student_profiles').upsert(
+    const saveProfile = (completedAt: string) => supabase.from('student_profiles').upsert(
       {
         user_id: userData.user.id,
         study_level: profile.study_level,
         target_subjects: profile.target_subjects,
         preferred_countries: profile.preferred_countries,
         budget_range: profile.budget_range,
-        academic_background: null,
-        // No `goals` key. Câu 9 is gone and omitting the column leaves whatever
-        // /profile/goals wrote intact — sending `null` would erase it.
-        career_interests: profile.career_interests,
+        // No `academic_background`, `goals`, or `career_interests` key. This
+        // questionnaire does not collect those richer profile fields, so
+        // omitting them preserves anything the student already saved there.
         campus_preferences: profile.campus_preferences,
         support_needs: profile.support_needs,
         /*
@@ -686,24 +694,16 @@ export function OnboardingWizard({
         gpa_scale: comparable?.scale ?? null,
         gpa_value: comparable?.value ?? null,
         onboarding_completed: true,
-        onboarding_completed_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
+        onboarding_completed_at: completedAt,
+        updated_at: completedAt,
       },
       { onConflict: 'user_id' },
     );
-    if (error) {
-      setMessage(error.message);
-      setSubmitting(false);
-      return;
-    }
-
     /*
      * Câu 7 writes to two score tables rather than to student_profiles.
-     *
-     * Deliberately NOT fatal: the profile is already saved by this point, and
-     * failing the whole wizard over a secondary row would lose the eight
-     * answers that did save. A failure is logged and the student moves on —
-     * /profile/english is the place to correct a test result anyway.
+     * Completion is held back until these writes succeed. The navigation uses
+     * that flag to retire the one-time CTA, so marking it early would hide the
+     * recovery path while some answers were still missing.
      *
      * "None yet" means the student has no result, so nothing is written.
      */
@@ -749,8 +749,26 @@ export function OnboardingWizard({
       );
     }
     for (const result of await Promise.all(writes)) {
-      if (result.error) console.error('[onboarding] test scores:', result.error.message);
+      if (result.error) {
+        setMessage(result.error.message);
+        setSubmitting(false);
+        return;
+      }
     }
+
+    // This is the commit point for the first-time experience. Score rows have
+    // succeeded, and the profile answers now land together with the completion
+    // flag, so navigation can safely replace onboarding with Strategy Master.
+    const completedAt = new Date().toISOString();
+    const { error: completionError } = await saveProfile(completedAt);
+
+    if (completionError) {
+      setMessage(completionError.message);
+      setSubmitting(false);
+      return;
+    }
+
+    notifyNavigationOnboardingCompleted();
 
     try {
       window.localStorage.removeItem(ONBOARDING_DRAFT_KEY);
@@ -804,22 +822,14 @@ export function OnboardingWizard({
 
   return (
     // t() localises everything, so keep the DOM auto-translator off this subtree.
-    <div className="gb-page-full-bleed flex min-h-screen flex-col bg-surface" data-no-auto-translate>
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={{ href: '/universities', label: 'Find universities' }}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
+    <div className="gb-page-full-bleed gb-has-mobile-header flex min-h-screen flex-col bg-surface" data-no-auto-translate>
+      <SiteNavigation tone="light" />
 
       <main className="mx-auto flex w-full max-w-[720px] flex-1 flex-col px-gb-xl py-gb-6xl">
         {/* Title + progress */}
         <div className="flex items-center justify-between gap-gb-lg">
           <h1 className="font-display text-gb-display-xs font-semibold text-fg">
-            {t('Plan your studies')}
+            {t('Plan your Global Education')}
           </h1>
           <span className="shrink-0 rounded-gb-full bg-brand-subtle px-gb-lg py-gb-xxs text-gb-sm font-medium text-fg-brand">
             {step + 1}/{STEPS.length}
@@ -897,8 +907,8 @@ export function OnboardingWizard({
                   key={family.key}
                   label={family.label}
                   hint={family.children.slice(0, 2).map((c) => t(c)).join(' · ')}
-                  selected={currentAnswer === family.children[0]}
-                  onClick={() => update('subjects', family.children[0] ?? '')}
+                  selected={currentAnswer === family.label}
+                  onClick={() => update('subjects', family.label)}
                 />
               ))}
             </div>
@@ -1124,7 +1134,7 @@ export function OnboardingWizard({
           <Button
             size="xl"
             onClick={next}
-            disabled={submitting || (isLast ? false : !isAnswered(answers, current.key))}
+            disabled={submitting || !isAnswered(answers, current.key)}
           >
             {submitting
               ? t('Saving…')

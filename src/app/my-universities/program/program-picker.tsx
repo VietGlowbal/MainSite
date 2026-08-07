@@ -4,14 +4,13 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SavedNavLink } from '@/components/saved-nav-link';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
 import {
   isCourseUrl,
@@ -26,9 +25,7 @@ import {
   ICONS,
   Input,
   KitIcon,
-  MobileNav,
   MultiSelect,
-  TopNav,
   type MultiSelectOption,
 } from '@/shared/ui';
 
@@ -225,32 +222,9 @@ export function ProgramPicker({
     router.refresh();
   }
 
-  const primaryAction = { href: '/universities', label: 'Search universities' };
-
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        utility={<SavedNavLink />}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        /* Always the profile link: this page is behind the auth gate, so there is
-           no signed-out state to offer "Sign in" for. */
-        secondaryAction={{ href: '/profile', label: 'Profile' }}
-        utility={<SavedNavLink variant="row" />}
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <SiteNavigation tone="light" showSaved />
 
       <main className="min-h-screen py-gb-6xl">
         <Container>
