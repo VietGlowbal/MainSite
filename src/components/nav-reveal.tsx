@@ -9,6 +9,7 @@ import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
 import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
 import { MobileNav, TopNav, isNavGroup, type MobileNavEntry } from '@/shared/ui';
+import { suppressesGlobalNavigation } from './navigation-visibility';
 
 /* ─────────────────────────────────────────────────────────────────────────
    Persisted nav preferences
@@ -323,6 +324,7 @@ export function NavReveal() {
     /^\/mentors\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(pathname);
 
   const rendersOwnChrome =
+    suppressesGlobalNavigation(pathname) ||
     OWN_CHROME_ROUTES.has(pathname) ||
     isApplicationWorkspaceRoute ||
     isNumericUniversityRoute ||
@@ -426,9 +428,9 @@ export function NavReveal() {
   if (isHomePage && !revealedOnLanding) return null;
 
   return (
-    <>
+    <div data-global-navigation>
       <AppTopNav user={user} />
       <MobileNavigation user={user} />
-    </>
+    </div>
   );
 }

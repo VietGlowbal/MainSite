@@ -30,4 +30,17 @@ describe('NavReveal', () => {
     expect(screen.getByTestId('site-top-nav')).toBeVisible();
     expect(screen.getByTestId('site-mobile-nav')).toBeVisible();
   });
+
+  it.each([
+    '/',
+    '/universities',
+    '/universities/',
+    '/apply/application-1/lor-feedback',
+  ])('does not mount a second global navigation on %s', (pathname) => {
+    mocks.pathname = pathname;
+    render(<NavReveal />);
+
+    expect(screen.queryByTestId('site-top-nav')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('site-mobile-nav')).not.toBeInTheDocument();
+  });
 });
