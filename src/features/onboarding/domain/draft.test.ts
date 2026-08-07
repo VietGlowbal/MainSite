@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EMPTY_ACADEMIC,
   academicComplete,
+  academicFromProfile,
   collectCurriculumGrades,
   keepScores,
   readAcademicDraft,
@@ -199,6 +200,58 @@ describe('toCurriculumList', () => {
     expect(toCurriculumList('   ')).toEqual([]);
     expect(toCurriculumList(42)).toEqual([]);
     expect(toCurriculumList([1, 'A', null])).toEqual(['A']);
+  });
+});
+
+describe('academicFromProfile', () => {
+  it('restores one scale and grade per selected curriculum', () => {
+    expect(
+      academicFromProfile({
+        curriculum: ['Vietnamese National Curriculum', 'IB Diploma Programme (IBDP)'],
+        curriculum_grades: [
+          {
+            curriculum: 'Vietnamese National Curriculum',
+            scale: '10-point scale',
+            grade: '8.7',
+            value: 8.7,
+          },
+          {
+            curriculum: 'IB Diploma Programme (IBDP)',
+            scale: 'IB points (out of 45)',
+            grade: '38',
+            value: 38,
+          },
+        ],
+      }),
+    ).toEqual({
+      curriculum: ['Vietnamese National Curriculum', 'IB Diploma Programme (IBDP)'],
+      scales: {
+        'Vietnamese National Curriculum': '10-point scale',
+        'IB Diploma Programme (IBDP)': 'IB points (out of 45)',
+      },
+      grades: {
+        'Vietnamese National Curriculum': '8.7',
+        'IB Diploma Programme (IBDP)': '38',
+      },
+    });
+  });
+
+  it('uses the legacy GPA only when its scale belongs to the first curriculum', () => {
+    expect(
+      academicFromProfile({
+        curriculum: ['Vietnamese National Curriculum'],
+        gpa_scale: '10-point scale',
+        gpa_value: 8.5,
+      }).grades,
+    ).toEqual({ 'Vietnamese National Curriculum': '8.5' });
+
+    expect(
+      academicFromProfile({
+        curriculum: ['IB Diploma Programme (IBDP)'],
+        gpa_scale: '10-point scale',
+        gpa_value: 8.5,
+      }).grades,
+    ).toEqual({});
   });
 });
 
