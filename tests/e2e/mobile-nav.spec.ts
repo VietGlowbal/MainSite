@@ -27,6 +27,7 @@ test.describe('mobile navigation', () => {
 
   test('exactly one navigation renders on mobile', async ({ page }) => {
     await page.goto('/universities');
+    await expect(page.getByTestId(TID.navMobileToggle)).toHaveCount(1);
     await expect(page.getByTestId(TID.navMobileToggle)).toBeVisible();
 
     // The regression this guards: a second, always-visible bar docked to the

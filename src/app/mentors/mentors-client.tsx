@@ -118,7 +118,7 @@ function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolea
         ) : null}
 
         <Link
-          href={`/mentors/${mentor.id}`}
+          href={`/advisors/${mentor.id}`}
           className="flex w-fit items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
           View profile
@@ -171,7 +171,7 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
   const safePage = Math.min(page, totalPages);
   const visible = results.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const primaryAction = { href: '/mentors/apply', label: 'Become a mentor' };
+  const primaryAction = { href: '/advisors/apply', label: 'Become an advisor' };
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
@@ -182,7 +182,7 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
           {/* Figma 154:8352 */}
           <div className="flex flex-col gap-gb-lg">
             <h1 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
-              Find a mentor
+              Find an advisor
             </h1>
             <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
               Talk to a student who has already been admitted where you are applying.
@@ -251,11 +251,11 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
             <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
               <p className="text-gb-md text-fg-tertiary">
                 {mentors.length === 0
-                  ? 'No mentors have been approved yet. Check back soon.'
-                  : 'No mentor matches those filters yet. Try widening the country or subject.'}
+                  ? 'No advisors have been approved yet. Check back soon.'
+                  : 'No advisor matches those filters yet. Try widening the country or subject.'}
               </p>
-              <Button href="/mentors/apply" size="lg">
-                Become a mentor
+              <Button href="/advisors/apply" size="lg">
+                Become an advisor
               </Button>
             </div>
           )}

@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/server';
 export default async function MentorApplySuccessPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect('/auth?redirect=/mentors');
+  if (!user) redirect('/auth?redirect=/advisors');
 
   return (
     <main className="min-h-screen bg-transparent px-4 py-16 md:px-8">
@@ -17,21 +17,21 @@ export default async function MentorApplySuccessPage() {
         </div>
         <h1 className="text-2xl font-semibold text-slate-900">Application received</h1>
         <p className="text-sm text-slate-500">
-          Thanks for applying. Our team reviews mentor applications within 48 hours and we&rsquo;ll email you with the outcome.
+          Thanks for applying. Our team reviews advisor applications within 48 hours and we&rsquo;ll email you with the outcome.
           Meanwhile you can pre-fill your calendar from the dashboard.
         </p>
         <div className="flex flex-wrap justify-center gap-3">
           <Link
-            href="/dashboard/mentor"
+            href="/dashboard/advisor"
             className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.25)]"
           >
-            Go to my mentor dashboard
+            Go to my advisor dashboard
           </Link>
           <Link
-            href="/mentors"
+            href="/advisors"
             className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700"
           >
-            Browse other mentors
+            Browse other advisors
           </Link>
         </div>
       </div>

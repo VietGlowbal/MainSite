@@ -147,7 +147,7 @@ export function ApplicationWorkspaceV2({
         router.push(task.actionTarget);
         break;
       case 'book_mentor':
-        router.push('/mentors');
+        router.push('/advisors');
         break;
       default:
         // upload_document and recalculate_match have no handler yet. Silently

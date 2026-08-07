@@ -4934,6 +4934,22 @@ body:not(:has(.cosmos-root)) {
   min-width: 0;
 }
 
+/*
+ * The root layout and rebuilt pages historically chose navigation ownership
+ * independently. The pathname matcher in NavReveal is the primary guard, but
+ * rewrites, trailing-slash policy, or a newly rebuilt dynamic route must never
+ * be able to put both headers on screen. The global pair lives in this
+ * display-contents host; if page content supplies a shared TopNav of its own,
+ * the page-specific instance wins before client effects run.
+ */
+[data-global-navigation] {
+  display: contents;
+}
+
+body:has(.glowbal-main-content [data-testid='nav-header']) [data-global-navigation] {
+  display: none;
+}
+
 /* The 240px sidebar gutter that used to live here is gone with the sidebar
    itself — navigation is a top bar now, so main content is full width at every
    breakpoint and needs no horizontal offset. `.gb-page-full-bleed` survives for

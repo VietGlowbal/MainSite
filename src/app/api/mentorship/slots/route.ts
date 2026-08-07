@@ -61,7 +61,7 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (!mentor) {
-    return NextResponse.json({ error: 'No mentor profile' }, { status: 403 });
+    return NextResponse.json({ error: 'No advisor profile' }, { status: 403 });
   }
 
   const now = Date.now();

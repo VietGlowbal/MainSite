@@ -79,7 +79,7 @@ export type ImprovementActionType =
  *
  * `null` when the task is completed elsewhere entirely (`actionType` is
  * `internal_route`/`external_url`/`book_mentor` — the Statement Writer, the
- * CV builder, a mentor booking) — there is nothing to fill in on this page,
+ * CV builder, an advisor booking) — there is nothing to fill in on this page,
  * only a brief and a link to the tool that does the work.
  */
 export const CONTENT_BLOCK_TYPES = ['structured_table', 'long_text', 'checklist'] as const;

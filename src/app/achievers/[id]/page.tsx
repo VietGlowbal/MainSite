@@ -5,9 +5,9 @@ type Props = {
 };
 
 /**
- * Legacy /achievers/[id] — redirect to the new /mentors/[id] profile page.
+ * Legacy /achievers/[id] — redirect to the new /advisors/[id] profile page.
  */
 export default async function AchieverProfileRedirect({ params }: Props) {
   const { id } = await params;
-  redirect(`/mentors/${id}`);
+  redirect(`/advisors/${id}`);
 }

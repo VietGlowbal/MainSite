@@ -34,7 +34,7 @@ export function MentorCard({ mentor }: { mentor: MentorWithUniversity }) {
 
   return (
     <HoverPrefetchLink
-      href={`/mentors/${mentor.id}`}
+      href={`/advisors/${mentor.id}`}
       className="group relative block rounded-3xl border border-black/5 bg-white/95 p-5 shadow-[0_12px_32px_rgba(22,33,62,0.06)] backdrop-blur transition hover:-translate-y-0.5 hover:shadow-[0_18px_48px_rgba(22,33,62,0.12)]"
     >
       {/* Glow accent on hover */}
@@ -98,7 +98,7 @@ export function MentorCard({ mentor }: { mentor: MentorWithUniversity }) {
               {mentor.total_sessions === 1 ? '' : 's'}
             </span>
           ) : (
-            <span className="text-xs text-slate-400">New mentor</span>
+            <span className="text-xs text-slate-400">New advisor</span>
           )}
         </div>
 

@@ -88,7 +88,7 @@ const STAGES: ApplicationStage[] = [
     task('d4', 'Sit an admissions test', 'not_applicable'),
   ]),
   stage('improve-application', 'Improve application', 4, 'not_started', [
-    task('i1', 'Ask a mentor to review your statement', 'not_started'),
+    task('i1', 'Ask an advisor to review your statement', 'not_started'),
   ]),
   stage('submit', 'Submit', 5, 'not_started', [
     task('s1', 'Pay the application fee', 'not_started'),

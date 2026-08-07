@@ -72,6 +72,13 @@ const nextConfig: NextConfig = {
        */
       { source: '/my-universities', destination: '/apply', permanent: true },
       /*
+       * Advisor is the product vocabulary. Keep the former public URLs as
+       * permanent aliases so bookmarks and indexed profile links retain their
+       * destination while every new link uses the canonical wording.
+       */
+      { source: '/mentors/:path*', destination: '/advisors/:path*', permanent: true },
+      { source: '/dashboard/mentor', destination: '/dashboard/advisor', permanent: true },
+      /*
        * ⚠️ /how-it-works -> /ai-strategy IS GONE (03/08, owner). Both routes are
        * real pages again, and they are not the same page:
        *

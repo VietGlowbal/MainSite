@@ -49,8 +49,8 @@ const ITEMS: NavItem[] = [
     ),
   },
   {
-    label: 'Mentors',
-    href: '/mentors',
+    label: 'Advisors',
+    href: '/advisors',
     icon: (
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -95,8 +95,8 @@ const ITEMS: NavItem[] = [
 ];
 
 const MENTOR_DASHBOARD_ITEM: NavItem = {
-  label: 'Mentor dashboard',
-  href: '/dashboard/mentor',
+  label: 'Advisor dashboard',
+  href: '/dashboard/advisor',
   icon: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2 4 7v10l8 5 8-5V7l-8-5z" />
@@ -111,7 +111,7 @@ function HelpCard({ isExpanded }: { isExpanded: boolean }) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-gradient-to-br from-pink-50 to-cyan-50/50 p-2 flex items-center justify-center">
         <Link
-          href="/mentors"
+          href="/advisors"
           className="flex items-center justify-center"
           title="Need help with your application?"
         >
@@ -136,10 +136,10 @@ function HelpCard({ isExpanded }: { isExpanded: boolean }) {
         Need help with your<br />application?
       </p>
       <p className="text-[0.65rem] text-slate-500 leading-relaxed mb-3">
-        Book a mentorship session with<br />our mentors and alumni.
+        Book an advising session with<br />our advisors and alumni.
       </p>
       <Link
-        href="/mentors"
+        href="/advisors"
         className="inline-flex rounded-full border border-pink-300 bg-white px-3 py-1.5 text-xs font-semibold text-pink-600 hover:bg-pink-50 transition"
       >
         Book a Session

@@ -528,7 +528,7 @@ function SupporterSection() {
                 <ul className="mt-2 flex-1 space-y-1.5 text-sm text-slate-600">
                   {p.help.map((h) => <li key={h}>• {h}</li>)}
                 </ul>
-                <Link href="/mentors" className="mt-5 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-pink-300 hover:text-pink-600">
+                <Link href="/advisors" className="mt-5 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 transition hover:border-pink-300 hover:text-pink-600">
                   Ask about this university
                 </Link>
               </div>
@@ -536,7 +536,7 @@ function SupporterSection() {
           ))}
         </div>
         <div className="mt-10 flex justify-center">
-          <GhostCTA href="/mentors">Find a student supporter</GhostCTA>
+          <GhostCTA href="/advisors">Find a student supporter</GhostCTA>
         </div>
       </div>
     </section>
@@ -566,7 +566,7 @@ function initials(name: string) {
 const FALLBACK_FOUNDER_BULLETS = [
   '80% Merit-based Scholarship recipient at VinUniversity',
   'Exchange Student at University of Birmingham, UK',
-  'Mentored students to 70–80% VinUniversity scholarships',
+  'Advised students who earned 70–80% VinUniversity scholarships',
   '3-time Dean’s List Award recipient',
 ];
 
@@ -669,7 +669,7 @@ async function TeamSection() {
         <SectionHeading
           eyebrow="Team behind GlowBal"
           title="Built by students who understand the journey"
-          body="GlowBal is created by students, scholarship recipients, mentors, and international applicants who know how confusing the study-abroad process can feel."
+          body="GlowBal is created by students, scholarship recipients, advisors, and international applicants who know how confusing the study-abroad process can feel."
         />
 
         <Reveal className="mt-12">
@@ -694,7 +694,7 @@ async function TeamSection() {
             <FounderSpotlight
               name="Nguyen Khanh Linh"
               role="Founder"
-              bioLine="Bachelor of Business Administration (Marketing), VinUniversity · Exchange Student at University of Birmingham, UK. Scholarship recipient and student mentor helping others build stronger study-abroad plans."
+              bioLine="Bachelor of Business Administration (Marketing), VinUniversity · Exchange Student at University of Birmingham, UK. Scholarship recipient and student advisor helping others build stronger study-abroad plans."
               bullets={FALLBACK_FOUNDER_BULLETS}
               quote="Because it is either the pain of perseverance or the pain of failure."
             />
@@ -726,13 +726,13 @@ function TestimonialSection() {
         <SectionHeading
           eyebrow="Student stories"
           title="Real outcomes from the GlowBal team"
-          body="We don’t publish fake reviews. While the first student stories are on the way, here’s the mentoring track record behind GlowBal."
+          body="We don’t publish fake reviews. While the first student stories are on the way, here’s the advising track record behind GlowBal."
         />
         <div className="mt-12 grid gap-5 md:grid-cols-3">
           <Reveal>
             <div className="h-full rounded-3xl border border-slate-200 bg-white p-6 shadow-[0_12px_30px_rgba(30,40,80,0.05)]">
-              <p className="text-sm leading-7 text-slate-700">“Mentored multiple students to 70–80% merit-based scholarships at VinUniversity.”</p>
-              <p className="mt-4 text-sm font-semibold text-slate-900">GlowBal mentoring record</p>
+              <p className="text-sm leading-7 text-slate-700">“Advised multiple students who earned 70–80% merit-based scholarships at VinUniversity.”</p>
+              <p className="mt-4 text-sm font-semibold text-slate-900">GlowBal advising record</p>
             </div>
           </Reveal>
           <Reveal delay={0.08}>
@@ -887,7 +887,7 @@ function FinalCTASection({ action }: { action: WaitlistAction }) {
 /* ── 14. Footer ──────────────────────────────────────────────────────────── */
 
 const FOOTER_COLS = [
-  { title: 'Product', links: [['Find universities', '/universities'], ['Find scholarships', '/scholarships'], ['AI strategy', '#how-it-works'], ['Student supporters', '/mentors'], ['GlowBal Plus', '/plus']] },
+  { title: 'Product', links: [['Find universities', '/universities'], ['Find scholarships', '/scholarships'], ['AI strategy', '#how-it-works'], ['Student supporters', '/advisors'], ['GlowBal Plus', '/plus']] },
   { title: 'Company', links: [['About', '#team'], ['Team', '#team'], ['Student stories', '/news'], ['Contact', 'mailto:hello@glowbal.com']] },
   { title: 'Legal', links: [['Privacy Policy', '/privacy'], ['Terms of Service', '/terms']] },
 ];

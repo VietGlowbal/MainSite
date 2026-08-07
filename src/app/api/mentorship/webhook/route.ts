@@ -133,7 +133,7 @@ async function handleCheckoutCompleted(
     (applicantUser?.user?.user_metadata?.full_name as string | undefined) ??
     (menteeEmail ? menteeEmail.split('@')[0] : 'Mentee');
   const mentorEmail = mentorUser?.user?.email ?? null;
-  const mentorName = (booking.achiever as { display_name?: string } | null)?.display_name ?? 'Your mentor';
+  const mentorName = (booking.achiever as { display_name?: string } | null)?.display_name ?? 'Your advisor';
 
   if (!menteeEmail || !mentorEmail) {
     console.warn('[webhook] missing emails for booking', bookingId, { menteeEmail, mentorEmail });

@@ -105,7 +105,7 @@ export async function sendMenteeConfirmation(
   const calLink = googleCalendarUrl({
     start: ctx.scheduledAt,
     end,
-    title: `Glowbal mentorship with ${ctx.mentorName}`,
+    title: `Glowbal advising session with ${ctx.mentorName}`,
     description: [
       `Join: ${ctx.meetingLink}`,
       ctx.helpTopic ? `Topic: ${ctx.helpTopic}` : '',
@@ -118,7 +118,7 @@ export async function sendMenteeConfirmation(
 
   const html = `
     <div style="font-family:ui-sans-serif,system-ui,Arial; max-width:560px; margin:0 auto; padding:24px; color:#0f172a">
-      <h1 style="font-size:22px; font-weight:600; margin:0 0 12px">Your mentorship session is booked 🎉</h1>
+      <h1 style="font-size:22px; font-weight:600; margin:0 0 12px">Your advising session is booked 🎉</h1>
       <p style="color:#475569; line-height:1.6">
         Thanks ${escapeHtml(ctx.menteeName)} — your session with
         <strong>${escapeHtml(ctx.mentorName)}</strong> is confirmed.
@@ -155,7 +155,7 @@ export async function sendMenteeConfirmation(
 
   await sendEmailWithAttachments({
     to: ctx.menteeEmail,
-    subject: `Your Glowbal mentorship with ${ctx.mentorName} is confirmed`,
+    subject: `Your Glowbal advising session with ${ctx.mentorName} is confirmed`,
     html,
     attachments: [
       {
@@ -174,7 +174,7 @@ export async function sendMentorNotification(
   const calLink = googleCalendarUrl({
     start: ctx.scheduledAt,
     end,
-    title: `Mentorship: ${ctx.menteeName}`,
+    title: `Advising session: ${ctx.menteeName}`,
     description: [
       `Mentee: ${ctx.menteeName} (${ctx.menteeEmail})`,
       `Join: ${ctx.meetingLink}`,
@@ -188,7 +188,7 @@ export async function sendMentorNotification(
 
   const html = `
     <div style="font-family:ui-sans-serif,system-ui,Arial; max-width:560px; margin:0 auto; padding:24px; color:#0f172a">
-      <h1 style="font-size:22px; font-weight:600; margin:0 0 12px">New mentorship booking</h1>
+      <h1 style="font-size:22px; font-weight:600; margin:0 0 12px">New advising booking</h1>
       <p style="color:#475569; line-height:1.6">
         Hi ${escapeHtml(ctx.mentorName)} — <strong>${escapeHtml(ctx.menteeName)}</strong> just booked
         a session with you.
@@ -225,7 +225,7 @@ export async function sendMentorNotification(
 
   await sendEmailWithAttachments({
     to: ctx.mentorEmail,
-    subject: `New Glowbal mentorship booking from ${ctx.menteeName}`,
+    subject: `New Glowbal advising booking from ${ctx.menteeName}`,
     html,
     attachments: [
       {

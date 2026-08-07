@@ -101,7 +101,7 @@ EACH IMPROVEMENT ALSO BUILDS ITS OWN TASK PAGE. Every improvement becomes a task
 - "structured_table": the task is a LIST of similar entries (courses, activities, projects, awards). Declare 3–6 "columns", each { "key": "<short_snake_case>", "label": "<column header>", "type": "text | number | date | select", "options": [only for type "select"] }.
 - "long_text": the task is ONE narrative answer (motivation, impact, personal story) that doesn't decompose into rows. Declare a "prompt" (what to write about, 1 sentence) and an optional "minWords".
 - "checklist": the task is a set of 2–5 discrete STEPS to complete (e.g. "request official transcripts"), not content to write. Declare "items" as short imperative strings.
-- Use "contentBlock": null whenever "actionType" is "internal_route", "external_url", or "book_mentor" — the task is completed in another tool (the Statement Writer, the CV builder, a mentor booking), so its page needs no inline content block, only the brief and the link to that tool.
+- Use "contentBlock": null whenever "actionType" is "internal_route", "external_url", or "book_mentor" — the task is completed in another tool (the Statement Writer, the CV builder, an advisor booking), so its page needs no inline content block, only the brief and the link to that tool.
 - Also give each improvement: "submitChecklist" (1–4 short strings — what evidence/content counts as done, for a "What to submit" list), "tips" (1–3 short strings of practical advice), and "suggestedQuestions" (2–4 short first-person questions a candidate might ask an AI coach about this specific task, e.g. "What results should I include?").
 
 PROGRAMME FIT (F5) — separate from the document-match pillars:

@@ -204,7 +204,7 @@ export const PLUS_PACKAGES: PlusPackage[] = [
     highlights: [
       'Everything in Pro',
       '1:1 onboarding & dedicated support',
-      'A mentor session credit included',
+      'An advisor session credit included',
     ],
     highlighted: false,
   },
@@ -269,7 +269,7 @@ export const PLUS_COMPARISON: ComparisonRow[] = [
     values: { free: false, 'plus-starter': false, 'plus-pro': false, 'plus-premium': true },
   },
   {
-    label: 'Mentor session credit included',
+    label: 'Advisor session credit included',
     values: { free: false, 'plus-starter': false, 'plus-pro': false, 'plus-premium': true },
   },
   {

@@ -25,8 +25,8 @@ export default async function AdminAchieversPage() {
   return (
     <section className="flex flex-col gap-gb-3xl">
       <AdminHeading
-        title="Mentor applications"
-        description="Approve or reject incoming mentor signups."
+        title="Advisor applications"
+        description="Approve or reject incoming advisor signups."
       />
       <AdminAchieversClient applications={applications ?? []} />
     </section>

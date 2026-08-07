@@ -14,7 +14,7 @@ const PROTECTED_ROUTES = [
   '/onboarding/complete',
 ];
 
-const PUBLIC_MARKETING_ROUTES = new Set(['/about', '/news', '/universities', '/mentors']);
+const PUBLIC_MARKETING_ROUTES = new Set(['/about', '/news', '/universities', '/advisors']);
 
 // Paths that stay reachable even while the site lock (below) is on: static
 // assets, API routes (already individually authed — cron secrets, webhooks,
@@ -137,7 +137,7 @@ export async function proxy(request: NextRequest) {
 
   // Onboarding gate: signed-in users without a completed profile shouldn't
   // see /apply, /my-universities/* or /profile until they finish onboarding.
-  // /universities and /mentors remain browseable so users can preview value.
+  // /universities and /advisors remain browseable so users can preview value.
   //
   // /apply joined this list with the merge: it is where the saved list lives
   // now, and that is what this gate was protecting. /my-universities stays for

@@ -103,8 +103,8 @@ const STEPS = [
   {
     number: 5,
     title: 'Connect',
-    description: 'Connect with mentors and prepare for success',
-    href: '/mentors',
+    description: 'Connect with advisors and prepare for success',
+    href: '/advisors',
     icon: ConnectIcon,
     bgColor: 'bg-amber-500',
     lineColor: 'bg-amber-400',

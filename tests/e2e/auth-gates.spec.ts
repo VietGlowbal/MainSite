@@ -41,7 +41,7 @@ for (const route of PROTECTED) {
 }
 
 test('public routes are not gated', async ({ page }) => {
-  for (const route of ['/universities', '/mentors', '/news']) {
+  for (const route of ['/universities', '/advisors', '/news']) {
     await page.goto(route);
     await expect(page, `${route} should stay public`).toHaveURL(new RegExp(`${route}$`));
   }

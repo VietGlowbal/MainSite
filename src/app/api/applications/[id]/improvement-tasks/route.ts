@@ -20,7 +20,7 @@ const ACTION_LABELS: Record<ImprovementAction['actionType'], string | undefined>
   upload_document: 'Upload',
   internal_route: 'Open',
   external_url: 'Open link',
-  book_mentor: 'Book a mentor',
+  book_mentor: 'Book an advisor',
   none: undefined,
 };
 

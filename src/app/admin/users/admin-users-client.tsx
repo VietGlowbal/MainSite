@@ -37,7 +37,7 @@ type LoadState =
 const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'admins', label: 'Admins' },
-  { key: 'mentors', label: 'Mentors' },
+  { key: 'mentors', label: 'Advisors' },
 ] as const;
 
 type Filter = (typeof FILTERS)[number]['key'];
@@ -195,7 +195,7 @@ export function AdminUsersClient() {
       <div className="grid gap-gb-xl sm:grid-cols-3">
         <StatTile label="Total users" value={total} />
         <StatTile label="Admins" value={adminCount} tone="brand" />
-        <StatTile label="Mentor profiles" value={mentorCount} tone="info" />
+        <StatTile label="Advisor profiles" value={mentorCount} tone="info" />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-gb-xl">
@@ -268,7 +268,7 @@ export function AdminUsersClient() {
                         <Badge
                           variant={u.mentor_status === 'approved' ? 'safe-chip' : 'neutral-chip'}
                         >
-                          Mentor · {u.mentor_status}
+                          Advisor · {u.mentor_status}
                         </Badge>
                       )}
                       {!u.is_admin && !u.is_coordinator && !u.mentor_status && (

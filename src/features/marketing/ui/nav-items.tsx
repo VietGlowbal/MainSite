@@ -70,7 +70,7 @@ export const MARKETING_NAV_ITEMS: readonly TopNavEntry[] = [
     items: [
       { href: '/scholarships', label: 'Scholarships' },
       { href: '/universities', label: 'Universities' },
-      { href: '/mentors', label: 'Mentors' },
+      { href: '/advisors', label: 'Advisors' },
     ],
   },
   /*
@@ -151,7 +151,7 @@ export const FOOTER_COLUMNS: readonly FooterColumn[] = [
       // Figma "Chiến lược AI", and the one link in the design that carries the
       // Badge (I104:7413;3288:570947).
       { href: '/ai-strategy', label: 'AI strategy', badge: 'New' },
-      { href: '/mentors', label: 'Student mentors' },
+      { href: '/advisors', label: 'Student advisors' },
       { href: '/plus', label: 'GlowBal Plus' },
     ],
   },

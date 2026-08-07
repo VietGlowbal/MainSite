@@ -14,7 +14,7 @@ import { MentorsClient } from './mentors-client';
  */
 
 export const metadata: Metadata = {
-  title: 'Find a mentor | GlowBal',
+  title: 'Find an advisor | GlowBal',
   description:
     'Talk to a student who has already been admitted where you are applying.',
 };

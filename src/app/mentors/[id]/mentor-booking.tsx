@@ -218,7 +218,7 @@ export function MentorBooking({
              * have stayed English forever.
              */}
             <p className="text-gb-sm text-fg-tertiary">
-              This mentor hasn&rsquo;t published availability for the next 90 days.
+              This advisor hasn&rsquo;t published availability for the next 90 days.
             </p>
           </div>
         ) : !mounted ? (
@@ -397,7 +397,7 @@ export function MentorBooking({
                   onClick={() => {
                     if (!isSignedIn) {
                       window.location.href = `/auth?next=${encodeURIComponent(
-                        `/mentors/${mentorId}`,
+                        `/advisors/${mentorId}`,
                       )}`;
                       return;
                     }
@@ -465,11 +465,11 @@ function BookingIntake({
 
     const finalTopic = topic.trim();
     if (finalTopic.length < 3) {
-      setError('Choose or type a topic so your mentor can prepare.');
+      setError('Choose or type a topic so your advisor can prepare.');
       return;
     }
     if (questions.trim().length < 10) {
-      setError('Tell your mentor what you want to discuss — a sentence is enough.');
+      setError('Tell your advisor what you want to discuss — a sentence is enough.');
       return;
     }
 
@@ -554,7 +554,7 @@ function BookingIntake({
         <Textarea
           name="help-questions"
           label="What would you like to ask?"
-          hint="The more context you give, the more your mentor can prepare."
+          hint="The more context you give, the more your advisor can prepare."
           rows={5}
           maxLength={1500}
           value={questions}

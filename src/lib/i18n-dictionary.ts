@@ -19,12 +19,12 @@ export const translations: Record<string, string> = {
   Home: 'Trang chủ',
   Search: 'Tìm kiếm',
   Apply: 'Nộp đơn',
-  Mentorship: 'Cố vấn',
+  Advising: 'Cố vấn',
   'GLOWBAL News': 'Tin tức GLOWBAL',
-  'Mentor hub': 'Trung tâm cố vấn',
-  'Mentorship hub': 'Trung tâm cố vấn',
+  'Advisor hub': 'Trung tâm cố vấn',
+  'Advising hub': 'Trung tâm cố vấn',
   Admin: 'Quản trị',
-  Mentors: 'Cố vấn',
+  Advisors: 'Cố vấn',
   News: 'Tin tức',
   Profile: 'Hồ sơ',
   'Sign In/Up': 'Đăng nhập/Đăng ký',
@@ -273,7 +273,7 @@ export const translations: Record<string, string> = {
   'The vibe': 'Không khí',
   'Universities tracked': 'Trường đại học được theo dõi',
   'Countries covered': 'Quốc gia được bao phủ',
-  'Achievers ready to mentor': 'Người dẫn dắt sẵn sàng cố vấn',
+  'Achievers ready to advise': 'Người dẫn dắt sẵn sàng cố vấn',
   'Of beta users felt less stressed': 'Người dùng thử cảm thấy bớt căng thẳng',
   'Answer a few simple questions': 'Trả lời vài câu hỏi đơn giản',
   'Tell us your strengths, preferences, and career direction. Our matcher does the heavy lifting.':
@@ -282,7 +282,7 @@ export const translations: Record<string, string> = {
   'Get a curated shortlist of universities, scholarships, and programs that actually fit you.':
     'Nhận danh sách rút gọn gồm các trường, học bổng và chương trình thực sự phù hợp với bạn.',
   'Apply with confidence': 'Nộp đơn tự tin',
-  'Connect with mentors who got in, sharpen your statements with our AI writer, and ship it.':
+  'Connect with advisors who got in, sharpen your statements with our AI writer, and ship it.':
     'Kết nối với cố vấn đã trúng tuyển, trau chuốt bài luận với trình viết AI, và nộp đơn.',
   'How we help you': 'Chúng tôi giúp bạn thế nào',
   'Three steps from overwhelmed to admitted.': 'Ba bước từ choáng ngợp đến trúng tuyển.',
@@ -293,12 +293,12 @@ export const translations: Record<string, string> = {
   'A 90-second walkthrough of the matcher, the Achievers, and the AI statement writer.':
     'Hướng dẫn 90 giây về công cụ ghép cặp, các Achiever và trình viết bài luận AI.',
   'Play demo video': 'Phát video demo',
-  'Match → mentor → apply': 'Ghép cặp → cố vấn → nộp đơn',
+  'Match → advisor → apply': 'Ghép cặp → cố vấn → nộp đơn',
   'Our mission': 'Sứ mệnh của chúng tôi',
   'Help every ambitious student approach global education with ease and without fear — no matter where they\'re starting from.':
     'Giúp mọi sinh viên đầy hoài bão tiếp cận giáo dục toàn cầu một cách dễ dàng và không sợ hãi — dù bạn bắt đầu từ đâu.',
   Experts: 'Chuyên gia',
-  "Mentors who've been on both sides of admissions.": 'Cố vấn đã trải qua cả hai phía của quá trình tuyển sinh.',
+  "Advisors who've been on both sides of admissions.": 'Cố vấn đã trải qua cả hai phía của quá trình tuyển sinh.',
   'Our advisors review applications, coach interviews, and pressure-test scholarship strategies.':
     'Cố vấn của chúng tôi rà soát hồ sơ, luyện phỏng vấn và thử thách chiến lược săn học bổng.',
   'Team behind GLOWBAL': 'Đội ngũ phía sau GLOWBAL',
@@ -399,7 +399,7 @@ export const translations: Record<string, string> = {
   'Tuition & Costs': 'Học phí & Chi phí',
   Rankings: 'Xếp hạng',
   Reviews: 'Đánh giá',
-  'Find a mentor here': 'Tìm cố vấn tại đây',
+  'Find an advisor here': 'Tìm cố vấn tại đây',
   'Tuition fee': 'Học phí',
   'Visit official website ↗': 'Truy cập trang web chính thức ↗',
   "Are you interested? Let's discover scholarship for this uni":
@@ -427,12 +427,12 @@ export const translations: Record<string, string> = {
   'Continue to your application →': 'Tiếp tục đến hồ sơ của bạn →',
 
   // ── Mentors ────────────────────────────────────────────────────────────--
-  'Mentorship Hub': 'Trung tâm Cố vấn',
-  "Meet a mentor who's walked the path": 'Gặp người cố vấn đã đi qua con đường này',
+  'Advisor Hub': 'Trung tâm Cố vấn',
+  "Meet an advisor who's walked the path": 'Gặp người cố vấn đã đi qua con đường này',
   'Browse current students and recent grads at your dream universities. Pick a time, share what you want help with, and book a real video session.':
     'Duyệt qua sinh viên hiện tại và cựu sinh viên ở các trường mơ ước của bạn. Chọn thời gian, chia sẻ điều bạn cần giúp, và đặt một buổi gọi video thực sự.',
-  'Become a mentor': 'Trở thành cố vấn',
-  'Search by mentor, university, or topic': 'Tìm theo cố vấn, trường hoặc chủ đề',
+  'Become an advisor': 'Trở thành cố vấn',
+  'Search by advisor, university, or topic': 'Tìm theo cố vấn, trường hoặc chủ đề',
   'Any location': 'Bất kỳ địa điểm',
   'Any university': 'Bất kỳ trường',
   'All universities': 'Tất cả các trường',
@@ -440,7 +440,7 @@ export const translations: Record<string, string> = {
   Alumni: 'Cựu sinh viên',
   Languages: 'Ngôn ngữ',
   'Top rated': 'Được đánh giá cao',
-  'Newest mentors': 'Cố vấn mới nhất',
+  'Newest advisors': 'Cố vấn mới nhất',
   'Price: low → high': 'Giá: thấp → cao',
   'Price: high → low': 'Giá: cao → thấp',
   'Hide filters': 'Ẩn bộ lọc',
@@ -450,8 +450,8 @@ export const translations: Record<string, string> = {
   'Find your university': 'Tìm trường của bạn',
   'Pick a country or specific school above': 'Chọn quốc gia hoặc trường cụ thể ở trên',
   'Choose a time': 'Chọn thời gian',
-  'Mentors share a calendar with open slots': 'Cố vấn chia sẻ lịch với các khung giờ còn trống',
-  'Choose a mentor': 'Chọn cố vấn',
+  'Advisors share a calendar with open slots': 'Cố vấn chia sẻ lịch với các khung giờ còn trống',
+  'Choose an advisor': 'Chọn cố vấn',
   'Popular help with:': 'Hỗ trợ phổ biến:',
   'Personal statement': 'Bài luận cá nhân',
   'Interview prep': 'Luyện phỏng vấn',
@@ -459,11 +459,11 @@ export const translations: Record<string, string> = {
   'Scholarship strategy': 'Chiến lược học bổng',
   'Course choice': 'Lựa chọn khóa học',
   'Life abroad': 'Cuộc sống ở nước ngoài',
-  'New mentor': 'Cố vấn mới',
+  'New advisor': 'Cố vấn mới',
   'Pricing pending': 'Đang cập nhật giá',
   'Book a session': 'Đặt buổi tư vấn',
-  'No mentors match your search': 'Không có cố vấn nào khớp với tìm kiếm của bạn',
-  'Try widening the country or removing the date filter — or invite a mentor at your school.':
+  'No advisors match your search': 'Không có cố vấn nào khớp với tìm kiếm của bạn',
+  'Try widening the country or removing the date filter — or invite an advisor at your school.':
     'Hãy thử nới rộng quốc gia hoặc bỏ bộ lọc ngày — hoặc mời một cố vấn ở trường của bạn.',
 
   // ── Apply / dashboard ──────────────────────────────────────────────────--
@@ -519,9 +519,9 @@ export const translations: Record<string, string> = {
     'Khám phá miễn phí — đăng nhập để lưu kết quả phù hợp',
   'Verified student': 'Sinh viên đã xác minh',
   'Need help?': 'Cần trợ giúp?',
-  'Get expert guidance from current students and admissions mentors.':
+  'Get expert guidance from current students and admissions advisors.':
     'Nhận hướng dẫn từ sinh viên hiện tại và cố vấn tuyển sinh.',
-  'Find a mentor': 'Tìm cố vấn',
+  'Find an advisor': 'Tìm cố vấn',
   'Improve your application': 'Cải thiện hồ sơ của bạn',
   'Tools and feedback to strengthen your profile.':
     'Công cụ và phản hồi giúp củng cố hồ sơ của bạn.',
@@ -532,7 +532,7 @@ export const translations: Record<string, string> = {
   'Profile Review': 'Rà soát hồ sơ',
   'Get expert feedback': 'Nhận phản hồi từ chuyên gia',
   '7-day full access': 'Truy cập đầy đủ 7 ngày',
-  "You're on a free trial. Unlock all tools and mentor support.":
+  "You're on a free trial. Unlock all tools and advisor support.":
     'Bạn đang dùng bản dùng thử miễn phí. Mở khóa tất cả công cụ và hỗ trợ từ cố vấn.',
   'Upgrade Now': 'Nâng cấp ngay',
 
@@ -762,24 +762,24 @@ export const translations: Record<string, string> = {
   // ── Admin ────────────────────────────────────────────────────────────────
   'Admin Console': 'Bảng quản trị',
   'Manage Glowbal': 'Quản lý Glowbal',
-  'Approve mentors, confirm bookings, and manage the user base.':
+  'Approve advisors, confirm bookings, and manage the user base.':
     'Phê duyệt cố vấn, xác nhận lượt đặt và quản lý người dùng.',
-  'Mentor applications': 'Đơn ứng tuyển cố vấn',
+  'Advisor applications': 'Đơn ứng tuyển cố vấn',
   'Bookings & payments': 'Lượt đặt & thanh toán',
   Users: 'Người dùng',
   User: 'Người dùng',
-  'Mentor applications waiting': 'Đơn ứng tuyển cố vấn đang chờ',
-  'Approved mentors': 'Cố vấn đã duyệt',
+  'Advisor applications waiting': 'Đơn ứng tuyển cố vấn đang chờ',
+  'Approved advisors': 'Cố vấn đã duyệt',
   'Bookings awaiting payment': 'Lượt đặt đang chờ thanh toán',
   'Confirmed sessions': 'Buổi đã xác nhận',
   'Completed sessions': 'Buổi đã hoàn thành',
   'Quick actions': 'Thao tác nhanh',
-  'Review mentor applications': 'Duyệt đơn ứng tuyển cố vấn',
+  'Review advisor applications': 'Duyệt đơn ứng tuyển cố vấn',
   'Confirm payments': 'Xác nhận thanh toán',
   'Manage users': 'Quản lý người dùng',
   'Total users': 'Tổng người dùng',
   Admins: 'Quản trị viên',
-  'Mentor profiles': 'Hồ sơ cố vấn',
+  'Advisor profiles': 'Hồ sơ cố vấn',
   All: 'Tất cả',
   Roles: 'Vai trò',
   Onboarded: 'Đã hoàn tất onboarding',
@@ -1135,7 +1135,7 @@ export const translations: Record<string, string> = {
   Legal: 'Pháp lý',
   'Find scholarships': 'Tìm kiếm học bổng',
   // 'AI strategy' is already defined in the Navigation block above.
-  'Student mentors': 'Cố vấn sinh viên',
+  'Student advisors': 'Cố vấn sinh viên',
   'Our team': 'Đội ngũ',
   'Student stories': 'Câu chuyện của sinh viên',
   'Terms of service': 'Điều khoản dịch vụ',
@@ -1226,14 +1226,14 @@ export const translations: Record<string, string> = {
   // ── Mentor profile, /mentors/[id] (Figma 375:21633) ──────────────────────
   // The frame's Vietnamese is the source for these; the English literals in
   // the JSX are the translation back, so the pairs read in the frame's voice.
-  'All mentors': 'Tất cả cố vấn',
+  'All advisors': 'Tất cả cố vấn',
   About: 'Giới thiệu',
   Strengths: 'Điểm mạnh',
   'Best for': 'Tốt nhất cho',
   // `Reviews`, `Book a session` and `Back` are deliberately absent — all three
   // are already defined above (lines 331, 394, 128) and a duplicate key is a
   // type error. The existing Vietnamese covers this page unchanged.
-  'Book this mentor': 'Đặt lịch với cố vấn này',
+  'Book this advisor': 'Đặt lịch với cố vấn này',
   // Its own text node beside the formatted price, so it translates on its own.
   '/hour': '/giờ',
   'Book now': 'Đặt lịch ngay',
@@ -1244,7 +1244,7 @@ export const translations: Record<string, string> = {
     '+ 10% phí dịch vụ · thanh toán an toàn qua Stripe',
   'Pick any open day below. Sessions must be booked at least an hour ahead.':
     'Chọn bất kỳ ngày nào mở bên dưới. Buổi tư vấn cần được đặt trước ít nhất một giờ.',
-  'This mentor hasn’t published availability for the next 90 days.':
+  'This advisor hasn’t published availability for the next 90 days.':
     'Cố vấn này chưa mở lịch cho 90 ngày tới.',
   'No ratings yet': 'Chưa có đánh giá nào',
   'No open times right now': 'Hiện chưa có khung giờ trống',
@@ -1256,7 +1256,7 @@ export const translations: Record<string, string> = {
   'Not bookable yet': 'Chưa thể đặt lịch',
   'What do you want help with?': 'Bạn muốn được hỗ trợ điều gì?',
   'What would you like to ask?': 'Bạn muốn hỏi điều gì?',
-  'The more context you give, the more your mentor can prepare.':
+  'The more context you give, the more your advisor can prepare.':
     'Bạn chia sẻ càng cụ thể, cố vấn càng chuẩn bị tốt.',
   'Or type your own topic': 'Hoặc tự nhập chủ đề của bạn',
   'Session topic': 'Chủ đề buổi tư vấn',
@@ -1596,12 +1596,12 @@ export const translations: Record<string, string> = {
   'Priority student-supporter access': 'Ưu tiên kết nối người hỗ trợ là sinh viên',
   'Everything in Pro': 'Toàn bộ gói Chuyên nghiệp',
   '1:1 onboarding & dedicated support': 'Hướng dẫn 1:1 & hỗ trợ riêng',
-  'A mentor session credit included': 'Tặng kèm 1 buổi với cố vấn',
+  'An advisor session credit included': 'Tặng kèm 1 buổi với cố vấn',
   'University search & matching': 'Tìm kiếm & gợi ý trường phù hợp',
   'Save universities & scholarships': 'Lưu trường & học bổng',
   'Full scholarship details (eligibility, documents, deadlines)':
     'Thông tin học bổng đầy đủ (điều kiện, hồ sơ, hạn nộp)',
-  'Mentor session credit included': 'Tặng kèm buổi với cố vấn',
+  'Advisor session credit included': 'Tặng kèm buổi với cố vấn',
   'Plus access': 'Thời hạn dùng Plus',
   '6 months': '6 tháng',
   '12 months': '12 tháng',
@@ -1798,7 +1798,7 @@ export const translations: Record<string, string> = {
   'How GlowBal Works': 'GlowBal hoạt động thế nào',
   'Choose your subject': 'Chọn ngành học',
   University: 'Trường đại học',
-  Mentor: 'Cố vấn',
+  Advisor: 'Cố vấn',
   Article: 'Bài viết',
   'Application sent': 'Đã gửi đơn',
   Welcome: 'Chào mừng',

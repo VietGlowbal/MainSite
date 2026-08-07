@@ -7,7 +7,7 @@ export default async function MentorDashboardPage() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-    redirect('/auth?redirect=/dashboard/mentor');
+    redirect('/auth?redirect=/dashboard/advisor');
   }
 
   const { data: profile } = await supabase
@@ -17,7 +17,7 @@ export default async function MentorDashboardPage() {
     .maybeSingle();
 
   if (!profile) {
-    redirect('/mentors/apply');
+    redirect('/advisors/apply');
   }
 
   const { data: bookings } = await supabase
@@ -39,7 +39,7 @@ export default async function MentorDashboardPage() {
     <main className="min-h-screen bg-transparent px-4 py-10 md:px-8 md:py-16">
       <div className="mx-auto max-w-4xl space-y-6">
         <div>
-          <span className="glow-pill">Mentor dashboard</span>
+          <span className="glow-pill">Advisor dashboard</span>
           <h1 className="mt-3 text-3xl font-semibold tracking-tight text-slate-900">
             Welcome, {profile.display_name}
           </h1>
