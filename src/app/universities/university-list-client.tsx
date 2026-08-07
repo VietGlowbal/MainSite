@@ -10,10 +10,9 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SavedNavLink } from '@/components/saved-nav-link';
+import { SiteNavigation } from '@/components/site-navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
-  MARKETING_NAV_ITEMS,
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
@@ -25,12 +24,10 @@ import {
   Button,
   Container,
   Footer,
-  MobileNav,
   Modal,
   Pagination,
   SearchMark,
   Select,
-  TopNav,
 } from '@/shared/ui';
 import { TID, testId } from '@/shared/lib';
 import {
@@ -715,9 +712,6 @@ function useLegacyDetailParamRedirect() {
 // ── Page chrome + view switch ────────────────────────────────────────────────
 
 function Chrome({
-  userName,
-  userAvatarUrl,
-  isLoggedIn,
   total,
   page,
   pageSize,
@@ -725,9 +719,6 @@ function Chrome({
   country,
   countries,
 }: {
-  userName: string | null;
-  userAvatarUrl: string | null;
-  isLoggedIn: boolean;
   total: number;
   page: number;
   pageSize: number;
@@ -737,40 +728,12 @@ function Chrome({
 }) {
   useLegacyDetailParamRedirect();
 
-  const primaryAction = { href: '/onboarding', label: 'Plan your studies' };
-
   return (
-    /* gb-has-mobile-header: this full-bleed page ships its own MobileNav (a
-       fixed header), so globals.css must keep the mobile top offset that plain
-       full-bleed pages drop. */
+    /* gb-has-mobile-header: this full-bleed page ships its own SiteNavigation,
+       including a fixed mobile header, so globals.css must keep the mobile top
+       offset that plain full-bleed pages drop. */
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      {/* `utility` carries the way back to the saved list. This page is where a
-          student saves from, so it is the one header that must have it. */}
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        utility={<SavedNavLink />}
-        {...(isLoggedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isLoggedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        utility={<SavedNavLink variant="row" />}
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <SiteNavigation tone="light" showSaved />
 
       <main className="min-h-screen">
         <DirectoryBrowseView
@@ -826,8 +789,6 @@ export function UniversityListClient({
   const [withImages, setWithImages] = useState<ExplorerUniversity[]>(universities);
   const [authState, setAuthState] = useState<{
     id: string;
-    name: string;
-    avatarUrl: string | null;
     shortlist: number[];
   } | null>(null);
   const [authResolved, setAuthResolved] = useState(false);
@@ -840,11 +801,7 @@ export function UniversityListClient({
     let active = true;
     let generation = 0;
 
-    async function hydrate(authUser: {
-      id: string;
-      email?: string | null;
-      user_metadata?: Record<string, unknown>;
-    } | null) {
+    async function hydrate(authUser: { id: string } | null) {
       const current = ++generation;
       if (active) setAuthResolved(false);
       if (!authUser) {
@@ -861,11 +818,6 @@ export function UniversityListClient({
       if (!active || current !== generation) return;
       setAuthState({
         id: authUser.id,
-        name:
-          (authUser.user_metadata?.full_name as string | undefined) ||
-          authUser.email?.split('@')[0] ||
-          'Profile',
-        avatarUrl: (authUser.user_metadata?.avatar_url as string | undefined) ?? null,
         shortlist: (data ?? []).map((row) => row.university_id as number),
       });
       setAuthResolved(true);
@@ -968,9 +920,6 @@ export function UniversityListClient({
       profileStrength={null}
     >
       <Chrome
-        userName={authState?.name ?? null}
-        userAvatarUrl={authState?.avatarUrl ?? null}
-        isLoggedIn={authState !== null}
         total={total}
         page={page}
         pageSize={pageSize}

@@ -1,13 +1,12 @@
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SavedNavLink } from '@/components/saved-nav-link';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
 import {
   formatAcceptanceForCard,
@@ -25,9 +24,7 @@ import {
   Footer,
   ICONS,
   KitIcon,
-  MobileNav,
   SearchMark,
-  TopNav,
 } from '@/shared/ui';
 import { TID, testId } from '@/shared/lib/testids';
 import type { University } from '@/lib/types';
@@ -206,8 +203,6 @@ export function UniversityDetail({
   officialSite,
   isSignedIn,
   isSaved,
-  userName,
-  userAvatarUrl,
 }: {
   university: University;
   scholarships: readonly {
@@ -228,11 +223,6 @@ export function UniversityDetail({
   userName?: string | null;
   userAvatarUrl?: string | null;
 }) {
-  const navUser =
-    isSignedIn && userName
-      ? { user: { name: userName, avatarUrl: userAvatarUrl ?? null, href: '/profile' } }
-      : { secondaryAction: { href: '/auth', label: 'Sign in' } };
-
   // ── The strip under the hero ──────────────────────────────────────────────
   // Built by filtering, not by padding: a university with no QS rank gets three
   // tiles rather than one reading "—". Below two the strip is not a comparison
@@ -270,33 +260,7 @@ export function UniversityDetail({
       {...testId(TID.uniDetailPanel)}
       className="gb-page-full-bleed gb-has-mobile-header bg-surface"
     >
-      {/* `utility` is the route to the saved list. It belongs here more than
-          anywhere: the heart in this page's header puts a university IN that
-          list, and before this the only way to look at the result was to type
-          the URL. */}
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={{ href: '/universities', label: 'Search universities' }}
-        utility={<SavedNavLink />}
-        {...navUser}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={{ href: '/universities', label: 'Search universities' }}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        utility={<SavedNavLink variant="row" />}
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
+      <SiteNavigation tone="light" showSaved />
 
       <main>
         {/* ── Header, Figma 375:10642 ─────────────────────────────────────── */}
