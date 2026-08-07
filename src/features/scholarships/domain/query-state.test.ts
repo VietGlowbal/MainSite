@@ -30,6 +30,7 @@ describe('scholarship query state', () => {
       page: 2,
       universityId: 42,
       countryPage: 3,
+      view: 'directory',
     });
   });
 
@@ -54,6 +55,7 @@ describe('scholarship query state', () => {
       page: 1,
       universityId: null,
       countryPage: 1,
+      view: 'directory',
     });
   });
 
@@ -81,5 +83,16 @@ describe('scholarship query state', () => {
     expect(scholarshipSearchParams(current, { countryPage: 5 }).toString()).toBe(
       'page=2&university=42&countryPage=5',
     );
+  });
+
+  it('serializes only the non-default AI view and restores it from the URL', () => {
+    const directory = parseScholarshipSearchParams({ view: 'invalid' });
+    expect(directory.view).toBe('directory');
+    expect(scholarshipSearchParams(directory, {}).toString()).toBe('');
+
+    const ai = parseScholarshipSearchParams({ view: 'ai', page: '2' });
+    expect(ai.view).toBe('ai');
+    expect(scholarshipSearchParams(ai, {}).toString()).toBe('page=2&view=ai');
+    expect(scholarshipSearchParams(ai, { view: 'directory' }).toString()).toBe('page=2');
   });
 });

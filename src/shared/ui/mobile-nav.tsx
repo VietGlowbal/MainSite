@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { LanguageSwitcher } from './language-switcher';
 import { isNavGroup, isNavLinkActive, type NavEntry, type NavGroup, type NavLink } from './nav-model';
-import { TID, testId } from '@/shared/lib';
+import { TID, testId } from '@/shared/lib/testids';
 
 /**
  * MobileNav — the mobile header from the redesign, built from Figma node

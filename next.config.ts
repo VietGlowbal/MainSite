@@ -112,7 +112,7 @@ const nextConfig: NextConfig = {
      * contact photograph; everything else stays on the 75 default.
      * See node_modules/next/dist/docs/01-app/02-guides/upgrading/version-16.md.
      */
-    qualities: [75, 90],
+    qualities: [60, 75, 90],
     remotePatterns: [
       // Wikipedia / Wikimedia thumbnails — used for university card cover images
       { protocol: 'https', hostname: 'upload.wikimedia.org' },

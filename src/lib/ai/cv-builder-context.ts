@@ -1,5 +1,3 @@
-import type { User } from '@supabase/supabase-js';
-import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import { createClient } from '@/lib/supabase/server';
 import type { CvBuilderFormV1 } from './cv-builder';
 
@@ -222,42 +220,67 @@ export function isCvBuilderEnabled() {
 
 export async function loadCvBuilderContext(
   applicationId: string,
-  user: User,
+  user: {
+    id: string;
+    email?: string | null;
+    name?: string | null;
+    user_metadata?: Record<string, unknown>;
+    userMetadata?: Record<string, unknown>;
+  },
 ): Promise<CvBuilderContextData | null> {
-  const workspace = await fetchApplicationWorkspace(applicationId, user.id);
-  if (!workspace) return null;
   const supabase = await createClient();
-  const { application } = workspace;
-
-  const profilePromise = supabase
+  const applicationPromise = Promise.resolve(
+    supabase
+      .from('course_applications')
+      .select('id,university_id,university_name,course_id,course_name,course_url,degree_level,subject')
+      .eq('id', applicationId)
+      .eq('user_id', user.id)
+      .maybeSingle(),
+  );
+  const profilePromise = Promise.resolve(supabase
     .from('student_profiles')
     .select(
       'phone,location,current_institution,current_qualification,target_subjects,graduation_year,academic_background,predicted_grades,goals,career_interests,achievements,skills,profile_summary,bio',
     )
     .eq('user_id', user.id)
-    .maybeSingle();
-  const workExperiencesPromise = supabase
+    .maybeSingle());
+  const workExperiencesPromise = Promise.resolve(supabase
     .from('work_experiences')
     .select('id,company,role,start_date,end_date,is_current,description')
     .eq('user_id', user.id)
-    .order('start_date', { ascending: false });
+    .order('start_date', { ascending: false }));
+
+  const { data: application, error: applicationError } = await applicationPromise;
+  if (applicationError || !application) return null;
+
   const courseSelect =
     'id,university_id,university_name,course_name,course_url,subject,degree_level,study_mode,duration,intake,entry_requirements_summary,english_requirements_summary,application_method,search_keywords,university_metadata,entry_requirements,source_confidence,extraction_status';
+  const universitySelect =
+    'id,name,country,type,qs_rank,the_rank,national_rank,strengths,specific_insight,teaching_style,international_environment,industry_connections,employability,best_for,admission_difficulty,accept_rate,notes,primary_domain,official_url';
+  const initialUniversityPromise = application.university_id
+    ? Promise.resolve(
+        supabase
+          .from('universities')
+          .select(universitySelect)
+          .eq('id', application.university_id)
+          .maybeSingle(),
+      )
+    : null;
 
   let course: JsonRecord = null;
-  if (application.courseId) {
+  if (application.course_id) {
     const { data } = await supabase
       .from('courses')
       .select(courseSelect)
-      .eq('id', application.courseId)
+      .eq('id', application.course_id)
       .maybeSingle();
     course = data;
   }
-  if (!course && application.courseUrl) {
+  if (!course && application.course_url) {
     const { data } = await supabase
       .from('courses')
       .select(courseSelect)
-      .eq('course_url', application.courseUrl)
+      .eq('course_url', application.course_url)
       .maybeSingle();
     course = data;
   }
@@ -267,11 +290,11 @@ export async function loadCvBuilderContext(
       .select(courseSelect)
       .order('source_confidence', { ascending: false })
       .limit(100);
-    query = application.universityId
-      ? query.eq('university_id', application.universityId)
-      : query.ilike('university_name', application.universityName);
+    query = application.university_id
+      ? query.eq('university_id', application.university_id)
+      : query.ilike('university_name', application.university_name);
     const { data: candidates } = await query;
-    const normalizedName = text(application.courseName)
+    const normalizedName = text(application.course_name)
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, ' ')
       .trim();
@@ -283,23 +306,23 @@ export async function loadCvBuilderContext(
       ) ?? null;
   }
 
-  const universitySelect =
-    'id,name,country,type,qs_rank,the_rank,national_rank,strengths,specific_insight,teaching_style,international_environment,industry_connections,employability,best_for,admission_difficulty,accept_rate,notes,primary_domain,official_url';
   const universityId =
-    application.universityId ??
+    application.university_id ??
     (typeof course?.university_id === 'number' ? course.university_id : undefined);
-  const { data: initialUniversity } = universityId
-    ? await supabase
-        .from('universities')
-        .select(universitySelect)
-        .eq('id', universityId)
-        .maybeSingle()
-    : await supabase
-        .from('universities')
-        .select(universitySelect)
-        .ilike('name', application.universityName)
-        .limit(1)
-        .maybeSingle();
+  const { data: initialUniversity } = initialUniversityPromise
+    ? await initialUniversityPromise
+    : universityId
+      ? await supabase
+          .from('universities')
+          .select(universitySelect)
+          .eq('id', universityId)
+          .maybeSingle()
+      : await supabase
+          .from('universities')
+          .select(universitySelect)
+          .ilike('name', application.university_name)
+          .limit(1)
+          .maybeSingle();
   let university: JsonRecord = initialUniversity;
   if (initialUniversity?.primary_domain) {
     const { data: sameDomain } = await supabase
@@ -317,31 +340,31 @@ export async function loadCvBuilderContext(
     workExperiencesPromise,
   ]);
 
-  const metadata = user.user_metadata ?? {};
+  const metadata = user.userMetadata ?? user.user_metadata ?? {};
   const email = user.email ?? '';
   const name =
-    text(metadata.full_name) || text(metadata.name) || email.split('@')[0] || 'Applicant';
+    user.name || text(metadata.full_name) || text(metadata.name) || email.split('@')[0] || 'Applicant';
 
   return buildCvBuilderContextData({
     user: { id: user.id, email, name },
     application: {
       id: application.id,
-      universityName: application.universityName,
-      programmeName: application.courseName,
-      ...(application.universityId ? { universityId: application.universityId } : {}),
-      ...(application.courseId ? { courseId: application.courseId } : {}),
-      ...(application.courseUrl ? { courseUrl: application.courseUrl } : {}),
-      ...(application.degreeLevel ? { degreeLevel: application.degreeLevel } : {}),
+      universityName: application.university_name,
+      programmeName: application.course_name,
+      ...(application.university_id ? { universityId: application.university_id } : {}),
+      ...(application.course_id ? { courseId: application.course_id } : {}),
+      ...(application.course_url ? { courseUrl: application.course_url } : {}),
+      ...(application.degree_level ? { degreeLevel: application.degree_level } : {}),
       ...(application.subject ? { subject: application.subject } : {}),
     },
     university: university ?? null,
     course:
       course ??
       {
-        course_name: application.courseName,
-        course_url: application.courseUrl,
+        course_name: application.course_name,
+        course_url: application.course_url,
         subject: application.subject,
-        degree_level: application.degreeLevel,
+        degree_level: application.degree_level,
       },
     profile: profile ?? null,
     workExperiences: (workExperiences ?? []) as JsonRecord[],

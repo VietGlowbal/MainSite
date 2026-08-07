@@ -1,7 +1,19 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+
+const mocks = vi.hoisted(() => ({
+  createClient: vi.fn(),
+  fetchApplicationWorkspace: vi.fn(),
+}));
+
+vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
+vi.mock('@/lib/api/application-workspace', () => ({
+  fetchApplicationWorkspace: mocks.fetchApplicationWorkspace,
+}));
+
 import {
   buildCvBuilderContextData,
   isCvBuilderEnabled,
+  loadCvBuilderContext,
 } from './cv-builder-context';
 
 afterEach(() => vi.unstubAllEnvs());
@@ -127,5 +139,55 @@ describe('buildCvBuilderContextData', () => {
     expect(context.confidence).toBe('low');
     expect(context.limitations.join(' ')).toMatch(/awaiting review/i);
     expect(context.validSourceRefs.has('course:course_name')).toBe(true);
+  });
+});
+
+describe('loadCvBuilderContext', () => {
+  it('starts the narrow application, profile and work reads together without loading a workspace', async () => {
+    const started: string[] = [];
+    let resolveApplication!: (value: unknown) => void;
+    const applicationResult = new Promise((resolve) => {
+      resolveApplication = resolve;
+    });
+
+    const query = (result: Promise<unknown> | unknown) => {
+      const resolved = Promise.resolve(result).then((value) => value);
+      const builder: Record<string, unknown> = {};
+      const chain = () => builder;
+      Object.assign(builder, {
+        select: chain,
+        eq: chain,
+        ilike: chain,
+        order: chain,
+        limit: chain,
+        maybeSingle: () => resolved,
+        then: resolved.then.bind(resolved),
+      });
+      return builder;
+    };
+    const supabase = {
+      from: vi.fn((table: string) => {
+        started.push(table);
+        if (table === 'course_applications') return query(applicationResult);
+        if (table === 'work_experiences') return query({ data: [], error: null });
+        return query({ data: null, error: null });
+      }),
+    };
+    mocks.createClient.mockResolvedValue(supabase);
+    mocks.fetchApplicationWorkspace.mockResolvedValue(null);
+
+    const loading = loadCvBuilderContext('app-1', {
+      id: 'user-1',
+      email: 'alex@example.com',
+      name: 'Alex Nguyen',
+      userMetadata: {},
+    });
+
+    await vi.waitFor(() => expect(started).toContain('course_applications'));
+    expect(started).toEqual(expect.arrayContaining(['student_profiles', 'work_experiences']));
+    expect(mocks.fetchApplicationWorkspace).not.toHaveBeenCalled();
+
+    resolveApplication({ data: null, error: null });
+    await expect(loading).resolves.toBeNull();
   });
 });

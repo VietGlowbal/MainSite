@@ -1,7 +1,8 @@
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep } from '@/features/ai-strategy-dashboard/domain';
-import { applicationSubNav } from '@/shared/lib';
-import { Breadcrumbs, Container } from '@/shared/ui';
+import { applicationSubNav } from '@/shared/lib/app-routes';
+import { Breadcrumbs } from '@/shared/ui/breadcrumbs';
+import { Container } from '@/shared/ui/container';
 import { createClient } from '@/lib/supabase/server';
 import { ApplicationSubNav } from './application-sub-nav';
 
@@ -49,23 +50,27 @@ import { ApplicationSubNav } from './application-sub-nav';
  */
 export async function ApplicationNav({
   applicationId,
+  userId,
   /** The course name, so the breadcrumb reads as the thing rather than "Application". */
   courseName,
 }: {
   applicationId: string;
+  userId?: string;
   courseName?: string | null;
 }) {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const authenticatedUserId =
+    userId ??
+    (
+      await supabase.auth.getUser()
+    ).data.user?.id;
 
   // Signed out, the page above this is already redirecting. Rendering a bar of
   // links into someone's application while that resolves would be worse than
   // rendering nothing.
-  if (!user) return null;
+  if (!authenticatedUserId) return null;
 
-  const state = await fetchOnboardingState(supabase, user.id, applicationId);
+  const state = await fetchOnboardingState(supabase, authenticatedUserId, applicationId);
   const step = nextOnboardingStep(state);
 
   const items = applicationSubNav(applicationId, {

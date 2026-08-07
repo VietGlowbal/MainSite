@@ -13,10 +13,12 @@ import {
   scholarshipCandidates,
   scholarshipLabel,
 } from '@/features/universities/domain';
-import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarships';
-import { createClient } from '@/lib/supabase/client';
-import { TID, testId } from '@/shared/lib';
-import { Badge, Button, ICONS, KitIcon, Modal } from '@/shared/ui';
+import { SCHOLARSHIP_SCOPE_LABELS } from '@/lib/scholarship-constants';
+import { TID, testId } from '@/shared/lib/testids';
+import { Badge } from '@/shared/ui/badge';
+import { Button } from '@/shared/ui/button';
+import { ICONS, KitIcon } from '@/shared/ui/icons';
+import { Modal } from '@/shared/ui/modal';
 import { ApplySectionHeading } from './section-heading';
 
 /**
@@ -994,7 +996,6 @@ export function SavedListSection({
   focusUniversityId?: number | null;
 }) {
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
 
   const [rows, setRows] = useState(initialRows);
   const [selected, setSelected] = useState<number[]>([]);
@@ -1051,6 +1052,14 @@ export function SavedListSection({
   const remove = useCallback(
     async (row: SavedRow) => {
       setRemoving((prev) => [...prev, row.universityId]);
+      const supabase = await import('@/lib/supabase/client')
+        .then(({ createClient }) => createClient())
+        .catch(() => null);
+      if (!supabase) {
+        setRemoving((prev) => prev.filter((id) => id !== row.universityId));
+        showToast('Could not remove that university. Please try again.');
+        return;
+      }
       const { error } = await supabase
         .from('user_universities')
         .delete()
@@ -1066,7 +1075,7 @@ export function SavedListSection({
       setRemoving((prev) => prev.filter((id) => id !== row.universityId));
       showToast(`Removed ${row.name}`);
     },
-    [supabase, showToast],
+    [showToast],
   );
 
   /**
@@ -1100,6 +1109,14 @@ export function SavedListSection({
   const applyScholarship = useCallback(
     async ({ scholarshipId, universityId }: { scholarshipId: number; universityId: number }) => {
       setApplying(true);
+      const supabase = await import('@/lib/supabase/client')
+        .then(({ createClient }) => createClient())
+        .catch(() => null);
+      if (!supabase) {
+        setApplying(false);
+        showToast('Could not attach that scholarship. Please try again.');
+        return;
+      }
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -1131,7 +1148,7 @@ export function SavedListSection({
       // rather than guess at what the server would have produced.
       router.refresh();
     },
-    [supabase, showToast, router, rows],
+    [showToast, router, rows],
   );
 
   const attachedCount = rows.reduce((sum, row) => sum + row.attached.length, 0);

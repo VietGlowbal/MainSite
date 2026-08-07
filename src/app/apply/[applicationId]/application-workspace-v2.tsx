@@ -1,36 +1,46 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import type { ApplicationWorkspaceView, ApplicationTask } from '@/lib/apply-types';
-import { StagePanel } from '@/components/apply/StagePanel';
 import { taskFeedbackPath } from '@/components/apply/task-feedback-path';
-import { MatchInsightsPanel } from '@/components/apply/match-insights/MatchInsightsPanel';
 import {
-  ApplicationBanner,
   ApplicationJourney,
   ChecklistProgress,
   JourneyPending,
-} from '@/features/apply/ui';
+} from '@/features/apply/workspace-ui';
 import {
   activeStageIndex as computeActiveIndex,
   courseUrlLabel,
-  displayCourseName,
-  displayUniversityName,
   isParsePending,
   summariseTasks,
-} from '@/features/apply/domain';
-import { useParseRefresh } from '@/features/apply/hooks';
-import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SiteNavigation } from '@/components/site-navigation';
-import {
-  FOOTER_COLUMNS,
-  FOOTER_COPYRIGHT,
-  FOOTER_RATINGS,
-  FOOTER_SOCIAL,
-  FOOTER_TAGLINE,
-} from '@/features/marketing/ui';
-import { Button, Container, Footer, KitIcon, ICONS } from '@/shared/ui';
+} from '@/features/apply/workspace-domain';
+import { useParseRefresh } from '@/features/apply/parse-refresh';
+import { Button } from '@/shared/ui/button';
+import { KitIcon, ICONS } from '@/shared/ui/icons';
+
+const StagePanel = dynamic(
+  () => import('@/components/apply/StagePanel').then((module) => module.StagePanel),
+  { loading: () => <PanelSkeleton label="Loading application tasks" /> },
+);
+const MatchInsightsPanel = dynamic(
+  () =>
+    import('@/components/apply/match-insights/MatchInsightsPanel').then(
+      (module) => module.MatchInsightsPanel,
+    ),
+  { loading: () => <PanelSkeleton label="Loading match insights" /> },
+);
+
+function PanelSkeleton({ label }: { label: string }) {
+  return (
+    <div
+      className="min-h-64 animate-pulse rounded-gb-2xl border border-line bg-surface-muted"
+      aria-label={label}
+      aria-busy="true"
+    />
+  );
+}
 
 /**
  * The course workspace — Figma "Lập kế hoạch du học", the per-course screen.
@@ -66,28 +76,18 @@ import { Button, Container, Footer, KitIcon, ICONS } from '@/shared/ui';
 type MatchInputs = { cv: boolean; essay: boolean; academic: boolean };
 
 type Props = {
-  workspace: ApplicationWorkspaceView;
+  workspace: Pick<
+    ApplicationWorkspaceView,
+    'application' | 'stages' | 'sources' | 'matchAnalysis'
+  >;
   isPlus?: boolean;
   matchInputs?: MatchInputs;
-  logoUrl?: string | null;
-  userName?: string | null;
-  userAvatarUrl?: string | null;
-  /**
-   * Breadcrumbs + the application context bar, rendered by the server page.
-   *
-   * A slot rather than a component this file imports, because `ApplicationNav`
-   * is an async server component that reads the onboarding state — it cannot
-   * be rendered from inside a client component, only passed through one.
-   */
-  nav?: React.ReactNode;
 };
 
 export function ApplicationWorkspaceV2({
   workspace,
   isPlus = false,
   matchInputs = { cv: false, essay: false, academic: false },
-  logoUrl = null,
-  nav = null,
 }: Props) {
   const router = useRouter();
   const { application, stages, sources } = workspace;
@@ -101,8 +101,6 @@ export function ApplicationWorkspaceV2({
   const researching = isParsePending(application.parseStatus);
   useParseRefresh(researching ? [application] : []);
 
-  const courseName = displayCourseName(application.courseName, application.parseStatus);
-  const universityName = displayUniversityName(application.universityName);
   const urlLabel = courseUrlLabel(application.courseUrl);
 
   const [activeStageId, setActiveStageId] = useState<string | undefined>(
@@ -162,40 +160,7 @@ export function ApplicationWorkspaceV2({
   const hasChecklist = stages.length > 0;
 
   return (
-    /* gb-page-full-bleed: the app sidebar is suppressed for /apply/* in
-       nav-reveal.tsx, so this page ships its own chrome and must reclaim the
-       240px gutter globals.css reserves for a sidebar that is not there.
-       gb-has-mobile-header keeps the top offset, because SiteNavigation's
-       mobile header is fixed and content has to clear it. */
-    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <SiteNavigation tone="light" />
-
-      {/*
-       * Was a hand-rolled "← All applications" link, added because dropping the
-       * sidebar left no route back to the list. `nav` is the general version of
-       * that: breadcrumbs (which still get you to the list, and now also name
-       * where you are) plus the context bar for everything else that belongs to
-       * this application. Passed in from the server page rather than rendered
-       * here, because it reads the onboarding state to know which entries are
-       * open yet.
-       *
-       * Directly under the header and OUTSIDE `<main>`'s Container: it is a
-       * full-bleed red band with its own measure inside, so nesting it in the
-       * page's Container would inset it and double the gutter.
-       */}
-      {nav}
-
-      <main className="min-h-screen pb-gb-9xl pt-gb-4xl">
-        <Container className="flex flex-col gap-gb-5xl">
-          <ApplicationBanner
-            {...(universityName ? { universityName } : {})}
-            {...(courseName ? { courseName } : {})}
-            urlLabel={urlLabel}
-            logoUrl={logoUrl}
-            researching={researching}
-          />
-
-          <div className="grid gap-gb-5xl xl:grid-cols-[minmax(0,1fr)_320px]">
+    <div className="grid gap-gb-5xl xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-gb-5xl">
           {hasChecklist ? (
             <ApplicationJourney
@@ -283,20 +248,7 @@ export function ApplicationWorkspaceV2({
               </ul>
             </section>
           ) : null}
-          </aside>
-          </div>
-        </Container>
-      </main>
-
-      <Footer
-        logo={<GlowbalLogo height={28} />}
-        tagline={FOOTER_TAGLINE}
-        columns={FOOTER_COLUMNS}
-        social={FOOTER_SOCIAL}
-        copyright={FOOTER_COPYRIGHT}
-        ratings={FOOTER_RATINGS}
-      />
-
+      </aside>
     </div>
   );
 }

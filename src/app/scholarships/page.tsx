@@ -1,14 +1,11 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { getScholarshipQueries } from '@/features/scholarships/api';
 import {
-  getScholarshipQueries,
   parseScholarshipSearchParams,
   scholarshipSearchParams,
-  type DirectoryScholarship,
-  type Page,
-  type ScholarshipListQuery,
-  type ScholarshipQueryState,
-} from '@/features/scholarships';
+} from '@/features/scholarships/directory-query';
+import { loadScholarshipDirectory } from '@/features/scholarships/directory-loader';
 import { ScholarshipDirectoryClient } from './scholarship-directory-client';
 
 export const revalidate = 43200;
@@ -16,87 +13,41 @@ export const revalidate = 43200;
 type RawSearchParams = Record<string, string | string[] | undefined>;
 type Props = { searchParams: Promise<RawSearchParams> };
 
-const emptyPage = (page: number): Page<DirectoryScholarship> => ({
-  items: [],
-  total: 0,
-  page,
-  pageSize: 9,
-  hasMore: false,
-});
-
-function listQuery(state: ScholarshipQueryState, page: number): ScholarshipListQuery {
-  return {
-    page,
-    pageSize: 9,
-    search: state.search || undefined,
-    universitySearch: state.universitySearch || undefined,
-    major: state.major,
-    degree: state.degree,
-    country: state.country === 'all' ? undefined : state.country,
-    funding: state.funding,
-    sort: state.sort,
-  };
-}
-
 export default async function ScholarshipsPage({ searchParams }: Props) {
   const state = parseScholarshipSearchParams(await searchParams);
+  const directoryPromise = state.view === 'directory'
+    ? loadScholarshipDirectory(state)
+    : Promise.resolve(null);
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const focusPromise = state.universityId == null
-    ? Promise.resolve(null)
-    : supabase
-        .from('universities')
-        .select('id, name, country')
-        .eq('id', state.universityId)
-        .maybeSingle()
-        .then(({ data }) => data ?? null);
+  const applicationsPromise = state.view === 'ai'
+    ? supabase
+        .from('course_applications')
+        .select('id, university_name, course_name, degree_level, subject, country, country_flag, intake, deadline, status')
+        .eq('user_id', user.id)
+        .not('status', 'in', '("rejected","withdrawn","archived")')
+        .order('created_at', { ascending: false })
+    : Promise.resolve({ data: [] });
 
-  const [focusUniversity, facets, savedResult, applicationsResult, savedScholarshipsResult] =
+  const [directory, facets, savedResult, applicationsResult, savedScholarshipsResult] =
     await Promise.all([
-      focusPromise,
+      directoryPromise,
       getScholarshipQueries().facets(),
       supabase
         .from('user_universities')
         .select('university_id, universities(country)')
         .eq('user_id', user.id),
-      supabase
-        .from('course_applications')
-        .select('id, university_name, course_name, degree_level, subject, country, country_flag, intake, deadline, status')
-        .eq('user_id', user.id)
-        .not('status', 'in', '("rejected","withdrawn","archived")')
-        .order('created_at', { ascending: false }),
+      applicationsPromise,
       supabase.from('user_scholarships').select('scholarship_id').eq('user_id', user.id),
     ]);
 
-  if (state.universityId != null && !focusUniversity) {
-    redirect(`/scholarships?${scholarshipSearchParams(state, { universityId: null })}`);
-  }
-
-  const baseQuery = listQuery(state, state.page);
-  let directoryPage: Page<DirectoryScholarship> | null = null;
-  let focusPage: Page<DirectoryScholarship> | null = null;
-  let countryPage: Page<DirectoryScholarship> | null = null;
-
-  if (focusUniversity) {
-    [focusPage, countryPage] = await Promise.all([
-      getScholarshipQueries().listPublished({ ...baseQuery, universityId: focusUniversity.id }),
-      focusUniversity.country
-        ? getScholarshipQueries().listPublished({
-            ...listQuery(state, state.countryPage),
-            relatedUniversityCountry: focusUniversity.country,
-            excludeUniversityId: focusUniversity.id,
-          })
-        : Promise.resolve(emptyPage(state.countryPage)),
-    ]);
-    if (focusPage.total === 0) {
-      directoryPage = await getScholarshipQueries().listPublished(baseQuery);
-    }
-  } else {
-    directoryPage = await getScholarshipQueries().listPublished(baseQuery);
+  const currentSearch = scholarshipSearchParams(state, {}).toString();
+  if (directory && directory.canonicalSearch !== currentSearch) {
+    redirect(directory.canonicalSearch ? `/scholarships?${directory.canonicalSearch}` : '/scholarships');
   }
 
   const savedScholarshipIds = (savedScholarshipsResult.data ?? []).map((row) =>
@@ -146,17 +97,18 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
     <main className="min-h-screen bg-surface-muted px-4 pb-12 pt-6 md:px-8 md:pb-16 md:pt-10">
       <div className="mx-auto w-full max-w-7xl">
         <ScholarshipDirectoryClient
-          queryState={state}
-          directoryPage={directoryPage}
-          focusPage={focusPage}
-          countryPage={countryPage}
+          queryState={directory?.query ?? state}
+          directoryPage={directory?.directoryPage ?? null}
+          focusPage={directory?.focusPage ?? null}
+          countryPage={directory?.countryPage ?? null}
           facets={facets}
           savedUniversityIds={savedUniversityIds}
           savedCountries={savedCountries}
           applications={applications}
           existingScholarships={existingScholarships}
-          focusUniversity={focusUniversity}
+          focusUniversity={directory?.focusUniversity ?? null}
           savedScholarshipIds={savedScholarshipIds}
+          canonicalSearch={directory?.canonicalSearch ?? currentSearch}
         />
       </div>
     </main>

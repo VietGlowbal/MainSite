@@ -12,6 +12,7 @@ export {
   SCHOLARSHIP_FUNDING,
   SCHOLARSHIP_MAJORS,
   SCHOLARSHIP_SORTS,
+  SCHOLARSHIP_VIEWS,
 } from './domain/query-state';
 export type {
   ScholarshipDegree,
@@ -19,4 +20,5 @@ export type {
   ScholarshipMajor,
   ScholarshipQueryState,
   ScholarshipSort,
+  ScholarshipView,
 } from './domain/query-state';

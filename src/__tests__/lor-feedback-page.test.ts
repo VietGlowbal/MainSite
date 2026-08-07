@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { createClientMock, fetchApplicationWorkspaceMock, fromMock, strategyResultMock } = vi.hoisted(() => ({
+const { createClientMock, getApplicationDocumentContextMock, getServerIdentityMock, fromMock, strategyResultMock } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
-  fetchApplicationWorkspaceMock: vi.fn(),
+  getApplicationDocumentContextMock: vi.fn(),
+  getServerIdentityMock: vi.fn(),
   fromMock: vi.fn(),
   strategyResultMock: vi.fn(),
 }));
@@ -12,8 +13,11 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn(),
 }));
 vi.mock('@/lib/supabase/server', () => ({ createClient: createClientMock }));
-vi.mock('@/lib/api/application-workspace', () => ({
-  fetchApplicationWorkspace: fetchApplicationWorkspaceMock,
+vi.mock('@/server/auth/server-identity', () => ({
+  getServerIdentity: getServerIdentityMock,
+}));
+vi.mock('@/features/apply/api/application-document-context', () => ({
+  getApplicationDocumentContext: getApplicationDocumentContextMock,
 }));
 vi.mock('@/components/statement/StatementFeedbackWorkspace', () => ({
   StatementFeedbackWorkspace: vi.fn(() => null),
@@ -72,7 +76,7 @@ describe('LorFeedbackPage', () => {
       if (table === 'student_achievements') return achievementsQuery;
       return strategyQuery;
     });
-    createClientMock.mockResolvedValue({
+    const supabase = {
       auth: {
         getUser: vi.fn().mockResolvedValue({
           data: {
@@ -88,15 +92,24 @@ describe('LorFeedbackPage', () => {
         }),
       },
       from: fromMock,
-    });
-    fetchApplicationWorkspaceMock.mockResolvedValue({
-      application: {
-        id: 'app-1',
-        courseName: 'Computer Science',
-        universityName: 'Cambridge',
-        aiSummary: 'Programme summary',
+    };
+    createClientMock.mockResolvedValue(supabase);
+    getServerIdentityMock.mockResolvedValue({
+      supabase,
+      identity: {
+        id: 'user-1',
+        email: 'olivia@example.com',
+        name: 'Olivia',
+        avatarUrl: 'https://example.com/avatar.png',
+        userMetadata: {},
       },
-      course: { entryRequirementsSummary: 'Entry requirements' },
+    });
+    getApplicationDocumentContextMock.mockResolvedValue({
+      id: 'app-1',
+      courseName: 'Computer Science',
+      universityName: 'Cambridge',
+      aiSummary: 'Programme summary',
+      entryRequirementsSummary: 'Entry requirements',
     });
   });
 

@@ -8,7 +8,7 @@ import { Button } from './button';
 import { LanguageSwitcher } from './language-switcher';
 import { isNavGroup, isNavLinkActive, type NavEntry, type NavGroup, type NavLink } from './nav-model';
 import { NAV_HIDDEN_EVENT, useNavReveal } from './use-nav-reveal';
-import { TID, testId } from '@/shared/lib';
+import { TID, testId } from '@/shared/lib/testids';
 
 /**
  * TopNav — the desktop header, from three Figma frames that are the same
