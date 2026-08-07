@@ -59,6 +59,19 @@ export function revalidateUniversities(): void {
   revalidateTag(CACHE_TAGS.universities, SWR);
 }
 
+/**
+ * Immediately expire university reads after an external/manual import.
+ *
+ * The regular cron path above deliberately uses stale-while-revalidate. A CSV
+ * import is different: the operator has just changed canonical URLs and needs
+ * the next directory request to block on fresh data rather than serving the
+ * old cards once more. Next 16 documents `{ expire: 0 }` for this webhook-like
+ * case.
+ */
+export function expireUniversitiesNow(): void {
+  revalidateTag(CACHE_TAGS.universities, { expire: 0 });
+}
+
 /** Invalidate the published scholarship directory (and the home index). */
 export function revalidateScholarships(): void {
   revalidateTag(CACHE_TAGS.scholarships, SWR);

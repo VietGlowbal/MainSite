@@ -42,6 +42,30 @@ test('a signed-in user can open a university detail view', async ({ page }) => {
 
   // Unlike a guest, this must open rather than trigger the login gate.
   await expect(page.getByTestId(TID.uniDetailPanel)).toBeVisible();
+
+  // `FadeInImage` uses next/image's `fill`, so the hero must be its positioned
+  // containing block. Without it the absolute image escapes and covers the
+  // section navigation/body below the Figma hero.
+  const hero = page.getByTestId(TID.uniDetailHero);
+  await expect(hero).toBeVisible();
+  const geometry = await hero.evaluate((element) => {
+    const frame = element.getBoundingClientRect();
+    const image = element.querySelector('img');
+    const imageRect = image?.getBoundingClientRect();
+    return {
+      position: getComputedStyle(element).position,
+      ratio: frame.width / frame.height,
+      imageContained:
+        !!imageRect &&
+        imageRect.left >= frame.left - 1 &&
+        imageRect.top >= frame.top - 1 &&
+        imageRect.right <= frame.right + 1 &&
+        imageRect.bottom <= frame.bottom + 1,
+    };
+  });
+  expect(geometry.position).toBe('relative');
+  expect(geometry.ratio).toBeCloseTo(1216 / 640, 1);
+  expect(geometry.imageContained).toBe(true);
 });
 
 test('saving a university survives a reload', async ({ page }) => {

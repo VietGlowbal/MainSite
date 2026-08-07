@@ -7,11 +7,13 @@ export function FadeInImage({
   src,
   alt,
   className = '',
+  sizes = '(max-width: 640px) calc(100vw - 32px), (max-width: 1024px) 50vw, 386px',
   onError,
 }: {
   src: string;
   alt: string;
   className?: string;
+  sizes?: string;
   onError?: () => void;
 }) {
   const [loaded, setLoaded] = useState(false);
@@ -21,7 +23,7 @@ export function FadeInImage({
       src={src}
       alt={alt}
       fill
-      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+      sizes={sizes}
       onLoad={() => setLoaded(true)}
       onError={() => onError?.()}
       className={`transition-opacity duration-300 ${loaded ? 'opacity-100' : 'opacity-0'} ${className}`}
