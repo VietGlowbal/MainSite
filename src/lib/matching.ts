@@ -46,7 +46,12 @@ export function computeMatchResult(profile: StudentProfile, university: Universi
   const countryMax = 25;
   let countryScore = 0;
   let countryReason = '';
-  const preferredCountries = (profile.preferred_countries ?? []).map((c) => c.toLowerCase());
+  const preferredCountries = (profile.preferred_countries ?? [])
+    .map((c) => c.toLowerCase())
+    // The onboarding answer "Open to ideas" is stored literally so it can be
+    // edited in User Profile. For matching it means exactly what an empty list
+    // used to mean: do not penalise any destination.
+    .filter((country) => country !== 'open to ideas');
   if (preferredCountries.length > 0) {
     const uniCountry = (university.country ?? '').toLowerCase();
     if (preferredCountries.includes(uniCountry)) {
