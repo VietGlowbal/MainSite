@@ -86,3 +86,22 @@ export type { CoachMessage, CoachRole, CoachSeedIntent, CoachThread } from './co
 
 export { isOnboardingComplete, nextOnboardingStep, onboardingStepHref } from './onboarding';
 export type { OnboardingState, OnboardingStep } from './onboarding';
+
+export {
+  directionOptionSchema,
+  portfolioOpportunitySchema,
+  portfolioOpportunitySourceSchema,
+  portfolioRecommendationSchema,
+  strategyRecommendationFromRow,
+  strategyRecommendationSchema,
+  strategyRoadmapSchema,
+} from './strategy-recommendation';
+export type {
+  DirectionOption,
+  PortfolioOpportunity,
+  PortfolioOpportunitySource,
+  PortfolioRecommendation,
+  StrategyRecommendation,
+  StrategyRecommendationRecord,
+  StrategyRoadmap,
+} from './strategy-recommendation';

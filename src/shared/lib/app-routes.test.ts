@@ -92,28 +92,41 @@ describe('breadcrumbTrail', () => {
 });
 
 describe('applicationSubNav', () => {
-  it('links everything once the analysis and planner are ready', () => {
-    const items = applicationSubNav('app_1', { analysisReady: true, plannerReady: true });
+  it('links everything once the analysis, strategy and planner are ready', () => {
+    const items = applicationSubNav('app_1', {
+      analysisReady: true,
+      strategyReady: true,
+      plannerReady: true,
+    });
     expect(items.every((item) => !item.locked)).toBe(true);
     expect(items.map((item) => item.key)).toEqual([
       'overview',
       'portrait',
       'fit',
+      'strategyReport',
       'planner',
       'cv',
       'statement',
     ]);
+    expect(items.find((item) => item.key === 'strategyReport')?.href).toBe(
+      '/ai-strategy/app_1/strategy/analysis/recommendation',
+    );
     expect(items.find((item) => item.key === 'cv')?.href).toBe('/apply/app_1/cv');
     expect(items.find((item) => item.key === 'statement')?.href).toBe(
       '/apply/app_1/statement-feedback',
     );
   });
 
-  it('shows the planner locked rather than hiding it', () => {
+  it('shows the planner and strategy report locked rather than hiding them', () => {
     // Hiding would make the product look smaller and tell the student nothing
     // about what finishing unlocks.
-    const items = applicationSubNav('app_1', { analysisReady: false, plannerReady: false });
+    const items = applicationSubNav('app_1', {
+      analysisReady: false,
+      strategyReady: false,
+      plannerReady: false,
+    });
     expect(items.find((i) => i.key === 'planner')?.locked).toBe(true);
+    expect(items.find((i) => i.key === 'strategyReport')?.locked).toBe(true);
     expect(items.find((i) => i.key === 'portrait')?.locked).toBe(true);
     // The tools never lock — they do not depend on the analysis.
     expect(items.find((i) => i.key === 'cv')?.locked).toBeUndefined();
@@ -126,7 +139,18 @@ describe('activeSubNavKey', () => {
     // Both live under /strategy; longest-match-first is what separates them.
     expect(activeSubNavKey('/ai-strategy/a/strategy/analysis/fit')).toBe('fit');
     expect(activeSubNavKey('/ai-strategy/a/strategy/analysis/portrait')).toBe('portrait');
+    expect(activeSubNavKey('/ai-strategy/a/strategy/analysis/recommendation')).toBe(
+      'strategyReport',
+    );
     expect(activeSubNavKey('/ai-strategy/a/strategy/dashboard')).toBe('planner');
+  });
+
+  it('treats StrategyHome and the intro explainer as pre-Planner onboarding, not the Planner', () => {
+    // These used to alias to 'planner' back when /strategy/intro was the
+    // last step before the dashboard. Now the Personalized Strategy report
+    // sits between them and the Planner, so neither should highlight it.
+    expect(activeSubNavKey('/ai-strategy/a/strategy')).toBe('overview');
+    expect(activeSubNavKey('/ai-strategy/a/strategy/intro')).toBe('overview');
   });
 
   it('keeps a task detail under the planner', () => {

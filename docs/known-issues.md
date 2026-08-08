@@ -12,6 +12,7 @@ are regression records for fixed bugs, not open work:
 |---|---|
 | §00 draft compatibility | Guarded in `features/onboarding/domain/draft.ts`; keep the migration/coercion tests when shapes change. |
 | §0, §0b, §0c database migrations | Code still depends on the repaired academic columns, recommendation INSERT policy/fields, and `emerging_themes`; live application status was not revalidated on 2026-08-06. |
+| §0f `application_strategy_recommendations` migration | New table, added 2026-08-08 alongside the F7 Personalized Strategy report; never run against production — verify before relying on the strategy report generating or exporting. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
@@ -290,6 +291,41 @@ Matching Report will then successfully call `generateRecommendations`, which
 needs `supabase-strategy-recommendation-content-blocks.sql` to have run too
 or the recommendation *inserts* themselves will fail the same way, one layer
 further in.
+
+## 0f. `supabase-strategy-recommendation-report.sql` never run — the Personalized Strategy report cannot generate or export
+
+Written 2026-08-08 alongside the F7 Personalized Strategy report (the
+`/ai-strategy/[id]/strategy/analysis/recommendation` page — see
+`docs/README.md` for what F7 is and why it is a separate page from the
+Planner). **Never run against production.** Verify first:
+
+```sql
+select 1 from information_schema.tables where table_name = 'application_strategy_recommendations';
+```
+should return a row.
+
+**Until it runs**: `POST /api/applications/[id]/strategy/recommendation`
+(generation) fails the insert with Postgres `42P01`/PostgREST `PGRST205`
+("relation does not exist"/"table not found in schema cache") — the route
+logs a named hint pointing at this file, same pattern as §0d/§0c. The report
+page's generation gate (`StrategyRecommendationWorkspace`) surfaces this as
+its normal error state with a "Try again" button that cannot succeed until
+the migration runs, the same failure shape §0e describes for the Matching
+Report. `GET` on the same route degrades gracefully — no row simply reads as
+`{ recommendation: null }` — but the POST path is what a student needing
+their first Personalized Strategy report always hits.
+
+**Depends on `supabase-ai-strategy-reports.sql` (§0e) already having run.**
+F7 synthesises the Personal Report (`applicant_analyses`) and the Matching
+Report (`application_match_analyses.fit_*`) — both are §0e's tables/columns.
+If §0e has not run either, the generation route 422s with "Generate your
+Personal Report and Matching Report first" before it ever reaches this
+table, which is the correct diagnosis but means fixing §0f alone will not be
+enough on a database where §0e is also still pending.
+
+**Fix**: run `supabase-strategy-recommendation-report.sql` in the Supabase
+SQL editor. It is additive (`CREATE TABLE IF NOT EXISTS`), so safe to run
+even if parts of it somehow already exist.
 
 ## 0d. `application_recommendations` genUI columns — the detail-page content block
 

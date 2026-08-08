@@ -7,6 +7,7 @@ function state(overrides: Partial<OnboardingState> = {}): OnboardingState {
     achievementsComplete: false,
     aiAnalysisComplete: false,
     introSeen: false,
+    strategyComplete: false,
     ...overrides,
   };
 }
@@ -39,7 +40,7 @@ describe('nextOnboardingStep', () => {
     ).toBe('intro');
   });
 
-  it('routes to the dashboard only once every step is done', () => {
+  it('routes to the Personalized Strategy report once the intro has been seen but the report has not generated', () => {
     expect(
       nextOnboardingStep(
         state({
@@ -47,6 +48,20 @@ describe('nextOnboardingStep', () => {
           achievementsComplete: true,
           aiAnalysisComplete: true,
           introSeen: true,
+        }),
+      ),
+    ).toBe('strategy');
+  });
+
+  it('routes to the dashboard only once every step, including the strategy report, is done', () => {
+    expect(
+      nextOnboardingStep(
+        state({
+          personalSummaryComplete: true,
+          achievementsComplete: true,
+          aiAnalysisComplete: true,
+          introSeen: true,
+          strategyComplete: true,
         }),
       ),
     ).toBe('dashboard');
@@ -71,9 +86,7 @@ describe('isOnboardingComplete', () => {
         state({ personalSummaryComplete: true, achievementsComplete: true, aiAnalysisComplete: true }),
       ),
     ).toBe(false);
-  });
-
-  it('is true only when all four steps are done', () => {
+    // Everything but the strategy report — still not complete.
     expect(
       isOnboardingComplete(
         state({
@@ -81,6 +94,20 @@ describe('isOnboardingComplete', () => {
           achievementsComplete: true,
           aiAnalysisComplete: true,
           introSeen: true,
+        }),
+      ),
+    ).toBe(false);
+  });
+
+  it('is true only when all five steps are done', () => {
+    expect(
+      isOnboardingComplete(
+        state({
+          personalSummaryComplete: true,
+          achievementsComplete: true,
+          aiAnalysisComplete: true,
+          introSeen: true,
+          strategyComplete: true,
         }),
       ),
     ).toBe(true);
@@ -103,6 +130,9 @@ describe('onboardingStepHref', () => {
   it('routes the remaining steps to their own per-Strategy pages', () => {
     expect(onboardingStepHref('analysis', 'app-1')).toBe('/ai-strategy/app-1/strategy/analysis');
     expect(onboardingStepHref('intro', 'app-1')).toBe('/ai-strategy/app-1/strategy/intro');
+    expect(onboardingStepHref('strategy', 'app-1')).toBe(
+      '/ai-strategy/app-1/strategy/analysis/recommendation',
+    );
     expect(onboardingStepHref('dashboard', 'app-1')).toBe('/ai-strategy/app-1/strategy/dashboard');
   });
 });

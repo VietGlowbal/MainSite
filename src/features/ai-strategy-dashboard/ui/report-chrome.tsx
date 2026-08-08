@@ -45,7 +45,11 @@ const STAGES: readonly Stage[] = [
     label: 'GlowBal Matching Report',
     href: (id) => `/ai-strategy/${id}/strategy/analysis/fit`,
   },
-  { key: 'strategy', label: 'Personalized Strategy', href: (id) => `/ai-strategy/${id}/strategy/intro` },
+  {
+    key: 'strategy',
+    label: 'Personalized Strategy',
+    href: (id) => `/ai-strategy/${id}/strategy/analysis/recommendation`,
+  },
   {
     key: 'planner',
     label: 'Application Planner',

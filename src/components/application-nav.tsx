@@ -75,6 +75,7 @@ export async function ApplicationNav({
 
   const items = applicationSubNav(applicationId, {
     analysisReady: state.aiAnalysisComplete,
+    strategyReady: state.strategyComplete,
     // The planner is the last step; anything earlier and the route redirects.
     plannerReady: step === 'dashboard',
   });
