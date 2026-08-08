@@ -7,6 +7,7 @@ import {
   type UniversityRawSearchParams,
 } from '@/features/universities/directory-query';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
@@ -30,6 +31,9 @@ export default async function UniversitiesPage({ searchParams }: Props) {
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
+      {/* Keep the session-aware header in its own client boundary. A session
+          update during selective hydration must never remount the directory. */}
+      <SiteNavigation tone="light" showSaved />
       <UniversityListClient
         universities={directory.page.items}
         total={directory.page.total}

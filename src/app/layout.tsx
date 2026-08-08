@@ -4,6 +4,7 @@ import { Bricolage_Grotesque, Geist_Mono, Inter } from 'next/font/google';
 import { Analytics } from '@vercel/analytics/next';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 import { NavReveal } from '@/components/nav-reveal';
+import { NavigationSessionProvider } from '@/components/navigation-session';
 import { RouteLoading } from '@/components/route-loading';
 import { LanguageProvider } from '@/lib/i18n';
 import { DomTranslator } from '@/lib/dom-translate';
@@ -119,12 +120,13 @@ export default function RootLayout({
           so a utility would out-rank it and flip the page background from
           #F5F6FF to white. The background belongs to the base layer. */}
       <body className="min-h-full flow-root overflow-x-clip text-slate-800 glowbal-site-shell">
-        <LanguageProvider>
-          <NavReveal />
+        <NavigationSessionProvider>
+          <LanguageProvider>
+            <NavReveal />
           {/* Puts the globe loader up during client-side navigation. Renders
               nothing itself — it only drives the loading store. */}
-          <RouteLoading />
-          <main className="glowbal-main-content">{children}</main>
+            <RouteLoading />
+            <main className="glowbal-main-content">{children}</main>
           {/* The floating "?" — opens the product walkthrough over whatever
               page the student is on, at the step matching that page. Mounted
               here so it is genuinely everywhere: universities, scholarships,
@@ -132,16 +134,17 @@ export default function RootLayout({
               suppresses itself on the routes that are not the student journey
               (auth, admin, coordinator, onboarding, dev) and on /ai-strategy
               exactly, which IS the walkthrough — its child routes keep it. */}
-          <StrategyHelpButton />
+            <StrategyHelpButton />
           {/* Inside LanguageProvider: the loader's rotating line is bilingual.
               Mounted once here so every page gets it — see loading-overlay.tsx
               for why callers do not need a provider of their own. */}
-          <GlobalLoadingOverlay />
+            <GlobalLoadingOverlay />
           {/* Whole-page translation for any text not covered by the static
               dictionary or t()/AutoTranslate. Only calls /api/translate when
               Vietnamese is active; English stays the zero-cost default. */}
-          <DomTranslator />
-        </LanguageProvider>
+            <DomTranslator />
+          </LanguageProvider>
+        </NavigationSessionProvider>
         <Analytics />
         <SpeedInsights />
       </body>

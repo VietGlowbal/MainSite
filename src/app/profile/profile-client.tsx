@@ -59,7 +59,7 @@ type Props = {
   documents: ProfileDocument[];
   activeApplications: number;
   workEntries: number;
-  englishScores: number;
+  testScores: number;
   isMentor: boolean;
   plusStatus: boolean;
   plusPlan: string | null;
@@ -95,7 +95,7 @@ type SectionInputs = {
   profile: StudentProfile | null;
   documents: ProfileDocument[];
   workEntries: number;
-  englishScores: number;
+  testScores: number;
 };
 
 type SectionDef = {
@@ -139,14 +139,16 @@ const SECTIONS: SectionDef[] = [
         filled(p?.current_qualification),
         filled(p?.predicted_grades),
         filled(p?.academic_background),
+        filled(p?.curriculum),
+        filled(p?.curriculum_grades),
       ]),
   },
   {
     key: 'english',
     href: '/profile/english',
-    title: 'English proficiency',
-    description: 'IELTS, TOEFL or other language test scores',
-    pct: ({ englishScores }) => band(englishScores),
+    title: 'Test scores',
+    description: 'English-language and standardized test results',
+    pct: ({ testScores }) => band(testScores),
   },
   {
     key: 'preferences',
@@ -158,6 +160,8 @@ const SECTIONS: SectionDef[] = [
         filled(p?.preferred_countries),
         filled(p?.target_subjects),
         filled(p?.budget_range),
+        filled(p?.campus_preferences),
+        filled(p?.support_needs),
         filled(p?.study_mode_preference),
         filled(p?.target_intake),
       ]),
@@ -472,12 +476,12 @@ export function ProfileClient({
   documents,
   activeApplications,
   workEntries,
-  englishScores,
+  testScores,
   isMentor,
   plusStatus,
   plusPlan,
 }: Props) {
-  const input: SectionInputs = { profile, documents, workEntries, englishScores };
+  const input: SectionInputs = { profile, documents, workEntries, testScores };
   const strength = Math.round(
     SECTIONS.reduce((total, section) => total + section.pct(input), 0) / SECTIONS.length,
   );

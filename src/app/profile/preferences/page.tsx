@@ -10,14 +10,14 @@ export default async function PreferencesPage() {
 
   const { data: profile } = await supabase
     .from('student_profiles')
-    .select('preferred_countries, preferred_cities, target_subjects, budget_range, campus_preferences, study_mode_preference, target_intake, application_cycle_year')
+    .select('preferred_countries, preferred_cities, target_subjects, budget_range, campus_preferences, support_needs, study_mode_preference, target_intake, application_cycle_year')
     .eq('user_id', user.id)
     .maybeSingle();
 
   return (
     <ProfileSectionShell
       title="Target preferences"
-      description="Where you want to study, what you want to study, and your budget."
+      description="Where and what you want to study, your budget, and the support you need."
     >
       <PreferencesForm userId={user.id} initialProfile={profile} />
     </ProfileSectionShell>

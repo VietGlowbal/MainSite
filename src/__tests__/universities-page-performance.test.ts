@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   loadDirectory: vi.fn(),
   getFacets: vi.fn(),
   client: vi.fn(() => null),
+  navigation: vi.fn(() => null),
 }));
 
 vi.mock('@/features/universities/api/directory-loader', () => ({
@@ -13,6 +14,9 @@ vi.mock('@/features/universities/api/directory-loader', () => ({
 }));
 vi.mock('@/app/universities/university-list-client', () => ({
   UniversityListClient: mocks.client,
+}));
+vi.mock('@/components/site-navigation', () => ({
+  SiteNavigation: mocks.navigation,
 }));
 
 import UniversitiesPage from '@/app/universities/page';
@@ -37,9 +41,21 @@ describe('UniversitiesPage performance', () => {
       country: '',
       page: 1,
     });
-    const client = page.props.children[0];
+    const navigation = page.props.children[0];
+    const client = page.props.children[1];
+    expect(navigation.type).toBe(mocks.navigation);
+    expect(navigation.props).toEqual({ tone: 'light', showSaved: true });
     expect(client.type).toBe(mocks.client);
     expect(client.props.universities).toEqual([]);
+  });
+
+  it('isolates session-aware navigation from the directory hydration boundary', () => {
+    const page = readFileSync('src/app/universities/page.tsx', 'utf8');
+    const client = readFileSync('src/app/universities/university-list-client.tsx', 'utf8');
+
+    expect(page).toContain('<SiteNavigation tone="light" showSaved />');
+    expect(client).not.toContain("from '@/components/site-navigation'");
+    expect(client).not.toContain('<SiteNavigation');
   });
 
   it('does not remount cards after identity hydration or load the globe video in its skeleton', () => {

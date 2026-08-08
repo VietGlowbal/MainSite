@@ -16,10 +16,11 @@ export default async function ProfilePage() {
     appsCountResult,
     workCountResult,
     englishCountResult,
+    standardizedCountResult,
   ] = await Promise.all([
     supabase
       .from('student_profiles')
-      .select('phone, date_of_birth, location, nationality, bio, study_level, current_institution, current_qualification, predicted_grades, academic_background, preferred_countries, target_subjects, budget_range, study_mode_preference, target_intake, achievements, skills, goals, career_interests, application_cycle_year, plus_status, plus_plan')
+      .select('phone, date_of_birth, location, nationality, bio, study_level, current_institution, current_qualification, predicted_grades, academic_background, curriculum, curriculum_grades, gpa_scale, gpa_value, preferred_countries, target_subjects, budget_range, campus_preferences, support_needs, study_mode_preference, target_intake, achievements, skills, goals, career_interests, application_cycle_year, plus_status, plus_plan')
       .eq('user_id', user.id)
       .maybeSingle(),
     supabase
@@ -30,15 +31,15 @@ export default async function ProfilePage() {
     getMentorSummary(),
     supabase.from('course_applications').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     /*
-     * Work experience and English scores live in their own tables, not on
-     * student_profiles. The page used to fetch neither, so both section cards
+     * Work experience and test scores live in their own tables, not on
+     * student_profiles. The page used to fetch neither, so these section cards
      * hard-returned 0% — they read "Get started" to a student who had already
      * filled them in, and they dragged the overall strength figure down with
-     * them. Two head-only counts is what it takes to stop the page lying about
-     * its own data; the editors themselves are unchanged.
+     * them. Head-only counts stop the page lying without loading each row here.
      */
     supabase.from('work_experiences').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('english_test_scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    supabase.from('standardized_test_scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
   ]);
 
   const profile = profileResult.data;
@@ -67,7 +68,7 @@ export default async function ProfilePage() {
         documents={documents}
         activeApplications={activeApplications}
         workEntries={workCountResult.count ?? 0}
-        englishScores={englishCountResult.count ?? 0}
+        testScores={(englishCountResult.count ?? 0) + (standardizedCountResult.count ?? 0)}
         isMentor={!!mentorSummary}
         plusStatus={!!profile?.plus_status}
         plusPlan={profile?.plus_plan ?? null}

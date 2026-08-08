@@ -26,7 +26,12 @@
  * Pure functions only. No React, no I/O.
  */
 
-import { defaultScaleFor, gradeFormatFor, scalesFor } from './academic-grading';
+import {
+  defaultScaleFor,
+  gradeFormatFor,
+  scalesFor,
+  toCurriculumGrades,
+} from './academic-grading';
 import type { CurriculumGrade, GradeFormat } from './academic-grading';
 
 /**
@@ -109,6 +114,57 @@ export function toCurriculumList(value: unknown): string[] {
   if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
   if (typeof value === 'string' && value.trim() !== '') return [value];
   return [];
+}
+
+/**
+ * The curriculum fields as they come back from `student_profiles`.
+ *
+ * Kept deliberately narrower than `StudentProfile` so this pure domain module
+ * does not depend on an application-boundary type. It is shared by onboarding
+ * and the profile editor: both must restore the same grade onto the same scale.
+ */
+export type AcademicProfileSource = {
+  curriculum?: unknown;
+  curriculum_grades?: unknown;
+  gpa_scale?: string | null | undefined;
+  gpa_value?: number | null | undefined;
+};
+
+/**
+ * Restore the normalized profile columns into the editable câu-6 shape.
+ *
+ * `curriculum_grades` is canonical. The scale/value pair is only a legacy
+ * fallback for a row written before the JSONB column existed, and is applied to
+ * the first curriculum only when that curriculum genuinely offers the scale.
+ */
+export function academicFromProfile(profile: AcademicProfileSource): Academic {
+  const curriculum = toCurriculumList(profile.curriculum);
+  const scales: Record<string, string> = {};
+  const grades: Record<string, string> = {};
+
+  for (const row of toCurriculumGrades(profile.curriculum_grades)) {
+    if (!curriculum.includes(row.curriculum)) continue;
+    scales[row.curriculum] = row.scale;
+    grades[row.curriculum] = row.grade;
+  }
+
+  const first = curriculum[0];
+  if (
+    first !== undefined &&
+    grades[first] === undefined &&
+    profile.gpa_value != null &&
+    profile.gpa_scale != null &&
+    scalesFor(first).some((format) => format.scale === profile.gpa_scale)
+  ) {
+    scales[first] = profile.gpa_scale;
+    grades[first] = String(profile.gpa_value);
+  }
+
+  for (const name of curriculum) {
+    if (scales[name] === undefined) scales[name] = defaultScaleFor(name);
+  }
+
+  return { curriculum, scales, grades: keepScores(curriculum, grades) };
 }
 
 /**

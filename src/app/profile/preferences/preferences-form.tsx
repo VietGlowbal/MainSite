@@ -2,12 +2,19 @@
 
 import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { supportNeeds } from '@/lib/onboarding-options';
 import type { StudentProfile } from '@/lib/types';
 import { Input, Panel, PanelHeader, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { SaveBar, SelectOptions, TagInput, type SaveMessage } from '../_form-parts';
 
 const BUDGET_OPTIONS = [
+  // The planning test's four values stay first so a saved answer is visibly
+  // the same choice when the student reaches User Profile.
+  'Under $15k',
+  'Up to $25k',
+  'Up to $50k',
+  '$50k+',
   'Under $10,000 / year',
   '$10,000–$20,000 / year',
   '$20,000–$35,000 / year',
@@ -18,7 +25,21 @@ const BUDGET_OPTIONS = [
 
 const STUDY_MODES = ['Full-time', 'Part-time', 'Either'];
 
-const POPULAR_COUNTRIES = ['United Kingdom', 'United States', 'Australia', 'Canada', 'Germany', 'Netherlands', 'Singapore', 'Japan', 'South Korea', 'Vietnam'];
+const POPULAR_COUNTRIES = [
+  // A deliberate planning-test sentinel, not a country. Keeping it selectable
+  // preserves "show me the best fit anywhere" rather than forcing a region.
+  'Open to ideas',
+  'United Kingdom',
+  'United States',
+  'Australia',
+  'Canada',
+  'Germany',
+  'Netherlands',
+  'Singapore',
+  'Japan',
+  'South Korea',
+  'Vietnam',
+];
 
 export function PreferencesForm({
   userId,
@@ -33,6 +54,7 @@ export function PreferencesForm({
   const [subjects, setSubjects] = useState<string[]>(initialProfile?.target_subjects ?? []);
   const [budget, setBudget] = useState(initialProfile?.budget_range ?? '');
   const [campus, setCampus] = useState(initialProfile?.campus_preferences ?? '');
+  const [supportNeed, setSupportNeed] = useState(initialProfile?.support_needs ?? '');
   const [studyMode, setStudyMode] = useState(initialProfile?.study_mode_preference ?? '');
   const [intake, setIntake] = useState(initialProfile?.target_intake ?? '');
   const [cycleYear, setCycleYear] = useState(String(initialProfile?.application_cycle_year ?? ''));
@@ -51,6 +73,7 @@ export function PreferencesForm({
         target_subjects: subjects.length > 0 ? subjects : null,
         budget_range: budget || null,
         campus_preferences: campus || null,
+        support_needs: supportNeed || null,
         study_mode_preference: studyMode || null,
         target_intake: intake || null,
         application_cycle_year: cycleYear ? parseInt(cycleYear, 10) : null,
@@ -144,6 +167,17 @@ export function PreferencesForm({
             onChange={(e) => setCampus(e.target.value)}
             fieldClassName="sm:col-span-2"
           />
+          <Select
+            name="support_needs"
+            label="Where you want support most"
+            placeholder="Select a support area…"
+            hint="This is the same answer used by your education-planning test."
+            value={supportNeed}
+            onChange={(e) => setSupportNeed(e.target.value)}
+            fieldClassName="sm:col-span-2"
+          >
+            <SelectOptions options={supportNeeds} value={supportNeed} />
+          </Select>
         </div>
 
         <SaveBar onSave={handleSave} saving={saving} message={message} label="Save preferences" />

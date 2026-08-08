@@ -1,4 +1,6 @@
 import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
+import { onboardingIsComplete } from '@/features/onboarding/domain';
 import { createClient } from '@/lib/supabase/server';
 import { OnboardingWizard } from './onboarding-wizard';
 
@@ -19,19 +21,16 @@ export default async function OnboardingPage() {
     ? (await supabase.from('student_profiles').select('*').eq('user_id', user.id).maybeSingle()).data
     : null;
 
-  const userName =
-    (user?.user_metadata?.full_name as string | undefined) ||
-    user?.email?.split('@')[0] ||
-    null;
-  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
+  // The questionnaire is a first-time experience. Its answers remain
+  // editable from /profile, but a completed student should never be sent back
+  // through the test by a stale bookmark or a hand-typed URL.
+  if (onboardingIsComplete(profile)) redirect('/profile');
 
   return (
     <Suspense fallback={null}>
       <OnboardingWizard
         initialProfile={profile}
         isSignedIn={!!user}
-        userName={userName}
-        userAvatarUrl={userAvatarUrl}
       />
     </Suspense>
   );

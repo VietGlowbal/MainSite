@@ -20,6 +20,7 @@ export {
   EMPTY_ACADEMIC,
   EMPTY_TESTS,
   academicComplete,
+  academicFromProfile,
   collectCurriculumGrades,
   keepScores,
   readAcademicDraft,
@@ -27,4 +28,4 @@ export {
   testScoresValid,
   toCurriculumList,
 } from './draft';
-export type { Academic, Tests } from './draft';
+export type { Academic, AcademicProfileSource, Tests } from './draft';

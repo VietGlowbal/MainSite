@@ -4,8 +4,9 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { useNavigationSession, type NavigationSessionValue } from '@/components/navigation-session';
 import { SavedNavLink } from '@/components/saved-nav-link';
-import { MARKETING_NAV_ITEMS } from '@/features/marketing/navigation';
+import { getMarketingNavPresentation } from '@/features/marketing/ui';
 import { useLanguage } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
 import { MobileNav, type MobileNavEntry } from '@/shared/ui/mobile-nav';
@@ -65,9 +66,9 @@ function useNavPrefFlag(key: string): boolean {
 }
 
 /**
- * Role-gated extras. Everything a normal student sees comes from
- * `MARKETING_NAV_ITEMS`; these three are appended per role and have no
- * marketing equivalent, because nothing about them is public.
+ * Role-gated extras. Everything a normal student sees comes from the shared
+ * audience-aware navigation model; these three are appended per role and have
+ * no marketing equivalent, because nothing about them is public.
  */
 const MENTOR_DASHBOARD_ITEM = { href: '/dashboard/advisor', label: 'Advisor hub' };
 const COORDINATOR_ITEM = { href: '/coordinator', label: 'Coordinator' };
@@ -89,23 +90,21 @@ const ADMIN_ITEM = { href: '/admin', label: 'Admin' };
  *    guests; the marketing list deliberately shows them (owner, 31/07 — the
  *    links are how a guest finds out the features exist, and each page forces
  *    sign-in when opened).
- *  - **"Home" is gone.** The marketing bar has never carried it: the wordmark
- *    is the home affordance, and `TopNav` links it itself.
- *
- * Role extras are appended, not merged, so they always sit after the four
- * shared entries.
+ * The supplied navigation matrix now explicitly includes Home. Role extras are
+ * appended, not merged, so they always sit after the audience's shared entries.
  */
 function navEntriesFor(
   user: UserSummary | null,
   t: (key: string) => string,
+  session: Pick<NavigationSessionValue, 'ready' | 'signedIn' | 'completed'>,
 ): MobileNavEntry[] {
-  const shared: MobileNavEntry[] = MARKETING_NAV_ITEMS.map((entry) =>
+  const audience = session.ready
+    ? { signedIn: session.signedIn, completed: session.completed }
+    : { signedIn: true, completed: true };
+  const shared: MobileNavEntry[] = getMarketingNavPresentation(audience, t).items.map((entry) =>
     isNavGroup(entry)
-      ? {
-          label: t(entry.label),
-          items: entry.items.map((child) => ({ href: child.href, label: t(child.label) })),
-        }
-      : { href: entry.href, label: t(entry.label) },
+      ? { label: entry.label, items: [...entry.items] }
+      : { href: entry.href, label: entry.label },
   );
 
   const extras = [
@@ -136,10 +135,22 @@ function navEntriesFor(
  * page. The designer confirmed the redesign collapses navigation into a single
  * hamburger, so the destinations they carried between them all land here.
  */
-function MobileNavigation({ user }: { user: UserSummary | null }) {
+function MobileNavigation({
+  user,
+  session,
+}: {
+  user: UserSummary | null;
+  session: NavigationSessionValue;
+}) {
   const { t } = useLanguage();
 
-  const items = navEntriesFor(user, t);
+  const presentation = getMarketingNavPresentation(
+    session.ready
+      ? { signedIn: session.signedIn, completed: session.completed }
+      : { signedIn: true, completed: true },
+    t,
+  );
+  const items = navEntriesFor(user, t, session);
 
   return (
     <MobileNav
@@ -149,12 +160,8 @@ function MobileNavigation({ user }: { user: UserSummary | null }) {
         </Link>
       }
       items={items}
-      primaryAction={{ href: '/apply', label: t('Plan your studies') }}
-      secondaryAction={
-        user
-          ? { href: '/profile', label: t('Profile') }
-          : { href: '/auth', label: t('Sign in') }
-      }
+      primaryAction={session.ready ? presentation.primaryAction : undefined}
+      secondaryAction={session.ready ? presentation.accountAction : undefined}
       openLabel={t('Menu')}
       closeLabel={t('Close menu')}
       utility={<SavedNavLink variant="row" />}
@@ -164,12 +171,18 @@ function MobileNavigation({ user }: { user: UserSummary | null }) {
 
 // ── Desktop header ───────────────────────────────────────────────────────────
 type UserSummary = {
+  id: string;
   name: string;
   avatarUrl?: string;
   isMentor?: boolean;
   isAdmin?: boolean;
   isCoordinator?: boolean;
 };
+
+type UserRoles = Pick<
+  UserSummary,
+  'id' | 'isMentor' | 'isAdmin' | 'isCoordinator'
+>;
 
 /**
  * The app's desktop header.
@@ -188,21 +201,42 @@ type UserSummary = {
  * `tone="light"`: the dark bar belongs to the marketing pages. Signed-in app
  * pages are content, and the light frame (105:8301) is the one for those.
  */
-function AppTopNav({ user }: { user: UserSummary | null }) {
+function AppTopNav({
+  user,
+  session,
+}: {
+  user: UserSummary | null;
+  session: NavigationSessionValue;
+}) {
   const { t } = useLanguage();
 
-  const items = navEntriesFor(user, t);
+  const presentation = getMarketingNavPresentation(
+    session.ready
+      ? { signedIn: session.signedIn, completed: session.completed }
+      : { signedIn: true, completed: true },
+    t,
+  );
+  const items = navEntriesFor(user, t, session);
 
   return (
     <TopNav
       tone="light"
       logo={<GlowbalLogo height={28} />}
       items={items}
-      primaryAction={{ href: '/apply', label: t('Plan your studies') }}
+      primaryAction={session.ready ? presentation.primaryAction : undefined}
       utility={<SavedNavLink />}
       {...(user
-        ? { user: { name: user.name, avatarUrl: user.avatarUrl, href: '/profile' } }
-        : { secondaryAction: { href: '/auth', label: t('Sign in') } })}
+        ? {
+            user: {
+              name: user.name,
+              label: presentation.accountAction.label,
+              avatarUrl: user.avatarUrl,
+              href: presentation.accountAction.href,
+            },
+          }
+        : session.ready
+          ? { secondaryAction: presentation.accountAction }
+          : {})}
     />
   );
 }
@@ -210,8 +244,9 @@ function AppTopNav({ user }: { user: UserSummary | null }) {
 // ── Main nav controller ──────────────────────────────────────────────────────
 export function NavReveal() {
   const pathname = usePathname();
-  const [user, setUser] = useState<UserSummary | null>(null);
-  const loadedUserId = useRef<string | null>(null);
+  const navigationSession = useNavigationSession();
+  const [roles, setRoles] = useState<UserRoles | null>(null);
+  const roleRequestVersion = useRef(0);
 
   // Hide nav on home page regardless of revealed state
   const isHomePage = pathname === '/';
@@ -350,15 +385,26 @@ export function NavReveal() {
     }
     window.addEventListener('glowbal:reveal-nav', onReveal);
 
+    return () => {
+      window.removeEventListener('glowbal:reveal-nav', onReveal);
+    };
+  }, []);
+
+  const navigationUserId = navigationSession.user?.id ?? null;
+
+  useEffect(() => {
+    let active = true;
+    const requestVersion = ++roleRequestVersion.current;
+
+    if (!navigationUserId || rendersOwnChrome) {
+      return () => {
+        active = false;
+      };
+    }
+
+    const userId = navigationUserId;
     const supabase = createClient();
-    async function loadUser(authUser: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null) {
-      if (!authUser) {
-        loadedUserId.current = null;
-        setUser(null);
-        return;
-      }
-      if (loadedUserId.current === authUser.id) return;
-      loadedUserId.current = authUser.id;
+    async function loadRoles() {
       // Best-effort fetch of the mentor profile flag. RLS-safe — anyone
       // can read their own row. We don't block the header on this; the
       // pill simply appears after the request resolves.
@@ -366,7 +412,7 @@ export function NavReveal() {
         supabase
           .from('achiever_profiles')
           .select('id')
-          .eq('id', authUser.id)
+          .eq('id', userId)
           .maybeSingle(),
         // Admin status is checked server-side so the env-based bootstrap
         // list (ADMIN_USER_IDS) keeps working without exposing it.
@@ -379,60 +425,46 @@ export function NavReveal() {
           .then((r) => (r.ok ? r.json() : { isCoordinator: false }))
           .catch(() => ({ isCoordinator: false })) as Promise<{ isCoordinator: boolean }>,
       ]);
-      setUser({
-        name:
-          (authUser.user_metadata?.full_name as string | undefined) ||
-          authUser.email?.split('@')[0] ||
-          'Profile',
-        avatarUrl: authUser.user_metadata?.avatar_url as string | undefined,
+      if (!active || requestVersion !== roleRequestVersion.current) return;
+      setRoles({
+        id: userId,
         isMentor: !!mentorResult.data,
         isAdmin: adminResult.isAdmin === true,
         isCoordinator: coordinatorResult.isCoordinator === true,
       });
     }
 
-    if (!rendersOwnChrome) {
-      supabase.auth.getUser().then(({ data }) => {
-        loadUser(data.user ?? null);
-      });
-    }
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (!rendersOwnChrome) loadUser(session?.user ?? null);
-
-      // Record a login once per browser session. @supabase/ssr fires
-      // INITIAL_SESSION (not SIGNED_IN) when restoring a session, so this only
-      // logs on an actual sign-in; the sessionStorage flag guards against
-      // SIGNED_IN repeats from token refreshes / multiple tabs. Best-effort.
-      try {
-        if (event === 'SIGNED_IN' && session?.user) {
-          if (sessionStorage.getItem('gb_login_logged') !== '1') {
-            sessionStorage.setItem('gb_login_logged', '1');
-            fetch('/api/auth/login-event', { method: 'POST' }).catch(() => {});
-          }
-        } else if (event === 'SIGNED_OUT') {
-          sessionStorage.removeItem('gb_login_logged');
-        }
-      } catch {
-        /* sessionStorage unavailable — skip login logging */
-      }
-    });
+    void loadRoles();
 
     return () => {
-      window.removeEventListener('glowbal:reveal-nav', onReveal);
-      subscription.unsubscribe();
+      active = false;
     };
-  }, [rendersOwnChrome]);
+  }, [navigationUserId, rendersOwnChrome]);
 
   // Non-landing pages always show the nav, and the server knows that, so the
   // first client render matches the server HTML exactly.
   if (rendersOwnChrome) return null;
   if (isHomePage && !revealedOnLanding) return null;
 
+  const displayUser = navigationSession.user
+    ? {
+        id: navigationSession.user.id,
+        name: navigationSession.user.name,
+        avatarUrl: navigationSession.user.avatarUrl,
+        ...(roles?.id === navigationSession.user.id
+          ? {
+              isMentor: roles.isMentor,
+              isAdmin: roles.isAdmin,
+              isCoordinator: roles.isCoordinator,
+            }
+          : {}),
+      }
+    : null;
+
   return (
     <div data-global-navigation>
-      <AppTopNav user={user} />
-      <MobileNavigation user={user} />
+      <AppTopNav user={displayUser} session={navigationSession} />
+      <MobileNavigation user={displayUser} session={navigationSession} />
     </div>
   );
 }

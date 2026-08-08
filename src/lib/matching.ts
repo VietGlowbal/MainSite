@@ -1,4 +1,24 @@
 import type { StudentProfile, University } from './types';
+import { subjectFamilies } from './onboarding-options';
+
+function subjectMatchesUniversity(subject: string, universityText: string): boolean {
+  const keywords = subject.toLowerCase().split(' ');
+  return keywords.some((keyword) => keyword.length > 2 && universityText.includes(keyword));
+}
+
+/**
+ * A subject family is one saved preference, even though several child subjects
+ * can satisfy it. Keeping the expansion inside matching preserves the broad
+ * label for onboarding/Profile editing without dividing its score by the
+ * number of examples shown under that family.
+ */
+function subjectMatchCandidates(subject: string): string[] {
+  const family = subjectFamilies.find(
+    (candidate) => candidate.label.toLowerCase() === subject.toLowerCase(),
+  );
+
+  return family ? [family.label, ...family.children] : [subject];
+}
 
 // ── Match breakdown types ──────────────────────────────────────────────
 
@@ -46,7 +66,12 @@ export function computeMatchResult(profile: StudentProfile, university: Universi
   const countryMax = 25;
   let countryScore = 0;
   let countryReason = '';
-  const preferredCountries = (profile.preferred_countries ?? []).map((c) => c.toLowerCase());
+  const preferredCountries = (profile.preferred_countries ?? [])
+    .map((c) => c.toLowerCase())
+    // The onboarding answer "Open to ideas" is stored literally so it can be
+    // edited in User Profile. For matching it means exactly what an empty list
+    // used to mean: do not penalise any destination.
+    .filter((country) => country !== 'open to ideas');
   if (preferredCountries.length > 0) {
     const uniCountry = (university.country ?? '').toLowerCase();
     if (preferredCountries.includes(uniCountry)) {
@@ -87,7 +112,7 @@ export function computeMatchResult(profile: StudentProfile, university: Universi
   const subjectMax = 25;
   let subjectScore = 0;
   let subjectReason = '';
-  const targetSubjects = (profile.target_subjects ?? []).map((s) => s.toLowerCase());
+  const targetSubjects = (profile.target_subjects ?? []).map((subject) => subject.toLowerCase());
   if (targetSubjects.length > 0) {
     const strengths = (university.strengths ?? '').toLowerCase();
     const bestFor = (university.best_for ?? '').toLowerCase();
@@ -95,8 +120,8 @@ export function computeMatchResult(profile: StudentProfile, university: Universi
 
     const matchedSubjects: string[] = [];
     for (const subject of targetSubjects) {
-      const keywords = subject.split(' ');
-      if (keywords.some((kw) => kw.length > 2 && combined.includes(kw))) {
+      const candidates = subjectMatchCandidates(subject);
+      if (candidates.some((candidate) => subjectMatchesUniversity(candidate, combined))) {
         matchedSubjects.push(subject);
       }
     }

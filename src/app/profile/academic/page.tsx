@@ -10,7 +10,7 @@ export default async function AcademicPage() {
 
   const { data: profile } = await supabase
     .from('student_profiles')
-    .select('study_level, current_institution, current_qualification, predicted_grades, graduation_year, academic_background, target_subjects')
+    .select('study_level, current_institution, current_qualification, predicted_grades, graduation_year, academic_background, target_subjects, curriculum, curriculum_grades, gpa_scale, gpa_value')
     .eq('user_id', user.id)
     .maybeSingle();
 

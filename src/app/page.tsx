@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { unstable_cache } from 'next/cache';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { SiteNavigation } from '@/components/site-navigation';
 import { getUniversityQueries } from '@/features/universities/api';
 import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
@@ -18,8 +19,6 @@ import {
   HomePartners,
   HomeScholarships,
   HomeTestimonials,
-  MARKETING_NAV_ACTIONS,
-  MARKETING_NAV_ITEMS,
   PARTNER_LOGOS,
   type ContactState,
   type Testimonial,
@@ -28,10 +27,9 @@ import { getScholarshipQueries, type ScholarshipForUniversity } from '@/features
 import { recordWaitlistSignup } from '@/features/marketing/api';
 import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
 import { sendEmail } from '@/lib/send-email';
-import { Footer, MobileNav, TopNav } from '@/shared/ui';
+import { Footer } from '@/shared/ui';
 import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
 import { headers } from 'next/headers';
-import Link from 'next/link';
 import { getApprovedMentors, type PublicMentor } from '@/lib/mentors';
 
 /**
@@ -267,28 +265,11 @@ export default async function Home() {
        listed in OWN_CHROME_ROUTES in src/components/nav-reveal.tsx, or the
        legacy app sidebar renders on top of it. */
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface-inverse-strong">
-      <TopNav
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        secondaryAction={MARKETING_NAV_ACTIONS.secondary}
-        primaryAction={MARKETING_NAV_ACTIONS.primary}
-      />
+      <SiteNavigation tone="dark" />
       {/* TopNav is desktop-only (hidden below md). Without this the landing
           page has NO navigation on a phone at all: "/" is in OWN_CHROME_ROUTES,
           so the legacy mobile nav is suppressed too. `gb-has-mobile-header` on
           the wrapper is what offsets the content past the fixed 64px bar. */}
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={MARKETING_NAV_ACTIONS.primary}
-        secondaryAction={MARKETING_NAV_ACTIONS.secondary}
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
       <main>
         <HomeHero />
         <HomePartners universityIds={partnerUniversityIds} />

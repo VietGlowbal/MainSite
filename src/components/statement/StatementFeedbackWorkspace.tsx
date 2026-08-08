@@ -2,12 +2,11 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { GlowbalLogo } from '@/components/glowbal-logo';
-import { MARKETING_NAV_ITEMS } from '@/features/marketing/ui';
+import { SiteNavigation } from '@/components/site-navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { LorReview } from '@/lib/ai/lor';
 import type { AIAnalysis } from '@/lib/types';
-import { Container, MobileNav, TopNav } from '@/shared/ui';
+import { Container } from '@/shared/ui';
 import {
   LorStrategyWorkspace,
   type LorEvidenceOption,
@@ -48,7 +47,6 @@ export function StatementFeedbackWorkspace({
   lorEvidence = [],
   initialLorStrategy = null,
   userName = null,
-  userAvatarUrl = null,
   evaluationMode: requestedEvaluationMode,
 }: Props) {
   const isLor = reviewType === 'lor';
@@ -69,7 +67,6 @@ export function StatementFeedbackWorkspace({
   const evaluationMode = requestedEvaluationMode ?? (/\bvin\s*(?:university|uni)\b/i.test(targetName)
     ? 'vinuni'
     : 'generic');
-  const primaryAction = { href: '/apply', label: 'My applications' };
   const currentLorStageIndex = ['strategy', 'draft', 'review'].indexOf(lorStage);
 
   useEffect(() => {
@@ -113,31 +110,7 @@ export function StatementFeedbackWorkspace({
 
   return (
     <div className={isLor ? 'gb-page-full-bleed gb-has-mobile-header bg-surface' : undefined}>
-      {isLor ? (
-        <>
-          <TopNav
-            tone="light"
-            logo={<GlowbalLogo height={28} />}
-            items={MARKETING_NAV_ITEMS}
-            primaryAction={primaryAction}
-            {...(userName
-              ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-              : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-          />
-          <MobileNav
-            logo={
-              <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-                <GlowbalLogo height={28} />
-              </Link>
-            }
-            items={MARKETING_NAV_ITEMS}
-            primaryAction={primaryAction}
-            secondaryAction={{ href: '/profile', label: 'Profile' }}
-            openLabel="Menu"
-            closeLabel="Close menu"
-          />
-        </>
-      ) : null}
+      {isLor ? <SiteNavigation tone="light" /> : null}
 
       <main className={isLor ? 'min-h-screen bg-surface py-gb-md text-fg sm:py-gb-xl lg:py-gb-2xl' : 'min-h-screen bg-[#FAFAFA] pb-24 pt-6 text-neutral-900'}>
       <Container className={`flex min-h-[calc(100dvh-1.5rem)] flex-col sm:min-h-[calc(100dvh-2.5rem)] lg:min-h-[calc(100dvh-3.5rem)] ${isLor ? '' : '!max-w-[1600px]'}`}>

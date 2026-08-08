@@ -10,20 +10,14 @@ import {
   useState,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SavedNavLink } from '@/components/saved-nav-link';
-import {
-  MARKETING_NAV_ITEMS,
-} from '@/features/marketing/navigation';
+import { useNavigationSession } from '@/components/navigation-session';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Container } from '@/shared/ui/container';
-import { MobileNav } from '@/shared/ui/mobile-nav';
 import { Modal } from '@/shared/ui/modal';
 import { Pagination } from '@/shared/ui/pagination';
 import { SearchMark } from '@/shared/ui/icons';
 import { Select } from '@/shared/ui/select';
-import { TopNav } from '@/shared/ui/top-nav';
 import { TID, testId } from '@/shared/lib/testids';
 import {
   UniversityExplorerProvider,
@@ -466,9 +460,6 @@ function useLegacyDetailParamRedirect() {
 // ── Page chrome + view switch ────────────────────────────────────────────────
 
 function Chrome({
-  userName,
-  userAvatarUrl,
-  isLoggedIn,
   total,
   page,
   pageSize,
@@ -479,9 +470,6 @@ function Chrome({
   error,
   onNavigate,
 }: {
-  userName: string | null;
-  userAvatarUrl: string | null;
-  isLoggedIn: boolean;
   total: number;
   page: number;
   pageSize: number;
@@ -494,38 +482,8 @@ function Chrome({
 }) {
   useLegacyDetailParamRedirect();
 
-  const primaryAction = { href: '/onboarding', label: 'Plan your studies' };
-
   return (
     <>
-      {/* `utility` carries the way back to the saved list. This page is where a
-          student saves from, so it is the one header that must have it. */}
-      <TopNav
-        tone="light"
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        utility={<SavedNavLink />}
-        {...(isLoggedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: { href: '/auth', label: 'Sign in' } })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={primaryAction}
-        secondaryAction={
-          isLoggedIn ? { href: '/profile', label: 'Profile' } : { href: '/auth', label: 'Sign in' }
-        }
-        utility={<SavedNavLink variant="row" />}
-        openLabel="Menu"
-        closeLabel="Close menu"
-      />
-
       <main className="min-h-screen">
         <DirectoryBrowseView
           key={`${search}\u0000${country}`}
@@ -578,6 +536,7 @@ export function UniversityListClient({
   wikiPairs = [],
   canonicalSearch,
 }: Props) {
+  const navigationSession = useNavigationSession();
   const initialDirectory = useMemo<UniversityDirectoryResponse>(() => ({
     query: { search, country, page },
     page: { items: universities, total, page, pageSize, hasMore: page * pageSize < total },
@@ -594,8 +553,6 @@ export function UniversityListClient({
   const [withImages, setWithImages] = useState<ExplorerUniversity[]>(directory.data.page.items);
   const [authState, setAuthState] = useState<{
     id: string;
-    name: string;
-    avatarUrl: string | null;
     shortlist: number[];
   } | null>(null);
   const [authResolved, setAuthResolved] = useState(false);
@@ -606,64 +563,44 @@ export function UniversityListClient({
 
   useEffect(() => {
     let active = true;
-    let generation = 0;
-    let unsubscribe = () => {};
+    const userId = navigationSession.user?.id ?? null;
 
-    async function connect() {
+    if (!navigationSession.signedIn || !userId) {
+      setAuthState(null);
+      setAuthResolved(navigationSession.ready);
+      return () => {
+        active = false;
+      };
+    }
+
+    const authenticatedUserId = userId;
+    setAuthResolved(false);
+
+    async function hydrate() {
       const { createClient } = await import('@/lib/supabase/client');
       if (!active) return;
       const supabase = createClient();
-      async function hydrate(authUser: {
-        id: string;
-        email?: string | null;
-        user_metadata?: Record<string, unknown>;
-      } | null) {
-        const current = ++generation;
-        if (active) setAuthResolved(false);
-        if (!authUser) {
-          if (active && current === generation) {
-            setAuthState(null);
-            setAuthResolved(true);
-          }
-          return;
-        }
-        const { data } = await supabase
-          .from('user_universities')
-          .select('university_id')
-          .eq('user_id', authUser.id);
-        if (!active || current !== generation) return;
-        setAuthState({
-          id: authUser.id,
-          name:
-            (authUser.user_metadata?.full_name as string | undefined) ||
-            authUser.email?.split('@')[0] ||
-            'Profile',
-          avatarUrl: (authUser.user_metadata?.avatar_url as string | undefined) ?? null,
-          shortlist: (data ?? []).map((row) => row.university_id as number),
-        });
-        setAuthResolved(true);
-      }
-      void supabase.auth.getUser()
-        .then(({ data }) => hydrate(data.user ?? null))
-        .catch(() => active && setAuthResolved(true));
-      const {
-        data: { subscription },
-      } = supabase.auth.onAuthStateChange((_event, session) => {
-        void hydrate(session?.user ?? null);
+      const { data } = await supabase
+        .from('user_universities')
+        .select('university_id')
+        .eq('user_id', authenticatedUserId);
+      if (!active) return;
+      setAuthState({
+        id: authenticatedUserId,
+        shortlist: (data ?? []).map((row) => row.university_id as number),
       });
-      unsubscribe = () => subscription.unsubscribe();
+      setAuthResolved(true);
     }
 
-    const run = () => void connect().catch(() => active && setAuthResolved(true));
+    const run = () => void hydrate().catch(() => active && setAuthResolved(true));
     const idleId = window.requestIdleCallback?.(run, { timeout: 1000 }) ?? null;
     const timeoutId = idleId === null ? window.setTimeout(run, 0) : null;
     return () => {
       active = false;
       if (idleId !== null) window.cancelIdleCallback(idleId);
       if (timeoutId !== null) window.clearTimeout(timeoutId);
-      unsubscribe();
     };
-  }, []);
+  }, [navigationSession.ready, navigationSession.signedIn, navigationSession.user?.id]);
 
   /*
    * Hydration gate for the imagery patch below.
@@ -749,9 +686,6 @@ export function UniversityListClient({
       profileStrength={null}
     >
       <Chrome
-        userName={authState?.name ?? null}
-        userAvatarUrl={authState?.avatarUrl ?? null}
-        isLoggedIn={authState !== null}
         total={directory.data.page.total}
         page={directory.data.page.page}
         pageSize={directory.data.page.pageSize}

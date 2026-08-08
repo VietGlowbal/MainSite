@@ -1,15 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
-import { SavedNavLink } from '@/components/saved-nav-link';
+import { SiteNavigation } from '@/components/site-navigation';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  MARKETING_NAV_ACTIONS,
-  MARKETING_NAV_ITEMS,
 } from '@/features/marketing/ui';
 import {
   FREE_FEATURES,
@@ -25,8 +23,6 @@ import {
   Footer,
   ICONS,
   KitIcon,
-  MobileNav,
-  TopNav,
 } from '@/shared/ui';
 import { PlusPricing } from './plus-pricing';
 
@@ -57,7 +53,7 @@ import { PlusPricing } from './plus-pricing';
  *     page ignored it, so abandoning payment returned you to an unchanged
  *     pricing page with no confirmation that nothing had been charged.
  *
- * Page chrome is its own (TopNav + MobileNav + Footer), so '/plus' had to be
+ * Page chrome is its own (SiteNavigation + Footer), so '/plus' had to be
  * added to OWN_CHROME_ROUTES in src/components/nav-reveal.tsx or the app header
  * renders on top of this one.
  */
@@ -131,37 +127,11 @@ export default async function PlusPage({
 
   const currentPlan = getPlusPackage(planLabel);
 
-  const userName =
-    (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
-  const userAvatarUrl = (user?.user_metadata?.avatar_url as string | undefined) ?? null;
   const isSignedIn = !!user;
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <TopNav
-        logo={<GlowbalLogo height={28} />}
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={MARKETING_NAV_ACTIONS.primary}
-        utility={<SavedNavLink />}
-        {...(isSignedIn && userName
-          ? { user: { name: userName, avatarUrl: userAvatarUrl, href: '/profile' } }
-          : { secondaryAction: MARKETING_NAV_ACTIONS.secondary })}
-      />
-      <MobileNav
-        logo={
-          <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
-            <GlowbalLogo height={28} />
-          </Link>
-        }
-        items={MARKETING_NAV_ITEMS}
-        primaryAction={MARKETING_NAV_ACTIONS.primary}
-        secondaryAction={
-          isSignedIn ? { href: '/profile', label: 'Profile' } : MARKETING_NAV_ACTIONS.secondary
-        }
-        openLabel="Menu"
-        closeLabel="Close menu"
-        utility={<SavedNavLink variant="row" />}
-      />
+      <SiteNavigation showSaved />
 
       <main>
         {/* ── Hero ─────────────────────────────────────────────────────────

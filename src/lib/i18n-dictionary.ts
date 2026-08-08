@@ -18,6 +18,11 @@ export const translations: Record<string, string> = {
   // ── Navigation ───────────────────────────────────────────────────────────
   Home: 'Trang chủ',
   Search: 'Tìm kiếm',
+  'GlowBal News': 'Tin tức GlowBal',
+  'Strategy Master': 'Công Cụ Lên Chiến lược',
+  Register: 'Đăng Ký',
+  'User Profile': 'Hồ sơ người dùng',
+  'Plan your Global Education': 'Lập kế hoạch du học',
   Apply: 'Nộp đơn',
   Advising: 'Cố vấn',
   'GLOWBAL News': 'Tin tức GLOWBAL',
@@ -46,21 +51,19 @@ export const translations: Record<string, string> = {
   'Build your strategy': 'Lên Chiến lược Du học', // header until 03/08, Figma 375:9845
   'AI strategy': 'Chiến lược AI', // footer -> /ai-strategy, Figma 104:7413
   'GlowBal Strategy': 'Chiến lược GlowBal', // the stage's own name, /ai-strategy H1 area
-  // No longer a nav label — /news is "News" above since 01/08. Kept because
+  // No longer a nav label — /news is "GlowBal News" above. Kept because
   // DomTranslator matches any node whose text is exactly this.
   Blog: 'Blog',
   Contact: 'Liên hệ',
-  // 'Find a mentor' is already defined further down, under the mentorship copy.
   // The three destinations behind the "Search" dropdown translate through keys
-  // that already exist: Search, Mentors (above) and Scholarships / Universities
+  // that already exist: Advisors (above) and Scholarships / Universities
   // (further down, under Topics). Do not add second copies of them here — a
   // duplicate key in this object silently wins or loses by source order.
-  // Mobile hamburger sheet. "Plan your studies" is the designer's CTA copy.
+  // Mobile hamburger sheet.
   Menu: 'Menu',
   'Close menu': 'Đóng menu',
-  // Still the CTA button's copy (MARKETING_NAV_ACTIONS.primary -> /onboarding),
-  // which is what a guest sees. The nav ITEM that used to share this string is
-  // now "My Portal" below.
+  // Legacy CTA copy retained for older screens; the current matrix uses
+  // "Plan your Global Education" above.
   'Plan your studies': 'Lập kế hoạch du học',
   'Build your application strategy':'Lên chiến lược ứng tuyển',
   /*

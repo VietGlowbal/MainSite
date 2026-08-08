@@ -29,8 +29,14 @@ export {
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
+  getMarketingNavPresentation,
   MARKETING_NAV_ITEMS,
   MARKETING_NAV_ACTIONS,
+} from './nav-items';
+export type {
+  MarketingNavPresentation,
+  MarketingNavState,
+  MarketingNavTranslator,
 } from './nav-items';
 export { PARTNER_LOGOS } from './partner-logos';
 export type { PartnerLogo } from './partner-logos';
