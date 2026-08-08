@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { StrategyRecommendationRecord } from '../domain';
 import type { StageKey } from './report-chrome';
@@ -25,6 +26,18 @@ type LoadState = 'checking' | 'generating' | 'ready' | 'error';
  * server-rendered report page), F7 has nowhere else to hand off to — this
  * route IS the Personalized Strategy report. So the gate renders the report
  * directly once it has one, instead of redirecting.
+ *
+ * ─── needsInputs IS A REDIRECT, NOT AN ERROR STATE ───────────────────────────
+ *
+ * The generation route 422s with `needsInputs: true` when the Personal Report
+ * or Matching Report do not exist yet (`fetchOnboardingState`'s
+ * `aiAnalysisComplete` should already have caught this and routed the student
+ * back to `/strategy/analysis` before they ever reach this page — see
+ * `domain/onboarding.ts` — but a server/client state race, or a Matching
+ * Report row that was deleted after the redirect ran, can still land someone
+ * here). A generic "Try again" button would just retry the same doomed call.
+ * Sending them to the generation gate instead gives them a page that can
+ * actually produce what is missing.
  */
 export function StrategyRecommendationWorkspace({
   applicationId,
@@ -34,6 +47,7 @@ export function StrategyRecommendationWorkspace({
   unlockedStages: readonly StageKey[];
 }) {
   const { t } = useLanguage();
+  const router = useRouter();
   const [state, setState] = useState<LoadState>('checking');
   const [recommendation, setRecommendation] = useState<StrategyRecommendationRecord | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +88,13 @@ export function StrategyRecommendationWorkspace({
         const generated = (await generatedRes.json()) as {
           recommendation?: StrategyRecommendationRecord | null;
           error?: string;
+          needsInputs?: boolean;
         };
+
+        if (generated.needsInputs) {
+          router.replace(`/ai-strategy/${applicationId}/strategy/analysis`);
+          return;
+        }
 
         if (!generatedRes.ok || !generated.recommendation) {
           setError(generated.error || t('Something went wrong. Please try again.'));
@@ -89,7 +109,7 @@ export function StrategyRecommendationWorkspace({
         setState('error');
       }
     }
-  }, [applicationId, t]);
+  }, [applicationId, router, t]);
 
   if (state === 'ready' && recommendation) {
     return (

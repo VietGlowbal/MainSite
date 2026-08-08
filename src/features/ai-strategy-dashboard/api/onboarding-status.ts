@@ -12,7 +12,7 @@ export async function fetchOnboardingState(
   userId: string,
   applicationId: string,
 ): Promise<OnboardingState> {
-  const [profile, analysis, application, strategyRecommendation] = await Promise.all([
+  const [profile, analysis, matchAnalysis, application, strategyRecommendation] = await Promise.all([
     supabase
       .from('student_profiles')
       .select('personal_summary_completed_at, achievements_completed_at')
@@ -22,6 +22,17 @@ export async function fetchOnboardingState(
       .from('applicant_analyses')
       .select('id')
       .eq('application_id', applicationId)
+      .limit(1)
+      .maybeSingle(),
+    // `analysis_status = 'complete'` is only ever set in the same insert that
+    // writes `fit_dimensions`/`fit_classification` (match-insights/route.ts),
+    // so a row this query finds is a real Matching Report, not a placeholder
+    // — see the note on `aiAnalysisComplete` below.
+    supabase
+      .from('application_match_analyses')
+      .select('id')
+      .eq('application_id', applicationId)
+      .eq('analysis_status', 'complete')
       .limit(1)
       .maybeSingle(),
     supabase
@@ -41,7 +52,7 @@ export async function fetchOnboardingState(
   return {
     personalSummaryComplete: Boolean(profile.data?.personal_summary_completed_at),
     achievementsComplete: Boolean(profile.data?.achievements_completed_at),
-    aiAnalysisComplete: Boolean(analysis.data),
+    aiAnalysisComplete: Boolean(analysis.data) && Boolean(matchAnalysis.data),
     introSeen: Boolean(application.data?.strategy_intro_seen_at),
     strategyComplete: Boolean(strategyRecommendation.data),
   };

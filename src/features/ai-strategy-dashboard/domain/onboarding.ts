@@ -10,8 +10,20 @@
  *    Strategy (student_profiles.personal_summary_completed_at /
  *    achievements_completed_at), set by an explicit "Continue" submit, not
  *    inferred from whether any rows exist.
- *  - aiAnalysisComplete — per Strategy: an `applicant_analyses` row exists
- *    for this application.
+ *  - aiAnalysisComplete — per Strategy: BOTH an `applicant_analyses` row
+ *    (Personal Report) AND a complete `application_match_analyses` row
+ *    (Matching Report) exist for this application. `AnalysisWorkspace`
+ *    generates the two together on one visit to `/strategy/analysis`, but
+ *    they are separate tables written by separate calls — checking only the
+ *    Personal Report here let a student whose Matching Report failed (missing
+ *    inputs, or a pending database migration, see `docs/known-issues.md §0e`)
+ *    advance past `analysis` anyway, straight into `intro`/`strategy` with no
+ *    Matching Report ever having been produced. F7 (`strategy` below)
+ *    unconditionally requires the Matching Report as an input, so that gap
+ *    surfaced as a hard-to-diagnose "Generate your Personal Report and
+ *    Matching Report first" error on the strategy page instead of the
+ *    correct, earlier "try the analysis again" state — fixed by requiring
+ *    both here rather than only the Personal Report.
  *  - introSeen — per Strategy: `course_applications.strategy_intro_seen_at`
  *    is set, marked when the Strategy Introduction page is opened.
  *  - strategyComplete — per Strategy: an `application_strategy_recommendations`

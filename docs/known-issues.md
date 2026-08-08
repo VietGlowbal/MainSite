@@ -16,7 +16,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5d | Fixed regression history; preserve the tests and constraints. |
+| §5–§5e | Fixed regression history; preserve the tests and constraints. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -795,6 +795,27 @@ would silently re-clip the dropdown** — it would open, and be invisible.
 | Home visual baselines failed after the wordmark fix in `0923f56`. Any change to shared chrome (logo, `TopNav`, `Footer`, tokens) invalidates `home-preview.spec.ts` — re-bless with `--update-snapshots` **in the same commit** as the intentional change, or the next session inherits a red suite it did not cause. | `tests/e2e/home-preview.spec.ts-snapshots/` |
 
 ---
+
+## 5e. Fixed 2026-08-08 — do not re-introduce
+
+**Confirmed live and broken same day**: a student's screenshot of
+`/ai-strategy/[id]/strategy/analysis/recommendation` immediately after PR #156
+merged, showing "Generate your Personal Report and Matching Report first —
+the Personalized Strategy builds on both." with a "Try again" button that
+could not succeed — reached by simply clicking into an application from
+`/apply`.
+
+| What | Where |
+|---|---|
+| `fetchOnboardingState`'s `aiAnalysisComplete` only checked that an `applicant_analyses` row (Personal Report) existed — it never checked whether the Matching Report (`application_match_analyses`, `analysis_status = 'complete'`) had actually been generated. `AnalysisWorkspace` generates both together on one visit to `/strategy/analysis`, but they are two separate tables written by two separate calls, and a student whose Matching Report failed (missing CV/essay/grades, or — as here — a pending database migration, see §0e) still had `aiAnalysisComplete = true` and was routed straight past `intro` into the new `strategy` step. F7's generation route unconditionally requires the Matching Report as an input, so this is exactly the failure §0f already predicted ("If §0e has not run either, the generation route 422s..."), just reached automatically via the redirect chain rather than by a student who happened to skip a step. **Fix**: `aiAnalysisComplete` now requires BOTH rows; a student in this state is now routed back to `/strategy/analysis`, which retries whichever half is missing and shows the correctly-scoped error (e.g. the §0e "Matching Report needs the database updated" message) instead of the confusing F7-page error two steps later. | `src/features/ai-strategy-dashboard/api/onboarding-status.ts` |
+| Even with the gate fixed, a state/data race (or a Matching Report row deleted after the redirect check ran) could still land a student on the F7 page with `needsInputs: true` in the generation response. `StrategyRecommendationWorkspace`'s error state used to show a generic "Try again" that just re-ran the same doomed F7 call. It now detects `needsInputs` and redirects to `/strategy/analysis` instead — a page that can actually produce what's missing. | `src/features/ai-strategy-dashboard/ui/strategy-recommendation-workspace.tsx` |
+
+**This does not, by itself, fix Matching Report generation** — if §0e's
+migration genuinely has not run against production, a student will now
+correctly bounce back to `/strategy/analysis` and see *that* page's error
+instead, but they still cannot get a Matching Report (and therefore cannot
+reach F7 or the Planner) until §0e is resolved. Verify §0e's migration state
+before treating this fix as having restored the whole flow.
 
 ## 6. Open questions for the designer / owner
 
