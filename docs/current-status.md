@@ -2,10 +2,10 @@
 
 Last reconciled: **2026-08-08 (Asia/Bangkok)**
 
-Code snapshot: **working tree**, branched from `main` at `3bb8980` (PR #155,
-"Fix the deeper hydration race", merged). Not yet committed/pushed at the time
-this document was written — see "Last completed work" below for what the
-working tree contains.
+Code snapshot: **working tree**, branched from `main` at `573db50` (PR #156,
+"Retire the free apply checklist and build the F7 Personalized Strategy
+report", merged). Not yet committed/pushed at the time this document was
+written — see "Last completed work" below for what the working tree contains.
 
 This is the first file a coding agent should read. It records the present state
 of the repository, the last completed work, its impact, the verification state,
@@ -19,16 +19,16 @@ directory. If this file conflicts with the code, the code wins.
 - Two pre-existing untracked documents must be preserved: `TECH_SOLUTION.md`
   and `docs/audit-2026-08-03.md`. They are owner/session work, not generated
   build output.
-- The working tree has real uncommitted work: retiring the free `/apply`
-  checklist and building the F7 Personalized Strategy report end to end. See
-  the next section.
+- The working tree has real uncommitted work: a same-day production
+  incident fix on top of PR #156 (see the next section — `docs/known-issues.md
+  §5e` has the full diagnosis).
 
 ## Last completed work
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
-| *(uncommitted)* | Retired the free `/apply/[applicationId]` checklist/match-insights UI; the route is now a pure server redirect through `fetchOnboardingState`/`nextOnboardingStep`. | Clicking into an application no longer shows a full task checklist and an ungated 5-pillar radar chart. It now lands wherever the student actually is in the gated pipeline (Reflection → Personal Report → Matching Report → Personalized Strategy → Planner) — matching the CEO's requested flow. Deleted: `application-workspace-v2.tsx`, `ApplicationBanner`/`ApplicationJourney`/`ChecklistProgress`, `StagePanel`/`TaskItem`, and the whole `components/apply/match-insights/` directory (`MatchInsightsPanel`/`RadarPentagon`/`PillarBox`). |
-| *(uncommitted)* | Built F7 "Strategic Recommendation Framework" (Personalized Strategy) — a new, separate, read-only report page (`/ai-strategy/[id]/strategy/analysis/recommendation`), deliberately distinct from the task-tracking Planner. | New onboarding step `strategy` (between `intro` and `dashboard`) with its own `application_strategy_recommendations` table (migration **not yet run against production**, see `docs/known-issues.md §0f`). One new OpenAI call (`src/lib/ai/strategy-recommendation.ts`) synthesises the Personal Report (`NarrativeProfile`) and Matching Report (`ProgrammeFit`) into six sections — Direction, Narrative, Positioning, Portfolio (real activities + AI-proposed opportunities), Differentiation, Roadmap — validated with zod, written in English by product decision. Includes a real downloadable PDF (`src/lib/strategy-pdf/*`, `@react-pdf/renderer` → Storage → 10-minute signed URL, same pattern as the CV export). The report is a one-time onboarding step, not on-demand. |
+| *(uncommitted)* | **Fixed a same-day production incident**: `/apply/[applicationId]` redirected straight to the new Personalized Strategy page, which 422'd with "Generate your Personal Report and Matching Report first." Root cause: `fetchOnboardingState`'s `aiAnalysisComplete` only checked that the Personal Report (`applicant_analyses`) existed, never the Matching Report (`application_match_analyses`, `analysis_status = 'complete'`) — so a student whose Matching Report failed to generate (missing inputs, or the pending §0e migration) still advanced past the `analysis` step straight into the new `strategy` step, which unconditionally needs both. See `docs/known-issues.md §5e`. | `aiAnalysisComplete` now requires both reports, so an incomplete student is routed back to `/strategy/analysis` (which retries whichever half is missing) instead of reaching a dead-end error page. Added a `needsInputs` safety net in `StrategyRecommendationWorkspace` that redirects to the analysis gate instead of retrying the same doomed call, for the race/edge case where the page is still reached. **Does not by itself fix Matching Report generation** — if §0e's migration genuinely has not run in production, students will still be blocked there, just with the correct error message at the correct step. |
+| `573db50` (#156) | Retired the free `/apply/[applicationId]` checklist/match-insights UI (now a pure onboarding redirect) and built F7 "Personalized Strategy" — a new, separate, read-only, downloadable-PDF report page, deliberately distinct from the task-tracking Planner. | Clicking into an application lands wherever the student actually is in the gated pipeline (Reflection → Personal Report → Matching Report → Personalized Strategy → Planner). New `application_strategy_recommendations` table (migration **not yet run against production**, see `docs/known-issues.md §0f`); one new OpenAI call synthesising the Personal Report and Matching Report into six sections, written in English by product decision. |
 | `f845ddb` | Added genUI content blocks to AI-generated recommendations. | Every recommendation's detail page body now comes from one of three AI-chosen shapes (`structured_table`/`long_text`/`checklist`) declared at generation time, or none when the task routes to a tool. Depends on an unrun migration — see `docs/known-issues.md §0d`. |
 | `de4a7fe` | Made Planner List/Calendar/Board view switching client-side. | Switching `?view=` no longer refetches the dynamic server page; the URL remains bookmarkable while the UI changes immediately. |
 | `169ca25` | Centralized optimistic Planner state and added deadline editing to the list. | Status and deadline edits appear in all three planner views without a reload; failed writes roll back per edit. |
@@ -102,26 +102,30 @@ directory. If this file conflicts with the code, the code wins.
 
 ## Verification snapshot
 
-Measured on 2026-08-08 against the uncommitted working tree described above
-(`npx` invocations, equivalent to the `npm run` scripts):
+Measured on 2026-08-08 against the uncommitted working tree described above,
+after restarting this branch from `origin/main` at `573db50` (PR #156 merged)
+and re-applying the onboarding-gate fix (`npx` invocations, equivalent to the
+`npm run` scripts):
 
 | Gate | Result |
 |---|---|
-| `npx tsc --noEmit` | **Pass**, 0 errors (ran after `rm -rf .next/types` to clear a stale route-manifest cache from the deleted checklist pages). |
+| `npx tsc --noEmit` | **Pass**, 0 errors (ran after `rm -rf .next/types`). |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
-| `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes (unused-var warnings in older test files). |
-| `npx vitest run` | **Pass: 1667 passed, 2 todo, 154 files passed, 0 failed.** The previously-blocked `mammoth`/`@react-pdf/renderer` install drift noted on 2026-08-06 is no longer present — both packages resolve correctly, including the new `src/lib/strategy-pdf` PDF-rendering suite. |
+| `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
+| `npx vitest run` | **Pass: 1672 passed, 2 todo, 155 files passed, 0 failed.** |
 | `npm run build` | Not rerun in this pass. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
-**Not yet done**: the migration `supabase-strategy-recommendation-report.sql`
-has not been run against production — see `docs/known-issues.md §0f`. The F7
-report cannot generate or export until it runs (and until `§0e`'s migration
-has also run, since F7 depends on the Personal Report and Matching Report
-tables that migration adds). Manual click-through of the new flow (sign in,
-click an application, confirm it lands on the right onboarding step, generate
-a Personalized Strategy report, download its PDF) has **not** been done in
-this session — only automated checks above.
+**Still not yet done, and the actual blocker for the flow working end to
+end**: `supabase-ai-strategy-reports.sql` (§0e) and
+`supabase-strategy-recommendation-report.sql` (§0f) have not been confirmed
+run against production. This session's fix makes the *symptom* correct (a
+student with an incomplete analysis is now routed back to retry it, with the
+right error message, instead of reaching a dead-end page two steps later) —
+it does not make Matching Report generation succeed if the underlying
+migration truly has not run. Verify §0e/§0f's SQL checks against production
+before considering the flow fixed end to end. Manual click-through has still
+not been done in this session — only automated checks above.
 
 ## Open risks that still deserve priority
 
