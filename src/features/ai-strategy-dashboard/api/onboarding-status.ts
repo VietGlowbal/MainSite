@@ -2,7 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import type { OnboardingState } from '../domain';
 
 /**
- * Reads the four real onboarding-completion flags for one Strategy
+ * Reads the five real onboarding-completion flags for one Strategy
  * (requirements.md Requirement 1.2-1.3, 15.4) — see `domain/onboarding.ts`
  * for what each one means and why this replaced the original
  * "has at least one achievement or activity" proxy.
@@ -12,7 +12,7 @@ export async function fetchOnboardingState(
   userId: string,
   applicationId: string,
 ): Promise<OnboardingState> {
-  const [profile, analysis, application] = await Promise.all([
+  const [profile, analysis, application, strategyRecommendation] = await Promise.all([
     supabase
       .from('student_profiles')
       .select('personal_summary_completed_at, achievements_completed_at')
@@ -30,6 +30,12 @@ export async function fetchOnboardingState(
       .eq('id', applicationId)
       .eq('user_id', userId)
       .maybeSingle(),
+    supabase
+      .from('application_strategy_recommendations')
+      .select('id')
+      .eq('application_id', applicationId)
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   return {
@@ -37,6 +43,7 @@ export async function fetchOnboardingState(
     achievementsComplete: Boolean(profile.data?.achievements_completed_at),
     aiAnalysisComplete: Boolean(analysis.data),
     introSeen: Boolean(application.data?.strategy_intro_seen_at),
+    strategyComplete: Boolean(strategyRecommendation.data),
   };
 }
 

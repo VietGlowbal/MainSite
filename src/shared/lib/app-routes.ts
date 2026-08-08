@@ -288,7 +288,7 @@ export type SubNavItem = {
  */
 export function applicationSubNav(
   applicationId: string,
-  options: { analysisReady: boolean; plannerReady: boolean },
+  options: { analysisReady: boolean; strategyReady: boolean; plannerReady: boolean },
 ): SubNavItem[] {
   const strategy = `/ai-strategy/${applicationId}`;
 
@@ -307,6 +307,12 @@ export function applicationSubNav(
       ...(options.analysisReady ? {} : { locked: true }),
     },
     {
+      key: 'strategyReport',
+      label: 'Personalized Strategy',
+      href: `${strategy}/strategy/analysis/recommendation`,
+      ...(options.strategyReady ? {} : { locked: true }),
+    },
+    {
       key: 'planner',
       label: 'Planner',
       href: `${strategy}/strategy/dashboard`,
@@ -322,14 +328,22 @@ export function applicationSubNav(
  *
  * Matched longest-prefix-first so `/strategy/analysis/fit` does not resolve to
  * the Planner just because both live under `/strategy`.
+ *
+ * `/strategy` and `/strategy/intro` map to `overview`, not `planner` — both
+ * are pre-Planner onboarding steps (`StrategyHome`, the explainer before the
+ * Personalized Strategy report generates). They used to alias to `planner`
+ * from when `/strategy/intro` was the last step before the dashboard; now
+ * `strategy` (Personalized Strategy, generated at `/strategy/analysis/recommendation`)
+ * sits between them and the Planner instead.
  */
 export function activeSubNavKey(pathname: string): string | null {
   const clean = pathname.split('?')[0] ?? '';
   if (/\/strategy\/analysis\/fit$/.test(clean)) return 'fit';
   if (/\/strategy\/analysis\/portrait$/.test(clean)) return 'portrait';
+  if (/\/strategy\/analysis\/recommendation$/.test(clean)) return 'strategyReport';
   if (/\/strategy\/analysis$/.test(clean)) return 'portrait';
   if (/\/strategy\/(dashboard|recommendations)/.test(clean)) return 'planner';
-  if (/\/strategy(\/intro)?$/.test(clean)) return 'planner';
+  if (/\/strategy(\/intro)?$/.test(clean)) return 'overview';
   if (/\/cv(?:-|\/|$)/.test(clean)) return 'cv';
   if (/\/statement(?:-feedback)?$/.test(clean)) return 'statement';
   if (/^\/apply\/[^/]+$/.test(clean)) return 'overview';

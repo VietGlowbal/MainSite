@@ -4,9 +4,6 @@
  * Components receive data via props or via hooks from ../hooks. They must never
  * import ../api (enforced by eslint.config.mjs).
  */
-export { ApplicationBanner } from './application-banner';
-export { ApplicationJourney, JourneyPending } from './application-journey';
-export { ChecklistProgress } from './checklist-progress';
 export { EvidenceExtractionPreview } from './evidence-extraction-preview';
 export { ReflectionSection, ReflectionShell } from './reflection-shell';
 export { PersonalReportView } from './personal-report-view';

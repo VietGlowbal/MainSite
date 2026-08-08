@@ -7,6 +7,8 @@ export { StrategyHome } from './strategy-home';
  */
 export { ApplicantPortrait } from './applicant-portrait';
 export { ProgrammeFitReport } from './programme-fit-report';
+export { StrategyRecommendationReport } from './strategy-recommendation-report';
+export { StrategyRecommendationWorkspace } from './strategy-recommendation-workspace';
 export { ReportPanel, ReportTabs, StageBar, useReportTabs } from './report-chrome';
 export type { ReportTab, StageKey } from './report-chrome';
 export { AnalysisWorkspace } from './analysis-workspace';

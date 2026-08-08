@@ -74,7 +74,11 @@ export default async function StrategyIntroPage({
         </div>
 
         <div className="flex justify-center">
-          <Button href={`/ai-strategy/${applicationId}/strategy/dashboard`} size="lg" className="min-w-64">
+          <Button
+            href={`/ai-strategy/${applicationId}/strategy/analysis/recommendation`}
+            size="lg"
+            className="min-w-64"
+          >
             Generate My Strategy
           </Button>
         </div>

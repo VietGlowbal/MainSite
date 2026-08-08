@@ -5,7 +5,7 @@
  * genuinely zero achievements (Requirement 4.3 explicitly allows that) and
  * was satisfied by any activity row regardless of which flow wrote it.
  *
- * Four real, independently-recorded steps:
+ * Five real, independently-recorded steps:
  *  - personalSummaryComplete / achievementsComplete — shared across every
  *    Strategy (student_profiles.personal_summary_completed_at /
  *    achievements_completed_at), set by an explicit "Continue" submit, not
@@ -14,12 +14,21 @@
  *    for this application.
  *  - introSeen — per Strategy: `course_applications.strategy_intro_seen_at`
  *    is set, marked when the Strategy Introduction page is opened.
+ *  - strategyComplete — per Strategy: an `application_strategy_recommendations`
+ *    row exists (the F7 Personalized Strategy report has been generated).
+ *    Sits after `introSeen` and before the Planner — it is a synthesis over
+ *    the Personal Report and Matching Report, so it cannot run before
+ *    `aiAnalysisComplete`, and it is deliberately its own step rather than
+ *    folded into `analysis`: the Planner is the task-tracking surface ("am I
+ *    doing it"), while this report is a one-time strategic read ("what
+ *    should I become and why") — two different jobs, two different pages.
  */
 export type OnboardingState = {
   personalSummaryComplete: boolean;
   achievementsComplete: boolean;
   aiAnalysisComplete: boolean;
   introSeen: boolean;
+  strategyComplete: boolean;
 };
 
 export type OnboardingStep =
@@ -27,6 +36,7 @@ export type OnboardingStep =
   | 'achievements'
   | 'analysis'
   | 'intro'
+  | 'strategy'
   | 'dashboard';
 
 /** True once every step is done — requirements.md 1.3's "completed onboarding". */
@@ -35,7 +45,8 @@ export function isOnboardingComplete(state: OnboardingState): boolean {
     state.personalSummaryComplete &&
     state.achievementsComplete &&
     state.aiAnalysisComplete &&
-    state.introSeen
+    state.introSeen &&
+    state.strategyComplete
   );
 }
 
@@ -52,6 +63,7 @@ export function nextOnboardingStep(state: OnboardingState): OnboardingStep {
   if (!state.achievementsComplete) return 'achievements';
   if (!state.aiAnalysisComplete) return 'analysis';
   if (!state.introSeen) return 'intro';
+  if (!state.strategyComplete) return 'strategy';
   return 'dashboard';
 }
 
@@ -71,6 +83,8 @@ export function onboardingStepHref(
       return analysisHref;
     case 'intro':
       return `/ai-strategy/${applicationId}/strategy/intro`;
+    case 'strategy':
+      return `/ai-strategy/${applicationId}/strategy/analysis/recommendation`;
     case 'dashboard':
       return `/ai-strategy/${applicationId}/strategy/dashboard`;
   }
