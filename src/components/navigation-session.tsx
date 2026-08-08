@@ -5,7 +5,7 @@ import {
   useContext,
   useEffect,
   useMemo,
-  useState,
+  useSyncExternalStore,
   type ReactNode,
 } from 'react';
 import type { User } from '@supabase/supabase-js';
@@ -49,7 +49,41 @@ const UNRESOLVED_SESSION: NavigationSessionValue = {
 const PROFILE_READ_RETRY_DELAY_MS = 50;
 const LOGIN_LOGGED_SESSION_KEY = 'gb_login_logged';
 
-const NavigationSessionContext = createContext<NavigationSessionValue | null>(null);
+type NavigationSessionUpdate =
+  | NavigationSessionValue
+  | ((current: NavigationSessionValue) => NavigationSessionValue);
+
+type NavigationSessionStore = {
+  getSnapshot: () => NavigationSessionValue;
+  setSnapshot: (update: NavigationSessionUpdate) => void;
+  subscribe: (listener: () => void) => () => void;
+};
+
+function createNavigationSessionStore(): NavigationSessionStore {
+  let snapshot = UNRESOLVED_SESSION;
+  const listeners = new Set<() => void>();
+
+  return {
+    getSnapshot: () => snapshot,
+    setSnapshot: (update) => {
+      const next = typeof update === 'function' ? update(snapshot) : update;
+      if (Object.is(next, snapshot)) return;
+
+      snapshot = next;
+      for (const listener of listeners) listener();
+    },
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+}
+
+const NavigationSessionContext =
+  createContext<NavigationSessionStore | null>(null);
+
+const getUnresolvedSession = () => UNRESOLVED_SESSION;
+const subscribeToUnresolvedSession = () => () => {};
 
 function summarizeUser(user: User): NavigationSessionUser {
   const metadataName = user.user_metadata?.full_name;
@@ -100,7 +134,7 @@ function waitForProfileRetry(): Promise<void> {
  */
 export function NavigationSessionProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
-  const [session, setSession] = useState<NavigationSessionValue>(UNRESOLVED_SESSION);
+  const store = useMemo(() => createNavigationSessionStore(), []);
 
   useEffect(() => {
     let active = true;
@@ -116,7 +150,12 @@ export function NavigationSessionProvider({ children }: { children: ReactNode })
         requestVersion += 1;
         currentUserId = null;
         completedByEventForUserId = null;
-        setSession({ ready: true, signedIn: false, user: null, completed: false });
+        store.setSnapshot({
+          ready: true,
+          signedIn: false,
+          user: null,
+          completed: false,
+        });
         return;
       }
 
@@ -125,7 +164,7 @@ export function NavigationSessionProvider({ children }: { children: ReactNode })
       // INITIAL_SESSION and getUser commonly report the same identity. Keep the
       // freshest display metadata, but do not issue the profile read twice.
       if (currentUserId === authUser.id) {
-        setSession((current) =>
+        store.setSnapshot((current) =>
           current.user?.id === authUser.id ? { ...current, user } : current,
         );
         return;
@@ -137,7 +176,7 @@ export function NavigationSessionProvider({ children }: { children: ReactNode })
 
       // Auth is known, onboarding is not. Remaining unresolved here is what
       // prevents the first-time CTA flashing for a completed student.
-      setSession({ ready: false, signedIn: true, user, completed: false });
+      store.setSnapshot({ ready: false, signedIn: true, user, completed: false });
 
       for (let attempt = 0; attempt < 2; attempt += 1) {
         const { data: profile, error } = await supabase
@@ -149,7 +188,7 @@ export function NavigationSessionProvider({ children }: { children: ReactNode })
         if (!active || version !== requestVersion) return;
 
         if (!error) {
-          setSession({
+          store.setSnapshot({
             ready: true,
             signedIn: true,
             user,
@@ -186,7 +225,7 @@ export function NavigationSessionProvider({ children }: { children: ReactNode })
       if (!userId) return;
 
       completedByEventForUserId = userId;
-      setSession((current) =>
+      store.setSnapshot((current) =>
         current.signedIn && current.user?.id === userId
           ? { ...current, ready: true, completed: true }
           : current,
@@ -221,15 +260,23 @@ export function NavigationSessionProvider({ children }: { children: ReactNode })
       );
       subscription.unsubscribe();
     };
-  }, [supabase]);
+  }, [store, supabase]);
 
   return (
-    <NavigationSessionContext.Provider value={session}>
+    <NavigationSessionContext.Provider value={store}>
       {children}
     </NavigationSessionContext.Provider>
   );
 }
 
 export function useNavigationSession(): NavigationSessionValue {
-  return useContext(NavigationSessionContext) ?? UNRESOLVED_SESSION;
+  const store = useContext(NavigationSessionContext);
+
+  return useSyncExternalStore(
+    store?.subscribe ?? subscribeToUnresolvedSession,
+    store?.getSnapshot ?? getUnresolvedSession,
+    // Every streamed consumer gets the same server snapshot for its first
+    // hydration render, even when a faster sibling has already resolved auth.
+    getUnresolvedSession,
+  );
 }
