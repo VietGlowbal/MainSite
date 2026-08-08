@@ -1,4 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
+import { hydrateRoot, type Root } from 'react-dom/client';
+import { renderToString } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -96,5 +98,45 @@ describe('SiteNavigation', () => {
     expect(desktop).toHaveAttribute('data-primary', 'Strategy Master');
     expect(desktop).toHaveAttribute('data-account', 'User Profile');
     expect(desktop).not.toHaveAttribute('data-items', expect.stringContaining('Strategy Master'));
+  });
+
+  it('keeps the server snapshot stable when the session resolves before hydration', async () => {
+    mocks.session = {
+      ready: false,
+      signedIn: false,
+      completed: false,
+      user: null,
+    };
+
+    const container = document.createElement('div');
+    container.innerHTML = renderToString(<SiteNavigation />);
+    document.body.appendChild(container);
+
+    // A streamed navigation boundary can hydrate after its parent provider has
+    // already resolved. Its first client render must still match the server.
+    mocks.session = {
+      ready: true,
+      signedIn: false,
+      completed: false,
+      user: null,
+    };
+
+    const recoverableErrors: unknown[] = [];
+    let root: Root | undefined;
+    await act(async () => {
+      root = hydrateRoot(container, <SiteNavigation />, {
+        onRecoverableError: (error) => recoverableErrors.push(error),
+      });
+    });
+
+    expect(recoverableErrors).toEqual([]);
+    expect(within(container).getAllByTestId('desktop-nav')).toHaveLength(1);
+    expect(within(container).getByTestId('desktop-nav')).toHaveAttribute(
+      'data-primary',
+      'Plan your Global Education',
+    );
+
+    act(() => root?.unmount());
+    container.remove();
   });
 });

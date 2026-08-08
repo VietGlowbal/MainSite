@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useSyncExternalStore } from 'react';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { useNavigationSession } from '@/components/navigation-session';
 import { SavedNavLink } from '@/components/saved-nav-link';
@@ -13,6 +14,18 @@ type Props = {
   showSaved?: boolean;
 };
 
+const subscribeToHydration = () => () => {};
+const getClientHydrationSnapshot = () => true;
+const getServerHydrationSnapshot = () => false;
+
+function useHydrated() {
+  return useSyncExternalStore(
+    subscribeToHydration,
+    getClientHydrationSnapshot,
+    getServerHydrationSnapshot,
+  );
+}
+
 /**
  * The canonical desktop + mobile site header.
  *
@@ -23,9 +36,11 @@ type Props = {
 export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
   const { t } = useLanguage();
   const session = useNavigationSession();
+  const hydrated = useHydrated();
+  const sessionReady = hydrated && session.ready;
 
   const presentation = getMarketingNavPresentation(
-    session.ready
+    sessionReady
       ? { signedIn: session.signedIn, completed: session.completed }
       : // The completed list is the neutral subset: it contains no first-time
         // Strategy item and actions are withheld separately below.
@@ -33,9 +48,9 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
     t,
   );
 
-  const primaryAction = session.ready ? presentation.primaryAction : undefined;
-  const accountAction = session.ready ? presentation.accountAction : undefined;
-  const user = session.ready && session.signedIn ? session.user : null;
+  const primaryAction = sessionReady ? presentation.primaryAction : undefined;
+  const accountAction = sessionReady ? presentation.accountAction : undefined;
+  const user = sessionReady && session.signedIn ? session.user : null;
 
   return (
     <>

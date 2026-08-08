@@ -11,7 +11,6 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNavigationSession } from '@/components/navigation-session';
-import { SiteNavigation } from '@/components/site-navigation';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Container } from '@/shared/ui/container';
@@ -485,10 +484,6 @@ function Chrome({
 
   return (
     <>
-      {/* This page is where students save universities, so keep the saved-list
-          utility while the shared header resolves the correct audience matrix. */}
-      <SiteNavigation tone="light" showSaved />
-
       <main className="min-h-screen">
         <DirectoryBrowseView
           key={`${search}\u0000${country}`}
