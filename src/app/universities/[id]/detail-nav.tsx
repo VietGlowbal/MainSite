@@ -116,7 +116,11 @@ export function DetailNav({
   }, [activeId]);
 
   return (
-    <div className="sticky top-[calc(env(safe-area-inset-top)+var(--gb-header-mobile))] z-30 mt-gb-5xl border-b border-line bg-surface/85 backdrop-blur-sm md:top-0">
+    // Pinned to --gb-nav-offset, not to 0: the site header sits above this bar
+    // and hides itself on scroll, so this one rides down under it while it is
+    // revealed and takes the top edge back when it goes. The transition matches
+    // the header's own (see use-nav-reveal.ts) so the two move together.
+    <div className="sticky top-[var(--gb-nav-offset)] z-30 mt-gb-5xl border-b border-line bg-surface/85 backdrop-blur-sm transition-[top] duration-200 ease-out motion-reduce:transition-none">
       <Container as="nav" aria-label="On this page" className="relative">
         <div className="flex items-center gap-gb-lg py-gb-lg">
           <div

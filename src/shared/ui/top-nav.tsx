@@ -347,7 +347,7 @@ export function TopNav({
   // Destructured rather than held as one object: react-hooks/refs treats a
   // value carrying a ref as a ref itself, and reading `.top` off it during
   // render trips the rule even though `top` is ordinary state.
-  const { ref: navRef, top: navTop, isFloating } = useNavReveal();
+  const { ref: navRef, top: navTop, isFloating, isHidden } = useNavReveal();
 
   return (
     <header
@@ -362,8 +362,14 @@ export function TopNav({
        * that follows the page cannot cover a dialog.
        */
       style={{ top: navTop }}
+      /*
+       * The shadow goes with `isFloating`, but NOT while parked off-screen: a
+       * box-shadow paints outside the border box, so a fully hidden bar would
+       * still smear a grey band across the top few px of the page — the other
+       * half of "the nav doesn't disappear completely".
+       */
       className={`sticky z-40 hidden border-b py-gb-xl transition-[top] duration-200 ease-out motion-reduce:transition-none md:block ${BAR[tone]}${
-        isFloating ? ' shadow-gb-xs' : ''
+        isFloating && !isHidden ? ' shadow-gb-xs' : ''
       }`}
       {...testId(TID.navHeader)}
     >

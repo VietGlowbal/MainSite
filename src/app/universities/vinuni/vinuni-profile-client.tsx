@@ -96,7 +96,10 @@ export function VinUniProfileClient({
 
 function SectionNav() {
   return (
-    <nav className="sticky top-0 z-30 border-b border-slate-200 bg-white/85 backdrop-blur-md">
+    // top-0 put this bar underneath the site header — the fixed mobile one
+    // always, and the desktop one whenever it was revealed. --gb-nav-offset is
+    // how much chrome is above it right now; see tokens.css.
+    <nav className="sticky top-[var(--gb-nav-offset)] z-30 border-b border-slate-200 bg-white/85 backdrop-blur-md transition-[top] duration-200 ease-out motion-reduce:transition-none">
       <div className="mx-auto flex max-w-6xl items-center gap-1 overflow-x-auto px-4 py-3 md:gap-2 md:px-6">
         <Link
           href="/universities"

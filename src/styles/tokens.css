@@ -343,6 +343,38 @@
      offset in globals.css read this. */
   --gb-header-mobile: 64px;
 
+  /* The desktop bar (src/shared/ui/top-nav.tsx): 16 + 36 + a 1px rule = 69.
+     Unlike the mobile figure this is only a FALLBACK — the real height varies
+     with the viewport as labels wrap, so use-nav-reveal.ts measures the element
+     and publishes the live number as --gb-nav-reveal. This value is what
+     --gb-nav-offset falls back to before that measurement lands, or on a page
+     that renders no desktop bar at all. */
+  --gb-header-desktop: 69px;
+
+  /* ── How far the top of the viewport is currently occupied by site chrome ──
+     The one number sticky page furniture should pin itself to, so the header
+     pushes it down instead of covering it:
+
+         className="sticky top-[var(--gb-nav-offset)]"
+
+     Mobile: the bar in mobile-nav.tsx is `fixed` and never hides, so the offset
+     is constant. Desktop: the bar hides on scroll, so the offset is live and
+     comes from --gb-nav-reveal (0px while hidden). Pair it with
+     `transition-[top] duration-200 ease-out` to match the bar's own easing.
+
+     ⚠️ Do not read --gb-nav-reveal directly. It is absent until the desktop bar
+     mounts and measures itself, and it says nothing about the mobile bar. */
+  --gb-nav-offset: calc(env(safe-area-inset-top) + var(--gb-header-mobile));
+}
+
+@media (min-width: 768px) {
+  :root {
+    --gb-nav-offset: var(--gb-nav-reveal, var(--gb-header-desktop));
+  }
+}
+
+:root {
+
   /* Brand */
   --gb-brand: var(--color-gb-brand-600);
   --gb-brand-hover: var(--color-gb-brand-700);

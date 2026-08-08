@@ -1,13 +1,18 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
-import { GlowbalLogo } from '@/components/glowbal-logo';
 
 /**
  * Shared shell for simple legal / policy pages (Privacy, Terms).
  *
- * Kept deliberately lightweight: a centred, readable column with the brand
- * header and a back link. Content is passed as `sections` so each page stays
- * a tiny data-only file.
+ * Kept deliberately lightweight: a centred, readable column and a back link.
+ * Content is passed as `sections` so each page stays a tiny data-only file.
+ *
+ * ⚠️ NO HEADER OF ITS OWN. These routes are not in the own-chrome lists in
+ * nav-reveal.tsx / navigation-visibility.ts, so the root layout's TopNav +
+ * MobileNav are already above this. It used to render a second brand bar with
+ * its own logo and "Back to home" link, which read as two stacked headers —
+ * both linking home, one of them scrolling away and one of them not. The site
+ * header is the home affordance; the back link below is the in-page one.
  */
 export type LegalSection = { heading: string; body: ReactNode };
 
@@ -24,19 +29,14 @@ export function LegalPage({
 }) {
   return (
     <div className="min-h-screen bg-white text-slate-800">
-      <header className="border-b border-slate-200/70">
-        <div className="mx-auto flex h-16 max-w-3xl items-center justify-between px-5 sm:px-6">
-          <Link href="/" aria-label="GlowBal home">
-            <GlowbalLogo height={28} />
-          </Link>
-          <Link href="/" className="text-sm font-semibold text-slate-600 transition hover:text-pink-600">
-            ← Back to home
-          </Link>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-3xl px-5 py-14 sm:px-6">
-        <h1 className="text-3xl font-semibold tracking-[-0.03em] text-slate-900 sm:text-4xl">{title}</h1>
+      <div className="mx-auto max-w-3xl px-5 py-14 sm:px-6">
+        <Link
+          href="/"
+          className="text-sm font-semibold text-slate-600 transition hover:text-pink-600"
+        >
+          ← Back to home
+        </Link>
+        <h1 className="mt-6 text-3xl font-semibold tracking-[-0.03em] text-slate-900 sm:text-4xl">{title}</h1>
         <p className="mt-2 text-sm text-slate-400">Last updated: {lastUpdated}</p>
         <div className="mt-6 text-base leading-7 text-slate-600">{intro}</div>
 
@@ -54,7 +54,7 @@ export function LegalPage({
           advice. Please have it reviewed by a qualified professional before
           relying on it.
         </p>
-      </main>
+      </div>
     </div>
   );
 }

@@ -48,8 +48,13 @@ export default async function WriterPage({ params }: Props) {
     .maybeSingle();
 
   return (
-    <main className="h-screen flex flex-col bg-white text-slate-800 overflow-hidden">
-      {/* Top bar */}
+    // `gb-page-full-bleed` cancels the mobile top padding that .glowbal-main-content
+    // adds for the fixed mobile header — this route is in the no-global-nav list
+    // (navigation-visibility.ts), so there is no header to clear and the padding
+    // would just steal height from an editor that wants the whole viewport.
+    // A <div>, not a <main>: the root layout already opened one.
+    <div className="gb-page-full-bleed h-screen flex flex-col bg-white text-slate-800 overflow-hidden">
+      {/* The only top bar on this route. */}
       <header className="shrink-0 border-b border-slate-200 bg-white px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-4">
           <a
@@ -86,6 +91,6 @@ export default async function WriterPage({ params }: Props) {
         initialAnalysis={existingDraft?.ai_analysis ?? null}
         statementId={existingDraft?.id ?? null}
       />
-    </main>
+    </div>
   );
 }
