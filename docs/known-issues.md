@@ -16,7 +16,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5e | Fixed regression history; preserve the tests and constraints. |
+| §5–§5f | Fixed regression history; preserve the tests and constraints. §5f flags a known, separate, NOT-yet-fixed gap: the reflection forms ignore the `return` param, so a first-time student's post-reflection landing page is still wrong. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -816,6 +816,46 @@ correctly bounce back to `/strategy/analysis` and see *that* page's error
 instead, but they still cannot get a Matching Report (and therefore cannot
 reach F7 or the Planner) until §0e is resolved. Verify §0e's migration state
 before treating this fix as having restored the whole flow.
+
+## 5f. Fixed 2026-08-08 — do not re-introduce
+
+**Confirmed live and broken same day, after §0e's migration was run and §5e
+shipped**: `/apply/[id]` jumped straight to
+`/ai-strategy/[id]/strategy/analysis` for a real student, firing off the
+`AnalysisWorkspace` AI-generation gate with zero explanation of what was
+happening or why — no Overview, no chance to review or add reflections
+first. Reported with a mockup of the intended flow: Apply → Overview → 
+Reflections → analysis (auto-generated Personal Report + Matching Report,
+free) → Personalized Strategy (paid/gated) → Planner, where "analysis" is
+only ever reached by *finishing* the earlier steps, never as a default
+landing page.
+
+| What | Where |
+|---|---|
+| `strategy/page.tsx` only rendered `StrategyHome` (the Overview/marketing page) when `nextOnboardingStep(state) === 'personal-summary'` — i.e. only for a student with NEITHER `personalSummaryComplete` NOR `achievementsComplete` set. Both flags live on `student_profiles`, shared across every application a student has (see the note on `aiAnalysisComplete` in `domain/onboarding.ts`). So a student who had already done reflections once, for an EARLIER application, had both flags true from the moment they opened a brand new one — Overview was skipped entirely and they were redirected straight into `/strategy/analysis`, which auto-fires an AI generation call on load. **Fix**: gate on `!state.aiAnalysisComplete` instead (whether THIS application's analysis has run) — Overview now shows for every application until its own analysis exists, and its CTA (`startHref`) points at whatever the real next step is, so a student who already has reflections done goes straight from Overview into the analysis gate on an explicit click, not a silent redirect. | `src/app/ai-strategy/[applicationId]/strategy/page.tsx` |
+| `/apply/[applicationId]/page.tsx` independently recomputed `onboardingStepHref(nextOnboardingStep(state), id)` instead of delegating to `strategy/page.tsx`'s own (more complete) decision — the exact "two routers, one state machine" duplication that caused §5e the day before. It never had `strategy/page.tsx`'s Overview special-case at all, so fixing `strategy/page.tsx` alone would not have fixed this entry point. **Fix**: this page no longer computes anything — it authenticates, then bounces to `/ai-strategy/[id]/strategy` unconditionally, making `strategy/page.tsx` the single place that decides where a student belongs. | `src/app/apply/[applicationId]/page.tsx` |
+
+⚠️ **Known, separate, NOT fixed here — the reflection forms ignore `return`.**
+`onboardingStepHref('personal-summary', id, { returnTo })` builds a
+`/ai-strategy/reflection?return=...` URL so that, after finishing
+reflections, a student lands back at their application's analysis gate. But
+`/ai-strategy/reflection` and `/ai-strategy/reflection/achievements` are
+BOTH student-level pages reached from many unrelated places (the report
+chrome's "Reflections" stage link, `ApplicantPortrait`'s "Update your
+reflections" CTA, `PersonalReportView`, the marketing guide — none of which
+pass a `return` param), and their submit handlers hardcode their own
+next-page navigation (`reflection-about-form.tsx` → the achievements page;
+`reflection-evidence-form.tsx` → `/ai-strategy/report`, a DIFFERENT, older,
+student-level Personal Report page backed by `student_personal_reports`, NOT
+the per-application `applicant_analyses` this whole onboarding pipeline is
+built on). Neither form reads `useSearchParams()` at all — the `return`
+param is dead plumbing today. **Practical effect**: a genuinely first-time
+student who reaches Overview, clicks through both reflection steps, ends up
+on `/ai-strategy/report` (the old per-student report) instead of back at
+`/ai-strategy/[id]/strategy` where their new application's analysis would
+actually run. This needs its own decision (what should the OTHER,
+non-application entry points into `/ai-strategy/reflection` do instead?)
+before it can be fixed — not folded into this incident's fix silently.
 
 ## 6. Open questions for the designer / owner
 

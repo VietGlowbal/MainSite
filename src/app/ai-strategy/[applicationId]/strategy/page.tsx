@@ -12,15 +12,29 @@ import { createClient } from '@/lib/supabase/server';
  * Ownership of `applicationId` is already enforced by the layout above this
  * page. `fetchOnboardingState` + `nextOnboardingStep` decide what happens
  * next, per Requirement 1.2-1.3:
- *  - Nothing done at all → render the marketing page below, CTA starts the
- *    real first step (Personal Summary).
- *  - Some steps done, some not (a returning-but-unfinished student) →
- *    skip straight to the first unfinished step, not back to the marketing
- *    copy — the audit's explicit ask, "handle partially completed
- *    onboarding by returning users to the correct unfinished stage."
+ *  - This application's AI analysis (Personal Report + Matching Report)
+ *    hasn't run yet → render the marketing page below, whatever the actual
+ *    next step is (reflections, or straight to the analysis gate if
+ *    reflections are already done). CTA links to that real next step.
  *  - Everything done → skip this page entirely and go to the Dashboard,
  *    matching 1.3's "route them directly to the Dashboard" literally
  *    (not "show Strategy Home again, which then links to the Dashboard").
+ *
+ * ─── WHY "aiAnalysisComplete", NOT "personalSummaryComplete" ─────────────────
+ *
+ * `personalSummaryComplete`/`achievementsComplete` are shared across every
+ * Strategy the student has (`student_profiles`, not per-application) — a
+ * returning student who already did reflections for an EARLIER application
+ * has both flags true from the moment they open a brand new one. The
+ * previous check (`nextOnboardingStep(state) === 'personal-summary'`) only
+ * showed this page to a student with NEITHER flag set, so a returning
+ * student skipped this explainer entirely and was redirected straight into
+ * `/strategy/analysis`, which fires a real AI generation call on load with
+ * no explanation of what was about to happen — reported live 2026-08-08, see
+ * `docs/known-issues.md §5f`. Gating on `aiAnalysisComplete` instead means
+ * every application gets its own Overview before anything analysis-related
+ * runs for it, regardless of what the student's other applications have
+ * already done.
  */
 export default async function StrategyHomePage({
   params,
@@ -51,9 +65,9 @@ export default async function StrategyHomePage({
   }
 
   const step = nextOnboardingStep(state);
-  const nothingDoneYet = step === 'personal-summary';
+  const showOverview = !state.aiAnalysisComplete;
 
-  if (!nothingDoneYet) {
+  if (!showOverview) {
     redirect(onboardingStepHref(step, applicationId));
   }
 
@@ -61,7 +75,7 @@ export default async function StrategyHomePage({
     <StrategyHome
       courseName={application?.course_name ?? 'Your course'}
       universityName={application?.university_name ?? 'Your university'}
-      startHref={onboardingStepHref('personal-summary', applicationId)}
+      startHref={onboardingStepHref(step, applicationId)}
     />
   );
 }
