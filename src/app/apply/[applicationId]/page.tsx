@@ -1,6 +1,4 @@
 import { redirect } from 'next/navigation';
-import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
-import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
@@ -14,19 +12,24 @@ import { getServerIdentity } from '@/server/auth/server-identity';
  * commits to the flow to unlock what it produces, and this page was handing
  * out a chunk of the same value for free, one click earlier.
  *
- * This is now a pure router. `nextOnboardingStep` already knows exactly where
- * a student belongs — `StrategyHome`'s marketing page for a first-timer, the
- * correct mid-onboarding step for someone returning, or straight to the
- * Planner for someone fully set up — because `/ai-strategy/[id]/strategy`
- * (`strategy/page.tsx`) already computes it the same way for its own
- * "resume, don't restart" behaviour. Reusing it here rather than duplicating
- * the logic is what keeps the two from disagreeing about where a student is.
+ * ─── A PURE BOUNCE, NOT A SECOND ROUTER ──────────────────────────────────────
+ *
+ * This used to compute `onboardingStepHref(nextOnboardingStep(state), id)`
+ * itself, duplicating the exact decision `/ai-strategy/[id]/strategy`
+ * (`strategy/page.tsx`) already makes for its own "resume, don't restart"
+ * behaviour. The two computations drifted the same day this page shipped —
+ * this one skipped `strategy/page.tsx`'s "show the Overview first" case
+ * entirely, so a returning student (whose reflections were already complete
+ * from an EARLIER application) landed straight on the AI-analysis page with
+ * no explanation, autofiring a generation call — see
+ * `docs/known-issues.md §5f`. Bouncing here instead of recomputing means
+ * there is exactly one place that decides where a student belongs; this page
+ * cannot disagree with it because it no longer has an opinion.
  *
  * Every existing link to `/apply/${id}` (the applications list, the Plus
  * upsell return path, the statement editor's back-link, the post-sign-in
- * redirect target) keeps working unchanged — they now just bounce onward
- * through this redirect to wherever is actually correct, first-time or
- * returning.
+ * redirect target) keeps working unchanged — they now just bounce onward to
+ * wherever is actually correct, first-time or returning.
  */
 export default async function ApplicationPage({
   params,
@@ -34,9 +37,8 @@ export default async function ApplicationPage({
   params: Promise<{ applicationId: string }>;
 }) {
   const { applicationId } = await params;
-  const { supabase, identity: user } = await getServerIdentity();
+  const { identity: user } = await getServerIdentity();
   if (!user) redirect(`/auth?redirect=${encodeURIComponent(`/apply/${applicationId}`)}`);
 
-  const state = await fetchOnboardingState(supabase, user.id, applicationId);
-  redirect(onboardingStepHref(nextOnboardingStep(state), applicationId));
+  redirect(`/ai-strategy/${applicationId}/strategy`);
 }
