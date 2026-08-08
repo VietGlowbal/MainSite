@@ -6,7 +6,7 @@ pageType: comparison
 studentSegment: Vietnamese undergraduate applicant
 targetCountry: Multi-country
 subject: Computer Science
-lastUpdated: 2026-08-06
+lastUpdated: 2026-08-08
 status: draft
 ---
 # Computer Science Comparison for Vietnamese undergraduate applicant
