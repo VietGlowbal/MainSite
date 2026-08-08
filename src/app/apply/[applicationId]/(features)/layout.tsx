@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { ApplicationNav } from '@/components/application-nav';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 /**
  * Shell for the `/apply/[applicationId]` feature pages — CV builder, CV review,
@@ -41,10 +41,7 @@ export default async function ApplicationFeatureLayout({
 }) {
   const { applicationId } = await params;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { supabase, identity: user } = await getServerIdentity();
 
   if (!user) redirect(`/auth?redirect=${encodeURIComponent(`/apply/${applicationId}`)}`);
 
@@ -62,6 +59,7 @@ export default async function ApplicationFeatureLayout({
     <div className="bg-surface">
       <ApplicationNav
         applicationId={applicationId}
+        userId={user.id}
         {...(application?.course_name ? { courseName: application.course_name } : {})}
       />
       {children}

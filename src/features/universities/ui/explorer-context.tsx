@@ -4,12 +4,11 @@ import {
   createContext,
   useCallback,
   useContext,
-  useMemo,
+  useEffect,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import { setFocusUniversity } from '@/lib/selection-cache';
 import {
   APPLICATION_STAGES,
@@ -118,7 +117,6 @@ export function UniversityExplorerProvider({
   admissionUnlocked,
   profileStrength,
 }: ProviderProps) {
-  const supabase = useMemo(() => createClient(), []);
   const [activeView, setActiveView] =
     useState<ExplorerState['activeView']>('browse');
   const [selectedUniversityId, setSelectedUniversityId] = useState<number | null>(null);
@@ -131,6 +129,15 @@ export function UniversityExplorerProvider({
   const [loginGateOpen, setLoginGateOpen] = useState(false);
 
   const toastTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    setShortlist((current) =>
+      current.length === initialShortlist.length &&
+      current.every((id, index) => id === initialShortlist[index])
+        ? current
+        : initialShortlist,
+    );
+  }, [initialShortlist]);
 
   // ── Actions ─────────────────────────────────────────────────────────
 
@@ -201,6 +208,7 @@ export function UniversityExplorerProvider({
         return;
       }
 
+      const supabase = (await import('@/lib/supabase/client')).createClient();
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
@@ -261,7 +269,7 @@ export function UniversityExplorerProvider({
         }
       }
     },
-    [isLoggedIn, supabase, initialUniversities, showToast],
+    [isLoggedIn, initialUniversities, showToast],
   );
 
   const removeFromShortlist = useCallback(
@@ -271,6 +279,7 @@ export function UniversityExplorerProvider({
         return;
       }
 
+      const supabase = (await import('@/lib/supabase/client')).createClient();
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
@@ -286,7 +295,7 @@ export function UniversityExplorerProvider({
       }
       setShortlist((prev) => prev.filter((x) => x !== id));
     },
-    [isLoggedIn, supabase, showToast],
+    [isLoggedIn, showToast],
   );
 
   const isShortlisted = useCallback(
@@ -315,6 +324,7 @@ export function UniversityExplorerProvider({
       return;
     }
 
+    const supabase = (await import('@/lib/supabase/client')).createClient();
     const { data: userData } = await supabase.auth.getUser();
     if (!userData.user) return;
 
@@ -351,7 +361,7 @@ export function UniversityExplorerProvider({
         })),
       );
     }
-  }, [shortlist, isLoggedIn, supabase]);
+  }, [shortlist, isLoggedIn]);
 
   const advanceApplication = useCallback(
     async (universityId: number) => {
@@ -381,6 +391,7 @@ export function UniversityExplorerProvider({
         5: 'offer',
       };
 
+      const supabase = (await import('@/lib/supabase/client')).createClient();
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) return;
 
@@ -393,7 +404,7 @@ export function UniversityExplorerProvider({
         .eq('user_id', userData.user.id)
         .eq('university_id', universityId);
     },
-    [isLoggedIn, supabase, applications],
+    [isLoggedIn, applications],
   );
 
   // ── Context value ───────────────────────────────────────────────────

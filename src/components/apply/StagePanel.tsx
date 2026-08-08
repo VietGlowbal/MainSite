@@ -6,7 +6,7 @@
 'use client';
 
 import type { ApplicationStage, ApplicationTask } from '@/lib/apply-types';
-import { ProgressBar } from '@/shared/ui';
+import { ProgressBar } from '@/shared/ui/progress-bar';
 import { TaskItem } from './TaskItem';
 
 type Props = {

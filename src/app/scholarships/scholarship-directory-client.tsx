@@ -2,18 +2,22 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react';
 import { useRouter } from 'next/navigation';
+import dynamic from 'next/dynamic';
 import Image from 'next/image';
-import { Badge, Button, Card, EmptyState, Pagination } from '@/components/ui';
-import { createClient } from '@/lib/supabase/client';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { EmptyState } from '@/components/ui/empty-state';
+import { Pagination } from '@/components/ui/pagination';
 import { clearFocusUniversity, getFocusUniversity, setFocusUniversity } from '@/lib/selection-cache';
-import { TID, testId } from '@/shared/lib';
+import { TID, testId } from '@/shared/lib/testids';
 import { useLanguage } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
 import {
   FUNDING_TYPES,
   FUNDING_TYPE_LABELS,
   SCHOLARSHIP_SCOPE_LABELS,
-} from '@/lib/scholarships';
+} from '@/lib/scholarship-constants';
 import { scorePersonalMatch, type DirectoryScholarship } from '@/lib/scholarships-data';
 import {
   scholarshipSearchParams,
@@ -23,8 +27,21 @@ import {
   type ScholarshipMajor,
   type ScholarshipQueryState,
   type ScholarshipSort,
-} from '@/features/scholarships';
-import { ScholarshipDashboard } from './scholarship-dashboard';
+} from '@/features/scholarships/directory-query';
+import type { ScholarshipDirectoryResponse } from '@/features/scholarships/directory-loader';
+import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
+
+const ScholarshipDashboard = dynamic(
+  () => import('./scholarship-dashboard').then((module) => module.ScholarshipDashboard),
+  {
+    loading: () => (
+      <div
+        className="min-h-[420px] animate-pulse rounded-2xl border border-line bg-surface"
+        aria-label="Loading course matches"
+      />
+    ),
+  },
+);
 
 /* Shapes mirror ScholarshipDashboard's props (which doesn't export them). */
 type Application = {
@@ -64,6 +81,7 @@ type Props = {
   focusUniversity?: { id: number; name: string; country: string | null } | null;
   // Scholarship ids already in the user's saved bucket (user_scholarships).
   savedScholarshipIds?: number[];
+  canonicalSearch: string;
 };
 
 const MAJOR_FILTERS: ReadonlyArray<{ value: ScholarshipMajor; label: string }> = [
@@ -80,23 +98,67 @@ const DEGREE_FILTERS: ReadonlyArray<{ value: ScholarshipDegree; label: string }>
   { value: 'doctoral', label: 'Doctoral / PhD' },
 ];
 
+function scholarshipHref(state: ScholarshipQueryState, patch: Partial<ScholarshipQueryState>) {
+  const params = scholarshipSearchParams(state, patch);
+  return params.size > 0 ? `/scholarships?${params}` : '/scholarships';
+}
+
+function scholarshipPrefetchHrefs(data: ScholarshipDirectoryResponse) {
+  const hrefs: string[] = [];
+  if (data.directoryPage?.hasMore || data.focusPage?.hasMore) {
+    hrefs.push(scholarshipHref(data.query, { page: data.query.page + 1 }));
+  }
+  if (data.countryPage?.hasMore) {
+    hrefs.push(scholarshipHref(data.query, { countryPage: data.query.countryPage + 1 }));
+  }
+  return hrefs;
+}
+
 export function ScholarshipDirectoryClient({
-  queryState,
-  directoryPage,
-  focusPage,
-  countryPage,
+  queryState: initialQueryState,
+  directoryPage: initialDirectoryPage,
+  focusPage: initialFocusPage,
+  countryPage: initialCountryPage,
   facets,
   savedUniversityIds,
   savedCountries,
   applications,
   existingScholarships,
-  focusUniversity: focusUniversityProp = null,
+  focusUniversity: initialFocusUniversity = null,
   savedScholarshipIds = [],
+  canonicalSearch,
 }: Props) {
   const { t } = useLanguage();
   const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
-  const [tab, setTab] = useState<'directory' | 'ai'>('directory');
+  const initialDirectory = useMemo<ScholarshipDirectoryResponse>(() => ({
+    query: initialQueryState,
+    directoryPage: initialDirectoryPage,
+    focusPage: initialFocusPage,
+    countryPage: initialCountryPage,
+    focusUniversity: initialFocusUniversity,
+    canonicalSearch,
+  }), [
+    canonicalSearch,
+    initialCountryPage,
+    initialDirectoryPage,
+    initialFocusPage,
+    initialFocusUniversity,
+    initialQueryState,
+  ]);
+  const getPrefetchHrefs = useCallback(scholarshipPrefetchHrefs, []);
+  const directory = useDirectoryNavigation({
+    pathname: '/scholarships',
+    endpoint: '/api/directory/scholarships',
+    initialData: initialDirectory,
+    getPrefetchHrefs,
+  });
+  const publicData = initialQueryState.view === 'directory' ? directory.data : initialDirectory;
+  const queryState = publicData.query;
+  const directoryPage = publicData.directoryPage;
+  const focusPage = publicData.focusPage;
+  const countryPage = publicData.countryPage;
+  const focusUniversityProp = publicData.focusUniversity;
+  const tab = queryState.view;
 
   // The chosen university that scopes this page. Seeded from the ?university=
   // param (focusUniversityProp); when absent we restore the last-chosen one
@@ -145,6 +207,7 @@ export function ScholarshipDirectoryClient({
     setSavingIds((prev) => new Set(prev).add(s.id));
 
     try {
+      const supabase = (await import('@/lib/supabase/client')).createClient();
       const {
         data: { user },
       } = await supabase.auth.getUser();
@@ -208,13 +271,17 @@ export function ScholarshipDirectoryClient({
   const resultsTopRef = useRef<HTMLDivElement>(null);
 
   const navigate = useCallback(
-    (patch: Partial<ScholarshipQueryState>, replace = false) => {
-      const params = scholarshipSearchParams(queryState, patch);
-      const href = params.size > 0 ? `/scholarships?${params}` : '/scholarships';
-      if (replace) router.replace(href);
-      else router.push(href);
+    (patch: Partial<ScholarshipQueryState>, replace = true) => {
+      const href = scholarshipHref(queryState, patch);
+      const nextView = patch.view ?? queryState.view;
+      if (queryState.view === 'ai' || nextView === 'ai') {
+        if (replace) router.replace(href);
+        else router.push(href);
+        return;
+      }
+      directory.navigate(href, replace);
     },
-    [queryState, router],
+    [directory, queryState, router],
   );
 
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -284,7 +351,7 @@ export function ScholarshipDirectoryClient({
     Math.max(1, Math.ceil((value?.total ?? 0) / 9));
 
   const goToPage = (key: 'page' | 'countryPage', page: number) => {
-    navigate({ [key]: page });
+    navigate({ [key]: page }, false);
     resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
@@ -328,7 +395,10 @@ export function ScholarshipDirectoryClient({
   return (
     // Extra bottom padding when the floating "Continue to Apply" bar is shown,
     // so it doesn't overlap the pagination control at the end of the list.
-    <div className={`space-y-8 ${savedIds.size > 0 ? 'pb-28' : ''}`}>
+    <div
+      className={`space-y-8 ${savedIds.size > 0 ? 'pb-28' : ''}`}
+      aria-busy={tab === 'directory' && directory.busy}
+    >
       {/* Header — the high contrast editorial treatment is shared with the new
           university screens, while the data-driven highlights make the directory
           feel useful before a student has entered a filter. */}
@@ -360,7 +430,7 @@ export function ScholarshipDirectoryClient({
       <div className="flex w-full gap-1 rounded-2xl border border-line bg-surface p-1.5 shadow-gb-xs sm:w-fit">
         <button
           type="button"
-          onClick={() => setTab('directory')}
+          onClick={() => navigate({ view: 'directory' }, false)}
           className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
             tab === 'directory' ? 'bg-surface-inverse text-fg-on-inverse shadow-sm' : 'text-fg-tertiary hover:bg-surface-muted hover:text-fg'
           }`}
@@ -369,7 +439,7 @@ export function ScholarshipDirectoryClient({
         </button>
         <button
           type="button"
-          onClick={() => setTab('ai')}
+          onClick={() => navigate({ view: 'ai' }, false)}
           className={`inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-semibold transition ${
             tab === 'ai' ? 'bg-surface-inverse text-fg-on-inverse shadow-sm' : 'text-fg-tertiary hover:bg-surface-muted hover:text-fg'
           }`}
@@ -661,6 +731,10 @@ export function ScholarshipDirectoryClient({
           t={t}
         />
       )}
+
+      {tab === 'directory' && directory.error ? (
+        <p role="alert" className="text-sm text-error-primary">{directory.error}</p>
+      ) : null}
 
       {/* Sticky "Continue to Apply" bar — appears once anything is saved. */}
       {savedIds.size > 0 && (

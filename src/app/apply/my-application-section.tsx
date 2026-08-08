@@ -9,11 +9,15 @@ import {
   displayCourseName,
   displayUniversityName,
   isParsePending,
-} from '@/features/apply/domain';
-import type { DeadlineTone } from '@/features/apply/domain';
-import { ResearchingInline } from '@/features/apply/ui';
+} from '@/features/apply/workspace-domain';
+import type { DeadlineTone } from '@/features/apply/workspace-domain';
+import { ResearchingInline } from '@/features/apply/tracker-ui';
 import type { CourseApplication } from '@/lib/apply-types';
-import { Avatar, Button, ICONS, KitIcon, ProgressBar, ScoreRing } from '@/shared/ui';
+import { Avatar } from '@/shared/ui/avatar';
+import { Button } from '@/shared/ui/button';
+import { ICONS, KitIcon } from '@/shared/ui/icons';
+import { ProgressBar } from '@/shared/ui/progress-bar';
+import { ScoreRing } from '@/shared/ui/score-ring';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { ApplySectionHeading } from './section-heading';
 
@@ -205,12 +209,14 @@ function ApplicationRow({
   /** False until the AI analysis is done — see `RowQuickLinks`. */
   strategyReady: boolean;
 }) {
+  const router = useRouter();
   const course = courseLine(app);
   const university = displayUniversityName(app.universityName);
   const urlLabel = courseUrlLabel(app.courseUrl);
   const pending = isPending(app);
   const failed = app.parseStatus === 'failed' || app.parseStatus === 'timeout';
   const urgency = deadlineUrgency(app.deadline);
+  const workspaceHref = `/apply/${app.id}`;
 
   return (
     <li className="group relative flex flex-col gap-gb-3xl overflow-hidden rounded-gb-2xl border border-line bg-surface p-gb-xl transition duration-200 hover:-translate-y-gb-xxs hover:border-gb-brand-300 hover:shadow-gb-lg lg:flex-row lg:items-center lg:justify-between">
@@ -306,7 +312,10 @@ function ApplicationRow({
             {urgency ? <DeadlineCountdown tone={urgency.tone} days={urgency.days} /> : null}
           </div>
           <Link
-            href={`/apply/${app.id}`}
+            href={workspaceHref}
+            prefetch={false}
+            onMouseEnter={() => router.prefetch(workspaceHref)}
+            onFocus={() => router.prefetch(workspaceHref)}
             className="group/cta flex items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             Continue applying

@@ -1,12 +1,13 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getScholarshipQueries } from '@/features/scholarships/api';
-import { getUniversityQueries } from '@/features/universities/api';
 import { formatTuitionForCard, officialWebsite } from '@/features/universities/domain';
 import { formatAmount } from '@/lib/scholarships-data';
 import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 import type { CourseApplication } from '@/lib/apply-types';
 import { ApplicationProgressClient } from './application-progress-client';
+import { ApplyShell } from './apply-shell';
 import type { SavedRow, ScholarshipOption } from './saved-list-section';
 
 /**
@@ -106,15 +107,16 @@ async function fetchStrategyReadiness(
     .eq('user_id', userId)
     .maybeSingle()
     .then((result) => result);
-  const applications = await applicationsPromise;
-  if (applications.length === 0) return {};
-
-  const ids = applications.map((app) => app.id);
-
-  const [{ data: profile }, { data: analyses }] = await Promise.all([
+  const analysesPromise = supabase
+    .from('applicant_analyses')
+    .select('application_id')
+    .eq('user_id', userId);
+  const [applications, { data: profile }, { data: analyses }] = await Promise.all([
+    applicationsPromise,
     profilePromise,
-    supabase.from('applicant_analyses').select('application_id').in('application_id', ids),
+    analysesPromise,
   ]);
+  if (applications.length === 0) return {};
 
   const analysed = new Set((analyses ?? []).map((row) => String(row.application_id)));
   const profileDone = Boolean(
@@ -159,11 +161,19 @@ function applicationLogos(applications: CourseApplication[]): Record<number, str
 async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
   const supabase = await createClient();
 
-  const { data: savedRows, error: savedError } = await supabase
+  const savedRowsPromise = supabase
     .from('user_universities')
-    .select('*')
+    .select('*, universities(id, name, country, type, qs_rank, the_rank, application_deadline, best_for, strengths, image_url, logo_url, tuition_usd)')
     .eq('user_id', userId)
     .order('added_at', { ascending: false });
+  const savedScholarshipRowsPromise = supabase
+    .from('user_scholarships')
+    .select('id, university_id, scholarships(id, name, amount_min, amount_max, amount_currency)')
+    .eq('user_id', userId);
+  const [
+    { data: savedRows, error: savedError },
+    { data: savedScholarshipData },
+  ] = await Promise.all([savedRowsPromise, savedScholarshipRowsPromise]);
 
   /*
    * A failed read and an empty list render identically — an empty saved list —
@@ -181,6 +191,36 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
     /** Absent until supabase-saved-program.sql has been applied. */
     program?: string | null;
     program_url?: string | null;
+    universities:
+      | {
+          id: number;
+          name: string;
+          country: string;
+          type: string | null;
+          qs_rank: number | null;
+          the_rank: number | null;
+          application_deadline: string | null;
+          best_for: string | null;
+          strengths: string | null;
+          image_url: string | null;
+          logo_url: string | null;
+          tuition_usd: string | null;
+        }
+      | Array<{
+          id: number;
+          name: string;
+          country: string;
+          type: string | null;
+          qs_rank: number | null;
+          the_rank: number | null;
+          application_deadline: string | null;
+          best_for: string | null;
+          strengths: string | null;
+          image_url: string | null;
+          logo_url: string | null;
+          tuition_usd: string | null;
+        }>
+      | null;
   }>;
   const universityIds = saved.map((row) => row.university_id);
 
@@ -192,19 +232,9 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
    *   - every scholarship linked to those universities, which is what the
    *     "Apply scholarship" picker chooses from
    */
-  const [universities, savedScholarshipRows, linkedScholarships] = await Promise.all([
-    getUniversityQueries().getByIds(universityIds),
-    universityIds.length > 0
-      ? supabase
-          .from('user_scholarships')
-          .select('id, university_id, scholarships(id, name, amount_min, amount_max, amount_currency)')
-          .eq('user_id', userId)
-          .in('university_id', universityIds)
-      : Promise.resolve({ data: [] }),
-    getScholarshipQueries().byUniversityIds(universityIds),
-  ]);
+  const linkedScholarships = await getScholarshipQueries().byUniversityIds(universityIds);
 
-  const savedScholarships = (savedScholarshipRows.data ?? []) as Array<{
+  const savedScholarships = (savedScholarshipData ?? []) as Array<{
     id: number;
     university_id: number | null;
     scholarships:
@@ -225,12 +255,10 @@ async function fetchSavedRows(userId: string): Promise<SavedRow[]> {
       | null;
   }>;
 
-  const byId = new Map(universities.map((uni) => [uni.id, uni]));
-
   // getByIds returns rows in whatever order the database hands back, so the
   // saved order (newest first) is reapplied here rather than lost.
   return saved.flatMap((row) => {
-    const uni = byId.get(row.university_id);
+    const uni = Array.isArray(row.universities) ? row.universities[0] : row.universities;
     if (!uni) return [];
 
     const attached = savedScholarships
@@ -323,10 +351,7 @@ export default async function ApplyPage({ searchParams }: Props) {
   // rather than one Next.js may try to cache across students.
   await searchParams;
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { identity: user } = await getServerIdentity();
 
   /*
    * Signing in is now required outright. It used to be conditional, because
@@ -342,24 +367,17 @@ export default async function ApplyPage({ searchParams }: Props) {
   const savedRowsPromise = fetchSavedRows(user.id);
   const strategyReadyPromise = fetchStrategyReadiness(user.id, applicationsPromise);
   const applications = await applicationsPromise;
-  const [savedRows, logoByUniversityId, strategyReadyById] = await Promise.all([
-    savedRowsPromise,
-    applicationLogos(applications),
-    strategyReadyPromise,
-  ]);
-
-  const userName =
-    (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || null;
-  const userAvatarUrl = (user.user_metadata?.avatar_url as string | undefined) ?? null;
+  const logoByUniversityId = applicationLogos(applications);
+  const strategyReadyById = await strategyReadyPromise;
 
   return (
-    <ApplicationProgressClient
-      applications={applications}
-      logoByUniversityId={logoByUniversityId}
-      savedRows={savedRows}
-      strategyReadyById={strategyReadyById}
-      userName={userName}
-      userAvatarUrl={userAvatarUrl}
-    />
+    <ApplyShell userName={user.name} userAvatarUrl={user.avatarUrl}>
+      <ApplicationProgressClient
+        applications={applications}
+        logoByUniversityId={logoByUniversityId}
+        savedRowsPromise={savedRowsPromise}
+        strategyReadyById={strategyReadyById}
+      />
+    </ApplyShell>
   );
 }

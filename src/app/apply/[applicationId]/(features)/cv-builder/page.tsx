@@ -4,7 +4,7 @@ import {
   isCvBuilderEnabled,
   loadCvBuilderContext,
 } from '@/lib/ai/cv-builder-context';
-import { createClient } from '@/lib/supabase/server';
+import { getServerIdentity } from '@/server/auth/server-identity';
 
 export default async function CvBuilderPage({
   params,
@@ -14,10 +14,7 @@ export default async function CvBuilderPage({
   const { applicationId } = await params;
   if (!isCvBuilderEnabled()) redirect(`/apply/${applicationId}/cv-review`);
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { identity: user } = await getServerIdentity();
   if (!user) redirect('/auth');
   const context = await loadCvBuilderContext(applicationId, user);
   if (!context) notFound();

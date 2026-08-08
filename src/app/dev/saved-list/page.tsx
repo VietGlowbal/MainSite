@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import { ApplicationProgressClient } from '@/app/apply/application-progress-client';
+import { ApplyShell } from '@/app/apply/apply-shell';
 import type { SavedRow } from '@/app/apply/saved-list-section';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
@@ -144,12 +145,12 @@ export default async function SavedListPreviewPage() {
   });
 
   return (
-    <ApplicationProgressClient
-      applications={[]}
-      logoByUniversityId={{}}
-      savedRows={rows}
-      userName="Preview user"
-      userAvatarUrl={null}
-    />
+    <ApplyShell userName="Preview user" userAvatarUrl={null}>
+      <ApplicationProgressClient
+        applications={[]}
+        logoByUniversityId={{}}
+        savedRowsPromise={Promise.resolve(rows)}
+      />
+    </ApplyShell>
   );
 }

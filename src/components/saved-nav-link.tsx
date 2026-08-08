@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { ICONS, KitIcon } from '@/shared/ui';
+import { ICONS, KitIcon } from '@/shared/ui/icons';
 
 /**
  * The way to the saved list — a heart with a count, in the header.
