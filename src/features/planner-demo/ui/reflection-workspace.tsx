@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { motion } from 'framer-motion';
 import { Button, Textarea } from '@/shared/ui';
 import { DEMO_REFLECTION_ANSWERS, type ReflectionAnswers } from '../domain';
 import { REFLECTION_SUCCESS_BODY, REFLECTION_SUCCESS_TITLE } from '../domain';
@@ -24,7 +25,12 @@ export function ReflectionWorkspace({
   if (submitted) {
     return (
       <TaskWorkspaceShell title="Your strongest project" onClose={onClose}>
-        <div className="flex flex-1 flex-col items-center justify-center gap-gb-lg py-gb-7xl text-center">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.92 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 260, damping: 20 }}
+          className="flex flex-1 flex-col items-center justify-center gap-gb-lg py-gb-7xl text-center"
+        >
           <p className="font-display text-gb-display-xs font-semibold text-fg">
             {REFLECTION_SUCCESS_TITLE}
           </p>
@@ -32,7 +38,7 @@ export function ReflectionWorkspace({
           <Button size="lg" onClick={onClose} className="mt-gb-lg">
             Back to my plan
           </Button>
-        </div>
+        </motion.div>
       </TaskWorkspaceShell>
     );
   }

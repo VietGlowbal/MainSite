@@ -9,10 +9,11 @@
 export type TaskStatus = 'locked' | 'todo' | 'current' | 'complete';
 
 /**
- * The GenUI dispatch key (spec §14). Only `reflection` and `cv` render a real
- * workspace; everything else falls back to a placeholder panel. That gap is
- * the point — it demonstrates the task-renderer architecture without
- * requiring every task type to be built for one demo.
+ * The GenUI dispatch key (spec §14): `task-workspace.tsx` renders a different
+ * mini-interface per type rather than one generic task-detail component.
+ * `placeholder` is the fallback for anything not wired to a real renderer —
+ * nothing currently uses it, but the router keeps the branch so a future task
+ * type degrades gracefully instead of crashing.
  */
 export type TaskType =
   | 'reflection'
@@ -21,7 +22,17 @@ export type TaskType =
   | 'match'
   | 'cv'
   | 'strategy'
+  | 'action-list'
+  | 'statement'
+  | 'readiness-check'
   | 'placeholder';
+
+/**
+ * How sure GlowBal's AI is of a piece of generated content — per CLAUDE.md's
+ * rule that AI-extracted facts need a visible confidence level, not just a
+ * bare claim. `report` and `match` are the two task types that show one.
+ */
+export type ConfidenceLevel = 'high' | 'medium' | 'low';
 
 /** The "Up next" card's copy for a task, distinct from its row label in the phase list. */
 export type UpNextCopy = {

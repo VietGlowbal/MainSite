@@ -165,7 +165,7 @@ function buildPhaseShapes(state: DemoState): PhaseShape[] {
         {
           id: 'p3-profile',
           title: 'Close gaps and strengthen your evidence',
-          type: 'placeholder',
+          type: 'action-list',
           baseComplete: paid,
           upNext: {
             eyebrow: 'Next stop: your profile',
@@ -197,7 +197,7 @@ function buildPhaseShapes(state: DemoState): PhaseShape[] {
         {
           id: 'p4-statement',
           title: 'Draft your personal statement',
-          type: 'placeholder',
+          type: 'statement',
           baseComplete: false,
           upNext: {
             eyebrow: 'Next stop: your statement',
@@ -217,7 +217,7 @@ function buildPhaseShapes(state: DemoState): PhaseShape[] {
         {
           id: 'p5-final-review',
           title: 'Final review and readiness check',
-          type: 'placeholder',
+          type: 'readiness-check',
           baseComplete: false,
           upNext: {
             eyebrow: 'Almost there',

@@ -1,5 +1,6 @@
 export type {
   Application,
+  ConfidenceLevel,
   DemoState,
   Phase,
   PhaseStatus,
@@ -23,3 +24,4 @@ export {
 } from './data';
 export type { PhaseShape, TaskShape } from './data';
 export * from './copy';
+export * from './content';

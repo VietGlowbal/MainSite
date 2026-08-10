@@ -2,15 +2,22 @@
 
 import { Button } from '@/shared/ui';
 import type { ReflectionAnswers, Task } from '../domain';
+import { ActionListWorkspace } from './action-list-workspace';
 import { CvWorkspace } from './cv-workspace';
+import { MatchWorkspace } from './match-workspace';
+import { ReadinessWorkspace } from './readiness-workspace';
 import { ReflectionWorkspace } from './reflection-workspace';
+import { ReportWorkspace } from './report-workspace';
+import { RequirementsWorkspace } from './requirements-workspace';
+import { StatementWorkspace } from './statement-workspace';
+import { StrategyWorkspace } from './strategy-workspace';
 import { TaskWorkspaceShell } from './task-workspace-shell';
 
 /**
- * Placeholder mini-interface for every task type the demo does not build out
- * (spec §14: only `reflection` and `cv` get a real renderer). Still lets a
- * presenter click through the rest of Phase 1 so the planner keeps feeling
- * alive rather than stalling on the one task GlowBal actually built.
+ * Fallback for any task type without a real renderer. Nothing in the current
+ * task list reaches this — every type has a real (still-mocked) workspace —
+ * but the router keeps a default branch so a future task type degrades
+ * gracefully instead of crashing.
  */
 function PlaceholderWorkspace({
   task,
@@ -56,13 +63,28 @@ export function TaskWorkspace({
   onCompleteReflection: (answers: ReflectionAnswers) => void;
   onCompleteTask: (taskId: string) => void;
 }) {
-  if (task.type === 'reflection') {
-    return <ReflectionWorkspace onClose={onClose} onComplete={onCompleteReflection} />;
+  const onComplete = () => onCompleteTask(task.id);
+
+  switch (task.type) {
+    case 'reflection':
+      return <ReflectionWorkspace onClose={onClose} onComplete={onCompleteReflection} />;
+    case 'cv':
+      return <CvWorkspace onClose={onClose} onComplete={onComplete} />;
+    case 'university_requirements':
+      return <RequirementsWorkspace onClose={onClose} onComplete={onComplete} />;
+    case 'report':
+      return <ReportWorkspace onClose={onClose} onComplete={onComplete} />;
+    case 'match':
+      return <MatchWorkspace onClose={onClose} onComplete={onComplete} />;
+    case 'strategy':
+      return <StrategyWorkspace onClose={onClose} onComplete={onComplete} />;
+    case 'action-list':
+      return <ActionListWorkspace onClose={onClose} onComplete={onComplete} />;
+    case 'statement':
+      return <StatementWorkspace onClose={onClose} onComplete={onComplete} />;
+    case 'readiness-check':
+      return <ReadinessWorkspace onClose={onClose} onComplete={onComplete} />;
+    default:
+      return <PlaceholderWorkspace task={task} onClose={onClose} onComplete={onComplete} />;
   }
-  if (task.type === 'cv') {
-    return <CvWorkspace onClose={onClose} onComplete={() => onCompleteTask(task.id)} />;
-  }
-  return (
-    <PlaceholderWorkspace task={task} onClose={onClose} onComplete={() => onCompleteTask(task.id)} />
-  );
 }
