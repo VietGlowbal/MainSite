@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   ACHIEVEMENT_CATEGORIES,
   ACTIVITY_CATEGORIES,
@@ -74,6 +74,14 @@ export function ReflectionEvidenceForm({
   initialActivities: ActivityValues[];
 }) {
   const router = useRouter();
+  /*
+   * Carried forward from step 1's own `?return=` (see the note in
+   * `reflection-about-form.tsx`) — reaching this page from an application's
+   * Overview means finishing here should land back at that application's
+   * analysis gate, not the old per-student `/ai-strategy/report`. Absent for
+   * every other entry point into this page, which keeps that fallback.
+   */
+  const returnTo = useSearchParams().get('return');
   const { items, upload, remove } = useDocumentUpload();
 
   const [achievements, setAchievements] = useState<AchievementValues[]>(
@@ -128,7 +136,7 @@ export function ReflectionEvidenceForm({
         return;
       }
 
-      router.push('/ai-strategy/report');
+      router.push(returnTo || '/ai-strategy/report');
     } catch {
       setError('We could not save that. Please try again.');
       setSaving(false);

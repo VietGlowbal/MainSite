@@ -16,7 +16,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5f | Fixed regression history; preserve the tests and constraints. §5f flags a known, separate, NOT-yet-fixed gap: the reflection forms ignore the `return` param, so a first-time student's post-reflection landing page is still wrong. |
+| §5–§5g | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -832,7 +832,7 @@ landing page.
 
 | What | Where |
 |---|---|
-| `strategy/page.tsx` only rendered `StrategyHome` (the Overview/marketing page) when `nextOnboardingStep(state) === 'personal-summary'` — i.e. only for a student with NEITHER `personalSummaryComplete` NOR `achievementsComplete` set. Both flags live on `student_profiles`, shared across every application a student has (see the note on `aiAnalysisComplete` in `domain/onboarding.ts`). So a student who had already done reflections once, for an EARLIER application, had both flags true from the moment they opened a brand new one — Overview was skipped entirely and they were redirected straight into `/strategy/analysis`, which auto-fires an AI generation call on load. **Fix**: gate on `!state.aiAnalysisComplete` instead (whether THIS application's analysis has run) — Overview now shows for every application until its own analysis exists, and its CTA (`startHref`) points at whatever the real next step is, so a student who already has reflections done goes straight from Overview into the analysis gate on an explicit click, not a silent redirect. | `src/app/ai-strategy/[applicationId]/strategy/page.tsx` |
+| `strategy/page.tsx` only rendered `StrategyHome` (the Overview/marketing page) when `nextOnboardingStep(state) === 'personal-summary'` — i.e. only for a student with NEITHER `personalSummaryComplete` NOR `achievementsComplete` set. Both flags live on `student_profiles`, shared across every application a student has (see the note on `aiAnalysisComplete` in `domain/onboarding.ts`). So a student who had already done reflections once, for an EARLIER application, had both flags true from the moment they opened a brand new one — Overview was skipped entirely and they were redirected straight into `/strategy/analysis`, which auto-fires an AI generation call on load. **Fix**: gate on `!state.aiAnalysisComplete` instead (whether THIS application's analysis has run) — Overview now shows for every application until its own analysis exists. ⚠️ Its CTA target needed a SECOND fix the same day — see §5g, the first version here still skipped straight past reflections for a returning student. | `src/app/ai-strategy/[applicationId]/strategy/page.tsx` |
 | `/apply/[applicationId]/page.tsx` independently recomputed `onboardingStepHref(nextOnboardingStep(state), id)` instead of delegating to `strategy/page.tsx`'s own (more complete) decision — the exact "two routers, one state machine" duplication that caused §5e the day before. It never had `strategy/page.tsx`'s Overview special-case at all, so fixing `strategy/page.tsx` alone would not have fixed this entry point. **Fix**: this page no longer computes anything — it authenticates, then bounces to `/ai-strategy/[id]/strategy` unconditionally, making `strategy/page.tsx` the single place that decides where a student belongs. | `src/app/apply/[applicationId]/page.tsx` |
 
 ⚠️ **Known, separate, NOT fixed here — the reflection forms ignore `return`.**
@@ -856,6 +856,29 @@ on `/ai-strategy/report` (the old per-student report) instead of back at
 actually run. This needs its own decision (what should the OTHER,
 non-application entry points into `/ai-strategy/reflection` do instead?)
 before it can be fixed — not folded into this incident's fix silently.
+
+## 5g. Fixed 2026-08-08 — do not re-introduce
+
+**Reported the same day, immediately after §5f shipped**: "the overview page
+is not appearing correctly... it goes straight into doing the strategy
+building instead of asking for reflections / confirming achievements then
+generating the profile and matching reports." Two real, distinct bugs,
+found while investigating.
+
+| What | Where |
+|---|---|
+| §5f's fix pointed Overview's CTA (`startHref`) at `onboardingStepHref(step, id)` — "whatever the real next step is." For a returning student, `step` resolves straight to `'analysis'` (their reflections already globally complete, per §5f's own note), so the CTA fired the AI generation call the instant it was clicked, with no chance to review/update reflections for THIS application. **Fix**: the CTA now always targets `onboardingStepHref('personal-summary', id)`, unconditionally — the reflection pages already read back and pre-fill existing answers, so this is a "confirm/edit" step, not a "redo from scratch," and it is what "ask for reflections, confirm achievements, then generate" actually requires. | `src/app/ai-strategy/[applicationId]/strategy/page.tsx` |
+| **The far bigger discovery**: `personal_summary_completed_at` and `achievements_completed_at` (`student_profiles`, added by `supabase-strategy-onboarding-state.sql`) were **never written by any code in this repository, anywhere** — grepped across the whole `src/` tree and confirmed: three read sites (`onboarding-status.ts`, `strategy/page.tsx`'s data, `apply/page.tsx`'s `fetchStrategyReadiness`), zero writes. `POST /api/reflection`'s `PATCH` saves the `about` payload to `student_profiles` and achievements/activities to their own tables, but never touched either completion timestamp. Practical effect: `personalSummaryComplete`/`achievementsComplete` were permanently `false` for every student who ever existed — `nextOnboardingStep` would return `'personal-summary'` forever, no matter how many times a student filled out and submitted both reflection steps. Combined with §5f/§5g's return-param fix (below), a student finishing achievements and being sent to `/strategy/analysis` would be IMMEDIATELY bounced back to reflections by that page's own guard (`step === 'personal-summary' → redirect`) — an infinite loop, the flow's actual dead end. **Fix**: `PATCH /api/reflection` now sets `personal_summary_completed_at` on the same upsert that saves `about`, and `achievements_completed_at` on a follow-up upsert whenever `achievements`/`activities` was sent (even empty — Requirement 4.3 explicitly allows a student with zero achievements to complete the step). | `src/app/api/reflection/route.ts` |
+| Also wired the same day: `reflection-about-form.tsx` and `reflection-evidence-form.tsx` now read `?return=` (via `useSearchParams`) and carry it forward / navigate to it on submit, instead of hardcoding their own next-page — this is §5f's flagged-but-not-fixed gap, now closed for the application-originated case specifically. Every OTHER entry point into these forms (the report chrome's "Reflections" link, `ApplicantPortrait`'s "Update your reflections," `PersonalReportView`, the marketing guide) still passes no `return`, and keeps its old fallback behaviour (achievements page next, then `/ai-strategy/report`) unchanged. | `src/app/ai-strategy/reflection/reflection-about-form.tsx`, `src/app/ai-strategy/reflection/achievements/reflection-evidence-form.tsx` |
+
+**Why this one was hard to catch from code review alone**: every piece in
+isolation looked intentional — the columns exist, the domain layer's doc
+comments describe them as "set by an explicit 'Continue' submit," the read
+sites all correctly compute `Boolean(profile?.personal_summary_completed_at)`.
+Nothing throws, nothing errors — a student just never advances, silently,
+forever. A grep for **write** sites of a completion flag (not just read
+sites) is the check that would have caught this before it shipped; add it to
+manual QA for any new "…Complete" boolean on `OnboardingState`.
 
 ## 6. Open questions for the designer / owner
 

@@ -13,9 +13,8 @@ import { createClient } from '@/lib/supabase/server';
  * page. `fetchOnboardingState` + `nextOnboardingStep` decide what happens
  * next, per Requirement 1.2-1.3:
  *  - This application's AI analysis (Personal Report + Matching Report)
- *    hasn't run yet → render the marketing page below, whatever the actual
- *    next step is (reflections, or straight to the analysis gate if
- *    reflections are already done). CTA links to that real next step.
+ *    hasn't run yet → render the marketing page below. Its CTA always opens
+ *    the reflection flow, never skips ahead — see the note below.
  *  - Everything done → skip this page entirely and go to the Dashboard,
  *    matching 1.3's "route them directly to the Dashboard" literally
  *    (not "show Strategy Home again, which then links to the Dashboard").
@@ -26,7 +25,7 @@ import { createClient } from '@/lib/supabase/server';
  * Strategy the student has (`student_profiles`, not per-application) — a
  * returning student who already did reflections for an EARLIER application
  * has both flags true from the moment they open a brand new one. The
- * previous check (`nextOnboardingStep(state) === 'personal-summary'`) only
+ * original check (`nextOnboardingStep(state) === 'personal-summary'`) only
  * showed this page to a student with NEITHER flag set, so a returning
  * student skipped this explainer entirely and was redirected straight into
  * `/strategy/analysis`, which fires a real AI generation call on load with
@@ -35,6 +34,20 @@ import { createClient } from '@/lib/supabase/server';
  * every application gets its own Overview before anything analysis-related
  * runs for it, regardless of what the student's other applications have
  * already done.
+ *
+ * ─── WHY THE CTA ALWAYS TARGETS "personal-summary", NOT `step` ───────────────
+ *
+ * The obvious-looking alternative — link to `onboardingStepHref(step, id)`,
+ * whatever the real next step is — was tried and reported broken the same
+ * day: for that same returning student, `step` resolves straight to
+ * `'analysis'` (their reflections already being globally complete), so the
+ * CTA fired the AI generation call the moment they clicked "Start My
+ * Strategy," with no chance to review or update their reflections for THIS
+ * application first. The reflection pages read back and PRE-FILL existing
+ * answers (`reflectionFromProfile`, the achievements page's own select), so
+ * routing through them is a "confirm/edit," not a "redo from scratch" —
+ * always sending the CTA there is what "ask for reflections, confirm
+ * achievements, then generate" actually requires.
  */
 export default async function StrategyHomePage({
   params,
@@ -75,7 +88,7 @@ export default async function StrategyHomePage({
     <StrategyHome
       courseName={application?.course_name ?? 'Your course'}
       universityName={application?.university_name ?? 'Your university'}
-      startHref={onboardingStepHref(step, applicationId)}
+      startHref={onboardingStepHref('personal-summary', applicationId)}
     />
   );
 }

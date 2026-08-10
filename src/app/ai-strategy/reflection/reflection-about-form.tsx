@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   EDUCATION_LEVELS,
   FUNDING_SOURCES,
@@ -53,6 +53,18 @@ export type AboutFormValues = AboutYouValues & AspirationsValues;
 
 export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
   const router = useRouter();
+  /*
+   * `onboardingStepHref('personal-summary', applicationId)` builds
+   * `?return=<encoded per-application analysis URL>` so that a student who
+   * arrived here from a specific application's Overview page ends up back
+   * there once reflections are done — see `domain/onboarding.ts`. This page
+   * is also reached from many places with no application context (the
+   * report chrome's "Reflections" stage link, "Update your reflections"
+   * CTAs, the marketing guide), which pass no `return` at all, so the
+   * fallback (`reflectionStep('evidence').path`, no query string) is
+   * unchanged for them.
+   */
+  const returnTo = useSearchParams().get('return');
   const [values, setValues] = useState<AboutFormValues>(initial);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,7 +96,11 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
         return;
       }
 
-      router.push(reflectionStep('evidence').path);
+      router.push(
+        returnTo
+          ? `${reflectionStep('evidence').path}?return=${encodeURIComponent(returnTo)}`
+          : reflectionStep('evidence').path,
+      );
     } catch {
       setError('We could not save that. Please try again.');
       setSaving(false);
