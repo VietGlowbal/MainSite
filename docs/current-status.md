@@ -2,12 +2,12 @@
 
 Last reconciled: **2026-08-08 (Asia/Bangkok)**
 
-Code snapshot: **working tree**, branched from `main` at `dac93c0` (PR #157,
-"Fix onboarding gate letting incomplete analyses reach the Strategy report",
-merged). Not yet committed/pushed at the time this document was written —
-see "Last completed work" below for what the working tree contains. Note
-`origin/main` has since moved one commit further (`7ed2da8`, an unrelated
-top-nav scroll-behaviour change) than the base this branch restarted from.
+Code snapshot: **working tree**, branched from `main` at `b610087` (PR #158,
+"Fix Overview page being skipped, auto-firing analysis for returning
+students", merged). Not yet committed/pushed at the time this document was
+written — see "Last completed work" below for what the working tree
+contains. `origin/main` has since moved one commit further (`15948d2`, an
+unrelated GEO auto-publish) than the base this branch restarted from.
 
 This is the first file a coding agent should read. It records the present state
 of the repository, the last completed work, its impact, the verification state,
@@ -21,14 +21,16 @@ directory. If this file conflicts with the code, the code wins.
 - Two pre-existing untracked documents must be preserved: `TECH_SOLUTION.md`
   and `docs/audit-2026-08-03.md`. They are owner/session work, not generated
   build output.
-- The working tree has real uncommitted work: a THIRD same-day fix on this
-  same feature — see the next section and `docs/known-issues.md §5f`.
+- The working tree has real uncommitted work: a FOURTH same-day fix on this
+  same feature, and the biggest one — see the next section and
+  `docs/known-issues.md §5g`.
 
 ## Last completed work
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
-| *(uncommitted)* | **Fixed a same-day production incident (second one on this feature today)**: the owner ran §0e's migration and merged §5e's fix, then reported `/apply/[id]` still jumping straight to `/strategy/analysis` with no Overview/reflections shown first, pasting a mockup of the intended Apply → Overview → Reflections → analysis → Strategy → Planner flow. Root cause: `strategy/page.tsx` only showed the Overview page (`StrategyHome`) when a student had done NEITHER reflections step — but `personalSummaryComplete`/`achievementsComplete` are shared across every application a student has, so a returning student (reflections already done from an EARLIER application) skipped Overview entirely for every new one and landed straight on the AI-analysis gate, which fires a generation call on load. Separately, `/apply/[applicationId]/page.tsx` had its own, incomplete duplicate of this decision (missing the Overview case entirely) — the same "two routers disagreeing" shape as §5e's incident the day before. See `docs/known-issues.md §5f` for the full diagnosis, including a **known, separate, NOT-yet-fixed gap**: the reflection forms ignore the `return` URL param, so even after this fix a genuinely first-time student finishing reflections lands on an old per-student report page (`/ai-strategy/report`) instead of back at their application. | `strategy/page.tsx` now gates Overview on `!state.aiAnalysisComplete` (per-application) instead of the shared reflection flags, and its CTA links to whatever the real next step is. `/apply/[applicationId]/page.tsx` no longer computes anything — it just bounces to `/ai-strategy/[id]/strategy`, making that page the single source of truth. |
+| *(uncommitted)* | **Fixed a same-day production incident (the fourth on this feature today, and the root cause of the whole day's trouble)**: `personal_summary_completed_at`/`achievements_completed_at` (`student_profiles`) were **never written by any code in this repository** — confirmed by a full-repo grep, three read sites and zero writes. Every student's reflections were permanently "incomplete" no matter how many times they submitted both steps, which is what made §5e/§5f's symptoms possible in the first place and would have made a student finishing achievements bounce straight back to reflections in an infinite loop even after those fixes. Also fixed: Overview's CTA (§5f's fix) pointed at "whatever the real next step is," which for a returning student resolved straight to the analysis-trigger gate, skipping reflections anyway — reported the same day as "it goes straight into doing the strategy building." And wired `?return=` through the reflection forms' submit handlers (§5f's flagged-but-unfixed gap), for the application-originated case specifically. See `docs/known-issues.md §5g`. | `POST /api/reflection` now sets both completion timestamps on submit. `strategy/page.tsx`'s Overview CTA always targets the reflection flow's start, unconditionally. `reflection-about-form.tsx`/`reflection-evidence-form.tsx` now read and carry forward `?return=`, landing a student back at their application's analysis gate after reflections instead of an old per-student report page — every other (non-application) entry point into those forms is unchanged. |
+| `b610087` (#158) | Fixed a same-day production incident: Overview was only shown to a student with neither reflection step done, so a returning student (reflections globally already marked complete) skipped it entirely. See `docs/known-issues.md §5f`. | `strategy/page.tsx` gated Overview on `!state.aiAnalysisComplete` (per-application) instead of the shared reflection flags; `/apply/[applicationId]/page.tsx` simplified to bounce to `/ai-strategy/[id]/strategy` rather than duplicating the decision. |
 | `dac93c0` (#157) | Fixed a same-day production incident: `fetchOnboardingState`'s `aiAnalysisComplete` only checked the Personal Report, not the Matching Report, letting an incomplete analysis reach the F7 page. See `docs/known-issues.md §5e`. | `aiAnalysisComplete` now requires both reports; the F7 workspace redirects to the analysis gate on a `needsInputs` response instead of retrying the same doomed call. |
 | `573db50` (#156) | Retired the free `/apply/[applicationId]` checklist/match-insights UI (now a pure onboarding redirect) and built F7 "Personalized Strategy" — a new, separate, read-only, downloadable-PDF report page, deliberately distinct from the task-tracking Planner. | Clicking into an application lands wherever the student actually is in the gated pipeline (Reflection → Personal Report → Matching Report → Personalized Strategy → Planner). New `application_strategy_recommendations` table; one new OpenAI call synthesising the Personal Report and Matching Report into six sections, written in English by product decision. |
 | `f845ddb` | Added genUI content blocks to AI-generated recommendations. | Every recommendation's detail page body now comes from one of three AI-chosen shapes (`structured_table`/`long_text`/`checklist`) declared at generation time, or none when the task routes to a tool. Depends on an unrun migration — see `docs/known-issues.md §0d`. |
@@ -112,16 +114,21 @@ Measured on 2026-08-08 against the uncommitted working tree described above
 | `npx tsc --noEmit` | **Pass**, 0 errors (ran after `rm -rf .next/types`). |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
 | `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
-| `npx vitest run` | **Pass: 1672 passed, 2 todo, 155 files passed, 0 failed.** |
+| `npx vitest run` | **Pass: 1677 passed, 2 todo, 156 files passed, 0 failed.** New `src/app/api/reflection/route.test.ts` covers the completion-flag upserts. |
 | `npm run build` | Not rerun in this pass. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
-The owner has since reported running "supabase" migration(s) and merging
-#157, so §0e may now be resolved — **not independently re-verified in this
+The owner reported running "supabase" migration(s) and merging #157 earlier
+today, so §0e may now be resolved — **not independently re-verified in this
 pass**. `supabase-strategy-recommendation-report.sql` (§0f)'s status is also
-unconfirmed. Re-run the SQL checks in §0e/§0f before assuming either is done.
-Manual click-through has still not been done in this session — only
-automated checks above.
+unconfirmed. Re-run the SQL checks in §0e/§0f before assuming either is
+done. Manual click-through has still not been done in this session — only
+automated checks above. Given §5g's finding (a flag silently never being
+written, for what may have been the product's entire lifetime), a manual
+click-through of the FULL flow — Overview → reflections → achievements →
+analysis → intro → Personalized Strategy → Planner, on a genuinely fresh
+student account — is now the highest-value verification step available,
+higher than re-running the automated gates again.
 
 ## Open risks that still deserve priority
 

@@ -61,9 +61,16 @@ export async function PATCH(request: Request) {
 
   if (about) {
     const update = profileUpdateFromReflection(about);
-    const { error } = await supabase
-      .from('student_profiles')
-      .upsert({ user_id: user.id, ...update }, { onConflict: 'user_id' });
+    // `personal_summary_completed_at` is what `fetchOnboardingState` reads as
+    // `personalSummaryComplete` (see supabase-strategy-onboarding-state.sql
+    // and domain/onboarding.ts) — without setting it here, submitting this
+    // step never actually completes it, so a student can never advance past
+    // `personal-summary` no matter how many times they submit. See
+    // docs/known-issues.md §5g.
+    const { error } = await supabase.from('student_profiles').upsert(
+      { user_id: user.id, ...update, personal_summary_completed_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    );
 
     if (error) {
       console.error('[reflection] profile upsert failed:', error);
@@ -121,6 +128,23 @@ export async function PATCH(request: Request) {
         console.error('[reflection] activities insert failed:', error);
         return NextResponse.json({ error: 'Could not save your activities' }, { status: 500 });
       }
+    }
+  }
+
+  // Same completion-flag gap as `about` above, for step 2. Requirement 4.3
+  // explicitly allows an empty achievements/activities list to still count as
+  // "done" — the student having submitted the step is what completes it, not
+  // the list having entries — so this fires whenever either key was sent,
+  // regardless of length. `reflection-evidence-form.tsx` always sends both
+  // together, but this does not assume that.
+  if (achievements !== undefined || activities !== undefined) {
+    const { error } = await supabase.from('student_profiles').upsert(
+      { user_id: user.id, achievements_completed_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    );
+    if (error) {
+      console.error('[reflection] achievements-completion upsert failed:', error);
+      return NextResponse.json({ error: 'Could not save your achievements' }, { status: 500 });
     }
   }
 
