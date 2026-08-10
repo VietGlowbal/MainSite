@@ -229,7 +229,6 @@ function AppTopNav({
         ? {
             user: {
               name: user.name,
-              label: presentation.accountAction.label,
               avatarUrl: user.avatarUrl,
               href: presentation.accountAction.href,
             },

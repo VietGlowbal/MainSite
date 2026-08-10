@@ -278,8 +278,8 @@ test('the real home page has navigation on mobile', async ({ page }) => {
  * dictionary, so a request reaching the network would mean a missing key, and
  * the test would rather fail than paper over it with a live translation.
  */
-test.describe('home preview — Vietnamese metric row', () => {
-  test('every value stays on one line and the labels stay in step', async ({ page }) => {
+test.describe('home preview — metric row', () => {
+  test('Vietnamese values stay on one line and the labels stay in step', async ({ page }) => {
     await page.route('**/api/translate', (route) => route.abort());
     await page.addInitScript(() => localStorage.setItem('glowbal-language', 'vi'));
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -314,6 +314,34 @@ test.describe('home preview — Vietnamese metric row', () => {
       expect(r.lines, `"${r.text}" wraps onto ${r.lines} lines — shorten it or move the unit into the label`).toBe(1);
     }
     expect(new Set(rows.map((r) => r.labelTop)).size, 'metric labels are not on a common baseline').toBe(1);
+  });
+
+  test('the figures count up once the section enters view', async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/dev/home');
+
+    const section = page.getByRole('heading', { name: 'Standout numbers' }).locator('..').locator('..').locator('..');
+    const firstValue = section.locator('[aria-label="7,800+"] span');
+
+    // The complete figure is in the initial HTML; the count only starts when
+    // the visitor reaches the section, so no-JS and full-page captures keep
+    // the truthful value instead of an unexplained zero.
+    await expect(firstValue).toHaveText('7,800+');
+    await section.scrollIntoViewIfNeeded();
+    await expect(firstValue).not.toHaveText('7,800+');
+    await expect(firstValue).toHaveText('7,800+', { timeout: 4_000 });
+  });
+
+  test('reduced motion keeps the complete figures static', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/dev/home');
+
+    const section = page.getByRole('heading', { name: 'Standout numbers' }).locator('..').locator('..').locator('..');
+    const firstValue = section.locator('[aria-label="7,800+"] span');
+    await section.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(200);
+    await expect(firstValue).toHaveText('7,800+');
   });
 });
 
