@@ -228,14 +228,18 @@ test.describe('home preview — desktop', () => {
     await page.goto('/dev/home');
 
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    await expect(page.getByRole('link', { name: /plan your global education/i })).toBeVisible();
+    await expect(
+      page.locator('a[href="/start"]').filter({ hasText: 'Plan your Global Education' }),
+    ).toBeVisible();
   });
 
   test('hero CTA stays on one line with the support message underneath', async ({ page }) => {
     await page.setViewportSize({ width: 393, height: 851 });
     await page.goto('/dev/home');
 
-    const cta = page.getByRole('link', { name: 'Plan your Global Education' });
+    const cta = page
+      .locator('a[href="/start"]')
+      .filter({ hasText: 'Plan your Global Education' });
     const support = page.getByText('Find a University that Fits You 100% free');
     const [ctaBox, supportBox] = await Promise.all([cta.boundingBox(), support.boundingBox()]);
 
@@ -298,15 +302,10 @@ test.describe('home preview — animated metrics', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
 
-    const section = page
-      .getByRole('heading', { name: 'Standout numbers' })
-      .locator('..')
-      .locator('..')
-      .locator('..');
-    const firstValue = section.locator('[aria-label="7,800+"] span');
+    const firstValue = page.locator('[aria-label="7,800+"] span');
 
     await expect(firstValue).toHaveText('7,800+');
-    await section.scrollIntoViewIfNeeded();
+    await firstValue.evaluate((element) => element.scrollIntoView({ block: 'center' }));
     await expect(firstValue).not.toHaveText('7,800+');
     await expect(firstValue).toHaveText('7,800+', { timeout: 4_000 });
   });
@@ -316,13 +315,8 @@ test.describe('home preview — animated metrics', () => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
 
-    const section = page
-      .getByRole('heading', { name: 'Standout numbers' })
-      .locator('..')
-      .locator('..')
-      .locator('..');
-    const firstValue = section.locator('[aria-label="7,800+"] span');
-    await section.scrollIntoViewIfNeeded();
+    const firstValue = page.locator('[aria-label="7,800+"] span');
+    await firstValue.evaluate((element) => element.scrollIntoView({ block: 'center' }));
     await page.waitForTimeout(200);
     await expect(firstValue).toHaveText('7,800+');
   });
