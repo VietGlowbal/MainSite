@@ -23,6 +23,7 @@ export function placeholders(value: string): string[] {
   const result: string[] = [];
   for (const match of value.matchAll(/\{([A-Za-z0-9_]+)\}/g)) {
     const name = match[1];
+    if (name === undefined) continue;
     if (!seen.has(name)) {
       seen.add(name);
       result.push(name);

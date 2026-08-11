@@ -26,7 +26,6 @@ const baseRoutes = [
 
 const hasVietnamese = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/u;
 const hasLatinWord = /\b[A-Za-z]{3,}\b/u;
-const hasVietnamese = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/u;
 const protectedLine = /^(GLOWBAL|GlowBal|©|https?:|[\d\W_]+$)/u;
 const knownProper = new Set([
   'Lil Chi', 'James', 'James Lapslie', 'Nguyen Khanh Linh', 'Trang Nguyen', 'Linh Khanh',
