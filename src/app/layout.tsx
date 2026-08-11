@@ -42,22 +42,8 @@ export const metadata: Metadata = {
   title: 'GLOWBAL',
   description: 'Student-first global course and university guidance platform.',
   icons: {
-    /*
-     * The spinning globe from the loading clip, as an animated GIF.
-     *
-     * ONE ENTRY ON PURPOSE. Firefox animates GIF favicons; Chrome, Edge and
-     * Safari support the format but not the animation, so they render frame 1
-     * and hold it. Declaring a PNG alongside would let those browsers pick
-     * either file and there is no reliable way to say "this one, but only if
-     * you can animate it" — so the single GIF gets the animation where it
-     * exists and a still globe everywhere else, which is the same outcome with
-     * none of the ambiguity. public/favicon.png is frame 1 on its own, for
-     * anywhere a GIF is unwelcome; nothing links it today.
-     *
-     * Replaces the generated src/app/icon.tsx, a pink outline globe drawn with
-     * ImageResponse at the edge. Regenerate with ./scripts/build-favicon.sh.
-     */
-    icon: [{ url: '/favicon.gif', type: 'image/gif' }],
+    // Static pink globe supplied by the GLOWBAL brand team.
+    icon: [{ url: '/favicon.png', type: 'image/png', sizes: '64x64' }],
     /*
      * The Apple touch icon stays the designed gradient mark in
      * src/app/apple-icon.tsx. It renders at 180px on a home screen, where a
