@@ -23,6 +23,13 @@ vi.mock('@/lib/i18n', () => ({
 }));
 vi.mock('@/shared/ui', () => ({
   BRAND_ICONS: { facebook: {} },
+  ICONS: {
+    chartBreakoutSquare: {},
+    messageChatCircle: {},
+    messageSmileCircle: {},
+    zap: {},
+    zapFast: {},
+  },
   BrandIcon: () => <span />,
   InstagramMark: () => <span />,
   TopNav: (props: {

@@ -1,141 +1,148 @@
-import { CheckItem, CheckList, ICONS, KitIcon, Section } from '@/shared/ui';
+import { Button, CheckItem, CheckList, ICONS, KitIcon, Section } from '@/shared/ui';
+import {
+  HomeDemoVideo,
+  type FeatureDemoVideo,
+} from './home-demo-video';
 
-/**
- * Features — Figma 375:9895: a centred header followed by three alternating
- * text-and-screen rows. The source frames are deliberately empty, so a demo is
- * rendered only when the corresponding local video has been configured below.
- */
-export type FeatureDemoKey = 'matcher' | 'demoVideo2' | 'demoVideo3';
+export type { FeatureDemoSource, FeatureDemoVideo } from './home-demo-video';
 
-export type FeatureDemoVideo = {
-  /** A path served from /public, for example `/home/features/matcher.mp4`. */
-  readonly src: string;
-  readonly type?: string;
-  /** An optional still image shown before playback begins. */
-  readonly poster?: string;
-  /** An optional WebVTT captions file, served from /public. */
-  readonly captionsSrc?: string;
-  readonly captionsLabel?: string;
-};
+export type FeatureDemoKey = 'matcher' | 'strategyMaster';
 
 export type HomeFeatureDemoVideos = Partial<Record<FeatureDemoKey, FeatureDemoVideo>>;
 
 /**
- * Add completed demo files to `public/home/features/`, then uncomment and
- * update these entries. Leaving a key out intentionally preserves Figma's
- * blank device frame until its video is ready.
+ * Put the finished files in public/home/features, then enable the matching
+ * entry below. Recommended delivery per demo:
+ *   - 1080p WebM (preferred codec/size)
+ *   - 1080p H.264 MP4 (Safari and broad fallback)
+ *   - 1280px-wide 16:10 WebP poster
+ *   - optional WebVTT captions
+ *
+ * The click-to-load player does not request either video source until Play.
  */
 export const HOME_FEATURE_DEMO_VIDEOS: HomeFeatureDemoVideos = {
   // matcher: {
-  //   src: '/home/features/matcher.mp4',
-  //   poster: '/home/features/matcher-poster.jpg',
-  //   captionsSrc: '/home/features/matcher.en.vtt',
+  //   sources: [
+  //     { src: '/home/features/glowbal-matcher.webm', type: 'video/webm' },
+  //     { src: '/home/features/glowbal-matcher.mp4', type: 'video/mp4' },
+  //   ],
+  //   poster: '/home/features/glowbal-matcher-poster.webp',
+  //   captionsSrc: '/home/features/glowbal-matcher.en.vtt',
   // },
-  // demoVideo2: { src: '/home/features/demo-video-2.mp4' },
-  // demoVideo3: { src: '/home/features/demo-video-3.mp4' },
+  // strategyMaster: {
+  //   sources: [
+  //     { src: '/home/features/strategy-master.webm', type: 'video/webm' },
+  //     { src: '/home/features/strategy-master.mp4', type: 'video/mp4' },
+  //   ],
+  //   poster: '/home/features/strategy-master-poster.webp',
+  //   captionsSrc: '/home/features/strategy-master.en.vtt',
+  // },
 };
 
 type Block = {
-  readonly node: string;
-  readonly mediaNode: string;
   readonly demoKey: FeatureDemoKey;
   readonly title: string;
+  readonly lead: string;
   readonly body: string;
   readonly checks: readonly string[];
+  readonly action: string;
+  readonly href: string;
   readonly media: 'right' | 'left';
 };
 
 const BLOCKS: readonly Block[] = [
   {
-    node: '375:9904',
-    mediaNode: '375:9915',
     demoKey: 'matcher',
     title: 'GlowBal Matcher',
+    lead: 'Find what fits you, not simply what is famous.',
     body:
-      'Answer simple questions about you. With our G-Matching technology, we can pair you with the best future opportunity from:',
+      'Answer a few questions about your goals, strengths and direction. GlowBal Matcher helps you discover universities and scholarships worth exploring further.',
     checks: [
-      '200+ top universities globally',
-      '100+ different majors, even the rarest ones',
-      '3000+ scholarships',
+      'Personalised recommendations',
+      'University and scholarship discovery',
+      'Save promising opportunities',
     ],
+    action: 'Discover your matches',
+    href: '/start',
     media: 'right',
   },
   {
-    node: '375:9919',
-    mediaNode: '375:9918',
-    demoKey: 'demoVideo2',
-    title: 'Demo Video 2',
+    demoKey: 'strategyMaster',
+    title: 'Strategy Master',
+    lead: 'Finding the right option is only the beginning.',
     body:
-      'An all-in-one customer service platform that helps you balance everything your customers need to be happy.',
+      'Strategy Master helps you understand your profile, evaluate your fit and turn your study-abroad goals into an actionable strategy.',
     checks: [
-      'Keep your customers in the loop with live chat',
-      'Embed help articles right on your website',
-      'Customers never have to leave the page to find an answer',
+      'Applicant Personal Report',
+      'GlowBal Matching Report',
+      'Personalised Strategy',
+      'Application Planner',
     ],
+    action: 'Build my strategy',
+    href: '/ai-strategy',
     media: 'left',
-  },
-  {
-    node: '375:9930',
-    mediaNode: '375:9941',
-    demoKey: 'demoVideo3',
-    title: 'Demo Video 3',
-    body:
-      'Measure what matters with Untitled’s easy-to-use reports. You can filter, export, and drilldown on the data in a couple clicks.',
-    checks: [
-      'Filter, export, and drilldown on the data quickly',
-      'Save, schedule, and automate reports to your inbox',
-      'Connect the tools you already use with 100+ integrations',
-    ],
-    media: 'right',
   },
 ];
 
-/**
- * The mockup is 762.98px wide inside a 560px column, so it runs past the
- * container on desktop. The parent section clips that intended Figma bleed.
- */
-function BlockMedia({
-  node,
-  side,
-  title,
-  video,
-}: {
-  node: string;
-  side: 'right' | 'left';
-  title: string;
-  video?: FeatureDemoVideo;
-}) {
+function DemoFallback({ block }: { block: Block }) {
+  const isMatcher = block.demoKey === 'matcher';
+
   return (
-    <div className="relative w-full lg:h-[512px] lg:flex-1">
-      <div
-        className={`h-[280px] overflow-hidden rounded-[32px] border border-line bg-surface p-[3px] shadow-gb-lg lg:absolute lg:top-0 lg:h-full lg:w-[762.98px] lg:max-w-none ${
-          side === 'right' ? 'lg:left-0' : 'lg:right-0'
-        }`}
-      >
-        <div className="size-full rounded-[28px] border border-line bg-surface-muted p-[3px]">
+    <div className="flex size-full flex-col bg-surface-muted p-gb-xl sm:p-gb-3xl">
+      <div className="flex items-center justify-between border-b border-line pb-gb-xl">
+        <span data-no-auto-translate className="font-display text-gb-md font-semibold text-fg">
+          {block.title}
+        </span>
+        <span className="flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-muted">
+          <span className="size-gb-sm rounded-gb-full bg-brand" /> Live preview
+        </span>
+      </div>
+      <div className="grid min-h-0 flex-1 gap-gb-xl pt-gb-xl sm:grid-cols-[0.7fr_1.3fr]">
+        <div className="hidden flex-col gap-gb-md rounded-gb-lg border border-line bg-surface p-gb-xl sm:flex">
+          {[72, 54, 62, 44].map((width) => (
+            <span
+              key={width}
+              className="h-gb-md rounded-gb-full bg-surface-muted"
+              style={{ width: `${width}%` }}
+            />
+          ))}
+        </div>
+        <div className="flex min-h-0 flex-col gap-gb-lg rounded-gb-lg border border-line bg-surface p-gb-xl shadow-gb-xs">
+          <div className="flex items-center justify-between">
+            <span className="h-gb-lg w-1/2 rounded-gb-full bg-fg/10" />
+            <span className="rounded-gb-full bg-brand-surface px-gb-md py-gb-xs text-gb-xs font-semibold text-brand">
+              {isMatcher ? '92% fit' : 'On track'}
+            </span>
+          </div>
+          <div className="grid flex-1 grid-cols-3 items-end gap-gb-md">
+            {[isMatcher ? 58 : 72, isMatcher ? 86 : 48, isMatcher ? 70 : 92].map((height, index) => (
+              <span
+                key={`${height}-${index}`}
+                className="rounded-t-gb-md bg-brand/80"
+                style={{ height: `${height}%` }}
+              />
+            ))}
+          </div>
+          <div className="grid grid-cols-3 gap-gb-md">
+            {[0, 1, 2].map((item) => (
+              <span key={item} className="h-gb-4xl rounded-gb-md bg-surface-muted" />
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BlockMedia({ block, video }: { block: Block; video?: FeatureDemoVideo }) {
+  return (
+    <div className="w-full lg:flex-1">
+      <div className="aspect-[16/10] overflow-hidden rounded-[32px] border border-line bg-surface p-[4px] shadow-gb-lg">
+        <div className="size-full overflow-hidden rounded-[27px] border border-line bg-surface">
           {video ? (
-            <video
-              className="size-full rounded-gb-xl bg-surface object-cover"
-              aria-label={`${title} demo video`}
-              controls
-              playsInline
-              preload="metadata"
-              poster={video.poster}
-            >
-              <source src={video.src} type={video.type ?? 'video/mp4'} />
-              {video.captionsSrc ? (
-                <track
-                  default
-                  kind="captions"
-                  src={video.captionsSrc}
-                  srcLang="en"
-                  label={video.captionsLabel ?? 'English'}
-                />
-              ) : null}
-              Your browser does not support video playback.
-            </video>
+            <HomeDemoVideo title={block.title} video={video} />
           ) : (
-            <div className="size-full rounded-gb-xl bg-surface" data-figma-node={node} />
+            <DemoFallback block={block} />
           )}
         </div>
       </div>
@@ -145,20 +152,21 @@ function BlockMedia({
 
 function FeatureBlock({ block, video }: { block: Block; video?: FeatureDemoVideo }) {
   return (
-    <div
-      className={`flex flex-col gap-gb-6xl lg:items-center lg:gap-gb-9xl ${
+    <article
+      className={`flex flex-col gap-gb-6xl lg:items-center lg:gap-gb-8xl ${
         block.media === 'right' ? 'lg:flex-row' : 'lg:flex-row-reverse'
       }`}
     >
       <div className="flex flex-col gap-gb-4xl lg:flex-1">
-        <div className="flex flex-col gap-gb-2xl">
-          <span className="flex size-[48px] shrink-0 items-center justify-center rounded-gb-full bg-brand-surface text-brand">
+        <div>
+          <span className="flex size-[48px] items-center justify-center rounded-gb-full bg-brand-surface text-brand">
             <KitIcon art={ICONS.zapFast} frame={24} />
           </span>
-          <div className="flex flex-col gap-gb-xl">
-            <h3 className="font-display text-gb-display-sm font-semibold text-fg">{block.title}</h3>
-            <p className="text-gb-lg text-fg-tertiary">{block.body}</p>
-          </div>
+          <h3 className="mt-gb-2xl font-display text-gb-display-sm font-semibold text-fg">
+            {block.title}
+          </h3>
+          <p className="mt-gb-lg text-gb-lg font-semibold text-fg-secondary">{block.lead}</p>
+          <p className="mt-gb-md text-gb-md leading-relaxed text-fg-tertiary">{block.body}</p>
         </div>
 
         <CheckList>
@@ -166,14 +174,16 @@ function FeatureBlock({ block, video }: { block: Block; video?: FeatureDemoVideo
             <CheckItem key={check}>{check}</CheckItem>
           ))}
         </CheckList>
+
+        <div>
+          <Button href={block.href} size="xl">
+            {block.action}
+          </Button>
+        </div>
       </div>
 
-      {video ? (
-        <BlockMedia node={block.mediaNode} side={block.media} title={block.title} video={video} />
-      ) : (
-        <BlockMedia node={block.mediaNode} side={block.media} title={block.title} />
-      )}
-    </div>
+      <BlockMedia block={block} video={video} />
+    </article>
   );
 }
 
@@ -188,24 +198,16 @@ export function HomeFeatures({
       className="overflow-hidden py-gb-9xl"
       containerClassName="flex flex-col gap-gb-9xl"
     >
-      <div className="mx-auto flex w-full max-w-gb-width-xl flex-col items-center text-center">
-        <div className="flex w-full flex-col gap-gb-lg">
-          <p className="text-gb-md font-semibold text-brand">Features</p>
-          <h2 className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg">
-            Learn how GlowBal helps you find scholarships from A to Z with just two simple features
-          </h2>
-        </div>
+      <div className="mx-auto max-w-gb-width-xl text-center">
+        <p className="text-gb-md font-semibold text-brand">Features</p>
+        <h2 className="mt-gb-lg font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
+          Learn how GlowBal helps you find scholarships from A to Z with just two simple features
+        </h2>
       </div>
 
-      {BLOCKS.map((block) => {
-        const video = videos[block.demoKey];
-
-        return video ? (
-          <FeatureBlock key={block.node} block={block} video={video} />
-        ) : (
-          <FeatureBlock key={block.node} block={block} />
-        );
-      })}
+      {BLOCKS.map((block) => (
+        <FeatureBlock key={block.demoKey} block={block} video={videos[block.demoKey]} />
+      ))}
     </Section>
   );
 }

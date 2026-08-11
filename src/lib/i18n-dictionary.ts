@@ -19,10 +19,10 @@ export const translations: Record<string, string> = {
   Home: 'Trang chủ',
   Search: 'Tìm kiếm',
   'GlowBal News': 'Tin tức GlowBal',
-  'Strategy Master': 'Công Cụ Lên Chiến lược',
+  'Strategy Master': 'Strategy Master',
   Register: 'Đăng Ký',
   'User Profile': 'Hồ sơ người dùng',
-  'Plan your Global Education': 'Lập kế hoạch du học',
+  'Plan your Global Education': 'Lập Kế hoạch Du học',
   Apply: 'Nộp đơn',
   Advising: 'Cố vấn',
   'GLOWBAL News': 'Tin tức GLOWBAL',
@@ -76,30 +76,32 @@ export const translations: Record<string, string> = {
   // Superseded as a nav label by 'My Portal'. Kept for the same reason as Blog.
   Application: 'Ứng tuyển',
 
-  // ── Home hero (Figma 375:9857) ───────────────────────────────────────────
+  // ── Home (Figma 884:12026; copy source: Home.md) ─────────────────────────
   // DomTranslator matches the *exact* trimmed text of a node, so these keys
   // must stay character-identical to the JSX in features/marketing/ui.
-  'A tool built for scholarship hunters': 'Công cụ dành cho "dân săn học bổng"',
-  // "200+", not the frame's "300+" — the owner confirmed 200 on 24/07 and again
-  // on 28/07. Both languages carry the same number; see the note in home-hero.
-  'Personalised analysis and strategy, beside you for the whole scholarship hunt — across 200+ universities and 3,000+ scholarships worth up to $150,000,000.':
-    'Phân tích và đưa chiến lược cá nhân hoá, đồng hành xuyên suốt quá trình săn học bổng từ 200+ trường đại học và 3000+ học bổng với trị giá lên đến $150,000,000.',
-  'Find matching scholarships': 'Tìm Học bổng Phù hợp',
+  'The all-in-one solution for scholarship seekers':
+    'Giải pháp công nghệ toàn diện dành cho “dân săn học bổng”',
+  'From discovering suitable universities and scholarships to building a personalised strategy and tracking your applications, GlowBal supports your entire journey.':
+    'GlowBal giúp bạn đưa ra quyết định chọn trường và học bổng phù hợp, từ đó xây dựng chiến lược cá nhân hoá, đồng hành theo dõi hồ sơ cùng bạn trong toàn bộ hành trình chinh phục giấc mơ du học.',
+  'Find a University that Fits You 100% free':
+    'Công cụ Tìm trường Phù hợp Hoàn toàn Miễn phí',
   // Still rendered by the legacy landing at src/components/landing/home until
   // that tree is deleted. Remove this key with those files, not before.
   'Find my scholarships': 'Tìm học bổng của tôi',
 
-  // ── Home partner wall (Figma 104:7135) ───────────────────────────────────
+  // University catalogue.
+  "Choose from 200+ of the world's leading universities":
+    'Chọn từ 200+ đại học tốt nhất thế giới',
+  'Find a university': 'Tìm Đại học',
+
+  // Partner orbit interaction.
   // University names live in alt attributes, which DomTranslator never touches,
   // so there is nothing here to accidentally translate.
   //
-  // The heading is now "Study <university>", where the second word flips over as
-  // a crest is hovered. Only the FIRST word is a key: "Study" is a separate text
-  // node from the word beside it, and every value that word can take is an
-  // institution name, so each is marked data-no-auto-translate at the call site
-  // (see StudyWord in features/marketing/ui/home-partners.tsx) rather than
-  // listed here. "Anywhere", the resting value, is the one exception and already
-  // has a key further down — do not add a second one.
+  // The supporting line reads "Study <university>", where the second word flips
+  // as a crest is hovered. Every changing value is an institution name and is
+  // marked data-no-auto-translate at the call site. "Anywhere", the resting
+  // value, is the one exception and already has a key further down.
   //
   // "Học tại" ("study at"), not "Học", because the word that follows is a place:
   // "Học Cambridge" reads as studying the subject of Cambridge.
@@ -131,54 +133,100 @@ export const translations: Record<string, string> = {
   '270': '270',
   'Pieces of feedback shaping the product': 'Feedbacks để hoàn thiện hệ thống',
 
-  // ── Home features (Figma 104:7164) ───────────────────────────────────────
-  // Figma supplies English placeholder copy for the two demo-video rows.
-  // All three rows have keys while final product copy and video assets are prepared.
+  // Pain points.
+  'Have you ever?': 'Bạn có từng?',
+  'A study-abroad dream, but no clear path forward':
+    'Muốn đi du học, nhưng loay hoay với các lựa chọn?',
+  'Want to study abroad, but feel lost among the choices':
+    'Muốn đi du học, nhưng loay hoay với các lựa chọn',
+  'There is too much information, but no clear direction.':
+    'Thông tin quá nhiều nhưng thiếu một lộ trình rõ ràng.',
+  'Found a university you love, but not a strong enough scholarship':
+    'Tìm được trường mình thích, nhưng không có học bổng đủ tốt',
+  'The best scholarships are often hidden in closed groups and networks — and winning one can feel impossible without the right support.':
+    'Học bổng càng cao lại càng được “cất giấu” trong những hội nhóm, network kín, và để chinh phục học bổng đó còn khó hơn lên trời nếu không có người hỗ trợ!',
+  'Lack clear guidance and strategy': 'Thiếu chỉ dẫn và chiến lược rõ ràng',
+  'You do not know how to tell your story and present both strengths and weaknesses in an application that wins over the admissions committee.':
+    'Không biết cách khai thác câu chuyện bản thân và thể hiện cả điểm mạnh và điểm yếu qua bộ hồ sơ để chinh phục hội đồng tuyển sinh',
+  'Have no one truly supporting you': 'Thiếu người đồng hành thực sự',
+  'The experts around you are busy, while you need support with even the smallest details.':
+    'Những chuyên gia xung quanh đều bận, nhưng mình cần sự hỗ trợ từ những chi tiết nhỏ nhất',
+
+  // Five-step journey.
+  'GlowBal is here to help you achieve your dream. From your first choice to a complete application strategy.':
+    'GlowBal ở đây để đồng hành và cung cấp cho một giải pháp toàn diện, cá nhân hoá giúp bạn chinh phục giấc mơ của chính mình',
+  'GlowBal combines technology, data and team expertise to support you from discovering opportunities to completing your application strategy.':
+    'Kết hợp công nghệ, dữ liệu từ 3000+ học bổng và 200+ trường top đầu thế giới, cùng với kinh nghiệm của đội ngũ chuyên gia săn học bổng để hỗ trợ bạn từ bước khám phá lựa chọn đến khi hoàn thiện chiến lược ứng tuyển.',
+  'Input simple information': 'Nhập thông tin đơn giản',
+  'Pick a university, programme and scholarship':
+    'Chọn trường - chương trình học - học bổng',
+  'Receive specialised reports': 'Nhận Báo cáo Phân tích Chuyên nghiệp',
+  'Receive a personalised strategy': 'Nhận Chiến lược Cá nhân hoá',
+  'Build your application, track progress and receive feedback':
+    'Cùng GlowBal xây dựng hồ sơ, theo dõi và nhận feedback',
+  'Tell GlowBal about your goals, strengths and study preferences.':
+    'Hãy cho GlowBal biết mục tiêu, thế mạnh và mong muốn du học của bạn.',
+  'A profile that reflects you': 'Một hồ sơ phản ánh đúng con người bạn',
+  'Compare relevant universities, programmes and funding opportunities in one workspace.':
+    'So sánh các trường, chương trình học và cơ hội tài trợ phù hợp trong cùng một không gian.',
+  'A focused shortlist': 'Một danh sách lựa chọn tập trung',
+  'See your applicant profile and how well each option fits your direction.':
+    'Hiểu chân dung ứng viên và mức độ phù hợp của từng lựa chọn với định hướng của bạn.',
+  'Evidence-backed clarity': 'Sự rõ ràng dựa trên dữ liệu',
+  'Turn your strengths, gaps and deadlines into an actionable plan.':
+    'Biến thế mạnh, điểm cần cải thiện và các mốc thời gian thành kế hoạch có thể thực hiện.',
+  'Your next best actions': 'Những hành động phù hợp nhất tiếp theo',
+  'Keep documents, progress and expert feedback connected as you move towards submission.':
+    'Kết nối tài liệu, tiến độ và phản hồi chuyên gia trong suốt quá trình hoàn thiện hồ sơ.',
+  'An application that keeps moving': 'Một bộ hồ sơ luôn tiến về phía trước',
+  'Journey outcome': 'Kết quả của bước này',
+  'Select a step or let the journey play.': 'Chọn một bước hoặc để hành trình tự chuyển.',
+  'Previous step': 'Bước trước',
+  'Next step': 'Bước tiếp theo',
+
+  // Two product demos.
   Features: 'Tính năng',
   'Learn how GlowBal helps you find scholarships from A to Z with just two simple features':
     'Tìm hiểu cách GlowBal giúp bạn săn học bổng từ A-Z, chỉ với 2 tính năng đơn giản',
-  // A product name — kept as-is in both languages, like the university names.
   'GlowBal Matcher': 'GlowBal Matcher',
-  'Answer simple questions about you. With our G-Matching technology, we can pair you with the best future opportunity from:':
-    'Trả lời vài câu hỏi đơn giản về bạn. Với công nghệ G-Matching, chúng tôi ghép bạn với cơ hội phù hợp nhất từ:',
-  '200+ top universities globally': 'Hơn 200 trường đại học hàng đầu thế giới',
-  '100+ different majors, even the rarest ones': 'Hơn 100 chuyên ngành, kể cả những ngành hiếm nhất',
-  '3000+ scholarships': 'Hơn 3000 học bổng',
-  'Demo Video 2': 'Video demo 2',
-  'An all-in-one customer service platform that helps you balance everything your customers need to be happy.':
-    'Một nền tảng dịch vụ khách hàng tất cả trong một giúp bạn cân bằng mọi thứ khách hàng cần để hài lòng.',
-  'Keep your customers in the loop with live chat':
-    'Luôn cập nhật cho khách hàng bằng trò chuyện trực tiếp',
-  'Embed help articles right on your website': 'Nhúng các bài viết trợ giúp ngay trên website của bạn',
-  'Customers never have to leave the page to find an answer':
-    'Khách hàng không cần rời khỏi trang để tìm câu trả lời',
-  'Demo Video 3': 'Video demo 3',
-  'Measure what matters with Untitled’s easy-to-use reports. You can filter, export, and drilldown on the data in a couple clicks.':
-    'Đo lường những điều quan trọng với báo cáo dễ sử dụng của Untitled. Bạn có thể lọc, xuất và xem chi tiết dữ liệu chỉ với vài cú nhấp chuột.',
-  'Filter, export, and drilldown on the data quickly':
-    'Lọc, xuất và xem chi tiết dữ liệu nhanh chóng',
-  'Save, schedule, and automate reports to your inbox':
-    'Lưu, lên lịch và tự động gửi báo cáo đến hộp thư của bạn',
-  'Connect the tools you already use with 100+ integrations':
-    'Kết nối các công cụ bạn đang dùng với hơn 100 tích hợp',
+  'Find what fits you, not simply what is famous.':
+    'Công cụ hỗ trợ lựa chọn chương trình học, đại học và học bổng phù hợp nhất - để bạn không còn mò đường một mình.',
+  'Answer a few questions about your goals, strengths and direction. GlowBal Matcher helps you discover universities and scholarships worth exploring further.':
+    'Trả lời một số câu hỏi về mục tiêu, thế mạnh và định hướng của bạn. GlowBal Matcher giúp bạn khám phá các trường và học bổng đáng để nghiên cứu sâu hơn.',
+  'Personalised recommendations': 'Đề xuất dựa trên hồ sơ cá nhân',
+  'University and scholarship discovery': 'Khám phá trường và học bổng',
+  'Save promising opportunities': 'Lưu lại các lựa chọn tiềm năng',
+  'Discover your matches': 'Bắt đầu Miễn phí Ngay',
+  'Finding the right option is only the beginning.':
+    'Tìm được lựa chọn phù hợp mới chỉ là bước khởi đầu.',
+  'Strategy Master helps you understand your profile, evaluate your fit and turn your study-abroad goals into an actionable strategy.':
+    'Strategy Master giúp bạn hiểu hồ sơ của mình, đánh giá mức độ phù hợp và chuyển mục tiêu du học thành một chiến lược có thể thực hiện.',
+  'Applicant Personal Report': 'Phân tích Chân dung Ứng viên',
+  'Personalised Strategy': 'Chiến lược Cá nhân hoá',
+  'Live preview': 'Bản xem trước',
+  '92% fit': 'Phù hợp 92%',
+  'Play demo': 'Xem demo',
+  'The demo video could not be loaded.': 'Không thể tải video demo.',
+  'Your browser does not support video playback.': 'Trình duyệt của bạn không hỗ trợ phát video.',
 
-  // ── Home "How GLOWBAL works" (Figma 104:7211) ────────────────────────────
-  // 'Learn more' is already defined above, under the common actions.
-  'How GLOWBAL works': 'Cách GLOWBAL hoạt động',
-  'No agencies, no endless tabs. Just the clearest path from a dream university to a scholarship plan.':
-    'Không có đại lý, không có tab vô tận. Chỉ có con đường rõ ràng nhất từ một trường mơ ước đến một kế hoạch học bổng.',
-  'Pick a university': 'Chọn một trường đại học',
-  'Search for a university you care about, or browse by country, major, budget and scholarship odds.':
-    'Tìm kiếm một trường đại học mà bạn quan tâm, hoặc duyệt theo quốc gia, chuyên ngành, ngân sách và khả năng học bổng.',
-  'Create your free GLOWBAL profile': 'Tạo hồ sơ GLOWBAL miễn phí của bạn',
-  'Add your basics so GLOWBAL can surface the scholarships that fit and save your application plan.':
-    'Thêm thông tin cơ bản của bạn để GLOWBAL có thể hiển thị các học bổng liên quan và lưu kế hoạch hồ sơ của bạn.',
-  'Choose your scholarships': 'Chọn học bổng',
-  'See the scholarship opportunities tied to the university you picked and save the ones you want to apply for.':
-    'Xem các cơ hội học bổng liên quan đến trường đại học bạn đã chọn và lưu lại những học bổng bạn muốn đăng ký.',
-  'Build your AI strategy': 'Tạo chiến lược AI của bạn',
-  'Get a personalised strategy showing what to prepare, what to improve, and how to approach each scholarship.':
-    'Nhận một chiến lược cá nhân hóa cho thấy những gì cần chuẩn bị, những gì cần cải thiện và cách tiếp cận từng học bổng.',
+  // Testimonials, team and consultation.
+  'What do students say about GlowBal?': 'Học sinh nói gì về GlowBal?',
+  'Student feedback': 'Chia sẻ của học sinh',
+  'GlowBal helped me narrow hundreds of options down to the universities genuinely worth considering.':
+    'GlowBal giúp mình thu hẹp hàng trăm lựa chọn xuống những trường thực sự đáng cân nhắc.',
+  'For the first time, I understood why a university suited my profile.':
+    'Lần đầu tiên mình hiểu rõ vì sao một trường phù hợp với hồ sơ của mình.',
+  'I no longer have to manage everything across different files and notes.':
+    'Mình không còn phải quản lý mọi thứ bằng nhiều file và ghi chú khác nhau.',
+  'The team behind your journey.': 'Đội ngũ đằng sau hành trình của bạn.',
+  'GlowBal is built by a team across technology, education, research and communication, including people who have experienced scholarship and study-abroad journeys themselves. We combine student insight, specialist knowledge and technology to turn fragmented advice into a clearer system.':
+    'GlowBal được xây dựng bởi đội ngũ trong các lĩnh vực công nghệ, giáo dục, nghiên cứu và truyền thông, cùng những người đã trực tiếp trải qua hành trình học bổng và du học. Chúng mình kết hợp góc nhìn của người dùng, kiến thức chuyên môn và công nghệ để biến những lời khuyên rời rạc thành một hệ thống rõ ràng hơn.',
+  'Meet the GlowBal team': 'Gặp gỡ đội ngũ GlowBal',
+  'Not sure where to begin?': 'Bạn chưa biết nên bắt đầu từ đâu?',
+  'Tell us about your goals. The GlowBal team will contact you to help identify a suitable next step.':
+    'Để lại thông tin về mục tiêu của bạn. Đội ngũ GlowBal sẽ liên hệ để giúp bạn xác định bước tiếp theo phù hợp.',
+  'What and where would you like to study?': 'Bạn đang muốn học gì và ở đâu?',
+  'Request guidance': 'Nhận tư vấn',
 
   // ── Common actions / labels ──────────────────────────────────────────────
   Save: 'Lưu',
@@ -1136,7 +1184,7 @@ export const translations: Record<string, string> = {
   Product: 'Sản phẩm',
   Company: 'Công ty',
   Legal: 'Pháp lý',
-  'Find scholarships': 'Tìm kiếm học bổng',
+  'Find scholarships': 'Tìm Học bổng',
   // 'AI strategy' is already defined in the Navigation block above.
   'Student advisors': 'Cố vấn sinh viên',
   'Our team': 'Đội ngũ',
@@ -1654,9 +1702,9 @@ export const translations: Record<string, string> = {
   'Strategy stages': 'Các bước chiến lược',
   Reflections: 'Tự đánh giá',
   'Personal Report': 'Báo cáo cá nhân',
-  'GlowBal Matching Report': 'Báo cáo mức độ phù hợp GlowBal',
+  'GlowBal Matching Report': 'Phân tích Mức độ Phù hợp với lựa chọn du học',
   'Personalized Strategy': 'Chiến lược cá nhân hoá',
-  'Application Planner': 'Kế hoạch nộp hồ sơ',
+  'Application Planner': 'Theo dõi Quá trình Ứng tuyển',
   'Available once your analysis has run': 'Sẽ mở khi phân tích của bạn hoàn tất',
 
   // Applicant Portrait
@@ -1762,7 +1810,7 @@ export const translations: Record<string, string> = {
   'Ready to study at {university}?': 'Sẵn sàng để học tại {university}?',
   'Turn this report into a plan for {course}, built around the gaps above.':
     'Biến báo cáo này thành kế hoạch cho {course}, dựa trên những khoảng trống ở trên.',
-  'Build my strategy': 'Lên chiến lược cho tôi',
+  'Build my strategy': 'Xây dựng chiến lược của tôi',
   'Check the official course page': 'Xem trang chính thức của khoá học',
   'We do not have enough on this course yet': 'Chúng tôi chưa có đủ dữ liệu về khoá học này',
   'Run your analysis, and the details we hold for this university will appear here.':

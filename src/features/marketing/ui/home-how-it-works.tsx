@@ -1,83 +1,237 @@
-import { FeatureCard, Section } from '@/shared/ui';
+'use client';
 
-/**
- * "How GLOWBAL works" — Figma 104:7211 (1440x714, white).
- *
- * The plan called this section "3 thẻ gói học bổng (header đỏ)". It is neither:
- * there are FOUR cards, they are steps rather than pricing tiers, and the only
- * red is the icon tile. Read the node, not the plan.
- *
- * This is the one section on the page whose copy is finished — all four cards
- * are written in Vietnamese, which is why the English below is a translation
- * back rather than the usual other way round. Two things were still kit
- * defaults and are corrected here:
- *
- *  - "Learn more" was left untranslated in an otherwise Vietnamese design.
- *  - The link is painted #6941c6, Untitled UI's purple. That is exactly the
- *    leftover CLAUDE.md flags on the Home frame, so it reads the rose brand
- *    through `text-fg-brand`.
- *
- * The hrefs are mine — the design carries no links. Each points at the route
- * that step actually lands on, and all four exist today.
- *
- * The header is left-aligned here and centred in 104:7164 two sections up. That
- * is the design's choice, not a slip on either side; both were checked.
- */
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { useEffect, useState } from 'react';
+import { GlowbalLogo } from '@/components/glowbal-logo';
+import { ICONS, KitIcon, Section } from '@/shared/ui';
+
+const AUTOPLAY_MS = 5_500;
+
 const STEPS = [
   {
-    icon: 'messageChatCircle',
-    title: 'Pick a university',
-    body: 'Search for a university you care about, or browse by country, major, budget and scholarship odds.',
-    href: '/universities',
+    title: 'Input simple information',
+    description: 'Tell GlowBal about your goals, strengths and study preferences.',
+    outcome: 'A profile that reflects you',
+    icon: ICONS.messageChatCircle,
   },
   {
-    icon: 'zap',
-    title: 'Create your free GLOWBAL profile',
-    body: 'Add your basics so GLOWBAL can surface the scholarships that fit and save your application plan.',
-    href: '/onboarding',
+    title: 'Pick a university, programme and scholarship',
+    description:
+      'Compare relevant universities, programmes and funding opportunities in one workspace.',
+    outcome: 'A focused shortlist',
+    icon: ICONS.search,
   },
   {
-    icon: 'chartBreakoutSquare',
-    title: 'Choose your scholarships',
-    body: 'See the scholarship opportunities tied to the university you picked and save the ones you want to apply for.',
-    href: '/scholarships',
+    title: 'Receive specialised reports',
+    description: 'See your applicant profile and how well each option fits your direction.',
+    outcome: 'Evidence-backed clarity',
+    icon: ICONS.chartBreakoutSquare,
   },
   {
-    icon: 'messageSmileCircle',
-    title: 'Build your AI strategy',
-    body: 'Get a personalised strategy showing what to prepare, what to improve, and how to approach each scholarship.',
-    href: '/apply',
+    title: 'Receive a personalised strategy',
+    description: 'Turn your strengths, gaps and deadlines into an actionable plan.',
+    outcome: 'Your next best actions',
+    icon: ICONS.zap,
+  },
+  {
+    title: 'Build your application, track progress and receive feedback',
+    description:
+      'Keep documents, progress and expert feedback connected as you move towards submission.',
+    outcome: 'An application that keeps moving',
+    icon: ICONS.messageSmileCircle,
   },
 ] as const;
 
+const panelVariants = {
+  enter: (direction: number) => ({ opacity: 0, x: direction * 28, scale: 0.985 }),
+  center: { opacity: 1, x: 0, scale: 1 },
+  exit: (direction: number) => ({ opacity: 0, x: direction * -20, scale: 0.99 }),
+};
+
+/** Five-step journey — selectable, auto-advancing and reduced-motion safe. */
 export function HomeHowItWorks() {
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [direction, setDirection] = useState(1);
+  const [paused, setPaused] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const reducedMotion = prefersReducedMotion === true;
+  const activeStep = STEPS[activeIndex] ?? STEPS[0];
+
+  useEffect(() => {
+    if (paused || reducedMotion) return;
+
+    const timer = window.setTimeout(() => {
+      setDirection(1);
+      setActiveIndex((current) => (current + 1) % STEPS.length);
+    }, AUTOPLAY_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [activeIndex, paused, reducedMotion]);
+
+  function selectStep(nextIndex: number, nextDirection?: number) {
+    setDirection(nextDirection ?? (nextIndex >= activeIndex ? 1 : -1));
+    setActiveIndex(nextIndex);
+  }
+
+  function previousStep() {
+    selectStep((activeIndex - 1 + STEPS.length) % STEPS.length, -1);
+  }
+
+  function nextStep() {
+    selectStep((activeIndex + 1) % STEPS.length, 1);
+  }
+
   return (
-    <Section padded={false} className="py-gb-9xl" containerClassName="flex flex-col gap-gb-7xl">
-      <div className="flex w-full max-w-gb-width-xl flex-col gap-gb-2xl">
-        {/* No letter-spacing on this one. The four Bricolage headings in this
-            file disagree with each other — see the note in tokens.css. */}
-        <h2 className="font-display text-gb-display-md font-semibold text-fg">How GLOWBAL works</h2>
-        <p className="text-gb-xl text-fg-tertiary">
-          No agencies, no endless tabs. Just the clearest path from a dream university to a
-          scholarship plan.
+    <Section
+      padded={false}
+      className="overflow-hidden py-gb-9xl"
+      containerClassName="flex flex-col items-center gap-gb-7xl"
+    >
+      <div className="mx-auto flex max-w-[900px] flex-col items-center text-center">
+        <GlowbalLogo height={32} />
+        <h2 className="mt-gb-3xl font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
+          GlowBal is here to help you achieve your dream. From your first choice to a complete
+          application strategy.
+        </h2>
+        <p className="mt-gb-2xl max-w-[780px] text-gb-md leading-relaxed text-fg-tertiary md:text-gb-xl">
+          GlowBal combines technology, data and team expertise to support you from discovering
+          opportunities to completing your application strategy.
         </p>
       </div>
 
-      {/* Four across at 1280 — the design's arrangement — then 2x2, then
-          stacked. A grid rather than the design's wrapping flex row: measured at
-          1024, that row put three cards up and stretched the fourth across the
-          full container on its own. Four steps read better two-and-two anyway. */}
-      <div className="grid w-full gap-gb-3xl sm:grid-cols-2 xl:grid-cols-4">
-        {STEPS.map((step) => (
-          <FeatureCard
-            key={step.title}
-            icon={step.icon}
-            title={step.title}
-            body={step.body}
-            href={step.href}
-            actionLabel="Learn more"
-          />
-        ))}
+      <div
+        className="w-full max-w-[1120px]"
+        onPointerEnter={() => setPaused(true)}
+        onPointerLeave={() => setPaused(false)}
+        onFocusCapture={() => setPaused(true)}
+        onBlurCapture={() => setPaused(false)}
+      >
+        <div className="relative">
+          <div
+            aria-hidden="true"
+            className="absolute left-[10%] right-[10%] top-[27px] h-gb-xs overflow-hidden rounded-gb-full bg-line"
+          >
+            <motion.span
+              className="block size-full origin-left rounded-gb-full bg-brand"
+              initial={false}
+              animate={{ scaleX: activeIndex / (STEPS.length - 1) }}
+              transition={{ duration: reducedMotion ? 0 : 0.45, ease: [0.16, 1, 0.3, 1] }}
+            />
+          </div>
+
+          <ol className="relative grid grid-cols-5 gap-gb-xs md:gap-gb-xl">
+            {STEPS.map((step, index) => {
+              const active = index === activeIndex;
+              const complete = index < activeIndex;
+
+              return (
+                <li key={step.title} className="min-w-0">
+                  <button
+                    type="button"
+                    aria-pressed={active}
+                    aria-label={`${index + 1}. ${step.title}`}
+                    onClick={() => selectStep(index)}
+                    className="group flex w-full flex-col items-center rounded-gb-lg text-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
+                  >
+                    <span
+                      className={`relative z-10 flex size-[56px] items-center justify-center rounded-gb-full border-4 font-display text-gb-md font-semibold shadow-gb-sm transition-[background-color,border-color,color,transform] duration-300 motion-reduce:transition-none ${
+                        active
+                          ? 'scale-110 border-brand-surface bg-brand text-white'
+                          : complete
+                            ? 'border-white bg-brand-subtle text-brand'
+                            : 'border-white bg-surface-muted text-fg-muted group-hover:bg-brand-subtle group-hover:text-brand'
+                      }`}
+                    >
+                      {active && !reducedMotion ? (
+                        <span className="absolute inset-0 -z-10 animate-ping rounded-gb-full bg-brand/25" />
+                      ) : null}
+                      <KitIcon art={step.icon} frame={22} />
+                    </span>
+                    <span
+                      className={`mt-gb-xl hidden text-gb-sm font-semibold leading-snug transition-colors md:block ${
+                        active ? 'text-brand' : 'text-fg-secondary group-hover:text-fg'
+                      }`}
+                    >
+                      {step.title}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
+
+        <div className="relative mt-gb-6xl min-h-[310px] sm:min-h-[260px]">
+          <AnimatePresence initial={false} mode="wait" custom={direction}>
+            <motion.article
+              key={activeIndex}
+              custom={direction}
+              variants={panelVariants}
+              initial={reducedMotion ? false : 'enter'}
+              animate="center"
+              exit={reducedMotion ? undefined : 'exit'}
+              transition={{ duration: reducedMotion ? 0 : 0.38, ease: [0.16, 1, 0.3, 1] }}
+              aria-live="polite"
+              className="relative min-h-[260px] overflow-hidden rounded-gb-2xl border border-white/10 bg-surface-inverse-strong p-gb-4xl text-white shadow-gb-lg md:p-gb-5xl"
+            >
+              <div
+                aria-hidden="true"
+                className="absolute -right-[80px] -top-[120px] size-[310px] rounded-gb-full border border-brand/25 bg-brand/10"
+              />
+              <div
+                aria-hidden="true"
+                className="absolute -bottom-[170px] left-[18%] size-[300px] rounded-gb-full bg-brand/15 blur-3xl"
+              />
+
+              <div className="relative grid items-center gap-gb-4xl md:grid-cols-[72px_minmax(0,1fr)_260px]">
+                <span className="flex size-[72px] items-center justify-center rounded-gb-xl border border-white/15 bg-white/10 text-brand shadow-gb-sm backdrop-blur-sm">
+                  <KitIcon art={activeStep.icon} frame={30} />
+                </span>
+
+                <div>
+                  <p className="text-gb-sm font-semibold tracking-wide text-brand">
+                    {String(activeIndex + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}
+                  </p>
+                  <h3 className="mt-gb-sm font-display text-gb-display-xs font-semibold md:text-gb-display-sm">
+                    {activeStep.title}
+                  </h3>
+                  <p className="mt-gb-lg max-w-[620px] text-gb-md leading-relaxed text-white/70 md:text-gb-lg">
+                    {activeStep.description}
+                  </p>
+                </div>
+
+                <div className="rounded-gb-xl border border-white/10 bg-white/[0.07] p-gb-3xl backdrop-blur-sm">
+                  <p className="text-gb-xs font-semibold uppercase tracking-[0.16em] text-brand">
+                    Journey outcome
+                  </p>
+                  <p className="mt-gb-md text-gb-lg font-semibold text-white">{activeStep.outcome}</p>
+                </div>
+              </div>
+            </motion.article>
+          </AnimatePresence>
+        </div>
+
+        <div className="mt-gb-2xl flex items-center justify-between gap-gb-xl">
+          <p className="text-gb-sm text-fg-muted">Select a step or let the journey play.</p>
+          <div className="flex items-center gap-gb-md">
+            <button
+              type="button"
+              onClick={previousStep}
+              aria-label="Previous step"
+              className="flex size-gb-5xl items-center justify-center rounded-gb-full border border-line bg-surface text-fg-secondary transition-colors hover:border-brand hover:text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              <KitIcon art={ICONS.arrowLeft} frame={20} />
+            </button>
+            <button
+              type="button"
+              onClick={nextStep}
+              aria-label="Next step"
+              className="flex size-gb-5xl items-center justify-center rounded-gb-full bg-brand text-white transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              <KitIcon art={ICONS.arrowRight} frame={20} />
+            </button>
+          </div>
+        </div>
       </div>
     </Section>
   );
