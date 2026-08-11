@@ -13,6 +13,7 @@
  */
 
 import { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import { useT } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
 import type {
   AaccAnalysis,
@@ -417,6 +418,7 @@ export function StatementWriter({
   onAnalysisError,
   requestedWorkspacePane,
 }: Props) {
+  const t = useT();
   const isLor = reviewType === 'lor';
   const isVinUni =
     !isLor &&
@@ -471,7 +473,7 @@ export function StatementWriter({
   const saveDraft = useCallback(
     async (content: string, aiAnalysis?: unknown) => {
       if (saveTarget.kind === 'demo') {
-        setSaveStatus('Demo · không lưu dữ liệu');
+        setSaveStatus(t('Demo · data is not saved'));
         setTimeout(() => setSaveStatus(null), 2000);
         return;
       }
@@ -506,7 +508,7 @@ export function StatementWriter({
       setSaveStatus('Saved');
       setTimeout(() => setSaveStatus(null), 2000);
     },
-    [supabase, targetName, docType, analysis, saveTarget, statementId, isLor],
+    [supabase, targetName, docType, analysis, saveTarget, statementId, isLor, t],
   );
 
   const handleAnalyze = useCallback(async (retrySections?: VinUniRequestedSection[]) => {
@@ -522,7 +524,7 @@ export function StatementWriter({
       if (workspace) setViewMode('review');
     }
     setError(null);
-    setVinUniStatus(isVinUni ? 'AI đang chuẩn bị phân tích…' : '');
+    setVinUniStatus(isVinUni ? t('AI is preparing the analysis…') : '');
     setMissingSections([]);
     if (isVinUni && !retrySections?.length) {
       setReviewEditing(false);
@@ -680,6 +682,7 @@ export function StatementWriter({
     onAnalysisStart,
     onAnalysisComplete,
     onAnalysisError,
+    t,
   ]);
 
   const acceptSuggestion = (suggestion: AISuggestion) => {
@@ -792,7 +795,7 @@ export function StatementWriter({
           key={segment.evidence_id}
           id={`evidence-${segment.evidence_id}`}
           type="button"
-          aria-label={`Dẫn chứng ${segment.evidence_id}: ${segment.text}`}
+          aria-label={`${t('Evidence')} ${segment.evidence_id}: ${segment.text}`}
           data-active={active ? 'true' : 'false'}
           onClick={() => selectEssayEvidence(segment.evidence_id)}
           className={`inline rounded-[0.2em] text-left text-inherit transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 ${
@@ -862,7 +865,7 @@ export function StatementWriter({
     <div>
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 pb-4">
         <p className="text-xs font-medium text-slate-500">
-          {reviewEditing ? 'Đang chỉnh sửa · kết quả cũ chưa cập nhật' : `${wordCount} từ`}
+          {reviewEditing ? t('Editing · old result is not updated') : `${wordCount} ${t('words')}`}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -870,7 +873,7 @@ export function StatementWriter({
             onClick={() => setReviewEditing((current) => !current)}
             className="rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition duration-300 hover:border-pink-300 hover:text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
           >
-            {reviewEditing ? 'Xem đánh dấu' : 'Chỉnh sửa bài luận'}
+            {reviewEditing ? t('View highlights') : t('Edit essay')}
           </button>
           <button
             type="button"
@@ -878,13 +881,13 @@ export function StatementWriter({
             disabled={status === 'analyzing' || text.trim().length < minimumAnalysisLength}
             className="rounded-full bg-pink-600 px-4 py-2 text-xs font-semibold text-white shadow-sm transition duration-300 hover:bg-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500 disabled:cursor-not-allowed disabled:opacity-50"
           >
-            {status === 'analyzing' ? 'Đang phân tích…' : 'Phân tích lại'}
+            {status === 'analyzing' ? t('Analysing…') : t('Analyse again')}
           </button>
         </div>
       </div>
       {reviewEditing ? (
         <textarea
-          aria-label="Chỉnh sửa bài luận"
+          aria-label={t('Edit essay')}
           value={text}
           onChange={(event) => setText(event.target.value)}
           className="min-h-[520px] w-full resize-y rounded-xl border border-slate-200 bg-white p-4 text-base leading-8 text-slate-700 outline-none transition focus:border-pink-300 focus:ring-2 focus:ring-pink-100"
@@ -912,8 +915,8 @@ export function StatementWriter({
       {workspace && !vinUniWorkspaceReview && (
         <div className="grid shrink-0 grid-cols-2 rounded-lg border border-neutral-200 bg-white p-2 lg:hidden">
           {[
-            ['essay', isLor ? 'Recommendation letter' : 'Bài luận'],
-            ['feedback', 'Phản hồi'],
+            ['essay', isLor ? 'Recommendation letter' : 'Essay'],
+            ['feedback', 'Feedback'],
           ].map(([pane, label]) => (
             <button
               key={pane}
@@ -925,14 +928,14 @@ export function StatementWriter({
                   : 'text-slate-500 hover:bg-slate-50'
               }`}
             >
-              {label}
+              {t(label)}
             </button>
           ))}
         </div>
       )}
       {/* ── Left: Editor ── */}
       {!vinUniWorkspaceReview ? <section
-        aria-label={isLor ? 'Recommendation letter' : 'Bài luận'}
+        aria-label={isLor ? t('Recommendation letter') : t('Essay')}
         className={`${workspace && workspacePane !== 'essay' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-neutral-300 bg-white lg:basis-0`}
       >
         <div className="flex shrink-0 flex-col items-stretch gap-4 px-4 pt-6 md:px-6">
@@ -985,10 +988,10 @@ export function StatementWriter({
               {isVinUni ? (
                 <label className="mb-4 block shrink-0 rounded-xl border border-slate-200 bg-slate-50/70 p-3">
                   <span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[0.16em] text-slate-500">
-                    Đề bài luận
+                    {t('Essay prompt')}
                   </span>
                   <textarea
-                    aria-label="Đề bài luận"
+                    aria-label={t('Essay prompt')}
                     value={essayPrompt}
                     maxLength={2000}
                     onChange={(event) => setEssayPrompt(event.target.value)}
@@ -998,7 +1001,7 @@ export function StatementWriter({
               ) : null}
               <div className="relative min-h-0 flex-1">
               <textarea
-                aria-label={isLor ? 'Letter of recommendation draft' : 'Nội dung bài luận'}
+                aria-label={isLor ? t('Letter of recommendation draft') : t('Essay content')}
                 value={text}
                 onChange={(e) => setText(e.target.value)}
                 placeholder={
@@ -1046,7 +1049,7 @@ export function StatementWriter({
 
       {/* ── Right: Analysis Panel ── */}
       <section
-        aria-label="Phản hồi"
+        aria-label={t('Feedback')}
         className={vinUniWorkspaceReview
           ? 'block w-full bg-slate-50'
           : `${workspace && workspacePane !== 'feedback' ? 'hidden lg:flex' : 'flex'} min-h-0 min-w-0 flex-1 flex-col rounded-2xl border border-neutral-300 bg-white lg:basis-0`}
@@ -1060,8 +1063,8 @@ export function StatementWriter({
           <div className="flex flex-wrap gap-2 border-b border-slate-200 bg-white px-4 py-3 text-[11px] font-semibold text-slate-600">
             <span className="rounded-full border border-slate-200 px-3 py-1.5">Essay</span>
             <span className="rounded-full border border-pink-200 bg-pink-50 px-3 py-1.5">VinUni AACC</span>
-            <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5">Programme · Server xác nhận</span>
-            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5">Profile · Nếu có</span>
+            <span className="rounded-full border border-sky-200 bg-sky-50 px-3 py-1.5">{t('Programme · server confirmed')}</span>
+            <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5">{t('Profile · if available')}</span>
           </div>
         ) : null}
         {status === 'idle' && !analysis && !vinUniAnalysis && (
@@ -1104,7 +1107,7 @@ export function StatementWriter({
                 onClick={() => void handleAnalyze(missingSections)}
                 className="mt-3 rounded-full border border-red-300 bg-white px-4 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
               >
-                Thử lại phần thiếu
+                {t('Retry missing sections')}
               </button>
             ) : null}
           </div>
@@ -1126,7 +1129,7 @@ export function StatementWriter({
                   Programme · {vinUniAnalysis.context.programmeName ?? 'VinUni chung'}
                 </span>
                 <span className="rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5">
-                  Profile · {vinUniAnalysis.context.profileStatus === 'available' ? 'Đã dùng' : 'Không có'}
+                  {t('Profile')} · {vinUniAnalysis.context.profileStatus === 'available' ? t('Used') : t('Not available')}
                 </span>
               </div>
             ) : null}

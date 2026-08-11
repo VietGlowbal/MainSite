@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useT } from '@/lib/i18n';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type Ambassador = {
@@ -30,6 +31,7 @@ function formatDate(value: string | null) {
 }
 
 export function AmbassadorsClient() {
+  const t = useT();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [name, setName] = useState('');
   const [creating, setCreating] = useState(false);
@@ -210,7 +212,7 @@ export function AmbassadorsClient() {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Ambassador name (e.g. Nguyễn An)"
+            placeholder={t('Ambassador name (for example, Nguyen An)')}
             maxLength={120}
             className="glow-input min-w-0 flex-1 text-sm"
           />

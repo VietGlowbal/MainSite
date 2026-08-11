@@ -1,3 +1,5 @@
+import { useT } from '@/lib/i18n';
+
 /**
  * A visible marker for copy the Figma file has not been written yet.
  *
@@ -29,15 +31,16 @@ export function MissingContent({
   label: string;
   className?: string | undefined;
 }) {
+  const t = useT();
   return (
     <div
       data-no-auto-translate
       data-missing-content={node}
       className={className ? `${BOX} ${className}` : BOX}
     >
-      <span className="text-gb-sm font-semibold text-fg-secondary">Chưa có nội dung</span>
+      <span className="text-gb-sm font-semibold text-fg-secondary">{t('Content unavailable')}</span>
       <span className="text-gb-sm text-fg-muted">
-        {label} — Figma {node} còn là bản mẫu của Untitled UI.
+        {label} — {t('Figma {node} is still an Untitled UI placeholder.', { node })}
       </span>
     </div>
   );

@@ -14,6 +14,7 @@ import {
 } from '@/features/apply/domain';
 import { useDocumentUpload } from '@/features/apply/hooks';
 import { EvidenceExtractionPreview, ReflectionShell } from '@/features/apply/ui';
+import { useT } from '@/lib/i18n';
 import {
   Button,
   DocumentRow,
@@ -73,6 +74,7 @@ export function ReflectionEvidenceForm({
   initialAchievements: AchievementValues[];
   initialActivities: ActivityValues[];
 }) {
+  const t = useT();
   const router = useRouter();
   /*
    * Carried forward from step 1's own `?return=` (see the note in
@@ -131,14 +133,14 @@ export function ReflectionEvidenceForm({
       });
 
       if (!response.ok) {
-        setError('We could not save that. Please try again.');
+        setError(t('We could not save that. Please try again.'));
         setSaving(false);
         return;
       }
 
       router.push(returnTo || '/ai-strategy/report');
     } catch {
-      setError('We could not save that. Please try again.');
+      setError(t('We could not save that. Please try again.'));
       setSaving(false);
     }
   }
@@ -148,7 +150,7 @@ export function ReflectionEvidenceForm({
       <form onSubmit={handleSubmit} className="flex flex-col gap-gb-3xl">
         <section className="flex flex-col gap-gb-lg">
           <h2 className="text-gb-lg font-semibold text-fg-brand">
-            Thành tích học thuật và hoạt động phi học thuật
+            {t('Academic achievements and extracurricular activities')}
           </h2>
 
           <FileDropzone
@@ -170,25 +172,25 @@ export function ReflectionEvidenceForm({
                 });
                 const body = await response.json().catch(() => null);
                 if (!response.ok) {
-                  setError(body?.error ?? 'Không thể đọc tài liệu. Vui lòng thử lại.');
+                  setError(body?.error ?? t('Could not read the document. Please try again.'));
                   return;
                 }
                 const parsed = evidenceExtractionResponseSchema.safeParse(body);
                 if (!parsed.success) {
-                  setError('Kết quả trích xuất không hợp lệ. Vui lòng thử lại.');
+                  setError(t('The extraction result is invalid. Please try again.'));
                   return;
                 }
                 setExtractionResult(parsed.data);
               } catch {
-                setError('Không thể đọc tài liệu. Vui lòng thử lại.');
+                setError(t('Could not read the document. Please try again.'));
               } finally {
                 setExtracting(false);
               }
             }}
             accept=".pdf,application/pdf"
             disabled={saving || extracting}
-            label={extracting ? 'Đang đọc PDF…' : 'Tải CV hoặc chứng nhận PDF'}
-            hint="Có thể chọn nhiều PDF, mỗi file tối đa 10MB"
+            label={extracting ? t('Reading PDF…') : t('Upload a CV or certificate PDF')}
+            hint={t('You can choose multiple PDFs; each file can be up to 10MB')}
           />
 
           {items.length > 0 ? (
@@ -207,7 +209,7 @@ export function ReflectionEvidenceForm({
           ) : null}
 
           <p className="text-center text-gb-sm text-fg-tertiary">
-            Hệ thống chỉ điền dữ liệu có đoạn nguồn trong PDF; bạn luôn được kiểm tra trước khi lưu.
+            {t('The system only fills data with a source excerpt in the PDF; you review everything before saving.')}
           </p>
         </section>
 
@@ -230,11 +232,11 @@ export function ReflectionEvidenceForm({
             twice. The plate is kept, the second heading is not. */}
         <div className="rounded-gb-2xl bg-surface-muted p-gb-3xl">
           <RepeatableFieldset
-            legend="Thành tích học thuật"
+            legend={t('Academic achievements')}
             entries={achievements}
             keyOf={(entry, index) => entry.id ?? `achievement-${index}`}
-            entryLabel={(index) => `Thành tích ${index + 1}`}
-            addLabel="Thêm thành tích"
+            entryLabel={(index) => t('Achievement {number}', { number: index + 1 })}
+            addLabel={t('Add achievement')}
             max={20}
             onAdd={() => setAchievements((prev) => [...prev, emptyAchievement()])}
             onRemove={(index) =>
@@ -245,7 +247,7 @@ export function ReflectionEvidenceForm({
                 <div className="grid gap-gb-2xl sm:grid-cols-2">
                   <Select
                     name={`achievement-${index}-category`}
-                    label="Loại thành tích học thuật"
+                    label={t('Academic achievement type')}
                     value={item.category}
                     onChange={(e) =>
                       patchAchievement(index, {
@@ -262,15 +264,15 @@ export function ReflectionEvidenceForm({
 
                   <Input
                     name={`achievement-${index}-title`}
-                    label="Tên thành tích"
-                    placeholder="Giải Nhất cuộc thi Olympic Toán Thành Phố Hà Nội năm 2026"
+                    label={t('Achievement name')}
+                    placeholder={t('For example: First prize in the Hanoi City Mathematics Olympiad 2026')}
                     value={item.title}
                     onChange={(e) => patchAchievement(index, { title: e.target.value })}
                   />
 
                   <Input
                     name={`achievement-${index}-competition`}
-                    label="Tên cuộc thi / tên tổ chức"
+                    label={t('Competition or organisation name')}
                     value={item.competition ?? ''}
                     onChange={(e) =>
                       patchAchievement(index, { competition: e.target.value || undefined })
@@ -279,7 +281,7 @@ export function ReflectionEvidenceForm({
 
                   <Input
                     name={`achievement-${index}-organisation`}
-                    label="Đơn vị tổ chức"
+                    label={t('Organising body')}
                     value={item.organisation ?? ''}
                     onChange={(e) =>
                       patchAchievement(index, { organisation: e.target.value || undefined })
@@ -288,8 +290,8 @@ export function ReflectionEvidenceForm({
 
                   <Input
                     name={`achievement-${index}-level`}
-                    label="Cấp độ"
-                    placeholder="Cấp thành phố"
+                    label={t('Level')}
+                    placeholder={t('City level')}
                     value={item.level ?? ''}
                     onChange={(e) => patchAchievement(index, { level: e.target.value || undefined })}
                   />
@@ -297,7 +299,7 @@ export function ReflectionEvidenceForm({
                   <Input
                     name={`achievement-${index}-year`}
                     type="number"
-                    label="Năm cấp"
+                    label={t('Award year')}
                     placeholder="2026"
                     value={item.year != null ? String(item.year) : ''}
                     onChange={(e) => {
@@ -312,9 +314,9 @@ export function ReflectionEvidenceForm({
                 {/* The one detail field. See the note at the top of this file. */}
                 <Textarea
                   name={`achievement-${index}-detail`}
-                  label="Mô tả chi tiết"
+                  label={t('Detailed description')}
                   rows={5}
-                  placeholder="Nêu quy mô cuộc thi hoặc chương trình, mức độ cạnh tranh, tiêu chí xét chọn, vai trò của bạn, kết quả đạt được và ý nghĩa của thành tích."
+                  placeholder={t('Describe the scale, competitiveness, selection criteria, your role, the result, and why this achievement matters.')}
                   value={item.detail ?? ''}
                   onChange={(e) => patchAchievement(index, { detail: e.target.value || undefined })}
                 />
@@ -325,11 +327,11 @@ export function ReflectionEvidenceForm({
 
         <div className="rounded-gb-2xl bg-surface-muted p-gb-3xl">
           <RepeatableFieldset
-            legend="Hoạt động phi học thuật"
+            legend={t('Extracurricular activities')}
             entries={activities}
             keyOf={(entry, index) => entry.id ?? `activity-${index}`}
-            entryLabel={(index) => `Hoạt động ${index + 1}`}
-            addLabel="Thêm hoạt động"
+            entryLabel={(index) => t('Activity {number}', { number: index + 1 })}
+            addLabel={t('Add activity')}
             max={20}
             onAdd={() => setActivities((prev) => [...prev, emptyActivity()])}
             onRemove={(index) => setActivities((prev) => prev.filter((_, i) => i !== index))}
@@ -338,7 +340,7 @@ export function ReflectionEvidenceForm({
                 <div className="grid gap-gb-2xl sm:grid-cols-2">
                   <Select
                     name={`activity-${index}-category`}
-                    label="Loại hoạt động phi học thuật"
+                    label={t('Extracurricular activity type')}
                     value={item.category}
                     onChange={(e) =>
                       patchActivity(index, {
@@ -387,9 +389,9 @@ export function ReflectionEvidenceForm({
 
                 <Textarea
                   name={`activity-${index}-description`}
-                  label="Mô tả chi tiết"
+                  label={t('Detailed description')}
                   rows={5}
-                  placeholder="Lí do tham gia, vai trò, đóng góp chính, kết quả đạt được, tác động hoặc điều khiến hoạt động này có ý nghĩa với bạn."
+                  placeholder={t('Describe why you joined, your role, key contributions, results, impact, or what made this activity meaningful.')}
                   value={item.description ?? ''}
                   onChange={(e) =>
                     patchActivity(index, { description: e.target.value || undefined })
@@ -404,10 +406,10 @@ export function ReflectionEvidenceForm({
 
         <div className="flex flex-wrap justify-center gap-gb-lg">
           <Button href={reflectionStep('about').path} variant="secondary" size="lg">
-            Quay lại
+            {t('Back')}
           </Button>
           <Button type="submit" size="lg" disabled={saving || extracting} className="min-w-64">
-            {saving ? 'Đang lưu…' : 'Hoàn tất'}
+            {saving ? t('Saving…') : t('Finish')}
           </Button>
         </div>
       </form>

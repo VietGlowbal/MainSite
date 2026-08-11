@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/lib/i18n';
 import type {
   MatchingReportPageData,
   ProgrammeFit,
@@ -21,19 +22,19 @@ const DIMENSIONS: Array<{
   key: keyof ProgrammeFit['dimensions'];
   label: string;
 }> = [
-  { key: 'academicCompetitiveness', label: 'Năng lực học thuật' },
-  { key: 'personaAlignment', label: 'Chân dung và chương trình' },
-  { key: 'financialFeasibility', label: 'Khả năng tài chính' },
-  { key: 'careerDirection', label: 'Định hướng nghề nghiệp' },
-  { key: 'applicationReadiness', label: 'Mức độ sẵn sàng' },
+  { key: 'academicCompetitiveness', label: 'Academic competitiveness' },
+  { key: 'personaAlignment', label: 'Profile and programme fit' },
+  { key: 'financialFeasibility', label: 'Financial feasibility' },
+  { key: 'careerDirection', label: 'Career direction' },
+  { key: 'applicationReadiness', label: 'Application readiness' },
 ];
 
 function classificationLabel(classification: ProgrammeFit['classification']) {
   if (classification === 'safety') return 'Safety';
   if (classification === 'match') return 'Match';
   if (classification === 'reach') return 'Reach';
-  if (classification === 'currently_ineligible') return 'Hiện chưa đủ điều kiện';
-  return 'Chưa đủ dữ liệu phân loại';
+  if (classification === 'currently_ineligible') return 'Currently ineligible';
+  return 'Not enough data to classify';
 }
 
 function classificationVariant(classification: ProgrammeFit['classification']) {
@@ -43,14 +44,14 @@ function classificationVariant(classification: ProgrammeFit['classification']) {
   return 'neutral' as const;
 }
 
-function verified(value: string | null | undefined) {
-  return value || 'Chưa có dữ liệu đã xác minh';
+function verified(value: string | null | undefined, fallback: string) {
+  return value || fallback;
 }
 
 function eligibilityLabel(status: 'met' | 'not_met' | 'unknown') {
-  if (status === 'met') return 'Đã đáp ứng';
-  if (status === 'not_met') return 'Chưa đáp ứng';
-  return 'Chưa xác minh';
+  if (status === 'met') return 'Met';
+  if (status === 'not_met') return 'Not met';
+  return 'Not verified';
 }
 
 export function MatchingReportView({
@@ -60,13 +61,14 @@ export function MatchingReportView({
   data: MatchingReportPageData;
   migrationMissing: boolean;
 }) {
+  const t = useT();
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(
-    migrationMissing ? 'Matching Report chưa được kích hoạt trong cơ sở dữ liệu.' : null,
+    migrationMissing ? t('Matching Report is not enabled in the database.') : null,
   );
   const [nextAt, setNextAt] = useState<string | null>(null);
-  useLoadingIndicator(busy, 'Đang đánh giá mức độ phù hợp');
+  useLoadingIndicator(busy, t('Assessing programme fit'));
 
   async function generate() {
     setBusy(true);
@@ -77,11 +79,11 @@ export function MatchingReportView({
       });
       const body = await response.json().catch(() => ({}));
       if (body.nextRegenerationAt) setNextAt(body.nextRegenerationAt as string);
-      if (!response.ok) throw new Error(body.error || 'Không thể tạo Matching Report.');
+      if (!response.ok) throw new Error(body.error || t('Could not create Matching Report.'));
       router.refresh();
     } catch (requestError) {
       setError(
-        requestError instanceof Error ? requestError.message : 'Không thể tạo Matching Report.',
+        requestError instanceof Error ? requestError.message : t('Could not create Matching Report.'),
       );
     } finally {
       setBusy(false);
@@ -100,16 +102,15 @@ export function MatchingReportView({
           </h1>
           <p className="text-gb-md text-fg-tertiary">{data.universityName}</p>
           <p className="text-gb-sm text-fg-tertiary">
-            Báo cáo kiểm tra điều kiện đầu vào trước, sau đó đánh giá riêng học thuật,
-            chân dung, tài chính, nghề nghiệp và mức độ sẵn sàng.
+            {t('The report checks entry requirements first, then evaluates academic fit, profile, finances, career direction, and readiness separately.')}
           </p>
         </div>
         {error ? <p className="max-w-xl text-gb-sm text-fg-error">{error}</p> : null}
         <Button size="lg" onClick={generate} disabled={busy || migrationMissing}>
-          {busy ? 'Đang tạo báo cáo…' : 'Tạo Matching Report'}
+          {busy ? t('Creating report…') : t('Create Matching Report')}
         </Button>
         <Button href="/profile" variant="secondary">
-          Kiểm tra dữ liệu hồ sơ
+          {t('Check profile data')}
         </Button>
       </div>
     );
@@ -140,22 +141,22 @@ export function MatchingReportView({
             </div>
           </div>
           <Badge variant={classificationVariant(fit.classification)}>
-            {classificationLabel(fit.classification)}
+            {t(classificationLabel(fit.classification))}
           </Badge>
         </div>
         <div className="grid gap-gb-sm">
           <div className="flex items-center justify-between text-gb-sm">
-            <span>Độ tin cậy của dữ liệu</span>
+            <span>{t('Data confidence')}</span>
             <strong>{fit.confidence}%</strong>
           </div>
-          <ProgressBar value={fit.confidence} label="Độ tin cậy của Matching Report" />
+          <ProgressBar value={fit.confidence} label={t('Matching Report confidence')} />
         </div>
         <div className="flex flex-wrap gap-gb-md">
           <Button onClick={generate} disabled={busy} variant="primary-on-dark">
-            {busy ? 'Đang cập nhật…' : 'Cập nhật báo cáo'}
+            {busy ? t('Updating…') : t('Update report')}
           </Button>
           <Button href="/ai-strategy/matching" variant="secondary-on-dark">
-            Chọn hồ sơ khác
+            {t('Choose another profile')}
           </Button>
         </div>
       </header>
@@ -163,13 +164,13 @@ export function MatchingReportView({
       {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
       {nextAt ? (
         <p className="text-gb-xs text-fg-muted">
-          Lần tạo miễn phí tiếp theo: {new Date(nextAt).toLocaleString('vi-VN')}
+          {t('Next free generation')}: {new Date(nextAt).toLocaleString('vi-VN')}
         </p>
       ) : null}
 
       {fit.limitations.length > 0 ? (
         <Panel className="flex flex-col gap-gb-md">
-          <h2 className="text-gb-md font-semibold text-fg">Giới hạn của báo cáo</h2>
+          <h2 className="text-gb-md font-semibold text-fg">{t('Report limitations')}</h2>
           <ul className="list-disc space-y-gb-sm pl-gb-xl text-gb-sm text-fg-tertiary">
             {fit.limitations.map((limitation) => (
               <li key={limitation}>{limitation}</li>
@@ -180,7 +181,7 @@ export function MatchingReportView({
 
       <section className="flex flex-col gap-gb-lg">
         <h2 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">
-          Năm chiều phù hợp
+          {t('Five dimensions of fit')}
         </h2>
         <div className="grid gap-gb-lg md:grid-cols-2">
           {DIMENSIONS.map(({ key, label }) => {
@@ -206,9 +207,9 @@ export function MatchingReportView({
       <div className="grid gap-gb-2xl lg:grid-cols-[minmax(0,1fr)_18rem]">
         <div className="flex flex-col gap-gb-2xl">
           <Panel className="flex flex-col gap-gb-lg">
-            <h2 className="text-gb-lg font-semibold text-fg">Vì sao là trường này?</h2>
+            <h2 className="text-gb-lg font-semibold text-fg">{t('Why this university?')}</h2>
             <p className="text-gb-sm leading-relaxed text-fg-tertiary">
-              {verified(data.university?.insight || data.university?.bestFor)}
+            {verified(data.university?.insight || data.university?.bestFor, t('No verified data'))}
             </p>
             {analysis.strengths.length > 0 ? (
               <CheckList>
@@ -220,27 +221,27 @@ export function MatchingReportView({
           </Panel>
 
           <Panel className="flex flex-col gap-gb-lg">
-            <h2 className="text-gb-lg font-semibold text-fg">Tổng quan chương trình</h2>
+            <h2 className="text-gb-lg font-semibold text-fg">{t('Programme overview')}</h2>
             <p className="text-gb-sm leading-relaxed text-fg-tertiary">
-              {verified(data.course.summary)}
+              {verified(data.course.summary, t('No verified data'))}
             </p>
             <dl className="grid gap-gb-md sm:grid-cols-2">
-              {[
-                ['Bậc học', data.degreeLevel],
-                ['Thời lượng', data.course.duration],
-                ['Hình thức', data.studyMode],
-                ['Kỳ nhập học', data.intake],
-              ].map(([label, value]) => (
+              {([
+                ['Study level', data.degreeLevel],
+                ['Duration', data.course.duration],
+                ['Study mode', data.studyMode],
+                ['Intake', data.intake],
+              ] as Array<[string, string | null | undefined]>).map(([label, value]) => (
                 <div key={label} className="rounded-gb-xl bg-surface-muted p-gb-lg">
-                  <dt className="text-gb-xs text-fg-muted">{label}</dt>
-                  <dd className="text-gb-sm font-medium text-fg">{verified(value)}</dd>
+                  <dt className="text-gb-xs text-fg-muted">{t(label)}</dt>
+                  <dd className="text-gb-sm font-medium text-fg">{verified(value, t('No verified data'))}</dd>
                 </div>
               ))}
             </dl>
           </Panel>
 
           <Panel className="flex flex-col gap-gb-lg">
-            <h2 className="text-gb-lg font-semibold text-fg">Mức độ phù hợp cá nhân</h2>
+            <h2 className="text-gb-lg font-semibold text-fg">{t('Personal fit')}</h2>
             <p className="text-gb-sm leading-relaxed text-fg-tertiary">
               {fit.dimensions.personaAlignment.summary}
             </p>
@@ -254,32 +255,32 @@ export function MatchingReportView({
           </Panel>
 
           <Panel className="flex flex-col gap-gb-lg">
-            <h2 className="text-gb-lg font-semibold text-fg">Yêu cầu tuyển sinh</h2>
+            <h2 className="text-gb-lg font-semibold text-fg">{t('Admission requirements')}</h2>
             <div className="grid gap-gb-md sm:grid-cols-2">
               {Object.entries(fit.eligibility).map(([key, status]) => (
                 <div key={key} className="flex items-center justify-between gap-gb-md rounded-gb-xl bg-surface-muted p-gb-lg">
                   <span className="text-gb-sm text-fg-tertiary">
                     {key.replace(/([A-Z])/g, ' $1')}
                   </span>
-                  <strong className="text-gb-xs text-fg">{eligibilityLabel(status)}</strong>
+                  <strong className="text-gb-xs text-fg">{t(eligibilityLabel(status))}</strong>
                 </div>
               ))}
             </div>
             <p className="text-gb-sm text-fg-tertiary">
-              {verified(data.course.entryRequirements)}
+              {verified(data.course.entryRequirements, t('No verified data'))}
             </p>
             <p className="text-gb-sm text-fg-tertiary">
-              {verified(data.course.englishRequirements)}
+              {verified(data.course.englishRequirements, t('No verified data'))}
             </p>
           </Panel>
 
           <Panel className="flex flex-col gap-gb-lg">
-            <h2 className="text-gb-lg font-semibold text-fg">Chi phí và học bổng</h2>
+            <h2 className="text-gb-lg font-semibold text-fg">{t('Costs and scholarships')}</h2>
             <p className="text-gb-sm text-fg-tertiary">
-              Học phí: {verified(data.course.tuition || data.university?.tuition)}
+              {t('Tuition')}: {verified(data.course.tuition || data.university?.tuition, t('No verified data'))}
             </p>
             <p className="text-gb-sm text-fg-tertiary">
-              Sinh hoạt phí: {verified(data.university?.livingCost)}
+              {t('Living costs')}: {verified(data.university?.livingCost, t('No verified data'))}
             </p>
             {data.scholarships.length > 0 ? (
               <div className="flex flex-col gap-gb-md">
@@ -287,20 +288,20 @@ export function MatchingReportView({
                   <div key={scholarship.id} className="rounded-gb-xl border border-line p-gb-lg">
                     <p className="text-gb-sm font-semibold text-fg">{scholarship.name}</p>
                     <p className="text-gb-xs text-fg-tertiary">
-                      {verified(scholarship.coverage)}
+                      {verified(scholarship.coverage, t('No verified data'))}
                     </p>
                   </div>
                 ))}
               </div>
             ) : (
               <p className="text-gb-sm text-fg-muted">
-                {verified(data.university?.scholarship)}
+                {verified(data.university?.scholarship, t('No verified data'))}
               </p>
             )}
           </Panel>
 
           <Panel className="flex flex-col gap-gb-lg">
-            <h2 className="text-gb-lg font-semibold text-fg">Khoảng trống hồ sơ</h2>
+            <h2 className="text-gb-lg font-semibold text-fg">{t('Profile gaps')}</h2>
             {allGaps.length > 0 ? (
               <ul className="list-disc space-y-gb-sm pl-gb-xl text-gb-sm text-fg-tertiary">
                 {allGaps.map((gap) => (
@@ -309,7 +310,7 @@ export function MatchingReportView({
               </ul>
             ) : (
               <p className="text-gb-sm text-fg-muted">
-                AI chưa xác định khoảng trống có đủ bằng chứng.
+                {t('AI did not identify any evidence-backed gaps.')}
               </p>
             )}
           </Panel>
@@ -317,10 +318,10 @@ export function MatchingReportView({
 
         <aside className="h-fit lg:sticky lg:top-gb-3xl">
           <Panel className="flex flex-col gap-gb-lg">
-            <h2 className="text-gb-md font-semibold text-fg">Nguồn và độ mới</h2>
+            <h2 className="text-gb-md font-semibold text-fg">{t('Sources and freshness')}</h2>
             <dl className="flex flex-col gap-gb-md text-gb-sm">
               <div>
-                <dt className="text-fg-muted">Nguồn chính thức</dt>
+                <dt className="text-fg-muted">{t('Official source')}</dt>
                 <dd className="break-words text-fg">
                   {data.courseUrl ? (
                     <a
@@ -329,38 +330,38 @@ export function MatchingReportView({
                       rel="noreferrer"
                       className="text-fg-brand hover:underline"
                     >
-                      Mở trang chương trình
+                      {t('Open programme page')}
                     </a>
                   ) : (
-                    verified(null)
+                    verified(null, t('No verified data'))
                   )}
                 </dd>
               </div>
               <div>
-                <dt className="text-fg-muted">Độ tin cậy nguồn</dt>
+                <dt className="text-fg-muted">{t('Source confidence')}</dt>
                 <dd className="text-fg">
                   {data.course.sourceConfidence === null
-                    ? verified(null)
+                    ? verified(null, t('No verified data'))
                     : `${Math.round(data.course.sourceConfidence * 100)}%`}
                 </dd>
               </div>
               <div>
-                <dt className="text-fg-muted">Trích xuất lần cuối</dt>
+                <dt className="text-fg-muted">{t('Last extracted')}</dt>
                 <dd className="text-fg">
                   {data.course.lastExtractedAt
                     ? new Date(data.course.lastExtractedAt).toLocaleString('vi-VN')
-                    : verified(null)}
+                    : verified(null, t('No verified data'))}
                 </dd>
               </div>
               <div>
-                <dt className="text-fg-muted">Phân tích lần cuối</dt>
+                <dt className="text-fg-muted">{t('Last analysed')}</dt>
                 <dd className="text-fg">
                   {new Date(analysis.createdAt).toLocaleString('vi-VN')}
                 </dd>
               </div>
             </dl>
             <Button href="/ai-strategy" variant="secondary">
-              Quay lại AI Strategy
+              {t('Back to AI Strategy')}
             </Button>
           </Panel>
         </aside>

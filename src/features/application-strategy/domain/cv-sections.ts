@@ -21,8 +21,8 @@ import type { CvEntry, CvSection, CvSectionKind } from './types';
  */
 export const CV_STEPS = [
   { key: 'target-profile', label: 'Target Profile' },
-  { key: 'content', label: 'Nội dung CV' },
-  { key: 'review', label: 'Bản CV' },
+  { key: 'content', label: 'CV content' },
+  { key: 'review', label: 'CV review' },
   { key: 'layout', label: 'Layout - PDF' },
 ] as const;
 

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/lib/i18n';
 import {
   ACCEPTED_DOCUMENT_TYPES,
   useDocumentUpload,
@@ -26,7 +27,7 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
  */
 
 const DOC_TYPES: { value: DocumentKind; label: string; hint: string }[] = [
-  { value: 'cv', label: 'CV / Résumé', hint: 'Your academic or professional CV' },
+  { value: 'cv', label: 'CV / Resume', hint: 'Your academic or professional CV' },
   {
     value: 'statement_of_purpose',
     label: 'Personal statement',
@@ -35,6 +36,7 @@ const DOC_TYPES: { value: DocumentKind; label: string; hint: string }[] = [
 ];
 
 export function UploadDocumentForm() {
+  const t = useT();
   const router = useRouter();
   const { items, upload, remove } = useDocumentUpload();
   const [kind, setKind] = useState<DocumentKind>('cv');
@@ -88,7 +90,7 @@ export function UploadDocumentForm() {
               <span
                 className={`text-gb-sm font-semibold ${selected ? 'text-fg-brand' : 'text-fg'}`}
               >
-                {option.label}
+                {t(option.label)}
               </span>
               <span className="text-gb-xs text-fg-tertiary">{option.hint}</span>
             </button>
@@ -100,7 +102,7 @@ export function UploadDocumentForm() {
         onFiles={handleFiles}
         accept={ACCEPTED_DOCUMENT_TYPES}
         disabled={busy}
-        label={`Click to upload ${active?.label ?? 'a document'}`}
+        label={t('Click to upload {label}', { label: active ? t(active.label) : t('a document') })}
         hint="PDF, DOC, DOCX, TXT or RTF (max. 10MB)"
       />
 

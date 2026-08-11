@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/lib/i18n';
 import { Badge, Button, ICONS, KitIcon } from '@/shared/ui';
 import {
   SECTION_LABEL,
@@ -55,6 +56,7 @@ export function CvReviewWorkspace({
   outdated: initialOutdated,
   hasTargetProfile,
 }: CvReviewWorkspaceProps) {
+  const t = useT();
   const [review, setReview] = useState<CvReview | null>(initialReview);
   const [outdated, setOutdated] = useState(initialOutdated);
   const [running, setRunning] = useState(false);
@@ -78,7 +80,7 @@ export function CvReviewWorkspace({
       };
 
       if (!response.ok || !data.review) {
-        setError(data.error ?? 'We could not finish the review.');
+        setError(data.error ?? t('We could not finish the review.'));
         return;
       }
 
@@ -88,7 +90,7 @@ export function CvReviewWorkspace({
       setOutdated(false);
       setDismissedOutdated(false);
     } catch {
-      setError('We could not reach Glowbal. Check your connection and try again.');
+      setError(t('We could not reach Glowbal. Check your connection and try again.'));
     } finally {
       setRunning(false);
     }
@@ -113,8 +115,7 @@ export function CvReviewWorkspace({
           ) : null}
         </div>
         <p className="max-w-3xl text-gb-md text-fg-tertiary">
-          CV của bạn được đối chiếu với target profile — những gì chương trình này cần bạn chứng
-          minh. Đây là đánh giá về nội dung, không phải về hình thức.
+          {t('Your CV is compared with the target profile — what this programme needs you to prove. This is a content review, not a formatting review.')}
         </p>
       </header>
 
@@ -122,10 +123,10 @@ export function CvReviewWorkspace({
 
       {hasContent && !hasTargetProfile ? (
         <StateBlock
-          title="Chưa có target profile"
-          body="Bài đánh giá được đối chiếu với target profile, nên cần tạo nó trước."
+          title={t('No target profile yet')}
+          body={t('The review uses the target profile, so create it first.')}
           action={{
-            label: 'Tạo target profile',
+            label: t('Create target profile'),
             href: `/ai-strategy/${applicationId}/cv/target-profile`,
           }}
         />
@@ -133,7 +134,7 @@ export function CvReviewWorkspace({
 
       {running ? (
         <GeneratingState
-          title="Đang đánh giá CV của bạn"
+          title={t('Reviewing your CV')}
           body="Reading your CV against every part of your target profile."
         />
       ) : null}
@@ -148,9 +149,9 @@ export function CvReviewWorkspace({
 
       {hasContent && hasTargetProfile && !review && !running && !error ? (
         <AnalysisNotRunState
-          title="Chưa đánh giá CV"
-          body="AI sẽ đọc nội dung CV của bạn và đối chiếu với từng mục trong target profile, rồi chỉ ra ba điểm mạnh và những gì còn thiếu."
-          actionLabel="Đánh giá CV của tôi"
+          title={t('CV has not been reviewed yet')}
+          body={t('AI will read your CV, compare it with each target-profile area, and identify three strengths and what is missing.')}
+          actionLabel={t('Review my CV')}
           onRun={() => void runReview()}
         />
       ) : null}
@@ -167,7 +168,7 @@ export function CvReviewWorkspace({
         <>
           {review.summary ? (
             <StrategyPanel>
-              <h2 className="text-gb-md font-semibold text-fg">Tổng quan</h2>
+              <h2 className="text-gb-md font-semibold text-fg">{t('Overview')}</h2>
               <p className="text-gb-md text-fg-secondary">{review.summary}</p>
             </StrategyPanel>
           ) : null}
@@ -181,7 +182,7 @@ export function CvReviewWorkspace({
                 <KitIcon art={ICONS.checkCircle} frame={16} />
               </span>
               <p className="text-gb-sm text-fg-secondary">
-                Không còn thiếu sót nghiêm trọng. Những gợi ý dưới đây là để CV mạnh hơn.
+                {t('There are no serious gaps left. The suggestions below will make the CV stronger.')}
               </p>
             </div>
           ) : null}
@@ -205,7 +206,7 @@ export function CvReviewWorkspace({
 
           <div className="flex flex-wrap items-center gap-gb-xl">
             <Button size="lg" href={`/ai-strategy/${applicationId}/cv/layout`}>
-              Chọn layout và xuất PDF
+              {t('Choose a layout and export PDF')}
             </Button>
             <button
               type="button"
@@ -213,7 +214,7 @@ export function CvReviewWorkspace({
               disabled={running}
               className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60"
             >
-              Đánh giá lại
+              {t('Review again')}
             </button>
           </div>
         </>
@@ -231,13 +232,13 @@ function StrengthsPanel({
   expanded: number | null;
   onToggle: (index: number) => void;
 }) {
+  const t = useT();
   if (strengths.length === 0) {
     return (
       <StrategyPanel>
-        <h2 className="text-gb-md font-semibold text-fg">Điểm mạnh</h2>
+        <h2 className="text-gb-md font-semibold text-fg">{t('Strengths')}</h2>
         <p className="text-gb-sm text-fg-tertiary">
-          Chúng tôi chưa tìm được điểm mạnh nào có bằng chứng rõ ràng trong CV. Thêm chi tiết cụ thể
-          vào từng nội dung sẽ giúp việc này.
+          {t('We could not find any clearly evidenced strengths in the CV. Add specific details to each entry to help.')}
         </p>
       </StrategyPanel>
     );
@@ -246,7 +247,7 @@ function StrengthsPanel({
   return (
     <StrategyPanel>
       <h2 className="text-gb-md font-semibold text-fg">
-        {strengths.length === 3 ? 'Ba điểm mạnh' : 'Điểm mạnh'}
+        {strengths.length === 3 ? t('Three strengths') : t('Strengths')}
       </h2>
       <ul className="flex flex-col gap-gb-md">
         {strengths.map((strength, index) => {
@@ -300,12 +301,13 @@ function MissingSignalsPanel({
   signals: readonly CvMissingSignal[];
   applicationId: string;
 }) {
+  const t = useT();
   if (signals.length === 0) {
     return (
       <StrategyPanel>
-        <h2 className="text-gb-md font-semibold text-fg">Còn thiếu</h2>
+        <h2 className="text-gb-md font-semibold text-fg">{t('Missing')}</h2>
         <p className="text-gb-sm text-fg-tertiary">
-          Không tìm thấy khoảng trống nào so với target profile.
+          {t('No gaps were found against the target profile.')}
         </p>
       </StrategyPanel>
     );
@@ -313,7 +315,7 @@ function MissingSignalsPanel({
 
   return (
     <StrategyPanel>
-      <h2 className="text-gb-md font-semibold text-fg">Còn thiếu</h2>
+      <h2 className="text-gb-md font-semibold text-fg">{t('Missing')}</h2>
       <ul className="flex flex-col gap-gb-lg">
         {signals.map((signal) => (
           <li
@@ -322,11 +324,11 @@ function MissingSignalsPanel({
           >
             <div className="flex flex-wrap items-start justify-between gap-gb-md">
               <p className="text-gb-sm font-semibold text-fg">{signal.signal}</p>
-              {signal.critical ? <Badge variant="brand-chip">Cần xử lý</Badge> : null}
+              {signal.critical ? <Badge variant="brand-chip">{t('Needs action')}</Badge> : null}
             </div>
             <p className="text-gb-sm text-fg-tertiary">{signal.reason}</p>
             <p className="text-gb-sm text-fg-secondary">
-              <span className="font-medium">Nên làm: </span>
+              <span className="font-medium">{t('Do this')}: </span>
               {signal.action}
             </p>
             {/*
@@ -338,7 +340,7 @@ function MissingSignalsPanel({
               href={`/ai-strategy/${applicationId}/cv/content#section-${signal.targetSection}`}
               className="inline-flex w-fit items-center gap-gb-xs rounded-gb-md text-gb-xs font-semibold text-fg-brand underline decoration-line-strong underline-offset-4 hover:no-underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              Mở mục {SECTION_LABEL[signal.targetSection]}
+              {t('Open')} {t(SECTION_LABEL[signal.targetSection])}
               <KitIcon art={ICONS.arrowRight} frame={12} />
             </a>
           </li>
@@ -357,13 +359,14 @@ function MissingSignalsPanel({
  * two editable surfaces for the same data is how they get out of step.
  */
 function CvPreviewPanel({ cv }: { cv: StructuredCv | null }) {
+  const t = useT();
   if (!cv || cv.sections.length === 0) return null;
 
   const ordered = cv.selectedLayout ? applyLayoutOrder(cv.sections, cv.selectedLayout) : cv.sections;
 
   return (
     <StrategyPanel padding="sm" className="lg:sticky lg:top-gb-2xl lg:max-h-[80vh] lg:overflow-y-auto">
-      <h2 className="text-gb-md font-semibold text-fg">CV của bạn</h2>
+      <h2 className="text-gb-md font-semibold text-fg">{t('Your CV')}</h2>
       <div className="flex flex-col gap-gb-xl">
         {ordered.map((section) => (
           <div key={section.id} className="flex flex-col gap-gb-md">
@@ -374,7 +377,7 @@ function CvPreviewPanel({ cv }: { cv: StructuredCv | null }) {
               {sectionTitle(section)}
             </h3>
             {section.entries.length === 0 ? (
-              <p className="text-gb-xs text-fg-muted italic">Chưa có nội dung</p>
+              <p className="text-gb-xs text-fg-muted italic">{t('No content yet')}</p>
             ) : (
               <ul className="flex flex-col gap-gb-md">
                 {section.entries.map((entry) => (

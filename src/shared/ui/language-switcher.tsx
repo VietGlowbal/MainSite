@@ -49,7 +49,7 @@ const BUTTON_TONE: Record<'dark' | 'light', string> = {
 };
 
 export function LanguageSwitcher({ variant = 'button', tone = 'light' }: Props = {}) {
-  const { lang, toggle } = useLanguage();
+  const { lang, toggle, t } = useLanguage();
   const next = lang === 'en' ? 'Vietnamese' : 'English';
   const code = lang === 'en' ? 'EN' : 'VI';
   const flag = lang === 'en' ? '🇬🇧' : '🇻🇳';
@@ -62,7 +62,7 @@ export function LanguageSwitcher({ variant = 'button', tone = 'light' }: Props =
         aria-label={`Switch to ${next}`}
         className="mb-gb-lg flex w-full items-center justify-between rounded-gb-md px-gb-lg py-gb-md text-gb-sm font-medium text-fg-tertiary transition-colors hover:bg-surface-hover"
       >
-        <span>{lang === 'en' ? '🇬🇧 English' : '🇻🇳 Tiếng Việt'}</span>
+        <span>{flag} {t(lang === 'en' ? 'English' : 'Vietnamese')}</span>
         <span className="text-gb-xs font-semibold tracking-wide text-fg-muted">{code}</span>
       </button>
     );

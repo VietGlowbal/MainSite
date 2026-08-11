@@ -3,6 +3,7 @@ import Image from 'next/image';
 import type { ReactNode } from 'react';
 import { WaitlistForm } from '@/components/waitlist-form';
 import type { WaitlistAction } from '@/lib/types';
+import { useT } from '@/lib/i18n';
 import { getTeamMembers, splitTeam, type TeamMember } from '@/lib/team';
 import { Reveal } from './reveal';
 import { SiteHeader } from './site-header';
@@ -628,6 +629,7 @@ function FounderSpotlight({
 }
 
 function TeamGridCard({ member, index }: { member: TeamMember; index: number }) {
+  const t = useT();
   const bullets = member.achievements
     .filter((a) => a.category !== 'quote')
     .slice(0, 3)
@@ -645,7 +647,7 @@ function TeamGridCard({ member, index }: { member: TeamMember; index: number }) 
         )}
         <div>
           <p className="text-base font-semibold text-slate-900">{member.full_name}</p>
-          <p className="text-sm text-pink-600">{member.role}</p>
+          <p className="text-sm text-pink-600">{t(member.role)}</p>
         </div>
       </div>
       {bullets.length > 0 ? (

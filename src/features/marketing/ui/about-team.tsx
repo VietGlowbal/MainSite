@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import Image from 'next/image';
 import type { TeamAchievementCategory, TeamMember } from '@/lib/team';
+import { useT } from '@/lib/i18n';
 import { BRAND_ICONS, BrandIcon, ICONS, InstagramMark, KitIcon, Modal } from '@/shared/ui';
 
 /**
@@ -249,6 +250,8 @@ function MemberFace({
   onOpen: () => void;
   className?: string;
 }) {
+  const t = useT();
+
   return (
     <button type="button" onClick={onOpen} className={className}>
       {member.photo_url ? (
@@ -282,7 +285,7 @@ function MemberFace({
       />
       <span className="absolute inset-x-0 bottom-0 flex flex-col gap-gb-xxs p-gb-lg">
         <span className="whitespace-nowrap text-gb-sm font-semibold text-white">{member.full_name}</span>
-        <span className="line-clamp-2 text-gb-xs leading-tight font-medium text-white/80">{member.role}</span>
+        <span className="line-clamp-2 text-gb-xs leading-tight font-medium text-white/80">{t(member.role)}</span>
       </span>
     </button>
   );
@@ -607,6 +610,7 @@ function MemberDetail({
   index: number;
   total: number;
 }) {
+  const t = useT();
   const shownAchievements = member.achievements.slice(0, MAX_ACHIEVEMENTS);
   const hiddenAchievements = member.achievements.length - shownAchievements.length;
   const programme = programmeLine(member);
@@ -641,7 +645,7 @@ function MemberDetail({
           className="flex animate-gb-team-line-in flex-col gap-gb-md motion-reduce:animate-none"
         >
           <span className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
-            {pad2(index + 1)} / {pad2(total)} · {member.role}
+            {pad2(index + 1)} / {pad2(total)} · {t(member.role)}
           </span>
           <h3 className="font-display text-gb-display-xs font-semibold text-fg">
             {member.full_name}
@@ -753,6 +757,8 @@ function MemberDetail({
 }
 
 export function AboutTeam({ members }: { members: readonly TeamMember[] }) {
+  const t = useT();
+
   /** Featured-first, so that person faces the camera at the ring's rest
       position — see the header. Recomputed only when the roster changes. */
   const ordered = useMemo(() => withFeaturedFirst(members), [members]);
@@ -832,7 +838,7 @@ export function AboutTeam({ members }: { members: readonly TeamMember[] }) {
       <Modal
         open={active !== null}
         onClose={() => setOpenIndex(null)}
-        label={active ? `${active.full_name}, ${active.role}` : 'Team member'}
+        label={active ? `${active.full_name}, ${t(active.role)}` : t('Team member')}
         className="max-w-gb-width-xl overflow-hidden p-0"
       >
         {active && openIndex !== null ? (

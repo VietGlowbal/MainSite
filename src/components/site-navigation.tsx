@@ -34,7 +34,11 @@ function useHydrated() {
  * seeing the first-time onboarding CTA flash during hydration.
  */
 export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
-  const { t } = useLanguage();
+  // Read the locale itself as well as the translator. The persistent shell can
+  // survive a locale toggle; keying the nav islands to the locale guarantees
+  // that a translated action label (notably Strategy Master) is never retained
+  // across EN ↔ VI updates.
+  const { lang, t } = useLanguage();
   const session = useNavigationSession();
   const hydrated = useHydrated();
   const sessionReady = hydrated && session.ready;
@@ -55,6 +59,7 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
   return (
     <>
       <TopNav
+        key={`top-nav-${lang}`}
         tone={tone}
         logo={<GlowbalLogo height={28} />}
         items={presentation.items}
@@ -73,6 +78,7 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
             : {})}
       />
       <MobileNav
+        key={`mobile-nav-${lang}`}
         logo={
           <Link href="/" aria-label="GlowBal home" className="inline-flex items-center">
             <GlowbalLogo height={28} />

@@ -12,6 +12,7 @@ import type {
   CvReviewAnalysis,
   CvReviewSectionEvent,
 } from '@/lib/ai/cv-review';
+import { useT } from '@/lib/i18n';
 
 type TypingTurn = { wait: Promise<void>; release: () => void };
 type CompletionRegistration = {
@@ -207,41 +208,41 @@ function TypedList({
 }
 
 const STRATEGIC_TITLES = {
-  programme_alignment: 'A. CV có đúng hướng ngành học không?',
-  story_positioning: 'B. Người đọc hiểu bạn là ai không?',
-  evidence_quality: 'C. Có đủ ví dụ và kết quả không?',
-  content_prioritization: 'D. Nội dung quan trọng có nổi bật không?',
-  one_page_efficiency: 'E. CV có gọn trong một trang không?',
+  programme_alignment: 'A. Is your CV aligned with the course?',
+  story_positioning: 'B. Does the reader understand who you are?',
+  evidence_quality: 'C. Does it include enough examples and results?',
+  content_prioritization: 'D. Does the important content stand out?',
+  one_page_efficiency: 'E. Is the CV concise enough for one page?',
 } as const;
 
 const CV_SECTION_TITLES: Record<string, string> = {
-  general: 'Thông tin chung',
-  about_me: 'Giới thiệu',
-  education: 'Học vấn',
-  experience: 'Kinh nghiệm',
-  projects: 'Dự án',
-  awards: 'Giải thưởng và thành tích',
-  skills: 'Kỹ năng',
-  activities: 'Hoạt động',
-  research: 'Nghiên cứu',
-  publications: 'Công bố',
-  certifications: 'Chứng chỉ',
-  languages: 'Ngôn ngữ',
-  interests: 'Sở thích',
+  general: 'General information',
+  about_me: 'About me',
+  education: 'Education',
+  experience: 'Experience',
+  projects: 'Projects',
+  awards: 'Awards and achievements',
+  skills: 'Skills',
+  activities: 'Activities',
+  research: 'Research',
+  publications: 'Publications',
+  certifications: 'Certifications',
+  languages: 'Languages',
+  interests: 'Interests',
 };
 
 const STRATEGIC_GRAPH_META = {
-  programme_alignment: { label: 'Đúng hướng', color: '#ec4899' },
-  story_positioning: { label: 'Dấu ấn cá nhân', color: '#8b5cf6' },
-  evidence_quality: { label: 'Dẫn chứng', color: '#0ea5e9' },
-  content_prioritization: { label: 'Ưu tiên nội dung', color: '#10b981' },
-  one_page_efficiency: { label: 'Gọn một trang', color: '#f59e0b' },
+  programme_alignment: { label: 'Aligned direction', color: '#ec4899' },
+  story_positioning: { label: 'Personal signature', color: '#8b5cf6' },
+  evidence_quality: { label: 'Evidence', color: '#0ea5e9' },
+  content_prioritization: { label: 'Content priorities', color: '#10b981' },
+  one_page_efficiency: { label: 'One-page focus', color: '#f59e0b' },
 } as const;
 
 function scoreStatus(score: number) {
-  if (score >= 8) return { label: 'Tốt', className: 'text-emerald-700' };
-  if (score >= 6) return { label: 'Khá', className: 'text-amber-700' };
-  return { label: 'Cần sửa', className: 'text-rose-700' };
+  if (score >= 8) return { label: 'Strong', className: 'text-emerald-700' };
+  if (score >= 6) return { label: 'Fair', className: 'text-amber-700' };
+  return { label: 'Needs work', className: 'text-rose-700' };
 }
 
 function ScoreRing({
@@ -255,6 +256,7 @@ function ScoreRing({
   color: string;
   large?: boolean;
 }) {
+  const t = useT();
   const value = Math.max(0, Math.min(10, score));
   const status = scoreStatus(value);
   const size = large ? 'h-28 w-28' : 'h-20 w-20';
@@ -264,7 +266,7 @@ function ScoreRing({
     <div
       className="flex min-w-0 flex-col items-center text-center"
       role="img"
-      aria-label={`${label}: ${value}/10, ${status.label}`}
+      aria-label={`${label}: ${value}/10, ${t(status.label)}`}
     >
       <div
         className={`relative grid shrink-0 place-items-center rounded-full ${size}`}
@@ -281,7 +283,7 @@ function ScoreRing({
       </div>
       <p className="mt-2 text-xs font-semibold text-slate-800">{label}</p>
       <p className={`mt-0.5 text-[11px] font-medium ${status.className}`}>
-        {status.label}
+        {t(status.label)}
       </p>
     </div>
   );
@@ -300,6 +302,7 @@ function CvScoreDashboard({
   >;
   overallScore?: number;
 }) {
+  const t = useT();
   if (!strategic.length) return null;
 
   const currentOverall =
@@ -320,26 +323,26 @@ function CvScoreDashboard({
       <div className="mb-6 flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-600">
-            Bản đồ điểm CV
+            {t('CV score map')}
           </p>
           <h3
             id="cv-score-dashboard-title"
             className="mt-1 text-lg font-semibold text-slate-950"
           >
-            Điểm mạnh và phần cần ưu tiên
+            {t('Strengths and priorities')}
           </h3>
         </div>
         <div className="flex gap-4 text-[11px] font-medium text-slate-500">
-          <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />8–10 Tốt</span>
-          <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />6–7 Khá</span>
-          <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-rose-500" />Dưới 6</span>
+          <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-emerald-500" />{t('8–10 Strong')}</span>
+          <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-amber-500" />{t('6–7 Fair')}</span>
+          <span><i className="mr-1 inline-block h-2 w-2 rounded-full bg-rose-500" />{t('Below 6')}</span>
         </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[150px_1fr] xl:items-center">
         <div className="rounded-3xl border border-pink-100 bg-white p-5">
           <ScoreRing
-            label="Điểm tổng"
+            label={t('Overall score')}
             score={currentOverall}
             color="#ec4899"
             large
@@ -351,7 +354,7 @@ function CvScoreDashboard({
             return (
               <ScoreRing
                 key={event.criterion}
-                label={meta.label}
+                label={t(meta.label)}
                 score={event.data.score}
                 color={meta.color}
               />
@@ -364,9 +367,9 @@ function CvScoreDashboard({
         <div className="mt-5 rounded-3xl border border-slate-200 bg-white p-5">
           <div className="mb-4 flex items-center justify-between gap-3">
             <h4 className="text-sm font-semibold text-slate-950">
-              Chất lượng từng phần
+              {t('Quality by section')}
             </h4>
-            <span className="text-xs text-slate-500">Thang điểm 10</span>
+            <span className="text-xs text-slate-500">{t('Scale of 10')}</span>
           </div>
           <div className="grid gap-x-8 gap-y-4 md:grid-cols-2">
             {cvSections.map((event) => {
@@ -375,7 +378,7 @@ function CvScoreDashboard({
                 <div key={event.sectionKey}>
                   <div className="mb-1.5 flex items-center justify-between gap-3 text-xs">
                     <span className="font-medium text-slate-700">
-                      {CV_SECTION_TITLES[event.sectionKey] ?? 'Phần CV khác'}
+                      {t(CV_SECTION_TITLES[event.sectionKey] ?? 'Other CV section')}
                     </span>
                     <span className={`font-semibold ${status.className}`}>
                       {event.data.score}/10
@@ -384,7 +387,7 @@ function CvScoreDashboard({
                   <div
                     className="h-2.5 overflow-hidden rounded-full bg-slate-100"
                     role="img"
-                    aria-label={`${CV_SECTION_TITLES[event.sectionKey] ?? 'Phần CV khác'}: ${event.data.score}/10`}
+                    aria-label={`${t(CV_SECTION_TITLES[event.sectionKey] ?? 'Other CV section')}: ${event.data.score}/10`}
                   >
                     <div
                       className="h-full rounded-full bg-gradient-to-r from-pink-500 to-fuchsia-500 transition-[width] duration-500"
@@ -410,6 +413,7 @@ function CvReadinessGap({
     Extract<CvReviewSectionEvent, { section: 'strategic' }>
   >;
 }) {
+  const t = useT();
   if (!strategic.length) return null;
 
   return (
@@ -422,17 +426,17 @@ function CvReadinessGap({
         <div className="flex flex-wrap items-end justify-between gap-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-pink-600">
-              Khoảng cách điểm
+              {t('Score gap')}
             </p>
             <h3
               id="cv-readiness-gap-title"
               className="mt-1 text-lg font-semibold text-slate-950"
             >
-              Còn cách một CV mạnh bao xa?
+              {t('How far is the CV from being strong?')}
             </h3>
           </div>
           <div className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs text-slate-600">
-            Vạch đen = mốc tốt {STRONG_CV_TARGET}/10
+            {t('Black line = strong benchmark {score}/10', { score: STRONG_CV_TARGET })}
           </div>
         </div>
       </div>
@@ -443,21 +447,21 @@ function CvReadinessGap({
           const value = Math.max(0, Math.min(10, event.data.score));
           const gap = Math.max(0, STRONG_CV_TARGET - value);
           const gapText = gap
-            ? `Còn thiếu ${gap.toFixed(1).replace(/\.0$/, '')} điểm`
-            : 'Đã đạt mốc tốt';
+            ? t('Short by {score} points', { score: gap.toFixed(1).replace(/\.0$/, '') })
+            : t('Strong benchmark reached');
           return (
             <div
               key={event.criterion}
               role="img"
-              aria-label={`${meta.label}: hiện tại ${value}/10, mục tiêu ${STRONG_CV_TARGET}/10, ${
+              aria-label={`${t(meta.label)}: ${t('currently')} ${value}/10, ${t('target')} ${STRONG_CV_TARGET}/10, ${
                 gap
-                  ? `còn thiếu ${gap.toFixed(1).replace(/\.0$/, '')} điểm`
-                  : 'đã đạt mục tiêu'
+                  ? t('short by {score} points', { score: gap.toFixed(1).replace(/\.0$/, '') })
+                  : t('target reached')
               }`}
             >
               <div className="mb-2 flex items-center justify-between gap-3">
                 <span className="text-sm font-semibold text-slate-800">
-                  {meta.label}
+                  {t(meta.label)}
                 </span>
                 <span
                   className={`text-xs font-semibold ${
@@ -483,7 +487,7 @@ function CvReadinessGap({
               </div>
               <div className="mt-1 flex justify-between text-[10px] font-medium text-slate-400">
                 <span>0</span>
-                <span>{value}/10 hiện tại</span>
+                <span>{value}/10 {t('currently')}</span>
                 <span>10</span>
               </div>
             </div>
@@ -503,6 +507,7 @@ export function CvReviewFeedback({
   analysis: CvReviewAnalysis | null;
   streaming: boolean;
 }) {
+  const t = useT();
   const [visibleBlocks, setVisibleBlocks] = useState(1);
   const showNextBlock = useCallback(
     () => setVisibleBlocks((current) => current + 1),
@@ -544,9 +549,9 @@ export function CvReviewFeedback({
                 />
               ))}
             </div>
-            <p className="mt-5 font-semibold text-slate-800">Đang suy luận…</p>
+            <p className="mt-5 font-semibold text-slate-800">{t('Reasoning…')}</p>
             <p className="mt-2 text-sm text-slate-500">
-              AI đang đọc và đối chiếu từng phần của CV.
+              {t('AI is reading and comparing each section of your CV.')}
             </p>
           </div>
         </div>
@@ -559,7 +564,7 @@ export function CvReviewFeedback({
             ✧
           </div>
           <p className="mt-5 text-sm text-slate-500">
-            Kết quả đánh giá CV sẽ xuất hiện tại đây.
+            {t('Your CV review will appear here.')}
           </p>
         </div>
       </div>
@@ -572,15 +577,15 @@ export function CvReviewFeedback({
         <header className="flex items-center justify-between gap-4 border-b border-slate-200 pb-5">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-pink-600">
-              Phản hồi AI
+              {t('AI feedback')}
             </p>
             <h2 className="mt-1 text-xl font-semibold text-slate-950">
-              Đánh giá CV có dẫn chứng
+              {t('Evidence-based CV review')}
             </h2>
           </div>
           <div className="rounded-2xl border border-pink-200 bg-pink-50 px-4 py-2 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-wider text-pink-700">
-              Điểm CV
+              {t('CV score')}
             </p>
             <p className="text-2xl font-semibold text-slate-950">
               {analysis ? `${analysis.overallScore}/10` : '…'}
@@ -602,7 +607,7 @@ export function CvReviewFeedback({
             onComplete={showNextBlock}
           >
             <h3 className="text-lg font-semibold text-slate-950">
-              1. CV hiện đang thể hiện điều gì?
+              {t('1. What does the CV show right now?')}
             </h3>
             <div className="space-y-3 text-sm leading-6 text-slate-700">
               <p><TypingText text={summary.data.communicationReadiness} /></p>
@@ -611,17 +616,17 @@ export function CvReviewFeedback({
             </div>
             <div className="grid gap-4 xl:grid-cols-2">
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4">
-                <h4 className="mb-3 text-sm font-semibold text-emerald-800">Bạn đã làm tốt</h4>
+                <h4 className="mb-3 text-sm font-semibold text-emerald-800">{t('What you did well')}</h4>
                 <TypedList items={summary.data.biggestStrengths} tone="positive" />
               </div>
               <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
-                <h4 className="mb-3 text-sm font-semibold text-amber-900">Điểm cần làm rõ</h4>
+                <h4 className="mb-3 text-sm font-semibold text-amber-900">{t('What needs clarification')}</h4>
                 <TypedList items={summary.data.biggestWeaknesses} tone="warning" />
               </div>
             </div>
             <div>
               <h4 className="mb-3 text-sm font-semibold text-slate-900">
-                3 việc nên làm trước
+                {t('3 priorities to tackle first')}
               </h4>
               <TypedList items={summary.data.priorities} />
             </div>
@@ -637,13 +642,13 @@ export function CvReviewFeedback({
           >
             {index === 0 ? (
               <h3 className="text-lg font-semibold text-slate-950">
-                2. Kiểm tra 5 tiêu chí quan trọng
+                {t('2. Check the five key criteria')}
               </h3>
             ) : null}
             <div className="rounded-2xl border border-slate-200 bg-white p-5">
               <div className="flex items-center justify-between gap-3">
                 <h4 className="font-semibold text-slate-950">
-                  {STRATEGIC_TITLES[event.criterion]}
+                  {t(STRATEGIC_TITLES[event.criterion])}
                 </h4>
                 <span className="rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-700">
                   {event.data.score}/10
@@ -667,13 +672,13 @@ export function CvReviewFeedback({
           >
             {index === 0 ? (
               <h3 className="text-lg font-semibold text-slate-950">
-                3. Xem từng phần của CV
+                {t('3. Review each CV section')}
               </h3>
             ) : null}
             <article className="rounded-2xl border border-slate-200 bg-white p-5">
               <div className="flex items-center justify-between gap-3">
                 <h4 className="font-semibold text-slate-950">
-                  {CV_SECTION_TITLES[event.sectionKey] ?? 'Phần CV khác'}
+                  {t(CV_SECTION_TITLES[event.sectionKey] ?? 'Other CV section')}
                 </h4>
                 <span className="rounded-full bg-pink-50 px-3 py-1 text-xs font-semibold text-pink-700">
                   {event.data.score}/10
@@ -695,13 +700,13 @@ export function CvReviewFeedback({
           visibleBlocks ? (
           <ProgressiveBlock className="space-y-4" onComplete={showNextBlock}>
             <h3 className="text-lg font-semibold text-slate-950">
-              4. Việc cần sửa theo thứ tự
+              {t('4. Fixes in priority order')}
             </h3>
             {(
               [
-                ['Làm trước', recommendations.data.high, 'high'],
-                ['Làm tiếp theo', recommendations.data.medium, 'medium'],
-                ['Có thể làm thêm', recommendations.data.low, 'low'],
+                ['Do first', recommendations.data.high, 'high'],
+                ['Do next', recommendations.data.medium, 'medium'],
+                ['Optional improvements', recommendations.data.low, 'low'],
               ] as const
             ).map(([title, items, tone]) =>
               items.length ? (
@@ -717,7 +722,7 @@ export function CvReviewFeedback({
         {streaming ? (
           <div className="flex items-center gap-2 py-3 text-sm text-slate-500">
             <span className="h-2 w-2 animate-pulse rounded-full bg-pink-500" aria-hidden />
-            AI đang suy luận phần tiếp theo…
+            {t('AI is reasoning through the next section…')}
           </div>
         ) : null}
       </div>

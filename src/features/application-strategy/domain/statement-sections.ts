@@ -12,9 +12,9 @@ import { AACC_PILLARS, type AaccAssessment, type AaccPillarKey, type ReadinessCh
 
 export const STATEMENT_SECTIONS = [
   { key: 'overview', label: 'Overview' },
-  { key: 'ideas', label: 'Ý tưởng và Cấu trúc' },
-  { key: 'opening', label: 'Mở bài và sức hút' },
-  { key: 'aacc', label: 'Đánh giá AACC' },
+  { key: 'ideas', label: 'Ideas and structure' },
+  { key: 'opening', label: 'Opening and appeal' },
+  { key: 'aacc', label: 'AACC assessment' },
   { key: 'readiness', label: 'Statement Readiness' },
 ] as const;
 

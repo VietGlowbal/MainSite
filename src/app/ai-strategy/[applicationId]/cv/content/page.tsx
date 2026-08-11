@@ -9,7 +9,7 @@ import {
 import { CvContentWorkspace } from '@/features/application-strategy/ui';
 
 export const metadata: Metadata = {
-  title: 'Nội dung CV | GlowBal',
+  title: 'CV content | GlowBal',
   description: 'Build and edit the structured content of your CV.',
 };
 
@@ -77,5 +77,5 @@ function formatUploadDate(iso: string | null): string | null {
   if (!iso) return null;
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return null;
-  return `Đã tải lên ${date.toLocaleDateString('vi-VN', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+  return `Uploaded ${date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}`;
 }

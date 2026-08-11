@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/lib/i18n';
 import { Button, ICONS, KitIcon } from '@/shared/ui';
 import {
   CV_SUGGESTION_ACTIONS,
@@ -83,14 +84,15 @@ export function CvEntryEditor({
   onAcceptSuggestion: (text: string) => void;
   onDismissSuggestion: () => void;
 }) {
+  const t = useT();
   const fields = sectionFields(sectionKind);
   const [confirmRemove, setConfirmRemove] = useState(false);
 
-  const summary = entry.role || entry.organization || 'Nội dung mới';
+  const summary = entry.role || entry.organization || t('New content');
   const detail =
     [entry.organization, entry.startDate, entry.current ? 'present' : entry.endDate]
       .filter((value) => value && String(value).trim().length > 0)
-      .join(' · ') || 'Chưa có thông tin';
+    .join(' · ') || t('No information yet');
 
   const inputFields = fields.filter((field) => field !== 'bullets' && field !== 'linkedProfileItem');
 
@@ -139,14 +141,14 @@ export function CvEntryEditor({
                         onChange={(event) => onChange({ current: event.target.checked })}
                         className="size-gb-xl rounded-gb-xs border-line-strong text-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                       />
-                      {label}
+                      {t(label)}
                     </label>
                   );
                 }
 
                 return (
                   <label key={field} htmlFor={inputId} className="flex flex-col gap-gb-xs">
-                    <span className="text-gb-xs font-medium text-fg-secondary">{label}</span>
+                    <span className="text-gb-xs font-medium text-fg-secondary">{t(label)}</span>
                     <input
                       id={inputId}
                       name={inputId}
@@ -163,7 +165,7 @@ export function CvEntryEditor({
           {fields.includes('bullets') ? (
             <div className="flex flex-col gap-gb-md">
               <span className="text-gb-xs font-medium text-fg-secondary">
-                {sectionKind === 'skills' || sectionKind === 'interests' ? 'Danh sách' : 'Chi tiết'}
+                {t(sectionKind === 'skills' || sectionKind === 'interests' ? 'List' : 'Details')}
               </span>
 
               {entry.bullets.map((bullet, index) => {
@@ -178,7 +180,7 @@ export function CvEntryEditor({
                       <textarea
                         rows={2}
                         value={bullet}
-                        aria-label={`Detail line ${index + 1}`}
+                        aria-label={`${t('Detail line')} ${index + 1}`}
                         onChange={(event) =>
                           onChange({
                             bullets: entry.bullets.map((b, j) => (j === index ? event.target.value : b)),
@@ -189,7 +191,7 @@ export function CvEntryEditor({
                       {entry.bullets.length > 1 ? (
                         <button
                           type="button"
-                          aria-label={`Remove detail line ${index + 1}`}
+                          aria-label={`${t('Remove detail line')} ${index + 1}`}
                           onClick={() =>
                             onChange({ bullets: entry.bullets.filter((_, j) => j !== index) })
                           }
@@ -211,22 +213,22 @@ export function CvEntryEditor({
                             className="inline-flex items-center gap-gb-xs rounded-gb-full border border-line-strong bg-surface px-gb-lg py-gb-xs text-gb-xs font-medium text-fg-secondary hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50"
                           >
                             <KitIcon art={ICONS.zapFast} frame={12} />
-                            {action.label}
+                            {t(action.label)}
                           </button>
                         ))}
                       </div>
                     ) : null}
 
-                    {busy ? <GeneratingState title="Đang tạo đề xuất" /> : null}
+                    {busy ? <GeneratingState title={t('Generating suggestion')} /> : null}
 
                     {showSuggestion && suggestion.unchanged ? (
                       <StateBlock
-                        title="Không có đề xuất thay đổi"
+                        title={t('No changes suggested')}
                         body={
                           suggestion.note ||
-                          'Dòng này đã ổn, hoặc chúng tôi không có thông tin đã xác nhận để thêm vào.'
+                          t('This line is fine, or we have no confirmed information to add.')
                         }
-                        action={{ label: 'Đóng', onClick: onDismissSuggestion }}
+                        action={{ label: t('Close'), onClick: onDismissSuggestion }}
                       />
                     ) : null}
 
@@ -252,7 +254,7 @@ export function CvEntryEditor({
                 onClick={() => onChange({ bullets: [...entry.bullets, ''] })}
                 className="self-start rounded-gb-md text-gb-xs font-medium text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                + Thêm dòng
+                + {t('Add line')}
               </button>
             </div>
           ) : null}
@@ -260,30 +262,30 @@ export function CvEntryEditor({
           {suggestionError ? (
             <StateBlock
               tone="error"
-              title="Không tạo được đề xuất"
+              title={t('Could not generate a suggestion')}
               body={suggestionError}
-              action={{ label: 'Đóng', onClick: onDismissSuggestion }}
+              action={{ label: t('Close'), onClick: onDismissSuggestion }}
             />
           ) : null}
 
           {entry.linkedProfileItemId ? (
             <p className="text-gb-xs text-fg-muted">
-              Liên kết với một mục trong hồ sơ Glowbal của bạn.
+              {t('Linked to an item in your Glowbal profile.')}
             </p>
           ) : null}
 
           {confirmRemove ? (
             <div className="flex flex-wrap items-center gap-gb-lg rounded-gb-md border border-line-error bg-surface-error p-gb-lg">
-              <span className="text-gb-sm text-fg-error">Xoá nội dung này?</span>
+              <span className="text-gb-sm text-fg-error">{t('Delete this content?')}</span>
               <Button size="sm" variant="secondary-destructive" onClick={onRemove}>
-                Xoá
+                {t('Delete')}
               </Button>
               <button
                 type="button"
                 onClick={() => setConfirmRemove(false)}
                 className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                Giữ lại
+                {t('Keep')}
               </button>
             </div>
           ) : (
@@ -292,7 +294,7 @@ export function CvEntryEditor({
               onClick={() => setConfirmRemove(true)}
               className="self-start rounded-gb-md text-gb-xs font-medium text-fg-error hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              Xoá nội dung này
+              {t('Delete this content')}
             </button>
           )}
         </div>

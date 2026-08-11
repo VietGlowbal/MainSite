@@ -10,6 +10,10 @@ const mocks = vi.hoisted(() => ({
     completed: false,
     user: null as { id: string; name: string; avatarUrl?: string } | null,
   },
+  language: {
+    lang: 'en' as 'en' | 'vi',
+    t: (label: string) => label,
+  },
 }));
 
 vi.mock('next/link', () => ({ default: ({ children }: { children: React.ReactNode }) => children }));
@@ -19,7 +23,7 @@ vi.mock('@/components/navigation-session', () => ({
   useNavigationSession: () => mocks.session,
 }));
 vi.mock('@/lib/i18n', () => ({
-  useLanguage: () => ({ t: (label: string) => label }),
+  useLanguage: () => mocks.language,
 }));
 vi.mock('@/shared/ui', () => ({
   BRAND_ICONS: { facebook: {} },
@@ -105,6 +109,40 @@ describe('SiteNavigation', () => {
     expect(desktop).toHaveAttribute('data-primary', 'Strategy Master');
     expect(desktop).toHaveAttribute('data-account', 'Student');
     expect(desktop).not.toHaveAttribute('data-items', expect.stringContaining('Strategy Master'));
+  });
+
+  it('recomputes the Strategy Master pill in both directions', () => {
+    mocks.session = {
+      ready: true,
+      signedIn: true,
+      completed: true,
+      user: { id: 'student-1', name: 'Student' },
+    };
+    const view = render(<SiteNavigation />);
+    expect(screen.getByTestId('desktop-nav')).toHaveAttribute(
+      'data-primary',
+      'Strategy Master',
+    );
+
+    mocks.language = {
+      lang: 'vi',
+      t: (label) => (label === 'Strategy Master' ? 'Công Cụ Lên Chiến Lược' : label),
+    };
+    view.rerender(<SiteNavigation />);
+    expect(screen.getByTestId('desktop-nav')).toHaveAttribute(
+      'data-primary',
+      'Công Cụ Lên Chiến Lược',
+    );
+
+    mocks.language = {
+      lang: 'en',
+      t: (label) => label,
+    };
+    view.rerender(<SiteNavigation />);
+    expect(screen.getByTestId('desktop-nav')).toHaveAttribute(
+      'data-primary',
+      'Strategy Master',
+    );
   });
 
   it('keeps the server snapshot stable when the session resolves before hydration', async () => {

@@ -1,4 +1,5 @@
 import { ProgressBar } from '@/shared/ui';
+import { useT } from '@/lib/i18n';
 import {
   REFLECTION_STEP_COUNT,
   reflectionProgress,
@@ -27,6 +28,7 @@ export function ReflectionShell({
   step: ReflectionStepKey;
   children: React.ReactNode;
 }) {
+  const t = useT();
   const current = reflectionStep(step);
   const percent = Math.round(reflectionProgress(step) * 100);
 
@@ -35,7 +37,7 @@ export function ReflectionShell({
       <header className="flex flex-col gap-gb-lg">
         <div className="flex items-center justify-between gap-gb-xl">
           <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
-            Thông tin ứng viên
+            {t('Candidate information')}
           </h1>
           <span className="shrink-0 rounded-gb-full bg-brand-subtle px-gb-lg py-gb-xs text-gb-sm font-semibold text-fg-brand">
             {current.number}/{REFLECTION_STEP_COUNT}
@@ -47,7 +49,7 @@ export function ReflectionShell({
           label={`Step ${current.number} of ${REFLECTION_STEP_COUNT}: ${current.en}`}
         />
 
-        <p className="text-gb-md text-fg-tertiary">{current.vi}</p>
+        <p className="text-gb-md text-fg-tertiary">{t(current.en)}</p>
       </header>
 
       {children}

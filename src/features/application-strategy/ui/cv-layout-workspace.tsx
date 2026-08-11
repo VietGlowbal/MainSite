@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useRef, useState } from 'react';
+import { useT } from '@/lib/i18n';
 import { Badge, Button, ICONS, KitIcon } from '@/shared/ui';
 import {
   CV_LAYOUTS,
@@ -53,6 +54,7 @@ export function CvLayoutWorkspace({
   exportOutdated,
   candidateName,
 }: CvLayoutWorkspaceProps) {
+  const t = useT();
   const [selected, setSelected] = useState<CvLayoutKey | null>(cv?.selectedLayout ?? null);
   const [exportState, setExportState] = useState<ExportState>({ kind: 'idle' });
   const [saving, setSaving] = useState(false);
@@ -138,16 +140,15 @@ export function CvLayoutWorkspace({
           Layout - PDF
         </h1>
         <p className="max-w-3xl text-gb-md text-fg-tertiary">
-          Cùng một nội dung, ba cách trình bày khác nhau. Mỗi layout đưa lên đầu những phần khác
-          nhau và in chi tiết cho những mục khác nhau.
+          {t('The same content, three different presentations. Each layout brings different sections forward and prints different levels of detail.')}
         </p>
       </header>
 
       {!hasContent ? (
         <StateBlock
-          title="Chưa có nội dung CV để xuất"
-          body="Nhập nội dung CV trước, rồi quay lại chọn layout."
-          action={{ label: 'Nhập nội dung CV', href: `/ai-strategy/${applicationId}/cv/content` }}
+          title={t('No CV content to export')}
+          body={t('Enter CV content first, then return to choose a layout.')}
+          action={{ label: t('Enter CV content'), href: `/ai-strategy/${applicationId}/cv/content` }}
         />
       ) : null}
 
@@ -180,11 +181,11 @@ export function CvLayoutWorkspace({
                   }`}
                 >
                   <div className="flex flex-wrap items-center gap-gb-md">
-                    <span className="text-gb-md font-semibold text-fg">{def.label}</span>
+                    <span className="text-gb-md font-semibold text-fg">{t(def.label)}</span>
                     {isRecommended ? <Badge variant="brand-chip">AI recommended</Badge> : null}
                   </div>
 
-                  <p className="text-gb-sm text-fg-tertiary">{def.blurb}</p>
+                  <p className="text-gb-sm text-fg-tertiary">{t(def.blurb)}</p>
 
                   <LayoutShapePreview layoutKey={def.key} />
 
@@ -201,7 +202,7 @@ export function CvLayoutWorkspace({
                       art={isSelected ? ICONS.checkCircle : ICONS.clock}
                       frame={14}
                     />
-                    {isSelected ? 'Selected' : 'Not selected'}
+                    {t(isSelected ? 'Selected' : 'Not selected')}
                   </span>
                 </button>
               );
@@ -219,8 +220,7 @@ export function CvLayoutWorkspace({
 
           {selected && recommendation.key !== selected ? (
             <p className="text-gb-xs text-fg-muted">
-              Bạn đang chọn {cvLayout(selected).label}, khác với gợi ý của chúng tôi. Điều đó hoàn
-              toàn ổn — bạn hiểu hồ sơ của mình nhất.
+              {t('You selected')} {t(cvLayout(selected).label)}, {t('which differs from our recommendation. That is completely fine — you know your profile best.')}
             </p>
           ) : null}
 
@@ -229,14 +229,14 @@ export function CvLayoutWorkspace({
           <StrategyPanel>
             <div className="flex flex-col gap-gb-lg">
               <div className="flex flex-col gap-gb-xs">
-                <h2 className="text-gb-md font-semibold text-fg">Xuất PDF</h2>
+                <h2 className="text-gb-md font-semibold text-fg">{t('Export PDF')}</h2>
                 <p className="text-gb-sm text-fg-tertiary">
-                  PDF có văn bản chọn được và thứ tự đọc phù hợp với hệ thống lọc CV tự động.
+                  {t('The PDF has selectable text and a reading order that works with automated CV filters.')}
                 </p>
               </div>
 
               {exportState.kind === 'generating' ? (
-                <GeneratingState title="Đang tạo PDF" body="Rendering your CV." />
+                <GeneratingState title={t('Generating PDF')} body={t('Rendering your CV.')} />
               ) : null}
 
               {exportState.kind === 'failed' ? (
@@ -253,7 +253,7 @@ export function CvLayoutWorkspace({
                     <span aria-hidden className="text-fg-verified">
                       <KitIcon art={ICONS.checkCircle} frame={14} />
                     </span>
-                    PDF sẵn sàng
+                    {t('PDF ready')}
                   </p>
                   <div className="flex flex-wrap items-center gap-gb-lg">
                     {exportState.url ? (
@@ -274,7 +274,7 @@ export function CvLayoutWorkspace({
                         rel="noopener noreferrer"
                         className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg"
                       >
-                        Mở để in
+                        {t('Open to print')}
                       </a>
                     ) : null}
                     <button
@@ -282,11 +282,11 @@ export function CvLayoutWorkspace({
                       onClick={() => void runExport()}
                       className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                     >
-                      Tạo lại
+                      {t('Generate again')}
                     </button>
                   </div>
                   <p className="text-gb-xs text-fg-muted">
-                    Đường tải xuống này hết hạn sau 10 phút. Tạo lại bất cứ lúc nào.
+                    {t('This download link expires after 10 minutes. Generate a new one anytime.')}
                   </p>
                 </div>
               ) : null}
@@ -294,13 +294,13 @@ export function CvLayoutWorkspace({
               {exportState.kind === 'idle' && !exportOutdated ? (
                 <div className="flex flex-wrap items-center gap-gb-xl">
                   <Button size="lg" onClick={() => void runExport()} disabled={saving}>
-                    Tạo PDF
+                    {t('Create PDF')}
                   </Button>
                   <a
                     href={`/ai-strategy/${applicationId}/cv/content`}
                     className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg"
                   >
-                    Sửa nội dung
+                    {t('Edit content')}
                   </a>
                 </div>
               ) : null}
@@ -309,7 +309,7 @@ export function CvLayoutWorkspace({
 
           <div className="flex flex-wrap items-center gap-gb-xl">
             <Button size="lg" variant="secondary" href={`/ai-strategy/${applicationId}`}>
-              Về trang Application Strategy
+              {t('Back to Application Strategy')}
             </Button>
           </div>
         </>
@@ -395,6 +395,7 @@ function CvPagePreview({
   layout: CvLayoutKey;
   candidateName: string | null;
 }) {
+  const t = useT();
   const [zoom, setZoom] = useState(1);
 
   const ordered = useMemo(
@@ -413,13 +414,13 @@ function CvPagePreview({
   return (
     <StrategyPanel>
       <div className="flex flex-wrap items-center justify-between gap-gb-lg">
-        <h2 className="text-gb-md font-semibold text-fg">Xem trước — {def.label}</h2>
+        <h2 className="text-gb-md font-semibold text-fg">{t('Preview')} — {t(def.label)}</h2>
         <div className="flex items-center gap-gb-md">
-          <span className="text-gb-xs text-fg-muted">Thu phóng</span>
+          <span className="text-gb-xs text-fg-muted">{t('Zoom')}</span>
           <div className="flex items-center gap-gb-xs">
             <button
               type="button"
-              aria-label="Zoom out"
+              aria-label={t('Zoom out')}
               onClick={() => setZoom((z) => Math.max(0.6, Math.round((z - 0.2) * 10) / 10))}
               disabled={zoom <= 0.6}
               className="flex size-gb-4xl items-center justify-center rounded-gb-md border border-line-strong bg-surface text-gb-sm text-fg-secondary hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-40"
@@ -431,7 +432,7 @@ function CvPagePreview({
             </span>
             <button
               type="button"
-              aria-label="Zoom in"
+              aria-label={t('Zoom in')}
               onClick={() => setZoom((z) => Math.min(1.4, Math.round((z + 0.2) * 10) / 10))}
               disabled={zoom >= 1.4}
               className="flex size-gb-4xl items-center justify-center rounded-gb-md border border-line-strong bg-surface text-gb-sm text-fg-secondary hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-40"
@@ -451,7 +452,7 @@ function CvPagePreview({
         >
           <div className="mb-gb-xl">
             <p className="font-display text-gb-lg font-semibold text-fg">
-              {candidateName || 'Curriculum Vitae'}
+              {candidateName || t('Curriculum Vitae')}
             </p>
             {contact ? (
               <p className="text-gb-xs text-fg-tertiary">
@@ -481,8 +482,7 @@ function CvPagePreview({
       </div>
 
       <p className="text-gb-xs text-fg-muted">
-        Bản xem trước dùng cùng thứ tự mục và cách nhấn mạnh như file PDF. Cách ngắt trang trong PDF
-        có thể khác một chút.
+        {t('The preview uses the same section order and emphasis as the PDF. Page breaks in the PDF may differ slightly.')}
       </p>
     </StrategyPanel>
   );

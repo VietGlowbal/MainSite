@@ -3,6 +3,7 @@ import {
   HomeDemoVideo,
   type FeatureDemoVideo,
 } from './home-demo-video';
+import { T } from '@/lib/i18n';
 
 export type { FeatureDemoSource, FeatureDemoVideo } from './home-demo-video';
 
@@ -91,7 +92,7 @@ function DemoFallback({ block }: { block: Block }) {
     <div className="flex size-full flex-col bg-surface-muted p-gb-xl sm:p-gb-3xl">
       <div className="flex items-center justify-between border-b border-line pb-gb-xl">
         <span data-no-auto-translate className="font-display text-gb-md font-semibold text-fg">
-          {block.title}
+          <T k={block.title} />
         </span>
         <span className="flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-muted">
           <span className="size-gb-sm rounded-gb-full bg-brand" /> Live preview

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/lib/i18n';
 import type { PersonalReport } from '../domain';
 import { Badge, Button, Panel, ProgressBar } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
@@ -14,18 +15,18 @@ type TabKey =
   | 'proofOfMe';
 
 const TABS: Array<{ key: TabKey; label: string }> = [
-  { key: 'coreIdentity', label: 'Bản sắc cốt lõi' },
-  { key: 'drivingForce', label: 'Động lực' },
-  { key: 'signaturePattern', label: 'Mẫu hình đặc trưng' },
-  { key: 'emergingThemes', label: 'Chủ đề nổi bật' },
-  { key: 'personalPositioning', label: 'Định vị cá nhân' },
-  { key: 'proofOfMe', label: 'Bằng chứng' },
+  { key: 'coreIdentity', label: 'Core identity' },
+  { key: 'drivingForce', label: 'Driving force' },
+  { key: 'signaturePattern', label: 'Signature pattern' },
+  { key: 'emergingThemes', label: 'Emerging themes' },
+  { key: 'personalPositioning', label: 'Personal positioning' },
+  { key: 'proofOfMe', label: 'Proof of me' },
 ];
 
 function statusLabel(status: 'established' | 'emerging' | 'limited') {
-  if (status === 'established') return 'Đã xác lập';
-  if (status === 'emerging') return 'Đang hình thành';
-  return 'Dữ liệu hạn chế';
+  if (status === 'established') return 'Established';
+  if (status === 'emerging') return 'Emerging';
+  return 'Limited data';
 }
 
 function NarrativeCard({
@@ -33,13 +34,14 @@ function NarrativeCard({
 }: {
   section: PersonalReport['coreIdentity'];
 }) {
+  const t = useT();
   return (
     <Panel className="flex flex-col gap-gb-xl">
       <div className="flex flex-wrap items-center gap-gb-md">
         <Badge variant={section.status === 'limited' ? 'neutral-chip' : 'brand-chip'}>
-          {statusLabel(section.status)}
+          {t(statusLabel(section.status))}
         </Badge>
-        <span className="text-gb-xs text-fg-muted">Độ tin cậy: {section.confidence}</span>
+        <span className="text-gb-xs text-fg-muted">{t('Confidence')}: {section.confidence}</span>
       </div>
       <div className="flex flex-col gap-gb-md">
         <h3 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">
@@ -52,7 +54,7 @@ function NarrativeCard({
       {section.evidenceRefs.length > 0 ? (
         <div className="flex flex-col gap-gb-sm">
           <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
-            Dữ liệu hỗ trợ
+            {t('Supporting data')}
           </p>
           <div className="flex flex-wrap gap-gb-sm">
             {section.evidenceRefs.map((ref) => (
@@ -83,15 +85,16 @@ export function PersonalReportView({
   generatedAt: string | null;
   migrationMissing: boolean;
 }) {
+  const t = useT();
   const [report, setReport] = useState(initialReport);
   const [stale, setStale] = useState(initialStale);
   const [activeTab, setActiveTab] = useState<TabKey>('coreIdentity');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(
-    migrationMissing ? 'Tính năng chưa được kích hoạt trong cơ sở dữ liệu.' : null,
+    migrationMissing ? t('This feature is not enabled in the database.') : null,
   );
   const [nextAt, setNextAt] = useState<string | null>(null);
-  useLoadingIndicator(busy, report ? 'Đang cập nhật chân dung ứng viên' : 'Đang tạo chân dung ứng viên');
+  useLoadingIndicator(busy, report ? t('Updating applicant profile') : t('Creating applicant profile'));
 
   async function generate() {
     setBusy(true);
@@ -101,10 +104,10 @@ export function PersonalReportView({
       const body = await response.json().catch(() => ({}));
       if (body.report) setReport(body.report as PersonalReport);
       if (body.nextRegenerationAt) setNextAt(body.nextRegenerationAt as string);
-      if (!response.ok) throw new Error(body.error || 'Không thể tạo báo cáo.');
+      if (!response.ok) throw new Error(body.error || t('Could not create the report.'));
       setStale(false);
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : 'Không thể tạo báo cáo.');
+      setError(requestError instanceof Error ? requestError.message : t('Could not create the report.'));
     } finally {
       setBusy(false);
     }
@@ -116,19 +119,18 @@ export function PersonalReportView({
         <Badge variant="brand-subtle">Personal Reflection</Badge>
         <div className="flex max-w-2xl flex-col gap-gb-md">
           <h1 className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg">
-            Chân dung ứng viên của bạn
+            {t('Your applicant profile')}
           </h1>
           <p className="text-gb-md text-fg-tertiary">
-            GlowBal đọc lại hồ sơ, thành tích và hoạt động để tìm những mẫu hình có bằng
-            chứng. Dữ liệu chưa đủ sẽ được ghi rõ, không được AI tự điền.
+            {t('GlowBal rereads your profile, achievements, and activities to find evidence-backed patterns. Missing data is called out rather than filled in by AI.')}
           </p>
         </div>
         {error ? <p className="max-w-xl text-gb-sm text-fg-error">{error}</p> : null}
         <Button size="lg" onClick={generate} disabled={busy || migrationMissing}>
-          {busy ? 'Đang tạo báo cáo…' : 'Tạo báo cáo'}
+          {busy ? t('Creating report…') : t('Create report')}
         </Button>
         <Button href="/ai-strategy/reflection" variant="secondary">
-          Kiểm tra lại Reflection
+          {t('Review Reflection')}
         </Button>
       </div>
     );
@@ -146,34 +148,34 @@ export function PersonalReportView({
       <header className="flex flex-col gap-gb-xl">
         <div className="flex flex-wrap items-center gap-gb-md">
           <Badge variant="brand-subtle">Personal Reflection</Badge>
-          {stale ? <Badge variant="neutral">Dữ liệu mới hơn báo cáo</Badge> : null}
+          {stale ? <Badge variant="neutral">{t('Data is newer than this report')}</Badge> : null}
         </div>
         <div className="flex flex-col gap-gb-md">
           <h1 className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg">
-            Chân dung ứng viên
+            {t('Applicant profile')}
           </h1>
           <p className="max-w-3xl text-gb-md leading-relaxed text-fg-tertiary">{report.summary}</p>
         </div>
         <div className="grid gap-gb-lg rounded-gb-2xl bg-surface-inverse-deep p-gb-2xl text-fg-on-inverse sm:grid-cols-[1fr_auto] sm:items-center">
           <div className="flex flex-col gap-gb-sm">
             <div className="flex items-center justify-between gap-gb-lg text-gb-sm">
-              <span>Độ tin cậy của dữ liệu</span>
+              <span>{t('Data confidence')}</span>
               <strong>{report.confidence}%</strong>
             </div>
-            <ProgressBar value={report.confidence} label="Độ tin cậy của báo cáo" />
+            <ProgressBar value={report.confidence} label={t('Report confidence')} />
           </div>
           <Button onClick={generate} disabled={busy} variant="secondary">
-            {busy ? 'Đang cập nhật…' : 'Cập nhật báo cáo'}
+            {busy ? t('Updating…') : t('Update report')}
           </Button>
         </div>
         {generatedAt ? (
           <p className="text-gb-xs text-fg-muted">
-            Tạo lần cuối: {new Date(generatedAt).toLocaleString('vi-VN')}
+            {t('Last generated')}: {new Date(generatedAt).toLocaleString('vi-VN')}
           </p>
         ) : null}
         {nextAt ? (
           <p className="text-gb-xs text-fg-muted">
-            Lần tạo miễn phí tiếp theo: {new Date(nextAt).toLocaleString('vi-VN')}
+            {t('Next free generation')}: {new Date(nextAt).toLocaleString('vi-VN')}
           </p>
         ) : null}
         {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
@@ -181,7 +183,7 @@ export function PersonalReportView({
 
       {report.limitations.length > 0 ? (
         <Panel className="flex flex-col gap-gb-md">
-          <h2 className="text-gb-md font-semibold text-fg">Giới hạn cần biết</h2>
+          <h2 className="text-gb-md font-semibold text-fg">{t('Limits to know')}</h2>
           <ul className="flex list-disc flex-col gap-gb-sm pl-gb-xl text-gb-sm text-fg-tertiary">
             {report.limitations.map((limitation) => (
               <li key={limitation}>{limitation}</li>
@@ -192,7 +194,7 @@ export function PersonalReportView({
 
       <div
         role="tablist"
-        aria-label="Các phần của Chân dung ứng viên"
+        aria-label={t('Applicant profile sections')}
         className="flex gap-gb-sm overflow-x-auto border-b border-line pb-gb-sm"
       >
         {TABS.map((tab) => (
@@ -208,7 +210,7 @@ export function PersonalReportView({
                 : 'bg-surface-muted text-fg-tertiary hover:text-fg'
             }`}
           >
-            {tab.label}
+            {t(tab.label)}
           </button>
         ))}
       </div>
@@ -225,7 +227,7 @@ export function PersonalReportView({
           ) : (
             <Panel>
               <p className="text-gb-sm text-fg-tertiary">
-                Chưa có đủ dữ liệu để xác định chủ đề xuyên suốt.
+                {t('There is not enough data to identify a recurring theme.')}
               </p>
             </Panel>
           )
@@ -240,7 +242,7 @@ export function PersonalReportView({
                     {proof.role ? <p className="text-gb-sm text-fg-muted">{proof.role}</p> : null}
                   </div>
                   <Badge variant={proof.evidenceStrength === 'strong' ? 'safe-chip' : 'neutral-chip'}>
-                    Bằng chứng {proof.evidenceStrength}
+                    {t('Evidence')}: {proof.evidenceStrength}
                   </Badge>
                 </div>
                 <p className="text-gb-sm text-fg-tertiary">{proof.contribution}</p>
@@ -263,9 +265,9 @@ export function PersonalReportView({
 
       <div className="flex flex-wrap justify-between gap-gb-lg border-t border-line pt-gb-2xl">
         <Button href="/ai-strategy/reflection" variant="secondary">
-          Cập nhật Reflection
+          {t('Update Reflection')}
         </Button>
-        <Button href="/ai-strategy/matching">Tiếp tục tới Matching Report</Button>
+        <Button href="/ai-strategy/matching">{t('Continue to Matching Report')}</Button>
       </div>
     </div>
   );

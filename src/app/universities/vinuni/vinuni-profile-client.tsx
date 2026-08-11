@@ -4,6 +4,7 @@ import { useRef, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { VinUniAaccFeedback } from '@/components/statement/VinUniAaccFeedback';
+import { useT } from '@/lib/i18n';
 import type { AaccAnalysis } from '@/lib/ai/vinuni-grounded-evaluation';
 import type { University } from '@/lib/types';
 import {
@@ -946,6 +947,7 @@ const MIN_SOP_CHARS = 200;
  * whatever chunk imports this one.
  */
 export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
+  const t = useT();
   const [mode, setMode] = useState<'idle' | 'yes' | 'no'>('idle');
   const [sopText, setSopText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -1043,7 +1045,9 @@ export function SopAaccSection({ isLoggedIn }: { isLoggedIn: boolean }) {
                     Paste your Statement of Purpose
                   </label>
                   <p className="mt-1 text-xs text-slate-500">
-                    Tối thiểu {MIN_SOP_CHARS} ký tự. Bài viết được AI phân tích và không được lưu.
+                    {t('At least {count} characters. Your essay is analysed by AI and is not saved.', {
+                      count: MIN_SOP_CHARS,
+                    })}
                   </p>
                   <textarea
                     ref={textareaRef}

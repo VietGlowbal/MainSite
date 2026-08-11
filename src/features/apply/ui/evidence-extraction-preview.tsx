@@ -5,12 +5,13 @@ import type {
   EvidenceCandidate,
   EvidenceExtractionResponse,
 } from '@/features/apply/domain';
+import { useT } from '@/lib/i18n';
 import { Button } from '@/shared/ui';
 
 const confidenceLabel = {
-  high: 'Tin cậy cao',
-  medium: 'Cần kiểm tra',
-  needs_confirmation: 'Cần xác nhận',
+  high: 'High confidence',
+  medium: 'Needs review',
+  needs_confirmation: 'Needs confirmation',
 } as const;
 
 function titleOf(candidate: EvidenceCandidate) {
@@ -26,6 +27,7 @@ export function EvidenceExtractionPreview({
   onApply: (candidates: EvidenceCandidate[]) => void;
   onDismiss: () => void;
 }) {
+  const t = useT();
   const [selected, setSelected] = useState(
     () => new Set(result.candidates.map(({ candidateId }) => candidateId)),
   );
@@ -38,14 +40,14 @@ export function EvidenceExtractionPreview({
       <div className="flex flex-wrap items-start justify-between gap-gb-lg">
         <div>
           <p className="text-gb-xs font-semibold uppercase tracking-[0.16em] text-fg-brand">
-            Kết quả đọc PDF
+            {t('PDF extraction results')}
           </p>
           <h3 className="mt-gb-xs text-gb-lg font-semibold text-fg-primary">
-            Kiểm tra trước khi điền vào hồ sơ
+            {t('Review before adding to your profile')}
           </h3>
         </div>
         <div className="rounded-full bg-brand-subtle px-gb-md py-gb-xs text-gb-sm font-semibold text-fg-brand">
-          {result.candidates.length} mục được tìm thấy
+          {t('{count} items found', { count: result.candidates.length })}
         </div>
       </div>
 
@@ -59,13 +61,20 @@ export function EvidenceExtractionPreview({
               {document.fileName}
             </p>
             <p className="mt-gb-xs text-gb-xs text-fg-secondary">
-              unpdf đọc được {document.pagesReadable}/{document.totalPages} trang
+              {t('unpdf read {readable}/{total} pages', {
+                readable: document.pagesReadable,
+                total: document.totalPages,
+              })}
               {' · '}
-              {document.charactersExtracted.toLocaleString('vi-VN')} ký tự
+              {t('{count} characters', {
+                count: document.charactersExtracted.toLocaleString('en-US'),
+              })}
             </p>
             {document.pagesNeedingOcr.length > 0 ? (
               <p className="mt-gb-xs text-gb-xs font-medium text-amber-700">
-                Cần OCR trang {document.pagesNeedingOcr.join(', ')}
+                {t('OCR needed for pages {pages}', {
+                  pages: document.pagesNeedingOcr.join(', '),
+                })}
               </p>
             ) : null}
           </div>
@@ -86,7 +95,7 @@ export function EvidenceExtractionPreview({
                   type="checkbox"
                   className="mt-1 size-4 accent-pink-500"
                   checked={selected.has(candidate.candidateId)}
-                  aria-label={`Chọn ${title}`}
+                  aria-label={`${t('Select')} ${title}`}
                   onChange={(event) =>
                     setSelected((current) => {
                       const next = new Set(current);
@@ -100,15 +109,15 @@ export function EvidenceExtractionPreview({
                   <span className="flex flex-wrap items-center gap-gb-sm">
                     <span className="font-semibold text-fg-primary">{title}</span>
                     <span className="rounded-full bg-brand-subtle px-gb-sm py-0.5 text-gb-xs text-fg-brand">
-                      {candidate.kind === 'achievement' ? 'Thành tích' : 'Hoạt động'}
+                      {t(candidate.kind === 'achievement' ? 'Achievement' : 'Activity')}
                     </span>
                     <span className="text-gb-xs text-fg-secondary">
-                      {confidenceLabel[candidate.confidence]}
+                      {t(confidenceLabel[candidate.confidence])}
                     </span>
                   </span>
                   {source ? (
                     <span className="mt-gb-xs block text-gb-xs text-fg-tertiary">
-                      Trang {source.page}: “{source.quote}”
+                      {t('Page')} {source.page}: “{source.quote}”
                     </span>
                   ) : null}
                 </span>
@@ -119,14 +128,16 @@ export function EvidenceExtractionPreview({
       ) : (
         <div className="mt-gb-xl rounded-gb-xl bg-amber-50 p-gb-lg text-gb-sm text-fg-secondary">
           {result.ocrRequired
-            ? 'PDF này chủ yếu là ảnh scan. unpdf chưa đọc được nội dung; nhánh OCR đã được chừa sẵn nhưng chưa kết nối cloud.'
-            : 'Không tìm thấy thành tích hoặc hoạt động đủ dẫn chứng trong tài liệu.'}
+            ? t('This PDF is mostly scanned images. unpdf could not read the content; the OCR path is reserved but not connected to a cloud service yet.')
+            : t('No achievement or activity with enough evidence was found in this document.')}
         </div>
       )}
 
       {result.rejectedCount > 0 ? (
         <p className="mt-gb-md text-gb-xs text-fg-tertiary">
-          Đã loại {result.rejectedCount} mục vì không khớp đoạn nguồn hoặc sai định dạng.
+          {t('{count} items were excluded because their source excerpt or format did not match.', {
+            count: result.rejectedCount,
+          })}
         </p>
       ) : null}
 
@@ -137,11 +148,11 @@ export function EvidenceExtractionPreview({
             disabled={selectedCandidates.length === 0}
             onClick={() => onApply(selectedCandidates)}
           >
-            Điền {selectedCandidates.length} mục đã chọn
+            {t('Add {count} selected items', { count: selectedCandidates.length })}
           </Button>
         ) : null}
         <Button type="button" variant="secondary" onClick={onDismiss}>
-          Bỏ qua
+          {t('Skip')}
         </Button>
       </div>
     </section>

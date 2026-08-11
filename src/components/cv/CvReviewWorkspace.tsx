@@ -6,6 +6,7 @@ import type {
   CvReviewSectionEvent,
   CvReviewStreamEvent,
 } from '@/lib/ai/cv-review';
+import { useT } from '@/lib/i18n';
 import { CvReviewFeedback } from './CvReviewFeedback';
 
 async function readNdjson(
@@ -37,6 +38,7 @@ export function CvReviewWorkspace({
   targetName: string;
   contextNote?: string | null;
 }) {
+  const t = useT();
   const [text, setText] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [events, setEvents] = useState<CvReviewSectionEvent[]>([]);
@@ -74,7 +76,7 @@ export function CvReviewWorkspace({
       );
       if (!response.ok) {
         const body = await response.json().catch(() => ({}));
-        throw new Error(body.error ?? 'Không thể phân tích CV.');
+        throw new Error(body.error ?? t('Could not analyse the CV.'));
       }
       await readNdjson(response, (event) => {
         if (event.type === 'section') {
@@ -87,7 +89,7 @@ export function CvReviewWorkspace({
       });
     } catch (reason) {
       if (controller.signal.aborted) return;
-      setError(reason instanceof Error ? reason.message : 'Không thể phân tích CV.');
+      setError(reason instanceof Error ? reason.message : t('Could not analyse the CV.'));
     } finally {
       if (controllerRef.current === controller) setAnalyzing(false);
     }
@@ -104,23 +106,23 @@ export function CvReviewWorkspace({
                 is one of the six application destinations, so the breadcrumb in
                 the band above already links /apply/<id> and names the course. */}
             <p className="text-xs font-semibold uppercase tracking-[0.2em] text-pink-600">
-              Chiến lược hồ sơ
+              {t('Profile strategy')}
             </p>
             <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-950">
-              Đánh giá và cải thiện CV
+              {t('Review and improve your CV')}
             </h1>
             <p className="mt-2 text-sm text-slate-500">{targetName}</p>
           </div>
           <span className="rounded-full border border-pink-200 bg-pink-50 px-4 py-2 text-xs font-semibold text-pink-700">
-            Phân tích có dẫn chứng
+            {t('Evidence-based analysis')}
           </span>
         </header>
 
         <div className="grid gap-6 xl:grid-cols-[minmax(360px,0.9fr)_minmax(560px,1.1fr)]">
           <section className="self-start rounded-2xl border border-slate-200 bg-white p-5 shadow-sm md:p-6">
-            <h2 className="text-xl font-semibold text-slate-950">CV của bạn</h2>
+            <h2 className="text-xl font-semibold text-slate-950">{t('Your CV')}</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Upload PDF/DOCX hoặc dán nội dung.
+              {t('Upload a PDF/DOCX or paste the content.')}
             </p>
 
             <label className="mt-5 grid min-h-32 cursor-pointer place-items-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-4 text-center transition hover:border-pink-400 hover:bg-pink-50/40">
@@ -138,15 +140,15 @@ export function CvReviewWorkspace({
                   ↑
                 </span>
                 <span className="mt-3 block text-sm font-semibold text-pink-600">
-                  {file ? file.name : 'Chọn PDF/DOCX'}
+                  {file ? file.name : t('Choose PDF/DOCX')}
                 </span>
-                <span className="mt-1 block text-xs text-slate-400">Tối đa 5 MB</span>
+                <span className="mt-1 block text-xs text-slate-400">{t('Up to 5 MB')}</span>
               </span>
             </label>
 
             <div className="my-4 flex items-center gap-3 text-xs text-slate-400">
               <span className="h-px flex-1 bg-slate-200" />
-              hoặc
+              {t('or')}
               <span className="h-px flex-1 bg-slate-200" />
             </div>
 
@@ -156,7 +158,7 @@ export function CvReviewWorkspace({
                 setText(event.target.value);
                 if (event.target.value) setFile(null);
               }}
-              placeholder="Dán nội dung CV tại đây"
+              placeholder={t('Paste your CV content here')}
               className="min-h-72 w-full resize-y rounded-2xl border border-slate-200 bg-white p-4 text-sm leading-6 text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-pink-400 focus:ring-4 focus:ring-pink-100"
             />
 
@@ -172,7 +174,7 @@ export function CvReviewWorkspace({
               onClick={() => void analyze()}
               className="mt-5 inline-flex h-12 w-full items-center justify-center rounded-xl bg-pink-600 px-5 text-sm font-semibold text-white shadow-sm transition hover:bg-pink-700 disabled:cursor-not-allowed disabled:bg-slate-300"
             >
-              {analyzing ? 'Đang phân tích…' : 'Phân tích CV'}
+              {analyzing ? t('Analysing…') : t('Analyse CV')}
             </button>
           </section>
 
@@ -191,7 +193,7 @@ export function CvReviewWorkspace({
                   disabled={!canAnalyze}
                   className="rounded-full border border-pink-400 px-4 py-2 text-xs font-semibold text-pink-600 transition hover:bg-pink-50 disabled:opacity-50"
                 >
-                  Phân tích lại
+                  {t('Analyse again')}
                 </button>
               </div>
             ) : null}

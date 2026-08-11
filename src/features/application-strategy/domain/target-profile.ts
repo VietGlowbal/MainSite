@@ -35,7 +35,7 @@ export type TargetProfileFieldDef = {
 export const TARGET_PROFILE_FIELD_DEFS: readonly TargetProfileFieldDef[] = [
   {
     key: 'careerDirection',
-    label: 'Định hướng nghề nghiệp',
+    label: 'Career direction',
     hint: 'Bạn muốn đi tới đâu sau khi tốt nghiệp.',
     origin: 'profile',
     example: 'Ví dụ: trở thành kỹ sư dữ liệu trong lĩnh vực y tế tại Đông Nam Á.',
@@ -43,7 +43,7 @@ export const TARGET_PROFILE_FIELD_DEFS: readonly TargetProfileFieldDef[] = [
   },
   {
     key: 'universityPositioning',
-    label: 'Định vị trường',
+    label: 'University positioning',
     hint: 'Trường này tự định vị mình như thế nào.',
     origin: 'university',
     example: 'Ví dụ: đại học nghiên cứu chuyên sâu, xếp hạng cao về khoa học máy tính.',
@@ -51,7 +51,7 @@ export const TARGET_PROFILE_FIELD_DEFS: readonly TargetProfileFieldDef[] = [
   },
   {
     key: 'educationPhilosophy',
-    label: 'Triết lý giáo dục',
+    label: 'Education philosophy',
     hint: 'Cách trường dạy và điều họ coi trọng ở sinh viên.',
     origin: 'university',
     example: 'Ví dụ: học qua dự án, chú trọng nền tảng lý thuyết vững.',
@@ -59,7 +59,7 @@ export const TARGET_PROFILE_FIELD_DEFS: readonly TargetProfileFieldDef[] = [
   },
   {
     key: 'environment',
-    label: 'Môi trường',
+    label: 'Environment',
     hint: 'Môi trường học tập bạn sẽ bước vào.',
     origin: 'university',
     example: 'Ví dụ: lớp nhỏ, cộng đồng quốc tế, gắn với doanh nghiệp.',
@@ -67,7 +67,7 @@ export const TARGET_PROFILE_FIELD_DEFS: readonly TargetProfileFieldDef[] = [
   },
   {
     key: 'programmeObjectives',
-    label: 'Mục tiêu chương trình',
+    label: 'Programme objectives',
     hint: 'Chương trình này cam kết đào tạo ra điều gì.',
     origin: 'university',
     example: 'Ví dụ: đào tạo kỹ sư có thể xây dựng hệ thống dữ liệu quy mô lớn.',
@@ -75,7 +75,7 @@ export const TARGET_PROFILE_FIELD_DEFS: readonly TargetProfileFieldDef[] = [
   },
   {
     key: 'priorityCapabilities',
-    label: 'Năng lực ưu tiên',
+    label: 'Priority capabilities',
     hint: 'Những năng lực CV của bạn cần chứng minh rõ nhất.',
     origin: 'mixed',
     example: 'Ví dụ: tư duy phân tích, lập trình, làm việc nhóm liên ngành.',

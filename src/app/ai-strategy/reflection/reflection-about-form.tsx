@@ -12,6 +12,7 @@ import {
   type AspirationsValues,
 } from '@/features/apply/domain';
 import { ReflectionSection, ReflectionShell } from '@/features/apply/ui';
+import { useT } from '@/lib/i18n';
 import { Button, Input, RangeHistogram, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
@@ -52,6 +53,7 @@ function formatVnd(value: number): string {
 export type AboutFormValues = AboutYouValues & AspirationsValues;
 
 export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
+  const t = useT();
   const router = useRouter();
   /*
    * `onboardingStepHref('personal-summary', applicationId)` builds
@@ -110,7 +112,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
   return (
     <ReflectionShell step="about">
       <form onSubmit={handleSubmit} className="flex flex-col gap-gb-3xl">
-        <ReflectionSection title="Thông tin cá nhân">
+        <ReflectionSection title={t('Personal information')}>
           <Select
             name="highestEducation"
             label="What is your highest level of education?"
@@ -136,7 +138,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           />
         </ReflectionSection>
 
-        <ReflectionSection title="Điểm số">
+        <ReflectionSection title={t('Scores')}>
           {/* Kept as written rather than parsed to a number: students give
               these on different scales ("3.5 / 4", "8.7/10"), and normalising
               at input time would mean guessing which. */}
@@ -156,7 +158,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           />
         </ReflectionSection>
 
-        <ReflectionSection title="Nguyện vọng">
+        <ReflectionSection title={t('Aspirations')}>
           <Input
             name="majors"
             label="Select a major"
@@ -207,7 +209,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
 
           <Select
             name="fundingSource"
-            label="Ngân sách"
+            label={t('Budget')}
             placeholder="Select a funding source"
             value={values.fundingSource ?? ''}
             onChange={(e) =>
@@ -257,7 +259,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
 
         <div className="flex justify-center">
           <Button type="submit" size="lg" disabled={saving} className="min-w-64">
-            {saving ? 'Đang lưu…' : 'Tiếp tục'}
+            {saving ? t('Saving…') : t('Continue')}
           </Button>
         </div>
       </form>

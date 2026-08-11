@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from 'react';
 import type { AaccAnalysis } from '@/lib/ai/vinuni-grounded-evaluation';
+import { useT } from '@/lib/i18n';
 import type {
   AaccAnalysisV2,
   EssayDiagnosticKey,
@@ -28,11 +29,11 @@ type Props = {
   manuscript?: ReactNode;
 };
 
-const VERDICT_VI: Record<AaccAnalysis['overall']['verdict'], string> = {
-  'strong-fit': 'Nền tảng mạnh',
-  promising: 'Có tiềm năng',
-  'needs-work': 'Cần cải thiện',
-  misaligned: 'Chưa đúng trọng tâm',
+const VERDICT_LABELS: Record<AaccAnalysis['overall']['verdict'], string> = {
+  'strong-fit': 'Strong foundation',
+  promising: 'Promising',
+  'needs-work': 'Needs improvement',
+  misaligned: 'Not focused enough',
 };
 
 type TypingTurn = {
@@ -80,9 +81,10 @@ function Chapter({
   children: React.ReactNode;
   hidden?: boolean;
 }) {
+  const t = useT();
   return (
     <section
-      aria-label={`Phần ${letter}: ${title}`}
+      aria-label={`${t('Section')} ${letter}: ${t(title)}`}
       data-chapter={letter}
       hidden={hidden}
       className="relative grid gap-5 border-t border-slate-200/80 py-10 first:border-t-0 first:pt-0 md:grid-cols-[52px_1fr]"
@@ -95,7 +97,7 @@ function Chapter({
       </div>
       <div className="min-w-0">
         <h3 className="text-2xl font-semibold tracking-[-0.025em] text-slate-950">
-          {letter}. {title}
+          {letter}. {t(title)}
         </h3>
         <div className="mt-6">{children}</div>
       </div>
@@ -114,6 +116,7 @@ function ProgressiveChapter({
   children: React.ReactNode;
   animate: boolean;
 }) {
+  const t = useT();
   const [started, setStarted] = useState(!animate);
   const show = useCallback(() => setStarted(true), []);
 
@@ -122,7 +125,7 @@ function ProgressiveChapter({
       <Chapter letter={letter} title={title} hidden={!started}>
         {letter === 'A' ? null : (
           <TypingText
-            text={`Đang chuẩn bị phần ${letter}: ${title}…`}
+            text={t(`Preparing section {letter}: {title}…`, { letter, title: t(title) })}
             animate={animate}
             hidden
           />
@@ -168,10 +171,11 @@ function StatusIcon({
 }
 
 function DisclosureLabel({ openText, closedText }: { openText: string; closedText: string }) {
+  const t = useT();
   return (
     <span className="flex items-center justify-between gap-3">
-      <span className="group-open:hidden">{closedText}</span>
-      <span className="hidden group-open:inline">{openText}</span>
+      <span className="group-open:hidden">{t(closedText)}</span>
+      <span className="hidden group-open:inline">{t(openText)}</span>
       <svg
         aria-hidden
         viewBox="0 0 20 20"
@@ -275,6 +279,7 @@ function TypingBullet({
   marker: string;
   animate: boolean;
 }) {
+  const t = useT();
   const text = isReviewClaim(item) ? item.text : item;
   const [started, setStarted] = useState(!animate);
   const show = useCallback(() => setStarted(true), []);
@@ -299,7 +304,7 @@ function TypingBullet({
           className="min-w-0 flex-1 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
         >
           <TypingText text={text} animate={animate} onStart={show} />
-          <span className="mt-1 flex flex-wrap gap-1.5" aria-label="Nguồn dẫn chứng">
+          <span className="mt-1 flex flex-wrap gap-1.5" aria-label={t('Evidence sources')}>
             {item.evidenceRefs
               .filter(({ source }) => source !== 'essay')
               .map((reference) => (
@@ -307,7 +312,7 @@ function TypingBullet({
                   key={`${reference.source}:${reference.id}`}
                   className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[10px] font-semibold text-slate-500"
                 >
-                  {reference.source === 'profile' ? 'Hồ sơ' : 'Chương trình'} · {reference.id}
+                  {reference.source === 'profile' ? t('Profile') : t('Programme')} · {reference.id}
                 </span>
               ))}
           </span>
@@ -374,7 +379,7 @@ const DIAGNOSTIC_META: Array<{
     color: '#ef553a',
     track: '#fee8e3',
     definition:
-      'Đánh giá độ rõ ràng, nhịp câu và cấu trúc: mở bài, mạch phát triển, câu chuyển và kết luận có dẫn dắt người đọc hay không.',
+      'Assesses clarity, sentence rhythm, and structure: whether the opening, development, transitions, and conclusion guide the reader.',
   },
   {
     key: 'detail',
@@ -382,7 +387,7 @@ const DIAGNOSTIC_META: Array<{
     color: '#cf86b5',
     track: '#f8e9f2',
     definition:
-      'Đánh giá mức độ cụ thể của dẫn chứng: hành động, bối cảnh, số liệu, phản ứng và chi tiết giúp câu chuyện không trở nên chung chung.',
+      'Assesses the specificity of evidence: actions, context, numbers, reactions, and details that keep the story from becoming generic.',
   },
   {
     key: 'voice',
@@ -390,7 +395,7 @@ const DIAGNOSTIC_META: Array<{
     color: '#74c6d0',
     track: '#e6f5f7',
     definition:
-      'Đánh giá giọng cá nhân: bài luận có cho thấy cách bạn suy nghĩ, động lực, cảm xúc và góc nhìn riêng thay vì một giọng văn khuôn mẫu hay không.',
+      'Assesses personal voice: whether the essay shows how you think, your motivations, emotions, and perspective rather than a template voice.',
   },
   {
     key: 'character',
@@ -398,7 +403,7 @@ const DIAGNOSTIC_META: Array<{
     color: '#f59e0b',
     track: '#fff1cf',
     definition:
-      'Đánh giá phẩm chất thể hiện qua lựa chọn và hành động, như trách nhiệm, chính trực, trưởng thành và khả năng học từ sai lầm.',
+      'Assesses character shown through choices and actions, such as responsibility, integrity, maturity, and learning from mistakes.',
   },
   {
     key: 'curiosity',
@@ -406,7 +411,7 @@ const DIAGNOSTIC_META: Array<{
     color: '#52723a',
     track: '#e8eee3',
     definition:
-      'Đánh giá tinh thần khám phá và học hỏi: cách bạn đặt câu hỏi, theo đuổi ý tưởng và mở rộng hiểu biết vượt ngoài yêu cầu thông thường.',
+      'Assesses curiosity and learning: how you ask questions, pursue ideas, and expand your understanding beyond ordinary requirements.',
   },
   {
     key: 'contribution',
@@ -414,15 +419,15 @@ const DIAGNOSTIC_META: Array<{
     color: '#f4d400',
     track: '#fff8bf',
     definition:
-      'Đánh giá giá trị bạn tạo ra cho người khác hoặc cộng đồng, gồm tác động, kết quả và điều bạn học được từ việc đóng góp.',
+      'Assesses the value you create for others or a community, including impact, outcomes, and what you learn by contributing.',
   },
 ];
 
 const IMPACT_GAIN = { high: 0.5, medium: 0.3, low: 0.1 } as const;
 const PRIORITY_LABEL = {
-  high: 'Ưu tiên cao',
-  medium: 'Ưu tiên vừa',
-  low: 'Ưu tiên thấp',
+  high: 'High priority',
+  medium: 'Medium priority',
+  low: 'Low priority',
 } as const;
 
 export function calculateImprovementProjection(
@@ -453,12 +458,13 @@ function EvidenceCoverageMap({
   strength?: ReviewItem;
   gap?: ReviewItem;
 }) {
+  const t = useT();
   const segments = map.essaySegments;
   if (!segments.length) return null;
   const gapIds = new Set(map.informationGaps.flatMap(({ evidenceIds }) => evidenceIds));
   const rows = [
     {
-      label: 'Đề bài',
+      label: 'Prompt',
       strong: new Set(
         map.promptCoverage
           .filter(({ status }) => status === 'answered')
@@ -471,7 +477,7 @@ function EvidenceCoverageMap({
       ),
     },
     {
-      label: 'Phản tư',
+      label: 'Reflection',
       strong: new Set(
         map.reflectionArcs
           .filter(({ completeness }) => completeness === 'complete')
@@ -484,7 +490,7 @@ function EvidenceCoverageMap({
       ),
     },
     {
-      label: 'Dẫn chứng',
+      label: 'Evidence',
       strong: new Set(map.claims.flatMap(({ evidenceIds }) => evidenceIds)),
       partial: new Set<string>(),
     },
@@ -507,7 +513,7 @@ function EvidenceCoverageMap({
   return (
     <figure
       role="img"
-      aria-label="Bản đồ độ phủ dẫn chứng"
+      aria-label={t('Evidence coverage map')}
       className="mb-6 grid gap-6 rounded-[1.75rem] border border-slate-200 bg-[#fbfbfd] p-5 shadow-[0_16px_42px_rgba(15,23,42,0.05)] lg:grid-cols-[minmax(0,1fr)_280px] lg:p-6"
     >
       <div className="min-w-0 overflow-x-auto">
@@ -523,7 +529,7 @@ function EvidenceCoverageMap({
           ))}
           {rows.flatMap((row) => [
             <span key={`${row.label}:label`} className="text-xs font-semibold text-slate-600">
-              {row.label}
+              {t(row.label)}
             </span>,
             ...segments.map(({ evidence_id }) => {
               const tone = gapIds.has(evidence_id)
@@ -536,7 +542,7 @@ function EvidenceCoverageMap({
               return (
                 <span
                   key={`${row.label}:${evidence_id}`}
-                  title={`${row.label} · ${evidence_id}`}
+                  title={`${t(row.label)} · ${evidence_id}`}
                   className={`h-7 rounded-md ring-1 ring-inset ring-black/[0.03] ${tone}`}
                 />
               );
@@ -545,25 +551,25 @@ function EvidenceCoverageMap({
         </div>
         <div className="mt-4 flex flex-wrap gap-4 text-[10px] font-medium text-slate-500">
           {[
-            ['bg-emerald-400', 'Đã làm tốt'],
-            ['bg-amber-300', 'Có nhưng chưa rõ'],
-            ['bg-rose-300', 'Còn thiếu'],
-            ['bg-slate-100', 'Chưa đề cập'],
+            ['bg-emerald-400', 'Strong evidence'],
+            ['bg-amber-300', 'Partial evidence'],
+            ['bg-rose-300', 'Missing evidence'],
+            ['bg-slate-100', 'Not mentioned'],
           ].map(([tone, label]) => (
             <span key={label} className="flex items-center gap-1.5">
-              <span className={`h-2.5 w-2.5 rounded-sm ${tone}`} /> {label}
+              <span className={`h-2.5 w-2.5 rounded-sm ${tone}`} /> {t(label)}
             </span>
           ))}
         </div>
       </div>
       <div className="space-y-3">
         <p className="text-xs font-semibold text-slate-500">
-          Đã trả lời {answered}/{map.promptCoverage.length} yêu cầu
+          {t('Answered {answered} of {total} prompts', { answered, total: map.promptCoverage.length })}
         </p>
         {strength ? (
           <div className="rounded-2xl border border-emerald-200/80 bg-emerald-50/70 p-4">
             <p className="flex items-center gap-2 text-xs font-semibold text-emerald-800">
-              <StatusIcon kind="complete" /> Bạn đã làm tốt
+              <StatusIcon kind="complete" /> {t('You did well')}
             </p>
             <p className="mt-1 text-xs leading-5 text-slate-700">{itemText(strength)}</p>
           </div>
@@ -571,7 +577,7 @@ function EvidenceCoverageMap({
         {gap ? (
           <div className="rounded-2xl border border-rose-200/80 bg-rose-50/70 p-4">
             <p className="flex items-center gap-2 text-xs font-semibold text-rose-800">
-              <StatusIcon kind="missing" /> Cần bổ sung
+              <StatusIcon kind="missing" /> {t('Needs more evidence')}
             </p>
             <p className="mt-1 text-xs leading-5 text-slate-700">{itemText(gap)}</p>
           </div>
@@ -588,6 +594,7 @@ function IdeasComparison({
   strengths: ReviewItem[];
   weaknesses: Array<{ title: string; items: ReviewItem[] }>;
 }) {
+  const t = useT();
   const gaps = weaknesses.flatMap(({ title, items }) =>
     items.map((item) => ({ title, item })),
   );
@@ -597,15 +604,15 @@ function IdeasComparison({
   return (
     <div
       role="table"
-      aria-label="Đã có và cần bổ sung"
+      aria-label={t('Evidence strengths and gaps')}
       className="mb-5 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_16px_42px_rgba(15,23,42,0.05)]"
     >
       <div role="row" className="grid border-b border-slate-200 text-xs font-semibold uppercase tracking-wider sm:grid-cols-2">
         <div role="columnheader" className="flex items-center gap-2 bg-emerald-50/80 px-5 py-4 text-emerald-800">
-          <StatusIcon kind="complete" /> Đã chứng minh
+          <StatusIcon kind="complete" /> {t('Proven')}
         </div>
         <div role="columnheader" className="flex items-center gap-2 border-t border-slate-200 bg-amber-50/80 px-5 py-4 text-amber-800 sm:border-l sm:border-t-0">
-          <StatusIcon kind="review" /> Cần làm rõ
+          <StatusIcon kind="review" /> {t('Needs clarification')}
         </div>
       </div>
       {Array.from({ length }, (_, index) => (
@@ -657,6 +664,7 @@ function DiagnosticRadar({
   active: EssayDiagnosticKey;
   onActivate: (key: EssayDiagnosticKey) => void;
 }) {
+  const t = useT();
   const dimensions = diagnostics.achievability!.dimensions;
   const current = DIAGNOSTIC_META.map(({ key }) => dimensions[key].current);
   const potential = DIAGNOSTIC_META.map(({ key }) => dimensions[key].potential);
@@ -667,7 +675,7 @@ function DiagnosticRadar({
         <svg
           data-testid="diagnostic-radar"
           role="img"
-          aria-label="Biểu đồ radar so sánh điểm hiện tại và điểm có thể đạt"
+          aria-label={t('Radar chart comparing current and potential scores')}
           className="h-full w-full"
           viewBox="0 0 300 300"
         >
@@ -718,11 +726,16 @@ function DiagnosticRadar({
 
         {DIAGNOSTIC_META.map(({ key, label }, index) => {
           const score = dimensions[key];
+          const labelText = t(label);
           return (
             <button
               key={key}
               type="button"
-              aria-label={`${label}: ${score.current}/10 hiện tại, ${score.potential}/10 có thể đạt. Xem định nghĩa`}
+              aria-label={t('{label}: {current}/10 current, {potential}/10 potential. View definition', {
+                label: labelText,
+                current: score.current,
+                potential: score.potential,
+              })}
               aria-pressed={active === key}
               onMouseEnter={() => onActivate(key)}
               onFocus={() => onActivate(key)}
@@ -733,7 +746,7 @@ function DiagnosticRadar({
                   : 'border-slate-200 text-slate-600 hover:border-pink-200'
               }`}
             >
-              <span className="block text-[10px] font-semibold uppercase tracking-wide">{label}</span>
+              <span className="block text-[10px] font-semibold uppercase tracking-wide">{labelText}</span>
               <span className="block text-xs font-semibold tabular-nums text-slate-950">
                 {score.current} <span className="text-slate-300">→</span> {score.potential}
               </span>
@@ -743,10 +756,10 @@ function DiagnosticRadar({
       </div>
       <div className="mt-1 flex justify-center gap-5 text-[11px] font-medium text-slate-600">
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-5 rounded-full bg-pink-500" /> Hiện tại
+          <span className="h-2.5 w-5 rounded-full bg-pink-500" /> {t('Current')}
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="h-2.5 w-5 rounded-full bg-violet-600" /> Có thể đạt
+          <span className="h-2.5 w-5 rounded-full bg-violet-600" /> {t('Potential')}
         </span>
       </div>
     </>
@@ -754,12 +767,13 @@ function DiagnosticRadar({
 }
 
 function WritingSignals({ diagnostics }: { diagnostics?: EssayDiagnostics }) {
+  const t = useT();
   if (!diagnostics?.achievability) return null;
   const keys: EssayDiagnosticKey[] = ['writing', 'detail', 'voice'];
   return (
     <figure
       role="img"
-      aria-label="Tín hiệu Writing, Detail và Voice"
+      aria-label={t('Writing, Detail, and Voice signals')}
       className="mb-5 rounded-[1.75rem] border border-slate-200 bg-[#fbfbfd] p-5 shadow-[0_16px_42px_rgba(15,23,42,0.05)]"
     >
       <div className="space-y-4">
@@ -781,8 +795,8 @@ function WritingSignals({ diagnostics }: { diagnostics?: EssayDiagnostics }) {
         })}
       </div>
       <figcaption className="mt-4 flex gap-4 border-t border-slate-100 pt-3 text-[10px] font-medium text-slate-500">
-        <span className="flex items-center gap-1.5"><span className="h-2 w-4 rounded-full bg-slate-700" /> Hiện tại</span>
-        <span className="flex items-center gap-1.5"><span className="h-3 w-1 rounded-full bg-pink-500" /> Có thể đạt</span>
+          <span className="flex items-center gap-1.5"><span className="h-2 w-4 rounded-full bg-slate-700" /> {t('Current')}</span>
+          <span className="flex items-center gap-1.5"><span className="h-3 w-1 rounded-full bg-pink-500" /> {t('Potential')}</span>
       </figcaption>
     </figure>
   );
@@ -799,18 +813,19 @@ function NarrativeJourneyChart({
   strength?: ReviewItem;
   gap?: ReviewItem;
 }) {
+  const t = useT();
   const dimensions = diagnostics?.achievability?.dimensions;
   if (!dimensions) return null;
 
   const stages = [
     { label: 'Hook', score: dimensions.writing.current },
-    { label: 'Bối cảnh', score: dimensions.detail.current },
+    { label: 'Context', score: dimensions.detail.current },
     {
-      label: 'Xung đột',
+      label: 'Conflict',
       score: Number(((dimensions.voice.current + dimensions.character.current) / 2).toFixed(1)),
     },
-    { label: 'Chuyển biến', score: analysis.pillars.creativity.score / 10 },
-    { label: 'Tương lai', score: analysis.pillars.aspirations.score / 10 },
+    { label: 'Change', score: analysis.pillars.creativity.score / 10 },
+    { label: 'Future', score: analysis.pillars.aspirations.score / 10 },
   ];
   const points = stages.map(({ score }, index) => ({
     x: 50 + index * 225,
@@ -828,20 +843,20 @@ function NarrativeJourneyChart({
   return (
     <figure
       role="img"
-      aria-label="Biểu đồ nhịp bài luận qua 5 chặng"
+      aria-label={t('Essay journey chart across five stages')}
       className="mb-10 overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_16px_42px_rgba(15,23,42,0.05)]"
     >
       <div className="flex flex-wrap items-end justify-between gap-4 border-b border-slate-100 px-6 py-6 md:px-8">
         <div>
         <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-pink-600">
-          Nhịp bài luận
+          {t('Essay rhythm')}
         </p>
         <h3 className="mt-1 text-2xl font-semibold tracking-[-0.025em] text-slate-950">
-          Hành trình câu chuyện qua 5 chặng
+          {t('Story journey across five stages')}
         </h3>
         </div>
         <p className="max-w-sm text-sm leading-6 text-slate-600">
-          Đường càng cao, chặng đó càng có đủ dẫn chứng và sức thuyết phục.
+          {t('A higher line means the stage has stronger evidence and persuasion.')}
         </p>
       </div>
       <div className="px-4 py-6 sm:px-7 md:px-10">
@@ -852,7 +867,7 @@ function NarrativeJourneyChart({
                 {String(index + 1).padStart(2, '0')}
               </span>
               <span className="mt-2 block text-[10px] font-semibold leading-4 text-slate-700 sm:text-sm">
-                {label}
+                {t(label)}
               </span>
             </div>
           ))}
@@ -918,7 +933,7 @@ function NarrativeJourneyChart({
           {strength ? (
             <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
               <p className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
-                <StatusIcon kind="complete" /> Điểm đang hiệu quả
+                <StatusIcon kind="complete" /> {t('Working well')}
               </p>
               <p className="mt-3 text-[15px] leading-7 text-slate-700">{itemText(strength)}</p>
             </div>
@@ -926,7 +941,7 @@ function NarrativeJourneyChart({
           {gap ? (
             <div className="rounded-2xl border border-rose-200 bg-rose-50/70 p-5">
               <p className="flex items-center gap-2 text-sm font-semibold text-rose-800">
-                <StatusIcon kind="missing" /> Việc cần sửa trước
+                <StatusIcon kind="missing" /> {t('Fix first')}
               </p>
               <p className="mt-3 text-[15px] leading-7 text-slate-700">{itemText(gap)}</p>
             </div>
@@ -934,7 +949,7 @@ function NarrativeJourneyChart({
         </div>
       ) : null}
       <figcaption className="border-t border-slate-100 px-6 py-4 text-xs leading-5 text-slate-500">
-        Tổng hợp từ Writing, Detail, Voice, Character, Creativity và Aspirations trong kết quả hiện tại.
+        {t('Summary from Writing, Detail, Voice, Character, Creativity, and Aspirations in the current result.')}
       </figcaption>
     </figure>
   );
@@ -947,10 +962,11 @@ function AaccBulletChart({
   analysis: AaccAnalysis;
   review?: AaccAnalysisV2['review'];
 }) {
+  const t = useT();
   return (
     <figure
       role="img"
-      aria-label="Điểm AACC và mức có thể đạt"
+      aria-label={t('AACC score and potential')}
       className="mb-5 space-y-2 rounded-[1.75rem] border border-slate-200 bg-[#f7f7fa] p-2 shadow-[0_16px_42px_rgba(15,23,42,0.05)]"
     >
       {VINUNI_AACC_PILLARS.map((pillar) => {
@@ -976,7 +992,7 @@ function AaccBulletChart({
             </div>
             <span
               role="progressbar"
-              aria-label={`Điểm ${pillar.nameVi}`}
+              aria-label={`${t('Score')} ${pillar.nameVi}`}
               aria-valuemin={0}
               aria-valuemax={10}
               aria-valuenow={current}
@@ -986,12 +1002,12 @@ function AaccBulletChart({
               <span className="absolute -top-1 h-4 w-1 rounded-full bg-pink-500" style={{ left: `${potential * 10}%` }} />
             </span>
             <p className="text-xs leading-5 text-slate-600">
-              <span className="font-semibold text-emerald-700">Đã chứng minh:</span>{' '}
-              {strength ? itemText(strength) : 'Chưa có tín hiệu rõ.'}
+              <span className="font-semibold text-emerald-700">{t('Proven:')}</span>{' '}
+              {strength ? itemText(strength) : t('No clear signal yet.')}
             </p>
             <p className="text-xs leading-5 text-slate-600">
-              <span className="font-semibold text-rose-700">Cần bổ sung:</span>{' '}
-              {gap ? itemText(gap) : 'Chưa ghi nhận khoảng trống lớn.'}
+              <span className="font-semibold text-rose-700">{t('Needs more evidence:')}</span>{' '}
+              {gap ? itemText(gap) : t('No major gap recorded.')}
             </p>
           </div>
         );
@@ -1007,14 +1023,15 @@ function PriorityRoadmap({
   items: ReviewItem[];
   animate?: boolean;
 }) {
+  const t = useT();
   if (!items.length) return null;
   const lanes = {
-    high: { label: 'Làm ngay', tone: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
-    medium: { label: 'Bổ sung', tone: 'border-amber-200 bg-amber-50 text-amber-800' },
-    low: { label: 'Tinh chỉnh', tone: 'border-sky-200 bg-sky-50 text-sky-800' },
+    high: { label: 'Act now', tone: 'border-emerald-200 bg-emerald-50 text-emerald-800' },
+    medium: { label: 'Add evidence', tone: 'border-amber-200 bg-amber-50 text-amber-800' },
+    low: { label: 'Refine', tone: 'border-sky-200 bg-sky-50 text-sky-800' },
   } as const;
   return (
-    <ol aria-label="Lộ trình ưu tiên" className="relative space-y-3 before:absolute before:bottom-6 before:left-5 before:top-6 before:w-px before:bg-slate-200">
+      <ol aria-label={t('Priority roadmap')} className="relative space-y-3 before:absolute before:bottom-6 before:left-5 before:top-6 before:w-px before:bg-slate-200">
       {items.map((item, index) => {
         const priority = isReviewClaim(item) ? item.priority : 'medium';
         const lane = lanes[priority];
@@ -1027,7 +1044,7 @@ function PriorityRoadmap({
               {String(index + 1).padStart(2, '0')}
             </span>
             <span className={`rounded-full border px-3 py-1 text-center text-xs font-semibold ${lane.tone}`}>
-              {lane.label}
+              {t(lane.label)}
             </span>
             <div className="min-w-0"><BulletList items={[item]} animate={animate} /></div>
             <span className="text-right text-sm font-semibold tabular-nums text-pink-600">
@@ -1049,17 +1066,18 @@ function ScoreBridge({
   potential: number;
   issues: ReviewItem[];
 }) {
+  const t = useT();
   return (
     <figure
       role="img"
-      aria-label="Cầu điểm cải thiện"
+      aria-label={t('Improvement score bridge')}
       className="rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_42px_rgba(15,23,42,0.05)]"
     >
       <div className="grid gap-5 sm:grid-cols-[96px_minmax(0,1fr)_96px] sm:items-center">
         <div className="grid h-24 w-24 place-items-center rounded-full border border-slate-300 bg-slate-50 text-center">
           <span>
             <strong className="block text-3xl tabular-nums text-slate-950">{current.toFixed(1)}</strong>
-            <span className="text-xs text-slate-500">Hiện tại</span>
+            <span className="text-xs text-slate-500">{t('Current')}</span>
           </span>
         </div>
         <div className="relative grid gap-2 before:absolute before:left-3 before:right-3 before:top-1/2 before:border-t before:border-dashed before:border-pink-300">
@@ -1082,7 +1100,7 @@ function ScoreBridge({
         <div className="grid h-24 w-24 place-items-center rounded-full border border-pink-300 bg-pink-50 text-center">
           <span>
             <strong className="block text-3xl tabular-nums text-pink-700">{potential.toFixed(1)}</strong>
-            <span className="text-xs text-pink-700">Có thể đạt</span>
+            <span className="text-xs text-pink-700">{t('Potential')}</span>
           </span>
         </div>
       </div>
@@ -1099,6 +1117,7 @@ function EssayDiagnosticBoard({
   manuscript: ReactNode;
   projection?: ReturnType<typeof calculateImprovementProjection>;
 }) {
+  const t = useT();
   const evidence = useContext(EvidenceContext);
   const [activeDefinition, setActiveDefinition] = useState<EssayDiagnosticKey>('writing');
   const achievability = diagnostics.achievability;
@@ -1111,7 +1130,7 @@ function EssayDiagnosticBoard({
 
   return (
     <section
-      aria-label="Chẩn đoán bài luận"
+      aria-label={t('Essay diagnostic')}
       data-visual-style="editorial-diagnostic"
       className="overflow-hidden rounded-[2rem] border border-slate-200 bg-[#f8f6f3] shadow-[0_24px_70px_rgba(15,23,42,0.08)]"
     >
@@ -1119,16 +1138,16 @@ function EssayDiagnosticBoard({
         <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#ec4899_0%,#f9a8d4_44%,#f8f6f3_100%)]" />
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-pink-600">
-            Chẩn đoán bài luận
+            {t('Essay diagnostic')}
           </p>
           <h2 className="mt-1 text-3xl font-semibold tracking-[-0.035em] text-slate-950">
-            Bài luận đã chấm
+            {t('Scored essay')}
           </h2>
         </div>
         <div className="flex items-end gap-3 border-l-2 border-pink-400 pl-5">
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-              AACC hiện tại
+              {t('Current AACC')}
             </p>
             <p className="text-2xl font-semibold tabular-nums text-slate-950">
               {currentScore.toFixed(1)}
@@ -1137,7 +1156,7 @@ function EssayDiagnosticBoard({
           <span className="pb-1 text-lg text-pink-500" aria-hidden>→</span>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-wider text-pink-700">
-              Sau ưu tiên
+              {t('After priorities')}
             </p>
             <p className="text-2xl font-semibold tabular-nums text-pink-700">
               {potentialScore.toFixed(1)}
@@ -1155,10 +1174,10 @@ function EssayDiagnosticBoard({
           />
           <div className="min-h-36 border-t border-slate-200 pt-4">
             <h3 className="font-semibold text-slate-950">
-              {DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.label}
+              {t(DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.label)}
             </h3>
             <p className="mt-1 text-sm leading-5 text-slate-700">
-              {DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.definition}
+              {t(DIAGNOSTIC_META.find(({ key }) => key === activeDefinition)!.definition)}
             </p>
           </div>
         </div>
@@ -1185,10 +1204,10 @@ function EssayDiagnosticBoard({
                 >
                   <span className="mb-1 flex items-center justify-between gap-3">
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                      {DIAGNOSTIC_META.find(({ key }) => key === issue.criterion)?.label}
+                      {t(DIAGNOSTIC_META.find(({ key }) => key === issue.criterion)?.label ?? '')}
                     </span>
                     <span className="text-[10px] font-semibold uppercase tracking-wider text-amber-700">
-                      {PRIORITY_LABEL[issue.priority]}
+                      {t(PRIORITY_LABEL[issue.priority])}
                     </span>
                   </span>
                   {issue.text}
@@ -1203,14 +1222,15 @@ function EssayDiagnosticBoard({
 }
 
 function EssayDiagnosticSkeleton({ manuscript }: { manuscript: ReactNode }) {
+  const t = useT();
   return (
     <section className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-[#f4f4fa] shadow-[0_18px_55px_rgba(15,23,42,0.08)]">
       <header className="border-b border-slate-200 bg-white px-6 py-5 md:px-8">
         <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-pink-600">
-          Essay diagnostic
+          {t('Essay diagnostic')}
         </p>
         <h2 className="mt-1 text-2xl font-semibold tracking-tight text-slate-950">
-          Đang chấm bài luận…
+          {t('Scoring essay…')}
         </h2>
       </header>
       <div className="grid gap-4 p-4 lg:grid-cols-[minmax(0,1fr)_380px] lg:p-6">
@@ -1263,6 +1283,7 @@ export function VinUniAaccFeedback({
   activeClaimKeys = [],
   manuscript,
 }: Props) {
+  const t = useT();
   const sections = analysis.sections;
   if (!sections) return null;
   const v2Analysis =
@@ -1358,22 +1379,22 @@ export function VinUniAaccFeedback({
       <header className="relative overflow-hidden border-b border-slate-200 bg-white px-6 py-8 text-slate-950 md:px-10 md:py-10">
         <span aria-hidden className="absolute inset-x-0 top-0 h-1 bg-[linear-gradient(90deg,#ec4899_0%,#f9a8d4_44%,#f8f6f3_100%)]" />
         <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-pink-600">
-          Phân tích có dẫn chứng
+          {t('Evidence-based analysis')}
         </p>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-6">
           <div>
             <h2 className="max-w-3xl text-3xl font-semibold tracking-[-0.04em] md:text-4xl">
-              Hồ sơ phản biện bài luận
+              {t('Essay review profile')}
             </h2>
             <p className="mt-2 text-sm text-slate-600">
               {loading && !anySectionReady
-                ? 'Đang phân tích bài luận'
-                : VERDICT_VI[analysis.overall.verdict]}{' '}
-              · Không phải quyết định tuyển sinh
+                ? t('Analysing essay')
+                : t(VERDICT_LABELS[analysis.overall.verdict])}{' '}
+              · {t('Not an admissions decision')}
             </p>
           </div>
           <div className="min-w-32 border-l-2 border-pink-400 pl-5 text-left">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">Điểm tổng</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-slate-500">{t('Overall score')}</p>
             <p className="mt-1 text-4xl font-semibold tracking-[-0.05em] tabular-nums">
               {loading && analysis.overall.score === 0
                 ? '…'
@@ -1386,21 +1407,21 @@ export function VinUniAaccFeedback({
 
       <div className="px-5 py-8 md:px-10 md:py-10">
         {summaryReady ? <div
-          aria-label="Tóm tắt chẩn đoán"
+          aria-label={t('Diagnostic summary')}
           data-layout="editorial-rail"
           className="mb-10 grid overflow-hidden rounded-[1.5rem] border border-slate-200 bg-white shadow-[0_14px_36px_rgba(15,23,42,0.04)] sm:grid-cols-3"
         >
           <span className="flex items-center gap-3 border-b border-slate-200 px-5 py-4 text-emerald-800 sm:border-b-0 sm:border-r">
             <StatusIcon kind="complete" className="h-5 w-5" />
-            <span><strong className="mr-1 text-2xl tabular-nums text-slate-950">{strengthCount}</strong><span className="text-xs font-semibold">điểm đã chứng minh</span></span>
+            <span><strong className="mr-1 text-2xl tabular-nums text-slate-950">{strengthCount}</strong><span className="text-xs font-semibold">{t('proven points')}</span></span>
           </span>
           <span className="flex items-center gap-3 border-b border-slate-200 px-5 py-4 text-amber-800 sm:border-b-0 sm:border-r">
             <StatusIcon kind="review" className="h-5 w-5" />
-            <span><strong className="mr-1 text-2xl tabular-nums text-slate-950">{ideas.suggestions.length + hook.suggestions.length}</strong><span className="text-xs font-semibold">điểm cần làm rõ</span></span>
+            <span><strong className="mr-1 text-2xl tabular-nums text-slate-950">{ideas.suggestions.length + hook.suggestions.length}</strong><span className="text-xs font-semibold">{t('points to clarify')}</span></span>
           </span>
           <span className="flex items-center gap-3 px-5 py-4 text-rose-800">
             <StatusIcon kind="missing" className="h-5 w-5" />
-            <span><strong className="mr-1 text-2xl tabular-nums text-slate-950">{missingCount}</strong><span className="text-xs font-semibold">nội dung còn thiếu</span></span>
+            <span><strong className="mr-1 text-2xl tabular-nums text-slate-950">{missingCount}</strong><span className="text-xs font-semibold">{t('missing content')}</span></span>
           </span>
         </div> : null}
         {narrativeReady ? <NarrativeJourneyChart
@@ -1410,7 +1431,7 @@ export function VinUniAaccFeedback({
           gap={firstGap}
         /> : null}
         {overallReady ? (
-          <ProgressiveChapter letter="A" title="Tổng quan" animate={streaming}>
+          <ProgressiveChapter letter="A" title="Overview" animate={streaming}>
             {v2Analysis?.evidenceMap ? (
               <EvidenceCoverageMap
                 map={v2Analysis.evidenceMap}
@@ -1423,11 +1444,11 @@ export function VinUniAaccFeedback({
         ) : null}
 
         {ideasReady ? (
-          <ProgressiveChapter letter="B" title="Ý tưởng & cấu trúc" animate={streaming}>
+          <ProgressiveChapter letter="B" title="Ideas and structure" animate={streaming}>
           <IdeasComparison strengths={ideas.strengths} weaknesses={ideas.weaknesses} />
           <details className="group rounded-[1.5rem] border border-slate-200 bg-white">
           <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500">
-            <DisclosureLabel closedText="Xem phân tích đầy đủ" openText="Thu gọn phân tích" />
+            <DisclosureLabel closedText="View full analysis" openText="Collapse analysis" />
           </summary>
           <div className="border-t border-slate-200 p-5">
           <div
@@ -1438,7 +1459,7 @@ export function VinUniAaccFeedback({
             {ideas.strengths.length ? (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 p-5">
               <h4 className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
-                <StatusIcon kind="complete" /> Điểm mạnh
+                <StatusIcon kind="complete" /> {t('Strengths')}
               </h4>
               <div className="mt-3">
                 <BulletList items={ideas.strengths} tone="positive" />
@@ -1448,7 +1469,7 @@ export function VinUniAaccFeedback({
             {ideas.suggestions.length ? (
               <div className="rounded-2xl border border-pink-200 bg-pink-50/70 p-5">
                 <h4 className="flex items-center gap-2 text-sm font-semibold text-pink-800">
-                  <StatusIcon kind="review" /> Gợi ý cải thiện
+                  <StatusIcon kind="review" /> {t('Improvement ideas')}
                 </h4>
                 <div className="mt-3">
                   <BulletList items={ideas.suggestions} tone="idea" />
@@ -1476,13 +1497,13 @@ export function VinUniAaccFeedback({
         ) : null}
 
         {hookReady ? (
-          <ProgressiveChapter letter="C" title="Mở bài & sức hút" animate={streaming}>
+          <ProgressiveChapter letter="C" title="Opening and appeal" animate={streaming}>
           <WritingSignals diagnostics={diagnostics} />
           <div className="grid gap-4 border-t border-slate-200 p-4 lg:grid-cols-2">
             {hook.analysis.length ? (
               <div className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-5">
                 <h4 className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
-                  <StatusIcon kind="complete" /> Nhận định chính
+                  <StatusIcon kind="complete" /> {t('Key assessment')}
                 </h4>
                 <div className="mt-3">
                   <BulletList items={hook.analysis} animate={streaming} />
@@ -1492,7 +1513,7 @@ export function VinUniAaccFeedback({
             {hook.suggestions.length ? (
               <div className="rounded-2xl border border-rose-200 bg-rose-50/60 p-5">
                 <h4 className="flex items-center gap-2 text-sm font-semibold text-rose-800">
-                  <StatusIcon kind="missing" /> Việc cần sửa trước
+                  <StatusIcon kind="missing" /> {t('Fix first')}
                 </h4>
                 <div className="mt-3">
                   <BulletList items={hook.suggestions} tone="warning" animate={streaming} />
@@ -1504,11 +1525,11 @@ export function VinUniAaccFeedback({
         ) : null}
 
         {readyPillars.length ? (
-          <ProgressiveChapter letter="D" title="Đánh giá AACC" animate={streaming}>
+          <ProgressiveChapter letter="D" title="AACC assessment" animate={streaming}>
           <AaccBulletChart analysis={analysis} review={review} />
           <details className="group rounded-[1.5rem] border border-slate-200 bg-white">
           <summary className="cursor-pointer list-none px-5 py-4 text-sm font-semibold text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500">
-            <DisclosureLabel closedText="Xem phân tích AACC đầy đủ" openText="Thu gọn phân tích AACC" />
+            <DisclosureLabel closedText="View full AACC analysis" openText="Collapse AACC analysis" />
           </summary>
           <div className="grid gap-4 lg:grid-cols-2">
             {readyPillars.map((pillar) => {
@@ -1556,11 +1577,11 @@ export function VinUniAaccFeedback({
         ) : null}
 
         {nextStepsReady ? (
-          <ProgressiveChapter letter="E" title="Bước tiếp theo" animate={streaming}>
+          <ProgressiveChapter letter="E" title="Next steps" animate={streaming}>
           <PriorityRoadmap items={nextSteps} animate={streaming} />
           {followUpQuestions.length ? (
             <div className="mt-6 rounded-2xl border border-sky-200 bg-sky-50/70 p-5">
-              <h4 className="text-sm font-semibold text-sky-900">Câu hỏi cần bổ sung</h4>
+              <h4 className="text-sm font-semibold text-sky-900">{t('Questions to answer')}</h4>
               <div className="mt-3">
                 <BulletList items={followUpQuestions} animate={streaming} />
               </div>
@@ -1570,8 +1591,8 @@ export function VinUniAaccFeedback({
         ) : null}
 
         {scoreReady ? (
-          <ProgressiveChapter letter="F" title="Điểm AACC" animate={streaming}>
-          <aside aria-label="Điểm tổng AACC" className="rounded-[1.75rem] bg-pink-50/70 p-1">
+          <ProgressiveChapter letter="F" title="AACC score" animate={streaming}>
+          <aside aria-label={t('Overall AACC score')} className="rounded-[1.75rem] bg-pink-50/70 p-1">
             <ScoreBridge
               current={improvementProjection.current}
               potential={improvementProjection.potential}
@@ -1587,7 +1608,7 @@ export function VinUniAaccFeedback({
             className="flex items-center gap-3 border-t border-slate-200 py-6 text-sm text-slate-500"
           >
             <span className="h-2 w-2 animate-pulse rounded-full bg-pink-400" aria-hidden />
-            Đang phân tích phần tiếp theo…
+            {t('Analysing the next section…')}
           </div>
         ) : null}
 
@@ -1597,13 +1618,13 @@ export function VinUniAaccFeedback({
             onClick={onTryAgain}
             className="inline-flex h-11 items-center justify-center rounded-full border-2 border-pink-500 px-6 text-sm font-semibold text-pink-600 transition hover:bg-pink-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
           >
-            Chỉnh sửa & phân tích lại
+            {t('Edit and analyse again')}
           </button>
           <Link
             href="/advisors"
             className="inline-flex h-11 items-center justify-center rounded-full border-2 border-slate-200 bg-white px-6 text-sm font-semibold text-slate-700 transition hover:border-pink-300 hover:bg-pink-50 hover:text-pink-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-pink-500"
           >
-            Trao đổi với cố vấn VinUni
+            {t('Talk with a VinUni advisor')}
           </Link>
         </div>
       </div>

@@ -9,6 +9,28 @@ import {
   VinUniAaccFeedback,
 } from './VinUniAaccFeedback';
 
+const locale = vi.hoisted(() => ({ lang: 'vi' as 'en' | 'vi' }));
+vi.mock('@/lib/i18n', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/i18n')>('@/lib/i18n');
+  const { translations } = await vi.importActual<typeof import('@/lib/i18n-dictionary')>('@/lib/i18n-dictionary');
+  const interpolate = (value: string, vars?: Record<string, string | number>) =>
+    vars ? value.replace(/\{(\w+)\}/g, (_, key) => key in vars ? String(vars[key]) : `{${key}}`) : value;
+  const translate = (key: string, vars?: Record<string, string | number>) => interpolate(
+    locale.lang === 'vi' ? translations[key] ?? key : key,
+    vars,
+  );
+  return {
+    ...actual,
+    useLanguage: () => ({
+      lang: locale.lang,
+      setLang: (next: 'en' | 'vi') => { locale.lang = next; },
+      toggle: () => { locale.lang = locale.lang === 'en' ? 'vi' : 'en'; },
+      t: translate,
+    }),
+    useT: () => translate,
+  };
+});
+
 const pillar = {
   score: 70,
   analysis: ['Phân tích có căn cứ.'],
@@ -54,6 +76,7 @@ const analysis: AaccAnalysis = {
 describe('VinUniAaccFeedback', () => {
   afterEach(() => {
     vi.useRealTimers();
+    locale.lang = 'vi';
   });
 
   it('uses the same action gains for the roadmap and final projected score', () => {
@@ -72,8 +95,8 @@ describe('VinUniAaccFeedback', () => {
 
     for (const heading of [
       'A. Tổng quan',
-      'B. Ý tưởng & cấu trúc',
-      'C. Mở bài & sức hút',
+      'B. Ý tưởng và cấu trúc',
+      'C. Mở bài và sức hút',
       'D. Đánh giá AACC',
       'E. Bước tiếp theo',
       'F. Điểm AACC',
@@ -82,8 +105,15 @@ describe('VinUniAaccFeedback', () => {
     }
     expect(screen.getByText('[CẦN USER BỔ SUNG: lời thoại thật khi dự án bắt đầu]')).toBeVisible();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa & phân tích lại' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Chỉnh sửa và phân tích lại' }));
     expect(onTryAgain).toHaveBeenCalledOnce();
+  });
+
+  it('keeps static chrome in English while preserving analysis payloads', () => {
+    locale.lang = 'en';
+    render(<VinUniAaccFeedback analysis={analysis} onTryAgain={vi.fn()} />);
+    expect(screen.getByRole('heading', { name: 'B. Ideas and structure' })).toBeVisible();
+    expect(screen.getAllByText('Phân tích có căn cứ.').length).toBeGreaterThan(0);
   });
 
   it('does not render an empty improvement card', () => {
@@ -104,7 +134,7 @@ describe('VinUniAaccFeedback', () => {
 
     expect(container.querySelectorAll('[class*="bg-slate-950"]')).toHaveLength(0);
     expect(container.querySelector('header')).toHaveClass('text-slate-950');
-    expect(screen.getByLabelText('Điểm tổng AACC')).toHaveClass('bg-pink-50/70');
+    expect(screen.getByLabelText('Điểm AACC tổng')).toHaveClass('bg-pink-50/70');
     expect(screen.getAllByRole('progressbar')).toHaveLength(4);
   });
 
@@ -285,10 +315,10 @@ describe('VinUniAaccFeedback', () => {
         ) & Node.DOCUMENT_POSITION_FOLLOWING,
       ),
     ).toBe(true);
-    for (const label of ['Writing', 'Detail', 'Voice', 'Character', 'Curiosity', 'Contribution']) {
+    for (const label of ['Bài viết', 'Chi tiết', 'Giọng văn', 'Số ký tự', 'Tò mò', 'Đóng góp']) {
       expect(screen.getByRole('button', { name: new RegExp(label) })).toBeVisible();
     }
-    await userEvent.hover(screen.getByRole('button', { name: /Writing/ }));
+    await userEvent.hover(screen.getByRole('button', { name: /Bài viết/ }));
     expect(screen.getByText(/độ rõ ràng, nhịp câu và cấu trúc/i)).toBeVisible();
     expect(screen.getAllByText('6.3')[0]).toBeVisible();
     expect(screen.getAllByText('6.4')[0]).toBeVisible();
@@ -436,14 +466,14 @@ describe('VinUniAaccFeedback', () => {
     render(<VinUniAaccFeedback analysis={v2} onTryAgain={vi.fn()} />);
 
     const journeyChart = screen.getByRole('img', {
-      name: 'Biểu đồ nhịp bài luận qua 5 chặng',
+      name: 'Biểu đồ hành trình bài luận qua năm chặng',
     });
     expect(journeyChart).toBeVisible();
     expect(within(journeyChart).getByTestId('narrative-plot')).toHaveClass('h-[260px]');
     const stageMarkers = within(journeyChart).getAllByTestId('narrative-stage-marker');
     expect(stageMarkers).toHaveLength(5);
     expect(stageMarkers[0]).toHaveClass('h-12', 'w-12');
-    for (const stage of ['Hook', 'Bối cảnh', 'Xung đột', 'Chuyển biến', 'Tương lai']) {
+    for (const stage of ['Mở đầu', 'Bối cảnh', 'Xung đột', 'Chuyển biến', 'Tương lai']) {
       expect(within(journeyChart).getByText(stage)).toBeVisible();
     }
     expect(screen.getByRole('img', { name: 'Bản đồ độ phủ dẫn chứng' })).toBeVisible();

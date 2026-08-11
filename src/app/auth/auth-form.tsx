@@ -7,6 +7,7 @@ import { Button, Input } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { controlClasses } from '@/shared/ui';
 import { createClient } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n';
 import { TID, testId } from '@/shared/lib';
 
 /**
@@ -77,6 +78,7 @@ function CheckInbox({ email }: { email: string }) {
 }
 
 export function AuthForm() {
+  const t = useT();
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -224,7 +226,7 @@ export function AuthForm() {
             <Input
               name="email"
               type="email"
-              label="Email"
+              label={t('Email')}
               placeholder="Enter your email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}

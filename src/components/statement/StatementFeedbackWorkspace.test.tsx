@@ -195,7 +195,7 @@ describe('StatementFeedbackWorkspace', () => {
       'data-doc-type',
       'recommendation_letter',
     );
-    expect(screen.getByRole('link', { name: /Quay lại Apply/i })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Back to Apply/i })).toHaveAttribute(
       'href',
       '/apply/application-1',
     );

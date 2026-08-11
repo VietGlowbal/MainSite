@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { useT } from '@/lib/i18n';
 import { Button, ICONS, KitIcon } from '@/shared/ui';
 import {
   CV_SECTION_KINDS,
@@ -57,6 +58,7 @@ export function CvContentWorkspace({
   documents,
   hasTargetProfile,
 }: CvContentWorkspaceProps) {
+  const t = useT();
   const [sections, setSections] = useState<CvSection[]>(initial?.sections ?? []);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
@@ -239,7 +241,7 @@ export function CvContentWorkspace({
       <header className="flex flex-col gap-gb-lg">
         <div className="flex flex-wrap items-start justify-between gap-gb-lg">
           <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
-            Nội dung CV
+            {t('CV content')}
           </h1>
           <AutosaveStatus
             status={autosave.status}
@@ -248,17 +250,16 @@ export function CvContentWorkspace({
           />
         </div>
         <p className="max-w-3xl text-gb-md text-fg-tertiary">
-          Nhập nội dung theo từng mục. Bạn có thể sắp xếp lại thứ tự, thêm hoặc bớt mục, và nhờ AI
-          viết lại từng dòng. AI chỉ đề xuất — không tự thay đổi nội dung của bạn.
+          {t('Enter content section by section. Reorder, add, or remove sections, and ask AI to rewrite individual lines. AI only suggests — it never changes your content automatically.')}
         </p>
       </header>
 
       {!hasTargetProfile ? (
         <StateBlock
-          title="Bạn chưa tạo target profile"
-          body="CV sẽ được đánh giá dựa trên target profile. Bạn vẫn có thể nhập nội dung trước."
+          title={t('You have not created a target profile yet')}
+          body={t('Your CV will be reviewed against the target profile. You can still enter content first.')}
           action={{
-            label: 'Tạo target profile',
+            label: t('Create target profile'),
             href: `/ai-strategy/${applicationId}/cv/target-profile`,
           }}
         />
@@ -268,20 +269,20 @@ export function CvContentWorkspace({
         <StrategyPanel>
           <div className="flex flex-col gap-gb-xl">
             <div className="flex flex-col gap-gb-md">
-              <h2 className="text-gb-lg font-semibold text-fg">Bắt đầu từ đâu</h2>
+              <h2 className="text-gb-lg font-semibold text-fg">{t('Where to start')}</h2>
               <p className="max-w-2xl text-gb-md text-fg-tertiary">
                 {documents.length > 0
-                  ? 'Bạn đã tải lên một CV. Nhập từ CV đó là cách nhanh nhất.'
-                  : 'Nhập từ CV có sẵn, tạo từ hồ sơ Glowbal, hoặc nhập thủ công.'}
+                  ? t('You have uploaded a CV. Importing from it is the fastest way.')
+                  : t('Import an existing CV, create from your Glowbal profile, or enter it manually.')}
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-gb-lg">
               <Button size="lg" onClick={() => setImporting(true)}>
                 <KitIcon art={ICONS.uploadCloud} frame={16} />
-                {documents.length > 0 ? 'Nhập từ CV đã tải lên' : 'Nhập từ CV'}
+                {documents.length > 0 ? t('Import uploaded CV') : t('Import CV')}
               </Button>
               <Button size="lg" variant="secondary" onClick={() => commit(defaultStarter())}>
-                Nhập thủ công
+                {t('Enter manually')}
               </Button>
             </div>
           </div>
@@ -291,7 +292,10 @@ export function CvContentWorkspace({
       {sections.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-gb-lg rounded-gb-xl border border-line bg-surface-muted px-gb-2xl py-gb-lg">
           <span className="text-gb-sm text-fg-tertiary">
-            {sections.length} mục · {entryCount} nội dung
+            {t('{sections} sections · {entries} entries', {
+              sections: sections.length,
+              entries: entryCount,
+            })}
           </span>
           <button
             type="button"
@@ -299,7 +303,7 @@ export function CvContentWorkspace({
             className="inline-flex items-center gap-gb-xs rounded-gb-md text-gb-sm font-medium text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
             <KitIcon art={ICONS.uploadCloud} frame={14} />
-            Nhập lại từ CV khác
+            {t('Import from another CV')}
           </button>
         </div>
       ) : null}
@@ -310,8 +314,8 @@ export function CvContentWorkspace({
             {isRenameableSection(section.kind) ? (
               <input
                 value={section.title ?? ''}
-                placeholder="Tên mục"
-                aria-label="Section name"
+                placeholder={t('Section name')}
+                aria-label={t('Section name')}
                 onChange={(event) => updateSection(section.id, { title: event.target.value })}
                 className="min-w-0 flex-1 rounded-gb-md border border-line-strong bg-surface px-gb-lg py-gb-xs text-gb-md font-semibold text-fg focus-visible:border-brand focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
               />
@@ -321,14 +325,14 @@ export function CvContentWorkspace({
 
             <div className="flex items-center gap-gb-xs">
               <IconButton
-                label={`Move ${sectionTitle(section)} up`}
+                label={`${t('Move')} ${sectionTitle(section)} ${t('up')}`}
                 disabled={sectionIndex === 0}
                 onClick={() => moveSection(sectionIndex, -1)}
               >
                 <KitIcon art={ICONS.arrowRight} frame={14} className="-rotate-90" />
               </IconButton>
               <IconButton
-                label={`Move ${sectionTitle(section)} down`}
+                label={`${t('Move')} ${sectionTitle(section)} ${t('down')}`}
                 disabled={sectionIndex === sections.length - 1}
                 onClick={() => moveSection(sectionIndex, 1)}
               >
@@ -336,7 +340,7 @@ export function CvContentWorkspace({
               </IconButton>
               {isOptionalSection(section.kind) ? (
                 <IconButton
-                  label={`Remove the ${sectionTitle(section)} section`}
+                  label={`${t('Remove the')} ${sectionTitle(section)} ${t('section')}`}
                   onClick={() => commit(sections.filter((s) => s.id !== section.id))}
                 >
                   <KitIcon art={ICONS.trash} frame={14} />
@@ -381,14 +385,14 @@ export function CvContentWorkspace({
                 {section.entries.length > 1 ? (
                   <div className="flex shrink-0 flex-col gap-gb-xs pt-gb-lg">
                     <IconButton
-                      label={`Move entry ${entryIndex + 1} up`}
+                      label={`${t('Move entry')} ${entryIndex + 1} ${t('up')}`}
                       disabled={entryIndex === 0}
                       onClick={() => moveEntry(section.id, entryIndex, -1)}
                     >
                       <KitIcon art={ICONS.arrowRight} frame={14} className="-rotate-90" />
                     </IconButton>
                     <IconButton
-                      label={`Move entry ${entryIndex + 1} down`}
+                      label={`${t('Move entry')} ${entryIndex + 1} ${t('down')}`}
                       disabled={entryIndex === section.entries.length - 1}
                       onClick={() => moveEntry(section.id, entryIndex, 1)}
                     >
@@ -405,7 +409,7 @@ export function CvContentWorkspace({
               className="inline-flex w-fit items-center gap-gb-xs rounded-gb-md border border-dashed border-line-strong bg-surface px-gb-xl py-gb-md text-gb-sm font-medium text-fg-tertiary hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               <KitIcon art={ICONS.plus} frame={14} />
-              Thêm nội dung
+              {t('Add content')}
             </button>
           </div>
         </StrategyPanel>
@@ -413,7 +417,7 @@ export function CvContentWorkspace({
 
       {sections.length > 0 && unusedKinds.length > 0 ? (
         <StrategyPanel padding="sm">
-          <p className="text-gb-sm font-semibold text-fg">Thêm mục</p>
+          <p className="text-gb-sm font-semibold text-fg">{t('Add section')}</p>
           <div className="flex flex-wrap gap-gb-md">
             {unusedKinds.map((kind) => (
               <button
@@ -422,7 +426,7 @@ export function CvContentWorkspace({
                 onClick={() => addSection(kind)}
                 className="rounded-gb-full border border-line-strong bg-surface px-gb-lg py-gb-xs text-gb-xs font-medium text-fg-secondary hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                + {SECTION_LABEL[kind]}
+                + {t(SECTION_LABEL[kind])}
               </button>
             ))}
             <button
@@ -430,7 +434,7 @@ export function CvContentWorkspace({
               onClick={() => addSection('custom')}
               className="rounded-gb-full border border-line-strong bg-surface px-gb-lg py-gb-xs text-gb-xs font-medium text-fg-secondary hover:bg-surface-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
-              + Mục tuỳ chỉnh
+              + {t('Custom section')}
             </button>
           </div>
         </StrategyPanel>
@@ -440,7 +444,7 @@ export function CvContentWorkspace({
         <div className="flex flex-col gap-gb-lg">
           <div className="flex flex-wrap items-center gap-gb-xl">
             <Button size="lg" href={`/ai-strategy/${applicationId}/cv/review`}>
-              Review my CV
+              {t('Review my CV')}
             </Button>
           </div>
           {/* Informs, never gates. The student may be mid-way through and know
@@ -450,7 +454,7 @@ export function CvContentWorkspace({
               {gaps.map((gap) => (
                 <li key={gap}>{gap}</li>
               ))}
-              <li>Bạn vẫn có thể tiếp tục.</li>
+              <li>{t('You can still continue.')}</li>
             </ul>
           ) : null}
         </div>

@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { T } from '@/lib/i18n';
 import { listMatchingApplications } from '@/features/apply/api';
 import { AI_JOURNEY, aiJourneySteps } from '@/features/apply/domain';
 import { createClient } from '@/lib/supabase/server';
@@ -21,33 +22,34 @@ export default async function MatchingApplicationsPage() {
         <header className="flex flex-col gap-gb-lg">
           <Badge variant="brand-subtle">GlowBal Matching Report</Badge>
           <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
-            Chọn chương trình để đánh giá
+            <T k="Choose a programme to evaluate" />
           </h1>
           <p className="text-gb-md text-fg-tertiary">
-            Mỗi báo cáo gắn với một chương trình cụ thể và chỉ dùng dữ liệu thuộc tài khoản
-            của bạn.
+            <T k="Each report belongs to one programme and only uses data from your account." />
           </p>
         </header>
 
         <Stepper
           steps={aiJourneySteps()}
           currentIndex={AI_JOURNEY.findIndex((step) => step.key === 'university')}
-          label="Hành trình AI Strategy"
+          label="AI Strategy journey"
         />
 
         {result.migrationMissing ? (
           <p className="text-gb-sm text-fg-error">
-            Matching Report chưa được kích hoạt trong cơ sở dữ liệu.
+            <T k="Matching Report is not enabled in the database." />
           </p>
         ) : null}
 
         {result.applications.length === 0 ? (
           <Panel className="flex flex-col items-start gap-gb-lg">
-            <h2 className="text-gb-lg font-semibold text-fg">Chưa có chương trình nào</h2>
+            <h2 className="text-gb-lg font-semibold text-fg">
+              <T k="No programmes yet" />
+            </h2>
             <p className="text-gb-sm text-fg-tertiary">
-              Hãy thêm một chương trình vào My Applications trước khi tạo báo cáo.
+              <T k="Add a programme in My Applications before creating a report." />
             </p>
-            <Button href="/apply">Thêm chương trình</Button>
+            <Button href="/apply"><T k="Add programme" /></Button>
           </Panel>
         ) : (
           <div className="grid gap-gb-lg">
@@ -73,7 +75,7 @@ export default async function MatchingApplicationsPage() {
                     </div>
                   </div>
                   <Badge variant={application.analysis ? 'safe-chip' : 'neutral-chip'}>
-                    {application.analysis ? 'Đã có báo cáo' : 'Chưa phân tích'}
+                    <T k={application.analysis ? 'Report available' : 'Not analysed yet'} />
                   </Badge>
                 </Panel>
               </Link>

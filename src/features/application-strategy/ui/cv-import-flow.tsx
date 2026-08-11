@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useT } from '@/lib/i18n';
 import { Button, FileDropzone, ICONS, KitIcon } from '@/shared/ui';
 import { useDocumentUpload } from '@/shared/hooks';
 import {
@@ -61,6 +62,7 @@ export function CvImportFlow({
   onCancel: () => void;
   onConfirm: (draft: CvImportDraft, sourceDocumentId: string | null) => void;
 }) {
+  const t = useT();
   const [phase, setPhase] = useState<Phase>({ kind: 'picking' });
   const [pasted, setPasted] = useState('');
   const [confirmingOverwrite, setConfirmingOverwrite] = useState(false);
@@ -102,11 +104,11 @@ export function CvImportFlow({
         return;
       }
 
-      setPhase({ kind: 'failed', message: data.error ?? 'We could not read that CV.' });
+      setPhase({ kind: 'failed', message: data.error ?? t('We could not read that CV.') });
     } catch {
       setPhase({
         kind: 'failed',
-        message: 'We could not reach Glowbal. Check your connection and try again.',
+        message: t('We could not reach Glowbal. Check your connection and try again.'),
       });
     }
   }
@@ -125,7 +127,7 @@ export function CvImportFlow({
     if (!uploaded?.documentId) {
       setPhase({
         kind: 'failed',
-        message: settled[0]?.error ?? 'We could not upload that file.',
+        message: settled[0]?.error ?? t('We could not upload that file.'),
       });
       return;
     }
@@ -153,11 +155,10 @@ export function CvImportFlow({
     <div className="flex flex-col gap-gb-3xl">
       <header className="flex flex-col gap-gb-md">
         <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
-          Nhập nội dung từ CV
+          {t('Import content from a CV')}
         </h1>
         <p className="max-w-3xl text-gb-md text-fg-tertiary">
-          Nội dung sẽ được tách thành từng mục để bạn kiểm tra trước khi lưu. Chưa có gì được ghi
-          vào CV của bạn cho đến khi bạn xác nhận.
+          {t('The content will be split into sections for review before saving. Nothing is written to your CV until you confirm.')}
         </p>
       </header>
 
@@ -166,7 +167,7 @@ export function CvImportFlow({
           <div className="flex flex-col gap-gb-xl">
             {documents.length > 0 ? (
               <div className="flex flex-col gap-gb-md">
-                <h2 className="text-gb-sm font-semibold text-fg">CV bạn đã tải lên</h2>
+                <h2 className="text-gb-sm font-semibold text-fg">{t('Your uploaded CVs')}</h2>
                 <ul className="flex flex-col gap-gb-md">
                   {documents.map((doc) => (
                     <li
@@ -187,7 +188,7 @@ export function CvImportFlow({
                         </div>
                       </div>
                       <Button size="sm" onClick={() => void importDocument(doc.id)}>
-                        Nhập từ file này
+                        {t('Import this file')}
                       </Button>
                     </li>
                   ))}
@@ -197,33 +198,33 @@ export function CvImportFlow({
 
             <div className="flex flex-col gap-gb-md">
               <h2 className="text-gb-sm font-semibold text-fg">
-                {documents.length > 0 ? 'Hoặc tải lên CV khác' : 'Tải lên CV'}
+                {documents.length > 0 ? t('Or upload another CV') : t('Upload a CV')}
               </h2>
               <FileDropzone
                 onFiles={(files) => void importFiles(files)}
                 accept=".pdf,.doc,.docx,.txt"
-                label="Kéo CV vào đây, hoặc chọn file"
-                hint="PDF có lớp văn bản đọc được tốt nhất. Tối đa 10MB."
+                label={t('Drop a CV here, or choose a file')}
+                hint={t('PDFs with a text layer work best. Up to 10MB.')}
               />
             </div>
 
             <div className="flex flex-wrap items-center gap-gb-xl border-t border-line pt-gb-xl">
               <Button size="sm" variant="secondary" onClick={() => void importProfile()}>
-                Tạo từ hồ sơ Glowbal
+                {t('Create from Glowbal profile')}
               </Button>
               <button
                 type="button"
                 onClick={() => setPhase({ kind: 'pasting' })}
                 className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                Dán nội dung CV
+                {t('Paste CV content')}
               </button>
               <button
                 type="button"
                 onClick={onCancel}
                 className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                Huỷ
+                {t('Cancel')}
               </button>
             </div>
           </div>
@@ -249,24 +250,24 @@ export function CvImportFlow({
       {phase.kind === 'no_content' ? (
         <StateBlock
           tone="attention"
-          title="Chúng tôi không tìm thấy nội dung CV trong file này"
+          title={t('We could not find CV content in this file')}
           body={
             phase.notes.length > 0
               ? phase.notes.join(' ')
-              : 'File đọc được nhưng không giống một CV. Bạn có thể dán nội dung hoặc nhập thủ công.'
+              : t('The file was readable but does not look like a CV. You can paste content or enter it manually.')
           }
           action={{ label: 'Paste CV text', onClick: () => setPhase({ kind: 'pasting' }) }}
-          secondary={{ label: 'Nhập thủ công', onClick: onCancel }}
+          secondary={{ label: t('Enter manually'), onClick: onCancel }}
         />
       ) : null}
 
       {phase.kind === 'failed' ? (
         <StateBlock
           tone="error"
-          title="Không nhập được CV"
+          title={t('Could not import CV')}
           body={phase.message}
           action={{ label: 'Try again', onClick: () => setPhase({ kind: 'picking' }) }}
-          secondary={{ label: 'Nhập thủ công', onClick: onCancel }}
+          secondary={{ label: t('Enter manually'), onClick: onCancel }}
         />
       ) : null}
 
@@ -274,11 +275,10 @@ export function CvImportFlow({
         <StrategyPanel>
           <div className="flex flex-col gap-gb-lg">
             <label htmlFor="paste-cv" className="text-gb-sm font-semibold text-fg">
-              Dán nội dung CV
+              {t('Paste CV content')}
             </label>
             <p className="text-gb-sm text-fg-tertiary">
-              Mở CV của bạn, chọn tất cả, sao chép và dán vào đây. Cách này luôn hoạt động, kể cả
-              với file scan.
+              {t('Open your CV, select all, copy, and paste it here. This always works, even with scanned files.')}
             </p>
             <textarea
               id="paste-cv"
@@ -286,22 +286,22 @@ export function CvImportFlow({
               rows={12}
               value={pasted}
               onChange={(event) => setPasted(event.target.value)}
-              placeholder="Dán toàn bộ nội dung CV vào đây..."
+              placeholder={t('Paste the full CV content here...')}
               className="w-full resize-y rounded-gb-md border border-line-strong bg-surface px-gb-xl py-gb-lg text-gb-sm text-fg placeholder:text-fg-placeholder focus-visible:border-brand focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
             />
             <div className="flex flex-wrap items-center gap-gb-xl">
               <Button size="sm" onClick={() => void importPaste()} disabled={pasted.trim().length < 40}>
-                Tách thành từng mục
+                {t('Split into sections')}
               </Button>
               {pasted.trim().length > 0 && pasted.trim().length < 40 ? (
-                <span className="text-gb-xs text-fg-muted">Cần thêm nội dung để tách.</span>
+                <span className="text-gb-xs text-fg-muted">{t('Add more content to split it.')}</span>
               ) : null}
               <button
                 type="button"
                 onClick={() => setPhase({ kind: 'picking' })}
                 className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                Quay lại
+                {t('Back')}
               </button>
             </div>
           </div>
@@ -348,17 +348,26 @@ function ConfirmationView({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
+  const t = useT();
   const uncertainCount = countUncertain(draft);
   const entryCount = draft.sections.reduce((n, s) => n + s.entries.length, 0);
 
   return (
     <>
       <StateBlock
-        title="Ready to review"
+        title={t('Ready to review')}
         body={
           uncertainCount > 0
-            ? `We found ${draft.sections.length} sections and ${entryCount} entries. ${uncertainCount} field${uncertainCount === 1 ? '' : 's'} we were unsure about are marked "Please check".`
-            : `We found ${draft.sections.length} sections and ${entryCount} entries.`
+            ? t('We found {sections} sections and {entries} entries. {uncertain} field{plural} we were unsure about are marked "Please check".', {
+                sections: draft.sections.length,
+                entries: entryCount,
+                uncertain: uncertainCount,
+                plural: uncertainCount === 1 ? '' : 's',
+              })
+            : t('We found {sections} sections and {entries} entries.', {
+                sections: draft.sections.length,
+                entries: entryCount,
+              })
         }
       />
 
@@ -373,7 +382,7 @@ function ConfirmationView({
       {draft.sections.map((section) => (
         <StrategyPanel key={section.id} padding="sm">
           <h2 className="text-gb-md font-semibold text-fg">
-            {sectionTitle(section) || SECTION_LABEL[section.kind]}
+            {sectionTitle(section) || t(SECTION_LABEL[section.kind])}
           </h2>
           <div className="flex flex-col gap-gb-lg">
             {section.entries.map((entry) => {
@@ -389,7 +398,7 @@ function ConfirmationView({
                     </span>
                     {flagged.length > 0 ? (
                       <span className="rounded-gb-full bg-brand-subtle px-gb-md py-gb-xxs text-gb-xs font-semibold text-fg-brand">
-                        Please check: {flagged.join(', ')}
+                        {t('Please check')}: {flagged.join(', ')}
                       </span>
                     ) : null}
                   </div>
@@ -419,7 +428,7 @@ function ConfirmationView({
                   ) : null}
 
                   {entry.evidence ? (
-                    <p className="text-gb-xs text-fg-muted">Evidence: {entry.evidence}</p>
+                    <p className="text-gb-xs text-fg-muted">{t('Evidence')}: {entry.evidence}</p>
                   ) : null}
                 </div>
               );
@@ -431,29 +440,29 @@ function ConfirmationView({
       {confirmingOverwrite ? (
         <StateBlock
           tone="attention"
-          title="Thay thế nội dung CV hiện tại?"
-          body="Bạn đã có nội dung CV trong Glowbal. Nhập từ file này sẽ thay thế nội dung đó."
-          action={{ label: 'Thay thế nội dung', onClick: onConfirm }}
-          secondary={{ label: 'Huỷ', onClick: onCancel }}
+          title={t('Replace current CV content?')}
+          body={t('You already have CV content in Glowbal. Importing this file will replace it.')}
+          action={{ label: t('Replace content'), onClick: onConfirm }}
+          secondary={{ label: t('Cancel'), onClick: onCancel }}
         />
       ) : (
         <div className="flex flex-wrap items-center gap-gb-xl">
           <Button size="lg" onClick={onConfirm}>
-            {hasExistingContent ? 'Thay thế bằng nội dung này' : 'Start with this content'}
+            {hasExistingContent ? t('Replace with this content') : t('Start with this content')}
           </Button>
           <button
             type="button"
             onClick={onBack}
             className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            Chọn file khác
+            {t('Choose another file')}
           </button>
           <button
             type="button"
             onClick={onCancel}
             className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            Cancel import
+            {t('Cancel import')}
           </button>
         </div>
       )}

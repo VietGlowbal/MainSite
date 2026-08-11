@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { SiteNavigation } from '@/components/site-navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n';
 import type { LorReview } from '@/lib/ai/lor';
 import type { AIAnalysis } from '@/lib/types';
 import { Container } from '@/shared/ui';
@@ -49,6 +50,7 @@ export function StatementFeedbackWorkspace({
   userName = null,
   evaluationMode: requestedEvaluationMode,
 }: Props) {
+  const t = useT();
   const isLor = reviewType === 'lor';
   const supabase = useMemo(() => (demo ? null : createClient()), [demo]);
   const [draft, setDraft] = useState<DraftState | null>(
@@ -131,7 +133,7 @@ export function StatementFeedbackWorkspace({
                 className="mb-gb-sm inline-flex items-center gap-gb-xs text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <span aria-hidden="true">←</span>
-                Quay lại Apply
+                {t('Back to Apply')}
               </Link>
             ) : null}
             <p className="text-gb-xs font-bold uppercase tracking-[0.18em] text-fg-brand">

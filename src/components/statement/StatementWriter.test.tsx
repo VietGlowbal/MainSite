@@ -11,6 +11,28 @@ import { finalizeLorReview } from '@/lib/ai/lor';
 import type { AaccAnalysisV2 } from '@/lib/ai/vinuni-evaluation-v2';
 import { StatementWriter } from './StatementWriter';
 
+const locale = vi.hoisted(() => ({ lang: 'vi' as 'en' | 'vi' }));
+vi.mock('@/lib/i18n', async () => {
+  const actual = await vi.importActual<typeof import('@/lib/i18n')>('@/lib/i18n');
+  const { translations } = await vi.importActual<typeof import('@/lib/i18n-dictionary')>('@/lib/i18n-dictionary');
+  const interpolate = (value: string, vars?: Record<string, string | number>) =>
+    vars ? value.replace(/\{(\w+)\}/g, (_, key) => key in vars ? String(vars[key]) : `{${key}}`) : value;
+  const translate = (key: string, vars?: Record<string, string | number>) => interpolate(
+    locale.lang === 'vi' ? translations[key] ?? key : key,
+    vars,
+  );
+  return {
+    ...actual,
+    useLanguage: () => ({
+      lang: locale.lang,
+      setLang: (next: 'en' | 'vi') => { locale.lang = next; },
+      toggle: () => { locale.lang = locale.lang === 'en' ? 'vi' : 'en'; },
+      t: translate,
+    }),
+    useT: () => translate,
+  };
+});
+
 const mocks = vi.hoisted(() => {
   const single = vi.fn().mockResolvedValue({ data: { id: 1 } });
   const select = vi.fn(() => ({ single }));
@@ -172,6 +194,7 @@ function renderDemoWriter() {
 }
 
 function renderLorWriter(initialAnalysis: unknown = null, onAnalysisStart?: () => void) {
+  locale.lang = 'en';
   const props = {
     saveTarget: { kind: 'application', applicationId: 'app-1' },
     targetName: 'Computer Science Â· Cambridge',
@@ -250,6 +273,7 @@ describe('StatementWriter VinUni routing', () => {
 
   afterEach(() => {
     vi.unstubAllGlobals();
+    locale.lang = 'vi';
   });
 
   it.each([

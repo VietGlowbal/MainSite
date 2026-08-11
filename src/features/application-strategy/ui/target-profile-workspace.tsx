@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useMemo, useState } from 'react';
+import { useT } from '@/lib/i18n';
 import { Button } from '@/shared/ui';
 import {
   TARGET_PROFILE_FIELDS,
@@ -57,6 +58,7 @@ export function TargetProfileWorkspace({
   hasProgrammeData,
   furthestStep,
 }: TargetProfileWorkspaceProps) {
+  const t = useT();
   const [profile, setProfile] = useState<CvTargetProfile | null>(initial);
   const [values, setValues] = useState<Values>(() => toValues(initial));
   const [generating, setGenerating] = useState(false);
@@ -106,14 +108,14 @@ export function TargetProfileWorkspace({
       };
 
       if (!response.ok || !data.targetProfile) {
-        setGenerateError(data.error ?? 'We could not generate your target profile.');
+        setGenerateError(data.error ?? t('We could not generate your target profile.'));
         return;
       }
 
       setProfile(data.targetProfile);
       setValues(toValues(data.targetProfile));
     } catch {
-      setGenerateError('We could not reach Glowbal. Check your connection and try again.');
+      setGenerateError(t('We could not reach Glowbal. Check your connection and try again.'));
     } finally {
       setGenerating(false);
     }
@@ -135,7 +137,7 @@ export function TargetProfileWorkspace({
       <header className="flex flex-col gap-gb-lg">
         <div className="flex flex-wrap items-start justify-between gap-gb-lg">
           <h1 className="max-w-2xl font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
-            Xác định CV cần chứng minh những điều gì
+            {t('Define what your CV needs to prove')}
           </h1>
           <AutosaveStatus
             status={autosave.status}
@@ -144,8 +146,7 @@ export function TargetProfileWorkspace({
           />
         </div>
         <p className="max-w-3xl text-gb-md text-fg-tertiary">
-          Trước khi viết CV, cần rõ CV này phải chứng minh điều gì với chương trình bạn đang ứng
-          tuyển. Bảy mục dưới đây là những gì AI sẽ đối chiếu khi đánh giá CV của bạn.
+          {t('Before writing your CV, define what it needs to prove for the programme you are applying to. AI will compare these seven areas when reviewing your CV.')}
         </p>
         <p className="text-gb-sm text-fg-muted">
           {filled} of {TARGET_PROFILE_FIELDS.length} fields have content
@@ -156,7 +157,7 @@ export function TargetProfileWorkspace({
 
       {generating ? (
         <GeneratingState
-          title="Đang tạo target profile"
+          title={t('Creating target profile')}
           body="Reading this programme's page and your Glowbal profile."
         />
       ) : null}
@@ -164,7 +165,7 @@ export function TargetProfileWorkspace({
       {generateError ? (
         <StateBlock
           tone="error"
-          title="Không tạo được target profile"
+          title={t('Could not create target profile')}
           body={generateError}
           action={{ label: 'Try again', onClick: () => void generate() }}
         />
@@ -172,16 +173,16 @@ export function TargetProfileWorkspace({
 
       {!generated && !generating ? (
         <StateBlock
-          title="Chưa có target profile"
-          body="AI sẽ đọc trang chương trình và hồ sơ của bạn, rồi điền bảy mục dưới đây. Bạn có thể sửa mọi mục sau đó."
-          action={{ label: 'Tạo trang target profile', onClick: () => void generate() }}
+          title={t('No target profile yet')}
+          body={t('AI will read the programme page and your profile, then fill these seven areas. You can edit every area afterwards.')}
+          action={{ label: t('Create target profile'), onClick: () => void generate() }}
         />
       ) : null}
 
       {generated && missing.length > 0 ? (
         <div className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-brand-subtle p-gb-2xl">
           <p className="text-gb-sm font-semibold text-fg">
-            Một số thông tin chưa xác định được
+            {t('Some information could not be determined')}
           </p>
           <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl">
             {missing.map((item) => (
@@ -201,7 +202,7 @@ export function TargetProfileWorkspace({
               <div className="flex flex-col gap-gb-lg">
                 <div className="flex flex-wrap items-center justify-between gap-gb-md">
                   <label htmlFor={inputId} className="text-gb-sm font-semibold text-fg">
-                    {def.label}
+                    {t(def.label)}
                   </label>
                   {/* Only after generation: before it, there is no provenance to
                       report and a badge on an empty field is noise. */}
@@ -213,12 +214,12 @@ export function TargetProfileWorkspace({
                   name={inputId}
                   rows={def.rows}
                   value={values[def.key]}
-                  placeholder={def.example}
+                  placeholder={t(def.example)}
                   onChange={(event) => update(def.key, event.target.value)}
                   className="w-full resize-y rounded-gb-md border border-line-strong bg-surface px-gb-xl py-gb-lg text-gb-sm text-fg placeholder:text-fg-placeholder placeholder:italic focus-visible:border-brand focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand"
                 />
 
-                <p className="text-gb-xs text-fg-muted">{def.hint}</p>
+                <p className="text-gb-xs text-fg-muted">{t(def.hint)}</p>
               </div>
             </StrategyPanel>
           );
@@ -227,7 +228,7 @@ export function TargetProfileWorkspace({
 
       <div className="flex flex-wrap items-center gap-gb-xl">
         <Button size="lg" href={`/ai-strategy/${applicationId}/cv/content`}>
-          Tiếp tục nhập nội dung
+          {t('Continue entering content')}
         </Button>
         {generated ? (
           <button
@@ -236,7 +237,7 @@ export function TargetProfileWorkspace({
             disabled={generating}
             className="rounded-gb-md text-gb-sm font-medium text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-60"
           >
-            Tạo lại target profile
+            {t('Regenerate target profile')}
           </button>
         ) : null}
       </div>
