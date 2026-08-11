@@ -4,14 +4,24 @@ import { motion } from 'framer-motion';
 import { Badge, ICONS, KitIcon } from '@/shared/ui';
 import type { Task } from '../domain';
 
-/** Keyed on `status` so the moment a row completes, the icon remounts and pops in — spec §18. */
+const STATUS_LABEL: Partial<Record<Task['status'], string>> = {
+  in_progress: 'In progress',
+  recommended: 'Recommended',
+  needs_attention: 'Needs attention',
+};
+
+/** Keyed on `status` so the moment a row completes, the icon remounts and pops in — spec §16. */
 function StatusMark({ status }: { status: Task['status'] }) {
   const content =
     status === 'complete' ? (
       <span className="flex size-[20px] shrink-0 items-center justify-center text-on-tier-safe">
         <KitIcon art={ICONS.checkCircle} frame={20} />
       </span>
-    ) : status === 'current' ? (
+    ) : status === 'needs_attention' ? (
+      <span className="flex size-[20px] shrink-0 items-center justify-center text-gb-sm font-bold text-fg-error">
+        !
+      </span>
+    ) : status === 'in_progress' || status === 'recommended' ? (
       <span className="flex size-[20px] shrink-0 items-center justify-center">
         <span className="size-[10px] rounded-gb-full bg-brand" />
       </span>
@@ -35,18 +45,29 @@ function StatusMark({ status }: { status: Task['status'] }) {
 }
 
 /**
- * Every row is clickable, including completed ones — reopening a finished
- * task shows its real workspace in review, the way a real product would let
- * you revisit a step rather than only ever seeing it once. `TaskRow` is only
- * ever rendered inside an unlocked phase, so `task.status` here is never
- * `'locked'`.
+ * Every row (in an unlocked phase) is clickable, including completed ones —
+ * reopening a finished task shows its real workspace in review. `selected`
+ * highlights the row currently shown in the workspace panel.
  */
-export function TaskRow({ task, onOpen }: { task: Task; onOpen: (taskId: string) => void }) {
+export function TaskRow({
+  task,
+  selected,
+  onSelect,
+}: {
+  task: Task;
+  selected: boolean;
+  onSelect: (taskId: string) => void;
+}) {
+  const badgeLabel = STATUS_LABEL[task.status];
+
   return (
     <button
       type="button"
-      onClick={() => onOpen(task.id)}
-      className="flex w-full items-center gap-gb-lg rounded-gb-lg px-gb-md py-gb-sm text-left transition-colors hover:bg-surface-hover"
+      onClick={() => onSelect(task.id)}
+      aria-current={selected ? 'true' : undefined}
+      className={`flex w-full items-center gap-gb-lg rounded-gb-lg px-gb-md py-gb-sm text-left transition-colors ${
+        selected ? 'bg-brand-subtle' : 'hover:bg-surface-hover'
+      }`}
     >
       <StatusMark status={task.status} />
       <span
@@ -60,9 +81,9 @@ export function TaskRow({ task, onOpen }: { task: Task; onOpen: (taskId: string)
         <span className="shrink-0 text-gb-xs font-medium text-on-tier-safe">
           ✨ {task.completionNote}
         </span>
-      ) : task.status === 'current' ? (
-        <Badge variant="brand-subtle" className="shrink-0">
-          Current
+      ) : badgeLabel ? (
+        <Badge variant={task.status === 'needs_attention' ? 'neutral' : 'brand-subtle'} className="shrink-0">
+          {badgeLabel}
         </Badge>
       ) : null}
     </button>

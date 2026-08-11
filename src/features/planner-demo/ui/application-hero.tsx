@@ -3,7 +3,7 @@ import { HERO_FLAVOUR, HERO_HEADLINE, HERO_UNIVERSITY } from '../domain';
 /** The "Destination" step of the hierarchy in spec §17. */
 export function ApplicationHero() {
   return (
-    <div className="flex flex-col gap-gb-xs px-gb-xl lg:px-0">
+    <div className="flex flex-col gap-gb-xs">
       <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg lg:text-gb-display-md">
         {HERO_HEADLINE}
         <br />

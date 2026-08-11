@@ -1,4 +1,8 @@
-/** Compact status strip, spec §6.C — three items maximum, no metrics beyond these. */
+/**
+ * Compact status container (spec §6) — sits beside the hero on desktop, not
+ * a full-width bar. Three figures only: progress, deadline, attention.
+ * Progress is completion of the GlowBal plan, never admissions probability.
+ */
 export function StatusStrip({
   progress,
   daysLeft,
@@ -8,20 +12,27 @@ export function StatusStrip({
   daysLeft: number;
   alerts: number;
 }) {
-  const items = [
-    `${progress}% complete`,
-    `${daysLeft} days left`,
-    alerts === 1 ? '1 thing needs attention' : `${alerts} things need attention`,
+  const items: readonly { icon: string; value: string; label: string }[] = [
+    { icon: '📊', value: `${progress}%`, label: 'Application progress' },
+    { icon: '📅', value: `${daysLeft} days`, label: 'Days until deadline' },
+    {
+      icon: '🔔',
+      value: alerts === 1 ? '1 task' : `${alerts} tasks`,
+      label: 'Needs your attention',
+    },
   ];
 
   return (
-    <div className="mx-gb-xl flex items-center justify-between gap-gb-md rounded-gb-xl border border-line bg-surface px-gb-xl py-gb-lg lg:mx-0">
-      {items.map((item, i) => (
-        <div key={item} className="flex min-w-0 flex-1 items-center justify-center gap-gb-md">
-          {i > 0 ? <span className="h-gb-2xl w-px shrink-0 bg-line" aria-hidden="true" /> : null}
-          <span className="truncate text-center text-gb-sm font-medium text-fg-secondary">
-            {item}
+    <div className="flex flex-col divide-y divide-line rounded-gb-2xl border border-line bg-surface sm:flex-row sm:divide-x sm:divide-y-0 lg:w-fit">
+      {items.map((item) => (
+        <div key={item.label} className="flex items-center gap-gb-md px-gb-xl py-gb-lg">
+          <span className="flex size-[36px] shrink-0 items-center justify-center rounded-gb-full bg-brand-subtle text-gb-md">
+            {item.icon}
           </span>
+          <div className="flex flex-col">
+            <span className="text-gb-lg font-semibold text-fg">{item.value}</span>
+            <span className="whitespace-nowrap text-gb-xs text-fg-tertiary">{item.label}</span>
+          </div>
         </div>
       ))}
     </div>

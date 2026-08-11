@@ -2,21 +2,23 @@
 
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import {
-  alertsForState,
-  baseProgressForState,
-  buildApplicationShapes,
-  daysLeftForState,
-  deriveStatuses,
-  findCurrentTaskId,
+  alertsForApplication,
+  buildApplication,
+  findTaskById,
+  progressForApplication,
   type Application,
   type DemoState,
+  type PlannerView,
   type ReflectionAnswers,
+  type Task,
 } from '../domain';
 
-const STORAGE_KEY = 'glowbal-planner-demo/cambridge-engineering';
+const STORAGE_KEY = 'glowbal-planner-demo/cambridge-engineering-v2';
 
 type PersistedState = {
   demoState: DemoState;
+  view: PlannerView;
+  selectedTaskId: string | null;
   completedTaskIds: string[];
   reflectionAnswers?: ReflectionAnswers;
 };
@@ -30,6 +32,8 @@ function readStorage(): PersistedState | null {
     if (!parsed.demoState || !Array.isArray(parsed.completedTaskIds)) return null;
     return {
       demoState: parsed.demoState,
+      view: parsed.view ?? 'tasks',
+      selectedTaskId: parsed.selectedTaskId ?? null,
       completedTaskIds: parsed.completedTaskIds,
       ...(parsed.reflectionAnswers ? { reflectionAnswers: parsed.reflectionAnswers } : {}),
     };
@@ -46,33 +50,42 @@ function writeStorage(state: PersistedState) {
 /**
  * `useSyncExternalStore` is what tells this hook hydration is over, without
  * tripping `react-hooks/set-state-in-effect` or a hydration mismatch — same
- * pattern and same reasoning as `onboarding-wizard.tsx`'s `NO_UPDATES`: a
- * `useState` initialiser reading localStorage would make the hydration render
- * disagree with the server's HTML, and a `useEffect` calling `setState` is
- * exactly what that lint rule flags. React renders the server snapshot first
- * (matching the SSR HTML), then re-renders with the client snapshot once
- * hydration completes, and the store itself never emits — "we are on the
- * client" cannot stop being true once it is.
+ * pattern as `onboarding-wizard.tsx`'s `NO_UPDATES`. React renders the
+ * server snapshot first (matching the SSR HTML), then re-renders with the
+ * client snapshot once hydration completes, and the store itself never
+ * emits — "we are on the client" cannot stop being true once it is.
  */
 const NO_UPDATES = () => () => {};
 const onClient = () => true;
 const onServer = () => false;
 
 /**
- * Client-side planner state: which demo scenario is active, which tasks the
- * visitor has completed on top of that scenario's baseline, and which task
- * (if any) is open full-screen. Persisted to localStorage per spec §16 — no
+ * Client-side planner state: which demo checkpoint is active, which view is
+ * selected, which task is selected (persistent — not an open/close overlay,
+ * see spec §12), and which tasks the visitor completed on top of the
+ * checkpoint's own baseline. Persisted to localStorage (spec §25) — no
  * backend, no database write.
+ *
+ * `forceState`: true when the URL carried an explicit `?demo=` (see
+ * `page.tsx`). A presenter jumping between checkpoint links expects each
+ * link to show exactly that checkpoint — if a saved session were allowed to
+ * win, `?demo=paywall` would silently render whatever was left over from an
+ * earlier `?demo=new` visit in the same browser, one shared localStorage key
+ * clobbering the other. Only a bare reload (no `?demo=`) resumes the saved
+ * session; a link with the param always starts that checkpoint fresh.
  */
-export function usePlannerDemo(initialState: DemoState) {
+export function usePlannerDemo(initialState: DemoState, forceState: boolean) {
   const hydrated = useSyncExternalStore(NO_UPDATES, onClient, onServer);
   const [demoState, setDemoStateRaw] = useState<DemoState>(initialState);
+  const [view, setView] = useState<PlannerView>('tasks');
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [completedTaskIds, setCompletedTaskIds] = useState<readonly string[]>([]);
   const [reflectionAnswers, setReflectionAnswers] = useState<ReflectionAnswers | undefined>(
     undefined,
   );
-  const [activeTaskId, setActiveTaskId] = useState<string | null>(null);
   const [storageRead, setStorageRead] = useState(false);
+  /** Gates the one-time auto-select below — see the comment on it for why this can't just be "selectedTaskId is null". */
+  const [autoSelected, setAutoSelected] = useState(false);
 
   /*
    * Merge the saved snapshot in once hydration is over, adjusting state
@@ -81,67 +94,76 @@ export function usePlannerDemo(initialState: DemoState) {
    */
   if (hydrated && !storageRead) {
     setStorageRead(true);
-    const saved = readStorage();
+    const saved = forceState ? null : readStorage();
     if (saved) {
       setDemoStateRaw(saved.demoState);
+      setView(saved.view);
+      setSelectedTaskId(saved.selectedTaskId);
       setCompletedTaskIds(saved.completedTaskIds);
       if (saved.reflectionAnswers) setReflectionAnswers(saved.reflectionAnswers);
+      if (saved.selectedTaskId !== null) setAutoSelected(true);
     }
   }
 
   useEffect(() => {
-    // Skipped until the saved snapshot has been read, so this does not
-    // overwrite it with the pre-hydration defaults first.
     if (!storageRead) return;
     writeStorage({
       demoState,
+      view,
+      selectedTaskId,
       completedTaskIds: [...completedTaskIds],
       ...(reflectionAnswers ? { reflectionAnswers } : {}),
     });
-  }, [demoState, completedTaskIds, reflectionAnswers, storageRead]);
+  }, [demoState, view, selectedTaskId, completedTaskIds, reflectionAnswers, storageRead]);
 
-  const shapes = useMemo(() => buildApplicationShapes(demoState), [demoState]);
   const completedSet = useMemo(() => new Set(completedTaskIds), [completedTaskIds]);
-  const phases = useMemo(() => deriveStatuses(shapes, completedSet), [shapes, completedSet]);
 
-  /** Completions the visitor made on top of the scenario's own baseline. */
-  const extraCompletedCount = useMemo(() => {
-    let count = 0;
-    for (const shape of shapes) {
-      for (const t of shape.tasks) {
-        if (!t.baseComplete && completedSet.has(t.id)) count += 1;
-      }
-    }
-    return count;
-  }, [shapes, completedSet]);
-
-  const application: Application = useMemo(
-    () => ({
-      id: 'cambridge-engineering-2027',
-      university: 'University of Cambridge',
-      course: 'Engineering',
-      entryYear: 2027,
-      daysLeft: daysLeftForState(demoState),
-      currentTaskId: findCurrentTaskId(phases),
-      phases,
-    }),
-    [demoState, phases],
+  /** Built with no selection — the source for "what's genuinely next", independent of whatever's being reviewed. */
+  const unselectedApplication = useMemo(
+    () => buildApplication(demoState, null, completedSet),
+    [demoState, completedSet],
   );
 
-  const progress = Math.min(100, baseProgressForState(demoState) + extraCompletedCount * 6);
-  const alerts = Math.max(0, alertsForState(demoState) - extraCompletedCount);
-
-  const activeTask = useMemo(() => {
-    if (!activeTaskId) return null;
-    for (const phase of phases) {
-      const found = phase.tasks.find((t) => t.id === activeTaskId);
-      if (found) return found;
+  /**
+   * Auto-open the current task ONCE nothing has been selected yet this
+   * checkpoint — GlowBal always has a next action (spec §1), so landing on
+   * an empty panel would contradict the product itself. This can't just be
+   * "selectedTaskId is null → fall back every render": completing the open
+   * task changes `currentTaskId` on the very next render, and a continuous
+   * fallback would silently swap the panel to the NEW task before the
+   * success screen the just-completed task is showing ever renders. Gating
+   * on `autoSelected` makes it fire once per checkpoint, so an explicit
+   * "Back to tasks" (which sets this back to null on purpose) stays empty
+   * instead of being immediately re-filled.
+   */
+  if (storageRead && !autoSelected) {
+    setAutoSelected(true);
+    if (selectedTaskId === null && unselectedApplication.currentTaskId) {
+      setSelectedTaskId(unselectedApplication.currentTaskId);
     }
-    return null;
-  }, [phases, activeTaskId]);
+  }
 
-  const openTask = useCallback((taskId: string) => setActiveTaskId(taskId), []);
-  const closeTask = useCallback(() => setActiveTaskId(null), []);
+  const application: Application = useMemo(
+    () => buildApplication(demoState, selectedTaskId, completedSet),
+    [demoState, selectedTaskId, completedSet],
+  );
+
+  const progress = progressForApplication(application);
+  const alerts = alertsForApplication(application);
+
+  /** The genuine next action, independent of whatever is selected — the Next Task card always shows this, never a task being reviewed. */
+  const nextTask: Task | null = unselectedApplication.currentTaskId
+    ? (findTaskById(unselectedApplication, unselectedApplication.currentTaskId) ?? null)
+    : null;
+
+  /** What the workspace panel renders — null when nothing is selected, e.g. right after "Back to tasks". */
+  const selectedTask: Task | null = selectedTaskId ? (findTaskById(application, selectedTaskId) ?? null) : null;
+
+  /** Selecting a task always switches to the Tasks view — the task lives there. */
+  const selectTask = useCallback((taskId: string | null) => {
+    setSelectedTaskId(taskId);
+    if (taskId) setView('tasks');
+  }, []);
 
   const markTaskComplete = useCallback((taskId: string) => {
     setCompletedTaskIds((prev) => (prev.includes(taskId) ? prev : [...prev, taskId]));
@@ -159,26 +181,36 @@ export function usePlannerDemo(initialState: DemoState) {
     setDemoStateRaw(next);
     setCompletedTaskIds([]);
     setReflectionAnswers(undefined);
-    setActiveTaskId(null);
+    setSelectedTaskId(null);
+    setView('tasks');
+    setAutoSelected(false);
   }, []);
 
   const resetDemo = useCallback(() => {
     if (typeof window !== 'undefined') window.localStorage.removeItem(STORAGE_KEY);
     setDemoStateRaw('new');
+    setView('tasks');
+    setSelectedTaskId(null);
     setCompletedTaskIds([]);
     setReflectionAnswers(undefined);
-    setActiveTaskId(null);
+    setAutoSelected(false);
   }, []);
 
   return {
     application,
     demoState,
+    view,
+    setView,
     progress,
     alerts,
     reflectionAnswers,
-    activeTask,
-    openTask,
-    closeTask,
+    /** Raw selection — null until the visitor explicitly picks a task. Mobile uses this to decide accordion vs. workspace. */
+    selectedTaskId,
+    /** The genuine next action, unaffected by review selections — what the Next Task card shows. */
+    nextTask,
+    /** What the workspace panel renders — selection with a next-action fallback, so desktop's panel is never empty. */
+    selectedTask,
+    selectTask,
     markTaskComplete,
     completeReflection,
     setDemoState,

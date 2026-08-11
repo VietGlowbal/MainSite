@@ -5,19 +5,21 @@ export function PhaseList({
   phases,
   expandedPhaseId,
   onExpandedChange,
-  onOpenTask,
+  selectedTaskId,
+  onSelectTask,
   onUnlock,
 }: {
   phases: readonly Phase[];
   expandedPhaseId: string | null;
   onExpandedChange: (phaseId: string | null) => void;
-  onOpenTask: (taskId: string) => void;
+  selectedTaskId: string | null;
+  onSelectTask: (taskId: string) => void;
   onUnlock: () => void;
 }) {
   const phase1Complete = phases[0]?.status === 'complete';
 
   return (
-    <div className="flex flex-col gap-gb-lg px-gb-xl lg:px-0">
+    <div className="flex flex-col gap-gb-lg">
       {phases.map((phase) => (
         <PhaseAccordion
           key={phase.id}
@@ -25,7 +27,8 @@ export function PhaseList({
           expanded={phase.id === expandedPhaseId}
           onToggle={() => onExpandedChange(phase.id === expandedPhaseId ? null : phase.id)}
           paywallReady={phase.id === 'phase-2' && phase1Complete}
-          onOpenTask={onOpenTask}
+          selectedTaskId={selectedTaskId}
+          onSelectTask={onSelectTask}
           onUnlock={onUnlock}
         />
       ))}

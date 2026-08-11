@@ -1,45 +1,53 @@
 'use client';
 
 import { admissionBadgeVariant, Badge, Button, ScoreRing } from '@/shared/ui';
-import { MATCH_RESULT } from '../domain';
+import { MATCHING_REPORT } from '../domain';
 import { ConfidenceBadge } from './confidence-badge';
 import { TaskWorkspaceShell } from './task-workspace-shell';
 
-const TIER_LABEL: Record<typeof MATCH_RESULT.tier, string> = {
+const TIER_LABEL: Record<typeof MATCHING_REPORT.tier, string> = {
   reach: 'Reach',
   recommended: 'Recommend',
   safe: 'Safe',
 };
 
+/** Ends with "Build my strategy →" from a fresh generation, spec §13. */
 export function MatchWorkspace({
-  onClose,
+  reviewOnly,
+  onBack,
   onComplete,
+  onBuildStrategy,
 }: {
-  onClose: () => void;
+  /** True for the Phase 2 "review" task — same report, no strategy CTA. */
+  reviewOnly?: boolean;
+  onBack: () => void;
   onComplete: () => void;
+  onBuildStrategy?: () => void;
 }) {
   return (
-    <TaskWorkspaceShell title="Your Cambridge match" onClose={onClose}>
+    <TaskWorkspaceShell title="Matching Report" onBack={onBack}>
       <div className="flex flex-col items-center gap-gb-lg rounded-gb-2xl border border-line bg-surface p-gb-2xl">
-        <ScoreRing value={MATCH_RESULT.score} measure="match" size="lg" />
-        <Badge variant={admissionBadgeVariant(MATCH_RESULT.tier)}>{TIER_LABEL[MATCH_RESULT.tier]}</Badge>
+        <ScoreRing value={MATCHING_REPORT.score} measure="match" size="lg" />
+        <Badge variant={admissionBadgeVariant(MATCHING_REPORT.tier)}>{TIER_LABEL[MATCHING_REPORT.tier]}</Badge>
       </div>
 
       <div className="flex items-start justify-between gap-gb-lg">
-        <p className="text-gb-md text-fg-tertiary">{MATCH_RESULT.summary}</p>
-        <ConfidenceBadge level={MATCH_RESULT.confidence} />
+        <p className="text-gb-md text-fg-tertiary">{MATCHING_REPORT.summary}</p>
+        <ConfidenceBadge level={MATCHING_REPORT.confidence} />
       </div>
 
-      <Button
-        size="lg"
-        onClick={() => {
-          onComplete();
-          onClose();
-        }}
-        className="mb-gb-2xl"
-      >
-        Back to my plan
-      </Button>
+      <div className="flex flex-wrap gap-gb-lg">
+        <Button
+          size="lg"
+          onClick={() => {
+            onComplete();
+            if (!reviewOnly && onBuildStrategy) onBuildStrategy();
+            else onBack();
+          }}
+        >
+          {reviewOnly ? 'Back to my plan' : 'Build my strategy →'}
+        </Button>
+      </div>
     </TaskWorkspaceShell>
   );
 }

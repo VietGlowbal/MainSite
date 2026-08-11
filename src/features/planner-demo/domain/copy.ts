@@ -16,13 +16,11 @@ export const PHASE1_ENCOURAGEMENT = "You've got this! One step at a time.";
 export const PAYWALL_TEASER_LOCKED =
   "We'll turn what we know about you and Cambridge into your personalised application strategy.";
 export const PAYWALL_TEASER_READY = "We've identified 4 priorities for your Cambridge application.";
-export const PAYWALL_UNLOCK_LABEL = '🔒 Unlock your full strategy';
-export const PAYWALL_CTA = 'See what’s inside';
+export const PAYWALL_UNLOCK_LABEL = '🔒 Unlock your complete application plan';
+export const PAYWALL_CTA = 'Unlock my application plan';
 
-export const CV_INTRO = 'We already know about your project.';
-export const CV_SUGGESTED_LABEL = 'Suggested CV entry';
-export const CV_ENTRY =
-  'Designed and built a low-cost Arduino-based air-quality monitoring system for classrooms, from sensor selection through classroom deployment.';
+export const READY_HEADLINE = "Almost there";
+export const READY_SUBHEAD = '2 things to fix.';
 
 /** Phase 2–5 locked teasers that don't have Phase 1's richer copy. */
 export const GENERIC_LOCKED_TEASER =

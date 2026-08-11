@@ -8,22 +8,26 @@ import { TaskWorkspaceShell } from './task-workspace-shell';
 
 /** "Generate your Personal Report" — a simulated AI pass over what GlowBal already knows. */
 export function ReportWorkspace({
-  onClose,
+  reviewOnly,
+  onBack,
   onComplete,
 }: {
-  onClose: () => void;
+  /** True for the Phase 2 "review" task — content's already generated, skip the loading beat. */
+  reviewOnly?: boolean;
+  onBack: () => void;
   onComplete: () => void;
 }) {
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(Boolean(reviewOnly));
 
   useEffect(() => {
+    if (reviewOnly) return;
     const timer = setTimeout(() => setReady(true), 1100);
     return () => clearTimeout(timer);
-  }, []);
+  }, [reviewOnly]);
 
   if (!ready) {
     return (
-      <TaskWorkspaceShell title="Your personal report" onClose={onClose}>
+      <TaskWorkspaceShell title="Personal Report" onBack={onBack}>
         <div className="flex flex-1 flex-col items-center justify-center gap-gb-xl py-gb-7xl text-center">
           <p className="text-gb-md font-medium text-fg-brand">Reading your profile so far…</p>
           <ProgressBar label="Generating your personal report" className="max-w-[220px]" />
@@ -33,7 +37,7 @@ export function ReportWorkspace({
   }
 
   return (
-    <TaskWorkspaceShell title="Your personal report" onClose={onClose}>
+    <TaskWorkspaceShell title="Personal Report" onBack={onBack}>
       <div className="flex items-center justify-between gap-gb-lg">
         <p className="text-gb-md text-fg-tertiary">Based on what you&rsquo;ve told us so far.</p>
         <ConfidenceBadge level={PERSONAL_REPORT.overallConfidence} />
@@ -73,7 +77,7 @@ export function ReportWorkspace({
         size="lg"
         onClick={() => {
           onComplete();
-          onClose();
+          onBack();
         }}
         className="mb-gb-2xl"
       >

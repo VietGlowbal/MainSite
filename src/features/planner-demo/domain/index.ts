@@ -2,26 +2,25 @@ export type {
   Application,
   ConfidenceLevel,
   DemoState,
+  Output,
+  OutputStatus,
   Phase,
   PhaseStatus,
+  PlannerView,
   ReflectionAnswers,
   Task,
+  TaskPriority,
   TaskStatus,
   TaskType,
   UpNextCopy,
 } from './types';
-export { DEMO_STATES, isDemoState } from './types';
+export { DEMO_STATES, PLANNER_VIEWS, isDemoState, isPlannerView } from './types';
 export {
-  DEMO_REFLECTION_ANSWERS,
-  DEMO_STUDENT_NAME,
-  alertsForState,
-  baseProgressForState,
+  MASTER_TASKS,
+  alertsForApplication,
   buildApplication,
-  buildApplicationShapes,
-  daysLeftForState,
-  deriveStatuses,
-  findCurrentTaskId,
+  findTaskById,
+  progressForApplication,
 } from './data';
-export type { PhaseShape, TaskShape } from './data';
 export * from './copy';
 export * from './content';

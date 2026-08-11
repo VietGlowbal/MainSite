@@ -13,10 +13,10 @@ import { TaskWorkspaceShell } from './task-workspace-shell';
  * everything else falls back to the placeholder in task-workspace.tsx.
  */
 export function CvWorkspace({
-  onClose,
+  onBack,
   onComplete,
 }: {
-  onClose: () => void;
+  onBack: () => void;
   onComplete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -25,7 +25,7 @@ export function CvWorkspace({
 
   if (done) {
     return (
-      <TaskWorkspaceShell title="Your CV" onClose={onClose}>
+      <TaskWorkspaceShell title="Your CV" onBack={onBack}>
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -38,7 +38,7 @@ export function CvWorkspace({
           <p className="max-w-[320px] text-gb-md text-fg-tertiary">
             Your air-quality project is now on your Cambridge Engineering CV.
           </p>
-          <Button size="lg" onClick={onClose} className="mt-gb-lg">
+          <Button size="lg" onClick={onBack} className="mt-gb-lg">
             Back to my plan
           </Button>
         </motion.div>
@@ -47,7 +47,7 @@ export function CvWorkspace({
   }
 
   return (
-    <TaskWorkspaceShell title="Your CV" onClose={onClose}>
+    <TaskWorkspaceShell title="Your CV" onBack={onBack}>
       <p className="text-gb-md text-fg-tertiary">{CV_INTRO}</p>
 
       <Panel padding="sm" elevation="flat" className="bg-brand-subtle">

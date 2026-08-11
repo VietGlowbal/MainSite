@@ -11,10 +11,10 @@ const EMPTY: ReflectionAnswers = { built: '', owned: '', difficult: '' };
 
 /** The reflection task workspace (spec §8) — the one fully-built task type. */
 export function ReflectionWorkspace({
-  onClose,
+  onBack,
   onComplete,
 }: {
-  onClose: () => void;
+  onBack: () => void;
   onComplete: (answers: ReflectionAnswers) => void;
 }) {
   const [answers, setAnswers] = useState<ReflectionAnswers>(EMPTY);
@@ -24,7 +24,7 @@ export function ReflectionWorkspace({
 
   if (submitted) {
     return (
-      <TaskWorkspaceShell title="Your strongest project" onClose={onClose}>
+      <TaskWorkspaceShell title="Your strongest project" onBack={onBack}>
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -35,7 +35,7 @@ export function ReflectionWorkspace({
             {REFLECTION_SUCCESS_TITLE}
           </p>
           <p className="max-w-[320px] text-gb-md text-fg-tertiary">{REFLECTION_SUCCESS_BODY}</p>
-          <Button size="lg" onClick={onClose} className="mt-gb-lg">
+          <Button size="lg" onClick={onBack} className="mt-gb-lg">
             Back to my plan
           </Button>
         </motion.div>
@@ -44,7 +44,7 @@ export function ReflectionWorkspace({
   }
 
   return (
-    <TaskWorkspaceShell title="Your strongest project" onClose={onClose}>
+    <TaskWorkspaceShell title="Your strongest project" onBack={onBack}>
       <div className="flex flex-col gap-gb-xs">
         <p className="text-gb-md text-fg-tertiary">
           Tell me about something you built that you&rsquo;re genuinely proud of.

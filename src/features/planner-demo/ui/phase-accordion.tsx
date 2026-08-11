@@ -49,7 +49,8 @@ export function PhaseAccordion({
   expanded,
   onToggle,
   paywallReady = false,
-  onOpenTask,
+  selectedTaskId,
+  onSelectTask,
   onUnlock,
 }: {
   phase: Phase;
@@ -57,7 +58,8 @@ export function PhaseAccordion({
   onToggle: () => void;
   /** True when Phase 1 is complete and this locked phase has a "ready" teaser (spec §11). */
   paywallReady?: boolean;
-  onOpenTask: (taskId: string) => void;
+  selectedTaskId: string | null;
+  onSelectTask: (taskId: string) => void;
   onUnlock: () => void;
 }) {
   const [showAllTasks, setShowAllTasks] = useState(false);
@@ -120,7 +122,12 @@ export function PhaseAccordion({
             ) : (
               <div className="flex flex-col gap-gb-xs border-t border-line px-gb-lg py-gb-lg">
                 {visibleTasks.map((task) => (
-                  <TaskRow key={task.id} task={task} onOpen={onOpenTask} />
+                  <TaskRow
+                    key={task.id}
+                    task={task}
+                    selected={task.id === selectedTaskId}
+                    onSelect={onSelectTask}
+                  />
                 ))}
                 {hiddenCount > 0 ? (
                   <button

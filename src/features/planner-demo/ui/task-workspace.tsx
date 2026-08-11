@@ -1,90 +1,85 @@
 'use client';
 
-import { Button } from '@/shared/ui';
 import type { ReflectionAnswers, Task } from '../domain';
 import { ActionListWorkspace } from './action-list-workspace';
+import { AchievementWorkspace } from './achievement-workspace';
 import { CvWorkspace } from './cv-workspace';
+import { DocumentReviewWorkspace } from './document-review-workspace';
 import { MatchWorkspace } from './match-workspace';
+import { ProfileConfirmWorkspace } from './profile-confirm-workspace';
 import { ReadinessWorkspace } from './readiness-workspace';
 import { ReflectionWorkspace } from './reflection-workspace';
+import { RecommendationWorkspace } from './recommendation-workspace';
 import { ReportWorkspace } from './report-workspace';
-import { RequirementsWorkspace } from './requirements-workspace';
+import { ScholarshipWorkspace } from './scholarship-workspace';
 import { StatementWorkspace } from './statement-workspace';
 import { StrategyWorkspace } from './strategy-workspace';
-import { TaskWorkspaceShell } from './task-workspace-shell';
 
-/**
- * Fallback for any task type without a real renderer. Nothing in the current
- * task list reaches this — every type has a real (still-mocked) workspace —
- * but the router keeps a default branch so a future task type degrades
- * gracefully instead of crashing.
- */
-function PlaceholderWorkspace({
-  task,
-  onClose,
-  onComplete,
-}: {
-  task: Task;
-  onClose: () => void;
-  onComplete: () => void;
-}) {
-  return (
-    <TaskWorkspaceShell title={task.title} onClose={onClose}>
-      <div className="flex flex-1 flex-col items-center justify-center gap-gb-lg py-gb-7xl text-center">
-        <p className="font-display text-gb-display-xs font-semibold text-fg">{task.title}</p>
-        <p className="max-w-[320px] text-gb-md text-fg-tertiary">
-          This part of the planner isn&rsquo;t built out for the demo — in the real product this
-          is where GlowBal would render the tool for this specific task.
-        </p>
-        <Button
-          size="lg"
-          onClick={() => {
-            onComplete();
-            onClose();
-          }}
-          className="mt-gb-lg"
-        >
-          Mark as done (demo)
-        </Button>
-      </div>
-    </TaskWorkspaceShell>
-  );
-}
+const EVIDENCE_FOCUS_BY_TASK: Record<string, 'engineering' | 'leadership' | 'wording' | 'gaps'> = {
+  'p3-evidence-engineering': 'engineering',
+  'p3-evidence-leadership': 'leadership',
+  'p3-evidence-wording': 'wording',
+  'p3-gaps': 'gaps',
+};
 
-/** The GenUI-style task renderer: dispatches on `task.type` (spec §14). */
+const READINESS_CHECKLIST_BY_TASK: Record<string, 'requirements' | 'completeness' | 'consistency' | 'final'> = {
+  'p5-requirements': 'requirements',
+  'p5-completeness': 'completeness',
+  'p5-consistency': 'consistency',
+  'p5-readiness': 'final',
+};
+
+/** The GenUI-style task renderer: dispatches on `task.type` (spec §12, §23). */
 export function TaskWorkspace({
   task,
-  onClose,
+  onBack,
   onCompleteReflection,
   onCompleteTask,
+  onSelectTask,
 }: {
   task: Task;
-  onClose: () => void;
+  onBack: () => void;
   onCompleteReflection: (answers: ReflectionAnswers) => void;
   onCompleteTask: (taskId: string) => void;
+  onSelectTask: (taskId: string) => void;
 }) {
   const onComplete = () => onCompleteTask(task.id);
 
   switch (task.type) {
     case 'reflection':
-      return <ReflectionWorkspace onClose={onClose} onComplete={onCompleteReflection} />;
-    case 'cv':
-      return <CvWorkspace onClose={onClose} onComplete={onComplete} />;
-    case 'university_requirements':
-      return <RequirementsWorkspace onClose={onClose} onComplete={onComplete} />;
-    case 'report':
-      return <ReportWorkspace onClose={onClose} onComplete={onComplete} />;
-    case 'match':
-      return <MatchWorkspace onClose={onClose} onComplete={onComplete} />;
+      return <ReflectionWorkspace onBack={onBack} onComplete={onCompleteReflection} />;
+    case 'achievement':
+      return <AchievementWorkspace onBack={onBack} onComplete={onComplete} />;
+    case 'personal-report':
+      return <ReportWorkspace reviewOnly={task.id === 'p2-review-personal-report'} onBack={onBack} onComplete={onComplete} />;
+    case 'matching-report':
+      return (
+        <MatchWorkspace
+          reviewOnly={task.id === 'p2-review-matching-report'}
+          onBack={onBack}
+          onComplete={onComplete}
+          onBuildStrategy={() => onSelectTask('p2-strategy')}
+        />
+      );
     case 'strategy':
-      return <StrategyWorkspace onClose={onClose} onComplete={onComplete} />;
-    case 'action-list':
-      return <ActionListWorkspace onClose={onClose} onComplete={onComplete} />;
-    case 'statement':
-      return <StatementWorkspace onClose={onClose} onComplete={onComplete} />;
-    case 'readiness-check':
-      return <ReadinessWorkspace onClose={onClose} onComplete={onComplete} />;
+      return <StrategyWorkspace choosingPriorities={task.id === 'p2-choose-priorities'} onBack={onBack} onComplete={onComplete} />;
+    case 'evidence-builder':
+      return <ActionListWorkspace focus={EVIDENCE_FOCUS_BY_TASK[task.id] ?? 'engineering'} onBack={onBack} onComplete={onComplete} />;
+    case 'scholarship':
+      return <ScholarshipWorkspace onBack={onBack} onComplete={onComplete} />;
+    case 'cv':
+      return <CvWorkspace onBack={onBack} onComplete={onComplete} />;
+    case 'personal-statement':
+      return <StatementWorkspace onBack={onBack} onComplete={onComplete} />;
+    case 'recommendation':
+      return <RecommendationWorkspace onBack={onBack} onComplete={onComplete} />;
+    case 'document-review':
+      return <DocumentReviewWorkspace onBack={onBack} onComplete={onComplete} />;
+    case 'readiness-review':
+      return <ReadinessWorkspace checklist={READINESS_CHECKLIST_BY_TASK[task.id] ?? 'final'} onBack={onBack} onComplete={onComplete} />;
+    case 'profile-confirm':
+      return <ProfileConfirmWorkspace onBack={onBack} />;
     default:
-      return <PlaceholderWorkspace task={task} onClose={onClose} onComplete={onComplete} />;
+      return null;
   }
 }

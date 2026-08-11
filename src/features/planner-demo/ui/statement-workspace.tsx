@@ -8,10 +8,10 @@ import { TaskWorkspaceShell } from './task-workspace-shell';
 
 /** Same adaptive-suggestion pattern as CvWorkspace, applied to the personal statement opening. */
 export function StatementWorkspace({
-  onClose,
+  onBack,
   onComplete,
 }: {
-  onClose: () => void;
+  onBack: () => void;
   onComplete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
@@ -20,7 +20,7 @@ export function StatementWorkspace({
 
   if (done) {
     return (
-      <TaskWorkspaceShell title="Your personal statement" onClose={onClose}>
+      <TaskWorkspaceShell title="Your personal statement" onBack={onBack}>
         <motion.div
           initial={{ opacity: 0, scale: 0.92 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -33,7 +33,7 @@ export function StatementWorkspace({
           <p className="max-w-[320px] text-gb-md text-fg-tertiary">
             Let&rsquo;s make that experience impossible to miss — we&rsquo;ll build the rest around it.
           </p>
-          <Button size="lg" onClick={onClose} className="mt-gb-lg">
+          <Button size="lg" onClick={onBack} className="mt-gb-lg">
             Back to my plan
           </Button>
         </motion.div>
@@ -42,7 +42,7 @@ export function StatementWorkspace({
   }
 
   return (
-    <TaskWorkspaceShell title="Your personal statement" onClose={onClose}>
+    <TaskWorkspaceShell title="Your personal statement" onBack={onBack}>
       <p className="text-gb-md text-fg-tertiary">
         Your air-quality project is the strongest opening we&rsquo;ve got. Here&rsquo;s a first draft.
       </p>

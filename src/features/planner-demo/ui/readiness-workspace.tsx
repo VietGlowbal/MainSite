@@ -2,18 +2,29 @@
 
 import { useState } from 'react';
 import { Button, ICONS, KitIcon } from '@/shared/ui';
-import { READINESS_ITEMS } from '../domain';
+import { READINESS_CHECKLISTS } from '../domain';
 import { TaskWorkspaceShell } from './task-workspace-shell';
 
+const TITLE: Record<keyof typeof READINESS_CHECKLISTS, string> = {
+  requirements: 'Requirement check',
+  completeness: 'Document completeness',
+  consistency: 'Consistency review',
+  final: 'Final Readiness Review',
+};
+
+/** Phase 5's four readiness tasks all render this, parameterized by which checklist. */
 export function ReadinessWorkspace({
-  onClose,
+  checklist,
+  onBack,
   onComplete,
 }: {
-  onClose: () => void;
+  checklist: keyof typeof READINESS_CHECKLISTS;
+  onBack: () => void;
   onComplete: () => void;
 }) {
+  const items = READINESS_CHECKLISTS[checklist];
   const [checked, setChecked] = useState<ReadonlySet<string>>(new Set());
-  const allReady = checked.size === READINESS_ITEMS.length;
+  const allReady = checked.size === items.length;
 
   function toggle(id: string) {
     setChecked((prev) => {
@@ -25,13 +36,15 @@ export function ReadinessWorkspace({
   }
 
   return (
-    <TaskWorkspaceShell title="Ready to submit" onClose={onClose}>
+    <TaskWorkspaceShell title={TITLE[checklist]} onBack={onBack}>
       <p className="text-gb-md text-fg-tertiary">
-        Cambridge application: ready for one last look. Tick each one off as you confirm it.
+        {checklist === 'final'
+          ? 'Cambridge application: ready for one last look.'
+          : 'Tick each one off as you confirm it.'}
       </p>
 
       <ul className="flex flex-col gap-gb-md">
-        {READINESS_ITEMS.map((item) => {
+        {items.map((item) => {
           const done = checked.has(item.id);
           return (
             <li key={item.id}>
@@ -62,11 +75,11 @@ export function ReadinessWorkspace({
         disabled={!allReady}
         onClick={() => {
           onComplete();
-          onClose();
+          onBack();
         }}
         className="mb-gb-2xl"
       >
-        {allReady ? 'Ready to submit ✨' : `${checked.size}/${READINESS_ITEMS.length} confirmed`}
+        {allReady ? 'Ready to submit ✨' : `${checked.size}/${items.length} confirmed`}
       </Button>
     </TaskWorkspaceShell>
   );
