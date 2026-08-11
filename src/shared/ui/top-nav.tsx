@@ -77,8 +77,6 @@ export type TopNavEntry = NavEntry;
 export type TopNavUser = {
   /** Display name, shown next to the avatar at text-sm/semibold. */
   name: string;
-  /** Optional action copy shown beside the avatar (for example, User Profile). */
-  label?: string | undefined;
   avatarUrl?: string | null | undefined;
   /** Where the avatar block links — the account area. */
   href: string;
@@ -491,7 +489,7 @@ export function TopNav({
                   tone === 'dark' ? 'text-fg-on-inverse' : 'text-fg'
                 }`}
               >
-                {user.label ?? user.name}
+                {user.name}
               </span>
             </Link>
           ) : null}

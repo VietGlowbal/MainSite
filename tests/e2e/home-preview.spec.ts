@@ -166,11 +166,7 @@ test.describe('home preview — desktop', () => {
     });
   }
 
-  /**
-   * The three feature mockups are 762.98px wide inside 560px columns, so each
-   * one runs past the container by design. `overflow-hidden` on the section is
-   * the only thing standing between that and a horizontal scrollbar.
-   */
+  /** The two product mockups must never create a page-level scrollbar. */
   for (const width of [1440, 1280, 1024, 768]) {
     test(`the feature mockup bleed does not scroll the page at ${width}px`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
@@ -179,39 +175,52 @@ test.describe('home preview — desktop', () => {
       const overflow = await page.evaluate(
         () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
       );
-      expect(overflow, 'the 763px mockup is escaping its section').toBeLessThanOrEqual(0);
+      expect(overflow, 'a product mockup is escaping its section').toBeLessThanOrEqual(0);
     });
   }
 
-  test('the four steps sit four across at 1280 and two-up at 1024', async ({ page }) => {
+  test('the journey renders five steps in the supplied order', async ({ page }) => {
     await page.goto('/dev/home');
 
-    const boxes = async () =>
-      page.evaluate(() => {
-        // Anchored on the heading, not on [href="/universities"] — the top nav
-        // links there too, and its <a> has no <section> to climb to.
-        const heading = [...document.querySelectorAll('h2')].find(
-          (h) => h.textContent?.trim() === 'How GLOWBAL works',
-        )!;
-        const row = heading.closest('section')!.querySelector('.grid')!;
-        return [...row.children].map((c) => {
-          const r = c.getBoundingClientRect();
-          return { top: Math.round(r.top), width: Math.round(r.width) };
-        });
-      });
+    const section = page
+      .getByRole('heading', { name: /GlowBal is here to help you achieve your dream/i })
+      .locator('..')
+      .locator('..');
+    const steps = section.locator('ol > li');
+    await expect(steps).toHaveCount(5);
+    await expect(steps.nth(0)).toContainText('Input simple information');
+    await expect(steps.nth(4)).toContainText('Build your application, track progress and receive feedback');
+  });
 
-    await page.setViewportSize({ width: 1280, height: 900 });
-    const wide = await boxes();
-    expect(wide).toHaveLength(4);
-    expect(new Set(wide.map((b) => b.top)).size, 'expected one row at 1280').toBe(1);
-    expect(new Set(wide.map((b) => b.width)).size, 'cards are not equal width').toBe(1);
+  test('only the two finished product demo sections are present', async ({ page }) => {
+    await page.goto('/dev/home');
 
-    await page.setViewportSize({ width: 1024, height: 900 });
-    const narrow = await boxes();
-    expect(new Set(narrow.map((b) => b.top)).size, 'expected two rows at 1024').toBe(2);
-    // The design's wrapping flex row put 3 up and stretched the 4th across the
-    // whole container; equal widths is what rules that out.
-    expect(new Set(narrow.map((b) => b.width)).size, 'a card is stretching to fill its row').toBe(1);
+    await expect(page.getByRole('heading', { level: 3, name: 'GlowBal Matcher' })).toHaveCount(1);
+    await expect(page.getByRole('heading', { level: 3, name: 'Strategy Master' })).toHaveCount(1);
+    await expect(page.getByRole('heading', { level: 3, name: /Demo Video/i })).toHaveCount(0);
+  });
+
+  test('team uses the eight-person Figma roster and the requested closing flow', async ({ page }) => {
+    await page.goto('/dev/home');
+
+    const teamHeading = page.getByRole('heading', { name: 'The team behind your journey.' });
+    const teamSection = teamHeading.locator('..').locator('..').locator('..');
+    await expect(teamSection.locator('article')).toHaveCount(8);
+    await expect(teamSection.getByRole('heading', { level: 3, name: 'Khánh Linh' })).toBeVisible();
+    await expect(teamSection.getByRole('heading', { level: 3, name: 'James' })).toBeVisible();
+
+    const order = await page.evaluate(() => {
+      const headings = [...document.querySelectorAll('h2')];
+      const indices = [
+        'The team behind your journey.',
+        'Not sure where to begin?',
+        'Frequently asked questions',
+      ].map((text) => headings.findIndex((heading) => heading.textContent?.trim() === text));
+      return indices;
+    });
+
+    expect(order.every((index) => index >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
   });
 
   test('hero renders its heading and call to action', async ({ page }) => {
@@ -219,19 +228,45 @@ test.describe('home preview — desktop', () => {
     await page.goto('/dev/home');
 
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
-    // Figma 375:9857 renamed this from "Find my scholarships".
-    await expect(page.getByRole('link', { name: /find matching scholarships/i })).toBeVisible();
+    await expect(
+      page.locator('a[href="/start"]').filter({ hasText: 'Plan your Global Education' }),
+    ).toBeVisible();
+  });
+
+  test('hero CTA stays on one line with the support message underneath', async ({ page }) => {
+    await page.setViewportSize({ width: 393, height: 851 });
+    await page.goto('/dev/home');
+
+    const cta = page
+      .locator('a[href="/start"]')
+      .filter({ hasText: 'Plan your Global Education' });
+    const support = page.getByText('Find a University that Fits You 100% free');
+    const [ctaBox, supportBox] = await Promise.all([cta.boundingBox(), support.boundingBox()]);
+
+    expect(await cta.evaluate((element) => getComputedStyle(element).whiteSpace)).toBe('nowrap');
+    expect(ctaBox).not.toBeNull();
+    expect(supportBox).not.toBeNull();
+    expect(supportBox!.y).toBeGreaterThanOrEqual(ctaBox!.y + ctaBox!.height);
+    expect(await support.evaluate((element) => parseFloat(getComputedStyle(element).fontSize))).toBeGreaterThanOrEqual(16);
+  });
+
+  test('the five-step journey can be explored directly', async ({ page }) => {
+    await page.goto('/dev/home');
+
+    await page.getByRole('button', { name: /3\. Receive specialised reports/i }).click();
+    await expect(page.getByRole('heading', { level: 3, name: 'Receive specialised reports' })).toBeVisible();
+    await expect(page.getByText('Evidence-backed clarity')).toBeVisible();
   });
 
   test('visual baseline', async ({ page }) => {
     test.skip(
-      !baselineExists('home-desktop'),
+      !baselineExists('home-desktop-884-12026'),
       `No visual baseline for ${process.platform}. Run npm run test:e2e:update here and commit the PNG.`,
     );
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
     await settle(page);
-    await expect(page).toHaveScreenshot('home-desktop.png', { fullPage: true, mask: masked(page) });
+    await expect(page).toHaveScreenshot('home-desktop-884-12026.png', { fullPage: true, mask: masked(page) });
   });
 });
 
@@ -262,58 +297,28 @@ test('the real home page has navigation on mobile', async ({ page }) => {
   await expect(page.getByRole('button', { name: /menu/i })).toBeVisible();
 });
 
-/**
- * The metric row is the one place on this page where the Vietnamese build can
- * break while the English one looks perfect: the column is 240px (Figma
- * 375:9889), sized for the kit's "400+" and "10k", and a value that wraps pushes
- * its own label a line below the others. "150M USD" -> "150 triệu USD" did
- * exactly that, which is why any unit lives in the label.
- *
- * The row went from three columns to five on the new canvas and the value
- * dropped 60px -> 48px to fit, so this guard matters MORE than it did: there is
- * less slack per column than there was.
- *
- * The language is forced through localStorage rather than a UI toggle, and
- * /api/translate is blocked outright — every string this section uses is in the
- * dictionary, so a request reaching the network would mean a missing key, and
- * the test would rather fail than paper over it with a live translation.
- */
-test.describe('home preview — Vietnamese metric row', () => {
-  test('every value stays on one line and the labels stay in step', async ({ page }) => {
-    await page.route('**/api/translate', (route) => route.abort());
-    await page.addInitScript(() => localStorage.setItem('glowbal-language', 'vi'));
+test.describe('home preview — animated metrics', () => {
+  test('the figures count up once the section enters view', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
 
-    await expect(page.getByRole('heading', { name: 'Những con số nổi bật' })).toBeVisible();
+    const firstValue = page.locator('[aria-label="7,800+"] span');
 
-    const rows = await page.evaluate(() => {
-      const heading = [...document.querySelectorAll('h2')].find(
-        (h) => h.textContent?.trim() === 'Những con số nổi bật',
-      )!;
-      // A Metric is the only node here that is exactly two <p> children: the
-      // value and its label, in that order.
-      const metrics = [...heading.closest('section')!.querySelectorAll('div')].filter(
-        (d) => d.children.length === 2 && d.children[0]?.tagName === 'P' && d.children[1]?.tagName === 'P',
-      );
-      return metrics.map((m) => {
-        const value = m.children[0] as HTMLElement;
-        const label = m.children[1] as HTMLElement;
-        return {
-          text: value.textContent!.trim(),
-          lines: Math.round(
-            value.getBoundingClientRect().height / parseFloat(getComputedStyle(value).lineHeight),
-          ),
-          labelTop: Math.round(label.getBoundingClientRect().top),
-        };
-      });
-    });
+    await expect(firstValue).toHaveText('7,800+');
+    await firstValue.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+    await expect(firstValue).not.toHaveText('7,800+');
+    await expect(firstValue).toHaveText('7,800+', { timeout: 4_000 });
+  });
 
-    expect(rows.length).toBeGreaterThan(1);
-    for (const r of rows) {
-      expect(r.lines, `"${r.text}" wraps onto ${r.lines} lines — shorten it or move the unit into the label`).toBe(1);
-    }
-    expect(new Set(rows.map((r) => r.labelTop)).size, 'metric labels are not on a common baseline').toBe(1);
+  test('reduced motion keeps the complete figures static', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await page.goto('/dev/home');
+
+    const firstValue = page.locator('[aria-label="7,800+"] span');
+    await firstValue.evaluate((element) => element.scrollIntoView({ block: 'center' }));
+    await page.waitForTimeout(200);
+    await expect(firstValue).toHaveText('7,800+');
   });
 });
 
@@ -346,12 +351,12 @@ test.describe('home preview — mobile', () => {
 
   test('visual baseline', async ({ page }) => {
     test.skip(
-      !baselineExists('home-mobile'),
+      !baselineExists('home-mobile-884-12026'),
       `No visual baseline for ${process.platform}. Run npm run test:e2e:update here and commit the PNG.`,
     );
     await page.setViewportSize(MOBILE);
     await page.goto('/dev/home');
     await settle(page);
-    await expect(page).toHaveScreenshot('home-mobile.png', { fullPage: true, mask: masked(page) });
+    await expect(page).toHaveScreenshot('home-mobile-884-12026.png', { fullPage: true, mask: masked(page) });
   });
 });

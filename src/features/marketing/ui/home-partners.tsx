@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { Button } from '@/shared/ui';
 import {
   ORBIT_SAMPLES,
   ORBIT_TOTAL_LENGTH,
@@ -81,10 +82,10 @@ import { PARTNER_LOGOS } from './partner-logos';
  *
  * ─── THE HEADING IS THE HOVER'S ANSWER, AND THE LOGOS GO SOMEWHERE ──────────
  *
- * The heading reads "Study <somewhere>" and the second word flips over as the
- * pointer moves round the ring: "Study Anywhere" at rest, "Study Cambridge"
- * while Cambridge is under the cursor. It replaced the flat "Our featured
- * partners", which is the claim ./partner-logos.ts had a standing ⚠️ against.
+ * The supporting line reads "Study <somewhere>" and the second word flips over
+ * as the pointer moves round the ring: "Study Anywhere" at rest, "Study
+ * Cambridge" while Cambridge is under the cursor. The Home.md catalogue title
+ * remains fixed above it, so the required copy never disappears on hover.
  *
  * Two details are load-bearing:
  *
@@ -738,12 +739,19 @@ export function HomePartners({ universityIds }: HomePartnersProps = {}) {
           className="relative mx-auto flex w-full flex-col items-center gap-gb-6xl lg:block lg:aspect-[1020/572] lg:w-[min(88%,1120px)] lg:[container-type:inline-size]"
         >
           <div
-            className="pointer-events-none flex flex-col items-center gap-gb-sm lg:absolute lg:inset-x-0 lg:top-1/2 lg:-translate-y-1/2"
+            className="flex flex-col items-center gap-gb-lg lg:absolute lg:inset-x-0 lg:top-1/2 lg:-translate-y-1/2"
             style={{ zIndex: ORBIT_Z_CEILING }}
           >
-            <h2 className="text-center font-display text-gb-display-sm font-semibold tracking-gb-display-open lg:whitespace-nowrap lg:text-[4.7059cqw] lg:leading-[6.2745cqw]">
-              Study <StudyWord word={hovered?.shortName ?? DEFAULT_STUDY_WORD} />
+            <h2 className="pointer-events-none max-w-[620px] text-center font-display text-gb-display-sm font-semibold leading-tight lg:text-[3.5cqw]">
+              Choose from 200+ of the world&apos;s leading universities
             </h2>
+            <p className="pointer-events-none text-gb-sm text-white/70 md:text-gb-md">
+              <span>Study</span>{' '}
+              <StudyWord word={hovered?.shortName ?? DEFAULT_STUDY_WORD} />
+            </p>
+            <Button href="/universities" size="lg" variant="primary-on-dark">
+              Find a university
+            </Button>
           </div>
 
           <ul className="flex flex-wrap justify-center gap-gb-3xl lg:block">

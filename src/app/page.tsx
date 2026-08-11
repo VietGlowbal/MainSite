@@ -16,21 +16,20 @@ import {
   HomeHero,
   HomeHowItWorks,
   HomeMetrics,
+  HomePainPoints,
   HomePartners,
-  HomeScholarships,
+  HomeTeam,
   HomeTestimonials,
   PARTNER_LOGOS,
   type ContactState,
-  type Testimonial,
 } from '@/features/marketing/ui';
-import { getScholarshipQueries, type ScholarshipForUniversity } from '@/features/scholarships/api';
 import { recordWaitlistSignup } from '@/features/marketing/api';
 import { waitlistConfirmationEmail } from '@/lib/emails/waitlist-confirmation';
 import { sendEmail } from '@/lib/send-email';
 import { Footer } from '@/shared/ui';
 import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
 import { headers } from 'next/headers';
-import { getApprovedMentors, type PublicMentor } from '@/lib/mentors';
+import { getTeamMembers } from '@/lib/team';
 
 /**
  * Five consultation requests per IP per hour. Generous for a person filling the
@@ -39,13 +38,8 @@ import { getApprovedMentors, type PublicMentor } from '@/lib/mentors';
 const contactLimiter = new RateLimiter({ maxRequests: 5, windowMs: 60 * 60 * 1000 });
 
 /**
- * "/" — Home, rebuilt from Figma 375:9844 on the "Khanh Linh - Chi" canvas.
- *
- * This replaced the 976-line legacy landing at src/components/landing/home,
- * which was the last big page still built on globals.css class names. The
- * composition is the one that was proven at /dev/home first. Every section
- * from the source Home layer now renders here: product feature rows, the
- * scholarship rail, public mentor stories, FAQ, consultation form and footer.
+ * "/" — Home, rebuilt from Figma 884:12026. Home.md owns the final copy and
+ * the Figma frame owns the section order and responsive visual direction.
  */
 
 export const metadata: Metadata = {
@@ -99,67 +93,6 @@ const getPartnerUniversityIds = unstable_cache(
 );
 
 /**
- * The Figma rail needs a handful of cards, while the directory's full list is
- * intentionally too large for the Home payload. We use scholarships already
- * linked to partner universities, so every card can name the university it is
- * relevant to without making up an awarding body.
- */
-function toHomeScholarshipTeasers(
-  partnerIds: readonly (number | null)[],
-  linked: Map<number, ScholarshipForUniversity[]>,
-) {
-  const seen = new Set<number>();
-  const teasers: Array<{
-    id: string;
-    title: string;
-    href: string;
-    university: string;
-    coverage: string | null;
-    deadline: string | null;
-  }> = [];
-
-  for (const [index, universityId] of partnerIds.entries()) {
-    if (universityId == null) continue;
-
-    for (const scholarship of linked.get(universityId) ?? []) {
-      if (seen.has(scholarship.id)) continue;
-      seen.add(scholarship.id);
-      teasers.push({
-        id: String(scholarship.id),
-        title: scholarship.name,
-        href: `/scholarships?university=${universityId}`,
-        university: PARTNER_LOGOS[index]?.name ?? 'Selected university',
-        coverage: scholarship.coverage ?? scholarship.amountLabel,
-        deadline: scholarship.deadlineLabel,
-      });
-      if (teasers.length === 6) return teasers;
-    }
-  }
-
-  return teasers;
-}
-
-/** Public mentor bios are profiles, not fabricated endorsements. */
-function toHomeMentorStories(mentors: readonly PublicMentor[]): Testimonial[] {
-  return mentors
-    .flatMap((mentor) => {
-      const quote = mentor.bio?.trim();
-      if (!quote) return [];
-      return [
-        {
-          quote,
-          name: mentor.display_name,
-          role: [mentor.subject, mentor.university?.name].filter(Boolean).join(' · '),
-          avatarUrl: mentor.avatar_url,
-          university: mentor.university?.name,
-          universityLogoUrl: mentor.university?.logo_url,
-        },
-      ];
-    })
-    .slice(0, 6);
-}
-
-/**
  * The consultation form (Figma 104:7361).
  *
  * It writes to `waitlist_signups`, the same table the pre-launch /coming-soon
@@ -167,9 +100,9 @@ function toHomeMentorStories(mentors: readonly PublicMentor[]): Testimonial[] {
  * admin-client insert. That is what took this file off ADMIN_CLIENT_DEBT in
  * eslint.config.mjs — a list that may shrink and must never grow.
  *
- * ⚠️ The table has three columns (email, first_name, notes) and the form has
- * six fields. Last name is joined onto the first, and the phone number is
- * appended to the notes, so nothing the student typed is silently dropped. The
+ * ⚠️ The table has three columns (email, first_name, notes), while the form also
+ * captures a phone number. The phone number is appended to the notes so nothing
+ * the student typed is silently dropped. The
  * real fix is columns; until then this is lossy-but-visible rather than lossy-
  * and-silent.
  */
@@ -249,15 +182,10 @@ async function submitContact(
 }
 
 export default async function Home() {
-  const [partnerUniversityIds, mentors] = await Promise.all([
+  const [partnerUniversityIds, team] = await Promise.all([
     getPartnerUniversityIds(),
-    getApprovedMentors(),
+    getTeamMembers(),
   ]);
-  const linkedScholarships = await getScholarshipQueries().byUniversityIds(
-    partnerUniversityIds.filter((id): id is number => id != null),
-  );
-  const scholarshipTeasers = toHomeScholarshipTeasers(partnerUniversityIds, linkedScholarships);
-  const mentorStories = toHomeMentorStories(mentors);
 
   return (
     /* gb-page-full-bleed tells globals.css to drop the sidebar gutter and the
@@ -274,12 +202,13 @@ export default async function Home() {
         <HomeHero />
         <HomePartners universityIds={partnerUniversityIds} />
         <HomeMetrics />
-        <HomeFeatures />
+        <HomePainPoints />
         <HomeHowItWorks />
-        <HomeScholarships entries={scholarshipTeasers} />
-        <HomeTestimonials entries={mentorStories} />
-        <HomeFaq />
+        <HomeFeatures />
+        <HomeTestimonials />
+        <HomeTeam members={team} />
         <HomeContact action={submitContact} />
+        <HomeFaq />
       </main>
       <Footer
         logo={<GlowbalLogo height={28} />}

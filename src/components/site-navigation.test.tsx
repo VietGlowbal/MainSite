@@ -23,19 +23,26 @@ vi.mock('@/lib/i18n', () => ({
 }));
 vi.mock('@/shared/ui', () => ({
   BRAND_ICONS: { facebook: {} },
+  ICONS: {
+    chartBreakoutSquare: {},
+    messageChatCircle: {},
+    messageSmileCircle: {},
+    zap: {},
+    zapFast: {},
+  },
   BrandIcon: () => <span />,
   InstagramMark: () => <span />,
   TopNav: (props: {
     items: Array<{ label: string }>;
     primaryAction?: { label: string };
     secondaryAction?: { label: string };
-    user?: { label?: string };
+    user?: { name: string };
   }) => (
     <div
       data-testid="desktop-nav"
       data-items={props.items.map((item) => item.label).join('|')}
       data-primary={props.primaryAction?.label ?? ''}
-      data-account={props.user?.label ?? props.secondaryAction?.label ?? ''}
+      data-account={props.user?.name ?? props.secondaryAction?.label ?? ''}
     />
   ),
   MobileNav: (props: {
@@ -84,7 +91,7 @@ describe('SiteNavigation', () => {
     expect(screen.getByTestId('mobile-nav')).toHaveAttribute('data-account', 'Register');
   });
 
-  it('promotes Strategy Master and User Profile after onboarding', () => {
+  it('promotes Strategy Master and shows the user name after onboarding', () => {
     mocks.session = {
       ready: true,
       signedIn: true,
@@ -96,7 +103,7 @@ describe('SiteNavigation', () => {
 
     const desktop = screen.getByTestId('desktop-nav');
     expect(desktop).toHaveAttribute('data-primary', 'Strategy Master');
-    expect(desktop).toHaveAttribute('data-account', 'User Profile');
+    expect(desktop).toHaveAttribute('data-account', 'Student');
     expect(desktop).not.toHaveAttribute('data-items', expect.stringContaining('Strategy Master'));
   });
 

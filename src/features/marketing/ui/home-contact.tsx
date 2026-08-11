@@ -44,7 +44,7 @@ function SubmitButton() {
   const { pending } = useFormStatus();
   return (
     <Button type="submit" size="xl" disabled={pending} className="w-full">
-      {pending ? 'Sending…' : 'Get advice'}
+      {pending ? 'Sending…' : 'Request guidance'}
     </Button>
   );
 }
@@ -93,19 +93,15 @@ export function HomeContact({
 
         <div>
           <h2 className="font-display text-gb-display-xs font-medium md:text-gb-display-sm">
-            Leave your details for a consultation
+            Not sure where to begin?
           </h2>
           <p className="mt-gb-lg text-gb-md text-fg-tertiary">
-            GlowBal will get in touch to understand what you need.
-            <br />
-            Go Glow - Go GlowBal
+            Tell us about your goals. The GlowBal team will contact you to help identify a suitable
+            next step.
           </p>
 
           <form action={formAction} className="mt-gb-4xl flex flex-col gap-gb-3xl">
-            <div className="grid gap-gb-3xl sm:grid-cols-2">
-              <Input name="firstName" label="First name" placeholder="First name" required maxLength={80} />
-              <Input name="lastName" label="Last name" placeholder="Last name" required maxLength={80} />
-            </div>
+            <Input name="firstName" label="First name" placeholder="First name" required maxLength={80} />
 
             <Input
               name="email"
@@ -157,7 +153,7 @@ export function HomeContact({
 
             <Textarea
               name="notes"
-              label="What are you hoping to study, and where?"
+              label="What and where would you like to study?"
               placeholder="Leave us a message..."
               required
               rows={4}

@@ -1,5 +1,5 @@
-import { Fragment } from 'react';
-import { ICONS, KitIcon, Metric, Section } from '@/shared/ui';
+import { ICONS, KitIcon, Section } from '@/shared/ui';
+import { HomeMetricsGrid } from './home-metrics-grid';
 
 /**
  * Metrics — Figma 375:9879 (1440x508, white) on the "Khanh Linh - Chi" canvas.
@@ -16,32 +16,30 @@ import { ICONS, KitIcon, Metric, Section } from '@/shared/ui';
  * the other four state usage the product has not launched to earn. They are the
  * designer's own numbers, taken from the frame rather than invented here, but
  * they have not been separately confirmed as true. Raised with the owner on
- * 28/07. If any is wrong, it is one line in this array.
+ * 28/07. If any is wrong, it is one line in the metric list.
  *
  * Copy stays English and is translated by the dictionary, same as the hero.
- *
- * Units sit in the label rather than next to the number for a measured reason:
- * a long value wraps inside the 240px column and drops that label a line below
- * its neighbours. Short value, unit in the label — see the note on `Metric`.
+ * The presentation is intentionally more alive than the original flat row:
+ * values count up once in view, a progress rule draws beneath them, and each
+ * card carries a pointer-following brand glow. That interaction stays in a
+ * small client boundary so this heading and its copy remain server-rendered.
  */
-const METRICS = [
-  { value: '7,800+', label: 'Scholarship searches run' },
-  { value: '370', label: 'Regular users' },
-  { value: '$2,000', label: 'Invested by Venture X' },
-  { value: '150', label: 'Pilot users' },
-  { value: '270', label: 'Pieces of feedback shaping the product' },
-] as const;
-
 export function HomeMetrics() {
   return (
-    /* 64px of vertical padding, not the 96 the hero uses — hence padded={false}.
-       The design splits this into two 1280 containers 64px apart; one container
-       with the same gap between its two blocks is the same layout. */
     <Section
       padded={false}
-      className="py-gb-7xl"
-      containerClassName="flex flex-col items-center gap-gb-7xl"
+      className="relative overflow-hidden py-gb-9xl"
+      containerClassName="relative flex flex-col items-center gap-gb-7xl"
     >
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -left-[12%] top-gb-9xl size-[360px] rounded-gb-full bg-brand-subtle opacity-70 blur-3xl"
+      />
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -right-[10%] bottom-0 size-[300px] rounded-gb-full bg-brand-surface opacity-40 blur-3xl"
+      />
+
       <div className="flex w-full max-w-gb-width-xl flex-col items-center gap-gb-2xl">
         <div className="flex flex-col items-center gap-gb-3xl">
           {/* 56px is the kit component's own size, not a step on the spacing
@@ -62,28 +60,7 @@ export function HomeMetrics() {
         </p>
       </div>
 
-      {/* Dividers are 1px hairlines between items, so they only exist while the
-          row is horizontal. Stacked, the 48px gap does the separating.
-
-          The row turns horizontal at xl, not lg: five 240px columns plus four
-          hairlines is 1204px, which only clears the container's padding once the
-          viewport reaches 1280. At lg it would overflow. `Metric` carries the
-          matching breakpoint for its own width — change the two together.
-
-          `xl:items-start` matters and is not cosmetic. The frame (375:9888) is
-          items-start, and with five columns two of the labels wrap to two lines
-          while three do not. Centred, the odd ones out get pushed down and the
-          labels stop sharing a baseline — which the Vietnamese metric-row test
-          in tests/e2e/home-preview.spec.ts fails on, by design. Stacked, the
-          items still centre. */}
-      <div className="flex w-full flex-col items-center gap-gb-6xl xl:flex-row xl:items-start xl:justify-center xl:gap-0">
-        {METRICS.map((metric, i) => (
-          <Fragment key={metric.label}>
-            {i > 0 && <div aria-hidden="true" className="hidden w-px self-stretch bg-line xl:block" />}
-            <Metric value={metric.value} label={metric.label} />
-          </Fragment>
-        ))}
-      </div>
+      <HomeMetricsGrid />
     </Section>
   );
 }

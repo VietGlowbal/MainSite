@@ -64,7 +64,6 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
           ? {
               user: {
                 name: user.name,
-                label: presentation.accountAction.label,
                 avatarUrl: user.avatarUrl,
                 href: presentation.accountAction.href,
               },
