@@ -2,10 +2,11 @@
 
 import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { NATIONALITIES } from '@/lib/nationalities';
 import type { StudentProfile } from '@/lib/types';
-import { Input, Panel, PanelHeader, Textarea } from '@/shared/ui';
+import { Input, Panel, PanelHeader, Select, Textarea } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import { SaveBar, type SaveMessage } from '../_form-parts';
+import { SaveBar, SelectOptions, type SaveMessage } from '../_form-parts';
 
 export function PersonalForm({
   userId,
@@ -91,13 +92,15 @@ export function PersonalForm({
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
-          <Input
+          <Select
             name="nationality"
             label="Nationality"
-            placeholder="e.g. Vietnamese"
+            placeholder="Select nationality…"
             value={nationality}
             onChange={(e) => setNationality(e.target.value)}
-          />
+          >
+            <SelectOptions options={[...NATIONALITIES]} value={nationality} />
+          </Select>
           <Textarea
             name="bio"
             label="Short bio"
