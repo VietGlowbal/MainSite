@@ -37,7 +37,7 @@ describe('PersonalReportView', () => {
     );
 
     expect(screen.getByText('Báo cáo giới hạn do hồ sơ còn ít dữ liệu.')).toBeInTheDocument();
-    expect(screen.getByText('Dữ liệu hạn chế')).toBeInTheDocument();
+    expect(screen.getByText('Limited data')).toBeInTheDocument();
     expect(screen.getByText('32%')).toBeInTheDocument();
     expect(screen.queryByText(/xác suất trúng tuyển/i)).not.toBeInTheDocument();
   });

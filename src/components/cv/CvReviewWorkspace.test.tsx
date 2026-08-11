@@ -44,10 +44,10 @@ describe('CvReviewWorkspace', () => {
     );
 
     await userEvent.type(
-      screen.getByPlaceholderText('Dán nội dung CV tại đây'),
+      screen.getByPlaceholderText('Paste your CV content here'),
       'EDUCATION\nComputer Science\nEXPERIENCE\nBuilt a robotics programme for thirty students.',
     );
-    await userEvent.click(screen.getByRole('button', { name: 'Phân tích CV' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Analyse CV' }));
 
     await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
@@ -60,7 +60,7 @@ describe('CvReviewWorkspace', () => {
     );
     expect(
       await screen.findByRole('heading', {
-        name: '1. CV hiện đang thể hiện điều gì?',
+        name: '1. What does the CV show right now?',
       }),
     ).toBeVisible();
     expect(screen.getByText('7/10')).toBeVisible();
@@ -82,10 +82,10 @@ describe('CvReviewWorkspace', () => {
         targetName="Computer Science"
       />,
     );
-    const input = screen.getByPlaceholderText('Dán nội dung CV tại đây');
+    const input = screen.getByPlaceholderText('Paste your CV content here');
     await userEvent.type(input, 'A'.repeat(90));
-    await userEvent.click(screen.getByRole('button', { name: 'Phân tích CV' }));
-    await userEvent.click(screen.getByRole('button', { name: 'Phân tích lại' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Analyse CV' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Analyse again' }));
 
     expect(firstSignal?.aborted).toBe(true);
     expect(fetchMock).toHaveBeenCalledTimes(2);

@@ -74,13 +74,13 @@ describe('CvReviewFeedback', () => {
   it('shows an animated thinking state before the first section arrives', () => {
     render(<CvReviewFeedback events={[]} analysis={null} streaming />);
 
-    expect(screen.getByText('Đang suy luận…')).toBeVisible();
+    expect(screen.getByText('Reasoning…')).toBeVisible();
     expect(
-      screen.queryByText('Kết quả đánh giá CV sẽ xuất hiện tại đây.'),
+      screen.queryByText('Your CV review will appear here.'),
     ).not.toBeInTheDocument();
   });
 
-  it('uses Vietnamese labels for the strategic review', async () => {
+  it('uses the default English labels for the strategic review', async () => {
     vi.useFakeTimers();
     render(
       <CvReviewFeedback
@@ -94,8 +94,7 @@ describe('CvReviewFeedback', () => {
       await vi.advanceTimersByTimeAsync(20);
     });
 
-    expect(screen.getByText('A. CV có đúng hướng ngành học không?')).toBeVisible();
-    expect(screen.queryByText('A. Programme Alignment')).not.toBeInTheDocument();
+    expect(screen.getByText('A. Is your CV aligned with the course?')).toBeVisible();
   });
 
   it('shows score rings and section bars from streamed review data', () => {
@@ -110,13 +109,13 @@ describe('CvReviewFeedback', () => {
 
     expect(screen.getByTestId('cv-score-dashboard')).toBeVisible();
     expect(
-      screen.getByRole('img', { name: 'Điểm tổng: 7.4/10, Khá' }),
+      screen.getByRole('img', { name: 'Overall score: 7.4/10, Fair' }),
     ).toBeVisible();
     expect(
-      screen.getByRole('img', { name: 'Đúng hướng: 7/10, Khá' }),
+      screen.getByRole('img', { name: 'Aligned direction: 7/10, Fair' }),
     ).toBeVisible();
     expect(
-      screen.getByRole('img', { name: 'Kinh nghiệm: 6/10' }),
+      screen.getByRole('img', { name: 'Experience: 6/10' }),
     ).toBeVisible();
   });
 
@@ -132,7 +131,7 @@ describe('CvReviewFeedback', () => {
     expect(screen.getByTestId('cv-readiness-gap')).toBeVisible();
     expect(
       screen.getByRole('img', {
-        name: 'Đúng hướng: hiện tại 7/10, mục tiêu 8/10, còn thiếu 1 điểm',
+        name: 'Aligned direction: currently 7/10, target 8/10, short by 1 points',
       }),
     ).toBeVisible();
   });
@@ -147,8 +146,8 @@ describe('CvReviewFeedback', () => {
       />,
     );
 
-    expect(screen.queryByText('B. Người đọc hiểu bạn là ai không?')).not.toBeInTheDocument();
-    expect(screen.queryByText('E. CV có gọn trong một trang không?')).not.toBeInTheDocument();
+    expect(screen.queryByText('B. Does the reader understand who you are?')).not.toBeInTheDocument();
+    expect(screen.queryByText('E. Is the CV concise enough for one page?')).not.toBeInTheDocument();
 
     for (let index = 0; index < allStrategicEvents.length; index += 1) {
       await act(async () => {
@@ -156,7 +155,7 @@ describe('CvReviewFeedback', () => {
       });
     }
 
-    expect(screen.getByText('E. CV có gọn trong một trang không?')).toBeVisible();
+    expect(screen.getByText('E. Is the CV concise enough for one page?')).toBeVisible();
   });
 
   it('reveals one section and one content item at a time', async () => {
@@ -164,10 +163,10 @@ describe('CvReviewFeedback', () => {
     render(<CvReviewFeedback events={events} analysis={null} streaming />);
 
     expect(
-      screen.queryByRole('heading', { name: '1. CV hiện đang thể hiện điều gì?' }),
+      screen.queryByRole('heading', { name: '1. What does the CV show right now?' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.queryByRole('heading', { name: '2. Kiểm tra 5 tiêu chí quan trọng' }),
+      screen.queryByRole('heading', { name: '2. Check the five key criteria' }),
     ).not.toBeInTheDocument();
 
     await act(async () => {
@@ -178,10 +177,10 @@ describe('CvReviewFeedback', () => {
     });
 
     expect(
-      screen.getByRole('heading', { name: '1. CV hiện đang thể hiện điều gì?' }),
+      screen.getByRole('heading', { name: '1. What does the CV show right now?' }),
     ).toBeVisible();
     expect(
-      screen.queryByRole('heading', { name: '2. Kiểm tra 5 tiêu chí quan trọng' }),
+      screen.queryByRole('heading', { name: '2. Check the five key criteria' }),
     ).not.toBeInTheDocument();
     expect(screen.getAllByTestId('typing-text')[0].textContent?.length).toBeGreaterThan(0);
   });

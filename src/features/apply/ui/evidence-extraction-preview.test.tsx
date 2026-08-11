@@ -62,10 +62,10 @@ describe('EvidenceExtractionPreview', () => {
     );
 
     expect(screen.getByText('profile.pdf').parentElement).toHaveTextContent(
-      'unpdf đọc được 2/2 trang',
+      'unpdf read 2/2 pages',
     );
     await user.click(screen.getByRole('checkbox', { name: /Coding Tutor/i }));
-    await user.click(screen.getByRole('button', { name: /Điền 1 mục đã chọn/i }));
+    await user.click(screen.getByRole('button', { name: /Add 1 selected item/i }));
 
     expect(onApply).toHaveBeenCalledWith([candidates[0]]);
   });
