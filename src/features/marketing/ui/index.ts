@@ -11,15 +11,21 @@ export type { ContactState } from './home-contact';
 export { HOME_FAQ, HomeFaq } from './home-faq';
 export type { FaqEntry } from './home-faq';
 export { HOME_FEATURE_DEMO_VIDEOS, HomeFeatures } from './home-features';
-export type { FeatureDemoKey, FeatureDemoVideo, HomeFeatureDemoVideos } from './home-features';
+export type {
+  FeatureDemoKey,
+  FeatureDemoSource,
+  FeatureDemoVideo,
+  HomeFeatureDemoVideos,
+} from './home-features';
 export { HomeHero } from './home-hero';
 export { HomeHowItWorks } from './home-how-it-works';
 export { HomeMetrics } from './home-metrics';
+export { HomePainPoints } from './home-pain-points';
 export { HomePartners } from './home-partners';
 export { HomeScholarships } from './home-scholarships';
 export type { ScholarshipTeaser } from './home-scholarships';
+export { HomeTeam } from './home-team';
 export { HomeTestimonials } from './home-testimonials';
-export type { Testimonial } from './home-testimonials';
 export { MissingContent } from './missing-content';
 export { GuidePanel, StrategyGuide } from './strategy-guide';
 export { StrategyHelpButton } from './strategy-help-button';
