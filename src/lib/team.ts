@@ -1,16 +1,16 @@
 /**
- * Team data access — powers the richer team experience on the About page.
+ * Team data access — powers the team sections on Home and About.
  *
  * DB schema: supabase-team.sql (public.team_members + public.team_achievements).
  *
  * The team roster is identical for every visitor, so we read it through the
  * admin client inside `unstable_cache` — exactly like getAllUniversities — to
- * keep the home route statically prerendered (ISR) instead of forcing it
+ * keep both routes statically prerendered (ISR) instead of forcing them
  * dynamic via the cookie-bound server client.
  *
  * Every reader is fail-soft: if the migration hasn't been run yet (missing
- * table) or the query errors, we return an empty list and the UI falls back to
- * its built-in static founder card.
+ * table) or the query errors, we return an empty list and the UIs fall back to
+ * their built-in empty states.
  */
 import { unstable_cache } from 'next/cache';
 import { createAdminClient } from '@/lib/supabase/admin';
