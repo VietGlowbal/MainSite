@@ -169,7 +169,7 @@ export function HomeHowItWorks() {
               variants={panelVariants}
               initial={reducedMotion ? false : 'enter'}
               animate="center"
-              exit={reducedMotion ? undefined : 'exit'}
+              exit="exit"
               transition={{ duration: reducedMotion ? 0 : 0.38, ease: [0.16, 1, 0.3, 1] }}
               aria-live="polite"
               className="relative min-h-[260px] overflow-hidden rounded-gb-2xl border border-white/10 bg-surface-inverse-strong p-gb-4xl text-white shadow-gb-lg md:p-gb-5xl"

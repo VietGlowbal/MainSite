@@ -221,6 +221,30 @@ export const translations: Record<string, string> = {
   'The team behind your journey.': 'Đội ngũ đằng sau hành trình của bạn.',
   'GlowBal is built by a team across technology, education, research and communication, including people who have experienced scholarship and study-abroad journeys themselves. We combine student insight, specialist knowledge and technology to turn fragmented advice into a clearer system.':
     'GlowBal được xây dựng bởi đội ngũ trong các lĩnh vực công nghệ, giáo dục, nghiên cứu và truyền thông, cùng những người đã trực tiếp trải qua hành trình học bổng và du học. Chúng mình kết hợp góc nhìn của người dùng, kiến thức chuyên môn và công nghệ để biến những lời khuyên rời rạc thành một hệ thống rõ ràng hơn.',
+  'Founder & CEO': 'Founder & CEO',
+  'CO - Founder': 'CO - Founder',
+  'Jack of all trades': 'Lào gì cũng tôn',
+  'UX Research': 'UX Research',
+  'Backend Developer': 'Backend Developer',
+  'Product Designer': 'Product Designer',
+  'UX Researcher': 'UX Researcher',
+  'Product Manager': 'Product Manager',
+  'Life swept away my innocence and threw me into towering ambitions.':
+    'Cuộc sống cuốn đi sự hồn nhiên và ném vào tôi những tham vọng rất cao',
+  'I grew through hardship. I rose from the ashes.':
+    'Tôi đã trưởng thành từ trong đau khổ. Tôi đã đứng lên từ đống tro tàn.',
+  'Faith is an expensive luxury, and money is truly spellbinding.':
+    'Vì niềm tin là thứ thật xa xỉ. Và đồng tiền là thứ thật ma mị.',
+  "Children who understand too much rarely get sweets; they drink matcha lattes and eat spicy noodles because they are used to life's bitterness.":
+    'Những đứa trẻ hiểu chuyện thường ko có kẹo, chúng uống matcha latte và ăn mỳ cay vì đã quen với đắng cay của cuộc đời.',
+  'At the feast between angels and demons, I am the only one invited.':
+    'Trên bàn tiệc giữa tiên và quỷ tao là thằng duy nhất được mời',
+  'Heaven has not treated me badly. If no one hires me as a developer, I will become a ride-hailing driver.':
+    '“Con thấy ông trời đã đối xử với con không tệ. Nếu không ai thuê con Dev, con sẽ chạy xe ôm công nghệ.”',
+  'Some nights I wish I could go back in life. Not to change sh**, but to feel a couple things twice.':
+    'Some nights I wish I could go back in life. Not to change sh**, but to feel a couple things twice.',
+  'Anyone here ever made a mistake? Raise your hand to receive a second chance.':
+    '“Ai ở đây đã từng sai nào, dơ tay để nhận cơ hội thứ 2 nào.”',
   'Meet the GlowBal team': 'Gặp gỡ đội ngũ GlowBal',
   'Not sure where to begin?': 'Bạn chưa biết nên bắt đầu từ đâu?',
   'Tell us about your goals. The GlowBal team will contact you to help identify a suitable next step.':

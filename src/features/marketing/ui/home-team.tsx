@@ -1,66 +1,103 @@
 import Image from 'next/image';
-import type { TeamMember } from '@/lib/team';
 import { Button, Section } from '@/shared/ui';
 
-export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) {
-  const featured = members.filter((member) => member.photo_url).slice(0, 4);
+const HOME_TEAM = [
+  {
+    name: 'Khánh Linh',
+    role: 'Founder & CEO',
+    bio: 'Life swept away my innocence and threw me into towering ambitions.',
+    image: '/home/team/khanh-linh.png',
+  },
+  {
+    name: 'Hoàng Linh',
+    role: 'CO - Founder',
+    bio: 'I grew through hardship. I rose from the ashes.',
+    image: '/home/team/hoang-linh.png',
+  },
+  {
+    name: 'Chu Tuấn Linh',
+    role: 'Jack of all trades',
+    bio: 'Faith is an expensive luxury, and money is truly spellbinding.',
+    image: '/home/team/chu-tuan-linh.png',
+  },
+  {
+    name: 'Lil Chi',
+    role: 'UX Research',
+    bio: "Children who understand too much rarely get sweets; they drink matcha lattes and eat spicy noodles because they are used to life's bitterness.",
+    image: '/home/team/lil-chi.png',
+  },
+  {
+    name: 'Huấn Rose',
+    role: 'Backend Developer',
+    bio: 'At the feast between angels and demons, I am the only one invited.',
+    image: '/home/team/huan-rose.png',
+  },
+  {
+    name: 'Tạ Đức Hiển',
+    role: 'Product Designer',
+    bio: 'Heaven has not treated me badly. If no one hires me as a developer, I will become a ride-hailing driver.',
+    image: '/home/team/ta-duc-hien.png',
+  },
+  {
+    name: 'Hương',
+    role: 'UX Researcher',
+    bio: 'Some nights I wish I could go back in life. Not to change sh**, but to feel a couple things twice.',
+    image: '/home/team/huong.png',
+  },
+  {
+    name: 'James',
+    role: 'Product Manager',
+    bio: 'Anyone here ever made a mistake? Raise your hand to receive a second chance.',
+    image: '/home/team/james.png',
+  },
+] as const;
 
+/** Home team roster — Figma 903:10609, using its committed portrait exports. */
+export function HomeTeam() {
   return (
     <Section
       padded={false}
-      className="py-gb-9xl"
-      containerClassName="flex flex-col gap-gb-7xl"
+      className="py-gb-6xl"
+      containerClassName="flex flex-col gap-gb-6xl"
     >
-      <div className="grid items-center gap-gb-7xl lg:grid-cols-2">
-        <div className="relative aspect-[4/3] overflow-hidden rounded-gb-xl bg-surface-muted">
-          <Image
-            src="/home-contact-team.jpg"
-            alt="The GlowBal team"
-            fill
-            sizes="(max-width: 1024px) 100vw, 50vw"
-            quality={90}
-            className="object-cover"
-          />
-        </div>
-
-        <div>
-          <p className="text-gb-md font-semibold text-brand">Our team</p>
-          <h2 className="mt-gb-lg font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
-            The team behind your journey.
-          </h2>
-          <p className="mt-gb-2xl text-gb-md leading-relaxed text-fg-tertiary md:text-gb-lg">
-            GlowBal is built by a team across technology, education, research and communication,
-            including people who have experienced scholarship and study-abroad journeys themselves.
-            We combine student insight, specialist knowledge and technology to turn fragmented
-            advice into a clearer system.
-          </p>
-          <Button href="/about" size="xl" className="mt-gb-4xl">
-            Meet the GlowBal team
-          </Button>
-        </div>
+      <div className="mx-auto flex max-w-[1100px] flex-col items-center gap-gb-2xl text-center">
+        <h2 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-brand md:text-gb-display-md">
+          The team behind your journey.
+        </h2>
+        <p className="text-gb-md leading-relaxed text-fg-tertiary md:text-gb-xl">
+          GlowBal is built by a team across technology, education, research and communication,
+          including people who have experienced scholarship and study-abroad journeys themselves.
+          We combine student insight, specialist knowledge and technology to turn fragmented
+          advice into a clearer system.
+        </p>
       </div>
 
-      {featured.length > 0 ? (
-        <div className="grid grid-cols-2 gap-gb-xl md:grid-cols-4">
-          {featured.map((member) => (
-            <article key={member.id} className="group">
-              <div className="relative aspect-[4/5] overflow-hidden rounded-gb-xl bg-surface-muted">
-                <Image
-                  src={member.photo_url!}
-                  alt={member.full_name}
-                  fill
-                  sizes="(max-width: 768px) 50vw, 25vw"
-                  className="object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-              </div>
-              <h3 data-no-auto-translate className="mt-gb-lg text-gb-md font-semibold text-fg">
-                {member.full_name}
+      <div className="grid grid-cols-1 gap-x-gb-4xl gap-y-gb-6xl sm:grid-cols-2 lg:grid-cols-4">
+        {HOME_TEAM.map((member) => (
+          <article key={member.name}>
+            <div className="relative aspect-square overflow-hidden bg-surface-muted">
+              <Image
+                src={member.image}
+                alt={member.name}
+                fill
+                sizes="(max-width: 639px) calc(100vw - 32px), (max-width: 1023px) calc((100vw - 96px) / 2), 280px"
+                className="object-cover"
+              />
+            </div>
+            <div className="mt-gb-xl">
+              <h3 data-no-auto-translate className="text-gb-lg font-semibold text-fg">
+                {member.name}
               </h3>
-              <p className="mt-gb-xs text-gb-sm text-fg-tertiary">{member.role}</p>
-            </article>
-          ))}
-        </div>
-      ) : null}
+              <p className="text-gb-md text-brand">{member.role}</p>
+              <p className="mt-gb-md text-gb-md leading-relaxed text-fg-tertiary">{member.bio}</p>
+            </div>
+          </article>
+        ))}
+      </div>
+
+      <Button href="/about" size="xl" className="self-center">
+        Meet the GlowBal team
+      </Button>
     </Section>
   );
 }

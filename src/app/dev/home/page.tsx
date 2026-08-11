@@ -78,8 +78,8 @@ export default function HomePreviewPage() {
         <HomeFeatures />
         <HomeTestimonials />
         <HomeTeam />
-        <HomeFaq />
         <HomeContact action={previewAction} />
+        <HomeFaq />
       </main>
       <Footer
         logo={<GlowbalLogo height={28} />}

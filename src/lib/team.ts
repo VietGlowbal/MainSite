@@ -1,5 +1,5 @@
 /**
- * Team data access — powers the homepage "Team behind GlowBal" section.
+ * Team data access — powers the richer team experience on the About page.
  *
  * DB schema: supabase-team.sql (public.team_members + public.team_achievements).
  *

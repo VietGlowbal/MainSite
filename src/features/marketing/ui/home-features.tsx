@@ -134,7 +134,13 @@ function DemoFallback({ block }: { block: Block }) {
   );
 }
 
-function BlockMedia({ block, video }: { block: Block; video?: FeatureDemoVideo }) {
+function BlockMedia({
+  block,
+  video,
+}: {
+  block: Block;
+  video: FeatureDemoVideo | undefined;
+}) {
   return (
     <div className="w-full lg:flex-1">
       <div className="aspect-[16/10] overflow-hidden rounded-[32px] border border-line bg-surface p-[4px] shadow-gb-lg">
@@ -150,7 +156,13 @@ function BlockMedia({ block, video }: { block: Block; video?: FeatureDemoVideo }
   );
 }
 
-function FeatureBlock({ block, video }: { block: Block; video?: FeatureDemoVideo }) {
+function FeatureBlock({
+  block,
+  video,
+}: {
+  block: Block;
+  video: FeatureDemoVideo | undefined;
+}) {
   return (
     <article
       className={`flex flex-col gap-gb-6xl lg:items-center lg:gap-gb-8xl ${

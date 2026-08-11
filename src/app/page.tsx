@@ -29,7 +29,6 @@ import { sendEmail } from '@/lib/send-email';
 import { Footer } from '@/shared/ui';
 import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
 import { headers } from 'next/headers';
-import { getTeamMembers } from '@/lib/team';
 
 /**
  * Five consultation requests per IP per hour. Generous for a person filling the
@@ -182,10 +181,7 @@ async function submitContact(
 }
 
 export default async function Home() {
-  const [partnerUniversityIds, team] = await Promise.all([
-    getPartnerUniversityIds(),
-    getTeamMembers(),
-  ]);
+  const partnerUniversityIds = await getPartnerUniversityIds();
 
   return (
     /* gb-page-full-bleed tells globals.css to drop the sidebar gutter and the
@@ -206,9 +202,9 @@ export default async function Home() {
         <HomeHowItWorks />
         <HomeFeatures />
         <HomeTestimonials />
-        <HomeTeam members={team} />
-        <HomeFaq />
+        <HomeTeam />
         <HomeContact action={submitContact} />
+        <HomeFaq />
       </main>
       <Footer
         logo={<GlowbalLogo height={28} />}

@@ -200,6 +200,29 @@ test.describe('home preview — desktop', () => {
     await expect(page.getByRole('heading', { level: 3, name: /Demo Video/i })).toHaveCount(0);
   });
 
+  test('team uses the eight-person Figma roster and the requested closing flow', async ({ page }) => {
+    await page.goto('/dev/home');
+
+    const teamHeading = page.getByRole('heading', { name: 'The team behind your journey.' });
+    const teamSection = teamHeading.locator('..').locator('..').locator('..');
+    await expect(teamSection.locator('article')).toHaveCount(8);
+    await expect(teamSection.getByRole('heading', { level: 3, name: 'Khánh Linh' })).toBeVisible();
+    await expect(teamSection.getByRole('heading', { level: 3, name: 'James' })).toBeVisible();
+
+    const order = await page.evaluate(() => {
+      const headings = [...document.querySelectorAll('h2')];
+      const indices = [
+        'The team behind your journey.',
+        'Not sure where to begin?',
+        'Frequently asked questions',
+      ].map((text) => headings.findIndex((heading) => heading.textContent?.trim() === text));
+      return indices;
+    });
+
+    expect(order.every((index) => index >= 0)).toBe(true);
+    expect(order).toEqual([...order].sort((a, b) => a - b));
+  });
+
   test('hero renders its heading and call to action', async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto('/dev/home');
