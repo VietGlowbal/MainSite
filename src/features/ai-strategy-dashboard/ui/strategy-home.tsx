@@ -1,4 +1,5 @@
 import { Button, Panel, Section } from '@/shared/ui';
+import { T } from '@/lib/i18n';
 
 /**
  * Strategy Home — requirements.md Requirement 2, Stage 1 of the V2 journey.
@@ -71,26 +72,25 @@ export function StrategyHome({
           {courseName} · {universityName}
         </p>
         <h1 className="max-w-gb-width-xl font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg">
-          Build your personalised roadmap into university.
+          <T k="Build your personalised roadmap into university." />
         </h1>
         <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
-          Our AI analyses your profile, compares you against your chosen university course, and
-          creates a personalised action plan that updates as you improve.
+          <T k="Our AI analyses your profile, compares you against your chosen university course, and creates a personalised action plan that updates as you improve." />
         </p>
         <Button href={startHref} size="lg" className="min-w-64">
-          Start My Strategy
+          <T k="Start My Strategy" />
         </Button>
       </Section>
 
       <Section padded={false} containerClassName="flex flex-col gap-gb-3xl">
-        <h2 className="font-display text-gb-display-sm font-semibold text-fg">How it works</h2>
+        <h2 className="font-display text-gb-display-sm font-semibold text-fg"><T k="How it works" /></h2>
         <div className="grid gap-gb-3xl sm:grid-cols-2 lg:grid-cols-5">
           {HOW_IT_WORKS.map((item) => (
             <div key={item.step} className="flex flex-col gap-gb-md">
               <span className="flex size-[40px] items-center justify-center rounded-gb-full bg-brand-subtle text-gb-md font-semibold text-fg-brand">
                 {item.step}
               </span>
-              <p className="text-gb-md font-semibold text-fg">{item.title}</p>
+              <p className="text-gb-md font-semibold text-fg"><T k={item.title} /></p>
             </div>
           ))}
         </div>
@@ -100,8 +100,8 @@ export function StrategyHome({
         <div className="grid gap-gb-3xl sm:grid-cols-2 xl:grid-cols-4">
           {BENEFITS.map((benefit) => (
             <Panel key={benefit.title}>
-              <p className="text-gb-lg font-semibold text-fg">{benefit.title}</p>
-              <p className="mt-gb-xs text-gb-sm text-fg-tertiary">{benefit.body}</p>
+              <p className="text-gb-lg font-semibold text-fg"><T k={benefit.title} /></p>
+              <p className="mt-gb-xs text-gb-sm text-fg-tertiary"><T k={benefit.body} /></p>
             </Panel>
           ))}
         </div>
@@ -109,13 +109,13 @@ export function StrategyHome({
 
       <Section padded={false} containerClassName="flex flex-col gap-gb-3xl">
         <h2 className="font-display text-gb-display-sm font-semibold text-fg">
-          What students say
+          <T k="What students say" />
         </h2>
         <div className="grid gap-gb-3xl sm:grid-cols-3">
           {TESTIMONIALS.map((t) => (
             <Panel key={t.quote}>
-              <p className="text-gb-md text-fg">“{t.quote}”</p>
-              <p className="mt-gb-lg text-gb-sm text-fg-tertiary">{t.attribution}</p>
+              <p className="text-gb-md text-fg">“<T k={t.quote} />”</p>
+              <p className="mt-gb-lg text-gb-sm text-fg-tertiary"><T k={t.attribution} /></p>
             </Panel>
           ))}
         </div>
@@ -123,7 +123,7 @@ export function StrategyHome({
 
       <Section padded={false} containerClassName="flex flex-col items-center gap-gb-lg text-center">
         <Button href={startHref} size="lg" className="min-w-64">
-          Start My Strategy
+          <T k="Start My Strategy" />
         </Button>
       </Section>
     </div>

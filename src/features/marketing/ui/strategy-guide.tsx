@@ -10,6 +10,7 @@ import {
   type GuideStep,
 } from '../domain/strategy-guide';
 import { Badge, Button, ICONS, KitIcon, type BadgeVariant } from '@/shared/ui';
+import { T } from '@/lib/i18n';
 
 /**
  * The `/ai-strategy` explainer — a sticky, scroll-driven walkthrough of the
@@ -151,11 +152,13 @@ function StepMedia({ step }: { step: GuideStep }) {
           <span className="flex size-gb-7xl items-center justify-center rounded-gb-full bg-white/10 text-fg-on-inverse">
             <KitIcon art={ICONS.zapFast} frame={24} />
           </span>
-          <p className="text-gb-sm font-semibold text-fg-on-inverse">Demo clip coming soon</p>
+          <p className="text-gb-sm font-semibold text-fg-on-inverse">
+            <T k="Demo clip coming soon" />
+          </p>
           <p className="max-w-sm text-gb-xs text-fg-on-inverse-muted">
-            This step will show a short screen recording of{' '}
-            <span className="font-medium text-fg-on-inverse-secondary">
-              {step.title.toLowerCase()}
+            <T k="This step will show a short screen recording of" />{' '}
+            <span className="font-medium lowercase text-fg-on-inverse-secondary">
+              <T k={step.title} />
             </span>
             .
           </p>
@@ -174,7 +177,7 @@ function StepDetails({ step }: { step: GuideStep }) {
       {step.details.map((detail) => (
         <li key={detail} className="flex items-start gap-gb-md">
           <KitIcon art={ICONS.checkCircle} frame={20} className="mt-gb-xxs shrink-0 text-brand" />
-          <span className="text-gb-sm text-fg-secondary">{detail}</span>
+          <span className="text-gb-sm text-fg-secondary"><T k={detail} /></span>
         </li>
       ))}
     </ul>
@@ -268,7 +271,7 @@ function AreaTabs({
                     isCurrent ? 'text-fg-brand' : 'text-fg-secondary'
                   }`}
                 >
-                  {area.title}
+                  <T k={area.title} />
                 </span>
               </span>
               <span className="flex items-center gap-gb-sm" aria-hidden="true">
@@ -312,9 +315,9 @@ function StepAction({ step }: { step: GuideStep }) {
           art={SEARCH_DESTINATIONS.has(step.href) ? ICONS.search : ICONS.arrowRight}
           frame={20}
         />
-        {step.linkLabel}
+        <T k={step.linkLabel} />
       </Button>
-      {caption ? <p className="text-gb-xs text-fg-muted">Takes you to {caption}</p> : null}
+      {caption ? <p className="text-gb-xs text-fg-muted"><T k="Takes you to" /> <T k={caption} /></p> : null}
     </div>
   );
 }
@@ -340,7 +343,7 @@ function GuideNav({
         disabled={activeIndex === 0}
       >
         <KitIcon art={ICONS.arrowLeft} frame={20} />
-        Previous
+        <T k="Previous" />
       </Button>
       <Button
         size="lg"
@@ -348,7 +351,7 @@ function GuideNav({
         onClick={() => onSelect(Math.min(total - 1, activeIndex + 1))}
         disabled={activeIndex === total - 1}
       >
-        Next
+        <T k="Next" />
         <KitIcon art={ICONS.arrowRight} frame={20} />
       </Button>
     </div>
@@ -409,12 +412,12 @@ export function GuidePanel({
             resizing its parent. See the header on layout stability. */}
         <div className="flex min-h-0 flex-col gap-gb-2xl">
           <div className="flex min-h-0 flex-1 flex-col gap-gb-lg overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            <h2 className="font-display text-gb-display-xs font-semibold text-fg">{step.title}</h2>
+            <h2 className="font-display text-gb-display-xs font-semibold text-fg"><T k={step.title} /></h2>
             <div className="flex flex-col gap-gb-xs">
               <p className="text-gb-sm font-semibold text-fg-brand">
-                Step {active.indexInArea + 1} of {area.steps.length}
+                <T k="Step {current} of {total}" vars={{ current: active.indexInArea + 1, total: area.steps.length }} />
               </p>
-              <p className="text-gb-md text-fg-tertiary">{step.summary}</p>
+              <p className="text-gb-md text-fg-tertiary"><T k={step.summary} /></p>
             </div>
             <hr className="border-line" />
             <StepDetails step={step} />
@@ -507,10 +510,10 @@ function GuideStacked({ areas }: { areas: readonly GuideArea[] }) {
                 on /ai-strategy — which renders area 3 alone — the local count
                 would read "Area 3 of 1". */}
             <Badge variant={areaBadgeVariant(area.id)}>
-              Area {area.number} of {STRATEGY_GUIDE.length}
+              <T k="Area {current} of {total}" vars={{ current: area.number, total: STRATEGY_GUIDE.length }} />
             </Badge>
-            <h2 className="font-display text-gb-display-xs font-semibold text-fg">{area.title}</h2>
-            <p className="text-gb-md text-fg-tertiary">{area.summary}</p>
+            <h2 className="font-display text-gb-display-xs font-semibold text-fg"><T k={area.title} /></h2>
+            <p className="text-gb-md text-fg-tertiary"><T k={area.summary} /></p>
           </div>
 
           <div className="flex flex-col gap-gb-4xl">
@@ -522,13 +525,13 @@ function GuideStacked({ areas }: { areas: readonly GuideArea[] }) {
                     <span className="flex size-gb-4xl shrink-0 items-center justify-center rounded-gb-md bg-brand text-gb-xs font-semibold text-white">
                       {step.number}
                     </span>
-                    <h3 className="text-gb-lg font-semibold text-fg">{step.title}</h3>
+                    <h3 className="text-gb-lg font-semibold text-fg"><T k={step.title} /></h3>
                   </div>
-                  <p className="text-gb-md text-fg-tertiary">{step.summary}</p>
+                  <p className="text-gb-md text-fg-tertiary"><T k={step.summary} /></p>
                   <StepDetails step={step} />
                   {step.href && step.linkLabel ? (
                     <Button href={step.href} variant="secondary" size="sm" className="self-start">
-                      {step.linkLabel}
+                      <T k={step.linkLabel} />
                     </Button>
                   ) : null}
                 </div>

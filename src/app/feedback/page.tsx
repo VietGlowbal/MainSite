@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { useT } from '@/lib/i18n';
 
 const feedbackSchema = z.object({
   pageUrl: z.string().url('Please enter a valid URL'),
@@ -15,8 +16,9 @@ const feedbackSchema = z.object({
 type FeedbackForm = z.infer<typeof feedbackSchema>;
 
 export default function FeedbackPage() {
+  const t = useT();
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
-  useLoadingIndicator(status === 'submitting', 'Sending your feedback');
+  useLoadingIndicator(status === 'submitting', t('Sending your feedback'));
   const [screenshot, setScreenshot] = useState<File | null>(null);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -68,15 +70,15 @@ export default function FeedbackPage() {
             <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-50">
               <span className="text-3xl">✓</span>
             </div>
-            <h1 className="text-2xl font-bold text-slate-900">Bug report sent!</h1>
+            <h1 className="text-2xl font-bold text-slate-900">{t('Bug report sent!')}</h1>
             <p className="mt-2 text-slate-500">
-              Thanks for helping us improve Glowbal. We&apos;ll look into it.
+              {t('Thanks for helping us improve Glowbal. We’ll look into it.')}
             </p>
             <button
               onClick={() => setStatus('idle')}
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-pink-500 px-6 py-2.5 text-sm font-semibold text-white shadow-md transition-colors hover:bg-pink-600"
             >
-              Submit another report
+              {t('Submit another report')}
             </button>
           </div>
         </div>
@@ -90,10 +92,10 @@ export default function FeedbackPage() {
         {/* Header */}
         <div className="mb-8 text-center">
           <h1 className="text-3xl font-bold tracking-tight text-slate-900 md:text-4xl">
-            UAT Feedback
+            {t('UAT Feedback')}
           </h1>
           <p className="mt-2 text-base text-slate-500">
-            Found a bug? Let us know so we can fix it.
+            {t('Found a bug? Let us know so we can fix it.')}
           </p>
         </div>
 
@@ -105,14 +107,14 @@ export default function FeedbackPage() {
           {/* Page URL */}
           <div>
             <label htmlFor="pageUrl" className="mb-1.5 block text-sm font-medium text-slate-700">
-              Page URL
+              {t('Page URL')}
             </label>
             <input
               id="pageUrl"
               type="url"
-              placeholder="https://glowbal-education.com/..."
+              placeholder={t('https://glowbal-education.com/...')}
               className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-100"
-              {...register('pageUrl', { required: 'Page URL is required' })}
+                {...register('pageUrl', { required: t('Page URL is required') })}
             />
             {errors.pageUrl && (
               <p className="mt-1 text-xs text-red-500">{errors.pageUrl.message}</p>
@@ -122,14 +124,14 @@ export default function FeedbackPage() {
           {/* Steps to reproduce */}
           <div>
             <label htmlFor="steps" className="mb-1.5 block text-sm font-medium text-slate-700">
-              Steps to reproduce
+              {t('Steps to reproduce')}
             </label>
             <textarea
               id="steps"
               rows={3}
-              placeholder="1. Go to ...&#10;2. Click on ...&#10;3. ..."
+              placeholder={t('1. Go to ...\n2. Click on ...\n3. ...')}
               className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-100"
-              {...register('steps', { required: 'Steps are required', minLength: { value: 10, message: 'Please be more specific' } })}
+              {...register('steps', { required: t('Steps are required'), minLength: { value: 10, message: t('Please be more specific') } })}
             />
             {errors.steps && (
               <p className="mt-1 text-xs text-red-500">{errors.steps.message}</p>
@@ -139,14 +141,14 @@ export default function FeedbackPage() {
           {/* Expected result */}
           <div>
             <label htmlFor="expected" className="mb-1.5 block text-sm font-medium text-slate-700">
-              Expected result
+              {t('Expected result')}
             </label>
             <textarea
               id="expected"
               rows={2}
-              placeholder="What should have happened?"
+              placeholder={t('What should have happened?')}
               className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-100"
-              {...register('expected', { required: 'Expected result is required', minLength: { value: 5, message: 'Please be more specific' } })}
+              {...register('expected', { required: t('Expected result is required'), minLength: { value: 5, message: t('Please be more specific') } })}
             />
             {errors.expected && (
               <p className="mt-1 text-xs text-red-500">{errors.expected.message}</p>
@@ -156,14 +158,14 @@ export default function FeedbackPage() {
           {/* Actual result */}
           <div>
             <label htmlFor="actual" className="mb-1.5 block text-sm font-medium text-slate-700">
-              Actual result
+              {t('Actual result')}
             </label>
             <textarea
               id="actual"
               rows={2}
-              placeholder="What happened instead?"
+              placeholder={t('What happened instead?')}
               className="w-full rounded-lg border border-slate-200 px-4 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-pink-300 focus:outline-none focus:ring-2 focus:ring-pink-100"
-              {...register('actual', { required: 'Actual result is required', minLength: { value: 5, message: 'Please be more specific' } })}
+              {...register('actual', { required: t('Actual result is required'), minLength: { value: 5, message: t('Please be more specific') } })}
             />
             {errors.actual && (
               <p className="mt-1 text-xs text-red-500">{errors.actual.message}</p>
@@ -173,7 +175,7 @@ export default function FeedbackPage() {
           {/* Screenshot */}
           <div>
             <label htmlFor="screenshot" className="mb-1.5 block text-sm font-medium text-slate-700">
-              Screenshot <span className="text-slate-400">(optional)</span>
+              {t('Screenshot')} <span className="text-slate-400">({t('optional')})</span>
             </label>
             <input
               id="screenshot"
@@ -192,7 +194,7 @@ export default function FeedbackPage() {
           {/* Error message */}
           {status === 'error' && (
             <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600">
-              {errorMessage || 'Something went wrong. Please try again.'}
+              {errorMessage || t('Something went wrong. Please try again.')}
             </div>
           )}
 
@@ -202,7 +204,7 @@ export default function FeedbackPage() {
             disabled={status === 'submitting'}
             className="w-full rounded-full bg-pink-500 px-6 py-3 text-sm font-semibold text-white shadow-md transition-colors hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {status === 'submitting' ? 'Sending…' : 'Submit Bug Report'}
+            {status === 'submitting' ? t('Sending…') : t('Submit Bug Report')}
           </button>
         </form>
       </div>

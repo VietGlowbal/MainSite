@@ -74,7 +74,7 @@ function FormatCard({
   );
 }
 
-function StartCard({
+export function StartCard({
   title,
   description,
   href,

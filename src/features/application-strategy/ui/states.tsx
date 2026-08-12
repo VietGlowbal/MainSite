@@ -1,6 +1,7 @@
 'use client';
 
 import { Button, ICONS, KitIcon, ProgressBar } from '@/shared/ui';
+import { useT } from '@/lib/i18n';
 
 /**
  * Every empty, loading, stale and failure state this feature can be in, with the
@@ -41,6 +42,7 @@ export function StateBlock({
   action,
   secondary,
   busy,
+  translate = false,
 }: {
   tone?: StateTone | undefined;
   title: string;
@@ -49,7 +51,14 @@ export function StateBlock({
   secondary?: StateAction | undefined;
   /** Renders an indeterminate progress bar. For genuinely in-flight states only. */
   busy?: boolean | undefined;
+  /** Opt-in for literals owned by this shared state catalogue; dynamic payloads stay untouched. */
+  translate?: boolean | undefined;
 }) {
+  const t = useT();
+  const localizedAction = action ? { ...action, label: translate ? t(action.label) : action.label } : undefined;
+  const localizedSecondary = secondary ? { ...secondary, label: translate ? t(secondary.label) : secondary.label } : undefined;
+  const localizedTitle = translate ? t(title) : title;
+  const localizedBody = body ? (translate ? t(body) : body) : body;
   return (
     <div
       className={`flex flex-col gap-gb-lg rounded-gb-xl border p-gb-2xl ${TONE[tone]}`}
@@ -62,31 +71,31 @@ export function StateBlock({
           }`}
         >
           {tone === 'error' ? <KitIcon art={ICONS.messageChatCircle} frame={14} /> : null}
-          {title}
+          {localizedTitle}
         </p>
-        {body ? <p className="text-gb-sm text-fg-tertiary">{body}</p> : null}
+        {localizedBody ? <p className="text-gb-sm text-fg-tertiary">{localizedBody}</p> : null}
       </div>
 
-      {busy ? <ProgressBar label={title} size="sm" /> : null}
+      {busy ? <ProgressBar label={localizedTitle} size="sm" /> : null}
 
-      {action || secondary ? (
+      {localizedAction || localizedSecondary ? (
         <div className="flex flex-wrap items-center gap-gb-lg">
-          {action ? renderAction(action) : null}
-          {secondary ? (
-            secondary.href ? (
+          {localizedAction ? renderAction(localizedAction) : null}
+          {localizedSecondary ? (
+            localizedSecondary.href ? (
               <a
-                href={secondary.href}
+                href={localizedSecondary.href}
                 className="text-gb-sm font-semibold text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg"
               >
-                {secondary.label}
+                {localizedSecondary.label}
               </a>
             ) : (
               <button
                 type="button"
-                onClick={secondary.onClick}
+                onClick={localizedSecondary.onClick}
                 className="rounded-gb-md text-gb-sm font-semibold text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                {secondary.label}
+                {localizedSecondary.label}
               </button>
             )
           ) : null}
@@ -113,8 +122,8 @@ function renderAction(action: StateAction) {
 
 // ── Loading and in-flight ─────────────────────────────────────────────────
 
-export function GeneratingState({ title, body }: { title: string; body?: string | undefined }) {
-  return <StateBlock title={title} body={body} busy />;
+export function GeneratingState({ title, body, translate = false }: { title: string; body?: string | undefined; translate?: boolean | undefined }) {
+  return <StateBlock title={title} body={body} busy translate={translate} />;
 }
 
 // ── Programme and profile data ────────────────────────────────────────────
@@ -125,6 +134,7 @@ export function NoProgrammeDataState({ applicationId }: { applicationId: string 
       title="We have not read this programme's page yet"
       body="Target profile suggestions use the course's own requirements. Without them, generation will leave most fields empty."
       action={{ label: 'Open course details', href: `/apply/${applicationId}` }}
+      translate
     />
   );
 }
@@ -138,6 +148,7 @@ export function NoCvUploadedState({ onStartManually }: { onStartManually: () => 
       body="Import a CV you already have, or start from your Glowbal profile."
       action={{ label: 'Upload a CV', href: '#cv-source' }}
       secondary={{ label: 'Enter information manually', onClick: onStartManually }}
+      translate
     />
   );
 }
@@ -158,34 +169,34 @@ export function UnreadableCvState({
   onManual: () => void;
   onTryAnother: () => void;
 }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-gb-lg rounded-gb-xl border border-line bg-surface-muted p-gb-2xl">
       <div className="flex flex-col gap-gb-xs">
         <p className="text-gb-sm font-semibold text-fg">
-          We saved your file, but we could not read its text.
+          {t('We saved your file, but we could not read its text.')}
         </p>
         <p className="text-gb-sm text-fg-tertiary">
-          Scanned PDFs, images and Word documents cannot be read automatically yet. Your file is
-          still attached to this application.
+          {t('Scanned PDFs, images and Word documents cannot be read automatically yet. Your file is still attached to this application.')}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-gb-md">
         <Button size="sm" onClick={onPasteText}>
-          Paste CV text
+          {t('Paste CV text')}
         </Button>
         <Button size="sm" variant="secondary" onClick={onManual}>
-          Enter information manually
+          {t('Enter information manually')}
         </Button>
         <button
           type="button"
           onClick={onTryAnother}
           className="rounded-gb-md text-gb-sm font-semibold text-fg-tertiary underline decoration-line-strong underline-offset-4 hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         >
-          Try another file
+          {t('Try another file')}
         </button>
       </div>
       <p className="text-gb-xs text-fg-muted">
-        A text-based PDF exported from Word or Google Docs reads reliably.
+        {t('A text-based PDF exported from Word or Google Docs reads reliably.')}
       </p>
     </div>
   );
@@ -251,6 +262,7 @@ export function OutdatedReviewState({
       action={{ label: running ? 'Reviewing…' : 'Re-run review', onClick: onRerun }}
       {...(onContinue ? { secondary: { label: 'Continue to layout anyway', onClick: onContinue } } : {})}
       busy={running}
+      translate
     />
   );
 }
@@ -269,6 +281,7 @@ export function OutdatedAnalysisState({
       body="Re-analyze to refresh the feedback below."
       action={{ label: running ? 'Analyzing…' : 'Re-analyze', onClick: onRerun }}
       busy={running}
+      translate
     />
   );
 }
@@ -296,6 +309,7 @@ export function AnalysisFailedState({
       body="Nothing you have written was lost. This is usually temporary."
       action={{ label: 'Retry', onClick: onRetry }}
       {...(onContinue ? { secondary: { label: 'Continue editing', onClick: onContinue } } : {})}
+      translate
     />
   );
 }
@@ -307,6 +321,7 @@ export function ProviderUnavailableState({ onRetry }: { onRetry: () => void }) {
       title="Our AI provider is not responding."
       body="Your document is saved. Try again shortly."
       action={{ label: 'Try again', onClick: onRetry }}
+      translate
     />
   );
 }
@@ -317,6 +332,7 @@ export function MissingCvContentState({ applicationId }: { applicationId: string
       title="There is no CV content to review yet"
       body="Add your education and experience first, then run the review."
       action={{ label: 'Add CV content', href: `/ai-strategy/${applicationId}/cv/content` }}
+      translate
     />
   );
 }
@@ -330,6 +346,7 @@ export function ExportFailedState({ onRetry }: { onRetry: () => void }) {
       title="We could not build your PDF."
       body="Your CV content is safe. This is usually temporary."
       action={{ label: 'Retry export', onClick: onRetry }}
+      translate
     />
   );
 }
@@ -341,6 +358,7 @@ export function ExportOutdatedState({ onRetry }: { onRetry: () => void }) {
       title="Your PDF is older than your CV"
       body="You have edited your CV since this file was generated."
       action={{ label: 'Generate a new PDF', onClick: onRetry }}
+      translate
     />
   );
 }
@@ -348,20 +366,21 @@ export function ExportOutdatedState({ onRetry }: { onRetry: () => void }) {
 // ── Statement ─────────────────────────────────────────────────────────────
 
 export function EmptyStatementState({ onPaste, onStart }: { onPaste: () => void; onStart: () => void }) {
+  const t = useT();
   return (
     <div className="flex flex-col gap-gb-lg rounded-gb-xl border border-line bg-surface-muted p-gb-2xl">
       <div className="flex flex-col gap-gb-xs">
-        <p className="text-gb-sm font-semibold text-fg">Nothing written yet</p>
+        <p className="text-gb-sm font-semibold text-fg">{t('Nothing written yet')}</p>
         <p className="text-gb-sm text-fg-tertiary">
-          Paste a draft you already have, or start from the brief above.
+          {t('Paste a draft you already have, or start from the brief above.')}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-gb-md">
         <Button size="sm" onClick={onStart}>
-          Start writing
+          {t('Start writing')}
         </Button>
         <Button size="sm" variant="secondary" onClick={onPaste}>
-          Paste statement
+          {t('Paste statement')}
         </Button>
       </div>
     </div>

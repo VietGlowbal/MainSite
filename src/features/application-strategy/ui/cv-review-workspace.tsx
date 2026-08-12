@@ -135,7 +135,7 @@ export function CvReviewWorkspace({
       {running ? (
         <GeneratingState
           title={t('Reviewing your CV')}
-          body="Reading your CV against every part of your target profile."
+          body={t('Reading your CV against every part of your target profile.')}
         />
       ) : null}
 

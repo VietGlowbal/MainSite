@@ -158,7 +158,7 @@ export function TargetProfileWorkspace({
       {generating ? (
         <GeneratingState
           title={t('Creating target profile')}
-          body="Reading this programme's page and your Glowbal profile."
+          body={t("Reading this programme's page and your Glowbal profile.")}
         />
       ) : null}
 
@@ -167,7 +167,7 @@ export function TargetProfileWorkspace({
           tone="error"
           title={t('Could not create target profile')}
           body={generateError}
-          action={{ label: 'Try again', onClick: () => void generate() }}
+          action={{ label: t('Try again'), onClick: () => void generate() }}
         />
       ) : null}
 

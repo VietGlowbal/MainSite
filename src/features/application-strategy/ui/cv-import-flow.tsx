@@ -231,12 +231,18 @@ export function CvImportFlow({
         </StrategyPanel>
       ) : null}
 
-      {phase.kind === 'uploading' ? <GeneratingState title="Uploading" /> : null}
+      {phase.kind === 'uploading' ? <GeneratingState title={t('Uploading')} /> : null}
       {phase.kind === 'reading' ? (
-        <GeneratingState title="Reading document" body="Extracting the text from your file." />
+        <GeneratingState
+          title={t('Reading document')}
+          body={t('Extracting the text from your file.')}
+        />
       ) : null}
       {phase.kind === 'organizing' ? (
-        <GeneratingState title="Organizing content" body="Splitting it into CV sections." />
+        <GeneratingState
+          title={t('Organizing content')}
+          body={t('Splitting it into CV sections.')}
+        />
       ) : null}
 
       {phase.kind === 'unreadable' ? (
@@ -266,7 +272,7 @@ export function CvImportFlow({
           tone="error"
           title={t('Could not import CV')}
           body={phase.message}
-          action={{ label: 'Try again', onClick: () => setPhase({ kind: 'picking' }) }}
+          action={{ label: t('Try again'), onClick: () => setPhase({ kind: 'picking' }) }}
           secondary={{ label: t('Enter manually'), onClick: onCancel }}
         />
       ) : null}

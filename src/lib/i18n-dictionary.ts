@@ -2895,12 +2895,22 @@ export const translations: Record<string, string> = {
   'AI analyses your application': 'AI phân tích hồ sơ của bạn',
   'AI compares you against your course': 'AI so sánh bạn với khóa học',
   Personalised: 'Cá nhân hóa',
+  'Every recommendation is unique.': 'Mỗi đề xuất đều độc đáo.',
+  'Analyses hundreds of factors instantly.': 'Phân tích hàng trăm yếu tố ngay lập tức.',
   'Continuously Updated': 'Cập nhật liên tục',
+  'Improve something? Ask for a re-analysis and your strategy catches up.':
+    'Bạn vừa cải thiện điều gì đó? Hãy yêu cầu phân tích lại để chiến lược được cập nhật.',
   'Course Specific': 'Theo từng khóa học',
+  'Every recommendation is based on your chosen university course.':
+    'Mỗi đề xuất đều dựa trên khóa học đại học bạn đã chọn.',
   'Build your personalised roadmap into university.': 'Xây dựng lộ trình cá nhân hóa để vào đại học.',
   'Our AI analyses your profile, compares you against your chosen university course, and creates a personalised action plan that updates as you improve.': 'AI của chúng tôi phân tích hồ sơ, so sánh bạn với khóa học đại học đã chọn và tạo kế hoạch hành động cá nhân hóa được cập nhật khi bạn tiến bộ.',
   'Start My Strategy': 'Bắt đầu chiến lược của tôi',
   'What students say': 'Sinh viên nói gì',
+  'I had no idea what universities actually wanted.': 'Trước đây tôi không biết các trường đại học thực sự muốn gì.',
+  'The strategy showed me weaknesses I never considered.': 'Chiến lược đã cho tôi thấy những điểm yếu mà tôi chưa từng nghĩ đến.',
+  'It made the application process much less stressful.': 'Quy trình ứng tuyển trở nên nhẹ nhàng hơn rất nhiều.',
+  'Sample testimonial': 'Lời chia sẻ mẫu',
   Positioning: 'Định vị',
   'Your Personalized Strategy': 'Chiến lược cá nhân hóa của bạn',
   'Strategy report sections': 'Các phần báo cáo chiến lược',
@@ -3038,6 +3048,13 @@ export const translations: Record<string, string> = {
   'Choose now': 'Chọn ngay',
   'Open Glowbal AI': 'Mở Glowbal AI',
   'Choose a CV format': 'Chọn format CV',
+  'Bring your experience together into a target profile and an English CV for the programme':
+    'Tổng hợp kinh nghiệm của bạn thành hồ sơ mục tiêu và CV tiếng Anh cho chương trình.',
+  'Upload or paste an existing CV to receive evidence-based feedback':
+    'Tải lên hoặc dán CV hiện có để nhận phản hồi dựa trên bằng chứng.',
+  'Start building your CV': 'Bắt đầu xây dựng CV',
+  Upload: 'Tải lên',
+  Input: 'Nhập',
   'Where would you like to start?': 'Bạn muốn bắt đầu từ đâu',
   'PDF extraction results': 'Kết quả đọc PDF',
   'Review before adding to your profile': 'Kiểm tra trước khi điền vào hồ sơ',
@@ -3060,7 +3077,52 @@ export const translations: Record<string, string> = {
   'Candidate information': 'Thông tin ứng viên',
   'Finish': 'Hoàn tất',
   'Submit Bug Report': 'Gửi báo cáo lỗi',
+  'Page URL is required': 'Vui lòng nhập URL trang',
+  '1. Go to ...\n2. Click on ...\n3. ...': '1. Truy cập ...\n2. Nhấp vào ...\n3. ...',
+  'Steps are required': 'Vui lòng nhập các bước',
+  'Please be more specific': 'Vui lòng mô tả cụ thể hơn',
+  'Expected result is required': 'Vui lòng nhập kết quả mong đợi',
+  'Actual result is required': 'Vui lòng nhập kết quả thực tế',
+  optional: 'không bắt buộc',
   'of 3 &middot;': 'trong 3 ·',
+  'of 3 ·': 'trên 3 ·',
+  'Step {current} of {total}': 'Bước {current} trong {total}',
+  'Area {current} of {total}': 'Khu vực {current} trong {total}',
+  'the university directory': 'danh bạ trường đại học',
+  'the scholarship list': 'danh sách học bổng',
+  'the questions about you': 'các câu hỏi về bạn',
+  'your achievements': 'thành tích của bạn',
+  'steps, built for one specific course — so it can compare you against that course’s real requirements rather than a generic checklist. You start it from an application you have already planned.':
+    'bước, được xây dựng cho một khóa học cụ thể — để so sánh bạn với yêu cầu thực tế của khóa học thay vì danh sách chung chung. Bạn bắt đầu từ hồ sơ đã lên kế hoạch.',
+  'A Strategy belongs to a single course, so it opens from an application rather than from here. Plan one in My Portal, then use “Ready to strengthen this application?” at the bottom of it.':
+    'Một Chiến lược gắn với một khóa học, nên được mở từ hồ sơ thay vì tại đây. Hãy lập hồ sơ trong Trang lưu, sau đó chọn “Sẵn sàng củng cố hồ sơ này?” ở cuối hồ sơ.',
+  'Extracting the text from your file.': 'Đang trích xuất nội dung từ tệp của bạn.',
+  'Splitting it into CV sections.': 'Đang chia nội dung thành các phần CV.',
+  'Reading your CV against every part of your target profile.':
+    'Đang đối chiếu CV với từng phần trong hồ sơ mục tiêu của bạn.',
+  "Reading this programme's page and your Glowbal profile.":
+    'Đang đọc trang chương trình và hồ sơ Glowbal của bạn.',
+  "Target profile suggestions use the course's own requirements. Without them, generation will leave most fields empty.":
+    'Gợi ý hồ sơ mục tiêu dựa trên yêu cầu riêng của khóa học. Nếu thiếu dữ liệu này, phần lớn trường sẽ để trống.',
+  'Import a CV you already have, or start from your Glowbal profile.':
+    'Nhập CV hiện có hoặc bắt đầu từ hồ sơ Glowbal của bạn.',
+  'Run the review again to refresh the feedback.': 'Chạy lại đánh giá để cập nhật phản hồi.',
+  'Reviewing…': 'Đang đánh giá…',
+  'Re-run review': 'Chạy lại đánh giá',
+  'Re-analyze to refresh the feedback below.': 'Phân tích lại để cập nhật phản hồi bên dưới.',
+  'Analyzing…': 'Đang phân tích…',
+  'Re-analyze': 'Phân tích lại',
+  'Nothing you have written was lost. This is usually temporary.':
+    'Nội dung bạn đã viết vẫn được giữ nguyên. Lỗi này thường chỉ là tạm thời.',
+  'We could not finish the analysis.': 'Không thể hoàn tất phân tích.',
+  'Your document is saved. Try again shortly.':
+    'Tài liệu của bạn đã được lưu. Hãy thử lại sau ít phút.',
+  'Add your education and experience first, then run the review.':
+    'Hãy thêm học vấn và kinh nghiệm trước, sau đó chạy đánh giá.',
+  'Your CV content is safe. This is usually temporary.':
+    'Nội dung CV của bạn vẫn an toàn. Lỗi này thường chỉ là tạm thời.',
+  'You have edited your CV since this file was generated.':
+    'Bạn đã chỉnh sửa CV sau khi tệp này được tạo.',
   'steps, built for one specific course &mdash; so it can compare you against that course&rsquo;s real requirements rather than a generic checklist. You start it from an application you have already planned.': 'bước, được xây dựng cho một khóa học cụ thể — để so sánh bạn với yêu cầu thực tế của khóa học thay vì danh sách chung chung. Bạn bắt đầu từ hồ sơ đã lên kế hoạch.',
   'A Strategy belongs to a single course, so it opens from an application rather than from here. Plan one in My Portal, then use &ldquo;Ready to strengthen this application?&rdquo; at the bottom of it.': 'Một Chiến lược gắn với một khóa học, nên được mở từ hồ sơ thay vì tại đây. Hãy lập hồ sơ trong Trang lưu, sau đó chọn “Sẵn sàng củng cố hồ sơ này?” ở cuối hồ sơ.',
   'From &ldquo;where do I even start&rdquo; to a plan that gets you in': 'Từ “tôi phải bắt đầu từ đâu” đến kế hoạch giúp bạn trúng tuyển',

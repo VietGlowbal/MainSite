@@ -12,6 +12,7 @@ import {
 import { guideArea } from '@/features/marketing/domain';
 import { createClient } from '@/lib/supabase/server';
 import { Button, Container, Footer, Panel } from '@/shared/ui';
+import { T } from '@/lib/i18n';
 
 /**
  * /ai-strategy — what GlowBal Strategy is, and nothing else.
@@ -80,23 +81,21 @@ export default async function AiStrategyPage() {
         <section className="pt-gb-7xl">
           <Container className="flex max-w-3xl flex-col gap-gb-xl">
             <p className="text-gb-sm font-semibold uppercase tracking-wide text-fg-brand">
-              Stage {AREA.number} of 3 &middot; {AREA.title}
+              <T k="Stage" /> {AREA.number} <T k="of 3 ·" /> <T k={AREA.title} />
             </p>
             <h1 className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg">
-              The part that changes your odds
+              <T k="The part that changes your odds" />
             </h1>
-            <p className="text-gb-lg text-fg-tertiary">{AREA.summary}</p>
+            <p className="text-gb-lg text-fg-tertiary"><T k={AREA.summary} /></p>
             <p className="text-gb-md text-fg-tertiary">
-              {AREA.steps.length} steps, built for one specific course &mdash; so it can compare you
-              against that course&rsquo;s real requirements rather than a generic checklist. You
-              start it from an application you have already planned.
+              {AREA.steps.length}{' '}<T k="steps, built for one specific course — so it can compare you against that course’s real requirements rather than a generic checklist. You start it from an application you have already planned." />
             </p>
             <div className="flex flex-wrap gap-gb-lg">
               <Button href="/apply" size="lg">
-                Open My Portal
+                <T k="Open My Portal" />
               </Button>
               <Button href="/how-it-works" variant="secondary" size="lg">
-                See the whole journey
+                <T k="See the whole journey" />
               </Button>
             </div>
           </Container>
@@ -116,19 +115,17 @@ export default async function AiStrategyPage() {
           <Container>
             <Panel className="flex flex-col items-start gap-gb-lg">
               <h2 className="font-display text-gb-xl font-semibold text-fg">
-                Where you start one
+                <T k="Where you start one" />
               </h2>
               <p className="max-w-2xl text-gb-md text-fg-tertiary">
-                A Strategy belongs to a single course, so it opens from an application rather than
-                from here. Plan one in My Portal, then use &ldquo;Ready to strengthen this
-                application?&rdquo; at the bottom of it.
+                <T k="A Strategy belongs to a single course, so it opens from an application rather than from here. Plan one in My Portal, then use “Ready to strengthen this application?” at the bottom of it." />
               </p>
               <div className="flex flex-wrap gap-gb-lg">
                 <Button href="/apply" size="lg">
-                  Go to My Portal
+                  <T k="Go to My Portal" />
                 </Button>
                 <Button href="/universities" variant="secondary" size="lg">
-                  Find a university first
+                  <T k="Find a university first" />
                 </Button>
               </div>
             </Panel>
@@ -141,18 +138,17 @@ export default async function AiStrategyPage() {
             <Container>
               <Panel className="flex flex-col items-start gap-gb-lg">
                 <h2 className="font-display text-gb-xl font-semibold text-fg">
-                  Ready to start yours?
+                  <T k="Ready to start yours?" />
                 </h2>
                 <p className="max-w-2xl text-gb-md text-fg-tertiary">
-                  Create a free account to save universities, plan an application and build your
-                  first strategy.
+                  <T k="Create a free account to save universities, plan an application and build your first strategy." />
                 </p>
                 <div className="flex flex-wrap gap-gb-lg">
                   <Button href="/auth" size="lg">
-                    Create an account
+                    <T k="Create an account" />
                   </Button>
                   <Button href="/how-it-works" variant="secondary" size="lg">
-                    Read how GlowBal works
+                    <T k="Read how GlowBal works" />
                   </Button>
                 </div>
               </Panel>
