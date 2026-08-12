@@ -19,7 +19,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5k | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i fixed a recommendation detail page crash: `parseContentBlock`/`parseContentBlockValue` only checked the JSON's `type` field, not the rest of the shape, so a malformed `content_schema` crashed the genUI content block's `.map()` calls instead of degrading to `null`. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. |
+| §5–§5l | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i hardened `parseContentBlock`/`parseContentBlockValue`, which only checked the JSON's `type` field and not the rest of the shape — a real latent bug, but **not** the cause of the "planner tasks don't load" report it was written in response to; see §5l for what actually was. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. §5l is the one to read before touching the Planner UI: every task detail page 500'd because a server component imported pure helpers from a `'use client'` module, where calling an export throws and reading one silently yields `undefined`. The mappings now live in a directive-free `planner-presentation.ts`; never move them back. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -1055,6 +1055,60 @@ the canvas shows against the page's own background; after, the fill is
 opaque red and the canvas draws on top of it, which is the point — the
 marquee should read as texture on the red, not as a flash of white against
 whatever the page happens to render before the header settles in.
+
+## 5l. Every Planner task detail page 500'd — a server component was calling functions exported from a `'use client'` module
+
+**This is the real cause of the "planner tasks don't load" report, and §5i was
+not it.** §5i fixed a genuine latent bug in `parseContentBlock` (a malformed
+`content_schema` crashing the genUI renderer), but that was never what students
+were hitting: the page threw before it could reach any content block.
+
+The task detail page
+(`app/ai-strategy/[applicationId]/strategy/recommendations/[recommendationId]/page.tsx`)
+is a server component. It imported `categoryLabel`, `categoryVariant`,
+`formatDate`, `PRIORITY_LABEL` and `PRIORITY_VARIANT` from the feature's `ui`
+barrel, which re-exported them from `planner-shared.tsx` — a `'use client'`
+module. A client module's exports do not reach a server component as values;
+they arrive as client references, and the two failure modes are asymmetric,
+which is exactly why this survived a fix attempt and a round of review:
+
+- **Calling one throws.** `categoryLabel(...)` → `Attempted to call
+  categoryLabel() from the server but categoryLabel is on the client. It's not
+  possible to invoke a client function from the server, it can only be
+  rendered as a Component or passed to props of a Client Component.` The page
+  renders `categoryVariant(rec.category)` whenever the task has a category, and
+  a generated recommendation essentially always does — so **every** task detail
+  page 500'd.
+- **Reading one does not throw.** `PRIORITY_VARIANT[rec.priority]` silently
+  evaluated to `undefined`, so the priority badge would have rendered with no
+  variant and an empty label. Silent, and invisible next to the crash.
+
+`dashboard-summary.tsx` (also a server component) had the same bug in a
+narrower form: it called `formatDate(deadline)` from the client module, so the
+Planner dashboard crashed for any application that had a deadline set and
+worked for any that did not.
+
+**The fix** is `planner-presentation.ts` — a plain module, no directive,
+holding the pure mappings and the date formatter. A module with no directive
+is usable from both graphs; `planner-shared.tsx` keeps only the React
+components and imports its mappings from next door. **Never move these back,
+and never add `'use client'` to `planner-presentation.ts`** — a component is
+safe to import across the boundary (it renders as a Client Component), a
+plain function or object is not.
+
+Guarded by `planner-presentation.test.tsx`. A unit test cannot reproduce the
+RSC boundary (vitest has one module graph), so it asserts the structural
+property instead: the module stays directive-free, the barrel points at it
+rather than at `planner-shared`, and `dashboard-summary.tsx` does not reach for
+the client module to get `formatDate`. The directive check verifies itself
+against `planner-shared.tsx` so it cannot quietly stop matching anything.
+
+**How to check this class of bug in future:** a `next build` will not catch it
+and neither will `tsc` — the types are identical either way, and the failure is
+at render. A throwaway server-component route under `src/app/dev/` that calls
+the suspect imports inside `try`/`catch` and prints the result reproduces it in
+seconds without needing a database row, which is how this one was found and
+confirmed fixed.
 
 ## 6. Open questions for the designer / owner
 
