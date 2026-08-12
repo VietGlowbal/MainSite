@@ -258,6 +258,73 @@ export async function PATCH(
   }
 }
 
+/**
+ * DELETE /api/applications/:id
+ *
+ * Permanently removes an application the student no longer wants tracked.
+ * Every child row (stages, tasks, match/applicant analyses, recommendations,
+ * the Personalized Strategy report, CV/statement strategy work) is
+ * `ON DELETE CASCADE` off `course_applications.id` — see the `supabase-*.sql`
+ * files that declare each of those FKs — so this one delete is enough; there
+ * is nothing to clean up first. The one exception, `personal_statements`,
+ * has its `application_id` FK as `ON DELETE SET NULL`, so a statement a
+ * student wrote stays theirs even once the application it was drafted for is
+ * gone.
+ *
+ * Scoped by `user_id` in the query itself (defence in depth on top of the
+ * `course_applications` RLS owner policy), so this can only ever delete the
+ * caller's own row.
+ */
+export async function DELETE(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const { id } = await context.params;
+    const supabase = await createClient();
+
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !user) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const { data: deleted, error } = await supabase
+      .from('course_applications')
+      .delete()
+      .eq('id', id)
+      .eq('user_id', user.id)
+      .select('id')
+      .maybeSingle();
+
+    if (error) {
+      console.error('Error deleting application:', error);
+      return NextResponse.json(
+        { error: 'Failed to delete application' },
+        { status: 500 }
+      );
+    }
+
+    if (!deleted) {
+      return NextResponse.json(
+        { error: 'Application not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Unexpected error in DELETE /api/applications/:id:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
 // Helper functions
 function calculateDaysLeft(deadline: string): string {
   const now = new Date();

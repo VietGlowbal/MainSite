@@ -1,13 +1,13 @@
 # Current project status
 
-Last reconciled: **2026-08-08 (Asia/Bangkok)**
+Last reconciled: **2026-08-12 (Asia/Bangkok)**
 
-Code snapshot: **working tree**, branched from `main` at `b610087` (PR #158,
-"Fix Overview page being skipped, auto-firing analysis for returning
-students", merged). Not yet committed/pushed at the time this document was
+Code snapshot: **working tree**, branched from `main` at `dbb3d73` (the
+latest commit at the time, a GEO auto-publish; the last app-code merge
+before it was PR #159, "Fix reflection steps never actually completing, and
+Overview CTA skip"). Not yet committed/pushed at the time this document was
 written — see "Last completed work" below for what the working tree
-contains. `origin/main` has since moved one commit further (`15948d2`, an
-unrelated GEO auto-publish) than the base this branch restarted from.
+contains.
 
 This is the first file a coding agent should read. It records the present state
 of the repository, the last completed work, its impact, the verification state,
@@ -21,15 +21,16 @@ directory. If this file conflicts with the code, the code wins.
 - Two pre-existing untracked documents must be preserved: `TECH_SOLUTION.md`
   and `docs/audit-2026-08-03.md`. They are owner/session work, not generated
   build output.
-- The working tree has real uncommitted work: a FOURTH same-day fix on this
-  same feature, and the biggest one — see the next section and
-  `docs/known-issues.md §5g`.
+- The working tree has real uncommitted work: two new applications-list
+  features (delete an application; apply to a second course at a university
+  you already have one with) — see the next section.
 
 ## Last completed work
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
-| *(uncommitted)* | **Fixed a same-day production incident (the fourth on this feature today, and the root cause of the whole day's trouble)**: `personal_summary_completed_at`/`achievements_completed_at` (`student_profiles`) were **never written by any code in this repository** — confirmed by a full-repo grep, three read sites and zero writes. Every student's reflections were permanently "incomplete" no matter how many times they submitted both steps, which is what made §5e/§5f's symptoms possible in the first place and would have made a student finishing achievements bounce straight back to reflections in an infinite loop even after those fixes. Also fixed: Overview's CTA (§5f's fix) pointed at "whatever the real next step is," which for a returning student resolved straight to the analysis-trigger gate, skipping reflections anyway — reported the same day as "it goes straight into doing the strategy building." And wired `?return=` through the reflection forms' submit handlers (§5f's flagged-but-unfixed gap), for the application-originated case specifically. See `docs/known-issues.md §5g`. | `POST /api/reflection` now sets both completion timestamps on submit. `strategy/page.tsx`'s Overview CTA always targets the reflection flow's start, unconditionally. `reflection-about-form.tsx`/`reflection-evidence-form.tsx` now read and carry forward `?return=`, landing a student back at their application's analysis gate after reflections instead of an old per-student report page — every other (non-application) entry point into those forms is unchanged. |
+| *(uncommitted)* | **Added application deletion and multi-course-per-university support.** `DELETE /api/applications/[id]` is new (auth + owner-scoped; every child row — stages, tasks, the Personal/Matching/Personalized Strategy reports, CV/statement strategy work — is `ON DELETE CASCADE` off `course_applications.id` except `personal_statements.application_id`, which is `SET NULL`, so one delete is enough). `my-application-section.tsx`'s `ApplicationRow` gained a "Delete" action (confirmation modal, names what's removed, irreversible) and an "Add another course" action (shown when `app.universityId` is known) that reuses the existing `/api/applications/from-course-url` endpoint — its duplicate check is already `(user_id, course_url)`, not university, and `user_universities` (the saved-list model "Plan my application" reads from) has `UNIQUE(user_id, university_id)` with one `program` column, so this was already the only path to a genuinely independent second application at the same university without a schema change. | Students can remove an application they no longer want tracked, and can track a second course at a university they've already applied to elsewhere on the site, without going through the saved-list's one-subject-per-university model. New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler's three outcomes (deleted / not found or not owned / db error). |
+| `59c334e` (#159) | Fixed a same-day production incident (the fourth on the checklist/F7 feature that day, and the root cause of the whole day's trouble): `personal_summary_completed_at`/`achievements_completed_at` (`student_profiles`) were **never written by any code in this repository** — confirmed by a full-repo grep, three read sites and zero writes. Every student's reflections were permanently "incomplete" no matter how many times they submitted both steps, which is what made §5e/§5f's symptoms possible in the first place and would have made a student finishing achievements bounce straight back to reflections in an infinite loop even after those fixes. Also fixed: Overview's CTA (§5f's fix) pointed at "whatever the real next step is," which for a returning student resolved straight to the analysis-trigger gate, skipping reflections anyway — reported the same day as "it goes straight into doing the strategy building." And wired `?return=` through the reflection forms' submit handlers (§5f's flagged-but-unfixed gap), for the application-originated case specifically. See `docs/known-issues.md §5g`. | `POST /api/reflection` now sets both completion timestamps on submit. `strategy/page.tsx`'s Overview CTA always targets the reflection flow's start, unconditionally. `reflection-about-form.tsx`/`reflection-evidence-form.tsx` now read and carry forward `?return=`, landing a student back at their application's analysis gate after reflections instead of an old per-student report page — every other (non-application) entry point into those forms is unchanged. |
 | `b610087` (#158) | Fixed a same-day production incident: Overview was only shown to a student with neither reflection step done, so a returning student (reflections globally already marked complete) skipped it entirely. See `docs/known-issues.md §5f`. | `strategy/page.tsx` gated Overview on `!state.aiAnalysisComplete` (per-application) instead of the shared reflection flags; `/apply/[applicationId]/page.tsx` simplified to bounce to `/ai-strategy/[id]/strategy` rather than duplicating the decision. |
 | `dac93c0` (#157) | Fixed a same-day production incident: `fetchOnboardingState`'s `aiAnalysisComplete` only checked the Personal Report, not the Matching Report, letting an incomplete analysis reach the F7 page. See `docs/known-issues.md §5e`. | `aiAnalysisComplete` now requires both reports; the F7 workspace redirects to the analysis gate on a `needsInputs` response instead of retrying the same doomed call. |
 | `573db50` (#156) | Retired the free `/apply/[applicationId]` checklist/match-insights UI (now a pure onboarding redirect) and built F7 "Personalized Strategy" — a new, separate, read-only, downloadable-PDF report page, deliberately distinct from the task-tracking Planner. | Clicking into an application lands wherever the student actually is in the gated pipeline (Reflection → Personal Report → Matching Report → Personalized Strategy → Planner). New `application_strategy_recommendations` table; one new OpenAI call synthesising the Personal Report and Matching Report into six sections, written in English by product decision. |
@@ -50,7 +51,13 @@ directory. If this file conflicts with the code, the code wins.
   the source of student context.
 - My Portal: `/apply` is the post-login landing and combines saved universities
   with application progress. The bare `/my-universities` permanently redirects
-  to `/apply`; its subject picker and legacy task children still exist.
+  to `/apply`; its subject picker and legacy task children still exist. Each
+  application row now has **Delete** (real, cascading, confirmed in a modal —
+  not the `status='archived'` soft-delete the schema has a column for but no
+  code ever wrote) and, when the row has a `university_id`, **Add another
+  course** (pastes a second course URL through the existing
+  `from-course-url` endpoint, independent of the saved-list's
+  one-subject-per-university model).
 - Per-application work: `/apply/[applicationId]` is now a pure redirect (no
   checklist UI of its own) — it sends the student to wherever they are in the
   onboarding pipeline via `fetchOnboardingState`/`nextOnboardingStep`. The
@@ -106,7 +113,7 @@ directory. If this file conflicts with the code, the code wins.
 
 ## Verification snapshot
 
-Measured on 2026-08-08 against the uncommitted working tree described above
+Measured on 2026-08-12 against the uncommitted working tree described above
 (`npx` invocations, equivalent to the `npm run` scripts):
 
 | Gate | Result |
@@ -114,21 +121,22 @@ Measured on 2026-08-08 against the uncommitted working tree described above
 | `npx tsc --noEmit` | **Pass**, 0 errors (ran after `rm -rf .next/types`). |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
 | `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
-| `npx vitest run` | **Pass: 1677 passed, 2 todo, 156 files passed, 0 failed.** New `src/app/api/reflection/route.test.ts` covers the completion-flag upserts. |
-| `npm run build` | Not rerun in this pass. |
+| `npx vitest run` | **Pass: 1681 passed, 2 todo, 157 files passed, 0 failed.** New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler. |
+| `npm run build` | Attempted once this session (2026-08-12); failed locally on `/_not-found` prerendering because this checkout has no `.env.local` with real Supabase credentials — a sandbox limitation, not a code error (`tsc`/`next build`'s compile step both succeeded first). Not evidence either way about the actual Vercel build, which has real credentials and has been green on every PR this week. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
-The owner reported running "supabase" migration(s) and merging #157 earlier
-today, so §0e may now be resolved — **not independently re-verified in this
-pass**. `supabase-strategy-recommendation-report.sql` (§0f)'s status is also
-unconfirmed. Re-run the SQL checks in §0e/§0f before assuming either is
-done. Manual click-through has still not been done in this session — only
-automated checks above. Given §5g's finding (a flag silently never being
-written, for what may have been the product's entire lifetime), a manual
-click-through of the FULL flow — Overview → reflections → achievements →
-analysis → intro → Personalized Strategy → Planner, on a genuinely fresh
-student account — is now the highest-value verification step available,
-higher than re-running the automated gates again.
+**Open thread carried from the previous session**: the user reported "report
+creation still isn't working" with no specific URL/error, after four
+same-day fixes (§5e-§5g) had already shipped. A fresh code-level re-audit
+that session found no further bug; the two remaining unknowns are (a)
+whether `supabase-ai-strategy-reports.sql` (§0e) and
+`supabase-strategy-recommendation-report.sql` (§0f) have actually been
+confirmed run against production, and (b) what specifically fails now — the
+user has not yet replied with either. Do not assume this is resolved without
+that reply. A manual click-through of the full flow (Overview → reflections
+→ achievements → analysis → intro → Personalized Strategy → Planner) on a
+genuinely fresh student account remains the highest-value verification step
+nobody has done yet.
 
 ## Open risks that still deserve priority
 

@@ -13,9 +13,12 @@ import {
 import type { DeadlineTone } from '@/features/apply/workspace-domain';
 import { ResearchingInline } from '@/features/apply/tracker-ui';
 import type { CourseApplication } from '@/lib/apply-types';
+import { useT } from '@/lib/i18n';
 import { Avatar } from '@/shared/ui/avatar';
 import { Button } from '@/shared/ui/button';
 import { ICONS, KitIcon } from '@/shared/ui/icons';
+import { Input } from '@/shared/ui/input';
+import { Modal } from '@/shared/ui/modal';
 import { ProgressBar } from '@/shared/ui/progress-bar';
 import { ScoreRing } from '@/shared/ui/score-ring';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
@@ -198,6 +201,178 @@ function RetryParse({ applicationId }: { applicationId: string }) {
   );
 }
 
+/**
+ * "Delete" — removes an application permanently.
+ *
+ * A real DELETE, not the `status: 'archived'` soft-delete the schema already
+ * has a column for (see `supabase-schema.sql`'s `course_applications.status`
+ * CHECK) — nothing in this codebase ever writes that value, and reusing it
+ * here would be inventing a whole archive/unarchive feature nobody asked
+ * for. Every child row is `ON DELETE CASCADE` off `course_applications.id`
+ * (stages, tasks, the Personal Report, Matching Report, Personalized
+ * Strategy report, recommendations, CV/statement strategy work), so this one
+ * confirmation genuinely means "and everything built for it" — the copy
+ * below says so rather than implying a quieter action than what happens.
+ */
+function DeleteApplicationButton({ applicationId, label }: { applicationId: string; label: string }) {
+  const router = useRouter();
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState('');
+  useLoadingIndicator(deleting, 'Deleting your application');
+
+  async function confirmDelete() {
+    setDeleting(true);
+    setError('');
+    try {
+      const res = await fetch(`/api/applications/${applicationId}`, { method: 'DELETE' });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setError(body.error ?? t('Could not delete that application.'));
+        setDeleting(false);
+        return;
+      }
+      setOpen(false);
+      router.refresh();
+    } catch {
+      setError(t('Could not reach the server. Please try again.'));
+      setDeleting(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-gb-xs font-semibold text-fg-error hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        {t('Delete')}
+      </button>
+      <Modal open={open} onClose={() => setOpen(false)} label={t('Delete application')}>
+        <div className="flex flex-col gap-gb-xl">
+          <h2 className="text-gb-lg font-semibold text-fg">{t('Delete this application?')}</h2>
+          <p className="text-gb-sm text-fg-tertiary">
+            {t(
+              'This permanently removes {label} and everything built for it — your checklist, reports, and any CV or statement work done for this course. This cannot be undone.',
+              { label },
+            )}
+          </p>
+          {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
+          <div className="flex justify-end gap-gb-lg">
+            <Button variant="secondary" onClick={() => setOpen(false)} disabled={deleting}>
+              {t('Cancel')}
+            </Button>
+            <Button variant="secondary-destructive" onClick={() => void confirmDelete()} disabled={deleting}>
+              {deleting ? t('Deleting…') : t('Delete application')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+}
+
+/**
+ * "Add another course" — a second, independent application at a university
+ * the student already has one with.
+ *
+ * `from-saved-university` (the "Plan my application" path) cannot do this:
+ * `user_universities` has `UNIQUE(user_id, university_id)` and a single
+ * `program` column, so a saved university only ever holds one subject at a
+ * time. `/api/applications/from-course-url` has no such limit — its
+ * duplicate check is `(user_id, course_url)`, not university — so pasting a
+ * second course's page here creates a genuinely separate `course_applications`
+ * row, tracked on its own, without touching the saved-list model at all.
+ */
+function AddCourseButton({
+  universityId,
+  universityLabel,
+}: {
+  universityId: number;
+  universityLabel: string;
+}) {
+  const router = useRouter();
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [url, setUrl] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+  useLoadingIndicator(submitting, 'Adding your course');
+
+  async function submit() {
+    if (!url.trim()) return;
+    setSubmitting(true);
+    setError('');
+    try {
+      const res = await fetch('/api/applications/from-course-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseUrl: url.trim(), universityId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        if (res.status === 409 && body.duplicate) {
+          setError(t('You already have an application for that course.'));
+        } else if (res.status === 403) {
+          setError(body.error ?? t('You have reached the number of courses your plan allows.'));
+        } else {
+          setError(body.error ?? t('We could not add that course. Please try again.'));
+        }
+        setSubmitting(false);
+        return;
+      }
+      setOpen(false);
+      setUrl('');
+      router.refresh();
+    } catch {
+      setError(t('Could not reach the server. Please try again.'));
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="text-gb-xs font-semibold text-fg-tertiary transition-colors hover:text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      >
+        {t('Add another course')}
+      </button>
+      <Modal open={open} onClose={() => setOpen(false)} label={t('Apply to another course')}>
+        <div className="flex flex-col gap-gb-xl">
+          <h2 className="text-gb-lg font-semibold text-fg">
+            {t('Apply to another course at {university}', { university: universityLabel })}
+          </h2>
+          <p className="text-gb-sm text-fg-tertiary">
+            {t(
+              'Paste the course page and we will track it as its own application, alongside the one you already have here.',
+            )}
+          </p>
+          <Input
+            name="anotherCourseUrl"
+            label={t('Course page')}
+            placeholder="https://university.edu/programmes/..."
+            value={url}
+            onChange={(event) => setUrl(event.target.value)}
+            {...(error ? { error } : {})}
+          />
+          <div className="flex justify-end gap-gb-lg">
+            <Button variant="secondary" onClick={() => setOpen(false)} disabled={submitting}>
+              {t('Cancel')}
+            </Button>
+            <Button onClick={() => void submit()} disabled={submitting || !url.trim()}>
+              {submitting ? t('Adding…') : t('Add course')}
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
+  );
+}
+
 /** Figma 337:18787 — one application row. */
 function ApplicationRow({
   app,
@@ -327,6 +502,19 @@ function ApplicationRow({
           </Link>
 
           <RowQuickLinks applicationId={app.id} strategyReady={strategyReady} />
+
+          <div className="flex flex-wrap items-center gap-x-gb-lg gap-y-gb-xs">
+            {app.universityId != null ? (
+              <AddCourseButton
+                universityId={app.universityId}
+                universityLabel={university ?? urlLabel ?? 'this university'}
+              />
+            ) : null}
+            <DeleteApplicationButton
+              applicationId={app.id}
+              label={course ? `${course} at ${university ?? 'this university'}` : (university ?? 'this application')}
+            />
+          </div>
         </div>
       </div>
     </li>

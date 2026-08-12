@@ -3441,4 +3441,22 @@ export const translations: Record<string, string> = {
   'Replace content': 'Thay thế nội dung',
   'Replace with this content': 'Thay thế bằng nội dung này',
   'Rendering your CV.': 'Đang dựng CV của bạn.',
+
+  // /apply — delete an application, apply to a second course at the same university
+  'Could not delete that application.': 'Không thể xóa đơn ứng tuyển này.',
+  'Delete application': 'Xóa đơn ứng tuyển',
+  'Delete this application?': 'Xóa đơn ứng tuyển này?',
+  'This permanently removes {label} and everything built for it — your checklist, reports, and any CV or statement work done for this course. This cannot be undone.':
+    'Thao tác này sẽ xóa vĩnh viễn {label} và mọi thứ đã được xây dựng cho đơn này — checklist, báo cáo, cùng mọi nội dung CV hoặc bài luận đã làm cho khóa học này. Không thể hoàn tác.',
+  'Deleting…': 'Đang xóa…',
+  'You already have an application for that course.': 'Bạn đã có đơn ứng tuyển cho khóa học đó.',
+  'We could not add that course. Please try again.':
+    'Chúng tôi không thể thêm khóa học đó. Vui lòng thử lại.',
+  'Add another course': 'Thêm khóa học khác',
+  'Apply to another course': 'Ứng tuyển khóa học khác',
+  'Apply to another course at {university}': 'Ứng tuyển khóa học khác tại {university}',
+  'Paste the course page and we will track it as its own application, alongside the one you already have here.':
+    'Dán trang khóa học và chúng tôi sẽ theo dõi đây như một đơn ứng tuyển riêng, bên cạnh đơn bạn đã có tại đây.',
+  'Adding…': 'Đang thêm…',
+  'Add course': 'Thêm khóa học',
 };
