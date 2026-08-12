@@ -70,13 +70,6 @@ export default async function ApplicantPortraitPage({
       pendingSectionCount={evaluation.pendingSectionCount}
       confidence={evaluation.confidence}
       generatedAt={evaluation.generatedAt}
-      unlockedStages={
-        // The planner redirects back to onboarding until the analysis has run,
-        // so it is shown but not linked until then — see StageBar.
-        step === 'dashboard'
-          ? ['reflection', 'portrait', 'fit', 'strategy', 'planner']
-          : ['reflection', 'portrait', 'fit', 'strategy']
-      }
     />
   );
 }

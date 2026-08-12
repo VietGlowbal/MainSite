@@ -36,15 +36,5 @@ export default async function ProgrammeFitPage({
   // portrait route — see the note there.
   if (!evaluation) notFound();
 
-  return (
-    <ProgrammeFitReport
-      applicationId={applicationId}
-      fit={evaluation.programmeFit}
-      unlockedStages={
-        step === 'dashboard'
-          ? ['reflection', 'portrait', 'fit', 'strategy', 'planner']
-          : ['reflection', 'portrait', 'fit', 'strategy']
-      }
-    />
-  );
+  return <ProgrammeFitReport applicationId={applicationId} fit={evaluation.programmeFit} />;
 }

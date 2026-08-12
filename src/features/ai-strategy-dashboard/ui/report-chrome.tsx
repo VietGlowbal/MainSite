@@ -1,117 +1,19 @@
 'use client';
 
-import Link from 'next/link';
 import { useState } from 'react';
 import { useLanguage } from '@/lib/i18n';
 
 /**
- * Chrome shared by the two report pages — the stage bar and the section tabs.
+ * Chrome shared by the report pages — the section tab bar.
  *
- * ─── LIGHT, NOT DARK ─────────────────────────────────────────────────────────
- *
- * Both mockups are dark. The rest of the app is light, and the owner chose to
- * keep these continuous with it, so the layout, the tab bar, the rings and the
- * hero are taken from the design and the surface is not. The dark-band tokens
- * (`bg-surface-inverse-deep`, `fg-on-inverse`) exist and are used by the stage
- * bar alone, which IS dark in the design and reads as chrome rather than page.
- *
- * ─── THE STAGE BAR IS NOT THE SITE NAV ───────────────────────────────────────
- *
- * It names the five stages of one strategy — Reflections, Personal Report,
- * Matching Report, Strategy, Planner — and every entry is a real route the
- * student has or will reach. Stages ahead of them are shown but not linked:
- * `/strategy/dashboard` redirects back to onboarding when the analysis has not
- * run, so linking it would offer a door that bounces them. Showing the whole
- * path and dimming what is not yet open is the honest version.
+ * The stage bar that used to live here (Reflections/Personal Report/Matching
+ * Report/Strategy/Planner) was removed 12/08: every report page already sits
+ * under the `/ai-strategy/[applicationId]` layout, which renders the
+ * brand-red `ApplicationNav` above it with the same destinations. Two bars
+ * stacked on one page told the student nothing a single bar didn't, and
+ * disagreed with each other about which entries were reachable. See
+ * `src/shared/ui/sub-nav.tsx` for the one bar that remains.
  */
-
-export type StageKey = 'reflection' | 'portrait' | 'fit' | 'strategy' | 'planner';
-
-type Stage = {
-  key: StageKey;
-  label: string;
-  href: (applicationId: string) => string;
-};
-
-const STAGES: readonly Stage[] = [
-  { key: 'reflection', label: 'Reflections', href: () => '/ai-strategy/reflection' },
-  {
-    key: 'portrait',
-    label: 'Personal Report',
-    href: (id) => `/ai-strategy/${id}/strategy/analysis/portrait`,
-  },
-  {
-    key: 'fit',
-    label: 'GlowBal Matching Report',
-    href: (id) => `/ai-strategy/${id}/strategy/analysis/fit`,
-  },
-  {
-    key: 'strategy',
-    label: 'Personalized Strategy',
-    href: (id) => `/ai-strategy/${id}/strategy/analysis/recommendation`,
-  },
-  {
-    key: 'planner',
-    label: 'Application Planner',
-    href: (id) => `/ai-strategy/${id}/strategy/dashboard`,
-  },
-];
-
-export function StageBar({
-  applicationId,
-  active,
-  unlockedStages,
-}: {
-  applicationId: string;
-  active: StageKey;
-  /** Stages the student can actually open. Others render dimmed and inert. */
-  unlockedStages: readonly StageKey[];
-}) {
-  const { t } = useLanguage();
-
-  return (
-    <nav
-      aria-label={t('Strategy stages')}
-      className="rounded-gb-xl bg-surface-inverse-deep px-gb-xl py-gb-md"
-    >
-      <ul className="flex flex-wrap items-center gap-x-gb-2xl gap-y-gb-md">
-        {STAGES.map((stage) => {
-          const isActive = stage.key === active;
-          const isUnlocked = unlockedStages.includes(stage.key);
-
-          if (!isUnlocked) {
-            return (
-              <li key={stage.key}>
-                <span
-                  className="text-gb-sm font-medium text-fg-on-inverse-muted opacity-60"
-                  title={t('Available once your analysis has run')}
-                >
-                  {t(stage.label)}
-                </span>
-              </li>
-            );
-          }
-
-          return (
-            <li key={stage.key}>
-              <Link
-                href={stage.href(applicationId)}
-                aria-current={isActive ? 'page' : undefined}
-                className={`rounded-gb-sm text-gb-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white ${
-                  isActive
-                    ? 'text-fg-on-inverse underline decoration-2 underline-offset-8'
-                    : 'text-fg-on-inverse-secondary hover:text-fg-on-inverse'
-                }`}
-              >
-                {t(stage.label)}
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
-    </nav>
-  );
-}
 
 export type ReportTab = {
   key: string;

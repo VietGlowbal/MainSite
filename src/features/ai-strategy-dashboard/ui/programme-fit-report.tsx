@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import type { Confidence, ProgrammeFit, RequirementRow } from '../domain';
 import { CONFIDENCE_LABEL } from '../domain';
-import { ReportPanel, ReportTabs, StageBar, useReportTabs, type StageKey } from './report-chrome';
+import { ReportPanel, ReportTabs, useReportTabs } from './report-chrome';
 import { useLanguage } from '@/lib/i18n';
 import { Badge, Panel, ScoreRing, type BadgeVariant } from '@/shared/ui';
 
@@ -41,11 +41,9 @@ const CONFIDENCE_VARIANT: Record<Confidence, BadgeVariant> = {
 export function ProgrammeFitReport({
   applicationId,
   fit,
-  unlockedStages,
 }: {
   applicationId: string;
   fit: ProgrammeFit;
-  unlockedStages: readonly StageKey[];
 }) {
   const { t } = useLanguage();
 
@@ -69,8 +67,6 @@ export function ProgrammeFitReport({
 
   return (
     <div className="flex flex-col gap-gb-3xl">
-      <StageBar applicationId={applicationId} active="fit" unlockedStages={unlockedStages} />
-
       <h1 className="max-w-3xl font-display text-gb-display-sm font-semibold text-fg">
         {t('How well you match this course, university and its scholarships')}
       </h1>

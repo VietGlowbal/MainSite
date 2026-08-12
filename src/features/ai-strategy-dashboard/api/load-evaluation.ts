@@ -96,7 +96,7 @@ export async function loadEvaluation(
   const { data: application } = await supabase
     .from('course_applications')
     .select(
-      'id, university_id, university_name, course_name, course_url, degree_level, subject, study_mode, intake, deadline, tuition_fee, entry_requirements_summary, english_requirements_summary, image_url, logo_url',
+      'id, course_id, university_id, university_name, course_name, course_url, degree_level, subject, study_mode, intake, deadline',
     )
     .eq('id', applicationId)
     .eq('user_id', userId)
@@ -155,6 +155,21 @@ export async function loadEvaluation(
         .maybeSingle();
       universityRow = data ?? null;
     }
+  }
+
+  // Tuition and requirements summaries live on `courses`, not
+  // `course_applications` — same join `src/lib/api/application-workspace.ts`
+  // uses. `course_id` is nullable (a course row does not always land), so this
+  // is best-effort too.
+  let courseRow: { tuition_fee_text: string | null; entry_requirements_summary: string | null; english_requirements_summary: string | null } | null =
+    null;
+  if (application.course_id) {
+    const { data } = await supabase
+      .from('courses')
+      .select('tuition_fee_text, entry_requirements_summary, english_requirements_summary')
+      .eq('id', application.course_id)
+      .maybeSingle();
+    courseRow = data ?? null;
   }
 
   const statementAnswers = (profile?.personal_statement_answers ?? {}) as Record<string, unknown>;
@@ -224,9 +239,9 @@ export async function loadEvaluation(
       studyMode: application.study_mode ?? null,
       intake: application.intake ?? null,
       deadline: application.deadline ?? null,
-      tuitionFee: application.tuition_fee ?? null,
-      entryRequirementsSummary: application.entry_requirements_summary ?? null,
-      englishRequirementsSummary: application.english_requirements_summary ?? null,
+      tuitionFee: courseRow?.tuition_fee_text ?? null,
+      entryRequirementsSummary: courseRow?.entry_requirements_summary ?? null,
+      englishRequirementsSummary: courseRow?.english_requirements_summary ?? null,
       courseUrl: application.course_url ?? null,
     } satisfies ProgrammeFacts,
     generatedAt: analysisRow?.created_at ?? new Date().toISOString(),

@@ -15,13 +15,16 @@ import { useLanguage } from '@/lib/i18n';
  * in My Portal. Folding these into the top bar would put six entries there that
  * are meaningless on every page outside one application.
  *
- * ─── LOCKED ITEMS ARE SHOWN, NOT HIDDEN ──────────────────────────────────────
+ * ─── LOCKED ITEMS ARE OMITTED, NOT DIMMED ────────────────────────────────────
  *
- * An item the student cannot reach yet renders as plain text with a title
- * explaining why, instead of disappearing. Hiding it makes the product look
- * smaller than it is and gives no clue what finishing the analysis unlocks;
- * linking it would send them to a route that redirects straight back, which is
- * the exact confusion this bar exists to remove.
+ * An item the student cannot reach yet used to render as inert dimmed text —
+ * a promise of what finishing unlocks. In practice it just meant an entry
+ * that looked clickable and was not, and it duplicated what the black stage
+ * bar the report pages used to carry underneath this one already showed
+ * (removed 12/08, see `report-chrome.tsx`). This bar now only lists what the
+ * student can actually open; `applicationSubNav()` still marks the rest
+ * `locked` for callers that need to know, this component just does not draw
+ * them.
  *
  * It scrolls horizontally rather than wrapping — six entries do not fit a
  * narrow laptop, and a second row that appears and disappears as labels change
@@ -39,18 +42,16 @@ import { useLanguage } from '@/lib/i18n';
 export type SubNavTone = 'light' | 'on-brand';
 
 /** Per-tone classes, kept as whole strings so Tailwind's scanner extracts them. */
-const TONES: Record<SubNavTone, { nav: string; active: string; rest: string; locked: string }> = {
+const TONES: Record<SubNavTone, { nav: string; active: string; rest: string }> = {
   light: {
     nav: 'border-b border-line',
     active: 'border-brand text-fg-brand',
     rest: 'border-transparent text-fg-secondary hover:text-fg-brand',
-    locked: 'text-fg-muted opacity-60',
   },
   'on-brand': {
     nav: 'border-b border-on-brand/20',
     active: 'border-on-brand text-on-brand',
     rest: 'border-transparent text-on-brand/75 hover:text-on-brand',
-    locked: 'text-on-brand/55',
   },
 };
 
@@ -58,15 +59,12 @@ export function SubNav({
   items,
   activeKey,
   label,
-  lockedHint,
   tone = 'light',
 }: {
   items: readonly SubNavItem[];
   activeKey: string | null;
   /** Accessible name — what this bar navigates within. */
   label: string;
-  /** Tooltip on a locked entry. Says why, not just that. */
-  lockedHint: string;
   /** Which surface the bar is drawn on. See the note above. */
   tone?: SubNavTone | undefined;
 }) {
@@ -76,6 +74,7 @@ export function SubNav({
     tone === 'on-brand'
       ? 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-brand'
       : 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand';
+  const reachable = items.filter((item) => !item.locked);
 
   return (
     <nav
@@ -83,22 +82,8 @@ export function SubNav({
       className={`-mx-gb-xl overflow-x-auto px-gb-xl ${palette.nav}`}
     >
       <ul className="flex min-w-max items-center gap-gb-2xl">
-        {items.map((item) => {
+        {reachable.map((item) => {
           const isActive = item.key === activeKey;
-
-          if (item.locked) {
-            return (
-              <li key={item.key}>
-                <span
-                  title={lockedHint}
-                  aria-disabled="true"
-                  className={`inline-block cursor-default whitespace-nowrap border-b-2 border-transparent pb-gb-md pt-gb-sm text-gb-sm font-medium ${palette.locked}`}
-                >
-                  {t(item.label)}
-                </span>
-              </li>
-            );
-          }
 
           return (
             <li key={item.key}>

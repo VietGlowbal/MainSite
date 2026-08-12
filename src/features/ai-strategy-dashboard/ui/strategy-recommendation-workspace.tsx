@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import type { StrategyRecommendationRecord } from '../domain';
-import type { StageKey } from './report-chrome';
 import { StrategyRecommendationReport } from './strategy-recommendation-report';
 import { Button, usePrefersReducedMotion } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
@@ -41,10 +40,8 @@ type LoadState = 'checking' | 'generating' | 'ready' | 'error';
  */
 export function StrategyRecommendationWorkspace({
   applicationId,
-  unlockedStages,
 }: {
   applicationId: string;
-  unlockedStages: readonly StageKey[];
 }) {
   const { t } = useLanguage();
   const router = useRouter();
@@ -116,7 +113,6 @@ export function StrategyRecommendationWorkspace({
       <StrategyRecommendationReport
         applicationId={applicationId}
         recommendation={recommendation}
-        unlockedStages={unlockedStages}
       />
     );
   }

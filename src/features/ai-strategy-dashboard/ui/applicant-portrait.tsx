@@ -15,7 +15,7 @@ import {
   EVIDENCE_TIER_LABEL,
   VAGUENESS_REASON_LABEL,
 } from '../domain';
-import { ReportPanel, ReportTabs, StageBar, useReportTabs, type StageKey } from './report-chrome';
+import { ReportPanel, ReportTabs, useReportTabs } from './report-chrome';
 import { useLanguage } from '@/lib/i18n';
 import { Avatar, Badge, Panel, ScoreRing, type BadgeVariant } from '@/shared/ui';
 
@@ -64,7 +64,6 @@ export function ApplicantPortrait({
   pendingSectionCount,
   confidence,
   generatedAt,
-  unlockedStages,
 }: {
   applicationId: string;
   studentName: string;
@@ -76,7 +75,6 @@ export function ApplicantPortrait({
   pendingSectionCount: number;
   confidence: Confidence;
   generatedAt: string;
-  unlockedStages: readonly StageKey[];
 }) {
   const { t } = useLanguage();
   const tabs = sections.map((section) => ({ key: section.key, label: section.label }));
@@ -85,8 +83,6 @@ export function ApplicantPortrait({
 
   return (
     <div className="flex flex-col gap-gb-3xl">
-      <StageBar applicationId={applicationId} active="portrait" unlockedStages={unlockedStages} />
-
       <header className="flex flex-col gap-gb-2xl">
         <h1 className="font-display text-gb-display-sm font-semibold text-fg">
           {t('Applicant portrait analysis')}
