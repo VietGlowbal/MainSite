@@ -2,12 +2,10 @@
 
 Last reconciled: **2026-08-12 (Asia/Bangkok)**
 
-Code snapshot: **working tree**, branched from `main` at `dbb3d73` (the
-latest commit at the time, a GEO auto-publish; the last app-code merge
-before it was PR #159, "Fix reflection steps never actually completing, and
-Overview CTA skip"). Not yet committed/pushed at the time this document was
-written — see "Last completed work" below for what the working tree
-contains.
+Code snapshot: **working tree**, branched from `main` at `19a5d7c` (PR #163,
+"Let students delete an application and apply to a second course at a
+university they already have one with", merged). Not yet committed/pushed
+at the time this document was written — see "Last completed work" below.
 
 This is the first file a coding agent should read. It records the present state
 of the repository, the last completed work, its impact, the verification state,
@@ -21,20 +19,28 @@ directory. If this file conflicts with the code, the code wins.
 - Two pre-existing untracked documents must be preserved: `TECH_SOLUTION.md`
   and `docs/audit-2026-08-03.md`. They are owner/session work, not generated
   build output.
-- The working tree has real uncommitted work: two new applications-list
-  features (delete an application; apply to a second course at a university
-  you already have one with) — see the next section.
+- **The long-running migration question is closed.** The owner pasted the
+  full live production schema on 2026-08-12; `application_match_analyses`,
+  `student_personal_reports`, `application_strategy_recommendations`, and
+  `application_recommendations`'s genUI columns are all confirmed present.
+  §0d/§0e/§0f in `docs/known-issues.md` are marked resolved. This was also
+  independently confirmed by a real production error trace on
+  `POST /api/applications/[id]/match-insights` that matched §0e's predicted
+  failure mode exactly, before the fix.
+- The working tree has real uncommitted work: a documentation-only pass
+  marking §0d/§0e/§0f resolved (no code change) — see the next section.
 
 ## Last completed work
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
-| *(uncommitted)* | **Added application deletion and multi-course-per-university support.** `DELETE /api/applications/[id]` is new (auth + owner-scoped; every child row — stages, tasks, the Personal/Matching/Personalized Strategy reports, CV/statement strategy work — is `ON DELETE CASCADE` off `course_applications.id` except `personal_statements.application_id`, which is `SET NULL`, so one delete is enough). `my-application-section.tsx`'s `ApplicationRow` gained a "Delete" action (confirmation modal, names what's removed, irreversible) and an "Add another course" action (shown when `app.universityId` is known) that reuses the existing `/api/applications/from-course-url` endpoint — its duplicate check is already `(user_id, course_url)`, not university, and `user_universities` (the saved-list model "Plan my application" reads from) has `UNIQUE(user_id, university_id)` with one `program` column, so this was already the only path to a genuinely independent second application at the same university without a schema change. | Students can remove an application they no longer want tracked, and can track a second course at a university they've already applied to elsewhere on the site, without going through the saved-list's one-subject-per-university model. New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler's three outcomes (deleted / not found or not owned / db error). |
+| *(uncommitted)* | **Confirmed the production migration gap is closed.** Docs-only change: marked §0d/§0e/§0f resolved in `docs/known-issues.md` based on the owner's production schema dump, and recorded the independent confirmation from a real error trace. No code change. | Future sessions no longer need to treat "is the migration applied" as an open question for these three items — verified against live production, not just the `.sql` files being present in the repo. |
+| `19a5d7c` (#163) | **Added application deletion and multi-course-per-university support.** `DELETE /api/applications/[id]` is new (auth + owner-scoped; every child row — stages, tasks, the Personal/Matching/Personalized Strategy reports, CV/statement strategy work — is `ON DELETE CASCADE` off `course_applications.id` except `personal_statements.application_id`, which is `SET NULL`, so one delete is enough). `my-application-section.tsx`'s `ApplicationRow` gained a "Delete" action (confirmation modal, names what's removed, irreversible) and an "Add another course" action (shown when `app.universityId` is known) that reuses the existing `/api/applications/from-course-url` endpoint — its duplicate check is already `(user_id, course_url)`, not university, and `user_universities` (the saved-list model "Plan my application" reads from) has `UNIQUE(user_id, university_id)` with one `program` column, so this was already the only path to a genuinely independent second application at the same university without a schema change. | Students can remove an application they no longer want tracked, and can track a second course at a university they've already applied to elsewhere on the site, without going through the saved-list's one-subject-per-university model. New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler's three outcomes (deleted / not found or not owned / db error). |
 | `59c334e` (#159) | Fixed a same-day production incident (the fourth on the checklist/F7 feature that day, and the root cause of the whole day's trouble): `personal_summary_completed_at`/`achievements_completed_at` (`student_profiles`) were **never written by any code in this repository** — confirmed by a full-repo grep, three read sites and zero writes. Every student's reflections were permanently "incomplete" no matter how many times they submitted both steps, which is what made §5e/§5f's symptoms possible in the first place and would have made a student finishing achievements bounce straight back to reflections in an infinite loop even after those fixes. Also fixed: Overview's CTA (§5f's fix) pointed at "whatever the real next step is," which for a returning student resolved straight to the analysis-trigger gate, skipping reflections anyway — reported the same day as "it goes straight into doing the strategy building." And wired `?return=` through the reflection forms' submit handlers (§5f's flagged-but-unfixed gap), for the application-originated case specifically. See `docs/known-issues.md §5g`. | `POST /api/reflection` now sets both completion timestamps on submit. `strategy/page.tsx`'s Overview CTA always targets the reflection flow's start, unconditionally. `reflection-about-form.tsx`/`reflection-evidence-form.tsx` now read and carry forward `?return=`, landing a student back at their application's analysis gate after reflections instead of an old per-student report page — every other (non-application) entry point into those forms is unchanged. |
 | `b610087` (#158) | Fixed a same-day production incident: Overview was only shown to a student with neither reflection step done, so a returning student (reflections globally already marked complete) skipped it entirely. See `docs/known-issues.md §5f`. | `strategy/page.tsx` gated Overview on `!state.aiAnalysisComplete` (per-application) instead of the shared reflection flags; `/apply/[applicationId]/page.tsx` simplified to bounce to `/ai-strategy/[id]/strategy` rather than duplicating the decision. |
 | `dac93c0` (#157) | Fixed a same-day production incident: `fetchOnboardingState`'s `aiAnalysisComplete` only checked the Personal Report, not the Matching Report, letting an incomplete analysis reach the F7 page. See `docs/known-issues.md §5e`. | `aiAnalysisComplete` now requires both reports; the F7 workspace redirects to the analysis gate on a `needsInputs` response instead of retrying the same doomed call. |
 | `573db50` (#156) | Retired the free `/apply/[applicationId]` checklist/match-insights UI (now a pure onboarding redirect) and built F7 "Personalized Strategy" — a new, separate, read-only, downloadable-PDF report page, deliberately distinct from the task-tracking Planner. | Clicking into an application lands wherever the student actually is in the gated pipeline (Reflection → Personal Report → Matching Report → Personalized Strategy → Planner). New `application_strategy_recommendations` table; one new OpenAI call synthesising the Personal Report and Matching Report into six sections, written in English by product decision. |
-| `f845ddb` | Added genUI content blocks to AI-generated recommendations. | Every recommendation's detail page body now comes from one of three AI-chosen shapes (`structured_table`/`long_text`/`checklist`) declared at generation time, or none when the task routes to a tool. Depends on an unrun migration — see `docs/known-issues.md §0d`. |
+| `f845ddb` | Added genUI content blocks to AI-generated recommendations. | Every recommendation's detail page body now comes from one of three AI-chosen shapes (`structured_table`/`long_text`/`checklist`) declared at generation time, or none when the task routes to a tool. Its migration (§0d) is now confirmed run in production as of 2026-08-12. |
 | `de4a7fe` | Made Planner List/Calendar/Board view switching client-side. | Switching `?view=` no longer refetches the dynamic server page; the URL remains bookmarkable while the UI changes immediately. |
 | `169ca25` | Centralized optimistic Planner state and added deadline editing to the list. | Status and deadline edits appear in all three planner views without a reload; failed writes roll back per edit. |
 | `8d3da8f` | Put the brand-red application context bar on the six primary per-application surfaces. | Overview, Personal Report, Matching Report, Planner, CV builder, and Statement now expose a consistent way back to the rest of the application. Route groups changed file placement only; public URLs did not change. LOR intentionally remains outside this six-item bar. |
@@ -125,18 +131,20 @@ Measured on 2026-08-12 against the uncommitted working tree described above
 | `npm run build` | Attempted once this session (2026-08-12); failed locally on `/_not-found` prerendering because this checkout has no `.env.local` with real Supabase credentials — a sandbox limitation, not a code error (`tsc`/`next build`'s compile step both succeeded first). Not evidence either way about the actual Vercel build, which has real credentials and has been green on every PR this week. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
-**Open thread carried from the previous session**: the user reported "report
-creation still isn't working" with no specific URL/error, after four
-same-day fixes (§5e-§5g) had already shipped. A fresh code-level re-audit
-that session found no further bug; the two remaining unknowns are (a)
-whether `supabase-ai-strategy-reports.sql` (§0e) and
-`supabase-strategy-recommendation-report.sql` (§0f) have actually been
-confirmed run against production, and (b) what specifically fails now — the
-user has not yet replied with either. Do not assume this is resolved without
-that reply. A manual click-through of the full flow (Overview → reflections
-→ achievements → analysis → intro → Personalized Strategy → Planner) on a
-genuinely fresh student account remains the highest-value verification step
-nobody has done yet.
+**Previously-open thread, now resolved**: the user reported "report creation
+still isn't working" after four same-day fixes (§5e-§5g) had already
+shipped, with no specific error at first. They then supplied a real Vercel
+function trace (`POST /api/applications/[id]/match-insights` → 503) showing
+`GET student_personal_reports` → 404 and `POST application_match_analyses`
+→ 400 — the exact failure §0e predicted. They then ran the migration and
+pasted the resulting production schema, confirming §0d/§0e/§0f are now all
+applied. This is real, hard evidence — not the usual "should be fixed now"
+— so treat the migration side of this incident as closed. A manual
+click-through of the full flow (Overview → reflections → achievements →
+analysis → intro → Personalized Strategy → Planner) on a genuinely fresh
+student account has still not been done by anyone and remains the one
+verification step nobody has done yet, though the migration gap that would
+have blocked it is gone.
 
 ## Open risks that still deserve priority
 
