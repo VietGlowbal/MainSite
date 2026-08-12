@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DomTranslator } from '@/lib/dom-translate';
 import { LanguageProvider, useLanguage } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
+import { StrategyHome } from '@/features/ai-strategy-dashboard/ui/strategy-home';
 
 vi.mock('next/navigation', () => ({ usePathname: () => '/about' }));
 
@@ -80,5 +81,34 @@ describe('DomTranslator', () => {
     await waitFor(() => {
       expect(screen.getByText('Scholarship copy that completed before switching')).toBeInTheDocument();
     });
+  });
+
+  it('switches Strategy Home back to English after Vietnamese has settled', async () => {
+    const { container } = render(
+      <LanguageProvider>
+        <LanguageControls />
+        <main className="glowbal-main-content">
+          <StrategyHome
+            courseName="Computer Science"
+            universityName="University"
+            startHref="#start"
+          />
+        </main>
+        <DomTranslator />
+      </LanguageProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'VI' }));
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Xây dựng lộ trình cá nhân hóa để vào đại học.' })).toBeInTheDocument();
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    fireEvent.click(screen.getByRole('button', { name: 'EN' }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Build your personalised roadmap into university.' })).toBeInTheDocument();
+    });
+    expect(container.querySelector('[data-no-auto-translate]')).toBeInTheDocument();
   });
 });

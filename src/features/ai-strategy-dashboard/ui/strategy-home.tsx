@@ -66,7 +66,7 @@ export function StrategyHome({
   startHref: string;
 }) {
   return (
-    <div className="flex flex-col gap-gb-7xl">
+    <div data-no-auto-translate className="flex flex-col gap-gb-7xl">
       <Section padded={false} className="py-gb-7xl" containerClassName="flex flex-col items-center gap-gb-2xl text-center">
         <p className="text-gb-sm font-semibold text-fg-brand">
           {courseName} · {universityName}
