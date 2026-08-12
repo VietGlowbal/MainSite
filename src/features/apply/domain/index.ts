@@ -50,6 +50,35 @@ export type {
   ScoreScale,
   StoredScores,
 } from './academic-scores';
+export {
+  OTHER_SUBJECT_ID,
+  SELECTABLE_SUBJECTS,
+  SUBJECTS,
+  normaliseQuery,
+  searchSubjects,
+  subjectById,
+} from './subject-catalog';
+export type { SubjectGroup, SubjectOption } from './subject-catalog';
+export {
+  DESTINATIONS,
+  POPULAR_DESTINATIONS,
+  destinationById,
+  destinationFlag,
+  destinationIdsFromStored,
+  destinationLabel,
+  searchDestinations,
+} from './destination-catalog';
+export type { DestinationOption } from './destination-catalog';
+export {
+  generateIntakeOptions,
+  intakeLabel,
+  intakeOptionId,
+  intakeOptionsWith,
+  intakeStartMonth,
+  parseIntake,
+  serialiseIntake,
+} from './intake';
+export type { IntakeChoice, IntakeOption, IntakeSeason } from './intake';
 export { AI_JOURNEY, AI_JOURNEY_STEPS, aiJourneySteps } from './ai-journey';
 export type { AiJourneyStep } from './ai-journey';
 export {

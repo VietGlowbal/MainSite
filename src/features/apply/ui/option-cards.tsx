@@ -98,6 +98,76 @@ export function OptionCards<T extends string>({
 }
 
 /**
+ * A full-width single-choice row — icon, title, description, radio on the
+ * right.
+ *
+ * ─── WHY THIS EXISTS BESIDE `OptionCards` ────────────────────────────────────
+ *
+ * `OptionCards` is a grid of short labels; this is a stack of three rows that
+ * each carry a sentence of explanation, which is what the intended-level
+ * question needs ("Advanced study after your undergraduate degree"). Forcing
+ * one component to do both would mean a `variant` prop deciding layout,
+ * spacing and content shape at once — two components with the same selected-
+ * state vocabulary is the smaller thing.
+ *
+ * The whole row is the control, not just the radio: the spec asks for that
+ * explicitly, and a 16px target beside a 500px row is a target nobody aims at.
+ */
+export function SelectionCard({
+  icon,
+  glyph,
+  title,
+  description,
+  selected,
+  onSelect,
+}: {
+  icon?: string | undefined;
+  /** A literal character, where an emoji reads better than a traced icon. */
+  glyph?: string | undefined;
+  title: string;
+  description?: string | undefined;
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={selected}
+      onClick={onSelect}
+      className={`flex w-full items-center gap-gb-xl rounded-gb-xl border p-gb-xl text-left transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+        selected ? 'border-brand bg-brand-subtle' : 'border-line bg-surface hover:border-line-strong'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className="flex size-11 shrink-0 items-center justify-center rounded-gb-lg bg-brand-subtle text-gb-xl leading-none text-fg-brand"
+      >
+        {glyph ?? (icon ? <KitIcon art={questionIcon(icon)} frame={22} /> : null)}
+      </span>
+
+      <span className="flex min-w-0 flex-col gap-gb-xxs">
+        <span className="text-gb-md font-semibold text-fg">{title}</span>
+        {description ? (
+          <span className="text-gb-sm text-fg-tertiary">{description}</span>
+        ) : null}
+      </span>
+
+      {/* A drawn radio rather than an input: the row is already the control,
+          and a real input here would be a second focusable thing inside it. */}
+      <span
+        aria-hidden="true"
+        className={`ml-auto flex size-5 shrink-0 items-center justify-center rounded-gb-full border-2 ${
+          selected ? 'border-brand' : 'border-line-strong'
+        }`}
+      >
+        {selected ? <span className="size-2.5 rounded-gb-full bg-brand" /> : null}
+      </span>
+    </button>
+  );
+}
+
+/**
  * The reassurance line the brief asks for under the single-choice questions.
  *
  * Its own component because it appears under several questions and is easy to

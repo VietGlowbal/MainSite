@@ -337,9 +337,31 @@ export const aboutYouSchema = z.object({
 });
 
 export const aspirationsSchema = z.object({
-  /** Free text: the design offers a picker but lets students type their own. */
-  majors: z.array(z.string().trim().min(1)).max(10).default([]),
-  countries: z.array(z.string().trim().min(1)).max(10).default([]),
+  /**
+   * Subject ids from `SUBJECTS` and ISO country codes from `DESTINATIONS`.
+   *
+   * ⚠️ TWO GENERATIONS OF VALUE LIVE IN THESE COLUMNS. Earlier versions of
+   * this form wrote display names ("Computer Science", "United Kingdom"); this
+   * one writes stable ids. The schema stays a plain string array rather than
+   * an enum for exactly that reason — rejecting the old values would fail the
+   * save for every student who had already answered. `reflectionFromProfile`
+   * normalises on the way in (see `destinationIdsFromStored`), so the form
+   * always works in ids and the column converges as students revisit.
+   *
+   * The cap is generous rather than principled; it exists so a scripted
+   * request cannot store an unbounded array.
+   */
+  majors: z.array(z.string().trim().min(1)).max(30).default([]),
+  countries: z.array(z.string().trim().min(1)).max(30).default([]),
+  /** A subject the catalogue does not list, kept beside the ids. */
+  customSubject: optionalText(120),
+  /**
+   * "Show me strong options outside my current choices too."
+   *
+   * More useful to matching than an undefined "Other" country, and NOT the
+   * same as selecting all 197 — which would say nothing about preference.
+   */
+  countryPreferenceFlexible: z.boolean().optional(),
   intendedLevel: z.enum(INTENDED_LEVELS).optional(),
   fundingSource: z.enum(FUNDING_SOURCES).optional(),
   /** Annual tuition in VND, as a "min-max" band from the histogram slider. */

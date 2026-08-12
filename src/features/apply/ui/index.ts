@@ -13,9 +13,12 @@ export {
   SaveIndicator,
   questionIcon,
 } from './question-chrome';
-export { NotSureNote, OptionCards } from './option-cards';
+export { NotSureNote, OptionCards, SelectionCard } from './option-cards';
 export { NationalityPicker } from './nationality-picker';
 export { EnglishQuestion, GpaQuestion } from './score-input';
+export { IntakePicker } from './intake-picker';
+export { SearchableMultiSelectGrid } from './searchable-grid';
+export type { GridItem } from './searchable-grid';
 export { PersonalReportView } from './personal-report-view';
 export { MatchingReportView } from './matching-report-view';
 export { ResearchProgress, ResearchingInline } from './research-progress';
