@@ -124,18 +124,21 @@ function splitWhitespace(raw: string): [string, string, string] {
   return m ? [m[1], m[2], m[3]] : ['', raw, ''];
 }
 
-async function translateBatch(cores: string[]): Promise<void> {
+async function translateBatch(cores: string[], signal: AbortSignal): Promise<void> {
   const CHUNK = 40;
   for (let i = 0; i < cores.length; i += CHUNK) {
+    if (signal.aborted) return;
     const chunk = cores.slice(i, i + CHUNK);
     try {
       const res = await fetch('/api/translate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ texts: chunk, target: 'vi' }),
+        signal,
       });
       if (!res.ok) continue;
       const data = (await res.json()) as { translations?: string[] };
+      if (signal.aborted) return;
       const out = data.translations ?? [];
       chunk.forEach((core, k) => {
         const vi = out[k];
@@ -163,6 +166,7 @@ export function DomTranslator() {
     // network), but we NEVER send uncovered strings to /api/translate — that
     // request forwards to OpenAI and could leak PII (names, emails, etc.).
     const networkAllowed = !isPiiRoute(pathname);
+    const controller = new AbortController();
 
     let suppress = false;
     let frame = 0;
@@ -245,7 +249,8 @@ export function DomTranslator() {
       });
 
       if (lang === 'vi' && missing.size > 0 && networkAllowed) {
-        await translateBatch([...missing]);
+        await translateBatch([...missing], controller.signal);
+        if (controller.signal.aborted) return;
         // second pass to apply the freshly-fetched translations
         suppress = true;
         for (const node of collect()) {
@@ -296,6 +301,7 @@ export function DomTranslator() {
     observer.observe(root, { childList: true, subtree: true, characterData: true });
 
     return () => {
+      controller.abort();
       observer.disconnect();
       clearTimeout(debounce);
       cancelAnimationFrame(frame);
