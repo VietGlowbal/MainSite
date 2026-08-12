@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   EDUCATION_LEVELS,
   FUNDING_SOURCES,
+  INTAKE_TERMS,
   INTENDED_LEVELS,
   TUITION_BUDGETS_USD,
   achievementSchema,
@@ -152,6 +153,9 @@ describe('reflectionCompleteness', () => {
         fundingSource: FUNDING_SOURCES[0],
         budgetRange: '1-2',
         tuitionBudgetUsd: TUITION_BUDGETS_USD[0],
+        careerGoal: 'Product design in healthcare',
+        studyMotivation: 'I want to make hospital software less hostile.',
+        targetIntake: INTAKE_TERMS[0],
         achievements: [{ category: 'academic_award', title: 'Olympiad' }],
         activities: [{ category: 'leadership', title: 'Student council' }],
       }),

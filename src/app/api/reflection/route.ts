@@ -26,6 +26,22 @@ export const dynamic = 'force-dynamic';
 
 const aboutPayload = aboutYouSchema.merge(aspirationsSchema);
 
+/**
+ * Is this error "that column does not exist yet"?
+ *
+ * Same shape as the check `match-insights/route.ts` already uses: PostgREST
+ * reports an unknown column as `42703` on the SQL side or `PGRST204` from its
+ * own schema cache, and the message names the column either way.
+ */
+function migrationMissing(error: { code?: string; message?: string } | null | undefined) {
+  return Boolean(
+    error &&
+      (error.code === '42703' ||
+        error.code === 'PGRST204' ||
+        /study_motivation|target_intake/i.test(error.message ?? '')),
+  );
+}
+
 const bodySchema = z.object({
   about: aboutPayload.optional(),
   achievements: z.array(achievementSchema).max(20).optional(),
@@ -67,12 +83,43 @@ export async function PATCH(request: Request) {
     // step never actually completes it, so a student can never advance past
     // `personal-summary` no matter how many times they submit. See
     // docs/known-issues.md §5g.
-    const { error } = await supabase.from('student_profiles').upsert(
-      { user_id: user.id, ...update, personal_summary_completed_at: new Date().toISOString() },
-      { onConflict: 'user_id' },
-    );
+    const row: Record<string, unknown> = {
+      user_id: user.id,
+      ...update,
+      personal_summary_completed_at: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from('student_profiles')
+      .upsert(row, { onConflict: 'user_id' });
 
-    if (error) {
+    if (error && migrationMissing(error)) {
+      /*
+       * `supabase-reflection-questions.sql` has not been run yet.
+       *
+       * This project has a standing habit of shipping code ahead of its
+       * migrations (docs/known-issues.md §0d–§0f are all instances), and the
+       * two columns those questions write are the only new ones here. Failing
+       * the whole request would mean a student loses their nationality, GPA
+       * and budget — everything on the step — because of two optional
+       * answers. So the save is retried without them: the student keeps the
+       * ten answers that have somewhere to go, and the two new questions
+       * start persisting the moment the migration lands, with no code change.
+       */
+      console.warn(
+        '[reflection] study_motivation/target_intake missing — run supabase-reflection-questions.sql. Saving the rest.',
+      );
+      const withoutNewColumns = { ...row };
+      delete withoutNewColumns['study_motivation'];
+      delete withoutNewColumns['target_intake'];
+      const retry = await supabase
+        .from('student_profiles')
+        .upsert(withoutNewColumns, { onConflict: 'user_id' });
+
+      if (retry.error) {
+        console.error('[reflection] profile upsert failed:', retry.error);
+        return NextResponse.json({ error: 'Could not save your information' }, { status: 500 });
+      }
+    } else if (error) {
       console.error('[reflection] profile upsert failed:', error);
       return NextResponse.json({ error: 'Could not save your information' }, { status: 500 });
     }
