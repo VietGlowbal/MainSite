@@ -12,10 +12,12 @@ export {
   groupByCategory,
   nextPriority,
   reconcileRecommendations,
+  reconcileSeeds,
   recommendationFromImprovementAction,
   recommendationFromRow,
   recommendationPatchSchema,
   recommendationStatusPatchSchema,
+  recommendationsFromRoadmap,
   sortByPriority,
   taskCounts,
 } from './recommendation';

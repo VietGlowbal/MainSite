@@ -5,8 +5,10 @@ import {
   groupByCategory,
   nextPriority,
   reconcileRecommendations,
+  reconcileSeeds,
   recommendationFromImprovementAction,
   recommendationPatchSchema,
+  recommendationsFromRoadmap,
   sortByPriority,
   type ExistingRecommendation,
   type Recommendation,
@@ -170,6 +172,50 @@ describe('reconcileRecommendations', () => {
     expect(plan.toUpdate.map((u) => u.id)).toEqual(['still-open']);
     expect(plan.toInsert.map((s) => s.title)).toEqual(['D']);
     expect(plan.toArchiveIds).toEqual(['stale']);
+  });
+});
+
+describe('recommendationsFromRoadmap', () => {
+  const roadmap = {
+    why: 'Concentrates your story around one identity instead of three.',
+    prioritize: ['Lead a research project', 'Publish a portfolio piece'],
+    avoid: ['Spreading across unrelated clubs'],
+  };
+
+  it('turns prioritize items into high-priority, avoid items into low-priority reminders', () => {
+    const seeds = recommendationsFromRoadmap('app-1', roadmap);
+
+    expect(seeds).toHaveLength(3);
+    expect(seeds.every((s) => s.category === 'strategy-roadmap' && s.pillar === null)).toBe(true);
+    expect(seeds[0]).toMatchObject({ title: 'Lead a research project', priority: 'high', reason: roadmap.why });
+    expect(seeds[1]).toMatchObject({ title: 'Publish a portfolio piece', priority: 'high' });
+    expect(seeds[2]).toMatchObject({ title: 'Avoid: Spreading across unrelated clubs', priority: 'low' });
+  });
+
+  it('reconciles against its own category only, leaving other rows alone', () => {
+    const seeds = recommendationsFromRoadmap('app-1', roadmap);
+    const plan = reconcileSeeds(
+      [existing({ id: 'stale-roadmap', pillar: null, title: 'Old priority item', status: 'not_started' })],
+      seeds,
+    );
+
+    expect(plan.toInsert).toHaveLength(3);
+    expect(plan.toArchiveIds).toEqual(['stale-roadmap']);
+  });
+
+  it('is idempotent: reconciling the same roadmap twice updates in place instead of duplicating', () => {
+    const seeds = recommendationsFromRoadmap('app-1', roadmap);
+    const alreadyStored: ExistingRecommendation[] = seeds.map((s, i) => ({
+      id: `existing-${i}`,
+      pillar: s.pillar,
+      title: s.title,
+      status: 'not_started',
+    }));
+
+    const plan = reconcileSeeds(alreadyStored, seeds);
+    expect(plan.toInsert).toHaveLength(0);
+    expect(plan.toArchiveIds).toHaveLength(0);
+    expect(plan.toUpdate).toHaveLength(3);
   });
 });
 

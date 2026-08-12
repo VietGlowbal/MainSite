@@ -37,14 +37,17 @@ function logMigrationHint(context: string, error: { code?: string; message?: str
   }
 }
 
-function seedToRow(seed: RecommendationSeed) {
+/**
+ * A seed → the `application_recommendations` row shape, shared by every
+ * generator. `recommendationType` is one of the CHECK constraint's fixed
+ * values (`supabase-apply-v2.sql`) — `category` is what actually
+ * distinguishes a Dashboard row from a course-workspace sidebar tip or one
+ * source's rows from another's.
+ */
+export function seedToRow(seed: RecommendationSeed, recommendationType: string) {
   return {
     application_id: seed.applicationId,
-    // Closest existing recommendation_type to "an AI-generated action
-    // improving the student's profile" — the CHECK constraint on this
-    // column is fixed (supabase-apply-v2.sql); `category` is what actually
-    // distinguishes a Dashboard row from a course-workspace sidebar tip.
-    recommendation_type: 'profile_improvement',
+    recommendation_type: recommendationType,
     category: seed.category,
     pillar: seed.pillar,
     title: seed.title,
@@ -127,7 +130,7 @@ export async function generateRecommendations(
   if (plan.toInsert.length > 0) {
     const { error } = await supabase
       .from('application_recommendations')
-      .insert(plan.toInsert.map(seedToRow));
+      .insert(plan.toInsert.map((seed) => seedToRow(seed, 'profile_improvement')));
     if (error) {
       console.error('[generateRecommendations] insert failed', error);
       logMigrationHint('insert', error);
@@ -136,7 +139,7 @@ export async function generateRecommendations(
   }
 
   for (const update of plan.toUpdate) {
-    const row = seedToRow({ applicationId, ...update.fields });
+    const row = seedToRow({ applicationId, ...update.fields }, 'profile_improvement');
     const { error } = await supabase
       .from('application_recommendations')
       .update(row)
