@@ -1,9 +1,11 @@
 # Known issues
 
-Last code-only reconciliation: **2026-08-06**, `main` at `de4a7fe`. Production
-database state was **not** re-queried in that pass, so every "owner must run"
-statement below is historical evidence until the live schema/policies prove it
-is still pending. Never re-run a migration solely because this file says so.
+Last code-only reconciliation: **2026-08-06**, `main` at `de4a7fe`. Last
+**live production schema** reconciliation: **2026-08-12** — the owner pasted
+a full production schema dump, which is how §0d/§0e/§0f below got marked
+confirmed-resolved. That dump shows table/column structure only, not RLS
+policies, so §0b (an INSERT policy, not a column) remains unverified by it.
+Never re-run a migration solely because this file says so.
 
 Ordered by how likely the underlying trap is to waste your time. Some sections
 are regression records for fixed bugs, not open work:
@@ -11,8 +13,9 @@ are regression records for fixed bugs, not open work:
 | Area | Current reading |
 |---|---|
 | §00 draft compatibility | Guarded in `features/onboarding/domain/draft.ts`; keep the migration/coercion tests when shapes change. |
-| §0, §0b, §0c database migrations | Code still depends on the repaired academic columns, recommendation INSERT policy/fields, and `emerging_themes`; live application status was not revalidated on 2026-08-06. |
-| §0f `application_strategy_recommendations` migration | New table, added 2026-08-08 alongside the F7 Personalized Strategy report; never run against production — verify before relying on the strategy report generating or exporting. |
+| §0, §0c database migrations | ✅ Confirmed resolved 2026-08-12 via the production schema dump — `student_profiles.curriculum` is an array type, `applicant_analyses.emerging_themes` exists. |
+| §0b `application_recommendations` INSERT policy | Still unverified — RLS policies don't appear in a table-structure dump. Nothing recent points at this specifically failing; check live policies before assuming either way. |
+| §0d, §0e, §0f database migrations | ✅ All three confirmed resolved 2026-08-12 via the production schema dump AND (for §0e) an independent real production error trace that matched the predicted failure exactly before the fix. See each section for detail. |
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
@@ -244,6 +247,18 @@ form will not let them do. Closing it means an `evidence_key` column on
 
 ## 0e. `supabase-ai-strategy-reports.sql` never run — Matching Report 503s and the Planner shows zero tasks for every application
 
+✅ **CONFIRMED RESOLVED 2026-08-12.** The owner pasted the live production
+schema dump; `application_match_analyses` now has all six columns
+(`input_hash`, `fit_dimensions`, `fit_eligibility`, `fit_classification`,
+`fit_confidence`, `fit_limitations`) and `student_personal_reports` exists.
+This was also independently confirmed the same day by a real Vercel function
+trace on `POST /api/applications/[id]/match-insights`: the exact failure
+mode this section predicted (`GET student_personal_reports` → 404,
+`POST application_match_analyses` → 400) is what actually happened in
+production before the fix — hard evidence the diagnosis below was correct,
+not speculation. Rest of this section kept as the historical record; the
+migration does not need running again.
+
 **Confirmed live and broken 2026-08-06** (a real student's screenshot of
 `/ai-strategy/[id]/strategy/matching`): the page shows only "Matching Report
 cần được cập nhật cơ sở dữ liệu trước khi sử dụng." ("Matching Report needs
@@ -294,6 +309,11 @@ further in.
 
 ## 0f. `supabase-strategy-recommendation-report.sql` never run — the Personalized Strategy report cannot generate or export
 
+✅ **CONFIRMED RESOLVED 2026-08-12.** The owner's production schema dump
+shows `application_strategy_recommendations` with the full expected column
+set. Does not need running again. (§0e, this migration's own dependency, is
+also confirmed resolved — see that section.)
+
 Written 2026-08-08 alongside the F7 Personalized Strategy report (the
 `/ai-strategy/[id]/strategy/analysis/recommendation` page — see
 `docs/README.md` for what F7 is and why it is a separate page from the
@@ -328,6 +348,11 @@ SQL editor. It is additive (`CREATE TABLE IF NOT EXISTS`), so safe to run
 even if parts of it somehow already exist.
 
 ## 0d. `application_recommendations` genUI columns — the detail-page content block
+
+✅ **CONFIRMED RESOLVED 2026-08-12.** The owner's production schema dump
+shows `application_recommendations` with `content_schema`, `content_value`,
+`submit_checklist`, `tips`, and `suggested_questions` all present. Does not
+need running again.
 
 The repository contains `supabase-strategy-recommendation-content-blocks.sql`
 (five `ADD COLUMN IF NOT EXISTS`: `content_schema`, `content_value`,
