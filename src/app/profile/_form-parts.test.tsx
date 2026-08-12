@@ -72,6 +72,26 @@ describe('TagInput', () => {
     expect(screen.getByRole('button', { name: 'Remove Japan' })).toBeInTheDocument();
   });
 
+  it('canonicalizes a country typed with Add', async () => {
+    const user = userEvent.setup();
+    render(<TagInputHarness label="Countries" suggestions={['Japan', 'South Korea']} />);
+
+    await user.type(screen.getByLabelText('Countries'), 'japan');
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByTestId('countries-values')).toHaveTextContent('["Japan"]');
+  });
+
+  it('canonicalizes a subject typed with Add', async () => {
+    const user = userEvent.setup();
+    render(<TagInputHarness label="Subjects" suggestions={['Computer Science', 'Law']} />);
+
+    await user.type(screen.getByLabelText('Subjects'), 'computer science');
+    await user.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByTestId('subjects-values')).toHaveTextContent('["Computer Science"]');
+  });
+
   it('selects the highlighted option with Enter', async () => {
     const user = userEvent.setup();
     render(<TagInputHarness label="Countries" suggestions={['Japan']} />);

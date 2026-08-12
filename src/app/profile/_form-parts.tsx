@@ -133,7 +133,10 @@ export function TagInput({
     const value = raw.trim();
     if (!value) return;
 
-    const normalizedValue = value.toLocaleLowerCase();
+    const canonicalValue = (suggestions ?? []).find(
+      (suggestion) => suggestion.trim().toLocaleLowerCase() === value.toLocaleLowerCase(),
+    ) ?? value;
+    const normalizedValue = canonicalValue.toLocaleLowerCase();
     const normalizedExclusiveValue = exclusiveValue?.trim().toLocaleLowerCase();
     if (normalizedExclusiveValue && normalizedValue === normalizedExclusiveValue) {
       onChange([exclusiveValue!]);
@@ -141,7 +144,7 @@ export function TagInput({
       const withoutExclusiveValue = normalizedExclusiveValue
         ? values.filter((existing) => existing.trim().toLocaleLowerCase() !== normalizedExclusiveValue)
         : values;
-      onChange([...withoutExclusiveValue, value]);
+      onChange([...withoutExclusiveValue, canonicalValue]);
     }
     setDraft('');
     setIsOpen(false);
