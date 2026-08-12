@@ -55,9 +55,15 @@ export function ReflectionPreview({ step }: { step: 'about' | 'evidence' }) {
           nationality: 'Vietnam',
           gpa: '3.5 / 4',
           ielts: '7 / 10',
-          majors: ['arts-design'],
+          // Two subjects, so the per-subject motivation question shows its
+          // chips rather than the single-subject case only.
+          majors: ['arts-design', 'computer-science'],
           countries: ['JP'],
           intendedLevel: 'Bachelor’s Degree',
+          // Seeded because the intake question is required: without it this
+          // page cannot be walked past question 8, which is most of what it
+          // exists to show.
+          intake: { type: 'undecided' },
           fundingSource: 'personal_savings_or_parents',
           tuitionBudget: { currency: 'GBP', min: 15_000, max: 40_000 },
         }}

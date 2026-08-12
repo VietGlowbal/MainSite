@@ -151,7 +151,10 @@ export function AspirationQuestion({
       <div className="flex flex-col gap-gb-xs">
         <Textarea
           name="careerGoal"
-          label={t('What do you want to do after you graduate?')}
+          // The question card above already asks this, word for word. A
+          // visible label here would print it twice a few pixels apart;
+          // `aria-label` keeps the accessible name without the repetition.
+          aria-label={t('What do you want to do after you graduate?')}
           placeholder={t(
             'Example: I want to work in sustainable energy and help build a cleaner future.',
           )}
