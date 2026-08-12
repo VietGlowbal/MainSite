@@ -1,28 +1,59 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  ABOUT_QUESTIONS,
+  ABOUT_QUESTION_COUNT,
   EDUCATION_LEVELS,
   FUNDING_SOURCES,
+  INTAKE_TERMS,
   INTENDED_LEVELS,
   TUITION_BUDGETS_USD,
+  VND_PER_USD,
+  aboutQuestionProgress,
+  parseBudgetBand,
   reflectionStep,
+  usdBandFromVndRange,
+  vndRangeFromUsdBand,
+  type AboutQuestionKey,
   type AboutYouValues,
   type AspirationsValues,
 } from '@/features/apply/domain';
 import { ReflectionSection, ReflectionShell } from '@/features/apply/ui';
 import { useT } from '@/lib/i18n';
-import { Button, Input, RangeHistogram, Select } from '@/shared/ui';
+import { NATIONALITIES } from '@/lib/nationalities';
+import { regions, subjectFamilies } from '@/lib/onboarding-options';
+import { Button, Input, MultiSelect, RangeHistogram, Select, Textarea } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
- * Reflection step 1 — personal and study information.
+ * Reflection step 1 — personal and study information, asked one question at a
+ * time.
  *
- * Fields and vocabularies come from `features/apply/domain/reflection`, which
- * was written against these frames in an earlier phase, so this is the wiring
- * rather than a new model: education, nationality, GPA and IELTS as written
- * strings, then major, countries, intended level, funding and budget.
+ * ─── WHY A WIZARD AND NOT ONE LONG FORM ──────────────────────────────────────
+ *
+ * It was a single page of twelve controls under three headings. Owner
+ * direction: ask them one at a time and let the bar fill as the student goes.
+ * The order and the grouping live in `ABOUT_QUESTIONS`
+ * (`features/apply/domain/reflection-steps.ts`) rather than in this file's JSX,
+ * so the progress maths and the screen sequence cannot disagree — the same
+ * reason the step count is one file.
+ *
+ * ─── ALL ANSWERS SAVE AT THE END, NOT PER SCREEN ─────────────────────────────
+ *
+ * One PATCH on the final question, exactly as before. Saving per screen would
+ * be twelve round trips for a form that is already prefilled from the profile,
+ * and a half-finished walk would leave the profile in a state the student
+ * never confirmed. Moving between questions is local state; nothing is written
+ * until they finish the step.
+ *
+ * ─── NOTHING IS REQUIRED ─────────────────────────────────────────────────────
+ *
+ * Every question can be skipped with Continue, which is deliberate and matches
+ * the schema (every field is `.optional()`). `reflectionCompleteness` already
+ * treats an unanswered field as unanswered; blocking the flow on a GPA a
+ * student does not have to hand would cost more than the missing value.
  */
 
 /**
@@ -68,6 +99,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
    */
   const returnTo = useSearchParams().get('return');
   const [values, setValues] = useState<AboutFormValues>(initial);
+  const [index, setIndex] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,11 +109,21 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
     setValues((prev) => ({ ...prev, [key]: value }));
   }
 
-  /** The stored band is "min-max" in VND; the slider works in numbers. */
-  const [budgetLow, budgetHigh] = parseBand(values.budgetRange, BUDGET_MIN_VND, BUDGET_MAX_VND);
+  /**
+   * Several fields at once, in one state update.
+   *
+   * The budget question needs this: moving the slider sets both the VND band
+   * and the USD band, and two sequential `set` calls would each build their
+   * patch from the same stale `values`, so the second would drop the first.
+   */
+  function setMany(patch: Partial<AboutFormValues>) {
+    setValues((prev) => ({ ...prev, ...patch }));
+  }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  const question = ABOUT_QUESTIONS[index];
+  const isLast = index === ABOUT_QUESTION_COUNT - 1;
+
+  async function save() {
     setSaving(true);
     setError(null);
 
@@ -109,161 +151,62 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
     }
   }
 
+  function handleSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (isLast) {
+      void save();
+      return;
+    }
+    setIndex((prev) => Math.min(prev + 1, ABOUT_QUESTION_COUNT - 1));
+  }
+
   return (
-    <ReflectionShell step="about">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-gb-3xl">
-        <ReflectionSection title={t('Personal information')}>
-          <Select
-            name="highestEducation"
-            label={t('What is your highest level of education?')}
-            placeholder={t('Select your level')}
-            value={values.highestEducation ?? ''}
-            onChange={(e) =>
-              set('highestEducation', (e.target.value || undefined) as AboutFormValues['highestEducation'])
-            }
-          >
-            {EDUCATION_LEVELS.map((level) => (
-              <option key={level} value={level}>
-                {t(level)}
-              </option>
-            ))}
-          </Select>
-
-          <Input
-            name="nationality"
-            label={t('What is your nationality?')}
-            placeholder={t('Vietnam')}
-            value={values.nationality ?? ''}
-            onChange={(e) => set('nationality', e.target.value || undefined)}
-          />
-        </ReflectionSection>
-
-        <ReflectionSection title={t('Scores')}>
-          {/* Kept as written rather than parsed to a number: students give
-              these on different scales ("3.5 / 4", "8.7/10"), and normalising
-              at input time would mean guessing which. */}
-          <Input
-            name="gpa"
-            label={t('GPA')}
-            placeholder="3.5 / 4"
-            value={values.gpa ?? ''}
-            onChange={(e) => set('gpa', e.target.value || undefined)}
-          />
-          <Input
-            name="ielts"
-            label={t('IELTS')}
-            placeholder="7 / 10"
-            value={values.ielts ?? ''}
-            onChange={(e) => set('ielts', e.target.value || undefined)}
-          />
-        </ReflectionSection>
-
-        <ReflectionSection title={t('Aspirations')}>
-          <Input
-            name="majors"
-            label={t('Select a major')}
-            placeholder={t('Design')}
-            hint={t('Separate several with a comma.')}
-            value={values.majors.join(', ')}
-            onChange={(e) => set('majors', splitList(e.target.value))}
-          />
-
-          <Input
-            name="countries"
-            label={t('Which countries are you interested in?')}
-            placeholder={t('Japan')}
-            hint={t('Separate several with a comma.')}
-            value={values.countries.join(', ')}
-            onChange={(e) => set('countries', splitList(e.target.value))}
-          />
-
-          {/* Three cards rather than a dropdown, per the frame. A radiogroup
-              because they are mutually exclusive — the frame's green outline on
-              the chosen one is a selection state, not a checkbox. */}
-          <fieldset className="flex flex-col gap-gb-md">
-            <legend className="mb-gb-md text-gb-sm font-semibold text-fg">
-              {t('What is your intended level of study?')}
-            </legend>
-            <div
-              role="radiogroup"
-              aria-label={t('Intended level of study')}
-              className="flex flex-col gap-gb-md"
-            >
-              {INTENDED_LEVELS.map((level) => {
-                const selected = values.intendedLevel === level;
-                return (
-                  <button
-                    key={level}
-                    type="button"
-                    role="radio"
-                    aria-checked={selected}
-                    onClick={() => set('intendedLevel', selected ? undefined : level)}
-                    className={`rounded-gb-xl border px-gb-xl py-gb-lg text-left text-gb-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                      selected
-                        ? 'border-tier-safe bg-surface font-semibold text-fg'
-                        : 'border-line bg-surface text-fg-tertiary hover:border-line-strong'
-                    }`}
-                  >
-                    {t(level)}
-                  </button>
-                );
-              })}
-            </div>
-          </fieldset>
-
-          <Select
-            name="fundingSource"
-            label={t('Budget')}
-            placeholder={t('Select a funding source')}
-            value={values.fundingSource ?? ''}
-            onChange={(e) =>
-              set('fundingSource', (e.target.value || undefined) as AboutFormValues['fundingSource'])
-            }
-          >
-            {FUNDING_SOURCES.map((source) => (
-              <option key={source} value={source}>
-                {t(source)}
-              </option>
-            ))}
-          </Select>
-
-          <RangeHistogram
-            min={BUDGET_MIN_VND}
-            max={BUDGET_MAX_VND}
-            step={10_000_000}
-            low={budgetLow}
-            high={budgetHigh}
-            onChange={({ low, high }) => set('budgetRange', `${low}-${high}`)}
-            distribution={BUDGET_BINS}
-            label={t('Total budget')}
-            formatValue={(low, high) => `${formatVnd(low)} - ${formatVnd(high)}`}
-          />
-
-          <Select
-            name="tuitionBudgetUsd"
-            label={t('Select your tuition budget (USD)')}
-            placeholder={t('Select a band')}
-            value={values.tuitionBudgetUsd ?? ''}
-            onChange={(e) =>
-              set(
-                'tuitionBudgetUsd',
-                (e.target.value || undefined) as AboutFormValues['tuitionBudgetUsd'],
-              )
-            }
-          >
-            {TUITION_BUDGETS_USD.map((band) => (
-              <option key={band} value={band}>
-                {band}
-              </option>
-            ))}
-          </Select>
+    <ReflectionShell
+      step="about"
+      progress={aboutQuestionProgress(index)}
+      caption={t('Question {current} of {total}', {
+        current: index + 1,
+        total: ABOUT_QUESTION_COUNT,
+      })}
+    >
+      {/* `key` on the form remounts the controls between questions. Without it
+          React reuses the same <input> across two different questions and
+          carries the previous one's uncommitted DOM state — most visibly the
+          scroll position of the MultiSelect lists. */}
+      <form key={question?.key} onSubmit={handleSubmit} className="flex flex-col gap-gb-3xl">
+        <ReflectionSection title={t(question?.section ?? '')}>
+          {question ? (
+            <AboutQuestion
+              questionKey={question.key}
+              values={values}
+              set={set}
+              setMany={setMany}
+              t={t}
+            />
+          ) : null}
         </ReflectionSection>
 
         {error ? <p className="text-gb-sm text-fg-error">{t(error)}</p> : null}
 
-        <div className="flex justify-center">
-          <Button type="submit" size="lg" disabled={saving} className="min-w-64">
-            {saving ? t('Saving…') : t('Continue')}
+        <div className="flex items-center justify-between gap-gb-xl">
+          {/* Back is absent on the first question rather than disabled: there
+              is nothing behind it, and a dead control invites the click. */}
+          {index > 0 ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              disabled={saving}
+              onClick={() => setIndex((prev) => Math.max(prev - 1, 0))}
+            >
+              {t('Back')}
+            </Button>
+          ) : (
+            <span />
+          )}
+
+          <Button type="submit" size="lg" disabled={saving} className="min-w-48">
+            {saving ? t('Saving…') : isLast ? t('Continue') : t('Next')}
           </Button>
         </div>
       </form>
@@ -271,17 +214,337 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
   );
 }
 
-/** "1000-2000" → [1000, 2000], falling back to the full span. */
-function parseBand(band: string | undefined, min: number, max: number): [number, number] {
-  if (!band) return [min, max];
-  const [low, high] = band.split('-').map((part) => Number.parseInt(part.trim(), 10));
-  if (!Number.isFinite(low) || !Number.isFinite(high)) return [min, max];
-  return [Math.max(min, low as number), Math.min(max, high as number)];
+/**
+ * A visible question above a control that has no visible label of its own.
+ *
+ * `MultiSelect` takes a `label`, but renders it as `aria-label` and never
+ * draws it (see its header — the frames it was built from put the question in
+ * the surrounding layout). That was fine on a page of labelled fields; with
+ * one question per screen it left the student looking at a bare search box
+ * with nothing on screen saying what to search for. The `label` prop is still
+ * passed for assistive tech; this is the same words, visible.
+ */
+function QuestionBlock({
+  label,
+  hint,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-gb-md">
+      <p className="text-gb-sm font-semibold text-fg">{label}</p>
+      {children}
+      {hint ? <p className="text-gb-sm text-fg-tertiary">{hint}</p> : null}
+    </div>
+  );
 }
 
-function splitList(raw: string): string[] {
-  return raw
-    .split(',')
-    .map((part) => part.trim())
-    .filter(Boolean);
+/** The one control this question needs. Split out so the wizard above stays readable. */
+function AboutQuestion({
+  questionKey,
+  values,
+  set,
+  setMany,
+  t,
+}: {
+  questionKey: AboutQuestionKey;
+  values: AboutFormValues;
+  set: <K extends keyof AboutFormValues>(key: K, value: AboutFormValues[K]) => void;
+  setMany: (patch: Partial<AboutFormValues>) => void;
+  t: (key: string, vars?: Record<string, string | number>) => string;
+}) {
+  // Flattened once per render rather than per option row: `subjectFamilies` is
+  // a nested tree and the control wants a flat list.
+  const majorOptions = useMemo(
+    () =>
+      subjectFamilies.flatMap((family) =>
+        family.children.map((child) => ({ value: child, label: child })),
+      ),
+    [],
+  );
+  const countryOptions = useMemo(
+    () => regions.flatMap((region) => region.countries.map((c) => ({ value: c, label: c }))),
+    [],
+  );
+
+  const [budgetLow, budgetHigh] = parseBudgetBand(
+    values.budgetRange,
+    BUDGET_MIN_VND,
+    BUDGET_MAX_VND,
+  );
+
+  switch (questionKey) {
+    case 'highestEducation':
+      return (
+        <Select
+          name="highestEducation"
+          label={t('What is your highest level of education?')}
+          placeholder={t('Select your level')}
+          value={values.highestEducation ?? ''}
+          onChange={(e) =>
+            set(
+              'highestEducation',
+              (e.target.value || undefined) as AboutFormValues['highestEducation'],
+            )
+          }
+        >
+          {EDUCATION_LEVELS.map((level) => (
+            <option key={level} value={level}>
+              {t(level)}
+            </option>
+          ))}
+        </Select>
+      );
+
+    case 'nationality':
+      // A native <select> rather than the searchable MultiSelect: there are
+      // 197 nationalities, MultiSelect's panel is always open by design (see
+      // its header), and 197 always-visible rows is a worse control than the
+      // one every platform already gives you type-ahead for.
+      return (
+        <Select
+          name="nationality"
+          label={t('What is your nationality?')}
+          placeholder={t('Select your nationality')}
+          value={values.nationality ?? ''}
+          onChange={(e) => set('nationality', e.target.value || undefined)}
+        >
+          {NATIONALITIES.map((nationality) => (
+            <option key={nationality} value={nationality}>
+              {nationality}
+            </option>
+          ))}
+        </Select>
+      );
+
+    case 'gpa':
+      // Kept as written rather than parsed to a number: students give these on
+      // different scales ("3.5 / 4", "8.7/10"), and normalising at input time
+      // would mean guessing which.
+      return (
+        <Input
+          name="gpa"
+          label={t('GPA')}
+          placeholder="3.5 / 4"
+          hint={t('Write it on whichever scale your school uses.')}
+          value={values.gpa ?? ''}
+          onChange={(e) => set('gpa', e.target.value || undefined)}
+        />
+      );
+
+    case 'ielts':
+      return (
+        <Input
+          name="ielts"
+          label={t('IELTS')}
+          placeholder="7 / 10"
+          hint={t('Leave this empty if you have not taken it yet.')}
+          value={values.ielts ?? ''}
+          onChange={(e) => set('ielts', e.target.value || undefined)}
+        />
+      );
+
+    case 'majors':
+      return (
+        <QuestionBlock
+          label={t('Which subjects are you interested in?')}
+          hint={t('Pick as many as you are considering — you can change these later.')}
+        >
+          <MultiSelect
+            name="majors"
+            label={t('Which subjects are you interested in?')}
+            placeholder={t('Search subjects')}
+            options={majorOptions}
+            value={values.majors}
+            onChange={(next) => set('majors', next)}
+            maxVisible={6}
+          />
+        </QuestionBlock>
+      );
+
+    case 'countries':
+      return (
+        <QuestionBlock
+          label={t('Which countries are you interested in?')}
+          hint={t('Pick as many as you are considering — you can change these later.')}
+        >
+          <MultiSelect
+            name="countries"
+            label={t('Which countries are you interested in?')}
+            placeholder={t('Search countries')}
+            options={countryOptions}
+            value={values.countries}
+            onChange={(next) => set('countries', next)}
+            maxVisible={6}
+          />
+        </QuestionBlock>
+      );
+
+    case 'intendedLevel':
+      // Three cards rather than a dropdown, per the frame. A radiogroup
+      // because they are mutually exclusive — the frame's green outline on the
+      // chosen one is a selection state, not a checkbox.
+      return (
+        <fieldset className="flex flex-col gap-gb-md">
+          <legend className="mb-gb-md text-gb-sm font-semibold text-fg">
+            {t('What is your intended level of study?')}
+          </legend>
+          <div
+            role="radiogroup"
+            aria-label={t('Intended level of study')}
+            className="flex flex-col gap-gb-md"
+          >
+            {INTENDED_LEVELS.map((level) => {
+              const selected = values.intendedLevel === level;
+              return (
+                <button
+                  key={level}
+                  type="button"
+                  role="radio"
+                  aria-checked={selected}
+                  onClick={() => set('intendedLevel', selected ? undefined : level)}
+                  className={`rounded-gb-xl border px-gb-xl py-gb-lg text-left text-gb-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                    selected
+                      ? 'border-tier-safe bg-surface font-semibold text-fg'
+                      : 'border-line bg-surface text-fg-tertiary hover:border-line-strong'
+                  }`}
+                >
+                  {t(level)}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      );
+
+    case 'targetIntake':
+      return (
+        <Select
+          name="targetIntake"
+          label={t('When do you want to start?')}
+          placeholder={t('Select an intake')}
+          hint={t('This is what the Planner counts back from when it sets your deadlines.')}
+          value={values.targetIntake ?? ''}
+          onChange={(e) =>
+            set('targetIntake', (e.target.value || undefined) as AboutFormValues['targetIntake'])
+          }
+        >
+          {INTAKE_TERMS.map((term) => (
+            <option key={term} value={term}>
+              {t(term)}
+            </option>
+          ))}
+        </Select>
+      );
+
+    case 'careerGoal':
+      return (
+        <Textarea
+          name="careerGoal"
+          label={t('What do you want to do after you graduate?')}
+          placeholder={t('A sentence or two is plenty.')}
+          hint={t('Your strategy report uses this to judge which direction fits you best.')}
+          rows={4}
+          value={values.careerGoal ?? ''}
+          onChange={(e) => set('careerGoal', e.target.value || undefined)}
+        />
+      );
+
+    case 'studyMotivation':
+      return (
+        <Textarea
+          name="studyMotivation"
+          label={t('Why this subject?')}
+          placeholder={t('What got you interested, and what keeps you interested.')}
+          hint={t('Your personal report builds its "driving force" section from this.')}
+          rows={4}
+          value={values.studyMotivation ?? ''}
+          onChange={(e) => set('studyMotivation', e.target.value || undefined)}
+        />
+      );
+
+    case 'fundingSource':
+      return (
+        <Select
+          name="fundingSource"
+          label={t('How will your study be funded?')}
+          placeholder={t('Select a funding source')}
+          value={values.fundingSource ?? ''}
+          onChange={(e) =>
+            set('fundingSource', (e.target.value || undefined) as AboutFormValues['fundingSource'])
+          }
+        >
+          {FUNDING_SOURCES.map((source) => (
+            <option key={source} value={source}>
+              {t(source)}
+            </option>
+          ))}
+        </Select>
+      );
+
+    case 'budget':
+      /*
+       * TWO CONTROLS, ONE ANSWER. The slider and the band are the same
+       * quantity — annual tuition — in two currencies, and each updates the
+       * other. They share a screen for that reason: on separate questions a
+       * student would answer in USD, move on, and never see the slider agree.
+       *
+       * The rate is printed rather than applied silently. It is a fixed
+       * constant (`VND_PER_USD`), not a live rate, because a saved budget
+       * should not mean something different next week — see the note in
+       * domain/reflection.ts.
+       */
+      return (
+        <div className="flex flex-col gap-gb-2xl">
+          <RangeHistogram
+            min={BUDGET_MIN_VND}
+            max={BUDGET_MAX_VND}
+            step={10_000_000}
+            low={budgetLow}
+            high={budgetHigh}
+            onChange={({ low, high }) => {
+              setMany({
+                budgetRange: `${low}-${high}`,
+                tuitionBudgetUsd: usdBandFromVndRange(low, high),
+              });
+            }}
+            distribution={BUDGET_BINS}
+            label={t('Annual tuition budget')}
+            formatValue={(low, high) => `${formatVnd(low)} - ${formatVnd(high)}`}
+          />
+
+          <Select
+            name="tuitionBudgetUsd"
+            label={t('Annual tuition budget (USD)')}
+            placeholder={t('Select a band')}
+            hint={t('Converted at {rate} VND to 1 USD.', {
+              rate: VND_PER_USD.toLocaleString('en-US'),
+            })}
+            value={values.tuitionBudgetUsd ?? ''}
+            onChange={(e) => {
+              const band = (e.target.value || undefined) as AboutFormValues['tuitionBudgetUsd'];
+              if (!band) {
+                set('tuitionBudgetUsd', undefined);
+                return;
+              }
+              const { low, high } = vndRangeFromUsdBand(band, BUDGET_MAX_VND);
+              setMany({ tuitionBudgetUsd: band, budgetRange: `${low}-${high}` });
+            }}
+          >
+            {TUITION_BUDGETS_USD.map((band) => (
+              <option key={band} value={band}>
+                {band}
+              </option>
+            ))}
+          </Select>
+        </div>
+      );
+  }
+
+  // `questionKey` is a closed union, so this is unreachable — but returning
+  // null is cheaper than a cast and keeps the switch exhaustiveness-checked.
+  return null;
 }

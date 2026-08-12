@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { AchievementValues, ActivityValues } from '@/features/apply/domain';
 import { ReflectionChrome } from '../../reflection-chrome';
+import { ApplicationNavFromReturn } from '../application-nav-from-return';
 import { ReflectionEvidenceForm } from './reflection-evidence-form';
 
 /**
@@ -15,13 +16,19 @@ import { ReflectionEvidenceForm } from './reflection-evidence-form';
  * a migration this project has a habit of shipping code ahead of, and an
  * unapplied one should cost the student their saved rows, not the page.
  */
-export default async function ReflectionAchievementsPage() {
+export default async function ReflectionAchievementsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ return?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (!user) redirect('/auth');
+
+  const { return: returnTo } = await searchParams;
 
   const [achievementsResult, activitiesResult] = await Promise.all([
     supabase
@@ -59,7 +66,7 @@ export default async function ReflectionAchievementsPage() {
   }));
 
   return (
-    <ReflectionChrome user={user}>
+    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
       <ReflectionEvidenceForm
         initialAchievements={achievements}
         initialActivities={activities}

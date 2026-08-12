@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { reflectionFromProfile, type ReflectionProfileRow } from '@/features/apply/domain';
 import { ReflectionChrome } from '../reflection-chrome';
+import { ApplicationNavFromReturn } from './application-nav-from-return';
 import { ReflectionAboutForm } from './reflection-about-form';
 
 /**
@@ -11,7 +12,11 @@ import { ReflectionAboutForm } from './reflection-about-form';
  * already filled part of this in during onboarding sees it prefilled rather
  * than being asked twice.
  */
-export default async function ReflectionAboutPage() {
+export default async function ReflectionAboutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ return?: string }>;
+}) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -19,10 +24,12 @@ export default async function ReflectionAboutPage() {
 
   if (!user) redirect('/auth');
 
+  const { return: returnTo } = await searchParams;
+
   const { data } = await supabase
     .from('student_profiles')
     .select(
-      'nationality, current_qualification, study_level, target_subjects, preferred_countries, budget_range, funding_source, tuition_budget_usd, grades_summary',
+      'nationality, current_qualification, study_level, target_subjects, preferred_countries, budget_range, funding_source, tuition_budget_usd, grades_summary, goals, study_motivation, target_intake',
     )
     .eq('user_id', user.id)
     .maybeSingle();
@@ -30,7 +37,7 @@ export default async function ReflectionAboutPage() {
   const initial = reflectionFromProfile((data ?? null) as ReflectionProfileRow | null);
 
   return (
-    <ReflectionChrome user={user}>
+    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
       <ReflectionAboutForm
         initial={{
           highestEducation: initial.highestEducation,
@@ -43,6 +50,9 @@ export default async function ReflectionAboutPage() {
           fundingSource: initial.fundingSource,
           budgetRange: initial.budgetRange,
           tuitionBudgetUsd: initial.tuitionBudgetUsd,
+          careerGoal: initial.careerGoal,
+          studyMotivation: initial.studyMotivation,
+          targetIntake: initial.targetIntake,
         }}
       />
     </ReflectionChrome>

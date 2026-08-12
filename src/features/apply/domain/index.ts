@@ -9,27 +9,35 @@ export {
   ACTIVITY_CATEGORIES,
   EDUCATION_LEVELS,
   FUNDING_SOURCES,
+  INTAKE_TERMS,
   INTENDED_LEVELS,
   TUITION_BUDGETS_USD,
+  VND_PER_USD,
   aboutYouSchema,
   achievementSchema,
   activitySchema,
   aspirationsSchema,
   evidenceSchema,
+  parseBudgetBand,
   profileUpdateFromReflection,
   reflectionCompleteness,
   reflectionFromProfile,
   reflectionSchema,
+  usdBandFromVndRange,
+  vndRangeFromUsdBand,
 } from './reflection';
 export { AI_JOURNEY, AI_JOURNEY_STEPS, aiJourneySteps } from './ai-journey';
 export type { AiJourneyStep } from './ai-journey';
 export {
+  ABOUT_QUESTIONS,
+  ABOUT_QUESTION_COUNT,
   REFLECTION_STEPS,
   REFLECTION_STEP_COUNT,
+  aboutQuestionProgress,
   reflectionProgress,
   reflectionStep,
 } from './reflection-steps';
-export type { ReflectionStepKey } from './reflection-steps';
+export type { AboutQuestionKey, ReflectionStepKey } from './reflection-steps';
 export {
   courseUrlLabel,
   displayCourseName,
@@ -49,6 +57,7 @@ export type {
   AspirationsValues,
   ReflectionProfileRow,
   ReflectionValues,
+  TuitionBudgetUsd,
 } from './reflection';
 export {
   applyEvidenceCandidates,

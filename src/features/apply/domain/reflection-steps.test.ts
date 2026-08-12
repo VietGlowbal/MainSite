@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  ABOUT_QUESTIONS,
+  ABOUT_QUESTION_COUNT,
   REFLECTION_STEPS,
   REFLECTION_STEP_COUNT,
+  aboutQuestionProgress,
   reflectionProgress,
   reflectionStep,
 } from './reflection-steps';
@@ -72,5 +75,54 @@ describe('achievement and activity taxonomies', () => {
     // A catch-all in the middle of a list reads as a real option.
     expect(ACHIEVEMENT_CATEGORIES.at(-1)?.value).toBe('other');
     expect(ACTIVITY_CATEGORIES.at(-1)?.value).toBe('other');
+  });
+});
+
+describe('aboutQuestionProgress', () => {
+  it('starts empty rather than half-full', () => {
+    // The whole point of the per-question bar: arriving on step 1 having
+    // answered nothing used to show 50%, because the bar advanced per step.
+    expect(aboutQuestionProgress(0)).toBe(0);
+  });
+
+  it('reaches exactly step 1’s share once every question is behind you', () => {
+    // Handing off to step 2 must land on the same number the per-step bar
+    // would show for a completed step 1, or the bar jumps at the boundary.
+    expect(aboutQuestionProgress(ABOUT_QUESTION_COUNT)).toBeCloseTo(1 / REFLECTION_STEP_COUNT, 10);
+  });
+
+  it('advances monotonically, a notch per question', () => {
+    let previous = -1;
+    for (let i = 0; i <= ABOUT_QUESTION_COUNT; i += 1) {
+      const value = aboutQuestionProgress(i);
+      expect(value).toBeGreaterThan(previous);
+      previous = value;
+    }
+  });
+
+  it('never exceeds step 1’s share, however far the index runs', () => {
+    // Defensive: an index past the end must not draw a bar into step 2's
+    // territory, which would claim work the student has not started.
+    expect(aboutQuestionProgress(ABOUT_QUESTION_COUNT + 50)).toBe(1 / REFLECTION_STEP_COUNT);
+    expect(aboutQuestionProgress(-3)).toBe(0);
+  });
+});
+
+describe('ABOUT_QUESTIONS', () => {
+  it('asks the money questions last', () => {
+    // The documented ramp: facts first, reflection next, money last.
+    const budgetIndex = ABOUT_QUESTIONS.findIndex((q) => q.key === 'budget');
+    expect(budgetIndex).toBe(ABOUT_QUESTION_COUNT - 1);
+  });
+
+  it('keeps the two budget controls on one screen', () => {
+    // They are one quantity in two currencies and they update each other; on
+    // separate screens the sync would never be visible.
+    expect(ABOUT_QUESTIONS.filter((q) => q.key === 'budget')).toHaveLength(1);
+  });
+
+  it('has no duplicate keys', () => {
+    const keys = ABOUT_QUESTIONS.map((q) => q.key);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

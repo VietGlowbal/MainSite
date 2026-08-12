@@ -66,6 +66,32 @@ export const TUITION_BUDGETS_USD = [
   'Over $50,000',
 ] as const;
 
+export type TuitionBudgetUsd = (typeof TUITION_BUDGETS_USD)[number];
+
+/**
+ * When the student wants to start.
+ *
+ * Nothing else in the product asks a student this at the profile level —
+ * `course_applications.intake` is per-application and is the university's
+ * published intake, not the student's own target. Without it the Planner's
+ * deadlines and the strategy report's roadmap have no anchor date to reason
+ * about, so "prepare this over the next six months" is advice with no
+ * endpoint.
+ *
+ * A rolling list rather than fixed years would need generating at render
+ * time; these are stated plainly and reviewed when they go stale, which is
+ * the same call `TUITION_BUDGETS_USD` makes.
+ */
+export const INTAKE_TERMS = [
+  'Autumn / Fall 2026',
+  'Spring 2027',
+  'Autumn / Fall 2027',
+  'Spring 2028',
+  'Autumn / Fall 2028',
+  'Later than 2028',
+  'Not decided yet',
+] as const;
+
 /**
  * Academic achievement types.
  *
@@ -110,6 +136,106 @@ export type AchievementCategory = (typeof ACHIEVEMENT_CATEGORIES)[number]['value
 export type ActivityCategory = (typeof ACTIVITY_CATEGORIES)[number]['value'];
 
 /* ─────────────────────────────────────────────────────────────────────────
+   Budget — one quantity, two controls
+
+   The form asks for the budget twice: a VND slider and a USD band. They used
+   to be independent, which meant a student could leave saying both "300
+   triệu" and "Over $50,000" and nothing would notice. Owner decision: they
+   are the SAME quantity — annual tuition — shown in two currencies, and
+   moving either updates the other.
+
+   ⚠️ BOTH CONTROLS MUST BE LABELLED "annual tuition". They previously read
+   "Total budget" and "tuition budget", which are genuinely different numbers
+   (whole cost of study vs one year's fees). Syncing those two would need a
+   course length and a living-cost estimate we have no data for — inventing
+   them is exactly what `RangeHistogram`'s own header refuses to do for the
+   histogram bars. Making them one quantity is what makes the sync honest.
+   ───────────────────────────────────────────────────────────────────────── */
+
+/**
+ * VND per USD, for the budget controls only.
+ *
+ * A CONSTANT, AND SHOWN TO THE STUDENT. A live FX rate would make a saved
+ * budget mean something different next week, and the stored value is a band a
+ * student chose, not a price. The form prints the rate next to the slider so
+ * the conversion is a stated assumption rather than a hidden one — if it
+ * drifts far enough to matter, this number changes and the label changes with
+ * it.
+ */
+export const VND_PER_USD = 25_400;
+
+/** The USD span each band covers. `null` is an open end. */
+const TUITION_BAND_USD: Record<TuitionBudgetUsd, { min: number; max: number | null }> = {
+  'Under $10,000': { min: 0, max: 10_000 },
+  '$10,000 - $20,000': { min: 10_000, max: 20_000 },
+  '$20,000 - $30,000': { min: 20_000, max: 30_000 },
+  '$30,000 - $50,000': { min: 30_000, max: 50_000 },
+  'Over $50,000': { min: 50_000, max: null },
+};
+
+/**
+ * A USD band → the VND span the slider should show for it.
+ *
+ * The open-ended top band ("Over $50,000") stops at the slider's own maximum
+ * rather than running to infinity, so selecting it puts the upper handle at
+ * the end of the track instead of somewhere off it.
+ */
+export function vndRangeFromUsdBand(
+  band: TuitionBudgetUsd,
+  sliderMax: number,
+): { low: number; high: number } {
+  const span = TUITION_BAND_USD[band];
+  const low = Math.min(span.min * VND_PER_USD, sliderMax);
+  const high = span.max === null ? sliderMax : Math.min(span.max * VND_PER_USD, sliderMax);
+  return { low, high };
+}
+
+/**
+ * A VND span → the USD band that best describes it.
+ *
+ * Chosen by overlap rather than by the midpoint: a student whose range sits
+ * across two bands should get the one their range actually covers most of,
+ * and a midpoint test gets that wrong for any asymmetric range. Ties go to
+ * the lower band, so nudging the handle up from zero does not skip ahead.
+ */
+export function usdBandFromVndRange(low: number, high: number): TuitionBudgetUsd {
+  const lowUsd = low / VND_PER_USD;
+  const highUsd = Math.max(high / VND_PER_USD, lowUsd);
+
+  let best: TuitionBudgetUsd = TUITION_BUDGETS_USD[0];
+  let bestOverlap = -1;
+
+  for (const band of TUITION_BUDGETS_USD) {
+    const span = TUITION_BAND_USD[band];
+    const bandMax = span.max ?? Number.POSITIVE_INFINITY;
+    const overlap = Math.min(highUsd, bandMax) - Math.max(lowUsd, span.min);
+    // A zero-width range (both handles together) overlaps nothing, so fall
+    // back to containment: the band the single point sits inside.
+    const score = highUsd === lowUsd && lowUsd >= span.min && lowUsd <= bandMax ? 0 : overlap;
+    if (score > bestOverlap) {
+      bestOverlap = score;
+      best = band;
+    }
+  }
+
+  return best;
+}
+
+/** "1000-2000" → [1000, 2000], clamped, falling back to the full span. */
+export function parseBudgetBand(
+  band: string | undefined,
+  min: number,
+  max: number,
+): [number, number] {
+  if (!band) return [min, max];
+  const parts = band.split('-').map((part) => Number.parseInt(part.trim(), 10));
+  const [low, high] = parts;
+  if (low === undefined || high === undefined) return [min, max];
+  if (!Number.isFinite(low) || !Number.isFinite(high)) return [min, max];
+  return [Math.max(min, Math.min(low, max)), Math.min(max, Math.max(high, min))];
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    Schemas
 
    One per form part, so each step validates on its own and a student is never
@@ -152,9 +278,25 @@ export const aspirationsSchema = z.object({
   countries: z.array(z.string().trim().min(1)).max(10).default([]),
   intendedLevel: z.enum(INTENDED_LEVELS).optional(),
   fundingSource: z.enum(FUNDING_SOURCES).optional(),
-  /** Total budget in VND, as a "min-max" band from the histogram slider. */
+  /** Annual tuition in VND, as a "min-max" band from the histogram slider. */
   budgetRange: optionalText(60),
   tuitionBudgetUsd: z.enum(TUITION_BUDGETS_USD).optional(),
+  /**
+   * The three questions below exist because the reports already ask for them
+   * and were getting nothing.
+   *
+   * `match-insights.ts` builds `careerDirection` from
+   * `student_profiles.career_interests`/`goals` and `personalContext` from
+   * `goals`, and the strategy report (F7) scores every candidate direction on
+   * a `futureAlignment` dimension defined as "fit with the target programme
+   * and career direction". Nothing in reflection wrote any of those columns,
+   * so for a student who never visited the separate profile pages the model
+   * was scoring future alignment against a blank. These are the cheapest
+   * possible fix: three questions the student can answer in a sentence.
+   */
+  careerGoal: optionalText(600),
+  studyMotivation: optionalText(600),
+  targetIntake: z.enum(INTAKE_TERMS).optional(),
 });
 
 export const achievementSchema = z.object({
@@ -224,6 +366,16 @@ export type ReflectionProfileRow = {
   funding_source?: string | null;
   tuition_budget_usd?: string | null;
   grades_summary?: Record<string, unknown> | null;
+  /**
+   * `goals` is REUSED, not new. `supabase-strategy-personal-summary.sql`
+   * already repurposed this base-schema column as "Career goals" for the
+   * unified profile editor, and that is exactly what this question asks —
+   * a second column for the same fact is how two screens end up disagreeing
+   * about a student's plans.
+   */
+  goals?: string | null;
+  study_motivation?: string | null;
+  target_intake?: string | null;
 };
 
 /** Narrow an unknown stored value to a non-empty string. */
@@ -280,6 +432,13 @@ export function reflectionFromProfile(
     ...(oneOf(TUITION_BUDGETS_USD, profile?.tuition_budget_usd) !== undefined
       ? { tuitionBudgetUsd: oneOf(TUITION_BUDGETS_USD, profile?.tuition_budget_usd) }
       : {}),
+    ...(text(profile?.goals) !== undefined ? { careerGoal: text(profile?.goals) } : {}),
+    ...(text(profile?.study_motivation) !== undefined
+      ? { studyMotivation: text(profile?.study_motivation) }
+      : {}),
+    ...(oneOf(INTAKE_TERMS, profile?.target_intake) !== undefined
+      ? { targetIntake: oneOf(INTAKE_TERMS, profile?.target_intake) }
+      : {}),
     achievements,
     activities,
   };
@@ -309,6 +468,9 @@ export function profileUpdateFromReflection(
     | 'fundingSource'
     | 'budgetRange'
     | 'tuitionBudgetUsd'
+    | 'careerGoal'
+    | 'studyMotivation'
+    | 'targetIntake'
   >,
   existingGrades: Record<string, unknown> | null = null,
 ): Record<string, unknown> {
@@ -327,6 +489,9 @@ export function profileUpdateFromReflection(
     funding_source: values.fundingSource ?? null,
     budget_range: values.budgetRange ?? null,
     tuition_budget_usd: values.tuitionBudgetUsd ?? null,
+    goals: values.careerGoal ?? null,
+    study_motivation: values.studyMotivation ?? null,
+    target_intake: values.targetIntake ?? null,
     grades_summary: Object.keys(grades).length > 0 ? grades : null,
   };
 }
@@ -353,6 +518,9 @@ export function reflectionCompleteness(values: ReflectionValues): number {
     values.fundingSource !== undefined,
     values.budgetRange !== undefined,
     values.tuitionBudgetUsd !== undefined,
+    values.careerGoal !== undefined,
+    values.studyMotivation !== undefined,
+    values.targetIntake !== undefined,
     values.achievements.length > 0,
     values.activities.length > 0,
   ];

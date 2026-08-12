@@ -2371,6 +2371,41 @@ export const translations: Record<string, string> = {
   'Which countries are you interested in?': 'Bạn quan tâm đến những quốc gia nào?',
   'Total budget': 'Tổng ngân sách',
   'Select your tuition budget (USD)': 'Chọn ngân sách học phí của bạn (USD)',
+  // Reflection step 1, rebuilt as one question per screen.
+  'Question {current} of {total}': 'Câu hỏi {current} / {total}',
+  'Select your nationality': 'Chọn quốc tịch của bạn',
+  'Write it on whichever scale your school uses.':
+    'Ghi theo thang điểm mà trường bạn đang dùng.',
+  'Leave this empty if you have not taken it yet.':
+    'Để trống nếu bạn chưa thi.',
+  'Which subjects are you interested in?': 'Bạn quan tâm đến những ngành nào?',
+  'Pick as many as you are considering — you can change these later.':
+    'Chọn bao nhiêu tuỳ ý — bạn có thể thay đổi sau.',
+  'Search countries': 'Tìm quốc gia',
+  'When do you want to start?': 'Bạn muốn bắt đầu khi nào?',
+  'Select an intake': 'Chọn kỳ nhập học',
+  'This is what the Planner counts back from when it sets your deadlines.':
+    'Kế hoạch của bạn sẽ tính ngược từ mốc này để đặt hạn chót.',
+  'What do you want to do after you graduate?':
+    'Bạn muốn làm gì sau khi tốt nghiệp?',
+  'A sentence or two is plenty.': 'Một hai câu là đủ.',
+  'Your strategy report uses this to judge which direction fits you best.':
+    'Báo cáo chiến lược dùng thông tin này để chọn hướng đi phù hợp nhất với bạn.',
+  'Why this subject?': 'Vì sao bạn chọn ngành này?',
+  'What got you interested, and what keeps you interested.':
+    'Điều gì khiến bạn bắt đầu quan tâm, và điều gì giữ bạn ở lại với nó.',
+  'Your personal report builds its "driving force" section from this.':
+    'Báo cáo cá nhân sẽ dựng phần “động lực” của bạn từ câu trả lời này.',
+  'How will your study be funded?': 'Việc học của bạn sẽ được tài trợ thế nào?',
+  'Annual tuition budget': 'Ngân sách học phí hằng năm',
+  'Annual tuition budget (USD)': 'Ngân sách học phí hằng năm (USD)',
+  'Converted at {rate} VND to 1 USD.': 'Quy đổi theo tỷ giá {rate} VND / 1 USD.',
+  'Autumn / Fall 2026': 'Kỳ mùa thu 2026',
+  'Spring 2027': 'Kỳ mùa xuân 2027',
+  'Autumn / Fall 2027': 'Kỳ mùa thu 2027',
+  'Spring 2028': 'Kỳ mùa xuân 2028',
+  'Autumn / Fall 2028': 'Kỳ mùa thu 2028',
+  'Later than 2028': 'Sau năm 2028',
   'High school': 'Trung học phổ thông',
   '2 - Year Associate Degree': 'Chương trình cao đẳng 2 năm',
   '4 - Year Bachelor’s Degree': 'Chương trình cử nhân 4 năm',

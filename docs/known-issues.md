@@ -19,7 +19,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5l | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i hardened `parseContentBlock`/`parseContentBlockValue`, which only checked the JSON's `type` field and not the rest of the shape — a real latent bug, but **not** the cause of the "planner tasks don't load" report it was written in response to; see §5l for what actually was. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. §5l is the one to read before touching the Planner UI: every task detail page 500'd because a server component imported pure helpers from a `'use client'` module, where calling an export throws and reading one silently yields `undefined`. The mappings now live in a directive-free `planner-presentation.ts`; never move them back. |
+| §5–§5m | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i hardened `parseContentBlock`/`parseContentBlockValue`, which only checked the JSON's `type` field and not the rest of the shape — a real latent bug, but **not** the cause of the "planner tasks don't load" report it was written in response to; see §5l for what actually was. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. §5l is the one to read before touching the Planner UI: every task detail page 500'd because a server component imported pure helpers from a `'use client'` module, where calling an export throws and reading one silently yields `undefined`. The mappings now live in a directive-free `planner-presentation.ts`; never move them back. §5m records that reflection never asked for the career direction the matching and strategy reports score against, and that `goals` is a SHARED column — do not add a second career-goal column beside it. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -1109,6 +1109,43 @@ at render. A throwaway server-component route under `src/app/dev/` that calls
 the suspect imports inside `try`/`catch` and prints the result reproduces it in
 seconds without needing a database row, which is how this one was found and
 confirmed fixed.
+
+## 5m. Reflection was never asked the questions the reports read — and `goals` is shared, not free
+
+**Not a crash — a silent quality problem**, found while acting on owner
+feedback about the reflection pages.
+
+`src/lib/ai/match-insights.ts` builds two of its prompt inputs from
+`student_profiles` columns that reflection never wrote:
+
+```
+careerDirection  ← career_interests / goals / target_subjects
+personalContext  ← the personal report's summary, else goals
+```
+
+and F7 scores every candidate direction on a `futureAlignment` dimension
+defined as "fit with the target programme and **career direction**". Reflection
+is the one flow every student completes, and it asked for none of it — so for
+anyone who never visited the separate `/profile` pages, the model was scoring
+future alignment against a blank and nothing anywhere said so. Three questions
+now fill it (career goal, why-this-subject, target intake).
+
+**⚠️ `goals` IS SHARED. DO NOT ADD A SECOND CAREER-GOAL COLUMN.** It is a base
+schema column that `supabase-strategy-personal-summary.sql` already repurposed
+as "Career goals" for the unified profile editor, and reflection's career-goal
+question writes to that same column deliberately. A second column for the same
+fact is how the reflection form and the profile editor end up showing a student
+two different answers to the same question. Only `study_motivation` (the reason
+for the choice, which is genuinely not the destination) and `target_intake`
+were added.
+
+**The PATCH degrades rather than failing.** `/api/reflection` retries the
+upsert without the two new columns on a `42703`/`PGRST204`, following the
+`migrationMissing()` pattern `match-insights/route.ts` established. This
+project has a standing habit of shipping code ahead of its migrations
+(§0d–§0f were all instances), and without the retry an unapplied
+`supabase-reflection-questions.sql` would cost a student their nationality,
+grades and budget — the whole step — over two optional answers.
 
 ## 6. Open questions for the designer / owner
 

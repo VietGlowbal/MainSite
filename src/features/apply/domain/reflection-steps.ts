@@ -56,3 +56,65 @@ export function reflectionStep(key: ReflectionStepKey) {
 export function reflectionProgress(key: ReflectionStepKey): number {
   return reflectionStep(key).number / REFLECTION_STEP_COUNT;
 }
+
+/**
+ * Step 1's questions, one per screen, in the order they are asked.
+ *
+ * ─── WHY THE ORDER IS WHAT IT IS ─────────────────────────────────────────────
+ *
+ * The same ramp `REFLECTION_STEPS` already documents, applied within the step:
+ * facts a student can answer without thinking come first (education,
+ * nationality, grades), then choices they may already have made (subject,
+ * country, level, intake), then the two that need a moment's reflection
+ * (career goal, motivation), then money last. Asking "why does this subject
+ * matter to you?" as the opening question of a form is how a student decides
+ * to come back later.
+ *
+ * ─── WHY BUDGET IS ONE ENTRY AND NOT TWO ─────────────────────────────────────
+ *
+ * The VND slider and the USD band are two controls for one quantity and they
+ * update each other (`vndRangeFromUsdBand`/`usdBandFromVndRange`). On separate
+ * screens the sync would be invisible — a student would answer in USD, move
+ * on, and never see the slider agree. They are one question with two ways to
+ * answer it, so they share a screen.
+ *
+ * ─── ONLY STEP 1 ─────────────────────────────────────────────────────────────
+ *
+ * Step 2 is two repeatable lists (achievements, activities), not questions
+ * with one answer each, so it keeps its existing layout — owner decision. A
+ * student with four awards should not be walked through four identical
+ * screens.
+ */
+export const ABOUT_QUESTIONS = [
+  { key: 'highestEducation', section: 'Personal information' },
+  { key: 'nationality', section: 'Personal information' },
+  { key: 'gpa', section: 'Scores' },
+  { key: 'ielts', section: 'Scores' },
+  { key: 'majors', section: 'Aspirations' },
+  { key: 'countries', section: 'Aspirations' },
+  { key: 'intendedLevel', section: 'Aspirations' },
+  { key: 'targetIntake', section: 'Aspirations' },
+  { key: 'careerGoal', section: 'Aspirations' },
+  { key: 'studyMotivation', section: 'Aspirations' },
+  { key: 'fundingSource', section: 'Budget' },
+  { key: 'budget', section: 'Budget' },
+] as const;
+
+export type AboutQuestionKey = (typeof ABOUT_QUESTIONS)[number]['key'];
+
+export const ABOUT_QUESTION_COUNT = ABOUT_QUESTIONS.length;
+
+/**
+ * How full the bar is while answering question `index` (0-based) of step 1.
+ *
+ * Counts questions *behind* the student, not including the one on screen, and
+ * scales into step 1's share of the whole flow — so the bar starts empty,
+ * advances a notch per answer, and reads exactly `1 / REFLECTION_STEP_COUNT`
+ * at the moment step 1 is handed off to step 2. The old behaviour jumped
+ * straight to half on arrival, which told a student who had answered nothing
+ * that they were halfway.
+ */
+export function aboutQuestionProgress(index: number): number {
+  const clamped = Math.min(Math.max(index, 0), ABOUT_QUESTION_COUNT);
+  return (clamped / ABOUT_QUESTION_COUNT) * (1 / REFLECTION_STEP_COUNT);
+}
