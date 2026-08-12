@@ -1,4 +1,11 @@
 import { z } from 'zod';
+import { ENGLISH_TESTS, SCORE_METHODS } from './academic-scores';
+
+/** The English test ids, as a zod-friendly tuple. */
+const ENGLISH_TEST_IDS = ENGLISH_TESTS.map((t) => t.value) as unknown as [
+  (typeof ENGLISH_TESTS)[number]['value'],
+  ...(typeof ENGLISH_TESTS)[number]['value'][],
+];
 
 /**
  * Reflection — the questionnaire that opens the AI strategy journey.
@@ -37,7 +44,35 @@ export const EDUCATION_LEVELS = [
   '4 - Year Bachelor’s Degree',
   'Master’s Degree',
   'Doctorate',
+  /**
+   * Added with the option-card redesign. A student on a system none of the
+   * five describes (a three-year bachelor's, a national diploma, a
+   * professional qualification) previously had to pick the nearest wrong one,
+   * which then went into the portrait as fact. Choosing this reveals a text
+   * field — see `otherEducation` — so the real answer is captured instead of
+   * approximated.
+   */
+  'Other',
 ] as const;
+
+/**
+ * The icon and one-line gloss each education option carries as a card.
+ *
+ * Kept beside the option set rather than in the component so the two cannot
+ * drift: a level added above with no entry here renders a card with no icon,
+ * which the test catches.
+ */
+export const EDUCATION_LEVEL_META: Record<
+  (typeof EDUCATION_LEVELS)[number],
+  { icon: string; hint: string }
+> = {
+  'High school': { icon: 'graduationCap', hint: 'Secondary school or equivalent' },
+  '2 - Year Associate Degree': { icon: 'gift01', hint: 'Associate degree or diploma' },
+  '4 - Year Bachelor’s Degree': { icon: 'graduationCap', hint: 'Undergraduate degree' },
+  'Master’s Degree': { icon: 'zapFast', hint: 'Postgraduate degree' },
+  Doctorate: { icon: 'zap', hint: 'PhD or equivalent' },
+  Other: { icon: 'edit02', hint: 'Something else — tell us' },
+};
 
 /**
  * What the student is applying *for*, drawn as three selectable cards rather
@@ -261,6 +296,13 @@ const optionalText = (max = 500) =>
 /** Part 2 — who the student is, what they have, where they want to go. */
 export const aboutYouSchema = z.object({
   highestEducation: z.enum(EDUCATION_LEVELS).optional(),
+  /**
+   * Only meaningful when `highestEducation` is 'Other'. Stored on
+   * `current_qualification` in place of the literal word "Other", so the
+   * portrait reads the real qualification rather than a placeholder — see
+   * `profileUpdateFromReflection`.
+   */
+  otherEducation: optionalText(160),
   nationality: optionalText(120),
   /**
    * Kept as written ("3.5 / 4", "8.7/10") rather than parsed to a number.
@@ -270,6 +312,28 @@ export const aboutYouSchema = z.object({
    */
   gpa: optionalText(40),
   ielts: optionalText(40),
+  /**
+   * How the two scores above were arrived at, and — where one came from a
+   * conversion — what the student actually wrote.
+   *
+   * The spec is emphatic that the original academic information must never be
+   * lost and that an estimate must not be mistaken for an official
+   * conversion. Keeping the provenance beside the number is what makes both
+   * true after the fact: a `4.0` tagged `ai_estimate` alongside "9 As at GCSE
+   * and 4 A*s at A Level" can be shown with a caveat, re-estimated if the
+   * prompt improves, or corrected by the student — none of which is possible
+   * once the description has been thrown away.
+   *
+   * All of it lands in `grades_summary`, the shared JSON column this table
+   * already uses for exactly this kind of academic detail, so none of it
+   * needs a migration.
+   */
+  gpaMethod: z.enum(SCORE_METHODS).optional(),
+  gpaSource: optionalText(1000),
+  ieltsMethod: z.enum(SCORE_METHODS).optional(),
+  englishTest: z.enum(ENGLISH_TEST_IDS).optional(),
+  englishTestScore: optionalText(20),
+  englishNotTaken: z.boolean().optional(),
 });
 
 export const aspirationsSchema = z.object({
@@ -383,6 +447,21 @@ function text(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
 }
 
+/**
+ * A stored `current_qualification` → the form's education answer.
+ *
+ * See the call site for why one column carries both cases.
+ */
+function educationFromStored(
+  stored: string | null | undefined,
+): { highestEducation?: (typeof EDUCATION_LEVELS)[number]; otherEducation?: string } {
+  const known = oneOf(EDUCATION_LEVELS, stored);
+  if (known !== undefined) return { highestEducation: known };
+  const free = text(stored);
+  if (free === undefined) return {};
+  return { highestEducation: 'Other', otherEducation: free };
+}
+
 /** Narrow to a member of an option set, so stale data cannot break the form. */
 function oneOf<T extends readonly string[]>(
   options: T,
@@ -410,14 +489,37 @@ export function reflectionFromProfile(
   const grades = (profile?.grades_summary ?? {}) as Record<string, unknown>;
 
   return {
-    ...(oneOf(EDUCATION_LEVELS, profile?.current_qualification) !== undefined
-      ? { highestEducation: oneOf(EDUCATION_LEVELS, profile?.current_qualification) }
-      : {}),
+    /*
+     * `current_qualification` holds either one of the listed levels, or — when
+     * the student picked "Other" — the qualification they typed. Reading it
+     * back: a recognised level is that level; anything else non-empty is an
+     * "Other" answer and its own text. That keeps ONE column for one fact
+     * while still round-tripping the free-text case, and means the portrait
+     * reads "Diplôme d'ingénieur" rather than the word "Other".
+     */
+    ...educationFromStored(profile?.current_qualification),
     ...(text(profile?.nationality) !== undefined
       ? { nationality: text(profile?.nationality) }
       : {}),
     ...(text(grades['gpa']) !== undefined ? { gpa: text(grades['gpa']) } : {}),
     ...(text(grades['ielts']) !== undefined ? { ielts: text(grades['ielts']) } : {}),
+    // Provenance, so a returning student lands back in the mode they used —
+    // someone who described their grades sees their description again rather
+    // than an empty box beside a GPA they never typed.
+    ...(oneOf(SCORE_METHODS, grades['gpaMethod']) !== undefined
+      ? { gpaMethod: oneOf(SCORE_METHODS, grades['gpaMethod']) }
+      : {}),
+    ...(text(grades['gpaSource']) !== undefined ? { gpaSource: text(grades['gpaSource']) } : {}),
+    ...(oneOf(SCORE_METHODS, grades['ieltsMethod']) !== undefined
+      ? { ieltsMethod: oneOf(SCORE_METHODS, grades['ieltsMethod']) }
+      : {}),
+    ...(oneOf(ENGLISH_TEST_IDS, grades['englishTest']) !== undefined
+      ? { englishTest: oneOf(ENGLISH_TEST_IDS, grades['englishTest']) }
+      : {}),
+    ...(text(grades['englishTestScore']) !== undefined
+      ? { englishTestScore: text(grades['englishTestScore']) }
+      : {}),
+    ...(grades['englishNotTaken'] === true ? { englishNotTaken: true } : {}),
     majors: profile?.target_subjects ?? [],
     countries: profile?.preferred_countries ?? [],
     ...(oneOf(INTENDED_LEVELS, profile?.study_level) !== undefined
@@ -459,6 +561,7 @@ export function profileUpdateFromReflection(
   values: Pick<
     ReflectionValues,
     | 'highestEducation'
+    | 'otherEducation'
     | 'nationality'
     | 'gpa'
     | 'ielts'
@@ -471,6 +574,12 @@ export function profileUpdateFromReflection(
     | 'careerGoal'
     | 'studyMotivation'
     | 'targetIntake'
+    | 'gpaMethod'
+    | 'gpaSource'
+    | 'ieltsMethod'
+    | 'englishTest'
+    | 'englishTestScore'
+    | 'englishNotTaken'
   >,
   existingGrades: Record<string, unknown> | null = null,
 ): Record<string, unknown> {
@@ -480,8 +589,37 @@ export function profileUpdateFromReflection(
   if (values.ielts) grades['ielts'] = values.ielts;
   else delete grades['ielts'];
 
+  /*
+   * Score provenance travels with the score, in the same shared JSON column.
+   *
+   * `gpaSource` in particular is the student's own description of their
+   * grades — the thing the spec says must never be lost. Deleting a key when
+   * its value is absent (rather than writing null) keeps the column tidy and
+   * matches how `gpa`/`ielts` above already behave, so a student who switches
+   * back to typing a score does not leave a stale "this was AI-estimated"
+   * tag attached to a number they entered by hand.
+   */
+  const provenance: Array<[string, unknown]> = [
+    ['gpaMethod', values.gpaMethod],
+    ['gpaSource', values.gpaSource],
+    ['ieltsMethod', values.ieltsMethod],
+    ['englishTest', values.englishTest],
+    ['englishTestScore', values.englishTestScore],
+    ['englishNotTaken', values.englishNotTaken === true ? true : undefined],
+  ];
+  for (const [key, value] of provenance) {
+    if (value === undefined) delete grades[key];
+    else grades[key] = value;
+  }
+
   return {
-    current_qualification: values.highestEducation ?? null,
+    // "Other" is a UI affordance, not an answer — store what they actually
+    // wrote. If they chose Other and typed nothing, the level is genuinely
+    // unanswered rather than literally "Other".
+    current_qualification:
+      values.highestEducation === 'Other'
+        ? (values.otherEducation ?? null)
+        : (values.highestEducation ?? null),
     nationality: values.nationality ?? null,
     target_subjects: values.majors.length > 0 ? values.majors : null,
     preferred_countries: values.countries.length > 0 ? values.countries : null,

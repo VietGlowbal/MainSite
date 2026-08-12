@@ -21,33 +21,42 @@ function Controls() {
 }
 
 /** Click Next until the named question is on screen. */
-async function advanceTo(key: string) {
+function advanceTo(key: string) {
   const target = ABOUT_QUESTIONS.findIndex((q) => q.key === key);
   for (let i = 0; i < target; i += 1) {
-    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo|Next/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Tiếp theo|^Next$/ }));
   }
 }
 
 describe('Reflection field localization', () => {
-  it('switches field labels without changing entered values', async () => {
-    const { container } = render(
+  it('switches question headings without changing entered values', async () => {
+    render(
       <LanguageProvider>
         <Controls />
         <ReflectionAboutForm initial={{ majors: ['Computer Science'], countries: ['Japan'] }} />
       </LanguageProvider>,
     );
 
-    // The form asks one question per screen now, so only question 1 is here.
+    // One question per screen, so only the education question is here — and
+    // it is option cards now, not a labelled select.
     await waitFor(() => {
-      expect(screen.getByLabelText('Trình độ học vấn cao nhất của bạn là gì?')).toBeInTheDocument();
+      expect(screen.getByText('Trình độ học vấn cao nhất của bạn là gì?')).toBeInTheDocument();
     });
-    expect(container.querySelector('[data-no-auto-translate]')).toBeInTheDocument();
+
+    // Choose an option, then switch language: the choice must survive.
+    const doctorate = screen.getByRole('radio', { name: /Bằng tiến sĩ|Doctorate/ });
+    fireEvent.click(doctorate);
+    expect(doctorate).toHaveAttribute('aria-checked', 'true');
 
     fireEvent.click(screen.getByRole('button', { name: 'EN' }));
 
     await waitFor(() => {
-      expect(screen.getByLabelText('What is your highest level of education?')).toBeInTheDocument();
+      expect(screen.getByText('What is your highest level of education?')).toBeInTheDocument();
     });
+    expect(screen.getByRole('radio', { name: /Doctorate/ })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
   });
 
   it('keeps a prefilled multi-select answer selected, in either language', async () => {
@@ -59,14 +68,13 @@ describe('Reflection field localization', () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByLabelText('Trình độ học vấn cao nhất của bạn là gì?')).toBeInTheDocument();
+      expect(screen.getByText('Trình độ học vấn cao nhất của bạn là gì?')).toBeInTheDocument();
     });
 
-    await advanceTo('countries');
+    advanceTo('countries');
 
-    // The country list is a MultiSelect: the answer is a checked box, not an
-    // input value. Country names are proper nouns and are not translated, so
-    // "Japan" reads the same either way — what must survive is the selection.
+    // Country names are proper nouns and are not translated, so "Japan" reads
+    // the same either way — what must survive the switch is the selection.
     await waitFor(() => {
       expect(screen.getByRole('checkbox', { name: 'Japan' })).toBeChecked();
     });
@@ -76,6 +84,32 @@ describe('Reflection field localization', () => {
     await waitFor(() => {
       expect(screen.getByText('Which countries are you interested in?')).toBeInTheDocument();
       expect(screen.getByRole('checkbox', { name: 'Japan' })).toBeChecked();
+    });
+  });
+
+  it('offers both display modes and keeps answers across a switch', async () => {
+    render(
+      <LanguageProvider>
+        <Controls />
+        <ReflectionAboutForm initial={{ majors: [], countries: [] }} />
+      </LanguageProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Trình độ học vấn cao nhất của bạn là gì?')).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('radio', { name: /Bằng tiến sĩ|Doctorate/ }));
+
+    // Show-all renders every question through the same components, so the
+    // answer is still a checked radio rather than a downgraded text field.
+    fireEvent.click(screen.getByRole('radio', { name: /Hiển thị tất cả|Show all questions/ }));
+
+    await waitFor(() => {
+      expect(screen.getAllByRole('radio', { name: /Bằng tiến sĩ|Doctorate/ })[0]).toHaveAttribute(
+        'aria-checked',
+        'true',
+      );
     });
   });
 });

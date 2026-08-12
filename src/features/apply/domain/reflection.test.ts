@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   EDUCATION_LEVELS,
+  EDUCATION_LEVEL_META,
   FUNDING_SOURCES,
   INTAKE_TERMS,
   INTENDED_LEVELS,
@@ -63,14 +64,26 @@ describe('reflectionFromProfile', () => {
     // with nothing on screen for the student to correct.
     const profile: ReflectionProfileRow = {
       funding_source: 'Crowdfunding',
-      current_qualification: 'Some qualification we retired',
       tuition_budget_usd: '£40,000',
     };
 
     const values = reflectionFromProfile(profile);
     expect(values.fundingSource).toBeUndefined();
-    expect(values.highestEducation).toBeUndefined();
     expect(values.tuitionBudgetUsd).toBeUndefined();
+  });
+
+  it('surfaces an unrecognised qualification as Other rather than dropping it', () => {
+    // Education is the one option set with a free-text escape hatch, so it
+    // behaves differently on purpose — and better. The rule above exists so a
+    // student is never left with "an empty select that nevertheless fails
+    // validation, with nothing on screen to correct"; here the old value IS on
+    // screen, in the Other field, where they can fix or keep it. Dropping it
+    // would silently delete a qualification they had already given us.
+    const values = reflectionFromProfile({
+      current_qualification: 'Some qualification we retired',
+    });
+    expect(values.highestEducation).toBe('Other');
+    expect(values.otherEducation).toBe('Some qualification we retired');
   });
 
   it('treats blank strings in the profile as unanswered', () => {
@@ -208,5 +221,51 @@ describe('schemas', () => {
     expect(achievementSchema.safeParse({ category: 'sports', title: 'Marathon' }).success).toBe(
       false,
     );
+  });
+});
+
+describe('education "Other" round-trips through one column', () => {
+  it('stores what the student typed, not the word "Other"', () => {
+    // The portrait reads this column. Storing the literal placeholder would
+    // put "Other" into a report as if it were the qualification.
+    const update = profileUpdateFromReflection({
+      ...EMPTY,
+      highestEducation: 'Other',
+      otherEducation: 'Diplôme d’ingénieur',
+    });
+    expect(update['current_qualification']).toBe('Diplôme d’ingénieur');
+  });
+
+  it('reads a free-text qualification back as Other plus its text', () => {
+    const values = reflectionFromProfile({ current_qualification: 'Diplôme d’ingénieur' });
+    expect(values.highestEducation).toBe('Other');
+    expect(values.otherEducation).toBe('Diplôme d’ingénieur');
+  });
+
+  it('still round-trips a listed level with no stray Other text', () => {
+    const update = profileUpdateFromReflection({
+      ...EMPTY,
+      highestEducation: EDUCATION_LEVELS[0],
+    });
+    const back = reflectionFromProfile(update as ReflectionProfileRow);
+    expect(back.highestEducation).toBe(EDUCATION_LEVELS[0]);
+    expect(back.otherEducation).toBeUndefined();
+  });
+
+  it('treats "Other" with nothing typed as unanswered', () => {
+    // Otherwise the column stores a placeholder that reads back as a real
+    // qualification called "Other".
+    const update = profileUpdateFromReflection({ ...EMPTY, highestEducation: 'Other' });
+    expect(update['current_qualification']).toBeNull();
+    expect(reflectionFromProfile(update as ReflectionProfileRow).highestEducation).toBeUndefined();
+  });
+});
+
+describe('EDUCATION_LEVEL_META', () => {
+  it('gives every level an icon and a hint', () => {
+    for (const level of EDUCATION_LEVELS) {
+      expect(EDUCATION_LEVEL_META[level]?.icon, level).toBeTruthy();
+      expect(EDUCATION_LEVEL_META[level]?.hint, level).toBeTruthy();
+    }
   });
 });

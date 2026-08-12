@@ -86,18 +86,91 @@ export function reflectionProgress(key: ReflectionStepKey): number {
  * screens.
  */
 export const ABOUT_QUESTIONS = [
-  { key: 'highestEducation', section: 'Personal information' },
-  { key: 'nationality', section: 'Personal information' },
-  { key: 'gpa', section: 'Scores' },
-  { key: 'ielts', section: 'Scores' },
-  { key: 'majors', section: 'Aspirations' },
-  { key: 'countries', section: 'Aspirations' },
-  { key: 'intendedLevel', section: 'Aspirations' },
-  { key: 'targetIntake', section: 'Aspirations' },
-  { key: 'careerGoal', section: 'Aspirations' },
-  { key: 'studyMotivation', section: 'Aspirations' },
-  { key: 'fundingSource', section: 'Budget' },
-  { key: 'budget', section: 'Budget' },
+  {
+    key: 'highestEducation',
+    section: 'Personal information',
+    icon: 'graduationCap',
+    heading: 'What is your highest level of education?',
+    subtitle: 'Select the option that best describes your current or most advanced qualification.',
+  },
+  {
+    key: 'nationality',
+    section: 'Personal information',
+    icon: 'markerPin02',
+    heading: 'What is your nationality?',
+    subtitle: 'Select the country or nationality that best represents you.',
+  },
+  {
+    key: 'gpa',
+    section: 'Scores',
+    icon: 'chartBreakoutSquare',
+    heading: 'What is your GPA?',
+    subtitle: 'Enter your GPA or let AI estimate it from your grades.',
+  },
+  {
+    key: 'ielts',
+    section: 'Scores',
+    icon: 'messageSmileCircle',
+    heading: 'What is your English test score?',
+    subtitle:
+      'Enter your IELTS score or choose an equivalent English test and we’ll convert it for you.',
+  },
+  {
+    key: 'majors',
+    section: 'Aspirations',
+    icon: 'heart',
+    heading: 'Which subjects are you interested in?',
+    subtitle: 'Pick as many as you are considering — you can change these later.',
+  },
+  {
+    key: 'countries',
+    section: 'Aspirations',
+    icon: 'send',
+    heading: 'Which countries are you interested in?',
+    subtitle: 'Choose everywhere you would consider studying.',
+  },
+  {
+    key: 'intendedLevel',
+    section: 'Aspirations',
+    icon: 'graduationCap',
+    heading: 'What is your intended level of study?',
+    subtitle: 'The qualification you want to apply for, not the one you already hold.',
+  },
+  {
+    key: 'targetIntake',
+    section: 'Aspirations',
+    icon: 'calendar',
+    heading: 'When do you want to start?',
+    subtitle: 'This is what the Planner counts back from when it sets your deadlines.',
+  },
+  {
+    key: 'careerGoal',
+    section: 'Aspirations',
+    icon: 'zapFast',
+    heading: 'What do you want to do after you graduate?',
+    subtitle: 'Your strategy report uses this to judge which direction fits you best.',
+  },
+  {
+    key: 'studyMotivation',
+    section: 'Aspirations',
+    icon: 'zap',
+    heading: 'Why this subject?',
+    subtitle: 'Your personal report builds its “driving force” section from this.',
+  },
+  {
+    key: 'fundingSource',
+    section: 'Budget',
+    icon: 'usersTwo',
+    heading: 'How will your study be funded?',
+    subtitle: 'A rough idea is fine — it shapes which scholarships we look for.',
+  },
+  {
+    key: 'budget',
+    section: 'Budget',
+    icon: 'gift01',
+    heading: 'What is your annual tuition budget?',
+    subtitle: 'Set it in either currency — the two stay in step with each other.',
+  },
 ] as const;
 
 export type AboutQuestionKey = (typeof ABOUT_QUESTIONS)[number]['key'];

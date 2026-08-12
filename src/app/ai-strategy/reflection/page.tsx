@@ -53,6 +53,16 @@ export default async function ReflectionAboutPage({
           careerGoal: initial.careerGoal,
           studyMotivation: initial.studyMotivation,
           targetIntake: initial.targetIntake,
+          otherEducation: initial.otherEducation,
+          // Score provenance, so a returning student lands back in the mode
+          // they used rather than staring at an empty converter beside a GPA
+          // they never typed.
+          gpaMethod: initial.gpaMethod,
+          gpaSource: initial.gpaSource,
+          ieltsMethod: initial.ieltsMethod,
+          englishTest: initial.englishTest,
+          englishTestScore: initial.englishTestScore,
+          englishNotTaken: initial.englishNotTaken,
         }}
       />
     </ReflectionChrome>

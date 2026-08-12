@@ -8,6 +8,7 @@ export {
   ACHIEVEMENT_CATEGORIES,
   ACTIVITY_CATEGORIES,
   EDUCATION_LEVELS,
+  EDUCATION_LEVEL_META,
   FUNDING_SOURCES,
   INTAKE_TERMS,
   INTENDED_LEVELS,
@@ -26,6 +27,29 @@ export {
   usdBandFromVndRange,
   vndRangeFromUsdBand,
 } from './reflection';
+export {
+  ADMISSIONS_TESTS,
+  ENGLISH_TESTS,
+  GPA_SCALE,
+  IELTS_SCALE,
+  SCORE_METHODS,
+  admissionsTestScale,
+  englishTest,
+  englishTestScale,
+  formatScore,
+  ieltsFromEnglishTest,
+  validateGpa,
+  validateIelts,
+  validateScore,
+} from './academic-scores';
+export type {
+  AdmissionsTestId,
+  EnglishTestId,
+  IeltsEstimate,
+  ScoreMethod,
+  ScoreScale,
+  StoredScores,
+} from './academic-scores';
 export { AI_JOURNEY, AI_JOURNEY_STEPS, aiJourneySteps } from './ai-journey';
 export type { AiJourneyStep } from './ai-journey';
 export {
