@@ -38,6 +38,7 @@ describe('CvReviewWorkspace', () => {
     render(
       <CvReviewWorkspace
         applicationId="app-1"
+        template="technical"
         targetName="BSc Computer Science · VinUniversity"
         contextNote="Strong mathematics"
       />,
@@ -58,6 +59,11 @@ describe('CvReviewWorkspace', () => {
         }),
       ),
     );
+    const request = vi.mocked(fetch).mock.calls[0]?.[1];
+    expect(JSON.parse(String(request?.body))).toEqual({
+      text: 'EDUCATION\nComputer Science\nEXPERIENCE\nBuilt a robotics programme for thirty students.',
+      template: 'technical',
+    });
     expect(
       await screen.findByRole('heading', {
         name: '1. What does the CV show right now?',
@@ -79,6 +85,7 @@ describe('CvReviewWorkspace', () => {
     render(
       <CvReviewWorkspace
         applicationId="app-1"
+        template="academic"
         targetName="Computer Science"
       />,
     );
