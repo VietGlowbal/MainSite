@@ -76,7 +76,12 @@ export default async function AiStrategyPage() {
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
       <SiteNavigation tone="light" />
 
-      <main>
+      {/* Every string in this page body is localized explicitly with <T>.
+          Keep the legacy DOM translator out: if it snapshots a hydrated
+          Vietnamese <T> node as its English source, switching back to EN is
+          immediately overwritten with Vietnamese. Header/footer stay outside
+          this boundary until their remaining legacy copy is migrated. */}
+      <main data-no-auto-translate>
         {/* Hero */}
         <section className="pt-gb-7xl">
           <Container className="flex max-w-3xl flex-col gap-gb-xl">

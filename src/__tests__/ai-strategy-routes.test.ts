@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
@@ -56,5 +56,11 @@ describe('the /ai-strategy route tree', () => {
     // their own chrome via ReflectionChrome — two headers on one page is the
     // regression mobile-nav.spec.ts guards against.
     expect(existsSync(join(AI_STRATEGY, 'layout.tsx'))).toBe(false);
+  });
+
+  it('keeps explicitly localized root-page copy out of the legacy DOM translator', () => {
+    const source = readFileSync(join(AI_STRATEGY, 'page.tsx'), 'utf8');
+
+    expect(source).toContain('<main data-no-auto-translate>');
   });
 });
