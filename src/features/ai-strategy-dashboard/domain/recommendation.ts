@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  CONTENT_BLOCK_TYPES,
   type ContentBlock,
   type ContentBlockValue,
   type ImprovementAction,
@@ -161,6 +160,26 @@ const contentValueSchema = z.discriminatedUnion('type', [
 ]);
 
 /**
+ * What `content_schema` may hold — mirrors `normalizeContentBlock` in
+ * `src/lib/ai/match-insights.ts`, which guarantees a freshly-generated block
+ * always has a non-empty `columns`/`items`. `parseContentBlock` below is what
+ * enforces that guarantee still holds on the way back OUT of the database —
+ * see its doc comment on why checking only `type` was not enough.
+ */
+const contentBlockColumnSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  type: z.enum(['text', 'number', 'date', 'select']),
+  options: z.array(z.string()).optional(),
+});
+
+const contentBlockSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('structured_table'), columns: z.array(contentBlockColumnSchema).min(1) }),
+  z.object({ type: z.literal('long_text'), prompt: z.string().min(1), minWords: z.number().optional() }),
+  z.object({ type: z.literal('checklist'), items: z.array(z.string().min(1)).min(1) }),
+]);
+
+/**
  * What `PATCH .../recommendations/[recId]` accepts.
  *
  * All three fields optional, at least one required — the board sends a
@@ -206,26 +225,34 @@ export function nextPriority(recommendations: readonly Recommendation[]): Recomm
 }
 
 /**
- * Defensively reads a `content_schema`/`content_value` JSONB column back into
- * its typed shape. Trusts nothing about the stored JSON beyond its own
- * `type` discriminant matching one of `CONTENT_BLOCK_TYPES` — a row written
- * by a future/different shape (or corrupted by hand in the SQL editor)
- * degrades to `null` (no content block) rather than throwing and taking the
- * whole detail page down with it.
+ * Defensively reads a `content_schema` JSONB column back into its typed
+ * shape, via `contentBlockSchema` (the same validation `content_value`
+ * already got from `recommendationPatchSchema`).
+ *
+ * ⚠️ USED TO ONLY CHECK THE `type` DISCRIMINANT, not the rest of the shape —
+ * a row whose `columns`/`items` were missing or empty (a row written before
+ * `normalizeContentBlock`'s guarantees existed, or hand-edited in the SQL
+ * editor) passed straight through as a real `ContentBlock`, and
+ * `StructuredTableInput`/`ChecklistInput` then called `.map()` on the
+ * missing array and crashed the whole detail page — reported live 12/08 as
+ * "each of the planner tasks... don't load up". Full-shape validation is
+ * what the doc comment always claimed to do; now it actually does it, and a
+ * malformed row degrades to `null` (no content block, same as a task that
+ * finishes elsewhere) instead of taking the page down.
  */
 function parseContentBlock(raw: unknown): ContentBlock | null {
-  if (raw === null || typeof raw !== 'object') return null;
-  const r = raw as Record<string, unknown>;
-  if (!CONTENT_BLOCK_TYPES.includes(r.type as ContentBlock['type'])) return null;
-  return r as unknown as ContentBlock;
+  const parsed = contentBlockSchema.safeParse(raw);
+  // zod's `.optional()` types the field as `T | undefined`, present-but-undefined
+  // included; `ContentBlockColumn`/`ContentBlock`'s `exactOptionalPropertyTypes`
+  // only allow the field to be absent. The cast is safe: `safeParse` already
+  // guarantees the runtime shape, this only reconciles the two type styles.
+  return parsed.success ? (parsed.data as ContentBlock) : null;
 }
 
-/** Same defensiveness as `parseContentBlock`, for the student-authored value column. */
+/** Same discipline as `parseContentBlock`, for the student-authored value column. */
 function parseContentBlockValue(raw: unknown): ContentBlockValue | null {
-  if (raw === null || typeof raw !== 'object') return null;
-  const r = raw as Record<string, unknown>;
-  if (!CONTENT_BLOCK_TYPES.includes(r.type as ContentBlockValue['type'])) return null;
-  return r as unknown as ContentBlockValue;
+  const parsed = contentValueSchema.safeParse(raw);
+  return parsed.success ? (parsed.data as ContentBlockValue) : null;
 }
 
 /** The `application_recommendations` API/DB row shape (snake_case) → `Recommendation`. */

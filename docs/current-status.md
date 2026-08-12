@@ -28,14 +28,16 @@ directory. If this file conflicts with the code, the code wins.
   `POST /api/applications/[id]/match-insights` that matched §0e's predicted
   failure mode exactly, before the fix.
 - The working tree has real uncommitted work: made the Matching Report the
-  application's permanent home once generated, and added a button to turn
-  the Personalized Strategy report's Execution Roadmap into Planner tasks —
-  see the next section.
+  application's permanent home once generated, added a button to turn the
+  Personalized Strategy report's Execution Roadmap into Planner tasks, and
+  fixed a recommendation detail page crash on a malformed genUI content
+  block — see the next section.
 
 ## Last completed work
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
+| *(uncommitted)* | **Fixed a recommendation detail page crash on genUI content blocks.** Reported the same day, right after the Matching-Report-as-start-page change below made it far more likely a student would actually reach a Planner task: clicking into any task whose stored `content_schema` was malformed (missing `columns`/`items` — rows written before `normalizeContentBlock`'s guarantees existed) crashed the whole page instead of rendering, because `parseContentBlock`/`parseContentBlockValue` only checked the JSON's `type` field despite their doc comments claiming full defensiveness. See `docs/known-issues.md §5i`. | `recommendation.ts`'s two parsers now validate the full shape via zod (`contentBlockSchema`, mirroring `normalizeContentBlock`; `contentValueSchema` already existed for the PATCH route and is now reused for reads) — a malformed row degrades to `null` (the same "task finishes elsewhere" state a real `null` already means) instead of throwing. |
 | *(uncommitted)* | **Made the Matching Report the application's permanent home, and added "generate Planner tasks from this strategy report."** `/ai-strategy/[applicationId]/strategy` no longer computes `nextOnboardingStep`/redirects onward through intro → strategy → dashboard once the analysis exists — it now always lands on `/strategy/analysis/fit`, for every application, regardless of how far the student has since progressed; Personalized Strategy and the Planner are reached only through the nav bar now. Also: `strategy-recommendation-report.tsx`'s Roadmap tab gained an "Add to Planner" button (`POST /api/applications/[id]/strategy/roadmap-tasks` → `generateRoadmapTasks`) that turns the F7 report's `roadmap.prioritize`/`.avoid` into `application_recommendations` rows under a new `strategy-roadmap` category — no new AI call, reconciled by (category, title) via a generalised `reconcileSeeds` (extracted from `reconcileRecommendations`, which is now a thin wrapper over it), so re-clicking after the report regenerates updates the same tasks instead of duplicating them. | The Matching Report is now a stable "home" for an application instead of a moving target. A student reading the Personalized Strategy report can turn its roadmap directly into trackable Planner tasks with one click. |
 | `06efde1` (#165) | **Fixed `/strategy/analysis/portrait` and `/strategy/analysis/fit` 404ing for every application, and merged the duplicate navigation bar.** Reported same-day, right after §0d/§0e/§0f were confirmed closed: both report pages 404'd. Root cause was not a migration gap — `load-evaluation.ts` selected `tuition_fee`/`entry_requirements_summary`/`english_requirements_summary`/`image_url`/`logo_url` directly off `course_applications`, but the live table (`supabase-apply-v2.sql`'s UUID-id schema) never had those columns; they exist on `courses` (via `course_id`, following the same join `application-workspace.ts` already uses) and `universities`. A stale, superseded `CREATE TABLE IF NOT EXISTS course_applications` in `supabase-apply-system.sql` (a TEXT-id schema) does have all five, which is how the mismatch went unnoticed by the schema-dump reconciliation. See `docs/known-issues.md §5h`. Also removed the redundant black `StageBar` the three report pages rendered under the layout's red `ApplicationNav` bar (same five-ish destinations, occasionally disagreeing on what was unlocked), and changed `SubNav` so a locked entry is omitted rather than shown dimmed, per explicit product direction. | Both reports load again for every application. One navigation bar instead of two stacked bars; a student only ever sees destinations they can actually open. |
 | `19a5d7c` (#163) | **Added application deletion and multi-course-per-university support.** `DELETE /api/applications/[id]` is new (auth + owner-scoped; every child row — stages, tasks, the Personal/Matching/Personalized Strategy reports, CV/statement strategy work — is `ON DELETE CASCADE` off `course_applications.id` except `personal_statements.application_id`, which is `SET NULL`, so one delete is enough). `my-application-section.tsx`'s `ApplicationRow` gained a "Delete" action (confirmation modal, names what's removed, irreversible) and an "Add another course" action (shown when `app.universityId` is known) that reuses the existing `/api/applications/from-course-url` endpoint — its duplicate check is already `(user_id, course_url)`, not university, and `user_universities` (the saved-list model "Plan my application" reads from) has `UNIQUE(user_id, university_id)` with one `program` column, so this was already the only path to a genuinely independent second application at the same university without a schema change. | Students can remove an application they no longer want tracked, and can track a second course at a university they've already applied to elsewhere on the site, without going through the saved-list's one-subject-per-university model. New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler's three outcomes (deleted / not found or not owned / db error). |
@@ -92,7 +94,10 @@ directory. If this file conflicts with the code, the code wins.
   Planner tasks under a new `strategy-roadmap` category — reconciled by
   (category, title) the same way the existing Match-Analysis-driven
   generator is, so re-clicking after a regenerate updates in place rather
-  than duplicating.
+  than duplicating. A recommendation's `content_schema`/`content_value`
+  (the detail page's genUI body) are now fully shape-validated on read
+  (`contentBlockSchema`/`contentValueSchema` in `recommendation.ts`) — a
+  malformed row degrades to no content block instead of crashing the page.
 - Documents: CV hub/import/content/layout/review/target-profile flows, the
   OpenAI-backed CV Builder compatibility routes, Statement feedback, LOR
   recommender strategy, and the nine-dimension LOR quality review are present.
@@ -145,7 +150,7 @@ Measured on 2026-08-12 against the uncommitted working tree described above
 | `npx tsc --noEmit` | **Pass**, 0 errors (ran after `rm -rf .next/types`). |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
 | `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
-| `npx vitest run` | **Pass: 1701 passed, 2 todo, 164 files passed, 0 failed.** New `generate-roadmap-tasks.test.ts` and `recommendationsFromRoadmap`/`reconcileSeeds` cases in `recommendation.test.ts`. |
+| `npx vitest run` | **Pass: 1709 passed, 2 todo, 164 files passed, 0 failed.** New `generate-roadmap-tasks.test.ts`, `recommendationsFromRoadmap`/`reconcileSeeds` cases, and a `recommendationFromRow` content-block regression suite (well-formed/malformed `content_schema`/`content_value`, every case degrading to `null` rather than throwing) in `recommendation.test.ts`. |
 | `npm run build` | Attempted once this session (2026-08-12); failed locally on `/_not-found` prerendering because this checkout has no `.env.local` with real Supabase credentials — a sandbox limitation, not a code error (`tsc`/`next build`'s compile step both succeeded first). Not evidence either way about the actual Vercel build, which has real credentials and has been green on every PR this week. |
 | `npm run test:e2e` | Not rerun in this pass. |
 

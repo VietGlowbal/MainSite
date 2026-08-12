@@ -7,6 +7,7 @@ import {
   reconcileRecommendations,
   reconcileSeeds,
   recommendationFromImprovementAction,
+  recommendationFromRow,
   recommendationPatchSchema,
   recommendationsFromRoadmap,
   sortByPriority,
@@ -216,6 +217,93 @@ describe('recommendationsFromRoadmap', () => {
     expect(plan.toInsert).toHaveLength(0);
     expect(plan.toArchiveIds).toHaveLength(0);
     expect(plan.toUpdate).toHaveLength(3);
+  });
+});
+
+describe('recommendationFromRow', () => {
+  function row(overrides: Record<string, unknown> = {}): Record<string, unknown> {
+    return {
+      id: 'rec-1',
+      application_id: 'app-1',
+      title: 'Improve Mathematics grade',
+      created_at: '2026-01-01T00:00:00Z',
+      ...overrides,
+    };
+  }
+
+  it('parses a well-formed structured_table content_schema/content_value', () => {
+    const rec = recommendationFromRow(
+      row({
+        content_schema: {
+          type: 'structured_table',
+          columns: [{ key: 'name', label: 'Name', type: 'text' }],
+        },
+        content_value: { type: 'structured_table', rows: [{ name: 'Physics Olympiad' }] },
+      }),
+    );
+    expect(rec.contentSchema).toEqual({
+      type: 'structured_table',
+      columns: [{ key: 'name', label: 'Name', type: 'text' }],
+    });
+    expect(rec.contentValue).toEqual({
+      type: 'structured_table',
+      rows: [{ name: 'Physics Olympiad' }],
+    });
+  });
+
+  // Regression guard: reported live 12/08 as "each of the planner tasks...
+  // don't load up" — a content_schema whose `type` matched but whose
+  // columns/items were missing or empty used to pass straight through as a
+  // real ContentBlock, and the detail page crashed calling `.map()` on the
+  // missing array. Every one of these must degrade to `null`, never throw.
+  it('degrades a structured_table content_schema with no columns to null, not a crash', () => {
+    const rec = recommendationFromRow(row({ content_schema: { type: 'structured_table' } }));
+    expect(rec.contentSchema).toBeNull();
+  });
+
+  it('degrades a structured_table content_schema with an empty columns array to null', () => {
+    const rec = recommendationFromRow(
+      row({ content_schema: { type: 'structured_table', columns: [] } }),
+    );
+    expect(rec.contentSchema).toBeNull();
+  });
+
+  it('degrades a checklist content_schema with no items to null', () => {
+    const rec = recommendationFromRow(row({ content_schema: { type: 'checklist' } }));
+    expect(rec.contentSchema).toBeNull();
+  });
+
+  it('degrades a long_text content_schema with no prompt to null', () => {
+    const rec = recommendationFromRow(row({ content_schema: { type: 'long_text' } }));
+    expect(rec.contentSchema).toBeNull();
+  });
+
+  it('degrades an unrecognised content_schema type to null', () => {
+    const rec = recommendationFromRow(row({ content_schema: { type: 'freeform', text: 'hi' } }));
+    expect(rec.contentSchema).toBeNull();
+  });
+
+  it('degrades a malformed content_value the same way, independently of content_schema', () => {
+    const rec = recommendationFromRow(
+      row({
+        content_schema: {
+          type: 'checklist',
+          items: ['Request official transcripts'],
+        },
+        content_value: { type: 'checklist' }, // missing checkedItems
+      }),
+    );
+    expect(rec.contentSchema).toEqual({
+      type: 'checklist',
+      items: ['Request official transcripts'],
+    });
+    expect(rec.contentValue).toBeNull();
+  });
+
+  it('treats a null content_schema as no content block, not an error', () => {
+    const rec = recommendationFromRow(row({ content_schema: null, content_value: null }));
+    expect(rec.contentSchema).toBeNull();
+    expect(rec.contentValue).toBeNull();
   });
 });
 

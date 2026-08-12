@@ -19,7 +19,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5h | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. |
+| §5–§5i | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i fixed a recommendation detail page crash: `parseContentBlock`/`parseContentBlockValue` only checked the JSON's `type` field, not the rest of the shape, so a malformed `content_schema` crashed the genUI content block's `.map()` calls instead of degrading to `null`. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -959,6 +959,41 @@ locked entry as inert dimmed text — it omits it from the bar entirely.
 `applicationSubNav()` still marks entries `locked` (so the data and the
 routing agree on what's reachable), `SubNav` is just the one place that
 decides whether a locked entry draws. | `src/features/ai-strategy-dashboard/api/load-evaluation.ts`, `src/features/ai-strategy-dashboard/ui/report-chrome.tsx`, `applicant-portrait.tsx`, `programme-fit-report.tsx`, `strategy-recommendation-report.tsx`, `strategy-recommendation-workspace.tsx`, `src/shared/ui/sub-nav.tsx`, `src/shared/lib/app-routes.ts` |
+
+## 5i. Fixed 2026-08-12 — do not re-introduce
+
+**Reported the same day, after the Matching-Report-as-start-page change made
+it far more likely a student would actually reach a Planner task**: "each of
+the planner tasks when we click into them don't load up" — a real recommendation
+detail page (`/strategy/recommendations/[recId]`) threw instead of rendering.
+
+**Root cause**: `recommendationFromRow`'s `parseContentBlock`/
+`parseContentBlockValue` (`src/features/ai-strategy-dashboard/domain/recommendation.ts`)
+only checked that the stored JSON's `type` field matched one of
+`'structured_table' | 'long_text' | 'checklist'` — despite their own doc
+comments claiming to be fully defensive, they let a `content_schema` like
+`{ type: 'structured_table' }` (no `columns`) or `{ type: 'checklist' }` (no
+`items`) straight through as a real, well-formed `ContentBlock`.
+`StructuredTableInput`/`ChecklistInput` (`content-block.tsx`) then called
+`.map()` on the missing array and crashed the whole detail page — server-side,
+since these client components are still SSR'd on first load, so the crash
+surfaced as the site's generic error page ("Something went off-orbit"), not a
+404. `normalizeContentBlock` (`src/lib/ai/match-insights.ts`) has always
+guaranteed a *freshly generated* block has a non-empty `columns`/`items`, so
+this only bit rows written before that guarantee existed, or a `content_value`
+saved against a `content_schema` that has since regenerated into a different
+shape (see `updateFields`'s note in `recommendation.ts` on why a regenerate
+never touches `content_value`) — exactly the "row written by a future/
+different shape" case the doc comments described but the code didn't
+actually check for.
+
+**Fix**: both parsers now validate the **full** shape via zod
+(`contentBlockSchema`, mirroring `normalizeContentBlock`'s own guarantees;
+`contentValueSchema` already existed for `PATCH`'s request body and is now
+reused for reads too), degrading to `null` on any malformed row instead of
+throwing. `null` already has a real, intentional meaning on this page — "no
+content block, the task is finished elsewhere" — so a malformed row now
+reads the same as a `null` one rather than crashing. | `src/features/ai-strategy-dashboard/domain/recommendation.ts` |
 
 ## 6. Open questions for the designer / owner
 
