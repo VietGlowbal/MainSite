@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { supportNeeds } from '@/lib/onboarding-options';
+import { regions, subjectFamilies, supportNeeds } from '@/lib/onboarding-options';
 import type { StudentProfile } from '@/lib/types';
 import { Input, Panel, PanelHeader, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
@@ -25,21 +25,19 @@ const BUDGET_OPTIONS = [
 
 const STUDY_MODES = ['Full-time', 'Part-time', 'Either'];
 
-const POPULAR_COUNTRIES = [
-  // A deliberate planning-test sentinel, not a country. Keeping it selectable
-  // preserves "show me the best fit anywhere" rather than forcing a region.
-  'Open to ideas',
-  'United Kingdom',
-  'United States',
-  'Australia',
-  'Canada',
-  'Germany',
-  'Netherlands',
-  'Singapore',
-  'Japan',
-  'South Korea',
-  'Vietnam',
-];
+const OPEN_TO_IDEAS = 'Open to ideas';
+const COUNTRY_OPTIONS = [OPEN_TO_IDEAS, ...new Set(regions.flatMap((region) => region.countries))];
+const SUBJECT_OPTIONS = [...new Set(subjectFamilies.flatMap((family) => family.children))];
+
+function normalizeCountries(values: string[]): string[] {
+  const uniqueValues = values.filter((value, index) => (
+    values.findIndex((candidate) => candidate.trim().toLocaleLowerCase() === value.trim().toLocaleLowerCase()) === index
+  ));
+
+  return uniqueValues.some((value) => value.trim().toLocaleLowerCase() === OPEN_TO_IDEAS.toLocaleLowerCase())
+    ? [OPEN_TO_IDEAS]
+    : uniqueValues;
+}
 
 export function PreferencesForm({
   userId,
@@ -49,7 +47,7 @@ export function PreferencesForm({
   initialProfile: StudentProfile | null;
 }) {
   const supabase = useMemo(() => createClient(), []);
-  const [countries, setCountries] = useState<string[]>(initialProfile?.preferred_countries ?? []);
+  const [countries, setCountries] = useState<string[]>(() => normalizeCountries(initialProfile?.preferred_countries ?? []));
   const [cities, setCities] = useState<string[]>(initialProfile?.preferred_cities ?? []);
   const [subjects, setSubjects] = useState<string[]>(initialProfile?.target_subjects ?? []);
   const [budget, setBudget] = useState(initialProfile?.budget_range ?? '');
@@ -98,7 +96,8 @@ export function PreferencesForm({
           values={countries}
           onChange={setCountries}
           placeholder="e.g. United Kingdom"
-          suggestions={POPULAR_COUNTRIES}
+          suggestions={COUNTRY_OPTIONS}
+          exclusiveValue={OPEN_TO_IDEAS}
         />
 
         <TagInput
@@ -116,6 +115,7 @@ export function PreferencesForm({
           values={subjects}
           onChange={setSubjects}
           placeholder="e.g. Computer Science, Law"
+          suggestions={SUBJECT_OPTIONS}
         />
       </Panel>
 
