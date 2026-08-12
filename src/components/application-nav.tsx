@@ -82,23 +82,17 @@ export async function ApplicationNav({
   });
 
   return (
-    <div data-no-auto-translate className="bg-brand">
-      <Container className="flex flex-col gap-gb-lg pt-gb-2xl pb-gb-lg">
+    <div data-no-auto-translate className="relative overflow-hidden bg-brand">
+      <ApplicationNavBackground />
+      {/* No bottom padding: the sub-nav's own underline is the band's edge, so
+          the active entry's marker sits flush with where the white starts. */}
+      <Container className="relative flex flex-col gap-gb-lg pt-gb-2xl">
         <Breadcrumbs
           tone="on-brand"
           {...(courseName ? { labels: { application: courseName } } : {})}
         />
         <ApplicationSubNav items={items} tone="on-brand" />
       </Container>
-      {/* A dedicated strip below the real content, not a backdrop behind it —
-          see ApplicationNavBackground's header comment on why: this band has
-          no spare vertical space, and drawing behind the breadcrumb/sub-nav
-          text made it unreadable at the animation's brightest moment. This
-          strip is the band's edge now; nothing above ever shares a pixel
-          with it. */}
-      <div className="relative h-8 overflow-hidden sm:h-9">
-        <ApplicationNavBackground />
-      </div>
     </div>
   );
 }

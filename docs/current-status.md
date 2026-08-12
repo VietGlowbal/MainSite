@@ -2,8 +2,8 @@
 
 Last reconciled: **2026-08-12 (Asia/Bangkok)**
 
-Code snapshot: **working tree**, branched from `main` at `9b769ee` (PR #166,
-"Make the Matching Report the app's home, add roadmap-to-Planner tasks",
+Code snapshot: **working tree**, branched from `main` at `642abe7` (PR #167,
+"Add a kinetic-typography accent strip under the application header",
 merged). Not yet committed/pushed at the time this document was written —
 see "Last completed work" below.
 
@@ -27,14 +27,18 @@ directory. If this file conflicts with the code, the code wins.
   independently confirmed by a real production error trace on
   `POST /api/applications/[id]/match-insights` that matched §0e's predicted
   failure mode exactly, before the fix.
-- The working tree has real uncommitted work: an ambient kinetic-typography
-  accent strip under the application header band — see the next section.
+- The working tree has real uncommitted work: rebuilt the application header's
+  kinetic-typography animation to fit inside the header's own bounds and
+  follow the owner's full reference spec, after feedback that the first
+  version (a dedicated strip below the header) was wrong on both counts —
+  see the next section.
 
 ## Last completed work
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
-| *(uncommitted)* | **Added a kinetic-typography accent strip under the brand-red application header.** Adapted from a reference canvas animation the owner supplied (a "G" → "Go" typing reveal settling into tiled "GlowBal" rows crawling in opposite directions, with a flash on alignment). First pass drew it as a full-height backdrop behind the breadcrumb/sub-nav text, matching the reference's own layout — wrong in the real header, which has no spare vertical space: the animation's brightest flash moment sat directly on top of "Overview / Personal Report / …" and made it unreadable. Rebuilt as a dedicated thin strip (`h-8`/`h-9`) below the real content instead, which never shares a pixel with it. Verified visually via a throwaway `/dev/nav-preview` route + Playwright screenshots (boot phase, flash, resting crawl, `prefers-reduced-motion`, mobile width) before removing the scaffold. | The application header (`ApplicationNav`, shown on every `/ai-strategy/[id]/*` and `/apply/[id]/*` page) has a subtle, continuous "alive" texture — a single `GlowBal` marquee, low-contrast at rest with a periodic soft shimmer, that never competes with real navigation. Respects `prefers-reduced-motion` (renders nothing). |
+| *(uncommitted)* | **Rebuilt the header animation to fit inside the existing header and follow the full reference spec.** Owner feedback on PR #167: the animation had to live inside the header's own bounds, not add a strip below it, and had to follow the supplied spec's full three-phase choreography (an easing-curve "Go"→"Gooooo…" typing reveal, two marquee rows decelerating via the exact integrated-velocity physics formula, and a sine-fade alignment flash with a 1-second anticipatory lead on the second row) rather than the simplified single-row version shipped in #167. Ported the algorithm faithfully, scaled to the header's real (unchanged) height instead of the reference's viewport-width sizing. Caught and fixed a real bug in the port along the way: the flash was lighting up an entire tiled row at once instead of only the one word instance the reference's own alignment math targets — confined to a header with no spare space, a whole-row flash competed with the real nav text the same way the dedicated-strip version was built specifically to avoid. Fixed to flash only the matching instance, and added a low base-opacity pass (`BASE_ALPHA`/`FLASH_PEAK_ALPHA`) since three lines of decorative text at full strength directly behind two lines of real content reads as clutter at this scale, not texture. Verified visually via a throwaway `/dev/nav-preview` route, Playwright screenshots at multiple points in the cycle, and pixel-level sampling to confirm the "Go" line renders every frame (a compressed screenshot made it look like it vanished; it hadn't) before removing the scaffold. | The header animation now lives entirely within the header's existing footprint — no added height — and matches the supplied spec's actual choreography and physics, while never outshining the real breadcrumb/nav text on top of it. |
+| `642abe7` (#167) | **Added a kinetic-typography accent strip under the brand-red application header** — superseded by the entry above; see it for why the strip approach was replaced. | — |
 | `9b769ee` (#166) | **Made the Matching Report the application's permanent home, and added "generate Planner tasks from this strategy report."** `/ai-strategy/[applicationId]/strategy` no longer computes `nextOnboardingStep`/redirects onward through intro → strategy → dashboard once the analysis exists — it now always lands on `/strategy/analysis/fit`, for every application, regardless of how far the student has since progressed; Personalized Strategy and the Planner are reached only through the nav bar now. Also: `strategy-recommendation-report.tsx`'s Roadmap tab gained an "Add to Planner" button (`POST /api/applications/[id]/strategy/roadmap-tasks` → `generateRoadmapTasks`) that turns the F7 report's `roadmap.prioritize`/`.avoid` into `application_recommendations` rows under a new `strategy-roadmap` category — no new AI call, reconciled by (category, title) via a generalised `reconcileSeeds` (extracted from `reconcileRecommendations`, which is now a thin wrapper over it), so re-clicking after the report regenerates updates the same tasks instead of duplicating them. Same PR also fixed a recommendation detail page crash on a malformed genUI `content_schema` — `parseContentBlock`/`parseContentBlockValue` now validate the full shape via zod instead of only the `type` field. See `docs/known-issues.md §5i`. | The Matching Report is now a stable "home" for an application instead of a moving target. A student reading the Personalized Strategy report can turn its roadmap directly into trackable Planner tasks with one click. A malformed task no longer crashes the detail page. |
 | `06efde1` (#165) | **Fixed `/strategy/analysis/portrait` and `/strategy/analysis/fit` 404ing for every application, and merged the duplicate navigation bar.** Reported same-day, right after §0d/§0e/§0f were confirmed closed: both report pages 404'd. Root cause was not a migration gap — `load-evaluation.ts` selected `tuition_fee`/`entry_requirements_summary`/`english_requirements_summary`/`image_url`/`logo_url` directly off `course_applications`, but the live table (`supabase-apply-v2.sql`'s UUID-id schema) never had those columns; they exist on `courses` (via `course_id`, following the same join `application-workspace.ts` already uses) and `universities`. A stale, superseded `CREATE TABLE IF NOT EXISTS course_applications` in `supabase-apply-system.sql` (a TEXT-id schema) does have all five, which is how the mismatch went unnoticed by the schema-dump reconciliation. See `docs/known-issues.md §5h`. Also removed the redundant black `StageBar` the three report pages rendered under the layout's red `ApplicationNav` bar (same five-ish destinations, occasionally disagreeing on what was unlocked), and changed `SubNav` so a locked entry is omitted rather than shown dimmed, per explicit product direction. | Both reports load again for every application. One navigation bar instead of two stacked bars; a student only ever sees destinations they can actually open. |
 | `19a5d7c` (#163) | **Added application deletion and multi-course-per-university support.** `DELETE /api/applications/[id]` is new (auth + owner-scoped; every child row — stages, tasks, the Personal/Matching/Personalized Strategy reports, CV/statement strategy work — is `ON DELETE CASCADE` off `course_applications.id` except `personal_statements.application_id`, which is `SET NULL`, so one delete is enough). `my-application-section.tsx`'s `ApplicationRow` gained a "Delete" action (confirmation modal, names what's removed, irreversible) and an "Add another course" action (shown when `app.universityId` is known) that reuses the existing `/api/applications/from-course-url` endpoint — its duplicate check is already `(user_id, course_url)`, not university, and `user_universities` (the saved-list model "Plan my application" reads from) has `UNIQUE(user_id, university_id)` with one `program` column, so this was already the only path to a genuinely independent second application at the same university without a schema change. | Students can remove an application they no longer want tracked, and can track a second course at a university they've already applied to elsewhere on the site, without going through the saved-list's one-subject-per-university model. New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler's three outcomes (deleted / not found or not owned / db error). |
@@ -74,10 +78,14 @@ directory. If this file conflicts with the code, the code wins.
   Report, Matching Report, **Personalized Strategy**, Planner, CV builder, and
   Statement — a locked entry is omitted from the bar rather than shown dimmed.
   The analysis and planner pages live below `/ai-strategy/[applicationId]/strategy/*`.
-  Below that content, a thin strip (`ApplicationNavBackground`,
-  `src/components/application-nav-background.tsx`) runs a low-key looping
-  canvas animation — a tiled "GlowBal" marquee with an occasional shimmer —
-  purely decorative, `aria-hidden`, gone under `prefers-reduced-motion`.
+  The band itself carries a low-key looping canvas animation behind the
+  breadcrumb/nav text (`ApplicationNavBackground`,
+  `src/components/application-nav-background.tsx`) — a "Go" → "Gooooo…"
+  typing reveal settling into two "Glow"/"GlowBal" marquee rows crawling in
+  opposite directions, with an occasional per-instance flash — sized to the
+  header's own height (no added space) and kept at low opacity so it reads
+  as texture, never competing with the real white nav text on top. Purely
+  decorative, `aria-hidden`, gone under `prefers-reduced-motion`.
 - **The Matching Report is the application's home once it exists**, not a
   step in a funnel. `/ai-strategy/[applicationId]/strategy` (what "Overview"
   and `/apply/[id]` both bounce through) used to keep auto-advancing a
