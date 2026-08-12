@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { useLanguage } from '@/lib/i18n';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -88,9 +89,10 @@ function typeBadge(t: string) {
 ───────────────────────────────────────────────────────────────────────── */
 
 export function ScholarshipDashboard({ applications, existingScholarships }: Props) {
+  const { t } = useLanguage();
   const [scholarships, setScholarships] = useState<AIScholarship[]>([]);
   const [loading, setLoading] = useState(false);
-  useLoadingIndicator(loading, 'Finding scholarships for you');
+  useLoadingIndicator(loading, t('Finding scholarships for you'));
   const [error, setError] = useState('');
   const [searched, setSearched] = useState(false);
   const [selectedApps, setSelectedApps] = useState<string[]>([]);
@@ -149,7 +151,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
     <div className="space-y-6">
       {/* Tab intro (the page shell owns the <h1>) */}
       <p className="text-sm text-slate-500">
-        AI-powered scholarship search matched to your course applications. We find funding you&apos;re eligible for — including exclusive opportunities.
+        {t('AI-powered scholarship search matched to your course applications. We find funding you’re eligible for — including exclusive opportunities.')}
       </p>
 
       {/* Applications selector */}
@@ -159,9 +161,9 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
         <>
           <section className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
             <h2 className="mb-3 text-sm font-semibold text-slate-700">
-              Your courses
+              {t('Your courses')}
               <span className="ml-2 text-xs font-normal text-slate-400">
-                Select which applications to find scholarships for (or leave blank to search all)
+                {t('Select which applications to find scholarships for (or leave blank to search all)')}
               </span>
             </h2>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -213,24 +215,24 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
                 {loading ? (
                   <>
                     <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
-                    Searching with AI…
+                    {t('Searching with AI…')}
                   </>
                 ) : (
                   <>
                     <SparklesIcon />
-                    {searched ? 'Search again' : 'Find scholarships'}
+                    {t(searched ? 'Search again' : 'Find scholarships')}
                   </>
                 )}
               </button>
               {selectedApps.length > 0 && (
                 <span className="text-xs text-slate-400">
-                  {selectedApps.length} course{selectedApps.length > 1 ? 's' : ''} selected
+                  {selectedApps.length} {t(selectedApps.length > 1 ? 'courses selected' : 'course selected')}
                 </span>
               )}
             </div>
 
             {error && (
-              <p className="mt-3 text-sm text-red-600">{error}</p>
+              <p className="mt-3 text-sm text-red-600">{t(error)}</p>
             )}
           </section>
 
@@ -238,9 +240,9 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
           {existingScholarships.length > 0 && !searched && (
             <section className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
               <h2 className="mb-3 text-sm font-semibold text-slate-700">
-                Previously found scholarships
+                {t('Previously found scholarships')}
                 <span className="ml-2 text-xs font-normal text-slate-400">
-                  Extracted when you imported your courses
+                  {t('Extracted when you imported your courses')}
                 </span>
               </h2>
               <div className="space-y-2">
@@ -259,7 +261,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
                         rel="noopener noreferrer"
                         className="shrink-0 rounded-full border border-slate-200 px-3 py-1 text-xs font-medium text-slate-600 hover:bg-white"
                       >
-                        View →
+                        {t('View')} →
                       </a>
                     )}
                   </div>
@@ -273,7 +275,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
             <section className="space-y-4">
               {/* Filters bar */}
               <div className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-100 bg-white px-4 py-3 shadow-sm">
-                <span className="text-xs font-semibold text-slate-500">Filter:</span>
+                <span className="text-xs font-semibold text-slate-500">{t('Filter:')}</span>
                 <button
                   type="button"
                   onClick={() => setFilterType('all')}
@@ -281,34 +283,34 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
                     filterType === 'all' ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                   }`}
                 >
-                  All ({scholarships.length})
+                  {t('All')} ({scholarships.length})
                 </button>
-                {uniqueTypes.map((t) => {
-                  const badge = typeBadge(t);
-                  const count = scholarships.filter((s) => s.type === t).length;
+                {uniqueTypes.map((type) => {
+                  const badge = typeBadge(type);
+                  const count = scholarships.filter((s) => s.type === type).length;
                   return (
                     <button
-                      key={t}
+                      key={type}
                       type="button"
-                      onClick={() => setFilterType(t)}
+                      onClick={() => setFilterType(type)}
                       className={`rounded-full px-3 py-1 text-xs font-medium transition ${
-                        filterType === t ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                        filterType === type ? 'bg-slate-900 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
                       }`}
                     >
-                      {badge.label} ({count})
+                      {t(badge.label)} ({count})
                     </button>
                   );
                 })}
 
-                <span className="ml-auto text-xs text-slate-400">Sort:</span>
+                <span className="ml-auto text-xs text-slate-400">{t('Sort:')}</span>
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
                   className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 focus:outline-none"
                 >
-                  <option value="match">Best match</option>
-                  <option value="difficulty">Easiest first</option>
-                  <option value="amount">Amount</option>
+                  <option value="match">{t('Best match')}</option>
+                  <option value="difficulty">{t('Easiest first')}</option>
+                  <option value="amount">{t('Amount')}</option>
                 </select>
               </div>
 
@@ -321,7 +323,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
 
               {filtered.length === 0 && (
                 <p className="py-8 text-center text-sm text-slate-400">
-                  No scholarships match this filter.
+                  {t('No scholarships match this filter.')}
                 </p>
               )}
             </section>
@@ -330,7 +332,7 @@ export function ScholarshipDashboard({ applications, existingScholarships }: Pro
           {searched && scholarships.length === 0 && !loading && !error && (
             <div className="rounded-xl border border-dashed border-slate-200 bg-white py-12 text-center">
               <p className="text-sm text-slate-500">
-                No scholarships found for your current applications. Try importing more courses or updating your profile.
+                {t('No scholarships found for your current applications. Try importing more courses or updating your profile.')}
               </p>
             </div>
           )}
@@ -351,6 +353,7 @@ function ScholarshipCard({
   scholarship: AIScholarship;
   applications: Application[];
 }) {
+  const { t } = useLanguage();
   const app = applications.find((a) => a.id === s.courseApplicationId);
   const diff = difficultyBadge(s.difficulty);
   const tBadge = typeBadge(s.type);
@@ -380,14 +383,14 @@ function ScholarshipCard({
       {/* Badges */}
       <div className="mb-3 flex flex-wrap gap-1.5">
         <span className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${diff.cls}`}>
-          {diff.label}
+          {t(diff.label)}
         </span>
         <span className={`rounded-full px-2 py-0.5 text-[10px] font-medium ${tBadge.cls}`}>
-          {tBadge.label}
+          {t(tBadge.label)}
         </span>
         {s.isUniversitySpecific && (
           <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-            University scholarship
+            {t('University scholarship')}
           </span>
         )}
       </div>
@@ -405,7 +408,7 @@ function ScholarshipCard({
       {/* Course link */}
       {app && (
         <p className="mb-3 text-[10px] text-slate-400">
-          For: {app.country_flag} {app.course_name} — {app.university_name}
+          {t('For:')} {app.country_flag} {app.course_name} — {app.university_name}
         </p>
       )}
 
@@ -413,7 +416,7 @@ function ScholarshipCard({
       <div className="mt-auto flex items-center justify-between pt-2 border-t border-slate-50">
         {s.deadline && (
           <span className="text-[10px] text-slate-400">
-            Deadline: {s.deadline}
+            {t('Deadline:')} {s.deadline}
           </span>
         )}
         {s.applicationUrl ? (
@@ -423,10 +426,10 @@ function ScholarshipCard({
             rel="noopener noreferrer"
             className="ml-auto inline-flex items-center gap-1 rounded-full bg-slate-900 px-3 py-1 text-[11px] font-medium text-white hover:bg-slate-700"
           >
-            Apply <span aria-hidden>→</span>
+            {t('Apply')} <span aria-hidden>→</span>
           </a>
         ) : (
-          <span className="ml-auto text-[10px] text-slate-300">No link available</span>
+          <span className="ml-auto text-[10px] text-slate-300">{t('No link available')}</span>
         )}
       </div>
     </div>
@@ -438,6 +441,7 @@ function ScholarshipCard({
 ───────────────────────────────────────────────────────────────────────── */
 
 function EmptyState() {
+  const { t } = useLanguage();
   return (
     <div className="rounded-2xl border border-dashed border-slate-200 bg-white px-6 py-16 text-center">
       <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-pink-50">
@@ -446,15 +450,15 @@ function EmptyState() {
           <polyline points="22 4 12 14.01 9 11.01" />
         </svg>
       </div>
-      <h2 className="text-lg font-semibold text-slate-800">No courses imported yet</h2>
+      <h2 className="text-lg font-semibold text-slate-800">{t('No courses imported yet')}</h2>
       <p className="mx-auto mt-2 max-w-sm text-sm text-slate-500">
-        Import a course on the Apply page first, then come back here to find scholarships matched to your applications.
+        {t('Import a course on the Apply page first, then come back here to find scholarships matched to your applications.')}
       </p>
       <Link
         href="/apply"
         className="mt-5 inline-flex items-center gap-2 rounded-full bg-pink-500 px-5 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-pink-600"
       >
-        Go to Apply
+        {t('Go to Apply')}
       </Link>
     </div>
   );

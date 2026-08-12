@@ -94,7 +94,10 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
   }
 
   return (
-    <main className="min-h-screen bg-surface-muted px-4 pb-12 pt-6 md:px-8 md:pb-16 md:pt-10">
+    <main
+      data-no-auto-translate
+      className="min-h-screen bg-surface-muted px-4 pb-12 pt-6 md:px-8 md:pb-16 md:pt-10"
+    >
       <div className="mx-auto w-full max-w-7xl">
         <ScholarshipDirectoryClient
           queryState={directory?.query ?? state}

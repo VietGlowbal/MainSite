@@ -71,7 +71,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  useLoadingIndicator(saving, 'Saving your information');
+  useLoadingIndicator(saving, t('Saving your information'));
 
   function set<K extends keyof AboutFormValues>(key: K, value: AboutFormValues[K]) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -115,8 +115,8 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
         <ReflectionSection title={t('Personal information')}>
           <Select
             name="highestEducation"
-            label="What is your highest level of education?"
-            placeholder="Select your level"
+            label={t('What is your highest level of education?')}
+            placeholder={t('Select your level')}
             value={values.highestEducation ?? ''}
             onChange={(e) =>
               set('highestEducation', (e.target.value || undefined) as AboutFormValues['highestEducation'])
@@ -124,15 +124,15 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           >
             {EDUCATION_LEVELS.map((level) => (
               <option key={level} value={level}>
-                {level}
+                {t(level)}
               </option>
             ))}
           </Select>
 
           <Input
             name="nationality"
-            label="What is your nationality?"
-            placeholder="Vietnam"
+            label={t('What is your nationality?')}
+            placeholder={t('Vietnam')}
             value={values.nationality ?? ''}
             onChange={(e) => set('nationality', e.target.value || undefined)}
           />
@@ -144,14 +144,14 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
               at input time would mean guessing which. */}
           <Input
             name="gpa"
-            label="GPA"
+            label={t('GPA')}
             placeholder="3.5 / 4"
             value={values.gpa ?? ''}
             onChange={(e) => set('gpa', e.target.value || undefined)}
           />
           <Input
             name="ielts"
-            label="IELTS"
+            label={t('IELTS')}
             placeholder="7 / 10"
             value={values.ielts ?? ''}
             onChange={(e) => set('ielts', e.target.value || undefined)}
@@ -161,18 +161,18 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
         <ReflectionSection title={t('Aspirations')}>
           <Input
             name="majors"
-            label="Select a major"
-            placeholder="Design"
-            hint="Separate several with a comma."
+            label={t('Select a major')}
+            placeholder={t('Design')}
+            hint={t('Separate several with a comma.')}
             value={values.majors.join(', ')}
             onChange={(e) => set('majors', splitList(e.target.value))}
           />
 
           <Input
             name="countries"
-            label="Which countries are you interested in?"
-            placeholder="Japan"
-            hint="Separate several with a comma."
+            label={t('Which countries are you interested in?')}
+            placeholder={t('Japan')}
+            hint={t('Separate several with a comma.')}
             value={values.countries.join(', ')}
             onChange={(e) => set('countries', splitList(e.target.value))}
           />
@@ -182,9 +182,13 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
               the chosen one is a selection state, not a checkbox. */}
           <fieldset className="flex flex-col gap-gb-md">
             <legend className="mb-gb-md text-gb-sm font-semibold text-fg">
-              What is your intended level of study?
+              {t('What is your intended level of study?')}
             </legend>
-            <div role="radiogroup" aria-label="Intended level of study" className="flex flex-col gap-gb-md">
+            <div
+              role="radiogroup"
+              aria-label={t('Intended level of study')}
+              className="flex flex-col gap-gb-md"
+            >
               {INTENDED_LEVELS.map((level) => {
                 const selected = values.intendedLevel === level;
                 return (
@@ -200,7 +204,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
                         : 'border-line bg-surface text-fg-tertiary hover:border-line-strong'
                     }`}
                   >
-                    {level}
+                    {t(level)}
                   </button>
                 );
               })}
@@ -210,7 +214,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           <Select
             name="fundingSource"
             label={t('Budget')}
-            placeholder="Select a funding source"
+            placeholder={t('Select a funding source')}
             value={values.fundingSource ?? ''}
             onChange={(e) =>
               set('fundingSource', (e.target.value || undefined) as AboutFormValues['fundingSource'])
@@ -218,7 +222,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           >
             {FUNDING_SOURCES.map((source) => (
               <option key={source} value={source}>
-                {source}
+                {t(source)}
               </option>
             ))}
           </Select>
@@ -231,14 +235,14 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
             high={budgetHigh}
             onChange={({ low, high }) => set('budgetRange', `${low}-${high}`)}
             distribution={BUDGET_BINS}
-            label="Total budget"
+            label={t('Total budget')}
             formatValue={(low, high) => `${formatVnd(low)} - ${formatVnd(high)}`}
           />
 
           <Select
             name="tuitionBudgetUsd"
-            label="Select your tuition budget (USD)"
-            placeholder="Select a band"
+            label={t('Select your tuition budget (USD)')}
+            placeholder={t('Select a band')}
             value={values.tuitionBudgetUsd ?? ''}
             onChange={(e) =>
               set(
@@ -255,7 +259,7 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
           </Select>
         </ReflectionSection>
 
-        {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
+        {error ? <p className="text-gb-sm text-fg-error">{t(error)}</p> : null}
 
         <div className="flex justify-center">
           <Button type="submit" size="lg" disabled={saving} className="min-w-64">

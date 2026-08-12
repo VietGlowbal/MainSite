@@ -33,7 +33,7 @@ export function ReflectionShell({
   const percent = Math.round(reflectionProgress(step) * 100);
 
   return (
-    <div className="flex flex-col gap-gb-4xl">
+    <div data-no-auto-translate className="flex flex-col gap-gb-4xl">
       <header className="flex flex-col gap-gb-lg">
         <div className="flex items-center justify-between gap-gb-xl">
           <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
@@ -46,7 +46,10 @@ export function ReflectionShell({
 
         <ProgressBar
           value={percent}
-          label={`Step ${current.number} of ${REFLECTION_STEP_COUNT}: ${current.en}`}
+          label={`${t('Step {current} of {total}', {
+            current: current.number,
+            total: REFLECTION_STEP_COUNT,
+          })}: ${t(current.en)}`}
         />
 
         <p className="text-gb-md text-fg-tertiary">{t(current.en)}</p>
