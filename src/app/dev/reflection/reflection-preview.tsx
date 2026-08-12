@@ -55,12 +55,11 @@ export function ReflectionPreview({ step }: { step: 'about' | 'evidence' }) {
           nationality: 'Vietnam',
           gpa: '3.5 / 4',
           ielts: '7 / 10',
-          majors: ['Design'],
-          countries: ['Japan'],
+          majors: ['arts-design'],
+          countries: ['JP'],
           intendedLevel: 'Bachelor’s Degree',
-          fundingSource: 'Personal savings or parents',
-          budgetRange: '270000000-500000000',
-          tuitionBudgetUsd: '$20,000 - $30,000',
+          fundingSource: 'personal_savings_or_parents',
+          tuitionBudget: { currency: 'GBP', min: 15_000, max: 40_000 },
         }}
       />
     </Container>

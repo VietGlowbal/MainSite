@@ -7,22 +7,19 @@ import {
   ABOUT_QUESTION_COUNT,
   EDUCATION_LEVELS,
   EDUCATION_LEVEL_META,
-  FUNDING_SOURCES,
+  FUNDING_SOURCE_CATALOG,
   INTENDED_LEVELS,
   OTHER_SUBJECT_ID,
   SELECTABLE_SUBJECTS,
-  TUITION_BUDGETS_USD,
-  VND_PER_USD,
   aboutQuestionProgress,
   destinationFlag,
   destinationLabel,
   intakeOptionsWith,
-  parseBudgetBand,
+  isCompleteBudget,
   searchDestinations,
   searchSubjects,
   reflectionStep,
-  usdBandFromVndRange,
-  vndRangeFromUsdBand,
+  subjectById,
   type AboutQuestionKey,
   type AboutYouValues,
   type AspirationsValues,
@@ -31,6 +28,8 @@ import {
   type ScoreMethod,
 } from '@/features/apply/domain';
 import {
+  AspirationQuestion,
+  BudgetQuestion,
   DisplayModeToggle,
   EnglishQuestion,
   GpaQuestion,
@@ -44,9 +43,10 @@ import {
   SaveIndicator,
   SearchableMultiSelectGrid,
   SelectionCard,
+  SubjectMotivationQuestion,
 } from '@/features/apply/ui';
 import { useLanguage, useT } from '@/lib/i18n';
-import { Button, Input, RangeHistogram, Select, Textarea } from '@/shared/ui';
+import { Button, Input } from '@/shared/ui';
 
 /**
  * Candidate Information, step 1.
@@ -76,21 +76,7 @@ import { Button, Input, RangeHistogram, Select, Textarea } from '@/shared/ui';
  * from it being saved.
  */
 
-/**
- * The bars behind the budget slider.
- *
- * FLAT, AND THAT IS THE POINT. `RangeHistogram` states the rule in its own
- * source: real data or nothing, because a curve here is a claim about what
- * other students budget and we have no cohort data to support it.
- */
-const BUDGET_BINS = Array.from({ length: 48 }, () => 1);
-const BUDGET_MIN_VND = 0;
-const BUDGET_MAX_VND = 2_000_000_000;
 const AUTOSAVE_DELAY_MS = 1200;
-
-function formatVnd(value: number): string {
-  return `${Math.round(value).toLocaleString('vi-VN')} VND`;
-}
 
 /**
  * The glyph and one-line gloss on each intended-level card.
@@ -343,7 +329,9 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
                     else goTo(index + 1);
                   }}
                 >
-                  {isLast ? t('Continue') : t('Next')}
+                  {/* The last question ends step 1, so it says so — "Next"
+                      there would promise a thirteenth question. */}
+                  {isLast ? t('Complete') : t('Next')}
                 </Button>
               </div>
             </div>
@@ -440,11 +428,16 @@ function countAnswered(values: AboutFormValues): number {
       case 'careerGoal':
         return values.careerGoal !== undefined;
       case 'studyMotivation':
-        return values.studyMotivation !== undefined;
+        // Answered for any one subject counts — the question only ever
+        // required one — and so does the older single-box answer.
+        return (
+          Object.values(values.subjectMotivations ?? {}).some((answer) => answer.trim().length > 0) ||
+          values.studyMotivation !== undefined
+        );
       case 'fundingSource':
         return values.fundingSource !== undefined;
       case 'budget':
-        return values.budgetRange !== undefined || values.tuitionBudgetUsd !== undefined;
+        return isCompleteBudget(values.tuitionBudget);
     }
   };
 
@@ -535,10 +528,33 @@ function AboutQuestion({ questionKey, values, set, setMany, t, lang }: QuestionP
     [destinationQuery, lang],
   );
 
-  const [budgetLow, budgetHigh] = parseBudgetBand(
-    values.budgetRange,
-    BUDGET_MIN_VND,
-    BUDGET_MAX_VND,
+  /*
+   * Q10 asks about the subjects Q5 chose, so its options are derived rather
+   * than listed. A subject the catalogue does not know is the "Other" escape
+   * hatch, and it shows the student's own words — asking "why are you
+   * interested in Other?" would be worse than not asking.
+   */
+  const motivationSubjects = useMemo(
+    () =>
+      values.majors.map((id) => {
+        const known = subjectById(id);
+        if (known) return { id, label: t(known.label), icon: known.icon };
+        return {
+          id,
+          label:
+            id === OTHER_SUBJECT_ID ? (values.customSubject ?? t('Your subject')) : id,
+        };
+      }),
+    [values.majors, values.customSubject, t],
+  );
+
+  /*
+   * Which subject's box is open. Deliberately NOT in `values`: it is a view
+   * concern, and putting it there would mark the form dirty and fire a save
+   * every time a student glanced at another subject's tab.
+   */
+  const [activeMotivationSubject, setActiveMotivationSubject] = useState<string | undefined>(
+    values.primaryMotivationSubject,
   );
 
   switch (questionKey) {
@@ -767,94 +783,91 @@ function AboutQuestion({ questionKey, values, set, setMany, t, lang }: QuestionP
 
     case 'careerGoal':
       return (
-        <Textarea
-          name="careerGoal"
-          label={t('What do you want to do after you graduate?')}
-          placeholder={t('A sentence or two is plenty.')}
-          rows={4}
-          value={values.careerGoal ?? ''}
-          onChange={(e) => set('careerGoal', e.target.value || undefined)}
+        <AspirationQuestion
+          value={values.careerGoal}
+          subjects={motivationSubjects.map((subject) => subject.label)}
+          onChange={(next) => set('careerGoal', next)}
+          t={t}
         />
       );
 
     case 'studyMotivation':
       return (
-        <Textarea
-          name="studyMotivation"
-          label={t('Why this subject?')}
-          placeholder={t('What got you interested, and what keeps you interested.')}
-          rows={4}
-          value={values.studyMotivation ?? ''}
-          onChange={(e) => set('studyMotivation', e.target.value || undefined)}
-        />
+        <div className="flex flex-col gap-gb-xl">
+          {/*
+            The answer a student gave to the older single-box version of this
+            question. Shown rather than silently migrated into one of the
+            per-subject boxes: which subject they meant is not ours to guess,
+            and it keeps feeding the reports until they answer per subject.
+          */}
+          {values.studyMotivation !== undefined &&
+          Object.keys(values.subjectMotivations ?? {}).length === 0 ? (
+            <div className="flex flex-col gap-gb-xs rounded-gb-lg border border-line bg-surface-muted p-gb-lg">
+              <p className="text-gb-sm font-semibold text-fg">{t('What you told us before')}</p>
+              <p className="text-gb-sm text-fg-tertiary">{values.studyMotivation}</p>
+            </div>
+          ) : null}
+
+          <SubjectMotivationQuestion
+            subjects={motivationSubjects}
+            active={activeMotivationSubject}
+            onActiveChange={setActiveMotivationSubject}
+            answers={values.subjectMotivations ?? {}}
+            onAnswerChange={(id, next) =>
+              setMany({
+                subjectMotivations: { ...(values.subjectMotivations ?? {}), [id]: next },
+                // The first subject answered becomes the headline one — the
+                // single `study_motivation` column has to carry something
+                // definite, and "whichever they wrote first" beats "whichever
+                // key the object happened to iterate first".
+                ...(values.primaryMotivationSubject === undefined && next.trim()
+                  ? { primaryMotivationSubject: id }
+                  : {}),
+              })
+            }
+            aspiration={values.careerGoal}
+            t={t}
+          />
+        </div>
       );
 
     case 'fundingSource':
       return (
-        <OptionCards
-          label={t('How will your study be funded?')}
-          value={values.fundingSource}
-          onChange={(next) => set('fundingSource', next)}
-          options={FUNDING_SOURCES.map((source) => ({
-            value: source,
-            label: t(source),
-            icon: 'usersTwo',
-          }))}
-        />
+        <div className="flex flex-col gap-gb-xl">
+          <div
+            role="radiogroup"
+            aria-label={t('How will your study be funded?')}
+            className="flex flex-col gap-gb-md"
+          >
+            {FUNDING_SOURCE_CATALOG.map((source) => (
+              <SelectionCard
+                key={source.id}
+                icon={source.icon}
+                title={t(source.label)}
+                description={t(source.description)}
+                selected={values.fundingSource === source.id}
+                onSelect={() =>
+                  set(
+                    'fundingSource',
+                    values.fundingSource === source.id ? undefined : source.id,
+                  )
+                }
+              />
+            ))}
+          </div>
+          <NotSureNote
+            text={t('You can change this later — it only shapes which scholarships we look for.')}
+          />
+        </div>
       );
 
     case 'budget':
-      /*
-       * TWO CONTROLS, ONE ANSWER — annual tuition, in two currencies, each
-       * updating the other. The rate is printed rather than applied silently;
-       * see the note in domain/reflection.ts for why it is a constant.
-       */
       return (
-        <div className="flex flex-col gap-gb-2xl">
-          <RangeHistogram
-            min={BUDGET_MIN_VND}
-            max={BUDGET_MAX_VND}
-            step={10_000_000}
-            low={budgetLow}
-            high={budgetHigh}
-            onChange={({ low, high }) =>
-              setMany({
-                budgetRange: `${low}-${high}`,
-                tuitionBudgetUsd: usdBandFromVndRange(low, high),
-              })
-            }
-            distribution={BUDGET_BINS}
-            label={t('Annual tuition budget')}
-            formatValue={(low, high) => `${formatVnd(low)} - ${formatVnd(high)}`}
-          />
-
-          <div className="max-w-sm">
-            <Select
-              name="tuitionBudgetUsd"
-              label={t('Annual tuition budget (USD)')}
-              placeholder={t('Select a band')}
-              hint={t('Converted at {rate} VND to 1 USD.', {
-                rate: VND_PER_USD.toLocaleString('en-US'),
-              })}
-              value={values.tuitionBudgetUsd ?? ''}
-              onChange={(e) => {
-                const band = (e.target.value || undefined) as AboutFormValues['tuitionBudgetUsd'];
-                if (!band) {
-                  set('tuitionBudgetUsd', undefined);
-                  return;
-                }
-                const { low, high } = vndRangeFromUsdBand(band, BUDGET_MAX_VND);
-                setMany({ tuitionBudgetUsd: band, budgetRange: `${low}-${high}` });
-              }}
-            >
-              {TUITION_BUDGETS_USD.map((band) => (
-                <option key={band} value={band}>
-                  {band}
-                </option>
-              ))}
-            </Select>
-          </div>
-        </div>
+        <BudgetQuestion
+          value={values.tuitionBudget}
+          onChange={(next) => set('tuitionBudget', next)}
+          t={t}
+        />
       );
   }
 

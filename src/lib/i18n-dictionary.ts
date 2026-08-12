@@ -2550,6 +2550,70 @@ export const translations: Record<string, string> = {
   'Intended level of study': 'Bậc học dự định',
   'Select a funding source': 'Chọn nguồn tài trợ',
   'Select a band': 'Chọn khoảng điểm',
+
+  // Candidate information — Q9 to Q12. ("Scholarship" and "Complete" are
+  // already above; both funding labels and the CTA reuse those entries.)
+  'Family funds or your own savings will cover most of the cost.':
+    'Tiền của gia đình hoặc tiền tiết kiệm của bạn sẽ chi trả phần lớn chi phí.',
+  'You are hoping to fund some or all of it with a scholarship.':
+    'Bạn hy vọng học bổng sẽ chi trả một phần hoặc toàn bộ chi phí.',
+  'A government or private loan you will repay after graduating.':
+    'Khoản vay của nhà nước hoặc tư nhân mà bạn sẽ trả sau khi tốt nghiệp.',
+  'A company, government body or organisation is paying.':
+    'Một công ty, cơ quan nhà nước hoặc tổ chức sẽ chi trả.',
+  'You are still working it out — that is a normal answer here.':
+    'Bạn vẫn đang cân nhắc — đó là câu trả lời hoàn toàn bình thường.',
+  'You can change this later — it only shapes which scholarships we look for.':
+    'Bạn có thể thay đổi sau — thông tin này chỉ định hướng việc tìm học bổng.',
+  'Why are you interested in these subjects?': 'Vì sao bạn quan tâm đến những ngành này?',
+  'Answer for one subject or all of them — your personal report builds its “driving force” section from this.':
+    'Trả lời cho một ngành hoặc tất cả — báo cáo cá nhân sẽ dựng phần “động lực” từ câu trả lời này.',
+  'Tuition only, in your own currency — living costs are not included.':
+    'Chỉ tính học phí, theo đơn vị tiền tệ của bạn — chưa gồm chi phí sinh hoạt.',
+  'What you told us before': 'Điều bạn đã cho chúng tôi biết trước đó',
+  'Your subject': 'Ngành của bạn',
+
+  // Q9 / Q10 — the written answers and their idea helper.
+  'We could not come up with ideas.': 'Chúng tôi chưa nghĩ ra gợi ý nào.',
+  'Example: I want to work in sustainable energy and help build a cleaner future.':
+    'Ví dụ: Tôi muốn làm việc trong lĩnh vực năng lượng bền vững và góp phần xây dựng một tương lai sạch hơn.',
+  'Here are some things to think about:': 'Một vài điều để bạn suy nghĩ:',
+  'What kind of work excites you?': 'Loại công việc nào khiến bạn hào hứng?',
+  'What impact do you want to make?': 'Bạn muốn tạo ra tác động gì?',
+  'Where do you see yourself in the future?': 'Bạn hình dung mình ở đâu trong tương lai?',
+  'Generate ideas with AI': 'Gợi ý ý tưởng bằng AI',
+  'Thinking…': 'Đang nghĩ…',
+  'Pick one to start from': 'Chọn một gợi ý để bắt đầu',
+  'It goes straight into the box — edit it however you like.':
+    'Gợi ý sẽ được đưa thẳng vào ô trả lời — bạn sửa lại thế nào cũng được.',
+  'Your answer doesn’t need to be perfect — this can be short and you can always change it later.':
+    'Câu trả lời không cần hoàn hảo — bạn có thể viết ngắn và sửa lại bất cứ lúc nào.',
+  'Choose your subjects first and we’ll ask about them here.':
+    'Hãy chọn ngành học trước, chúng tôi sẽ hỏi về chúng ở đây.',
+  'Choose a subject to tell us more about.': 'Chọn một ngành để kể thêm cho chúng tôi.',
+  'Your subjects': 'Các ngành của bạn',
+  answered: 'đã trả lời',
+  'Why are you interested in {subject}?': 'Vì sao bạn quan tâm đến {subject}?',
+  'Example: I first became interested in {subject} when I started building my own projects and realised I loved solving real problems.':
+    'Ví dụ: Tôi bắt đầu quan tâm đến {subject} khi tự làm những dự án của riêng mình và nhận ra mình thích giải quyết các vấn đề thực tế.',
+  'Need a nudge? Consider these:': 'Cần gợi ý? Hãy thử nghĩ về:',
+  'What first interested you in {subject}?': 'Điều gì khiến bạn quan tâm đến {subject} đầu tiên?',
+  'What parts of {subject} excite you most?':
+    'Phần nào của {subject} khiến bạn hào hứng nhất?',
+  'What would you like to do with {subject}?': 'Bạn muốn làm gì với {subject}?',
+  'You only need to answer for one subject — you can add more later if you want.':
+    'Bạn chỉ cần trả lời cho một ngành — có thể bổ sung thêm sau nếu muốn.',
+
+  // Q12 — the multi-currency tuition budget.
+  'Which currency do you think in?': 'Bạn quen tính theo đơn vị tiền tệ nào?',
+  'Other currency': 'Đơn vị tiền tệ khác',
+  '{amount} and above per year': 'Từ {amount} trở lên mỗi năm',
+  '{range} per year': '{range} mỗi năm',
+  'Roughly {conversions}': 'Tương đương khoảng {conversions}',
+  'Conversions are approximate and are not saved — we store the range in your own currency.':
+    'Số quy đổi chỉ mang tính tham khảo và không được lưu — chúng tôi lưu khoảng ngân sách theo đơn vị tiền tệ của bạn.',
+  'This is tuition only. Living costs, flights and visa fees are not included — we show those separately on each course.':
+    'Đây chỉ là học phí. Chi phí sinh hoạt, vé máy bay và lệ phí visa không bao gồm — chúng tôi hiển thị riêng ở từng khóa học.',
   'AI Assessment | GlowBal': 'Đánh giá AI | GlowBal',
   'Application Strategy | GlowBal': 'Chiến lược ứng tuyển | GlowBal',
   'Statement writer | GlowBal': 'Công cụ viết bài luận | GlowBal',

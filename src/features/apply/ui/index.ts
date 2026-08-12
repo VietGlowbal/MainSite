@@ -14,6 +14,8 @@ export {
   questionIcon,
 } from './question-chrome';
 export { NotSureNote, OptionCards, SelectionCard } from './option-cards';
+export { AspirationQuestion, SubjectMotivationQuestion } from './written-answer';
+export { BudgetQuestion } from './budget-question';
 export { NationalityPicker } from './nationality-picker';
 export { EnglishQuestion, GpaQuestion } from './score-input';
 export { IntakePicker } from './intake-picker';

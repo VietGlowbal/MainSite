@@ -9,7 +9,6 @@ export {
   ACTIVITY_CATEGORIES,
   EDUCATION_LEVELS,
   EDUCATION_LEVEL_META,
-  FUNDING_SOURCES,
   INTAKE_TERMS,
   INTENDED_LEVELS,
   TUITION_BUDGETS_USD,
@@ -79,6 +78,29 @@ export {
   serialiseIntake,
 } from './intake';
 export type { IntakeChoice, IntakeOption, IntakeSeason } from './intake';
+export {
+  FUNDING_SOURCE_CATALOG,
+  FUNDING_SOURCE_IDS,
+  fundingSource,
+  fundingSourceFromStored,
+  fundingSourceLabel,
+} from './funding-catalog';
+export type { FundingSource, FundingSourceId } from './funding-catalog';
+export {
+  ALL_CURRENCIES,
+  PRIMARY_CURRENCIES,
+  convertAmount,
+  convertBudget,
+  currencyMeta,
+  defaultBudget,
+  formatAmount,
+  formatBudgetRange,
+  isCompleteBudget,
+  parseBudget,
+  reBase,
+  serialiseBudget,
+} from './tuition-budget';
+export type { CurrencyCode, CurrencyMeta, TuitionBudget } from './tuition-budget';
 export { AI_JOURNEY, AI_JOURNEY_STEPS, aiJourneySteps } from './ai-journey';
 export type { AiJourneyStep } from './ai-journey';
 export {

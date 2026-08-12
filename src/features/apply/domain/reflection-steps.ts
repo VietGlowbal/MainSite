@@ -72,11 +72,11 @@ export function reflectionProgress(key: ReflectionStepKey): number {
  *
  * ─── WHY BUDGET IS ONE ENTRY AND NOT TWO ─────────────────────────────────────
  *
- * The VND slider and the USD band are two controls for one quantity and they
- * update each other (`vndRangeFromUsdBand`/`usdBandFromVndRange`). On separate
- * screens the sync would be invisible — a student would answer in USD, move
- * on, and never see the slider agree. They are one question with two ways to
- * answer it, so they share a screen.
+ * Currency and amount are two controls for one answer, and changing the
+ * currency re-expresses the amount rather than resetting it (`reBase`). On
+ * separate screens that would be invisible — a student would pick pounds, move
+ * on, and never see the range they had already set arrive in pounds. It is one
+ * question with two controls, so they share a screen.
  *
  * ─── ONLY STEP 1 ─────────────────────────────────────────────────────────────
  *
@@ -154,8 +154,9 @@ export const ABOUT_QUESTIONS = [
     key: 'studyMotivation',
     section: 'Aspirations',
     icon: 'zap',
-    heading: 'Why this subject?',
-    subtitle: 'Your personal report builds its “driving force” section from this.',
+    heading: 'Why are you interested in these subjects?',
+    subtitle:
+      'Answer for one subject or all of them — your personal report builds its “driving force” section from this.',
   },
   {
     key: 'fundingSource',
@@ -169,7 +170,7 @@ export const ABOUT_QUESTIONS = [
     section: 'Budget',
     icon: 'gift01',
     heading: 'What is your annual tuition budget?',
-    subtitle: 'Set it in either currency — the two stay in step with each other.',
+    subtitle: 'Tuition only, in your own currency — living costs are not included.',
   },
 ] as const;
 

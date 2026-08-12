@@ -23,10 +23,37 @@
  * `min` and `max` are persisted, so a rate change can never rewrite an answer.
  */
 
-export type CurrencyCode = 'GBP' | 'USD' | 'EUR' | 'CNY' | 'VND' | 'AUD' | 'CAD' | 'SGD' | 'HKD' | 'INR' | 'AED' | 'JPY' | 'KRW';
+/**
+ * Every currency a budget may be expressed in, in the order "Other" lists
+ * them.
+ *
+ * A `const` tuple rather than a plain array so `CurrencyCode` is derived from
+ * it: the rate, symbol and region tables below are keyed by that type, which
+ * makes a currency added here a compile error until it has all three, and
+ * `z.enum` can read it directly rather than the schema keeping a second copy.
+ */
+export const ALL_CURRENCIES = [
+  'GBP',
+  'USD',
+  'EUR',
+  'CNY',
+  'VND',
+  'AUD',
+  'CAD',
+  'SGD',
+  'HKD',
+  'INR',
+  'AED',
+  'JPY',
+  'KRW',
+] as const;
+
+export type CurrencyCode = (typeof ALL_CURRENCIES)[number];
 
 export type CurrencyMeta = {
   code: CurrencyCode;
+  /** The currency's name, for the "Other" list where a symbol is not enough. */
+  name: string;
   symbol: string;
   /** ISO 3166 code for the flag beside it; `EU` for the euro. */
   region: string;
@@ -75,6 +102,22 @@ const SYMBOLS: Record<CurrencyCode, string> = {
   KRW: '₩',
 };
 
+const NAMES: Record<CurrencyCode, string> = {
+  USD: 'US dollar',
+  GBP: 'British pound',
+  EUR: 'Euro',
+  CNY: 'Chinese yuan',
+  VND: 'Vietnamese đồng',
+  AUD: 'Australian dollar',
+  CAD: 'Canadian dollar',
+  SGD: 'Singapore dollar',
+  HKD: 'Hong Kong dollar',
+  INR: 'Indian rupee',
+  AED: 'UAE dirham',
+  JPY: 'Japanese yen',
+  KRW: 'South Korean won',
+};
+
 const REGIONS: Record<CurrencyCode, string> = {
   USD: 'US',
   GBP: 'GB',
@@ -93,22 +136,6 @@ const REGIONS: Record<CurrencyCode, string> = {
 
 /** The four shown as pills; everything else lives behind "Other". */
 export const PRIMARY_CURRENCIES: readonly CurrencyCode[] = ['GBP', 'USD', 'EUR', 'CNY'];
-
-export const ALL_CURRENCIES: readonly CurrencyCode[] = [
-  'GBP',
-  'USD',
-  'EUR',
-  'CNY',
-  'VND',
-  'AUD',
-  'CAD',
-  'SGD',
-  'HKD',
-  'INR',
-  'AED',
-  'JPY',
-  'KRW',
-];
 
 /**
  * The scale for a currency's slider.
@@ -136,6 +163,7 @@ export function currencyMeta(code: CurrencyCode): CurrencyMeta {
 
   return {
     code,
+    name: NAMES[code],
     symbol: SYMBOLS[code],
     region: REGIONS[code],
     min: round(USD_MIN * rate),

@@ -1,7 +1,16 @@
 import { z } from 'zod';
 import { ENGLISH_TESTS, SCORE_METHODS } from './academic-scores';
 import { destinationIdsFromStored } from './destination-catalog';
+import { FUNDING_SOURCE_IDS, fundingSourceFromStored } from './funding-catalog';
 import { intakeChoiceSchema, parseIntake, serialiseIntake } from './intake';
+import {
+  ALL_CURRENCIES,
+  convertAmount,
+  isCompleteBudget,
+  parseBudget,
+  serialiseBudget,
+  type TuitionBudget,
+} from './tuition-budget';
 
 /** The English test ids, as a zod-friendly tuple. */
 const ENGLISH_TEST_IDS = ENGLISH_TESTS.map((t) => t.value) as unknown as [
@@ -86,15 +95,17 @@ export const INTENDED_LEVELS = [
   'College Diploma / Certificate',
 ] as const;
 
-export const FUNDING_SOURCES = [
-  'Personal savings or parents',
-  'Scholarship',
-  'Student loan',
-  'Employer or sponsor',
-  'Not decided yet',
-] as const;
-
-/** Annual tuition, in USD. Bands rather than a figure — students estimate. */
+/**
+ * Annual tuition, in USD. Bands rather than a figure — students estimate.
+ *
+ * ⚠️ NO LONGER ASKED. The budget question now takes a real range in the
+ * student's own currency (`tuition-budget.ts`), which a five-way enum cannot
+ * express. The band survives as a DERIVED value: `student_profiles
+ * .tuition_budget_usd` is read by the matching prompt and by
+ * `candidate-context.ts`, so `profileUpdateFromReflection` keeps writing the
+ * nearest band rather than leaving those readers with a null they never had
+ * before.
+ */
 export const TUITION_BUDGETS_USD = [
   'Under $10,000',
   '$10,000 - $20,000',
@@ -295,6 +306,20 @@ const optionalText = (max = 500) =>
     .transform((v) => (v.length === 0 ? undefined : v))
     .optional();
 
+/**
+ * The structured tuition budget, validated at the edge.
+ *
+ * Mirrors `TuitionBudget` in `tuition-budget.ts` rather than re-deriving it:
+ * the currency list is the same one the sliders are built from, so a request
+ * cannot store a currency the form could never show, and `max` is nullable
+ * because the open-ended top band is a real answer rather than a missing one.
+ */
+const tuitionBudgetSchema = z.object({
+  currency: z.enum(ALL_CURRENCIES),
+  min: z.number().min(0).max(1e12),
+  max: z.number().min(0).max(1e12).nullable(),
+});
+
 /** Part 2 — who the student is, what they have, where they want to go. */
 export const aboutYouSchema = z.object({
   highestEducation: z.enum(EDUCATION_LEVELS).optional(),
@@ -365,10 +390,20 @@ export const aspirationsSchema = z.object({
    */
   countryPreferenceFlexible: z.boolean().optional(),
   intendedLevel: z.enum(INTENDED_LEVELS).optional(),
-  fundingSource: z.enum(FUNDING_SOURCES).optional(),
-  /** Annual tuition in VND, as a "min-max" band from the histogram slider. */
-  budgetRange: optionalText(60),
-  tuitionBudgetUsd: z.enum(TUITION_BUDGETS_USD).optional(),
+  /**
+   * A `FundingSourceId`, not the option's label — see `funding-catalog.ts`.
+   * Stored values that are still display strings are converted on read.
+   */
+  fundingSource: z.enum(FUNDING_SOURCE_IDS).optional(),
+  /**
+   * Annual tuition, as a real range in the student's own currency.
+   *
+   * Replaces the VND slider (`budgetRange`) and the USD band
+   * (`tuitionBudgetUsd`) that used to be asked side by side. Both of those
+   * assumed the student thinks in đồng — one literally, the other by making
+   * "£15,000–£40,000" unsayable. `max: null` is the open-ended top band.
+   */
+  tuitionBudget: tuitionBudgetSchema.optional(),
   /**
    * The three questions below exist because the reports already ask for them
    * and were getting nothing.
@@ -382,8 +417,43 @@ export const aspirationsSchema = z.object({
    * was scoring future alignment against a blank. These are the cheapest
    * possible fix: three questions the student can answer in a sentence.
    */
-  careerGoal: optionalText(600),
-  studyMotivation: optionalText(600),
+  careerGoal: optionalText(1500),
+  /**
+   * Why this subject — the single answer the reports read.
+   *
+   * Kept as one string because that is what `student_profiles
+   * .study_motivation` is and what the portrait's "driving force" section
+   * consumes. It is now DERIVED rather than typed: the question asks per
+   * subject (see below), and `profileUpdateFromReflection` writes the primary
+   * subject's answer here. A student who answered the older single-box version
+   * still has their text, and it is carried into the map on read.
+   */
+  studyMotivation: optionalText(1000),
+  /**
+   * Why each subject, keyed by the subject ids from `majors`.
+   *
+   * ─── WHY PER SUBJECT ─────────────────────────────────────────────────────
+   *
+   * "Why this subject?" is unanswerable for someone who picked three: the
+   * honest answer differs per subject, and one box forces them to either pick
+   * one silently or write a paragraph that is about none of them. Asking per
+   * subject also gives the strategy report something it could not previously
+   * have — which of a student's interests they can actually argue for.
+   *
+   * Only one is required. The map is sparse by design.
+   */
+  subjectMotivations: z
+    .record(z.string().min(1).max(80), z.string().trim().max(1000))
+    .optional(),
+  /**
+   * Which subject's motivation is the headline one.
+   *
+   * Needed because `study_motivation` is a single column: without it, writing
+   * "the" motivation from a map of three would be an arbitrary pick that
+   * changes with key order. Defaults to the first subject the student answered
+   * for, and they can change it.
+   */
+  primaryMotivationSubject: optionalText(80),
   /**
    * When the student wants to start, as structured data.
    *
@@ -471,8 +541,21 @@ export type ReflectionProfileRow = {
    */
   goals?: string | null;
   study_motivation?: string | null;
+  /**
+   * `{ "<subjectId>": "<why>", ... }`, plus a `__primary` key naming the
+   * subject whose answer is mirrored into `study_motivation`.
+   *
+   * One JSONB column rather than a `student_subject_motivations` table: the
+   * map is written and read whole, always by the owner of the profile, and is
+   * capped at the thirty subjects `majors` allows. A table would buy nothing
+   * but a second set of RLS policies to keep in step.
+   */
+  subject_motivations?: Record<string, unknown> | null;
   target_intake?: string | null;
 };
+
+/** The key inside `subject_motivations` that names the primary subject. */
+const PRIMARY_MOTIVATION_KEY = '__primary';
 
 /** Narrow an unknown stored value to a non-empty string. */
 function text(value: unknown): string | undefined {
@@ -492,6 +575,49 @@ function educationFromStored(
   const free = text(stored);
   if (free === undefined) return {};
   return { highestEducation: 'Other', otherEducation: free };
+}
+
+/**
+ * The stored motivation map → the form's per-subject answers.
+ *
+ * ⚠️ THE OLD SINGLE ANSWER IS NEVER DROPPED. A student who answered the
+ * previous one-box "Why this subject?" has their text in `study_motivation`
+ * and nothing in the map. Returning it under the primary subject would be a
+ * guess about which subject they meant; returning nothing would look, to them,
+ * like we lost it. So it comes back as `studyMotivation` — the form shows it
+ * above the per-subject boxes as the answer they gave before — and the map
+ * fills in as they answer per subject.
+ */
+function subjectMotivationsFromStored(
+  stored: Record<string, unknown> | null | undefined,
+  legacy: string | null | undefined,
+): {
+  subjectMotivations?: Record<string, string>;
+  primaryMotivationSubject?: string;
+  studyMotivation?: string;
+} {
+  const map: Record<string, string> = {};
+  let primary: string | undefined;
+  const legacyText = text(legacy);
+
+  for (const [key, value] of Object.entries(stored ?? {})) {
+    if (key === PRIMARY_MOTIVATION_KEY) {
+      primary = text(value);
+      continue;
+    }
+    const answer = text(value);
+    if (answer !== undefined) map[key] = answer;
+  }
+
+  // A primary naming a subject with no answer would put the form on an empty
+  // box and write an empty `study_motivation` back.
+  if (primary !== undefined && map[primary] === undefined) primary = undefined;
+
+  return {
+    ...(Object.keys(map).length > 0 ? { subjectMotivations: map } : {}),
+    ...(primary !== undefined ? { primaryMotivationSubject: primary } : {}),
+    ...(legacyText !== undefined ? { studyMotivation: legacyText } : {}),
+  };
 }
 
 /** Narrow to a member of an option set, so stale data cannot break the form. */
@@ -561,19 +687,23 @@ export function reflectionFromProfile(
     ...(oneOf(INTENDED_LEVELS, profile?.study_level) !== undefined
       ? { intendedLevel: oneOf(INTENDED_LEVELS, profile?.study_level) }
       : {}),
-    ...(oneOf(FUNDING_SOURCES, profile?.funding_source) !== undefined
-      ? { fundingSource: oneOf(FUNDING_SOURCES, profile?.funding_source) }
+    // Understands both the id this form writes and the display strings the
+    // previous one wrote — see `fundingSourceFromStored`.
+    ...(fundingSourceFromStored(profile?.funding_source) !== undefined
+      ? { fundingSource: fundingSourceFromStored(profile?.funding_source) }
       : {}),
-    ...(text(profile?.budget_range) !== undefined
-      ? { budgetRange: text(profile?.budget_range) }
-      : {}),
-    ...(oneOf(TUITION_BUDGETS_USD, profile?.tuition_budget_usd) !== undefined
-      ? { tuitionBudgetUsd: oneOf(TUITION_BUDGETS_USD, profile?.tuition_budget_usd) }
+    /*
+     * Two generations of value again: the tagged `"GBP:15000-40000"` this form
+     * writes, and the bare VND `"min-max"` the previous one did. `parseBudget`
+     * reads both and returns undefined for anything else — including the
+     * `"$15k-25k"`-style strings the old /onboarding forms wrote into the same
+     * column, which have no defensible reading as a number.
+     */
+    ...(parseBudget(profile?.budget_range) !== undefined
+      ? { tuitionBudget: parseBudget(profile?.budget_range) }
       : {}),
     ...(text(profile?.goals) !== undefined ? { careerGoal: text(profile?.goals) } : {}),
-    ...(text(profile?.study_motivation) !== undefined
-      ? { studyMotivation: text(profile?.study_motivation) }
-      : {}),
+    ...subjectMotivationsFromStored(profile?.subject_motivations, profile?.study_motivation),
     // Understands both the token this form writes and the display strings
     // the previous one wrote — see `parseIntake`.
     ...(parseIntake(profile?.target_intake) !== undefined
@@ -607,10 +737,11 @@ export function profileUpdateFromReflection(
     | 'countries'
     | 'intendedLevel'
     | 'fundingSource'
-    | 'budgetRange'
-    | 'tuitionBudgetUsd'
+    | 'tuitionBudget'
     | 'careerGoal'
     | 'studyMotivation'
+    | 'subjectMotivations'
+    | 'primaryMotivationSubject'
     | 'intake'
     | 'customSubject'
     | 'countryPreferenceFlexible'
@@ -665,13 +796,81 @@ export function profileUpdateFromReflection(
     preferred_countries: values.countries.length > 0 ? values.countries : null,
     study_level: values.intendedLevel ?? null,
     funding_source: values.fundingSource ?? null,
-    budget_range: values.budgetRange ?? null,
-    tuition_budget_usd: values.tuitionBudgetUsd ?? null,
+    budget_range: isCompleteBudget(values.tuitionBudget)
+      ? serialiseBudget(values.tuitionBudget)
+      : null,
+    // Derived, not asked. See the note on `TUITION_BUDGETS_USD`.
+    tuition_budget_usd: isCompleteBudget(values.tuitionBudget)
+      ? usdBandFromBudget(values.tuitionBudget)
+      : null,
     goals: values.careerGoal ?? null,
-    study_motivation: values.studyMotivation ?? null,
+    study_motivation: primaryMotivation(values) ?? null,
+    subject_motivations: motivationMapForStorage(values),
     target_intake: values.intake ? serialiseIntake(values.intake) : null,
     grades_summary: Object.keys(grades).length > 0 ? grades : null,
   };
+}
+
+/**
+ * The structured budget → the nearest legacy USD band.
+ *
+ * Goes through VND rather than duplicating `usdBandFromVndRange`'s
+ * overlap-scoring rule, which is tested and correct. An open-ended top has no
+ * VND figure, so it is given one far above the top band's floor — the only
+ * band it can land in is "Over $50,000", which is what "and above" means.
+ */
+function usdBandFromBudget(budget: TuitionBudget): TuitionBudgetUsd {
+  const low = convertAmount(budget.min, budget.currency, 'VND');
+  const high =
+    budget.max === null
+      ? Math.max(low, 100_000 * VND_PER_USD)
+      : convertAmount(budget.max, budget.currency, 'VND');
+  return usdBandFromVndRange(low, high);
+}
+
+/** Which subject's answer is the one `study_motivation` carries. */
+function primaryMotivation(
+  values: Pick<
+    ReflectionValues,
+    'subjectMotivations' | 'primaryMotivationSubject' | 'studyMotivation'
+  >,
+): string | undefined {
+  const map = values.subjectMotivations ?? {};
+  const chosen = values.primaryMotivationSubject;
+  if (chosen && text(map[chosen]) !== undefined) return text(map[chosen]);
+
+  // No explicit primary: the first subject with an answer. Falls back to the
+  // single answer a student gave before the question was split per subject,
+  // so upgrading the form never blanks a column the portrait reads.
+  const first = Object.values(map).find((answer) => text(answer) !== undefined);
+  return text(first) ?? values.studyMotivation;
+}
+
+/**
+ * The map as it is stored — answers, plus which one is primary.
+ *
+ * Returns null when there is nothing to store, so the column matches the
+ * "absent answers are written as null, not skipped" rule the rest of this
+ * function follows.
+ */
+function motivationMapForStorage(
+  values: Pick<ReflectionValues, 'subjectMotivations' | 'primaryMotivationSubject'>,
+): Record<string, string> | null {
+  const entries = Object.entries(values.subjectMotivations ?? {}).filter(
+    ([, answer]) => text(answer) !== undefined,
+  );
+  if (entries.length === 0) return null;
+
+  const map: Record<string, string> = {};
+  for (const [subject, answer] of entries) map[subject] = answer.trim();
+
+  const chosen = values.primaryMotivationSubject;
+  // Only record a primary that actually has an answer — otherwise the reader
+  // drops it anyway and the column carries a key that means nothing.
+  const primary = chosen && map[chosen] !== undefined ? chosen : entries[0]?.[0];
+  if (primary !== undefined) map[PRIMARY_MOTIVATION_KEY] = primary;
+
+  return map;
 }
 
 /**
@@ -694,10 +893,9 @@ export function reflectionCompleteness(values: ReflectionValues): number {
     values.countries.length > 0,
     values.intendedLevel !== undefined,
     values.fundingSource !== undefined,
-    values.budgetRange !== undefined,
-    values.tuitionBudgetUsd !== undefined,
+    isCompleteBudget(values.tuitionBudget),
     values.careerGoal !== undefined,
-    values.studyMotivation !== undefined,
+    primaryMotivation(values) !== undefined,
     values.intake !== undefined,
     values.achievements.length > 0,
     values.activities.length > 0,
