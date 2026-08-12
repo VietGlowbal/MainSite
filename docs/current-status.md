@@ -2,10 +2,10 @@
 
 Last reconciled: **2026-08-12 (Asia/Bangkok)**
 
-Code snapshot: **working tree**, branched from `main` at `13971e4` (PR #164,
-"Confirm the production migration gap (§0d/§0e/§0f) is closed", merged). Not
-yet committed/pushed at the time this document was written — see "Last
-completed work" below.
+Code snapshot: **working tree**, branched from `main` at `06efde1` (PR #165,
+"Fix Personal/Matching Report 404s and merge the duplicate application nav
+bar", merged). Not yet committed/pushed at the time this document was
+written — see "Last completed work" below.
 
 This is the first file a coding agent should read. It records the present state
 of the repository, the last completed work, its impact, the verification state,
@@ -27,15 +27,19 @@ directory. If this file conflicts with the code, the code wins.
   independently confirmed by a real production error trace on
   `POST /api/applications/[id]/match-insights` that matched §0e's predicted
   failure mode exactly, before the fix.
-- The working tree has real uncommitted work: fixed the Personal Report and
-  Matching Report 404ing for every application, and merged the duplicate
-  per-application navigation bar into one — see the next section.
+- The working tree has real uncommitted work: made the Matching Report the
+  application's permanent home once generated, added a button to turn the
+  Personalized Strategy report's Execution Roadmap into Planner tasks, and
+  fixed a recommendation detail page crash on a malformed genUI content
+  block — see the next section.
 
 ## Last completed work
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
-| *(uncommitted)* | **Fixed `/strategy/analysis/portrait` and `/strategy/analysis/fit` 404ing for every application, and merged the duplicate navigation bar.** Reported same-day, right after §0d/§0e/§0f were confirmed closed: both report pages 404'd. Root cause was not a migration gap — `load-evaluation.ts` selected `tuition_fee`/`entry_requirements_summary`/`english_requirements_summary`/`image_url`/`logo_url` directly off `course_applications`, but the live table (`supabase-apply-v2.sql`'s UUID-id schema) never had those columns; they exist on `courses` (via `course_id`, following the same join `application-workspace.ts` already uses) and `universities`. A stale, superseded `CREATE TABLE IF NOT EXISTS course_applications` in `supabase-apply-system.sql` (a TEXT-id schema) does have all five, which is how the mismatch went unnoticed by the schema-dump reconciliation. See `docs/known-issues.md §5h`. Also removed the redundant black `StageBar` the three report pages rendered under the layout's red `ApplicationNav` bar (same five-ish destinations, occasionally disagreeing on what was unlocked), and changed `SubNav` so a locked entry is omitted rather than shown dimmed, per explicit product direction. | Both reports load again for every application. One navigation bar instead of two stacked bars; a student only ever sees destinations they can actually open. |
+| *(uncommitted)* | **Fixed a recommendation detail page crash on genUI content blocks.** Reported the same day, right after the Matching-Report-as-start-page change below made it far more likely a student would actually reach a Planner task: clicking into any task whose stored `content_schema` was malformed (missing `columns`/`items` — rows written before `normalizeContentBlock`'s guarantees existed) crashed the whole page instead of rendering, because `parseContentBlock`/`parseContentBlockValue` only checked the JSON's `type` field despite their doc comments claiming full defensiveness. See `docs/known-issues.md §5i`. | `recommendation.ts`'s two parsers now validate the full shape via zod (`contentBlockSchema`, mirroring `normalizeContentBlock`; `contentValueSchema` already existed for the PATCH route and is now reused for reads) — a malformed row degrades to `null` (the same "task finishes elsewhere" state a real `null` already means) instead of throwing. |
+| *(uncommitted)* | **Made the Matching Report the application's permanent home, and added "generate Planner tasks from this strategy report."** `/ai-strategy/[applicationId]/strategy` no longer computes `nextOnboardingStep`/redirects onward through intro → strategy → dashboard once the analysis exists — it now always lands on `/strategy/analysis/fit`, for every application, regardless of how far the student has since progressed; Personalized Strategy and the Planner are reached only through the nav bar now. Also: `strategy-recommendation-report.tsx`'s Roadmap tab gained an "Add to Planner" button (`POST /api/applications/[id]/strategy/roadmap-tasks` → `generateRoadmapTasks`) that turns the F7 report's `roadmap.prioritize`/`.avoid` into `application_recommendations` rows under a new `strategy-roadmap` category — no new AI call, reconciled by (category, title) via a generalised `reconcileSeeds` (extracted from `reconcileRecommendations`, which is now a thin wrapper over it), so re-clicking after the report regenerates updates the same tasks instead of duplicating them. | The Matching Report is now a stable "home" for an application instead of a moving target. A student reading the Personalized Strategy report can turn its roadmap directly into trackable Planner tasks with one click. |
+| `06efde1` (#165) | **Fixed `/strategy/analysis/portrait` and `/strategy/analysis/fit` 404ing for every application, and merged the duplicate navigation bar.** Reported same-day, right after §0d/§0e/§0f were confirmed closed: both report pages 404'd. Root cause was not a migration gap — `load-evaluation.ts` selected `tuition_fee`/`entry_requirements_summary`/`english_requirements_summary`/`image_url`/`logo_url` directly off `course_applications`, but the live table (`supabase-apply-v2.sql`'s UUID-id schema) never had those columns; they exist on `courses` (via `course_id`, following the same join `application-workspace.ts` already uses) and `universities`. A stale, superseded `CREATE TABLE IF NOT EXISTS course_applications` in `supabase-apply-system.sql` (a TEXT-id schema) does have all five, which is how the mismatch went unnoticed by the schema-dump reconciliation. See `docs/known-issues.md §5h`. Also removed the redundant black `StageBar` the three report pages rendered under the layout's red `ApplicationNav` bar (same five-ish destinations, occasionally disagreeing on what was unlocked), and changed `SubNav` so a locked entry is omitted rather than shown dimmed, per explicit product direction. | Both reports load again for every application. One navigation bar instead of two stacked bars; a student only ever sees destinations they can actually open. |
 | `19a5d7c` (#163) | **Added application deletion and multi-course-per-university support.** `DELETE /api/applications/[id]` is new (auth + owner-scoped; every child row — stages, tasks, the Personal/Matching/Personalized Strategy reports, CV/statement strategy work — is `ON DELETE CASCADE` off `course_applications.id` except `personal_statements.application_id`, which is `SET NULL`, so one delete is enough). `my-application-section.tsx`'s `ApplicationRow` gained a "Delete" action (confirmation modal, names what's removed, irreversible) and an "Add another course" action (shown when `app.universityId` is known) that reuses the existing `/api/applications/from-course-url` endpoint — its duplicate check is already `(user_id, course_url)`, not university, and `user_universities` (the saved-list model "Plan my application" reads from) has `UNIQUE(user_id, university_id)` with one `program` column, so this was already the only path to a genuinely independent second application at the same university without a schema change. | Students can remove an application they no longer want tracked, and can track a second course at a university they've already applied to elsewhere on the site, without going through the saved-list's one-subject-per-university model. New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler's three outcomes (deleted / not found or not owned / db error). |
 | `59c334e` (#159) | Fixed a same-day production incident (the fourth on the checklist/F7 feature that day, and the root cause of the whole day's trouble): `personal_summary_completed_at`/`achievements_completed_at` (`student_profiles`) were **never written by any code in this repository** — confirmed by a full-repo grep, three read sites and zero writes. Every student's reflections were permanently "incomplete" no matter how many times they submitted both steps, which is what made §5e/§5f's symptoms possible in the first place and would have made a student finishing achievements bounce straight back to reflections in an infinite loop even after those fixes. Also fixed: Overview's CTA (§5f's fix) pointed at "whatever the real next step is," which for a returning student resolved straight to the analysis-trigger gate, skipping reflections anyway — reported the same day as "it goes straight into doing the strategy building." And wired `?return=` through the reflection forms' submit handlers (§5f's flagged-but-unfixed gap), for the application-originated case specifically. See `docs/known-issues.md §5g`. | `POST /api/reflection` now sets both completion timestamps on submit. `strategy/page.tsx`'s Overview CTA always targets the reflection flow's start, unconditionally. `reflection-about-form.tsx`/`reflection-evidence-form.tsx` now read and carry forward `?return=`, landing a student back at their application's analysis gate after reflections instead of an old per-student report page — every other (non-application) entry point into those forms is unchanged. |
 | `b610087` (#158) | Fixed a same-day production incident: Overview was only shown to a student with neither reflection step done, so a returning student (reflections globally already marked complete) skipped it entirely. See `docs/known-issues.md §5f`. | `strategy/page.tsx` gated Overview on `!state.aiAnalysisComplete` (per-application) instead of the shared reflection flags; `/apply/[applicationId]/page.tsx` simplified to bounce to `/ai-strategy/[id]/strategy` rather than duplicating the decision. |
@@ -67,15 +71,33 @@ directory. If this file conflicts with the code, the code wins.
   one-subject-per-university model).
 - Per-application work: `/apply/[applicationId]` is now a pure redirect (no
   checklist UI of its own) — it sends the student to wherever they are in the
-  onboarding pipeline via `fetchOnboardingState`/`nextOnboardingStep`. The
-  shared application navigation exposes Personal Report, Matching Report,
-  **Personalized Strategy**, Planner, CV builder, and Statement. The analysis
-  and planner pages live below `/ai-strategy/[applicationId]/strategy/*`.
+  onboarding pipeline via `fetchOnboardingState`/`nextOnboardingStep`, unless
+  the analysis already exists, in which case it goes straight to the Matching
+  Report (see below). The shared application navigation exposes Personal
+  Report, Matching Report, **Personalized Strategy**, Planner, CV builder, and
+  Statement — a locked entry is omitted from the bar rather than shown dimmed.
+  The analysis and planner pages live below `/ai-strategy/[applicationId]/strategy/*`.
+- **The Matching Report is the application's home once it exists**, not a
+  step in a funnel. `/ai-strategy/[applicationId]/strategy` (what "Overview"
+  and `/apply/[id]` both bounce through) used to keep auto-advancing a
+  returning student through intro → strategy → dashboard every visit; now,
+  once `aiAnalysisComplete`, it always lands on `/strategy/analysis/fit`,
+  for every application, regardless of how far the student has gone since.
+  Personalized Strategy and the Planner are reached deliberately through the
+  nav bar now, which is also the only thing gating them.
 - Strategy: applicant portrait, programme-fit report, the **Personalized
   Strategy report (F7)** — a separate, read-only, downloadable-PDF report,
   not part of the Planner — recommendation board, recommendation
   detail/coach/evidence flows, and List/Calendar/Board planner views are
-  implemented.
+  implemented. F7's Roadmap tab has an **"Add to Planner" button**
+  (`generateRoadmapTasks`) that turns `roadmap.prioritize`/`.avoid` into
+  Planner tasks under a new `strategy-roadmap` category — reconciled by
+  (category, title) the same way the existing Match-Analysis-driven
+  generator is, so re-clicking after a regenerate updates in place rather
+  than duplicating. A recommendation's `content_schema`/`content_value`
+  (the detail page's genUI body) are now fully shape-validated on read
+  (`contentBlockSchema`/`contentValueSchema` in `recommendation.ts`) — a
+  malformed row degrades to no content block instead of crashing the page.
 - Documents: CV hub/import/content/layout/review/target-profile flows, the
   OpenAI-backed CV Builder compatibility routes, Statement feedback, LOR
   recommender strategy, and the nine-dimension LOR quality review are present.
@@ -128,7 +150,7 @@ Measured on 2026-08-12 against the uncommitted working tree described above
 | `npx tsc --noEmit` | **Pass**, 0 errors (ran after `rm -rf .next/types`). |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
 | `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
-| `npx vitest run` | **Pass: 1694 passed, 2 todo, 163 files passed, 0 failed.** |
+| `npx vitest run` | **Pass: 1709 passed, 2 todo, 164 files passed, 0 failed.** New `generate-roadmap-tasks.test.ts`, `recommendationsFromRoadmap`/`reconcileSeeds` cases, and a `recommendationFromRow` content-block regression suite (well-formed/malformed `content_schema`/`content_value`, every case degrading to `null` rather than throwing) in `recommendation.test.ts`. |
 | `npm run build` | Attempted once this session (2026-08-12); failed locally on `/_not-found` prerendering because this checkout has no `.env.local` with real Supabase credentials — a sandbox limitation, not a code error (`tsc`/`next build`'s compile step both succeeded first). Not evidence either way about the actual Vercel build, which has real credentials and has been green on every PR this week. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
