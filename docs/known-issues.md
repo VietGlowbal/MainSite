@@ -19,7 +19,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5j | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i fixed a recommendation detail page crash: `parseContentBlock`/`parseContentBlockValue` only checked the JSON's `type` field, not the rest of the shape, so a malformed `content_schema` crashed the genUI content block's `.map()` calls instead of degrading to `null`. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. |
+| §5–§5k | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i fixed a recommendation detail page crash: `parseContentBlock`/`parseContentBlockValue` only checked the JSON's `type` field, not the rest of the shape, so a malformed `content_schema` crashed the genUI content block's `.map()` calls instead of degrading to `null`. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -1027,6 +1027,34 @@ both were tried, both failed the same way: outshining or crowding the real
 navigation. If this component grows a new phase or row, size it against the
 header's own measured height (`ResizeObserver`, not viewport dimensions) and
 keep highlights scoped to the single instance that triggered them.
+
+## 5k. `ApplicationNav` — a delayed background-fill layer painted after the canvas buries the animation instead of backing it
+
+Owner asked for three follow-on changes to §5j's animation: size the three
+words to actually fill the header's height (rather than the deliberately
+small text §5j settled on), restrict the boot line's flash to only its first
+two characters ("Go", never the repeated `o`s after it), and hold the brand-
+red fill plus the real breadcrumb/nav content back for ~3 seconds so a
+visitor sees the animation play against the page's own background before the
+chrome arrives (`gb-app-nav-reveal`, `src/styles/tokens.css`, `animation-delay:
+3s`).
+
+Implementing the delay introduced a real bug, caught only by pixel-sampling a
+screenshot (a compressed PNG alone reads as "the animation vanished after the
+red arrives" — the same false alarm §5j's build nearly repeated): the fill
+was added as a sibling `<div>` **after** `ApplicationNavBackground` in JSX.
+Plain elements with no `z-index` paint in DOM order, so once its fade-in
+finished it was a fully opaque `bg-brand` layer sitting *in front of* the
+canvas — not behind it. The animation kept running correctly the entire
+time; it was just being painted over.
+
+**The fill div must stay before the canvas in source order.** Correct stack,
+bottom to top: delayed red fill → `ApplicationNavBackground` canvas → delayed
+`Container` (breadcrumbs/nav). Before the 3s mark the fill is transparent, so
+the canvas shows against the page's own background; after, the fill is
+opaque red and the canvas draws on top of it, which is the point — the
+marquee should read as texture on the red, not as a flash of white against
+whatever the page happens to render before the header settles in.
 
 ## 6. Open questions for the designer / owner
 

@@ -742,3 +742,27 @@
    express), it is the whole arrangement recentring around a continuously
    drifting `currentX`. Two earlier CSS-only passes here (a rotating ring,
    then a shared-path coverflow) are gone along with their tokens.*/
+
+/* ──────────────────────────────────────────────────────────────────────────
+   Application header reveal (src/components/application-nav.tsx). Owner
+   decision, not a Figma frame.
+
+   The header's kinetic-typography canvas (`application-nav-background.tsx`)
+   starts drawing the instant it mounts, on whatever the page background is —
+   the brand-red fill and the real breadcrumb/nav content are deliberately
+   held back for a few seconds so the animation gets a moment on its own
+   before the chrome settles in around it. Pure CSS, not JS state, so a
+   server component can use it without becoming a client component.
+   ────────────────────────────────────────────────────────────────────────── */
+@theme {
+  --animate-gb-app-nav-reveal: gb-app-nav-reveal 700ms ease-out 3s both;
+
+  @keyframes gb-app-nav-reveal {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+}

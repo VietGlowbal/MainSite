@@ -7,10 +7,9 @@ import { usePrefersReducedMotion } from '@/shared/ui';
  * Kinetic-typography backdrop for the brand-red application header
  * (`ApplicationNav`) — adapted from a reference canvas animation the owner
  * supplied, ported algorithm-for-algorithm (the ease-in typing curve, the
- * exponential-decay marquee physics, the per-instance alignment flash) but
- * scaled to fit this header's real, unchanged height rather than the
- * reference's fullscreen canvas. Purely decorative: `aria-hidden`,
- * `pointer-events-none`, gone under `prefers-reduced-motion`.
+ * exponential-decay marquee physics, the per-instance alignment flash).
+ * Purely decorative: `aria-hidden`, `pointer-events-none`, gone under
+ * `prefers-reduced-motion`.
  *
  * ─── THE THREE PHASES, PORTED FROM THE REFERENCE ─────────────────────────────
  *
@@ -24,9 +23,19 @@ import { usePrefersReducedMotion } from '@/shared/ui';
  *    velocity curve (`steady*t + (burst/decay)*(1-e^(-decay*t))`), not a
  *    hand-tuned keyframe, so there is no seam where the deceleration ends.
  * 3. As the two rows cross the header's start column, the ONE word instance
- *    that lands there — and the "Go" prefix — flash white for 2 seconds on
- *    a sine curve. "GlowBal" (moving left) flashes 1 second ahead of the
- *    geometric crossing as an anticipatory cue, matching the reference.
+ *    that lands there — and only the first two characters of the header,
+ *    "Go" itself, never any of the repeated 'o's after it — flash white for
+ *    2 seconds on a sine curve. "GlowBal" (moving left) flashes 1 second
+ *    ahead of the geometric crossing as an anticipatory cue, matching the
+ *    reference.
+ *
+ * ─── SIZED TO FILL THE HEADER, LAYERED RATHER THAN STACKED ───────────────────
+ *
+ * Owner direction: the text should fill the header's height, and the header
+ * itself must not grow to make room. With three rows each sized against the
+ * header's own height (not a third of it), there is no space left for them
+ * to sit one above the other without touching — so they overlap, sized and
+ * positioned to read as layered type rather than three stacked lines.
  *
  * ─── WHY ONLY ONE WORD INSTANCE FLASHES, NOT THE WHOLE ROW ───────────────────
  *
@@ -36,9 +45,9 @@ import { usePrefersReducedMotion } from '@/shared/ui';
  * breadcrumb/nav text above it) briefly outshone the actual navigation. The
  * reference's own alignment logic only ever highlights the ONE instance
  * whose screen position matches the trigger (`Math.abs(x - targetX) < 2`);
- * ported faithfully, at most two small words are ever bright at once,
- * everywhere else stays in the low-contrast base rose, and the real white
- * nav text on top never has to compete with anything its own size.
+ * ported faithfully, at most two small words (plus "Go") are ever bright at
+ * once, everywhere else stays in the low-contrast base rose, and the real
+ * white nav text on top never has to compete with anything its own weight.
  */
 
 const BOOT_PREFIX = 'G';
@@ -193,19 +202,21 @@ export function ApplicationNavBackground() {
 
       ctx!.clearRect(0, 0, width, height);
       ctx!.textAlign = 'left';
-      ctx!.textBaseline = 'top';
+      ctx!.textBaseline = 'middle';
 
       row2Flashes = row2Flashes.filter((f) => timestamp - f.startedAt < FLASH_DURATION_MS);
       row3Flashes = row3Flashes.filter((f) => timestamp - f.startedAt < FLASH_DURATION_MS);
       prefixFlashes = prefixFlashes.filter((f) => timestamp - f.startedAt < FLASH_DURATION_MS);
 
-      // Proportional to the header's own (unchanged) height, not the
+      // Sized to fill the header's own (unchanged) height, not the
       // reference's viewport-width-based sizing — there is no spare height
-      // to grow into here, so everything scales to what the band actually has.
-      const mainFontSize = Math.max(10, height * 0.26);
-      const subFontSize = mainFontSize * 0.5;
+      // to grow into here, so the three rows overlap rather than stack, each
+      // scaled against the header's own height, `textBaseline: 'middle'`
+      // making the vertical layering simple to reason about.
+      const mainFontSize = Math.max(12, height * 0.85);
+      const subFontSize = Math.max(10, height * 0.55);
       const startX = 2;
-      const bootY = height * 0.04;
+      const bootY = height * 0.5;
 
       ctx!.font = `700 ${mainFontSize}px ${FONT_FAMILY}`;
       const prefixWidth = ctx!.measureText(BOOT_PREFIX).width;
@@ -219,19 +230,23 @@ export function ApplicationNavBackground() {
       const fullOIndex = Math.floor(currentOProgress);
       const partialFrac = currentOProgress - fullOIndex;
 
-      // The "Go" line — base text, the active prefix flash (if any), and the
-      // currently-typing 'o' scaling/fading in.
+      // The "Go" line — base text (every typed 'o'), then only the first two
+      // characters ("Go" itself, never the repeated 'o's) get the flash
+      // overlay, and the currently-typing 'o' scales/fades in.
+      const bootText = BOOT_PREFIX + BOOT_REPEAT.repeat(fullOIndex);
+      const goPrefix = bootText.slice(0, 2);
+
       ctx!.save();
       ctx!.globalAlpha = fade * BASE_ALPHA;
       ctx!.fillStyle = textColor;
-      ctx!.fillText(BOOT_PREFIX + BOOT_REPEAT.repeat(fullOIndex), startX, bootY);
+      ctx!.fillText(bootText, startX, bootY);
 
       const prefixFlashAlpha = sineAlpha(prefixFlashes, timestamp);
-      if (prefixFlashAlpha > 0) {
+      if (prefixFlashAlpha > 0 && goPrefix) {
         ctx!.save();
         ctx!.globalAlpha = fade * prefixFlashAlpha * FLASH_PEAK_ALPHA;
         ctx!.fillStyle = flashColor;
-        ctx!.fillText(BOOT_PREFIX + BOOT_REPEAT.repeat(fullOIndex), startX, bootY);
+        ctx!.fillText(goPrefix, startX, bootY);
         ctx!.restore();
       }
 
@@ -240,10 +255,10 @@ export function ApplicationNavBackground() {
         ctx!.save();
         ctx!.globalAlpha = fade * BASE_ALPHA * Math.min(partialFrac * 1.5, 1);
         const scale = 0.75 + partialFrac * 0.25;
-        ctx!.translate(activeX + oWidth / 2, bootY + mainFontSize / 2);
+        ctx!.translate(activeX + oWidth / 2, bootY);
         ctx!.scale(scale, scale);
         ctx!.fillStyle = textColor;
-        ctx!.fillText(BOOT_REPEAT, -oWidth / 2, -mainFontSize / 2);
+        ctx!.fillText(BOOT_REPEAT, -oWidth / 2, 0);
         ctx!.restore();
       }
       ctx!.restore();
@@ -262,8 +277,12 @@ export function ApplicationNavBackground() {
 
         ctx!.font = `700 ${subFontSize}px ${FONT_FAMILY}`;
 
-        const row2Y = bootY + mainFontSize * 0.92;
-        const row3Y = row2Y + subFontSize * 1.05;
+        // Overlapping the boot line, not stacked below it — there is no
+        // spare height for three non-overlapping rows once each one is
+        // sized to actually fill the header, so the two marquee rows sit
+        // just above and below centre instead.
+        const row2Y = height * 0.28;
+        const row3Y = height * 0.74;
 
         const tile2Width = ctx!.measureText(`${ROW_2_WORD}  `).width;
         const tile3Width = ctx!.measureText(`${ROW_3_WORD}  `).width;
