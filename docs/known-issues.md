@@ -19,7 +19,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5i | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i fixed a recommendation detail page crash: `parseContentBlock`/`parseContentBlockValue` only checked the JSON's `type` field, not the rest of the shape, so a malformed `content_schema` crashed the genUI content block's `.map()` calls instead of degrading to `null`. |
+| §5–§5j | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i fixed a recommendation detail page crash: `parseContentBlock`/`parseContentBlockValue` only checked the JSON's `type` field, not the rest of the shape, so a malformed `content_schema` crashed the genUI content block's `.map()` calls instead of degrading to `null`. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -994,6 +994,39 @@ reused for reads too), degrading to `null` on any malformed row instead of
 throwing. `null` already has a real, intentional meaning on this page — "no
 content block, the task is finished elsewhere" — so a malformed row now
 reads the same as a `null` one rather than crashing. | `src/features/ai-strategy-dashboard/domain/recommendation.ts` |
+
+## 5j. `ApplicationNavBackground` — a canvas animation confined to a real header has no room for full-strength text, and a flash must target one instance, not a whole row
+
+**Not a bug fix — a design constraint worth recording**, discovered building
+the header's kinetic-typography animation (`src/components/application-nav-background.tsx`)
+in two passes. The reference the owner supplied was designed for a fullscreen
+canvas with real empty space around the text; `ApplicationNav`'s actual
+header is two tightly-packed lines with no spare height.
+
+1. First pass drew the animation as a full-height backdrop behind the real
+   breadcrumb/nav text (matching the reference layout) but flashed an
+   entire tiled marquee row white at once. Confined to the real header, that
+   read as the whole line turning white directly under "Overview / Personal
+   Report / …" — unreadable. Shipped instead as a dedicated strip below the
+   header (PR #167).
+2. The owner asked for the animation to live inside the header's existing
+   bounds instead, and to follow the reference's full three-phase spec
+   (typing reveal + dual marquee + alignment flash), not the simplified
+   strip version. Porting the reference's own alignment math found the real
+   bug: it only ever highlights the ONE word instance whose position
+   matches the trigger (`Math.abs(x - targetX) < 2`), not the whole row —
+   the first pass's "whole row flashes" behaviour was never what the
+   reference did, it was an over-simplification introduced while adapting
+   it. Fixed to match per-instance, plus a low base-opacity pass
+   (`BASE_ALPHA`/`FLASH_PEAK_ALPHA`) — three lines of decorative text at
+   full strength directly behind two lines of real content is clutter at
+   this scale even without a flash bug.
+
+**Do not restore full-opacity multi-line text or whole-row flashes here** —
+both were tried, both failed the same way: outshining or crowding the real
+navigation. If this component grows a new phase or row, size it against the
+header's own measured height (`ResizeObserver`, not viewport dimensions) and
+keep highlights scoped to the single instance that triggered them.
 
 ## 6. Open questions for the designer / owner
 
