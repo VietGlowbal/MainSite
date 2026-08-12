@@ -38,9 +38,18 @@ function migrationMissing(error: { code?: string; message?: string } | null | un
     error &&
       (error.code === '42703' ||
         error.code === 'PGRST204' ||
-        /study_motivation|target_intake/i.test(error.message ?? '')),
+        /study_motivation|subject_motivations|target_intake/i.test(error.message ?? '')),
   );
 }
+
+/**
+ * The columns added after the base schema, in the order they were added.
+ *
+ * Dropped together on a migration-missing retry rather than one at a time: the
+ * error names only the first column PostgREST tripped over, so retrying
+ * without that one alone just fails again on the next.
+ */
+const LATER_COLUMNS = ['study_motivation', 'subject_motivations', 'target_intake'] as const;
 
 const bodySchema = z.object({
   about: aboutPayload.optional(),
@@ -94,23 +103,23 @@ export async function PATCH(request: Request) {
 
     if (error && migrationMissing(error)) {
       /*
-       * `supabase-reflection-questions.sql` has not been run yet.
+       * `supabase-reflection-questions.sql` and/or
+       * `supabase-reflection-subject-motivations.sql` have not been run yet.
        *
        * This project has a standing habit of shipping code ahead of its
        * migrations (docs/known-issues.md §0d–§0f are all instances), and the
-       * two columns those questions write are the only new ones here. Failing
-       * the whole request would mean a student loses their nationality, GPA
-       * and budget — everything on the step — because of two optional
-       * answers. So the save is retried without them: the student keeps the
-       * ten answers that have somewhere to go, and the two new questions
-       * start persisting the moment the migration lands, with no code change.
+       * columns those questions write are the only new ones here. Failing the
+       * whole request would mean a student loses their nationality, GPA and
+       * budget — everything on the step — because of three optional answers.
+       * So the save is retried without them: the student keeps the answers
+       * that have somewhere to go, and the newer questions start persisting
+       * the moment the migration lands, with no code change.
        */
       console.warn(
-        '[reflection] study_motivation/target_intake missing — run supabase-reflection-questions.sql. Saving the rest.',
+        `[reflection] ${LATER_COLUMNS.join('/')} missing — run supabase-reflection-questions.sql and supabase-reflection-subject-motivations.sql. Saving the rest.`,
       );
       const withoutNewColumns = { ...row };
-      delete withoutNewColumns['study_motivation'];
-      delete withoutNewColumns['target_intake'];
+      for (const column of LATER_COLUMNS) delete withoutNewColumns[column];
       const retry = await supabase
         .from('student_profiles')
         .upsert(withoutNewColumns, { onConflict: 'user_id' });

@@ -1,0 +1,43 @@
+-- Reflection Q10 — "why this subject?", asked once per subject.
+--
+-- Run this against your Supabase project alongside
+-- supabase-reflection-questions.sql. Both use ADD COLUMN IF NOT EXISTS, so
+-- re-running either is safe.
+--
+-- WHY A MAP AND NOT ONE MORE TEXT COLUMN. The question used to be a single box
+-- labelled "Why this subject?", asked of a student who had just chosen up to
+-- thirty subjects. There is no honest single answer to that: the reason a
+-- student wants to study Computer Science is not the reason they also picked
+-- Economics, and one box forces them to either pick one silently or write a
+-- paragraph that is about neither. Asking per subject is also what gives the
+-- strategy report something it never had — which of a student's stated
+-- interests they can actually argue for.
+--
+-- WHY JSONB AND NOT A student_subject_motivations TABLE. The map is written
+-- and read whole, always by the owner of the profile, and is bounded by the
+-- thirty subjects `majors` already caps. A table would buy nothing but a
+-- second set of RLS policies to keep in step with this one — and RLS on
+-- student_profiles already covers every read and write of this column.
+--
+-- SHAPE. Subject id → the student's answer, plus one reserved key:
+--
+--   {
+--     "computer-science": "I started building my own projects at 15…",
+--     "economics":        "…",
+--     "__primary":        "computer-science"
+--   }
+--
+-- `__primary` names the subject whose answer is mirrored into the existing
+-- `study_motivation` column. That column stays the single string the portrait
+-- and the matching prompt read, so nothing downstream has to learn about the
+-- map; without the key, "the" motivation would be an arbitrary pick that
+-- changes with object key order. Ids come from SUBJECTS in
+-- features/apply/domain/subject-catalog.ts.
+--
+-- NO CHECK CONSTRAINT, deliberately: the subject catalogue is edited in code,
+-- and a student holding a subject that has just been renamed should keep their
+-- answer until they next visit rather than have the write rejected. The
+-- reader drops entries it cannot resolve.
+
+ALTER TABLE public.student_profiles
+  ADD COLUMN IF NOT EXISTS subject_motivations JSONB;

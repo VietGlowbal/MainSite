@@ -2372,6 +2372,133 @@ export const translations: Record<string, string> = {
   'Total budget': 'Tổng ngân sách',
   'Select your tuition budget (USD)': 'Chọn ngân sách học phí của bạn (USD)',
   // Reflection step 1, rebuilt as one question per screen.
+  // Candidate Information redesign — modes, chrome, scores and conversions.
+  // Subject catalogue and intake seasons (spec 2).
+  // Questions 5-8 (spec 2).
+  'Search subjects or browse below': 'Tìm ngành hoặc xem danh sách bên dưới',
+  'No subjects found for “{query}”': 'Không tìm thấy ngành nào cho “{query}”',
+  'Add as Other': 'Thêm vào mục Khác',
+  'Select all': 'Chọn tất cả',
+  'Show all countries': 'Xem tất cả quốc gia',
+  'What subject are you interested in?': 'Bạn quan tâm đến ngành nào?',
+  'e.g. Marine Biology': 'ví dụ: Sinh học biển',
+  'No countries found for “{query}”': 'Không tìm thấy quốc gia nào cho “{query}”',
+  '🌍 I’m open to other countries': '🌍 Tôi sẵn sàng cân nhắc các quốc gia khác',
+  'Show me strong options outside my current choices too.':
+    'Hãy gợi ý cho tôi cả những lựa chọn tốt ngoài danh sách hiện tại.',
+  'A Master’s normally requires an undergraduate degree first. You can still choose this if you’re planning ahead.':
+    'Bậc thạc sĩ thường yêu cầu có bằng đại học trước. Bạn vẫn có thể chọn nếu đang lên kế hoạch dài hạn.',
+  'Not sure which one to choose? You can update this information later.':
+    'Chưa chắc nên chọn mục nào? Bạn có thể cập nhật thông tin này sau.',
+  'Choose at least one subject you’re interested in.': 'Hãy chọn ít nhất một ngành bạn quan tâm.',
+  'Choose at least one destination or tell us you’re open to suggestions.':
+    'Hãy chọn ít nhất một điểm đến, hoặc cho chúng tôi biết bạn sẵn sàng nghe gợi ý.',
+  'Choose the level of study you’re currently considering.':
+    'Hãy chọn bậc học bạn đang cân nhắc.',
+  'Choose when you would like to start.': 'Hãy chọn thời điểm bạn muốn bắt đầu.',
+  'Autumn / Fall': 'Mùa thu',
+  Spring: 'Mùa xuân',
+  'Data Science & Analytics': 'Khoa học dữ liệu & phân tích',
+  'Artificial Intelligence': 'Trí tuệ nhân tạo',
+  'Cyber Security': 'An ninh mạng',
+  'Information Technology': 'Công nghệ thông tin',
+  'Business & Management': 'Kinh doanh & quản trị',
+  'Finance & Accounting': 'Tài chính & kế toán',
+  Entrepreneurship: 'Khởi nghiệp',
+  Mathematics: 'Toán học',
+  Physics: 'Vật lý',
+  Chemistry: 'Hoá học',
+  'Environmental Science': 'Khoa học môi trường',
+  Nursing: 'Điều dưỡng',
+  Pharmacy: 'Dược',
+  'Biomedical Science': 'Khoa học y sinh',
+  'Electrical Engineering': 'Kỹ thuật điện',
+  'Chemical Engineering': 'Kỹ thuật hoá học',
+  'Aerospace Engineering': 'Kỹ thuật hàng không vũ trụ',
+  'International Relations': 'Quan hệ quốc tế',
+  Sociology: 'Xã hội học',
+  History: 'Lịch sử',
+  Philosophy: 'Triết học',
+  Architecture: 'Kiến trúc',
+  'Arts & Design': 'Nghệ thuật & thiết kế',
+  'Media & Communication': 'Truyền thông & báo chí',
+  Film: 'Điện ảnh',
+  'Hospitality & Tourism': 'Khách sạn & du lịch',
+  Agriculture: 'Nông nghiệp',
+  '{answered} of {total} completed': 'Đã hoàn thành {answered}/{total}',
+  'One question at a time': 'Từng câu một',
+  'Show all questions': 'Hiển thị tất cả câu hỏi',
+  'How would you like to answer?': 'Bạn muốn trả lời theo cách nào?',
+  'Not saved': 'Chưa lưu',
+  'Save & Exit': 'Lưu & thoát',
+  'Save & Continue': 'Lưu & tiếp tục',
+  'Highest level of education': 'Trình độ học vấn cao nhất',
+  'What qualification is it?': 'Đó là bằng cấp gì?',
+  'Not sure? You can update this later in your profile settings.':
+    'Chưa chắc chắn? Bạn có thể cập nhật sau trong phần hồ sơ.',
+  'Search country or nationality': 'Tìm quốc gia hoặc quốc tịch',
+  'No country or nationality matches that.': 'Không có quốc gia hoặc quốc tịch nào khớp.',
+  'What is your GPA?': 'GPA của bạn là bao nhiêu?',
+  'What is your English test score?': 'Điểm tiếng Anh của bạn là bao nhiêu?',
+  'What is your annual tuition budget?': 'Ngân sách học phí hằng năm của bạn là bao nhiêu?',
+  'Enter GPA': 'Nhập GPA',
+  'Convert with AI': 'Quy đổi bằng AI',
+  'Your GPA': 'GPA của bạn',
+  'Out of {max}': 'Trên thang {max}',
+  'Tell us about your grades': 'Hãy cho chúng tôi biết về điểm của bạn',
+  'e.g. 9 As at GCSE and 4 A*s at A Level': 'ví dụ: 9 điểm A ở GCSE và 4 điểm A* ở A Level',
+  'Any system — describe them however they were given to you.':
+    'Hệ thống nào cũng được — hãy mô tả đúng như bạn nhận được.',
+  'Understanding your grades…': 'Đang đọc điểm của bạn…',
+  'Estimate my GPA': 'Ước tính GPA của tôi',
+  'Estimated GPA': 'GPA ước tính',
+  'Use this GPA': 'Dùng GPA này',
+  'An approximate equivalent for matching — not an official conversion.':
+    'Mức tương đương gần đúng để so khớp — không phải quy đổi chính thức.',
+  'We could not read those grades.': 'Chúng tôi chưa đọc được số điểm đó.',
+  'We could not read that result.': 'Chúng tôi chưa đọc được kết quả đó.',
+  'Equivalent test': 'Chứng chỉ tương đương',
+  'Your IELTS band': 'Điểm IELTS của bạn',
+  'Out of {max}, in half bands': 'Trên thang {max}, theo bậc 0,5',
+  'I haven’t taken an English test yet': 'Tôi chưa thi chứng chỉ tiếng Anh',
+  'Test type': 'Loại bài thi',
+  'Select a test': 'Chọn một bài thi',
+  'Tell us what English qualification or result you have':
+    'Hãy cho biết bạn có chứng chỉ hoặc kết quả tiếng Anh nào',
+  'e.g. Grade A in Cambridge C1 Advanced': 'ví dụ: Grade A trong Cambridge C1 Advanced',
+  'Understanding your result…': 'Đang đọc kết quả của bạn…',
+  'Estimate my IELTS': 'Ước tính IELTS của tôi',
+  'Estimated IELTS': 'IELTS ước tính',
+  'Use this score': 'Dùng điểm này',
+  'Secondary school or equivalent': 'Trung học phổ thông hoặc tương đương',
+  'Associate degree or diploma': 'Cao đẳng hoặc bằng nghề',
+  'Undergraduate degree': 'Bằng đại học',
+  'Postgraduate degree': 'Bằng sau đại học',
+  'PhD or equivalent': 'Tiến sĩ hoặc tương đương',
+  'Something else — tell us': 'Khác — hãy cho chúng tôi biết',
+  'e.g. National Diploma in Engineering': 'ví dụ: Bằng kỹ sư quốc gia',
+  'Select the option that best describes your current or most advanced qualification.':
+    'Chọn phương án mô tả đúng nhất bằng cấp hiện tại hoặc cao nhất của bạn.',
+  'Select the country or nationality that best represents you.':
+    'Chọn quốc gia hoặc quốc tịch phù hợp nhất với bạn.',
+  'Enter your GPA or let AI estimate it from your grades.':
+    'Nhập GPA của bạn, hoặc để AI ước tính từ điểm số của bạn.',
+  'Enter your IELTS score or choose an equivalent English test and we’ll convert it for you.':
+    'Nhập điểm IELTS, hoặc chọn một chứng chỉ tiếng Anh tương đương và chúng tôi sẽ quy đổi giúp bạn.',
+  'Choose everywhere you would consider studying.':
+    'Chọn tất cả những nơi bạn cân nhắc đi học.',
+  'The qualification you want to apply for, not the one you already hold.':
+    'Bằng cấp bạn muốn ứng tuyển, không phải bằng bạn đang có.',
+  'A rough idea is fine — it shapes which scholarships we look for.':
+    'Ước chừng cũng được — điều này định hướng học bổng chúng tôi tìm cho bạn.',
+  'Set it in either currency — the two stay in step with each other.':
+    'Đặt theo đơn vị tiền nào cũng được — hai ô luôn đồng bộ với nhau.',
+  Scores: 'Điểm số',
+  Aspirations: 'Nguyện vọng',
+  Budget: 'Ngân sách',
+  'Duolingo English Test': 'Duolingo English Test',
+  'Cambridge English': 'Cambridge English',
+  AP: 'AP',
   'Question {current} of {total}': 'Câu hỏi {current} / {total}',
   'Select your nationality': 'Chọn quốc tịch của bạn',
   'Write it on whichever scale your school uses.':
@@ -2423,6 +2550,70 @@ export const translations: Record<string, string> = {
   'Intended level of study': 'Bậc học dự định',
   'Select a funding source': 'Chọn nguồn tài trợ',
   'Select a band': 'Chọn khoảng điểm',
+
+  // Candidate information — Q9 to Q12. ("Scholarship" and "Complete" are
+  // already above; both funding labels and the CTA reuse those entries.)
+  'Family funds or your own savings will cover most of the cost.':
+    'Tiền của gia đình hoặc tiền tiết kiệm của bạn sẽ chi trả phần lớn chi phí.',
+  'You are hoping to fund some or all of it with a scholarship.':
+    'Bạn hy vọng học bổng sẽ chi trả một phần hoặc toàn bộ chi phí.',
+  'A government or private loan you will repay after graduating.':
+    'Khoản vay của nhà nước hoặc tư nhân mà bạn sẽ trả sau khi tốt nghiệp.',
+  'A company, government body or organisation is paying.':
+    'Một công ty, cơ quan nhà nước hoặc tổ chức sẽ chi trả.',
+  'You are still working it out — that is a normal answer here.':
+    'Bạn vẫn đang cân nhắc — đó là câu trả lời hoàn toàn bình thường.',
+  'You can change this later — it only shapes which scholarships we look for.':
+    'Bạn có thể thay đổi sau — thông tin này chỉ định hướng việc tìm học bổng.',
+  'Why are you interested in these subjects?': 'Vì sao bạn quan tâm đến những ngành này?',
+  'Answer for one subject or all of them — your personal report builds its “driving force” section from this.':
+    'Trả lời cho một ngành hoặc tất cả — báo cáo cá nhân sẽ dựng phần “động lực” từ câu trả lời này.',
+  'Tuition only, in your own currency — living costs are not included.':
+    'Chỉ tính học phí, theo đơn vị tiền tệ của bạn — chưa gồm chi phí sinh hoạt.',
+  'What you told us before': 'Điều bạn đã cho chúng tôi biết trước đó',
+  'Your subject': 'Ngành của bạn',
+
+  // Q9 / Q10 — the written answers and their idea helper.
+  'We could not come up with ideas.': 'Chúng tôi chưa nghĩ ra gợi ý nào.',
+  'Example: I want to work in sustainable energy and help build a cleaner future.':
+    'Ví dụ: Tôi muốn làm việc trong lĩnh vực năng lượng bền vững và góp phần xây dựng một tương lai sạch hơn.',
+  'Here are some things to think about:': 'Một vài điều để bạn suy nghĩ:',
+  'What kind of work excites you?': 'Loại công việc nào khiến bạn hào hứng?',
+  'What impact do you want to make?': 'Bạn muốn tạo ra tác động gì?',
+  'Where do you see yourself in the future?': 'Bạn hình dung mình ở đâu trong tương lai?',
+  'Generate ideas with AI': 'Gợi ý ý tưởng bằng AI',
+  'Thinking…': 'Đang nghĩ…',
+  'Pick one to start from': 'Chọn một gợi ý để bắt đầu',
+  'It goes straight into the box — edit it however you like.':
+    'Gợi ý sẽ được đưa thẳng vào ô trả lời — bạn sửa lại thế nào cũng được.',
+  'Your answer doesn’t need to be perfect — this can be short and you can always change it later.':
+    'Câu trả lời không cần hoàn hảo — bạn có thể viết ngắn và sửa lại bất cứ lúc nào.',
+  'Choose your subjects first and we’ll ask about them here.':
+    'Hãy chọn ngành học trước, chúng tôi sẽ hỏi về chúng ở đây.',
+  'Choose a subject to tell us more about.': 'Chọn một ngành để kể thêm cho chúng tôi.',
+  'Your subjects': 'Các ngành của bạn',
+  answered: 'đã trả lời',
+  'Why are you interested in {subject}?': 'Vì sao bạn quan tâm đến {subject}?',
+  'Example: I first became interested in {subject} when I started building my own projects and realised I loved solving real problems.':
+    'Ví dụ: Tôi bắt đầu quan tâm đến {subject} khi tự làm những dự án của riêng mình và nhận ra mình thích giải quyết các vấn đề thực tế.',
+  'Need a nudge? Consider these:': 'Cần gợi ý? Hãy thử nghĩ về:',
+  'What first interested you in {subject}?': 'Điều gì khiến bạn quan tâm đến {subject} đầu tiên?',
+  'What parts of {subject} excite you most?':
+    'Phần nào của {subject} khiến bạn hào hứng nhất?',
+  'What would you like to do with {subject}?': 'Bạn muốn làm gì với {subject}?',
+  'You only need to answer for one subject — you can add more later if you want.':
+    'Bạn chỉ cần trả lời cho một ngành — có thể bổ sung thêm sau nếu muốn.',
+
+  // Q12 — the multi-currency tuition budget.
+  'Which currency do you think in?': 'Bạn quen tính theo đơn vị tiền tệ nào?',
+  'Other currency': 'Đơn vị tiền tệ khác',
+  '{amount} and above per year': 'Từ {amount} trở lên mỗi năm',
+  '{range} per year': '{range} mỗi năm',
+  'Roughly {conversions}': 'Tương đương khoảng {conversions}',
+  'Conversions are approximate and are not saved — we store the range in your own currency.':
+    'Số quy đổi chỉ mang tính tham khảo và không được lưu — chúng tôi lưu khoảng ngân sách theo đơn vị tiền tệ của bạn.',
+  'This is tuition only. Living costs, flights and visa fees are not included — we show those separately on each course.':
+    'Đây chỉ là học phí. Chi phí sinh hoạt, vé máy bay và lệ phí visa không bao gồm — chúng tôi hiển thị riêng ở từng khóa học.',
   'AI Assessment | GlowBal': 'Đánh giá AI | GlowBal',
   'Application Strategy | GlowBal': 'Chiến lược ứng tuyển | GlowBal',
   'Statement writer | GlowBal': 'Công cụ viết bài luận | GlowBal',
@@ -2546,8 +2737,6 @@ export const translations: Record<string, string> = {
   'Cambridge International (IGCSE / AS & A Level)': 'Cambridge International (IGCSE / AS & A Level)',
   'AP + US High School Diploma': 'AP + Bằng tốt nghiệp trung học Mỹ',
   'IELTS Academic': 'IELTS Academic',
-  'Duolingo English Test': 'Duolingo English Test',
-  'Cambridge English': 'Cambridge English',
   SAT: 'SAT',
   'AP Exams': 'Kỳ thi AP',
   'GCSE / IGCSE': 'GCSE / IGCSE',
@@ -3131,9 +3320,6 @@ export const translations: Record<string, string> = {
   'Add activity': 'Thêm hoạt động',
   'Extracurricular activity type': 'Loại hoạt động phi học thuật',
   'Describe why you joined, your role, key contributions, results, impact, or what made this activity meaningful.': 'Lí do tham gia, vai trò, đóng góp chính, kết quả đạt được, tác động hoặc điều khiến hoạt động này có ý nghĩa với bạn.',
-  Scores: 'Điểm số',
-  Aspirations: 'Nguyện vọng',
-  Budget: 'Ngân sách',
   'CV content | GlowBal': 'Nội dung CV | GlowBal',
   'Build your CV | GlowBal': 'Tạo CV | GlowBal',
   'Choose now': 'Chọn ngay',
