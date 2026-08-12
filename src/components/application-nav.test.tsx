@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
@@ -34,5 +35,18 @@ describe('ApplicationNav', () => {
 
     expect(getUser).not.toHaveBeenCalled();
     expect(mocks.fetchOnboardingState).toHaveBeenCalledWith(supabase, 'user-1', 'app-1');
+  });
+
+  it('keeps the explicitly localized nav outside the legacy DOM translator', async () => {
+    const supabase = { auth: { getUser: vi.fn() } };
+    mocks.createClient.mockResolvedValue(supabase);
+    mocks.fetchOnboardingState.mockResolvedValue({ aiAnalysisComplete: true });
+    mocks.nextOnboardingStep.mockReturnValue('dashboard');
+
+    const { container } = render(
+      await ApplicationNav({ applicationId: 'app-1', courseName: 'CS', userId: 'user-1' }),
+    );
+
+    expect(container.querySelector('[data-no-auto-translate]')).toBeInTheDocument();
   });
 });

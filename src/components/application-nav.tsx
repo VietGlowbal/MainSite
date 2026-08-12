@@ -81,7 +81,7 @@ export async function ApplicationNav({
   });
 
   return (
-    <div className="bg-brand">
+    <div data-no-auto-translate className="bg-brand">
       {/* No bottom padding: the sub-nav's own underline is the band's edge, so
           the active entry's marker sits flush with where the white starts. */}
       <Container className="flex flex-col gap-gb-lg pt-gb-2xl">
