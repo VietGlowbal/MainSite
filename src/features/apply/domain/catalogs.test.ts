@@ -127,6 +127,23 @@ describe('destination catalogue', () => {
     expect(rest).toEqual(sorted);
   });
 
+  it('includes destinations that are not nationalities', () => {
+    // Hong Kong and Macau are territories, not UN members, so they are absent
+    // from the nationality catalogue this list is otherwise derived from —
+    // and Hong Kong is a destination the spec names explicitly. Deriving
+    // destinations purely from nationalities silently dropped it.
+    const ids = DESTINATIONS.map((d) => d.id);
+    expect(ids).toContain('HK');
+    expect(ids).toContain('MO');
+  });
+
+  it('keeps every popular destination in the popular block', () => {
+    // A popular code missing from the catalogue is filtered out rather than
+    // rendered blank — so a short block means a typo upstream.
+    expect(POPULAR_DESTINATIONS).toHaveLength(20);
+    expect(POPULAR_DESTINATIONS.map((d) => d.id)).toContain('HK');
+  });
+
   it('has unique ids and a flag for each', () => {
     const ids = DESTINATIONS.map((d) => d.id);
     expect(new Set(ids).size).toBe(ids.length);

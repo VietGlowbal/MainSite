@@ -2374,6 +2374,28 @@ export const translations: Record<string, string> = {
   // Reflection step 1, rebuilt as one question per screen.
   // Candidate Information redesign — modes, chrome, scores and conversions.
   // Subject catalogue and intake seasons (spec 2).
+  // Questions 5-8 (spec 2).
+  'Search subjects or browse below': 'Tìm ngành hoặc xem danh sách bên dưới',
+  'No subjects found for “{query}”': 'Không tìm thấy ngành nào cho “{query}”',
+  'Add as Other': 'Thêm vào mục Khác',
+  'Select all': 'Chọn tất cả',
+  'Show all countries': 'Xem tất cả quốc gia',
+  'What subject are you interested in?': 'Bạn quan tâm đến ngành nào?',
+  'e.g. Marine Biology': 'ví dụ: Sinh học biển',
+  'No countries found for “{query}”': 'Không tìm thấy quốc gia nào cho “{query}”',
+  '🌍 I’m open to other countries': '🌍 Tôi sẵn sàng cân nhắc các quốc gia khác',
+  'Show me strong options outside my current choices too.':
+    'Hãy gợi ý cho tôi cả những lựa chọn tốt ngoài danh sách hiện tại.',
+  'A Master’s normally requires an undergraduate degree first. You can still choose this if you’re planning ahead.':
+    'Bậc thạc sĩ thường yêu cầu có bằng đại học trước. Bạn vẫn có thể chọn nếu đang lên kế hoạch dài hạn.',
+  'Not sure which one to choose? You can update this information later.':
+    'Chưa chắc nên chọn mục nào? Bạn có thể cập nhật thông tin này sau.',
+  'Choose at least one subject you’re interested in.': 'Hãy chọn ít nhất một ngành bạn quan tâm.',
+  'Choose at least one destination or tell us you’re open to suggestions.':
+    'Hãy chọn ít nhất một điểm đến, hoặc cho chúng tôi biết bạn sẵn sàng nghe gợi ý.',
+  'Choose the level of study you’re currently considering.':
+    'Hãy chọn bậc học bạn đang cân nhắc.',
+  'Choose when you would like to start.': 'Hãy chọn thời điểm bạn muốn bắt đầu.',
   'Autumn / Fall': 'Mùa thu',
   Spring: 'Mùa xuân',
   'Data Science & Analytics': 'Khoa học dữ liệu & phân tích',

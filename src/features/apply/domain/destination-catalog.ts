@@ -78,6 +78,23 @@ const DESTINATION_ALIASES: Record<string, readonly string[]> = {
   DE: ['Deutschland'],
 };
 
+/**
+ * Study destinations that are not nationalities.
+ *
+ * ⚠️ A DESTINATION IS NOT A NATIONALITY, AND THIS IS WHERE THAT BITES.
+ * `NATIONALITY_CATALOG` covers the UN member states plus Palestine, the
+ * Vatican, Kosovo and Taiwan — which is right for "what is your nationality?"
+ * and wrong for "where would you study?". Hong Kong and Macau are territories
+ * rather than members, so deriving destinations purely from that list silently
+ * dropped Hong Kong, one of the destinations the spec names explicitly and a
+ * major one for Vietnamese applicants. It was only visible because the grid's
+ * popular block came back one tile short.
+ *
+ * These are added on top. Anything here needs a real ISO 3166-1 alpha-2 code,
+ * because that is what the flag and the localised name are derived from.
+ */
+const EXTRA_DESTINATION_ISO = ['HK', 'MO'] as const;
+
 /** Every country, popular destinations first, then the rest alphabetically. */
 export const DESTINATIONS: readonly DestinationOption[] = (() => {
   const build = (iso2: string): DestinationOption => ({
@@ -86,13 +103,21 @@ export const DESTINATIONS: readonly DestinationOption[] = (() => {
     aliases: DESTINATION_ALIASES[iso2] ?? [],
   });
 
-  const popular = POPULAR_ISO.filter((iso) =>
-    NATIONALITY_CATALOG.some((e) => e.iso2 === iso),
-  ).map(build);
+  const all = [
+    ...NATIONALITY_CATALOG.map((entry) => entry.iso2),
+    ...EXTRA_DESTINATION_ISO,
+  ];
+  const known = new Set(all);
+
+  // A popular code that is not in the catalogue at all is a typo in
+  // POPULAR_ISO, not a country to invent — drop it rather than render a tile
+  // with no flag and no name.
+  const popular = POPULAR_ISO.filter((iso) => known.has(iso)).map(build);
 
   const popularSet = new Set<string>(POPULAR_ISO);
-  const rest = NATIONALITY_CATALOG.filter((e) => !popularSet.has(e.iso2))
-    .map((e) => build(e.iso2))
+  const rest = all
+    .filter((iso) => !popularSet.has(iso))
+    .map(build)
     .sort((a, b) => a.name.localeCompare(b.name));
 
   return [...popular, ...rest];

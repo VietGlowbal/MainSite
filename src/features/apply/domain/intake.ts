@@ -28,12 +28,36 @@
  * place a specific programme's published intake lives.
  */
 
+import { z } from 'zod';
+
 export type IntakeSeason = 'autumn' | 'spring';
 
 export type IntakeChoice =
   | { type: 'specific'; season: IntakeSeason; year: number }
   | { type: 'later'; afterYear: number }
   | { type: 'undecided' };
+
+/**
+ * What the PATCH accepts for this question.
+ *
+ * A discriminated union rather than a loose object, so a payload claiming
+ * `{type: 'specific'}` with no year is rejected at the edge instead of
+ * becoming an intake with a `NaN` year that downstream timeline maths would
+ * silently propagate.
+ *
+ * The year bounds are deliberately wide — this is a sanity check against a
+ * malformed request, not a product rule about how far ahead a student may
+ * plan.
+ */
+export const intakeChoiceSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('specific'),
+    season: z.enum(['autumn', 'spring']),
+    year: z.number().int().min(2000).max(2100),
+  }),
+  z.object({ type: z.literal('later'), afterYear: z.number().int().min(2000).max(2100) }),
+  z.object({ type: z.literal('undecided') }),
+]);
 
 export type IntakeOption = {
   /** Stable per render, for React keys and for the selected check. */

@@ -8,12 +8,18 @@ import {
   EDUCATION_LEVELS,
   EDUCATION_LEVEL_META,
   FUNDING_SOURCES,
-  INTAKE_TERMS,
   INTENDED_LEVELS,
+  OTHER_SUBJECT_ID,
+  SELECTABLE_SUBJECTS,
   TUITION_BUDGETS_USD,
   VND_PER_USD,
   aboutQuestionProgress,
+  destinationFlag,
+  destinationLabel,
+  intakeOptionsWith,
   parseBudgetBand,
+  searchDestinations,
+  searchSubjects,
   reflectionStep,
   usdBandFromVndRange,
   vndRangeFromUsdBand,
@@ -21,12 +27,14 @@ import {
   type AboutYouValues,
   type AspirationsValues,
   type EnglishTestId,
+  type IntakeChoice,
   type ScoreMethod,
 } from '@/features/apply/domain';
 import {
   DisplayModeToggle,
   EnglishQuestion,
   GpaQuestion,
+  IntakePicker,
   NationalityPicker,
   NotSureNote,
   OptionCards,
@@ -34,10 +42,11 @@ import {
   QuestionTracker,
   ReflectionShell,
   SaveIndicator,
+  SearchableMultiSelectGrid,
+  SelectionCard,
 } from '@/features/apply/ui';
 import { useLanguage, useT } from '@/lib/i18n';
-import { regions, subjectFamilies } from '@/lib/onboarding-options';
-import { Button, Input, MultiSelect, RangeHistogram, Select, Textarea } from '@/shared/ui';
+import { Button, Input, RangeHistogram, Select, Textarea } from '@/shared/ui';
 
 /**
  * Candidate Information, step 1.
@@ -82,6 +91,27 @@ const AUTOSAVE_DELAY_MS = 1200;
 function formatVnd(value: number): string {
   return `${Math.round(value).toLocaleString('vi-VN')} VND`;
 }
+
+/**
+ * The glyph and one-line gloss on each intended-level card.
+ *
+ * Emoji rather than traced icons here: a rolled certificate and a diploma
+ * document have no equivalent in the kit's stroked icon set, and inventing
+ * two would be a worse match for the design than the characters every
+ * platform already draws. They are `aria-hidden` inside `SelectionCard`, and
+ * the title carries the meaning.
+ */
+const INTENDED_LEVEL_GLYPH: Record<(typeof INTENDED_LEVELS)[number], string> = {
+  'Master or Post-Graduate Certificate': '🎓',
+  'Bachelor’s Degree': '📜',
+  'College Diploma / Certificate': '📄',
+};
+
+const INTENDED_LEVEL_DESCRIPTION: Record<(typeof INTENDED_LEVELS)[number], string> = {
+  'Master or Post-Graduate Certificate': 'Advanced study after your undergraduate degree.',
+  'Bachelor’s Degree': 'An undergraduate degree, typically lasting 3–4 years.',
+  'College Diploma / Certificate': 'Vocational or academic qualifications at college level.',
+};
 
 export type AboutFormValues = AboutYouValues &
   AspirationsValues & {
@@ -177,9 +207,20 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
     const clamped = Math.min(Math.max(next, 0), ABOUT_QUESTION_COUNT - 1);
     setIndex(clamped);
     setFurthest((prev) => Math.max(prev, clamped));
+    // A message about the question they just left would read as a complaint
+    // about the one they just arrived at.
+    setError(null);
   }
 
   async function finish() {
+    // In show-all mode nothing has gated the answers on the way past, so the
+    // whole set is checked here; the first unanswered required question is
+    // the one named.
+    const missing = ABOUT_QUESTIONS.map((q) => questionError(q.key, values)).find(Boolean);
+    if (missing) {
+      setError(missing);
+      return;
+    }
     setError(null);
     const ok = await save(values);
     if (!ok) {
@@ -289,7 +330,18 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
                   type="button"
                   size="lg"
                   className="min-w-40"
-                  onClick={() => (isLast ? void finish() : goTo(index + 1))}
+                  onClick={() => {
+                    // Validate before moving, and show the reason inline —
+                    // never an alert, and never a silent refusal.
+                    const problem = question ? questionError(question.key, values) : null;
+                    if (problem) {
+                      setError(problem);
+                      return;
+                    }
+                    setError(null);
+                    if (isLast) void finish();
+                    else goTo(index + 1);
+                  }}
                 >
                   {isLast ? t('Continue') : t('Next')}
                 </Button>
@@ -380,11 +432,11 @@ function countAnswered(values: AboutFormValues): number {
       case 'majors':
         return values.majors.length > 0;
       case 'countries':
-        return values.countries.length > 0;
+        return values.countries.length > 0 || values.countryPreferenceFlexible === true;
       case 'intendedLevel':
         return values.intendedLevel !== undefined;
       case 'targetIntake':
-        return values.targetIntake !== undefined;
+        return values.intake !== undefined;
       case 'careerGoal':
         return values.careerGoal !== undefined;
       case 'studyMotivation':
@@ -397,6 +449,39 @@ function countAnswered(values: AboutFormValues): number {
   };
 
   return ABOUT_QUESTIONS.filter((q) => has(q.key)).length;
+}
+
+/**
+ * The message blocking Next on this question, or null.
+ *
+ * ─── ONLY FOUR QUESTIONS ARE REQUIRED ────────────────────────────────────────
+ *
+ * Everything else stays skippable, as it was: the schema marks every field
+ * optional and `reflectionCompleteness` already treats an unanswered field as
+ * unanswered. The spec asks for these four specifically, and they earn it —
+ * subjects and destinations are what course matching runs on, and a report
+ * generated without them is a report about nobody.
+ *
+ * Returned as a message rather than a boolean so the caller cannot invent its
+ * own wording for a rule decided here.
+ */
+function questionError(key: AboutQuestionKey, values: AboutFormValues): string | null {
+  switch (key) {
+    case 'majors':
+      return values.majors.length > 0 ? null : 'Choose at least one subject you’re interested in.';
+    case 'countries':
+      return values.countries.length > 0 || values.countryPreferenceFlexible === true
+        ? null
+        : 'Choose at least one destination or tell us you’re open to suggestions.';
+    case 'intendedLevel':
+      return values.intendedLevel !== undefined
+        ? null
+        : 'Choose the level of study you’re currently considering.';
+    case 'targetIntake':
+      return values.intake !== undefined ? null : 'Choose when you would like to start.';
+    default:
+      return null;
+  }
 }
 
 type QuestionProps = {
@@ -416,16 +501,38 @@ type QuestionProps = {
  * show-all mode, rather than it being a thing to remember.
  */
 function AboutQuestion({ questionKey, values, set, setMany, t, lang }: QuestionProps) {
-  const majorOptions = useMemo(
+  // Search state lives per question rather than in the shared answers, so
+  // typing in the subject grid never marks the form dirty or triggers a save.
+  const [subjectQuery, setSubjectQuery] = useState('');
+  const [destinationQuery, setDestinationQuery] = useState('');
+
+  const subjectItems = useMemo(
     () =>
-      subjectFamilies.flatMap((family) =>
-        family.children.map((child) => ({ value: child, label: child })),
-      ),
-    [],
+      searchSubjects(subjectQuery).map((subject) => ({
+        id: subject.id,
+        label: t(subject.label),
+        icon: subject.icon,
+      })),
+    [subjectQuery, t],
   );
-  const countryOptions = useMemo(
-    () => regions.flatMap((region) => region.countries.map((c) => ({ value: c, label: c }))),
-    [],
+
+  /*
+   * Generated once per mount rather than per render: the list depends on
+   * today's date, and re-deriving it mid-session could in principle drop the
+   * option a student is looking at if they leave the page open across a month
+   * boundary. `intakeOptionsWith` also guarantees their stored choice is
+   * present even when it has aged out of the window.
+   */
+  const intakeOptions = useMemo(() => intakeOptionsWith(values.intake), [values.intake]);
+
+  const destinationItems = useMemo(
+    () =>
+      searchDestinations(destinationQuery, lang).map((destination) => ({
+        id: destination.id,
+        label: destinationLabel(destination.id, lang),
+        glyph: destinationFlag(destination.id),
+      })),
+    [destinationQuery, lang],
   );
 
   const [budgetLow, budgetHigh] = parseBudgetBand(
@@ -525,64 +632,137 @@ function AboutQuestion({ questionKey, values, set, setMany, t, lang }: QuestionP
 
     case 'majors':
       return (
-        <MultiSelect
-          name="majors"
-          label={t('Which subjects are you interested in?')}
-          placeholder={t('Search subjects')}
-          options={majorOptions}
-          value={values.majors}
-          onChange={(next) => set('majors', next)}
-          maxVisible={6}
-        />
+        <div className="flex flex-col gap-gb-xl">
+          <SearchableMultiSelectGrid
+            label={t('Which subjects are you interested in?')}
+            items={subjectItems}
+            selectedIds={values.majors}
+            onChange={(next) => set('majors', next)}
+            searchValue={subjectQuery}
+            onSearchChange={setSubjectQuery}
+            searchPlaceholder={t('Search subjects or browse below')}
+            emptyLabel={t('No subjects found for “{query}”', { query: subjectQuery })}
+            emptyAction={t('Add as Other')}
+            onEmptyAction={() =>
+              setMany({
+                majors: [...new Set([...values.majors, OTHER_SUBJECT_ID])],
+                customSubject: subjectQuery,
+              })
+            }
+            footerNote={t('Pick as many as you are considering — you can change these later.')}
+            resetLabel={t('Reset')}
+            selectAllLabel={t('Select all')}
+            // Select all takes the catalogue, never the free-text escape
+            // hatch: ticking "Other" for someone would then demand a custom
+            // subject they never asked to give.
+            onSelectAll={() => set('majors', SELECTABLE_SUBJECTS.map((subject) => subject.id))}
+          />
+
+          {values.majors.includes(OTHER_SUBJECT_ID) ? (
+            <Input
+              name="customSubject"
+              label={t('What subject are you interested in?')}
+              placeholder={t('e.g. Marine Biology')}
+              value={values.customSubject ?? ''}
+              onChange={(e) => set('customSubject', e.target.value || undefined)}
+            />
+          ) : null}
+        </div>
       );
 
     case 'countries':
       return (
-        <MultiSelect
-          name="countries"
-          label={t('Which countries are you interested in?')}
-          placeholder={t('Search countries')}
-          options={countryOptions}
-          value={values.countries}
-          onChange={(next) => set('countries', next)}
-          maxVisible={6}
-        />
+        <div className="flex flex-col gap-gb-xl">
+          <SearchableMultiSelectGrid
+            label={t('Which countries are you interested in?')}
+            items={destinationItems}
+            selectedIds={values.countries}
+            onChange={(next) => set('countries', next)}
+            searchValue={destinationQuery}
+            onSearchChange={setDestinationQuery}
+            searchPlaceholder={t('Search countries')}
+            emptyLabel={t('No countries found for “{query}”', { query: destinationQuery })}
+            footerNote={t('Pick as many as you are considering — you can change these later.')}
+            resetLabel={t('Reset')}
+            columns={5}
+            // Popular destinations up front; the rest are one click away and
+            // searching skips the cap entirely.
+            initialVisible={20}
+            showAllLabel={t('Show all countries')}
+            // No "Select all" here, deliberately: choosing all 197 countries
+            // is not a preference, it is the absence of one, and it would
+            // give the matching engine nothing to work with. The flexible
+            // option below says the same thing usefully.
+          />
+
+          <label className="flex items-start gap-gb-md rounded-gb-lg border border-line bg-surface px-gb-lg py-gb-md">
+            <input
+              type="checkbox"
+              checked={values.countryPreferenceFlexible === true}
+              onChange={(e) => set('countryPreferenceFlexible', e.target.checked || undefined)}
+              className="mt-gb-xxs size-4 shrink-0 accent-[var(--color-brand)]"
+            />
+            <span className="flex flex-col gap-gb-xxs">
+              <span className="text-gb-sm font-medium text-fg">
+                {t('🌍 I’m open to other countries')}
+              </span>
+              <span className="text-gb-xs text-fg-tertiary">
+                {t('Show me strong options outside my current choices too.')}
+              </span>
+            </span>
+          </label>
+        </div>
       );
 
     case 'intendedLevel':
       return (
-        <OptionCards
-          label={t('Intended level of study')}
-          value={values.intendedLevel}
-          onChange={(next) => set('intendedLevel', next)}
-          columns="single"
-          options={INTENDED_LEVELS.map((level) => ({
-            value: level,
-            label: t(level),
-            icon: 'graduationCap',
-          }))}
-        />
+        <div className="flex flex-col gap-gb-xl">
+          <div
+            role="radiogroup"
+            aria-label={t('Intended level of study')}
+            className="flex flex-col gap-gb-md"
+          >
+            {INTENDED_LEVELS.map((level) => (
+              <SelectionCard
+                key={level}
+                glyph={INTENDED_LEVEL_GLYPH[level]}
+                title={t(level)}
+                description={t(INTENDED_LEVEL_DESCRIPTION[level])}
+                selected={values.intendedLevel === level}
+                onSelect={() =>
+                  set('intendedLevel', values.intendedLevel === level ? undefined : level)
+                }
+              />
+            ))}
+          </div>
+
+          {/* Guidance, never a block. A student planning several years ahead
+              is entitled to say so; the spec is explicit that this must not
+              prevent the selection. */}
+          {values.highestEducation === 'High school' &&
+          values.intendedLevel === 'Master or Post-Graduate Certificate' ? (
+            <NotSureNote
+              text={t(
+                'A Master’s normally requires an undergraduate degree first. You can still choose this if you’re planning ahead.',
+              )}
+            />
+          ) : (
+            <NotSureNote
+              text={t('Not sure which one to choose? You can update this information later.')}
+            />
+          )}
+        </div>
       );
 
     case 'targetIntake':
       return (
-        <div className="max-w-sm">
-          <Select
-            name="targetIntake"
-            label={t('When do you want to start?')}
-            placeholder={t('Select an intake')}
-            value={values.targetIntake ?? ''}
-            onChange={(e) =>
-              set('targetIntake', (e.target.value || undefined) as AboutFormValues['targetIntake'])
-            }
-          >
-            {INTAKE_TERMS.map((term) => (
-              <option key={term} value={term}>
-                {t(term)}
-              </option>
-            ))}
-          </Select>
-        </div>
+        <IntakePicker
+          options={intakeOptions}
+          value={values.intake}
+          onChange={(next: IntakeChoice) => set('intake', next)}
+          label={t('When do you want to start?')}
+          placeholder={t('Select an intake')}
+        />
       );
 
     case 'careerGoal':

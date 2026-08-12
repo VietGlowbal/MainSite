@@ -63,7 +63,10 @@ describe('Reflection field localization', () => {
     render(
       <LanguageProvider>
         <Controls />
-        <ReflectionAboutForm initial={{ majors: ['Computer Science'], countries: ['Japan'] }} />
+        {/* Countries are ISO codes now; the grid labels them from
+            Intl.DisplayNames, so the visible name changes with the language
+            while the answer does not. */}
+        <ReflectionAboutForm initial={{ majors: ['computer-science'], countries: ['JP'] }} />
       </LanguageProvider>,
     );
 
@@ -73,16 +76,21 @@ describe('Reflection field localization', () => {
 
     advanceTo('countries');
 
-    // Country names are proper nouns and are not translated, so "Japan" reads
-    // the same either way — what must survive the switch is the selection.
+    // The label is localised (Nhật Bản / Japan) but the stored id is not, so
+    // the tick must survive the switch even though the words change.
     await waitFor(() => {
-      expect(screen.getByRole('checkbox', { name: 'Japan' })).toBeChecked();
+      expect(screen.getByRole('checkbox', { name: /Nhật Bản|Japan/ })).toBeChecked();
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'EN' }));
 
     await waitFor(() => {
-      expect(screen.getByText('Which countries are you interested in?')).toBeInTheDocument();
+      // Specifically the heading: the grid's fieldset legend carries the same
+      // words as its accessible group name, which is correct but ambiguous
+      // to a bare text query.
+      expect(
+        screen.getByRole('heading', { name: 'Which countries are you interested in?' }),
+      ).toBeInTheDocument();
       expect(screen.getByRole('checkbox', { name: 'Japan' })).toBeChecked();
     });
   });

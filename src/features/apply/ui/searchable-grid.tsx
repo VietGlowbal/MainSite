@@ -1,6 +1,6 @@
 'use client';
 
-import { useId, useMemo } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { ICONS, KitIcon } from '@/shared/ui';
 import { questionIcon } from './question-chrome';
 
@@ -63,6 +63,8 @@ export function SearchableMultiSelectGrid({
   onSelectAll,
   label,
   columns = 4,
+  initialVisible,
+  showAllLabel,
 }: {
   /** Already filtered by the caller, so search ranking stays in the domain. */
   items: readonly GridItem[];
@@ -84,9 +86,27 @@ export function SearchableMultiSelectGrid({
   /** Accessible name for the group. */
   label: string;
   columns?: 3 | 4 | 5;
+  /**
+   * Show only this many until the student asks for the rest.
+   *
+   * The country grid is ~200 tiles; rendering all of them inline makes a page
+   * nobody scrolls to the bottom of, and the useful ones are the first
+   * twenty. Searching bypasses the cap entirely — someone who has typed knows
+   * what they are looking for.
+   */
+  initialVisible?: number | undefined;
+  showAllLabel?: string | undefined;
 }) {
   const fieldId = useId();
+  const [expanded, setExpanded] = useState(false);
   const selected = useMemo(() => new Set(selectedIds), [selectedIds]);
+
+  const searching = searchValue.trim().length > 0;
+  const capped =
+    initialVisible !== undefined && !expanded && !searching
+      ? items.slice(0, initialVisible)
+      : items;
+  const hidden = items.length - capped.length;
 
   function toggle(id: string) {
     const next = new Set(selected);
@@ -147,7 +167,7 @@ export function SearchableMultiSelectGrid({
         </div>
       ) : (
         <ul className={`grid gap-gb-md ${gridClass}`}>
-          {items.map((item) => {
+          {capped.map((item) => {
             const isSelected = selected.has(item.id);
             return (
               <li key={item.id}>
@@ -188,6 +208,16 @@ export function SearchableMultiSelectGrid({
           })}
         </ul>
       )}
+
+      {hidden > 0 && showAllLabel ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="self-start rounded-gb-lg border border-line px-gb-lg py-gb-sm text-gb-sm font-semibold text-fg-secondary transition-colors hover:border-line-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        >
+          {showAllLabel}
+        </button>
+      ) : null}
 
       <div className="flex flex-wrap items-center justify-between gap-gb-md border-t border-line pt-gb-lg">
         <button

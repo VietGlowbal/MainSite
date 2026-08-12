@@ -52,7 +52,9 @@ export default async function ReflectionAboutPage({
           tuitionBudgetUsd: initial.tuitionBudgetUsd,
           careerGoal: initial.careerGoal,
           studyMotivation: initial.studyMotivation,
-          targetIntake: initial.targetIntake,
+          intake: initial.intake,
+          customSubject: initial.customSubject,
+          countryPreferenceFlexible: initial.countryPreferenceFlexible,
           otherEducation: initial.otherEducation,
           // Score provenance, so a returning student lands back in the mode
           // they used rather than staring at an empty converter beside a GPA

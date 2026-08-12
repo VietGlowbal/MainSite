@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { ENGLISH_TESTS, SCORE_METHODS } from './academic-scores';
+import { destinationIdsFromStored } from './destination-catalog';
+import { intakeChoiceSchema, parseIntake, serialiseIntake } from './intake';
 
 /** The English test ids, as a zod-friendly tuple. */
 const ENGLISH_TEST_IDS = ENGLISH_TESTS.map((t) => t.value) as unknown as [
@@ -382,7 +384,15 @@ export const aspirationsSchema = z.object({
    */
   careerGoal: optionalText(600),
   studyMotivation: optionalText(600),
-  targetIntake: z.enum(INTAKE_TERMS).optional(),
+  /**
+   * When the student wants to start, as structured data.
+   *
+   * Replaces the `INTAKE_TERMS` enum, whose members were display strings and
+   * whose years were hardcoded. See `intake.ts` for why both had to go: the
+   * list went stale silently, and a display string has to be parsed before
+   * anything can match against it.
+   */
+  intake: intakeChoiceSchema.optional(),
 });
 
 export const achievementSchema = z.object({
@@ -542,8 +552,12 @@ export function reflectionFromProfile(
       ? { englishTestScore: text(grades['englishTestScore']) }
       : {}),
     ...(grades['englishNotTaken'] === true ? { englishNotTaken: true } : {}),
+    // Subjects keep whatever ids/labels are stored — the grid matches on id
+    // and simply does not tick an unrecognised one, which is the same
+    // outcome as dropping it but without destroying the value on next save.
     majors: profile?.target_subjects ?? [],
-    countries: profile?.preferred_countries ?? [],
+    // Countries are normalised to ISO codes, because the grid keys on them.
+    countries: destinationIdsFromStored(profile?.preferred_countries),
     ...(oneOf(INTENDED_LEVELS, profile?.study_level) !== undefined
       ? { intendedLevel: oneOf(INTENDED_LEVELS, profile?.study_level) }
       : {}),
@@ -560,8 +574,10 @@ export function reflectionFromProfile(
     ...(text(profile?.study_motivation) !== undefined
       ? { studyMotivation: text(profile?.study_motivation) }
       : {}),
-    ...(oneOf(INTAKE_TERMS, profile?.target_intake) !== undefined
-      ? { targetIntake: oneOf(INTAKE_TERMS, profile?.target_intake) }
+    // Understands both the token this form writes and the display strings
+    // the previous one wrote — see `parseIntake`.
+    ...(parseIntake(profile?.target_intake) !== undefined
+      ? { intake: parseIntake(profile?.target_intake) }
       : {}),
     achievements,
     activities,
@@ -595,7 +611,9 @@ export function profileUpdateFromReflection(
     | 'tuitionBudgetUsd'
     | 'careerGoal'
     | 'studyMotivation'
-    | 'targetIntake'
+    | 'intake'
+    | 'customSubject'
+    | 'countryPreferenceFlexible'
     | 'gpaMethod'
     | 'gpaSource'
     | 'ieltsMethod'
@@ -651,7 +669,7 @@ export function profileUpdateFromReflection(
     tuition_budget_usd: values.tuitionBudgetUsd ?? null,
     goals: values.careerGoal ?? null,
     study_motivation: values.studyMotivation ?? null,
-    target_intake: values.targetIntake ?? null,
+    target_intake: values.intake ? serialiseIntake(values.intake) : null,
     grades_summary: Object.keys(grades).length > 0 ? grades : null,
   };
 }
@@ -680,7 +698,7 @@ export function reflectionCompleteness(values: ReflectionValues): number {
     values.tuitionBudgetUsd !== undefined,
     values.careerGoal !== undefined,
     values.studyMotivation !== undefined,
-    values.targetIntake !== undefined,
+    values.intake !== undefined,
     values.achievements.length > 0,
     values.activities.length > 0,
   ];
