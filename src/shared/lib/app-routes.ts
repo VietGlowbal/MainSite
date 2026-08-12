@@ -108,12 +108,12 @@ const ROUTES: readonly RoutePattern[] = [
   },
   {
     pattern: '/ai-strategy/:id/cv/:step',
-    trail: ['My Portal', 'Your application', 'CV builder'],
+    trail: ['My Portal', 'Your application', 'CV Support'],
     dynamic: { 1: { key: APPLICATION_LABEL_KEY, fallback: 'Your application' } },
   },
   {
     pattern: '/ai-strategy/:id/statement',
-    trail: ['My Portal', 'Your application', 'Statement writer'],
+    trail: ['My Portal', 'Your application', 'Essay Support'],
     dynamic: { 1: { key: APPLICATION_LABEL_KEY, fallback: 'Your application' } },
   },
   {
@@ -318,8 +318,8 @@ export function applicationSubNav(
       href: `${strategy}/strategy/dashboard`,
       ...(options.plannerReady ? {} : { locked: true }),
     },
-    { key: 'cv', label: 'CV builder', href: `/apply/${applicationId}/cv` },
-    { key: 'statement', label: 'Statement', href: `/apply/${applicationId}/statement-feedback` },
+    { key: 'cv', label: 'CV Support', href: `/apply/${applicationId}/cv` },
+    { key: 'statement', label: 'Essay Support', href: `/apply/${applicationId}/statement-feedback` },
   ];
 }
 
