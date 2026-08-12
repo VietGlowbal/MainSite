@@ -19,7 +19,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5g | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. |
+| §5–§5h | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -904,6 +904,61 @@ Nothing throws, nothing errors — a student just never advances, silently,
 forever. A grep for **write** sites of a completion flag (not just read
 sites) is the check that would have caught this before it shipped; add it to
 manual QA for any new "…Complete" boolean on `OnboardingState`.
+
+## 5h. Fixed 2026-08-12 — do not re-introduce
+
+**Reported the same day, after §0d/§0e/§0f were confirmed resolved via the
+production schema dump**: "we can't seem to get into the personal report or
+the matching report" — `/strategy/analysis/portrait` and
+`/strategy/analysis/fit` both 404'd for a real application. Not a migration
+gap this time; a genuine column-name bug that the schema dump could not have
+caught because it never went looking for these five names.
+
+**Root cause**: `loadEvaluation` (`src/features/ai-strategy-dashboard/api/load-evaluation.ts`)
+selected `tuition_fee, entry_requirements_summary, english_requirements_summary,
+image_url, logo_url` directly off `course_applications`. Those columns do not
+exist there — `course_applications` has two conflicting `CREATE TABLE IF NOT
+EXISTS` definitions in this repo (`supabase-apply-system.sql`'s legacy
+TEXT-id version, which *does* have all five, and `supabase-apply-v2.sql`'s
+UUID-id version, which has none of them and is the one actually live in
+production — confirmed by the application id in the bug report being a UUID,
+not an `app_...` string). On the real table, `entry_requirements_summary` /
+`english_requirements_summary` / the tuition fields live on `courses`
+(joined via `course_applications.course_id`), and `logo_url` comes from
+`universities` — both `src/lib/api/application-workspace.ts` and
+`src/app/apply/page.tsx` already join correctly and were never affected.
+`load-evaluation.ts` was the one place in the codebase selecting these five
+names straight off `course_applications`, so it was also the only place that
+broke — every other tab on the application (Overview, Planner, CV, Essay)
+kept working, which is why the report was scoped to exactly these two pages.
+Postgrest returns a column-not-found error for the whole query, and the code
+only destructured `{ data }`, silently dropping the error — `application`
+came back `null`, `loadEvaluation` returned `null` unconditionally, and both
+report pages called `notFound()`. This affected every application, not just
+the one in the bug report.
+
+**Fix**: the initial select now only lists real `course_applications`
+columns (dropped the five, added `course_id`); a second best-effort query
+reads `tuition_fee_text` / `entry_requirements_summary` /
+`english_requirements_summary` off `courses` by `course_id` (same pattern as
+the existing `universities` join two lines below it), matching how
+`application-workspace.ts` already reads the same fields. `image_url` /
+`logo_url` were selected but never actually read anywhere in the function —
+removed outright rather than wired up, since nothing consumed them.
+
+**Also fixed the same session**: the report pages carried a second,
+redundant navigation bar (`StageBar` in `report-chrome.tsx`, rendered inside
+`ApplicantPortrait`/`ProgrammeFitReport`/`StrategyRecommendationReport`)
+stacked directly under the brand-red `ApplicationNav` every page under
+`/ai-strategy/[applicationId]` already gets from the layout — two bars
+listing almost the same five destinations, sometimes disagreeing on what was
+reachable. `StageBar` and its `STAGES` table are deleted; the report
+components no longer take an `unlockedStages` prop. Separately, per explicit
+product direction, `SubNav` (`src/shared/ui/sub-nav.tsx`) no longer renders a
+locked entry as inert dimmed text — it omits it from the bar entirely.
+`applicationSubNav()` still marks entries `locked` (so the data and the
+routing agree on what's reachable), `SubNav` is just the one place that
+decides whether a locked entry draws. | `src/features/ai-strategy-dashboard/api/load-evaluation.ts`, `src/features/ai-strategy-dashboard/ui/report-chrome.tsx`, `applicant-portrait.tsx`, `programme-fit-report.tsx`, `strategy-recommendation-report.tsx`, `strategy-recommendation-workspace.tsx`, `src/shared/ui/sub-nav.tsx`, `src/shared/lib/app-routes.ts` |
 
 ## 6. Open questions for the designer / owner
 

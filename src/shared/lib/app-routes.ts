@@ -263,7 +263,7 @@ export type SubNavItem = {
   key: string;
   label: string;
   href: string;
-  /** Shown but not linked until the student can actually reach it. */
+  /** Not yet reachable — `SubNav` (`src/shared/ui/sub-nav.tsx`) omits it rather than rendering it inert. */
   locked?: boolean;
 };
 
@@ -279,12 +279,13 @@ export type SubNavItem = {
  * a sequence the FIRST time; afterwards these are just places, and this is the
  * list of them.
  *
- * `locked` is not a hiding mechanism. A student who has not finished the
- * analysis still sees that a Planner exists — hiding it would make the product
- * look smaller than it is and give them no idea what finishing unlocks. It is
- * rendered plainly and does not navigate, because `strategy/dashboard`
- * redirects back to onboarding until the analysis has run and a link that
- * bounces is worse than one that waits.
+ * `locked` still marks a destination the student has not reached yet —
+ * `fetchOnboardingState` computes it the same way the redirects do, so this
+ * list and the routing agree — but the bar that renders these entries only
+ * draws the ones that are not locked (12/08: showing an inert, unclickable
+ * label read as broken, and duplicated the stage bar the report pages used to
+ * carry underneath it). A student who has not finished the analysis simply
+ * does not see a Planner entry yet, rather than seeing one that does nothing.
  */
 export function applicationSubNav(
   applicationId: string,

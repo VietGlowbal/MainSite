@@ -42,14 +42,5 @@ export default async function StrategyRecommendationPage({
     redirect(onboardingStepHref(step, applicationId));
   }
 
-  return (
-    <StrategyRecommendationWorkspace
-      applicationId={applicationId}
-      unlockedStages={
-        step === 'dashboard'
-          ? ['reflection', 'portrait', 'fit', 'strategy', 'planner']
-          : ['reflection', 'portrait', 'fit', 'strategy']
-      }
-    />
-  );
+  return <StrategyRecommendationWorkspace applicationId={applicationId} />;
 }

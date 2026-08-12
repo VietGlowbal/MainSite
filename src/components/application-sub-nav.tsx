@@ -32,7 +32,6 @@ export function ApplicationSubNav({
       items={items}
       activeKey={activeSubNavKey(pathname)}
       label={t('Application sections')}
-      lockedHint={t('Finish your AI analysis to unlock this')}
       tone={tone}
     />
   );

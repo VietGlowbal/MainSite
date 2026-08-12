@@ -117,9 +117,9 @@ describe('applicationSubNav', () => {
     );
   });
 
-  it('shows the planner and strategy report locked rather than hiding them', () => {
-    // Hiding would make the product look smaller and tell the student nothing
-    // about what finishing unlocks.
+  it('marks the planner and strategy report locked when not yet reachable', () => {
+    // SubNav (src/shared/ui/sub-nav.tsx) is what decides whether a locked
+    // entry renders at all — this list just has to keep marking them.
     const items = applicationSubNav('app_1', {
       analysisReady: false,
       strategyReady: false,

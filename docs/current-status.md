@@ -2,10 +2,10 @@
 
 Last reconciled: **2026-08-12 (Asia/Bangkok)**
 
-Code snapshot: **working tree**, branched from `main` at `19a5d7c` (PR #163,
-"Let students delete an application and apply to a second course at a
-university they already have one with", merged). Not yet committed/pushed
-at the time this document was written — see "Last completed work" below.
+Code snapshot: **working tree**, branched from `main` at `13971e4` (PR #164,
+"Confirm the production migration gap (§0d/§0e/§0f) is closed", merged). Not
+yet committed/pushed at the time this document was written — see "Last
+completed work" below.
 
 This is the first file a coding agent should read. It records the present state
 of the repository, the last completed work, its impact, the verification state,
@@ -27,14 +27,15 @@ directory. If this file conflicts with the code, the code wins.
   independently confirmed by a real production error trace on
   `POST /api/applications/[id]/match-insights` that matched §0e's predicted
   failure mode exactly, before the fix.
-- The working tree has real uncommitted work: a documentation-only pass
-  marking §0d/§0e/§0f resolved (no code change) — see the next section.
+- The working tree has real uncommitted work: fixed the Personal Report and
+  Matching Report 404ing for every application, and merged the duplicate
+  per-application navigation bar into one — see the next section.
 
 ## Last completed work
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
-| *(uncommitted)* | **Confirmed the production migration gap is closed.** Docs-only change: marked §0d/§0e/§0f resolved in `docs/known-issues.md` based on the owner's production schema dump, and recorded the independent confirmation from a real error trace. No code change. | Future sessions no longer need to treat "is the migration applied" as an open question for these three items — verified against live production, not just the `.sql` files being present in the repo. |
+| *(uncommitted)* | **Fixed `/strategy/analysis/portrait` and `/strategy/analysis/fit` 404ing for every application, and merged the duplicate navigation bar.** Reported same-day, right after §0d/§0e/§0f were confirmed closed: both report pages 404'd. Root cause was not a migration gap — `load-evaluation.ts` selected `tuition_fee`/`entry_requirements_summary`/`english_requirements_summary`/`image_url`/`logo_url` directly off `course_applications`, but the live table (`supabase-apply-v2.sql`'s UUID-id schema) never had those columns; they exist on `courses` (via `course_id`, following the same join `application-workspace.ts` already uses) and `universities`. A stale, superseded `CREATE TABLE IF NOT EXISTS course_applications` in `supabase-apply-system.sql` (a TEXT-id schema) does have all five, which is how the mismatch went unnoticed by the schema-dump reconciliation. See `docs/known-issues.md §5h`. Also removed the redundant black `StageBar` the three report pages rendered under the layout's red `ApplicationNav` bar (same five-ish destinations, occasionally disagreeing on what was unlocked), and changed `SubNav` so a locked entry is omitted rather than shown dimmed, per explicit product direction. | Both reports load again for every application. One navigation bar instead of two stacked bars; a student only ever sees destinations they can actually open. |
 | `19a5d7c` (#163) | **Added application deletion and multi-course-per-university support.** `DELETE /api/applications/[id]` is new (auth + owner-scoped; every child row — stages, tasks, the Personal/Matching/Personalized Strategy reports, CV/statement strategy work — is `ON DELETE CASCADE` off `course_applications.id` except `personal_statements.application_id`, which is `SET NULL`, so one delete is enough). `my-application-section.tsx`'s `ApplicationRow` gained a "Delete" action (confirmation modal, names what's removed, irreversible) and an "Add another course" action (shown when `app.universityId` is known) that reuses the existing `/api/applications/from-course-url` endpoint — its duplicate check is already `(user_id, course_url)`, not university, and `user_universities` (the saved-list model "Plan my application" reads from) has `UNIQUE(user_id, university_id)` with one `program` column, so this was already the only path to a genuinely independent second application at the same university without a schema change. | Students can remove an application they no longer want tracked, and can track a second course at a university they've already applied to elsewhere on the site, without going through the saved-list's one-subject-per-university model. New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler's three outcomes (deleted / not found or not owned / db error). |
 | `59c334e` (#159) | Fixed a same-day production incident (the fourth on the checklist/F7 feature that day, and the root cause of the whole day's trouble): `personal_summary_completed_at`/`achievements_completed_at` (`student_profiles`) were **never written by any code in this repository** — confirmed by a full-repo grep, three read sites and zero writes. Every student's reflections were permanently "incomplete" no matter how many times they submitted both steps, which is what made §5e/§5f's symptoms possible in the first place and would have made a student finishing achievements bounce straight back to reflections in an infinite loop even after those fixes. Also fixed: Overview's CTA (§5f's fix) pointed at "whatever the real next step is," which for a returning student resolved straight to the analysis-trigger gate, skipping reflections anyway — reported the same day as "it goes straight into doing the strategy building." And wired `?return=` through the reflection forms' submit handlers (§5f's flagged-but-unfixed gap), for the application-originated case specifically. See `docs/known-issues.md §5g`. | `POST /api/reflection` now sets both completion timestamps on submit. `strategy/page.tsx`'s Overview CTA always targets the reflection flow's start, unconditionally. `reflection-about-form.tsx`/`reflection-evidence-form.tsx` now read and carry forward `?return=`, landing a student back at their application's analysis gate after reflections instead of an old per-student report page — every other (non-application) entry point into those forms is unchanged. |
 | `b610087` (#158) | Fixed a same-day production incident: Overview was only shown to a student with neither reflection step done, so a returning student (reflections globally already marked complete) skipped it entirely. See `docs/known-issues.md §5f`. | `strategy/page.tsx` gated Overview on `!state.aiAnalysisComplete` (per-application) instead of the shared reflection flags; `/apply/[applicationId]/page.tsx` simplified to bounce to `/ai-strategy/[id]/strategy` rather than duplicating the decision. |
@@ -127,7 +128,7 @@ Measured on 2026-08-12 against the uncommitted working tree described above
 | `npx tsc --noEmit` | **Pass**, 0 errors (ran after `rm -rf .next/types`). |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
 | `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
-| `npx vitest run` | **Pass: 1681 passed, 2 todo, 157 files passed, 0 failed.** New `src/app/api/applications/[id]/route.test.ts` covers the DELETE handler. |
+| `npx vitest run` | **Pass: 1694 passed, 2 todo, 163 files passed, 0 failed.** |
 | `npm run build` | Attempted once this session (2026-08-12); failed locally on `/_not-found` prerendering because this checkout has no `.env.local` with real Supabase credentials — a sandbox limitation, not a code error (`tsc`/`next build`'s compile step both succeeded first). Not evidence either way about the actual Vercel build, which has real credentials and has been green on every PR this week. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
@@ -145,6 +146,14 @@ analysis → intro → Personalized Strategy → Planner) on a genuinely fresh
 student account has still not been done by anyone and remains the one
 verification step nobody has done yet, though the migration gap that would
 have blocked it is gone.
+
+**Immediately after that**, the owner reported the Personal Report and
+Matching Report both 404ing on a real application, plus two stacked
+navigation bars on the strategy pages (screenshot attached). Neither was a
+migration issue — see `docs/known-issues.md §5h` for the column-mismatch
+root cause and the nav-bar merge. Both fixed this pass; the manual
+click-through above still has not happened and remains the best next
+verification step, now with one fewer known-broken page in the path.
 
 ## Open risks that still deserve priority
 

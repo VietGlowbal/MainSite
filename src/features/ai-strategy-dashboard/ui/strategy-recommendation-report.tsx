@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import type { DirectionOption, PortfolioOpportunity, StrategyRecommendationRecord } from '../domain';
-import { ReportPanel, ReportTabs, StageBar, useReportTabs, type StageKey } from './report-chrome';
+import { ReportPanel, ReportTabs, useReportTabs } from './report-chrome';
 import { useLanguage } from '@/lib/i18n';
 import { Badge, Button, Panel, ScoreRing, type BadgeVariant } from '@/shared/ui';
 
@@ -66,19 +66,15 @@ const TABS = [
 export function StrategyRecommendationReport({
   applicationId,
   recommendation,
-  unlockedStages,
 }: {
   applicationId: string;
   recommendation: StrategyRecommendationRecord;
-  unlockedStages: readonly StageKey[];
 }) {
   const { t } = useLanguage();
   const { active, setActive } = useReportTabs(TABS);
 
   return (
     <div className="flex flex-col gap-gb-3xl">
-      <StageBar applicationId={applicationId} active="strategy" unlockedStages={unlockedStages} />
-
       <header className="flex flex-wrap items-center justify-between gap-gb-xl">
         <div className="flex flex-col gap-gb-xs">
           <h1 className="font-display text-gb-display-sm font-semibold text-fg">
