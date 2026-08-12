@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import type { ProgressStatus } from '../domain';
 import { PROGRESS_STATUS, PROGRESS_STATUS_LABEL } from '../domain';
-import { STATUS_SELECT_CLASS } from './planner-shared';
+import { STATUS_SELECT_CLASS } from './planner-presentation';
 
 /**
  * Progress Tracker control — requirements.md Requirement 13. One PATCH call,
@@ -12,7 +12,7 @@ import { STATUS_SELECT_CLASS } from './planner-shared';
  * status change is sent.
  *
  * The `<select>`'s own background/text colour follow `STATUS_SELECT_CLASS`
- * (the read-only status pill's colours, `planner-shared.tsx`) so it reads as
+ * (the read-only status pill's colours, `planner-presentation.ts`) so it reads as
  * the same coloured pill the reference screenshot shows — it is still the
  * one editable control, not a pill sitting next to a separate dropdown.
  */
