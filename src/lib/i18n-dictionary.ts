@@ -2507,6 +2507,7 @@ export const translations: Record<string, string> = {
   // Questions 5-8 (spec 2).
   'Search subjects or browse below': 'Tìm ngành hoặc xem danh sách bên dưới',
   'No subjects found for “{query}”': 'Không tìm thấy ngành nào cho “{query}”',
+  Others: 'Khác',
   'Add as Other': 'Thêm vào mục Khác',
   'Select all': 'Chọn tất cả',
   'Show all countries': 'Xem tất cả quốc gia',
