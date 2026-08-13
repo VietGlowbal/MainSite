@@ -334,15 +334,17 @@ foreach ($k in @('legal_name','date_of_birth','stripe_account_id','storage_key')
 `/` now renders the new design (Figma `375:9844`). The gate this section used to
 describe — "`grep -rn MissingContent src/features/marketing` must be empty" — was
 **not** met and was resolved a different way, so do not re-apply it as written:
-the components still contain `MissingContent`, and `/` avoids it by omitting the
-two sections that have no copy (testimonials, FAQ) and passing
-`showPlaceholders={false}` to the two that are partly written.
+the components still contain `MissingContent`, and `/` avoids those unfinished
+states by passing `showPlaceholders={false}` to the partly written feature and
+scholarship content. Testimonials and FAQ are now finished sections on both
+`/` and `/dev/home`; testimonials use supplied anonymous quotes and explicitly
+illustrative portraits rather than fabricated student identities.
 
 What must stay true instead is a **rendered** assertion, not a grep — and it
 already exists, in `tests/e2e/home-preview.spec.ts` → *"the real home page never
-ships a missing-content marker"*. Trust that over a source scan: `src/app/page.tsx`
-mentions `MissingContent` in its header comment, explaining which sections are
-omitted and why, so grepping the file reports a hit that means nothing.
+ships a missing-content marker"*. Trust that over a source scan: the marketing
+component tree intentionally retains preview-only placeholder branches, so a
+grep can report matches that never render on `/`.
 
 ⚠️ `grep -rn "home-landing" src` is **not** empty, and this doc previously
 implied it would be. The route was swapped, but the legacy tree
@@ -350,5 +352,6 @@ implied it would be. The route was swapped, but the legacy tree
 now orphaned — see known-issues.md §3. `globals.css` still carries two
 `.home-landing-root` rules for it.
 
-`/dev/home` deliberately keeps the full composition **including** the
-placeholders, so the outstanding copy gaps stay visible somewhere.
+`/dev/home` deliberately keeps the full composition, including the remaining
+preview-only feature placeholders, so the outstanding copy gaps stay visible
+somewhere.

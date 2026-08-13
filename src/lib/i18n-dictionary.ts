@@ -222,6 +222,9 @@ export const translations: Record<string, string> = {
   'Your browser does not support video playback.': 'Trình duyệt của bạn không hỗ trợ phát video.',
 
   // Testimonials, team and consultation.
+  Testimonials: 'Lời chia sẻ',
+  'Anonymous student': 'Học sinh ẩn danh',
+  'Illustrative portrait': 'Chân dung minh họa',
   'What do students say about GlowBal?': 'Học sinh nói gì về GlowBal?',
   'Student feedback': 'Chia sẻ của học sinh',
   'GlowBal helped me narrow hundreds of options down to the universities genuinely worth considering.':
