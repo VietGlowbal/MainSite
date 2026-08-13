@@ -3787,7 +3787,8 @@ export const translations: Record<string, string> = {
   'You still have {count} extracted achievements to review.':
     'Bạn vẫn còn {count} thành tích được trích xuất cần xem lại.',
   'Review first': 'Xem lại trước',
-  'Finish anyway': 'Vẫn hoàn tất',
+  'Continue anyway': 'Vẫn tiếp tục',
+  'Review & Confirm': 'Xem lại & Xác nhận',
   'File name': 'Tên tệp',
   'Save changes': 'Lưu thay đổi',
   '{count} possible duplicates': '{count} mục có thể trùng lặp',
@@ -3814,4 +3815,60 @@ export const translations: Record<string, string> = {
   'All extracted achievements reviewed': 'Đã xem lại tất cả thành tích được trích xuất',
   'Review achievements': 'Xem lại thành tích',
   '{current} of {total}': '{current} / {total}',
+
+  // Review & Confirm, and the read-only views once confirmed.
+  'Confirmed profile': 'Hồ sơ đã xác nhận',
+  'This information was confirmed on {date} and is used to generate your reports.':
+    'Thông tin này đã được xác nhận vào ngày {date} và được dùng để tạo báo cáo của bạn.',
+  'All fields are read-only.': 'Tất cả các trường đều chỉ đọc.',
+  'Original grades': 'Điểm gốc',
+  'Confirmed achievements': 'Thành tích đã xác nhận',
+  'These achievements were confirmed on {date} and were included in your reports.':
+    'Những thành tích này đã được xác nhận vào ngày {date} và đã được đưa vào báo cáo của bạn.',
+  'Confirmed supporting documents': 'Tài liệu hỗ trợ đã xác nhận',
+  'These documents supported your confirmed profile and were included in your report inputs.':
+    'Những tài liệu này hỗ trợ hồ sơ đã xác nhận của bạn và đã được đưa vào dữ liệu đầu vào của báo cáo.',
+  'No documents were uploaded.': 'Chưa có tài liệu nào được tải lên.',
+  PDF: 'PDF',
+  'Preview {fileName}': 'Xem trước {fileName}',
+  'Need to make a change? Contact GlowBal Support if something in your confirmed information is incorrect.':
+    'Cần thay đổi? Liên hệ Hỗ trợ GlowBal nếu có thông tin nào trong hồ sơ đã xác nhận của bạn không chính xác.',
+  'We could not confirm your information. Please try again.':
+    'Chúng tôi không thể xác nhận thông tin của bạn. Vui lòng thử lại.',
+  'Check everything below carefully — once confirmed, this information is locked and used to generate your reports.':
+    'Hãy kiểm tra kỹ mọi thông tin bên dưới — sau khi xác nhận, thông tin này sẽ bị khóa và được dùng để tạo báo cáo của bạn.',
+  'You’re ready to confirm': 'Bạn đã sẵn sàng để xác nhận',
+  'Every required question has been answered and reviewed.':
+    'Mọi câu hỏi bắt buộc đã được trả lời và xem lại.',
+  'A few things need your attention before you can confirm':
+    'Có một vài điều cần bạn chú ý trước khi có thể xác nhận',
+  'Fix this': 'Sửa mục này',
+  '{count} extracted achievements still need review.':
+    'Còn {count} thành tích được trích xuất cần xem lại.',
+  '{count} extracted activities still need review.':
+    'Còn {count} hoạt động được trích xuất cần xem lại.',
+  'GPA / equivalent': 'GPA / điểm tương đương',
+  'IELTS / English test': 'IELTS / bài thi tiếng Anh',
+  'SAT / other test scores': 'SAT / điểm thi khác',
+  'Study preferences': 'Nguyện vọng học tập',
+  Countries: 'Quốc gia',
+  'Open to suggestions': 'Sẵn sàng cân nhắc gợi ý',
+  'Preferred intake': 'Kỳ nhập học mong muốn',
+  'Why {subject}': 'Vì sao chọn {subject}',
+  'Subject motivation': 'Động lực chọn ngành',
+  '{count} more subject motivations on file.': 'Còn {count} động lực chọn ngành khác đã lưu.',
+  'Financial plan': 'Kế hoạch tài chính',
+  Funding: 'Nguồn tài trợ',
+  'Achievements & activities': 'Thành tích & hoạt động',
+  '{count} on file': '{count} mục đã lưu',
+  'Supporting documents': 'Tài liệu hỗ trợ',
+  'I confirm that the information above is accurate.': 'Tôi xác nhận thông tin trên là chính xác.',
+  'Once confirmed, this information is locked and cannot be edited without contacting GlowBal Support.':
+    'Sau khi xác nhận, thông tin này sẽ bị khóa và không thể chỉnh sửa nếu không liên hệ Hỗ trợ GlowBal.',
+  'Confirm & Generate Reports': 'Xác nhận & Tạo báo cáo',
+  'Confirm your information': 'Xác nhận thông tin của bạn',
+  'Confirm your information?': 'Xác nhận thông tin của bạn?',
+  'This locks your candidate information exactly as shown and begins generating your reports. You will not be able to edit it afterwards without contacting GlowBal Support.':
+    'Thao tác này sẽ khóa thông tin ứng viên của bạn đúng như hiển thị và bắt đầu tạo báo cáo. Bạn sẽ không thể chỉnh sửa sau đó nếu không liên hệ Hỗ trợ GlowBal.',
+  'Confirming…': 'Đang xác nhận…',
 };

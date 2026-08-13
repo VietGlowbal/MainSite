@@ -80,6 +80,29 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   }
 
+  // Locked once confirmed (POST /api/candidate-information/confirm) — a
+  // confirmed record is exactly the version of the student's information
+  // reports were generated from, and letting an edit through here would make
+  // "this is what your reports were built from" (the read-only reflection
+  // pages) false. Missing the column (migration not run yet) is read as "not
+  // locked", the same fail-open every other tolerant read in this route
+  // already uses — server enforcement matters once the column exists; a
+  // student cannot be blocked by a lock the deployment does not have yet.
+  const lock = await supabase
+    .from('student_profiles')
+    .select('confirmed_at')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (!lock.error && lock.data?.confirmed_at) {
+    return NextResponse.json(
+      {
+        error: 'PROFILE_LOCKED',
+        message: 'This profile has already been confirmed.',
+      },
+      { status: 423 },
+    );
+  }
+
   let raw: unknown;
   try {
     raw = await request.json();

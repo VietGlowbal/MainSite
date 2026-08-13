@@ -16,6 +16,7 @@ import {
   destinationLabel,
   intakeOptionsWith,
   isCompleteBudget,
+  reflectionBlockingIssues,
   searchDestinations,
   searchSubjects,
   reflectionStep,
@@ -457,24 +458,14 @@ function countAnswered(values: AboutFormValues): number {
  *
  * Returned as a message rather than a boolean so the caller cannot invent its
  * own wording for a rule decided here.
+ *
+ * Delegates to `reflectionBlockingIssues`, the domain-layer version of this
+ * same check — the Review & Confirm page and its server-side confirm route
+ * need the identical rule without a `'use client'` import, so the rule lives
+ * there and this is a thin per-question lookup over it.
  */
 function questionError(key: AboutQuestionKey, values: AboutFormValues): string | null {
-  switch (key) {
-    case 'majors':
-      return values.majors.length > 0 ? null : 'Choose at least one subject you’re interested in.';
-    case 'countries':
-      return values.countries.length > 0 || values.countryPreferenceFlexible === true
-        ? null
-        : 'Choose at least one destination or tell us you’re open to suggestions.';
-    case 'intendedLevel':
-      return values.intendedLevel !== undefined
-        ? null
-        : 'Choose the level of study you’re currently considering.';
-    case 'targetIntake':
-      return values.intake !== undefined ? null : 'Choose when you would like to start.';
-    default:
-      return null;
-  }
+  return reflectionBlockingIssues(values).find((issue) => issue.key === key)?.message ?? null;
 }
 
 type QuestionProps = {

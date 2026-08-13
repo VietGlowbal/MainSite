@@ -26,7 +26,7 @@ export default async function ProgrammeFitPage({
 
   const state = await fetchOnboardingState(supabase, user.id, applicationId);
   const step = nextOnboardingStep(state);
-  if (step === 'personal-summary' || step === 'achievements') {
+  if (step === 'personal-summary' || step === 'achievements' || step === 'confirm') {
     redirect(onboardingStepHref(step, applicationId));
   }
 
