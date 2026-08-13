@@ -23,14 +23,29 @@ import {
  */
 export function ReflectionShell({
   step,
+  progress,
+  caption,
   children,
 }: {
   step: ReflectionStepKey;
+  /**
+   * How full the bar is, 0–1, overriding the whole-step default.
+   *
+   * Step 1 asks one question per screen and passes `aboutQuestionProgress`, so
+   * the bar advances a notch per answer instead of sitting at half from the
+   * moment the student arrives — which is what it did before, telling someone
+   * who had answered nothing that they were halfway. Step 2 passes nothing and
+   * keeps the per-step behaviour.
+   */
+  progress?: number | undefined;
+  /** Replaces the step name under the bar, e.g. "Question 3 of 12". */
+  caption?: string | undefined;
   children: React.ReactNode;
 }) {
   const t = useT();
   const current = reflectionStep(step);
-  const percent = Math.round(reflectionProgress(step) * 100);
+  const fraction = progress ?? reflectionProgress(step);
+  const percent = Math.round(Math.min(Math.max(fraction, 0), 1) * 100);
 
   return (
     <div data-no-auto-translate className="flex flex-col gap-gb-4xl">
@@ -52,7 +67,7 @@ export function ReflectionShell({
           })}: ${t(current.en)}`}
         />
 
-        <p className="text-gb-md text-fg-tertiary">{t(current.en)}</p>
+        <p className="text-gb-md text-fg-tertiary">{caption ?? t(current.en)}</p>
       </header>
 
       {children}

@@ -1,9 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   EDUCATION_LEVELS,
-  FUNDING_SOURCES,
+  EDUCATION_LEVEL_META,
   INTENDED_LEVELS,
-  TUITION_BUDGETS_USD,
   achievementSchema,
   aboutYouSchema,
   profileUpdateFromReflection,
@@ -12,6 +11,7 @@ import {
   type ReflectionProfileRow,
   type ReflectionValues,
 } from './reflection';
+import { FUNDING_SOURCE_CATALOG } from './funding-catalog';
 
 const EMPTY: ReflectionValues = {
   majors: [],
@@ -42,11 +42,16 @@ describe('reflectionFromProfile', () => {
       gpa: '3.5 / 4',
       ielts: '7 / 10',
       majors: ['Design'],
-      countries: ['Japan'],
+      // Normalised to an ISO code: the country grid keys on those, and the
+      // column holds display names written by earlier versions of the form.
+      countries: ['JP'],
       intendedLevel: 'Bachelor’s Degree',
-      fundingSource: 'Personal savings or parents',
-      budgetRange: '270000000-500000000',
-      tuitionBudgetUsd: '$20,000 - $30,000',
+      // The stored display string maps onto the stable id the form now works
+      // in — see `fundingSourceFromStored`.
+      fundingSource: 'personal_savings_or_parents',
+      // The bare "min-max" the previous form wrote was always VND, so it is
+      // read as such rather than guessed at.
+      tuitionBudget: { currency: 'VND', min: 270_000_000, max: 500_000_000 },
       achievements: [],
       activities: [],
     });
@@ -62,14 +67,66 @@ describe('reflectionFromProfile', () => {
     // with nothing on screen for the student to correct.
     const profile: ReflectionProfileRow = {
       funding_source: 'Crowdfunding',
-      current_qualification: 'Some qualification we retired',
-      tuition_budget_usd: '£40,000',
+      // Written by the old /onboarding forms into the same column. There is no
+      // defensible reading of it as a number, so it must not become one.
+      budget_range: '$15k-25k',
     };
 
     const values = reflectionFromProfile(profile);
     expect(values.fundingSource).toBeUndefined();
-    expect(values.highestEducation).toBeUndefined();
-    expect(values.tuitionBudgetUsd).toBeUndefined();
+    expect(values.tuitionBudget).toBeUndefined();
+  });
+
+  it('carries the older single motivation answer through untouched', () => {
+    // Splitting the question per subject must not look, to a student who
+    // answered the one-box version, like we lost what they wrote — and which
+    // subject they meant is not ours to guess.
+    const values = reflectionFromProfile({
+      study_motivation: 'I have wanted to build things since I was twelve.',
+    });
+
+    expect(values.studyMotivation).toBe('I have wanted to build things since I was twelve.');
+    expect(values.subjectMotivations).toBeUndefined();
+  });
+
+  it('reads the per-subject motivations and which one is primary', () => {
+    const values = reflectionFromProfile({
+      subject_motivations: {
+        'computer-science': 'I like building things people use.',
+        economics: 'I want to understand why markets fail.',
+        __primary: 'economics',
+      },
+    });
+
+    expect(values.subjectMotivations).toEqual({
+      'computer-science': 'I like building things people use.',
+      economics: 'I want to understand why markets fail.',
+    });
+    expect(values.primaryMotivationSubject).toBe('economics');
+  });
+
+  it('ignores a primary that names a subject with no answer', () => {
+    // It would put the form on an empty box and write an empty
+    // `study_motivation` back on the next save.
+    const values = reflectionFromProfile({
+      subject_motivations: { economics: 'Markets.', __primary: 'physics' },
+    });
+
+    expect(values.primaryMotivationSubject).toBeUndefined();
+  });
+
+  it('surfaces an unrecognised qualification as Other rather than dropping it', () => {
+    // Education is the one option set with a free-text escape hatch, so it
+    // behaves differently on purpose — and better. The rule above exists so a
+    // student is never left with "an empty select that nevertheless fails
+    // validation, with nothing on screen to correct"; here the old value IS on
+    // screen, in the Other field, where they can fix or keep it. Dropping it
+    // would silently delete a qualification they had already given us.
+    const values = reflectionFromProfile({
+      current_qualification: 'Some qualification we retired',
+    });
+    expect(values.highestEducation).toBe('Other');
+    expect(values.otherEducation).toBe('Some qualification we retired');
   });
 
   it('treats blank strings in the profile as unanswered', () => {
@@ -121,11 +178,10 @@ describe('profileUpdateFromReflection', () => {
       gpa: '8.7 / 10',
       ielts: '7.0',
       majors: ['Economics', 'Finance'],
-      countries: ['United Kingdom'],
+      countries: ['GB'],
       intendedLevel: INTENDED_LEVELS[1],
-      fundingSource: FUNDING_SOURCES[1],
-      budgetRange: '100000000-200000000',
-      tuitionBudgetUsd: TUITION_BUDGETS_USD[2],
+      fundingSource: FUNDING_SOURCE_CATALOG[1]!.id,
+      tuitionBudget: { currency: 'GBP', min: 15_000, max: 40_000 },
       achievements: [],
       activities: [],
     };
@@ -134,6 +190,68 @@ describe('profileUpdateFromReflection', () => {
     const back = reflectionFromProfile(update as ReflectionProfileRow);
 
     expect(back).toEqual(values);
+  });
+
+  it('mirrors the primary subject’s motivation into study_motivation', () => {
+    // That column is a single string and is what the portrait and the
+    // matching prompt read — the map is new, and nothing downstream knows
+    // about it.
+    const update = profileUpdateFromReflection({
+      ...EMPTY,
+      subjectMotivations: { 'computer-science': 'Building things.', economics: 'Markets.' },
+      primaryMotivationSubject: 'economics',
+    });
+
+    expect(update['study_motivation']).toBe('Markets.');
+    expect(update['subject_motivations']).toEqual({
+      'computer-science': 'Building things.',
+      economics: 'Markets.',
+      __primary: 'economics',
+    });
+  });
+
+  it('falls back to the first answered subject when none is primary', () => {
+    const update = profileUpdateFromReflection({
+      ...EMPTY,
+      subjectMotivations: { 'computer-science': 'Building things.', economics: 'Markets.' },
+    });
+
+    expect(update['study_motivation']).toBe('Building things.');
+  });
+
+  it('keeps the older single answer when no subject has been answered', () => {
+    // Upgrading the form must never blank a column the reports already read.
+    const update = profileUpdateFromReflection({
+      ...EMPTY,
+      studyMotivation: 'I have wanted to build things since I was twelve.',
+    });
+
+    expect(update['study_motivation']).toBe('I have wanted to build things since I was twelve.');
+    expect(update['subject_motivations']).toBeNull();
+  });
+
+  it('derives the legacy USD band from the structured budget', () => {
+    // Nothing asks for the band any more, but `candidate-context.ts` and the
+    // matching prompt still read the column.
+    const update = profileUpdateFromReflection({
+      ...EMPTY,
+      tuitionBudget: { currency: 'GBP', min: 15_000, max: 20_000 },
+    });
+
+    // ~$19,000–$25,300, which straddles two bands and lands in the one it
+    // covers most of.
+    expect(update['tuition_budget_usd']).toBe('$20,000 - $30,000');
+    expect(update['budget_range']).toBe('GBP:15000-20000');
+  });
+
+  it('reads an open-ended budget as the top band', () => {
+    const update = profileUpdateFromReflection({
+      ...EMPTY,
+      tuitionBudget: { currency: 'USD', min: 60_000, max: null },
+    });
+
+    expect(update['tuition_budget_usd']).toBe('Over $50,000');
+    expect(update['budget_range']).toBe('USD:60000-');
   });
 });
 
@@ -149,9 +267,11 @@ describe('reflectionCompleteness', () => {
         majors: ['Design'],
         countries: ['Japan'],
         intendedLevel: INTENDED_LEVELS[0],
-        fundingSource: FUNDING_SOURCES[0],
-        budgetRange: '1-2',
-        tuitionBudgetUsd: TUITION_BUDGETS_USD[0],
+        fundingSource: FUNDING_SOURCE_CATALOG[0]!.id,
+        tuitionBudget: { currency: 'GBP', min: 15_000, max: 40_000 },
+        careerGoal: 'Product design in healthcare',
+        studyMotivation: 'I want to make hospital software less hostile.',
+        intake: { type: 'undecided' },
         achievements: [{ category: 'academic_award', title: 'Olympiad' }],
         activities: [{ category: 'leadership', title: 'Student council' }],
       }),
@@ -204,5 +324,51 @@ describe('schemas', () => {
     expect(achievementSchema.safeParse({ category: 'sports', title: 'Marathon' }).success).toBe(
       false,
     );
+  });
+});
+
+describe('education "Other" round-trips through one column', () => {
+  it('stores what the student typed, not the word "Other"', () => {
+    // The portrait reads this column. Storing the literal placeholder would
+    // put "Other" into a report as if it were the qualification.
+    const update = profileUpdateFromReflection({
+      ...EMPTY,
+      highestEducation: 'Other',
+      otherEducation: 'Diplôme d’ingénieur',
+    });
+    expect(update['current_qualification']).toBe('Diplôme d’ingénieur');
+  });
+
+  it('reads a free-text qualification back as Other plus its text', () => {
+    const values = reflectionFromProfile({ current_qualification: 'Diplôme d’ingénieur' });
+    expect(values.highestEducation).toBe('Other');
+    expect(values.otherEducation).toBe('Diplôme d’ingénieur');
+  });
+
+  it('still round-trips a listed level with no stray Other text', () => {
+    const update = profileUpdateFromReflection({
+      ...EMPTY,
+      highestEducation: EDUCATION_LEVELS[0],
+    });
+    const back = reflectionFromProfile(update as ReflectionProfileRow);
+    expect(back.highestEducation).toBe(EDUCATION_LEVELS[0]);
+    expect(back.otherEducation).toBeUndefined();
+  });
+
+  it('treats "Other" with nothing typed as unanswered', () => {
+    // Otherwise the column stores a placeholder that reads back as a real
+    // qualification called "Other".
+    const update = profileUpdateFromReflection({ ...EMPTY, highestEducation: 'Other' });
+    expect(update['current_qualification']).toBeNull();
+    expect(reflectionFromProfile(update as ReflectionProfileRow).highestEducation).toBeUndefined();
+  });
+});
+
+describe('EDUCATION_LEVEL_META', () => {
+  it('gives every level an icon and a hint', () => {
+    for (const level of EDUCATION_LEVELS) {
+      expect(EDUCATION_LEVEL_META[level]?.icon, level).toBeTruthy();
+      expect(EDUCATION_LEVEL_META[level]?.hint, level).toBeTruthy();
+    }
   });
 });

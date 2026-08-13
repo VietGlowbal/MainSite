@@ -7,17 +7,51 @@ import type { OnboardingState } from '../domain';
  * for what each one means and why this replaced the original
  * "has at least one achievement or activity" proxy.
  */
+/**
+ * `student_profiles.confirmed_at` reads with a fallback to the two
+ * pre-existing columns alone.
+ *
+ * PostgREST fails the WHOLE select on one unknown column, so — same as every
+ * other tolerant read this project has needed for a column shipped ahead of
+ * its migration (see `loadProfile` in `reflection/page.tsx`) — selecting it
+ * unconditionally would silently break `personalSummaryComplete` and
+ * `achievementsComplete` for every student until
+ * `supabase-candidate-confirmation.sql` has run, not just the new step.
+ */
+async function selectProfileFlags(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<{
+  personal_summary_completed_at?: string | null;
+  achievements_completed_at?: string | null;
+  confirmed_at?: string | null;
+} | null> {
+  const full = await supabase
+    .from('student_profiles')
+    .select('personal_summary_completed_at, achievements_completed_at, confirmed_at')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (!full.error) return full.data;
+
+  console.warn(
+    '[onboarding-status] could not read confirmed_at — run supabase-candidate-confirmation.sql. Reading the rest.',
+    full.error.message,
+  );
+  const base = await supabase
+    .from('student_profiles')
+    .select('personal_summary_completed_at, achievements_completed_at')
+    .eq('user_id', userId)
+    .maybeSingle();
+  return base.data;
+}
+
 export async function fetchOnboardingState(
   supabase: SupabaseClient,
   userId: string,
   applicationId: string,
 ): Promise<OnboardingState> {
   const [profile, analysis, matchAnalysis, application, strategyRecommendation] = await Promise.all([
-    supabase
-      .from('student_profiles')
-      .select('personal_summary_completed_at, achievements_completed_at')
-      .eq('user_id', userId)
-      .maybeSingle(),
+    selectProfileFlags(supabase, userId),
     supabase
       .from('applicant_analyses')
       .select('id')
@@ -50,8 +84,9 @@ export async function fetchOnboardingState(
   ]);
 
   return {
-    personalSummaryComplete: Boolean(profile.data?.personal_summary_completed_at),
-    achievementsComplete: Boolean(profile.data?.achievements_completed_at),
+    personalSummaryComplete: Boolean(profile?.personal_summary_completed_at),
+    achievementsComplete: Boolean(profile?.achievements_completed_at),
+    candidateConfirmed: Boolean(profile?.confirmed_at),
     aiAnalysisComplete: Boolean(analysis.data) && Boolean(matchAnalysis.data),
     introSeen: Boolean(application.data?.strategy_intro_seen_at),
     strategyComplete: Boolean(strategyRecommendation.data),

@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import {
-  CONTENT_BLOCK_TYPES,
   type ContentBlock,
   type ContentBlockValue,
   type ImprovementAction,
@@ -161,6 +160,26 @@ const contentValueSchema = z.discriminatedUnion('type', [
 ]);
 
 /**
+ * What `content_schema` may hold — mirrors `normalizeContentBlock` in
+ * `src/lib/ai/match-insights.ts`, which guarantees a freshly-generated block
+ * always has a non-empty `columns`/`items`. `parseContentBlock` below is what
+ * enforces that guarantee still holds on the way back OUT of the database —
+ * see its doc comment on why checking only `type` was not enough.
+ */
+const contentBlockColumnSchema = z.object({
+  key: z.string().min(1),
+  label: z.string().min(1),
+  type: z.enum(['text', 'number', 'date', 'select']),
+  options: z.array(z.string()).optional(),
+});
+
+const contentBlockSchema = z.discriminatedUnion('type', [
+  z.object({ type: z.literal('structured_table'), columns: z.array(contentBlockColumnSchema).min(1) }),
+  z.object({ type: z.literal('long_text'), prompt: z.string().min(1), minWords: z.number().optional() }),
+  z.object({ type: z.literal('checklist'), items: z.array(z.string().min(1)).min(1) }),
+]);
+
+/**
  * What `PATCH .../recommendations/[recId]` accepts.
  *
  * All three fields optional, at least one required — the board sends a
@@ -206,26 +225,34 @@ export function nextPriority(recommendations: readonly Recommendation[]): Recomm
 }
 
 /**
- * Defensively reads a `content_schema`/`content_value` JSONB column back into
- * its typed shape. Trusts nothing about the stored JSON beyond its own
- * `type` discriminant matching one of `CONTENT_BLOCK_TYPES` — a row written
- * by a future/different shape (or corrupted by hand in the SQL editor)
- * degrades to `null` (no content block) rather than throwing and taking the
- * whole detail page down with it.
+ * Defensively reads a `content_schema` JSONB column back into its typed
+ * shape, via `contentBlockSchema` (the same validation `content_value`
+ * already got from `recommendationPatchSchema`).
+ *
+ * ⚠️ USED TO ONLY CHECK THE `type` DISCRIMINANT, not the rest of the shape —
+ * a row whose `columns`/`items` were missing or empty (a row written before
+ * `normalizeContentBlock`'s guarantees existed, or hand-edited in the SQL
+ * editor) passed straight through as a real `ContentBlock`, and
+ * `StructuredTableInput`/`ChecklistInput` then called `.map()` on the
+ * missing array and crashed the whole detail page — reported live 12/08 as
+ * "each of the planner tasks... don't load up". Full-shape validation is
+ * what the doc comment always claimed to do; now it actually does it, and a
+ * malformed row degrades to `null` (no content block, same as a task that
+ * finishes elsewhere) instead of taking the page down.
  */
 function parseContentBlock(raw: unknown): ContentBlock | null {
-  if (raw === null || typeof raw !== 'object') return null;
-  const r = raw as Record<string, unknown>;
-  if (!CONTENT_BLOCK_TYPES.includes(r.type as ContentBlock['type'])) return null;
-  return r as unknown as ContentBlock;
+  const parsed = contentBlockSchema.safeParse(raw);
+  // zod's `.optional()` types the field as `T | undefined`, present-but-undefined
+  // included; `ContentBlockColumn`/`ContentBlock`'s `exactOptionalPropertyTypes`
+  // only allow the field to be absent. The cast is safe: `safeParse` already
+  // guarantees the runtime shape, this only reconciles the two type styles.
+  return parsed.success ? (parsed.data as ContentBlock) : null;
 }
 
-/** Same defensiveness as `parseContentBlock`, for the student-authored value column. */
+/** Same discipline as `parseContentBlock`, for the student-authored value column. */
 function parseContentBlockValue(raw: unknown): ContentBlockValue | null {
-  if (raw === null || typeof raw !== 'object') return null;
-  const r = raw as Record<string, unknown>;
-  if (!CONTENT_BLOCK_TYPES.includes(r.type as ContentBlockValue['type'])) return null;
-  return r as unknown as ContentBlockValue;
+  const parsed = contentValueSchema.safeParse(raw);
+  return parsed.success ? (parsed.data as ContentBlockValue) : null;
 }
 
 /** The `application_recommendations` API/DB row shape (snake_case) → `Recommendation`. */
@@ -331,7 +358,7 @@ export function recommendationFromImprovementAction(
   };
 }
 
-/** The slice of an existing DB row `reconcileRecommendations` needs to match against. */
+/** The slice of an existing DB row `reconcileRecommendations`/`reconcileSeeds` needs to match against. */
 export type ExistingRecommendation = {
   id: string;
   pillar: PillarKey | null;
@@ -350,32 +377,65 @@ export type ReconcilePlan = {
   toArchiveIds: string[];
 };
 
+function updateFields(seed: RecommendationSeed): Omit<RecommendationSeed, 'applicationId'> {
+  return {
+    category: seed.category,
+    pillar: seed.pillar,
+    title: seed.title,
+    reason: seed.reason,
+    priority: seed.priority,
+    estimatedImpact: seed.estimatedImpact,
+    estimatedEffort: seed.estimatedEffort,
+    deadline: seed.deadline,
+    evidenceRequired: seed.evidenceRequired,
+    relatedRequirement: seed.relatedRequirement,
+    actionLabel: seed.actionLabel,
+    actionType: seed.actionType,
+    actionTarget: seed.actionTarget,
+    // Refreshes with the rest of the AI-authored fields. `contentValue`
+    // is deliberately absent here, same as `status` below — it's the
+    // student's own answer, not something a regenerate may overwrite.
+    // If a new `contentSchema`'s shape has moved on from what the
+    // student already filled in, the content-block components render
+    // whatever still matches and drop the rest; see `parseContentBlockValue`.
+    contentSchema: seed.contentSchema,
+    submitChecklist: seed.submitChecklist,
+    tips: seed.tips,
+    suggestedQuestions: seed.suggestedQuestions,
+    sourceAnalysisId: seed.sourceAnalysisId,
+  };
+}
+
 /**
- * Matches the latest analysis's actions against a Strategy's existing
- * recommendations and decides what to insert, update, or retire — the
- * regeneration logic Requirement 10 needs and the original title-only dedup
- * in `generateRecommendations` didn't have.
+ * Matches a fresh batch of seeds against a Strategy's existing recommendations
+ * and decides what to insert, update, or retire — the regeneration logic
+ * Requirement 10 needs and the original title-only dedup in
+ * `generateRecommendations` didn't have. Shared by every seed source
+ * (`recommendationFromImprovementAction`'s F5 actions, `recommendationsFromRoadmap`'s
+ * F7 roadmap) — reconciling is the same problem regardless of what produced
+ * the seed.
  *
- * MATCH KEY IS (pillar, title), NOT id. Nothing about an `ImprovementAction`
- * is stable across two separate AI calls — a "new" action for the same
- * underlying weakness is, from the caller's side, indistinguishable from a
- * genuinely new one except by what it says. Pillar narrows the match to the
- * right category before comparing titles, which is enough in practice
- * because the model is prompted for one action per weakness per pillar, not
- * a free-form list that could restate the same idea two different ways.
+ * MATCH KEY IS (pillar, title), NOT id. Nothing about an AI-authored seed is
+ * stable across two separate calls — a "new" item for the same underlying
+ * idea is, from the caller's side, indistinguishable from a genuinely new one
+ * except by what it says. Pillar narrows the match before comparing titles,
+ * which is enough in practice because each source is prompted for one item
+ * per distinct thing, not a free-form list that could restate the same idea
+ * two different ways.
  *
- * A completed recommendation that's still represented in the new analysis
- * is left completely untouched — no field on it changes, matching
- * "preserve user progress" and "don't silently recreate completed work".
- * One that's NO LONGER represented is archived (not deleted) regardless of
- * status, because it is no longer what the AI is currently recommending;
- * archiving keeps the record rather than erasing it.
+ * A completed recommendation that's still represented in the new batch is
+ * left completely untouched — no field on it changes, matching "preserve
+ * user progress" and "don't silently recreate completed work". One that's NO
+ * LONGER represented is archived (not deleted) regardless of status, because
+ * it is no longer what the source is currently recommending; archiving keeps
+ * the record rather than erasing it.
+ *
+ * Callers scope `existing` to their own source before calling this (e.g. by
+ * category), so one source's regenerate never archives another's rows.
  */
-export function reconcileRecommendations(
-  applicationId: string,
+export function reconcileSeeds(
   existing: readonly ExistingRecommendation[],
-  actions: readonly ImprovementAction[],
-  sourceAnalysisId: string,
+  seeds: readonly RecommendationSeed[],
 ): ReconcilePlan {
   const key = (pillar: PillarKey | null, title: string) => `${pillar ?? ''}::${title}`;
 
@@ -386,9 +446,8 @@ export function reconcileRecommendations(
   const toInsert: RecommendationSeed[] = [];
   const toUpdate: RecommendationUpdate[] = [];
 
-  for (const action of actions) {
-    const match = existingByKey.get(key(action.pillar, action.label));
-    const seed = recommendationFromImprovementAction(applicationId, action, sourceAnalysisId);
+  for (const seed of seeds) {
+    const match = existingByKey.get(key(seed.pillar, seed.title));
 
     if (!match) {
       toInsert.push(seed);
@@ -398,38 +457,82 @@ export function reconcileRecommendations(
     matchedIds.add(match.id);
     if (match.status === 'completed') continue; // preserve, untouched
 
-    toUpdate.push({
-      id: match.id,
-      fields: {
-        category: seed.category,
-        pillar: seed.pillar,
-        title: seed.title,
-        reason: seed.reason,
-        priority: seed.priority,
-        estimatedImpact: seed.estimatedImpact,
-        estimatedEffort: seed.estimatedEffort,
-        deadline: seed.deadline,
-        evidenceRequired: seed.evidenceRequired,
-        relatedRequirement: seed.relatedRequirement,
-        actionLabel: seed.actionLabel,
-        actionType: seed.actionType,
-        actionTarget: seed.actionTarget,
-        // Refreshes with the rest of the AI-authored fields. `contentValue`
-        // is deliberately absent here, same as `status` above it — it's the
-        // student's own answer, not something a regenerate may overwrite.
-        // If a new `contentSchema`'s shape has moved on from what the
-        // student already filled in, the content-block components render
-        // whatever still matches and drop the rest; see `parseContentBlockValue`.
-        contentSchema: seed.contentSchema,
-        submitChecklist: seed.submitChecklist,
-        tips: seed.tips,
-        suggestedQuestions: seed.suggestedQuestions,
-        sourceAnalysisId: seed.sourceAnalysisId,
-      },
-    });
+    toUpdate.push({ id: match.id, fields: updateFields(seed) });
   }
 
   const toArchiveIds = existing.filter((rec) => !matchedIds.has(rec.id)).map((rec) => rec.id);
 
   return { toInsert, toUpdate, toArchiveIds };
+}
+
+/** `reconcileSeeds`, specialised to F5 Course Match Analysis actions. */
+export function reconcileRecommendations(
+  applicationId: string,
+  existing: readonly ExistingRecommendation[],
+  actions: readonly ImprovementAction[],
+  sourceAnalysisId: string,
+): ReconcilePlan {
+  const seeds = actions.map((action) =>
+    recommendationFromImprovementAction(applicationId, action, sourceAnalysisId),
+  );
+  return reconcileSeeds(existing, seeds);
+}
+
+/**
+ * F7's Execution Roadmap (`StrategyRoadmap.prioritize`/`.avoid`), turned into
+ * Planner tasks — the "generate Planner tasks from this strategy report"
+ * button on `strategy-recommendation-report.tsx`.
+ *
+ * NO SECOND AI CALL, same reasoning as `recommendationFromImprovementAction`:
+ * the F7 model call already produced the roadmap; this is a deterministic
+ * reshaping, not a new generation. `prioritize` items become the actionable
+ * tasks (`priority: 'high'` — they're literally what the report says to do
+ * first); `avoid` items become low-priority reminders, prefixed so a student
+ * scanning the Planner can tell the two apart at a glance. Everything lives
+ * under the `strategy-roadmap` category (`pillar: null` — a roadmap item
+ * reasons across the whole strategy, not one pillar), which is what keeps
+ * `reconcileSeeds` from touching the F5-sourced rows sitting in the same
+ * table.
+ */
+export function recommendationsFromRoadmap(
+  applicationId: string,
+  roadmap: { why: string; prioritize: readonly string[]; avoid: readonly string[] },
+): RecommendationSeed[] {
+  const base = {
+    applicationId,
+    category: 'strategy-roadmap',
+    pillar: null as PillarKey | null,
+    estimatedImpact: null,
+    estimatedEffort: null,
+    deadline: null,
+    evidenceRequired: false,
+    relatedRequirement: null,
+    actionLabel: null,
+    actionType: null,
+    actionTarget: null,
+    contentSchema: null,
+    submitChecklist: [] as string[],
+    tips: [] as string[],
+    suggestedQuestions: [] as string[],
+    sourceAnalysisId: null,
+  };
+
+  return [
+    ...roadmap.prioritize.map(
+      (item): RecommendationSeed => ({
+        ...base,
+        title: item,
+        reason: roadmap.why,
+        priority: 'high',
+      }),
+    ),
+    ...roadmap.avoid.map(
+      (item): RecommendationSeed => ({
+        ...base,
+        title: `Avoid: ${item}`,
+        reason: roadmap.why,
+        priority: 'low',
+      }),
+    ),
+  ];
 }

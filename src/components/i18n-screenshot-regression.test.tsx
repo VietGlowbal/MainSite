@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { StrategyHome } from '@/features/ai-strategy-dashboard/ui/strategy-home';
 import { StateBlock } from '@/features/application-strategy/ui/states';
 import { LanguageProvider, T, useLanguage } from '@/lib/i18n';
-import { StartCard } from '@/app/apply/[applicationId]/(features)/cv/page';
+import { StartCard } from '@/components/cv/CvStartFlow';
 
 function Vietnamese({ children }: { children: ReactNode }) {
   const { setLang } = useLanguage();

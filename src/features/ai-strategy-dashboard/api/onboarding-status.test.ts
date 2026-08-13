@@ -11,18 +11,25 @@ import { fetchOnboardingState } from './onboarding-status';
 function buildSupabase(options: {
   personalSummaryCompletedAt?: string | null;
   achievementsCompletedAt?: string | null;
+  confirmedAt?: string | null;
+  /** Simulates `supabase-candidate-confirmation.sql` not having run yet. */
+  confirmedAtColumnMissing?: boolean;
   hasApplicantAnalysis?: boolean;
   hasCompleteMatchAnalysis?: boolean;
   introSeenAt?: string | null;
   hasStrategyRecommendation?: boolean;
 }) {
-  function resolve(table: string) {
+  function resolve(table: string, selected: string) {
     switch (table) {
       case 'student_profiles':
+        if (options.confirmedAtColumnMissing && selected.includes('confirmed_at')) {
+          return { data: null, error: { code: '42703', message: 'column "confirmed_at" does not exist' } };
+        }
         return {
           data: {
             personal_summary_completed_at: options.personalSummaryCompletedAt ?? null,
             achievements_completed_at: options.achievementsCompletedAt ?? null,
+            ...(selected.includes('confirmed_at') ? { confirmed_at: options.confirmedAt ?? null } : {}),
           },
           error: null,
         };
@@ -43,12 +50,17 @@ function buildSupabase(options: {
   }
 
   function makeBuilder(table: string) {
+    let selected = '';
     const builder: Record<string, unknown> = {
-      select: () => builder,
+      select: (columns: string) => {
+        selected = columns;
+        return builder;
+      },
       eq: () => builder,
       limit: () => builder,
-      maybeSingle: async () => resolve(table),
-      then: (onFulfilled: (v: unknown) => unknown) => Promise.resolve(resolve(table)).then(onFulfilled),
+      maybeSingle: async () => resolve(table, selected),
+      then: (onFulfilled: (v: unknown) => unknown) =>
+        Promise.resolve(resolve(table, selected)).then(onFulfilled),
     };
     return builder;
   }
@@ -75,10 +87,11 @@ describe('fetchOnboardingState', () => {
     expect(state.aiAnalysisComplete).toBe(true);
   });
 
-  it('reads the other four flags independently of the analysis gate', async () => {
+  it('reads the other five flags independently of the analysis gate', async () => {
     const supabase = buildSupabase({
       personalSummaryCompletedAt: '2026-01-01T00:00:00Z',
       achievementsCompletedAt: '2026-01-01T00:00:00Z',
+      confirmedAt: '2026-01-01T12:00:00Z',
       hasApplicantAnalysis: true,
       hasCompleteMatchAnalysis: true,
       introSeenAt: '2026-01-02T00:00:00Z',
@@ -88,6 +101,7 @@ describe('fetchOnboardingState', () => {
     expect(state).toEqual({
       personalSummaryComplete: true,
       achievementsComplete: true,
+      candidateConfirmed: true,
       aiAnalysisComplete: true,
       introSeen: true,
       strategyComplete: true,
@@ -100,9 +114,22 @@ describe('fetchOnboardingState', () => {
     expect(state).toEqual({
       personalSummaryComplete: false,
       achievementsComplete: false,
+      candidateConfirmed: false,
       aiAnalysisComplete: false,
       introSeen: false,
       strategyComplete: false,
     });
+  });
+
+  it('falls back to the two pre-existing flags when confirmed_at is not migrated yet, rather than failing the whole read', async () => {
+    const supabase = buildSupabase({
+      personalSummaryCompletedAt: '2026-01-01T00:00:00Z',
+      achievementsCompletedAt: '2026-01-01T00:00:00Z',
+      confirmedAtColumnMissing: true,
+    });
+    const state = await fetchOnboardingState(supabase as never, 'user-1', 'app-1');
+    expect(state.personalSummaryComplete).toBe(true);
+    expect(state.achievementsComplete).toBe(true);
+    expect(state.candidateConfirmed).toBe(false);
   });
 });

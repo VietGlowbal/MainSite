@@ -33,6 +33,7 @@ import {
   type CvDisplaySectionKey,
   type CvSectionTitleKey,
   type CvTargetProfileV1,
+  type CvPublicTemplateId,
   type CvTemplateId,
   type GeneratedCvV1,
 } from '@/lib/ai/cv-builder';
@@ -52,7 +53,7 @@ type AnyStreamEvent =
       timing: { totalMs: number };
     };
 
-const steps = ['Target Profile', 'Content', 'CV Draft', 'Layout & PDF'];
+const steps = ['Target Profile', 'Content', 'CV Draft'];
 const inputClass =
   'w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-50';
 const cvSectionOrder: CvDisplaySectionKey[] = [
@@ -154,7 +155,7 @@ function WorkflowProgress({
   const t = useT();
   return (
     <nav aria-label={t('CV creation progress')} className="mx-auto w-full max-w-4xl print:hidden">
-      <ol className="grid grid-cols-4">
+      <ol className="grid grid-cols-3">
         {steps.map((label, index) => (
           <li key={label} className="relative">
             {index < steps.length - 1 && (
@@ -1325,12 +1326,14 @@ export function CvBuilderWorkspace({
   universityName,
   programmeName,
   prefill,
+  initialTemplate = 'academic',
 }: {
   applicationId: string;
   userId: string;
   universityName: string;
   programmeName: string;
   prefill: CvBuilderFormV1;
+  initialTemplate?: CvPublicTemplateId;
 }) {
   const t = useT();
   const storageKey = cvBuilderDraftKey(userId, applicationId);
@@ -1340,7 +1343,7 @@ export function CvBuilderWorkspace({
   const [targetProfile, setTargetProfile] = useState<CvTargetProfileV1 | null>(null);
   const [generatedCv, setGeneratedCv] = useState<GeneratedCvV1 | null>(null);
   const [partial, setPartial] = useState<CvBuilderModelEvent[]>([]);
-  const [template, setTemplate] = useState<CvTemplateId>('academic');
+  const template = initialTemplate;
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [missingSections, setMissingSections] = useState<CvBuilderModelEvent['section'][]>([]);
@@ -1368,7 +1371,6 @@ export function CvBuilderWorkspace({
       setForm(restored.form);
       setTargetProfile(restored.targetProfile ?? null);
       setGeneratedCv(restored.generatedCv ?? null);
-      setTemplate(restored.selectedTemplate === 'technical' ? 'technical' : 'academic');
     }
     setHydrated(true);
     return () => controllers.current.forEach((controller) => controller.abort());
@@ -1587,7 +1589,7 @@ export function CvBuilderWorkspace({
       const response = await fetch(`/api/applications/${applicationId}/cv-review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, template }),
         signal: controller.signal,
       });
       if (!response.ok) throw new Error((await response.json()).error ?? 'Could not review the CV.');
@@ -1831,8 +1833,8 @@ export function CvBuilderWorkspace({
           )}
 
           {step === 2 && (
-            <section className="print:hidden">
-              <div className="mb-8">
+            <section className="print:block">
+              <div className="mb-8 print:hidden">
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">{t('CV Draft')}</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight">
                   {generatedCv ? t('Your CV is ready. Review and edit it.') : t('AI is building your CV.')}
@@ -1858,8 +1860,8 @@ export function CvBuilderWorkspace({
                 </div>
               )}
               {generatedCv && (
-                <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-                  <aside className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 xl:sticky xl:top-6">
+                <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)] print:block">
+                  <aside className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 xl:sticky xl:top-6 print:hidden">
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-600">{t('Evidence coverage')}</p>
                     <h2 className="mt-3 text-xl font-semibold">{t('3 strengths')}</h2>
                     <ol className="mt-5 space-y-3">
@@ -1945,12 +1947,17 @@ export function CvBuilderWorkspace({
                         {t('Answer every question and regenerate the CV before running Review.')}
                       </p>
                     )}
-                    <button className="mt-3 w-full rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-100" onClick={() => setStep(3)}>
-                      {t('Choose layout →')}
+                    {tooLong && (
+                      <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+                        {t('The CV may run past two pages. Shorten the introduction or the bullets.')}
+                      </p>
+                    )}
+                    <button className="mt-3 w-full rounded-lg bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-rose-700" onClick={() => window.print()}>
+                      {t('Download PDF / Print CV')}
                     </button>
                   </aside>
-                  <div className="overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-4 sm:p-6">
-                    <div ref={previewRef} className="mx-auto w-fit">
+                  <div className="overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-4 sm:p-6 print:overflow-visible print:border-0 print:bg-white print:p-0">
+                    <div ref={previewRef} className="mx-auto w-fit print:w-full">
                       <CvPaper
                         form={form}
                         cv={generatedCv}
@@ -1973,72 +1980,6 @@ export function CvBuilderWorkspace({
             </section>
           )}
 
-          {step === 3 && generatedCv && (
-            <section className="print:block">
-              <div className="mb-8 print:hidden">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Layout & PDF</p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight">{t('Choose how the CV is presented')}</h2>
-                <p className="mt-2 text-sm text-slate-600">
-                  {t('Both layouts use the same content; you can switch templates before downloading the PDF.')}
-                </p>
-              </div>
-              <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)] print:block">
-              <aside className="rounded-2xl border border-slate-200 bg-white p-5 xl:sticky xl:top-6 print:hidden">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-600">Select layout</p>
-                <div className="mt-5 space-y-3">
-                  {(
-                    [
-                      ['academic', 'Harvard', 'Black and white, single column, ATS-optimized.'],
-                      ['technical', 'AACC', 'Light rose–slate, emphasizes personal character.'],
-                    ] as const
-                  ).map(([id, name, description]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      aria-pressed={template === id}
-                      className={`w-full rounded-xl border p-4 text-left transition ${
-                        template === id
-                          ? 'border-rose-400 bg-rose-50'
-                          : 'border-slate-200 bg-white hover:border-rose-200'
-                      }`}
-                      onClick={() => setTemplate(id)}
-                    >
-                      <strong className="block">{name}</strong>
-                      <span className="mt-1 block text-xs leading-5 text-slate-500">
-                        {t(description)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-5 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-                  {t('AI suggests: {rationale}', { rationale: generatedCv.layout.rationale })}
-                </p>
-                {tooLong && (
-                  <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
-                    {t('The CV may run past two pages. Shorten the introduction or the bullets.')}
-                  </p>
-                )}
-                <button
-                  className="mt-5 w-full rounded-lg bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-rose-700"
-                  onClick={() => window.print()}
-                >
-                  {t('Download PDF / Print CV')}
-                </button>
-              </aside>
-              <div className="overflow-auto rounded-2xl bg-slate-100 p-4 sm:p-6 print:overflow-visible print:bg-white print:p-0">
-                <div className="mx-auto w-fit print:w-full">
-                  <CvPaper
-                    form={form}
-                    cv={generatedCv}
-                    template={template}
-                    onFormChange={editForm}
-                    onCvChange={editGenerated}
-                  />
-                </div>
-              </div>
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </main>

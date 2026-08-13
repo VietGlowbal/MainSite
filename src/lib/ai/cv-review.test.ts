@@ -179,6 +179,7 @@ describe('CV review streaming evaluation', () => {
 
     for await (const event of streamCvReview({
       cvText,
+      template: 'technical',
       targetProfile: {
         universityName: 'VinUniversity',
         programmeName: 'BSc Computer Science',
@@ -217,6 +218,7 @@ describe('CV review streaming evaluation', () => {
 
     for await (const event of streamCvReview({
       cvText,
+      template: 'technical',
       targetProfile: {
         universityName: 'VinUniversity',
         programmeName: 'BSc Computer Science',
@@ -248,6 +250,9 @@ describe('CV review streaming evaluation', () => {
         expect.stringContaining('summary'),
         expect.stringContaining('cv_section:education'),
       ]),
+    );
+    expect(vi.mocked(stream).mock.calls[0][0].messages[1].content).toContain(
+      '"cvFormat":{"id":"aacc"',
     );
     expect(vi.mocked(stream).mock.calls[0][0].messages[0].content).toContain(
       'ALL response content must be in English',

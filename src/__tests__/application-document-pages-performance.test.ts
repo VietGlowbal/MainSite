@@ -73,23 +73,28 @@ describe('application document page data loading', () => {
     expect(mocks.fetchWorkspace).not.toHaveBeenCalled();
   });
 
-  it('redirects the legacy CV review route to the redesigned workspace', async () => {
-    mocks.redirect.mockImplementationOnce(() => {
-      throw new Error('NEXT_REDIRECT');
+  it('loads the upload CV review with the selected format and narrow context', async () => {
+    const result = await CvReviewPage({
+      params: Promise.resolve({ applicationId: 'app-1' }),
+      searchParams: Promise.resolve({ template: 'technical' }),
     });
 
-    await expect(
-      CvReviewPage({ params: Promise.resolve({ applicationId: 'app-1' }) }),
-    ).rejects.toThrow('NEXT_REDIRECT');
-
-    expect(mocks.redirect).toHaveBeenCalledWith('/ai-strategy/app-1/cv/review');
-    expect(mocks.getContext).not.toHaveBeenCalled();
+    expect(mocks.getContext).toHaveBeenCalledWith('app-1', 'user-1');
+    expect(mocks.fetchWorkspace).not.toHaveBeenCalled();
+    expect(result).toMatchObject({
+      props: {
+        applicationId: 'app-1',
+        targetName: 'Computer Science · Oxford',
+        template: 'technical',
+      },
+    });
   });
 
-  it('links the CV hub review choice directly to the redesigned workspace', () => {
+  it('makes the CV hub choose a format before either build or review', () => {
     const hub = readFileSync('src/app/apply/[applicationId]/(features)/cv/page.tsx', 'utf8');
 
-    expect(hub).toContain('`/ai-strategy/${applicationId}/cv/review`');
+    expect(hub).toContain('<CvStartFlow applicationId={applicationId} />');
+    expect(hub).not.toContain('const reviewHref');
   });
 
   it('reuses the request-scoped identity in the feature layout and navigation', () => {

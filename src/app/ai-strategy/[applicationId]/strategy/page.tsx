@@ -1,23 +1,31 @@
 import { redirect } from 'next/navigation';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
-import { isOnboardingComplete, nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
+import { onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { StrategyHome } from '@/features/ai-strategy-dashboard/ui';
 import { createClient } from '@/lib/supabase/server';
 
 /**
  * `/ai-strategy/[applicationId]/strategy` — Stage 1, Strategy Home
- * (requirements.md Requirement 2), and the router for the whole onboarding
- * pass.
+ * (requirements.md Requirement 2), and the front door for every application.
  *
  * Ownership of `applicationId` is already enforced by the layout above this
- * page. `fetchOnboardingState` + `nextOnboardingStep` decide what happens
- * next, per Requirement 1.2-1.3:
+ * page. `fetchOnboardingState` decides what happens next:
  *  - This application's AI analysis (Personal Report + Matching Report)
  *    hasn't run yet → render the marketing page below. Its CTA always opens
  *    the reflection flow, never skips ahead — see the note below.
- *  - Everything done → skip this page entirely and go to the Dashboard,
- *    matching 1.3's "route them directly to the Dashboard" literally
- *    (not "show Strategy Home again, which then links to the Dashboard").
+ *  - It has → the Matching Report is home. See the note below.
+ *
+ * ─── THE MATCHING REPORT IS HOME, NOT A STEP IN A FUNNEL ─────────────────────
+ *
+ * Changed 12/08, per explicit product direction. Before this, once the
+ * analysis existed this page kept computing `nextOnboardingStep` and bouncing
+ * a student onward through intro → strategy → dashboard — so where "Overview"
+ * landed depended on how far the application had gotten, never a stable
+ * place. Now, once the analysis exists, `/strategy/analysis/fit` IS home,
+ * always, for every application, regardless of how far the student has since
+ * gone. Personalized Strategy and the Planner are reached deliberately
+ * through the nav bar (`applicationSubNav()`/`SubNav`), which is also the
+ * only thing that gates them now — this page no longer decides.
  *
  * ─── WHY "aiAnalysisComplete", NOT "personalSummaryComplete" ─────────────────
  *
@@ -73,15 +81,8 @@ export default async function StrategyHomePage({
     fetchOnboardingState(supabase, user.id, applicationId),
   ]);
 
-  if (isOnboardingComplete(state)) {
-    redirect(onboardingStepHref('dashboard', applicationId));
-  }
-
-  const step = nextOnboardingStep(state);
-  const showOverview = !state.aiAnalysisComplete;
-
-  if (!showOverview) {
-    redirect(onboardingStepHref(step, applicationId));
+  if (state.aiAnalysisComplete) {
+    redirect(`/ai-strategy/${applicationId}/strategy/analysis/fit`);
   }
 
   return (

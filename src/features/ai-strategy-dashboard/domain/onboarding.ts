@@ -24,6 +24,12 @@
  *    Matching Report first" error on the strategy page instead of the
  *    correct, earlier "try the analysis again" state — fixed by requiring
  *    both here rather than only the Personal Report.
+ *  - candidateConfirmed — shared across every Strategy, like the two steps
+ *    above: `student_profiles.confirmed_at` is set once the student has
+ *    reviewed everything on Review & Confirm and pressed "Confirm & Generate
+ *    Reports". Sits between `achievementsComplete` and `aiAnalysisComplete`
+ *    — analysis must not run against candidate information the student has
+ *    not explicitly approved, which is the entire point of that checkpoint.
  *  - introSeen — per Strategy: `course_applications.strategy_intro_seen_at`
  *    is set, marked when the Strategy Introduction page is opened.
  *  - strategyComplete — per Strategy: an `application_strategy_recommendations`
@@ -38,6 +44,7 @@
 export type OnboardingState = {
   personalSummaryComplete: boolean;
   achievementsComplete: boolean;
+  candidateConfirmed: boolean;
   aiAnalysisComplete: boolean;
   introSeen: boolean;
   strategyComplete: boolean;
@@ -46,6 +53,7 @@ export type OnboardingState = {
 export type OnboardingStep =
   | 'personal-summary'
   | 'achievements'
+  | 'confirm'
   | 'analysis'
   | 'intro'
   | 'strategy'
@@ -56,6 +64,7 @@ export function isOnboardingComplete(state: OnboardingState): boolean {
   return (
     state.personalSummaryComplete &&
     state.achievementsComplete &&
+    state.candidateConfirmed &&
     state.aiAnalysisComplete &&
     state.introSeen &&
     state.strategyComplete
@@ -73,6 +82,7 @@ export function isOnboardingComplete(state: OnboardingState): boolean {
 export function nextOnboardingStep(state: OnboardingState): OnboardingStep {
   if (!state.personalSummaryComplete) return 'personal-summary';
   if (!state.achievementsComplete) return 'achievements';
+  if (!state.candidateConfirmed) return 'confirm';
   if (!state.aiAnalysisComplete) return 'analysis';
   if (!state.introSeen) return 'intro';
   if (!state.strategyComplete) return 'strategy';
@@ -91,6 +101,8 @@ export function onboardingStepHref(
       return `/ai-strategy/reflection?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
     case 'achievements':
       return `/ai-strategy/reflection/achievements?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
+    case 'confirm':
+      return `/ai-strategy/reflection/confirm?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
     case 'analysis':
       return analysisHref;
     case 'intro':
