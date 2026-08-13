@@ -2,8 +2,14 @@ import { useEffect } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ReflectionAboutForm } from '@/app/ai-strategy/reflection/reflection-about-form';
-import { ABOUT_QUESTIONS } from '@/features/apply/domain';
+import {
+  ABOUT_QUESTIONS,
+  EDUCATION_LEVEL_META,
+  FUNDING_SOURCE_CATALOG,
+  REFLECTION_STEPS,
+} from '@/features/apply/domain';
 import { LanguageProvider, useLanguage } from '@/lib/i18n';
+import { translations } from '@/lib/i18n-dictionary';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn() }),
@@ -119,5 +125,34 @@ describe('Reflection field localization', () => {
         'true',
       );
     });
+  });
+
+  it('translates static copy supplied through reflection catalog variables', async () => {
+    render(
+      <LanguageProvider>
+        <Controls />
+        <ReflectionAboutForm initial={{ majors: [], countries: [] }} />
+      </LanguageProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Trình độ học vấn cao nhất của bạn là gì?')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('radio', { name: 'Hiển thị tất cả câu hỏi' }));
+
+    const staticEnglishCopy = [
+      ...REFLECTION_STEPS.map(({ en }) => en),
+      ...ABOUT_QUESTIONS.flatMap(({ heading, subtitle, section }) => [heading, subtitle, section]),
+      ...Object.values(EDUCATION_LEVEL_META).map(({ hint }) => hint),
+      ...FUNDING_SOURCE_CATALOG.flatMap(({ description }) => [description]),
+      'Advanced study after your undergraduate degree.',
+      'An undergraduate degree, typically lasting 3–4 years.',
+      'Vocational or academic qualifications at college level.',
+    ];
+
+    expect(staticEnglishCopy.filter((source) => translations[source] === undefined)).toEqual([]);
+    for (const source of staticEnglishCopy) {
+      expect(screen.queryByText(source, { exact: true }), source).not.toBeInTheDocument();
+    }
   });
 });

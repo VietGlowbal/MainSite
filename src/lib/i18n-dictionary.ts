@@ -2541,6 +2541,12 @@ export const translations: Record<string, string> = {
   'Master or Post-Graduate Certificate': 'Thạc sĩ hoặc chứng chỉ sau đại học',
   'Bachelor’s Degree': 'Bằng cử nhân',
   'College Diploma / Certificate': 'Bằng cao đẳng / Chứng chỉ',
+  'Advanced study after your undergraduate degree.':
+    'Chương trình học nâng cao sau khi hoàn thành bậc đại học.',
+  'An undergraduate degree, typically lasting 3–4 years.':
+    'Chương trình cử nhân, thường kéo dài từ 3 đến 4 năm.',
+  'Vocational or academic qualifications at college level.':
+    'Bằng cấp nghề hoặc học thuật ở bậc cao đẳng.',
   'Personal savings or parents': 'Tiền tiết kiệm cá nhân hoặc gia đình',
   'Student loan': 'Khoản vay sinh viên',
   'Employer or sponsor': 'Nhà tuyển dụng hoặc đơn vị tài trợ',
@@ -3352,6 +3358,8 @@ export const translations: Record<string, string> = {
   'Add {count} selected items': 'Điền {count} mục đã chọn',
   Skip: 'Bỏ qua',
   'Candidate information': 'Thông tin ứng viên',
+  'Personal and study information': 'Thông tin cá nhân và học tập',
+  'Achievements and activities': 'Thành tích và hoạt động',
   'Finish': 'Hoàn tất',
   'Submit Bug Report': 'Gửi báo cáo lỗi',
   'Page URL is required': 'Vui lòng nhập URL trang',
