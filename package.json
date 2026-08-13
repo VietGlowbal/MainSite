@@ -2,9 +2,13 @@
   "name": "glowbal-v2",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "20.20.x"
+  },
   "scripts": {
     "dev": "node --use-system-ca node_modules/next/dist/bin/next dev",
     "build": "next build",
+    "build:ci": "node scripts/run-ci-build.mjs",
     "start": "node --use-system-ca node_modules/next/dist/bin/next start",
     "lint": "eslint",
     "download:university-images": "node --use-system-ca --env-file=.env.local scripts/download-university-images.mjs",
@@ -17,10 +21,13 @@
     "seed:scholarships:publish": "node --env-file=.env.local scripts/seed-scholarships.mjs --status=published",
     "seed:university-images": "node --env-file=.env.local scripts/seed-university-images.mjs",
     "test": "vitest run",
+    "test:ci": "vitest run --coverage --testTimeout=15000",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
     "typecheck": "tsc --noEmit",
     "typecheck:strict": "tsc -p tsconfig.strict.json",
+    "check:node": "node scripts/check-node-version.mjs",
+    "verify:pr": "node scripts/verify-pr.mjs",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:update": "playwright test --update-snapshots",

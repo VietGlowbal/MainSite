@@ -724,27 +724,40 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
       if (table === 'course_search_session_results') {
         return {
           select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({
-                data: [
-                  {
-                    id: 'row-1',
-                    university_id: 4,
-                    course_name: 'MSc Data Science',
-                    course_url: 'https://uni4.edu/data-science',
-                    source_domain: 'uni4.edu',
-                    snippet: 'Advanced data science program',
-                    degree_level: 'postgraduate',
-                    duration: '1 year',
-                    tuition_fee_text: '£12,000',
-                    confidence_label: 'Good match',
-                    source_confidence: 0.8,
-                    rank: 1,
-                    source_type: 'cached',
-                  },
-                ],
-                error: null,
-              }),
+            eq: vi.fn().mockResolvedValue({
+              data: [
+                {
+                  id: 'row-2',
+                  university_id: 4,
+                  course_name: 'MSc Applied Data Science',
+                  course_url: 'https://uni4.edu/applied-data-science',
+                  source_domain: 'uni4.edu',
+                  snippet: 'Applied data science program',
+                  degree_level: 'postgraduate',
+                  duration: '1 year',
+                  tuition_fee_text: '£13,000',
+                  confidence_label: 'Good match',
+                  source_confidence: 0.75,
+                  rank: 2,
+                  source_type: 'cached',
+                },
+                {
+                  id: 'row-1',
+                  university_id: 4,
+                  course_name: 'MSc Data Science',
+                  course_url: 'https://uni4.edu/data-science',
+                  source_domain: 'uni4.edu',
+                  snippet: 'Advanced data science program',
+                  degree_level: 'postgraduate',
+                  duration: '1 year',
+                  tuition_fee_text: '£12,000',
+                  confidence_label: 'Good match',
+                  source_confidence: 0.8,
+                  rank: 1,
+                  source_type: 'cached',
+                },
+              ],
+              error: null,
             }),
           }),
         };
@@ -764,6 +777,7 @@ describe('POST /api/course-search-sessions - Task 8.7: Response with usage state
     // Assert - Should return updated usage reflecting the completed session
     expect(data.status).toBe('complete');
     expect(data.results.length).toBeGreaterThan(0);
+    expect(data.results.map((result: { id: string }) => result.id)).toEqual(['row-1', 'row-2']);
     expect(data.usage).toEqual({
       courseSearchesUsed: 3, // Should be incremented
       courseSearchLimit: 3,

@@ -1,9 +1,19 @@
 # Verification
 
-Last reconciled with `main` at `de4a7fe` on **2026-08-06**. The latest measured
-results are also summarized in [current-status.md](current-status.md).
+Last measured on branch `fix/feedback-118` at `c7b0a1f` plus the PR #180 CI
+repair on **2026-08-13**. Results are also summarized in
+[current-status.md](current-status.md).
 
-## Gates — run after every page, not at the end of a wave
+## Gates
+
+GitHub Actions runs the full pull-request gate automatically. Local pushes do
+not run it. Use the same aggregate command manually before a PR when needed:
+
+```powershell
+npm.cmd run verify:pr
+```
+
+For targeted iteration, run the relevant individual commands:
 
 ```powershell
 npm.cmd run typecheck
@@ -13,10 +23,8 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Run `npm ci` first on a fresh or suspect checkout. This local `node_modules` was
-out of sync on 2026-08-06: `mammoth` and `@react-pdf/renderer` were present in
-both manifests but not installed. Do not diagnose the resulting import failures
-as product regressions before repairing the install.
+Run `npm ci` first on a fresh or suspect checkout. Do not diagnose missing-module
+errors as product regressions before confirming the install is current.
 
 ⚠️ **`npm run build` is not optional.** A branch that was behind `origin` once
 merged cleanly, passed typecheck, and still failed on Vercel with
@@ -24,19 +32,16 @@ merged cleanly, passed typecheck, and still failed on Vercel with
 the other side's imports. Neither `tsc --noEmit` on the pre-merge tree nor the
 tests caught it. Run the build after every merge, not only before a PR.
 
-Current local snapshot before a clean reinstall:
+Current measured local snapshot (Node 20.20.2):
 
-| Gate | 2026-08-06 result |
+| Gate | 2026-08-13 result |
 |---|---|
 | Lint | **Pass:** 0 errors, 23 warnings. |
-| Base typecheck | Blocked by missing installed `mammoth` and `@react-pdf/renderer`; the missing renderer types also produce three follow-on implicit-`any` errors. |
-| Strict typecheck | Blocked by missing installed `mammoth`. |
-| Vitest | **1511 pass / 19 fail / 2 todo** across **127 passing / 3 failing** files. The observed failures all come from the two missing packages: CV PDF import, CV review API import, and CV target-profile API import. |
-| Build | Not rerun after the install drift was confirmed. |
+| Base typecheck | **Pass.** |
+| Strict typecheck | **Pass.** |
+| Vitest | **1972 pass / 2 todo** across **192 passing** files; coverage enabled. |
+| Build | **Pass:** Next.js 16.2.3 production build completed. Placeholder Supabase fetches and the existing NFT trace warning were non-fatal. |
 | E2E | Not rerun in the docs refresh. |
-
-These numbers describe this checkout, not the expected clean-CI baseline. After
-`npm ci`, rerun all five gates and replace this table with the clean result.
 
 Per wave, plus a legacy sweep of the page's whole tree:
 

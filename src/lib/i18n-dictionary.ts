@@ -643,6 +643,8 @@ export const translations: Record<string, string> = {
   'Work experience': 'Kinh nghiệm làm việc',
   'Internships, jobs and volunteering': 'Thực tập, công việc và tình nguyện',
   'Add experience': 'Thêm kinh nghiệm',
+  // Approved profile-navigation label. Advisor verification uses the more
+  // specific "Verification documents" key below instead of overriding this.
   Documents: 'Lưu tài liệu',
   'Upload important documents and certificates': 'Tải lên tài liệu và chứng chỉ quan trọng',
   'Upload documents': 'Tải lên tài liệu',
@@ -1435,6 +1437,135 @@ export const translations: Record<string, string> = {
   'Could not create booking': 'Không thể tạo lịch hẹn',
   'Could not start the payment. Please try again.':
     'Không thể bắt đầu thanh toán. Vui lòng thử lại.',
+
+  // Advisor recruitment, application, verification and approval journey.
+  'Create your profile': 'Tạo hồ sơ của bạn',
+  'Tell us where you studied, what you experienced and how you can help.':
+    'Cho chúng tôi biết bạn đã học ở đâu, có trải nghiệm gì và có thể hỗ trợ điều gì.',
+  'Verify your experience': 'Xác minh kinh nghiệm của bạn',
+  'Your documents stay private and are reviewed only by GlowBal admins.':
+    'Tài liệu của bạn được bảo mật và chỉ quản trị viên GlowBal xem xét.',
+  'Start advising': 'Bắt đầu tư vấn',
+  'Once approved, choose your rate and availability and accept bookings.':
+    'Sau khi được duyệt, hãy chọn mức phí, lịch rảnh và bắt đầu nhận lịch đặt.',
+  'For students and alumni': 'Dành cho sinh viên và cựu sinh viên',
+  'Want to share your experience with future students?':
+    'Bạn muốn chia sẻ kinh nghiệm với thế hệ sinh viên tương lai?',
+  'Become a GlowBal advisor, set your own rate and availability, and help applicants make confident decisions.':
+    'Trở thành cố vấn GlowBal, tự đặt mức phí và lịch rảnh, đồng thời giúp ứng viên đưa ra quyết định tự tin hơn.',
+  'Apply to become an advisor': 'Đăng ký trở thành cố vấn',
+  'Free to apply · Reviewed within 48 hours': 'Đăng ký miễn phí · Xét duyệt trong vòng 48 giờ',
+  'How advisor applications work': 'Quy trình đăng ký cố vấn',
+  'Back to all advisors': 'Quay lại danh sách cố vấn',
+  'Advisor application': 'Đơn đăng ký cố vấn',
+  'Share your experience, set your hourly rate, and earn money helping applicants make stronger university decisions.':
+    'Chia sẻ kinh nghiệm, tự đặt mức phí theo giờ và có thêm thu nhập khi giúp ứng viên đưa ra quyết định đại học tốt hơn.',
+  'You have a fast-track invitation, so the document-evidence step is optional.':
+    'Bạn có lời mời đăng ký nhanh nên bước nộp tài liệu minh chứng là không bắt buộc.',
+  'Every advisor is verified manually before their profile goes live.':
+    'Mọi cố vấn đều được xác minh thủ công trước khi hồ sơ được công khai.',
+  'Step {number}': 'Bước {number}',
+  'Complete your profile': 'Hoàn thiện hồ sơ của bạn',
+  'University, experience and support topics': 'Trường đại học, kinh nghiệm và chủ đề hỗ trợ',
+  'Submit for review': 'Gửi để xét duyệt',
+  'Your evidence stays private': 'Tài liệu minh chứng luôn được bảo mật',
+  'Go live after approval': 'Hồ sơ được công khai sau khi duyệt',
+  'Set times and accept bookings': 'Đặt lịch rảnh và nhận lịch tư vấn',
+  'Complete your application': 'Hoàn thiện đơn đăng ký',
+  'Required fields are marked with an asterisk. You can review everything before submitting.':
+    'Các trường bắt buộc được đánh dấu bằng dấu sao. Bạn có thể xem lại mọi thông tin trước khi nộp.',
+  'Application submitted': 'Đã gửi đơn đăng ký',
+  'Thanks for applying. Your request is now in the admin review queue, and we’ll email you with the outcome within 48 hours.':
+    'Cảm ơn bạn đã đăng ký. Yêu cầu của bạn đang trong hàng đợi xét duyệt của quản trị viên và chúng tôi sẽ gửi kết quả qua email trong vòng 48 giờ.',
+  'Application status': 'Trạng thái đơn đăng ký',
+  'Admin verification': 'Quản trị viên xác minh',
+  'In review': 'Đang xét duyệt',
+  'Profile published': 'Hồ sơ được công khai',
+  'After approval': 'Sau khi được duyệt',
+  'You can add availability from your advisor dashboard while you wait. Students will only see your profile after an admin approves it.':
+    'Trong khi chờ, bạn có thể thêm lịch rảnh từ bảng điều khiển cố vấn. Sinh viên chỉ thấy hồ sơ sau khi quản trị viên phê duyệt.',
+  'Files must be 10 MB or smaller.': 'Tệp phải có dung lượng không quá 10 MB.',
+  'Upload failed: {message}': 'Tải lên thất bại: {message}',
+  'Profile photo must be 5 MB or smaller.': 'Ảnh hồ sơ phải có dung lượng không quá 5 MB.',
+  'Avatar upload failed: {message}': 'Tải ảnh đại diện thất bại: {message}',
+  'Please complete all required steps.': 'Vui lòng hoàn thành tất cả các bước bắt buộc.',
+  Identity: 'Danh tính',
+  Pricing: 'Mức phí',
+  Availability: 'Lịch rảnh',
+  'These four fields are required for verification. Only your display name and university show up publicly.':
+    'Bốn trường này là bắt buộc để xác minh. Chỉ tên hiển thị và trường đại học của bạn được công khai.',
+  'Display name (shown publicly)': 'Tên hiển thị (được công khai)',
+  'Full legal name (private)': 'Họ tên pháp lý đầy đủ (bảo mật)',
+  'Date of birth (private)': 'Ngày sinh (bảo mật)',
+  'We review every advisor manually. These four documents are stored privately and only seen by GlowBal admins.':
+    'Chúng tôi xét duyệt thủ công từng cố vấn. Bốn tài liệu này được lưu trữ riêng tư và chỉ quản trị viên GlowBal có thể xem.',
+  'This is what mentees see. Be specific about what you can help with — vague profiles get fewer bookings.':
+    'Đây là nội dung người được tư vấn sẽ thấy. Hãy nêu cụ thể điều bạn có thể hỗ trợ vì hồ sơ chung chung thường nhận ít lịch đặt hơn.',
+  'Profile photo (optional but recommended)': 'Ảnh hồ sơ (không bắt buộc nhưng nên có)',
+  'Profile photo preview': 'Xem trước ảnh hồ sơ',
+  'Degree level': 'Bậc học',
+  'Subject / programme': 'Ngành học / chương trình',
+  'Study start year': 'Năm bắt đầu học',
+  Bio: 'Giới thiệu bản thân',
+  'Topics you can help with': 'Chủ đề bạn có thể hỗ trợ',
+  '{count} selected · pick at least one': 'Đã chọn {count} · chọn ít nhất một mục',
+  'Special skills / strengths': 'Kỹ năng đặc biệt / điểm mạnh',
+  'What makes you stand out?': 'Điều gì khiến bạn nổi bật?',
+  'Languages you can advise in': 'Ngôn ngữ bạn có thể dùng để tư vấn',
+  Currency: 'Đơn vị tiền tệ',
+  'You keep 90% of your hourly rate. GlowBal adds a 10% service fee on top, charged to the mentee.':
+    'Bạn nhận 90% mức phí theo giờ. GlowBal cộng thêm 10% phí dịch vụ do người được tư vấn thanh toán.',
+  'Click any future date to add 1-hour slots. You can change these any time from your dashboard.':
+    'Chọn một ngày trong tương lai để thêm khung giờ 1 tiếng. Bạn có thể thay đổi bất cứ lúc nào từ bảng điều khiển.',
+  'Review & submit': 'Xem lại & nộp đơn',
+  'Double-check everything below. Your application goes to GlowBal admins for verification.':
+    'Hãy kiểm tra lại mọi thông tin bên dưới. Đơn của bạn sẽ được gửi đến quản trị viên GlowBal để xác minh.',
+  '(new — pending review)': '(mới — đang chờ xét duyệt)',
+  'By submitting, you confirm the details above are accurate and that you’ll respect mentee privacy.':
+    'Khi nộp đơn, bạn xác nhận thông tin trên là chính xác và cam kết tôn trọng quyền riêng tư của người được tư vấn.',
+  'By submitting, you confirm that all documents are genuine and that you’ll respect mentee privacy.':
+    'Khi nộp đơn, bạn xác nhận mọi tài liệu đều xác thực và cam kết tôn trọng quyền riêng tư của người được tư vấn.',
+  'GlowBal will email you within 48 hours with the outcome.':
+    'GlowBal sẽ gửi kết quả cho bạn qua email trong vòng 48 giờ.',
+  'Remove {document}': 'Xóa {document}',
+  'Display name': 'Tên hiển thị',
+  'Legal name': 'Họ tên pháp lý',
+  'Date of birth': 'Ngày sinh',
+  'Fast-track — not required': 'Đăng ký nhanh — không bắt buộc',
+  '{count} / 4 uploaded': 'Đã tải lên {count} / 4',
+  Topics: 'Chủ đề',
+  'Initial slots': 'Khung giờ ban đầu',
+  '{count} added': 'Đã thêm {count}',
+  'Add times to {count} selected day': 'Thêm giờ cho {count} ngày đã chọn',
+  'Add times to {count} selected days': 'Thêm giờ cho {count} ngày đã chọn',
+  '{count} slot': '{count} khung giờ',
+  '{count} slots': '{count} khung giờ',
+  '{count} day': '{count} ngày',
+  '{count} days': '{count} ngày',
+  'Advisor application progress': 'Tiến độ đăng ký cố vấn',
+  Optional: 'Không bắt buộc',
+  '{count}/800 characters': '{count}/800 ký tự',
+  'PNG, JPG or WebP up to 5 MB': 'PNG, JPG hoặc WebP, tối đa 5 MB',
+  'Upload document': 'Tải tài liệu lên',
+  'Replace document': 'Thay tài liệu',
+  'PDF, DOC, DOCX, PNG or JPG up to 10 MB': 'PDF, DOC, DOCX, PNG hoặc JPG, tối đa 10 MB',
+  'Enter the amount you want to receive for each one-hour session.':
+    'Nhập số tiền bạn muốn nhận cho mỗi buổi tư vấn một giờ.',
+  'Enter your rate': 'Nhập mức phí của bạn',
+  'Per one-hour session': 'Cho mỗi buổi tư vấn một giờ',
+  'Student pays': 'Học sinh thanh toán',
+  'Includes the 10% service fee': 'Đã bao gồm 10% phí dịch vụ',
+  'Custom time': 'Giờ tùy chỉnh',
+  'Invalid signup': 'Đơn đăng ký không hợp lệ',
+  'Date of birth looks invalid': 'Ngày sinh có vẻ không hợp lệ',
+  'All four verification documents are required.': 'Cần tải lên đủ bốn tài liệu xác minh.',
+  'You already have an advisor profile': 'Bạn đã có hồ sơ cố vấn',
+  'Hourly rate is below the minimum for this currency': 'Mức phí theo giờ thấp hơn mức tối thiểu của đơn vị tiền tệ này',
+  'Could not save your university. Please try again.': 'Không thể lưu trường đại học của bạn. Vui lòng thử lại.',
+  'Advisor signups are temporarily unavailable due to a database update. Please try again shortly.':
+    'Đăng ký cố vấn tạm thời không khả dụng do hệ thống đang cập nhật. Vui lòng thử lại sau ít phút.',
+  'Could not submit your application. Please try again.': 'Không thể nộp đơn. Vui lòng thử lại.',
+  'Could not submit your application.': 'Không thể nộp đơn.',
 
   // Seeded advisor academic details and profile content. User-authored content
   // still falls back to the original language when no exact dictionary entry

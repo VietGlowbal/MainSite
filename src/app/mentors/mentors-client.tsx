@@ -251,6 +251,79 @@ function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolea
   );
 }
 
+function AdvisorApplicationInvitation() {
+  const t = useT();
+  const steps = [
+    {
+      title: t('Create your profile'),
+      description: t('Tell us where you studied, what you experienced and how you can help.'),
+    },
+    {
+      title: t('Verify your experience'),
+      description: t('Your documents stay private and are reviewed only by GlowBal admins.'),
+    },
+    {
+      title: t('Start advising'),
+      description: t('Once approved, choose your rate and availability and accept bookings.'),
+    },
+  ];
+
+  return (
+    <section
+      aria-labelledby="advisor-application-title"
+      className="overflow-hidden rounded-gb-2xl bg-surface-inverse-deep p-gb-3xl shadow-gb-lg md:p-gb-5xl"
+    >
+      <div className="grid gap-gb-5xl lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-center">
+        <div className="flex flex-col items-start gap-gb-xl">
+          <Badge variant="outline">{t('For students and alumni')}</Badge>
+          <div className="flex flex-col gap-gb-lg">
+            <h2
+              id="advisor-application-title"
+              className="max-w-gb-width-lg font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg-on-inverse md:text-gb-display-sm"
+            >
+              {t('Want to share your experience with future students?')}
+            </h2>
+            <p className="max-w-gb-width-xl text-gb-md leading-relaxed text-fg-on-inverse-muted">
+              {t('Become a GlowBal advisor, set your own rate and availability, and help applicants make confident decisions.')}
+            </p>
+          </div>
+          <div className="flex flex-col items-start gap-gb-md sm:flex-row sm:items-center">
+            <Button href="/advisors/apply" variant="primary-on-dark" size="xl">
+              {t('Apply to become an advisor')}
+              <KitIcon art={ICONS.arrowRight} frame={20} />
+            </Button>
+            <p className="text-gb-xs text-fg-on-inverse-muted">
+              {t('Free to apply · Reviewed within 48 hours')}
+            </p>
+          </div>
+        </div>
+
+        <ol className="grid gap-gb-sm" aria-label={t('How advisor applications work')}>
+          {steps.map((item, index) => (
+            <li
+              key={item.title}
+              className="grid grid-cols-[auto_1fr] gap-gb-lg rounded-gb-xl border border-line-on-inverse p-gb-xl"
+            >
+              <span
+                aria-hidden="true"
+                className="flex size-gb-4xl items-center justify-center rounded-gb-full bg-brand text-gb-sm font-semibold text-on-brand"
+              >
+                {index + 1}
+              </span>
+              <div className="flex flex-col gap-gb-xxs">
+                <h3 className="text-gb-sm font-semibold text-fg-on-inverse">{item.title}</h3>
+                <p className="text-gb-xs leading-relaxed text-fg-on-inverse-muted">
+                  {item.description}
+                </p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </div>
+    </section>
+  );
+}
+
 export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
   const t = useT();
   const initialUniversityId = useSyncExternalStore(
@@ -294,11 +367,9 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
   const safePage = Math.min(page, totalPages);
   const visible = results.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const primaryAction = { href: '/advisors/apply', label: t('Become an advisor') };
-
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
-      <MarketingNavigation primaryAction={primaryAction} />
+      <MarketingNavigation />
 
       <main className="min-h-screen pb-gb-9xl pt-gb-6xl">
         <Container className="flex flex-col gap-gb-6xl">
@@ -311,6 +382,8 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
               {t('Talk to a student who has already been admitted where you are applying.')}
             </p>
           </div>
+
+          <AdvisorApplicationInvitation />
 
           {/* Figma 154:8360 — the search row */}
           <div className="flex flex-col gap-gb-lg lg:flex-row lg:items-end">

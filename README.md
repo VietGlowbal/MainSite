@@ -58,6 +58,19 @@ npm install
 npm run dev
 ```
 
+## Pull-request verification
+
+Use Node 20.20.2 (declared in `.node-version` and `.nvmrc`). GitHub Actions runs
+the complete verification gate for pull requests. You can run the same gate
+manually before opening or updating a pull request:
+
+```bash
+npm run verify:pr
+```
+
+The gate runs both TypeScript configurations, ESLint, the coverage suite, and a
+production build with placeholder Supabase credentials.
+
 ## Running the Course Parse Worker
 
 The course parse worker is a background job processor that handles AI-powered course page parsing for applications added through the Apply page.
