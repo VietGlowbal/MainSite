@@ -3929,4 +3929,34 @@ export const translations: Record<string, string> = {
   'University level': 'Cấp đại học',
   'Community level': 'Cấp cộng đồng',
   'Organisation level': 'Cấp tổ chức',
+
+  // Report Generation page — after Review & Confirm, before the reports themselves.
+  'Your reports are ready': 'Báo cáo của bạn đã sẵn sàng',
+  'Your information is confirmed': 'Thông tin của bạn đã được xác nhận',
+  "We've finished analysing your profile.": 'Chúng tôi đã hoàn tất phân tích hồ sơ của bạn.',
+  "We're now creating your personalised GlowBal reports.":
+    'Chúng tôi đang tạo các báo cáo cá nhân hóa GlowBal cho bạn.',
+  'Confirmed {date}': 'Đã xác nhận {date}',
+  'Building your personalised reports': 'Đang xây dựng báo cáo cá nhân hóa của bạn',
+  '{count} of {total} reports complete': 'Đã hoàn thành {count} / {total} báo cáo',
+  'Report generation progress': 'Tiến trình tạo báo cáo',
+  'Personal Report is ready.': 'Báo cáo cá nhân đã sẵn sàng.',
+  'Matching Report is ready.': 'Báo cáo phù hợp đã sẵn sàng.',
+  'A complete overview of your profile, strengths, achievements and academic background.':
+    'Tổng quan đầy đủ về hồ sơ, thế mạnh, thành tích và nền tảng học vấn của bạn.',
+  'Generating…': 'Đang tạo…',
+  "We couldn't finish this report. We'll retry it using your confirmed information.":
+    'Chúng tôi chưa hoàn thành báo cáo này. Chúng tôi sẽ thử lại bằng thông tin đã xác nhận của bạn.',
+  'Open report': 'Mở báo cáo',
+  'Shows how strongly your profile matches your selected university and course.':
+    'Cho thấy mức độ phù hợp giữa hồ sơ của bạn với trường và ngành học bạn đã chọn.',
+  "We're still working on your reports": 'Chúng tôi vẫn đang xử lý báo cáo của bạn',
+  "Some of your reports couldn't be completed. Your confirmed information is safe and we'll retry them.":
+    'Một số báo cáo chưa thể hoàn thành. Thông tin đã xác nhận của bạn vẫn an toàn và chúng tôi sẽ thử lại.',
+  'View my reports': 'Xem báo cáo của tôi',
+  "You don't need to keep this page open — we'll keep working in the background.":
+    'Bạn không cần giữ trang này mở — chúng tôi sẽ tiếp tục xử lý trong nền.',
+  'Reports are generated from the information you confirmed.':
+    'Báo cáo được tạo từ thông tin bạn đã xác nhận.',
+  'View confirmed information': 'Xem thông tin đã xác nhận',
 };
