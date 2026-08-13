@@ -1187,6 +1187,61 @@ future permission or constraint error surfaces as a real `500` instead of
 the misleading "come back later" `503`. New test asserts a `42501` RLS
 error returns `500`, not `503`.
 
+## 5o. Fixed 2026-08-13 — do not re-introduce
+
+**Reported live**: "the candidate information for a new application can't be
+confirmed, it's always the same [profile] — you can't generate reports for
+new applications." A student with one already-confirmed application could
+not get a second, new application through onboarding at all.
+
+**Root cause: a client-side navigation dead end, not a backend/gating bug.**
+`student_profiles.confirmed_at` (and `confirmed_candidate_snapshots`) are, by
+design, per-STUDENT, not per-application — Candidate Information is one
+shared profile across every application a student has (see the file-level
+comment on `OnboardingState` in `onboarding.ts`). Report generation itself
+(`applicant_analyses`/`application_match_analyses`) is correctly keyed by
+`application_id` and was never broken — a student who somehow reached
+`/ai-strategy/<newAppId>/strategy/analysis` directly would have generated
+reports for it just fine. The break was in getting there:
+`/ai-strategy/[applicationId]/strategy/page.tsx`'s CTA (added by §5f, before
+the Review & Confirm checkpoint existed) unconditionally linked to
+`onboardingStepHref('personal-summary', id)`, i.e.
+`/ai-strategy/reflection?return=...`, for every application. But once
+`confirmed_at` is set (true for every application once true for any one of
+them), `/ai-strategy/reflection` and `/ai-strategy/reflection/achievements`
+render `ConfirmedReflectionView`/`ConfirmedAchievementsView` instead of the
+editable form — a deliberately button-free "here's what you confirmed"
+summary, with no Next/Continue action and no `returnTo` even threaded into
+it. A student clicking "Start My Strategy" on a new application's Overview
+therefore landed on a screen with nothing to click; the only way out (the
+"Overview" breadcrumb) bounced them straight back to the same CTA — an
+infinite loop with no error message anywhere.
+
+**Fix, two parts:**
+1. `strategy/page.tsx`'s CTA now targets `onboardingStepHref(nextOnboardingStep(state), applicationId)`
+   instead of a hardcoded `'personal-summary'`. This is safe now in a way it
+   was not when §5f's original comment was written: the Review & Confirm
+   `'confirm'` step (added later, #174) sits between "reflections done" and
+   `'analysis'` in the step order, so a not-yet-confirmed student is still
+   routed through reflections → achievements → confirm, in order, exactly as
+   before. Only once `candidateConfirmed` is already true does the CTA now
+   correctly skip straight to `'analysis'` — there is nothing left to review,
+   since a confirmed profile is by definition the one already reviewed and
+   approved.
+2. `ConfirmedReflectionView`/`ConfirmedAchievementsView` gained an optional
+   `returnTo` prop (threaded through from each page's own `?return=` search
+   param) rendering a "Continue" button to it when present, as a defensive
+   escape hatch for any other way a student could land on these
+   already-confirmed views (a bookmark, the browser Back button, a stale
+   link) with nothing else to click.
+
+**What was deliberately NOT done**: adding `application_id` to
+`confirmed_candidate_snapshots`/`student_profiles.confirmed_at` to make
+confirmation per-application. That would contradict this feature's explicit,
+tested design — Candidate Information is one profile shared across every
+application, confirmed once — and would be a much larger schema change for a
+bug that was actually a missing link on a screen, not a data-modeling gap.
+
 **If this is still failing after both fixes ship**: re-run
 `supabase-candidate-confirmation.sql` in the Supabase SQL editor (it is
 idempotent) to pick up the new policy — the code fix alone does not grant
