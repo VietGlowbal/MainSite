@@ -278,7 +278,7 @@ describe('ApplyPage logo loading', () => {
     const savedList = readFileSync('src/app/apply/saved-list-section.tsx', 'utf8');
 
     expect(shell).toContain('id="portal"');
-    expect(progress).toMatch(/<div id="saved"[\s\S]*?<Suspense fallback=/);
+    expect(progress).toMatch(/<div ref=\{savedSectionRef\} id="saved"[\s\S]*?<Suspense fallback=/);
     expect(savedList).not.toContain('id="saved"');
   });
 });
