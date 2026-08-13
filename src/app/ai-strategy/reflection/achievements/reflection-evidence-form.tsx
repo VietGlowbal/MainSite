@@ -107,10 +107,12 @@ export function ReflectionEvidenceForm({
   initialAchievements,
   initialActivities,
   initialDocuments,
+  applicationId,
 }: {
   initialAchievements: AchievementValues[];
   initialActivities: ActivityValues[];
   initialDocuments: EvidenceDocument[];
+  applicationId?: string | undefined;
 }) {
   const t = useT();
   const router = useRouter();
@@ -320,6 +322,7 @@ export function ReflectionEvidenceForm({
     const payload = {
       achievements: achievements.filter((a) => a.title.trim().length > 0),
       activities: activities.filter((a) => a.title.trim().length > 0),
+      ...(applicationId ? { applicationId } : {}),
     };
 
     try {
@@ -385,9 +388,28 @@ export function ReflectionEvidenceForm({
     possibleDuplicate: t('Possible duplicate'),
   };
 
+  const hasExistingEvidence = achievements.length > 0 || activities.length > 0;
+
   return (
     <ReflectionShell step="evidence">
       <div className="flex flex-col gap-gb-3xl">
+        {hasExistingEvidence && reviewQueue.length === 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-gb-lg rounded-gb-xl border border-line bg-surface-muted px-gb-xl py-gb-lg">
+            <p className="text-gb-sm text-fg-secondary">
+              {t('Your achievements and activities are already filled in from your profile.')}
+            </p>
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={saving}
+              onClick={() => void handleSubmit()}
+            >
+              {t('Skip — my achievements are still correct')}
+            </Button>
+          </div>
+        ) : null}
+
         <DocumentPanel
           onFiles={(files) => void handleFiles(files)}
           disabled={processing.kind === 'uploading' || processing.kind === 'analysing'}
@@ -566,7 +588,15 @@ export function ReflectionEvidenceForm({
           </div>
         ) : (
           <div className="flex flex-wrap justify-center gap-gb-lg">
-            <Button href={reflectionStep('about').path} variant="secondary" size="lg">
+            <Button
+              href={
+                returnTo
+                  ? `${reflectionStep('about').path}?return=${encodeURIComponent(returnTo)}`
+                  : reflectionStep('about').path
+              }
+              variant="secondary"
+              size="lg"
+            >
               {t('Back')}
             </Button>
             <Button

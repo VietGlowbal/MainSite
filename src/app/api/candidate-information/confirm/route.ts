@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
-import { loadCandidateReflection } from '@/features/apply/api';
+import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
 import { candidateReadiness, candidateSnapshotPayloadSchema } from '@/features/apply/domain';
 
 /**
@@ -15,12 +16,26 @@ import { candidateReadiness, candidateSnapshotPayloadSchema } from '@/features/a
  * not be able to confirm past a genuinely unanswered required question or an
  * unreviewed extracted achievement.
  *
+ * ─── PER-APPLICATION, WITH A GLOBAL FALLBACK ─────────────────────────────────
+ *
+ * An optional `applicationId` in the body (verified server-side — see
+ * `verifiedApplicationId`) scopes both the idempotency check and the lock
+ * this route sets to `course_applications.candidate_confirmed_at` for THAT
+ * application, instead of the old `student_profiles.confirmed_at` (shared by
+ * every application a student has). Confirming application A must not make
+ * application B's onboarding think IT has been confirmed too — see
+ * `docs/known-issues.md` for the incident this fixed. The global
+ * `student_profiles.confirmed_at` is still set on every confirmation
+ * (harmless "has ever confirmed at least once" marker) and is what this
+ * route falls back to, unchanged, when no `applicationId` resolves — the
+ * legacy, non-application-scoped entry points never sent one.
+ *
  * ─── IDEMPOTENT ──────────────────────────────────────────────────────────────
  *
- * If `student_profiles.confirmed_at` is already set, this returns the most
- * recent snapshot's id and timestamp rather than creating a second one or
- * erroring — a retried request (double-click, a flaky connection) must not
- * produce two "confirmations" for one student.
+ * If this application (or, with no `applicationId`, the student globally) is
+ * already confirmed, this returns the existing snapshot's id and timestamp
+ * rather than creating a second one or erroring — a retried request
+ * (double-click, a flaky connection) must not produce two "confirmations".
  */
 
 export const runtime = 'nodejs';
@@ -50,23 +65,43 @@ function migrationMissing(error: { code?: string; message?: string } | null | un
   return /does not exist/i.test(error.message ?? '');
 }
 
-export async function POST() {
+const bodySchema = z.object({ applicationId: z.string().uuid().optional() });
+
+export async function POST(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { reflection, documents, confirmedAt } = await loadCandidateReflection(supabase, user.id);
+  // A bare POST with no body is still valid — the legacy, non-application-
+  // scoped entry points never sent one and never will.
+  let requestedApplicationId: string | undefined;
+  try {
+    const raw = await request.json();
+    const parsed = bodySchema.safeParse(raw);
+    if (parsed.success) requestedApplicationId = parsed.data.applicationId;
+  } catch {
+    // No body, or invalid JSON — treated the same as "no applicationId given".
+  }
+  const applicationId = await verifiedApplicationId(supabase, user.id, requestedApplicationId);
+
+  const { reflection, documents, confirmedAt } = await loadCandidateReflection(
+    supabase,
+    user.id,
+    applicationId,
+  );
 
   if (confirmedAt) {
-    const existing = await supabase
+    const existingQuery = supabase
       .from('confirmed_candidate_snapshots')
       .select('id, confirmed_at')
       .eq('user_id', user.id)
       .order('confirmed_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+      .limit(1);
+    const existing = applicationId
+      ? await existingQuery.eq('application_id', applicationId).maybeSingle()
+      : await existingQuery.maybeSingle();
 
     return NextResponse.json({
       snapshotId: existing.data?.id ?? null,
@@ -95,12 +130,38 @@ export async function POST() {
   });
 
   const nowIso = new Date().toISOString();
+  const baseRow = { user_id: user.id, payload, schema_version: 1, confirmed_at: nowIso };
 
-  const inserted = await supabase
-    .from('confirmed_candidate_snapshots')
-    .insert({ user_id: user.id, payload, schema_version: 1, confirmed_at: nowIso })
-    .select('id, confirmed_at')
-    .single();
+  // Tag the snapshot with the application it was confirmed for, tolerant of
+  // `application_id` not existing yet (supabase-per-application-onboarding.sql
+  // not run) — retried without it rather than failing the whole
+  // confirmation, same layered-retry shape `LATER_COLUMNS` uses in
+  // `PATCH /api/reflection`.
+  const withAppColumn = applicationId
+    ? await supabase
+        .from('confirmed_candidate_snapshots')
+        .insert({ ...baseRow, application_id: applicationId })
+        .select('id, confirmed_at')
+        .single()
+    : null;
+  if (withAppColumn?.error && !migrationMissing(withAppColumn.error)) {
+    console.error('[candidate-information/confirm] snapshot insert failed:', withAppColumn.error);
+    return NextResponse.json({ error: 'Could not confirm your information' }, { status: 500 });
+  }
+  if (withAppColumn?.error) {
+    console.warn(
+      '[candidate-information/confirm] confirmed_candidate_snapshots.application_id is missing — run supabase-per-application-onboarding.sql. Saving without it.',
+      withAppColumn.error.message,
+    );
+  }
+  const inserted =
+    withAppColumn && !withAppColumn.error
+      ? withAppColumn
+      : await supabase
+          .from('confirmed_candidate_snapshots')
+          .insert(baseRow)
+          .select('id, confirmed_at')
+          .single();
 
   if (inserted.error) {
     if (migrationMissing(inserted.error)) {
@@ -115,6 +176,24 @@ export async function POST() {
     }
     console.error('[candidate-information/confirm] snapshot insert failed:', inserted.error);
     return NextResponse.json({ error: 'Could not confirm your information' }, { status: 500 });
+  }
+
+  // Per-application lock — the actual gate `fetchOnboardingState` reads for
+  // THIS application going forward. Best-effort against a missing migration,
+  // same "costs the lock, not the confirmation" rule the global update below
+  // already follows: the snapshot above is the real record of what happened,
+  // and a re-POST is safe (idempotent) if this update never lands.
+  if (applicationId) {
+    const appLocked = await supabase
+      .from('course_applications')
+      .update({ candidate_confirmed_at: nowIso })
+      .eq('id', applicationId);
+    if (appLocked.error) {
+      console.error(
+        '[candidate-information/confirm] could not set course_applications.candidate_confirmed_at — run supabase-per-application-onboarding.sql. Snapshot was saved but this application is not locked.',
+        appLocked.error.message,
+      );
+    }
   }
 
   const locked = await supabase

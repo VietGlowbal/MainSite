@@ -40,13 +40,26 @@ const PROFILE_BASE_COLUMNS =
   'nationality, current_qualification, study_level, target_subjects, preferred_countries, budget_range, funding_source, tuition_budget_usd, grades_summary, goals';
 /** Added by supabase-reflection-questions.sql and supabase-reflection-subject-motivations.sql. */
 const PROFILE_NEW_COLUMNS = 'study_motivation, subject_motivations, target_intake';
-/** Added by supabase-candidate-confirmation.sql. */
+/**
+ * Added by supabase-candidate-confirmation.sql. Read ONLY when no
+ * `applicationId` is given — see `loadCandidateReflection`'s own doc comment
+ * for why this is the global-fallback value, not the per-application one.
+ */
 const PROFILE_CONFIRM_COLUMN = 'confirmed_at';
 
 async function selectProfile(
   supabase: Client,
   userId: string,
+  applicationId: string | undefined,
 ): Promise<{ row: ReflectionProfileRow | null; confirmedAt: string | null }> {
+  // Per-application confirmation only exists once
+  // supabase-per-application-onboarding.sql has run; this is read separately
+  // (not merged into the profile select below) because it comes from a
+  // different table (`course_applications`, not `student_profiles`).
+  const applicationConfirmedAt = applicationId
+    ? await selectApplicationConfirmedAt(supabase, userId, applicationId)
+    : undefined;
+
   const full = await supabase
     .from('student_profiles')
     .select(`${PROFILE_BASE_COLUMNS}, ${PROFILE_NEW_COLUMNS}, ${PROFILE_CONFIRM_COLUMN}`)
@@ -55,7 +68,10 @@ async function selectProfile(
 
   if (!full.error) {
     const row = (full.data ?? null) as (ReflectionProfileRow & { confirmed_at?: string | null }) | null;
-    return { row, confirmedAt: row?.confirmed_at ?? null };
+    return {
+      row,
+      confirmedAt: applicationId ? (applicationConfirmedAt ?? null) : (row?.confirmed_at ?? null),
+    };
   }
 
   console.warn(
@@ -69,7 +85,10 @@ async function selectProfile(
     .eq('user_id', userId)
     .maybeSingle();
   if (!withoutConfirm.error) {
-    return { row: (withoutConfirm.data ?? null) as ReflectionProfileRow | null, confirmedAt: null };
+    return {
+      row: (withoutConfirm.data ?? null) as ReflectionProfileRow | null,
+      confirmedAt: applicationId ? (applicationConfirmedAt ?? null) : null,
+    };
   }
 
   const base = await supabase
@@ -77,7 +96,37 @@ async function selectProfile(
     .select(PROFILE_BASE_COLUMNS)
     .eq('user_id', userId)
     .maybeSingle();
-  return { row: (base.data ?? null) as ReflectionProfileRow | null, confirmedAt: null };
+  return {
+    row: (base.data ?? null) as ReflectionProfileRow | null,
+    confirmedAt: applicationId ? (applicationConfirmedAt ?? null) : null,
+  };
+}
+
+/**
+ * `course_applications.candidate_confirmed_at` for one application, tolerant
+ * of `supabase-per-application-onboarding.sql` not having run yet (degrades
+ * to `null`, i.e. "not confirmed for this application" — the safe default,
+ * never a false "already reviewed").
+ */
+async function selectApplicationConfirmedAt(
+  supabase: Client,
+  userId: string,
+  applicationId: string,
+): Promise<string | null> {
+  const result = await supabase
+    .from('course_applications')
+    .select('candidate_confirmed_at')
+    .eq('id', applicationId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (result.error) {
+    console.warn(
+      '[candidate-snapshot-repository] could not read candidate_confirmed_at — run supabase-per-application-onboarding.sql.',
+      result.error.message,
+    );
+    return null;
+  }
+  return (result.data as { candidate_confirmed_at?: string | null } | null)?.candidate_confirmed_at ?? null;
 }
 
 const ACHIEVEMENT_BASE_COLUMNS =
@@ -164,16 +213,38 @@ function activityFromRow(row: Row): ActivityValues {
 export type CandidateReflectionRecord = {
   reflection: ReflectionValues;
   documents: EvidenceDocument[];
-  /** ISO timestamp, or `null` while still editable. */
+  /**
+   * ISO timestamp, or `null` while still editable.
+   *
+   * When `applicationId` is passed to `loadCandidateReflection`, this is
+   * THAT application's own `course_applications.candidate_confirmed_at` —
+   * whether the student has confirmed candidate information for this
+   * specific application, independent of any other application. When
+   * `applicationId` is omitted (the legacy, no-application-context entry
+   * points), this is the global `student_profiles.confirmed_at` — has the
+   * student EVER confirmed, for any application — unchanged from before this
+   * field became per-application.
+   */
   confirmedAt: string | null;
 };
 
+/**
+ * The one place that reads a student's whole candidate-information record.
+ * See the file-level comment for the general shape; `applicationId` is
+ * optional specifically so the legacy, non-application-scoped callers (the
+ * old standalone `/ai-strategy/report` generation) keep reading the global
+ * `confirmed_at` they always have — passing it is what makes `confirmedAt`
+ * (and therefore every read-only/locked-view decision downstream) scoped to
+ * ONE application instead of leaking a different application's confirmation
+ * onto this one. See `docs/known-issues.md` for the incident this fixed.
+ */
 export async function loadCandidateReflection(
   supabase: Client,
   userId: string,
+  applicationId?: string,
 ): Promise<CandidateReflectionRecord> {
   const [profile, achievementRows, activityRows, documentsResult] = await Promise.all([
-    selectProfile(supabase, userId),
+    selectProfile(supabase, userId, applicationId),
     selectEvidenceRows(supabase, 'student_achievements', ACHIEVEMENT_BASE_COLUMNS, userId),
     selectEvidenceRows(supabase, 'student_activities', ACTIVITY_BASE_COLUMNS, userId),
     // 'other' is the kind every uploader on this flow has always used — see

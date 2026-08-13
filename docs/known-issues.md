@@ -1248,6 +1248,59 @@ idempotent) to pick up the new policy — the code fix alone does not grant
 the missing database permission; the migration must actually be re-run.
 | `supabase-candidate-confirmation.sql`, `src/app/api/candidate-information/confirm/route.ts` |
 
+## 5p. Fixed 2026-08-13 — do not re-introduce
+
+**§5o's own fix was itself wrong, per explicit owner correction the same
+day.** §5o's item 1 (`strategy/page.tsx`'s CTA now targeting
+`onboardingStepHref(nextOnboardingStep(state), applicationId)`) fixed the
+dead-end loop, but had a side effect: once a student had confirmed on ANY
+application, `candidateConfirmed` (read from the GLOBAL
+`student_profiles.confirmed_at`) was true for every future application too —
+so a brand-new application's onboarding silently skipped Reflections,
+Achievements, AND Review & Confirm entirely and jumped straight into report
+generation. Reported live: "this is wrong. We want them to go through the
+normal reflections and application UI again... but for the flow to always be
+the same." §5o's own "what was deliberately NOT done" note (ruling out
+per-application confirmation as too large a change) was reconsidered and
+reversed here, at the owner's explicit direction.
+
+**Fix: made the entire onboarding review/confirmation state per-application**,
+not per-student. New migration `supabase-per-application-onboarding.sql`
+adds `personal_summary_reviewed_at`, `achievements_reviewed_at`,
+`candidate_confirmed_at` to `course_applications` (plus a nullable
+`application_id` on `confirmed_candidate_snapshots`, tagging each
+confirmation with the application it belongs to). `fetchOnboardingState`
+(`onboarding-status.ts`) now reads these three columns instead of the global
+`student_profiles` ones — the change that makes `nextOnboardingStep` correctly
+resolve to `'personal-summary'` for every new application again, restoring
+§5o's CTA fix to actually work as intended. `apply/page.tsx`'s
+`fetchStrategyReadiness` (the "ready" vs "continue applying" label on My
+Portal tracker rows) got the same per-application fix, since it had the
+identical global-flag bug independently. The underlying candidate data
+(`student_profiles`, `student_achievements`, `student_activities`) stays one
+profile shared across every application, unchanged — only the
+review/confirmation STATE is now tracked separately per application, so a
+student can edit it again for a new application even after locking it for an
+earlier one (`PATCH /api/reflection`'s lock and `POST
+/api/candidate-information/confirm`'s idempotency both moved from
+`student_profiles.confirmed_at` to `course_applications.candidate_confirmed_at`
+for the application in question, verified server-side via the new
+`verifiedApplicationId` — `applicationId` arrives from the client already
+derived from an untrusted `?return=` URL via `applicationIdFromPath`, the
+same pattern `ApplicationNavFromReturn` already used, and is never trusted
+without an ownership re-check).
+
+Per explicit owner direction: the flow order is always Reflections →
+Achievements → Review & Confirm → Analysis, for every application, with a
+one-click "Skip — my answers/achievements are still correct" button at the
+top of the first two pages for a returning student who does not need to
+retype anything — never an automatic system skip. Every entry point with no
+application context (the legacy `/ai-strategy/report` generation) keeps
+today's exact global-fallback behaviour, unchanged, when no `applicationId`
+resolves.
+
+| `supabase-per-application-onboarding.sql`, `onboarding-status.ts`, `src/app/api/reflection/route.ts`, `src/app/api/candidate-information/confirm/route.ts`, `candidate-snapshot-repository.ts`, `verified-application-id.ts`, the three reflection pages, `reflection-about-form.tsx`, `reflection-evidence-form.tsx`, `review-confirm-view.tsx`, `apply/page.tsx` |
+
 ## 6. Open questions for the designer / owner
 
 1. **The sitemap frame (`123:2864`, "Dg-final") no longer exists in the file.**
