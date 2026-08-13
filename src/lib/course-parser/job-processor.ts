@@ -354,6 +354,11 @@ async function linkUniversity(
     });
 
     if (outcome.status === 'skipped') return `skipped:${outcome.reason}`;
+    // The parse worker uses the resolver's default create-enabled mode, so an
+    // unmatched outcome is unreachable here. Keep the guard explicit because
+    // it prevents a future match-only option from being treated as a created
+    // university and writing an undefined id.
+    if (outcome.status === 'unmatched') return 'skipped:unmatched';
 
     await updateApplication(applicationId, { university_id: outcome.universityId });
 

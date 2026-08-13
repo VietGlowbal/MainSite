@@ -1,9 +1,9 @@
 # Current project status
 
-Last reconciled: **2026-08-13 (Asia/Bangkok)**
+Last reconciled: **2026-08-14 (Asia/Bangkok)**
 
-Code snapshot: PR #180 on branch `fix/feedback-118`, based on merge commit
-`c7b0a1f` plus the CI repair described below.
+Code snapshot: PR #182 on branch `fix/feedback-118`, at `24117e3` plus the
+working-tree cron budget repair described below.
 
 This is the primary status file after the routing index in `docs/README.md`. It
 records the present state of the repository, the last completed work, its
@@ -15,6 +15,23 @@ code, the code wins.
 
 - Stack: Next.js `16.2.3`, React `19.2.4`, TypeScript 5, Supabase/Postgres,
   OpenAI and DeepSeek-backed AI paths, Vitest, and Playwright.
+- Local development and CI now use Node `24.19.0` LTS. This aligns the runtime
+  with the existing `--use-system-ca` development/startup scripts, which Node
+  20.20.2 could not parse.
+- **My Portal university-logo identity is repaired in production.** On
+  2026-08-14 all 37 active `course_applications` were verified linked through
+  `university_id`, and all 37 links resolve to a university with a `logo_url`.
+  The eight legacy NULL links were reconciled: six matched existing directory
+  rows and two identity rows were created (University of Birmingham `108`,
+  Harvard Business School `109`). Their logos are persisted in the existing
+  `university-images` Supabase Storage bucket. Directory-wide logo coverage is
+  107/108; University of Alberta (`36`) is the only remaining missing logo and
+  no active application depends on it. The daily imagery cron now limits the
+  resolver to 20 seconds, downloads at most four logos concurrently with a
+  six-second per-host cap, stops starting work after 45 seconds, and leaves ten
+  seconds of its 60-second function duration for in-flight completion. Failed
+  attempts are timestamped and retried oldest-first so one bad host cannot
+  permanently starve later universities.
 - Two pre-existing untracked documents must be preserved: `TECH_SOLUTION.md`
   and `docs/audit-2026-08-03.md`. They are owner/session work, not generated
   build output.
@@ -57,6 +74,8 @@ code, the code wins.
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
+| Working tree 2026-08-14 (runtime) | Upgraded the pinned runtime from Node 20.20.2 to Node 24.19.0 across `.node-version`, `.nvmrc`, package engines, the lockfile, and setup documentation. The local NVM installation is switched to 24.19.0. | `npm run dev` can use the repository's existing `--use-system-ca` flag instead of exiting with `node: bad option`. Full `npm run verify:pr` passed on Node 24.19.0 in 248 seconds: both typechecks, lint (0 errors / 23 warnings), 195 test files with 1,983 passing tests / 2 todo and coverage, and the Next.js 16.2.3 production build. E2E was not rerun. |
+| Working tree 2026-08-14 | Fixed missing university logos in My Portal at the identity layer. `resolveUniversity` now has a genuinely non-mutating match-only mode; `/api/cron/link-applications?dryRun=1` and `?create=0` pass that policy into the resolver before any insert can occur, and report `would-match`/`would-create` outcomes. Bare legacy domains such as `www.birmingham.ac.uk` now participate in domain matching. The reconciliation route is scheduled daily at 02:30 UTC, before the 03:00 imagery job. Newly resolved logos are downloaded, normalised to WebP, uploaded to deterministic paths in Supabase Storage, and only then written to `universities.logo_url`; a failed upload leaves the field empty for retry. The imagery cron now uses a 20-second resolver phase, four concurrent logo workers, six-second host timeouts, a shared 50-second work deadline, and oldest-attempt-first rotation. Shared `Avatar` now falls back to initials if a non-empty URL fails in the browser. Production repair was executed after a zero-write preview: 8/8 rows linked, 0 failures; Birmingham's two applications both join Storage-backed logo ID 108. | Existing initials-only Birmingham and other legacy cards receive their real crests without adding a query or external fetch to `/apply`. New/imported applications link during parsing, the scheduled reconciler repairs any future transient miss, and broken remote images degrade cleanly instead of showing a broken-image glyph. Slow or unavailable sources no longer make as many as 40 sequential 20-second downloads consume the 60-second invocation or repeatedly starve later rows. The cron follow-up passes 10/10 focused tests; base and strict typechecks, targeted lint, and the production build pass on the resulting tree. The earlier full Vitest run reached 1,982 pass / 2 todo with only `check-i18n.integration.test.ts` exceeding its 5s timeout under parallel load (5.74s); that test passed alone in 2.26s. E2E not run. |
 | PR #180 CI repair | Fixed the failure after the static-i18n merge: the university performance source-contract test now accepts the intentionally localized `t(saved ? ...)` accessibility label while still requiring `data-no-auto-translate`, `aria-pressed`, and `aria-label` on the same save button. The course-search POST re-fetch no longer relies on `.order()` support in every Supabase test chain; it checks the fetch error and sorts the small stored-result set by rank in memory, with an out-of-order response test. | The full CI suite can preserve both the translator-safe save control and Vietnamese accessibility labels. Course-search tests no longer log repeated false runtime errors, and API results remain deterministically rank-ordered. Full `npm run verify:pr` passes on Node 20.20.2: both typechecks, lint (0 errors, 23 existing warnings), 192 test files / 1972 tests passed / 2 todo with coverage, and the production build. E2E was not rerun. |
 | `53beab0` | Rebuilt the advisor registration process and related UI, including validation, private verification documents, pricing, availability, review, success-state copy, and static English/Vietnamese coverage. | Advisor applicants get a complete, localized registration journey with clearer validation and privacy handling. |
 | `66b7224` | Removed the repository-installed pre-push hook and its `prepare` installer. The complete `npm run verify:pr` gate remains in GitHub Actions and is available as an explicit local command. | A normal push no longer waits several minutes for typechecks, coverage tests, and a production build; pull requests still receive the full CI gate. |

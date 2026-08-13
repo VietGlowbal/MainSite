@@ -20,12 +20,12 @@ import { resolveUniversity, type ResolveOutcome } from '@/features/universities/
  *   • Only ever fills a NULL. An id the student chose in the course-search
  *     modal is never overwritten.
  *   • Capped per run (`?limit=`, default 50, max 200).
- *   • `?dryRun=1` reports what it would do and writes nothing — worth running
- *     first on a directory that has not had supabase-university-domain.sql
- *     applied, since domain matching is the accurate half of the matcher.
+ *   • `?dryRun=1` reports matches and would-create rows with ZERO writes.
+ *     The resolver is put in match-only mode before it can insert, rather than
+ *     merely suppressing the final application update.
  *   • Creates rows for universities that are genuinely absent, tagged
  *     `source='auto_course_parse'` for the review queue. Pass `?create=0` to
- *     match-only and leave the rest for a human.
+ *     match-only and leave the rest for a human; this mode also cannot insert.
  *
  * Auth: `Authorization: Bearer $CRON_SECRET`, or the service-role key for a
  * manual run. See src/lib/cron-auth.ts.
@@ -78,7 +78,7 @@ async function handle(request: NextRequest) {
   }
 
   const rows = (data ?? []) as Row[];
-  const tally = { matched: 0, created: 0, skipped: 0, failed: 0 };
+  const tally = { matched: 0, created: 0, wouldCreate: 0, skipped: 0, failed: 0 };
   const details: Array<{ id: string; name: string | null; outcome: string }> = [];
 
   for (const row of rows) {
@@ -91,11 +91,20 @@ async function handle(request: NextRequest) {
 
     let outcome: ResolveOutcome;
     try {
-      outcome = await resolveUniversity({
-        name,
-        courseUrl: row.course_url,
-        country: row.country,
-      });
+      outcome = await resolveUniversity(
+        {
+          name,
+          courseUrl: row.course_url,
+          country: row.country,
+        },
+        {
+          // A preview must be observational, and create=0 must be genuinely
+          // match-only. Passing the policy into the resolver prevents its
+          // missing-row branch from inserting before this route can inspect
+          // the outcome.
+          createIfMissing: allowCreate && !dryRun,
+        },
+      );
     } catch (err) {
       console.error('[link-applications] resolve threw:', err);
       tally.failed += 1;
@@ -109,15 +118,20 @@ async function handle(request: NextRequest) {
       continue;
     }
 
-    if (outcome.status === 'created' && !allowCreate) {
-      tally.skipped += 1;
-      details.push({ id: row.id, name, outcome: 'skipped:create-disabled' });
+    if (outcome.status === 'unmatched') {
+      if (dryRun && allowCreate) {
+        tally.wouldCreate += 1;
+        details.push({ id: row.id, name, outcome: 'would-create' });
+      } else {
+        tally.skipped += 1;
+        details.push({ id: row.id, name, outcome: 'skipped:create-disabled' });
+      }
       continue;
     }
 
     const label =
       outcome.status === 'matched'
-        ? `matched:${outcome.match.reason}`
+        ? `${dryRun ? 'would-match' : 'matched'}:${outcome.match.reason}`
         : `created:${outcome.universityId}`;
 
     if (!dryRun) {

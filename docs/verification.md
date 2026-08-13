@@ -1,8 +1,8 @@
 # Verification
 
-Last measured on branch `fix/feedback-118` at `c7b0a1f` plus the PR #180 CI
-repair on **2026-08-13**. Results are also summarized in
-[current-status.md](current-status.md).
+Last measured on branch `fix/feedback-118` at `24117e3` plus the PR #182 My
+Portal logo reconciliation and cron-budget work on **2026-08-14**. Results are
+also summarized in [current-status.md](current-status.md).
 
 ## Gates
 
@@ -32,16 +32,26 @@ merged cleanly, passed typecheck, and still failed on Vercel with
 the other side's imports. Neither `tsc --noEmit` on the pre-merge tree nor the
 tests caught it. Run the build after every merge, not only before a PR.
 
-Current measured local snapshot (Node 20.20.2):
+Current measured local snapshot (Node 24.19.0):
 
-| Gate | 2026-08-13 result |
+The 2026-08-14 Node 24.19.0 runtime alignment ran the complete
+`npm run verify:pr` gate after the logo-reconciliation work. The aggregate gate
+passed in 248 seconds.
+
+| Gate | 2026-08-14 result |
 |---|---|
 | Lint | **Pass:** 0 errors, 23 warnings. |
 | Base typecheck | **Pass.** |
 | Strict typecheck | **Pass.** |
-| Vitest | **1972 pass / 2 todo** across **192 passing** files; coverage enabled. |
+| Vitest | **1983 pass / 2 todo** across **195 passing** files; coverage enabled. |
 | Build | **Pass:** Next.js 16.2.3 production build completed. Placeholder Supabase fetches and the existing NFT trace warning were non-fatal. |
 | E2E | Not rerun in the docs refresh. |
+
+The follow-up cron-budget repair was checked on the resulting working tree with
+10/10 focused Vitest tests, base and strict TypeScript, targeted ESLint, and a
+Next.js 16.2.3 production build; all passed. The full coverage suite and E2E
+were not rerun after that follow-up, so the aggregate table above remains the
+latest full-suite measurement rather than a claim about the current tree.
 
 Per wave, plus a legacy sweep of the page's whole tree:
 

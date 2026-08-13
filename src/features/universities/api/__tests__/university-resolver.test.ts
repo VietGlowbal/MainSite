@@ -138,6 +138,23 @@ describe('resolveUniversity — matching', () => {
 });
 
 describe('resolveUniversity — creating', () => {
+  it('reports an unmatched university without inserting in match-only mode', async () => {
+    candidates = [];
+
+    const outcome = await resolveUniversity(
+      {
+        name: 'University of Birmingham',
+        courseUrl: 'https://www.birmingham.ac.uk/study/courses/undergraduate/marketing-bsc',
+        country: 'United Kingdom',
+      },
+      { createIfMissing: false },
+    );
+
+    expect(outcome).toEqual({ status: 'unmatched', name: 'University of Birmingham' });
+    expect(inserted).toHaveLength(0);
+    expect(insertAttempts).toBe(0);
+  });
+
   it('creates a row when the directory has nothing close', async () => {
     candidates = [];
 

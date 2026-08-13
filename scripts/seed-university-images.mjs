@@ -80,6 +80,7 @@ const ALIASES = {
 const CITY_HINTS = {
   'Massachusetts Institute of Technology': 'Cambridge, Massachusetts',
   'Harvard University': 'Cambridge, Massachusetts',
+  'Harvard Business School': 'Boston',
   'Stanford University': 'Stanford, California',
   'Princeton University': 'Princeton, New Jersey',
   'Yale University': 'New Haven, Connecticut',
@@ -155,6 +156,7 @@ const DOMAIN_HINTS = {
   'Massachusetts Institute of Technology': 'mit.edu',
   'Stanford University': 'stanford.edu',
   'Harvard University': 'harvard.edu',
+  'Harvard Business School': 'hbs.edu',
   'University of Oxford': 'ox.ac.uk',
   'University of Cambridge': 'cam.ac.uk',
   'Imperial College London': 'imperial.ac.uk',

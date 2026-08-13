@@ -142,9 +142,11 @@ Each is documented in a comment at the top of the relevant file.
   those params (the "funnel from `/scholarships`" this note claimed was already
   stale — that page sends `?focus=<id>`). See §"Applications now come from the
   saved list" below.
-- **`/apply` crests fall back to initials.** Only 4 of 29 live rows carry a
-  `university_id` to join a `logo_url` from. ⚠️ This shrinks by itself from
-  01/08: every application created from a saved university carries one.
+- **`/apply` crests join by university identity and fall back to initials.**
+  Production reconciliation on 14/08 verified all 37 active applications now
+  carry a `university_id` and all 37 linked universities have a `logo_url`.
+  `Avatar` still renders initials when either field is absent or the image
+  request fails; the fallback is defensive, not the normal production state.
 - **`/apply` adds five things `562:15078` does not draw** (01/08, after the owner
   called the page boring). All five are recorded in the file headers of
   `my-application-section.tsx` and `saved-list-section.tsx`; the reason they are

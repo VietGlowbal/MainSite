@@ -682,7 +682,7 @@ function ScholarshipCandidateCard({
           className="h-gb-6xl w-[110px] shrink-0 object-contain"
         />
       ) : (
-        /* The frame always has a crest. 9 of 106 rows have no logo_url, and
+        /* The frame always has a crest. Directory rows may have no logo_url, and
            without a placeholder the divider and text jump left on those. */
         <span className="flex h-gb-6xl w-[110px] shrink-0 items-center justify-center font-display text-gb-xl text-fg-muted">
           {universityName.slice(0, 1)}
