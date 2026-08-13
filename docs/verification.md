@@ -1,8 +1,8 @@
 # Verification
 
-Last measured on branch `fix/feedback-118` at `c7b0a1f` plus the PR #180 CI
-repair and the My Portal logo reconciliation work on **2026-08-14**. Results are also summarized in
-[current-status.md](current-status.md).
+Last measured on branch `fix/feedback-118` at `24117e3` plus the PR #182 My
+Portal logo reconciliation and cron-budget work on **2026-08-14**. Results are
+also summarized in [current-status.md](current-status.md).
 
 ## Gates
 
@@ -46,6 +46,12 @@ passed in 248 seconds.
 | Vitest | **1983 pass / 2 todo** across **195 passing** files; coverage enabled. |
 | Build | **Pass:** Next.js 16.2.3 production build completed. Placeholder Supabase fetches and the existing NFT trace warning were non-fatal. |
 | E2E | Not rerun in the docs refresh. |
+
+The follow-up cron-budget repair was checked on the resulting working tree with
+10/10 focused Vitest tests, base and strict TypeScript, targeted ESLint, and a
+Next.js 16.2.3 production build; all passed. The full coverage suite and E2E
+were not rerun after that follow-up, so the aggregate table above remains the
+latest full-suite measurement rather than a claim about the current tree.
 
 Per wave, plus a legacy sweep of the page's whole tree:
 

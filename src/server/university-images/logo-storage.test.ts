@@ -30,7 +30,10 @@ beforeEach(() => {
   image.pipeline['toBuffer']?.mockResolvedValue(Buffer.from('normalised-logo'));
 });
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.restoreAllMocks();
+});
 
 describe('university logo storage', () => {
   it('uses the established deterministic storage path', () => {
@@ -76,6 +79,72 @@ describe('university logo storage', () => {
     );
 
     expect(publicUrl).toBeNull();
+    expect(upload).not.toHaveBeenCalled();
+  });
+
+  it('does not start a download after the shared deadline', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+    vi.spyOn(Date, 'now').mockReturnValue(4_000);
+
+    const publicUrl = await persistUniversityLogo(
+      admin,
+      { id: 108, name: 'University of Birmingham' },
+      'https://source.example/logo.png',
+      { deadlineMs: 4_000 },
+    );
+
+    expect(publicUrl).toBeNull();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('caps the host timeout to the time remaining in the shared budget', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_000);
+    const timeout = vi
+      .spyOn(AbortSignal, 'timeout')
+      .mockReturnValue(new AbortController().signal);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { 'content-length': '3', 'content-type': 'image/png' },
+        }),
+      ),
+    );
+
+    await persistUniversityLogo(
+      admin,
+      { id: 108, name: 'University of Birmingham' },
+      'https://source.example/logo.png',
+      { deadlineMs: 3_500, requestTimeoutMs: 6_000 },
+    );
+
+    expect(timeout).toHaveBeenCalledWith(2_500);
+  });
+
+  it('does not process or upload a body that finishes after the deadline', async () => {
+    vi.spyOn(Date, 'now').mockReturnValueOnce(1_000).mockReturnValue(3_600);
+    vi.spyOn(AbortSignal, 'timeout').mockReturnValue(new AbortController().signal);
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () =>
+        new Response(new Uint8Array([1, 2, 3]), {
+          status: 200,
+          headers: { 'content-length': '3', 'content-type': 'image/png' },
+        }),
+      ),
+    );
+
+    const publicUrl = await persistUniversityLogo(
+      admin,
+      { id: 108, name: 'University of Birmingham' },
+      'https://source.example/logo.png',
+      { deadlineMs: 3_500, requestTimeoutMs: 6_000 },
+    );
+
+    expect(publicUrl).toBeNull();
+    expect(image.sharp).not.toHaveBeenCalled();
     expect(upload).not.toHaveBeenCalled();
   });
 });

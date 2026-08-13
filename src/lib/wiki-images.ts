@@ -332,11 +332,15 @@ function faviconLogoUrl(domain: string): string {
 
 // ── Wikipedia / Commons fetchers ───────────────────────────────────────
 
-async function fetchWikiSummary(title: string): Promise<{ original?: string; thumb?: string } | null> {
+async function fetchWikiSummary(
+  title: string,
+  signal?: AbortSignal,
+): Promise<{ original?: string; thumb?: string } | null> {
   try {
     const res = await fetch(`${WIKI_REST}${encodeURIComponent(title)}`, {
       next: { revalidate: REVALIDATE },
       headers: UA_HEADER,
+      signal,
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -349,7 +353,10 @@ async function fetchWikiSummary(title: string): Promise<{ original?: string; thu
   }
 }
 
-async function fetchWikiPageInfo(title: string): Promise<{ original?: string; wikidataId?: string } | null> {
+async function fetchWikiPageInfo(
+  title: string,
+  signal?: AbortSignal,
+): Promise<{ original?: string; wikidataId?: string } | null> {
   try {
     const params = new URLSearchParams({
       action: 'query',
@@ -364,6 +371,7 @@ async function fetchWikiPageInfo(title: string): Promise<{ original?: string; wi
     const res = await fetch(`${WIKI_API}?${params.toString()}`, {
       next: { revalidate: REVALIDATE },
       headers: UA_HEADER,
+      signal,
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -378,7 +386,10 @@ async function fetchWikiPageInfo(title: string): Promise<{ original?: string; wi
   }
 }
 
-async function fetchWikidataClaims(wikidataId: string): Promise<Record<string, unknown> | null> {
+async function fetchWikidataClaims(
+  wikidataId: string,
+  signal?: AbortSignal,
+): Promise<Record<string, unknown> | null> {
   try {
     const params = new URLSearchParams({
       action: 'wbgetentities',
@@ -390,6 +401,7 @@ async function fetchWikidataClaims(wikidataId: string): Promise<Record<string, u
     const res = await fetch(`${WIKIDATA_API}?${params.toString()}`, {
       next: { revalidate: REVALIDATE },
       headers: UA_HEADER,
+      signal,
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -418,7 +430,11 @@ function readFirstEntityIdClaim(claims: any, prop: string): string | null {
  * Resolve a Commons file name to a thumbnailed URL. SVGs render as PNG
  * (via Commons), PNG/JPG come back as the original.
  */
-async function commonsImageUrl(fileName: string, width: number): Promise<string | null> {
+async function commonsImageUrl(
+  fileName: string,
+  width: number,
+  signal?: AbortSignal,
+): Promise<string | null> {
   try {
     const params = new URLSearchParams({
       action: 'query',
@@ -433,6 +449,7 @@ async function commonsImageUrl(fileName: string, width: number): Promise<string 
     const res = await fetch(`${COMMONS_API}?${params.toString()}`, {
       next: { revalidate: REVALIDATE },
       headers: UA_HEADER,
+      signal,
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -446,7 +463,10 @@ async function commonsImageUrl(fileName: string, width: number): Promise<string 
 
 // Look up a Wikidata entity's English page title — used for chasing
 // "located in" pointers down to a renderable Wikipedia article.
-async function fetchEntitySitelink(entityId: string): Promise<string | null> {
+async function fetchEntitySitelink(
+  entityId: string,
+  signal?: AbortSignal,
+): Promise<string | null> {
   try {
     const params = new URLSearchParams({
       action: 'wbgetentities',
@@ -459,6 +479,7 @@ async function fetchEntitySitelink(entityId: string): Promise<string | null> {
     const res = await fetch(`${WIKIDATA_API}?${params.toString()}`, {
       next: { revalidate: REVALIDATE },
       headers: UA_HEADER,
+      signal,
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -474,6 +495,7 @@ async function fetchEntitySitelink(entityId: string): Promise<string | null> {
 async function resolveLogo(
   displayName: string,
   wikidataClaims: Record<string, unknown> | null,
+  signal?: AbortSignal,
 ): Promise<string | null> {
   // 1. Wikidata logo / seal claims, resolved through Commons. This is
   //    the highest-quality source — institutions self-publish their
@@ -482,7 +504,7 @@ async function resolveLogo(
     for (const prop of ['P154', 'P158', 'P8972']) {
       const file = readFirstImageClaim(wikidataClaims, prop);
       if (file) {
-        const url = await commonsImageUrl(file, 320);
+        const url = await commonsImageUrl(file, 320, signal);
         if (url) return url;
       }
     }
@@ -503,11 +525,12 @@ async function resolveLogo(
 async function resolveCityImageV2(
   displayName: string,
   wikidataClaims: Record<string, unknown> | null,
+  signal?: AbortSignal,
 ): Promise<string | null> {
   // 1. Curated city map → Wikipedia summary of the city
   const curatedCity = lookupHint(CITY_HINTS, displayName);
   if (curatedCity) {
-    const summary = await fetchWikiSummary(curatedCity);
+    const summary = await fetchWikiSummary(curatedCity, signal);
     const cityImage = summary?.original ?? summary?.thumb;
     if (cityImage) return cityImage;
   }
@@ -517,9 +540,9 @@ async function resolveCityImageV2(
     for (const prop of ['P131', 'P159', 'P276']) {
       const entityId = readFirstEntityIdClaim(wikidataClaims, prop);
       if (!entityId) continue;
-      const sitelink = await fetchEntitySitelink(entityId);
+      const sitelink = await fetchEntitySitelink(entityId, signal);
       if (!sitelink) continue;
-      const summary = await fetchWikiSummary(sitelink);
+      const summary = await fetchWikiSummary(sitelink, signal);
       const img = summary?.original ?? summary?.thumb;
       if (img) return img;
     }
@@ -530,19 +553,25 @@ async function resolveCityImageV2(
 
 // ── Per-university resolver ────────────────────────────────────────────
 
-async function resolveOne(rawTitle: string, displayName: string): Promise<ResolvedImagery> {
+async function resolveOne(
+  rawTitle: string,
+  displayName: string,
+  signal?: AbortSignal,
+): Promise<ResolvedImagery> {
   const cached = CACHE.get(rawTitle);
   if (cached) return cached;
 
   const title = aliasTitle(rawTitle);
-  const pageInfo = await fetchWikiPageInfo(title);
+  const pageInfo = await fetchWikiPageInfo(title, signal);
 
-  const claims = pageInfo?.wikidataId ? await fetchWikidataClaims(pageInfo.wikidataId) : null;
+  const claims = pageInfo?.wikidataId
+    ? await fetchWikidataClaims(pageInfo.wikidataId, signal)
+    : null;
 
   // Logo + city in parallel
   const [logo, cityImage] = await Promise.all([
-    resolveLogo(displayName, claims),
-    resolveCityImageV2(displayName, claims),
+    resolveLogo(displayName, claims, signal),
+    resolveCityImageV2(displayName, claims, signal),
   ]);
 
   // Campus = preferred city image, falling back to the Wikipedia article's
@@ -550,7 +579,8 @@ async function resolveOne(rawTitle: string, displayName: string): Promise<Resolv
   const campus = cityImage ?? pageInfo?.original ?? null;
 
   const result: ResolvedImagery = { campus, logo };
-  CACHE.set(rawTitle, result);
+  // An aborted request is an incomplete answer, not a cacheable miss.
+  if (!signal?.aborted) CACHE.set(rawTitle, result);
   return result;
 }
 
@@ -558,6 +588,7 @@ async function resolveOne(rawTitle: string, displayName: string): Promise<Resolv
 
 export async function resolveUniversityImagery(
   entries: Array<[string, string]>,
+  options: { signal?: AbortSignal | undefined } = {},
 ): Promise<Map<string, ResolvedImagery>> {
   const results = new Map<string, ResolvedImagery>();
   const unique = new Map<string, string>();
@@ -567,10 +598,11 @@ export async function resolveUniversityImagery(
   const list = Array.from(unique.entries());
 
   for (let i = 0; i < list.length; i += CONCURRENCY) {
+    if (options.signal?.aborted) break;
     const batch = list.slice(i, i + CONCURRENCY);
     const settled = await Promise.all(
       batch.map(async ([title, name]) => {
-        const imagery = await resolveOne(title, name);
+        const imagery = await resolveOne(title, name, options.signal);
         return [title, imagery] as const;
       }),
     );

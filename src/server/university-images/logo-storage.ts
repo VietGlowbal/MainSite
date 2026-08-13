@@ -4,7 +4,14 @@ import sharp from 'sharp';
 const DEFAULT_BUCKET = 'university-images';
 const LOGO_SIZE = 512;
 const MAX_SOURCE_BYTES = 10 * 1024 * 1024;
-const FETCH_TIMEOUT_MS = 20_000;
+const FETCH_TIMEOUT_MS = 6_000;
+
+export type PersistUniversityLogoOptions = {
+  /** Absolute shared cron deadline. No request may outlive it. */
+  deadlineMs?: number | undefined;
+  /** Per-host cap, additionally bounded by deadlineMs. */
+  requestTimeoutMs?: number | undefined;
+};
 
 function slugify(value: string): string {
   const slug = value
@@ -34,14 +41,21 @@ export async function persistUniversityLogo(
   admin: SupabaseClient,
   university: { id: number; name: string },
   sourceUrl: string,
+  options: PersistUniversityLogoOptions = {},
 ): Promise<string | null> {
   const bucket = process.env.UNIVERSITY_IMAGES_BUCKET?.trim() || DEFAULT_BUCKET;
   const path = universityLogoStoragePath(university);
+  const remainingMs = (options.deadlineMs ?? Number.POSITIVE_INFINITY) - Date.now();
+  if (remainingMs <= 0) return null;
+  const timeoutMs = Math.max(
+    1,
+    Math.min(options.requestTimeoutMs ?? FETCH_TIMEOUT_MS, remainingMs),
+  );
 
   try {
     const response = await fetch(sourceUrl, {
       headers: { 'User-Agent': 'glowbal-edu-platform/1.0 (university imagery)' },
-      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      signal: AbortSignal.timeout(timeoutMs),
     });
     if (!response.ok) return null;
 
@@ -50,6 +64,7 @@ export async function persistUniversityLogo(
 
     const source = Buffer.from(await response.arrayBuffer());
     if (source.byteLength === 0 || source.byteLength > MAX_SOURCE_BYTES) return null;
+    if (Date.now() >= (options.deadlineMs ?? Number.POSITIVE_INFINITY)) return null;
 
     const logo = await sharp(source, { limitInputPixels: 40_000_000 })
       .rotate()
@@ -62,6 +77,7 @@ export async function persistUniversityLogo(
       })
       .webp({ quality: 90, alphaQuality: 100 })
       .toBuffer();
+    if (Date.now() >= (options.deadlineMs ?? Number.POSITIVE_INFINITY)) return null;
 
     const { error } = await admin.storage.from(bucket).upload(path, logo, {
       cacheControl: '31536000',
