@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { ICONS, KitIcon } from '@/shared/ui';
 import { createClient } from '@/lib/supabase/client';
+import { useT } from '@/lib/i18n';
 
 /**
  * The save-to-shortlist heart — Figma 522:8643, in the title row of 375:10629.
@@ -96,12 +97,13 @@ function useSaveUniversity({
 }
 
 export function UniversitySaveHeader(props: SaveUniversityProps) {
+  const t = useT();
   const { universityName } = props;
   const { saved, pending, error, toggle } = useSaveUniversity(props);
 
-  const label = saved
-    ? `Remove ${universityName} from your list`
-    : `Save ${universityName} to your list`;
+  const label = t(saved ? 'Remove {name} from your list' : 'Save {name} to your list', {
+    name: universityName,
+  });
 
   return (
     <div className="flex flex-col gap-gb-xl">
@@ -156,12 +158,13 @@ export function UniversitySaveHeader(props: SaveUniversityProps) {
 }
 
 export function SaveUniversityButton(props: SaveUniversityProps) {
+  const t = useT();
   const { universityName } = props;
   const { saved, pending, error, toggle } = useSaveUniversity(props);
 
-  const label = saved
-    ? `Remove ${universityName} from your list`
-    : `Save ${universityName} to your list`;
+  const label = t(saved ? 'Remove {name} from your list' : 'Save {name} to your list', {
+    name: universityName,
+  });
 
   return (
     <span className="flex flex-col items-end gap-gb-xs">

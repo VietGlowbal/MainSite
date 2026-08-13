@@ -37,7 +37,7 @@ export default async function ReflectionAboutPage({
   return (
     <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
       {confirmedAt ? (
-        <ConfirmedReflectionView values={initial} confirmedAt={confirmedAt} />
+        <ConfirmedReflectionView values={initial} confirmedAt={confirmedAt} returnTo={returnTo} />
       ) : (
         <ReflectionAboutForm
           initial={{

@@ -6,24 +6,31 @@ import {
   destinationLabel,
   formatBudgetRange,
   fundingSourceLabel,
-  intakeLabel,
   isCompleteBudget,
   subjectById,
   type FundingSourceId,
   type ReflectionValues,
 } from '@/features/apply/domain';
+import { localizeIntakeCopy } from '@/features/apply/ui';
 import { useT } from '@/lib/i18n';
-import { Panel } from '@/shared/ui';
+import { Button, Panel } from '@/shared/ui';
 
 /**
  * Reflections, after confirmation — a finished profile summary, not a
  * disabled questionnaire.
  *
- * No inputs, no Edit, no Next/Back, no question tracker: the questionnaire is
- * over. A student who lands here (directly, or because the browser Back
- * button resurfaced an old `/ai-strategy/reflection` URL after confirming)
+ * No inputs, no Next/Back, no question tracker: the questionnaire is over. A
+ * student who lands here (directly, because the browser Back button
+ * resurfaced an old `/ai-strategy/reflection` URL after confirming, or
+ * because a NEW application's onboarding CTA sent them here while this
+ * globally-shared profile was already confirmed from an earlier application)
  * sees exactly what they confirmed and nothing they can change — the route
- * guard in `page.tsx` is what decides they land here at all.
+ * guard in `page.tsx` is what decides they land here at all. `returnTo`
+ * (threaded through from the page's own `?return=` param) is what gets them
+ * back out again to wherever that CTA meant to send them, since there is
+ * otherwise no forward navigation on this screen at all — landing here used
+ * to be a dead end for a student opening a second application, reported live
+ * 2026-08-13.
  *
  * A client component, like every other reflection page in this feature, so
  * it can use `useT()` directly rather than sprinkling `<T k="…" />` islands
@@ -52,9 +59,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function ConfirmedReflectionView({
   values,
   confirmedAt,
+  returnTo,
 }: {
   values: ReflectionValues;
   confirmedAt: string;
+  returnTo?: string | undefined;
 }) {
   const t = useT();
   const confirmedDate = new Date(confirmedAt).toLocaleDateString('en-US', {
@@ -92,6 +101,11 @@ export function ConfirmedReflectionView({
             date: confirmedDate,
           })}
         </p>
+        {returnTo ? (
+          <Button href={returnTo} size="sm" className="mt-gb-lg">
+            {t('Continue')}
+          </Button>
+        ) : null}
       </div>
 
       <div className="flex flex-col gap-gb-xs">
@@ -131,7 +145,7 @@ export function ConfirmedReflectionView({
         <Field label={t('Study level')} value={values.intendedLevel ? t(values.intendedLevel) : undefined} />
         <Field
           label={t('Preferred intake')}
-          value={values.intake ? intakeLabel(values.intake).label : undefined}
+          value={values.intake ? localizeIntakeCopy(values.intake, t).label : undefined}
         />
       </Section>
 

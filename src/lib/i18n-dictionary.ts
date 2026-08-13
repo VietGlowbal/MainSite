@@ -2813,6 +2813,15 @@ export const translations: Record<string, string> = {
   'Student loan': 'Khoản vay sinh viên',
   'Employer or sponsor': 'Nhà tuyển dụng hoặc đơn vị tài trợ',
   'Not decided yet': 'Chưa quyết định',
+  'Autumn / Fall {year}': 'Mùa thu {year}',
+  'Spring {year}': 'Mùa xuân {year}',
+  'September – December {year}': 'Tháng 9 – Tháng 12 năm {year}',
+  'January – April {year}': 'Tháng 1 – Tháng 4 năm {year}',
+  'Later than {year}': 'Sau năm {year}',
+  'Starting from {year} or later': 'Bắt đầu từ năm {year} trở đi',
+  'I’m still exploring my options': 'Tôi vẫn đang tìm hiểu các lựa chọn',
+  'Save {name} to your list': 'Lưu {name} vào danh sách của bạn',
+  'Remove {name} from your list': 'Xóa {name} khỏi danh sách của bạn',
   Design: 'Thiết kế',
   'What is your intended level of study?': 'Bạn dự định học ở bậc nào?',
   'Intended level of study': 'Bậc học dự định',
@@ -3750,6 +3759,31 @@ export const translations: Record<string, string> = {
   'Below 6': 'Dưới 6',
   'Black line = strong benchmark {score}/10': 'Đường màu đen = mốc tốt {score}/10',
   'Career direction': 'Định hướng nghề nghiệp',
+  'Where do you want to go after graduation.': 'Bạn muốn đi tới đâu sau khi tốt nghiệp.',
+  'Example: become a data engineer in healthcare in Southeast Asia.':
+    'Ví dụ: trở thành kỹ sư dữ liệu trong lĩnh vực y tế tại Đông Nam Á.',
+  'How does this university position itself?': 'Trường này tự định vị mình như thế nào.',
+  'Example: a research-intensive university highly ranked for computer science.':
+    'Ví dụ: đại học nghiên cứu chuyên sâu, xếp hạng cao về khoa học máy tính.',
+  'How the university teaches and what it values in students.':
+    'Cách trường dạy và điều họ coi trọng ở sinh viên.',
+  'Example: project-based learning with a strong theoretical foundation.':
+    'Ví dụ: học qua dự án, chú trọng nền tảng lý thuyết vững.',
+  'The learning environment you will enter.': 'Môi trường học tập bạn sẽ bước vào.',
+  'Example: small classes, an international community, and strong industry links.':
+    'Ví dụ: lớp nhỏ, cộng đồng quốc tế, gắn với doanh nghiệp.',
+  'What this programme promises its graduates will be able to do.':
+    'Chương trình này cam kết đào tạo ra điều gì.',
+  'Example: train engineers who can build large-scale data systems.':
+    'Ví dụ: đào tạo kỹ sư có thể xây dựng hệ thống dữ liệu quy mô lớn.',
+  'The capabilities your CV most needs to prove.':
+    'Những năng lực CV của bạn cần chứng minh rõ nhất.',
+  'Example: analytical thinking, programming, and interdisciplinary teamwork.':
+    'Ví dụ: tư duy phân tích, lập trình, làm việc nhóm liên ngành.',
+  'Where your direction and this programme meet.':
+    'Điểm gặp nhau giữa định hướng của bạn và chương trình này.',
+  'Example: the programme focuses on health data, matching your career goal.':
+    'Ví dụ: chương trình có hướng dữ liệu y tế, khớp với mục tiêu của bạn.',
   'Change': 'Chuyển biến',
   'Check profile data': 'Kiểm tra dữ liệu hồ sơ',
   'Choose a layout and export PDF': 'Chọn bố cục và xuất PDF',
@@ -4230,4 +4264,148 @@ export const translations: Record<string, string> = {
   'Reports are generated from the information you confirmed.':
     'Báo cáo được tạo từ thông tin bạn đã xác nhận.',
   'View confirmed information': 'Xem thông tin đã xác nhận',
+  // Extended production-route audit: metadata, catalog descriptions and
+  // validation copy that is supplied through variables rather than t('...').
+  'Meet the team behind GlowBal — the people helping students find global universities, scholarships, and application strategies.':
+    'Gặp gỡ đội ngũ đứng sau GlowBal — những người giúp học sinh tìm trường đại học quốc tế, học bổng và chiến lược ứng tuyển.',
+  'GlowBal Strategy: two AI reports — one about you, one about the course — and an ordered plan that closes the gap between them.':
+    'Chiến lược GlowBal: hai báo cáo AI — một về bạn, một về khóa học — cùng kế hoạch theo thứ tự để thu hẹp khoảng cách giữa hai bên.',
+  'Build and edit the structured content of your CV.':
+    'Xây dựng và chỉnh sửa nội dung có cấu trúc cho CV của bạn.',
+  'Choose how your CV is presented and export it.':
+    'Chọn cách trình bày CV và xuất bản hoàn chỉnh.',
+  'See whether your CV proves what this programme is looking for.':
+    'Kiểm tra xem CV của bạn đã chứng minh được những gì chương trình đang tìm kiếm hay chưa.',
+  'Define what your CV needs to prove for this programme.':
+    'Xác định những điều CV cần chứng minh cho chương trình này.',
+  'Prepare your CV and personal statement for this application.':
+    'Chuẩn bị CV và bài luận cá nhân cho hồ sơ ứng tuyển này.',
+  'Get line-by-line AI feedback on your personal statement or SOP.':
+    'Nhận phản hồi AI theo từng dòng cho bài luận cá nhân hoặc SOP của bạn.',
+  'The courses you are applying to, how far along each one is, and the universities you have saved.':
+    'Các khóa học bạn đang ứng tuyển, tiến độ của từng hồ sơ và những trường bạn đã lưu.',
+  'Choose a format and how to start building your CV.':
+    'Chọn định dạng và cách bắt đầu xây dựng CV của bạn.',
+  'GLOWBAL is offline for a short redesign. Leave your email and we’ll let you know when we’re back.':
+    'GLOWBAL tạm ngừng để thiết kế lại. Hãy để lại email và chúng tôi sẽ báo khi trở lại.',
+  'Please enter a valid email address.': 'Vui lòng nhập địa chỉ email hợp lệ.',
+  'Please enter a valid date of birth.': 'Vui lòng nhập ngày sinh hợp lệ.',
+  'The waitlist table is not set up yet. Create `waitlist_signups` in Supabase.':
+    'Danh sách chờ chưa được thiết lập. Vui lòng thử lại sau.',
+  'Something went wrong saving your signup. Please try again.':
+    'Đã xảy ra lỗi khi lưu đăng ký. Vui lòng thử lại.',
+  "You're on the list. We'll email you the moment we're back.":
+    'Bạn đã có trong danh sách. Chúng tôi sẽ gửi email ngay khi trở lại.',
+  'How GlowBal takes you from searching universities, to applying for a course, to a personalised strategy that improves your chances of getting in.':
+    'Cách GlowBal đồng hành từ lúc tìm trường, ứng tuyển khóa học đến khi có chiến lược cá nhân hóa giúp tăng cơ hội trúng tuyển.',
+  'Student-first global course and university guidance platform.':
+    'Nền tảng định hướng khóa học và đại học toàn cầu lấy học sinh làm trung tâm.',
+  'Pick the subject you want to apply for at a university on your saved list.':
+    'Chọn ngành bạn muốn ứng tuyển tại một trường trong danh sách đã lưu.',
+  'Study-abroad news, generated guides, trending topics, and scholarship stories from Glowbal.':
+    'Tin du học, hướng dẫn, chủ đề nổi bật và câu chuyện học bổng từ GlowBal.',
+  'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.':
+    'GlowBal giúp học sinh khám phá các trường đại học toàn cầu, tìm học bổng và xây dựng chiến lược ứng tuyển với AI cùng người hỗ trợ thực tế.',
+  'Something went wrong saving your details. Please try again.':
+    'Đã xảy ra lỗi khi lưu thông tin. Vui lòng thử lại.',
+  "Thanks — we'll be in touch shortly.": 'Cảm ơn bạn — chúng tôi sẽ sớm liên hệ.',
+  'Upgrade to GlowBal Plus for more AI application strategies, full scholarship details, a document checklist, and priority student-supporter access.':
+    'Nâng cấp lên GlowBal Plus để có thêm chiến lược ứng tuyển AI, thông tin học bổng đầy đủ, danh sách tài liệu và quyền ưu tiên kết nối người hỗ trợ.',
+  'How GlowBal collects, uses, and protects your personal information when you discover universities, scholarships, and build your application plan.':
+    'Cách GlowBal thu thập, sử dụng và bảo vệ thông tin cá nhân khi bạn tìm trường, học bổng và xây dựng kế hoạch ứng tuyển.',
+  'English-language and standardized test results': 'Kết quả tiếng Anh và các bài thi chuẩn hóa',
+  'Your academic or professional CV': 'CV học thuật hoặc nghề nghiệp của bạn',
+  'Your statement of purpose or personal statement': 'SOP hoặc bài luận cá nhân của bạn',
+  'The terms that govern your use of GlowBal — the platform for discovering universities, scholarships, and building application strategies.':
+    'Các điều khoản áp dụng khi sử dụng GlowBal — nền tảng tìm trường, học bổng và xây dựng chiến lược ứng tuyển.',
+  'Find universities that match your goals': 'Tìm các trường đại học phù hợp với mục tiêu của bạn',
+  'Discover programs and compare options': 'Khám phá chương trình và so sánh các lựa chọn',
+  'Prepare and submit your application': 'Chuẩn bị và nộp hồ sơ ứng tuyển',
+  'Plan your finances and explore funding': 'Lập kế hoạch tài chính và tìm nguồn hỗ trợ',
+  'Connect with advisors and prepare for success': 'Kết nối với cố vấn và chuẩn bị để thành công',
+  'It is hard to know which universities are realistic, ambitious, affordable, or worth applying to.':
+    'Thật khó để biết trường nào vừa sức, tham vọng, phù hợp ngân sách hoặc đáng để ứng tuyển.',
+  'Scholarship information is scattered across different websites, deadlines, eligibility pages, and university portals.':
+    'Thông tin học bổng nằm rải rác trên nhiều website, hạn chót, trang điều kiện và cổng thông tin của trường.',
+  'Even after finding a scholarship, many students are unsure how to prepare documents or improve their chances.':
+    'Ngay cả khi đã tìm được học bổng, nhiều học sinh vẫn chưa biết chuẩn bị tài liệu hoặc cải thiện cơ hội như thế nào.',
+  'GlowBal connects you with real people who have studied abroad, won scholarships, and supported others through the journey.':
+    'GlowBal kết nối bạn với những người đã du học, giành học bổng và đồng hành cùng người khác trong hành trình này.',
+  'Search for a university you’re interested in, or browse by country, subject, budget, and scholarship availability.':
+    'Tìm trường bạn quan tâm hoặc duyệt theo quốc gia, ngành học, ngân sách và học bổng hiện có.',
+  'Add your basic details so GlowBal can show relevant scholarships and save your application plan.':
+    'Thêm thông tin cơ bản để GlowBal hiển thị học bổng phù hợp và lưu kế hoạch ứng tuyển của bạn.',
+  'View scholarship opportunities linked to your chosen university and save the ones you want to apply for.':
+    'Xem các cơ hội học bổng liên quan đến trường đã chọn và lưu những học bổng bạn muốn ứng tuyển.',
+  'Get a personalised strategy showing what to prepare, what to improve, and how to approach each scholarship.':
+    'Nhận chiến lược cá nhân hóa về những gì cần chuẩn bị, cần cải thiện và cách tiếp cận từng học bổng.',
+  'PDF preferred. Helps us verify your background.':
+    'Ưu tiên PDF. Tài liệu này giúp chúng tôi xác minh hồ sơ của bạn.',
+  'Official letter or PDF showing you were accepted.':
+    'Thư chính thức hoặc PDF chứng minh bạn đã được chấp nhận.',
+  'Most recent academic transcript or grade summary.':
+    'Bảng điểm hoặc bản tổng hợp kết quả học tập gần nhất.',
+  'Photo of your university student card (alumni: a graduation cert is fine).':
+    'Ảnh thẻ sinh viên đại học (cựu sinh viên có thể dùng bằng tốt nghiệp).',
+  'Grades, subjects and test scores against what the course asks for.':
+    'Đối chiếu điểm số, môn học và kết quả thi với yêu cầu của khóa học.',
+  'What you have done outside the classroom, and how consistently.':
+    'Những gì bạn đã làm ngoài lớp học và mức độ duy trì nhất quán.',
+  'How clearly your statement makes the case only you could make.':
+    'Mức độ bài luận thể hiện rõ câu chuyện riêng chỉ bạn mới có thể kể.',
+  'Evidence that something changed because you were involved.':
+    'Bằng chứng cho thấy sự tham gia của bạn đã tạo ra thay đổi.',
+  'How well who you are lines up with how this course teaches.':
+    'Mức độ con người và cách học của bạn phù hợp với phương pháp giảng dạy của khóa học.',
+  'Build a CV against what this course asks for, then export it as a PDF.':
+    'Xây dựng CV theo yêu cầu của khóa học rồi xuất thành PDF.',
+  'Leads with education, research and publications. Single column, full detail.':
+    'Ưu tiên học vấn, nghiên cứu và công bố. Một cột, đầy đủ chi tiết.',
+  'Leads with skills and technical projects. Two columns, scannable.':
+    'Ưu tiên kỹ năng và dự án kỹ thuật. Hai cột, dễ đọc nhanh.',
+  'Leads with roles, organisations and community impact. Two columns.':
+    'Ưu tiên vai trò, tổ chức và tác động cộng đồng. Bố cục hai cột.',
+  'Your background, grades, achievements and what you are aiming for.':
+    'Nền tảng, điểm số, thành tích và mục tiêu của bạn.',
+  'What your profile says about you, read back as a candidate portrait.':
+    'Những gì hồ sơ thể hiện về bạn, được phản ánh thành chân dung ứng viên.',
+  'How well you fit a course, with the requirements and costs beside it.':
+    'Mức độ phù hợp với khóa học, kèm theo yêu cầu và chi phí.',
+  'AI feedback on your essay and your CV, one draft at a time.':
+    'Phản hồi AI cho bài luận và CV của bạn theo từng bản nháp.',
+  'A last check over everything you are about to send.':
+    'Kiểm tra lần cuối mọi thứ bạn sắp gửi.',
+  'A. Is your CV aligned with the course?': 'A. CV của bạn có phù hợp với khóa học không?',
+  'B. Does the reader understand who you are?': 'B. Người đọc có hiểu bạn là ai không?',
+  'C. Does it include enough examples and results?': 'C. CV có đủ ví dụ và kết quả không?',
+  'D. Does the important content stand out?': 'D. Nội dung quan trọng có đủ nổi bật không?',
+  'E. Is the CV concise enough for one page?': 'E. CV có đủ súc tích để nằm trong một trang không?',
+  'General information': 'Thông tin chung',
+  'About me': 'Giới thiệu bản thân',
+  Projects: 'Dự án',
+  'Awards and achievements': 'Giải thưởng và thành tích',
+  Publications: 'Công bố',
+  Certifications: 'Chứng chỉ',
+  Interests: 'Sở thích',
+  'Strong foundation': 'Nền tảng tốt',
+  'Needs improvement': 'Cần cải thiện',
+  'Not focused enough': 'Chưa đủ tập trung',
+  Urgent: 'Khẩn cấp',
+  High: 'Cao',
+  Medium: 'Trung bình',
+  Low: 'Thấp',
+  'Highly recommended': 'Rất khuyến nghị',
+  'Already in your portfolio': 'Đã có trong hồ sơ của bạn',
+  'Suggested opportunity': 'Cơ hội được đề xuất',
+  'Identity fit': 'Mức độ phù hợp bản sắc',
+  'Evidence strength': 'Độ mạnh của bằng chứng',
+  Consistency: 'Tính nhất quán',
+  'Future alignment': 'Mức độ phù hợp tương lai',
+  Scalability: 'Khả năng mở rộng',
+  'Weighing strategic directions...': 'Đang cân nhắc các hướng chiến lược...',
+  'Positioning your story...': 'Đang định vị câu chuyện của bạn...',
+  'Evaluating your portfolio...': 'Đang đánh giá hồ sơ của bạn...',
+  'Building your roadmap...': 'Đang xây dựng lộ trình của bạn...',
+  'Contact information': 'Thông tin liên hệ',
+  'Activities and leadership': 'Hoạt động và vai trò lãnh đạo',
 };

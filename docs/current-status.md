@@ -197,7 +197,7 @@ Measured on 2026-08-13 against the uncommitted working tree described above
 | `npx tsc --noEmit` | **Pass**, 0 errors. |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
 | `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
-| `npx vitest run` | **Pass: 1946 passed, 2 todo, 184 files passed, 0 failed.** New `analysis-workspace.test.tsx` (4 tests) covers both-complete, one-finished-while-one-generating, independent per-report retry-on-failure, and the confirmed-date/subtitle rendering. |
+| `npx vitest run` | **Pass: 1953 passed, 2 todo, 187 files passed, 0 failed.** New `strategy/page.test.tsx` (3 tests) covers the CTA routing fix; new `confirmed-reflection-view.test.tsx`/`confirmed-achievements-view.test.tsx` (2 tests each) cover the Continue-link escape hatch. |
 | `node scripts/check-i18n.mjs` | **Pass: 0 missing keys.** |
 | `npm run build` / browser check | **Not run this pass** — same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`). The Report Generation Page redesign is a visual/informational rebuild of an already-working synchronous flow (no new backend surface beyond the existing tolerant `confirmed_at` read), so the risk this leaves unverified is narrower than a schema-touching change — still, a real browser click-through of the confirm → generation → both-reports-ready path remains the best next verification step. |
 | `npm run test:e2e` | Not rerun in this pass. |

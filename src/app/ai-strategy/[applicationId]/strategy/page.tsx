@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
-import { onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
+import { nextOnboardingStep, onboardingStepHref } from '@/features/ai-strategy-dashboard/domain';
 import { StrategyHome } from '@/features/ai-strategy-dashboard/ui';
 import { createClient } from '@/lib/supabase/server';
 
@@ -11,8 +11,8 @@ import { createClient } from '@/lib/supabase/server';
  * Ownership of `applicationId` is already enforced by the layout above this
  * page. `fetchOnboardingState` decides what happens next:
  *  - This application's AI analysis (Personal Report + Matching Report)
- *    hasn't run yet → render the marketing page below. Its CTA always opens
- *    the reflection flow, never skips ahead — see the note below.
+ *    hasn't run yet → render the marketing page below. Its CTA opens
+ *    whatever onboarding actually has left to do — see the note below.
  *  - It has → the Matching Report is home. See the note below.
  *
  * ─── THE MATCHING REPORT IS HOME, NOT A STEP IN A FUNNEL ─────────────────────
@@ -43,19 +43,30 @@ import { createClient } from '@/lib/supabase/server';
  * runs for it, regardless of what the student's other applications have
  * already done.
  *
- * ─── WHY THE CTA ALWAYS TARGETS "personal-summary", NOT `step` ───────────────
+ * ─── WHY THE CTA TARGETS `nextOnboardingStep(state)`, NOT A FIXED STEP ───────
  *
- * The obvious-looking alternative — link to `onboardingStepHref(step, id)`,
- * whatever the real next step is — was tried and reported broken the same
- * day: for that same returning student, `step` resolves straight to
- * `'analysis'` (their reflections already being globally complete), so the
- * CTA fired the AI generation call the moment they clicked "Start My
- * Strategy," with no chance to review or update their reflections for THIS
- * application first. The reflection pages read back and PRE-FILL existing
- * answers (`reflectionFromProfile`, the achievements page's own select), so
- * routing through them is a "confirm/edit," not a "redo from scratch" —
- * always sending the CTA there is what "ask for reflections, confirm
- * achievements, then generate" actually requires.
+ * This used to always link to `onboardingStepHref('personal-summary', id)`,
+ * on the theory that `step` resolving straight to `'analysis'` for a
+ * returning student would fire the AI generation call with no chance to
+ * review reflections first (see git history for the original note). That
+ * reasoning predates the Review & Confirm checkpoint (`'confirm'` step,
+ * added after this comment was first written): today `nextOnboardingStep`
+ * never skips straight from "reflections done" to `'analysis'` for a
+ * student who hasn't confirmed — it stops at `'confirm'`, which shows the
+ * full profile for review before anything generates. Once `candidateConfirmed`
+ * is true, though — true globally, from ANY earlier application — the two
+ * reflection pages render their read-only, confirmed views
+ * (`ConfirmedReflectionView`/`ConfirmedAchievementsView`), which have no
+ * Next/Continue action at all; they are a "this is what you approved"
+ * summary, not a step in a funnel. Hardcoding the CTA to `'personal-summary'`
+ * sent a student who had already confirmed on an earlier application
+ * straight into that dead end for every NEW application afterward — reported
+ * live 2026-08-13. Routing through `nextOnboardingStep(state)` instead means
+ * a not-yet-confirmed student still gets routed to reflections → achievements
+ * → confirm, in order, exactly as before; a confirmed student instead goes
+ * straight to `'analysis'`, which is correct — there is nothing left to
+ * review, since the profile it would show them is the exact one they
+ * already reviewed and confirmed.
  */
 export default async function StrategyHomePage({
   params,
@@ -89,7 +100,7 @@ export default async function StrategyHomePage({
     <StrategyHome
       courseName={application?.course_name ?? 'Your course'}
       universityName={application?.university_name ?? 'Your university'}
-      startHref={onboardingStepHref('personal-summary', applicationId)}
+      startHref={onboardingStepHref(nextOnboardingStep(state), applicationId)}
     />
   );
 }
