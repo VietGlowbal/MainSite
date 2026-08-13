@@ -355,27 +355,30 @@ export async function POST(request: Request) {
         // The frontend passes these ids to /api/apply-shortlist/add-courses,
         // which looks them up by (session_id, id) — without real ids the add
         // request fails Zod validation with a 400 "Invalid request".
-        const { data: storedRows } = await adminSupabase
+        const { data: storedRows, error: storedRowsError } = await adminSupabase
           .from('course_search_session_results')
           .select('*')
-          .eq('session_id', sessionId)
-          .order('rank', { ascending: true });
+          .eq('session_id', sessionId);
 
-        const storedResults: CourseSearchResult[] = (storedRows || []).map((row) => ({
-          id: row.id,
-          universityId: row.university_id,
-          courseName: row.course_name,
-          courseUrl: row.course_url,
-          sourceDomain: row.source_domain,
-          snippet: row.snippet,
-          degreeLevel: row.degree_level,
-          duration: row.duration,
-          tuitionFeeText: row.tuition_fee_text,
-          confidenceLabel: row.confidence_label,
-          sourceConfidence: row.source_confidence,
-          rank: row.rank,
-          sourceType: row.source_type,
-        }));
+        if (storedRowsError) throw storedRowsError;
+
+        const storedResults: CourseSearchResult[] = [...(storedRows || [])]
+          .sort((a, b) => a.rank - b.rank)
+          .map((row) => ({
+            id: row.id,
+            universityId: row.university_id,
+            courseName: row.course_name,
+            courseUrl: row.course_url,
+            sourceDomain: row.source_domain,
+            snippet: row.snippet,
+            degreeLevel: row.degree_level,
+            duration: row.duration,
+            tuitionFeeText: row.tuition_fee_text,
+            confidenceLabel: row.confidence_label,
+            sourceConfidence: row.source_confidence,
+            rank: row.rank,
+            sourceType: row.source_type,
+          }));
         
         // Update session status to complete
         await adminSupabase

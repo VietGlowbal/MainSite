@@ -1,8 +1,7 @@
 # Verification
 
-Last measured on branch `fix/feedback-118` at `0360ad6` on **2026-08-13**. The
-subsequent `66b7224` commit only removed the local pre-push installer; it did not
-change application or verification code. Results are also summarized in
+Last measured on branch `fix/feedback-118` at `c7b0a1f` plus the PR #180 CI
+repair on **2026-08-13**. Results are also summarized in
 [current-status.md](current-status.md).
 
 ## Gates
@@ -40,7 +39,7 @@ Current measured local snapshot (Node 20.20.2):
 | Lint | **Pass:** 0 errors, 23 warnings. |
 | Base typecheck | **Pass.** |
 | Strict typecheck | **Pass.** |
-| Vitest | **1961 pass / 2 todo** across **188 passing** files; coverage enabled. |
+| Vitest | **1972 pass / 2 todo** across **192 passing** files; coverage enabled. |
 | Build | **Pass:** Next.js 16.2.3 production build completed. Placeholder Supabase fetches and the existing NFT trace warning were non-fatal. |
 | E2E | Not rerun in the docs refresh. |
 
