@@ -190,4 +190,32 @@ describe('POST /api/candidate-information/confirm', () => {
     const response = await POST();
     expect(response.status).toBe(503);
   });
+
+  it('returns 500, not 503, when the insert fails on an RLS policy rather than a missing migration', async () => {
+    // The production incident this guards against: an RLS `insufficient_
+    // privilege` error's message still names the table ("new row violates
+    // row-level security policy for table confirmed_candidate_snapshots"),
+    // which a looser table-name-in-message check would misclassify as
+    // "migration not run yet" — telling a student to retry a request that
+    // could never succeed, instead of surfacing the real (permission) error.
+    mocks.loadCandidateReflection.mockResolvedValue({
+      reflection: READY_REFLECTION,
+      documents: [],
+      confirmedAt: null,
+    });
+    mocks.from.mockImplementation(() =>
+      insertBuilder({
+        data: null,
+        error: {
+          code: '42501',
+          message:
+            'new row violates row-level security policy for table "confirmed_candidate_snapshots"',
+        },
+      }),
+    );
+
+    const { POST } = await import('./route');
+    const response = await POST();
+    expect(response.status).toBe(500);
+  });
 });
