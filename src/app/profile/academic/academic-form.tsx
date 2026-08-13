@@ -24,7 +24,8 @@ import {
   type MultiSelectOption,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import { SaveBar, SelectOptions, TagInput, type SaveMessage } from '../_form-parts';
+import { SaveBar, SelectOptions, type SaveMessage } from '../_form-parts';
+import { TargetSubjectsField } from './target-subjects-field';
 
 const STUDY_LEVELS = ['Secondary / High school', 'Foundation', 'Undergraduate', 'Postgraduate (Masters)', 'PhD / Doctorate', 'Other'];
 const QUALIFICATIONS = ['A-Levels', 'IB Diploma', 'BTEC', 'Vietnamese High School Diploma', 'Baccalaureate', 'Foundation Diploma', 'Associate Degree', 'Bachelors Degree', 'Other'];
@@ -298,13 +299,7 @@ export function AcademicForm({
           onChange={(e) => setBackground(e.target.value)}
         />
 
-        <TagInput
-          name="target_subjects"
-          label="Target subjects / fields of study"
-          values={subjects}
-          onChange={setSubjects}
-          placeholder="e.g. Computer Science, Engineering, Business…"
-        />
+        <TargetSubjectsField values={subjects} onChange={setSubjects} />
 
         <SaveBar onSave={handleSave} saving={saving} message={message} />
       </Panel>
