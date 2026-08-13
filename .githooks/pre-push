@@ -13,4 +13,4 @@ if [ ! -f "$node_path" ] || [ ! -f "$npm_exec_path" ]; then
 fi
 
 echo "Running the pull-request verification gate before push..."
-"$node_path" "$npm_exec_path" run verify:pr
+npm_execpath="$npm_exec_path" "$node_path" scripts/verify-pr.mjs
