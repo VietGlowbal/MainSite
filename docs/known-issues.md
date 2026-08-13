@@ -1147,6 +1147,52 @@ project has a standing habit of shipping code ahead of its migrations
 `supabase-reflection-questions.sql` would cost a student their nationality,
 grades and budget — the whole step — over two optional answers.
 
+## 5n. Fixed 2026-08-13 — do not re-introduce
+
+**Reported in production**: confirming Candidate Information ("Confirm &
+Generate Reports") failed for a real student with "We could not confirm
+your information. Please try again." — `POST
+/api/candidate-information/confirm` returned `503`. The owner had already
+run `supabase-candidate-confirmation.sql` against the live Supabase project
+before reporting this, ruling out the migration-not-run explanation the 503
+message implied.
+
+**Root cause, and it's two bugs, not one.** (1) `supabase-candidate-
+confirmation.sql` created `confirmed_candidate_snapshots` with RLS enabled
+and only a `SELECT` policy — no `INSERT` policy. The confirm route inserts
+through the ordinary user-session client (`createClient()`, not
+`createAdminClient()`), because confirming is an action the signed-in
+student takes on their own profile, so RLS applies to that insert like any
+other write in this app. With no `INSERT` policy, RLS defaults to denying
+every insert, including the owner's own — Supabase returned `403`,
+Postgres code `42501` (`insufficient_privilege`), message `new row violates
+row-level security policy for table "confirmed_candidate_snapshots"`. (2)
+The route's own `migrationMissing()` classifier made the failure mode worse:
+it matched ANY error whose message contained the string
+`confirmed_candidate_snapshots` (meant to catch "relation does not exist"),
+and the RLS-violation message above happens to contain exactly that
+substring — so a genuine permission error was misclassified as "migration
+not run yet," returning the `503`/"try again shortly" that could never
+actually succeed on retry, since nothing about waiting or retrying grants
+the missing permission.
+
+**Fix**: added the missing `INSERT WITH CHECK (auth.uid() = user_id)`
+policy to `supabase-candidate-confirmation.sql` (idempotent — safe to
+re-run on a project that already has the table). Also narrowed
+`migrationMissing()` in `route.ts` to only match Postgres/PostgREST codes
+that actually mean "does not exist" (`42703`, `PGRST204`, `42P01`) or a
+message containing the phrase "does not exist" — no longer matches on a
+table/column name appearing anywhere in an unrelated error's message, so a
+future permission or constraint error surfaces as a real `500` instead of
+the misleading "come back later" `503`. New test asserts a `42501` RLS
+error returns `500`, not `503`.
+
+**If this is still failing after both fixes ship**: re-run
+`supabase-candidate-confirmation.sql` in the Supabase SQL editor (it is
+idempotent) to pick up the new policy — the code fix alone does not grant
+the missing database permission; the migration must actually be re-run.
+| `supabase-candidate-confirmation.sql`, `src/app/api/candidate-information/confirm/route.ts` |
+
 ## 6. Open questions for the designer / owner
 
 1. **The sitemap frame (`123:2864`, "Dg-final") no longer exists in the file.**

@@ -56,10 +56,33 @@ BEGIN
       AND policyname = 'confirmed_candidate_snapshots_owner'
   ) THEN
     -- Read-only for the owner past creation: a snapshot is written once, by
-    -- the confirm route (service-role), and never updated by the student —
-    -- there is nothing here for an ordinary UPDATE/DELETE policy to permit.
+    -- the confirm route, and never updated by the student — there is
+    -- nothing here for an ordinary UPDATE/DELETE policy to permit.
     CREATE POLICY "confirmed_candidate_snapshots_owner" ON public.confirmed_candidate_snapshots
       FOR SELECT USING (auth.uid() = user_id);
+  END IF;
+
+  -- ⚠️ THE ROW THIS TABLE EXISTS TO STORE COULD NEVER BE WRITTEN WITHOUT
+  -- THIS. `POST /api/candidate-information/confirm` inserts through the
+  -- ordinary user-session client (`createClient()`, not `createAdminClient`),
+  -- because the confirmation is an action the signed-in student is taking on
+  -- their own profile — so RLS applies to that insert like any other write in
+  -- this app. With only the SELECT policy above, RLS defaults to denying
+  -- every insert, including the owner's own: confirming failed in production
+  -- with a 403 "new row violates row-level security policy" the moment a
+  -- student who had actually run the rest of this file first tried it. (The
+  -- route's own error handling made this worse, not better: the 403's message
+  -- happens to contain this table's name, which its `migrationMissing()`
+  -- check matched, reporting the misleading "not available yet, try again
+  -- shortly" — a retry that could never succeed. That check has since been
+  -- narrowed; this policy is the actual fix.)
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies
+    WHERE schemaname = 'public' AND tablename = 'confirmed_candidate_snapshots'
+      AND policyname = 'confirmed_candidate_snapshots_insert_own'
+  ) THEN
+    CREATE POLICY "confirmed_candidate_snapshots_insert_own" ON public.confirmed_candidate_snapshots
+      FOR INSERT WITH CHECK (auth.uid() = user_id);
   END IF;
 END $$;
 

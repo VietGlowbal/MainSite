@@ -26,14 +26,28 @@ import { candidateReadiness, candidateSnapshotPayloadSchema } from '@/features/a
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/** Same shape of check the rest of this project uses for a column shipped ahead of its migration. */
+/**
+ * Same shape of check the rest of this project uses for a column shipped
+ * ahead of its migration — `42703`/`PGRST204` are PostgREST's two ways of
+ * saying "that column doesn't exist", and `42P01` is Postgres's "that
+ * relation doesn't exist".
+ *
+ * ⚠️ Deliberately does NOT match on the table/column name appearing anywhere
+ * in the message. It used to, and that is exactly what turned a real
+ * production incident into a silent dead end: an RLS policy gap made every
+ * insert fail with `42501` (insufficient_privilege) — a permission error,
+ * not a missing migration — but its message still names this table
+ * ("new row violates row-level security policy for table
+ * confirmed_candidate_snapshots"), so the loose regex matched anyway and
+ * told a student to retry a request that could never succeed. Matching only
+ * on `42703`/`PGRST204`/`42P01` plus an explicit "does not exist" phrase
+ * means a permission error now falls through to the generic 500 instead —
+ * still an error, but not a misleading one telling anybody to just wait.
+ */
 function migrationMissing(error: { code?: string; message?: string } | null | undefined) {
-  return Boolean(
-    error &&
-      (error.code === '42703' ||
-        error.code === 'PGRST204' ||
-        /confirmed_at|confirmed_candidate_snapshots/i.test(error.message ?? '')),
-  );
+  if (!error) return false;
+  if (error.code === '42703' || error.code === 'PGRST204' || error.code === '42P01') return true;
+  return /does not exist/i.test(error.message ?? '');
 }
 
 export async function POST() {
