@@ -271,4 +271,14 @@ describe('ApplyPage logo loading', () => {
     expect(client).not.toContain("import { createClient } from '@/lib/supabase/client'");
     expect(client.match(/await import\('\@\/lib\/supabase\/client'\)/g)).toHaveLength(2);
   });
+
+  it('keeps distinct portal and saved-list anchors available during streaming', () => {
+    const shell = readFileSync('src/app/apply/apply-shell.tsx', 'utf8');
+    const progress = readFileSync('src/app/apply/application-progress-client.tsx', 'utf8');
+    const savedList = readFileSync('src/app/apply/saved-list-section.tsx', 'utf8');
+
+    expect(shell).toContain('id="portal"');
+    expect(progress).toMatch(/<div id="saved"[\s\S]*?<Suspense fallback=/);
+    expect(savedList).not.toContain('id="saved"');
+  });
 });

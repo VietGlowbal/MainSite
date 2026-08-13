@@ -13,6 +13,8 @@ import {
   FOOTER_TAGLINE,
 } from '@/features/marketing/ui';
 import type { PublicMentor } from '@/lib/mentors';
+import { formatMoney } from '@/lib/currency';
+import { StarIcon } from '@/components/mentorship/mentor-icons';
 import {
   Badge,
   Button,
@@ -23,6 +25,7 @@ import {
   KitIcon,
   Pagination,
   Select,
+  VerifiedMark,
 } from '@/shared/ui';
 
 const subscribeToUrl = () => () => {};
@@ -73,57 +76,171 @@ const getUniversityIdFromUrl = () => {
 
 const PAGE_SIZE = 8;
 
-function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolean }) {
-  const course = [mentor.degree_level, mentor.subject].filter(Boolean).join(' · ');
+const DEGREE_LABELS: Record<PublicMentor['degree_level'], string> = {
+  undergraduate: 'Undergraduate',
+  masters: "Master's",
+  phd: 'PhD',
+  alumni: 'Alumni',
+};
+
+function UniversityLogo({
+  logoUrl,
+  universityName,
+}: {
+  logoUrl?: string | null;
+  universityName: string;
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const initial = universityName.trim().charAt(0).toUpperCase() || 'U';
 
   return (
-    <li className="flex flex-col gap-gb-xl">
-      <div className="relative aspect-[4/3] w-full overflow-hidden rounded-gb-2xl bg-surface-muted">
-        {mentor.avatar_url ? (
-          /* Avatars come from user uploads and OAuth providers, so a plain <img>
-             rather than next/image — an unconfigured host throws at runtime.
-             Same call as the saved list's covers. */
-          <Image
-            src={mentor.avatar_url}
-            alt=""
-            fill
-            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-            preload={preload}
-            className="size-full object-cover"
-          />
-        ) : (
-          <div className="flex size-full items-center justify-center text-gb-display-sm font-semibold text-fg-muted">
-            {mentor.display_name.trim().charAt(0).toUpperCase() || '?'}
-          </div>
-        )}
+    <span
+      className="relative flex size-[56px] shrink-0 items-center justify-center overflow-hidden rounded-gb-full border-2 border-white bg-surface p-gb-sm text-gb-lg font-semibold text-fg-secondary shadow-gb-md ring-1 ring-line"
+      aria-hidden="true"
+    >
+      {logoUrl && !imageFailed ? (
+        <Image
+          src={logoUrl}
+          alt=""
+          fill
+          sizes="56px"
+          className="object-contain p-gb-sm"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        initial
+      )}
+    </span>
+  );
+}
+
+function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolean }) {
+  const universityName = mentor.university?.name ?? 'University not listed';
+  const rate = Number(mentor.hourly_rate_amount ?? 0);
+  const rateLabel = rate > 0
+    ? `${formatMoney(rate, mentor.hourly_rate_currency)}/hour`
+    : 'Pricing pending';
+  const rating = Number(mentor.avg_rating ?? 0);
+  const studyStatus = mentor.currently_enrolled
+    ? 'Currently studying'
+    : mentor.graduation_year
+      ? `Class of ${mentor.graduation_year}`
+      : null;
+
+  return (
+    <li className="group flex h-full flex-col overflow-hidden rounded-gb-2xl border border-line bg-surface shadow-gb-xs transition duration-200 hover:-translate-y-gb-xxs hover:border-gb-brand-300 hover:shadow-gb-lg">
+      <div className="relative">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-surface-muted">
+          {mentor.avatar_url ? (
+            <Image
+              src={mentor.avatar_url}
+              alt={mentor.display_name}
+              fill
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+              preload={preload}
+              className="size-full object-cover transition duration-300 group-hover:scale-[1.02]"
+            />
+          ) : (
+            <div className="flex size-full items-center justify-center text-gb-display-sm font-semibold text-fg-muted">
+              {mentor.display_name.trim().charAt(0).toUpperCase() || '?'}
+            </div>
+          )}
+
+          {studyStatus ? (
+            <Badge
+              variant={mentor.currently_enrolled ? 'safe-chip' : 'neutral-chip'}
+              className="absolute left-gb-xl top-gb-xl shadow-gb-xs"
+            >
+              {studyStatus}
+            </Badge>
+          ) : null}
+        </div>
+
+        {mentor.university ? (
+          <span className="absolute -bottom-gb-3xl right-gb-2xl">
+            <UniversityLogo
+              logoUrl={mentor.university.logo_url}
+              universityName={mentor.university.name}
+            />
+          </span>
+        ) : null}
       </div>
 
-      <div className="flex flex-col gap-gb-md">
-        <p className="text-gb-md font-semibold text-fg">{mentor.display_name}</p>
+      <div className="flex flex-1 flex-col p-gb-2xl pt-gb-4xl">
+        <div className="flex items-start justify-between gap-gb-lg pr-[52px]">
+          <h2 className="min-w-0 text-gb-lg font-semibold text-fg">
+            {mentor.display_name}
+          </h2>
+          {mentor.verified_at ? (
+            <span className="mt-gb-xs shrink-0 text-fg-verified">
+              <VerifiedMark frame={16} />
+            </span>
+          ) : null}
+        </div>
 
-        {/* Its own line, not inline with the name: `Badge` bakes in
-            whitespace-nowrap, and real university names run to "London School of
-            Economics and Political Science", which then overran the next column
-            of the grid. Truncated inside the pill instead. */}
-        {mentor.university ? (
-          <Badge variant="brand-subtle" className="max-w-full self-start">
-            <span className="min-w-0 truncate">{mentor.university.name}</span>
-          </Badge>
-        ) : null}
+        <div className="mt-gb-sm min-h-[42px]">
+          <p className="line-clamp-2 text-gb-sm font-medium text-fg-secondary">
+            {universityName}
+          </p>
+          {mentor.university?.country ? (
+            <p className="mt-gb-xxs flex items-center gap-gb-xs text-gb-xs text-fg-muted">
+              <KitIcon art={ICONS.markerPin02} frame={16} />
+              <span className="truncate">{mentor.university.country}</span>
+            </p>
+          ) : null}
+        </div>
 
-        {course ? <p className="text-gb-sm font-semibold text-brand">{course}</p> : null}
+        <div className="mt-gb-xl rounded-gb-xl bg-brand-subtle px-gb-xl py-gb-lg">
+          <p className="line-clamp-2 text-gb-sm font-semibold text-fg">
+            {mentor.subject || 'Subject not listed'}
+          </p>
+          <p className="mt-gb-xs flex items-center gap-gb-sm text-gb-xs font-medium text-fg-brand">
+            <KitIcon art={ICONS.graduationCap} frame={16} />
+            {DEGREE_LABELS[mentor.degree_level]}
+          </p>
+        </div>
 
         {mentor.bio ? (
-          <p className="line-clamp-3 text-gb-sm text-fg-tertiary">{mentor.bio}</p>
-        ) : null}
+          <p className="mt-gb-xl line-clamp-3 text-gb-sm leading-relaxed text-fg-tertiary">
+            {mentor.bio}
+          </p>
+        ) : (
+          <p className="mt-gb-xl text-gb-sm text-fg-muted">
+            Open the profile to see this advisor&apos;s experience and support topics.
+          </p>
+        )}
 
-        <Link
-          href={`/advisors/${mentor.id}`}
-          className="flex w-fit items-center gap-gb-xs text-gb-sm font-semibold text-brand hover:text-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-        >
-          View profile
-          <KitIcon art={ICONS.arrowUpRight} frame={20} />
-        </Link>
+        <div className="mt-auto pt-gb-2xl">
+          <div className="flex items-end justify-between gap-gb-lg border-t border-line pt-gb-xl">
+            <div>
+              <p className="text-gb-xs font-medium text-fg-muted">Experience</p>
+              {mentor.total_sessions > 0 ? (
+                <p className="mt-gb-xs flex items-center gap-gb-xs text-gb-sm font-semibold text-fg">
+                  <StarIcon size={14} filled />
+                  {rating.toFixed(1)}
+                  <span className="font-normal text-fg-muted">
+                    ({mentor.total_sessions} session{mentor.total_sessions === 1 ? '' : 's'})
+                  </span>
+                </p>
+              ) : (
+                <p className="mt-gb-xs text-gb-sm font-semibold text-fg">New advisor</p>
+              )}
+            </div>
+            <div className="text-right">
+              <p className="text-gb-xs font-medium text-fg-muted">Session rate</p>
+              <p className="mt-gb-xs text-gb-sm font-semibold text-fg">{rateLabel}</p>
+            </div>
+          </div>
+
+          <Link
+            href={`/advisors/${mentor.id}`}
+            aria-label={`View ${mentor.display_name}'s profile`}
+            className="mt-gb-xl flex min-h-11 w-full items-center justify-center gap-gb-sm rounded-gb-md bg-brand px-gb-xl py-gb-lg text-gb-sm font-semibold text-on-brand shadow-gb-xs transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          >
+            View profile
+            <KitIcon art={ICONS.arrowRight} frame={20} />
+          </Link>
+        </div>
       </div>
     </li>
   );
@@ -240,7 +357,15 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
 
           {results.length > 0 ? (
             <>
-              <ul className="grid grid-cols-1 gap-gb-5xl sm:grid-cols-2 lg:grid-cols-4">
+              <div className="flex items-center justify-between gap-gb-xl border-b border-line pb-gb-xl">
+                <p className="text-gb-sm font-semibold text-fg">
+                  {results.length} advisor{results.length === 1 ? '' : 's'}
+                </p>
+                <p className="hidden text-gb-sm text-fg-muted sm:block">
+                  Compare university, academic background, experience and rate.
+                </p>
+              </div>
+              <ul className="grid grid-cols-1 gap-gb-4xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                 {visible.map((m, index) => (
                   <MentorCard key={m.id} mentor={m} preload={index === 0} />
                 ))}
