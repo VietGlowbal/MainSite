@@ -10,7 +10,7 @@ import {
 import { DocumentPreviewDrawer, EvidenceGrid, EvidenceTabs, questionIcon, type EvidenceTabKey } from '@/features/apply/ui';
 import { useEvidenceDocuments, type EvidenceDocument } from '@/features/apply/hooks';
 import { useT } from '@/lib/i18n';
-import { ICONS, KitIcon } from '@/shared/ui';
+import { Button, ICONS, KitIcon } from '@/shared/ui';
 
 /**
  * Achievements and Documents, after confirmation — read-only.
@@ -20,6 +20,10 @@ import { ICONS, KitIcon } from '@/shared/ui';
  * bearing part of their layout, and disabling it in place would be exactly
  * the "disabled copy of the original form" the spec explicitly asks not to
  * ship. This is a smaller, deliberately simpler card with no buttons at all.
+ *
+ * `returnTo` gives this otherwise-dead-end screen a way out — see the twin
+ * note in `ConfirmedReflectionView` for why that matters for a student
+ * opening a second application after already confirming on a first one.
  *
  * ─── DOCUMENTS FOLDED IN, NOT A SEVENTH ROUTE ────────────────────────────────
  *
@@ -80,11 +84,13 @@ export function ConfirmedAchievementsView({
   activities,
   documents,
   confirmedAt,
+  returnTo,
 }: {
   achievements: AchievementValues[];
   activities: ActivityValues[];
   documents: EvidenceDocument[];
   confirmedAt: string;
+  returnTo?: string | undefined;
 }) {
   const t = useT();
   const [activeTab, setActiveTab] = useState<EvidenceTabKey>('academic');
@@ -118,6 +124,11 @@ export function ConfirmedAchievementsView({
             { date: confirmedDate },
           )}
         </p>
+        {returnTo ? (
+          <Button href={returnTo} size="sm" className="mt-gb-lg">
+            {t('Continue')}
+          </Button>
+        ) : null}
       </div>
 
       <EvidenceTabs
