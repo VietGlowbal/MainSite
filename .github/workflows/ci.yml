@@ -23,8 +23,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # This is the same command installed as the local pre-push hook. It runs
-      # both typechecks, lint, coverage tests, and a placeholder production build.
+      # Run the complete pull-request gate in CI: both typechecks, lint,
+      # coverage tests, and a placeholder production build.
       - name: Verify pull request
         run: npm run verify:pr
 
