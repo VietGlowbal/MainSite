@@ -5,6 +5,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { MarketingNavigation } from '@/components/marketing-navigation';
+import { useT } from '@/lib/i18n';
 import {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
@@ -99,12 +100,13 @@ function UniversityLogo({
       aria-hidden="true"
     >
       {logoUrl && !imageFailed ? (
-        <Image
+        // University logo URLs come from the database and may use arbitrary hosts.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
           src={logoUrl}
           alt=""
-          fill
-          sizes="56px"
-          className="object-contain p-gb-sm"
+          loading="lazy"
+          className="size-full object-contain"
           onError={() => setImageFailed(true)}
         />
       ) : (
@@ -115,16 +117,17 @@ function UniversityLogo({
 }
 
 function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolean }) {
-  const universityName = mentor.university?.name ?? 'University not listed';
+  const t = useT();
+  const universityName = mentor.university?.name ?? t('University not listed');
   const rate = Number(mentor.hourly_rate_amount ?? 0);
   const rateLabel = rate > 0
-    ? `${formatMoney(rate, mentor.hourly_rate_currency)}/hour`
-    : 'Pricing pending';
+    ? t('{price}/hour', { price: formatMoney(rate, mentor.hourly_rate_currency) })
+    : t('Pricing pending');
   const rating = Number(mentor.avg_rating ?? 0);
   const studyStatus = mentor.currently_enrolled
-    ? 'Currently studying'
+    ? t('Currently studying')
     : mentor.graduation_year
-      ? `Class of ${mentor.graduation_year}`
+      ? t('Class of {year}', { year: mentor.graduation_year })
       : null;
 
   return (
@@ -185,59 +188,61 @@ function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolea
           {mentor.university?.country ? (
             <p className="mt-gb-xxs flex items-center gap-gb-xs text-gb-xs text-fg-muted">
               <KitIcon art={ICONS.markerPin02} frame={16} />
-              <span className="truncate">{mentor.university.country}</span>
+              <span className="truncate">{t(mentor.university.country)}</span>
             </p>
           ) : null}
         </div>
 
         <div className="mt-gb-xl rounded-gb-xl bg-brand-subtle px-gb-xl py-gb-lg">
           <p className="line-clamp-2 text-gb-sm font-semibold text-fg">
-            {mentor.subject || 'Subject not listed'}
+            {t(mentor.subject || 'Subject not listed')}
           </p>
           <p className="mt-gb-xs flex items-center gap-gb-sm text-gb-xs font-medium text-fg-brand">
             <KitIcon art={ICONS.graduationCap} frame={16} />
-            {DEGREE_LABELS[mentor.degree_level]}
+            {t(DEGREE_LABELS[mentor.degree_level])}
           </p>
         </div>
 
         {mentor.bio ? (
           <p className="mt-gb-xl line-clamp-3 text-gb-sm leading-relaxed text-fg-tertiary">
-            {mentor.bio}
+            {t(mentor.bio)}
           </p>
         ) : (
           <p className="mt-gb-xl text-gb-sm text-fg-muted">
-            Open the profile to see this advisor&apos;s experience and support topics.
+            {t("Open the profile to see this advisor's experience and support topics.")}
           </p>
         )}
 
         <div className="mt-auto pt-gb-2xl">
           <div className="flex items-end justify-between gap-gb-lg border-t border-line pt-gb-xl">
             <div>
-              <p className="text-gb-xs font-medium text-fg-muted">Experience</p>
+              <p className="text-gb-xs font-medium text-fg-muted">{t('Experience')}</p>
               {mentor.total_sessions > 0 ? (
                 <p className="mt-gb-xs flex items-center gap-gb-xs text-gb-sm font-semibold text-fg">
                   <StarIcon size={14} filled />
                   {rating.toFixed(1)}
                   <span className="font-normal text-fg-muted">
-                    ({mentor.total_sessions} session{mentor.total_sessions === 1 ? '' : 's'})
+                    ({t(mentor.total_sessions === 1 ? '{count} session' : '{count} sessions', {
+                      count: mentor.total_sessions,
+                    })})
                   </span>
                 </p>
               ) : (
-                <p className="mt-gb-xs text-gb-sm font-semibold text-fg">New advisor</p>
+                <p className="mt-gb-xs text-gb-sm font-semibold text-fg">{t('New advisor')}</p>
               )}
             </div>
             <div className="text-right">
-              <p className="text-gb-xs font-medium text-fg-muted">Session rate</p>
+              <p className="text-gb-xs font-medium text-fg-muted">{t('Session rate')}</p>
               <p className="mt-gb-xs text-gb-sm font-semibold text-fg">{rateLabel}</p>
             </div>
           </div>
 
           <Link
             href={`/advisors/${mentor.id}`}
-            aria-label={`View ${mentor.display_name}'s profile`}
+            aria-label={t("View {name}'s profile", { name: mentor.display_name })}
             className="mt-gb-xl flex min-h-11 w-full items-center justify-center gap-gb-sm rounded-gb-md bg-brand px-gb-xl py-gb-lg text-gb-sm font-semibold text-on-brand shadow-gb-xs transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           >
-            View profile
+            {t('View profile')}
             <KitIcon art={ICONS.arrowRight} frame={20} />
           </Link>
         </div>
@@ -247,6 +252,7 @@ function MentorCard({ mentor, preload }: { mentor: PublicMentor; preload: boolea
 }
 
 export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
+  const t = useT();
   const initialUniversityId = useSyncExternalStore(
     subscribeToUrl,
     getUniversityIdFromUrl,
@@ -288,7 +294,7 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
   const safePage = Math.min(page, totalPages);
   const visible = results.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
-  const primaryAction = { href: '/advisors/apply', label: 'Become an advisor' };
+  const primaryAction = { href: '/advisors/apply', label: t('Become an advisor') };
 
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
@@ -299,10 +305,10 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
           {/* Figma 154:8352 */}
           <div className="flex flex-col gap-gb-lg">
             <h1 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg md:text-gb-display-md">
-              Find an advisor
+              {t('Find an advisor')}
             </h1>
             <p className="max-w-gb-width-xl text-gb-xl text-fg-tertiary">
-              Talk to a student who has already been admitted where you are applying.
+              {t('Talk to a student who has already been admitted where you are applying.')}
             </p>
           </div>
 
@@ -310,8 +316,8 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
           <div className="flex flex-col gap-gb-lg lg:flex-row lg:items-end">
             <Input
               name="mentor-search"
-              label="Search"
-              placeholder="Search by name or university"
+              label={t('Search')}
+              placeholder={t('Search by name or university')}
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
@@ -321,8 +327,8 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
             />
             <Select
               name="mentor-country"
-              label="Country"
-              placeholder="Anywhere"
+              label={t('Country')}
+              placeholder={t('Anywhere')}
               value={country}
               onChange={(e) => {
                 setCountry(e.target.value);
@@ -332,14 +338,14 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
             >
               {countries.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {t(c)}
                 </option>
               ))}
             </Select>
             <Select
               name="mentor-subject"
-              label="Subject"
-              placeholder="Any subject"
+              label={t('Subject')}
+              placeholder={t('Any subject')}
               value={subject}
               onChange={(e) => {
                 setSubject(e.target.value);
@@ -349,7 +355,7 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
             >
               {subjects.map((s) => (
                 <option key={s} value={s}>
-                  {s}
+                  {t(s)}
                 </option>
               ))}
             </Select>
@@ -359,10 +365,12 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
             <>
               <div className="flex items-center justify-between gap-gb-xl border-b border-line pb-gb-xl">
                 <p className="text-gb-sm font-semibold text-fg">
-                  {results.length} advisor{results.length === 1 ? '' : 's'}
+                  {t(results.length === 1 ? '{count} advisor' : '{count} advisors', {
+                    count: results.length,
+                  })}
                 </p>
                 <p className="hidden text-gb-sm text-fg-muted sm:block">
-                  Compare university, academic background, experience and rate.
+                  {t('Compare university, academic background, experience and rate.')}
                 </p>
               </div>
               <ul className="grid grid-cols-1 gap-gb-4xl sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -376,11 +384,11 @@ export function MentorsClient({ mentors }: { mentors: PublicMentor[] }) {
             <div className="flex flex-col items-start gap-gb-xl rounded-gb-2xl border border-line bg-surface-muted p-gb-5xl">
               <p className="text-gb-md text-fg-tertiary">
                 {mentors.length === 0
-                  ? 'No advisors have been approved yet. Check back soon.'
-                  : 'No advisor matches those filters yet. Try widening the country or subject.'}
+                  ? t('No advisors have been approved yet. Check back soon.')
+                  : t('No advisor matches those filters yet. Try widening the country or subject.')}
               </p>
               <Button href="/advisors/apply" size="lg">
-                Become an advisor
+                {t('Become an advisor')}
               </Button>
             </div>
           )}
