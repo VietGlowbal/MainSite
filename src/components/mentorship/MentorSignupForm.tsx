@@ -1,11 +1,28 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useLanguage, useT } from '@/lib/i18n';
 import { createClient } from '@/lib/supabase/client';
 import type { Currency, DegreeLevel } from '@/types/mentorship';
 import { currencySymbol, formatMoney, toSmallestUnits } from '@/lib/currency';
-import { CheckIcon, CloseIcon } from './mentor-icons';
+import { CloseIcon } from './mentor-icons';
+import {
+  Avatar,
+  Button,
+  DocumentRow,
+  FileDropzone,
+  FormField,
+  ICONS,
+  Input,
+  KitIcon,
+  Panel,
+  PanelHeader,
+  Stepper,
+  Textarea,
+  controlClasses,
+  type StepperStep,
+} from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 const DEGREE_LEVELS: { value: DegreeLevel; label: string }[] = [
@@ -105,6 +122,7 @@ export function MentorSignupForm({
   quickSignupToken = null,
 }: Props) {
   const router = useRouter();
+  const t = useT();
   const supabase = useMemo(() => createClient(), []);
 
   // ── Step 1: identity ───────────────────────────────────────────────────
@@ -153,14 +171,14 @@ export function MentorSignupForm({
 
   // ── Step 4: pricing ────────────────────────────────────────────────────
   const [currency, setCurrency] = useState<Currency>('USD');
-  const [hourlyRateMajor, setHourlyRateMajor] = useState<string>('25'); // major units (25.00)
+  const [hourlyRateMajor, setHourlyRateMajor] = useState<string>('');
 
   // ── Step 5: availability slots (ISO strings) ──────────────────────────
   const [availabilitySlots, setAvailabilitySlots] = useState<string[]>([]); // ISO of starts_at
 
   // ── Submission ─────────────────────────────────────────────────────────
   const [submitting, setSubmitting] = useState(false);
-  useLoadingIndicator(submitting, 'Submitting your application');
+  useLoadingIndicator(submitting, t('Submitting your application'));
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<StepKey>('identity');
 
@@ -183,7 +201,7 @@ export function MentorSignupForm({
     setDocUploading(slot);
     setError(null);
     if (file.size > 10 * 1024 * 1024) {
-      setError('Files must be 10 MB or smaller.');
+      setError(t('Files must be 10 MB or smaller.'));
       setDocUploading(null);
       return;
     }
@@ -194,7 +212,7 @@ export function MentorSignupForm({
       .from(STORAGE_BUCKET)
       .upload(path, file, { upsert: true });
     if (upErr) {
-      setError(`Upload failed: ${upErr.message}`);
+      setError(t('Upload failed: {message}', { message: upErr.message }));
       setDocUploading(null);
       return;
     }
@@ -206,7 +224,7 @@ export function MentorSignupForm({
   async function uploadAvatar(file: File) {
     setError(null);
     if (file.size > 5 * 1024 * 1024) {
-      setError('Profile photo must be 5 MB or smaller.');
+      setError(t('Profile photo must be 5 MB or smaller.'));
       return;
     }
     const ext = file.name.split('.').pop() ?? 'jpg';
@@ -218,7 +236,7 @@ export function MentorSignupForm({
       .from(bucket)
       .upload(path, file, { upsert: true });
     if (upErr) {
-      setError(`Avatar upload failed: ${upErr.message}`);
+      setError(t('Avatar upload failed: {message}', { message: upErr.message }));
       return;
     }
     const { data } = supabase.storage.from(bucket).getPublicUrl(path);
@@ -272,8 +290,10 @@ export function MentorSignupForm({
 
   const pricingComplete = (() => {
     const n = Number(hourlyRateMajor);
-    return Number.isFinite(n) && n > 0;
+    return hourlyRateMajor.trim() !== '' && Number.isFinite(n) && n > 0;
   })();
+
+  const availabilityComplete = availabilitySlots.length > 0;
 
   const allValid = identityComplete && documentsComplete && profileComplete && pricingComplete;
 
@@ -281,7 +301,7 @@ export function MentorSignupForm({
 
   async function handleSubmit() {
     if (!allValid) {
-      setError('Please complete all required steps.');
+      setError(t('Please complete all required steps.'));
       return;
     }
     setSubmitting(true);
@@ -325,7 +345,7 @@ export function MentorSignupForm({
 
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setError(body.error ?? 'Could not submit your application.');
+      setError(t(body.error ?? 'Could not submit your application.'));
       setSubmitting(false);
       return;
     }
@@ -355,55 +375,46 @@ export function MentorSignupForm({
     ? ['identity', 'profile', 'pricing', 'availability', 'review']
     : ['identity', 'documents', 'profile', 'pricing', 'availability', 'review'];
   const stepLabels: Record<StepKey, string> = {
-    identity: 'Identity',
-    documents: 'Documents',
-    profile: 'Profile',
-    pricing: 'Pricing',
-    availability: 'Availability',
-    review: 'Review',
+    identity: t('Identity'),
+    documents: t('Documents'),
+    profile: t('Profile'),
+    pricing: t('Pricing'),
+    availability: t('Availability'),
+    review: t('Review'),
   };
   const stepDone: Record<StepKey, boolean> = {
     identity: identityComplete,
     documents: documentsComplete,
     profile: profileComplete,
     pricing: pricingComplete,
-    availability: true, // optional
+    availability: availabilityComplete,
     review: false,
   };
 
+  const currentStepIndex = stepOrder.indexOf(step);
+  const stepperSteps: StepperStep[] = stepOrder.map((key) => ({
+    key,
+    label: stepLabels[key],
+    complete: stepDone[key],
+    ...(key === 'availability' && !availabilityComplete ? { meta: t('Optional') } : {}),
+  }));
+
   return (
-    <div className="space-y-6">
-      {/* Step nav */}
-      <div className="flex flex-wrap items-center gap-2 rounded-3xl border border-black/5 bg-white/95 p-2 shadow-[0_12px_32px_rgba(22,33,62,0.04)]">
-        {stepOrder.map((key, i) => {
-          const active = step === key;
-          const done = stepDone[key];
-          return (
-            <button
-              key={key}
-              type="button"
-              onClick={() => setStep(key)}
-              className={`flex items-center gap-2 rounded-full px-3 py-1.5 text-xs font-semibold transition ${
-                active
-                  ? 'bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white shadow-[0_6px_16px_rgba(255,77,140,0.20)]'
-                  : 'text-slate-600 hover:bg-slate-50'
-              }`}
-            >
-              <span
-                className={`flex h-5 w-5 items-center justify-center rounded-full text-[0.6rem] font-bold ${
-                  active ? 'bg-white/20' : done ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-500'
-                }`}
-              >
-                {done && !active ? <CheckIcon size={10} /> : i + 1}
-              </span>
-              {stepLabels[key]}
-            </button>
-          );
-        })}
-      </div>
+    <div className="flex flex-col gap-gb-3xl">
+      <Panel padding="sm" elevation="flat">
+        <Stepper
+          steps={stepperSteps}
+          currentIndex={currentStepIndex}
+          label={t('Advisor application progress')}
+          onStepSelect={(key) => setStep(key as StepKey)}
+        />
+      </Panel>
 
       {error && (
-        <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+        <div
+          role="alert"
+          className="rounded-gb-xl border border-line-error bg-surface-error p-gb-xl text-gb-sm text-fg-error"
+        >
           {error}
         </div>
       )}
@@ -411,70 +422,75 @@ export function MentorSignupForm({
       {/* Identity */}
       {step === 'identity' && (
         <Section
-          title="Tell us who you are"
-          description="These four fields are required for verification. Only your display name and university show up publicly."
+          title={t('Tell us who you are')}
+          description={t('These four fields are required for verification. Only your display name and university show up publicly.')}
         >
-          <Field label="Display name (shown publicly)" required>
-            <input
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              maxLength={120}
-              placeholder="e.g. Linh N."
-              className="field"
-            />
-          </Field>
-          <Field label="Full legal name (private)" required>
-            <input
-              type="text"
-              value={legalName}
-              onChange={(e) => setLegalName(e.target.value)}
-              maxLength={160}
-              placeholder="As it appears on your official documents"
-              className="field"
-            />
-          </Field>
-          <Field label="Date of birth (private)" required>
-            <input
-              type="date"
-              value={dob}
-              onChange={(e) => setDob(e.target.value)}
-              max={new Date().toISOString().slice(0, 10)}
-              className="field"
-            />
-          </Field>
-          <Field label="University" required>
+          <Input
+            name="advisor-display-name"
+            label={t('Display name (shown publicly)')}
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            maxLength={120}
+            placeholder={t('e.g. Linh N.')}
+            required
+          />
+          <Input
+            name="advisor-legal-name"
+            label={t('Full legal name (private)')}
+            type="text"
+            value={legalName}
+            onChange={(e) => setLegalName(e.target.value)}
+            maxLength={160}
+            placeholder={t('As it appears on your official documents')}
+            required
+          />
+          <Input
+            name="advisor-date-of-birth"
+            label={t('Date of birth (private)')}
+            type="date"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+            max={new Date().toISOString().slice(0, 10)}
+            required
+          />
+          <Field label={t('University')} required>
             {!addingCustomUni ? (
-              <>
+              <div className="flex flex-col gap-gb-md">
                 <input
+                  id="advisor-university-search"
                   type="text"
-                  placeholder="Search by name or country"
+                  placeholder={t('Search by name or country')}
                   value={universitySearch}
                   onChange={(e) => setUniversitySearch(e.target.value)}
-                  className="field"
+                  className={controlClasses(false)}
                 />
-                <div className="mt-2 max-h-52 overflow-y-auto rounded-xl border border-slate-100">
+                <div className="max-h-64 overflow-y-auto rounded-gb-md border border-line bg-surface shadow-gb-xs">
                   {filteredUniversities.map((u) => (
                     <button
                       type="button"
                       key={u.id}
                       onClick={() => setUniversityId(u.id)}
-                      className={`flex w-full items-center justify-between border-b border-slate-100 px-3 py-2 text-left text-sm last:border-b-0 transition ${
-                        universityId === u.id ? 'bg-pink-50/70 text-pink-700' : 'hover:bg-slate-50'
+                      aria-pressed={universityId === u.id}
+                      className={`flex w-full items-center justify-between gap-gb-lg border-b border-line px-gb-xl py-gb-lg text-left text-gb-sm transition-colors last:border-b-0 ${
+                        universityId === u.id
+                          ? 'bg-brand-subtle text-fg-brand'
+                          : 'text-fg-secondary hover:bg-surface-hover'
                       }`}
                     >
-                      <span>{u.name}</span>
-                      <span className="text-xs text-slate-400">{u.country}</span>
+                      <span className="font-medium">{u.name}</span>
+                      <span className="shrink-0 text-gb-xs text-fg-muted">{t(u.country)}</span>
                     </button>
                   ))}
                   {filteredUniversities.length === 0 && (
-                    <p className="px-3 py-3 text-sm text-slate-400">No universities match.</p>
+                    <p className="px-gb-xl py-gb-2xl text-gb-sm text-fg-muted">{t('No universities match.')}</p>
                   )}
                 </div>
                 {selectedUni && (
-                  <p className="mt-2 text-xs text-emerald-600">
-                    Selected: <strong>{selectedUni.name}</strong> ({selectedUni.country})
-                  </p>
+                  <div className="flex items-start gap-gb-sm rounded-gb-lg bg-tier-safe p-gb-lg text-gb-sm text-on-tier-safe">
+                    <KitIcon art={ICONS.checkCircle} frame={16} className="mt-gb-xxs shrink-0" />
+                    <p>{t('Selected:')} <strong>{selectedUni.name}</strong> ({t(selectedUni.country)})</p>
+                  </div>
                 )}
                 <button
                   type="button"
@@ -484,39 +500,41 @@ export function MentorSignupForm({
                     // Pre-fill the name with whatever they were searching for.
                     setCustomUniName(universitySearch.trim());
                   }}
-                  className="mt-2 text-xs font-semibold text-pink-600 hover:text-pink-700"
+                  className="w-fit rounded-gb-sm text-gb-sm font-semibold text-fg-brand hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
-                  Can&rsquo;t find your university? Add it manually
+                  {t('Can’t find your university? Add it manually')}
                 </button>
-              </>
+              </div>
             ) : (
-              <>
-                <p className="text-xs text-slate-500">
-                  Tell us your university and country — we&rsquo;ll add it to GlowBal so other
-                  students can find you. (It&rsquo;s reviewed by our team alongside your application.)
+              <div className="flex flex-col gap-gb-lg">
+                <p className="text-gb-sm leading-relaxed text-fg-tertiary">
+                  {t('Tell us your university and country — we’ll add it to GlowBal so other students can find you. (It’s reviewed by our team alongside your application.)')}
                 </p>
-                <div className="mt-2 grid gap-2 sm:grid-cols-2">
-                  <input
+                <div className="grid gap-gb-lg sm:grid-cols-2">
+                  <Input
+                    name="advisor-custom-university"
+                    label={t('University name')}
                     type="text"
-                    placeholder="University name"
+                    placeholder={t('University name')}
                     value={customUniName}
                     onChange={(e) => setCustomUniName(e.target.value)}
                     maxLength={160}
-                    className="field"
                   />
-                  <input
+                  <Input
+                    name="advisor-custom-country"
+                    label={t('Country')}
                     type="text"
-                    placeholder="Country"
+                    placeholder={t('Country')}
                     value={customUniCountry}
                     onChange={(e) => setCustomUniCountry(e.target.value)}
                     maxLength={120}
-                    className="field"
                   />
                 </div>
                 {customUniValid && (
-                  <p className="mt-2 text-xs text-emerald-600">
-                    Adding: <strong>{customUniName.trim()}</strong> ({customUniCountry.trim()})
-                  </p>
+                  <div className="flex items-start gap-gb-sm rounded-gb-lg bg-tier-safe p-gb-lg text-gb-sm text-on-tier-safe">
+                    <KitIcon art={ICONS.checkCircle} frame={16} className="mt-gb-xxs shrink-0" />
+                    <p>{t('Adding:')} <strong>{customUniName.trim()}</strong> ({t(customUniCountry.trim())})</p>
+                  </div>
                 )}
                 <button
                   type="button"
@@ -525,11 +543,11 @@ export function MentorSignupForm({
                     setCustomUniName('');
                     setCustomUniCountry('');
                   }}
-                  className="mt-2 text-xs font-semibold text-slate-500 hover:text-slate-700"
+                  className="w-fit rounded-gb-sm text-gb-sm font-semibold text-fg-secondary hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
                 >
-                  ← Back to the university list
+                  {t('← Back to the university list')}
                 </button>
-              </>
+              </div>
             )}
           </Field>
 
@@ -540,10 +558,10 @@ export function MentorSignupForm({
       {/* Documents */}
       {step === 'documents' && (
         <Section
-          title="Verification documents"
-          description="We review every advisor manually. These four documents are stored privately and only seen by Glowbal admins."
+          title={t('Verification documents')}
+          description={t('We review every advisor manually. These four documents are stored privately and only seen by GlowBal admins.')}
         >
-          <div className="grid gap-3">
+          <div className="grid gap-gb-xl lg:grid-cols-2">
             {(['cv', 'acceptance_letter', 'transcript', 'student_card'] as DocumentSlot[]).map((slot) => (
               <DocumentField
                 key={slot}
@@ -570,144 +588,136 @@ export function MentorSignupForm({
       {/* Profile */}
       {step === 'profile' && (
         <Section
-          title="Build your advisor profile"
-          description="This is what mentees see. Be specific about what you can help with — vague profiles get fewer bookings."
+          title={t('Build your advisor profile')}
+          description={t('This is what mentees see. Be specific about what you can help with — vague profiles get fewer bookings.')}
         >
           {/* Avatar */}
-          <Field label="Profile photo (optional but recommended)">
-            <div className="flex items-center gap-4">
-              <div
-                className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full"
-                style={{
-                  background: avatarPreview ? 'transparent' : 'linear-gradient(135deg,#ff4d8c,#00b4d8)',
-                  padding: avatarPreview ? 0 : 3,
+          <Field label={t('Profile photo (optional but recommended)')}>
+            <div className="grid gap-gb-xl rounded-gb-xl border border-line bg-surface-muted p-gb-xl sm:grid-cols-[auto_1fr] sm:items-center">
+              <Avatar
+                name={displayName || legalName || t('Advisor')}
+                src={avatarPreview}
+                size="lg"
+              />
+              <FileDropzone
+                onFiles={(files) => {
+                  const file = files[0];
+                  if (file) void uploadAvatar(file);
                 }}
-              >
-                {avatarPreview ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarPreview} alt="Preview" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center rounded-full bg-white text-xl">
-                    📷
-                  </div>
-                )}
-              </div>
-              <div>
-                <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200">
-                  {avatarFile ? 'Change photo' : 'Upload photo'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="sr-only"
-                    onChange={(e) => {
-                      const f = e.target.files?.[0];
-                      if (f) uploadAvatar(f);
-                    }}
-                  />
-                </label>
-              </div>
+                accept="image/*"
+                label={t(avatarFile ? 'Change photo' : 'Upload photo')}
+                secondaryLabel={t('or drag and drop')}
+                hint={t('PNG, JPG or WebP up to 5 MB')}
+                className="min-w-0"
+              />
             </div>
           </Field>
 
-          <Field label="Degree level" required>
-            <div className="flex flex-wrap gap-2">
+          <Field label={t('Degree level')} required>
+            <div className="grid gap-gb-sm sm:grid-cols-2 lg:grid-cols-4">
               {DEGREE_LEVELS.map((l) => (
                 <button
                   key={l.value}
                   type="button"
                   onClick={() => setDegreeLevel(l.value)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  aria-pressed={degreeLevel === l.value}
+                  className={`rounded-gb-md border px-gb-xl py-gb-lg text-gb-sm font-semibold shadow-gb-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                     degreeLevel === l.value
-                      ? 'border-pink-300 bg-pink-50 text-pink-700'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-pink-200'
+                      ? 'border-brand bg-brand-subtle text-fg-brand'
+                      : 'border-line-strong bg-surface text-fg-secondary hover:bg-surface-hover'
                   }`}
                 >
-                  {l.label}
+                  {t(l.label)}
                 </button>
               ))}
             </div>
           </Field>
 
-          <Field label="Subject / programme" required>
-            <input
-              type="text"
-              value={subject}
-              onChange={(e) => setSubject(e.target.value)}
-              placeholder="e.g. Computer Science, MEng"
-              className="field"
-            />
-          </Field>
+          <Input
+            name="advisor-subject"
+            label={t('Subject / programme')}
+            type="text"
+            value={subject}
+            onChange={(e) => setSubject(e.target.value)}
+            placeholder={t('e.g. Computer Science, MEng')}
+            required
+          />
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Study start year">
-              <input
-                type="number"
-                min={1980}
-                max={2050}
-                value={studyStartYear}
-                onChange={(e) => setStudyStartYear(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="e.g. 2021"
-                className="field"
-              />
-            </Field>
-            <Field label={currentlyEnrolled ? 'Expected graduation year' : 'Graduation year'}>
-              <input
-                type="number"
-                min={1980}
-                max={2050}
-                value={graduationYear}
-                onChange={(e) => setGraduationYear(e.target.value === '' ? '' : Number(e.target.value))}
-                placeholder="e.g. 2025"
-                className="field"
-              />
-            </Field>
+          <div className="grid gap-gb-lg sm:grid-cols-2">
+            <Input
+              name="advisor-study-start-year"
+              label={t('Study start year')}
+              type="number"
+              min={1980}
+              max={2050}
+              value={studyStartYear}
+              onChange={(e) => setStudyStartYear(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder={t('e.g. 2021')}
+            />
+            <Input
+              name="advisor-graduation-year"
+              label={t(currentlyEnrolled ? 'Expected graduation year' : 'Graduation year')}
+              type="number"
+              min={1980}
+              max={2050}
+              value={graduationYear}
+              onChange={(e) => setGraduationYear(e.target.value === '' ? '' : Number(e.target.value))}
+              placeholder={t('e.g. 2025')}
+            />
           </div>
 
-          <Field label="Status">
-            <div className="flex gap-2">
+          <Field label={t('Status')}>
+            <div className="grid gap-gb-sm sm:grid-cols-2">
               <button
                 type="button"
                 onClick={() => setCurrentlyEnrolled(true)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                  currentlyEnrolled ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-slate-200 bg-white text-slate-600'
+                aria-pressed={currentlyEnrolled}
+                className={`rounded-gb-md border px-gb-xl py-gb-lg text-gb-sm font-semibold shadow-gb-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                  currentlyEnrolled
+                    ? 'border-brand bg-brand-subtle text-fg-brand'
+                    : 'border-line-strong bg-surface text-fg-secondary hover:bg-surface-hover'
                 }`}
               >
-                Currently studying
+                {t('Currently studying')}
               </button>
               <button
                 type="button"
                 onClick={() => setCurrentlyEnrolled(false)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                  !currentlyEnrolled ? 'border-pink-300 bg-pink-50 text-pink-700' : 'border-slate-200 bg-white text-slate-600'
+                aria-pressed={!currentlyEnrolled}
+                className={`rounded-gb-md border px-gb-xl py-gb-lg text-gb-sm font-semibold shadow-gb-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                  !currentlyEnrolled
+                    ? 'border-brand bg-brand-subtle text-fg-brand'
+                    : 'border-line-strong bg-surface text-fg-secondary hover:bg-surface-hover'
                 }`}
               >
-                Alumni
+                {t('Alumni')}
               </button>
             </div>
           </Field>
 
-          <Field label="Bio" required hint={`${bio.length}/800`}>
-            <textarea
-              rows={5}
-              value={bio}
-              onChange={(e) => setBio(e.target.value)}
-              maxLength={800}
-              placeholder="Share your story, what makes your perspective unique, and how you can help applicants."
-              className="field min-h-[120px]"
-            />
-          </Field>
+          <Textarea
+            name="advisor-bio"
+            label={t('Bio')}
+            hint={t('{count}/800 characters', { count: bio.length })}
+            rows={6}
+            value={bio}
+            onChange={(e) => setBio(e.target.value)}
+            maxLength={800}
+            placeholder={t('Share your story, what makes your perspective unique, and how you can help applicants.')}
+            required
+          />
 
           <Field
-            label="Topics you can help with"
+            label={t('Topics you can help with')}
             required
-            hint={`${topics.length} selected · pick at least one`}
+            hint={t('{count} selected · pick at least one', { count: topics.length })}
           >
             <ChipPicker
               options={SUGGESTED_TOPICS}
               selected={topics}
               onToggle={(v) => toggleFromList(v, topics, setTopics)}
             />
-            <div className="mt-2 flex gap-2">
+            <div className="flex gap-gb-sm">
               <input
                 type="text"
                 value={topicDraft}
@@ -718,31 +728,31 @@ export function MentorSignupForm({
                     addCustomTag(topicDraft, topics, setTopics, setTopicDraft);
                   }
                 }}
-                placeholder="Add another"
+                placeholder={t('Add another')}
                 maxLength={60}
-                className="field flex-1"
+                className={controlClasses(false, 'min-w-0 flex-1')}
               />
-              <button
-                type="button"
+              <Button
                 onClick={() => addCustomTag(topicDraft, topics, setTopics, setTopicDraft)}
-                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200"
+                variant="secondary"
+                size="lg"
               >
-                Add
-              </button>
+                {t('Add')}
+              </Button>
             </div>
           </Field>
 
           <Field
-            label="Special skills / strengths"
+            label={t('Special skills / strengths')}
             required
-            hint="What makes you stand out?"
+            hint={t('What makes you stand out?')}
           >
             <ChipPicker
               options={SUGGESTED_STRENGTHS}
               selected={strengths}
               onToggle={(v) => toggleFromList(v, strengths, setStrengths)}
             />
-            <div className="mt-2 flex gap-2">
+            <div className="flex gap-gb-sm">
               <input
                 type="text"
                 value={strengthDraft}
@@ -753,27 +763,27 @@ export function MentorSignupForm({
                     addCustomTag(strengthDraft, strengths, setStrengths, setStrengthDraft);
                   }
                 }}
-                placeholder="Add another"
+                placeholder={t('Add another')}
                 maxLength={60}
-                className="field flex-1"
+                className={controlClasses(false, 'min-w-0 flex-1')}
               />
-              <button
-                type="button"
+              <Button
                 onClick={() => addCustomTag(strengthDraft, strengths, setStrengths, setStrengthDraft)}
-                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200"
+                variant="secondary"
+                size="lg"
               >
-                Add
-              </button>
+                {t('Add')}
+              </Button>
             </div>
           </Field>
 
-          <Field label="Languages you can advise in" required>
+          <Field label={t('Languages you can advise in')} required>
             <ChipPicker
               options={SUGGESTED_LANGUAGES}
               selected={languages}
               onToggle={(v) => toggleFromList(v, languages, setLanguages)}
             />
-            <div className="mt-2 flex gap-2">
+            <div className="flex gap-gb-sm">
               <input
                 type="text"
                 value={languageDraft}
@@ -784,17 +794,17 @@ export function MentorSignupForm({
                     addCustomTag(languageDraft, languages, setLanguages, setLanguageDraft);
                   }
                 }}
-                placeholder="Add another language"
+                placeholder={t('Add another language')}
                 maxLength={40}
-                className="field flex-1"
+                className={controlClasses(false, 'min-w-0 flex-1')}
               />
-              <button
-                type="button"
+              <Button
                 onClick={() => addCustomTag(languageDraft, languages, setLanguages, setLanguageDraft)}
-                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200"
+                variant="secondary"
+                size="lg"
               >
-                Add
-              </button>
+                {t('Add')}
+              </Button>
             </div>
           </Field>
 
@@ -809,55 +819,85 @@ export function MentorSignupForm({
       {/* Pricing */}
       {step === 'pricing' && (
         <Section
-          title="Set your hourly rate"
-          description="You keep 90% of your hourly rate. Glowbal adds a 10% service fee on top, charged to the mentee."
+          title={t('Set your hourly rate')}
+          description={t('You keep 90% of your hourly rate. GlowBal adds a 10% service fee on top, charged to the mentee.')}
         >
-          <Field label="Currency" required>
-            <div className="flex gap-2">
+          <Field label={t('Currency')} required>
+            <div className="grid gap-gb-md sm:grid-cols-3">
               {CURRENCIES.map((c) => (
                 <button
                   key={c.value}
                   type="button"
                   onClick={() => setCurrency(c.value)}
-                  className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                  aria-pressed={currency === c.value}
+                  className={`rounded-gb-md border px-gb-xl py-gb-lg text-gb-sm font-semibold shadow-gb-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                     currency === c.value
-                      ? 'border-pink-300 bg-pink-50 text-pink-700'
-                      : 'border-slate-200 bg-white text-slate-600 hover:border-pink-200'
+                      ? 'border-brand bg-brand-subtle text-fg-brand'
+                      : 'border-line-strong bg-surface text-fg-secondary hover:bg-surface-hover'
                   }`}
                 >
-                  {c.label}
+                  {t(c.label)}
                 </button>
               ))}
             </div>
           </Field>
 
-          <Field label="Hourly rate" required>
-            <div className="flex items-center gap-2">
-              <span className="text-2xl font-semibold text-slate-900">
+          <FormField
+            id="advisor-hourly-rate"
+            label={t('Hourly rate')}
+            hint={t('Enter the amount you want to receive for each one-hour session.')}
+            required
+          >
+            <div className="relative max-w-sm">
+              <span
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 left-gb-lg flex items-center font-semibold text-fg-tertiary"
+              >
                 {currencySymbol(currency)}
               </span>
               <input
+                id="advisor-hourly-rate"
                 type="number"
-                min={0}
+                min={1}
                 step={currency === 'VND' ? 1000 : 1}
                 value={hourlyRateMajor}
                 onChange={(e) => setHourlyRateMajor(e.target.value)}
-                className="field max-w-[200px] text-2xl font-semibold"
+                placeholder={t('Enter your rate')}
+                className={controlClasses(false, 'pl-gb-5xl pr-gb-7xl text-gb-lg font-semibold')}
               />
-              <span className="text-sm text-slate-500">/ hour</span>
+              <span className="pointer-events-none absolute inset-y-0 right-gb-lg flex items-center text-gb-sm text-fg-muted">
+                {t('/ hour')}
+              </span>
             </div>
-            <p className="mt-2 text-xs text-slate-500">
-              You receive <strong>{formatMoney(toSmallestUnits(Number(hourlyRateMajor || 0), currency), currency)}</strong> per session.
-              The mentee pays{' '}
-              <strong>
-                {formatMoney(
-                  Math.round(toSmallestUnits(Number(hourlyRateMajor || 0), currency) * 1.1),
-                  currency,
-                )}
+          </FormField>
+
+          <div className="grid gap-gb-lg rounded-gb-xl border border-brand-surface bg-brand-subtle p-gb-xl sm:grid-cols-2">
+            <div className="flex flex-col gap-gb-xxs">
+              <span className="text-gb-xs font-semibold uppercase tracking-wide text-fg-brand">
+                {t('You receive')}
+              </span>
+              <strong className="text-gb-xl font-semibold text-fg">
+                {pricingComplete
+                  ? formatMoney(toSmallestUnits(Number(hourlyRateMajor), currency), currency)
+                  : '—'}
               </strong>
-              {' '}including the service fee.
-            </p>
-          </Field>
+              <span className="text-gb-sm text-fg-tertiary">{t('Per one-hour session')}</span>
+            </div>
+            <div className="flex flex-col gap-gb-xxs sm:border-l sm:border-brand-surface sm:pl-gb-xl">
+              <span className="text-gb-xs font-semibold uppercase tracking-wide text-fg-brand">
+                {t('Student pays')}
+              </span>
+              <strong className="text-gb-xl font-semibold text-fg">
+                {pricingComplete
+                  ? formatMoney(
+                      Math.round(toSmallestUnits(Number(hourlyRateMajor), currency) * 1.1),
+                      currency,
+                    )
+                  : '—'}
+              </strong>
+              <span className="text-gb-sm text-fg-tertiary">{t('Includes the 10% service fee')}</span>
+            </div>
+          </div>
 
           <FooterNav
             onPrev={() => setStep('profile')}
@@ -870,8 +910,8 @@ export function MentorSignupForm({
       {/* Availability */}
       {step === 'availability' && (
         <Section
-          title="Pick your free times"
-          description="Click any future date to add 1-hour slots. You can change these any time from your dashboard."
+          title={t('Pick your free times')}
+          description={t('Click any future date to add 1-hour slots. You can change these any time from your dashboard.')}
         >
           <MonthlyAvailabilityPicker
             slots={availabilitySlots}
@@ -889,8 +929,8 @@ export function MentorSignupForm({
       {/* Review & submit */}
       {step === 'review' && (
         <Section
-          title="Review &amp; submit"
-          description="Double-check everything below. Your application goes to Glowbal admins for verification."
+          title={t('Review & submit')}
+          description={t('Double-check everything below. Your application goes to GlowBal admins for verification.')}
         >
           <ReviewPanel
             displayName={displayName}
@@ -898,7 +938,7 @@ export function MentorSignupForm({
             dob={dob}
             university={
               selectedUni?.name ??
-              (customUniValid ? `${customUniName.trim()} (new — pending review)` : '—')
+              (customUniValid ? `${customUniName.trim()} ${t('(new — pending review)')}` : '—')
             }
             degreeLevel={degreeLevel}
             subject={subject}
@@ -912,29 +952,26 @@ export function MentorSignupForm({
             slotCount={availabilitySlots.length}
           />
 
-          <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-xs text-slate-500">
+          <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-xl text-gb-sm text-fg-tertiary">
             {quickSignup
-              ? 'By submitting, you confirm the details above are accurate and that you’ll respect mentee privacy. '
-              : 'By submitting, you confirm that all documents are genuine and that you’ll respect mentee privacy. '}
-            Glowbal will email you within 48 hours with the outcome.
+              ? t('By submitting, you confirm the details above are accurate and that you’ll respect mentee privacy.')
+              : t('By submitting, you confirm that all documents are genuine and that you’ll respect mentee privacy.')}{' '}
+            {t('GlowBal will email you within 48 hours with the outcome.')}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setStep('pricing')}
-              className="rounded-full border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 hover:border-pink-200"
-            >
-              Back
-            </button>
-            <button
+          <div className="flex flex-wrap items-center justify-between gap-gb-lg border-t border-line pt-gb-2xl">
+            <Button type="button" onClick={() => setStep('availability')} variant="secondary" size="lg">
+              {t('Back')}
+            </Button>
+            <Button
               type="button"
               onClick={handleSubmit}
               disabled={!allValid || submitting}
-              className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_8px_22px_rgba(255,77,140,0.25)] transition hover:-translate-y-0.5 disabled:opacity-60"
+              size="lg"
             >
-              {submitting ? 'Submitting…' : 'Submit application'}
-            </button>
+              {t(submitting ? 'Submitting…' : 'Submit application')}
+              <KitIcon art={ICONS.send} frame={18} />
+            </Button>
           </div>
         </Section>
       )}
@@ -946,30 +983,31 @@ export function MentorSignupForm({
 
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <section className="rounded-3xl border border-black/5 bg-white/95 p-6 shadow-[0_12px_32px_rgba(22,33,62,0.06)]">
-      <h2 className="text-lg font-semibold text-slate-900">{title}</h2>
-      {description && <p className="mt-1 text-sm text-slate-500">{description}</p>}
-      <div className="mt-5 space-y-5">{children}</div>
-    </section>
+    <Panel as="section" className="flex flex-col gap-gb-3xl md:p-gb-4xl">
+      <PanelHeader title={title} description={description} />
+      <div className="flex flex-col gap-gb-3xl">{children}</div>
+    </Panel>
   );
 }
 
 function Field({ label, required, hint, children }: { label: string; required?: boolean; hint?: string; children: React.ReactNode }) {
   return (
-    <label className="block">
-      <span className="text-sm font-semibold text-slate-800">
+    <fieldset className="flex flex-col gap-gb-sm">
+      <legend className="text-gb-sm font-medium text-fg-secondary">
         {label}
-        {required && <span className="text-pink-500"> *</span>}
-        {hint && <span className="ml-2 text-xs font-normal text-slate-400">{hint}</span>}
-      </span>
-      <div className="mt-1.5">{children}</div>
-    </label>
+        {required && <span className="text-fg-error"> *</span>}
+      </legend>
+      {children}
+      {hint ? <p className="text-gb-sm text-fg-muted">{hint}</p> : null}
+    </fieldset>
   );
 }
 
 function ChipPicker({ options, selected, onToggle }: { options: string[]; selected: string[]; onToggle: (v: string) => void }) {
+  const t = useT();
+
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className="flex flex-wrap gap-gb-sm">
       {Array.from(new Set([...options, ...selected])).map((v) => {
         const active = selected.includes(v);
         return (
@@ -977,13 +1015,14 @@ function ChipPicker({ options, selected, onToggle }: { options: string[]; select
             key={v}
             type="button"
             onClick={() => onToggle(v)}
-            className={`rounded-full border px-3 py-1.5 text-xs transition ${
+            aria-pressed={active}
+            className={`rounded-gb-md border px-gb-lg py-gb-md text-gb-sm font-medium shadow-gb-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
               active
-                ? 'border-pink-300 bg-pink-50 text-pink-700'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-pink-200'
+                ? 'border-brand bg-brand-subtle text-fg-brand'
+                : 'border-line-strong bg-surface text-fg-secondary hover:bg-surface-hover'
             }`}
           >
-            {v}
+            {t(v)}
           </button>
         );
       })}
@@ -992,27 +1031,29 @@ function ChipPicker({ options, selected, onToggle }: { options: string[]; select
 }
 
 function FooterNav({ onPrev, onNext, disabled }: { onPrev?: () => void; onNext: () => void; disabled: boolean }) {
+  const t = useT();
+
   return (
-    <div className="flex items-center justify-between gap-3 pt-2">
+    <div className="flex items-center justify-between gap-gb-lg border-t border-line pt-gb-2xl">
       {onPrev ? (
-        <button
-          type="button"
+        <Button
           onClick={onPrev}
-          className="rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:border-pink-200"
+          variant="secondary"
+          size="lg"
         >
-          Back
-        </button>
+          {t('Back')}
+        </Button>
       ) : (
         <span />
       )}
-      <button
-        type="button"
+      <Button
         onClick={onNext}
         disabled={disabled}
-        className="inline-flex items-center gap-2 rounded-full bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] px-5 py-2.5 text-sm font-semibold text-white shadow-[0_6px_18px_rgba(255,77,140,0.22)] transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50"
+        size="lg"
       >
-        Continue
-      </button>
+        {t('Continue')}
+        <KitIcon art={ICONS.arrowRight} frame={20} />
+      </Button>
     </div>
   );
 }
@@ -1030,58 +1071,38 @@ function DocumentField({
   onChange: (file: File) => void;
   onClear: () => void;
 }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const t = useT();
   const meta = DOCUMENT_LABELS[slot];
 
   return (
-    <div
-      className={`flex items-center justify-between gap-3 rounded-2xl border p-4 transition ${
-        fileName
-          ? 'border-emerald-200 bg-emerald-50/60'
-          : 'border-slate-200 bg-white hover:border-pink-200'
-      }`}
-    >
-      <div className="min-w-0">
-        <p className="text-sm font-semibold text-slate-900">{meta.title}</p>
-        <p className="text-xs text-slate-500">{meta.hint}</p>
-        {fileName && (
-          <p className="mt-1 truncate text-xs text-emerald-700">
-            <CheckIcon size={12} className="inline align-middle" /> {fileName}
-          </p>
-        )}
-      </div>
-      <div className="flex items-center gap-2">
-        {fileName && (
-          <button
-            type="button"
-            onClick={onClear}
-            aria-label={`Remove ${meta.title}`}
-            className="rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-red-500"
-          >
-            <CloseIcon size={14} />
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={uploading}
-          className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:border-pink-200 disabled:opacity-60"
-        >
-          {uploading ? 'Uploading…' : fileName ? 'Replace' : 'Upload'}
-        </button>
-        <input
-          ref={inputRef}
-          type="file"
-          accept={meta.accept}
-          className="sr-only"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) onChange(f);
-            e.target.value = '';
-          }}
-        />
-      </div>
-    </div>
+    <Panel elevation="flat" padding="sm" className="flex flex-col gap-gb-xl">
+      <PanelHeader title={t(meta.title)} description={t(meta.hint)} as="h3" />
+
+      {fileName ? (
+        <ul>
+          <DocumentRow
+            fileName={fileName}
+            status="complete"
+            onRemove={onClear}
+            removeLabel={t('Remove {document}', { document: t(meta.title) })}
+            completeLabel={t('Complete')}
+            uploadingLabel={t('Uploading…')}
+          />
+        </ul>
+      ) : null}
+
+      <FileDropzone
+        onFiles={(files) => {
+          const file = files[0];
+          if (file) onChange(file);
+        }}
+        accept={meta.accept}
+        label={t(uploading ? 'Uploading…' : fileName ? 'Replace document' : 'Upload document')}
+        secondaryLabel={t('or drag and drop')}
+        hint={t('PDF, DOC, DOCX, PNG or JPG up to 10 MB')}
+        disabled={uploading}
+      />
+    </Panel>
   );
 }
 
@@ -1103,6 +1124,8 @@ function MonthlyAvailabilityPicker({
   slots: string[];
   onSlotsChange: (s: string[]) => void;
 }) {
+  const { lang, t } = useLanguage();
+  const locale = lang === 'vi' ? 'vi-VN' : 'en-GB';
   const [viewMonth, setViewMonth] = useState<Date>(new Date());
   // Multi-select: the mentor can mark several days, then apply times to all of
   // them at once (Calendly-style), rather than editing one day at a time.
@@ -1173,40 +1196,40 @@ function MonthlyAvailabilityPicker({
   }, [slots]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between rounded-2xl border border-slate-100 bg-white p-3">
+    <div className="flex flex-col gap-gb-xl">
+      <div className="flex items-center justify-between rounded-gb-xl border border-line bg-surface p-gb-lg shadow-gb-xs">
         <button
           type="button"
           onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1))}
-          className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
-          aria-label="Previous month"
+          className="flex size-gb-5xl items-center justify-center rounded-gb-md text-fg-tertiary transition-colors hover:bg-surface-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          aria-label={t('Previous month')}
         >
-          ←
+          <KitIcon art={ICONS.arrowLeft} frame={18} />
         </button>
-        <p className="text-sm font-semibold text-slate-900">
-          {viewMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
+        <p className="text-gb-md font-semibold capitalize text-fg">
+          {viewMonth.toLocaleDateString(locale, { month: 'long', year: 'numeric' })}
         </p>
         <button
           type="button"
           onClick={() => setViewMonth((m) => new Date(m.getFullYear(), m.getMonth() + 1, 1))}
-          className="rounded-full p-2 text-slate-500 hover:bg-slate-100"
-          aria-label="Next month"
+          className="flex size-gb-5xl items-center justify-center rounded-gb-md text-fg-tertiary transition-colors hover:bg-surface-hover hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          aria-label={t('Next month')}
         >
-          →
+          <KitIcon art={ICONS.arrowRight} frame={18} />
         </button>
       </div>
 
-      <p className="text-xs text-slate-500">
-        Tap one or more days, then add the times you&rsquo;re free below. Selected days turn pink; days with saved times show a count.
+      <p className="rounded-gb-lg bg-info-subtle px-gb-lg py-gb-md text-gb-sm text-fg-info">
+        {t('Tap one or more days, then add the times you’re free below. Selected days turn pink; days with saved times show a count.')}
       </p>
 
-      <div className="grid grid-cols-7 gap-1.5 text-center text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">
+      <div className="grid grid-cols-7 gap-gb-xs text-center text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
         {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((d) => (
-          <div key={d}>{d}</div>
+          <div key={d}>{t(d)}</div>
         ))}
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-7 gap-gb-xs">
         {cells.map((cell, i) => {
           if (!cell) return <div key={`e-${i}`} className="h-10" />;
           const key = localDateKey(cell);
@@ -1220,19 +1243,19 @@ function MonthlyAvailabilityPicker({
               disabled={isPast}
               onClick={() => toggleDay(key)}
               aria-pressed={selected}
-              className={`relative flex h-10 items-center justify-center rounded-xl border text-xs font-semibold transition ${
+              className={`relative flex h-gb-5xl items-center justify-center rounded-gb-md border text-gb-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                 isPast
-                  ? 'border-transparent text-slate-300'
+                  ? 'cursor-not-allowed border-transparent text-fg-muted opacity-40'
                   : selected
-                  ? 'border-pink-300 bg-[linear-gradient(135deg,#FF3D9A,#FF85B3)] text-white'
+                  ? 'border-brand bg-brand text-on-brand'
                   : count > 0
-                  ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                  : 'border-slate-200 bg-white text-slate-700 hover:border-pink-200'
+                  ? 'border-tier-safe bg-tier-safe/10 text-on-tier-safe'
+                  : 'border-line bg-surface text-fg-secondary hover:border-brand hover:bg-brand-subtle'
               }`}
             >
               {cell.getDate()}
               {count > 0 && (
-                <span className="absolute bottom-1 right-1 text-[0.6rem]">{count}</span>
+                <span className="absolute bottom-gb-xxs right-gb-xs text-[0.625rem]">{count}</span>
               )}
             </button>
           );
@@ -1240,24 +1263,29 @@ function MonthlyAvailabilityPicker({
       </div>
 
       {/* Apply times to whichever days are selected */}
-      <div className="rounded-2xl border border-slate-100 bg-white p-4">
+      <Panel elevation="flat" padding="sm" className="flex flex-col gap-gb-lg">
         {selectedDates.length === 0 ? (
-          <p className="text-xs text-slate-500">Select one or more days above to add times.</p>
+          <div className="flex items-center gap-gb-sm text-gb-sm text-fg-tertiary">
+            <KitIcon art={ICONS.calendar} frame={18} className="shrink-0 text-brand" />
+            <p>{t('Select one or more days above to add times.')}</p>
+          </div>
         ) : (
           <>
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold text-slate-900">
-                Add times to {selectedDates.length} selected day{selectedDates.length === 1 ? '' : 's'}
+            <div className="flex flex-wrap items-center justify-between gap-gb-md">
+              <p className="text-gb-sm font-semibold text-fg">
+                {t(selectedDates.length === 1
+                  ? 'Add times to {count} selected day'
+                  : 'Add times to {count} selected days', { count: selectedDates.length })}
               </p>
               <button
                 type="button"
                 onClick={() => setSelectedDates([])}
-                className="text-xs font-semibold text-slate-400 hover:text-slate-600"
+                className="rounded-gb-sm text-gb-sm font-semibold text-fg-tertiary hover:text-fg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                Clear selection
+                {t('Clear selection')}
               </button>
             </div>
-            <div className="mt-3 flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-gb-sm">
               {TIME_SLOTS.map((t) => {
                 const active = allSelectedHave(t);
                 return (
@@ -1265,10 +1293,11 @@ function MonthlyAvailabilityPicker({
                     key={t}
                     type="button"
                     onClick={() => applyTimeToSelected(t)}
-                    className={`rounded-full border px-3 py-1.5 text-xs transition ${
+                    aria-pressed={active}
+                    className={`rounded-gb-md border px-gb-lg py-gb-md text-gb-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
                       active
-                        ? 'border-emerald-300 bg-emerald-50 text-emerald-700'
-                        : 'border-slate-200 bg-white text-slate-600 hover:border-pink-200'
+                        ? 'border-tier-safe bg-tier-safe/10 text-on-tier-safe'
+                        : 'border-line-strong bg-surface text-fg-secondary hover:bg-surface-hover'
                     }`}
                   >
                     {t}
@@ -1276,49 +1305,50 @@ function MonthlyAvailabilityPicker({
                 );
               })}
             </div>
-            <div className="mt-3 flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-gb-sm">
               <input
                 type="time"
                 value={customTime}
                 onChange={(e) => setCustomTime(e.target.value)}
-                className="field max-w-[140px]"
+                aria-label={t('Custom time')}
+                className={controlClasses(false, 'max-w-[160px]')}
               />
-              <button
-                type="button"
-                onClick={() => applyTimeToSelected(customTime)}
-                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:border-pink-200"
-              >
-                Add custom time
-              </button>
+              <Button type="button" onClick={() => applyTimeToSelected(customTime)} variant="secondary" size="lg">
+                <KitIcon art={ICONS.plus} frame={16} />
+                {t('Add custom time')}
+              </Button>
             </div>
           </>
         )}
-      </div>
+      </Panel>
 
       {/* Summary of everything chosen, grouped by day */}
       {grouped.length > 0 && (
-        <div className="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
-          <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
-            Your availability — {slots.length} slot{slots.length === 1 ? '' : 's'} across {grouped.length} day{grouped.length === 1 ? '' : 's'}
+        <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-xl">
+          <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-tertiary">
+            {t('Your availability')} —{' '}
+            {t(slots.length === 1 ? '{count} slot' : '{count} slots', { count: slots.length })}{' '}
+            {t('across')}{' '}
+            {t(grouped.length === 1 ? '{count} day' : '{count} days', { count: grouped.length })}
           </p>
-          <div className="mt-3 space-y-2.5">
+          <div className="mt-gb-lg flex flex-col gap-gb-md">
             {grouped.map(({ key, isos }) => (
-              <div key={key} className="rounded-xl border border-slate-100 bg-white p-3">
-                <p className="text-sm font-semibold text-slate-800">
-                  {new Date(`${key}T00:00:00`).toLocaleDateString(undefined, {
+              <div key={key} className="rounded-gb-lg border border-line bg-surface p-gb-lg">
+                <p className="text-gb-sm font-semibold text-fg">
+                  {new Date(`${key}T00:00:00`).toLocaleDateString(locale, {
                     weekday: 'short', day: 'numeric', month: 'short',
                   })}
                 </p>
-                <div className="mt-1.5 flex flex-wrap gap-1.5">
+                <div className="mt-gb-sm flex flex-wrap gap-gb-sm">
                   {isos.map((iso) => (
                     <button
                       key={iso}
                       type="button"
                       onClick={() => removeSlot(iso)}
-                      className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:border-red-200 hover:bg-red-50 hover:text-red-600"
-                      title="Remove this time"
+                      className="inline-flex items-center gap-gb-xs rounded-gb-md border border-tier-safe bg-tier-safe/10 px-gb-md py-gb-sm text-gb-xs font-semibold text-on-tier-safe transition-colors hover:border-line-error hover:bg-surface-error hover:text-fg-error focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                      title={t('Remove this time')}
                     >
-                      {new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
+                      {new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}
                       <CloseIcon size={11} />
                     </button>
                   ))}
@@ -1329,8 +1359,8 @@ function MonthlyAvailabilityPicker({
         </div>
       )}
 
-      <p className="text-xs text-slate-500">
-        You can change all of this any time from your advisor dashboard.
+      <p className="text-gb-sm text-fg-muted">
+        {t('You can change all of this any time from your advisor dashboard.')}
       </p>
     </div>
   );
@@ -1354,32 +1384,38 @@ function ReviewPanel(props: {
   hourlyMajor: number;
   slotCount: number;
 }) {
+  const t = useT();
   const total = toSmallestUnits(props.hourlyMajor, props.currency);
+  const degreeLabel = DEGREE_LEVELS.find((level) => level.value === props.degreeLevel)?.label ?? props.degreeLevel;
   return (
-    <div className="grid gap-3 rounded-2xl border border-slate-100 bg-slate-50/70 p-4 text-sm text-slate-700 sm:grid-cols-2">
-      <Row label="Display name" value={props.displayName} />
-      <Row label="Legal name" value={props.legalName} muted />
-      <Row label="DOB" value={props.dob} muted />
-      <Row label="University" value={props.university} />
-      <Row label="Programme" value={`${props.degreeLevel} · ${props.subject}`} />
+    <dl className="grid gap-px overflow-hidden rounded-gb-xl border border-line bg-line sm:grid-cols-2">
+      <Row label={t('Display name')} value={props.displayName} />
+      <Row label={t('Legal name')} value={props.legalName} muted />
+      <Row label={t('Date of birth')} value={props.dob} muted />
+      <Row label={t('University')} value={props.university} />
+      <Row label={t('Programme')} value={`${t(degreeLabel)} · ${props.subject}`} />
       <Row
-        label="Documents"
-        value={props.quickSignup ? 'Fast-track — not required' : `${props.documentsCount} / 4 uploaded`}
+        label={t('Documents')}
+        value={props.quickSignup
+          ? t('Fast-track — not required')
+          : t('{count} / 4 uploaded', { count: props.documentsCount })}
       />
-      <Row label="Topics" value={props.topics.join(', ') || '—'} />
-      <Row label="Strengths" value={props.strengths.join(', ') || '—'} />
-      <Row label="Languages" value={props.languages.join(', ') || '—'} />
-      <Row label="Hourly rate" value={formatMoney(total, props.currency)} />
-      <Row label="Initial slots" value={`${props.slotCount} added`} />
-    </div>
+      <Row label={t('Topics')} value={props.topics.map((topic) => t(topic)).join(', ') || '—'} />
+      <Row label={t('Strengths')} value={props.strengths.map((strength) => t(strength)).join(', ') || '—'} />
+      <Row label={t('Languages')} value={props.languages.map((language) => t(language)).join(', ') || '—'} />
+      <Row label={t('Hourly rate')} value={formatMoney(total, props.currency)} />
+      <Row label={t('Initial slots')} value={t('{count} added', { count: props.slotCount })} />
+    </dl>
   );
 }
 
 function Row({ label, value, muted }: { label: string; value: string; muted?: boolean }) {
   return (
-    <div>
-      <p className="text-[0.65rem] font-semibold uppercase tracking-wider text-slate-400">{label}</p>
-      <p className={`mt-0.5 ${muted ? 'text-slate-500' : 'text-slate-800'}`}>{value}</p>
+    <div className="flex min-w-0 flex-col gap-gb-xs bg-surface p-gb-xl">
+      <dt className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{label}</dt>
+      <dd className={`break-words text-gb-sm ${muted ? 'text-fg-tertiary' : 'font-medium text-fg'}`}>
+        {value}
+      </dd>
     </div>
   );
 }

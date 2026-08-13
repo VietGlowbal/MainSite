@@ -50,6 +50,46 @@ const SEEDED_PROFILE_KEYS = [
   'MIT EECS PhD. I help applicants for top US engineering programmes nail their statement of purpose and prepare for grilling interviews.',
 ] as const;
 
+const ADVISOR_APPLICATION_KEYS = [
+  'Want to share your experience with future students?',
+  'Apply to become an advisor',
+  'Free to apply · Reviewed within 48 hours',
+  'Create your profile',
+  'Verify your experience',
+  'Start advising',
+  'Advisor application',
+  'Step {number}',
+  'Complete your application',
+  'Application submitted',
+  'Application status',
+  'Admin verification',
+  'Profile published',
+  'Identity',
+  'Documents',
+  'Pricing',
+  'Availability',
+  'Advisor application progress',
+  'Optional',
+  'Verification documents',
+  'Build your advisor profile',
+  'Set your hourly rate',
+  'Review & submit',
+  '{count} selected · pick at least one',
+  '{count}/800 characters',
+  'PNG, JPG or WebP up to 5 MB',
+  'Upload document',
+  'Replace document',
+  'PDF, DOC, DOCX, PNG or JPG up to 10 MB',
+  'Enter the amount you want to receive for each one-hour session.',
+  'Enter your rate',
+  'Per one-hour session',
+  'Student pays',
+  'Includes the 10% service fee',
+  'Custom time',
+  'Remove {document}',
+  '{count} / 4 uploaded',
+] as const;
+
 describe('advisor Vietnamese translation coverage', () => {
   it('covers directory, profile and booking interface copy', () => {
     for (const key of ADVISOR_UI_KEYS) {
@@ -65,8 +105,18 @@ describe('advisor Vietnamese translation coverage', () => {
     }
   });
 
+  it('covers the advisor recruitment, application and approval journey', () => {
+    for (const key of ADVISOR_APPLICATION_KEYS) {
+      expect(translations[key], key).toBeTruthy();
+      expect(translations[key], key).not.toBe(key);
+    }
+  });
+
   it('preserves interpolation variables in translated advisor copy', () => {
-    for (const key of ADVISOR_UI_KEYS.filter((value) => value.includes('{'))) {
+    const keysWithVariables = [...ADVISOR_UI_KEYS, ...ADVISOR_APPLICATION_KEYS]
+      .filter((value) => value.includes('{'));
+
+    for (const key of keysWithVariables) {
       const sourceVars = key.match(/\{\w+\}/g) ?? [];
       const translatedVars = translations[key]?.match(/\{\w+\}/g) ?? [];
       expect(translatedVars, key).toEqual(sourceVars);
