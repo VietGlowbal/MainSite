@@ -1,7 +1,7 @@
 # Verification
 
 Last measured on branch `fix/feedback-118` at `c7b0a1f` plus the PR #180 CI
-repair on **2026-08-13**. Results are also summarized in
+repair and the My Portal logo reconciliation work on **2026-08-14**. Results are also summarized in
 [current-status.md](current-status.md).
 
 ## Gates
@@ -33,6 +33,13 @@ the other side's imports. Neither `tsc --noEmit` on the pre-merge tree nor the
 tests caught it. Run the build after every merge, not only before a PR.
 
 Current measured local snapshot (Node 20.20.2):
+
+The 2026-08-14 logo-reconciliation pass ran both typechecks, focused tests and
+lint, and a production build. A full `npm test` run reached **1,982 pass / 2
+todo** across 194 passing files; the only failure was the real i18n checker
+crossing its 5-second test timeout under parallel load (5.74s). The same test
+passed alone in 2.26s. This is recorded as a timed-out full-suite run, not as a
+green full-suite claim.
 
 | Gate | 2026-08-13 result |
 |---|---|

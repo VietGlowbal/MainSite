@@ -1,6 +1,6 @@
 # Current project status
 
-Last reconciled: **2026-08-13 (Asia/Bangkok)**
+Last reconciled: **2026-08-14 (Asia/Bangkok)**
 
 Code snapshot: PR #180 on branch `fix/feedback-118`, based on merge commit
 `c7b0a1f` plus the CI repair described below.
@@ -15,6 +15,15 @@ code, the code wins.
 
 - Stack: Next.js `16.2.3`, React `19.2.4`, TypeScript 5, Supabase/Postgres,
   OpenAI and DeepSeek-backed AI paths, Vitest, and Playwright.
+- **My Portal university-logo identity is repaired in production.** On
+  2026-08-14 all 37 active `course_applications` were verified linked through
+  `university_id`, and all 37 links resolve to a university with a `logo_url`.
+  The eight legacy NULL links were reconciled: six matched existing directory
+  rows and two identity rows were created (University of Birmingham `108`,
+  Harvard Business School `109`). Their logos are persisted in the existing
+  `university-images` Supabase Storage bucket. Directory-wide logo coverage is
+  107/108; University of Alberta (`36`) is the only remaining missing logo and
+  no active application depends on it.
 - Two pre-existing untracked documents must be preserved: `TECH_SOLUTION.md`
   and `docs/audit-2026-08-03.md`. They are owner/session work, not generated
   build output.
@@ -57,6 +66,7 @@ code, the code wins.
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
+| Working tree 2026-08-14 | Fixed missing university logos in My Portal at the identity layer. `resolveUniversity` now has a genuinely non-mutating match-only mode; `/api/cron/link-applications?dryRun=1` and `?create=0` pass that policy into the resolver before any insert can occur, and report `would-match`/`would-create` outcomes. Bare legacy domains such as `www.birmingham.ac.uk` now participate in domain matching. The reconciliation route is scheduled daily at 02:30 UTC, before the 03:00 imagery job. Newly resolved logos are downloaded, normalised to WebP, uploaded to deterministic paths in Supabase Storage, and only then written to `universities.logo_url`; a failed upload leaves the field empty for retry. Shared `Avatar` now falls back to initials if a non-empty URL fails in the browser. Production repair was executed after a zero-write preview: 8/8 rows linked, 0 failures; Birmingham's two applications both join Storage-backed logo ID 108. | Existing initials-only Birmingham and other legacy cards receive their real crests without adding a query or external fetch to `/apply`. New/imported applications link during parsing, the scheduled reconciler repairs any future transient miss, and broken remote images degrade cleanly instead of showing a broken-image glyph. Focused verification: 39/39 tests; base and strict typechecks pass; targeted lint passes (the seed `.mjs` is config-ignored, reported as one warning); production build passes. Full Vitest run reached 1,982 pass / 2 todo with only `check-i18n.integration.test.ts` exceeding its 5s timeout under parallel load (5.74s); that test passed alone in 2.26s. E2E not run. |
 | PR #180 CI repair | Fixed the failure after the static-i18n merge: the university performance source-contract test now accepts the intentionally localized `t(saved ? ...)` accessibility label while still requiring `data-no-auto-translate`, `aria-pressed`, and `aria-label` on the same save button. The course-search POST re-fetch no longer relies on `.order()` support in every Supabase test chain; it checks the fetch error and sorts the small stored-result set by rank in memory, with an out-of-order response test. | The full CI suite can preserve both the translator-safe save control and Vietnamese accessibility labels. Course-search tests no longer log repeated false runtime errors, and API results remain deterministically rank-ordered. Full `npm run verify:pr` passes on Node 20.20.2: both typechecks, lint (0 errors, 23 existing warnings), 192 test files / 1972 tests passed / 2 todo with coverage, and the production build. E2E was not rerun. |
 | `53beab0` | Rebuilt the advisor registration process and related UI, including validation, private verification documents, pricing, availability, review, success-state copy, and static English/Vietnamese coverage. | Advisor applicants get a complete, localized registration journey with clearer validation and privacy handling. |
 | `66b7224` | Removed the repository-installed pre-push hook and its `prepare` installer. The complete `npm run verify:pr` gate remains in GitHub Actions and is available as an explicit local command. | A normal push no longer waits several minutes for typechecks, coverage tests, and a production build; pull requests still receive the full CI gate. |
