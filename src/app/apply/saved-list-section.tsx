@@ -1171,7 +1171,7 @@ export function SavedListSection({
   const coveragePercent = bestCoveragePercent(rows);
 
   return (
-    <section id="saved" className="flex scroll-mt-gb-9xl flex-col gap-gb-6xl">
+    <section className="flex flex-col gap-gb-6xl">
       {/*
         Figma 562:15092. h2, not h1 — on 562:15078 this heading and
         "My application" are drawn identically, but they are two sections of one

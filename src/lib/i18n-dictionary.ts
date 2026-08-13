@@ -1,3 +1,5 @@
+import { FIELD_OF_STUDY_TRANSLATIONS } from './fields-of-study';
+
 /**
  * Translation dictionary — English source string → Vietnamese.
  *
@@ -15,6 +17,11 @@
  * Do NOT translate brand names (GLOWBAL) or university names.
  */
 export const translations: Record<string, string> = {
+  // The comprehensive academic-profile subject taxonomy lives beside its
+  // canonical values. Entries declared later in this object deliberately win
+  // when an established product translation already exists for the same word.
+  ...FIELD_OF_STUDY_TRANSLATIONS,
+
   // ── Navigation ───────────────────────────────────────────────────────────
   Home: 'Trang chủ',
   Search: 'Tìm kiếm',
@@ -1356,6 +1363,129 @@ export const translations: Record<string, string> = {
   'Subject':'Ngành học',
   'Search by name or university':'Tìm kiếm theo tên sinh viên hoặc trường',
 
+  // Advisor directory card hierarchy and dynamic labels. These use t() with
+  // interpolation, so counts, names, years and formatted prices never fall
+  // through to the network translator.
+  'University not listed': 'Chưa cập nhật trường đại học',
+  'Subject not listed': 'Chưa cập nhật ngành học',
+  '{price}/hour': '{price}/giờ',
+  'Class of {year}': 'Khóa {year}',
+  "Open the profile to see this advisor's experience and support topics.":
+    'Mở hồ sơ để xem kinh nghiệm và các nội dung cố vấn có thể hỗ trợ.',
+  'Session rate': 'Phí mỗi buổi',
+  "View {name}'s profile": 'Xem hồ sơ của {name}',
+  '{count} advisor': '{count} cố vấn',
+  '{count} advisors': '{count} cố vấn',
+  '{count} session': '{count} buổi',
+  '{count} sessions': '{count} buổi',
+  'Compare university, academic background, experience and rate.':
+    'So sánh trường đại học, nền tảng học thuật, kinh nghiệm và mức phí.',
+  'No advisors have been approved yet. Check back soon.':
+    'Chưa có cố vấn nào được phê duyệt. Vui lòng quay lại sau.',
+  'No advisor matches those filters yet. Try widening the country or subject.':
+    'Chưa có cố vấn phù hợp với bộ lọc. Hãy thử mở rộng quốc gia hoặc ngành học.',
+  "Master's": 'Thạc sĩ',
+
+  // Advisor profile stats, reviews and booking strings with live values.
+  '{rating} / 5': '{rating} / 5',
+  '{count} session delivered': 'Đã hoàn thành {count} buổi tư vấn',
+  '{count} sessions delivered': 'Đã hoàn thành {count} buổi tư vấn',
+  '{count} review': '{count} đánh giá',
+  '{count} reviews': '{count} đánh giá',
+  'Glowbal student': 'Học viên GlowBal',
+  '{student} · {date}': '{student} · {date}',
+  Mo: 'T2',
+  Tu: 'T3',
+  We: 'T4',
+  Th: 'T5',
+  Fr: 'T6',
+  Sa: 'T7',
+  Su: 'CN',
+  '{date} — no times available': '{date} — không có khung giờ trống',
+  'Choose or type a topic so your advisor can prepare.':
+    'Hãy chọn hoặc nhập một chủ đề để cố vấn có thể chuẩn bị.',
+  'Tell your advisor what you want to discuss — a sentence is enough.':
+    'Hãy cho cố vấn biết bạn muốn trao đổi điều gì — chỉ cần một câu là đủ.',
+  'Could not start checkout.': 'Không thể bắt đầu thanh toán.',
+  'The payment link was missing. Please try again.':
+    'Không tìm thấy liên kết thanh toán. Vui lòng thử lại.',
+  'Book a session with {name}': 'Đặt buổi tư vấn với {name}',
+  'Book {name}': 'Đặt lịch với {name}',
+  '{count} min': '{count} phút',
+  'Session ({count} min)': 'Buổi tư vấn ({count} phút)',
+  'Pay {amount}': 'Thanh toán {amount}',
+
+  // Errors returned by /api/mentorship/checkout. Translating the API message
+  // through t() keeps failed booking states bilingual as well as happy paths.
+  'Invalid JSON body': 'Dữ liệu gửi lên không hợp lệ',
+  'Invalid request': 'Yêu cầu không hợp lệ',
+  'Sign in required': 'Vui lòng đăng nhập',
+  'Slot not found': 'Không tìm thấy khung giờ',
+  'This slot is no longer available': 'Khung giờ này không còn khả dụng',
+  'Sessions must be booked at least an hour in advance':
+    'Buổi tư vấn phải được đặt trước ít nhất một giờ',
+  'Advisor not found': 'Không tìm thấy cố vấn',
+  'Advisor is not currently accepting bookings': 'Cố vấn hiện không nhận lịch đặt',
+  'Advisor pricing is not configured. Please try another advisor.':
+    'Mức phí của cố vấn chưa được thiết lập. Vui lòng chọn cố vấn khác.',
+  'Advisor pricing is not configured.': 'Mức phí của cố vấn chưa được thiết lập.',
+  'The booking total is below the payment minimum.':
+    'Tổng giá trị đặt lịch thấp hơn mức thanh toán tối thiểu.',
+  'Slot is no longer available': 'Khung giờ này không còn khả dụng',
+  'Could not create booking': 'Không thể tạo lịch hẹn',
+  'Could not start the payment. Please try again.':
+    'Không thể bắt đầu thanh toán. Vui lòng thử lại.',
+
+  // Seeded advisor academic details and profile content. User-authored content
+  // still falls back to the original language when no exact dictionary entry
+  // exists; university names and advisor names are intentionally untouched.
+  'Computer Science, BA': 'Khoa học máy tính, Cử nhân',
+  'MSc Computer Science': 'Thạc sĩ Khoa học máy tính',
+  'Economics, AB': 'Kinh tế học, Cử nhân',
+  'PhD Aeronautical Engineering': 'Tiến sĩ Kỹ thuật Hàng không',
+  'MS Symbolic Systems': 'Thạc sĩ Hệ thống Biểu tượng',
+  'Business Administration': 'Quản trị Kinh doanh',
+  'BA Architecture': 'Cử nhân Kiến trúc',
+  'PhD Electrical Engineering': 'Tiến sĩ Kỹ thuật Điện',
+  'Cambridge CS undergrad. I help applicants demystify the SAQ, technical interviews, and the personal statement. Happy to chat in English or Vietnamese.':
+    'Sinh viên Cử nhân Khoa học máy tính tại Cambridge. Tôi giúp ứng viên hiểu rõ SAQ, phỏng vấn kỹ thuật và bài luận cá nhân. Sẵn sàng trao đổi bằng tiếng Anh hoặc tiếng Việt.',
+  "Oxford MSc CS, now working in fintech. I review SOPs line-by-line and run mock technical interviews. I'll also tell you honestly when a school isn't worth it.":
+    'Tốt nghiệp Thạc sĩ Khoa học máy tính tại Oxford, hiện làm việc trong lĩnh vực công nghệ tài chính. Tôi góp ý SOP từng dòng và tổ chức phỏng vấn kỹ thuật thử. Tôi cũng sẽ trao đổi thẳng thắn khi một trường chưa thực sự phù hợp với bạn.',
+  'Harvard ’25, majoring in Economics with a minor in Statistics. I love helping students with the Common App essays — yes, all 650 words of them.':
+    'Harvard khóa 2025, chuyên ngành Kinh tế học và ngành phụ Thống kê. Tôi rất thích hỗ trợ học sinh với bài luận Common App — bao gồm toàn bộ 650 từ.',
+  'PhD candidate at Imperial. I help applicants for engineering and physics programmes navigate research statements and interview panels.':
+    'Nghiên cứu sinh Tiến sĩ tại Imperial. Tôi hỗ trợ ứng viên các chương trình kỹ thuật và vật lý xây dựng bài luận nghiên cứu và chuẩn bị cho hội đồng phỏng vấn.',
+  'Stanford alum now at a YC-backed AI startup. I focus on Stanford-specific essays, internship prep, and breaking into Bay Area tech.':
+    'Cựu sinh viên Stanford, hiện làm việc tại một startup AI được YC hậu thuẫn. Tôi tập trung vào bài luận riêng của Stanford, chuẩn bị thực tập và định hướng gia nhập ngành công nghệ tại Bay Area.',
+  'VNU Hanoi business student. I work mostly with applicants targeting top Vietnamese universities and exchange programmes — affordable rates in VND.':
+    'Sinh viên ngành Kinh doanh tại VNU Hà Nội. Tôi chủ yếu hỗ trợ ứng viên nhắm đến các trường hàng đầu Việt Nam và chương trình trao đổi, với mức phí phù hợp bằng VND.',
+  'UCL Architecture grad. Portfolio reviews, design-school interviews, and how to actually survive crit week as a first-year.':
+    'Tốt nghiệp Kiến trúc tại UCL. Tôi hỗ trợ góp ý portfolio, luyện phỏng vấn trường thiết kế và chia sẻ cách vượt qua tuần phản biện trong năm nhất.',
+  'MIT EECS PhD. I help applicants for top US engineering programmes nail their statement of purpose and prepare for grilling interviews.':
+    'Nghiên cứu sinh Tiến sĩ EECS tại MIT. Tôi giúp ứng viên các chương trình kỹ thuật hàng đầu Hoa Kỳ hoàn thiện bài luận mục đích và chuẩn bị cho các vòng phỏng vấn chuyên sâu.',
+  SAQ: 'SAQ',
+  'SOP review': 'Góp ý bài luận mục đích (SOP)',
+  Internships: 'Thực tập',
+  'Research applications': 'Hồ sơ nghiên cứu',
+  'Visa & relocation': 'Visa & chuyển nơi ở',
+  'Portfolio review': 'Góp ý portfolio',
+  'Common App': 'Common App',
+  'STEM Olympiad veteran': 'Có kinh nghiệm thi Olympic STEM',
+  'Strong writer': 'Viết luận tốt',
+  'Mock interviews': 'Phỏng vấn thử',
+  'Tech-savvy': 'Am hiểu công nghệ',
+  'Startup experience': 'Kinh nghiệm khởi nghiệp',
+  'Empathetic listener': 'Biết lắng nghe và thấu cảm',
+  'Public speaking': 'Thuyết trình trước công chúng',
+  Multilingual: 'Đa ngôn ngữ',
+  Hindi: 'Tiếng Hindi',
+  Mandarin: 'Tiếng Quan Thoại',
+  Japanese: 'Tiếng Nhật',
+  Korean: 'Tiếng Hàn',
+  Spanish: 'Tiếng Tây Ban Nha',
+  Arabic: 'Tiếng Ả Rập',
+  French: 'Tiếng Pháp',
+
   // ── University detail, /universities/[id] (Figma 375:10629) ───────────────
   //
   // The section bar and the strip/rail labels. Listed here rather than left to
@@ -2377,6 +2507,7 @@ export const translations: Record<string, string> = {
   // Questions 5-8 (spec 2).
   'Search subjects or browse below': 'Tìm ngành hoặc xem danh sách bên dưới',
   'No subjects found for “{query}”': 'Không tìm thấy ngành nào cho “{query}”',
+  Others: 'Khác',
   'Add as Other': 'Thêm vào mục Khác',
   'Select all': 'Chọn tất cả',
   'Show all countries': 'Xem tất cả quốc gia',
@@ -2787,8 +2918,17 @@ export const translations: Record<string, string> = {
   'Grading scale:': 'Thang điểm:',
   'This saved curriculum is no longer in the current test. It will be preserved unless you remove it.': 'Chương trình học đã lưu này không còn trong bài kiểm tra hiện tại. Chương trình sẽ được giữ lại trừ khi bạn xóa.',
   'Your academic story': 'Câu chuyện học tập của bạn',
+  'Free text and subjects. This is what the AI reads when it scores how well you match a course.':
+    'Văn bản tự do và các môn học. Đây là thông tin AI đọc khi đánh giá mức độ phù hợp của bạn với một khóa học.',
+  'Academic background summary': 'Tóm tắt nền tảng học thuật',
+  'Target subjects / fields of study': 'Môn học / lĩnh vực học tập mục tiêu',
   'Briefly describe your academic history and any notable achievements…': 'Mô tả ngắn gọn quá trình học tập và thành tích nổi bật của bạn…',
   'e.g. Computer Science, Engineering, Business…': 'ví dụ: Khoa học máy tính, Kỹ thuật, Kinh doanh…',
+  'Select a subject or field…': 'Chọn một môn học hoặc lĩnh vực…',
+  'Choose from the list. You can add more than one.': 'Chọn từ danh sách. Bạn có thể thêm nhiều lựa chọn.',
+  'Other subject / field of study': 'Môn học / lĩnh vực học tập khác',
+  'Enter another subject or field…': 'Nhập môn học hoặc lĩnh vực khác…',
+  'Remove {subject}': 'Xóa {subject}',
   'e.g. National Science Olympiad finalist': 'ví dụ: lọt vào chung kết Olympic Khoa học Quốc gia',
   'What it was, and what you did…': 'Đó là gì và bạn đã làm gì…',
   Skills: 'Kỹ năng',

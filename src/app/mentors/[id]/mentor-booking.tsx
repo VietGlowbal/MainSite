@@ -3,6 +3,7 @@
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { Badge, Button, Modal, Textarea } from '@/shared/ui';
 import { computeServiceFee, computeTotal, formatMoney } from '@/lib/currency';
+import { useLanguage } from '@/lib/i18n';
 import type { Currency, MentorAvailabilitySlot } from '@/types/mentorship';
 
 /**
@@ -96,18 +97,18 @@ function monthGrid(year: number, month: number): Date[] {
   return days.slice(0, weeks * 7);
 }
 
-function formatTime(iso: string): string {
-  return new Date(iso).toLocaleTimeString(undefined, {
+function formatTime(iso: string, locale?: string): string {
+  return new Date(iso).toLocaleTimeString(locale, {
     hour: 'numeric',
     minute: '2-digit',
   });
 }
 
-function formatLongDate(key: DayKey): string {
+function formatLongDate(key: DayKey, locale?: string): string {
   const parts = key.split('-').map(Number);
   const [y, m, d] = parts;
   if (y === undefined || m === undefined || d === undefined) return key;
-  return new Date(y, m - 1, d).toLocaleDateString(undefined, {
+  return new Date(y, m - 1, d).toLocaleDateString(locale, {
     day: 'numeric',
     month: 'short',
     year: 'numeric',
@@ -129,6 +130,8 @@ export function MentorBooking({
   currency: Currency;
   isSignedIn: boolean;
 }) {
+  const { lang, t } = useLanguage();
+  const locale = lang === 'vi' ? 'vi-VN' : 'en-GB';
   const mounted = useSyncExternalStore(subscribeToNothing, onClient, onServer);
 
   const byDay = useMemo(() => {
@@ -169,7 +172,7 @@ export function MentorBooking({
   const selectedSlot = daySlots.find((s) => s.id === selectedSlotId) ?? null;
 
   const grid = monthGrid(cursor.year, cursor.month);
-  const monthLabel = startOfMonth(cursor.year, cursor.month).toLocaleDateString(undefined, {
+  const monthLabel = startOfMonth(cursor.year, cursor.month).toLocaleDateString(locale, {
     month: 'long',
     year: 'numeric',
   });
@@ -192,11 +195,11 @@ export function MentorBooking({
       {/* The frame labels this "Điểm mạnh" — the strengths heading, pasted
           twice. See the departure note in mentor-detail.tsx. */}
       <h2 id="booking-heading" className="font-display text-gb-display-xs font-semibold text-fg">
-        Book a session
+        {t('Book a session')}
       </h2>
       {/* One literal, for the same two reasons as the empty state below. */}
       <p className="mt-gb-lg text-gb-lg text-fg-tertiary">
-        Pick any open day below. Sessions must be booked at least an hour ahead.
+        {t('Pick any open day below. Sessions must be booked at least an hour ahead.')}
       </p>
 
       <div className="mt-gb-3xl overflow-hidden rounded-gb-xl border border-line bg-surface">
@@ -209,7 +212,7 @@ export function MentorBooking({
          */}
         {slots.length === 0 ? (
           <div className="flex flex-col items-center gap-gb-md px-gb-2xl py-gb-6xl text-center">
-            <p className="text-gb-md font-semibold text-fg">No open times right now</p>
+            <p className="text-gb-md font-semibold text-fg">{t('No open times right now')}</p>
             {/*
              * One text child, and no interpolated name. Two reasons, both real:
              * `{mentorName} hasn't…` renders as two adjacent text nodes, which
@@ -218,13 +221,13 @@ export function MentorBooking({
              * have stayed English forever.
              */}
             <p className="text-gb-sm text-fg-tertiary">
-              This advisor hasn&rsquo;t published availability for the next 90 days.
+              {t('This advisor hasn’t published availability for the next 90 days.')}
             </p>
           </div>
         ) : !mounted ? (
           /* Same height as the real picker so nothing jumps when it arrives. */
           <div className="flex h-[364px] items-center justify-center text-gb-sm text-fg-muted">
-            Loading availability…
+            {t('Loading availability…')}
           </div>
         ) : (
           <>
@@ -241,7 +244,7 @@ export function MentorBooking({
                           : { year: c.year, month: c.month - 1 },
                       )
                     }
-                    aria-label="Previous month"
+                    aria-label={t('Previous month')}
                     className="flex size-[32px] items-center justify-center rounded-gb-md text-fg-tertiary transition-colors hover:bg-surface-hover"
                   >
                     <span aria-hidden="true">‹</span>
@@ -258,7 +261,7 @@ export function MentorBooking({
                           : { year: c.year, month: c.month + 1 },
                       )
                     }
-                    aria-label="Next month"
+                    aria-label={t('Next month')}
                     className="flex size-[32px] items-center justify-center rounded-gb-md text-fg-tertiary transition-colors hover:bg-surface-hover"
                   >
                     <span aria-hidden="true">›</span>
@@ -272,7 +275,7 @@ export function MentorBooking({
                       aria-hidden="true"
                       className="flex h-[40px] items-center justify-center text-gb-sm font-medium text-fg-tertiary"
                     >
-                      {day}
+                      {t(day)}
                     </div>
                   ))}
 
@@ -288,9 +291,13 @@ export function MentorBooking({
                         type="button"
                         disabled={!available}
                         aria-pressed={isSelected}
-                        aria-label={`${formatLongDate(key)}${
-                          available ? '' : ' — no times available'
-                        }`}
+                        aria-label={
+                          available
+                            ? formatLongDate(key, locale)
+                            : t('{date} — no times available', {
+                                date: formatLongDate(key, locale),
+                              })
+                        }
                         onClick={() => {
                           setPickedDay(key);
                           setSelectedSlotId(null);
@@ -329,10 +336,12 @@ export function MentorBooking({
 
               {/* ── Available times, Figma 375:21775 ──────────────────── */}
               <div className="border-t border-line p-gb-2xl lg:w-[260px] lg:border-l lg:border-t-0">
-                <p className="text-center text-gb-sm font-semibold text-fg">Available times</p>
+                <p className="text-center text-gb-sm font-semibold text-fg">
+                  {t('Available times')}
+                </p>
                 {daySlots.length === 0 ? (
                   <p className="mt-gb-xl text-center text-gb-sm text-fg-muted">
-                    Select a day with a dot to see its times.
+                    {t('Select a day with a dot to see its times.')}
                   </p>
                 ) : (
                   <ul className="mt-gb-xl flex max-h-[208px] flex-col gap-gb-sm overflow-y-auto">
@@ -350,7 +359,7 @@ export function MentorBooking({
                                 : 'border-line bg-surface text-fg hover:bg-surface-hover'
                             }`}
                           >
-                            {formatTime(slot.starts_at)}
+                            {formatTime(slot.starts_at, locale)}
                           </button>
                         </li>
                       );
@@ -370,7 +379,7 @@ export function MentorBooking({
                  * invite input the calendar then has to reject.
                  */}
                 <p className="rounded-gb-md border border-line px-gb-lg py-gb-sm text-gb-sm text-fg">
-                  {selectedDay ? formatLongDate(selectedDay) : 'No date selected'}
+                  {selectedDay ? formatLongDate(selectedDay, locale) : t('No date selected')}
                 </p>
                 <Button
                   variant="secondary"
@@ -379,7 +388,7 @@ export function MentorBooking({
                     setCursor({ year: now.getFullYear(), month: now.getMonth() });
                   }}
                 >
-                  Today
+                  {t('Today')}
                 </Button>
               </div>
 
@@ -389,7 +398,7 @@ export function MentorBooking({
                   onClick={() => setSelectedSlotId(null)}
                   disabled={selectedSlotId === null}
                 >
-                  Cancel
+                  {t('Cancel')}
                 </Button>
                 <Button
                   variant="primary"
@@ -404,7 +413,7 @@ export function MentorBooking({
                     setIntakeOpen(true);
                   }}
                 >
-                  Book now
+                  {t('Book now')}
                 </Button>
               </div>
             </div>
@@ -452,6 +461,8 @@ function BookingIntake({
   amount: number;
   currency: Currency;
 }) {
+  const { lang, t } = useLanguage();
+  const locale = lang === 'vi' ? 'vi-VN' : 'en-GB';
   const [topic, setTopic] = useState('');
   const [questions, setQuestions] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -465,11 +476,11 @@ function BookingIntake({
 
     const finalTopic = topic.trim();
     if (finalTopic.length < 3) {
-      setError('Choose or type a topic so your advisor can prepare.');
+      setError(t('Choose or type a topic so your advisor can prepare.'));
       return;
     }
     if (questions.trim().length < 10) {
-      setError('Tell your advisor what you want to discuss — a sentence is enough.');
+      setError(t('Tell your advisor what you want to discuss — a sentence is enough.'));
       return;
     }
 
@@ -489,12 +500,14 @@ function BookingIntake({
         checkout_url?: string;
         error?: string;
       };
-      if (!res.ok) throw new Error(body.error ?? 'Could not start checkout.');
-      if (!body.checkout_url) throw new Error('The payment link was missing. Please try again.');
+      if (!res.ok) throw new Error(t(body.error ?? 'Could not start checkout.'));
+      if (!body.checkout_url) {
+        throw new Error(t('The payment link was missing. Please try again.'));
+      }
 
       window.location.href = body.checkout_url;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not start checkout.');
+      setError(err instanceof Error ? err.message : t('Could not start checkout.'));
       setSubmitting(false);
     }
   }
@@ -505,74 +518,78 @@ function BookingIntake({
     <Modal
       open={open}
       onClose={onClose}
-      label={`Book a session with ${mentorName}`}
+      label={t('Book a session with {name}', { name: mentorName })}
       className="max-w-gb-width-xl p-gb-4xl"
     >
       <h3 className="font-display text-gb-display-xs font-semibold text-fg">
-        Book {mentorName}
+        {t('Book {name}', { name: mentorName })}
       </h3>
       <p className="mt-gb-sm text-gb-sm text-fg-tertiary">
-        {start.toLocaleDateString(undefined, {
+        {start.toLocaleDateString(locale, {
           weekday: 'long',
           day: 'numeric',
           month: 'long',
         })}{' '}
-        · {formatTime(slot.starts_at)} · {durationMins} min
+        · {formatTime(slot.starts_at, locale)} · {t('{count} min', { count: durationMins })}
       </p>
 
       <div className="mt-gb-3xl flex flex-col gap-gb-2xl">
         <div>
-          <p className="text-gb-sm font-semibold text-fg">What do you want help with?</p>
+          <p className="text-gb-sm font-semibold text-fg">{t('What do you want help with?')}</p>
           <div className="mt-gb-lg flex flex-wrap gap-gb-md">
             {TOPIC_SUGGESTIONS.map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"
-                onClick={() => setTopic(suggestion)}
-                aria-pressed={topic === suggestion}
+                onClick={() => setTopic(t(suggestion))}
+                aria-pressed={topic === suggestion || topic === t(suggestion)}
                 className="rounded-gb-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
-                <Badge variant={topic === suggestion ? 'brand-chip' : 'info-chip'}>
-                  {suggestion}
+                <Badge
+                  variant={
+                    topic === suggestion || topic === t(suggestion) ? 'brand-chip' : 'info-chip'
+                  }
+                >
+                  {t(suggestion)}
                 </Badge>
               </button>
             ))}
           </div>
           <label htmlFor="help-topic" className="sr-only">
-            Session topic
+            {t('Session topic')}
           </label>
           <input
             id="help-topic"
             value={topic}
             onChange={(e) => setTopic(e.target.value)}
             maxLength={200}
-            placeholder="Or type your own topic"
+            placeholder={t('Or type your own topic')}
             className="mt-gb-lg w-full rounded-gb-md border border-line bg-surface px-gb-lg py-gb-md text-gb-sm text-fg placeholder:text-fg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
           />
         </div>
 
         <Textarea
           name="help-questions"
-          label="What would you like to ask?"
-          hint="The more context you give, the more your advisor can prepare."
+          label={t('What would you like to ask?')}
+          hint={t('The more context you give, the more your advisor can prepare.')}
           rows={5}
           maxLength={1500}
           value={questions}
           onChange={(e) => setQuestions(e.target.value)}
-          placeholder="e.g. I'm applying for Computer Science and would like advice on my personal statement."
+          placeholder={t("e.g. I'm applying for Computer Science and would like advice on my personal statement.")}
         />
 
         <div className="rounded-gb-md bg-surface-muted p-gb-xl text-gb-sm">
           <div className="flex items-center justify-between text-fg-tertiary">
-            <span>Session ({durationMins} min)</span>
+            <span>{t('Session ({count} min)', { count: durationMins })}</span>
             <span>{formatMoney(amount, currency)}</span>
           </div>
           <div className="mt-gb-sm flex items-center justify-between text-fg-tertiary">
-            <span>Service fee (10%)</span>
+            <span>{t('Service fee (10%)')}</span>
             <span>{formatMoney(fee, currency)}</span>
           </div>
           <div className="mt-gb-lg flex items-center justify-between border-t border-line pt-gb-lg text-gb-md font-semibold text-fg">
-            <span>Total</span>
+            <span>{t('Total')}</span>
             <span>{formatMoney(total, currency)}</span>
           </div>
         </div>
@@ -585,10 +602,12 @@ function BookingIntake({
 
         <div className="flex items-center justify-end gap-gb-lg">
           <Button variant="secondary" onClick={onClose} disabled={submitting}>
-            Back
+            {t('Back')}
           </Button>
           <Button variant="primary" onClick={submit} disabled={submitting}>
-            {submitting ? 'Redirecting…' : `Pay ${formatMoney(total, currency)}`}
+            {submitting
+              ? t('Redirecting…')
+              : t('Pay {amount}', { amount: formatMoney(total, currency) })}
           </Button>
         </div>
       </div>

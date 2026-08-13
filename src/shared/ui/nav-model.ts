@@ -42,5 +42,12 @@ export function isNavGroup(entry: NavEntry): entry is NavGroup {
  * excluded from the prefix test because every path starts with it.
  */
 export function isNavLinkActive(pathname: string, href: string): boolean {
-  return pathname === href || (href !== '/' && pathname.startsWith(`${href}/`));
+  // Navigation destinations may carry a query or fragment to express where a
+  // link should land within a page. Active state is still a pathname concern:
+  // /apply#portal is the /apply page, just as /news?tag=visa is /news.
+  const hrefPathname = href.split(/[?#]/, 1)[0] || '/';
+  return (
+    pathname === hrefPathname ||
+    (hrefPathname !== '/' && pathname.startsWith(`${hrefPathname}/`))
+  );
 }

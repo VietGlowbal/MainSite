@@ -72,14 +72,46 @@ function walk(dir) {
   return files;
 }
 
-function loadDictionary() {
-  const source = fs.readFileSync(dictionaryFile, 'utf8');
+function resolveLocalTypescriptModule(fromFile, specifier) {
+  if (!specifier.startsWith('.')) {
+    throw new Error(`The i18n dictionary checker only supports relative imports, received ${JSON.stringify(specifier)}`);
+  }
+  const requestedPath = path.resolve(path.dirname(fromFile), specifier);
+  const candidates = [
+    requestedPath,
+    `${requestedPath}.ts`,
+    `${requestedPath}.tsx`,
+    path.join(requestedPath, 'index.ts'),
+    path.join(requestedPath, 'index.tsx'),
+  ];
+  const resolved = candidates.find((candidate) => fs.existsSync(candidate) && fs.statSync(candidate).isFile());
+  if (!resolved) {
+    throw new Error(`Could not resolve ${JSON.stringify(specifier)} imported by ${path.relative(root, fromFile)}`);
+  }
+  return resolved;
+}
+
+function loadTypescriptModule(filePath, cache = new Map()) {
+  const resolvedPath = path.resolve(filePath);
+  const cached = cache.get(resolvedPath);
+  if (cached) return cached.exports;
+
+  const source = fs.readFileSync(resolvedPath, 'utf8');
   const output = ts.transpileModule(source, {
     compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.CommonJS },
   }).outputText;
   const module = { exports: {} };
-  vm.runInNewContext(output, { module, exports: module.exports });
-  return module.exports.translations ?? {};
+  cache.set(resolvedPath, module);
+  const localRequire = (specifier) => loadTypescriptModule(
+    resolveLocalTypescriptModule(resolvedPath, specifier),
+    cache,
+  );
+  vm.runInNewContext(output, { module, exports: module.exports, require: localRequire });
+  return module.exports;
+}
+
+function loadDictionary() {
+  return loadTypescriptModule(dictionaryFile).translations ?? {};
 }
 
 function staticText(node) {
