@@ -53,9 +53,9 @@ import { ApplySectionHeading } from './section-heading';
  *     goes on the pin, exactly as on the saved list.
  *
  *  3. THE CREST FALLS BACK TO INITIALS. The frame draws a university mark on
- *     every row. Only 4 of the 29 live rows carry a university_id to join a
- *     logo_url from, so the rest render `Avatar`'s initials fallback rather than
- *     a broken image box.
+ *     every row. Current application creation and the scheduled reconciler
+ *     attach `university_id`, but a transient resolution miss or failed image
+ *     request must still render `Avatar`'s initials rather than a broken box.
  *
  *  4. DEADLINE IS OPTIONAL. The frame prints "14 Jan 2026" on all three rows.
  *     Only 7 of 29 live rows have a deadline at all, so the block collapses to

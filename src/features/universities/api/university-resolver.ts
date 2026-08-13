@@ -62,9 +62,19 @@ export type ResolveInput = {
   localName?: string | null;
 };
 
+export type ResolveOptions = {
+  /**
+   * Whether a missing directory entry may be created. Defaults to true for
+   * the parse worker. Reconciliation previews and match-only runs pass false,
+   * which guarantees that candidate lookup is the only database operation.
+   */
+  createIfMissing?: boolean | undefined;
+};
+
 export type ResolveOutcome =
   | { status: 'matched'; universityId: number; match: UniversityMatch }
   | { status: 'created'; universityId: number; name: string }
+  | { status: 'unmatched'; name: string }
   | { status: 'skipped'; reason: 'no-name' | 'insert-failed' | 'lookup-failed' };
 
 /**
@@ -212,7 +222,10 @@ async function createUniversity(
  * failing is not a reason to fail a parse that otherwise succeeded. The
  * application keeps its `university_name` either way; the id is an upgrade.
  */
-export async function resolveUniversity(input: ResolveInput): Promise<ResolveOutcome> {
+export async function resolveUniversity(
+  input: ResolveInput,
+  options: ResolveOptions = {},
+): Promise<ResolveOutcome> {
   const name = input.name?.trim();
   if (!name || normaliseUniversityName(name).length === 0) {
     return { status: 'skipped', reason: 'no-name' };
@@ -229,6 +242,10 @@ export async function resolveUniversity(input: ResolveInput): Promise<ResolveOut
   });
 
   if (match) return { status: 'matched', universityId: match.id, match };
+
+  if (options.createIfMissing === false) {
+    return { status: 'unmatched', name };
+  }
 
   const created = await createUniversity(input, name);
   if (!created) return { status: 'skipped', reason: 'insert-failed' };

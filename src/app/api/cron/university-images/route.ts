@@ -3,14 +3,15 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { resolveUniversityImagery } from '@/lib/wiki-images';
 import { isAuthorizedCron } from '@/lib/cron-auth';
 import { revalidateUniversities } from '@/server/cache';
+import { persistUniversityLogo } from '@/server/university-images/logo-storage';
 
 /**
  * GET/POST /api/cron/university-images
  *
  * Scheduled job that fills in missing university imagery. Most rows ship with
  * empty `image_url` / `logo_url`; this resolves campus + logo URLs from
- * Wikipedia / Wikidata / Commons (via resolveUniversityImagery) and writes them
- * back, so the search page renders real images instead of gradient placeholders.
+ * Wikipedia / Wikidata / Commons (via resolveUniversityImagery), persists logos
+ * in Supabase Storage, and writes the durable URLs back to the directory.
  *
  * Designed to be safe to run on a schedule:
  *   • Only touches rows that are still missing an image or logo (idempotent).
@@ -80,7 +81,11 @@ async function handle(request: NextRequest) {
   for (const row of rows) {
     const resolved = imagery.get(wikiTitleFor(row.name));
     const nextImage = row.image_url ?? resolved?.campus ?? null;
-    const nextLogo = row.logo_url ?? resolved?.logo ?? null;
+    const nextLogo =
+      row.logo_url ??
+      (resolved?.logo
+        ? await persistUniversityLogo(admin, { id: row.id, name: row.name }, resolved.logo)
+        : null);
 
     // Skip the write if nothing new was found.
     if (nextImage === row.image_url && nextLogo === row.logo_url) {

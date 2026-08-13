@@ -1,3 +1,7 @@
+'use client';
+
+import { useState } from 'react';
+
 /**
  * Avatar — Untitled UI's avatar with the kit's "contrast border" treatment,
  * from Figma 203:12467 (the signed-in top nav).
@@ -43,6 +47,9 @@ export function Avatar({
   size?: AvatarSize | undefined;
   className?: string | undefined;
 }) {
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const showImage = Boolean(src) && src !== failedSrc;
+
   return (
     <div
       className={`relative ${SIZES[size]} shrink-0 rounded-gb-full bg-surface p-px shadow-gb-xs ring-[0.5px] ring-black/10${
@@ -50,7 +57,7 @@ export function Avatar({
       }`}
     >
       <div className="size-full overflow-hidden rounded-gb-full ring-[0.5px] ring-black/16">
-        {src ? (
+        {showImage ? (
           /* Plain <img> rather than next/image: avatar URLs come from OAuth
              providers and user uploads, and an unconfigured host makes
              next/image throw at runtime. At 32px there is nothing to optimise.
@@ -58,9 +65,10 @@ export function Avatar({
              reactive one was deleted with the console rebuild. */
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={src}
+            src={src ?? undefined}
             alt={name}
             loading="lazy"
+            onError={() => setFailedSrc(src ?? null)}
             className="size-full rounded-gb-full border border-white object-cover"
           />
         ) : (
