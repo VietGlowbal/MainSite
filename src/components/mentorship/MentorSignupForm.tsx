@@ -376,7 +376,7 @@ export function MentorSignupForm({
     : ['identity', 'documents', 'profile', 'pricing', 'availability', 'review'];
   const stepLabels: Record<StepKey, string> = {
     identity: t('Identity'),
-    documents: t('Documents'),
+    documents: t('Verification documents'),
     profile: t('Profile'),
     pricing: t('Pricing'),
     availability: t('Availability'),
@@ -1395,7 +1395,7 @@ function ReviewPanel(props: {
       <Row label={t('University')} value={props.university} />
       <Row label={t('Programme')} value={`${t(degreeLabel)} · ${props.subject}`} />
       <Row
-        label={t('Documents')}
+        label={t('Verification documents')}
         value={props.quickSignup
           ? t('Fast-track — not required')
           : t('{count} / 4 uploaded', { count: props.documentsCount })}

@@ -65,7 +65,6 @@ const ADVISOR_APPLICATION_KEYS = [
   'Admin verification',
   'Profile published',
   'Identity',
-  'Documents',
   'Pricing',
   'Availability',
   'Advisor application progress',
@@ -110,6 +109,11 @@ describe('advisor Vietnamese translation coverage', () => {
       expect(translations[key], key).toBeTruthy();
       expect(translations[key], key).not.toBe(key);
     }
+  });
+
+  it('keeps advisor verification documents separate from protected profile vocabulary', () => {
+    expect(translations.Documents).toBe('Lưu tài liệu');
+    expect(translations['Verification documents']).toBe('Tài liệu xác minh');
   });
 
   it('preserves interpolation variables in translated advisor copy', () => {

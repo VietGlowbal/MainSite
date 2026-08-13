@@ -1,0 +1,4 @@
+/.githooks/* text eol=lf
+/.github/workflows/*.yml text eol=lf
+/.node-version text eol=lf
+/.nvmrc text eol=lf

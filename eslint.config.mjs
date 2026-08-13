@@ -109,6 +109,13 @@ const eslintConfig = defineConfig([
     '.next/**',
     'out/**',
     'build/**',
+    'coverage/**',
+    'playwright-report/**',
+    'test-results/**',
+    'blob-report/**',
+    '.codex-tmp/**',
+    'tmp/**',
+    'tmp-*/**',
     '.gitnexus/**',
     'next-env.d.ts',
     // The GEO pipeline generates and commits code from here on a daily cron.

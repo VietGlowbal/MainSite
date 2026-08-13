@@ -643,7 +643,9 @@ export const translations: Record<string, string> = {
   'Work experience': 'Kinh nghiệm làm việc',
   'Internships, jobs and volunteering': 'Thực tập, công việc và tình nguyện',
   'Add experience': 'Thêm kinh nghiệm',
-  Documents: 'Tài liệu',
+  // Approved profile-navigation label. Advisor verification uses the more
+  // specific "Verification documents" key below instead of overriding this.
+  Documents: 'Lưu tài liệu',
   'Upload important documents and certificates': 'Tải lên tài liệu và chứng chỉ quan trọng',
   'Upload documents': 'Tải lên tài liệu',
   'English proficiency': 'Trình độ tiếng Anh',

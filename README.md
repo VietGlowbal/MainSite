@@ -58,6 +58,20 @@ npm install
 npm run dev
 ```
 
+## Pull-request verification
+
+Use Node 20.20.2 (declared in `.node-version` and `.nvmrc`). `npm install`
+configures a repository-local pre-push hook that runs the same gate as GitHub
+Actions:
+
+```bash
+npm run verify:pr
+```
+
+The gate runs both TypeScript configurations, ESLint, the coverage suite, and a
+production build with placeholder Supabase credentials. A failed gate blocks
+the push so locally detectable failures do not reach a pull request.
+
 ## Running the Course Parse Worker
 
 The course parse worker is a background job processor that handles AI-powered course page parsing for applications added through the Apply page.
