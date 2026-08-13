@@ -19,7 +19,13 @@ const privateSegments = new Set(['profile', 'dashboard', 'apply', 'onboarding', 
 // Keep the object-literal scan intentionally narrow: these property names are
 // user-facing copy in route metadata/nav configuration, while broad scanning
 // would pull in user-authored records and university/program data.
-const objectUiProperties = new Set(['label', 'badge', 'title', 'heading', 'cta', 'action', 'button']);
+const objectUiProperties = new Set([
+  'action', 'badge', 'blurb', 'body', 'button', 'caption', 'cta', 'definition',
+  'description', 'detail', 'emptyBody', 'emptyTitle', 'example', 'heading', 'hint',
+  'label', 'message', 'openText', 'closedText', 'section', 'subtitle', 'title',
+]);
+const dynamicTranslationCalls = [];
+const dynamicCatalogIdentifiers = new Set();
 // Values that are intentionally not dictionary entries: proper nouns, brand
 // marks, user-entered examples, and fragments whose value is supplied by a
 // number/data field at render time.
@@ -36,6 +42,10 @@ const protectedStatic = new Set([
   'University of Birmingham', 'International Excellence Scholarship', 'University of Birmingham · UK', 'James',
   'For example: She taught me Economics for two years and supervised my research project.',
   '/c/&lt;code&gt;', '&ldquo;', '&rdquo;',
+  'Provide a status, a deadline, a content value, or a combination',
+  'A missing dimension must use a null score.',
+  'An assessed or limited dimension requires a score.',
+  'A*AA',
 ]);
 
 function routeFromPageFile(filePath) {
@@ -154,7 +164,22 @@ function collectFile(filePath) {
   function visit(node) {
     if (ts.isCallExpression(node)) {
       const callee = node.expression;
-      if (ts.isIdentifier(callee) && callee.text === 't') add(node.arguments[0], staticText(node.arguments[0]), 't');
+      if (ts.isIdentifier(callee) && callee.text === 't') {
+        const argument = node.arguments[0];
+        const value = staticText(argument);
+        add(argument, value, 't');
+        if (argument && value === null) {
+          for (const match of argument.getText(sourceFile).matchAll(/\b[A-Z][A-Z0-9_]{2,}\b/g)) {
+            dynamicCatalogIdentifiers.add(match[0]);
+          }
+          dynamicTranslationCalls.push({
+            route,
+            file: path.relative(root, filePath).replaceAll('\\', '/'),
+            line: sourceFile.getLineAndCharacterOfPosition(argument.getStart(sourceFile)).line + 1,
+            expression: argument.getText(sourceFile),
+          });
+        }
+      }
     }
     if (ts.isJsxSelfClosingElement(node) || ts.isJsxElement(node)) {
       const opening = ts.isJsxElement(node) ? node.openingElement : node;
@@ -186,6 +211,50 @@ function collectFile(filePath) {
   return occurrences;
 }
 
+function collectDynamicCatalogFile(filePath) {
+  const source = fs.readFileSync(filePath, 'utf8');
+  const sourceFile = ts.createSourceFile(filePath, source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const occurrences = [];
+  const route = routeFromPageFile(filePath);
+  const technicalProperties = new Set(['art', 'bg', 'color', 'glyph', 'icon', 'id', 'key', 'kind', 'tone', 'type', 'value']);
+
+  function collectStrings(node, catalog) {
+    if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
+      && !(ts.isPropertyAssignment(node.parent) && node.parent.name === node)) {
+      const parentProperty = ts.isPropertyAssignment(node.parent)
+        && (ts.isIdentifier(node.parent.name) || ts.isStringLiteral(node.parent.name))
+        ? node.parent.name.text
+        : null;
+      if (parentProperty && technicalProperties.has(parentProperty)) return;
+      const key = node.text.replace(/\s+/g, ' ').trim();
+      if (key && /[\p{L}]/u.test(key) && key.length <= 500) {
+        occurrences.push({
+          key,
+          route,
+          file: path.relative(root, filePath).replaceAll('\\', '/'),
+          kind: `dynamicCatalog:${catalog}`,
+          noAuto: false,
+          line: sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile)).line + 1,
+        });
+      }
+    }
+    ts.forEachChild(node, (child) => collectStrings(child, catalog));
+  }
+
+  function visit(node) {
+    if (ts.isVariableDeclaration(node)
+      && ts.isIdentifier(node.name)
+      && node.initializer
+      && dynamicCatalogIdentifiers.has(node.name.text)) {
+      collectStrings(node.initializer, node.name.text);
+    }
+    ts.forEachChild(node, visit);
+  }
+
+  visit(sourceFile);
+  return occurrences;
+}
+
 function isExcludedOccurrence(item) {
   if (isExcluded(item.route)) return true;
   const relative = item.file.replaceAll('\\', '/');
@@ -195,7 +264,7 @@ function isExcludedOccurrence(item) {
 }
 
 function isProtectedStatic(key) {
-  return protectedStatic.has(key) || /@|https?:|^\W*\d|%|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|^rgb\(|^[A-Z]{2}\s\+\d+$/u.test(key);
+  return protectedStatic.has(key) || /@|https?:|^\W*\d|%|\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\b|^rgb\(|^#[0-9a-f]{3,8}$|^[A-Z]{2}\s\+\d+$/iu.test(key);
 }
 
 function hasVietnamese(value) {
@@ -242,6 +311,10 @@ function main() {
   const dictionary = loadDictionary();
   const files = sourceRoots.flatMap((sourceRoot) => walk(path.join(root, sourceRoot)));
   const occurrences = files.flatMap(collectFile);
+  const dynamicCatalogOccurrences = dedupeByRouteAndKey(files.flatMap(collectDynamicCatalogFile));
+  const dynamicCatalogMissing = dynamicCatalogOccurrences.filter(({ key }) =>
+    dictionary[key] === undefined && !hasVietnamese(key) && !isProtectedStatic(key),
+  );
   const scopedOccurrences = dedupeByRouteAndKey(occurrences.filter((item) => !isExcludedOccurrence(item)));
   const dictionaryBacked = scopedOccurrences.filter(({ key }) => dictionary[key] !== undefined);
   const candidates = scopedOccurrences.filter(({ key }) => dictionary[key] === undefined && !hasVietnamese(key));
@@ -283,12 +356,16 @@ function main() {
       actionableViSourceCount: noAutoActionableViSource.length,
     },
     parity,
+    auditedObjectProperties: [...objectUiProperties].sort(),
+    dynamicTranslationCalls,
+    dynamicCatalogMissing,
   };
   const outputIndex = process.argv.indexOf('--output');
   if (outputIndex >= 0 && process.argv[outputIndex + 1]) fs.writeFileSync(path.resolve(process.argv[outputIndex + 1]), `${JSON.stringify(report, null, 2)}\n`);
   console.log(`i18n routes: ${routes.length}; static occurrences: ${scopedOccurrences.length}; dictionary-backed: ${dictionaryBacked.length}; source candidates: ${candidates.length}; protected: ${protectedItems.length} (exact allowlist ${protectedStatic.size}, narrow patterns ${regexProtectedCount}); missing static keys: ${missing.length}; placeholder mismatches: ${parity.length}`);
   console.log(`VI-source literals: ${viSource.length}; protected VI-source: ${viSourceProtected.length}; actionable VI-only source: ${actionableViSource.length}`);
   console.log(`no-auto coverage: ${noAuto.length} occurrences; dictionary-backed ${noAutoDictionaryBacked.length}; missing ${noAutoMissing.length}; VI-source ${noAutoViSource.length}; actionable VI-only ${noAutoActionableViSource.length}`);
+  console.log(`dynamic t() calls: ${dynamicTranslationCalls.length}; dynamic catalog missing: ${dynamicCatalogMissing.length}`);
   if (process.argv.includes('--print-protected')) {
     for (const item of protectedItems) console.log(`PROTECTED ${item.route} ${item.file}:${item.line} ${JSON.stringify(item.key)}`);
   }
@@ -299,7 +376,8 @@ function main() {
   for (const item of missing.slice(offset, offset + limit)) console.log(`MISSING ${item.route} ${item.file}:${item.line} ${JSON.stringify(item.key)}`);
   for (const item of actionableViSource.slice(offset, offset + (process.argv.includes('--all') ? actionableViSource.length : limit))) console.log(`VI_SOURCE ${item.route} ${item.file}:${item.line} ${JSON.stringify(item.key)}${item.noAuto ? ' [data-no-auto-translate]' : ''}`);
   for (const issue of parity) console.log(`PLACEHOLDER ${JSON.stringify(issue.key)} expected=${issue.expected} actual=${issue.actual}`);
-  if (missing.length || actionableViSource.length || parity.length) process.exitCode = 1;
+  for (const item of dynamicCatalogMissing) console.log(`DYNAMIC_CATALOG ${item.file}:${item.line} ${JSON.stringify(item.key)}`);
+  if (missing.length || actionableViSource.length || parity.length || dynamicCatalogMissing.length) process.exitCode = 1;
 }
 
 main();

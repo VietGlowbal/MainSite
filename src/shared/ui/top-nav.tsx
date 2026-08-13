@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useT } from '@/lib/i18n';
 import { Avatar } from './avatar';
 import { Button } from './button';
 import { LanguageSwitcher } from './language-switcher';
@@ -341,6 +342,7 @@ export function TopNav({
   tone = 'dark',
   utility,
 }: Props) {
+  const t = useT();
   const pathname = usePathname();
   // Destructured rather than held as one object: react-hooks/refs treats a
   // value carrying a ref as a ref itself, and reading `.top` off it during
@@ -413,7 +415,7 @@ export function TopNav({
            * on that component before changing either.
            */}
           <nav
-            aria-label="Primary"
+            aria-label={t('Primary')}
             className="flex min-w-0 items-center gap-gb-md overflow-hidden 2xl:gap-gb-xl"
           >
             {items.map((item) =>

@@ -8,7 +8,6 @@ import {
   destinationLabel,
   formatBudgetRange,
   fundingSourceLabel,
-  intakeLabel,
   isCompleteBudget,
   reflectionStep,
   subjectById,
@@ -17,7 +16,7 @@ import {
   type ReflectionValues,
 } from '@/features/apply/domain';
 import type { EvidenceDocument } from '@/features/apply/hooks';
-import { ReflectionShell } from '@/features/apply/ui';
+import { localizeIntakeCopy, ReflectionShell } from '@/features/apply/ui';
 import { useT } from '@/lib/i18n';
 import { Button, Checkbox, Modal, Panel, PanelHeader } from '@/shared/ui';
 
@@ -236,7 +235,7 @@ export function ReviewConfirmView({
           />
           <Field
             label={t('Preferred intake')}
-            value={reflection.intake ? intakeLabel(reflection.intake).label : undefined}
+            value={reflection.intake ? localizeIntakeCopy(reflection.intake, t).label : undefined}
           />
         </ReviewSection>
 

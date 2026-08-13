@@ -18,6 +18,7 @@ export { BudgetQuestion } from './budget-question';
 export { NationalityPicker } from './nationality-picker';
 export { EnglishQuestion, GpaQuestion } from './score-input';
 export { IntakePicker } from './intake-picker';
+export { localizeIntakeCopy, localizeIntakeOption } from './intake-copy';
 export { SearchableMultiSelectGrid } from './searchable-grid';
 export type { GridItem } from './searchable-grid';
 export { PersonalReportView } from './personal-report-view';

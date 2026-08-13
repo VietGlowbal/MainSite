@@ -7,6 +7,7 @@ import {
   EDUCATION_LEVEL_META,
   FUNDING_SOURCE_CATALOG,
   REFLECTION_STEPS,
+  generateIntakeOptions,
 } from '@/features/apply/domain';
 import { LanguageProvider, useLanguage } from '@/lib/i18n';
 import { translations } from '@/lib/i18n-dictionary';
@@ -139,6 +140,7 @@ describe('Reflection field localization', () => {
       expect(screen.getByText('Trình độ học vấn cao nhất của bạn là gì?')).toBeInTheDocument();
     });
     fireEvent.click(screen.getByRole('radio', { name: 'Hiển thị tất cả câu hỏi' }));
+    fireEvent.click(screen.getByRole('combobox', { name: 'Bạn muốn bắt đầu khi nào?' }));
 
     const staticEnglishCopy = [
       ...REFLECTION_STEPS.map(({ en }) => en),
@@ -153,6 +155,10 @@ describe('Reflection field localization', () => {
     expect(staticEnglishCopy.filter((source) => translations[source] === undefined)).toEqual([]);
     for (const source of staticEnglishCopy) {
       expect(screen.queryByText(source, { exact: true }), source).not.toBeInTheDocument();
+    }
+    for (const { label, detail } of generateIntakeOptions()) {
+      expect(screen.queryByText(label, { exact: true }), label).not.toBeInTheDocument();
+      expect(screen.queryByText(detail, { exact: true }), detail).not.toBeInTheDocument();
     }
   });
 });

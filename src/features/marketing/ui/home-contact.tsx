@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import { useActionState } from 'react';
 import { useFormStatus } from 'react-dom';
+import { useT } from '@/lib/i18n';
 import { Button, ICONS, Input, KitIcon, Textarea, controlClasses } from '@/shared/ui';
 
 /**
@@ -42,9 +43,10 @@ const DIAL_CODES = [
 
 function SubmitButton() {
   const { pending } = useFormStatus();
+  const t = useT();
   return (
     <Button type="submit" size="xl" disabled={pending} className="w-full">
-      {pending ? 'Sending…' : 'Request guidance'}
+      {t(pending ? 'Sending…' : 'Request guidance')}
     </Button>
   );
 }
@@ -55,6 +57,7 @@ export function HomeContact({
   action: (state: ContactState, formData: FormData) => Promise<ContactState>;
 }) {
   const [state, formAction] = useActionState(action, INITIAL);
+  const t = useT();
 
   return (
     <section id="contact" className="scroll-mt-gb-9xl bg-surface py-gb-5xl">
@@ -101,12 +104,12 @@ export function HomeContact({
           </p>
 
           <form action={formAction} className="mt-gb-4xl flex flex-col gap-gb-3xl">
-            <Input name="firstName" label="First name" placeholder="First name" required maxLength={80} />
+            <Input name="firstName" label={t('First name')} placeholder={t('First name')} required maxLength={80} />
 
             <Input
               name="email"
               type="email"
-              label="Email address"
+              label={t('Email address')}
               placeholder="you@company.com"
               required
               maxLength={190}
@@ -127,7 +130,7 @@ export function HomeContact({
                   <select
                     name="dialCode"
                     defaultValue="VN"
-                    aria-label="Country dialling code"
+                    aria-label={t('Country dialling code')}
                     className={controlClasses(false, 'appearance-none pr-gb-5xl')}
                   >
                     {DIAL_CODES.map((c) => (
@@ -153,8 +156,8 @@ export function HomeContact({
 
             <Textarea
               name="notes"
-              label="What and where would you like to study?"
-              placeholder="Leave us a message..."
+              label={t('What and where would you like to study?')}
+              placeholder={t('Leave us a message...')}
               required
               rows={4}
               maxLength={500}
@@ -188,7 +191,7 @@ export function HomeContact({
                   : 'bg-surface-error text-fg-error'
               }`}
             >
-              {state.message}
+              {t(state.message)}
             </p>
           ) : null}
         </div>

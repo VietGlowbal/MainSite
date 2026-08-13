@@ -6,12 +6,12 @@ import {
   destinationLabel,
   formatBudgetRange,
   fundingSourceLabel,
-  intakeLabel,
   isCompleteBudget,
   subjectById,
   type FundingSourceId,
   type ReflectionValues,
 } from '@/features/apply/domain';
+import { localizeIntakeCopy } from '@/features/apply/ui';
 import { useT } from '@/lib/i18n';
 import { Button, Panel } from '@/shared/ui';
 
@@ -145,7 +145,7 @@ export function ConfirmedReflectionView({
         <Field label={t('Study level')} value={values.intendedLevel ? t(values.intendedLevel) : undefined} />
         <Field
           label={t('Preferred intake')}
-          value={values.intake ? intakeLabel(values.intake).label : undefined}
+          value={values.intake ? localizeIntakeCopy(values.intake, t).label : undefined}
         />
       </Section>
 
