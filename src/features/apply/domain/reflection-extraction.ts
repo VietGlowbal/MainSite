@@ -4,6 +4,7 @@ import {
   activitySchema,
   type AchievementValues,
   type ActivityValues,
+  type EvidenceSource,
 } from './reflection';
 
 const sourceRefSchema = z.object({
@@ -53,7 +54,7 @@ export const evidenceExtractionResponseSchema = z.object({
 
 export type EvidenceExtractionResponse = z.infer<typeof evidenceExtractionResponseSchema>;
 
-function searchable(text: string) {
+export function searchable(text: string) {
   return text.normalize('NFKC').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
 }
 
@@ -116,27 +117,150 @@ export function validateEvidenceExtraction(raw: unknown, pages: EvidenceSourcePa
   return { candidates, rejectedCount };
 }
 
+/** A candidate whose title matches a record already on the profile. */
+export type EvidenceDuplicate = {
+  candidate: EvidenceCandidate;
+  existingId: string;
+  existingTitle: string;
+};
+
+/** `sourceRefs` (validated against page text) → the persisted `sources` shape. */
+function sourcesFromCandidate(
+  candidate: EvidenceCandidate,
+  documentNames: Record<string, string>,
+): EvidenceSource[] {
+  const seen = new Set<string>();
+  const sources: EvidenceSource[] = [];
+  for (const ref of candidate.sourceRefs) {
+    const key = `${ref.documentId}:${ref.page}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    sources.push({
+      documentId: ref.documentId,
+      fileName: documentNames[ref.documentId] ?? ref.documentId,
+      page: ref.page,
+      quote: ref.quote,
+    });
+  }
+  return sources.slice(0, 6);
+}
+
+function fromCandidate<T extends AchievementValues | ActivityValues>(
+  candidate: EvidenceCandidate,
+  documentNames: Record<string, string>,
+): T {
+  return {
+    ...candidate.data,
+    id: `extracted-${candidate.candidateId}`,
+    reviewStatus: 'needs_review',
+    sourceType: 'document',
+    sources: sourcesFromCandidate(candidate, documentNames),
+  } as T;
+}
+
+/**
+ * Apply extracted candidates onto the current achievements/activities.
+ *
+ * A candidate whose title already matches an existing record is NOT
+ * auto-applied — it comes back in `duplicates` instead, for the caller to
+ * offer "Merge" (see `mergeDuplicate`) or "Keep both" (call `fromCandidate`'s
+ * public sibling, `evidenceCandidateToItem`, and push it directly). Silently
+ * dropping it, the previous behaviour, is indistinguishable from the
+ * extraction having missed it.
+ *
+ * `documentNames` maps a document id to its file name, so a card can say
+ * "Extracted from James_Lapslie_CV.pdf" rather than a bare id — pass
+ * `EvidenceExtractionResponse.documents` reduced to `{ [documentId]: fileName }`.
+ */
 export function applyEvidenceCandidates(
   achievements: AchievementValues[],
   activities: ActivityValues[],
   candidates: EvidenceCandidate[],
-): { achievements: AchievementValues[]; activities: ActivityValues[] } {
+  documentNames: Record<string, string> = {},
+): {
+  achievements: AchievementValues[];
+  activities: ActivityValues[];
+  duplicates: EvidenceDuplicate[];
+} {
   const nextAchievements = achievements.filter(({ title }) => title.trim().length > 0);
   const nextActivities = activities.filter(({ title }) => title.trim().length > 0);
-  const achievementTitles = new Set(nextAchievements.map(({ title }) => searchable(title)));
-  const activityTitles = new Set(nextActivities.map(({ title }) => searchable(title)));
+  const achievementByTitle = new Map(
+    nextAchievements.map((item) => [searchable(item.title), item] as const),
+  );
+  const activityByTitle = new Map(
+    nextActivities.map((item) => [searchable(item.title), item] as const),
+  );
+  const duplicates: EvidenceDuplicate[] = [];
 
   for (const candidate of candidates) {
+    const key = searchable(candidate.data.title);
+    const byTitle = candidate.kind === 'achievement' ? achievementByTitle : activityByTitle;
+    const existing = byTitle.get(key);
+
+    if (existing) {
+      duplicates.push({
+        candidate,
+        existingId: existing.id ?? key,
+        existingTitle: existing.title,
+      });
+      continue;
+    }
+
     if (candidate.kind === 'achievement') {
-      if (achievementTitles.has(searchable(candidate.data.title))) continue;
-      achievementTitles.add(searchable(candidate.data.title));
-      nextAchievements.push({ ...candidate.data, id: `extracted-${candidate.candidateId}` });
+      const item = fromCandidate<AchievementValues>(candidate, documentNames);
+      achievementByTitle.set(key, item);
+      nextAchievements.push(item);
     } else {
-      if (activityTitles.has(searchable(candidate.data.title))) continue;
-      activityTitles.add(searchable(candidate.data.title));
-      nextActivities.push({ ...candidate.data, id: `extracted-${candidate.candidateId}` });
+      const item = fromCandidate<ActivityValues>(candidate, documentNames);
+      activityByTitle.set(key, item);
+      nextActivities.push(item);
     }
   }
 
-  return { achievements: nextAchievements, activities: nextActivities };
+  return { achievements: nextAchievements, activities: nextActivities, duplicates };
+}
+
+/** The "Keep both" action on a flagged duplicate: apply it regardless. */
+export function evidenceCandidateToItem<T extends AchievementValues | ActivityValues>(
+  candidate: EvidenceCandidate,
+  documentNames: Record<string, string> = {},
+): T {
+  return fromCandidate<T>(candidate, documentNames);
+}
+
+/**
+ * "Merge" for a flagged duplicate.
+ *
+ * The existing record keeps its id — so any edit already made to it before
+ * the merge survives — and gains whichever fields it was missing from the new
+ * extraction. Source lists union rather than replace, so "View source" can
+ * point at either document afterwards; that is the whole point of flagging a
+ * duplicate rather than silently keeping the first one seen.
+ */
+export function mergeDuplicate<T extends AchievementValues | ActivityValues>(
+  existing: T,
+  incoming: T,
+): T {
+  const merged: Record<string, unknown> = { ...existing };
+
+  for (const [field, value] of Object.entries(incoming)) {
+    if (field === 'id' || field === 'sources' || field === 'sourceType' || field === 'reviewStatus') {
+      continue;
+    }
+    const current = merged[field];
+    if ((current === undefined || current === '') && value !== undefined && value !== '') {
+      merged[field] = value;
+    }
+  }
+
+  const existingSources = existing.sources ?? [];
+  const incomingSources = incoming.sources ?? [];
+  const seenSources = new Set(existingSources.map((s) => `${s.documentId}:${s.page ?? ''}`));
+  merged['sources'] = [
+    ...existingSources,
+    ...incomingSources.filter((s) => !seenSources.has(`${s.documentId}:${s.page ?? ''}`)),
+  ].slice(0, 6);
+  merged['sourceType'] = 'document';
+
+  return merged as T;
 }

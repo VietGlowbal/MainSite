@@ -51,6 +51,19 @@ function migrationMissing(error: { code?: string; message?: string } | null | un
  */
 const LATER_COLUMNS = ['study_motivation', 'subject_motivations', 'target_intake'] as const;
 
+/**
+ * `supabase-reflection-review-status.sql`'s three columns, shared by both
+ * `student_achievements` and `student_activities` — same names, same retry.
+ */
+const REVIEW_COLUMNS = ['review_status', 'source_type', 'sources'] as const;
+
+/** A shallow copy of `row` without the given keys. */
+function omit<T extends Record<string, unknown>>(row: T, keys: readonly string[]): Partial<T> {
+  const next: Partial<T> = { ...row };
+  for (const key of keys) delete next[key as keyof T];
+  return next;
+}
+
 const bodySchema = z.object({
   about: aboutPayload.optional(),
   achievements: z.array(achievementSchema).max(20).optional(),
@@ -146,20 +159,33 @@ export async function PATCH(request: Request) {
   if (achievements) {
     await supabase.from('student_achievements').delete().eq('user_id', user.id);
     if (achievements.length > 0) {
-      const { error } = await supabase.from('student_achievements').insert(
-        achievements.map((item) => ({
-          user_id: user.id,
-          category: item.category,
-          title: item.title,
-          competition: item.competition ?? null,
-          organisation: item.organisation ?? null,
-          level: item.level ?? null,
-          year: item.year ?? null,
-          detail: item.detail ?? null,
-          evidence_key: item.evidenceKey ?? null,
-        })),
-      );
-      if (error) {
+      const rows = achievements.map((item) => ({
+        user_id: user.id,
+        category: item.category,
+        title: item.title,
+        competition: item.competition ?? null,
+        organisation: item.organisation ?? null,
+        level: item.level ?? null,
+        year: item.year ?? null,
+        detail: item.detail ?? null,
+        evidence_key: item.evidenceKey ?? null,
+        review_status: item.reviewStatus ?? null,
+        source_type: item.sourceType ?? null,
+        sources: item.sources ?? null,
+      }));
+      const { error } = await supabase.from('student_achievements').insert(rows);
+
+      if (error && migrationMissing(error)) {
+        console.warn(
+          `[reflection] ${REVIEW_COLUMNS.join('/')} missing on student_achievements — run supabase-reflection-review-status.sql. Saving without review status.`,
+        );
+        const stripped = rows.map((row) => omit(row, REVIEW_COLUMNS));
+        const retry = await supabase.from('student_achievements').insert(stripped);
+        if (retry.error) {
+          console.error('[reflection] achievements insert failed:', retry.error);
+          return NextResponse.json({ error: 'Could not save your achievements' }, { status: 500 });
+        }
+      } else if (error) {
         console.error('[reflection] achievements insert failed:', error);
         return NextResponse.json({ error: 'Could not save your achievements' }, { status: 500 });
       }
@@ -169,18 +195,31 @@ export async function PATCH(request: Request) {
   if (activities) {
     await supabase.from('student_activities').delete().eq('user_id', user.id);
     if (activities.length > 0) {
-      const { error } = await supabase.from('student_activities').insert(
-        activities.map((item) => ({
-          user_id: user.id,
-          category: item.category,
-          title: item.title,
-          organisation: item.organisation ?? null,
-          level: item.level ?? null,
-          period: item.period ?? null,
-          description: item.description ?? null,
-        })),
-      );
-      if (error) {
+      const rows = activities.map((item) => ({
+        user_id: user.id,
+        category: item.category,
+        title: item.title,
+        organisation: item.organisation ?? null,
+        level: item.level ?? null,
+        period: item.period ?? null,
+        description: item.description ?? null,
+        review_status: item.reviewStatus ?? null,
+        source_type: item.sourceType ?? null,
+        sources: item.sources ?? null,
+      }));
+      const { error } = await supabase.from('student_activities').insert(rows);
+
+      if (error && migrationMissing(error)) {
+        console.warn(
+          `[reflection] ${REVIEW_COLUMNS.join('/')} missing on student_activities — run supabase-reflection-review-status.sql. Saving without review status.`,
+        );
+        const stripped = rows.map((row) => omit(row, REVIEW_COLUMNS));
+        const retry = await supabase.from('student_activities').insert(stripped);
+        if (retry.error) {
+          console.error('[reflection] activities insert failed:', retry.error);
+          return NextResponse.json({ error: 'Could not save your activities' }, { status: 500 });
+        }
+      } else if (error) {
         console.error('[reflection] activities insert failed:', error);
         return NextResponse.json({ error: 'Could not save your activities' }, { status: 500 });
       }

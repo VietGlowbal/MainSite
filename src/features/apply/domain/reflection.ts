@@ -465,6 +465,47 @@ export const aspirationsSchema = z.object({
   intake: intakeChoiceSchema.optional(),
 });
 
+/**
+ * Where an achievement or activity came from — an uploaded document, or typed
+ * in directly.
+ *
+ * Kept deliberately thinner than `sourceRefSchema` in `reflection-extraction.ts`
+ * (which also validates AI output against the source page text at extraction
+ * time): this is what survives INTO the saved record, for the card's "View
+ * source" action and its "Extracted from CV" label. `page`/`quote` are optional
+ * because a manually-added item, or one merged from a duplicate, may carry a
+ * document reference with no specific page.
+ */
+export const evidenceSourceSchema = z.object({
+  documentId: z.string().min(1).max(100),
+  fileName: z.string().min(1).max(300),
+  page: z.number().int().positive().optional(),
+  quote: optionalText(500),
+});
+
+export type EvidenceSource = z.infer<typeof evidenceSourceSchema>;
+
+/**
+ * `needs_review` is the state every AI-extracted card starts in — never
+ * "trusted by default". A manually-added card is `reviewed` from the moment
+ * it is created: the student typed it, so there is nothing to review.
+ */
+export const REVIEW_STATUSES = ['needs_review', 'reviewed'] as const;
+export type ReviewStatus = (typeof REVIEW_STATUSES)[number];
+
+const reviewFields = {
+  /**
+   * Absent means `reviewed`, not `needs_review`: every achievement/activity
+   * that existed before this column shipped was a student's own typed entry,
+   * reviewed by definition, and defaulting the other way would put a "needs
+   * review" badge on years of records nobody ever flagged.
+   */
+  reviewStatus: z.enum(REVIEW_STATUSES).optional(),
+  sourceType: z.enum(['document', 'manual']).optional(),
+  /** Which document(s) this was extracted from, or carried through a merge. */
+  sources: z.array(evidenceSourceSchema).max(6).optional(),
+};
+
 export const achievementSchema = z.object({
   id: z.string().optional(),
   category: z.enum(['academic_award', 'competition', 'research', 'certification', 'other']),
@@ -485,6 +526,7 @@ export const achievementSchema = z.object({
     .optional(),
   detail: optionalText(2000),
   evidenceKey: optionalText(500),
+  ...reviewFields,
 });
 
 export const activitySchema = z.object({
@@ -502,6 +544,7 @@ export const activitySchema = z.object({
   level: optionalText(80),
   period: optionalText(80),
   description: optionalText(2000),
+  ...reviewFields,
 });
 
 export const evidenceSchema = z.object({
