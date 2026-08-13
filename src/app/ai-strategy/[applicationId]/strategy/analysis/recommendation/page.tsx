@@ -36,6 +36,7 @@ export default async function StrategyRecommendationPage({
   if (
     step === 'personal-summary' ||
     step === 'achievements' ||
+    step === 'confirm' ||
     step === 'analysis' ||
     step === 'intro'
   ) {

@@ -4,6 +4,7 @@ import { applicationSubNav } from '@/shared/lib/app-routes';
 import { Breadcrumbs } from '@/shared/ui/breadcrumbs';
 import { Container } from '@/shared/ui/container';
 import { createClient } from '@/lib/supabase/server';
+import { ApplicationNavBackground } from './application-nav-background';
 import { ApplicationSubNav } from './application-sub-nav';
 
 /**
@@ -47,6 +48,21 @@ import { ApplicationSubNav } from './application-sub-nav';
  * the cost of the bar being correct rather than optimistic; the alternative is
  * a bar that lies for the first few minutes of a student's first session, which
  * is exactly when they are least able to tell it is lying.
+ *
+ * ─── WHY THE RED FILL AND REAL CONTENT ARRIVE A BEAT LATE ────────────────────
+ *
+ * `ApplicationNavBackground`'s canvas starts drawing the moment it mounts, on
+ * whatever the page's own background is. The brand-red fill and the
+ * breadcrumb/nav content are deliberately held back a few seconds
+ * (`gb-app-nav-reveal`, `src/styles/tokens.css`) so a student sees the
+ * animation on its own for a moment before the chrome settles in around it —
+ * owner decision. It is a plain CSS `animation-delay`, not React state, so
+ * this stays a server component.
+ *
+ * The fill div still has to sit BEFORE the canvas in source order (i.e.
+ * behind it — plain elements with no z-index paint in DOM order). Once its
+ * fade-in finishes it is a fully opaque layer; painted after the canvas it
+ * would bury the animation instead of becoming the backdrop it plays against.
  */
 export async function ApplicationNav({
   applicationId,
@@ -81,10 +97,20 @@ export async function ApplicationNav({
   });
 
   return (
-    <div data-no-auto-translate className="bg-brand">
+    <div data-no-auto-translate className="relative overflow-hidden">
+      {/* The red fill and the real content both hold back a few seconds so
+          the animation gets a moment on its own before the chrome settles
+          in around it — see tokens.css's gb-app-nav-reveal. Pure CSS
+          (animation-delay), not JS state, so this stays a server component.
+          It has to paint BEHIND the canvas, not after it: painted later in
+          DOM order it would sit on top and, once fully faded in, occlude the
+          animation completely instead of becoming the backdrop it flashes
+          against. */}
+      <div className="absolute inset-0 animate-gb-app-nav-reveal bg-brand motion-reduce:animate-none" />
+      <ApplicationNavBackground />
       {/* No bottom padding: the sub-nav's own underline is the band's edge, so
           the active entry's marker sits flush with where the white starts. */}
-      <Container className="flex flex-col gap-gb-lg pt-gb-2xl">
+      <Container className="relative animate-gb-app-nav-reveal flex flex-col gap-gb-lg pt-gb-2xl motion-reduce:animate-none">
         <Breadcrumbs
           tone="on-brand"
           {...(courseName ? { labels: { application: courseName } } : {})}

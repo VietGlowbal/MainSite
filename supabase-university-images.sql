@@ -32,6 +32,15 @@ begin
     alter table public.universities add column logo_url text;
   end if;
 
+  if not exists (
+    select 1 from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'universities'
+      and column_name = 'backup_image_url'
+  ) then
+    alter table public.universities add column backup_image_url text;
+  end if;
+
   -- Last successful resolution timestamp — useful for re-running the seed
   -- against rows that haven't been refreshed in a while without redoing
   -- everything every time.

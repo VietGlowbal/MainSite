@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Badge, Button, FormField, controlClasses } from '@/shared/ui';
 
 /**
@@ -78,12 +78,11 @@ export function SaveBar({
 }
 
 /**
- * A free-text field that commits its value into a list of chips.
+ * A searchable multi-select that commits values into a list of chips.
  *
- * Enter commits, as does the Add button; the field is `type="text"` inside no
- * <form>, so there is no implicit submit to fight with. `suggestions` are the
- * common answers — one tap instead of typing "United Kingdom" — and are hidden
- * once chosen so the row does not offer something already in the list.
+ * Suggestions are filtered locally as the student types. Enter chooses the
+ * active suggestion (or commits a custom value), while the Add button always
+ * preserves the established custom-entry behavior.
  */
 export function TagInput({
   name,
@@ -93,6 +92,7 @@ export function TagInput({
   placeholder,
   hint,
   suggestions,
+  exclusiveValue,
 }: {
   /** Doubles as the input id, the same rule the shared form primitives use. */
   name: string;
@@ -102,16 +102,60 @@ export function TagInput({
   placeholder: string;
   hint?: string | undefined;
   suggestions?: string[] | undefined;
+  /** Selecting this sentinel replaces every other value, and vice versa. */
+  exclusiveValue?: string | undefined;
 }) {
   const [draft, setDraft] = useState('');
+  const [isOpen, setIsOpen] = useState(false);
+  const [activeOptionIndex, setActiveOptionIndex] = useState(-1);
+
+  const availableSuggestions = useMemo(() => {
+    const query = draft.trim().toLocaleLowerCase();
+    const selected = new Set(values.map((value) => value.trim().toLocaleLowerCase()));
+
+    return (suggestions ?? [])
+      .filter((suggestion) => !selected.has(suggestion.trim().toLocaleLowerCase()))
+      .filter((suggestion) => !query || suggestion.toLocaleLowerCase().includes(query))
+      .sort((left, right) => {
+        if (!query) return left.localeCompare(right);
+
+        const leftStartsWithQuery = left.toLocaleLowerCase().startsWith(query);
+        const rightStartsWithQuery = right.toLocaleLowerCase().startsWith(query);
+        if (leftStartsWithQuery !== rightStartsWithQuery) return leftStartsWithQuery ? -1 : 1;
+
+        return left.localeCompare(right);
+      });
+  }, [draft, suggestions, values]);
+
+  const listboxId = `${name}-suggestions`;
 
   const add = (raw: string) => {
     const value = raw.trim();
-    if (value && !values.includes(value)) onChange([...values, value]);
+    if (!value) return;
+
+    const canonicalValue = (suggestions ?? []).find(
+      (suggestion) => suggestion.trim().toLocaleLowerCase() === value.toLocaleLowerCase(),
+    ) ?? value;
+    const normalizedValue = canonicalValue.toLocaleLowerCase();
+    const normalizedExclusiveValue = exclusiveValue?.trim().toLocaleLowerCase();
+    if (normalizedExclusiveValue && normalizedValue === normalizedExclusiveValue) {
+      onChange([exclusiveValue!]);
+    } else if (!values.some((existing) => existing.trim().toLocaleLowerCase() === normalizedValue)) {
+      const withoutExclusiveValue = normalizedExclusiveValue
+        ? values.filter((existing) => existing.trim().toLocaleLowerCase() !== normalizedExclusiveValue)
+        : values;
+      onChange([...withoutExclusiveValue, canonicalValue]);
+    }
     setDraft('');
+    setIsOpen(false);
+    setActiveOptionIndex(-1);
   };
 
-  const unused = (suggestions ?? []).filter((s) => !values.includes(s)).slice(0, 6);
+  const selectActiveOption = () => {
+    const activeOption = availableSuggestions[activeOptionIndex];
+    if (activeOption) add(activeOption);
+    else add(draft);
+  };
 
   return (
     <FormField id={name} label={label} hint={hint}>
@@ -120,39 +164,86 @@ export function TagInput({
           control. The inner column owns its own rhythm. */}
       <div className="flex flex-col gap-gb-lg">
         <div className="flex gap-gb-md">
-          <input
-            id={name}
-            name={name}
-            value={draft}
-            placeholder={placeholder}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                add(draft);
-              }
-            }}
-            className={controlClasses(false)}
-          />
+          <div className="relative flex-1">
+            <input
+              id={name}
+              name={name}
+              type="text"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls={listboxId}
+              aria-expanded={isOpen && availableSuggestions.length > 0}
+              aria-activedescendant={activeOptionIndex >= 0 ? `${name}-option-${activeOptionIndex}` : undefined}
+              value={draft}
+              placeholder={placeholder}
+              onFocus={() => setIsOpen(true)}
+              onBlur={() => {
+                setIsOpen(false);
+                setActiveOptionIndex(-1);
+              }}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                setIsOpen(true);
+                setActiveOptionIndex(-1);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === 'ArrowDown' && availableSuggestions.length > 0) {
+                  e.preventDefault();
+                  setIsOpen(true);
+                  setActiveOptionIndex((current) => (current + 1) % availableSuggestions.length);
+                } else if (e.key === 'ArrowUp' && availableSuggestions.length > 0) {
+                  e.preventDefault();
+                  setIsOpen(true);
+                  setActiveOptionIndex((current) => (
+                    current <= 0 ? availableSuggestions.length - 1 : current - 1
+                  ));
+                } else if (e.key === 'Enter') {
+                  e.preventDefault();
+                  selectActiveOption();
+                } else if (e.key === 'Escape') {
+                  e.preventDefault();
+                  setIsOpen(false);
+                  setActiveOptionIndex(-1);
+                }
+              }}
+              className={controlClasses(false)}
+            />
+
+            {isOpen && availableSuggestions.length > 0 ? (
+              <ul
+                id={listboxId}
+                role="listbox"
+                aria-label={`${label} suggestions`}
+                className="absolute z-10 mt-gb-xs max-h-64 w-full overflow-y-auto rounded-gb-md border border-line bg-surface py-gb-xs shadow-gb-lg"
+              >
+                {availableSuggestions.map((suggestion, index) => {
+                  const active = activeOptionIndex === index;
+                  return (
+                    <li key={suggestion} role="presentation">
+                      <button
+                        id={`${name}-option-${index}`}
+                        type="button"
+                        role="option"
+                        aria-selected={active}
+                        tabIndex={-1}
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => add(suggestion)}
+                        className={`flex w-full px-gb-lg py-gb-md text-left text-gb-sm transition-colors ${
+                          active ? 'bg-surface-hover text-fg-brand' : 'text-fg-secondary hover:bg-surface-hover'
+                        }`}
+                      >
+                        {suggestion}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : null}
+          </div>
           <Button onClick={() => add(draft)} variant="secondary" size="lg" className="shrink-0">
             Add
           </Button>
         </div>
-
-        {unused.length > 0 ? (
-          <div className="flex flex-wrap gap-gb-md">
-            {unused.map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => add(s)}
-                className="rounded-gb-full border border-line bg-surface-muted px-gb-lg py-gb-xs text-gb-xs font-medium text-fg-tertiary transition-colors hover:border-brand hover:text-fg-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
-              >
-                + {s}
-              </button>
-            ))}
-          </div>
-        ) : null}
 
         {values.length > 0 ? (
           <ul className="flex flex-wrap gap-gb-md">

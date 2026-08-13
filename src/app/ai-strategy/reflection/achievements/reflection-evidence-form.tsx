@@ -3,123 +3,320 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
-  ACHIEVEMENT_CATEGORIES,
-  ACTIVITY_CATEGORIES,
-  applyEvidenceCandidates,
+  ACHIEVEMENT_CATEGORY_ICON,
+  ACTIVITY_CATEGORY_ICON,
+  evidenceCandidateToItem,
   evidenceExtractionResponseSchema,
+  mergeDuplicate,
   reflectionStep,
   type AchievementValues,
   type ActivityValues,
-  type EvidenceExtractionResponse,
+  type EvidenceDuplicate,
+  applyEvidenceCandidates as applyEvidenceCandidatesRaw,
 } from '@/features/apply/domain';
-import { useDocumentUpload } from '@/features/apply/hooks';
-import { EvidenceExtractionPreview, ReflectionShell } from '@/features/apply/ui';
-import { useT } from '@/lib/i18n';
+import { useDocumentUpload, useEvidenceDocuments, type EvidenceDocument } from '@/features/apply/hooks';
 import {
-  Button,
-  DocumentRow,
-  FileDropzone,
-  Input,
-  RepeatableFieldset,
-  Select,
-  Textarea,
-} from '@/shared/ui';
+  AchievementCard,
+  ActivityCard,
+  AddTypeChooser,
+  DocumentPanel,
+  DocumentPreviewDrawer,
+  DuplicatePrompt,
+  EditEvidenceModal,
+  EvidenceEmptyState,
+  EvidenceGrid,
+  EvidenceSortSelect,
+  EvidenceTabs,
+  RemoveConfirmDialog,
+  ReflectionShell,
+  ReviewFlowDrawer,
+  type EvidenceDraft,
+  type EvidenceSort,
+  type EvidenceTabKey,
+  type ProcessingState,
+} from '@/features/apply/ui';
+import { useT } from '@/lib/i18n';
+import { Button, Input, Modal } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
  * Reflection step 2 of 2 — achievements and activities.
  *
- * Uploaded PDFs are parsed into a reviewable draft. The student chooses which
- * evidence-bound candidates are copied into the editable rows below; extraction
- * never writes final reflection data by itself.
+ * ─── UPLOAD → AI EXTRACTS → CARDS APPEAR → REVIEW/EDIT → FINISH ──────────────
  *
- * ONE DETAIL FIELD, NOT TWO. The frame drew "Bổ sung thông tin chi tiết" and
- * "Tell us more" on the same achievement, with the second carrying a template
- * ("I noticed that [who] were facing [problem]…") lifted from an unrelated
- * problem-discovery form. They overlap, and `achievementSchema` has one
- * `detail`. Merged into one field with a placeholder that asks for what the two
- * were circling.
+ * The previous version of this page was one long form: every achievement and
+ * activity, extracted or typed, rendered as the same six-field block the
+ * student had to fill in or correct by hand. This version treats a PDF as the
+ * primary way in — an uploaded CV or certificate is read, and what comes back
+ * appears as review-ready cards, tagged with exactly where each fact came
+ * from. The giant form still exists, in miniature, as the edit modal a card
+ * opens — it is never the first thing the page shows.
+ *
+ * ─── SCOPE NOTES (documented, not hidden) ────────────────────────────────────
+ *
+ * Extraction stays a synchronous request/response (the existing
+ * `/api/reflection/extract-evidence` route, unchanged), not a background job
+ * with polling or realtime — the inline "Finding achievements…" status covers
+ * the same ground without a new processing architecture. Document preview
+ * opens the browser's own PDF viewer in an iframe rather than a hand-built
+ * page/zoom control set. Duplicate detection matches on title, extending the
+ * comparison `applyEvidenceCandidates` already made rather than a general
+ * fuzzy/AI merge across documents.
  */
 
-/*
- * A client-side id on creation, so `RepeatableFieldset` has the stable key it
- * documents as mandatory. Keying by array index makes React reuse the wrong
- * inputs when a middle row is removed — the classic form-state bug where
- * deleting entry 2 appears to clear entry 3.
- *
- * The API ignores these: it replaces the whole set on save, so the id is
- * identity for this render only.
- */
 const newId = () =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : `tmp-${Math.random().toString(36).slice(2)}`;
 
-const emptyAchievement = (): AchievementValues => ({
-  id: newId(),
-  category: 'academic_award',
-  title: '',
-});
+type RemoveTarget = {
+  title: string;
+  description: string;
+  onConfirm: () => void;
+};
 
-const emptyActivity = (): ActivityValues => ({
-  id: newId(),
-  category: 'community_project',
-  title: '',
-});
+/** A stable sort — ties keep their current relative order. */
+function sortByRecency<T>(items: T[], sort: EvidenceSort, fields: {
+  category: (item: T) => string;
+  needsReview: (item: T) => boolean;
+}): T[] {
+  const arr = [...items];
+  switch (sort) {
+    case 'recent':
+      return arr.reverse();
+    case 'oldest':
+      return arr;
+    case 'type':
+      return arr.sort((a, b) => fields.category(a).localeCompare(fields.category(b)));
+    case 'reviewed_first':
+      return arr.sort((a, b) => Number(fields.needsReview(a)) - Number(fields.needsReview(b)));
+    case 'needs_review_first':
+      return arr.sort((a, b) => Number(fields.needsReview(b)) - Number(fields.needsReview(a)));
+  }
+}
+
+const SORT_OPTION_KEYS: EvidenceSort[] = [
+  'recent',
+  'oldest',
+  'type',
+  'reviewed_first',
+  'needs_review_first',
+];
 
 export function ReflectionEvidenceForm({
   initialAchievements,
   initialActivities,
+  initialDocuments,
 }: {
   initialAchievements: AchievementValues[];
   initialActivities: ActivityValues[];
+  initialDocuments: EvidenceDocument[];
 }) {
   const t = useT();
   const router = useRouter();
-  /*
-   * Carried forward from step 1's own `?return=` (see the note in
-   * `reflection-about-form.tsx`) — reaching this page from an application's
-   * Overview means finishing here should land back at that application's
-   * analysis gate, not the old per-student `/ai-strategy/report`. Absent for
-   * every other entry point into this page, which keeps that fallback.
-   */
   const returnTo = useSearchParams().get('return');
-  const { items, upload, remove } = useDocumentUpload();
+  const { upload } = useDocumentUpload();
+  const { documents, addUploaded, rename, remove: removeDocument, signedUrl } =
+    useEvidenceDocuments(initialDocuments);
 
-  const [achievements, setAchievements] = useState<AchievementValues[]>(
-    initialAchievements.length > 0 ? initialAchievements : [emptyAchievement()],
+  const [achievements, setAchievements] = useState<AchievementValues[]>(initialAchievements);
+  const [activities, setActivities] = useState<ActivityValues[]>(initialActivities);
+  const [documentNames, setDocumentNames] = useState<Record<string, string>>(() =>
+    Object.fromEntries(initialDocuments.map((doc) => [doc.id, doc.fileName])),
   );
-  const [activities, setActivities] = useState<ActivityValues[]>(
-    initialActivities.length > 0 ? initialActivities : [emptyActivity()],
+  const [duplicates, setDuplicates] = useState<EvidenceDuplicate[]>([]);
+
+  const [activeTab, setActiveTab] = useState<EvidenceTabKey>('academic');
+  const [sort, setSort] = useState<EvidenceSort>('recent');
+  const [processing, setProcessing] = useState<ProcessingState>({ kind: 'idle' });
+
+  const [editingDraft, setEditingDraft] = useState<EvidenceDraft | null>(null);
+  const [addChooserOpen, setAddChooserOpen] = useState(false);
+  const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null);
+  const [renameTarget, setRenameTarget] = useState<EvidenceDocument | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [preview, setPreview] = useState<{ document: EvidenceDocument; url: string | null } | null>(
+    null,
   );
+
+  const [reviewOpen, setReviewOpen] = useState(false);
+  const [reviewTotal, setReviewTotal] = useState(0);
+  const [resumeReviewAfterEdit, setResumeReviewAfterEdit] = useState(false);
+  const [finishWarningShown, setFinishWarningShown] = useState(false);
+
   const [saving, setSaving] = useState(false);
-  const [extracting, setExtracting] = useState(false);
-  const [extractionResult, setExtractionResult] =
-    useState<EvidenceExtractionResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useLoadingIndicator(
-    saving || extracting,
-    extracting ? 'AI đang đọc tài liệu' : 'Saving your achievements',
-  );
+  useLoadingIndicator(saving, t('Saving your achievements'));
 
-  function patchAchievement(index: number, changes: Partial<AchievementValues>) {
-    setAchievements((prev) =>
-      prev.map((item, i) => (i === index ? { ...item, ...changes } : item)),
+  const reviewQueue: EvidenceDraft[] = [
+    ...achievements
+      .filter((a) => a.reviewStatus === 'needs_review')
+      .map((a): EvidenceDraft => ({ kind: 'achievement', ...a })),
+    ...activities
+      .filter((a) => a.reviewStatus === 'needs_review')
+      .map((a): EvidenceDraft => ({ kind: 'activity', ...a })),
+  ];
+
+  function applyExtractedCandidates(
+    candidates: Parameters<typeof applyEvidenceCandidatesRaw>[2],
+    names: Record<string, string>,
+  ) {
+    const result = applyEvidenceCandidatesRaw(achievements, activities, candidates, names);
+    setAchievements(result.achievements);
+    setActivities(result.activities);
+    if (result.duplicates.length > 0) setDuplicates((prev) => [...prev, ...result.duplicates]);
+    return result;
+  }
+
+  async function runExtraction(documentIds: string[]) {
+    setProcessing({ kind: 'analysing' });
+    setError(null);
+    try {
+      const response = await fetch('/api/reflection/extract-evidence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ documentIds }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        setProcessing({
+          kind: 'error',
+          message: body?.error ?? t('Could not read the document. Please try again.'),
+        });
+        return;
+      }
+      const parsed = evidenceExtractionResponseSchema.safeParse(body);
+      if (!parsed.success) {
+        setProcessing({ kind: 'error', message: t('The extraction result is invalid. Please try again.') });
+        return;
+      }
+
+      const names = Object.fromEntries(parsed.data.documents.map((d) => [d.documentId, d.fileName]));
+      setDocumentNames((prev) => ({ ...prev, ...names }));
+
+      const result = applyExtractedCandidates(parsed.data.candidates, { ...documentNames, ...names });
+      const addedCount = parsed.data.candidates.length - result.duplicates.length;
+
+      if (parsed.data.candidates.length === 0) {
+        setProcessing({ kind: 'no_results' });
+      } else {
+        setProcessing({ kind: 'complete', achievementCount: addedCount });
+      }
+    } catch {
+      setProcessing({ kind: 'error', message: t('Could not read the document. Please try again.') });
+    }
+  }
+
+  async function handleFiles(files: File[]) {
+    setProcessing({ kind: 'uploading', fileName: files[0]?.name ?? '' });
+    setError(null);
+    const uploaded = await upload(files, 'other');
+    addUploaded(uploaded);
+
+    const failed = uploaded.filter((item) => item.status === 'error');
+    const documentIds = uploaded.flatMap((item) =>
+      item.status === 'complete' && item.documentId ? [item.documentId] : [],
     );
+
+    if (documentIds.length === 0) {
+      setProcessing({
+        kind: 'error',
+        message: failed[0]?.error ?? t('We could not upload that file. Please try again.'),
+      });
+      return;
+    }
+
+    await runExtraction(documentIds);
   }
 
-  function patchActivity(index: number, changes: Partial<ActivityValues>) {
-    setActivities((prev) => prev.map((item, i) => (i === index ? { ...item, ...changes } : item)));
+  function resolveMerge(duplicate: EvidenceDuplicate) {
+    const incoming = evidenceCandidateToItem(duplicate.candidate, documentNames);
+    if (duplicate.candidate.kind === 'achievement') {
+      setAchievements((prev) =>
+        prev.map((item) =>
+          item.id === duplicate.existingId ? mergeDuplicate(item, incoming as AchievementValues) : item,
+        ),
+      );
+    } else {
+      setActivities((prev) =>
+        prev.map((item) =>
+          item.id === duplicate.existingId ? mergeDuplicate(item, incoming as ActivityValues) : item,
+        ),
+      );
+    }
+    setDuplicates((prev) => prev.filter((d) => d.candidate.candidateId !== duplicate.candidate.candidateId));
   }
 
-  async function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
+  function resolveKeepBoth(duplicate: EvidenceDuplicate) {
+    const incoming = evidenceCandidateToItem(duplicate.candidate, documentNames);
+    if (duplicate.candidate.kind === 'achievement') {
+      setAchievements((prev) => [...prev, incoming as AchievementValues]);
+    } else {
+      setActivities((prev) => [...prev, incoming as ActivityValues]);
+    }
+    setDuplicates((prev) => prev.filter((d) => d.candidate.candidateId !== duplicate.candidate.candidateId));
+  }
+
+  function saveDraft(draft: EvidenceDraft) {
+    if (!draft.title.trim()) return;
+
+    // Branch on `kind` before spreading: pulling a `rest` out of the union
+    // first would widen `category` to the union of both kinds' categories,
+    // which is not assignable back to either `AchievementValues` or
+    // `ActivityValues`. `kind` itself rides along harmlessly in the spread —
+    // TypeScript does not excess-property-check fields that arrive via `...`.
+    if (draft.kind === 'achievement') {
+      const item: AchievementValues = {
+        ...draft,
+        reviewStatus: 'reviewed',
+        sourceType: draft.sourceType ?? 'manual',
+      };
+      setAchievements((prev) =>
+        prev.some((a) => a.id === item.id) ? prev.map((a) => (a.id === item.id ? item : a)) : [...prev, item],
+      );
+    } else {
+      const item: ActivityValues = {
+        ...draft,
+        reviewStatus: 'reviewed',
+        sourceType: draft.sourceType ?? 'manual',
+      };
+      setActivities((prev) =>
+        prev.some((a) => a.id === item.id) ? prev.map((a) => (a.id === item.id ? item : a)) : [...prev, item],
+      );
+    }
+    setEditingDraft(null);
+    if (resumeReviewAfterEdit) {
+      setResumeReviewAfterEdit(false);
+      setReviewOpen(true);
+    }
+  }
+
+  function closeEdit() {
+    setEditingDraft(null);
+    if (resumeReviewAfterEdit) {
+      setResumeReviewAfterEdit(false);
+      setReviewOpen(true);
+    }
+  }
+
+  function openEdit(draft: EvidenceDraft, fromReview: boolean) {
+    if (fromReview) {
+      setReviewOpen(false);
+      setResumeReviewAfterEdit(true);
+    }
+    setEditingDraft(draft);
+  }
+
+  function removeItem(kind: 'achievement' | 'activity', id: string | undefined) {
+    if (kind === 'achievement') setAchievements((prev) => prev.filter((a) => a.id !== id));
+    else setActivities((prev) => prev.filter((a) => a.id !== id));
+  }
+
+  async function handleSubmit() {
     setSaving(true);
     setError(null);
 
-    // Drop the blank rows the form starts with, so an untouched card does not
-    // become an achievement called "".
     const payload = {
       achievements: achievements.filter((a) => a.title.trim().length > 0),
       activities: activities.filter((a) => a.title.trim().length > 0),
@@ -138,281 +335,356 @@ export function ReflectionEvidenceForm({
         return;
       }
 
-      router.push(returnTo || '/ai-strategy/report');
+      // The step used to hand off straight to `returnTo` (normally the
+      // analysis gate) or the standalone report page. It now always goes
+      // through Review & Confirm first — the checkpoint that locks candidate
+      // information before reports are generated — carrying the same
+      // eventual destination through as `return` so confirming sends the
+      // student on to exactly where this step used to.
+      const confirmReturn = returnTo || '/ai-strategy/report';
+      router.push(`/ai-strategy/reflection/confirm?return=${encodeURIComponent(confirmReturn)}`);
     } catch {
       setError(t('We could not save that. Please try again.'));
       setSaving(false);
     }
   }
 
+  function sortLabel(value: EvidenceSort): string {
+    switch (value) {
+      case 'recent':
+        return t('Most recent');
+      case 'oldest':
+        return t('Oldest');
+      case 'type':
+        return t('Achievement type');
+      case 'reviewed_first':
+        return t('Reviewed first');
+      case 'needs_review_first':
+        return t('Needs review first');
+    }
+  }
+
+  const sortOptions = SORT_OPTION_KEYS.map((value) => ({ value, label: sortLabel(value) }));
+
+  const sortedAchievements = sortByRecency(achievements, sort, {
+    category: (a) => a.category,
+    needsReview: (a) => a.reviewStatus === 'needs_review',
+  });
+  const sortedActivities = sortByRecency(activities, sort, {
+    category: (a) => a.category,
+    needsReview: (a) => a.reviewStatus === 'needs_review',
+  });
+
+  const cardLabels = {
+    edit: (title: string) => t('Edit {title}', { title }),
+    remove: (title: string) => t('Remove {title}', { title }),
+    extractedFrom: (fileName: string) => t('Extracted from {fileName}', { fileName }),
+    addedManually: t('Added manually'),
+    needsReview: t('Please check this'),
+    reviewed: t('Reviewed'),
+    possibleDuplicate: t('Possible duplicate'),
+  };
+
   return (
     <ReflectionShell step="evidence">
-      <form onSubmit={handleSubmit} className="flex flex-col gap-gb-3xl">
-        <section className="flex flex-col gap-gb-lg">
-          <h2 className="text-gb-lg font-semibold text-fg-brand">
-            {t('Academic achievements and extracurricular activities')}
-          </h2>
+      <div className="flex flex-col gap-gb-3xl">
+        <DocumentPanel
+          onFiles={(files) => void handleFiles(files)}
+          disabled={processing.kind === 'uploading' || processing.kind === 'analysing'}
+          accept=".pdf,.doc,.docx"
+          dropzoneLabel={t('Upload a CV or certificate PDF')}
+          dropzoneHint={t('or drag and drop')}
+          heading={t('Upload your achievements')}
+          description={t(
+            'Upload your CV or certificate PDFs and we’ll automatically extract your achievements.',
+          )}
+          documents={documents}
+          processing={processing}
+          onPreview={(document) => {
+            setPreview({ document, url: null });
+            void signedUrl(document.storageKey).then((url) => setPreview({ document, url }));
+          }}
+          onRename={(document) => {
+            setRenameTarget(document);
+            setRenameValue(document.fileName);
+          }}
+          onReprocess={(document) => void runExtraction([document.id])}
+          onRemove={(document) =>
+            setRemoveTarget({
+              title: t('Remove this document?'),
+              description: t(
+                'Achievements already saved to your profile will remain.',
+              ),
+              onConfirm: () => void removeDocument(document.id),
+            })
+          }
+          onAddManually={() => setAddChooserOpen(true)}
+          labels={{
+            recentlyUploaded: t('Recently uploaded'),
+            noDocuments: t('You can upload multiple PDFs. Each file up to 10MB.'),
+            preview: t('Preview'),
+            rename: t('Rename'),
+            reprocess: t('Reprocess'),
+            remove: t('Remove'),
+            menu: t('More options'),
+            uploading: (fileName: string) => t('Uploading {fileName}', { fileName }),
+            analysing: t('Finding achievements…'),
+            complete: (count: number) => t('{count} achievements found', { count }),
+            completeHint: t('We’ve extracted achievements from your document.'),
+            noResults: t('We couldn’t find any clear achievements in this document.'),
+            addManually: t('Add one manually'),
+            error: t('We couldn’t read that document. Try uploading another copy.'),
+          }}
+        />
 
-          <FileDropzone
-            onFiles={async (files) => {
-              setExtracting(true);
-              setExtractionResult(null);
-              setError(null);
-              try {
-                const uploaded = await upload(files, 'other');
-                const documentIds = uploaded.flatMap((item) =>
-                  item.status === 'complete' && item.documentId ? [item.documentId] : [],
-                );
-                if (documentIds.length === 0) return;
+        <DuplicatePrompt duplicates={duplicates} onMerge={resolveMerge} onKeepBoth={resolveKeepBoth} t={t} />
 
-                const response = await fetch('/api/reflection/extract-evidence', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ documentIds }),
-                });
-                const body = await response.json().catch(() => null);
-                if (!response.ok) {
-                  setError(body?.error ?? t('Could not read the document. Please try again.'));
-                  return;
-                }
-                const parsed = evidenceExtractionResponseSchema.safeParse(body);
-                if (!parsed.success) {
-                  setError(t('The extraction result is invalid. Please try again.'));
-                  return;
-                }
-                setExtractionResult(parsed.data);
-              } catch {
-                setError(t('Could not read the document. Please try again.'));
-              } finally {
-                setExtracting(false);
-              }
-            }}
-            accept=".pdf,application/pdf"
-            disabled={saving || extracting}
-            label={extracting ? t('Reading PDF…') : t('Upload a CV or certificate PDF')}
-            hint={t('You can choose multiple PDFs; each file can be up to 10MB')}
+        <div className="flex flex-wrap items-center justify-between gap-gb-lg">
+          <EvidenceTabs
+            active={activeTab}
+            onSelect={setActiveTab}
+            academicLabel={t('Academic achievements')}
+            extracurricularLabel={t('Extracurricular activities')}
+            academicCount={achievements.length}
+            extracurricularCount={activities.length}
           />
-
-          {items.length > 0 ? (
-            <ul className="flex flex-col gap-gb-md">
-              {items.map((item) => (
-                <DocumentRow
-                  key={item.key}
-                  fileName={item.fileName}
-                  total={item.size}
-                  status={item.status}
-                  {...(item.error ? { error: item.error } : {})}
-                  onRemove={() => remove(item.key)}
-                />
-              ))}
-            </ul>
-          ) : null}
-
-          <p className="text-center text-gb-sm text-fg-tertiary">
-            {t('The system only fills data with a source excerpt in the PDF; you review everything before saving.')}
-          </p>
-        </section>
-
-        {extractionResult ? (
-          <EvidenceExtractionPreview
-            key={extractionResult.documents.map(({ documentId }) => documentId).join(':')}
-            result={extractionResult}
-            onApply={(candidates) => {
-              const next = applyEvidenceCandidates(achievements, activities, candidates);
-              setAchievements(next.achievements);
-              setActivities(next.activities);
-              setExtractionResult(null);
-            }}
-            onDismiss={() => setExtractionResult(null)}
-          />
-        ) : null}
-
-        {/* No ReflectionSection wrapper here: RepeatableFieldset renders its own
-            heading, and nesting the two put "Thành tích học thuật" on the page
-            twice. The plate is kept, the second heading is not. */}
-        <div className="rounded-gb-2xl bg-surface-muted p-gb-3xl">
-          <RepeatableFieldset
-            legend={t('Academic achievements')}
-            entries={achievements}
-            keyOf={(entry, index) => entry.id ?? `achievement-${index}`}
-            entryLabel={(index) => t('Achievement {number}', { number: index + 1 })}
-            addLabel={t('Add achievement')}
-            max={20}
-            onAdd={() => setAchievements((prev) => [...prev, emptyAchievement()])}
-            onRemove={(index) =>
-              setAchievements((prev) => prev.filter((_, i) => i !== index))
-            }
-            renderEntry={(item, index) => (
-              <div className="flex flex-col gap-gb-2xl">
-                <div className="grid gap-gb-2xl sm:grid-cols-2">
-                  <Select
-                    name={`achievement-${index}-category`}
-                    label={t('Academic achievement type')}
-                    value={item.category}
-                    onChange={(e) =>
-                      patchAchievement(index, {
-                        category: e.target.value as AchievementValues['category'],
-                      })
-                    }
-                  >
-                    {ACHIEVEMENT_CATEGORIES.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Select>
-
-                  <Input
-                    name={`achievement-${index}-title`}
-                    label={t('Achievement name')}
-                    placeholder={t('For example: First prize in the Hanoi City Mathematics Olympiad 2026')}
-                    value={item.title}
-                    onChange={(e) => patchAchievement(index, { title: e.target.value })}
-                  />
-
-                  <Input
-                    name={`achievement-${index}-competition`}
-                    label={t('Competition or organisation name')}
-                    value={item.competition ?? ''}
-                    onChange={(e) =>
-                      patchAchievement(index, { competition: e.target.value || undefined })
-                    }
-                  />
-
-                  <Input
-                    name={`achievement-${index}-organisation`}
-                    label={t('Organising body')}
-                    value={item.organisation ?? ''}
-                    onChange={(e) =>
-                      patchAchievement(index, { organisation: e.target.value || undefined })
-                    }
-                  />
-
-                  <Input
-                    name={`achievement-${index}-level`}
-                    label={t('Level')}
-                    placeholder={t('City level')}
-                    value={item.level ?? ''}
-                    onChange={(e) => patchAchievement(index, { level: e.target.value || undefined })}
-                  />
-
-                  <Input
-                    name={`achievement-${index}-year`}
-                    type="number"
-                    label={t('Award year')}
-                    placeholder="2026"
-                    value={item.year != null ? String(item.year) : ''}
-                    onChange={(e) => {
-                      const parsed = Number.parseInt(e.target.value, 10);
-                      patchAchievement(index, {
-                        year: Number.isFinite(parsed) ? parsed : undefined,
-                      });
-                    }}
-                  />
-                </div>
-
-                {/* The one detail field. See the note at the top of this file. */}
-                <Textarea
-                  name={`achievement-${index}-detail`}
-                  label={t('Detailed description')}
-                  rows={5}
-                  placeholder={t('Describe the scale, competitiveness, selection criteria, your role, the result, and why this achievement matters.')}
-                  value={item.detail ?? ''}
-                  onChange={(e) => patchAchievement(index, { detail: e.target.value || undefined })}
-                />
-              </div>
-            )}
-          />
+          <div className="flex items-center gap-gb-lg">
+            {reviewQueue.length > 0 ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setReviewTotal(reviewQueue.length);
+                  setReviewOpen(true);
+                }}
+              >
+                {t('Review achievements ({count})', { count: reviewQueue.length })}
+              </Button>
+            ) : null}
+            <EvidenceSortSelect value={sort} onChange={setSort} label={t('Sort by:')} options={sortOptions} />
+          </div>
         </div>
 
-        <div className="rounded-gb-2xl bg-surface-muted p-gb-3xl">
-          <RepeatableFieldset
-            legend={t('Extracurricular activities')}
-            entries={activities}
-            keyOf={(entry, index) => entry.id ?? `activity-${index}`}
-            entryLabel={(index) => t('Activity {number}', { number: index + 1 })}
-            addLabel={t('Add activity')}
-            max={20}
-            onAdd={() => setActivities((prev) => [...prev, emptyActivity()])}
-            onRemove={(index) => setActivities((prev) => prev.filter((_, i) => i !== index))}
-            renderEntry={(item, index) => (
-              <div className="flex flex-col gap-gb-2xl">
-                <div className="grid gap-gb-2xl sm:grid-cols-2">
-                  <Select
-                    name={`activity-${index}-category`}
-                    label={t('Extracurricular activity type')}
-                    value={item.category}
-                    onChange={(e) =>
-                      patchActivity(index, {
-                        category: e.target.value as ActivityValues['category'],
-                      })
-                    }
-                  >
-                    {ACTIVITY_CATEGORIES.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </Select>
-
-                  <Input
-                    name={`activity-${index}-title`}
-                    label="Title"
-                    value={item.title}
-                    onChange={(e) => patchActivity(index, { title: e.target.value })}
-                  />
-
-                  <Input
-                    name={`activity-${index}-organisation`}
-                    label="Name of Org / Project"
-                    value={item.organisation ?? ''}
-                    onChange={(e) =>
-                      patchActivity(index, { organisation: e.target.value || undefined })
-                    }
-                  />
-
-                  <Input
-                    name={`activity-${index}-level`}
-                    label="Level"
-                    value={item.level ?? ''}
-                    onChange={(e) => patchActivity(index, { level: e.target.value || undefined })}
-                  />
-
-                  <Input
-                    name={`activity-${index}-period`}
-                    label="Period"
-                    placeholder="2024 – 2026"
-                    value={item.period ?? ''}
-                    onChange={(e) => patchActivity(index, { period: e.target.value || undefined })}
-                  />
-                </div>
-
-                <Textarea
-                  name={`activity-${index}-description`}
-                  label={t('Detailed description')}
-                  rows={5}
-                  placeholder={t('Describe why you joined, your role, key contributions, results, impact, or what made this activity meaningful.')}
-                  value={item.description ?? ''}
-                  onChange={(e) =>
-                    patchActivity(index, { description: e.target.value || undefined })
+        {activeTab === 'academic' ? (
+          sortedAchievements.length === 0 ? (
+            <EvidenceEmptyState
+              icon="graduationCap"
+              heading={t('No academic achievements yet')}
+              hint={t('Upload a CV or certificate, or add one manually.')}
+              addLabel={t('Add achievement')}
+              onAdd={() => setAddChooserOpen(true)}
+            />
+          ) : (
+            <EvidenceGrid>
+              {sortedAchievements.map((item) => (
+                <AchievementCard
+                  key={item.id}
+                  item={item}
+                  icon={ACHIEVEMENT_CATEGORY_ICON[item.category]}
+                  labels={cardLabels}
+                  onEdit={() => openEdit({ kind: 'achievement', ...item }, false)}
+                  onRemove={() =>
+                    setRemoveTarget({
+                      title: t('Remove this achievement?'),
+                      description: t(
+                        'This will remove it from your GlowBal profile, but not from your uploaded document.',
+                      ),
+                      onConfirm: () => removeItem('achievement', item.id),
+                    })
                   }
                 />
-              </div>
-            )}
+              ))}
+            </EvidenceGrid>
+          )
+        ) : sortedActivities.length === 0 ? (
+          <EvidenceEmptyState
+            icon="usersTwo"
+            heading={t('No extracurricular activities yet')}
+            hint={t('Upload a document or add an activity manually.')}
+            addLabel={t('Add activity')}
+            onAdd={() => setAddChooserOpen(true)}
           />
-        </div>
+        ) : (
+          <EvidenceGrid>
+            {sortedActivities.map((item) => (
+              <ActivityCard
+                key={item.id}
+                item={item}
+                icon={ACTIVITY_CATEGORY_ICON[item.category]}
+                labels={cardLabels}
+                onEdit={() => openEdit({ kind: 'activity', ...item }, false)}
+                onRemove={() =>
+                  setRemoveTarget({
+                    title: t('Remove this activity?'),
+                    description: t(
+                      'This will remove it from your GlowBal profile, but not from your uploaded document.',
+                    ),
+                    onConfirm: () => removeItem('activity', item.id),
+                  })
+                }
+              />
+            ))}
+          </EvidenceGrid>
+        )}
+
+        <p className="self-start">
+          <button
+            type="button"
+            onClick={() => setAddChooserOpen(true)}
+            className="text-gb-sm font-semibold text-fg-brand hover:underline"
+          >
+            + {activeTab === 'academic' ? t('Add achievement') : t('Add activity')}
+          </button>
+        </p>
 
         {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
 
-        <div className="flex flex-wrap justify-center gap-gb-lg">
-          <Button href={reflectionStep('about').path} variant="secondary" size="lg">
-            {t('Back')}
-          </Button>
-          <Button type="submit" size="lg" disabled={saving || extracting} className="min-w-64">
-            {saving ? t('Saving…') : t('Finish')}
-          </Button>
-        </div>
-      </form>
+        {finishWarningShown ? (
+          <div className="flex flex-wrap items-center justify-between gap-gb-lg rounded-gb-xl border border-line bg-surface-muted p-gb-xl">
+            <p className="text-gb-sm text-fg-secondary">
+              {t('You still have {count} extracted achievements to review.', {
+                count: reviewQueue.length,
+              })}
+            </p>
+            <div className="flex gap-gb-md">
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setFinishWarningShown(false);
+                  setReviewTotal(reviewQueue.length);
+                  setReviewOpen(true);
+                }}
+              >
+                {t('Review first')}
+              </Button>
+              <Button type="button" onClick={() => void handleSubmit()}>
+                {t('Continue anyway')}
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-wrap justify-center gap-gb-lg">
+            <Button href={reflectionStep('about').path} variant="secondary" size="lg">
+              {t('Back')}
+            </Button>
+            <Button
+              type="button"
+              size="lg"
+              disabled={saving}
+              className="min-w-64"
+              onClick={() => {
+                if (reviewQueue.length > 0) {
+                  setFinishWarningShown(true);
+                  return;
+                }
+                void handleSubmit();
+              }}
+            >
+              {saving ? t('Saving…') : t('Review & Confirm')}
+            </Button>
+          </div>
+        )}
+      </div>
+
+      <EditEvidenceModal
+        open={editingDraft !== null}
+        draft={editingDraft}
+        onClose={closeEdit}
+        onSave={saveDraft}
+        t={t}
+      />
+
+      <AddTypeChooser
+        open={addChooserOpen}
+        onClose={() => setAddChooserOpen(false)}
+        onChooseAcademic={() => {
+          setAddChooserOpen(false);
+          setEditingDraft({ kind: 'achievement', id: newId(), category: 'academic_award', title: '' });
+        }}
+        onChooseExtracurricular={() => {
+          setAddChooserOpen(false);
+          setEditingDraft({ kind: 'activity', id: newId(), category: 'community_project', title: '' });
+        }}
+        t={t}
+      />
+
+      <RemoveConfirmDialog
+        open={removeTarget !== null}
+        title={removeTarget?.title ?? ''}
+        description={removeTarget?.description ?? ''}
+        onCancel={() => setRemoveTarget(null)}
+        onConfirm={() => {
+          removeTarget?.onConfirm();
+          setRemoveTarget(null);
+        }}
+        t={t}
+      />
+
+      <ReviewFlowDrawer
+        open={reviewOpen}
+        queue={reviewQueue}
+        total={reviewTotal}
+        onKeep={(item) => {
+          if (item.kind === 'achievement') {
+            setAchievements((prev) =>
+              prev.map((a) => (a.id === item.id ? { ...a, reviewStatus: 'reviewed' } : a)),
+            );
+          } else {
+            setActivities((prev) =>
+              prev.map((a) => (a.id === item.id ? { ...a, reviewStatus: 'reviewed' } : a)),
+            );
+          }
+        }}
+        onEdit={(item) => openEdit(item, true)}
+        onRemove={(item) => removeItem(item.kind, item.id)}
+        onClose={() => setReviewOpen(false)}
+        t={t}
+      />
+
+      <DocumentPreviewDrawer
+        open={preview !== null}
+        onClose={() => setPreview(null)}
+        fileName={preview?.document.fileName ?? ''}
+        url={preview?.url ?? null}
+        closeLabel={t('Close')}
+      />
+
+      <Modal
+        open={renameTarget !== null}
+        onClose={() => setRenameTarget(null)}
+        label={t('Rename')}
+        className="max-w-gb-width-sm p-gb-3xl"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (!renameTarget) return;
+            void rename(renameTarget.id, renameValue).then((ok) => {
+              if (ok) setRenameTarget(null);
+            });
+          }}
+          className="flex flex-col gap-gb-xl"
+        >
+          <h2 className="text-gb-lg font-semibold text-fg">{t('Rename')}</h2>
+          <Input
+            name="rename-file"
+            label={t('File name')}
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            required
+          />
+          <div className="flex justify-end gap-gb-md">
+            <Button type="button" variant="secondary" onClick={() => setRenameTarget(null)}>
+              {t('Cancel')}
+            </Button>
+            <Button type="submit" disabled={!renameValue.trim()}>
+              {t('Save changes')}
+            </Button>
+          </div>
+        </form>
+      </Modal>
     </ReflectionShell>
   );
 }

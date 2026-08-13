@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { DirectionOption, PortfolioOpportunity, StrategyRecommendationRecord } from '../domain';
 import { ReportPanel, ReportTabs, useReportTabs } from './report-chrome';
@@ -98,7 +99,9 @@ export function StrategyRecommendationReport({
         {active === 'positioning' ? <PositioningTab recommendation={recommendation} /> : null}
         {active === 'portfolio' ? <PortfolioTab recommendation={recommendation} /> : null}
         {active === 'differentiation' ? <DifferentiationTab recommendation={recommendation} /> : null}
-        {active === 'roadmap' ? <RoadmapTab recommendation={recommendation} /> : null}
+        {active === 'roadmap' ? (
+          <RoadmapTab applicationId={applicationId} recommendation={recommendation} />
+        ) : null}
       </ReportPanel>
     </div>
   );
@@ -242,7 +245,13 @@ function DifferentiationTab({ recommendation }: { recommendation: StrategyRecomm
   );
 }
 
-function RoadmapTab({ recommendation }: { recommendation: StrategyRecommendationRecord }) {
+function RoadmapTab({
+  applicationId,
+  recommendation,
+}: {
+  applicationId: string;
+  recommendation: StrategyRecommendationRecord;
+}) {
   const { t } = useLanguage();
   const { roadmap } = recommendation;
   return (
@@ -267,7 +276,63 @@ function RoadmapTab({ recommendation }: { recommendation: StrategyRecommendation
           {roadmap.longTermNarrative}
         </p>
       </section>
+      <AddToPlannerCard applicationId={applicationId} />
     </div>
+  );
+}
+
+type AddToPlannerState = { kind: 'idle' } | { kind: 'generating' } | { kind: 'failed' };
+
+/**
+ * Turns `roadmap.prioritize`/`.avoid` into Planner tasks
+ * (`generateRoadmapTasks`) and hands off to the Planner to see them — same
+ * "generate, then go look" shape as the onboarding flow into `/strategy/analysis`.
+ * Re-clicking is safe: the generator reconciles by (category, title), so this
+ * never duplicates a task already added.
+ */
+function AddToPlannerCard({ applicationId }: { applicationId: string }) {
+  const { t } = useLanguage();
+  const router = useRouter();
+  const [state, setState] = useState<AddToPlannerState>({ kind: 'idle' });
+
+  async function run() {
+    setState({ kind: 'generating' });
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/strategy/roadmap-tasks`, {
+        method: 'POST',
+      });
+      if (!response.ok) {
+        setState({ kind: 'failed' });
+        return;
+      }
+      router.push(`/ai-strategy/${applicationId}/strategy/dashboard`);
+    } catch {
+      setState({ kind: 'failed' });
+    }
+  }
+
+  return (
+    <Panel className="flex flex-col gap-gb-md">
+      <h2 className="text-gb-lg font-semibold text-fg">{t('Turn this into Planner tasks')}</h2>
+      <p className="max-w-2xl text-gb-sm text-fg-tertiary">
+        {t(
+          'Adds what to prioritize and what to avoid, above, to your Planner as tasks you can track. Safe to click again after this report regenerates — it updates the same tasks rather than duplicating them.',
+        )}
+      </p>
+      <Button
+        size="sm"
+        variant={state.kind === 'failed' ? 'secondary' : 'primary'}
+        className="self-start"
+        onClick={() => void run()}
+        disabled={state.kind === 'generating'}
+      >
+        {state.kind === 'generating'
+          ? t('Adding to Planner...')
+          : state.kind === 'failed'
+            ? t('Try again')
+            : t('Add to Planner')}
+      </Button>
+    </Panel>
   );
 }
 

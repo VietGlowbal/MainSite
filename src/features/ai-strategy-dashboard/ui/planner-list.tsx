@@ -4,15 +4,13 @@ import Link from 'next/link';
 import type { Recommendation } from '../domain';
 import { daysRemaining } from '../domain';
 import {
-  DeadlineControl,
-  DueChip,
-  HelpLink,
   PRIORITY_LABEL,
   PRIORITY_VARIANT,
   categoryLabel,
   categoryVariant,
   formatDate,
-} from './planner-shared';
+} from './planner-presentation';
+import { DeadlineControl, DueChip, HelpLink } from './planner-shared';
 import { ProgressStatusControl } from './progress-status-control';
 import type { PlannerRecommendationsController } from './use-planner-recommendations';
 import { Badge } from '@/shared/ui';

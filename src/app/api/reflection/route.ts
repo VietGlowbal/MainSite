@@ -26,6 +26,44 @@ export const dynamic = 'force-dynamic';
 
 const aboutPayload = aboutYouSchema.merge(aspirationsSchema);
 
+/**
+ * Is this error "that column does not exist yet"?
+ *
+ * Same shape as the check `match-insights/route.ts` already uses: PostgREST
+ * reports an unknown column as `42703` on the SQL side or `PGRST204` from its
+ * own schema cache, and the message names the column either way.
+ */
+function migrationMissing(error: { code?: string; message?: string } | null | undefined) {
+  return Boolean(
+    error &&
+      (error.code === '42703' ||
+        error.code === 'PGRST204' ||
+        /study_motivation|subject_motivations|target_intake/i.test(error.message ?? '')),
+  );
+}
+
+/**
+ * The columns added after the base schema, in the order they were added.
+ *
+ * Dropped together on a migration-missing retry rather than one at a time: the
+ * error names only the first column PostgREST tripped over, so retrying
+ * without that one alone just fails again on the next.
+ */
+const LATER_COLUMNS = ['study_motivation', 'subject_motivations', 'target_intake'] as const;
+
+/**
+ * `supabase-reflection-review-status.sql`'s three columns, shared by both
+ * `student_achievements` and `student_activities` — same names, same retry.
+ */
+const REVIEW_COLUMNS = ['review_status', 'source_type', 'sources'] as const;
+
+/** A shallow copy of `row` without the given keys. */
+function omit<T extends Record<string, unknown>>(row: T, keys: readonly string[]): Partial<T> {
+  const next: Partial<T> = { ...row };
+  for (const key of keys) delete next[key as keyof T];
+  return next;
+}
+
 const bodySchema = z.object({
   about: aboutPayload.optional(),
   achievements: z.array(achievementSchema).max(20).optional(),
@@ -40,6 +78,29 @@ export async function PATCH(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+  }
+
+  // Locked once confirmed (POST /api/candidate-information/confirm) — a
+  // confirmed record is exactly the version of the student's information
+  // reports were generated from, and letting an edit through here would make
+  // "this is what your reports were built from" (the read-only reflection
+  // pages) false. Missing the column (migration not run yet) is read as "not
+  // locked", the same fail-open every other tolerant read in this route
+  // already uses — server enforcement matters once the column exists; a
+  // student cannot be blocked by a lock the deployment does not have yet.
+  const lock = await supabase
+    .from('student_profiles')
+    .select('confirmed_at')
+    .eq('user_id', user.id)
+    .maybeSingle();
+  if (!lock.error && lock.data?.confirmed_at) {
+    return NextResponse.json(
+      {
+        error: 'PROFILE_LOCKED',
+        message: 'This profile has already been confirmed.',
+      },
+      { status: 423 },
+    );
   }
 
   let raw: unknown;
@@ -67,12 +128,43 @@ export async function PATCH(request: Request) {
     // step never actually completes it, so a student can never advance past
     // `personal-summary` no matter how many times they submit. See
     // docs/known-issues.md §5g.
-    const { error } = await supabase.from('student_profiles').upsert(
-      { user_id: user.id, ...update, personal_summary_completed_at: new Date().toISOString() },
-      { onConflict: 'user_id' },
-    );
+    const row: Record<string, unknown> = {
+      user_id: user.id,
+      ...update,
+      personal_summary_completed_at: new Date().toISOString(),
+    };
+    const { error } = await supabase
+      .from('student_profiles')
+      .upsert(row, { onConflict: 'user_id' });
 
-    if (error) {
+    if (error && migrationMissing(error)) {
+      /*
+       * `supabase-reflection-questions.sql` and/or
+       * `supabase-reflection-subject-motivations.sql` have not been run yet.
+       *
+       * This project has a standing habit of shipping code ahead of its
+       * migrations (docs/known-issues.md §0d–§0f are all instances), and the
+       * columns those questions write are the only new ones here. Failing the
+       * whole request would mean a student loses their nationality, GPA and
+       * budget — everything on the step — because of three optional answers.
+       * So the save is retried without them: the student keeps the answers
+       * that have somewhere to go, and the newer questions start persisting
+       * the moment the migration lands, with no code change.
+       */
+      console.warn(
+        `[reflection] ${LATER_COLUMNS.join('/')} missing — run supabase-reflection-questions.sql and supabase-reflection-subject-motivations.sql. Saving the rest.`,
+      );
+      const withoutNewColumns = { ...row };
+      for (const column of LATER_COLUMNS) delete withoutNewColumns[column];
+      const retry = await supabase
+        .from('student_profiles')
+        .upsert(withoutNewColumns, { onConflict: 'user_id' });
+
+      if (retry.error) {
+        console.error('[reflection] profile upsert failed:', retry.error);
+        return NextResponse.json({ error: 'Could not save your information' }, { status: 500 });
+      }
+    } else if (error) {
       console.error('[reflection] profile upsert failed:', error);
       return NextResponse.json({ error: 'Could not save your information' }, { status: 500 });
     }
@@ -90,20 +182,33 @@ export async function PATCH(request: Request) {
   if (achievements) {
     await supabase.from('student_achievements').delete().eq('user_id', user.id);
     if (achievements.length > 0) {
-      const { error } = await supabase.from('student_achievements').insert(
-        achievements.map((item) => ({
-          user_id: user.id,
-          category: item.category,
-          title: item.title,
-          competition: item.competition ?? null,
-          organisation: item.organisation ?? null,
-          level: item.level ?? null,
-          year: item.year ?? null,
-          detail: item.detail ?? null,
-          evidence_key: item.evidenceKey ?? null,
-        })),
-      );
-      if (error) {
+      const rows = achievements.map((item) => ({
+        user_id: user.id,
+        category: item.category,
+        title: item.title,
+        competition: item.competition ?? null,
+        organisation: item.organisation ?? null,
+        level: item.level ?? null,
+        year: item.year ?? null,
+        detail: item.detail ?? null,
+        evidence_key: item.evidenceKey ?? null,
+        review_status: item.reviewStatus ?? null,
+        source_type: item.sourceType ?? null,
+        sources: item.sources ?? null,
+      }));
+      const { error } = await supabase.from('student_achievements').insert(rows);
+
+      if (error && migrationMissing(error)) {
+        console.warn(
+          `[reflection] ${REVIEW_COLUMNS.join('/')} missing on student_achievements — run supabase-reflection-review-status.sql. Saving without review status.`,
+        );
+        const stripped = rows.map((row) => omit(row, REVIEW_COLUMNS));
+        const retry = await supabase.from('student_achievements').insert(stripped);
+        if (retry.error) {
+          console.error('[reflection] achievements insert failed:', retry.error);
+          return NextResponse.json({ error: 'Could not save your achievements' }, { status: 500 });
+        }
+      } else if (error) {
         console.error('[reflection] achievements insert failed:', error);
         return NextResponse.json({ error: 'Could not save your achievements' }, { status: 500 });
       }
@@ -113,18 +218,31 @@ export async function PATCH(request: Request) {
   if (activities) {
     await supabase.from('student_activities').delete().eq('user_id', user.id);
     if (activities.length > 0) {
-      const { error } = await supabase.from('student_activities').insert(
-        activities.map((item) => ({
-          user_id: user.id,
-          category: item.category,
-          title: item.title,
-          organisation: item.organisation ?? null,
-          level: item.level ?? null,
-          period: item.period ?? null,
-          description: item.description ?? null,
-        })),
-      );
-      if (error) {
+      const rows = activities.map((item) => ({
+        user_id: user.id,
+        category: item.category,
+        title: item.title,
+        organisation: item.organisation ?? null,
+        level: item.level ?? null,
+        period: item.period ?? null,
+        description: item.description ?? null,
+        review_status: item.reviewStatus ?? null,
+        source_type: item.sourceType ?? null,
+        sources: item.sources ?? null,
+      }));
+      const { error } = await supabase.from('student_activities').insert(rows);
+
+      if (error && migrationMissing(error)) {
+        console.warn(
+          `[reflection] ${REVIEW_COLUMNS.join('/')} missing on student_activities — run supabase-reflection-review-status.sql. Saving without review status.`,
+        );
+        const stripped = rows.map((row) => omit(row, REVIEW_COLUMNS));
+        const retry = await supabase.from('student_activities').insert(stripped);
+        if (retry.error) {
+          console.error('[reflection] activities insert failed:', retry.error);
+          return NextResponse.json({ error: 'Could not save your activities' }, { status: 500 });
+        }
+      } else if (error) {
         console.error('[reflection] activities insert failed:', error);
         return NextResponse.json({ error: 'Could not save your activities' }, { status: 500 });
       }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { NATIONALITIES } from '@/lib/nationalities';
 import type { StudentProfile } from '@/lib/types';
@@ -20,6 +20,10 @@ export function PersonalForm({
   initialProfile: StudentProfile | null;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const [fullName, setFullName] = useState(displayName);
+  const [accountEmail, setAccountEmail] = useState(email);
+  const savedName = useRef(displayName);
+  const savedEmail = useRef(email);
   const [phone, setPhone] = useState(initialProfile?.phone ?? '');
   const [dob, setDob] = useState(initialProfile?.date_of_birth ?? '');
   const [location, setLocation] = useState(initialProfile?.location ?? '');
@@ -32,11 +36,42 @@ export function PersonalForm({
   const handleSave = async () => {
     setSaving(true);
     setMessage(null);
+    const nextName = fullName.trim();
+    const nextEmail = accountEmail.trim();
+    if (!nextName || !nextEmail) {
+      setMessage({ text: 'Full name and email address are required.', ok: false });
+      setSaving(false);
+      return;
+    }
+
+    const emailChanged = nextEmail !== savedEmail.current;
+    const accountChanges = {
+      ...(emailChanged ? { email: nextEmail } : {}),
+      ...(nextName !== savedName.current ? { data: { full_name: nextName } } : {}),
+    };
+    if (Object.keys(accountChanges).length) {
+      const { error } = await supabase.auth.updateUser(accountChanges);
+      if (error) {
+        setMessage({ text: error.message, ok: false });
+        setSaving(false);
+        return;
+      }
+      savedName.current = nextName;
+      savedEmail.current = nextEmail;
+    }
+
     const { error } = await supabase.from('student_profiles').upsert(
       { user_id: userId, phone, date_of_birth: dob || null, location, nationality, bio },
       { onConflict: 'user_id' },
     );
-    setMessage(error ? { text: error.message, ok: false } : { text: 'Saved successfully.', ok: true });
+    setMessage(error
+      ? { text: error.message, ok: false }
+      : {
+          text: emailChanged
+            ? 'Saved. Check your inbox to confirm your new email address.'
+            : 'Saved successfully.',
+          ok: true,
+        });
     setSaving(false);
   };
 
@@ -45,23 +80,24 @@ export function PersonalForm({
       <Panel className="flex flex-col gap-gb-2xl">
         <PanelHeader
           title="Account details"
-          description="These come from the account you signed in with and cannot be edited here."
+          description="Update your name and email address."
         />
         <div className="grid gap-gb-2xl sm:grid-cols-2">
           <Input
             name="account-name"
             label="Full name"
-            value={displayName}
-            readOnly
-            hint="Set by your sign-in provider."
-            className="bg-surface-muted"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
           />
           <Input
             name="account-email"
+            type="email"
             label="Email address"
-            value={email}
-            readOnly
-            className="bg-surface-muted"
+            value={accountEmail}
+            onChange={(e) => setAccountEmail(e.target.value)}
+            hint="Changing your email requires confirmation."
+            required
           />
         </div>
       </Panel>

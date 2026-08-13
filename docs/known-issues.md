@@ -19,7 +19,7 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5h | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. |
+| §5–§5m | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i hardened `parseContentBlock`/`parseContentBlockValue`, which only checked the JSON's `type` field and not the rest of the shape — a real latent bug, but **not** the cause of the "planner tasks don't load" report it was written in response to; see §5l for what actually was. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. §5l is the one to read before touching the Planner UI: every task detail page 500'd because a server component imported pure helpers from a `'use client'` module, where calling an export throws and reading one silently yields `undefined`. The mappings now live in a directive-free `planner-presentation.ts`; never move them back. §5m records that reflection never asked for the career direction the matching and strategy reports score against, and that `goals` is a SHARED column — do not add a second career-goal column beside it. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -959,6 +959,239 @@ locked entry as inert dimmed text — it omits it from the bar entirely.
 `applicationSubNav()` still marks entries `locked` (so the data and the
 routing agree on what's reachable), `SubNav` is just the one place that
 decides whether a locked entry draws. | `src/features/ai-strategy-dashboard/api/load-evaluation.ts`, `src/features/ai-strategy-dashboard/ui/report-chrome.tsx`, `applicant-portrait.tsx`, `programme-fit-report.tsx`, `strategy-recommendation-report.tsx`, `strategy-recommendation-workspace.tsx`, `src/shared/ui/sub-nav.tsx`, `src/shared/lib/app-routes.ts` |
+
+## 5i. Fixed 2026-08-12 — do not re-introduce
+
+**Reported the same day, after the Matching-Report-as-start-page change made
+it far more likely a student would actually reach a Planner task**: "each of
+the planner tasks when we click into them don't load up" — a real recommendation
+detail page (`/strategy/recommendations/[recId]`) threw instead of rendering.
+
+**Root cause**: `recommendationFromRow`'s `parseContentBlock`/
+`parseContentBlockValue` (`src/features/ai-strategy-dashboard/domain/recommendation.ts`)
+only checked that the stored JSON's `type` field matched one of
+`'structured_table' | 'long_text' | 'checklist'` — despite their own doc
+comments claiming to be fully defensive, they let a `content_schema` like
+`{ type: 'structured_table' }` (no `columns`) or `{ type: 'checklist' }` (no
+`items`) straight through as a real, well-formed `ContentBlock`.
+`StructuredTableInput`/`ChecklistInput` (`content-block.tsx`) then called
+`.map()` on the missing array and crashed the whole detail page — server-side,
+since these client components are still SSR'd on first load, so the crash
+surfaced as the site's generic error page ("Something went off-orbit"), not a
+404. `normalizeContentBlock` (`src/lib/ai/match-insights.ts`) has always
+guaranteed a *freshly generated* block has a non-empty `columns`/`items`, so
+this only bit rows written before that guarantee existed, or a `content_value`
+saved against a `content_schema` that has since regenerated into a different
+shape (see `updateFields`'s note in `recommendation.ts` on why a regenerate
+never touches `content_value`) — exactly the "row written by a future/
+different shape" case the doc comments described but the code didn't
+actually check for.
+
+**Fix**: both parsers now validate the **full** shape via zod
+(`contentBlockSchema`, mirroring `normalizeContentBlock`'s own guarantees;
+`contentValueSchema` already existed for `PATCH`'s request body and is now
+reused for reads too), degrading to `null` on any malformed row instead of
+throwing. `null` already has a real, intentional meaning on this page — "no
+content block, the task is finished elsewhere" — so a malformed row now
+reads the same as a `null` one rather than crashing. | `src/features/ai-strategy-dashboard/domain/recommendation.ts` |
+
+## 5j. `ApplicationNavBackground` — a canvas animation confined to a real header has no room for full-strength text, and a flash must target one instance, not a whole row
+
+**Not a bug fix — a design constraint worth recording**, discovered building
+the header's kinetic-typography animation (`src/components/application-nav-background.tsx`)
+in two passes. The reference the owner supplied was designed for a fullscreen
+canvas with real empty space around the text; `ApplicationNav`'s actual
+header is two tightly-packed lines with no spare height.
+
+1. First pass drew the animation as a full-height backdrop behind the real
+   breadcrumb/nav text (matching the reference layout) but flashed an
+   entire tiled marquee row white at once. Confined to the real header, that
+   read as the whole line turning white directly under "Overview / Personal
+   Report / …" — unreadable. Shipped instead as a dedicated strip below the
+   header (PR #167).
+2. The owner asked for the animation to live inside the header's existing
+   bounds instead, and to follow the reference's full three-phase spec
+   (typing reveal + dual marquee + alignment flash), not the simplified
+   strip version. Porting the reference's own alignment math found the real
+   bug: it only ever highlights the ONE word instance whose position
+   matches the trigger (`Math.abs(x - targetX) < 2`), not the whole row —
+   the first pass's "whole row flashes" behaviour was never what the
+   reference did, it was an over-simplification introduced while adapting
+   it. Fixed to match per-instance, plus a low base-opacity pass
+   (`BASE_ALPHA`/`FLASH_PEAK_ALPHA`) — three lines of decorative text at
+   full strength directly behind two lines of real content is clutter at
+   this scale even without a flash bug.
+
+**Do not restore full-opacity multi-line text or whole-row flashes here** —
+both were tried, both failed the same way: outshining or crowding the real
+navigation. If this component grows a new phase or row, size it against the
+header's own measured height (`ResizeObserver`, not viewport dimensions) and
+keep highlights scoped to the single instance that triggered them.
+
+## 5k. `ApplicationNav` — a delayed background-fill layer painted after the canvas buries the animation instead of backing it
+
+Owner asked for three follow-on changes to §5j's animation: size the three
+words to actually fill the header's height (rather than the deliberately
+small text §5j settled on), restrict the boot line's flash to only its first
+two characters ("Go", never the repeated `o`s after it), and hold the brand-
+red fill plus the real breadcrumb/nav content back for ~3 seconds so a
+visitor sees the animation play against the page's own background before the
+chrome arrives (`gb-app-nav-reveal`, `src/styles/tokens.css`, `animation-delay:
+3s`).
+
+Implementing the delay introduced a real bug, caught only by pixel-sampling a
+screenshot (a compressed PNG alone reads as "the animation vanished after the
+red arrives" — the same false alarm §5j's build nearly repeated): the fill
+was added as a sibling `<div>` **after** `ApplicationNavBackground` in JSX.
+Plain elements with no `z-index` paint in DOM order, so once its fade-in
+finished it was a fully opaque `bg-brand` layer sitting *in front of* the
+canvas — not behind it. The animation kept running correctly the entire
+time; it was just being painted over.
+
+**The fill div must stay before the canvas in source order.** Correct stack,
+bottom to top: delayed red fill → `ApplicationNavBackground` canvas → delayed
+`Container` (breadcrumbs/nav). Before the 3s mark the fill is transparent, so
+the canvas shows against the page's own background; after, the fill is
+opaque red and the canvas draws on top of it, which is the point — the
+marquee should read as texture on the red, not as a flash of white against
+whatever the page happens to render before the header settles in.
+
+## 5l. Every Planner task detail page 500'd — a server component was calling functions exported from a `'use client'` module
+
+**This is the real cause of the "planner tasks don't load" report, and §5i was
+not it.** §5i fixed a genuine latent bug in `parseContentBlock` (a malformed
+`content_schema` crashing the genUI renderer), but that was never what students
+were hitting: the page threw before it could reach any content block.
+
+The task detail page
+(`app/ai-strategy/[applicationId]/strategy/recommendations/[recommendationId]/page.tsx`)
+is a server component. It imported `categoryLabel`, `categoryVariant`,
+`formatDate`, `PRIORITY_LABEL` and `PRIORITY_VARIANT` from the feature's `ui`
+barrel, which re-exported them from `planner-shared.tsx` — a `'use client'`
+module. A client module's exports do not reach a server component as values;
+they arrive as client references, and the two failure modes are asymmetric,
+which is exactly why this survived a fix attempt and a round of review:
+
+- **Calling one throws.** `categoryLabel(...)` → `Attempted to call
+  categoryLabel() from the server but categoryLabel is on the client. It's not
+  possible to invoke a client function from the server, it can only be
+  rendered as a Component or passed to props of a Client Component.` The page
+  renders `categoryVariant(rec.category)` whenever the task has a category, and
+  a generated recommendation essentially always does — so **every** task detail
+  page 500'd.
+- **Reading one does not throw.** `PRIORITY_VARIANT[rec.priority]` silently
+  evaluated to `undefined`, so the priority badge would have rendered with no
+  variant and an empty label. Silent, and invisible next to the crash.
+
+`dashboard-summary.tsx` (also a server component) had the same bug in a
+narrower form: it called `formatDate(deadline)` from the client module, so the
+Planner dashboard crashed for any application that had a deadline set and
+worked for any that did not.
+
+**The fix** is `planner-presentation.ts` — a plain module, no directive,
+holding the pure mappings and the date formatter. A module with no directive
+is usable from both graphs; `planner-shared.tsx` keeps only the React
+components and imports its mappings from next door. **Never move these back,
+and never add `'use client'` to `planner-presentation.ts`** — a component is
+safe to import across the boundary (it renders as a Client Component), a
+plain function or object is not.
+
+Guarded by `planner-presentation.test.tsx`. A unit test cannot reproduce the
+RSC boundary (vitest has one module graph), so it asserts the structural
+property instead: the module stays directive-free, the barrel points at it
+rather than at `planner-shared`, and `dashboard-summary.tsx` does not reach for
+the client module to get `formatDate`. The directive check verifies itself
+against `planner-shared.tsx` so it cannot quietly stop matching anything.
+
+**How to check this class of bug in future:** a `next build` will not catch it
+and neither will `tsc` — the types are identical either way, and the failure is
+at render. A throwaway server-component route under `src/app/dev/` that calls
+the suspect imports inside `try`/`catch` and prints the result reproduces it in
+seconds without needing a database row, which is how this one was found and
+confirmed fixed.
+
+## 5m. Reflection was never asked the questions the reports read — and `goals` is shared, not free
+
+**Not a crash — a silent quality problem**, found while acting on owner
+feedback about the reflection pages.
+
+`src/lib/ai/match-insights.ts` builds two of its prompt inputs from
+`student_profiles` columns that reflection never wrote:
+
+```
+careerDirection  ← career_interests / goals / target_subjects
+personalContext  ← the personal report's summary, else goals
+```
+
+and F7 scores every candidate direction on a `futureAlignment` dimension
+defined as "fit with the target programme and **career direction**". Reflection
+is the one flow every student completes, and it asked for none of it — so for
+anyone who never visited the separate `/profile` pages, the model was scoring
+future alignment against a blank and nothing anywhere said so. Three questions
+now fill it (career goal, why-this-subject, target intake).
+
+**⚠️ `goals` IS SHARED. DO NOT ADD A SECOND CAREER-GOAL COLUMN.** It is a base
+schema column that `supabase-strategy-personal-summary.sql` already repurposed
+as "Career goals" for the unified profile editor, and reflection's career-goal
+question writes to that same column deliberately. A second column for the same
+fact is how the reflection form and the profile editor end up showing a student
+two different answers to the same question. Only `study_motivation` (the reason
+for the choice, which is genuinely not the destination) and `target_intake`
+were added.
+
+**The PATCH degrades rather than failing.** `/api/reflection` retries the
+upsert without the two new columns on a `42703`/`PGRST204`, following the
+`migrationMissing()` pattern `match-insights/route.ts` established. This
+project has a standing habit of shipping code ahead of its migrations
+(§0d–§0f were all instances), and without the retry an unapplied
+`supabase-reflection-questions.sql` would cost a student their nationality,
+grades and budget — the whole step — over two optional answers.
+
+## 5n. Fixed 2026-08-13 — do not re-introduce
+
+**Reported in production**: confirming Candidate Information ("Confirm &
+Generate Reports") failed for a real student with "We could not confirm
+your information. Please try again." — `POST
+/api/candidate-information/confirm` returned `503`. The owner had already
+run `supabase-candidate-confirmation.sql` against the live Supabase project
+before reporting this, ruling out the migration-not-run explanation the 503
+message implied.
+
+**Root cause, and it's two bugs, not one.** (1) `supabase-candidate-
+confirmation.sql` created `confirmed_candidate_snapshots` with RLS enabled
+and only a `SELECT` policy — no `INSERT` policy. The confirm route inserts
+through the ordinary user-session client (`createClient()`, not
+`createAdminClient()`), because confirming is an action the signed-in
+student takes on their own profile, so RLS applies to that insert like any
+other write in this app. With no `INSERT` policy, RLS defaults to denying
+every insert, including the owner's own — Supabase returned `403`,
+Postgres code `42501` (`insufficient_privilege`), message `new row violates
+row-level security policy for table "confirmed_candidate_snapshots"`. (2)
+The route's own `migrationMissing()` classifier made the failure mode worse:
+it matched ANY error whose message contained the string
+`confirmed_candidate_snapshots` (meant to catch "relation does not exist"),
+and the RLS-violation message above happens to contain exactly that
+substring — so a genuine permission error was misclassified as "migration
+not run yet," returning the `503`/"try again shortly" that could never
+actually succeed on retry, since nothing about waiting or retrying grants
+the missing permission.
+
+**Fix**: added the missing `INSERT WITH CHECK (auth.uid() = user_id)`
+policy to `supabase-candidate-confirmation.sql` (idempotent — safe to
+re-run on a project that already has the table). Also narrowed
+`migrationMissing()` in `route.ts` to only match Postgres/PostgREST codes
+that actually mean "does not exist" (`42703`, `PGRST204`, `42P01`) or a
+message containing the phrase "does not exist" — no longer matches on a
+table/column name appearing anywhere in an unrelated error's message, so a
+future permission or constraint error surfaces as a real `500` instead of
+the misleading "come back later" `503`. New test asserts a `42501` RLS
+error returns `500`, not `503`.
+
+**If this is still failing after both fixes ship**: re-run
+`supabase-candidate-confirmation.sql` in the Supabase SQL editor (it is
+idempotent) to pick up the new policy — the code fix alone does not grant
+the missing database permission; the migration must actually be re-run.
+| `supabase-candidate-confirmation.sql`, `src/app/api/candidate-information/confirm/route.ts` |
 
 ## 6. Open questions for the designer / owner
 

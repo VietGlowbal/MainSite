@@ -1,6 +1,12 @@
 import type { Recommendation } from '../domain';
 import { completionPercent as computeCompletionPercent, nextPriority, taskCounts } from '../domain';
-import { formatDate, IconCircle } from './planner-shared';
+// `formatDate` must come from `planner-presentation` (a plain module), not
+// from `planner-shared` (`'use client'`) — this file is a server component,
+// and calling a client module's export from one throws at render. `IconCircle`
+// is fine to import from there: it is a component, so it renders as a Client
+// Component rather than being called. See `docs/known-issues.md §5l`.
+import { formatDate } from './planner-presentation';
+import { IconCircle } from './planner-shared';
 import { ICONS, KitIcon, Panel, ProgressBar, ScoreRing } from '@/shared/ui';
 
 /**

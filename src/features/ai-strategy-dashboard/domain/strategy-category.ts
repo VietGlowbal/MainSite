@@ -44,6 +44,10 @@ export const SEEDED_CATEGORIES: readonly StrategyCategory[] = [
   // No pillar on purpose — a CV carries academics, activities and impact at
   // once, so it is a workspace rather than a bucket of tasks.
   { key: 'cv-portfolio', label: 'CV / Portfolio', pillar: null, tool: 'cv' },
+  // No pillar either — these come from F7's Execution Roadmap
+  // (`recommendationsFromRoadmap` in `recommendation.ts`), which reasons
+  // across the whole strategy rather than one pillar at a time.
+  { key: 'strategy-roadmap', label: 'Strategy Roadmap', pillar: null, tool: null },
 ];
 
 export function categoryByPillar(pillar: PillarKey): StrategyCategory | undefined {

@@ -383,6 +383,14 @@ export type CvBuilderFormV1 = z.infer<typeof CvBuilderDraftFormSchema>;
 export type CvBuilderModelEvent = z.infer<typeof CvBuilderModelEventSchema>;
 export type CvFollowUpQuestion = z.infer<typeof CvFollowUpQuestionSchema>;
 export type CvTemplateId = 'academic' | 'technical' | 'leadership';
+export const CV_PUBLIC_TEMPLATES = ['academic', 'technical'] as const;
+export type CvPublicTemplateId = (typeof CV_PUBLIC_TEMPLATES)[number];
+
+export function parseCvPublicTemplate(value: unknown): CvPublicTemplateId | null {
+  return typeof value === 'string' && CV_PUBLIC_TEMPLATES.includes(value as CvPublicTemplateId)
+    ? (value as CvPublicTemplateId)
+    : null;
+}
 export type CvSectionTitleKey =
   | 'profile'
   | 'education'
