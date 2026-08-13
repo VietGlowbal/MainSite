@@ -31,6 +31,19 @@ export function ReflectionPreview({ step }: { step: 'about' | 'evidence' }) {
               level: 'Cấp thành phố',
               year: 2026,
               detail: 'Demo entry. Not a real student record.',
+              reviewStatus: 'reviewed',
+              sourceType: 'manual',
+            },
+            {
+              id: 'demo-3',
+              category: 'certification',
+              title: 'Demo — Example English Test 8.0',
+              organisation: 'Example Test Board',
+              year: 2025,
+              detail: 'Demo entry, showing an unreviewed AI-extracted card.',
+              reviewStatus: 'needs_review',
+              sourceType: 'document',
+              sources: [{ documentId: 'demo-doc', fileName: 'Demo_CV.pdf', page: 2 }],
             },
           ]}
           initialActivities={[
@@ -40,6 +53,16 @@ export function ReflectionPreview({ step }: { step: 'about' | 'evidence' }) {
               title: 'Demo peer tutoring programme',
               organisation: 'Example School',
               period: '2024 – 2026',
+              reviewStatus: 'reviewed',
+              sourceType: 'manual',
+            },
+          ]}
+          initialDocuments={[
+            {
+              id: 'demo-doc',
+              fileName: 'Demo_CV.pdf',
+              storageKey: '',
+              uploadedAt: new Date().toISOString(),
             },
           ]}
         />

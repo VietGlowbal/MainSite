@@ -11,6 +11,7 @@ export {
   EDUCATION_LEVEL_META,
   INTAKE_TERMS,
   INTENDED_LEVELS,
+  REVIEW_STATUSES,
   TUITION_BUDGETS_USD,
   VND_PER_USD,
   aboutYouSchema,
@@ -18,6 +19,7 @@ export {
   activitySchema,
   aspirationsSchema,
   evidenceSchema,
+  evidenceSourceSchema,
   parseBudgetBand,
   profileUpdateFromReflection,
   reflectionCompleteness,
@@ -130,21 +132,31 @@ export type {
   ActivityCategory,
   ActivityValues,
   AspirationsValues,
+  EvidenceSource,
   ReflectionProfileRow,
   ReflectionValues,
+  ReviewStatus,
   TuitionBudgetUsd,
 } from './reflection';
 export {
   applyEvidenceCandidates,
   evidenceCandidateSchema,
+  evidenceCandidateToItem,
   evidenceExtractionResponseSchema,
+  mergeDuplicate,
   validateEvidenceExtraction,
 } from './reflection-extraction';
 export type {
   EvidenceCandidate,
+  EvidenceDuplicate,
   EvidenceExtractionResponse,
   EvidenceSourcePage,
 } from './reflection-extraction';
+export {
+  ACHIEVEMENT_CATEGORY_ICON,
+  ACTIVITY_CATEGORY_ICON,
+  LEVEL_SUGGESTIONS,
+} from './achievement-catalog';
 export {
   MATCH_PROMPT_VERSION_V2,
   REPORT_PROMPT_VERSION,

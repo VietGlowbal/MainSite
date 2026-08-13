@@ -3736,4 +3736,82 @@ export const translations: Record<string, string> = {
     'Dán trang khóa học và chúng tôi sẽ theo dõi đây như một đơn ứng tuyển riêng, bên cạnh đơn bạn đã có tại đây.',
   'Adding…': 'Đang thêm…',
   'Add course': 'Thêm khóa học',
+
+  // Achievements & activities — the card-grid redesign of reflection step 2.
+  'We could not upload that file. Please try again.':
+    'Chúng tôi không thể tải tệp này lên. Vui lòng thử lại.',
+  'Most recent': 'Mới nhất',
+  Oldest: 'Cũ nhất',
+  'Achievement type': 'Loại thành tích',
+  'Reviewed first': 'Đã xem trước',
+  'Needs review first': 'Cần xem lại trước',
+  'Edit {title}': 'Chỉnh sửa {title}',
+  'Remove {title}': 'Xóa {title}',
+  'Extracted from {fileName}': 'Trích xuất từ {fileName}',
+  'Added manually': 'Được thêm thủ công',
+  'Please check this': 'Vui lòng kiểm tra mục này',
+  Reviewed: 'Đã xem lại',
+  'Possible duplicate': 'Có thể trùng lặp',
+  'Upload your achievements': 'Tải lên thành tích của bạn',
+  'Upload your CV or certificate PDFs and we’ll automatically extract your achievements.':
+    'Tải lên CV hoặc chứng chỉ PDF của bạn, chúng tôi sẽ tự động trích xuất thành tích.',
+  'Remove this document?': 'Xóa tài liệu này?',
+  'Achievements already saved to your profile will remain.':
+    'Các thành tích đã lưu vào hồ sơ của bạn sẽ vẫn được giữ lại.',
+  'Recently uploaded': 'Đã tải lên gần đây',
+  'You can upload multiple PDFs. Each file up to 10MB.':
+    'Bạn có thể tải lên nhiều tệp PDF. Mỗi tệp tối đa 10MB.',
+  Rename: 'Đổi tên',
+  Reprocess: 'Xử lý lại',
+  'Uploading {fileName}': 'Đang tải lên {fileName}',
+  'Finding achievements…': 'Đang tìm thành tích…',
+  '{count} achievements found': 'Tìm thấy {count} thành tích',
+  'We’ve extracted achievements from your document.':
+    'Chúng tôi đã trích xuất thành tích từ tài liệu của bạn.',
+  'We couldn’t find any clear achievements in this document.':
+    'Chúng tôi không tìm thấy thành tích rõ ràng nào trong tài liệu này.',
+  'Add one manually': 'Thêm thủ công',
+  'We couldn’t read that document. Try uploading another copy.':
+    'Chúng tôi không thể đọc tài liệu này. Hãy thử tải lên một bản khác.',
+  'Review achievements ({count})': 'Xem lại thành tích ({count})',
+  'No academic achievements yet': 'Chưa có thành tích học thuật nào',
+  'Upload a CV or certificate, or add one manually.':
+    'Tải lên CV hoặc chứng chỉ, hoặc thêm thủ công.',
+  'Remove this achievement?': 'Xóa thành tích này?',
+  'This will remove it from your GlowBal profile, but not from your uploaded document.':
+    'Thao tác này sẽ xóa mục này khỏi hồ sơ GlowBal của bạn, nhưng không xóa khỏi tài liệu đã tải lên.',
+  'No extracurricular activities yet': 'Chưa có hoạt động ngoại khóa nào',
+  'Upload a document or add an activity manually.':
+    'Tải lên tài liệu hoặc thêm hoạt động thủ công.',
+  'Remove this activity?': 'Xóa hoạt động này?',
+  'You still have {count} extracted achievements to review.':
+    'Bạn vẫn còn {count} thành tích được trích xuất cần xem lại.',
+  'Review first': 'Xem lại trước',
+  'Finish anyway': 'Vẫn hoàn tất',
+  'File name': 'Tên tệp',
+  'Save changes': 'Lưu thay đổi',
+  '{count} possible duplicates': '{count} mục có thể trùng lặp',
+  '“{title}” looks like it might already be on your profile as “{existing}”.':
+    '“{title}” có vẻ đã có trong hồ sơ của bạn dưới tên “{existing}”.',
+  'Keep both': 'Giữ cả hai',
+  Merge: 'Gộp lại',
+  'Academic Award / Prize': 'Giải thưởng / Phần thưởng học thuật',
+  Competition: 'Cuộc thi',
+  'Publication / Research': 'Xuất bản / Nghiên cứu',
+  Certification: 'Chứng chỉ',
+  'Volunteering / Community Service': 'Tình nguyện / Hoạt động cộng đồng',
+  'Project / Entrepreneurship': 'Dự án / Khởi nghiệp',
+  Mentoring: 'Cố vấn / Hướng dẫn',
+  'Edit achievement': 'Chỉnh sửa thành tích',
+  'Edit activity': 'Chỉnh sửa hoạt động',
+  Title: 'Tiêu đề',
+  'Organisation / project': 'Tổ chức / dự án',
+  Period: 'Giai đoạn',
+  Description: 'Mô tả',
+  'What would you like to add?': 'Bạn muốn thêm gì?',
+  'Academic achievement': 'Thành tích học thuật',
+  'Extracurricular activity': 'Hoạt động ngoại khóa',
+  'All extracted achievements reviewed': 'Đã xem lại tất cả thành tích được trích xuất',
+  'Review achievements': 'Xem lại thành tích',
+  '{current} of {total}': '{current} / {total}',
 };
