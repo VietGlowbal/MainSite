@@ -37,6 +37,20 @@ export function Modal({
 }) {
   const panelRef = useRef<HTMLDivElement | null>(null);
 
+  // `onClose` is almost never memoized by callers (most pass an inline
+  // `() => setX(null)`, or — like a form with its own dirty-check — a
+  // function whose identity depends on render-local state). Reading it
+  // through a ref updated every render, rather than closing over the prop
+  // directly, is what lets the effect below key ONLY on `open`: without
+  // this, every caller whose `onClose` identity changes for any reason
+  // re-ran the effect on every one of those renders, re-focusing the
+  // panel's first focusable element — which yanked focus away from
+  // whatever a user was actively typing into, mid-word.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
 
@@ -50,7 +64,7 @@ export function Modal({
     target?.focus();
 
     function onKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose();
+      if (event.key === 'Escape') onCloseRef.current();
     }
     document.addEventListener('keydown', onKeyDown);
 
@@ -62,7 +76,7 @@ export function Modal({
       document.body.style.overflow = previousOverflow;
       opener?.focus();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
