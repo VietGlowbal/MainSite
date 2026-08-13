@@ -20,7 +20,7 @@ export { EnglishQuestion, GpaQuestion } from './score-input';
 export { IntakePicker } from './intake-picker';
 export { SearchableMultiSelectGrid } from './searchable-grid';
 export type { GridItem } from './searchable-grid';
-export { PersonalReportView } from './personal-report-view';
+export { PersonalReportV2View } from './personal-report-v2-view';
 export { MatchingReportView } from './matching-report-view';
 export { ResearchProgress, ResearchingInline } from './research-progress';
 export { AchievementCard, ActivityCard } from './achievement-cards';

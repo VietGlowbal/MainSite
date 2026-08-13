@@ -31,7 +31,7 @@ export default async function ReviewConfirmPage({
 
   const { reflection, documents, confirmedAt } = await loadCandidateReflection(supabase, user.id);
 
-  if (confirmedAt) redirect(returnTo || '/ai-strategy/report');
+  if (confirmedAt) redirect(returnTo || '/ai-strategy/personal-report');
 
   const readiness = candidateReadiness(reflection);
 

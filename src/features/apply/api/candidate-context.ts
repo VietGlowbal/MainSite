@@ -30,6 +30,16 @@ const PROFILE_FIELDS = [
   'gpa_value',
   'funding_source',
   'tuition_budget_usd',
+  /*
+   * Added for the Personal Report rebuild (F1 Driving Force needs "when do
+   * you want to start" and "why this subject" — see reflection-steps.ts's
+   * ABOUT_QUESTIONS). Missing here meant every reader of this context,
+   * including the Matching Report, could not see either answer even though
+   * both are collected in step 1 of reflection.
+   */
+  'target_intake',
+  'study_motivation',
+  'subject_motivations',
 ] as const;
 
 function trimText(value: unknown, max = 1200): unknown {

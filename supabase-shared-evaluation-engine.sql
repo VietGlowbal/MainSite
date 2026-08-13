@@ -74,3 +74,44 @@ CREATE INDEX IF NOT EXISTS idx_applicant_analyses_input_hash
 --   SELECT column_name, data_type FROM information_schema.columns
 --    WHERE table_name = 'applicant_analyses'
 --      AND column_name IN ('structured_evaluation', 'evaluation_engine_version', 'input_hash');
+
+
+-- ============================================================================
+-- Personal Report v2 — the canonical six-section report's own rendering
+-- ----------------------------------------------------------------------------
+-- Additive. `structured_evaluation`/`evaluation_engine_version` above already
+-- store the raw ProfileEvaluation; this column stores the SIX-SECTION
+-- rendering of it (src/features/apply/domain/personal-report.ts's
+-- `PersonalReportV2`) that the new /ai-strategy/personal-report route and
+-- view read directly, so a page load never has to re-run
+-- `buildPersonalReport` over the stored evaluation just to render.
+--
+-- The legacy `report` column (personal-report-v1-vi, the old six-tab
+-- narrative shape) is left in place and untouched — see docs/ai-evaluation-
+-- engine.md and the Personal Report rebuild notes for why that
+-- implementation is deprecated rather than dropped outright.
+-- ============================================================================
+
+ALTER TABLE public.student_personal_reports
+  ADD COLUMN IF NOT EXISTS report_v2 JSONB,
+  ADD COLUMN IF NOT EXISTS report_v2_generated_at TIMESTAMPTZ;
+
+-- `report` and `prompt_version` are v1-shape-specific (PersonalReport /
+-- personal-report-v1-vi) and NOT NULL from the original migration. The v2
+-- pipeline writes `report_v2` instead and leaves these two null on new rows
+-- — relaxing the constraint is what makes that legal. `input_hash` and
+-- `model_name` are reused as-is by v2 (they were never v1-shaped, just
+-- generically named), so they stay NOT NULL.
+ALTER TABLE public.student_personal_reports
+  ALTER COLUMN report DROP NOT NULL,
+  ALTER COLUMN prompt_version DROP NOT NULL;
+
+COMMENT ON COLUMN public.student_personal_reports.report_v2 IS
+  'PersonalReportV2 (src/features/apply/domain/personal-report.ts) — the six '
+  'canonical sections (Core Identity, Driving Force, Signature Pattern, '
+  'Emerging Themes, Personal Positioning, Proof of Me) rendered from '
+  'structured_evaluation. The v1 report/prompt_version columns are the '
+  'superseded implementation, kept for rollback only.';
+COMMENT ON COLUMN public.student_personal_reports.report_v2_generated_at IS
+  'When report_v2 was built. Separate from generated_at, which the v1 '
+  'pipeline still writes on every request (cache-hit or not).';

@@ -341,7 +341,7 @@ export function ReflectionEvidenceForm({
       // information before reports are generated — carrying the same
       // eventual destination through as `return` so confirming sends the
       // student on to exactly where this step used to.
-      const confirmReturn = returnTo || '/ai-strategy/report';
+      const confirmReturn = returnTo || '/ai-strategy/personal-report';
       router.push(`/ai-strategy/reflection/confirm?return=${encodeURIComponent(confirmReturn)}`);
     } catch {
       setError(t('We could not save that. Please try again.'));
