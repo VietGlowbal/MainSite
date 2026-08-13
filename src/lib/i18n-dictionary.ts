@@ -3871,4 +3871,54 @@ export const translations: Record<string, string> = {
   'This locks your candidate information exactly as shown and begins generating your reports. You will not be able to edit it afterwards without contacting GlowBal Support.':
     'Thao tác này sẽ khóa thông tin ứng viên của bạn đúng như hiển thị và bắt đầu tạo báo cáo. Bạn sẽ không thể chỉnh sửa sau đó nếu không liên hệ Hỗ trợ GlowBal.',
   'Confirming…': 'Đang xác nhận…',
+
+  // Edit achievement / edit activity — the large two-column editor.
+  'Add academic achievement': 'Thêm thành tích học thuật',
+  'Add extracurricular activity': 'Thêm hoạt động ngoại khóa',
+  'Edit academic achievement': 'Chỉnh sửa thành tích học thuật',
+  'Edit extracurricular activity': 'Chỉnh sửa hoạt động ngoại khóa',
+  'Add a new academic achievement to your profile.':
+    'Thêm một thành tích học thuật mới vào hồ sơ của bạn.',
+  'Add a new extracurricular activity to your profile.':
+    'Thêm một hoạt động ngoại khóa mới vào hồ sơ của bạn.',
+  'Update the details of this achievement. All changes will be saved to your profile.':
+    'Cập nhật chi tiết của thành tích này. Mọi thay đổi sẽ được lưu vào hồ sơ của bạn.',
+  'Close editor': 'Đóng trình chỉnh sửa',
+  'Select the category that best describes this achievement.':
+    'Chọn danh mục mô tả đúng nhất thành tích này.',
+  'Select the category that best describes this activity.':
+    'Chọn danh mục mô tả đúng nhất hoạt động này.',
+  'Activity title': 'Tên hoạt động',
+  'Enter the full name of your achievement.': 'Nhập tên đầy đủ của thành tích.',
+  'Enter the full name of your activity.': 'Nhập tên đầy đủ của hoạt động.',
+  'Name of the competition, program or organisation.': 'Tên cuộc thi, chương trình hoặc tổ chức.',
+  'The body or institution that organised this achievement.':
+    'Cơ quan hoặc tổ chức đã tổ chức thành tích này.',
+  'Name of the club, school or organisation, if any.':
+    'Tên câu lạc bộ, trường học hoặc tổ chức (nếu có).',
+  'Choose the level of this achievement.': 'Chọn cấp độ của thành tích này.',
+  'Select a level': 'Chọn cấp độ',
+  'Not applicable': 'Không áp dụng',
+  'Describe the level': 'Mô tả cấp độ',
+  'Year you received or achieved this award.': 'Năm bạn nhận hoặc đạt được giải thưởng này.',
+  'Select a year': 'Chọn năm',
+  'When this activity started, and ended if it has — "Present" for ongoing.':
+    'Thời gian hoạt động bắt đầu, và kết thúc nếu đã kết thúc — dùng "Present" nếu vẫn đang diễn ra.',
+  'Enter an achievement name.': 'Vui lòng nhập tên thành tích.',
+  'Enter an activity title.': 'Vui lòng nhập tên hoạt động.',
+  'Add a short description.': 'Vui lòng thêm mô tả ngắn.',
+  'Choose the year you received this award.': 'Chọn năm bạn nhận được giải thưởng này.',
+  'Provide a brief description of your achievement and its significance.':
+    'Cung cấp mô tả ngắn gọn về thành tích của bạn và ý nghĩa của nó.',
+  'Describe what you did, your responsibilities and any impact or outcome.':
+    'Mô tả những gì bạn đã làm, trách nhiệm của bạn và bất kỳ tác động hoặc kết quả nào.',
+  'Discard changes?': 'Hủy các thay đổi?',
+  'You have unsaved changes.': 'Bạn có thay đổi chưa được lưu.',
+  'Keep editing': 'Tiếp tục chỉnh sửa',
+  Discard: 'Hủy bỏ',
+  'Local / City level': 'Cấp địa phương / thành phố',
+  'Regional level': 'Cấp khu vực',
+  'University level': 'Cấp đại học',
+  'Community level': 'Cấp cộng đồng',
+  'Organisation level': 'Cấp tổ chức',
 };
