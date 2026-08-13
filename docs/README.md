@@ -1,10 +1,10 @@
 # docs/ — project context and session handoff
 
-Reconciled with `main` at `de4a7fe` on **2026-08-06** so a fresh coding session
-can recover the current implementation, the latest completed work, its impact,
-and the verification state without re-deriving them. If these files contradict
-the code, the code wins. Point-in-time plans and audits are labelled as such and
-must not be mistaken for a live status board.
+Routing guidance refreshed on **2026-08-13** so a fresh coding session can find
+the current implementation, latest completed work, impact, and verification
+state without re-deriving them. If these files contradict the code, the code
+wins. Point-in-time plans and audits are labelled as such and must not be
+mistaken for a live status board.
 
 The durable handoff is [current-status.md](current-status.md). Update it after
 material work; keep detailed design history in the topic-specific documents.
@@ -31,9 +31,13 @@ material work; keep detailed design history in the topic-specific documents.
 
 ## Read order
 
+Use this table as a router: load the smallest set of documents needed for the
+task. Search the durable status file for the affected feature instead of reading
+unrelated history end to end.
+
 | File | Read it when |
 |---|---|
-| [current-status.md](current-status.md) | **Always first.** Current commit, latest work and impact, implemented surfaces, verification, risks, and resume point. |
+| [current-status.md](current-status.md) | Search first for the affected feature, recent work, verification, risks, and resume point. Read it end to end only for broad audits or session handoffs. |
 | [redesign-status.md](redesign-status.md) | When changing a route or comparing it with Figma. It is the route/frame decision ledger, not the primary current-status file. |
 | [known-issues.md](known-issues.md) | Before touching `/universities`, `/my-universities`, `/mentors`, saving, auth — **or any `supabase-*.sql` file**. §0 is the migration trap; §1b is the mentorship RLS gap. |
 | [design-system.md](design-system.md) | Before writing any component. Token names, the primitives that already exist. |
