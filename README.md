@@ -60,7 +60,7 @@ npm run dev
 
 ## Pull-request verification
 
-Use Node 20.20.2 (declared in `.node-version` and `.nvmrc`). GitHub Actions runs
+Use Node 24.19.0 (declared in `.node-version` and `.nvmrc`). GitHub Actions runs
 the complete verification gate for pull requests. You can run the same gate
 manually before opening or updating a pull request:
 

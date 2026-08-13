@@ -32,21 +32,18 @@ merged cleanly, passed typecheck, and still failed on Vercel with
 the other side's imports. Neither `tsc --noEmit` on the pre-merge tree nor the
 tests caught it. Run the build after every merge, not only before a PR.
 
-Current measured local snapshot (Node 20.20.2):
+Current measured local snapshot (Node 24.19.0):
 
-The 2026-08-14 logo-reconciliation pass ran both typechecks, focused tests and
-lint, and a production build. A full `npm test` run reached **1,982 pass / 2
-todo** across 194 passing files; the only failure was the real i18n checker
-crossing its 5-second test timeout under parallel load (5.74s). The same test
-passed alone in 2.26s. This is recorded as a timed-out full-suite run, not as a
-green full-suite claim.
+The 2026-08-14 Node 24.19.0 runtime alignment ran the complete
+`npm run verify:pr` gate after the logo-reconciliation work. The aggregate gate
+passed in 248 seconds.
 
-| Gate | 2026-08-13 result |
+| Gate | 2026-08-14 result |
 |---|---|
 | Lint | **Pass:** 0 errors, 23 warnings. |
 | Base typecheck | **Pass.** |
 | Strict typecheck | **Pass.** |
-| Vitest | **1972 pass / 2 todo** across **192 passing** files; coverage enabled. |
+| Vitest | **1983 pass / 2 todo** across **195 passing** files; coverage enabled. |
 | Build | **Pass:** Next.js 16.2.3 production build completed. Placeholder Supabase fetches and the existing NFT trace warning were non-fatal. |
 | E2E | Not rerun in the docs refresh. |
 
