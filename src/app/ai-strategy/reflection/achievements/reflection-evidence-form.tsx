@@ -335,7 +335,14 @@ export function ReflectionEvidenceForm({
         return;
       }
 
-      router.push(returnTo || '/ai-strategy/report');
+      // The step used to hand off straight to `returnTo` (normally the
+      // analysis gate) or the standalone report page. It now always goes
+      // through Review & Confirm first — the checkpoint that locks candidate
+      // information before reports are generated — carrying the same
+      // eventual destination through as `return` so confirming sends the
+      // student on to exactly where this step used to.
+      const confirmReturn = returnTo || '/ai-strategy/report';
+      router.push(`/ai-strategy/reflection/confirm?return=${encodeURIComponent(confirmReturn)}`);
     } catch {
       setError(t('We could not save that. Please try again.'));
       setSaving(false);
@@ -553,7 +560,7 @@ export function ReflectionEvidenceForm({
                 {t('Review first')}
               </Button>
               <Button type="button" onClick={() => void handleSubmit()}>
-                {t('Finish anyway')}
+                {t('Continue anyway')}
               </Button>
             </div>
           </div>
@@ -575,7 +582,7 @@ export function ReflectionEvidenceForm({
                 void handleSubmit();
               }}
             >
-              {saving ? t('Saving…') : t('Finish')}
+              {saving ? t('Saving…') : t('Review & Confirm')}
             </Button>
           </div>
         )}

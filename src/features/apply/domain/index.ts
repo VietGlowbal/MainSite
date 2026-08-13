@@ -111,10 +111,11 @@ export {
   REFLECTION_STEPS,
   REFLECTION_STEP_COUNT,
   aboutQuestionProgress,
+  reflectionBlockingIssues,
   reflectionProgress,
   reflectionStep,
 } from './reflection-steps';
-export type { AboutQuestionKey, ReflectionStepKey } from './reflection-steps';
+export type { AboutQuestionKey, BlockingIssue, ReflectionStepKey } from './reflection-steps';
 export {
   courseUrlLabel,
   displayCourseName,
@@ -157,6 +158,15 @@ export {
   ACTIVITY_CATEGORY_ICON,
   LEVEL_SUGGESTIONS,
 } from './achievement-catalog';
+export {
+  candidateReadiness,
+  candidateSnapshotPayloadSchema,
+} from './confirmation';
+export type {
+  CandidateReadiness,
+  CandidateSnapshotDocument,
+  CandidateSnapshotPayload,
+} from './confirmation';
 export {
   MATCH_PROMPT_VERSION_V2,
   REPORT_PROMPT_VERSION,

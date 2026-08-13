@@ -16,7 +16,14 @@
  * ORDER. Personal and study information first, achievements second: the second
  * is the long one, and asking for a nationality before an Olympiad placing is
  * the gentler ramp.
+ *
+ * Review & Confirm, after both steps, is not a third step of this counter —
+ * it shows the same "2/2" the achievements page already ends on, not "3/3".
+ * It is a checkpoint over the two steps' answers, not a question-answering
+ * screen with its own share of the bar.
  */
+
+import type { AboutYouValues, AspirationsValues } from './reflection';
 
 export const REFLECTION_STEPS = [
   {
@@ -191,4 +198,48 @@ export const ABOUT_QUESTION_COUNT = ABOUT_QUESTIONS.length;
 export function aboutQuestionProgress(index: number): number {
   const clamped = Math.min(Math.max(index, 0), ABOUT_QUESTION_COUNT);
   return (clamped / ABOUT_QUESTION_COUNT) * (1 / REFLECTION_STEP_COUNT);
+}
+
+/** One question blocking Review & Confirm, and where to send the student to fix it. */
+export type BlockingIssue = { key: AboutQuestionKey; message: string };
+
+/**
+ * The four required questions, checked wherever "is this student ready to
+ * continue" needs answering — `reflection-about-form.tsx`'s own Next-button
+ * gate, and now the Review & Confirm page and its server-side confirm route.
+ *
+ * Pulled out of `reflection-about-form.tsx`'s private `questionError` (which
+ * still delegates here) so the confirm route can run the identical check
+ * server-side rather than trusting the client's own validation — a student
+ * who edits the request directly must not be able to confirm past a
+ * genuinely unanswered required question.
+ */
+export function reflectionBlockingIssues(
+  values: Pick<
+    AboutYouValues & AspirationsValues,
+    'majors' | 'countries' | 'countryPreferenceFlexible' | 'intendedLevel' | 'intake'
+  >,
+): BlockingIssue[] {
+  const issues: BlockingIssue[] = [];
+
+  if (values.majors.length === 0) {
+    issues.push({ key: 'majors', message: 'Choose at least one subject you’re interested in.' });
+  }
+  if (values.countries.length === 0 && values.countryPreferenceFlexible !== true) {
+    issues.push({
+      key: 'countries',
+      message: 'Choose at least one destination or tell us you’re open to suggestions.',
+    });
+  }
+  if (values.intendedLevel === undefined) {
+    issues.push({
+      key: 'intendedLevel',
+      message: 'Choose the level of study you’re currently considering.',
+    });
+  }
+  if (values.intake === undefined) {
+    issues.push({ key: 'targetIntake', message: 'Choose when you would like to start.' });
+  }
+
+  return issues;
 }

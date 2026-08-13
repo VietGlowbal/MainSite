@@ -17,9 +17,10 @@ import { PATCH } from './route';
 
 type UpsertCall = { table: string; value: Record<string, unknown> };
 
-function buildSupabase(options: { authed?: boolean } = {}) {
+function buildSupabase(options: { authed?: boolean; confirmedAt?: string | null } = {}) {
   const upserts: UpsertCall[] = [];
   const authed = options.authed ?? true;
+  const confirmedAt = options.confirmedAt ?? null;
 
   function makeBuilder(table: string) {
     const builder: Record<string, unknown> = {
@@ -30,6 +31,12 @@ function buildSupabase(options: { authed?: boolean } = {}) {
         upserts.push({ table, value });
         return { error: null };
       },
+      select: () => builder,
+      // Only `student_profiles.select('confirmed_at').eq(...).maybeSingle()`
+      // (the lock check) calls this; every other read path in the route
+      // uses `then`/`insert`/`upsert`, which do not go through it.
+      maybeSingle: async () =>
+        table === 'student_profiles' ? { data: { confirmed_at: confirmedAt }, error: null } : { data: null, error: null },
       then: (onFulfilled: (v: unknown) => unknown) => Promise.resolve({ error: null }).then(onFulfilled),
     };
     return builder;
@@ -111,5 +118,25 @@ describe('PATCH /api/reflection', () => {
 
     const response = await PATCH(request({ achievements: [{ title: '' }] }));
     expect(response.status).toBe(400);
+  });
+
+  it('rejects an edit once the profile has been confirmed', async () => {
+    const { supabase, upserts } = buildSupabase({ confirmedAt: '2026-08-13T10:00:00Z' });
+    createClientMock.mockResolvedValue(supabase);
+
+    const response = await PATCH(request({ about: { majors: [], countries: [] } }));
+    const body = await response.json();
+
+    expect(response.status).toBe(423);
+    expect(body.error).toBe('PROFILE_LOCKED');
+    expect(upserts).toHaveLength(0);
+  });
+
+  it('allows an edit when confirmed_at is not set', async () => {
+    const { supabase } = buildSupabase({ confirmedAt: null });
+    createClientMock.mockResolvedValue(supabase);
+
+    const response = await PATCH(request({ about: { majors: [], countries: [] } }));
+    expect(response.status).toBe(200);
   });
 });
