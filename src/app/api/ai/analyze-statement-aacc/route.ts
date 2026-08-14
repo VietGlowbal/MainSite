@@ -34,6 +34,7 @@ import { VINUNI_DEMO_APPLICATION_ID } from '@/lib/ai/vinuni-evaluation-shared';
 const MIN_LENGTH = 200;
 const MAX_LENGTH = 15_000;
 const MAX_PROMPT_LENGTH = 2_000;
+const GROUNDED_PIPELINE_ENABLED = true;
 const V2_SECTION_KEYS = new Set<VinUniRequestedSection>([
   'A',
   'B',
@@ -49,8 +50,7 @@ export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const applicationId =
     typeof body?.applicationId === 'string' ? body.applicationId.trim() : '';
-  const useV2 =
-    process.env.VINUNI_ESSAY_PIPELINE_VERSION === 'v2' && Boolean(applicationId);
+  const useV2 = Boolean(applicationId);
   const isDemoId = applicationId === VINUNI_DEMO_APPLICATION_ID;
   const isLocalDemo = useV2 && isDemoId && process.env.NODE_ENV === 'development';
 
@@ -175,7 +175,7 @@ export async function POST(request: Request) {
     }
   }
 
-  if (process.env.VINUNI_GROUNDED_PIPELINE_ENABLED === 'true') {
+  if (GROUNDED_PIPELINE_ENABLED) {
     if (!useV2 && !VINUNI_EVALUATION_CONFIG) {
       return NextResponse.json(
         { error: 'Grounded VinUni evaluation is not configured yet.' },
