@@ -1350,6 +1350,61 @@ Continue button anywhere in the flow to land on.
 
 | `src/shared/lib/app-routes.ts`, `src/components/application-nav.tsx`, `src/features/ai-strategy-dashboard/domain/onboarding.ts`, `src/app/ai-strategy/reflection/confirm/page.tsx`, `src/app/ai-strategy/reflection/confirm/review-confirm-view.tsx`, `src/app/ai-strategy/reflection/page.tsx`, `src/app/ai-strategy/reflection/confirmed-reflection-view.tsx`, `src/app/ai-strategy/reflection/achievements/page.tsx`, `src/app/ai-strategy/reflection/achievements/confirmed-achievements-view.tsx` |
 
+## 5r. Deleting an application leaves its reports/tasks/CV+statement work behind — migration written, NOT YET CONFIRMED RUN
+
+**Reported live 2026-08-14**: "the delete for an application isn't working as when an application is deleted, all the other elements outside the direct application (including reports) are kept."
+
+`DELETE /api/applications/[id]` (`src/app/api/applications/[id]/route.ts`) has
+always been, deliberately, a single `DELETE FROM course_applications` with
+nothing else — its own doc comment says every child table is `ON DELETE
+CASCADE`, and every one of this repo's `supabase-*.sql` files DOES declare
+that on every table that stores per-application data (`application_stages`,
+`application_tasks`, `application_requirements`, `application_sources`,
+`application_match_analyses`, `application_recommendations`,
+`application_events`, `applicant_analyses`,
+`application_strategy_recommendations`, `application_strategies`,
+`application_lor_strategies`, and the CV/statement/coach tables one level
+further down via `application_strategies`/`application_recommendations`). On
+paper this should already work.
+
+**Root cause: the exact trap §0 already cost the owner four re-runs over.**
+`CREATE TABLE IF NOT EXISTS` is a no-op against a table that already exists;
+editing a `CREATE TABLE` statement's `ON DELETE` clause after the table has
+already been created in production does nothing to the live constraint. If
+any of these tables were first created before their file's `CASCADE` clause
+was written — plausible across 60 migration files iterated on over many
+sessions — production is still enforcing whatever delete rule (typically `NO
+ACTION`) the table had on day one, regardless of what the `.sql` file says
+today. Verifying this needed live `information_schema` access this session
+did not have (no `SUPABASE_SERVICE_ROLE_KEY` in the sandbox, the same
+recurring limitation noted throughout this file) — the fix below does not
+depend on knowing in advance which tables actually drifted.
+
+**Fix**: `supabase-application-cascade-repair.sql` — for each (child table,
+FK column, parent table) triple, looks up the ACTUAL constraint by name via
+`information_schema` (not a guessed name), drops it, and re-adds an
+identical one with `ON DELETE CASCADE` — a genuine no-op wherever the
+constraint was already correct, a real repair wherever it was not. Before
+tightening each constraint it also deletes any row already orphaned by the
+drift (a child row whose `application_id`/`strategy_id`/etc. no longer
+points at an existing parent) — otherwise `ADD CONSTRAINT` fails outright the
+moment a single past buggy delete has already left one behind, and leaving
+those rows in the database is the exact "keep our databases clean" complaint
+this migration exists to fix. Only touches tables that exist in the target
+environment, so it is safe regardless of which optional migrations have been
+applied, and safe to run repeatedly. `confirmed_candidate_snapshots` and
+`personal_statements` are deliberately excluded — their `application_id` FK
+is `ON DELETE SET NULL` by design (a statement or a confirmation snapshot
+stays the student's own even once the application it was drafted for is
+gone), not a bug.
+
+⚠️ **Action required in production — this migration has NOT been confirmed
+run.** Until it is, deleting an application will keep leaving orphaned rows
+in these tables (invisible in the app, since every read filters by
+`application_id`, but present in the database).
+
+| `supabase-application-cascade-repair.sql` |
+
 ## 6. Open questions for the designer / owner
 
 1. **The sitemap frame (`123:2864`, "Dg-final") no longer exists in the file.**
