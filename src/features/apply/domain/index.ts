@@ -201,10 +201,20 @@ export type {
   PersonalReportTrigger,
   PersonalReportV2,
   PersonalReportVersionSummary,
+  PositioningDimensionKey,
   ProofCard,
   ProofOfMeSection,
   ReportConfidence,
+  ReportOverallSummary,
+  ReportOverview,
   SignaturePatternSection,
   SignaturePatternStep,
   SignaturePatternStepKey,
 } from './personal-report';
+export type {
+  PersonalReportAnalytics,
+  PositioningDimension,
+  ReportChartMetric,
+  SignaturePatternSupportItem,
+  ThemeChartItem,
+} from './personal-report-analytics';
