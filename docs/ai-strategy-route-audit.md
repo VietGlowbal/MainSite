@@ -23,7 +23,7 @@ This document records the route consolidation performed with the Personal Report
 | --- | --- | --- | --- |
 | `/ai-strategy/report` | Old user-level Personal Report V1 | REDIRECT | `/ai-strategy/personal-report` |
 | `/ai-strategy/[applicationId]/strategy/analysis/portrait` | Application-scoped Applicant Portrait incorrectly labelled as Personal Report | REDIRECT | `/ai-strategy/personal-report` |
-| `/ai-strategy/matching/[applicationId]` | Older Matching Report surface | LEGACY / retire during F5 phase | `/ai-strategy/[applicationId]/matching-report` |
+| `/ai-strategy/matching/[applicationId]` | Older Matching Report surface | REDIRECT | `/ai-strategy/[applicationId]/matching-report` |
 | `/ai-strategy/[applicationId]/strategy/analysis/fit` | Newer Programme Fit view | REDIRECT | `/ai-strategy/[applicationId]/matching-report` |
 | `/ai-strategy/[applicationId]/strategy/analysis/recommendation` | Personalized Strategy report | REDIRECT | `/ai-strategy/[applicationId]/strategy-report` |
 | `/ai-strategy/[applicationId]/strategy/dashboard` | Planner / recommendation dashboard | REDIRECT | `/ai-strategy/[applicationId]/planner` |
