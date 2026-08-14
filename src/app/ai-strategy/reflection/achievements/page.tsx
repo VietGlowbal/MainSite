@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
+import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
+import { confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
 import { applicationIdFromPath } from '@/shared/lib';
 import { ReflectionChrome } from '../../reflection-chrome';
 import { ApplicationNavFromReturn } from '../application-nav-from-return';
@@ -45,6 +47,15 @@ export default async function ReflectionAchievementsPage({
     applicationId,
   );
 
+  const continueHref = confirmedAt
+    ? applicationId
+      ? confirmedReflectionContinueHref(
+          applicationId,
+          (await fetchOnboardingState(supabase, user.id, applicationId)).aiAnalysisComplete,
+        )
+      : returnTo
+    : undefined;
+
   return (
     <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
       {confirmedAt ? (
@@ -53,7 +64,7 @@ export default async function ReflectionAchievementsPage({
           activities={reflection.activities}
           documents={documents}
           confirmedAt={confirmedAt}
-          returnTo={returnTo}
+          continueHref={continueHref}
         />
       ) : (
         <ReflectionEvidenceForm

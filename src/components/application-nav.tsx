@@ -94,6 +94,7 @@ export async function ApplicationNav({
     strategyReady: state.strategyComplete,
     // The planner is the last step; anything earlier and the route redirects.
     plannerReady: step === 'dashboard',
+    candidateConfirmed: state.candidateConfirmed,
   });
 
   return (

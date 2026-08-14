@@ -59,7 +59,7 @@ function ReviewSection({
 }: {
   title: string;
   editLabel: string;
-  editHref: string;
+  editHref?: string | undefined;
   children: React.ReactNode;
 }) {
   return (
@@ -67,9 +67,11 @@ function ReviewSection({
       <PanelHeader
         title={title}
         action={
-          <Button href={href} variant="secondary" size="sm">
-            {editLabel}
-          </Button>
+          href ? (
+            <Button href={href} variant="secondary" size="sm">
+              {editLabel}
+            </Button>
+          ) : undefined
         }
       />
       <div className="grid gap-gb-lg sm:grid-cols-2">{children}</div>
@@ -83,12 +85,25 @@ export function ReviewConfirmView({
   readiness,
   returnTo,
   applicationId,
+  readOnly,
+  confirmedAt,
+  continueHref,
 }: {
   reflection: ReflectionValues;
   documents: EvidenceDocument[];
   readiness: CandidateReadiness;
   returnTo?: string | undefined;
   applicationId?: string | undefined;
+  /** Renders this confirmed application's summary read-only — no checkbox,
+   * Confirm button, edit links, or confirmation modal. This is what
+   * `applicationSubNav`'s "Reflections" entry links to once an application
+   * has generated its reports. */
+  readOnly?: boolean;
+  confirmedAt?: string | undefined;
+  /** Where the read-only "Continue" button goes — report generation while
+   * reports are still pending, or straight to the Personal Report once they
+   * exist (`confirmedReflectionContinueHref`). Unused outside `readOnly`. */
+  continueHref?: string | undefined;
 }) {
   const t = useT();
   const router = useRouter();
@@ -97,8 +112,15 @@ export function ReviewConfirmView({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const aboutHref = editHref('about', returnTo);
-  const evidenceHref = editHref('evidence', returnTo);
+  const aboutHref = readOnly ? undefined : editHref('about', returnTo);
+  const evidenceHref = readOnly ? undefined : editHref('evidence', returnTo);
+  const confirmedDate = confirmedAt
+    ? new Date(confirmedAt).toLocaleDateString('en-US', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+      })
+    : undefined;
 
   const educationLabel =
     reflection.highestEducation === 'Other'
@@ -152,13 +174,33 @@ export function ReviewConfirmView({
             {t('Review & Confirm')}
           </h1>
           <p className="text-gb-sm text-fg-tertiary">
-            {t(
-              'Check everything below carefully — once confirmed, this information is locked and used to generate your reports.',
-            )}
+            {readOnly
+              ? t('This information is locked and was used to generate your reports.')
+              : t(
+                  'Check everything below carefully — once confirmed, this information is locked and used to generate your reports.',
+                )}
           </p>
         </div>
 
-        {readiness.ready ? (
+        {readOnly ? (
+          <div className="rounded-gb-xl border border-tier-safe bg-tier-safe/10 px-gb-xl py-gb-lg">
+            <p className="flex items-center gap-gb-sm text-gb-sm font-semibold text-on-tier-safe">
+              <span aria-hidden="true">✓</span> {t('Confirmed profile')}
+            </p>
+            <p className="mt-gb-xxs text-gb-sm text-fg-secondary">
+              {confirmedDate
+                ? t('This information was confirmed on {date} and is used to generate your reports.', {
+                    date: confirmedDate,
+                  })
+                : t('This information is used to generate your reports.')}
+            </p>
+            {continueHref ? (
+              <Button href={continueHref} size="sm" className="mt-gb-lg">
+                {t('Continue')}
+              </Button>
+            ) : null}
+          </div>
+        ) : readiness.ready ? (
           <div className="rounded-gb-xl border border-tier-safe bg-tier-safe/10 px-gb-xl py-gb-lg">
             <p className="flex items-center gap-gb-sm text-gb-sm font-semibold text-on-tier-safe">
               <span aria-hidden="true">✓</span> {t('You’re ready to confirm')}
@@ -176,9 +218,11 @@ export function ReviewConfirmView({
               {readiness.blockingIssues.map((issue) => (
                 <li key={issue.key} className="flex flex-wrap items-center justify-between gap-gb-md">
                   <span className="text-gb-sm text-fg-secondary">{t(issue.message)}</span>
-                  <Button href={aboutHref} variant="secondary" size="sm">
-                    {t('Fix this')}
-                  </Button>
+                  {aboutHref ? (
+                    <Button href={aboutHref} variant="secondary" size="sm">
+                      {t('Fix this')}
+                    </Button>
+                  ) : null}
                 </li>
               ))}
               {readiness.achievementsNeedingReview > 0 ? (
@@ -188,9 +232,11 @@ export function ReviewConfirmView({
                       count: readiness.achievementsNeedingReview,
                     })}
                   </span>
-                  <Button href={evidenceHref} variant="secondary" size="sm">
-                    {t('Review')}
-                  </Button>
+                  {evidenceHref ? (
+                    <Button href={evidenceHref} variant="secondary" size="sm">
+                      {t('Review')}
+                    </Button>
+                  ) : null}
                 </li>
               ) : null}
               {readiness.activitiesNeedingReview > 0 ? (
@@ -200,9 +246,11 @@ export function ReviewConfirmView({
                       count: readiness.activitiesNeedingReview,
                     })}
                   </span>
-                  <Button href={evidenceHref} variant="secondary" size="sm">
-                    {t('Review')}
-                  </Button>
+                  {evidenceHref ? (
+                    <Button href={evidenceHref} variant="secondary" size="sm">
+                      {t('Review')}
+                    </Button>
+                  ) : null}
                 </li>
               ) : null}
             </ul>
@@ -312,54 +360,62 @@ export function ReviewConfirmView({
           )}
         </ReviewSection>
 
-        <Panel className="flex flex-col gap-gb-xl">
-          <Checkbox
-            name="acknowledge-confirmation"
-            label={t('I confirm that the information above is accurate.')}
-            description={t(
-              'Once confirmed, this information is locked and cannot be edited without contacting GlowBal Support.',
-            )}
-            checked={acknowledged}
-            onChange={(e) => setAcknowledged(e.target.checked)}
-            disabled={!readiness.ready}
-          />
+        {readOnly ? (
+          <p className="rounded-gb-lg bg-surface-muted px-gb-lg py-gb-md text-gb-sm text-fg-tertiary">
+            {t('Need to make a change? Contact GlowBal Support if something in your confirmed information is incorrect.')}
+          </p>
+        ) : (
+          <Panel className="flex flex-col gap-gb-xl">
+            <Checkbox
+              name="acknowledge-confirmation"
+              label={t('I confirm that the information above is accurate.')}
+              description={t(
+                'Once confirmed, this information is locked and cannot be edited without contacting GlowBal Support.',
+              )}
+              checked={acknowledged}
+              onChange={(e) => setAcknowledged(e.target.checked)}
+              disabled={!readiness.ready}
+            />
 
-          {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
+            {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
 
-          <div className="flex justify-end">
-            <Button
-              size="lg"
-              disabled={!readiness.ready || !acknowledged}
-              onClick={() => setModalOpen(true)}
-            >
-              {t('Confirm & Generate Reports')}
-            </Button>
-          </div>
-        </Panel>
+            <div className="flex justify-end">
+              <Button
+                size="lg"
+                disabled={!readiness.ready || !acknowledged}
+                onClick={() => setModalOpen(true)}
+              >
+                {t('Confirm & Generate Reports')}
+              </Button>
+            </div>
+          </Panel>
+        )}
       </div>
 
-      <Modal
-        open={modalOpen}
-        onClose={() => (submitting ? undefined : setModalOpen(false))}
-        label={t('Confirm your information')}
-      >
-        <div className="flex flex-col gap-gb-xl">
-          <h2 className="text-gb-lg font-semibold text-fg">{t('Confirm your information?')}</h2>
-          <p className="text-gb-sm text-fg-secondary">
-            {t(
-              'This locks your candidate information exactly as shown and begins generating your reports. You will not be able to edit it afterwards without contacting GlowBal Support.',
-            )}
-          </p>
-          <div className="flex justify-end gap-gb-md">
-            <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={submitting}>
-              {t('Cancel')}
-            </Button>
-            <Button onClick={() => void handleConfirm()} disabled={submitting}>
-              {submitting ? t('Confirming…') : t('Confirm & Generate Reports')}
-            </Button>
+      {!readOnly ? (
+        <Modal
+          open={modalOpen}
+          onClose={() => (submitting ? undefined : setModalOpen(false))}
+          label={t('Confirm your information')}
+        >
+          <div className="flex flex-col gap-gb-xl">
+            <h2 className="text-gb-lg font-semibold text-fg">{t('Confirm your information?')}</h2>
+            <p className="text-gb-sm text-fg-secondary">
+              {t(
+                'This locks your candidate information exactly as shown and begins generating your reports. You will not be able to edit it afterwards without contacting GlowBal Support.',
+              )}
+            </p>
+            <div className="flex justify-end gap-gb-md">
+              <Button variant="secondary" onClick={() => setModalOpen(false)} disabled={submitting}>
+                {t('Cancel')}
+              </Button>
+              <Button onClick={() => void handleConfirm()} disabled={submitting}>
+                {submitting ? t('Confirming…') : t('Confirm & Generate Reports')}
+              </Button>
+            </div>
           </div>
-        </div>
-      </Modal>
+        </Modal>
+      ) : null}
     </ReflectionShell>
   );
 }

@@ -20,6 +20,7 @@ are regression records for fixed bugs, not open work:
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
 | §5–§5m | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i hardened `parseContentBlock`/`parseContentBlockValue`, which only checked the JSON's `type` field and not the rest of the shape — a real latent bug, but **not** the cause of the "planner tasks don't load" report it was written in response to; see §5l for what actually was. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. §5l is the one to read before touching the Planner UI: every task detail page 500'd because a server component imported pure helpers from a `'use client'` module, where calling an export throws and reading one silently yields `undefined`. The mappings now live in a directive-free `planner-presentation.ts`; never move them back. §5m records that reflection never asked for the career direction the matching and strategy reports score against, and that `goals` is a SHARED column — do not add a second career-goal column beside it. |
+| §5n–§5q | Fixed regression history for the per-application Candidate Information flow; preserve the tests and constraints. §5p made review/confirmation state per-application (`course_applications.personal_summary_reviewed_at`/`achievements_reviewed_at`/`candidate_confirmed_at`) instead of per-student. §5q fixed the two bugs that surfaced once that shipped: `reflection/confirm/page.tsx` redirected away unconditionally once confirmed, so the "Reflections" nav entry had nothing to link to and read-only Continue buttons had nowhere real to go — see §5q for the read-only `ReviewConfirmView` mode, the `applicationSubNav()` Overview↔Reflections swap, and `confirmedReflectionContinueHref`. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -1300,6 +1301,54 @@ today's exact global-fallback behaviour, unchanged, when no `applicationId`
 resolves.
 
 | `supabase-per-application-onboarding.sql`, `onboarding-status.ts`, `src/app/api/reflection/route.ts`, `src/app/api/candidate-information/confirm/route.ts`, `candidate-snapshot-repository.ts`, `verified-application-id.ts`, the three reflection pages, `reflection-about-form.tsx`, `reflection-evidence-form.tsx`, `review-confirm-view.tsx`, `apply/page.tsx` |
+
+## 5q. Fixed 2026-08-14 — do not re-introduce
+
+**§5p shipped the per-application migration, but two things still broke,
+reported live the day after with the migration already run in production**:
+"the continue button on the read only doesn't work and the header isn't
+updating correct with reflections being added as an option (the continue
+should either lead to reports being generated or to the personal report
+page)."
+
+Root cause of both: `reflection/confirm/page.tsx` (Review & Confirm) redirected
+away unconditionally the moment `confirmedAt` was set —
+`if (confirmedAt) redirect(returnTo || '/ai-strategy/report')`. That meant
+the one page the owner wanted a "Reflections" nav entry to link to, read-only,
+could never actually be rendered in its confirmed state — there was nothing
+for `applicationSubNav()` to point at, and no page for a `?return=`-carrying
+Continue button anywhere in the flow to land on.
+
+**Fix, three parts:**
+
+1. `reflection/confirm/page.tsx` now renders `ReviewConfirmView` in a new
+   `readOnly` mode instead of redirecting once `confirmedAt` is set — the
+   acknowledgement checkbox, Confirm button, edit links and confirmation
+   modal are all hidden; a confirmed banner and a "Continue" button replace
+   them, matching what `ConfirmedReflectionView`/`ConfirmedAchievementsView`
+   already did for the other two Candidate Information pages.
+2. `applicationSubNav()` (`src/shared/lib/app-routes.ts`) gained a
+   `candidateConfirmed` option and a `reflections` entry that links to
+   `/ai-strategy/reflection/confirm?return=...` — it REPLACES `overview`
+   once `analysisReady` is true (owner: "maybe remove the overview option
+   after we've generated the reports"), rather than both showing at once.
+   `activeSubNavKey()` now maps every `/ai-strategy/reflection*` path to
+   `'reflections'` so the tab highlights correctly on all three Candidate
+   Information pages.
+3. The "Continue" button on all three read-only Candidate Information views
+   (`ReviewConfirmView`, `ConfirmedReflectionView`, `ConfirmedAchievementsView`)
+   used to carry a raw, static `returnTo` query param — which could point at
+   the analysis gate even after this application's reports already existed,
+   or nowhere at all if the page was opened without one. All three now take a
+   computed `continueHref` instead, built by the new
+   `confirmedReflectionContinueHref(applicationId, aiAnalysisComplete)`
+   (`domain/onboarding.ts`): the report-generation gate while reports are
+   still pending, the Personal Report once they exist. Each of the three
+   pages computes it with one extra `fetchOnboardingState` call when
+   `applicationId` resolves, falling back to the legacy raw `returnTo` when it
+   does not (no-application-context entry points, unchanged).
+
+| `src/shared/lib/app-routes.ts`, `src/components/application-nav.tsx`, `src/features/ai-strategy-dashboard/domain/onboarding.ts`, `src/app/ai-strategy/reflection/confirm/page.tsx`, `src/app/ai-strategy/reflection/confirm/review-confirm-view.tsx`, `src/app/ai-strategy/reflection/page.tsx`, `src/app/ai-strategy/reflection/confirmed-reflection-view.tsx`, `src/app/ai-strategy/reflection/achievements/page.tsx`, `src/app/ai-strategy/reflection/achievements/confirmed-achievements-view.tsx` |
 
 ## 6. Open questions for the designer / owner
 
