@@ -1,6 +1,12 @@
 export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Open Matching Report': 'Mở Báo cáo Độ phù hợp',
   'More evidence needed': 'Cần thêm bằng chứng',
+  'Add another activity or achievement': 'Thêm một hoạt động hoặc thành tích khác',
+  'Add more detail to your existing activities (context, action, outcome)':
+    'Bổ sung chi tiết cho các hoạt động đã có (bối cảnh, hành động, kết quả)',
+  'Attach supporting evidence (certificate, confirmation letter, document)':
+    'Đính kèm minh chứng (chứng chỉ, thư xác nhận, tài liệu)',
+  'Explain why you are interested in these subjects': 'Giải thích vì sao bạn quan tâm đến các môn học này',
   'Core Identity': 'Bản sắc cốt lõi',
   'Who they consistently are': 'Bạn nhất quán thể hiện mình là ai',
   'Recurring role': 'Vai trò lặp lại',
