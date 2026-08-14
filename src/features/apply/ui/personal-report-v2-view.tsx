@@ -70,7 +70,7 @@ function InsufficientDataCard({ data }: { data: InsufficientData }) {
         <div className="flex flex-wrap gap-gb-md">
           {data.actions.map((action) => (
             <Button key={action.kind + action.href} href={action.href} variant="secondary" size="sm">
-              {action.label}
+              {t(action.label)}
             </Button>
           ))}
         </div>
@@ -469,12 +469,9 @@ export function PersonalReportV2View({
             <ConfidenceBadge confidence={report.overallEvidenceConfidence} />
           </div>
         </div>
-        <div className="flex flex-wrap items-center justify-between gap-gb-lg border-t border-line pt-gb-lg">
+        <div className="flex flex-wrap items-center gap-gb-lg border-t border-line pt-gb-lg">
           <Button href="/ai-strategy/reflection" variant="secondary" size="sm">
-            {t('Update Reflection')}
-          </Button>
-          <Button onClick={generate} disabled={busy} variant="secondary" size="sm">
-            {busy ? t('Updating…') : t('Update report')}
+            {t('View confirmed information')}
           </Button>
         </div>
         {nextAt ? (
@@ -494,7 +491,7 @@ export function PersonalReportV2View({
 
       <div className="flex flex-wrap justify-between gap-gb-lg border-t border-line pt-gb-2xl">
         <Button href="/ai-strategy/reflection" variant="secondary">
-          {t('Update Reflection')}
+          {t('View confirmed information')}
         </Button>
         <Button href="/ai-strategy/matching">{t('Continue to Matching Report')}</Button>
       </div>
