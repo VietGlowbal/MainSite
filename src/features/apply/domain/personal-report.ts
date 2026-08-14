@@ -24,31 +24,17 @@ import {
  * Force, Signature Pattern, Emerging Themes, Personal Positioning, Proof of
  * Me.
  *
- * ─── WHY THIS IS DETERMINISTIC, LIKE THE ENGINE IT SITS ON ───────────────────
- *
  * Every headline, interpretation and explanation below is composed from
- * TEMPLATES parameterised by the engine's own structured findings — never
- * from a fresh model call. The engine's own comments are explicit that
- * composing a natural sentence from "recurring role X, recurring behaviour Y"
- * is legitimately a language task, but the ONLY facts a sentence here is
- * allowed to state are the ones the engine already established (and already
- * attached evidenceRefs to) — so this module cannot introduce a claim the
- * engine did not find, in the same way the engine's own F1-F4 functions
- * cannot. Where the engine found nothing, the section says exactly that
- * ("more evidence needed"), never a paraphrase of nothing.
+ * templates parameterised by the engine's structured findings. Where the
+ * engine found nothing, the section says "more evidence needed" instead of
+ * filling gaps with model-generated praise.
  *
- * ─── NO PROGRAMME FIT, NO ADMISSIONS SCORE ───────────────────────────────────
- *
- * This report never reads `evaluation.programmeFit` (F5) and never computes
- * an admissions-likelihood number. `overallEvidenceConfidence` is exactly
- * `evaluation.confidence` — the engine's own floor-based confidence, not a
- * new invented metric — per the product requirement that a retained overall
- * figure be labelled as evidence strength, never as likelihood.
+ * This report never reads F5 Programme Fit and never computes an admissions
+ * likelihood. `overallEvidenceConfidence` is evidence confidence only.
  */
 
 export type ReportConfidence = Confidence;
 
-/** Where a student can go to make a thin section stronger. */
 export type IntakeActionKind =
   | 'answer_reflection_question'
   | 'add_activity'
@@ -61,7 +47,6 @@ export type IntakeAction = {
   href: string;
 };
 
-/** Shown in place of invented content whenever a section cannot be supported yet. */
 export type InsufficientData = {
   reason: string;
   actions: IntakeAction[];
@@ -89,10 +74,6 @@ function attachEvidenceAction(): IntakeAction {
 function answerReflectionAction(label: string): IntakeAction {
   return { kind: 'answer_reflection_question', label, href: REFLECTION_HREF };
 }
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Section 1 — Core Identity (F1 + F2 + F3 → F4 + F4.1)
-   ───────────────────────────────────────────────────────────────────────── */
 
 export type CoreIdentitySection = {
   available: boolean;
@@ -181,10 +162,6 @@ function buildCoreIdentity(evaluation: ProfileEvaluation, activities: readonly N
   };
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Section 2 — Driving Force (F1 Motivation + F4 + F4.2)
-   ───────────────────────────────────────────────────────────────────────── */
-
 export type DrivingForceSection = {
   available: boolean;
   headline: string | null;
@@ -228,8 +205,7 @@ function buildDrivingForce(
       missingPersonalGrounding: null,
       reflectionPrompt: null,
       insufficientData: {
-        reason:
-          'Chưa có đủ hoạt động hoặc động lực được nêu rõ để xác định điều gì thực sự thúc đẩy ứng viên.',
+        reason: 'Chưa có đủ hoạt động hoặc động lực được nêu rõ để xác định điều gì thực sự thúc đẩy ứng viên.',
         actions: [addActivityAction(), answerReflectionAction('Trả lời câu hỏi "Vì sao bạn quan tâm đến các môn học này?"')],
       },
     };
@@ -250,7 +226,7 @@ function buildDrivingForce(
     );
   }
   if (recurrenceCount >= 2) {
-    explanationParts.push(`Ứng viên đã giải thích lý do của mình ở ${recurrenceCount} hoạt động khác nhau.`);
+    explanationParts.push(`Ứng viên đã giải thích lý do của mình ở ${recurrenceCount} nguồn bằng chứng phù hợp.`);
   }
 
   return {
@@ -268,10 +244,6 @@ function buildDrivingForce(
     insufficientData: null,
   };
 }
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Section 3 — Signature Pattern (F1 Personal Voice + F2 + F4 Pattern + F4.3)
-   ───────────────────────────────────────────────────────────────────────── */
 
 export type SignaturePatternStepKey = 'trigger' | 'response' | 'method' | 'valueCreated';
 
@@ -380,10 +352,6 @@ function buildSignaturePattern(
   };
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Section 4 — Emerging Themes (F4 Thematic Convergence + F4.4)
-   ───────────────────────────────────────────────────────────────────────── */
-
 export type EmergingThemeStatus = 'established_theme' | 'strong_emerging_theme' | 'early_signal' | 'possible_theme';
 
 export type EmergingTheme = {
@@ -403,7 +371,6 @@ export type EmergingThemesSection = {
   insufficientData: InsufficientData | null;
 };
 
-/** Candidate themes, grouped from the same `domainTheme` field F4.3/F4.1 already read — see f4-narrative-identity.ts's warning that a theme is a domain, never a competency label. */
 export function themeMaturityResults(activities: readonly NarrativeActivity[]): ThemeMaturityResult[] {
   const themeNames = new Set(
     activities.map((activity) => activity.domainTheme?.trim()).filter((value): value is string => Boolean(value)),
@@ -476,10 +443,6 @@ function buildEmergingThemes(
 
   return { available: true, themes: built, insufficientData: null };
 }
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Section 5 — Personal Positioning (F4.1 + F4.2 + F4.3 + F4.4 + F4.5)
-   ───────────────────────────────────────────────────────────────────────── */
 
 export type PersonalPositioningSection = {
   available: boolean;
@@ -560,10 +523,6 @@ function buildPersonalPositioning(
   };
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Section 6 — Proof of Me (F1 + F2 + F3 + F4.6)
-   ───────────────────────────────────────────────────────────────────────── */
-
 export type ProofCard = {
   activityId: string;
   title: string;
@@ -595,7 +554,6 @@ function verificationFor(
 }
 
 function supportsFor(
-  proof: IdentityProof,
   activity: NarrativeActivity | undefined,
   evaluation: ProfileEvaluation,
   themes: readonly ThemeMaturityResult[],
@@ -666,7 +624,7 @@ function buildProofOfMe(
       personalContribution: proof.personalContribution,
       outcome: proof.outcome,
       competenciesDemonstrated: proof.competenciesDemonstrated,
-      supports: supportsFor(proof, activity, evaluation, themes),
+      supports: supportsFor(activity, evaluation, themes),
       evidenceStrength: proof.evidenceStrength,
       verificationStatus: tier,
       evidenceSource: source,
@@ -677,13 +635,8 @@ function buildProofOfMe(
   return { available: true, cards, insufficientData: null };
 }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Report-level assembly
-   ───────────────────────────────────────────────────────────────────────── */
-
 export type PersonalReportV2 = {
   generatedAt: string;
-  /** Exactly `evaluation.confidence` — the engine's own floor, never a new metric. Labelled "Profile Evidence Strength" in the UI, never admissions likelihood. */
   overallEvidenceConfidence: ReportConfidence;
   coreIdentity: CoreIdentitySection;
   drivingForce: DrivingForceSection;
@@ -693,14 +646,6 @@ export type PersonalReportV2 = {
   proofOfMe: ProofOfMeSection;
 };
 
-/**
- * Build the six-section Personal Report from a `ProfileEvaluation` and the
- * same `narrativeActivities` list that was fed into `runProfileEvaluation`.
- *
- * `intendedDirection` mirrors the engine input of the same name — stated
- * only when the student has actually said where they are heading, never
- * inferred (see `ProfileEvaluationInput.intendedDirection`'s own contract).
- */
 export function buildPersonalReport(args: {
   evaluation: ProfileEvaluation;
   activities: readonly NarrativeActivity[];
