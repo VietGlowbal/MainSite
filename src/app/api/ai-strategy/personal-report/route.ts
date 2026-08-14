@@ -6,49 +6,22 @@ import {
   savePersonalReportV2,
 } from '@/features/apply/api';
 import { buildPersonalReport } from '@/features/apply/domain';
-import { buildProfileEvaluationInput } from '@/lib/ai/personal-report-v2';
+import {
+  buildProfileEvaluationInput,
+  PERSONAL_REPORT_EXTRACTION_VERSION,
+} from '@/lib/ai/personal-report-v2';
 import { isOpenAIConfigured } from '@/lib/ai/openai-client';
 import { createClient } from '@/lib/supabase/server';
 import { ENGINE_VERSION, runProfileEvaluation, shouldRegenerate } from '@/shared/evaluation';
 
 /**
- * The canonical, user-level Personal Report.
+ * Canonical user-level Personal Report generation.
  *
- * ─── PIPELINE ─────────────────────────────────────────────────────────────
- *
- *   loadCandidateContext          (features/apply/api — profile, achievements,
- *                                   activities, tests, document presence)
- *   → buildProfileEvaluationInput  (lib/ai/personal-report-v2 — the 3 semantic
- *                                    extraction calls: CMCAITF, competency
- *                                    claims, role/theme)
- *   → runProfileEvaluation         (shared/evaluation — pure F1-F6 scoring,
- *                                    no I/O, no model call)
- *   → buildPersonalReport          (features/apply/domain — the six
- *                                    canonical sections, still pure)
- *
- * This route is the ONLY thing that calls a model for the Personal Report;
- * everything after `buildProfileEvaluationInput` is deterministic and
- * unit-tested without a key (see personal-report.test.ts,
- * engine.test.ts). It replaces the v1 pipeline
- * (`hydratePersonalReport`/`generatePersonalReportDraft`), which is
- * deprecated — see docs/ai-evaluation-engine.md.
- *
- * ─── IDEMPOTENCY AND THE COOLDOWN ────────────────────────────────────────
- *
- * `shouldRegenerate` (src/shared/evaluation/versioning.ts) is the storage
- * requirement's "regenerate only when inputs change" — it is checked BEFORE
- * the 24h cooldown that already existed on this route, so a student whose
- * profile has not changed at all gets the cached report regardless of the
- * cooldown clock. The cooldown only ever blocks a genuinely new generation.
- * This report has no `applicationId`, so changing a university application
- * can never affect `inputHash` and can never trigger regeneration — the
- * "global ownership" requirement is structurally true rather than checked.
+ * Semantic extraction is versioned separately from deterministic framework
+ * scoring: improving a grounding prompt must invalidate old cached output even
+ * when the student's source data did not change.
  */
-
 export const runtime = 'nodejs';
-// Three sequential extraction calls (CMCAITF, competency, role/theme) run in
-// parallel, each capped at 45s by openAiJsonCompletion's own default timeout;
-// 120s leaves headroom for all three plus the surrounding DB reads/writes.
 export const maxDuration = 120;
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
@@ -78,10 +51,16 @@ export async function POST() {
 
   const inputHash = candidateContextHash(context);
   const current = stored.record;
-  const regenerate = shouldRegenerate(
-    { inputHash },
-    current ? { inputHash: current.inputHash, engineVersion: current.engineVersion ?? '' } : null,
+  const frameworkChanged = Boolean(current && current.engineVersion !== ENGINE_VERSION);
+  const extractionChanged = Boolean(
+    current && current.promptVersion !== PERSONAL_REPORT_EXTRACTION_VERSION,
   );
+  const inputChanged = Boolean(current && current.inputHash !== inputHash);
+  const regenerate =
+    shouldRegenerate(
+      { inputHash },
+      current ? { inputHash: current.inputHash, engineVersion: current.engineVersion ?? '' } : null,
+    ) || extractionChanged;
 
   if (current && !regenerate) {
     return NextResponse.json({
@@ -92,7 +71,10 @@ export async function POST() {
   }
 
   const isPlus = Boolean(profileResult.data?.plus_status);
-  if (current && !isPlus) {
+  // Product cooldown applies when the student has changed their own inputs.
+  // An internal framework/prompt upgrade must not leave a known-stale report
+  // locked behind that cooldown, so version migrations can refresh once.
+  if (current && !isPlus && inputChanged && !frameworkChanged && !extractionChanged) {
     const nextAt = nextRegenerationAt(current.generatedAt);
     if (Date.now() < new Date(nextAt).getTime()) {
       return NextResponse.json(
@@ -137,6 +119,7 @@ export async function POST() {
       evaluation,
       inputHash,
       engineVersion: ENGINE_VERSION,
+      promptVersion: PERSONAL_REPORT_EXTRACTION_VERSION,
       modelName: process.env.OPENAI_MODEL || 'gpt-4o',
     });
     if (error) {
