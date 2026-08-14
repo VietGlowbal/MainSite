@@ -23,7 +23,6 @@ const PROFILE_FIELDS = [
   'predicted_grades',
   'graduation_year',
   'study_mode_preference',
-  'target_intake',
   'curriculum',
   'curriculum_grades',
   'gpa_scale',
@@ -31,11 +30,9 @@ const PROFILE_FIELDS = [
   'funding_source',
   'tuition_budget_usd',
   /*
-   * Added for the Personal Report rebuild (F1 Driving Force needs "when do
-   * you want to start" and "why this subject" — see reflection-steps.ts's
-   * ABOUT_QUESTIONS). Missing here meant every reader of this context,
-   * including the Matching Report, could not see either answer even though
-   * both are collected in step 1 of reflection.
+   * Personal Report / Matching inputs captured in Reflection step 1.
+   * Keeping them here ensures every evaluation sees the same confirmed
+   * user-level context instead of silently dropping motivation/intake data.
    */
   'target_intake',
   'study_motivation',
