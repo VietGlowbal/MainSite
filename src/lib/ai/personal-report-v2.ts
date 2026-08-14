@@ -56,12 +56,17 @@ function numbers(value: string): string[] {
 }
 
 /**
- * Independent post-model grounding check.
+ * Independent post-model grounding check for factual extracted prose.
  *
- * Extraction is allowed to paraphrase, so exact substring matching alone is
- * too strict. However every number the extractor introduces MUST occur in the
- * source, and a meaningful share of its content words must be traceable to the
- * source. Unsupported output becomes missing data before F1/F2/F4 ever see it.
+ * Extraction may paraphrase, so exact substring matching alone is too strict.
+ * Every number the extractor introduces MUST occur in the source, and a
+ * meaningful share of content words must be traceable to it. Unsupported
+ * factual output becomes missing data before F1/F2/F3 ever score it.
+ *
+ * Role and domain-theme labels are deliberately not passed through this
+ * lexical gate: they are semantic classifications (e.g. "founder",
+ * "education access"), stored downstream as inferences linked to the source
+ * record rather than represented as quoted observations.
  */
 export function isGroundedInSource(candidate: string | null | undefined, source: string, threshold = 0.55): boolean {
   if (!candidate?.trim() || !source.trim()) return false;
@@ -219,21 +224,13 @@ export async function buildProfileEvaluationInput(args: {
     const cmcaitf = cmcaitfById.get(record.id);
     const roleTheme = roleThemeById.get(record.id);
     const evidenceKind = record.id.startsWith('achievement:') ? 'achievement' : 'activity';
-    // Role/theme are semantic labels rather than direct excerpts, so allow a
-    // slightly looser lexical threshold; unsupported labels are still dropped.
-    const role = roleTheme?.role && isGroundedInSource(roleTheme.role, record.freeText, 0.45)
-      ? roleTheme.role
-      : null;
-    const domainTheme = roleTheme?.domainTheme && isGroundedInSource(roleTheme.domainTheme, record.freeText, 0.4)
-      ? roleTheme.domainTheme
-      : null;
 
     return {
       id: record.id,
       title: record.title,
-      role,
+      role: roleTheme?.role ?? null,
       behaviour: cmcaitf?.action ?? null,
-      domainTheme,
+      domainTheme: roleTheme?.domainTheme ?? null,
       statedMotivation: cmcaitf?.motivation ?? null,
       outcome: cmcaitf?.impact ?? cmcaitf?.transformation ?? null,
       evidenceRefs: [{ id: record.id, kind: evidenceKind, label: record.title }],
