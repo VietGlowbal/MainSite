@@ -72,6 +72,18 @@ const nextConfig: NextConfig = {
        */
       { source: '/my-universities', destination: '/apply', permanent: true },
       /*
+       * /ai-strategy/report -> /ai-strategy/personal-report, permanently.
+       *
+       * The canonical Personal Report rebuild (docs/ai-evaluation-engine.md)
+       * renamed the route to match the product's own name for it — the old
+       * page rendered `PersonalReportView` over the v1
+       * `personal-report-v1-vi` shape, now superseded by the six-section
+       * `PersonalReportV2` built on the Shared Evaluation Engine. Any
+       * bookmark, cached nav link, or old onboarding fallback pointing at
+       * the old path still lands on the report.
+       */
+      { source: '/ai-strategy/report', destination: '/ai-strategy/personal-report', permanent: true },
+      /*
        * Advisor is the product vocabulary. Keep the former public URLs as
        * permanent aliases so bookmarks and indexed profile links retain their
        * destination while every new link uses the canonical wording.

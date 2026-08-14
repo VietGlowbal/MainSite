@@ -23,13 +23,20 @@ const PROFILE_FIELDS = [
   'predicted_grades',
   'graduation_year',
   'study_mode_preference',
-  'target_intake',
   'curriculum',
   'curriculum_grades',
   'gpa_scale',
   'gpa_value',
   'funding_source',
   'tuition_budget_usd',
+  /*
+   * Personal Report / Matching inputs captured in Reflection step 1.
+   * Keeping them here ensures every evaluation sees the same confirmed
+   * user-level context instead of silently dropping motivation/intake data.
+   */
+  'target_intake',
+  'study_motivation',
+  'subject_motivations',
 ] as const;
 
 function trimText(value: unknown, max = 1200): unknown {

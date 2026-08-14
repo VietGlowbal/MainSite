@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
-  getPersonalReportRecord,
+  getPersonalReportV2Record,
   loadCandidateContext,
   stableHash,
 } from '@/features/apply/api';
@@ -84,7 +84,7 @@ export async function POST(
         .from('uploaded_documents')
         .select('id,type,storage_key,mime_type,parsed_text')
         .eq('user_id', userId),
-      getPersonalReportRecord(supabase, userId),
+      getPersonalReportV2Record(supabase, userId),
       universityId == null
         ? Promise.resolve({ data: null, error: null })
         : supabase.from('universities').select('*').eq('id', universityId).maybeSingle(),
@@ -191,7 +191,13 @@ export async function POST(
     }),
     activities: text(candidate.activities),
     achievements: text(candidate.achievements),
-    personalContext: personalResult.record?.report.summary ?? text(profile.goals),
+    personalContext:
+      [
+        personalResult.record?.reportV2.coreIdentity.interpretation,
+        personalResult.record?.reportV2.drivingForce.explanation,
+      ]
+        .filter(Boolean)
+        .join(' ') || text(profile.goals),
     budget: text({
       budget: profile.budget_range,
       tuitionBudget: profile.tuition_budget_usd,
