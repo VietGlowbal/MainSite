@@ -12,7 +12,7 @@ import vm from 'node:vm';
 import ts from 'typescript';
 
 const root = process.cwd();
-const dictionaryFile = path.join(root, 'src/lib/i18n-dictionary.ts');
+const dictionaryFile = path.join(root, 'src/lib/i18n-catalog.ts');
 const sourceRoots = ['src/app', 'src/components', 'src/features', 'src/shared/ui'];
 const excludedSegments = new Set(['admin', 'api', 'dev', 'demo-throwaway']);
 const privateSegments = new Set(['profile', 'dashboard', 'apply', 'onboarding', 'my-universities', 'ai-strategy']);
