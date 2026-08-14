@@ -1,9 +1,12 @@
 import type { CandidateContext } from '@/features/apply/domain';
 import type {
+  CmcaitfFields,
+  CompetencyClaim,
   EvidenceItemInput,
   EvidenceSourceKind,
   NarrativeActivity,
   ProfileEvaluationInput,
+  ReflectionRecord,
   VaguenessField,
 } from '@/shared/evaluation';
 import { extractCmcaitfFields, type CmcaitfExtractionInput } from './evaluation/cmcaitf-extraction';
@@ -14,39 +17,67 @@ import {
 import { extractRoleAndTheme, type RoleThemeExtractionInput } from './evaluation/narrative-activity-extraction';
 
 /**
- * Orchestration for the canonical Personal Report's `ProfileEvaluationInput`.
- *
- * The Shared Evaluation Engine (`src/shared/evaluation`) is pure and needs
- * `ReflectionRecord[]`, `CompetencyClaim[]`, `EvidenceItemInput[]` and
- * `NarrativeActivity[]` already built. This module is the one place that
- * runs the THREE genuinely semantic extraction steps
- * (`src/lib/ai/evaluation/*`) against the SAME free text — an achievement's
- * `detail` or an activity's `description` — and assembles their outputs into
- * the engine's input shape. Nothing here scores anything; every scoring
- * decision stays inside `src/shared/evaluation`.
- *
- * ─── ONE ID CONVENTION, SHARED WITH `CandidateContext.evidence` ─────────────
- *
- * `achievement:<id>` / `activity:<id>` is the same convention
- * `candidate-context.ts` already uses for `EvidenceRef.id`. Every
- * `NarrativeActivity`, `EvidenceItemInput` and extraction source below reuses
- * it, which is what lets `buildPersonalReport` (personal-report.ts) match a
- * Proof of Me card's `evidenceRefs` back to the same evidence item the F3
- * evidence hierarchy scored — a mismatch here would silently break every
- * Proof of Me verification-tier lookup.
- *
- * ─── DEGRADES WITHOUT A MODEL, NEVER THROWS ON MISSING KEY ALONE ────────────
- *
- * `buildProfileEvaluationInput` still returns a structurally valid input when
- * no free text exists anywhere (every extraction call already no-ops on empty
- * input — see each extractor's own header) — this only calls the model when
- * there is something worth reading.
+ * Bump when the semantic extraction/grounding contract changes independently
+ * of deterministic framework formulae. The API stores this in the existing
+ * prompt_version column so a prompt/grounding improvement invalidates a
+ * cached report even when ENGINE_VERSION did not change.
  */
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v2-grounded';
 
 type FreeTextRecord = { id: string; title: string; freeText: string; row: Record<string, unknown> };
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
+}
+
+function normalize(value: string): string {
+  return value
+    .normalize('NFKD')
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+const GROUNDING_STOP_WORDS = new Set([
+  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'because', 'by', 'for', 'from', 'had', 'has', 'have',
+  'i', 'in', 'is', 'it', 'my', 'of', 'on', 'or', 'that', 'the', 'their', 'this', 'to', 'was', 'were',
+  'with', 'và', 'của', 'tôi', 'mình', 'là', 'vì', 'cho', 'để', 'trong', 'đã', 'một', 'những', 'các',
+]);
+
+function meaningfulTokens(value: string): string[] {
+  return normalize(value)
+    .split(/\s+/)
+    .filter((token) => token.length >= 3 && !GROUNDING_STOP_WORDS.has(token));
+}
+
+function numbers(value: string): string[] {
+  return value.match(/\d+(?:[.,]\d+)?/g) ?? [];
+}
+
+/**
+ * Independent post-model grounding check.
+ *
+ * Extraction is allowed to paraphrase, so exact substring matching alone is
+ * too strict. However every number the extractor introduces MUST occur in the
+ * source, and a meaningful share of its content words must be traceable to the
+ * source. Unsupported output becomes missing data before F1/F2/F4 ever see it.
+ */
+export function isGroundedInSource(candidate: string | null | undefined, source: string, threshold = 0.55): boolean {
+  if (!candidate?.trim() || !source.trim()) return false;
+  const candidateNormalized = normalize(candidate);
+  const sourceNormalized = normalize(source);
+  if (sourceNormalized.includes(candidateNormalized)) return true;
+
+  const sourceNumbers = new Set(numbers(source));
+  if (numbers(candidate).some((value) => !sourceNumbers.has(value))) return false;
+
+  const candidateTokens = meaningfulTokens(candidate);
+  if (candidateTokens.length === 0) return false;
+  const sourceTokens = new Set(meaningfulTokens(source));
+  const matched = candidateTokens.filter((token) => sourceTokens.has(token)).length;
+  const required = candidateTokens.length <= 3 ? 1 : Math.ceil(candidateTokens.length * threshold);
+  return matched >= required;
 }
 
 function achievementRecords(context: CandidateContext): FreeTextRecord[] {
@@ -67,7 +98,6 @@ function activityRecords(context: CandidateContext): FreeTextRecord[] {
   }));
 }
 
-/** F6 — the two free-text profile fields F1's narrative sections are built from. */
 function writtenFieldsFor(context: CandidateContext): VaguenessField[] {
   const profile = context.profile as Record<string, unknown>;
   return [
@@ -80,28 +110,66 @@ function writtenFieldsFor(context: CandidateContext): VaguenessField[] {
   ];
 }
 
-/**
- * F3's `sourceKind` only changes `tierFor`'s verdict when it is itself
- * `uploaded_document`/`test_record` (auto-verified) or `external_attribution`
- * (auto-attributable) — everything else defers to `hasDocument` and
- * `attributingOrganisation`, which are set independently below. So an
- * achievement backed by a stored evidence file is `uploaded_document`;
- * everything else — achievement or activity — is `structured_achievement`,
- * meaning "the student entered this into a structured form field", which is
- * true of both tables and lets `hasDocument`/`attributingOrganisation` do
- * the actual verification work.
- */
+function profileMotivationsFor(context: CandidateContext): NonNullable<ProfileEvaluationInput['profileMotivations']> {
+  const profile = context.profile as Record<string, unknown>;
+  const result: Array<{ id: string; label: string; value: string }> = [];
+  const general = text(profile.study_motivation);
+  if (general) {
+    result.push({ id: 'profile:study_motivation', label: 'Study motivation', value: general });
+  }
+
+  const subjectMotivations = profile.subject_motivations;
+  if (subjectMotivations && typeof subjectMotivations === 'object' && !Array.isArray(subjectMotivations)) {
+    for (const [subject, raw] of Object.entries(subjectMotivations as Record<string, unknown>)) {
+      const value = text(raw);
+      if (!value || result.some((item) => normalize(item.value) === normalize(value))) continue;
+      result.push({
+        id: `profile:subject_motivations:${subject}`,
+        label: `Subject motivation: ${subject}`,
+        value,
+      });
+    }
+  }
+  return result;
+}
+
 function evidenceSourceKindFor(record: FreeTextRecord, kind: 'achievement' | 'activity'): EvidenceSourceKind {
   if (kind === 'achievement' && text(record.row.evidence_key)) return 'uploaded_document';
   return 'structured_achievement';
 }
 
-/** F3's two outcome fields, derived from F1's own extracted Impact field rather than re-asked of the model. */
 function outcomesFromImpact(impact: string | null): { quantifiedOutcome: string | null; qualitativeOutcome: string | null } {
   if (!impact) return { quantifiedOutcome: null, qualitativeOutcome: null };
   return /\d/.test(impact)
     ? { quantifiedOutcome: impact, qualitativeOutcome: null }
     : { quantifiedOutcome: null, qualitativeOutcome: impact };
+}
+
+function groundCmcaitf(record: ReflectionRecord, source: string): ReflectionRecord {
+  const grounded = Object.fromEntries(
+    Object.entries(record.cmcaitf).map(([key, value]) => [
+      key,
+      isGroundedInSource(value, source) ? value : null,
+    ]),
+  ) as CmcaitfFields;
+  return { ...record, cmcaitf: grounded };
+}
+
+function groundCompetencies(
+  claims: readonly CompetencyClaim[],
+  sourcesById: ReadonlyMap<string, FreeTextRecord>,
+): CompetencyClaim[] {
+  return claims.map((claim) => {
+    if (!claim.situation?.trim()) return { ...claim, evidenceRefs: [] };
+    const groundedRefs = claim.evidenceRefs.filter((ref) => {
+      const source = sourcesById.get(ref.id);
+      return source ? isGroundedInSource(claim.situation, source.freeText, 0.6) : false;
+    });
+    if (groundedRefs.length === 0) {
+      return { ...claim, situation: null, evidenceRefs: [] };
+    }
+    return { ...claim, evidenceRefs: groundedRefs };
+  });
 }
 
 export async function buildProfileEvaluationInput(args: {
@@ -116,6 +184,7 @@ export async function buildProfileEvaluationInput(args: {
   const achievements = achievementRecords(context);
   const activities = activityRecords(context);
   const all = [...achievements, ...activities];
+  const sourceById = new Map(all.map((record) => [record.id, record]));
 
   const cmcaitfInputs: CmcaitfExtractionInput[] = all.map((record) => ({
     id: record.id,
@@ -133,12 +202,16 @@ export async function buildProfileEvaluationInput(args: {
     freeText: record.freeText,
   }));
 
-  const [reflectionRecords, competencyClaims, roleThemeResults] = await Promise.all([
+  const [rawReflectionRecords, rawCompetencyClaims, roleThemeResults] = await Promise.all([
     extractCmcaitfFields({ inputs: cmcaitfInputs, apiKey, model }),
     extractCompetencyClaims({ sources: competencySources, apiKey, model }),
     extractRoleAndTheme({ inputs: roleThemeInputs, apiKey, model }),
   ]);
 
+  const reflectionRecords = rawReflectionRecords.map((record) =>
+    groundCmcaitf(record, sourceById.get(record.id)?.freeText ?? ''),
+  );
+  const competencyClaims = groundCompetencies(rawCompetencyClaims, sourceById);
   const cmcaitfById = new Map(reflectionRecords.map((record) => [record.id, record.cmcaitf]));
   const roleThemeById = new Map(roleThemeResults.map((result) => [result.id, result]));
 
@@ -146,13 +219,21 @@ export async function buildProfileEvaluationInput(args: {
     const cmcaitf = cmcaitfById.get(record.id);
     const roleTheme = roleThemeById.get(record.id);
     const evidenceKind = record.id.startsWith('achievement:') ? 'achievement' : 'activity';
+    // Role/theme are semantic labels rather than direct excerpts, so allow a
+    // slightly looser lexical threshold; unsupported labels are still dropped.
+    const role = roleTheme?.role && isGroundedInSource(roleTheme.role, record.freeText, 0.45)
+      ? roleTheme.role
+      : null;
+    const domainTheme = roleTheme?.domainTheme && isGroundedInSource(roleTheme.domainTheme, record.freeText, 0.4)
+      ? roleTheme.domainTheme
+      : null;
 
     return {
       id: record.id,
       title: record.title,
-      role: roleTheme?.role ?? null,
+      role,
       behaviour: cmcaitf?.action ?? null,
-      domainTheme: roleTheme?.domainTheme ?? null,
+      domainTheme,
       statedMotivation: cmcaitf?.motivation ?? null,
       outcome: cmcaitf?.impact ?? cmcaitf?.transformation ?? null,
       evidenceRefs: [{ id: record.id, kind: evidenceKind, label: record.title }],
@@ -186,6 +267,7 @@ export async function buildProfileEvaluationInput(args: {
     competencyClaims,
     evidenceItems,
     narrativeActivities,
+    profileMotivations: profileMotivationsFor(context),
     intendedDirection,
     generatedAt,
   };
