@@ -7,6 +7,7 @@ const PERSONAL_POST = '/api/ai-strategy/personal-report';
 const LEGACY_PERSONAL = '/api/applications/app-1/strategy/applicant-analysis';
 const MATCHING_GET = '/api/applications/app-1/strategy/course-match';
 const MATCHING_POST = '/api/applications/app-1/match-insights';
+const FRIENDLY_REPORT_ERROR = "We couldn't finish this report. We'll retry it using your confirmed information.";
 
 function jsonResponse(body: unknown, ok = true) {
   return Promise.resolve({ ok, json: () => Promise.resolve(body) } as Response);
@@ -91,9 +92,7 @@ describe('AnalysisWorkspace', () => {
     render(<AnalysisWorkspace applicationId="app-1" />);
 
     await waitFor(() =>
-      expect(
-        screen.getByText("We couldn't finish this report. We'll retry it using your confirmed information."),
-      ).toBeInTheDocument(),
+      expect(screen.getByText(FRIENDLY_REPORT_ERROR)).toBeInTheDocument(),
     );
     expect(screen.getByRole('link', { name: 'Open report' })).toHaveAttribute(
       'href',
@@ -113,7 +112,8 @@ describe('AnalysisWorkspace', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<AnalysisWorkspace applicationId="app-1" />);
-    await waitFor(() => expect(screen.getByText('Personal report failed')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText(FRIENDLY_REPORT_ERROR)).toBeInTheDocument());
+    expect(screen.queryByText('Personal report failed')).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalledWith(LEGACY_PERSONAL, expect.anything());
   });
 
