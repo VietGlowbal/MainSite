@@ -8,38 +8,54 @@ import type { OnboardingState } from '../domain';
  * "has at least one achievement or activity" proxy.
  */
 /**
- * `student_profiles.confirmed_at` reads with a fallback to the two
- * pre-existing columns alone.
+ * `course_applications.personal_summary_reviewed_at` /
+ * `achievements_reviewed_at` / `candidate_confirmed_at` /
+ * `strategy_intro_seen_at`, all in one row, with a fallback to the one
+ * pre-existing column alone.
+ *
+ * These are PER-APPLICATION, not per-student: `student_profiles` holds one
+ * shared candidate-information profile across every application, but
+ * whether THIS application has been reviewed/confirmed is its own fact —
+ * without this, a student who already confirmed on an earlier application
+ * had every later application silently skip reflections, achievements, and
+ * Review & Confirm, straight into report generation. See
+ * `supabase-per-application-onboarding.sql` and
+ * `docs/known-issues.md` for the incident this fixed.
  *
  * PostgREST fails the WHOLE select on one unknown column, so — same as every
  * other tolerant read this project has needed for a column shipped ahead of
- * its migration (see `loadProfile` in `reflection/page.tsx`) — selecting it
- * unconditionally would silently break `personalSummaryComplete` and
- * `achievementsComplete` for every student until
- * `supabase-candidate-confirmation.sql` has run, not just the new step.
+ * its migration — selecting the three new columns unconditionally would
+ * silently break `strategy_intro_seen_at` too until
+ * `supabase-per-application-onboarding.sql` has run, not just the new steps.
  */
-async function selectProfileFlags(
+async function selectApplicationFlags(
   supabase: SupabaseClient,
   userId: string,
+  applicationId: string,
 ): Promise<{
-  personal_summary_completed_at?: string | null;
-  achievements_completed_at?: string | null;
-  confirmed_at?: string | null;
+  strategy_intro_seen_at?: string | null;
+  personal_summary_reviewed_at?: string | null;
+  achievements_reviewed_at?: string | null;
+  candidate_confirmed_at?: string | null;
 } | null> {
   const full = await supabase
-    .from('student_profiles')
-    .select('personal_summary_completed_at, achievements_completed_at, confirmed_at')
+    .from('course_applications')
+    .select(
+      'strategy_intro_seen_at, personal_summary_reviewed_at, achievements_reviewed_at, candidate_confirmed_at',
+    )
+    .eq('id', applicationId)
     .eq('user_id', userId)
     .maybeSingle();
   if (!full.error) return full.data;
 
   console.warn(
-    '[onboarding-status] could not read confirmed_at — run supabase-candidate-confirmation.sql. Reading the rest.',
+    '[onboarding-status] could not read per-application review columns — run supabase-per-application-onboarding.sql. Reading the rest.',
     full.error.message,
   );
   const base = await supabase
-    .from('student_profiles')
-    .select('personal_summary_completed_at, achievements_completed_at')
+    .from('course_applications')
+    .select('strategy_intro_seen_at')
+    .eq('id', applicationId)
     .eq('user_id', userId)
     .maybeSingle();
   return base.data;
@@ -50,8 +66,8 @@ export async function fetchOnboardingState(
   userId: string,
   applicationId: string,
 ): Promise<OnboardingState> {
-  const [profile, analysis, matchAnalysis, application, strategyRecommendation] = await Promise.all([
-    selectProfileFlags(supabase, userId),
+  const [application, analysis, matchAnalysis, strategyRecommendation] = await Promise.all([
+    selectApplicationFlags(supabase, userId, applicationId),
     supabase
       .from('applicant_analyses')
       .select('id')
@@ -70,12 +86,6 @@ export async function fetchOnboardingState(
       .limit(1)
       .maybeSingle(),
     supabase
-      .from('course_applications')
-      .select('strategy_intro_seen_at')
-      .eq('id', applicationId)
-      .eq('user_id', userId)
-      .maybeSingle(),
-    supabase
       .from('application_strategy_recommendations')
       .select('id')
       .eq('application_id', applicationId)
@@ -84,11 +94,11 @@ export async function fetchOnboardingState(
   ]);
 
   return {
-    personalSummaryComplete: Boolean(profile?.personal_summary_completed_at),
-    achievementsComplete: Boolean(profile?.achievements_completed_at),
-    candidateConfirmed: Boolean(profile?.confirmed_at),
+    personalSummaryComplete: Boolean(application?.personal_summary_reviewed_at),
+    achievementsComplete: Boolean(application?.achievements_reviewed_at),
+    candidateConfirmed: Boolean(application?.candidate_confirmed_at),
     aiAnalysisComplete: Boolean(analysis.data) && Boolean(matchAnalysis.data),
-    introSeen: Boolean(application.data?.strategy_intro_seen_at),
+    introSeen: Boolean(application?.strategy_intro_seen_at),
     strategyComplete: Boolean(strategyRecommendation.data),
   };
 }

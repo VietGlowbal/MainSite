@@ -2,8 +2,13 @@
 
 Last reconciled: **2026-08-14 (Asia/Bangkok)**
 
-Code snapshot: PR #182 on branch `fix/feedback-118`, at `24117e3` plus the
-working-tree cron budget repair described below.
+Code snapshot: branch `claude/branch-comparison-review-l6e2tu`, `working tree`
+on top of `main` at `884434a` (PR #183's merge — homepage testimonials
+rework — on top of PR #182's logo-persistence work and PR #180's advisor
+registration rebuild/CI repair, in turn on top of the per-application
+dead-end-loop fix merged as PR #179; the branch was restarted from `main`
+again afterward, same as the restarts before it). Not yet pushed as a PR.
+See "Last completed work" below.
 
 This is the primary status file after the routing index in `docs/README.md`. It
 records the present state of the repository, the last completed work, its
@@ -49,26 +54,43 @@ code, the code wins.
   funding, tuition budget). Step 2 (achievements/activities) is now also
   rebuilt as an upload-first card grid, and a **Review & Confirm checkpoint**
   now sits after it, locking candidate information before report generation —
-  see the latest row below. **Four migrations are still outstanding** and
+  see the latest row below. **Five migrations are still outstanding** and
   every PATCH/read path degrades gracefully without them:
   `supabase-reflection-questions.sql` (from #171 — `study_motivation`,
   `target_intake`), `supabase-reflection-subject-motivations.sql` (from spec
   3 — `subject_motivations`, a JSONB map keyed by subject id),
   `supabase-reflection-review-status.sql` (from the achievements rebuild —
   `review_status`/`source_type`/`sources` on `student_achievements` and
-  `student_activities`), and `supabase-candidate-confirmation.sql`
-  (`confirmed_candidate_snapshots` plus `student_profiles.confirmed_at`).
-  Until the last one runs, the confirm route saves the snapshot but cannot
-  lock the profile (logged, not fatal — see the migration's own comments),
-  and the PATCH lock check fails open (reads as "not locked"). **The owner
-  HAS run `supabase-candidate-confirmation.sql` in production**, but the
-  original version of that file was missing an `INSERT` RLS policy on
+  `student_activities`), `supabase-candidate-confirmation.sql`
+  (`confirmed_candidate_snapshots` plus `student_profiles.confirmed_at`), and
+  **`supabase-per-application-onboarding.sql`** (new this pass —
+  `personal_summary_reviewed_at`/`achievements_reviewed_at`/
+  `candidate_confirmed_at` on `course_applications`, plus `application_id` on
+  `confirmed_candidate_snapshots`). Until the fourth one runs, the confirm
+  route saves the snapshot but cannot lock the profile (logged, not fatal —
+  see the migration's own comments), and the PATCH lock check fails open
+  (reads as "not locked"). **The owner HAS run
+  `supabase-candidate-confirmation.sql` in production**, but the original
+  version of that file was missing an `INSERT` RLS policy on
   `confirmed_candidate_snapshots` — confirming failed for a real student
   with a `503` that misleadingly suggested the migration itself hadn't run.
-  Fixed this pass (§5n in `known-issues.md`); **re-run the updated
+  Fixed in an earlier pass (§5n in `known-issues.md`); **re-run the updated
   `supabase-candidate-confirmation.sql` in production** — it's idempotent —
   to pick up the new policy, or run just the `CREATE POLICY
-  confirmed_candidate_snapshots_insert_own` block from it directly.
+  confirmed_candidate_snapshots_insert_own` block from it directly. **Action
+  required in production for THIS pass, before merging: run the new
+  `supabase-per-application-onboarding.sql`.** Every read of the new columns
+  degrades gracefully (no 500s), but the WRITE side does not fully — without
+  it, `course_applications.candidate_confirmed_at` never gets set no matter
+  how many times a student confirms, so `nextOnboardingStep` never advances
+  past `'confirm'` for any application: a student would repeatedly reach
+  Review & Confirm, submit successfully (a new snapshot row each time — safe,
+  append-only, but duplicated), and land right back on the same page instead
+  of ever reaching report generation. This is the same category of
+  ahead-of-migration risk the other four migrations already carry, just with
+  a more visible failure mode; do not merge/deploy this pass without running
+  the migration first, or land it disabled behind confirmation the migration
+  has already run.
 
 ## Last completed work
 
@@ -234,9 +256,9 @@ then-current uncommitted working tree (`npx` invocations, equivalent to the
 | `npx tsc --noEmit` | **Pass**, 0 errors. |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
 | `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
-| `npx vitest run` | **Pass: 1953 passed, 2 todo, 187 files passed, 0 failed.** New `strategy/page.test.tsx` (3 tests) covers the CTA routing fix; new `confirmed-reflection-view.test.tsx`/`confirmed-achievements-view.test.tsx` (2 tests each) cover the Continue-link escape hatch. |
-| `node scripts/check-i18n.mjs` | **Pass: 0 missing keys.** |
-| `npm run build` / browser check | **Not run this pass** — same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`). The Report Generation Page redesign is a visual/informational rebuild of an already-working synchronous flow (no new backend surface beyond the existing tolerant `confirmed_at` read), so the risk this leaves unverified is narrower than a schema-touching change — still, a real browser click-through of the confirm → generation → both-reports-ready path remains the best next verification step. |
+| `npx vitest run` | **Pass: 1984 passed, 2 todo, 193 files passed, 0 failed.** The one pre-existing failure noted mid-pass (`universities-page-performance.test.ts`'s DOM-translator-snapshot check, confirmed failing on a clean `origin/main` before this pass touched anything) was independently fixed by PR #180's own CI-repair commit; the branch was restarted onto that fix and now shows fully green. New/updated: `onboarding-status.test.ts` (per-application flags, incl. a regression test that one application's state never leaks onto a different new one), `reflection/route.test.ts` and `confirm/route.test.ts` (per-application lock/idempotency/stamping alongside the existing global-fallback paths), `verified-application-id.test.ts` (new), `apply-page-logo-performance.test.ts` (updated to check the still-parallel `applicant_analyses` read after removing the `student_profiles` one it used to check). |
+| `node scripts/check-i18n.mjs` | **Pass: 0 missing keys** (4 new keys added — the two Skip-button banners on the reflection/achievements forms). |
+| `npm run build` / browser check | **Not run this pass** — same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`). This pass touches a new migration and the core onboarding step machine — a real browser click-through (confirm application A → open new application B → verify B starts fully editable at Reflections, Skip works, Confirm is independent of A, and a still-newer application C works the same after B locks) is the priority next verification step, more than any prior pass in this file. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
 **Previously-open thread, now resolved**: the user reported "report creation
