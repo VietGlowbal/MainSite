@@ -1838,6 +1838,19 @@ export const translations: Record<string, string> = {
     'Đây không giống link trang khoá học — link cần bắt đầu bằng http:// hoặc https://',
   'Save subject': 'Lưu ngành',
   'Saving...': 'Đang lưu...',
+  'Choose a university for this scholarship': 'Chọn trường đại học cho học bổng này',
+  'This scholarship is linked to more than one university. Choose the one you plan to apply to.':
+    'Học bổng này liên kết với nhiều trường đại học. Hãy chọn trường bạn dự định ứng tuyển.',
+  'This scholarship is not tied to a specific university in our data. Choose the university you plan to apply to, then check the official eligibility rules.':
+    'Trong dữ liệu của chúng tôi, học bổng này không gắn với một trường cụ thể. Hãy chọn trường bạn dự định ứng tuyển, sau đó kiểm tra điều kiện chính thức.',
+  'University options': 'Các trường đại học để lựa chọn',
+  'Loading universities...': 'Đang tải danh sách trường...',
+  'No universities match your search.': 'Không có trường đại học nào khớp với tìm kiếm của bạn.',
+  'No universities are available in the directory yet.': 'Chưa có trường đại học nào trong danh mục.',
+  'Save scholarship and university': 'Lưu học bổng và trường đại học',
+  'Could not save this scholarship. Please try again.': 'Không thể lưu học bổng này. Vui lòng thử lại.',
+  'Could not remove this scholarship. Please try again.': 'Không thể xóa học bổng này. Vui lòng thử lại.',
+  'We could not load the university list. Please try again.': 'Không thể tải danh sách trường đại học. Vui lòng thử lại.',
   'Pick a subject or paste a course link to continue.':
     'Chọn một ngành hoặc dán link khoá học để tiếp tục.',
   'Saving a subject is not switched on in this environment yet — the user_universities.program column has not been added. Nothing was changed.':
@@ -4136,6 +4149,10 @@ export const translations: Record<string, string> = {
   'Confirmed profile': 'Hồ sơ đã xác nhận',
   'This information was confirmed on {date} and is used to generate your reports.':
     'Thông tin này đã được xác nhận vào ngày {date} và được dùng để tạo báo cáo của bạn.',
+  'This information is locked and was used to generate your reports.':
+    'Thông tin này đã bị khóa và được dùng để tạo báo cáo của bạn.',
+  'This information is used to generate your reports.':
+    'Thông tin này được dùng để tạo báo cáo của bạn.',
   'All fields are read-only.': 'Tất cả các trường đều chỉ đọc.',
   'Original grades': 'Điểm gốc',
   'Confirmed achievements': 'Thành tích đã xác nhận',

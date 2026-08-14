@@ -73,6 +73,9 @@ export const TID = {
   scholarshipList: 'scholarship-list',
   scholarshipCard: 'scholarship-card',
   scholarshipContinueToApply: 'scholarship-continue-to-apply',
+  scholarshipUniversityPicker: 'scholarship-university-picker',
+  scholarshipUniversityOption: 'scholarship-university-option',
+  scholarshipUniversitySave: 'scholarship-university-save',
 
   // ── Onboarding ────────────────────────────────────────────────────────
   onboardingStep: 'onboarding-step',

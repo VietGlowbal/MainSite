@@ -289,12 +289,35 @@ export type SubNavItem = {
  */
 export function applicationSubNav(
   applicationId: string,
-  options: { analysisReady: boolean; strategyReady: boolean; plannerReady: boolean },
+  options: {
+    analysisReady: boolean;
+    strategyReady: boolean;
+    plannerReady: boolean;
+    candidateConfirmed: boolean;
+  },
 ): SubNavItem[] {
   const strategy = `/ai-strategy/${applicationId}`;
 
+  // Overview is the pre-report landing page; once reports exist, Reflections
+  // (this application's confirmed, read-only Candidate Information) takes
+  // its place as the way back to "what this was generated from" — owner
+  // decision, 2026-08-14. The two are deliberately mutually exclusive rather
+  // than both shown: `candidateConfirmed` is always true by the time
+  // `analysisReady` is, since confirmation gates analysis in
+  // `nextOnboardingStep`, but the `candidateConfirmed` check here is what
+  // stops Reflections' link (a page that redirects away until confirmed)
+  // from ever appearing before it resolves to something.
+  const leadItem: SubNavItem = options.analysisReady
+    ? {
+        key: 'reflections',
+        label: 'Reflections',
+        href: `/ai-strategy/reflection/confirm?return=${encodeURIComponent(`${strategy}/strategy/analysis`)}`,
+        ...(options.candidateConfirmed ? {} : { locked: true }),
+      }
+    : { key: 'overview', label: 'Overview', href: `/apply/${applicationId}` };
+
   return [
-    { key: 'overview', label: 'Overview', href: `/apply/${applicationId}` },
+    leadItem,
     {
       key: 'portrait',
       label: 'Personal Report',
@@ -339,6 +362,7 @@ export function applicationSubNav(
  */
 export function activeSubNavKey(pathname: string): string | null {
   const clean = pathname.split('?')[0] ?? '';
+  if (/^\/ai-strategy\/reflection(\/|$)/.test(clean)) return 'reflections';
   if (/\/strategy\/analysis\/fit$/.test(clean)) return 'fit';
   if (/\/strategy\/analysis\/portrait$/.test(clean)) return 'portrait';
   if (/\/strategy\/analysis\/recommendation$/.test(clean)) return 'strategyReport';

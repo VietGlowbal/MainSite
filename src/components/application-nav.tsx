@@ -35,6 +35,7 @@ export async function ApplicationNav({
     analysisReady: state.aiAnalysisComplete,
     strategyReady: state.strategyComplete,
     plannerReady: step === 'dashboard',
+    candidateConfirmed: state.candidateConfirmed,
   });
 
   return (

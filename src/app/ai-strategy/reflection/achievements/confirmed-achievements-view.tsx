@@ -21,9 +21,11 @@ import { Button, ICONS, KitIcon } from '@/shared/ui';
  * the "disabled copy of the original form" the spec explicitly asks not to
  * ship. This is a smaller, deliberately simpler card with no buttons at all.
  *
- * `returnTo` gives this otherwise-dead-end screen a way out — see the twin
- * note in `ConfirmedReflectionView` for why that matters for a student
- * opening a second application after already confirming on a first one.
+ * `continueHref` gives this otherwise-dead-end screen a way out — see the
+ * twin note in `ConfirmedReflectionView` for why that matters for a student
+ * opening a second application after already confirming on a first one, and
+ * why it is a computed `confirmedReflectionContinueHref` rather than a raw
+ * `returnTo`.
  *
  * ─── DOCUMENTS FOLDED IN, NOT A SEVENTH ROUTE ────────────────────────────────
  *
@@ -84,13 +86,13 @@ export function ConfirmedAchievementsView({
   activities,
   documents,
   confirmedAt,
-  returnTo,
+  continueHref,
 }: {
   achievements: AchievementValues[];
   activities: ActivityValues[];
   documents: EvidenceDocument[];
   confirmedAt: string;
-  returnTo?: string | undefined;
+  continueHref?: string | undefined;
 }) {
   const t = useT();
   const [activeTab, setActiveTab] = useState<EvidenceTabKey>('academic');
@@ -124,8 +126,8 @@ export function ConfirmedAchievementsView({
             { date: confirmedDate },
           )}
         </p>
-        {returnTo ? (
-          <Button href={returnTo} size="sm" className="mt-gb-lg">
+        {continueHref ? (
+          <Button href={continueHref} size="sm" className="mt-gb-lg">
             {t('Continue')}
           </Button>
         ) : null}

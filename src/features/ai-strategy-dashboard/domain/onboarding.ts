@@ -113,3 +113,21 @@ export function onboardingStepHref(
       return `/ai-strategy/${applicationId}/strategy/dashboard`;
   }
 }
+
+/**
+ * Where "Continue" on a confirmed, read-only Candidate Information view
+ * (Reflections / Achievements / Review & Confirm) should send the student —
+ * the report-generation gate while reports are still pending, or straight to
+ * the Personal Report once they exist. Reported live 2026-08-14: these
+ * Continue buttons used to carry a static `returnTo` that could point back
+ * at the analysis gate even after reports already existed, or nowhere useful
+ * at all once a student arrived without one.
+ */
+export function confirmedReflectionContinueHref(
+  applicationId: string,
+  aiAnalysisComplete: boolean,
+): string {
+  return aiAnalysisComplete
+    ? `/ai-strategy/${applicationId}/strategy/analysis/portrait`
+    : `/ai-strategy/${applicationId}/strategy/analysis`;
+}
