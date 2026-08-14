@@ -130,6 +130,12 @@ code, the code wins.
 
 - Discovery: `/universities`, numeric university details, `/scholarships`,
   `/mentors`, mentor profiles, `/news`, and the public marketing pages.
+- Scholarship handoff: saving an award with one linked university adds both
+  records immediately. Multi-university awards require choosing one of their
+  structured links; unlinked country/provider/consortium awards require choosing
+  a directory university and explicitly warn that official eligibility still
+  needs checking. Only scholarship rows with a real saved-university destination
+  count toward the sticky saved total and the `/apply?focus=` handoff.
 - Onboarding and profile: the onboarding flow plus the profile subpages remain
   the source of student context.
 - My Portal: `/apply` is the post-login landing and combines saved universities
@@ -226,8 +232,17 @@ code, the code wins.
 
 ## Verification snapshot
 
-Measured on 2026-08-14 against the uncommitted working tree described above
-(`npx` invocations, equivalent to the `npm run` scripts):
+Latest task-specific measurement, on 2026-08-14 after the scholarship → My
+Portal handoff repair and PR review follow-up: base and strict TypeScript passed;
+targeted ESLint passed; four focused files passed 13/13 Vitest tests;
+`node scripts/check-i18n.mjs`
+reported 0 missing keys and 0 placeholder mismatches; and `npm run build` passed
+on Next.js 16.2.3 (122/122 static pages generated). The in-app browser had no
+connected browser instance, so the signed-in visual flow and E2E were not run.
+
+The earlier broad snapshot below was measured on 2026-08-13 against its
+then-current uncommitted working tree (`npx` invocations, equivalent to the
+`npm run` scripts):
 
 | Gate | Result |
 |---|---|

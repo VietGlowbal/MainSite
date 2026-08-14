@@ -3,7 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { isAdmin } from '@/lib/auth-helpers';
 import { createClient } from '@/lib/supabase/server';
-import { createArticle, listArticlesForAdmin } from '@/lib/geo-cms';
+import { createArticle, listArticlesForAdmin, validateArticleForPublish } from '@/lib/geo-cms';
 
 /** Refresh the public pages that render GEO articles after a mutation. */
 function revalidateArticle(slug?: string) {
@@ -64,6 +64,11 @@ export async function POST(request: NextRequest) {
   const parsed = articleSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? 'Invalid payload' }, { status: 400 });
+  }
+
+  if (parsed.data.status === 'published') {
+    const errors = validateArticleForPublish(parsed.data);
+    if (errors.length) return NextResponse.json({ error: 'Complete the publish checklist', errors }, { status: 400 });
   }
 
   try {

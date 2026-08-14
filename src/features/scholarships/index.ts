@@ -22,3 +22,7 @@ export type {
   ScholarshipSort,
   ScholarshipView,
 } from './domain/query-state';
+export {
+  scholarshipSaveDestination,
+  type ScholarshipSaveDestination,
+} from './domain/save-destination';
