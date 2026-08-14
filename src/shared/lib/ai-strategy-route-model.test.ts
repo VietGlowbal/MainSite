@@ -10,6 +10,7 @@ describe('aiStrategyApplicationNav', () => {
       analysisReady: true,
       strategyReady: true,
       plannerReady: true,
+      candidateConfirmed: true,
     });
     const byKey = Object.fromEntries(items.map((item) => [item.key, item]));
 
@@ -26,6 +27,7 @@ describe('aiStrategyApplicationNav', () => {
       analysisReady: false,
       strategyReady: false,
       plannerReady: false,
+      candidateConfirmed: false,
     });
     expect(items.find((item) => item.key === 'personalReport')?.locked).toBeUndefined();
     expect(items.find((item) => item.key === 'matchingReport')?.locked).toBe(true);
@@ -38,6 +40,7 @@ describe('aiStrategyApplicationNav', () => {
       analysisReady: true,
       strategyReady: true,
       plannerReady: true,
+      candidateConfirmed: true,
     });
     expect(items.find((item) => item.key === 'scholarships')?.locked).toBe(true);
     expect(items.find((item) => item.key === 'finalCheck')?.locked).toBe(true);
@@ -48,9 +51,58 @@ describe('aiStrategyApplicationNav', () => {
       analysisReady: true,
       strategyReady: true,
       plannerReady: true,
+      candidateConfirmed: true,
     });
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/matching-report', items)).toBe('matchingReport');
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/strategy/analysis/fit', items)).toBe('matchingReport');
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/planner', items)).toBe('planner');
+  });
+
+  it('shows Reflections instead of Overview once reports exist, gated on candidateConfirmed', () => {
+    const notYetConfirmed = aiStrategyApplicationNav('app-123', {
+      analysisReady: true,
+      strategyReady: false,
+      plannerReady: false,
+      candidateConfirmed: false,
+    });
+    expect(notYetConfirmed.find((item) => item.key === 'overview')).toBeUndefined();
+    expect(notYetConfirmed.find((item) => item.key === 'reflections')?.locked).toBe(true);
+
+    const confirmed = aiStrategyApplicationNav('app-123', {
+      analysisReady: true,
+      strategyReady: false,
+      plannerReady: false,
+      candidateConfirmed: true,
+    });
+    const reflections = confirmed.find((item) => item.key === 'reflections');
+    expect(reflections?.locked).toBeUndefined();
+    expect(reflections?.href).toBe(
+      '/ai-strategy/reflection/confirm?return=%2Fai-strategy%2Fapp-123%2Fstrategy%2Fanalysis',
+    );
+
+    const beforeReports = aiStrategyApplicationNav('app-123', {
+      analysisReady: false,
+      strategyReady: false,
+      plannerReady: false,
+      candidateConfirmed: false,
+    });
+    expect(beforeReports.find((item) => item.key === 'overview')?.href).toBe('/apply/app-123');
+    expect(beforeReports.find((item) => item.key === 'reflections')).toBeUndefined();
+  });
+
+  it('highlights Reflections for all three Candidate Information pages', () => {
+    const items = aiStrategyApplicationNav('app-123', {
+      analysisReady: true,
+      strategyReady: true,
+      plannerReady: true,
+      candidateConfirmed: true,
+    });
+    expect(activeAiStrategyApplicationKey('/ai-strategy/reflection', items)).toBe('reflections');
+    expect(activeAiStrategyApplicationKey('/ai-strategy/reflection/achievements', items)).toBe(
+      'reflections',
+    );
+    expect(
+      activeAiStrategyApplicationKey('/ai-strategy/reflection/confirm?return=%2Fai-strategy%2Fa', items),
+    ).toBe('reflections');
   });
 });

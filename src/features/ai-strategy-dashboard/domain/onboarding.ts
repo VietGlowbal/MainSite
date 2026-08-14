@@ -122,12 +122,18 @@ export function onboardingStepHref(
  * Continue buttons used to carry a static `returnTo` that could point back
  * at the analysis gate even after reports already existed, or nowhere useful
  * at all once a student arrived without one.
+ *
+ * Points at the canonical, user-level `/ai-strategy/personal-report` (not
+ * the per-application `.../strategy/analysis/portrait` path) since that
+ * route became a redirect-only legacy alias for it — going there directly
+ * avoids sending a student through an extra redirect hop on every Continue
+ * click.
  */
 export function confirmedReflectionContinueHref(
   applicationId: string,
   aiAnalysisComplete: boolean,
 ): string {
   return aiAnalysisComplete
-    ? `/ai-strategy/${applicationId}/strategy/analysis/portrait`
+    ? '/ai-strategy/personal-report'
     : `/ai-strategy/${applicationId}/strategy/analysis`;
 }

@@ -2,6 +2,7 @@ import type { SubNavItem } from './app-routes';
 
 export type ApplicationRouteKey =
   | 'overview'
+  | 'reflections'
   | 'personalReport'
   | 'matchingReport'
   | 'strategyReport'
@@ -15,6 +16,7 @@ export type ApplicationRouteReadiness = {
   analysisReady: boolean;
   strategyReady: boolean;
   plannerReady: boolean;
+  candidateConfirmed: boolean;
 };
 
 /**
@@ -29,14 +31,35 @@ export type ApplicationRouteReadiness = {
  * Scholarships and Final Check are included as locked future destinations so
  * the route model represents the complete product architecture without
  * rendering dead links. `SubNav` omits locked items.
+ *
+ * Overview is the pre-report landing page; once reports exist, Reflections
+ * (this application's confirmed, read-only Candidate Information) takes its
+ * place as the way back to "what this was generated from" — owner decision,
+ * 2026-08-14, ported here from `applicationSubNav()` (`app-routes.ts`) when
+ * this canonical model replaced it as the nav's actual data source. The two
+ * are deliberately mutually exclusive rather than both shown:
+ * `candidateConfirmed` is always true by the time `analysisReady` is, since
+ * confirmation gates analysis in `nextOnboardingStep`, but the
+ * `candidateConfirmed` check here is what stops Reflections' link (a page
+ * that redirects away until confirmed) from ever appearing before it
+ * resolves to something.
  */
 export function aiStrategyApplicationNav(
   applicationId: string,
   readiness: ApplicationRouteReadiness,
 ): SubNavItem[] {
   const app = `/ai-strategy/${applicationId}`;
+  const leadItem: SubNavItem = readiness.analysisReady
+    ? {
+        key: 'reflections',
+        label: 'Reflections',
+        href: `/ai-strategy/reflection/confirm?return=${encodeURIComponent(`${app}/strategy/analysis`)}`,
+        ...(readiness.candidateConfirmed ? {} : { locked: true }),
+      }
+    : { key: 'overview', label: 'Overview', href: `/apply/${applicationId}` };
+
   return [
-    { key: 'overview', label: 'Overview', href: `/apply/${applicationId}` },
+    leadItem,
     { key: 'personalReport', label: 'Personal Report', href: '/ai-strategy/personal-report' },
     {
       key: 'matchingReport',
@@ -73,6 +96,11 @@ export function activeAiStrategyApplicationKey(
   const clean = pathname.split(/[?#]/, 1)[0]?.replace(/\/+$/, '') || '/';
   const exact = items.find((item) => item.href.split(/[?#]/, 1)[0]?.replace(/\/+$/, '') === clean);
   if (exact) return exact.key;
+
+  // All three Candidate Information pages (Reflections, Achievements,
+  // Review & Confirm) belong under the Reflections tab regardless of which
+  // `?return=` they were opened with.
+  if (/^\/ai-strategy\/reflection(\/|$)/.test(clean)) return 'reflections';
 
   // Compatibility for old URLs while their route-level redirects resolve.
   if (/\/strategy\/analysis\/fit$/.test(clean)) return 'matchingReport';
