@@ -5,26 +5,21 @@ import type { PersonalReportV2 } from '../domain/personal-report';
 /**
  * Storage for the canonical (v2) Personal Report.
  *
- * One row per user (`student_personal_reports.user_id` is the primary key —
- * see supabase-ai-strategy-reports.sql), same table the deprecated v1
- * pipeline already writes to. `report_v2`/`report_v2_generated_at` are new,
- * additive columns (supabase-shared-evaluation-engine.sql); `structured_
- * evaluation`/`evaluation_engine_version`/`input_hash` are reused as-is —
- * `shouldRegenerate` (src/shared/evaluation/versioning.ts) is what makes
- * regeneration idempotent against them.
+ * `evaluation_engine_version` versions deterministic scoring; `prompt_version`
+ * versions semantic extraction/grounding. Both must match before a cached
+ * report is considered current.
  */
-
 export type PersonalReportV2Record = {
   reportV2: PersonalReportV2;
   evaluation: ProfileEvaluation | null;
   inputHash: string;
   engineVersion: string | null;
+  promptVersion: string | null;
   modelName: string;
   generatedAt: string;
   updatedAt: string;
 };
 
-/** A minimal structural check — this is server-written JSONB, not user input, so full re-validation buys nothing beyond catching a genuinely corrupt row. */
 function isPersonalReportV2(value: unknown): value is PersonalReportV2 {
   if (!value || typeof value !== 'object') return false;
   const keys: (keyof PersonalReportV2)[] = [
@@ -46,7 +41,7 @@ export async function getPersonalReportV2Record(
   const { data, error } = await supabase
     .from('student_personal_reports')
     .select(
-      'report_v2,report_v2_generated_at,structured_evaluation,evaluation_engine_version,input_hash,model_name,updated_at',
+      'report_v2,report_v2_generated_at,structured_evaluation,evaluation_engine_version,input_hash,prompt_version,model_name,updated_at',
     )
     .eq('user_id', userId)
     .maybeSingle();
@@ -72,6 +67,7 @@ export async function getPersonalReportV2Record(
       evaluation: (data.structured_evaluation as ProfileEvaluation | null) ?? null,
       inputHash: data.input_hash,
       engineVersion: data.evaluation_engine_version,
+      promptVersion: data.prompt_version,
       modelName: data.model_name,
       generatedAt: data.report_v2_generated_at ?? data.updated_at,
       updatedAt: data.updated_at,
@@ -88,6 +84,7 @@ export async function savePersonalReportV2(
     evaluation: ProfileEvaluation;
     inputHash: string;
     engineVersion: string;
+    promptVersion: string;
     modelName: string;
   },
 ): Promise<{ error: { migrationMissing: boolean; message: string } | null }> {
@@ -100,6 +97,7 @@ export async function savePersonalReportV2(
       structured_evaluation: args.evaluation,
       evaluation_engine_version: args.engineVersion,
       input_hash: args.inputHash,
+      prompt_version: args.promptVersion,
       model_name: args.modelName,
       generated_at: now,
       updated_at: now,
