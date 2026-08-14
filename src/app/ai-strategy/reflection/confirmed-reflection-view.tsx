@@ -25,12 +25,15 @@ import { Button, Panel } from '@/shared/ui';
  * because a NEW application's onboarding CTA sent them here while this
  * globally-shared profile was already confirmed from an earlier application)
  * sees exactly what they confirmed and nothing they can change — the route
- * guard in `page.tsx` is what decides they land here at all. `returnTo`
- * (threaded through from the page's own `?return=` param) is what gets them
- * back out again to wherever that CTA meant to send them, since there is
- * otherwise no forward navigation on this screen at all — landing here used
- * to be a dead end for a student opening a second application, reported live
- * 2026-08-13.
+ * guard in `page.tsx` is what decides they land here at all. `continueHref`
+ * is what gets them back out again, since there is otherwise no forward
+ * navigation on this screen at all — landing here used to be a dead end for
+ * a student opening a second application, reported live 2026-08-13. It is
+ * computed by the page via `confirmedReflectionContinueHref` — report
+ * generation while this application's reports are still pending, or
+ * straight to the Personal Report once they exist — rather than a raw
+ * `returnTo`, which used to point at the analysis gate even after reports
+ * already existed (reported live 2026-08-14).
  *
  * A client component, like every other reflection page in this feature, so
  * it can use `useT()` directly rather than sprinkling `<T k="…" />` islands
@@ -59,11 +62,11 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 export function ConfirmedReflectionView({
   values,
   confirmedAt,
-  returnTo,
+  continueHref,
 }: {
   values: ReflectionValues;
   confirmedAt: string;
-  returnTo?: string | undefined;
+  continueHref?: string | undefined;
 }) {
   const t = useT();
   const confirmedDate = new Date(confirmedAt).toLocaleDateString('en-US', {
@@ -101,8 +104,8 @@ export function ConfirmedReflectionView({
             date: confirmedDate,
           })}
         </p>
-        {returnTo ? (
-          <Button href={returnTo} size="sm" className="mt-gb-lg">
+        {continueHref ? (
+          <Button href={continueHref} size="sm" className="mt-gb-lg">
             {t('Continue')}
           </Button>
         ) : null}
