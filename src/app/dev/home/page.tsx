@@ -10,11 +10,13 @@ import {
   HomeContact,
   HomeFaq,
   HomeFeatures,
+  getOfficialScholarshipBranding,
   HomeHero,
   HomeHowItWorks,
   HomeMetrics,
   HomePainPoints,
   HomePartners,
+  HomeScholarships,
   HomeTeam,
   HomeTestimonials,
   MARKETING_NAV_ACTIONS,
@@ -22,6 +24,99 @@ import {
   type ContactState,
 } from '@/features/marketing/ui';
 import { Footer, MobileNav, TopNav } from '@/shared/ui';
+
+function previewBranding(title: string) {
+  const branding = getOfficialScholarshipBranding(title);
+  return {
+    scholarshipLogoUrl: branding?.logoUrl ?? null,
+    scholarshipLogoTone: branding?.logoTone ?? null,
+  };
+}
+
+const PREVIEW_SCHOLARSHIPS = [
+  {
+    id: 147,
+    title: 'Rhodes Scholarship',
+    href: '/scholarships?q=Rhodes%20Scholarship',
+    organization: 'University of Oxford',
+    ...previewBranding('Rhodes Scholarship'),
+    universityLogoUrl: 'https://uooshbumyilwvbgmbixx.supabase.co/storage/v1/object/public/university-images/universities/00022-university-of-oxford/logo.webp',
+    value: 'Full ride',
+    valueLabel: 'What it covers',
+    ranking: 'Most prestigious',
+    deadline: 'Aug–Oct',
+    fundingTypes: ['full_ride', 'merit'],
+    country: 'United Kingdom',
+  },
+  {
+    id: 140,
+    title: 'Gates Cambridge',
+    href: '/scholarships?q=Gates%20Cambridge',
+    organization: 'University of Cambridge',
+    ...previewBranding('Gates Cambridge'),
+    universityLogoUrl: 'https://uooshbumyilwvbgmbixx.supabase.co/storage/v1/object/public/university-images/universities/00023-university-of-cambridge/logo.webp',
+    value: 'Full ride',
+    valueLabel: 'What it covers',
+    ranking: 'Top global',
+    deadline: 'Oct–Dec',
+    fundingTypes: ['full_ride', 'need_based'],
+    country: 'United Kingdom',
+  },
+  {
+    id: 129,
+    title: 'Lester B. Pearson Scholarship',
+    href: '/scholarships?q=Lester%20B.%20Pearson%20Scholarship',
+    organization: 'University of Toronto',
+    universityLogoUrl: 'https://uooshbumyilwvbgmbixx.supabase.co/storage/v1/object/public/university-images/universities/00032-university-of-toronto/logo.webp',
+    value: 'Full tuition + residence + books',
+    valueLabel: 'What it covers',
+    ranking: 'Top Canada',
+    deadline: 'Oct–Nov',
+    fundingTypes: ['full_tuition', 'merit'],
+    country: 'Canada',
+  },
+  {
+    id: 139,
+    title: 'Knight-Hennessy',
+    href: '/scholarships?q=Knight-Hennessy',
+    organization: 'Stanford University',
+    ...previewBranding('Knight-Hennessy'),
+    universityLogoUrl: 'https://uooshbumyilwvbgmbixx.supabase.co/storage/v1/object/public/university-images/universities/00003-stanford-university/logo.webp',
+    value: 'Full ride',
+    valueLabel: 'What it covers',
+    ranking: 'Top global',
+    deadline: 'Oct',
+    fundingTypes: ['merit', 'leadership'],
+    country: 'United States',
+  },
+  {
+    id: 136,
+    title: 'Nanyang Scholarship',
+    href: '/scholarships?q=Nanyang%20Scholarship',
+    organization: 'Nanyang Technological University',
+    universityLogoUrl: 'https://uooshbumyilwvbgmbixx.supabase.co/storage/v1/object/public/university-images/universities/00072-nanyang-technological-university-ntu/logo.webp',
+    value: 'Full package',
+    valueLabel: 'What it covers',
+    ranking: 'Top Singapore',
+    deadline: 'Mar',
+    fundingTypes: ['full_tuition', 'merit'],
+    country: 'Singapore',
+  },
+  {
+    id: 153,
+    title: 'Yenching Academy',
+    href: '/scholarships?q=Yenching%20Academy',
+    organization: 'Peking University',
+    ...previewBranding('Yenching Academy'),
+    universityLogoUrl: 'https://uooshbumyilwvbgmbixx.supabase.co/storage/v1/object/public/university-images/universities/00058-peking-university/logo.webp',
+    value: 'Full ride',
+    valueLabel: 'What it covers',
+    ranking: 'Top China Studies',
+    deadline: 'Dec',
+    fundingTypes: ['full_ride', 'merit'],
+    country: 'China',
+  },
+] as const;
 
 /**
  * Development-only mirror of the Home flow from Figma 884:12026. It keeps the
@@ -73,6 +168,7 @@ export default function HomePreviewPage() {
         <HomeHero />
         <HomePartners />
         <HomeMetrics />
+        <HomeScholarships entries={PREVIEW_SCHOLARSHIPS} total={2_877} />
         <HomePainPoints />
         <HomeHowItWorks />
         <HomeFeatures />

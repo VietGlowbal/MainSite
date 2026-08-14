@@ -3,6 +3,7 @@ import { unstable_cache } from 'next/cache';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
 import { getUniversityQueries } from '@/features/universities/api';
+import { getScholarshipQueries } from '@/features/scholarships/api';
 import { CACHE_TAGS, CACHE_TTL_LONG } from '@/server/cache';
 import {
   FOOTER_COLUMNS,
@@ -13,11 +14,13 @@ import {
   HomeContact,
   HomeFaq,
   HomeFeatures,
+  getOfficialScholarshipBranding,
   HomeHero,
   HomeHowItWorks,
   HomeMetrics,
   HomePainPoints,
   HomePartners,
+  HomeScholarships,
   HomeTeam,
   HomeTestimonials,
   PARTNER_LOGOS,
@@ -91,6 +94,58 @@ const getPartnerUniversityIds = unstable_cache(
   ['home-partner-university-ids'],
   { revalidate: CACHE_TTL_LONG, tags: [CACHE_TAGS.universities] },
 );
+
+function compactCoverage(value: string | null): string {
+  if (!value) return 'Funding support available';
+  const firstLine = value
+    .split(/\r?\n|\|/)
+    .map((part) => part.trim())
+    .find(Boolean) ?? value.trim();
+  return firstLine.length > 76 ? `${firstLine.slice(0, 73).trimEnd()}…` : firstLine;
+}
+
+/**
+ * Home needs six records and one count, not the full scholarship directory.
+ * The repository ranks the explicitly editorialised records and caches the
+ * result with the same invalidation tag as `/scholarships`.
+ */
+async function getHomeScholarshipSpotlight() {
+  try {
+    const result = await getScholarshipQueries().homeHighlights(6);
+    return {
+      total: result.total,
+      entries: result.items.map((scholarship) => {
+        const university = scholarship.universities[0];
+        const officialBranding = getOfficialScholarshipBranding(scholarship.name);
+        return {
+          id: scholarship.id,
+          title: scholarship.name,
+          href: `/scholarships?q=${encodeURIComponent(scholarship.name)}`,
+          organization:
+            university?.name ??
+            officialBranding?.organization ??
+            scholarship.provider ??
+            scholarship.country ??
+            'Global scholarship',
+          scholarshipLogoUrl: officialBranding?.logoUrl ?? null,
+          scholarshipLogoTone: officialBranding?.logoTone ?? null,
+          universityLogoUrl: university?.logo_url ?? null,
+          value: scholarship.amountLabel ?? compactCoverage(scholarship.coverage),
+          valueLabel: scholarship.amountLabel ? 'Award value' : 'What it covers',
+          coverage: scholarship.amountLabel ? compactCoverage(scholarship.coverage) : null,
+          ranking: scholarship.ranking_note,
+          deadline: scholarship.deadlineLabel,
+          fundingTypes: scholarship.funding_type,
+          country:
+            scholarship.country ?? university?.country ?? officialBranding?.country ?? null,
+        };
+      }),
+    };
+  } catch (error) {
+    console.error('Home scholarship spotlight failed:', error);
+    return { total: 0, entries: [] };
+  }
+}
 
 /**
  * The consultation form (Figma 104:7361).
@@ -182,9 +237,10 @@ async function submitContact(
 }
 
 export default async function Home() {
-  const [partnerUniversityIds, team] = await Promise.all([
+  const [partnerUniversityIds, team, scholarshipSpotlight] = await Promise.all([
     getPartnerUniversityIds(),
     getTeamMembers(),
+    getHomeScholarshipSpotlight(),
   ]);
 
   return (
@@ -202,6 +258,10 @@ export default async function Home() {
         <HomeHero />
         <HomePartners universityIds={partnerUniversityIds} />
         <HomeMetrics />
+        <HomeScholarships
+          entries={scholarshipSpotlight.entries}
+          total={scholarshipSpotlight.total}
+        />
         <HomePainPoints />
         <HomeHowItWorks />
         <HomeFeatures />

@@ -49,6 +49,9 @@ export const TID = {
    */
   heroPartners: 'hero-partners',
 
+  /** The continuously rotating scholarship pillars on the public Home page. */
+  homeScholarships: 'home-scholarships',
+
   // ── Auth ──────────────────────────────────────────────────────────────
   authEmailInput: 'auth-email',
   authPasswordInput: 'auth-password',

@@ -24,6 +24,8 @@ export { HomePainPoints } from './home-pain-points';
 export { HomePartners } from './home-partners';
 export { HomeScholarships } from './home-scholarships';
 export type { ScholarshipTeaser } from './home-scholarships';
+export { getOfficialScholarshipBranding } from './home-scholarship-branding';
+export type { OfficialScholarshipBranding } from './home-scholarship-branding';
 export { HomeTeam } from './home-team';
 export { HomeTestimonials } from './home-testimonials';
 export { MissingContent } from './missing-content';

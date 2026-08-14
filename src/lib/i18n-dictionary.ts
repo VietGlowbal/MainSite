@@ -1173,6 +1173,31 @@ export const translations: Record<string, string> = {
   'View scholarship': 'Xem học bổng',
   'Scroll or swipe to see more scholarships.':
     'Cuộn hoặc vuốt để xem thêm học bổng.',
+  'Scholarship spotlight': 'Học bổng nổi bật',
+  'A world of funding, brought into focus.':
+    'Thế giới học bổng, được chọn lọc rõ ràng.',
+  'Start with a few standout opportunities, then explore the library to find the scholarships that fit your goals, destination and story.':
+    'Bắt đầu với những cơ hội nổi bật, sau đó khám phá kho học bổng phù hợp với mục tiêu, điểm đến và câu chuyện của bạn.',
+  'published scholarships in one growing library':
+    'học bổng đã xuất bản trong một thư viện không ngừng mở rộng',
+  'published scholarships to explore': 'học bổng đã xuất bản để khám phá',
+  'published scholarships': 'học bổng đã xuất bản',
+  'ready to explore': 'sẵn sàng để khám phá',
+  'Explore all scholarships': 'Khám phá tất cả học bổng',
+  'Featured scholarships': 'Học bổng nổi bật',
+  'Award value': 'Giá trị giải thưởng',
+  'What it covers': 'Quyền lợi học bổng',
+  'Scholarship logo': 'Logo học bổng',
+  'University crest': 'Logo trường đại học',
+  'Scholarship mark': 'Biểu trưng học bổng',
+  'Funding support': 'Hỗ trợ tài chính',
+  'Global opportunity': 'Cơ hội toàn cầu',
+  'Application window': 'Thời gian ứng tuyển',
+  'Check current dates': 'Kiểm tra thời hạn hiện tại',
+  'Previous scholarship': 'Học bổng trước',
+  'Next scholarship': 'Học bổng tiếp theo',
+  'Pause automatic rotation': 'Tạm dừng chuyển động tự động',
+  'Resume automatic rotation': 'Tiếp tục chuyển động tự động',
 
   // ── Home: testimonials (Figma 104:7265) ──────────────────────────────────
   'Learn from students who have succeeded': 'Học hỏi từ những sinh viên đã thành công',
@@ -1792,7 +1817,7 @@ export const translations: Record<string, string> = {
   // `Please wait...` is already covered further up this file.
 
   // The scholarship detail panel (375:13369)
-  'Scholarship value': 'Gía trị học bổng',
+  'Scholarship value': 'Giá trị học bổng',
   'Who it is for': 'Đối tượng',
   'Application conditions': 'Điều kiện ứng tuyển',
   Analysis: 'Phân tích',

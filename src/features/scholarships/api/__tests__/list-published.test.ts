@@ -27,6 +27,7 @@ class Query {
   or(...args: unknown[]) { this.calls.push(['or', ...args]); return this; }
   order(...args: unknown[]) { this.calls.push(['order', ...args]); return this; }
   range(...args: unknown[]) { this.calls.push(['range', ...args]); return this; }
+  limit(...args: unknown[]) { this.calls.push(['limit', ...args]); return this; }
   then(resolve: (result: Result) => unknown) { return Promise.resolve(this.result).then(resolve); }
 }
 
@@ -111,5 +112,72 @@ describe('SupabaseScholarshipRepository.listPublished', () => {
     await expect(
       new SupabaseScholarshipRepository().listPublished({ page: 1, pageSize: 9, sort: 'name' }),
     ).rejects.toThrow('database unavailable');
+  });
+
+  it('loads a counted, ranked Home spotlight without reading the full directory', async () => {
+    const count = new Query({ data: [], error: null, count: 2_877 });
+    const candidates = new Query({
+      data: [
+        {
+          ...row(101),
+          name: 'High-score award without a mark',
+          coverage: 'Full ride',
+          amount_min: 50_000,
+          amount_currency: 'USD',
+          ranking_note: 'Most prestigious',
+        },
+        {
+          ...row(140),
+          name: 'Gates Cambridge',
+          coverage: 'Full ride',
+          ranking_note: 'Top global',
+          scholarship_universities: [
+            {
+              university_id: 23,
+              match_score: 100,
+              confirmed: true,
+              universities: {
+                id: 23,
+                name: 'University of Cambridge',
+                country: 'United Kingdom',
+                logo_url: 'https://example.test/cambridge.webp',
+              },
+            },
+          ],
+        },
+        {
+          ...row(147),
+          name: 'Rhodes Scholarship',
+          coverage: 'Full ride',
+          ranking_note: 'Most prestigious',
+          scholarship_universities: [
+            {
+              university_id: 22,
+              match_score: 100,
+              confirmed: true,
+              universities: {
+                id: 22,
+                name: 'University of Oxford',
+                country: 'United Kingdom',
+                logo_url: 'https://example.test/oxford.webp',
+              },
+            },
+          ],
+        },
+      ],
+      error: null,
+    });
+    from.mockReturnValueOnce(count).mockReturnValueOnce(candidates);
+
+    const result = await new SupabaseScholarshipRepository().homeHighlights(2);
+
+    expect(result.total).toBe(2_877);
+    expect(result.items.map((item) => item.name)).toEqual([
+      'Rhodes Scholarship',
+      'Gates Cambridge',
+    ]);
+    expect(count.calls).toContainEqual(['select', 'id', { count: 'exact', head: true }]);
+    expect(candidates.calls).toContainEqual(['not', 'ranking_note', 'is', null]);
+    expect(candidates.calls).toContainEqual(['limit', 32]);
   });
 });
