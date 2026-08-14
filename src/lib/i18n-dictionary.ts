@@ -4174,6 +4174,10 @@ export const translations: Record<string, string> = {
   'Confirmed profile': 'Hồ sơ đã xác nhận',
   'This information was confirmed on {date} and is used to generate your reports.':
     'Thông tin này đã được xác nhận vào ngày {date} và được dùng để tạo báo cáo của bạn.',
+  'This information is locked and was used to generate your reports.':
+    'Thông tin này đã bị khóa và được dùng để tạo báo cáo của bạn.',
+  'This information is used to generate your reports.':
+    'Thông tin này được dùng để tạo báo cáo của bạn.',
   'All fields are read-only.': 'Tất cả các trường đều chỉ đọc.',
   'Original grades': 'Điểm gốc',
   'Confirmed achievements': 'Thành tích đã xác nhận',

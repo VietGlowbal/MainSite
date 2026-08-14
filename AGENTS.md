@@ -5,6 +5,20 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 <!-- END:nextjs-agent-rules -->
 
+## Persistent memory
+
+- For every task, use agentmemory before planning or changing files.
+- Before work, call `memory_smart_search` or `memory_recall` with the project,
+  task, and affected feature terms; read relevant hits before deriving context.
+- After material work, call `memory_save` for durable decisions, verified
+  findings, outcomes, checks run, and unresolved risks. Do not store secrets,
+  credentials, personal data, transient logs, or unverified assumptions.
+- Treat code, configuration, and current documentation as the source of truth;
+  correct or supersede stale memory when discovered.
+- If memory tools are unavailable, report that once and continue with the
+  project context workflow. Do not install or start a memory service without
+  explicit user approval.
+
 ## Project context workflow
 
 Before planning or changing code:

@@ -1,4 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+export { validateArticleForPublish } from './geo-cms-validation';
+export type { PublishValidationInput } from './geo-cms-validation';
 
 /**
  * Server-only data access for the GEO News CMS.
@@ -54,6 +56,11 @@ export type GeoArticleInput = {
   reading_time_minutes?: number | null;
   meta?: Record<string, unknown>;
   status?: GeoArticleStatus;
+  /**
+   * Optimistic-concurrency token supplied by the autosaving editor. It is
+   * deliberately not persisted as an article column.
+   */
+  expected_updated_at?: string;
 };
 
 const TABLE = 'geo_articles';
@@ -73,6 +80,13 @@ export function slugify(input: string): string {
 /** ~180 wpm, floored at 4 minutes — matches src/lib/geo-content.ts. */
 export function estimateReadMinutes(body: string): number {
   return Math.max(4, Math.round(body.split(/\s+/).filter(Boolean).length / 180));
+}
+
+export class GeoArticleConflictError extends Error {
+  constructor() {
+    super('This article was changed by another admin. Reload it before saving again.');
+    this.name = 'GeoArticleConflictError';
+  }
 }
 
 /** List articles for the admin console (all statuses), newest first. */
@@ -150,10 +164,16 @@ export async function updateArticle(id: string, input: GeoArticleInput): Promise
   }
 
   const admin = createAdminClient();
-  const { data, error } = await admin.from(TABLE).update(patch).eq('id', id).select('*').single();
+  let query = admin.from(TABLE).update(patch).eq('id', id);
+  if (input.expected_updated_at) query = query.eq('updated_at', input.expected_updated_at);
+  const { data, error } = await query.select('*').maybeSingle();
   if (error) {
     if (error.code === '23505') throw new Error(`That slug is already in use by another article`);
     throw new Error(error.message);
+  }
+  if (!data) {
+    if (input.expected_updated_at) throw new GeoArticleConflictError();
+    throw new Error('Article not found');
   }
   return data as GeoArticle;
 }

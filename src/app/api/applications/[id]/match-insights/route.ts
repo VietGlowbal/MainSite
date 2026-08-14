@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import {
-  getPersonalReportRecord,
+  getPersonalReportV2Record,
   loadCandidateContext,
   stableHash,
 } from '@/features/apply/api';
@@ -84,7 +84,7 @@ export async function POST(
         .from('uploaded_documents')
         .select('id,type,storage_key,mime_type,parsed_text')
         .eq('user_id', userId),
-      getPersonalReportRecord(supabase, userId),
+      getPersonalReportV2Record(supabase, userId),
       universityId == null
         ? Promise.resolve({ data: null, error: null })
         : supabase.from('universities').select('*').eq('id', universityId).maybeSingle(),
@@ -113,10 +113,10 @@ export async function POST(
   const [cvText, essayText] = await Promise.all([textFor(cvDoc), textFor(essayDoc)]);
   const notes: string[] = [];
   if (cvDoc && !cvText) {
-    notes.push('Ứng viên đã tải CV nhưng hệ thống không đọc được nội dung.');
+    notes.push('The candidate uploaded a CV but the system could not read its content.');
   }
   if (essayDoc && !essayText) {
-    notes.push('Ứng viên đã tải bài luận nhưng hệ thống không đọc được nội dung.');
+    notes.push('The candidate uploaded an essay but the system could not read its content.');
   }
 
   const structuredEvidence = JSON.stringify({
@@ -137,8 +137,8 @@ export async function POST(
     return NextResponse.json(
       {
         error: cvDoc || essayDoc
-          ? 'Chúng tôi chưa đọc được tài liệu. Hãy dùng PDF có thể chọn văn bản hoặc thêm điểm học tập.'
-          : 'Hãy thêm CV, bài luận, điểm học tập hoặc hoạt động trước khi tạo Matching Report.',
+          ? "We couldn't read your document. Use a PDF with selectable text, or add your grades instead."
+          : 'Add a CV, essay, grades, or an activity before generating a Matching Report.',
         needsInputs: true,
       },
       { status: 422 },
@@ -146,8 +146,8 @@ export async function POST(
   }
 
   const courseInput = {
-    universityName: text(application.university_name) ?? 'Chưa xác định trường',
-    courseName: text(application.course_name) ?? 'Chưa xác định chương trình',
+    universityName: text(application.university_name) ?? 'Unknown university',
+    courseName: text(application.course_name) ?? 'Unknown programme',
     subject: text(application.subject ?? course.subject),
     degreeLevel: text(application.degree_level ?? course.degree_level),
     entryRequirements: text(course.entry_requirements_summary),
@@ -191,7 +191,13 @@ export async function POST(
     }),
     activities: text(candidate.activities),
     achievements: text(candidate.achievements),
-    personalContext: personalResult.record?.report.summary ?? text(profile.goals),
+    personalContext:
+      [
+        personalResult.record?.reportV2.coreIdentity.interpretation,
+        personalResult.record?.reportV2.drivingForce.explanation,
+      ]
+        .filter(Boolean)
+        .join(' ') || text(profile.goals),
     budget: text({
       budget: profile.budget_range,
       tuitionBudget: profile.tuition_budget_usd,
@@ -223,7 +229,7 @@ export async function POST(
     .maybeSingle();
   if (migrationMissing(latestError)) {
     return NextResponse.json(
-      { error: 'Matching Report cần được cập nhật cơ sở dữ liệu trước khi sử dụng.' },
+      { error: 'Matching Report needs a database update before it can be used.' },
       { status: 503 },
     );
   }
@@ -235,7 +241,7 @@ export async function POST(
     if (nextAt.getTime() > Date.now()) {
       return NextResponse.json(
         {
-          error: 'Dữ liệu đã thay đổi nhưng bạn chưa thể tạo lại báo cáo miễn phí ngay lúc này.',
+          error: "Your information has changed, but a free report regeneration isn't available yet.",
           stale: true,
           analysis: latestV2,
           nextRegenerationAt: nextAt.toISOString(),
@@ -262,7 +268,7 @@ export async function POST(
     });
     return NextResponse.json(
       {
-        error: 'AI chưa thể tạo Matching Report hợp lệ. Báo cáo cũ vẫn được giữ nguyên.',
+        error: 'The AI could not produce a valid Matching Report. Your previous report has been kept.',
         ...(latestV2 ? { analysis: latestV2 } : {}),
       },
       { status: 502 },
@@ -286,7 +292,7 @@ export async function POST(
     limitations: [
       ...insights.programmeFit.limitations,
       ...(courseSignals < 3
-        ? ['Dữ liệu chính thức của chương trình chưa đủ để đánh giá toàn bộ các chiều phù hợp.']
+        ? ['Official programme data is not sufficient to assess every fit dimension.']
         : []),
     ].slice(0, 10),
   });
@@ -343,8 +349,8 @@ export async function POST(
     return NextResponse.json(
       {
         error: migrationMissing(insertError)
-          ? 'Matching Report cần được cập nhật cơ sở dữ liệu trước khi sử dụng.'
-          : 'Không thể lưu Matching Report.',
+          ? 'Matching Report needs a database update before it can be used.'
+          : 'Could not save the Matching Report.',
       },
       { status: migrationMissing(insertError) ? 503 : 500 },
     );

@@ -1,10 +1,25 @@
 import { z } from 'zod';
 
-export const REPORT_PROMPT_VERSION = 'personal-report-v1-vi';
+/**
+ * ⚠️ v1 Personal Report (`personal-report-v1-vi`) IS DEPRECATED.
+ *
+ * The schemas and hydration logic that used to live here
+ * (`personalReportSchema`, `personalReportDraftSchema`, `hydratePersonalReport`,
+ * `candidateConfidence`'s report-shaping half) built the OLD six-tab narrative
+ * report from a model-authored draft. The canonical Personal Report is now
+ * `PersonalReportV2` (`src/features/apply/domain/personal-report.ts`), built
+ * deterministically on top of the Shared Evaluation Engine's
+ * `ProfileEvaluation` (`src/shared/evaluation`) — see
+ * `docs/ai-evaluation-engine.md`. `/ai-strategy/report` permanently redirects
+ * to `/ai-strategy/personal-report` (`next.config.ts`).
+ *
+ * `CandidateContext`/`loadCandidateContext` are NOT deprecated — the v2
+ * pipeline (`src/lib/ai/personal-report-v2.ts`) still reads the same
+ * candidate context shape, it just extracts a `ProfileEvaluationInput` from
+ * it instead of prompting a model for a whole report draft. `evidenceRefSchema`'s
+ * shape survives as the plain `EvidenceRef` type below for the same reason.
+ */
 export const MATCH_PROMPT_VERSION_V2 = 'match-insights-v2-vi';
-
-export const reportStatusSchema = z.enum(['established', 'emerging', 'limited']);
-export const reportConfidenceSchema = z.enum(['high', 'medium', 'low']);
 
 export const evidenceKindSchema = z.enum([
   'achievement',
@@ -21,84 +36,8 @@ export const evidenceRefSchema = z.object({
   label: z.string().min(1).max(240),
 });
 
-export const narrativeSectionSchema = z.object({
-  status: reportStatusSchema,
-  headline: z.string().min(1).max(180),
-  narrative: z.string().min(1).max(1600),
-  confidence: reportConfidenceSchema,
-  evidenceRefs: z.array(evidenceRefSchema).max(8),
-  limitation: z.string().max(500).optional(),
-});
-
-export const emergingThemeSchema = narrativeSectionSchema.extend({
-  theme: z.string().min(1).max(100),
-});
-
-export const proofItemSchema = z.object({
-  status: reportStatusSchema,
-  title: z.string().min(1).max(160),
-  role: z.string().max(160).optional(),
-  contribution: z.string().min(1).max(700),
-  outcome: z.string().max(500).optional(),
-  competencies: z.array(z.string().min(1).max(100)).max(6),
-  evidenceStrength: z.enum(['strong', 'moderate', 'limited']),
-  evidenceRefs: z.array(evidenceRefSchema).min(1).max(4),
-});
-
-export const personalReportSchema = z.object({
-  summary: z.string().min(1).max(1600),
-  confidence: z.number().int().min(0).max(100),
-  confidenceLevel: reportConfidenceSchema,
-  limitations: z.array(z.string().min(1).max(500)).max(10),
-  coreIdentity: narrativeSectionSchema,
-  drivingForce: narrativeSectionSchema,
-  signaturePattern: narrativeSectionSchema,
-  emergingThemes: z.array(emergingThemeSchema).max(5),
-  personalPositioning: narrativeSectionSchema,
-  proofOfMe: z.array(proofItemSchema).max(8),
-});
-
-const draftEvidenceIdsSchema = z.array(z.string().min(1).max(160)).max(8);
-
-const draftNarrativeSectionSchema = z.object({
-  status: reportStatusSchema,
-  headline: z.string().min(1).max(180),
-  narrative: z.string().min(1).max(1600),
-  evidenceIds: draftEvidenceIdsSchema,
-  limitation: z.string().max(500).optional(),
-});
-
-const draftThemeSchema = draftNarrativeSectionSchema.extend({
-  theme: z.string().min(1).max(100),
-});
-
-const draftProofSchema = z.object({
-  status: reportStatusSchema,
-  title: z.string().min(1).max(160),
-  role: z.string().max(160).optional(),
-  contribution: z.string().min(1).max(700),
-  outcome: z.string().max(500).optional(),
-  competencies: z.array(z.string().min(1).max(100)).max(6),
-  evidenceStrength: z.enum(['strong', 'moderate', 'limited']),
-  evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(4),
-});
-
-/** Strict provider output. Evidence labels and confidence are server-owned. */
-export const personalReportDraftSchema = z.object({
-  summary: z.string().min(1).max(1600),
-  limitations: z.array(z.string().min(1).max(500)).max(10),
-  coreIdentity: draftNarrativeSectionSchema,
-  drivingForce: draftNarrativeSectionSchema,
-  signaturePattern: draftNarrativeSectionSchema,
-  emergingThemes: z.array(draftThemeSchema).max(5),
-  personalPositioning: draftNarrativeSectionSchema,
-  proofOfMe: z.array(draftProofSchema).max(8),
-});
-
 export type EvidenceKind = z.infer<typeof evidenceKindSchema>;
 export type EvidenceRef = z.infer<typeof evidenceRefSchema>;
-export type PersonalReport = z.infer<typeof personalReportSchema>;
-export type PersonalReportDraft = z.infer<typeof personalReportDraftSchema>;
 
 export type CandidateContext = {
   profile: Record<string, unknown>;
@@ -123,9 +62,17 @@ export function canonicalize(value: unknown): unknown {
   return value;
 }
 
+/**
+ * A 0-100 confidence score derived from how much of the candidate context is
+ * actually filled in — still used by the Matching Report's `match-insights`
+ * route to cap its own system-fit confidence. NOT part of v1's report
+ * hydration anymore; that half of this function's original job
+ * (`hydratePersonalReport`) is deleted, but the score itself is a generic
+ * "how complete is this profile" signal with its own caller.
+ */
 export function candidateConfidence(context: CandidateContext): {
   score: number;
-  level: z.infer<typeof reportConfidenceSchema>;
+  level: 'high' | 'medium' | 'low';
   limitations: string[];
 } {
   const profileValues = Object.values(context.profile).filter(
@@ -169,79 +116,6 @@ export function candidateConfidence(context: CandidateContext): {
     level: normalized >= 75 ? 'high' : normalized >= 50 ? 'medium' : 'low',
     limitations,
   };
-}
-
-function confidenceForEvidence(
-  ids: string[],
-  evidenceById: Map<string, EvidenceRef>,
-  overall: z.infer<typeof reportConfidenceSchema>,
-): z.infer<typeof reportConfidenceSchema> {
-  const valid = ids.map((id) => evidenceById.get(id)).filter(Boolean);
-  if (valid.length < 2) return 'low';
-  const hasDocument = valid.some(
-    (ref) => ref?.kind === 'document' || ref?.kind === 'english_test' || ref?.kind === 'standardized_test',
-  );
-  if (overall === 'high' && hasDocument) return 'high';
-  return 'medium';
-}
-
-export function hydratePersonalReport(
-  draft: PersonalReportDraft,
-  context: CandidateContext,
-): PersonalReport {
-  const evidenceById = new Map(context.evidence.map((item) => [item.id, item]));
-  const confidence = candidateConfidence(context);
-  const hydrateIds = (ids: string[], min = 0): EvidenceRef[] => {
-    const uniqueIds = [...new Set(ids)];
-    const refs = uniqueIds.flatMap((id) => {
-      const ref = evidenceById.get(id);
-      return ref ? [ref] : [];
-    });
-    if (refs.length !== uniqueIds.length) {
-      throw new Error('REPORT_EVIDENCE_INVALID');
-    }
-    if (refs.length < min) {
-      throw new Error('REPORT_EVIDENCE_INVALID');
-    }
-    return refs;
-  };
-  const narrative = (section: PersonalReportDraft['coreIdentity']) => {
-    const refs = hydrateIds(section.evidenceIds);
-    const forcedLimited = refs.length < 2 || context.achievements.length + context.activities.length < 3;
-    return {
-      status: forcedLimited ? ('limited' as const) : section.status,
-      headline: section.headline,
-      narrative: section.narrative,
-      confidence: confidenceForEvidence(section.evidenceIds, evidenceById, confidence.level),
-      evidenceRefs: refs,
-      ...(section.limitation ? { limitation: section.limitation } : {}),
-    };
-  };
-
-  return personalReportSchema.parse({
-    summary: draft.summary,
-    confidence: confidence.score,
-    confidenceLevel: confidence.level,
-    limitations: [...new Set([...confidence.limitations, ...draft.limitations])].slice(0, 10),
-    coreIdentity: narrative(draft.coreIdentity),
-    drivingForce: narrative(draft.drivingForce),
-    signaturePattern: narrative(draft.signaturePattern),
-    emergingThemes: draft.emergingThemes.map((theme) => ({
-      ...narrative(theme),
-      theme: theme.theme,
-    })),
-    personalPositioning: narrative(draft.personalPositioning),
-    proofOfMe: draft.proofOfMe.map((proof) => ({
-      status: proof.status,
-      title: proof.title,
-      ...(proof.role ? { role: proof.role } : {}),
-      contribution: proof.contribution,
-      ...(proof.outcome ? { outcome: proof.outcome } : {}),
-      competencies: proof.competencies,
-      evidenceStrength: proof.evidenceStrength,
-      evidenceRefs: hydrateIds(proof.evidenceIds, 1),
-    })),
-  });
 }
 
 export const fitDimensionKeySchema = z.enum([

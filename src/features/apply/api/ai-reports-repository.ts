@@ -2,61 +2,11 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   MATCH_PROMPT_VERSION_V2,
   enforceFitClassification,
-  personalReportSchema,
   programmeFitSchema,
   type MatchingAnalysisView,
   type MatchingApplicationSummary,
   type MatchingReportPageData,
-  type PersonalReport,
 } from '../domain';
-
-export type PersonalReportRecord = {
-  report: PersonalReport;
-  inputHash: string;
-  promptVersion: string;
-  modelName: string;
-  generatedAt: string;
-  updatedAt: string;
-};
-
-export async function getPersonalReportRecord(
-  supabase: SupabaseClient,
-  userId: string,
-): Promise<{ record: PersonalReportRecord | null; migrationMissing: boolean }> {
-  const { data, error } = await supabase
-    .from('student_personal_reports')
-    .select('report,input_hash,prompt_version,model_name,generated_at,updated_at')
-    .eq('user_id', userId)
-    .maybeSingle();
-
-  if (error) {
-    const migrationMissing =
-      error.code === '42P01' ||
-      error.code === 'PGRST205' ||
-      /student_personal_reports/i.test(error.message ?? '');
-    if (!migrationMissing) console.error('[personal-report] read failed', error);
-    return { record: null, migrationMissing };
-  }
-  if (!data) return { record: null, migrationMissing: false };
-
-  const parsed = personalReportSchema.safeParse(data.report);
-  if (!parsed.success) {
-    console.error('[personal-report] stored report failed validation', parsed.error.issues);
-    return { record: null, migrationMissing: false };
-  }
-
-  return {
-    record: {
-      report: parsed.data,
-      inputHash: data.input_hash,
-      promptVersion: data.prompt_version,
-      modelName: data.model_name,
-      generatedAt: data.generated_at,
-      updatedAt: data.updated_at,
-    },
-    migrationMissing: false,
-  };
-}
 
 function stringArray(value: unknown): string[] {
   return Array.isArray(value)
