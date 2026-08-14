@@ -1,264 +1,298 @@
 # GlowBal Shared Evaluation Engine
 
-One canonical implementation of the F1–F6 evaluation frameworks, consumed by
-the Personal Report, the Matching Report, and (later) the Strategy Report —
-so the three surfaces cannot disagree about the same student's own profile.
+The Shared Evaluation Engine is the canonical **user-level** evaluation of a student's own profile. It produces one `ProfileEvaluation`, which the Personal Report renders and later application-level products reuse.
 
-Code: `src/shared/evaluation/` (pure, deterministic domain logic) and
-`src/lib/ai/evaluation/` (the two genuinely-semantic extraction steps this
-engine needs). Migration: `supabase-shared-evaluation-engine.sql`.
+The central ownership rule is:
 
-## Why this exists
+```text
+student evidence
+  → F6 / F1 / F2 / F3 / F4
+  → ProfileEvaluation
+  → Personal Report
 
-Before this module, three different implementations touched frameworks with
-the same F1–F6 names and scored different things:
+ProfileEvaluation + programme evidence
+  → F5
+  → Matching Report
 
-- `src/features/ai-strategy-dashboard/domain/evaluation/` implemented F1–F6
-  but F2 was a straight relabelling of match-insights' five document-quality
-  pillars (academic/activities/essays/impact/personal), not demonstrated
-  competencies, and F3 scored tier+reach rather than the canonical
-  tangible/intangible/traceability metrics.
-- `src/lib/ai/match-insights.ts` scored five pillars for the Matching Report
-  with no relationship to F1–F4 at all.
-- `src/lib/ai/personal-report.ts` / `src/features/apply/domain/ai-reports.ts`
-  generated a narrative report with its own evidence model, again
-  independent of the above.
+ProfileEvaluation + F5 gaps
+  → F7
+  → Strategy Report
+  → Planner
+```
 
-Three systems that can each individually claim to implement "the framework"
-while scoring different things is the exact failure this phase closes.
+F1–F4 must not be regenerated independently for every university application.
 
-## The ten core principles
+## Code boundaries
 
-1. **Evidence first.** Every score traces to something the student entered.
-2. **Never invent missing applicant facts.**
-3. **Observation / Inference / Missing are always distinguished** — every
-   `Insight` carries an explicit `kind: ObservationKind`.
-4. **Assumptions are never allowed in scoring.** A model's own claim about
-   how well-grounded its output is is never trusted at face value — F2's
-   `scoreGroundedness` and F4's synthesis-readiness gates independently
-   verify what an extractor proposes.
-5. **Every important inference has evidenceRefs + confidence.**
-6. **Missing metrics become N/A, and weights are renormalized** —
-   `weightedScore()` is the one implementation of this rule, shared by F1,
-   F2, F3 and F4's base metrics.
-7. **Never compute an admissions probability.** Nowhere in this engine does
-   a number represent a chance of admission — F5's classification
-   (safety/match/reach/currently_ineligible/insufficient_data) is the
-   closest concept, and it is explicitly a categorical band, not a
-   probability.
-8. **Deterministic logic stays deterministic.** Every framework file states
-   in its header whether it needs a model, and only F1's CMCAITF
-   extraction and F2's competency-claim extraction do.
-9. **LLM calls only handle genuinely semantic judgement/extraction** — never
-   arithmetic, never the final score.
-10. **Structured results are stored, not only prose** — `ProfileEvaluation`
-    is the record; prose is a rendering of it.
+- `src/shared/evaluation/` — pure framework/domain logic and deterministic scoring.
+- `src/lib/ai/evaluation/` — semantic extraction from free text.
+- `src/lib/ai/personal-report-v2.ts` — orchestration and post-model source grounding.
+- `src/features/apply/domain/personal-report.ts` — deterministic six-section Personal Report rendering.
+- `src/app/api/ai-strategy/personal-report/route.ts` — authenticated generation/caching/persistence seam.
+- `supabase-shared-evaluation-engine.sql` — user-level storage migration.
+
+## Core rules
+
+1. **Evidence first.** Scores and factual findings must trace to student-entered/profile/document records.
+2. **No invented missing facts.** Missing information remains missing.
+3. **Observation, inference and missing data are different states.**
+4. **Model output does not validate itself.** Factual extracted prose is checked against the source text before it reaches scoring.
+5. **Important inferences carry evidence references, confidence and limitations.**
+6. **Missing score dimensions are `null`, not zero.** Applicable weights are renormalized.
+7. **No admission probability is produced.**
+8. **Arithmetic/classification remains deterministic where practical.**
+9. **AI is used for semantic extraction/classification, not score arithmetic.**
+10. **Structured evaluation is the source of truth; report prose is a rendering.**
 
 ## Pipeline
 
 ```mermaid
 flowchart TD
-    Intake[Intake: profile, achievements,\nactivities, written answers]
+  Intake[Confirmed candidate profile, achievements, activities and evidence]
+  Intake --> F6[F6 Specificity / Vagueness]
+  Intake --> CMC[CMCAITF extraction]
+  CMC --> Ground1[Source grounding]
+  Ground1 --> F1[F1 Reflection]
 
-    Intake --> F6["F6 — Specificity / Vagueness Gate\n(deterministic)"]
-    F6 --> CMCAITF["CMCAITF field extraction\n(AI — src/lib/ai/evaluation/cmcaitf-extraction.ts)"]
-    CMCAITF --> F1["F1 — CMCAITF Reflective-Evidence\n(deterministic scoring)"]
+  Intake --> Comp[Competency extraction]
+  Comp --> Ground2[Source grounding]
+  Ground2 --> F2[F2 Competency]
 
-    Intake --> CompExtract["Competency claim extraction\n(AI — src/lib/ai/evaluation/competency-extraction.ts)"]
-    CompExtract --> F2["F2 — Admissions Competency\n(deterministic scoring)"]
+  Intake --> F3[F3 Evidence]
+  Intake --> RT[Role / domain-theme extraction]
 
-    Intake --> F3["F3 — Evidence Hierarchy\n(deterministic)"]
+  F1 --> F4[F4 Narrative Identity]
+  F2 --> F4
+  F3 --> F4
+  RT --> F4
+  Intake --> Mot[Explicit Reflection motivations]
+  Mot --> F4
 
-    F1 --> F4Base["F4 base metrics\n(pattern, theme, growth,\ndifferentiation, density)"]
-    F3 --> F4Base
-    F4Base --> F41["F4.1 Identity Synthesis"]
-    F4Base --> F42["F4.2 Motivation Consistency"]
-    F4Base --> F43["F4.3 Behavioral Pattern\nExtraction"]
-    F41 --> F44["F4.4 Theme Maturity"]
-    F42 --> F44
-    F43 --> F45["F4.5 Applicant Positioning"]
-    F44 --> F45
-    F45 --> F46["F4.6 Evidence-to-Identity\nMapping"]
+  F6 --> Profile[ProfileEvaluation]
+  F1 --> Profile
+  F2 --> Profile
+  F3 --> Profile
+  F4 --> Profile
 
-    F2 --> F5["F5 — Programme Fit\n(interfaces only this phase)"]
-    F46 --> F5
-
-    F1 --> Engine[["ProfileEvaluation\n(runProfileEvaluation)"]]
-    F2 --> Engine
-    F3 --> Engine
-    F46 --> Engine
-    F5 --> Engine
-    F6 --> Engine
-
-    Engine --> Personal[Personal Report]
-    Engine --> Matching[Matching Report]
-    Engine --> Strategy["Strategy Report (future)"]
+  Profile --> Personal[Personal Report]
+  Profile --> F5[F5 Programme Fit — next phase]
 ```
 
-## What is AI and what is not
+## Semantic extraction and grounding
 
-| Framework | Needs a model? | Why |
-|---|---|---|
-| F6 Vagueness Gate | No | Text-property heuristics (length, generic openings, concrete markers) — testable, deterministic, and a student who disagrees can see exactly what triggered a finding. |
-| F1 CMCAITF Reflective-Evidence | Extraction only | Splitting free text into seven CMCAITF slots is genuinely semantic (`cmcaitf-extraction.ts`). Scoring the five metrics from whatever slots exist is deterministic (`f1-reflection.ts`). |
-| F2 Admissions Competency | Extraction only | Recognising which skill a piece of evidence demonstrates, and writing the grounding sentence, is semantic (`competency-extraction.ts`). Scoring how well-grounded that claim actually is — and therefore trusting or discounting it — is deterministic and independent of the model's own claim (`f2-competency.ts`). |
-| F3 Evidence Hierarchy | No | Quality and verification status are properties of structured fields the student already entered (a document attached, a number stated, an organisation named). |
-| F4 (base + F4.1–F4.6) | No, in this phase | Every sub-framework here operates on structured `NarrativeActivity` records with a `role`/`behaviour`/`domainTheme`/`statedMotivation`/`outcome` shape. Composing the final natural-language sentence ("A builder who repeatedly turns student needs into practical initiatives") from this structured output is left to a future rendering layer; nothing in `f4-narrative-identity.ts` calls a model. |
-| F5 Programme Fit | Not built | Interfaces only — see below. |
+The model performs semantic work that deterministic string rules cannot reliably do:
 
-## F1 — CMCAITF Reflective-Evidence Framework
+- map activity prose into CMCAITF fields;
+- identify candidate competency claims;
+- classify a role and domain theme for an activity.
 
-CMCAITF = Context, Motivation, Challenge, Action, Impact, Transformation,
-Future. The product does not capture all seven fields for every
-activity/achievement today (the Achievements form has one free-text
-`detail`, not seven prompts). `f1-reflection.ts` does not fake the missing
-six — each of the five metrics below is scored from whichever CMCAITF fields
-actually exist, and reported `null` when there is nothing to score it from.
+Factual extracted prose is then post-validated in `src/lib/ai/personal-report-v2.ts` before scoring:
 
-```
-F1 = 0.25·Specificity + 0.20·Completeness + 0.20·CausalClarity
-   + 0.15·PersonalVoice + 0.20·TransformationDepth
-```
+- invented numbers are rejected when they do not occur in the source;
+- a meaningful share of content words must be traceable to the source;
+- an F2 competency situation only retains an evidence reference when the situation is grounded in that cited record;
+- unsupported extracted factual fields become missing data rather than low-confidence facts.
 
-Every metric is internally 1–5, rescaled to 0–100 so F1 sits on the same
-scale as the rest of the engine. `weightedScore()` renormalizes across
-whichever metrics were assessable for a given record — a record with only a
-title and one paragraph gets a `limited` status and fewer scored metrics,
-never a fabricated middle score to fill a gap.
+Role and domain-theme outputs are different: they are semantic classifications such as `founder` or `education access`, not source quotations. They remain evidence-linked **inferences**, rather than being falsely presented as verbatim observations.
 
-## F2 — Admissions Competency Framework
+The extraction contract is versioned separately from the deterministic engine:
 
-**Not a relabelling of the five Matching pillars.** F2 evaluates
-demonstrated, evidence-grounded competencies:
-
-```
-F2 = 0.30·HardSkillSpecificity + 0.35·SoftSkillSpecificity + 0.35·MetaSkillSpecificity
+```text
+ENGINE_VERSION = deterministic formulas/rules
+PERSONAL_REPORT_EXTRACTION_VERSION = semantic extraction/grounding contract
 ```
 
-A skill must be grounded in a concrete situation — `"leadership"` alone
-scores 20/100 (a bare trait label); a described situation with a linked
-evidence record can reach 90/100. The AI extractor proposes claims; the
-scoring function independently checks whether the proposed `situation` text
-actually contains a concrete detail and whether `evidenceRefs` backs it —
-the model's own confidence in its output is never trusted at face value.
-
-## F3 — Evidence Hierarchy Framework
-
-```
-F3 = 0.40·TangibleImpactQuantification + 0.30·IntangibleImpactArticulation + 0.30·EvidenceTraceability
-```
-
-F3 returns **two separate outputs**, never merged into one number:
-
-- **A. Quality** — the three metrics above, describing how well the impact
-  of a piece of evidence is articulated.
-- **B. Verification status** — `verified` (a document is attached) /
-  `attributable` (a named external body, no document) / `stated` (the
-  student's word alone), plus a parsed `reach` band. A piece of evidence can
-  be high-quality and unverifiable, or low-quality and fully verified;
-  collapsing the two would hide which one a student needs to fix.
-
-## F4 — Narrative Identity & Personal Branding Framework
-
-F4 synthesises **across** activities, never from one. Every sub-framework
-respects the same evidence-count floor:
-
-| Activity count | Readiness |
-|---|---|
-| 0 | none — nothing to synthesise |
-| 1 | insufficient — cannot establish a recurring pattern |
-| 2 | emerging — supports a candidate, not-yet-mature pattern |
-| 3+ | mature — a full synthesis |
-
-Base metrics (health check on whether there is enough material, not a
-duplicate of F4.1–F4.6):
-
-```
-F4(base) = 0.25·PatternConsistency + 0.20·ThematicConvergence
-         + 0.20·GrowthArc + 0.20·Differentiation + 0.15·EvidenceDensity
-```
-
-**F4.1 Identity Synthesis** — recurring role + recurring behaviour + value
-orientation, output as behaviour ("a builder who…"), never adjectives
-("passionate leader").
-
-**F4.2 Motivation Consistency** — statuses `established` / `emerging` /
-`hypothesis` / `insufficient`. **Never infers an internal motivation as fact
-from repeated activity choice alone** — repetition with nothing ever
-explicitly stated caps at `hypothesis`; `established` requires the student
-to have said their motivation, more than once, with a mature (3+) synthesis
-behind it.
-
-**F4.3 Behavioral Pattern Extraction** — Trigger → Response → Method → Value
-created. Only fills the four slots from repeated evidence; one activity
-never establishes a pattern.
-
-**F4.4 Theme Maturity** — a theme is a problem/domain ("Education access"),
-never a competency ("Leadership"). Statuses `established_theme` /
-`strong_emerging_theme` / `early_signal` / `possible_theme`, from evidence
-counts and explicit/implicit linkage.
-
-**F4.5 Applicant Positioning** — Identity + Signature strength + Theme +
-Intended direction, assessed for authenticity, differentiation, coherence,
-direction alignment and credibility. Composes only from what F4.1/F4.3/F4.4
-already established; adds no new inference of its own.
-
-**F4.6 Evidence-to-Identity Mapping** — every major identity claim maps back
-to a proof: activity, role, personal contribution, outcome, competencies
-demonstrated, evidence strength, and evidence source IDs. A proof with no
-linked evidence is `limited` by construction.
-
-## F5 — Programme Fit Framework
-
-Interfaces only in this phase (`f5-programme-fit.ts`) —
-`buildProgrammeFitPlaceholder()` always returns `not_available` for every
-dimension and `insufficient_data` for the classification. The shape matches
-the existing `programmeFitSchema` in `src/features/apply/domain/ai-reports.ts`
-so nothing downstream has to be restructured when F5 is implemented in the
-Matching Report phase.
+Either version changing invalidates cached output.
 
 ## F6 — Specificity / Vagueness Gate
 
-Grades, does not block. Every reason (`missing`, `too_short`,
-`generic_opening`, `no_concrete_actors`, `no_concrete_actions`,
-`no_concrete_outcomes`) is a deterministic property of the text. Where a
-field is weak or empty, `clarificationPrompt` carries a targeted follow-up
-question — never a fabricated answer on the student's behalf.
+F6 deterministically flags properties such as:
+
+- missing;
+- too short;
+- generic opening;
+- no concrete actors;
+- no concrete actions;
+- no concrete outcomes.
+
+A weak field produces a targeted clarification prompt. It never fabricates the missing answer.
+
+F6 currently **grades rather than hard-blocks** report generation. The report exposes limitations where evidence quality is insufficient.
+
+## F1 — CMCAITF Reflective-Evidence Framework
+
+CMCAITF:
+
+- Context
+- Motivation
+- Challenge
+- Action
+- Impact
+- Transformation
+- Future
+
+Canonical weighting:
+
+```text
+F1 = 0.25 Specificity
+   + 0.20 Completeness
+   + 0.20 Causal Clarity
+   + 0.15 Personal Voice / Ownership
+   + 0.20 Transformation Depth
+```
+
+Each metric is assessed only when the extracted/captured material supports it. Missing metrics are excluded and the remaining weights are renormalized.
+
+The current intake often stores one free-text activity description rather than seven explicitly captured CMCAITF fields, so `structuredCapture` records that limitation instead of pretending the data was collected more precisely than it was.
+
+## F2 — Admissions Competency Framework
+
+F2 evaluates demonstrated competencies rather than renaming Matching Report pillars.
+
+Canonical weighting:
+
+```text
+F2 = 0.30 Hard-skill specificity
+   + 0.35 Soft-skill specificity
+   + 0.35 Meta-skill / self-awareness specificity
+```
+
+A competency must be grounded in a concrete situation. A bare label such as `leadership` remains weak. A model-proposed situation cannot receive linked-evidence credit merely because it cites a real record ID: the situation is source-checked before the evidence reference is retained.
+
+## F3 — Evidence Hierarchy Framework
+
+Canonical weighting:
+
+```text
+F3 = 0.40 Tangible impact quantification
+   + 0.30 Intangible impact articulation
+   + 0.30 Evidence traceability
+```
+
+F3 deliberately keeps two concepts separate:
+
+### A. Evidence quality
+
+How well the outcome/impact is articulated according to the three metrics above.
+
+### B. Support / traceability status
+
+The current internal tiers are:
+
+- `verified` — a supporting document/test record is attached;
+- `attributable` — a named external organisation/body makes the claim checkable in principle;
+- `stated` — rests on the applicant's own statement.
+
+Important limitation: an attached document means **document-backed**, not that GlowBal has independently authenticated the truth of every claim inside it. Future UI copy should preserve that distinction.
+
+## F4 — Narrative Identity & Personal Branding
+
+F4 synthesizes across activities.
+
+| Activity count | Synthesis readiness |
+| --- | --- |
+| 0 | none |
+| 1 | insufficient |
+| 2 | emerging |
+| 3+ | mature |
+
+Nominal framework weights are:
+
+```text
+F4 = 0.25 Pattern consistency
+   + 0.20 Thematic convergence
+   + 0.20 Growth arc
+   + 0.20 Differentiation
+   + 0.15 Evidence density
+```
+
+The implementation deliberately refuses to manufacture scores for dimensions that the current data model cannot faithfully support:
+
+- **Pattern consistency** now measures recurring normalized action patterns, not merely whether a behaviour field is populated.
+- **Thematic convergence** measures recurring domain themes.
+- **Differentiation** requires a recurring method plus meaningful thematic breadth.
+- **Growth arc is currently N/A** because reliable chronology/comparable scope is not yet represented in `NarrativeActivity`. A numeric outcome is not a growth arc.
+- **Evidence density is currently N/A in F4** because every narrative activity carries a provenance self-reference. F3, not F4, owns actual evidence traceability.
+
+`weightedScore()` renormalizes across the assessable F4 dimensions.
+
+### F4.1 Identity Synthesis
+
+Recurring role + recurring behaviour + value orientation. The output describes behaviour rather than flattering adjectives.
+
+### F4.2 Motivation Consistency
+
+Explicit Reflection answers such as `study_motivation` and `subject_motivations` are now first-class motivation evidence.
+
+An explicit answer is a direct observation of what the student says motivates them. It becomes an **established recurring** motivation only when mature activity evidence also aligns with it. Repeated activity choice alone cannot silently become an internal motive.
+
+### F4.3 Behavioral Pattern
+
+The domain object remains:
+
+```text
+Trigger → Response → Method → Value created
+```
+
+The current implementation requires repeated evidence before producing a pattern. This area remains intentionally conservative and can be upgraded with richer semantic clustering when the intake captures stronger trigger/chronology data.
+
+### F4.4 Theme Maturity
+
+A theme is a problem/domain such as `education access`, not a competency such as `leadership`.
+
+Statuses:
+
+- Established Theme
+- Strong Emerging Theme
+- Early Signal
+- Possible Theme
+
+### F4.5 Applicant Positioning
+
+Composes identity, signature strength, theme and stated direction. It assesses authenticity, differentiation, coherence, direction alignment and credibility without introducing a new unsupported applicant claim.
+
+### F4.6 Evidence-to-Identity Mapping
+
+Major identity claims map back to activities/achievements, contribution, outcome, competencies and evidence references.
+
+## F5 — Programme Fit
+
+F5 interfaces exist, but the canonical F5 implementation is deliberately left for the Matching Report phase.
+
+The Matching Report will consume:
+
+```text
+ProfileEvaluation + ProgrammeEvidenceProfile → ProgrammeFitEvaluation
+```
+
+It must keep hard eligibility separate from competitive assessment and must not turn Reach/Match/Safety into an admission probability.
 
 ## Data model
 
-`ProfileEvaluation` (`src/shared/evaluation/engine.ts`) is the top-level
-domain object:
+Top-level shape:
 
 ```ts
 type ProfileEvaluation = {
   subjectId: string;
-  vagueness: VaguenessReport;          // F6
-  reflection: ReflectionProfile;        // F1
-  competencies: CompetencyProfile;      // F2
-  evidence: EvidenceProfile;            // F3
-  narrativeIdentity: {                  // F4 + sub-frameworks
-    base: NarrativeBaseMetrics;
-    readiness: SynthesisReadiness;
-    identity: IdentitySynthesis;        // F4.1
-    motivation: MotivationConsistency;  // F4.2
-    pattern: BehavioralPatternResult;   // F4.3
-    positioning: ApplicantPositioning;  // F4.5
-  };
-  programmeFit: ProgrammeFitResult;     // F5 (placeholder)
-  confidence: Confidence;               // floor across every framework
+  vagueness: VaguenessReport;
+  reflection: ReflectionProfile;
+  competencies: CompetencyProfile;
+  evidence: EvidenceProfile;
+  narrativeIdentity: F4Result;
+  programmeFit: ProgrammeFitResult; // placeholder until F5 phase
+  confidence: Confidence;
   generatedAt: string;
 };
 ```
 
-Every scoring result extends the common `Insight` shape:
+Structured findings use the common `Insight` contract:
 
 ```ts
 type Insight = {
   id: string;
   frameworkId: FrameworkId;
   status: string;
-  score?: number | null;              // omitted/null for fundamentally qualitative outputs
+  score?: number | null;
   confidence: 'high' | 'medium' | 'low';
   kind: 'observation' | 'inference' | 'missing';
   evidenceRefs: EvidenceRef[];
@@ -267,43 +301,42 @@ type Insight = {
 };
 ```
 
-## Database
+## Persistence and cache invalidation
 
-`supabase-shared-evaluation-engine.sql` extends the existing report tables
-rather than adding a parallel one:
+The canonical structured profile evaluation is stored **only** on the user-level `student_personal_reports` row.
 
-- `student_personal_reports.structured_evaluation` (JSONB) — the
-  `ProfileEvaluation` behind the global Personal Report.
-- `student_personal_reports.evaluation_engine_version` — versions the
-  deterministic scoring code, independent of `prompt_version` (which already
-  versions the AI call text).
-- `applicant_analyses.structured_evaluation` / `.evaluation_engine_version` /
-  `.input_hash` — the same shape for the per-application analysis that will
-  back the Matching/Strategy Report.
+`supabase-shared-evaluation-engine.sql` adds:
 
-Regeneration is idempotent via `shouldRegenerate()`
-(`src/shared/evaluation/versioning.ts`): a caller skips generation entirely
-when the stored row's `input_hash` and `evaluation_engine_version` both
-match the current input and the engine's current `ENGINE_VERSION`.
+- `structured_evaluation`;
+- `evaluation_engine_version`;
+- `report_v2`;
+- `report_v2_generated_at`.
+
+Existing `input_hash`, `prompt_version`, `model_name` and generation timestamps are reused.
+
+A cached Personal Report is current only when all relevant inputs/contracts match:
+
+```text
+candidate input hash
++ deterministic ENGINE_VERSION
++ semantic extraction / prompt version
+```
+
+The migration no longer adds user-profile evaluation columns to `applicant_analyses`. That legacy application-scoped row remains temporarily for the existing Strategy compatibility path, but it is not a second canonical Personal Report or a second F1–F4 source of truth.
 
 ## Testing
 
-87 tests across `src/shared/evaluation/*.test.ts` and
-`src/lib/ai/evaluation/*.test.ts`, covering (per framework, deterministic
-logic tested directly; AI extraction tested with mocked completions):
+The engine/report suite covers, among other cases:
 
-- Vague input, missing input, and confidence behaviour (F6).
-- The F1/F2/F3/F4 formulas, with their exact published weights asserted.
-- Missing-metric handling and renormalization (`weightedScore`) at every
-  framework.
-- The activity-count pattern rule explicitly: one activity cannot establish
-  a pattern, two create an emerging pattern, three or more establish a
-  mature synthesis (F4 and all its sub-frameworks).
-- An evidence-backed claim scoring higher than an unsupported/bare one (F2),
-  and an unsupported inference never being silently accepted as established
-  (F4.2's motivation-from-repetition rule).
-- Purity: the same `ProfileEvaluation` input twice produces an identical
-  result.
-- No admissions probability ever appears anywhere in a serialized result.
+- vague/missing inputs;
+- F1/F2/F3 published weights;
+- missing-metric renormalization;
+- one/two/three-activity synthesis floors;
+- unsupported competency situations;
+- invented-number/source-grounding rejection;
+- explicit Reflection motivation handling;
+- unrelated populated behaviours not being treated as a recurring F4 pattern;
+- global Personal Report ownership with no `applicationId`;
+- no admissions-probability output.
 
-Run with `npx vitest run src/shared/evaluation src/lib/ai/evaluation`.
+The repository's merge gate is `npm run verify:pr`, which runs Node-version validation, normal + strict TypeScript, lint, coverage tests and the CI build.
