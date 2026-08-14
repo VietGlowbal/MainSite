@@ -133,7 +133,8 @@ export function confirmedReflectionContinueHref(
   applicationId: string,
   aiAnalysisComplete: boolean,
 ): string {
+  const analysisHref = `/ai-strategy/${applicationId}/strategy/analysis`;
   return aiAnalysisComplete
-    ? '/ai-strategy/personal-report'
-    : `/ai-strategy/${applicationId}/strategy/analysis`;
+    ? `/ai-strategy/personal-report?return=${encodeURIComponent(analysisHref)}`
+    : analysisHref;
 }

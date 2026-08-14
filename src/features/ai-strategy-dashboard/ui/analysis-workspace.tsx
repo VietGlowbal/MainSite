@@ -73,7 +73,7 @@ export function AnalysisWorkspace({
   const [matching, setMatching] = useState<ReportState>({ status: 'generating' });
   const ran = useRef<Record<ReportKey, boolean>>({ personal: false, matching: false });
 
-  const personalHref = '/ai-strategy/personal-report';
+  const personalHref = `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis`)}`;
   const matchingHref = `/ai-strategy/${applicationId}/matching-report`;
   const genericError = t('Something went wrong. Please try again.');
 

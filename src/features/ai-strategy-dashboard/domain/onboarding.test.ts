@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { isOnboardingComplete, nextOnboardingStep, onboardingStepHref, type OnboardingState } from './onboarding';
+import {
+  confirmedReflectionContinueHref,
+  isOnboardingComplete,
+  nextOnboardingStep,
+  onboardingStepHref,
+  type OnboardingState,
+} from './onboarding';
 
 function state(overrides: Partial<OnboardingState> = {}): OnboardingState {
   return {
@@ -181,5 +187,18 @@ describe('onboardingStepHref', () => {
       '/ai-strategy/app-1/strategy/analysis/recommendation',
     );
     expect(onboardingStepHref('dashboard', 'app-1')).toBe('/ai-strategy/app-1/strategy/dashboard');
+  });
+});
+
+describe('confirmedReflectionContinueHref', () => {
+  it('sends the student to the analysis gate while reports are still pending', () => {
+    expect(confirmedReflectionContinueHref('app-1', false)).toBe('/ai-strategy/app-1/strategy/analysis');
+  });
+
+  it('carries a return param to this Strategy once reports exist, so the Personal Report keeps its nav band', () => {
+    const href = confirmedReflectionContinueHref('app-1', true);
+    expect(href).toBe(
+      `/ai-strategy/personal-report?return=${encodeURIComponent('/ai-strategy/app-1/strategy/analysis')}`,
+    );
   });
 });

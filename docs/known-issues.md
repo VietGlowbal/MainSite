@@ -24,6 +24,7 @@ are regression records for fixed bugs, not open work:
 | §5r deleting an application | Migration written (`supabase-application-cascade-repair.sql`), **NOT YET CONFIRMED RUN** — repairs `ON DELETE CASCADE` drift across per-application child tables. |
 | §5s Personal Report nav/i18n/lock/CTA fixes | Fixed regression record — nav bar, English-only content, the `"|null"` extraction leak, and the Matching Report link are all fixed. The new inline-answer path uses `supabase-personal-report-supplements.sql`, **NOT YET CONFIRMED RUN**; it degrades to a 503 until then. |
 | §5t Personal Report versioning + no more cooldown | Fixed regression record — the one-row-per-student model with a 24h cooldown (root cause of "isn't generating at all" across multiple applications) is replaced by an append-only `student_personal_report_versions` table with no time-based limit, plus a version-history dropdown and two new regeneration triggers. `supabase-personal-report-versions.sql`, **NOT YET CONFIRMED RUN**; degrades to the not-enabled state until then. |
+| §5u three more `?return=`-dropping entry points | Fixed regression record — §5s fixed the nav band and gap-action links for whichever entry point already carried `?return=`, but three routes with `applicationId` in scope (`AnalysisWorkspace`, `confirmedReflectionContinueHref`, the legacy portrait alias) never built it. All three fixed; see this section for why the report also reads shallow on thin achievement data — expected given the design, not a separate bug. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -1555,6 +1556,65 @@ Widened `extractCmcaitfFields`/`extractCompetencyClaims`/`extractRoleAndTheme`'s
 change, just makes the existing call site typecheck under strict mode.
 
 | `supabase-personal-report-versions.sql`, `src/features/apply/api/personal-report-v2-repository.ts`, `src/features/apply/api/personal-report-generation.ts`, `src/app/api/ai-strategy/personal-report/route.ts`, `src/app/api/ai-strategy/personal-report/versions/route.ts`, `src/app/api/ai-strategy/personal-report/versions/[id]/route.ts`, `src/app/api/applications/[id]/match-insights/route.ts`, `src/app/ai-strategy/personal-report/page.tsx`, `src/features/apply/ui/personal-report-v2-view.tsx`, `src/features/apply/domain/personal-report.ts`, `src/lib/ai/evaluation/cmcaitf-extraction.ts`, `src/lib/ai/evaluation/competency-extraction.ts`, `src/lib/ai/evaluation/narrative-activity-extraction.ts` |
+
+## 5u. Personal Report still missing its nav band after §5s — three more entry points never carried `?return=` — fixed 2026-08-14
+
+**Reported live, with a real screenshot**: opening the Personal Report still
+showed the plain site header (no red `ApplicationNav` band), and the
+"Add more detail to your existing activities" gap action navigated straight
+to `/ai-strategy/reflection/achievements`, which read-only once any
+application has ever been confirmed (`student_profiles.confirmed_at` is a
+global "has ever confirmed once" flag — see §5p) — a dead end for a student
+trying to enrich a thin achievement description.
+
+**Root cause**: §5s fixed the ONE entry point that already had `?return=`
+threading right (`aiStrategyApplicationNav()`'s nav tab) and made every
+in-page link (gap actions, "View confirmed information") correctly carry
+whatever `returnTo` the page received — but never audited every OTHER route
+that navigates a student TO `/ai-strategy/personal-report` in the first
+place. Three had an `applicationId` sitting right there in scope and simply
+never used it, so `returnTo` was `undefined` by the time the student landed:
+
+1. `AnalysisWorkspace`'s `personalHref` (`analysis-workspace.tsx`) — the
+   "View my reports"/"Open report" links on the confirm screen, the most
+   common path into the Personal Report right after generation.
+2. `confirmedReflectionContinueHref` (`domain/onboarding.ts`) — the
+   "Continue" button on the read-only Reflections / Achievements / Review &
+   Confirm views once reports exist. This is very likely the exact path
+   the reporting screenshot came from.
+3. `/ai-strategy/[applicationId]/strategy/analysis/portrait` — the legacy
+   compatibility redirect alias; it didn't even destructure `params`, let
+   alone use `applicationId` from it.
+
+**Fix**: all three now build
+`` `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis`)}` ``,
+the same shape every other entry point already used. With `returnTo`
+correctly populated, `ApplicationNavFromReturn` renders the band again, and
+— since `InsufficientDataCard`'s gap-action buttons already run every
+`action.href` through `withReturn()` (built in §5s) — "Add more detail"
+now correctly lands on THIS application's own achievements page with its
+own per-application lock state, editable whenever that specific
+application hasn't been confirmed yet, instead of silently consulting the
+global flag.
+
+**Not a separate bug, likely the same complaint**: the same report was also
+described as looking shallow — several sections saying "more evidence
+needed" despite six achievements existing. Investigated the evaluation
+engine's synthesis thresholds (`synthesisReadiness`,
+`src/shared/evaluation/f4-narrative-identity.ts`): activity COUNT was fine
+(7 items clears the 3+ "mature" floor); what was missing was `role`/
+`behaviour`/context text on each record, which only comes from a rich
+`detail`/`description` field the extraction pipeline can synthesise from —
+short one-line achievement entries ("accepted onto the program") genuinely
+do not carry that. The report is deliberately built to say "insufficient
+evidence" rather than invent depth from thin data (CLAUDE.md's own rule for
+this feature). The gap-filling loop this section fixes IS the intended way
+a student adds that missing depth — it was simply broken, so no student
+could ever complete it. Not re-touching the evaluation engine's scoring
+itself without a specific product call on what "good enough" should look
+like once the loop is verified working with real added detail.
+
+| `src/features/ai-strategy-dashboard/ui/analysis-workspace.tsx`, `src/features/ai-strategy-dashboard/domain/onboarding.ts`, `src/app/ai-strategy/[applicationId]/strategy/analysis/portrait/page.tsx` |
 
 ## 6. Open questions for the designer / owner
 

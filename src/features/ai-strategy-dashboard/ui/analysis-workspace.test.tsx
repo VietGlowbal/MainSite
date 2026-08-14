@@ -37,7 +37,7 @@ describe('AnalysisWorkspace', () => {
     await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
     expect(screen.getByRole('link', { name: 'View my reports' })).toHaveAttribute(
       'href',
-      '/ai-strategy/personal-report',
+      '/ai-strategy/personal-report?return=%2Fai-strategy%2Fapp-1%2Fstrategy%2Fanalysis',
     );
     expect(screen.getByRole('link', { name: 'Open Matching Report' })).toHaveAttribute(
       'href',
@@ -66,7 +66,7 @@ describe('AnalysisWorkspace', () => {
     await waitFor(() =>
       expect(screen.getByRole('link', { name: 'Open report' })).toHaveAttribute(
         'href',
-        '/ai-strategy/personal-report',
+        '/ai-strategy/personal-report?return=%2Fai-strategy%2Fapp-1%2Fstrategy%2Fanalysis',
       ),
     );
     expect(screen.getAllByText('Generating…')).toHaveLength(1);
@@ -96,7 +96,7 @@ describe('AnalysisWorkspace', () => {
     );
     expect(screen.getByRole('link', { name: 'Open report' })).toHaveAttribute(
       'href',
-      '/ai-strategy/personal-report',
+      '/ai-strategy/personal-report?return=%2Fai-strategy%2Fapp-1%2Fstrategy%2Fanalysis',
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Try again' }));
