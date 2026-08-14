@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { getPersonalReportV2Record, verifiedApplicationId } from '@/features/apply/api';
+import { getLatestPersonalReportV2, listPersonalReportV2Versions, verifiedApplicationId } from '@/features/apply/api';
 import { PersonalReportV2View } from '@/features/apply/ui';
 import { applicationIdFromPath } from '@/shared/lib';
 import { createClient } from '@/lib/supabase/server';
@@ -12,10 +12,16 @@ import { ApplicationNavFromReturn } from '../reflection/application-nav-from-ret
  *
  * Renamed from `/ai-strategy/report` (see `docs/ai-evaluation-engine.md`
  * and the Personal Report rebuild notes): the old route now permanently
- * redirects here (`next.config.ts`). Reads whatever `report_v2` is already
- * stored — generation itself happens from `PersonalReportV2View`'s own
- * "Create report"/"Update report" actions, which call
- * `POST /api/ai-strategy/personal-report`.
+ * redirects here (`next.config.ts`). Reads the LATEST of a per-student
+ * append-only version history (`student_personal_report_versions`, see
+ * `supabase-personal-report-versions.sql`) — every past version stays
+ * readable via the dropdown `PersonalReportV2View` renders from
+ * `initialVersions`. A version is created by a student's own action
+ * (`PersonalReportV2View`'s "Create report" / answering a report question,
+ * via `POST /api/ai-strategy/personal-report`) or automatically whenever a
+ * Matching Report is generated (`regeneratePersonalReport`, called from
+ * `match-insights/route.ts`) — see that function's doc comment for why
+ * there is no manual regeneration cooldown.
  *
  * Deliberately NOT scoped to an application: this report has no
  * `applicationId` anywhere in its data path, matching the product
@@ -53,7 +59,10 @@ export default async function PersonalReportPage({
     ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
     : undefined;
 
-  const stored = await getPersonalReportV2Record(supabase, user.id);
+  const [stored, versionList] = await Promise.all([
+    getLatestPersonalReportV2(supabase, user.id),
+    listPersonalReportV2Versions(supabase, user.id),
+  ]);
   const studentName =
     (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || 'there';
 
@@ -61,6 +70,8 @@ export default async function PersonalReportPage({
     <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
       <PersonalReportV2View
         initialReport={stored.record?.reportV2 ?? null}
+        initialVersionId={stored.record?.id ?? null}
+        initialVersions={versionList.versions}
         studentName={studentName}
         generatedAt={stored.record?.generatedAt ?? null}
         migrationMissing={stored.migrationMissing}

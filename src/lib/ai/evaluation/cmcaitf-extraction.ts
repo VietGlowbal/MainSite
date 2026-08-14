@@ -97,7 +97,7 @@ function toEmptyFields(): CmcaitfFields {
 export async function extractCmcaitfFields(args: {
   inputs: readonly CmcaitfExtractionInput[];
   apiKey: string;
-  model?: string;
+  model?: string | undefined;
 }): Promise<ReflectionRecord[]> {
   const { inputs, apiKey, model = defaultOpenAIModel() } = args;
 

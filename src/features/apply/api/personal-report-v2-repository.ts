@@ -1,24 +1,36 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { ProfileEvaluation } from '@/shared/evaluation';
-import type { PersonalReportV2 } from '../domain/personal-report';
+import type {
+  PersonalReportTrigger,
+  PersonalReportV2,
+  PersonalReportVersionSummary,
+} from '../domain/personal-report';
 
 /**
- * Storage for the canonical (v2) Personal Report.
+ * One version of the canonical (v2) Personal Report — a row in the
+ * append-only `student_personal_report_versions` table (see
+ * `supabase-personal-report-versions.sql` for why this replaced the old
+ * one-row-per-user `student_personal_reports` model).
  *
  * `evaluation_engine_version` versions deterministic scoring; `prompt_version`
  * versions semantic extraction/grounding. Both must match before a cached
  * report is considered current.
  */
 export type PersonalReportV2Record = {
+  id: string;
   reportV2: PersonalReportV2;
   evaluation: ProfileEvaluation | null;
   inputHash: string;
   engineVersion: string | null;
   promptVersion: string | null;
   modelName: string;
+  trigger: PersonalReportTrigger;
   generatedAt: string;
-  updatedAt: string;
+  createdAt: string;
 };
+
+const VERSION_SELECT =
+  'id,report_v2,structured_evaluation,evaluation_engine_version,input_hash,prompt_version,model_name,trigger,generated_at,created_at';
 
 function isPersonalReportV2(value: unknown): value is PersonalReportV2 {
   if (!value || typeof value !== 'object') return false;
@@ -34,46 +46,100 @@ function isPersonalReportV2(value: unknown): value is PersonalReportV2 {
   return keys.every((key) => key in (value as Record<string, unknown>));
 }
 
-export async function getPersonalReportV2Record(
+function isMigrationMissing(error: { code?: string; message?: string }): boolean {
+  return Boolean(
+    error.code === '42P01' ||
+      error.code === 'PGRST205' ||
+      error.code === '42703' ||
+      /student_personal_report_versions|report_v2/i.test(error.message ?? ''),
+  );
+}
+
+function toRecord(row: Record<string, unknown>): PersonalReportV2Record | null {
+  if (!row.report_v2 || !isPersonalReportV2(row.report_v2)) {
+    if (row.report_v2) console.error('[personal-report-v2] stored report_v2 failed the structural check');
+    return null;
+  }
+  return {
+    id: row.id as string,
+    reportV2: row.report_v2,
+    evaluation: (row.structured_evaluation as ProfileEvaluation | null) ?? null,
+    inputHash: row.input_hash as string,
+    engineVersion: (row.evaluation_engine_version as string | null) ?? null,
+    promptVersion: (row.prompt_version as string | null) ?? null,
+    modelName: row.model_name as string,
+    trigger: ((row.trigger as PersonalReportTrigger | null) ?? 'manual') as PersonalReportTrigger,
+    generatedAt: (row.generated_at as string | null) ?? (row.created_at as string),
+    createdAt: row.created_at as string,
+  };
+}
+
+/** The most recent version — what the report page shows by default. */
+export async function getLatestPersonalReportV2(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<{ record: PersonalReportV2Record | null; migrationMissing: boolean }> {
   const { data, error } = await supabase
-    .from('student_personal_reports')
-    .select(
-      'report_v2,report_v2_generated_at,structured_evaluation,evaluation_engine_version,input_hash,prompt_version,model_name,updated_at',
-    )
+    .from('student_personal_report_versions')
+    .select(VERSION_SELECT)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    const migrationMissing = isMigrationMissing(error);
+    if (!migrationMissing) console.error('[personal-report-v2] read failed', error);
+    return { record: null, migrationMissing };
+  }
+  return { record: data ? toRecord(data) : null, migrationMissing: false };
+}
+
+/** Every version's id/date/trigger, newest first — enough to populate the version-history dropdown. */
+export async function listPersonalReportV2Versions(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<{ versions: PersonalReportVersionSummary[]; migrationMissing: boolean }> {
+  const { data, error } = await supabase
+    .from('student_personal_report_versions')
+    .select('id,generated_at,trigger')
+    .eq('user_id', userId)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    const migrationMissing = isMigrationMissing(error);
+    if (!migrationMissing) console.error('[personal-report-v2] version list failed', error);
+    return { versions: [], migrationMissing };
+  }
+  return {
+    versions: (data ?? []).map((row) => ({
+      id: row.id as string,
+      generatedAt: (row.generated_at as string) ?? '',
+      trigger: ((row.trigger as PersonalReportTrigger | null) ?? 'manual') as PersonalReportTrigger,
+    })),
+    migrationMissing: false,
+  };
+}
+
+/** One specific past version, ownership-checked by filtering on `userId` — never trust a version id alone. */
+export async function getPersonalReportV2Version(
+  supabase: SupabaseClient,
+  userId: string,
+  versionId: string,
+): Promise<{ record: PersonalReportV2Record | null; migrationMissing: boolean }> {
+  const { data, error } = await supabase
+    .from('student_personal_report_versions')
+    .select(VERSION_SELECT)
+    .eq('id', versionId)
     .eq('user_id', userId)
     .maybeSingle();
 
   if (error) {
-    const migrationMissing =
-      error.code === '42P01' ||
-      error.code === 'PGRST205' ||
-      error.code === '42703' ||
-      /student_personal_reports|report_v2/i.test(error.message ?? '');
-    if (!migrationMissing) console.error('[personal-report-v2] read failed', error);
+    const migrationMissing = isMigrationMissing(error);
+    if (!migrationMissing) console.error('[personal-report-v2] version read failed', error);
     return { record: null, migrationMissing };
   }
-  if (!data?.report_v2) return { record: null, migrationMissing: false };
-  if (!isPersonalReportV2(data.report_v2)) {
-    console.error('[personal-report-v2] stored report_v2 failed the structural check');
-    return { record: null, migrationMissing: false };
-  }
-
-  return {
-    record: {
-      reportV2: data.report_v2,
-      evaluation: (data.structured_evaluation as ProfileEvaluation | null) ?? null,
-      inputHash: data.input_hash,
-      engineVersion: data.evaluation_engine_version,
-      promptVersion: data.prompt_version,
-      modelName: data.model_name,
-      generatedAt: data.report_v2_generated_at ?? data.updated_at,
-      updatedAt: data.updated_at,
-    },
-    migrationMissing: false,
-  };
+  return { record: data ? toRecord(data) : null, migrationMissing: false };
 }
 
 /**
@@ -124,7 +190,13 @@ export async function savePersonalReportSupplement(
   return { error: { migrationMissing, message: error.message } };
 }
 
-export async function savePersonalReportV2(
+/**
+ * Appends a new version — never upserts. Every regeneration is its own row,
+ * which is what makes the version-history dropdown possible; see
+ * `supabase-personal-report-versions.sql`'s file comment for why this
+ * replaced the old one-row upsert.
+ */
+export async function createPersonalReportV2Version(
   supabase: SupabaseClient,
   args: {
     userId: string;
@@ -134,32 +206,30 @@ export async function savePersonalReportV2(
     engineVersion: string;
     promptVersion: string;
     modelName: string;
+    trigger: PersonalReportTrigger;
   },
-): Promise<{ error: { migrationMissing: boolean; message: string } | null }> {
+): Promise<{ record: { id: string; generatedAt: string } | null; error: { migrationMissing: boolean; message: string } | null }> {
   const now = new Date().toISOString();
-  const { error } = await supabase.from('student_personal_reports').upsert(
-    {
+  const { data, error } = await supabase
+    .from('student_personal_report_versions')
+    .insert({
       user_id: args.userId,
       report_v2: args.reportV2,
-      report_v2_generated_at: now,
       structured_evaluation: args.evaluation,
       evaluation_engine_version: args.engineVersion,
       input_hash: args.inputHash,
       prompt_version: args.promptVersion,
       model_name: args.modelName,
+      trigger: args.trigger,
       generated_at: now,
-      updated_at: now,
-    },
-    { onConflict: 'user_id' },
-  );
+      created_at: now,
+    })
+    .select('id,generated_at')
+    .single();
 
-  if (!error) return { error: null };
-
-  const migrationMissing =
-    error.code === '42P01' ||
-    error.code === 'PGRST205' ||
-    error.code === '42703' ||
-    /student_personal_reports|report_v2/i.test(error.message ?? '');
-  console.error('[personal-report-v2] upsert failed', error);
-  return { error: { migrationMissing, message: error.message } };
+  if (error) {
+    console.error('[personal-report-v2] version insert failed', error);
+    return { record: null, error: { migrationMissing: isMigrationMissing(error), message: error.message } };
+  }
+  return { record: { id: data.id as string, generatedAt: data.generated_at as string }, error: null };
 }
