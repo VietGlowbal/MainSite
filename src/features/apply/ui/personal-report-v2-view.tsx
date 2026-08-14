@@ -9,12 +9,14 @@ import {
   type EmergingThemesSection,
   type InsufficientData,
   type PersonalPositioningSection,
+  type PersonalReportTrigger,
   type PersonalReportV2,
+  type PersonalReportVersionSummary,
   type ProofOfMeSection,
   type ReportConfidence,
   type SignaturePatternSection,
 } from '../domain';
-import { Badge, Button, Panel, PanelHeader, Textarea } from '@/shared/ui';
+import { Badge, Button, Panel, PanelHeader, Select, Textarea } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
@@ -271,7 +273,8 @@ function DrivingForceView({
 }: {
   section: DrivingForceSection;
   returnTo: string | undefined;
-  onAnswered: () => void;
+  /** Omitted while viewing a past version — answering a question only ever updates the latest one. */
+  onAnswered?: (() => void) | undefined;
 }) {
   const t = useT();
   return (
@@ -307,11 +310,13 @@ function DrivingForceView({
           {section.reflectionPrompt ? (
             <div className="flex flex-wrap items-center justify-between gap-gb-md rounded-gb-xl border border-line bg-surface-muted p-gb-lg">
               <p className="text-gb-sm text-fg-tertiary">{section.reflectionPrompt}</p>
-              <InlineAnswerAction
-                label="Answer this"
-                fieldKey={STUDY_MOTIVATION_SUPPLEMENT_KEY}
-                onAnswered={onAnswered}
-              />
+              {onAnswered ? (
+                <InlineAnswerAction
+                  label="Answer this"
+                  fieldKey={STUDY_MOTIVATION_SUPPLEMENT_KEY}
+                  onAnswered={onAnswered}
+                />
+              ) : null}
             </div>
           ) : null}
         </div>
@@ -513,10 +518,65 @@ function ProofOfMeView({ section, returnTo }: { section: ProofOfMeSection; retur
   );
 }
 
+/* ── Version history ───────────────────────────────────────────────────── */
+
+const TRIGGER_LABEL: Record<PersonalReportTrigger, string> = {
+  manual: 'Manual update',
+  matching_report: 'Updated with your Matching Report',
+  supplement_answer: 'Updated after you answered a question',
+};
+
+function formatVersionLabel(
+  t: (key: string, vars?: Record<string, string | number>) => string,
+  version: PersonalReportVersionSummary,
+  isLatest: boolean,
+): string {
+  const date = version.generatedAt
+    ? new Date(version.generatedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+    : '';
+  const reason = t(TRIGGER_LABEL[version.trigger] ?? TRIGGER_LABEL.manual);
+  return isLatest ? `${date} · ${t('Latest')} · ${reason}` : `${date} · ${reason}`;
+}
+
+function VersionHistoryPicker({
+  versions,
+  selectedVersionId,
+  latestVersionId,
+  disabled,
+  onSelect,
+}: {
+  versions: PersonalReportVersionSummary[];
+  selectedVersionId: string | null;
+  latestVersionId: string | null;
+  disabled: boolean;
+  onSelect: (versionId: string) => void;
+}) {
+  const t = useT();
+  if (versions.length < 2) return null;
+  return (
+    <Select
+      name="personal-report-version"
+      label={t('Version history')}
+      value={selectedVersionId ?? ''}
+      disabled={disabled}
+      onChange={(event) => onSelect(event.target.value)}
+      fieldClassName="w-full max-w-sm"
+    >
+      {versions.map((version) => (
+        <option key={version.id} value={version.id}>
+          {formatVersionLabel(t, version, version.id === latestVersionId)}
+        </option>
+      ))}
+    </Select>
+  );
+}
+
 /* ── Report shell ──────────────────────────────────────────────────────── */
 
 export function PersonalReportV2View({
   initialReport,
+  initialVersionId,
+  initialVersions,
   studentName,
   generatedAt,
   migrationMissing,
@@ -524,6 +584,10 @@ export function PersonalReportV2View({
   matchingReportHref,
 }: {
   initialReport: PersonalReportV2 | null;
+  /** The id of `initialReport`'s own version row, when a report exists. */
+  initialVersionId: string | null;
+  /** Every past version's id/date/trigger, newest first — powers the version-history dropdown. */
+  initialVersions: PersonalReportVersionSummary[];
   studentName: string;
   generatedAt: string | null;
   migrationMissing: boolean;
@@ -540,27 +604,74 @@ export function PersonalReportV2View({
 }) {
   const t = useT();
   const [report, setReport] = useState(initialReport);
+  const [versions, setVersions] = useState(initialVersions);
+  const [selectedVersionId, setSelectedVersionId] = useState(initialVersionId);
+  const [latestVersionId, setLatestVersionId] = useState(initialVersionId);
+  const [viewedGeneratedAt, setViewedGeneratedAt] = useState(generatedAt);
   const [busy, setBusy] = useState(false);
+  const [versionLoading, setVersionLoading] = useState(false);
   const [error, setError] = useState<string | null>(
     migrationMissing ? t('This feature is not enabled in the database.') : null,
   );
-  const [nextAt, setNextAt] = useState<string | null>(null);
   useLoadingIndicator(busy, report ? t('Updating your Personal Report') : t('Creating your Personal Report'));
 
-  async function generate() {
+  const isHistorical = Boolean(selectedVersionId && latestVersionId && selectedVersionId !== latestVersionId);
+
+  async function refreshVersions() {
+    try {
+      const response = await fetch('/api/ai-strategy/personal-report/versions');
+      const body = await response.json().catch(() => ({}));
+      if (response.ok && Array.isArray(body.versions)) setVersions(body.versions as PersonalReportVersionSummary[]);
+    } catch {
+      // Best-effort — the dropdown just won't show the newest entry until the next load.
+    }
+  }
+
+  async function generate(trigger: PersonalReportTrigger = 'manual') {
     setBusy(true);
     setError(null);
     try {
-      const response = await fetch('/api/ai-strategy/personal-report', { method: 'POST' });
+      const response = await fetch('/api/ai-strategy/personal-report', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ trigger }),
+      });
       const body = await response.json().catch(() => ({}));
       if (body.reportV2) setReport(body.reportV2 as PersonalReportV2);
-      if (body.nextRegenerationAt) setNextAt(body.nextRegenerationAt as string);
+      if (body.versionId) {
+        setSelectedVersionId(body.versionId as string);
+        setLatestVersionId(body.versionId as string);
+      }
+      if (body.generatedAt) setViewedGeneratedAt(body.generatedAt as string);
       if (!response.ok) throw new Error(body.error || t('Could not create the report.'));
+      void refreshVersions();
     } catch (requestError) {
       setError(requestError instanceof Error ? requestError.message : t('Could not create the report.'));
     } finally {
       setBusy(false);
     }
+  }
+
+  async function viewVersion(versionId: string) {
+    if (versionId === selectedVersionId) return;
+    setVersionLoading(true);
+    setError(null);
+    try {
+      const response = await fetch(`/api/ai-strategy/personal-report/versions/${versionId}`);
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || t('Could not load that version.'));
+      setReport(body.reportV2 as PersonalReportV2);
+      setSelectedVersionId(versionId);
+      setViewedGeneratedAt(body.generatedAt as string);
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : t('Could not load that version.'));
+    } finally {
+      setVersionLoading(false);
+    }
+  }
+
+  function backToLatest() {
+    if (latestVersionId) void viewVersion(latestVersionId);
   }
 
   if (!report) {
@@ -576,7 +687,7 @@ export function PersonalReportV2View({
           </p>
         </div>
         {error ? <p className="max-w-xl text-gb-sm text-fg-error">{error}</p> : null}
-        <Button size="lg" onClick={generate} disabled={busy || migrationMissing}>
+        <Button size="lg" onClick={() => void generate()} disabled={busy || migrationMissing}>
           {busy ? t('Creating report…') : t('Create report')}
         </Button>
         <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary">
@@ -585,6 +696,8 @@ export function PersonalReportV2View({
       </div>
     );
   }
+
+  const onAnswered = isHistorical ? undefined : () => void generate('supplement_answer');
 
   return (
     <div className="flex flex-col gap-gb-3xl">
@@ -595,9 +708,9 @@ export function PersonalReportV2View({
             <h1 className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg" data-no-auto-translate>
               {studentName}
             </h1>
-            {generatedAt ? (
+            {viewedGeneratedAt ? (
               <p className="text-gb-xs text-fg-muted">
-                {t('Generated')}: {new Date(generatedAt).toLocaleDateString('en-US')}
+                {t('Generated')}: {new Date(viewedGeneratedAt).toLocaleDateString('en-US')}
               </p>
             ) : null}
           </div>
@@ -606,21 +719,33 @@ export function PersonalReportV2View({
             <ConfidenceBadge confidence={report.overallEvidenceConfidence} />
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-gb-lg border-t border-line pt-gb-lg">
+        <div className="flex flex-wrap items-end gap-gb-lg border-t border-line pt-gb-lg">
           <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary" size="sm">
             {t('View confirmed information')}
           </Button>
+          <VersionHistoryPicker
+            versions={versions}
+            selectedVersionId={selectedVersionId}
+            latestVersionId={latestVersionId}
+            disabled={versionLoading || busy}
+            onSelect={(versionId) => void viewVersion(versionId)}
+          />
         </div>
-        {nextAt ? (
-          <p className="text-gb-xs text-fg-muted">
-            {t('Next free generation')}: {new Date(nextAt).toLocaleString('en-US')}
-          </p>
+        {isHistorical ? (
+          <div className="flex flex-wrap items-center justify-between gap-gb-md rounded-gb-xl bg-surface-muted p-gb-lg">
+            <p className="text-gb-sm text-fg-tertiary">
+              {t("You're viewing an older version of this report — it won't update or accept answers.")}
+            </p>
+            <Button size="sm" variant="secondary" onClick={backToLatest} disabled={versionLoading}>
+              {t('Back to latest')}
+            </Button>
+          </div>
         ) : null}
         {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
       </header>
 
       <CoreIdentityView section={report.coreIdentity} returnTo={returnTo} />
-      <DrivingForceView section={report.drivingForce} returnTo={returnTo} onAnswered={() => void generate()} />
+      <DrivingForceView section={report.drivingForce} returnTo={returnTo} onAnswered={onAnswered} />
       <SignaturePatternView section={report.signaturePattern} returnTo={returnTo} />
       <EmergingThemesView section={report.emergingThemes} returnTo={returnTo} />
       <PersonalPositioningView section={report.personalPositioning} returnTo={returnTo} />

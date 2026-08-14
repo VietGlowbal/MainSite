@@ -81,7 +81,7 @@ function buildUserPrompt(inputs: readonly RoleThemeExtractionInput[]): string {
 export async function extractRoleAndTheme(args: {
   inputs: readonly RoleThemeExtractionInput[];
   apiKey: string;
-  model?: string;
+  model?: string | undefined;
 }): Promise<RoleThemeExtractionResult[]> {
   const { inputs, apiKey, model = defaultOpenAIModel() } = args;
 

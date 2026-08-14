@@ -20,9 +20,13 @@ export { loadCandidateReflection } from './candidate-snapshot-repository';
 export type { CandidateReflectionRecord } from './candidate-snapshot-repository';
 export { verifiedApplicationId } from './verified-application-id';
 export {
+  createPersonalReportV2Version,
+  getLatestPersonalReportV2,
   getPersonalReportSupplements,
-  getPersonalReportV2Record,
+  getPersonalReportV2Version,
+  listPersonalReportV2Versions,
   savePersonalReportSupplement,
-  savePersonalReportV2,
 } from './personal-report-v2-repository';
 export type { PersonalReportV2Record } from './personal-report-v2-repository';
+export { regeneratePersonalReport } from './personal-report-generation';
+export type { RegeneratePersonalReportResult } from './personal-report-generation';

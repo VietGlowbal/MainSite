@@ -23,6 +23,7 @@ are regression records for fixed bugs, not open work:
 | §5n–§5q | Fixed regression history for the per-application Candidate Information flow; preserve the tests and constraints. §5p made review/confirmation state per-application (`course_applications.personal_summary_reviewed_at`/`achievements_reviewed_at`/`candidate_confirmed_at`) instead of per-student. §5q fixed the two bugs that surfaced once that shipped: `reflection/confirm/page.tsx` redirected away unconditionally once confirmed, so the "Reflections" nav entry had nothing to link to and read-only Continue buttons had nowhere real to go — see §5q for the read-only `ReviewConfirmView` mode, the `applicationSubNav()` Overview↔Reflections swap, and `confirmedReflectionContinueHref`. |
 | §5r deleting an application | Migration written (`supabase-application-cascade-repair.sql`), **NOT YET CONFIRMED RUN** — repairs `ON DELETE CASCADE` drift across per-application child tables. |
 | §5s Personal Report nav/i18n/lock/CTA fixes | Fixed regression record — nav bar, English-only content, the `"|null"` extraction leak, and the Matching Report link are all fixed. The new inline-answer path uses `supabase-personal-report-supplements.sql`, **NOT YET CONFIRMED RUN**; it degrades to a 503 until then. |
+| §5t Personal Report versioning + no more cooldown | Fixed regression record — the one-row-per-student model with a 24h cooldown (root cause of "isn't generating at all" across multiple applications) is replaced by an append-only `student_personal_report_versions` table with no time-based limit, plus a version-history dropdown and two new regeneration triggers. `supabase-personal-report-versions.sql`, **NOT YET CONFIRMED RUN**; degrades to the not-enabled state until then. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -1476,6 +1477,84 @@ degrades to a 503 (tolerant-select/migration-missing pattern, same as every
 other optional migration in this file) rather than 500ing.
 
 | `src/app/ai-strategy/personal-report/page.tsx`, `src/shared/lib/ai-strategy-route-model.ts`, `src/features/apply/ui/personal-report-v2-view.tsx`, `src/features/apply/domain/personal-report.ts`, `src/lib/ai/personal-report-v2.ts`, `src/features/apply/api/candidate-context.ts`, `src/features/apply/api/personal-report-v2-repository.ts`, `src/app/api/ai-strategy/personal-report/route.ts`, `src/app/api/ai-strategy/personal-report/supplement/route.ts`, `src/app/api/applications/[id]/match-insights/route.ts`, `src/lib/ai/evaluation/sanitize-extracted-field.ts`, `src/lib/ai/evaluation/cmcaitf-extraction.ts`, `src/lib/ai/evaluation/narrative-activity-extraction.ts`, `src/lib/ai/evaluation/competency-extraction.ts`, `supabase-personal-report-supplements.sql` |
+
+## 5t. Personal Report stopped generating across multiple applications — replaced the one-row cooldown model with append-only versions — fixed 2026-08-14
+
+**Reported live, immediately after §5s shipped**: "The personal report now
+isn't generating at all. I believe this is because it's shared with multiple
+applications." The owner also asked for the report to be regenerable over
+time with git-style version history (a dropdown to view older versions), and
+for two concrete regeneration triggers: whenever a Matching Report
+generates, and after a student answers one of the report's own follow-up
+questions.
+
+**Root cause, confirmed by reading the two generation call sites together**:
+`student_personal_reports` was one row per student (`user_id` PRIMARY KEY,
+upserted on every regeneration) with a 24h "free tier" regeneration cooldown
+— a limit built around a single manual "regenerate" button. Once
+per-application onboarding (§5p) made editing achievements/reflections
+possible again for every new application, a student routinely changed their
+SHARED profile between applications; `AnalysisWorkspace`'s
+`fetchOrGeneratePersonal` fires on every application's confirm screen, so a
+student progressing through a second or third application kept hitting the
+cooldown wall on a report that had nothing to do with the application in
+front of them — the POST returned `429` with `stale: true`, and the confirm
+screen showed the Personal Report card as failed with no way to clear it for
+24 hours. This is exactly what "shared with multiple applications" was
+describing.
+
+**Fix — replaced the model, not just the limit:**
+
+1. New append-only `student_personal_report_versions` table
+   (`supabase-personal-report-versions.sql`) — every generation is its own
+   row (same shape `application_match_analyses` already uses for the
+   Matching Report), never upserted. A one-time idempotent backfill copies
+   each student's existing latest `report_v2` row over as their first
+   version, so nobody's history appears to start empty.
+2. **No more time-based cooldown.** Regeneration is now gated purely on
+   whether the input actually changed (`shouldRegenerate`, checked before
+   any OpenAI call, so a same-day repeat trigger with no real change costs
+   nothing extra) — an explicit owner decision (`AskUserQuestion`:
+   "remove the time cooldown," recommended because the hash check already
+   prevents wasted calls and is exactly what fixes this bug).
+3. Every version stores a `trigger` (`'manual'` | `'matching_report'` |
+   `'supplement_answer'`) recording why it was created, shown in the
+   version-history dropdown.
+4. New shared orchestration, `regeneratePersonalReport`
+   (`src/features/apply/api/personal-report-generation.ts`) — the one place
+   that loads context+supplements, hashes, decides regenerate-or-cached, and
+   writes a new version. Used by both `POST
+   /api/ai-strategy/personal-report` (`trigger: 'manual'`/`'supplement_answer'`,
+   client-driven) and, new, `POST /api/applications/[id]/match-insights`
+   (`trigger: 'matching_report'`, called best-effort right after a
+   successful Matching Report insert — never fails the Matching Report
+   response if the refresh itself fails).
+5. Two new read routes, `GET /api/ai-strategy/personal-report/versions`
+   (list) and `GET /api/ai-strategy/personal-report/versions/[id]` (one
+   version, ownership-checked by filtering on the signed-in user's id in
+   the query itself). `PersonalReportV2View` gained a version-history
+   `Select` (hidden when there is only one version) — picking a past
+   version fetches and displays it read-only: the Driving Force inline
+   "Answer this" action falls back to a plain link instead of accepting a
+   new answer, and a banner offers "Back to latest."
+
+⚠️ **Action required in production — `supabase-personal-report-versions.sql`
+has NOT been confirmed run.** Until it is, `getLatestPersonalReportV2`
+degrades to `migrationMissing: true` and the report page shows its
+not-enabled state — same tolerant-select/migration-missing pattern as every
+other optional migration in this file.
+
+**Also fixed while wiring the shared orchestration into a second call site**:
+`buildProfileEvaluationInput` (`src/lib/ai/personal-report-v2.ts`) always
+called its three extraction functions with `model` — `string | undefined`
+from an optional param — which is a genuine `exactOptionalPropertyTypes`
+violation invisible until a `features/apply/api` file (subject to
+`tsconfig.strict.json`) imported it transitively for the first time.
+Widened `extractCmcaitfFields`/`extractCompetencyClaims`/`extractRoleAndTheme`'s
+`model?: string` params to `model?: string | undefined` — no behavior
+change, just makes the existing call site typecheck under strict mode.
+
+| `supabase-personal-report-versions.sql`, `src/features/apply/api/personal-report-v2-repository.ts`, `src/features/apply/api/personal-report-generation.ts`, `src/app/api/ai-strategy/personal-report/route.ts`, `src/app/api/ai-strategy/personal-report/versions/route.ts`, `src/app/api/ai-strategy/personal-report/versions/[id]/route.ts`, `src/app/api/applications/[id]/match-insights/route.ts`, `src/app/ai-strategy/personal-report/page.tsx`, `src/features/apply/ui/personal-report-v2-view.tsx`, `src/features/apply/domain/personal-report.ts`, `src/lib/ai/evaluation/cmcaitf-extraction.ts`, `src/lib/ai/evaluation/competency-extraction.ts`, `src/lib/ai/evaluation/narrative-activity-extraction.ts` |
 
 ## 6. Open questions for the designer / owner
 

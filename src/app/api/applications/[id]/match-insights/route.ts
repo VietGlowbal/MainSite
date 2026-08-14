@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import {
-  getPersonalReportV2Record,
+  getLatestPersonalReportV2,
   loadCandidateContext,
+  regeneratePersonalReport,
   stableHash,
 } from '@/features/apply/api';
 import { candidateConfidence, programmeFitSchema } from '@/features/apply/domain';
@@ -20,7 +21,10 @@ import {
 } from '@/lib/match-insights';
 
 export const runtime = 'nodejs';
-export const maxDuration = 60;
+// 120s: a Matching Report generation call plus an opportunistic Personal
+// Report regeneration (up to three extraction calls) can both need to run
+// in the same invocation — see the regeneratePersonalReport call below.
+export const maxDuration = 120;
 
 const COOLDOWN_MS = 24 * 60 * 60 * 1000;
 const ESSAY_TYPES = ['statement_of_purpose', 'personal_statement', 'sop', 'statement'];
@@ -84,7 +88,7 @@ export async function POST(
         .from('uploaded_documents')
         .select('id,type,storage_key,mime_type,parsed_text')
         .eq('user_id', userId),
-      getPersonalReportV2Record(supabase, userId),
+      getLatestPersonalReportV2(supabase, userId),
       universityId == null
         ? Promise.resolve({ data: null, error: null })
         : supabase.from('universities').select('*').eq('id', universityId).maybeSingle(),
@@ -359,5 +363,20 @@ export async function POST(
   const unassessed = MATCH_PILLARS.filter(
     (pillar) => !insights.pillars[pillar.key]?.assessed,
   ).map((pillar) => pillar.key as PillarKey);
+
+  // Best-effort: a new Matching Report is one of the two events that should
+  // refresh the Personal Report (see `regeneratePersonalReport`'s doc
+  // comment). This never fails the Matching Report response — the report
+  // it just generated is already saved either way, and a skipped refresh
+  // here just means the Personal Report catches up next time something
+  // triggers it.
+  try {
+    await regeneratePersonalReport({ supabase, userId, trigger: 'matching_report' });
+  } catch (error) {
+    console.error('[match-insights] personal report refresh failed', {
+      code: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+    });
+  }
+
   return NextResponse.json({ ok: true, cached: false, analysis: inserted, unassessed });
 }

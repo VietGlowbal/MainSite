@@ -54,4 +54,16 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Continue to My Portal': 'Tiếp tục tới Cổng của tôi',
   'Could not save your answer.': 'Không thể lưu câu trả lời của bạn.',
   'Save & update report': 'Lưu & cập nhật báo cáo',
+  'Version history': 'Lịch sử phiên bản',
+  Latest: 'Mới nhất',
+  'Manual update': 'Cập nhật thủ công',
+  'Updated with your Matching Report': 'Cập nhật cùng Báo cáo Độ phù hợp',
+  'Updated after you answered a question': 'Cập nhật sau khi bạn trả lời một câu hỏi',
+  "You're viewing an older version of this report — it won't update or accept answers.":
+    'Bạn đang xem một phiên bản cũ của báo cáo này — phiên bản này sẽ không cập nhật hay nhận câu trả lời mới.',
+  'Back to latest': 'Quay lại phiên bản mới nhất',
+  'Could not load that version.': 'Không thể tải phiên bản đó.',
+  'Could not save the report.': 'Không thể lưu báo cáo.',
+  'The AI could not produce a valid report. Your previous report, if any, has been kept.':
+    'AI chưa thể tạo báo cáo hợp lệ. Báo cáo trước đó, nếu có, vẫn được giữ nguyên.',
 };
