@@ -28,8 +28,13 @@ import {
   type ScholarshipQueryState,
   type ScholarshipSort,
 } from '@/features/scholarships/directory-query';
+import { scholarshipSaveDestination } from '@/features/scholarships';
 import type { ScholarshipDirectoryResponse } from '@/features/scholarships/directory-loader';
 import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
+import {
+  ScholarshipUniversityPicker,
+  type ScholarshipUniversityOption,
+} from './scholarship-university-picker';
 
 const ScholarshipDashboard = dynamic(
   () => import('./scholarship-dashboard').then((module) => module.ScholarshipDashboard),
@@ -79,8 +84,8 @@ type Props = {
   existingScholarships: ExistingScholarship[];
   // Set when deep-linked from a university detail page (?university=<id>).
   focusUniversity?: { id: number; name: string; country: string | null } | null;
-  // Scholarship ids already in the user's saved bucket (user_scholarships).
-  savedScholarshipIds?: number[];
+  // Only rows whose scholarship and university are both present in My Portal.
+  savedScholarships?: Array<{ scholarshipId: number; universityId: number }>;
   canonicalSearch: string;
 };
 
@@ -125,7 +130,7 @@ export function ScholarshipDirectoryClient({
   applications,
   existingScholarships,
   focusUniversity: initialFocusUniversity = null,
-  savedScholarshipIds = [],
+  savedScholarships = [],
   canonicalSearch,
 }: Props) {
   const { t } = useLanguage();
@@ -189,22 +194,55 @@ export function ScholarshipDirectoryClient({
     // Run once on mount; the param is fixed for the page's lifetime.
   }, [focusUniversityProp, queryState, router]);
 
-  // Saved-scholarship bucket (persists to user_scholarships + user_universities).
-  const [savedIds, setSavedIds] = useState<Set<number>>(() => new Set(savedScholarshipIds));
+  // A scholarship is "saved to My Universities" only when it has a concrete
+  // destination university. Keeping the destination in state (instead of only
+  // the scholarship id) makes Continue to Apply deterministic as well.
+  const [savedDestinations, setSavedDestinations] = useState<Map<number, number>>(
+    () => new Map(savedScholarships.map((row) => [row.scholarshipId, row.universityId])),
+  );
+  const savedIds = useMemo(
+    () => new Set(savedDestinations.keys()),
+    [savedDestinations],
+  );
   const [savingIds, setSavingIds] = useState<Set<number>>(() => new Set());
-  const [lastSavedUniversityId, setLastSavedUniversityId] = useState<number | null>(focusUniversity?.id ?? null);
+  const initialDestination =
+    savedScholarships.find((row) => row.universityId === focusUniversity?.id)?.universityId ??
+    savedScholarships.at(-1)?.universityId ??
+    null;
+  const [lastSavedUniversityId, setLastSavedUniversityId] = useState<number | null>(
+    initialDestination,
+  );
+  const [pendingSave, setPendingSave] = useState<{
+    scholarship: DirectoryScholarship;
+    mode: 'linked' | 'directory';
+  } | null>(null);
+  const [selected, setSelected] = useState<DirectoryScholarship | null>(null);
+  const [universityOptions, setUniversityOptions] = useState<ScholarshipUniversityOption[]>([]);
+  const [loadingUniversityOptions, setLoadingUniversityOptions] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const universityOptionsRequestRef = useRef(0);
 
-  const toggleSave = async (s: DirectoryScholarship) => {
-    const universityId = focusUniversity?.id ?? s.universityIds[0] ?? null;
-    const willSave = !savedIds.has(s.id);
-    setSavedIds((prev) => {
-      const next = new Set(prev);
-      if (willSave) next.add(s.id);
-      else next.delete(s.id);
+  const setSaving = (scholarshipId: number, saving: boolean) => {
+    setSavingIds((previous) => {
+      const next = new Set(previous);
+      if (saving) next.add(scholarshipId);
+      else next.delete(scholarshipId);
       return next;
     });
-    if (willSave && universityId != null) setLastSavedUniversityId(universityId);
-    setSavingIds((prev) => new Set(prev).add(s.id));
+  };
+
+  const closeUniversityPicker = () => {
+    if (pendingSave && savingIds.has(pendingSave.scholarship.id)) return;
+    universityOptionsRequestRef.current += 1;
+    setPendingSave(null);
+    setUniversityOptions([]);
+    setLoadingUniversityOptions(false);
+    setSaveError(null);
+  };
+
+  const saveScholarship = async (s: DirectoryScholarship, universityId: number) => {
+    setSaving(s.id, true);
+    setSaveError(null);
 
     try {
       const supabase = (await import('@/lib/supabase/client')).createClient();
@@ -215,59 +253,149 @@ export function ScholarshipDirectoryClient({
         router.push('/auth');
         return;
       }
-      if (willSave) {
-        // Save the scholarship to the bucket...
-        const { error: scholarshipError } = await supabase
-          .from('user_scholarships')
-          .upsert(
-            { user_id: user.id, scholarship_id: s.id, university_id: universityId },
-            { onConflict: 'user_id,scholarship_id', ignoreDuplicates: true },
-          );
-        if (scholarshipError) throw scholarshipError;
-        // ...and idempotently add its university to My Universities.
-        if (universityId != null) {
-          const { error: universityError } = await supabase
-            .from('user_universities')
-            .upsert(
-              { user_id: user.id, university_id: universityId, status: 'interested' },
-              { onConflict: 'user_id,university_id', ignoreDuplicates: true },
-            );
-          if (universityError) throw universityError;
-        }
-      } else {
-        const { error } = await supabase
-          .from('user_scholarships')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('scholarship_id', s.id);
-        if (error) throw error;
-      }
+
+      // Save the university first so a failed second write can never leave a
+      // scholarship pointing at a portal row that does not exist. A retry is
+      // safe because both writes are idempotent.
+      const { error: universityError } = await supabase
+        .from('user_universities')
+        .upsert(
+          { user_id: user.id, university_id: universityId, status: 'interested' },
+          { onConflict: 'user_id,university_id', ignoreDuplicates: true },
+        );
+      if (universityError) throw universityError;
+
+      const { error: scholarshipError } = await supabase
+        .from('user_scholarships')
+        .upsert(
+          { user_id: user.id, scholarship_id: s.id, university_id: universityId },
+          { onConflict: 'user_id,scholarship_id' },
+        );
+      if (scholarshipError) throw scholarshipError;
+
+      setSavedDestinations((previous) => {
+        const next = new Map(previous);
+        next.set(s.id, universityId);
+        return next;
+      });
+      setLastSavedUniversityId(universityId);
+      setPendingSave(null);
+      setUniversityOptions([]);
     } catch {
-      // Revert optimistic update on failure.
-      setSavedIds((prev) => {
-        const next = new Set(prev);
-        if (willSave) next.delete(s.id);
-        else next.add(s.id);
-        return next;
-      });
+      setSaveError(t('Could not save this scholarship. Please try again.'));
     } finally {
-      setSavingIds((prev) => {
-        const next = new Set(prev);
-        next.delete(s.id);
-        return next;
-      });
+      setSaving(s.id, false);
     }
   };
 
+  const removeScholarship = async (s: DirectoryScholarship) => {
+    setSaving(s.id, true);
+    setSaveError(null);
+    try {
+      const supabase = (await import('@/lib/supabase/client')).createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) {
+        router.push('/auth');
+        return;
+      }
+      const { error } = await supabase
+        .from('user_scholarships')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('scholarship_id', s.id);
+      if (error) throw error;
+
+      const remaining = new Map(savedDestinations);
+      remaining.delete(s.id);
+      setSavedDestinations(remaining);
+      setLastSavedUniversityId([...remaining.values()].at(-1) ?? null);
+    } catch {
+      setSaveError(t('Could not remove this scholarship. Please try again.'));
+    } finally {
+      setSaving(s.id, false);
+    }
+  };
+
+  const openUniversityPicker = async (
+    s: DirectoryScholarship,
+    mode: 'linked' | 'directory',
+    linkedIds: number[] = [],
+  ) => {
+    const requestId = ++universityOptionsRequestRef.current;
+    // The detail modal owns its own Escape and body-scroll effects. Remove it
+    // before mounting the picker so only one dialog is active at a time.
+    setSelected(null);
+    setPendingSave({ scholarship: s, mode });
+    setSaveError(null);
+
+    const embedded = s.universities.filter(
+      (university) => mode === 'directory' || linkedIds.includes(university.id),
+    );
+    if (mode === 'linked' && embedded.length === linkedIds.length) {
+      setLoadingUniversityOptions(false);
+      setUniversityOptions(embedded);
+      return;
+    }
+
+    setLoadingUniversityOptions(true);
+    setUniversityOptions([]);
+    try {
+      const supabase = (await import('@/lib/supabase/client')).createClient();
+      let query = supabase
+        .from('universities')
+        .select('id, name, country')
+        .order('name', { ascending: true })
+        .limit(500);
+      if (mode === 'linked') query = query.in('id', linkedIds);
+      const { data, error } = await query;
+      if (requestId !== universityOptionsRequestRef.current) return;
+      if (error) throw error;
+
+      const options = ((data ?? []) as ScholarshipUniversityOption[]).sort((left, right) => {
+        if (mode === 'directory' && s.country) {
+          const leftMatches = left.country === s.country;
+          const rightMatches = right.country === s.country;
+          if (leftMatches !== rightMatches) return leftMatches ? -1 : 1;
+        }
+        return left.name.localeCompare(right.name);
+      });
+      setUniversityOptions(options);
+    } catch {
+      if (requestId !== universityOptionsRequestRef.current) return;
+      setSaveError(t('We could not load the university list. Please try again.'));
+    } finally {
+      if (requestId === universityOptionsRequestRef.current) {
+        setLoadingUniversityOptions(false);
+      }
+    }
+  };
+
+  const toggleSave = async (s: DirectoryScholarship) => {
+    if (savedDestinations.has(s.id)) {
+      await removeScholarship(s);
+      return;
+    }
+
+    const destination = scholarshipSaveDestination(s.universityIds);
+    if (destination.kind === 'automatic') {
+      await saveScholarship(s, destination.universityId);
+      return;
+    }
+    await openUniversityPicker(
+      s,
+      destination.kind === 'choose-linked' ? 'linked' : 'directory',
+      destination.kind === 'choose-linked' ? destination.universityIds : [],
+    );
+  };
+
   const goToApply = () => {
-    const focus = focusUniversity?.id ?? lastSavedUniversityId;
+    const focus = lastSavedUniversityId ?? [...savedDestinations.values()].at(-1) ?? null;
     router.push(focus != null ? `/apply?focus=${focus}` : '/apply');
   };
 
-  // Filters
-  const [selected, setSelected] = useState<DirectoryScholarship | null>(null);
-
-  // Pagination for the full directory: 9 cards per page (3 columns × 3 rows).
+  // Filters. Pagination for the full directory is 9 cards (3 columns × 3 rows).
   const resultsTopRef = useRef<HTMLDivElement>(null);
 
   const navigate = useCallback(
@@ -726,14 +854,37 @@ export function ScholarshipDirectoryClient({
         <ScholarshipDetailModal
           scholarship={selected}
           saved={savedIds.has(selected.id)}
+          busy={savingIds.has(selected.id)}
           onToggleSave={() => toggleSave(selected)}
           onClose={() => setSelected(null)}
           t={t}
         />
       )}
 
+      {pendingSave ? (
+        <ScholarshipUniversityPicker
+          open
+          mode={pendingSave.mode}
+          options={universityOptions}
+          loading={loadingUniversityOptions}
+          saving={savingIds.has(pendingSave.scholarship.id)}
+          error={saveError}
+          onClose={closeUniversityPicker}
+          onSave={(universityId) => {
+            void saveScholarship(pendingSave.scholarship, universityId);
+          }}
+          t={t}
+        />
+      ) : null}
+
       {tab === 'directory' && directory.error ? (
         <p role="alert" className="text-sm text-error-primary">{directory.error}</p>
+      ) : null}
+
+      {saveError && !pendingSave ? (
+        <div className="fixed inset-x-4 bottom-24 z-40 mx-auto max-w-gb-width-sm rounded-gb-lg border border-line-error bg-surface p-gb-xl text-gb-sm font-medium text-fg-error shadow-gb-lg sm:bottom-28">
+          <p role="alert">{saveError}</p>
+        </div>
       ) : null}
 
       {/* Sticky "Continue to Apply" bar — appears once anything is saved. */}
@@ -927,12 +1078,14 @@ function HeartIcon({ filled }: { filled: boolean }) {
 function ScholarshipDetailModal({
   scholarship: s,
   saved,
+  busy,
   onToggleSave,
   onClose,
   t,
 }: {
   scholarship: DirectoryScholarship;
   saved: boolean;
+  busy: boolean;
   onToggleSave: () => void;
   onClose: () => void;
   t: Translate;
@@ -1025,8 +1178,10 @@ function ScholarshipDetailModal({
           <button
             type="button"
             aria-pressed={saved}
+            aria-busy={busy}
+            disabled={busy}
             onClick={onToggleSave}
-            className={`inline-flex h-11 items-center justify-center gap-2 rounded-gb-md border-2 border-brand px-5 text-sm font-semibold transition ${
+            className={`inline-flex h-11 items-center justify-center gap-2 rounded-gb-md border-2 border-brand px-5 text-sm font-semibold transition disabled:cursor-wait disabled:opacity-60 ${
               saved ? 'bg-brand-subtle text-fg-brand hover:bg-brand-surface' : 'bg-surface text-fg-brand hover:bg-brand-subtle'
             }`}
           >
