@@ -35,6 +35,24 @@ import {
 
 export type ReportConfidence = Confidence;
 
+/**
+ * Why a given version of the Personal Report was generated — shown next to
+ * each entry in the version-history dropdown. `'manual'` covers both the
+ * first-ever "Create report" click and a student explicitly answering a
+ * report question from the UI; `'matching_report'` and `'supplement_answer'`
+ * are the two automatic triggers (see `regeneratePersonalReport`,
+ * `src/features/apply/api/personal-report-generation.ts`). Open string in
+ * storage, not a DB enum — this set can grow without a migration.
+ */
+export type PersonalReportTrigger = 'manual' | 'matching_report' | 'supplement_answer';
+
+/** One row of the version-history dropdown — no report content, just enough to label and pick a version. */
+export type PersonalReportVersionSummary = {
+  id: string;
+  generatedAt: string;
+  trigger: PersonalReportTrigger;
+};
+
 export type IntakeActionKind =
   | 'answer_reflection_question'
   | 'add_activity'

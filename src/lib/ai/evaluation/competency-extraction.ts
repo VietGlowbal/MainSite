@@ -72,7 +72,7 @@ function buildUserPrompt(sources: readonly CompetencyExtractionSource[]): string
 export async function extractCompetencyClaims(args: {
   sources: readonly CompetencyExtractionSource[];
   apiKey: string;
-  model?: string;
+  model?: string | undefined;
 }): Promise<CompetencyClaim[]> {
   const { sources, apiKey, model = defaultOpenAIModel() } = args;
 

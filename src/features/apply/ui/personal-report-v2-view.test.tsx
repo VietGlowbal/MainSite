@@ -81,27 +81,56 @@ function reportWithDrivingForceGap(): PersonalReportV2 {
   };
 }
 
+function fetchMockFor(overrides: { versions?: unknown[] } = {}) {
+  return vi.fn().mockImplementation((url: string) => {
+    if (url === '/api/ai-strategy/personal-report/supplement') {
+      return Promise.resolve(new Response(JSON.stringify({ success: true }), { status: 200 }));
+    }
+    if (url === '/api/ai-strategy/personal-report') {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            reportV2: reportWithDrivingForceGap(),
+            cached: false,
+            versionId: 'v2',
+            generatedAt: '2026-08-14T01:00:00.000Z',
+          }),
+          { status: 200 },
+        ),
+      );
+    }
+    if (url === '/api/ai-strategy/personal-report/versions') {
+      return Promise.resolve(
+        new Response(JSON.stringify({ versions: overrides.versions ?? [] }), { status: 200 }),
+      );
+    }
+    if (typeof url === 'string' && url.startsWith('/api/ai-strategy/personal-report/versions/')) {
+      return Promise.resolve(
+        new Response(
+          JSON.stringify({
+            reportV2: reportWithDrivingForceGap(),
+            generatedAt: '2026-08-13T00:00:00.000Z',
+            trigger: 'manual',
+          }),
+          { status: 200 },
+        ),
+      );
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+}
+
 describe('PersonalReportV2View — inline report answers', () => {
   it('expands the Driving Force gap action into a textarea, saves it, and regenerates the report', async () => {
     const user = userEvent.setup();
-    const fetchMock = vi.fn().mockImplementation((url: string) => {
-      if (url === '/api/ai-strategy/personal-report/supplement') {
-        return Promise.resolve(
-          new Response(JSON.stringify({ success: true }), { status: 200 }),
-        );
-      }
-      if (url === '/api/ai-strategy/personal-report') {
-        return Promise.resolve(
-          new Response(JSON.stringify({ reportV2: reportWithDrivingForceGap() }), { status: 200 }),
-        );
-      }
-      throw new Error(`Unexpected fetch: ${url}`);
-    });
+    const fetchMock = fetchMockFor();
     vi.stubGlobal('fetch', fetchMock);
 
     render(
       <PersonalReportV2View
         initialReport={reportWithDrivingForceGap()}
+        initialVersionId="v1"
+        initialVersions={[{ id: 'v1', generatedAt: '2026-08-13T00:00:00.000Z', trigger: 'manual' }]}
         studentName="Olivia"
         generatedAt="2026-08-14T00:00:00.000Z"
         migrationMissing={false}
@@ -129,9 +158,15 @@ describe('PersonalReportV2View — inline report answers', () => {
       );
     });
 
-    // Saving triggers the same regeneration path "Update report" uses.
+    // Saving triggers the same regeneration path, tagged as an answered-question update.
     await waitFor(() => {
-      expect(fetchMock).toHaveBeenCalledWith('/api/ai-strategy/personal-report', { method: 'POST' });
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/ai-strategy/personal-report',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ trigger: 'supplement_answer' }),
+        }),
+      );
     });
   });
 
@@ -139,6 +174,8 @@ describe('PersonalReportV2View — inline report answers', () => {
     render(
       <PersonalReportV2View
         initialReport={reportWithDrivingForceGap()}
+        initialVersionId="v1"
+        initialVersions={[{ id: 'v1', generatedAt: '2026-08-13T00:00:00.000Z', trigger: 'manual' }]}
         studentName="Olivia"
         generatedAt="2026-08-14T00:00:00.000Z"
         migrationMissing={false}
@@ -148,5 +185,65 @@ describe('PersonalReportV2View — inline report answers', () => {
     expect(
       screen.queryByRole('link', { name: 'Explain why you are interested in these subjects' }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe('PersonalReportV2View — version history', () => {
+  const versions = [
+    { id: 'v2', generatedAt: '2026-08-14T00:00:00.000Z', trigger: 'matching_report' as const },
+    { id: 'v1', generatedAt: '2026-08-13T00:00:00.000Z', trigger: 'manual' as const },
+  ];
+
+  it('shows no version picker when there is only one version', () => {
+    render(
+      <PersonalReportV2View
+        initialReport={reportWithDrivingForceGap()}
+        initialVersionId="v1"
+        initialVersions={[versions[1]!]}
+        studentName="Olivia"
+        generatedAt="2026-08-13T00:00:00.000Z"
+        migrationMissing={false}
+      />,
+    );
+
+    expect(screen.queryByLabelText('Version history')).not.toBeInTheDocument();
+  });
+
+  it('loads and displays a past version read-only, then returns to latest', async () => {
+    const user = userEvent.setup();
+    const fetchMock = fetchMockFor({ versions });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <PersonalReportV2View
+        initialReport={reportWithDrivingForceGap()}
+        initialVersionId="v2"
+        initialVersions={versions}
+        studentName="Olivia"
+        generatedAt="2026-08-14T00:00:00.000Z"
+        migrationMissing={false}
+      />,
+    );
+
+    expect(screen.queryByText(/viewing an older version/i)).not.toBeInTheDocument();
+
+    await user.selectOptions(screen.getByLabelText('Version history'), 'v1');
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith('/api/ai-strategy/personal-report/versions/v1');
+    });
+    await screen.findByText(/viewing an older version/i);
+
+    // Answering inline is disabled while viewing history — the gap action falls back to a
+    // plain link instead of the inline textarea button.
+    expect(
+      screen.queryByRole('button', { name: 'Explain why you are interested in these subjects' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'Explain why you are interested in these subjects' }),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Back to latest' }));
+    await waitFor(() => expect(screen.queryByText(/viewing an older version/i)).not.toBeInTheDocument());
   });
 });
