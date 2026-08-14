@@ -74,6 +74,7 @@ code, the code wins.
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
+| Working tree 2026-08-14 (scholarship → My Portal handoff) | Replaced `/scholarships`'s `universityIds[0]` fallback with an explicit destination flow. A scholarship with exactly one structured university link saves that university automatically; one with several links opens a university picker limited to those linked schools; an award with no structured link opens a searchable university-directory picker and tells the student to verify the official eligibility rules. Saved scholarship state now carries its destination university, repairs legacy NULL-destination rows through an updating upsert, and only counts a scholarship as “Saved to My Universities” when the matching `user_universities` row exists. | “Continue to Apply” now focuses the university actually chosen for the most recent scholarship instead of an inferred first/focused school. Country, provider, consortium, and multi-university awards can all enter My Portal without silently attaching to the wrong university or disappearing under a NULL destination. The two writes remain retry-safe and a failed scholarship write cannot create an orphaned scholarship; an already-saved university is never removed. Focused Vitest passed 10/10, base and strict TypeScript passed, targeted ESLint passed, the static i18n audit reported 0 missing keys / 0 placeholder mismatches, and the Next.js 16.2.3 production build passed. No browser instance was connected, so the signed-in visual click-through was not run. |
 | Working tree 2026-08-14 (homepage testimonials) | Rebuilt `HomeTestimonials` as a pure-black editorial band with a larger red “Testimonials” label, responsive image-led cards, boxed anonymous attribution, and overlapping white quote panels. Added three original AI-generated portraits of Vietnamese university students as local WebP assets; each card explicitly labels the portrait as illustrative and keeps the supplied testimonial anonymous instead of fabricating a student identity. Added static Vietnamese translations for the new labels and a focused component test. | The homepage now follows the supplied black/red testimonial reference on desktop and mobile without making the generated portraits look like the real authors of anonymous quotes. Local `/` returned 200 with the new copy and all three assets returned 200. Targeted ESLint, base and strict TypeScript, two focused Vitest tests (2/2 across the component and i18n audit files), and the Next.js 16.2.3 production build pass. The in-app browser was unavailable, so no new visual screenshot was captured and E2E was not rerun. |
 | Working tree 2026-08-14 (runtime) | Upgraded the pinned runtime from Node 20.20.2 to Node 24.19.0 across `.node-version`, `.nvmrc`, package engines, the lockfile, and setup documentation. The local NVM installation is switched to 24.19.0. | `npm run dev` can use the repository's existing `--use-system-ca` flag instead of exiting with `node: bad option`. Full `npm run verify:pr` passed on Node 24.19.0 in 248 seconds: both typechecks, lint (0 errors / 23 warnings), 195 test files with 1,983 passing tests / 2 todo and coverage, and the Next.js 16.2.3 production build. E2E was not rerun. |
 | Working tree 2026-08-14 | Fixed missing university logos in My Portal at the identity layer. `resolveUniversity` now has a genuinely non-mutating match-only mode; `/api/cron/link-applications?dryRun=1` and `?create=0` pass that policy into the resolver before any insert can occur, and report `would-match`/`would-create` outcomes. Bare legacy domains such as `www.birmingham.ac.uk` now participate in domain matching. The reconciliation route is scheduled daily at 02:30 UTC, before the 03:00 imagery job. Newly resolved logos are downloaded, normalised to WebP, uploaded to deterministic paths in Supabase Storage, and only then written to `universities.logo_url`; a failed upload leaves the field empty for retry. The imagery cron now uses a 20-second resolver phase, four concurrent logo workers, six-second host timeouts, a shared 50-second work deadline, and oldest-attempt-first rotation. Shared `Avatar` now falls back to initials if a non-empty URL fails in the browser. Production repair was executed after a zero-write preview: 8/8 rows linked, 0 failures; Birmingham's two applications both join Storage-backed logo ID 108. | Existing initials-only Birmingham and other legacy cards receive their real crests without adding a query or external fetch to `/apply`. New/imported applications link during parsing, the scheduled reconciler repairs any future transient miss, and broken remote images degrade cleanly instead of showing a broken-image glyph. Slow or unavailable sources no longer make as many as 40 sequential 20-second downloads consume the 60-second invocation or repeatedly starve later rows. The cron follow-up passes 10/10 focused tests; base and strict typechecks, targeted lint, and the production build pass on the resulting tree. The earlier full Vitest run reached 1,982 pass / 2 todo with only `check-i18n.integration.test.ts` exceeding its 5s timeout under parallel load (5.74s); that test passed alone in 2.26s. E2E not run. |
@@ -115,6 +116,12 @@ code, the code wins.
 
 - Discovery: `/universities`, numeric university details, `/scholarships`,
   `/mentors`, mentor profiles, `/news`, and the public marketing pages.
+- Scholarship handoff: saving an award with one linked university adds both
+  records immediately. Multi-university awards require choosing one of their
+  structured links; unlinked country/provider/consortium awards require choosing
+  a directory university and explicitly warn that official eligibility still
+  needs checking. Only scholarship rows with a real saved-university destination
+  count toward the sticky saved total and the `/apply?focus=` handoff.
 - Onboarding and profile: the onboarding flow plus the profile subpages remain
   the source of student context.
 - My Portal: `/apply` is the post-login landing and combines saved universities
@@ -211,8 +218,16 @@ code, the code wins.
 
 ## Verification snapshot
 
-Measured on 2026-08-13 against the uncommitted working tree described above
-(`npx` invocations, equivalent to the `npm run` scripts):
+Latest task-specific measurement, on 2026-08-14 after the scholarship → My
+Portal handoff repair: base and strict TypeScript passed; targeted ESLint passed;
+the three focused files passed 10/10 Vitest tests; `node scripts/check-i18n.mjs`
+reported 0 missing keys and 0 placeholder mismatches; and `npm run build` passed
+on Next.js 16.2.3 (122/122 static pages generated). The in-app browser had no
+connected browser instance, so the signed-in visual flow and E2E were not run.
+
+The earlier broad snapshot below was measured on 2026-08-13 against its
+then-current uncommitted working tree (`npx` invocations, equivalent to the
+`npm run` scripts):
 
 | Gate | Result |
 |---|---|

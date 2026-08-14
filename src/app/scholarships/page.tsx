@@ -42,7 +42,10 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
         .select('university_id, universities(country)')
         .eq('user_id', user.id),
       applicationsPromise,
-      supabase.from('user_scholarships').select('scholarship_id').eq('user_id', user.id),
+      supabase
+        .from('user_scholarships')
+        .select('scholarship_id, university_id')
+        .eq('user_id', user.id),
     ]);
 
   const currentSearch = scholarshipSearchParams(state, {}).toString();
@@ -50,14 +53,23 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
     redirect(directory.canonicalSearch ? `/scholarships?${directory.canonicalSearch}` : '/scholarships');
   }
 
-  const savedScholarshipIds = (savedScholarshipsResult.data ?? []).map((row) =>
-    Number(row.scholarship_id),
-  );
   const savedRows = (savedResult.data ?? []) as Array<{
     university_id: number;
     universities: { country: string | null } | { country: string | null }[] | null;
   }>;
   const savedUniversityIds = savedRows.map((row) => row.university_id);
+  const savedUniversityIdSet = new Set(savedUniversityIds);
+  const savedScholarships = (savedScholarshipsResult.data ?? [])
+    .map((row) => ({
+      scholarshipId: Number(row.scholarship_id),
+      universityId: Number(row.university_id),
+    }))
+    .filter(
+      (row) =>
+        Number.isInteger(row.scholarshipId) &&
+        Number.isInteger(row.universityId) &&
+        savedUniversityIdSet.has(row.universityId),
+    );
   const savedCountries = [
     ...new Set(
       savedRows
@@ -110,7 +122,7 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
           applications={applications}
           existingScholarships={existingScholarships}
           focusUniversity={directory?.focusUniversity ?? null}
-          savedScholarshipIds={savedScholarshipIds}
+          savedScholarships={savedScholarships}
           canonicalSearch={directory?.canonicalSearch ?? currentSearch}
         />
       </div>
