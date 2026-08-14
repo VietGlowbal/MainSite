@@ -1,11 +1,5 @@
 /**
- * The GlowBal Shared Evaluation Engine (F1, F2, F3, F4 + sub-frameworks, F5
- * interfaces, F6).
- *
- * One evaluation of a student that every AI surface reads from — the
- * Personal Report, the Matching Report, and later the Strategy Report. See
- * docs/ai-evaluation-engine.md for the pipeline diagram and the ten core
- * principles this module is built to satisfy.
+ * The GlowBal Shared Evaluation Engine (F1-F6).
  */
 
 export {
@@ -103,6 +97,10 @@ export type {
   ThemeMaturityResult,
   ThemeMaturityStatus,
 } from './f4-narrative-identity';
+
+export { scoreNarrativeBaseFaithful } from './f4-quality';
+export { assessMotivationConsistencyWithProfile } from './profile-motivation';
+export type { ProfileMotivation } from './profile-motivation';
 
 export { F5_DIMENSION_KEYS, buildProgrammeFitPlaceholder } from './f5-programme-fit';
 export type {
