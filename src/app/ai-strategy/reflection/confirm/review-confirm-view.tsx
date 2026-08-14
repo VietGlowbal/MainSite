@@ -136,7 +136,7 @@ export function ReviewConfirmView({
         return;
       }
 
-      router.push(returnTo || '/ai-strategy/personal-report');
+      router.push(returnTo || '/ai-strategy/report');
     } catch {
       setError(t('We could not confirm your information. Please try again.'));
       setSubmitting(false);
