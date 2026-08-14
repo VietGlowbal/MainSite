@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useCallback, useRef, useState } from 'react';
+import { FUNDING_TYPE_LABELS } from '@/lib/scholarship-constants';
 import { ICONS, KitIcon } from '@/shared/ui';
 
 export type ScholarshipTeaser = {
@@ -21,12 +22,23 @@ export type ScholarshipTeaser = {
   country?: string | null;
 };
 
-function readableFundingType(values?: readonly string[] | null): string {
-  if (!values?.length) return 'Funding support';
-  return values
-    .slice(0, 2)
-    .map((value) => value.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()))
-    .join(' + ');
+const LEGACY_FUNDING_TYPE_LABELS: Readonly<Record<string, string>> = {
+  'full-tuition': 'Full tuition',
+  'need-based': FUNDING_TYPE_LABELS.need,
+};
+
+function fundingTypeLabel(value: string): string {
+  const normalized = value.trim().toLowerCase().replaceAll('_', '-');
+  if (Object.prototype.hasOwnProperty.call(FUNDING_TYPE_LABELS, normalized)) {
+    return FUNDING_TYPE_LABELS[normalized as keyof typeof FUNDING_TYPE_LABELS];
+  }
+  return LEGACY_FUNDING_TYPE_LABELS[normalized]
+    ?? normalized.replaceAll('-', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
+function readableFundingTypes(values?: readonly string[] | null): readonly string[] {
+  if (!values?.length) return ['Funding support'];
+  return values.slice(0, 2).map(fundingTypeLabel);
 }
 
 function ScholarshipLogo({
@@ -87,8 +99,9 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
   const scrollToIndex = useCallback((index: number) => {
     const rail = railRef.current;
     const card = cardRefs.current[index];
-    if (!rail || !card || typeof rail.scrollTo !== 'function') return;
-    const left = card.offsetLeft - Math.max(0, (rail.clientWidth - card.clientWidth) / 2);
+    const firstCard = cardRefs.current[0];
+    if (!rail || !card || !firstCard || typeof rail.scrollTo !== 'function') return;
+    const left = card.offsetLeft - firstCard.offsetLeft;
     const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
     rail.scrollTo({ left, behavior: reduceMotion ? 'auto' : 'smooth' });
   }, []);
@@ -98,6 +111,25 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
     setActiveIndex(normalized);
     scrollToIndex(normalized);
   }, [entries.length, scrollToIndex]);
+
+  const syncActiveIndex = useCallback(() => {
+    const rail = railRef.current;
+    const firstCard = cardRefs.current[0];
+    if (!rail || !firstCard) return;
+
+    const snapLine = rail.scrollLeft + firstCard.offsetLeft;
+    let nextIndex = 0;
+    let closestDistance = Number.POSITIVE_INFINITY;
+    cardRefs.current.forEach((card, index) => {
+      if (!card) return;
+      const distance = Math.abs(card.offsetLeft - snapLine);
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        nextIndex = index;
+      }
+    });
+    setActiveIndex((current) => (current === nextIndex ? current : nextIndex));
+  }, []);
 
   if (entries.length === 0) return null;
 
@@ -141,7 +173,9 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
 
       <div
         ref={railRef}
-        className="-mx-gb-xl grid snap-x snap-mandatory grid-flow-col auto-cols-[min(86vw,380px)] gap-gb-2xl overflow-x-auto px-gb-xl pb-gb-4xl pt-gb-md [scrollbar-width:none] md:-mx-gb-4xl md:auto-cols-[min(62vw,390px)] md:px-gb-4xl lg:mx-0 lg:auto-cols-[calc((100%_-_48px)/3)] lg:px-0 [&::-webkit-scrollbar]:hidden"
+        data-scholarship-rail
+        onScroll={syncActiveIndex}
+        className="relative -mx-gb-xl grid snap-x snap-mandatory grid-flow-col auto-cols-[min(86vw,380px)] gap-gb-2xl overflow-x-auto px-gb-xl pb-gb-4xl pt-gb-md [scrollbar-width:none] md:-mx-gb-4xl md:auto-cols-[min(62vw,390px)] md:px-gb-4xl lg:mx-0 lg:auto-cols-[calc((100%_-_48px)/3)] lg:px-0 [&::-webkit-scrollbar]:hidden"
       >
         {entries.map((entry, index) => {
           const active = index === activeIndex;
@@ -211,8 +245,13 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
                       <KitIcon art={ICONS.graduationCap} frame={16} />
                       Funding type
                     </dt>
-                    <dd data-no-auto-translate className="mt-gb-md truncate text-gb-sm font-semibold text-fg-secondary">
-                      {readableFundingType(entry.fundingTypes)}
+                    <dd className="mt-gb-md truncate text-gb-sm font-semibold text-fg-secondary">
+                      {readableFundingTypes(entry.fundingTypes).map((label, labelIndex) => (
+                        <span key={`${label}-${labelIndex}`}>
+                          {labelIndex > 0 ? <span aria-hidden="true"> + </span> : null}
+                          <span>{label}</span>
+                        </span>
+                      ))}
                     </dd>
                   </div>
                   <div className="min-w-0">
@@ -220,7 +259,7 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
                       <KitIcon art={ICONS.clock} frame={16} />
                       Application window
                     </dt>
-                    <dd data-no-auto-translate className="mt-gb-md truncate text-gb-sm font-semibold text-fg-secondary">
+                    <dd className="mt-gb-md truncate text-gb-sm font-semibold text-fg-secondary">
                       {entry.deadline || 'Check current dates'}
                     </dd>
                   </div>
@@ -231,7 +270,7 @@ export function HomeScholarshipPillars({ entries }: { entries: readonly Scholars
                     <span className="shrink-0 text-brand">
                       <KitIcon art={ICONS.markerPin02} frame={16} />
                     </span>
-                    <span data-no-auto-translate className="truncate font-semibold">
+                    <span className="truncate font-semibold">
                       {entry.country || 'Global opportunity'}
                     </span>
                   </div>

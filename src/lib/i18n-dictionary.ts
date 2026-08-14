@@ -1191,6 +1191,7 @@ export const translations: Record<string, string> = {
   'University crest': 'Logo trường đại học',
   'Scholarship mark': 'Biểu trưng học bổng',
   'Funding support': 'Hỗ trợ tài chính',
+  'Full tuition': 'Toàn bộ học phí',
   'Global opportunity': 'Cơ hội toàn cầu',
   'Application window': 'Thời gian ứng tuyển',
   'Check current dates': 'Kiểm tra thời hạn hiện tại',

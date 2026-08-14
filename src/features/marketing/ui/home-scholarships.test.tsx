@@ -15,7 +15,7 @@ const ENTRIES: ScholarshipTeaser[] = [
     valueLabel: 'What it covers',
     ranking: 'Most prestigious',
     deadline: 'Aug–Oct',
-    fundingTypes: ['full_ride', 'merit'],
+    fundingTypes: ['full-ride', 'merit'],
     country: 'United Kingdom',
   },
   {
@@ -28,8 +28,17 @@ const ENTRIES: ScholarshipTeaser[] = [
     valueLabel: 'What it covers',
     ranking: 'Top global',
     deadline: 'Oct–Dec',
-    fundingTypes: ['full_ride'],
+    fundingTypes: ['full-ride'],
     country: 'United Kingdom',
+  },
+  {
+    id: 153,
+    title: 'Yenching Academy',
+    href: '/scholarships?q=Yenching%20Academy',
+    organization: 'Peking University',
+    universityLogoUrl: 'https://example.test/peking.webp',
+    value: 'Full tuition',
+    valueLabel: 'What it covers',
   },
 ];
 
@@ -82,5 +91,44 @@ describe('HomeScholarships', () => {
     expect(screen.queryByText('Scroll or swipe to see more scholarships.')).not.toBeInTheDocument();
     expect(screen.queryByText('Scholarship logo')).not.toBeInTheDocument();
     expect(screen.queryByText('University crest')).not.toBeInTheDocument();
+  });
+
+  it('synchronizes the active card after native scrolling', () => {
+    const { container } = render(<HomeScholarships entries={ENTRIES} total={2_877} />);
+    const rail = container.querySelector<HTMLElement>('[data-scholarship-rail]');
+    const cards = Array.from(container.querySelectorAll<HTMLElement>('article'));
+    expect(rail).not.toBeNull();
+
+    Object.defineProperty(rail!, 'scrollLeft', { configurable: true, value: 400 });
+    [24, 424, 824].forEach((offsetLeft, index) => {
+      Object.defineProperty(cards[index]!, 'offsetLeft', { configurable: true, value: offsetLeft });
+    });
+
+    fireEvent.scroll(rail!);
+
+    expect(cards[1]).toHaveAttribute('aria-current', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Next scholarship' }));
+    expect(cards[2]).toHaveAttribute('aria-current', 'true');
+  });
+
+  it('keeps generated funding and fallback metadata inside the translation boundary', () => {
+    render(<HomeScholarships entries={ENTRIES} total={2_877} />);
+
+    const fundingLabel = screen
+      .getAllByText('Full ride')
+      .find((element) => element.closest('dd'));
+    expect(fundingLabel?.closest('dd')).not.toHaveAttribute(
+      'data-no-auto-translate',
+    );
+    expect(screen.getByText('Merit-based')).toBeInTheDocument();
+    expect(screen.getByText('Funding support').closest('dd')).not.toHaveAttribute(
+      'data-no-auto-translate',
+    );
+    expect(screen.getByText('Check current dates').closest('dd')).not.toHaveAttribute(
+      'data-no-auto-translate',
+    );
+    expect(screen.getByText('Global opportunity')).not.toHaveAttribute(
+      'data-no-auto-translate',
+    );
   });
 });

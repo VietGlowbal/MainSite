@@ -169,6 +169,30 @@ describe('ScholarshipsPage performance', () => {
     await render;
   });
 
+  it('preserves the selected scholarship and filters through authentication', async () => {
+    mocks.createClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+      },
+      from: vi.fn(() => query({ data: [], error: null })),
+    });
+    mocks.redirect.mockImplementation((destination: string) => {
+      throw new Error(`redirect:${destination}`);
+    });
+
+    await expect(
+      ScholarshipsPage({
+        searchParams: Promise.resolve({
+          q: 'Rhodes Scholarship',
+          country: 'United Kingdom',
+          page: '2',
+        }),
+      }),
+    ).rejects.toThrow(
+      'redirect:/auth?redirect=%2Fscholarships%3Fq%3DRhodes%2BScholarship%26country%3DUnited%2BKingdom%26page%3D2',
+    );
+  });
+
   it('loads the browser Supabase client only when save state is mutated', () => {
     const client = readFileSync('src/app/scholarships/scholarship-directory-client.tsx', 'utf8');
 
