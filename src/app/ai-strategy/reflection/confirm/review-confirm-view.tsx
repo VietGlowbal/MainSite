@@ -82,11 +82,13 @@ export function ReviewConfirmView({
   documents,
   readiness,
   returnTo,
+  applicationId,
 }: {
   reflection: ReflectionValues;
   documents: EvidenceDocument[];
   readiness: CandidateReadiness;
   returnTo?: string | undefined;
+  applicationId?: string | undefined;
 }) {
   const t = useT();
   const router = useRouter();
@@ -120,7 +122,11 @@ export function ReviewConfirmView({
     setSubmitting(true);
     setError(null);
     try {
-      const response = await fetch('/api/candidate-information/confirm', { method: 'POST' });
+      const response = await fetch('/api/candidate-information/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(applicationId ? { applicationId } : {}),
+      });
       const body = await response.json().catch(() => null);
 
       if (!response.ok) {

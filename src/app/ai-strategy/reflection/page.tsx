@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { loadCandidateReflection } from '@/features/apply/api';
+import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
+import { applicationIdFromPath } from '@/shared/lib';
 import { ReflectionChrome } from '../reflection-chrome';
 import { ApplicationNavFromReturn } from './application-nav-from-return';
 import { ReflectionAboutForm } from './reflection-about-form';
@@ -13,10 +14,23 @@ import { ConfirmedReflectionView } from './confirmed-reflection-view';
  * has already filled part of this in during onboarding sees it prefilled
  * rather than being asked twice.
  *
- * Once confirmed (Review & Confirm), this page stops rendering the editable
- * form — a confirmed record is locked, and showing the form here would let a
- * student change fields the PATCH route will now reject anyway. See
- * `ConfirmedReflectionView`.
+ * Once THIS APPLICATION has been confirmed (Review & Confirm), this page
+ * stops rendering the editable form — a confirmed record is locked, and
+ * showing the form here would let a student change fields the PATCH route
+ * will now reject anyway. See `ConfirmedReflectionView`.
+ *
+ * ─── PER-APPLICATION, DERIVED FROM `return` ──────────────────────────────────
+ *
+ * `applicationId` comes from `applicationIdFromPath(returnTo)` — the same
+ * untrusted-until-verified extraction `ApplicationNavFromReturn` already
+ * does for this exact page, re-checked against `course_applications` via
+ * `verifiedApplicationId`. Without an application id (the legacy, non-
+ * application-scoped entry points), `confirmedAt` below falls back to the
+ * student's global `student_profiles.confirmed_at`, unchanged from before
+ * candidate-information review became per-application — see
+ * `docs/known-issues.md` for the incident that made this necessary: a
+ * student who had confirmed on an earlier application would otherwise see
+ * this page as already-confirmed for a brand-new one too.
  */
 export default async function ReflectionAboutPage({
   searchParams,
@@ -31,8 +45,15 @@ export default async function ReflectionAboutPage({
   if (!user) redirect('/auth');
 
   const { return: returnTo } = await searchParams;
+  const applicationId = returnTo
+    ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
+    : undefined;
 
-  const { reflection: initial, confirmedAt } = await loadCandidateReflection(supabase, user.id);
+  const { reflection: initial, confirmedAt } = await loadCandidateReflection(
+    supabase,
+    user.id,
+    applicationId,
+  );
 
   return (
     <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
@@ -40,6 +61,7 @@ export default async function ReflectionAboutPage({
         <ConfirmedReflectionView values={initial} confirmedAt={confirmedAt} returnTo={returnTo} />
       ) : (
         <ReflectionAboutForm
+          applicationId={applicationId}
           initial={{
             highestEducation: initial.highestEducation,
             nationality: initial.nationality,

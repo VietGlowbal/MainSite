@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { verifiedApplicationId } from '@/features/apply/api';
 import {
   aboutYouSchema,
   achievementSchema,
@@ -68,6 +69,15 @@ const bodySchema = z.object({
   about: aboutPayload.optional(),
   achievements: z.array(achievementSchema).max(20).optional(),
   activities: z.array(activitySchema).max(20).optional(),
+  /**
+   * The application this edit is being made in the context of — derived by
+   * the reflection pages from their own `?return=` param
+   * (`applicationIdFromPath`), NOT trusted as-is: this route re-verifies
+   * ownership below before using it for anything. Omitted by the legacy,
+   * non-application-scoped entry points, which keep today's global-lock
+   * behaviour.
+   */
+  applicationId: z.string().uuid().optional(),
 });
 
 export async function PATCH(request: Request) {
@@ -78,29 +88,6 @@ export async function PATCH(request: Request) {
 
   if (!user) {
     return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
-  }
-
-  // Locked once confirmed (POST /api/candidate-information/confirm) — a
-  // confirmed record is exactly the version of the student's information
-  // reports were generated from, and letting an edit through here would make
-  // "this is what your reports were built from" (the read-only reflection
-  // pages) false. Missing the column (migration not run yet) is read as "not
-  // locked", the same fail-open every other tolerant read in this route
-  // already uses — server enforcement matters once the column exists; a
-  // student cannot be blocked by a lock the deployment does not have yet.
-  const lock = await supabase
-    .from('student_profiles')
-    .select('confirmed_at')
-    .eq('user_id', user.id)
-    .maybeSingle();
-  if (!lock.error && lock.data?.confirmed_at) {
-    return NextResponse.json(
-      {
-        error: 'PROFILE_LOCKED',
-        message: 'This profile has already been confirmed.',
-      },
-      { status: 423 },
-    );
   }
 
   let raw: unknown;
@@ -119,6 +106,59 @@ export async function PATCH(request: Request) {
   }
 
   const { about, achievements, activities } = parsed.data;
+  const applicationId = await verifiedApplicationId(supabase, user.id, parsed.data.applicationId);
+
+  /*
+   * Locked once confirmed (POST /api/candidate-information/confirm) — a
+   * confirmed record is exactly the version of the student's information
+   * reports were generated from, and letting an edit through here would make
+   * "this is what your reports were built from" (the read-only reflection
+   * pages) false.
+   *
+   * PER-APPLICATION, not global: an application id is present whenever this
+   * edit came from the normal onboarding flow, and it is THAT application's
+   * own `course_applications.candidate_confirmed_at` that decides the lock —
+   * confirming application B must not block editing for a later, still-
+   * unconfirmed application C. Only when no application id is resolvable
+   * (the legacy, non-application-scoped entry points) does this fall back to
+   * the old global `student_profiles.confirmed_at` check, unchanged.
+   *
+   * Missing the column (migration not run yet) is read as "not locked", the
+   * same fail-open every other tolerant read in this route already uses —
+   * server enforcement matters once the column exists; a student cannot be
+   * blocked by a lock the deployment does not have yet.
+   */
+  if (applicationId) {
+    const lock = await supabase
+      .from('course_applications')
+      .select('candidate_confirmed_at')
+      .eq('id', applicationId)
+      .maybeSingle();
+    if (!lock.error && lock.data?.candidate_confirmed_at) {
+      return NextResponse.json(
+        {
+          error: 'PROFILE_LOCKED',
+          message: 'This profile has already been confirmed.',
+        },
+        { status: 423 },
+      );
+    }
+  } else {
+    const lock = await supabase
+      .from('student_profiles')
+      .select('confirmed_at')
+      .eq('user_id', user.id)
+      .maybeSingle();
+    if (!lock.error && lock.data?.confirmed_at) {
+      return NextResponse.json(
+        {
+          error: 'PROFILE_LOCKED',
+          message: 'This profile has already been confirmed.',
+        },
+        { status: 423 },
+      );
+    }
+  }
 
   if (about) {
     const update = profileUpdateFromReflection(about);
@@ -167,6 +207,24 @@ export async function PATCH(request: Request) {
     } else if (error) {
       console.error('[reflection] profile upsert failed:', error);
       return NextResponse.json({ error: 'Could not save your information' }, { status: 500 });
+    }
+
+    // Per-application companion to the global stamp above — what
+    // `fetchOnboardingState` actually reads for THIS application (see
+    // onboarding-status.ts). Best-effort: a failure here (e.g. the migration
+    // not run yet) must not fail a save that already succeeded against the
+    // shared profile.
+    if (applicationId) {
+      const stamped = await supabase
+        .from('course_applications')
+        .update({ personal_summary_reviewed_at: new Date().toISOString() })
+        .eq('id', applicationId);
+      if (stamped.error) {
+        console.warn(
+          '[reflection] could not stamp personal_summary_reviewed_at — run supabase-per-application-onboarding.sql.',
+          stamped.error.message,
+        );
+      }
     }
   }
 
@@ -263,6 +321,21 @@ export async function PATCH(request: Request) {
     if (error) {
       console.error('[reflection] achievements-completion upsert failed:', error);
       return NextResponse.json({ error: 'Could not save your achievements' }, { status: 500 });
+    }
+
+    // Per-application companion — see the identical note on the "about"
+    // step above.
+    if (applicationId) {
+      const stamped = await supabase
+        .from('course_applications')
+        .update({ achievements_reviewed_at: new Date().toISOString() })
+        .eq('id', applicationId);
+      if (stamped.error) {
+        console.warn(
+          '[reflection] could not stamp achievements_reviewed_at — run supabase-per-application-onboarding.sql.',
+          stamped.error.message,
+        );
+      }
     }
   }
 

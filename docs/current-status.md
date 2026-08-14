@@ -2,8 +2,13 @@
 
 Last reconciled: **2026-08-14 (Asia/Bangkok)**
 
-Code snapshot: PR #182 on branch `fix/feedback-118`, at `24117e3` plus the
-working-tree cron budget repair described below.
+Code snapshot: branch `claude/branch-comparison-review-l6e2tu`, `working tree`
+on top of `main` at `884434a` (PR #183's merge — homepage testimonials
+rework — on top of PR #182's logo-persistence work and PR #180's advisor
+registration rebuild/CI repair, in turn on top of the per-application
+dead-end-loop fix merged as PR #179; the branch was restarted from `main`
+again afterward, same as the restarts before it). Not yet pushed as a PR.
+See "Last completed work" below.
 
 This is the primary status file after the routing index in `docs/README.md`. It
 records the present state of the repository, the last completed work, its
@@ -49,31 +54,49 @@ code, the code wins.
   funding, tuition budget). Step 2 (achievements/activities) is now also
   rebuilt as an upload-first card grid, and a **Review & Confirm checkpoint**
   now sits after it, locking candidate information before report generation —
-  see the latest row below. **Four migrations are still outstanding** and
+  see the latest row below. **Five migrations are still outstanding** and
   every PATCH/read path degrades gracefully without them:
   `supabase-reflection-questions.sql` (from #171 — `study_motivation`,
   `target_intake`), `supabase-reflection-subject-motivations.sql` (from spec
   3 — `subject_motivations`, a JSONB map keyed by subject id),
   `supabase-reflection-review-status.sql` (from the achievements rebuild —
   `review_status`/`source_type`/`sources` on `student_achievements` and
-  `student_activities`), and `supabase-candidate-confirmation.sql`
-  (`confirmed_candidate_snapshots` plus `student_profiles.confirmed_at`).
-  Until the last one runs, the confirm route saves the snapshot but cannot
-  lock the profile (logged, not fatal — see the migration's own comments),
-  and the PATCH lock check fails open (reads as "not locked"). **The owner
-  HAS run `supabase-candidate-confirmation.sql` in production**, but the
-  original version of that file was missing an `INSERT` RLS policy on
+  `student_activities`), `supabase-candidate-confirmation.sql`
+  (`confirmed_candidate_snapshots` plus `student_profiles.confirmed_at`), and
+  **`supabase-per-application-onboarding.sql`** (new this pass —
+  `personal_summary_reviewed_at`/`achievements_reviewed_at`/
+  `candidate_confirmed_at` on `course_applications`, plus `application_id` on
+  `confirmed_candidate_snapshots`). Until the fourth one runs, the confirm
+  route saves the snapshot but cannot lock the profile (logged, not fatal —
+  see the migration's own comments), and the PATCH lock check fails open
+  (reads as "not locked"). **The owner HAS run
+  `supabase-candidate-confirmation.sql` in production**, but the original
+  version of that file was missing an `INSERT` RLS policy on
   `confirmed_candidate_snapshots` — confirming failed for a real student
   with a `503` that misleadingly suggested the migration itself hadn't run.
-  Fixed this pass (§5n in `known-issues.md`); **re-run the updated
+  Fixed in an earlier pass (§5n in `known-issues.md`); **re-run the updated
   `supabase-candidate-confirmation.sql` in production** — it's idempotent —
   to pick up the new policy, or run just the `CREATE POLICY
-  confirmed_candidate_snapshots_insert_own` block from it directly.
+  confirmed_candidate_snapshots_insert_own` block from it directly. **Action
+  required in production for THIS pass, before merging: run the new
+  `supabase-per-application-onboarding.sql`.** Every read of the new columns
+  degrades gracefully (no 500s), but the WRITE side does not fully — without
+  it, `course_applications.candidate_confirmed_at` never gets set no matter
+  how many times a student confirms, so `nextOnboardingStep` never advances
+  past `'confirm'` for any application: a student would repeatedly reach
+  Review & Confirm, submit successfully (a new snapshot row each time — safe,
+  append-only, but duplicated), and land right back on the same page instead
+  of ever reaching report generation. This is the same category of
+  ahead-of-migration risk the other four migrations already carry, just with
+  a more visible failure mode; do not merge/deploy this pass without running
+  the migration first, or land it disabled behind confirmation the migration
+  has already run.
 
 ## Last completed work
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
+| `working tree` | **Made Candidate Information review/confirmation per-APPLICATION instead of per-student — reversing PR #179's own "deliberately not done" call, at explicit owner correction the same day.** PR #179 fixed a dead-end navigation loop by making the Overview CTA route through `nextOnboardingStep(state)`; but `state` was still computed from the GLOBAL `student_profiles.confirmed_at`, so once a student confirmed on ANY application, every future application's onboarding silently skipped Reflections, Achievements, and Review & Confirm entirely and jumped straight into report generation. Reported live: "this is wrong. We want them to go through the normal reflections and application UI again... but for the flow to always be the same." New migration `supabase-per-application-onboarding.sql` adds `personal_summary_reviewed_at`/`achievements_reviewed_at`/`candidate_confirmed_at` to `course_applications` (plus a nullable `application_id` on `confirmed_candidate_snapshots`, tagging each confirmation with the application it belongs to). `fetchOnboardingState` now reads these three columns instead of the global ones — the change that makes `nextOnboardingStep` correctly resolve to `'personal-summary'` for every new application again. `apply/page.tsx`'s `fetchStrategyReadiness` (the My Portal tracker's "ready"/"continue applying" label) had the identical global-flag bug independently and got the same fix, restructured to keep its one still-independent read (`applicant_analyses`, filtered by `user_id` not application id) starting in parallel with `course_applications` rather than serialized behind it. The underlying candidate data (`student_profiles`, `student_achievements`, `student_activities`) stays one profile shared across every application, unchanged — only the review/confirmation STATE is now tracked per application, so editing is unlocked again for a new application even after being locked for an earlier one: `PATCH /api/reflection`'s lock and `POST /api/candidate-information/confirm`'s idempotency both moved from `student_profiles.confirmed_at` to `course_applications.candidate_confirmed_at` for the application in question, verified server-side by a new shared `verifiedApplicationId` helper (`features/apply/api/verified-application-id.ts`) — `applicationId` arrives from the client already derived from an untrusted `?return=` URL via the existing `applicationIdFromPath`, the same pattern `ApplicationNavFromReturn` already used, and every route independently re-checks ownership rather than trusting it. Per explicit owner direction, confirmed via `AskUserQuestion`: the flow order is always Reflections → Achievements → Review & Confirm → Analysis, for every application, never silently skipped by the system — but each of the first two pages gained a one-click "Skip — my answers/achievements are still correct" button at the top for a returning student who doesn't need to retype anything (calls the exact same validate-and-continue path the Next/Finish buttons already used). Every entry point with no application context (the legacy `/ai-strategy/report` generation, `personal-report-view.tsx`, marketing help pages) falls back to today's exact global behaviour, unchanged, when no `applicationId` resolves — deliberately out of scope, per the existing "two generations, not interchangeable" note. Full incident writeup: `known-issues.md` §5p. New/updated tests: `onboarding-status.test.ts` (including a regression test asserting one application's review state never leaks onto a different, brand-new application), `reflection/route.test.ts` and `confirm/route.test.ts` (per-application lock/idempotency/stamping, plus the existing global-fallback paths staying green), `verified-application-id.test.ts`, `apply-page-logo-performance.test.ts` (updated to check the new `applicant_analyses`-starts-in-parallel property instead of the removed `student_profiles` one). Browser verification not done this pass — see the verification snapshot below. | A student can now open a second, third, or later application and genuinely go through Reflections, Achievements, and Review & Confirm for it — seeing their existing answers prefilled with a one-click way to accept them unchanged — instead of the system silently deciding for them that nothing needs reviewing. Confirming a new application no longer locks editing for applications after it. |
 | Working tree 2026-08-14 (homepage testimonials) | Rebuilt `HomeTestimonials` as a pure-black editorial band with a larger red “Testimonials” label, responsive image-led cards, boxed anonymous attribution, and overlapping white quote panels. Added three original AI-generated portraits of Vietnamese university students as local WebP assets; each card explicitly labels the portrait as illustrative and keeps the supplied testimonial anonymous instead of fabricating a student identity. Added static Vietnamese translations for the new labels and a focused component test. | The homepage now follows the supplied black/red testimonial reference on desktop and mobile without making the generated portraits look like the real authors of anonymous quotes. Local `/` returned 200 with the new copy and all three assets returned 200. Targeted ESLint, base and strict TypeScript, two focused Vitest tests (2/2 across the component and i18n audit files), and the Next.js 16.2.3 production build pass. The in-app browser was unavailable, so no new visual screenshot was captured and E2E was not rerun. |
 | Working tree 2026-08-14 (runtime) | Upgraded the pinned runtime from Node 20.20.2 to Node 24.19.0 across `.node-version`, `.nvmrc`, package engines, the lockfile, and setup documentation. The local NVM installation is switched to 24.19.0. | `npm run dev` can use the repository's existing `--use-system-ca` flag instead of exiting with `node: bad option`. Full `npm run verify:pr` passed on Node 24.19.0 in 248 seconds: both typechecks, lint (0 errors / 23 warnings), 195 test files with 1,983 passing tests / 2 todo and coverage, and the Next.js 16.2.3 production build. E2E was not rerun. |
 | Working tree 2026-08-14 | Fixed missing university logos in My Portal at the identity layer. `resolveUniversity` now has a genuinely non-mutating match-only mode; `/api/cron/link-applications?dryRun=1` and `?create=0` pass that policy into the resolver before any insert can occur, and report `would-match`/`would-create` outcomes. Bare legacy domains such as `www.birmingham.ac.uk` now participate in domain matching. The reconciliation route is scheduled daily at 02:30 UTC, before the 03:00 imagery job. Newly resolved logos are downloaded, normalised to WebP, uploaded to deterministic paths in Supabase Storage, and only then written to `universities.logo_url`; a failed upload leaves the field empty for retry. The imagery cron now uses a 20-second resolver phase, four concurrent logo workers, six-second host timeouts, a shared 50-second work deadline, and oldest-attempt-first rotation. Shared `Avatar` now falls back to initials if a non-empty URL fails in the browser. Production repair was executed after a zero-write preview: 8/8 rows linked, 0 failures; Birmingham's two applications both join Storage-backed logo ID 108. | Existing initials-only Birmingham and other legacy cards receive their real crests without adding a query or external fetch to `/apply`. New/imported applications link during parsing, the scheduled reconciler repairs any future transient miss, and broken remote images degrade cleanly instead of showing a broken-image glyph. Slow or unavailable sources no longer make as many as 40 sequential 20-second downloads consume the 60-second invocation or repeatedly starve later rows. The cron follow-up passes 10/10 focused tests; base and strict typechecks, targeted lint, and the production build pass on the resulting tree. The earlier full Vitest run reached 1,982 pass / 2 todo with only `check-i18n.integration.test.ts` exceeding its 5s timeout under parallel load (5.74s); that test passed alone in 2.26s. E2E not run. |
@@ -219,9 +242,9 @@ Measured on 2026-08-13 against the uncommitted working tree described above
 | `npx tsc --noEmit` | **Pass**, 0 errors. |
 | `npx tsc -p tsconfig.strict.json` | **Pass**, 0 errors. |
 | `npx eslint .` | **Pass:** 0 errors, 23 warnings, all pre-existing and unrelated to this session's changes. |
-| `npx vitest run` | **Pass: 1953 passed, 2 todo, 187 files passed, 0 failed.** New `strategy/page.test.tsx` (3 tests) covers the CTA routing fix; new `confirmed-reflection-view.test.tsx`/`confirmed-achievements-view.test.tsx` (2 tests each) cover the Continue-link escape hatch. |
-| `node scripts/check-i18n.mjs` | **Pass: 0 missing keys.** |
-| `npm run build` / browser check | **Not run this pass** — same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`). The Report Generation Page redesign is a visual/informational rebuild of an already-working synchronous flow (no new backend surface beyond the existing tolerant `confirmed_at` read), so the risk this leaves unverified is narrower than a schema-touching change — still, a real browser click-through of the confirm → generation → both-reports-ready path remains the best next verification step. |
+| `npx vitest run` | **Pass: 1984 passed, 2 todo, 193 files passed, 0 failed.** The one pre-existing failure noted mid-pass (`universities-page-performance.test.ts`'s DOM-translator-snapshot check, confirmed failing on a clean `origin/main` before this pass touched anything) was independently fixed by PR #180's own CI-repair commit; the branch was restarted onto that fix and now shows fully green. New/updated: `onboarding-status.test.ts` (per-application flags, incl. a regression test that one application's state never leaks onto a different new one), `reflection/route.test.ts` and `confirm/route.test.ts` (per-application lock/idempotency/stamping alongside the existing global-fallback paths), `verified-application-id.test.ts` (new), `apply-page-logo-performance.test.ts` (updated to check the still-parallel `applicant_analyses` read after removing the `student_profiles` one it used to check). |
+| `node scripts/check-i18n.mjs` | **Pass: 0 missing keys** (4 new keys added — the two Skip-button banners on the reflection/achievements forms). |
+| `npm run build` / browser check | **Not run this pass** — same sandbox limitation noted in prior entries (no `SUPABASE_SERVICE_ROLE_KEY`). This pass touches a new migration and the core onboarding step machine — a real browser click-through (confirm application A → open new application B → verify B starts fully editable at Reflections, Skip works, Confirm is independent of A, and a still-newer application C works the same after B locks) is the priority next verification step, more than any prior pass in this file. |
 | `npm run test:e2e` | Not rerun in this pass. |
 
 **Previously-open thread, now resolved**: the user reported "report creation

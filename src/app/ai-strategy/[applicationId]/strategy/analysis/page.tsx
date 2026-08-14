@@ -14,22 +14,46 @@ import { createClient } from '@/lib/supabase/server';
  * AI call against an empty profile.
  */
 /**
- * `confirmed_at` might not exist yet on a deployment where
- * `supabase-candidate-confirmation.sql` hasn't run — this page must not 500
- * over a purely cosmetic "confirmed on {date}" line, so the read degrades to
- * "unknown" rather than failing.
+ * This application's own `course_applications.candidate_confirmed_at` — NOT
+ * the global `student_profiles.confirmed_at`, which is shared across every
+ * application a student has and would show the wrong date (or another
+ * application's date) here. Might not exist yet on a deployment where
+ * `supabase-per-application-onboarding.sql` hasn't run — this page must not
+ * 500 over a purely cosmetic "confirmed on {date}" line, so the read
+ * degrades to "unknown" (falls back to a base select with just the two
+ * columns this page already needed) rather than failing.
  */
-async function loadConfirmedAt(
+async function loadApplication(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-): Promise<string | null> {
-  const { data, error } = await supabase
-    .from('student_profiles')
-    .select('confirmed_at')
+  applicationId: string,
+): Promise<{ courseName: string | null; universityName: string | null; confirmedAt: string | null }> {
+  const full = await supabase
+    .from('course_applications')
+    .select('course_name, university_name, candidate_confirmed_at')
+    .eq('id', applicationId)
     .eq('user_id', userId)
     .maybeSingle();
-  if (error) return null;
-  return (data as { confirmed_at?: string | null } | null)?.confirmed_at ?? null;
+
+  if (!full.error) {
+    const row = full.data as
+      | { course_name: string | null; university_name: string | null; candidate_confirmed_at: string | null }
+      | null;
+    return {
+      courseName: row?.course_name ?? null,
+      universityName: row?.university_name ?? null,
+      confirmedAt: row?.candidate_confirmed_at ?? null,
+    };
+  }
+
+  const base = await supabase
+    .from('course_applications')
+    .select('course_name, university_name')
+    .eq('id', applicationId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  const row = base.data as { course_name: string | null; university_name: string | null } | null;
+  return { courseName: row?.course_name ?? null, universityName: row?.university_name ?? null, confirmedAt: null };
 }
 
 export default async function StrategyAnalysisPage({
@@ -52,20 +76,14 @@ export default async function StrategyAnalysisPage({
     redirect(onboardingStepHref(step, applicationId));
   }
 
-  const [confirmedAt, { data: application }] = await Promise.all([
-    loadConfirmedAt(supabase, user.id),
-    supabase
-      .from('course_applications')
-      .select('course_name, university_name')
-      .eq('id', applicationId)
-      .eq('user_id', user.id)
-      .maybeSingle(),
-  ]);
+  const { courseName, universityName, confirmedAt } = await loadApplication(
+    supabase,
+    user.id,
+    applicationId,
+  );
 
   const matchingSubtitle =
-    application?.university_name && application?.course_name
-      ? `${application.university_name} — ${application.course_name}`
-      : undefined;
+    universityName && courseName ? `${universityName} — ${courseName}` : undefined;
 
   // Generates whichever of the two analyses is missing, then hands off to
   // `analysis/portrait`. The reports themselves are server-rendered pages —

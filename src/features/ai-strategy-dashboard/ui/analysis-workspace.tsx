@@ -281,7 +281,10 @@ export function AnalysisWorkspace({
 
       <p className="text-center text-gb-xs text-fg-muted">
         {t('Reports are generated from the information you confirmed.')}{' '}
-        <Link href="/ai-strategy/reflection" className="underline hover:text-fg-secondary">
+        <Link
+          href={`/ai-strategy/reflection?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis`)}`}
+          className="underline hover:text-fg-secondary"
+        >
           {t('View confirmed information')}
         </Link>
       </p>
