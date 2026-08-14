@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import {
   candidateContextHash,
+  getPersonalReportSupplements,
   getPersonalReportV2Record,
   loadCandidateContext,
   savePersonalReportV2,
 } from '@/features/apply/api';
 import { buildPersonalReport } from '@/features/apply/domain';
 import {
+  applyPersonalReportSupplements,
   buildProfileEvaluationInput,
   PERSONAL_REPORT_EXTRACTION_VERSION,
 } from '@/lib/ai/personal-report-v2';
@@ -35,20 +37,26 @@ export async function POST() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Bạn cần đăng nhập.' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'You need to sign in.' }, { status: 401 });
 
-  const [context, stored, profileResult] = await Promise.all([
+  const [rawContext, stored, profileResult, supplements] = await Promise.all([
     loadCandidateContext(supabase, user.id),
     getPersonalReportV2Record(supabase, user.id),
     supabase.from('student_profiles').select('plus_status').eq('user_id', user.id).maybeSingle(),
+    getPersonalReportSupplements(supabase, user.id),
   ]);
   if (stored.migrationMissing) {
     return NextResponse.json(
-      { error: 'Tính năng báo cáo chưa được kích hoạt trong môi trường này.' },
+      { error: 'This feature is not enabled in this environment.' },
       { status: 503 },
     );
   }
 
+  // Report-only answers overlay the profile for this generation only — see
+  // `applyPersonalReportSupplements`'s own doc comment for why they never
+  // touch `student_profiles` itself. Hashed as part of the effective
+  // context so answering one is enough to trigger a regeneration.
+  const context = applyPersonalReportSupplements(rawContext, supplements);
   const inputHash = candidateContextHash(context);
   const current = stored.record;
   const frameworkChanged = Boolean(current && current.engineVersion !== ENGINE_VERSION);
@@ -79,7 +87,7 @@ export async function POST() {
     if (Date.now() < new Date(nextAt).getTime()) {
       return NextResponse.json(
         {
-          error: 'Bạn đã cập nhật dữ liệu, nhưng chưa thể tạo lại báo cáo miễn phí ngay lúc này.',
+          error: "You've updated your information, but a free report regeneration isn't available yet.",
           reportV2: current.reportV2,
           stale: true,
           nextRegenerationAt: nextAt,
@@ -92,7 +100,7 @@ export async function POST() {
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || !isOpenAIConfigured()) {
     return NextResponse.json(
-      { error: 'Dịch vụ AI chưa được cấu hình. Thiếu OPENAI_API_KEY.' },
+      { error: 'The AI service is not configured. Missing OPENAI_API_KEY.' },
       { status: 503 },
     );
   }
@@ -126,8 +134,8 @@ export async function POST() {
       return NextResponse.json(
         {
           error: error.migrationMissing
-            ? 'Tính năng báo cáo chưa được kích hoạt trong môi trường này.'
-            : 'Không thể lưu báo cáo.',
+            ? 'This feature is not enabled in this environment.'
+            : 'Could not save the report.',
         },
         { status: error.migrationMissing ? 503 : 500 },
       );
@@ -144,7 +152,7 @@ export async function POST() {
     });
     return NextResponse.json(
       {
-        error: 'AI chưa thể tạo báo cáo hợp lệ. Báo cáo cũ, nếu có, vẫn được giữ nguyên.',
+        error: 'The AI could not produce a valid report. Your previous report, if any, has been kept.',
         ...(current ? { reportV2: current.reportV2 } : {}),
       },
       { status: 502 },

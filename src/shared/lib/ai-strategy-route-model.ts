@@ -43,24 +43,32 @@ export type ApplicationRouteReadiness = {
  * `candidateConfirmed` check here is what stops Reflections' link (a page
  * that redirects away until confirmed) from ever appearing before it
  * resolves to something.
+ *
+ * Personal Report's own link carries the same `?return=` shape as
+ * Reflections', even though the report page itself has no `applicationId` in
+ * its path — reported live 2026-08-14: arriving at the user-level Personal
+ * Report from an application lost all context (no nav band, no way back to
+ * this application's Matching Report). `PersonalReportPage` reads it the
+ * same untrusted-until-verified way every other `?return=` consumer does.
  */
 export function aiStrategyApplicationNav(
   applicationId: string,
   readiness: ApplicationRouteReadiness,
 ): SubNavItem[] {
   const app = `/ai-strategy/${applicationId}`;
+  const returnParam = `?return=${encodeURIComponent(`${app}/strategy/analysis`)}`;
   const leadItem: SubNavItem = readiness.analysisReady
     ? {
         key: 'reflections',
         label: 'Reflections',
-        href: `/ai-strategy/reflection/confirm?return=${encodeURIComponent(`${app}/strategy/analysis`)}`,
+        href: `/ai-strategy/reflection/confirm${returnParam}`,
         ...(readiness.candidateConfirmed ? {} : { locked: true }),
       }
     : { key: 'overview', label: 'Overview', href: `/apply/${applicationId}` };
 
   return [
     leadItem,
-    { key: 'personalReport', label: 'Personal Report', href: '/ai-strategy/personal-report' },
+    { key: 'personalReport', label: 'Personal Report', href: `/ai-strategy/personal-report${returnParam}` },
     {
       key: 'matchingReport',
       label: 'Matching Report',

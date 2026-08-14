@@ -14,7 +14,9 @@ describe('aiStrategyApplicationNav', () => {
     });
     const byKey = Object.fromEntries(items.map((item) => [item.key, item]));
 
-    expect(byKey.personalReport?.href).toBe('/ai-strategy/personal-report');
+    expect(byKey.personalReport?.href).toBe(
+      '/ai-strategy/personal-report?return=%2Fai-strategy%2Fapp-123%2Fstrategy%2Fanalysis',
+    );
     expect(byKey.matchingReport?.href).toBe('/ai-strategy/app-123/matching-report');
     expect(byKey.strategyReport?.href).toBe('/ai-strategy/app-123/strategy-report');
     expect(byKey.planner?.href).toBe('/ai-strategy/app-123/planner');
@@ -56,6 +58,21 @@ describe('aiStrategyApplicationNav', () => {
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/matching-report', items)).toBe('matchingReport');
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/strategy/analysis/fit', items)).toBe('matchingReport');
     expect(activeAiStrategyApplicationKey('/ai-strategy/app-123/planner', items)).toBe('planner');
+  });
+
+  it('highlights Personal Report regardless of which application the ?return= points at', () => {
+    const items = aiStrategyApplicationNav('app-123', {
+      analysisReady: true,
+      strategyReady: true,
+      plannerReady: true,
+      candidateConfirmed: true,
+    });
+    // The visited page's own return= (a different application, or none at
+    // all) must not stop this from matching the nav item's own return=.
+    expect(activeAiStrategyApplicationKey('/ai-strategy/personal-report', items)).toBe('personalReport');
+    expect(
+      activeAiStrategyApplicationKey('/ai-strategy/personal-report?return=%2Fai-strategy%2Fother-app', items),
+    ).toBe('personalReport');
   });
 
   it('shows Reflections instead of Overview once reports exist, gated on candidateConfirmed', () => {

@@ -183,7 +183,11 @@ export type {
   MatchingApplicationSummary,
   MatchingReportPageData,
 } from './ai-reports';
-export { buildPersonalReport, themeMaturityResults } from './personal-report';
+export {
+  buildPersonalReport,
+  STUDY_MOTIVATION_SUPPLEMENT_KEY,
+  themeMaturityResults,
+} from './personal-report';
 export type {
   CoreIdentitySection,
   DrivingForceSection,
