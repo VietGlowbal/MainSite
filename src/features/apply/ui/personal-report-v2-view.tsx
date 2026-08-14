@@ -2,18 +2,19 @@
 
 import { useState } from 'react';
 import { useT } from '@/lib/i18n';
-import type {
-  CoreIdentitySection,
-  DrivingForceSection,
-  EmergingThemesSection,
-  InsufficientData,
-  PersonalPositioningSection,
-  PersonalReportV2,
-  ProofOfMeSection,
-  ReportConfidence,
-  SignaturePatternSection,
+import {
+  STUDY_MOTIVATION_SUPPLEMENT_KEY,
+  type CoreIdentitySection,
+  type DrivingForceSection,
+  type EmergingThemesSection,
+  type InsufficientData,
+  type PersonalPositioningSection,
+  type PersonalReportV2,
+  type ProofOfMeSection,
+  type ReportConfidence,
+  type SignaturePatternSection,
 } from '../domain';
-import { Badge, Button, Panel, PanelHeader } from '@/shared/ui';
+import { Badge, Button, Panel, PanelHeader, Textarea } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 /**
@@ -58,7 +59,101 @@ function ConfidenceBadge({ confidence }: { confidence: ReportConfidence }) {
   return <Badge variant={CONFIDENCE_BADGE_VARIANT[confidence]}>{t(CONFIDENCE_LABEL[confidence])}</Badge>;
 }
 
-function InsufficientDataCard({ data }: { data: InsufficientData }) {
+/**
+ * Appends the current `?return=` context (this application's own path, when
+ * the report was opened from one) onto an otherwise-stable, storable path —
+ * see the file-level comment on `PersonalReportPage` for why this happens at
+ * render time and never gets baked into the stored report.
+ */
+function withReturn(href: string, returnTo: string | undefined): string {
+  return returnTo ? `${href}?return=${encodeURIComponent(returnTo)}` : href;
+}
+
+/**
+ * A "gap" the report can accept an answer for directly — see the doc
+ * comment on `IntakeAction.fieldKey` and `supabase-personal-report-
+ * supplements.sql` for why this writes to a report-only table rather than
+ * reopening (possibly locked) Candidate Information. Collapses to a plain
+ * button; expands into a textarea + save in place, then triggers
+ * `onAnswered` (the report's own regenerate) once saved.
+ */
+function InlineAnswerAction({
+  label,
+  fieldKey,
+  onAnswered,
+}: {
+  label: string;
+  fieldKey: string;
+  onAnswered: () => void;
+}) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!open) {
+    return (
+      <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
+        {t(label)}
+      </Button>
+    );
+  }
+
+  async function save() {
+    if (!value.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/ai-strategy/personal-report/supplement', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fieldKey, answer: value.trim() }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || t('Could not save your answer.'));
+      setOpen(false);
+      setValue('');
+      onAnswered();
+    } catch (requestError) {
+      setError(requestError instanceof Error ? requestError.message : t('Could not save your answer.'));
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-gb-sm">
+      <Textarea
+        name={`report-answer-${fieldKey}`}
+        rows={3}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        placeholder={t(label)}
+        disabled={saving}
+        error={error ?? undefined}
+        autoFocus
+      />
+      <div className="flex gap-gb-sm">
+        <Button size="sm" onClick={() => void save()} disabled={saving || !value.trim()}>
+          {saving ? t('Saving…') : t('Save & update report')}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={() => setOpen(false)} disabled={saving}>
+          {t('Cancel')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function InsufficientDataCard({
+  data,
+  returnTo,
+  onAnswered,
+}: {
+  data: InsufficientData;
+  returnTo: string | undefined;
+  onAnswered?: (() => void) | undefined;
+}) {
   const t = useT();
   return (
     <div className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface-muted p-gb-xl">
@@ -68,11 +163,25 @@ function InsufficientDataCard({ data }: { data: InsufficientData }) {
       </p>
       {data.actions.length > 0 ? (
         <div className="flex flex-wrap gap-gb-md">
-          {data.actions.map((action) => (
-            <Button key={action.kind + action.href} href={action.href} variant="secondary" size="sm">
-              {t(action.label)}
-            </Button>
-          ))}
+          {data.actions.map((action) =>
+            action.fieldKey && onAnswered ? (
+              <InlineAnswerAction
+                key={action.kind + action.href}
+                label={action.label}
+                fieldKey={action.fieldKey}
+                onAnswered={onAnswered}
+              />
+            ) : (
+              <Button
+                key={action.kind + action.href}
+                href={withReturn(action.href, returnTo)}
+                variant="secondary"
+                size="sm"
+              >
+                {t(action.label)}
+              </Button>
+            ),
+          )}
         </div>
       ) : null}
     </div>
@@ -104,7 +213,7 @@ function SectionShell({
 
 /* ── Section 1 — Core Identity ─────────────────────────────────────────── */
 
-function CoreIdentityView({ section }: { section: CoreIdentitySection }) {
+function CoreIdentityView({ section, returnTo }: { section: CoreIdentitySection; returnTo: string | undefined }) {
   const t = useT();
   return (
     <SectionShell eyebrow={t('Core Identity')} title={t('Who they consistently are')} confidence={section.confidence}>
@@ -147,7 +256,7 @@ function CoreIdentityView({ section }: { section: CoreIdentitySection }) {
           ) : null}
         </div>
       ) : (
-        <InsufficientDataCard data={section.insufficientData!} />
+        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
       )}
     </SectionShell>
   );
@@ -155,7 +264,15 @@ function CoreIdentityView({ section }: { section: CoreIdentitySection }) {
 
 /* ── Section 2 — Driving Force ─────────────────────────────────────────── */
 
-function DrivingForceView({ section }: { section: DrivingForceSection }) {
+function DrivingForceView({
+  section,
+  returnTo,
+  onAnswered,
+}: {
+  section: DrivingForceSection;
+  returnTo: string | undefined;
+  onAnswered: () => void;
+}) {
   const t = useT();
   return (
     <SectionShell eyebrow={t('Driving Force')} title={t('What consistently motivates them')} confidence={section.confidence}>
@@ -190,14 +307,16 @@ function DrivingForceView({ section }: { section: DrivingForceSection }) {
           {section.reflectionPrompt ? (
             <div className="flex flex-wrap items-center justify-between gap-gb-md rounded-gb-xl border border-line bg-surface-muted p-gb-lg">
               <p className="text-gb-sm text-fg-tertiary">{section.reflectionPrompt}</p>
-              <Button href="/ai-strategy/reflection" variant="secondary" size="sm">
-                {t('Answer this')}
-              </Button>
+              <InlineAnswerAction
+                label="Answer this"
+                fieldKey={STUDY_MOTIVATION_SUPPLEMENT_KEY}
+                onAnswered={onAnswered}
+              />
             </div>
           ) : null}
         </div>
       ) : (
-        <InsufficientDataCard data={section.insufficientData!} />
+        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} onAnswered={onAnswered} />
       )}
     </SectionShell>
   );
@@ -205,7 +324,7 @@ function DrivingForceView({ section }: { section: DrivingForceSection }) {
 
 /* ── Section 3 — Signature Pattern ─────────────────────────────────────── */
 
-function SignaturePatternView({ section }: { section: SignaturePatternSection }) {
+function SignaturePatternView({ section, returnTo }: { section: SignaturePatternSection; returnTo: string | undefined }) {
   const t = useT();
   return (
     <SectionShell
@@ -242,7 +361,7 @@ function SignaturePatternView({ section }: { section: SignaturePatternSection })
           ) : null}
         </div>
       ) : (
-        <InsufficientDataCard data={section.insufficientData!} />
+        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
       )}
     </SectionShell>
   );
@@ -250,7 +369,7 @@ function SignaturePatternView({ section }: { section: SignaturePatternSection })
 
 /* ── Section 4 — Emerging Themes ───────────────────────────────────────── */
 
-function EmergingThemesView({ section }: { section: EmergingThemesSection }) {
+function EmergingThemesView({ section, returnTo }: { section: EmergingThemesSection; returnTo: string | undefined }) {
   const t = useT();
   return (
     <SectionShell eyebrow={t('Emerging Themes')} title={t('What they keep returning to')}>
@@ -271,7 +390,7 @@ function EmergingThemesView({ section }: { section: EmergingThemesSection }) {
           ))}
         </div>
       ) : (
-        <InsufficientDataCard data={section.insufficientData!} />
+        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
       )}
     </SectionShell>
   );
@@ -289,7 +408,13 @@ function PositioningTrait({ label, value }: { label: string; value: boolean }) {
   );
 }
 
-function PersonalPositioningView({ section }: { section: PersonalPositioningSection }) {
+function PersonalPositioningView({
+  section,
+  returnTo,
+}: {
+  section: PersonalPositioningSection;
+  returnTo: string | undefined;
+}) {
   const t = useT();
   return (
     <SectionShell
@@ -323,7 +448,7 @@ function PersonalPositioningView({ section }: { section: PersonalPositioningSect
           ) : null}
         </div>
       ) : (
-        <InsufficientDataCard data={section.insufficientData!} />
+        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
       )}
     </SectionShell>
   );
@@ -337,7 +462,7 @@ const VERIFICATION_LABEL: Record<string, string> = {
   stated: 'Self-reported',
 };
 
-function ProofOfMeView({ section }: { section: ProofOfMeSection }) {
+function ProofOfMeView({ section, returnTo }: { section: ProofOfMeSection; returnTo: string | undefined }) {
   const t = useT();
   return (
     <SectionShell eyebrow={t('Proof of Me')} title={t('The evidence behind every claim above')}>
@@ -382,7 +507,7 @@ function ProofOfMeView({ section }: { section: ProofOfMeSection }) {
           ))}
         </div>
       ) : (
-        <InsufficientDataCard data={section.insufficientData!} />
+        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
       )}
     </SectionShell>
   );
@@ -395,11 +520,23 @@ export function PersonalReportV2View({
   studentName,
   generatedAt,
   migrationMissing,
+  returnTo,
+  matchingReportHref,
 }: {
   initialReport: PersonalReportV2 | null;
   studentName: string;
   generatedAt: string | null;
   migrationMissing: boolean;
+  /**
+   * This application's own `?return=` path, when the report was opened from
+   * one — verified server-side by the page, never trusted from the URL
+   * directly. See the file-level comment on `PersonalReportPage`. Threaded
+   * into every link below that should carry the student back to where they
+   * came from, but never stored as part of the report itself.
+   */
+  returnTo?: string | undefined;
+  /** This application's own Matching Report, when known; the generic chooser otherwise. */
+  matchingReportHref?: string | undefined;
 }) {
   const t = useT();
   const [report, setReport] = useState(initialReport);
@@ -442,7 +579,7 @@ export function PersonalReportV2View({
         <Button size="lg" onClick={generate} disabled={busy || migrationMissing}>
           {busy ? t('Creating report…') : t('Create report')}
         </Button>
-        <Button href="/ai-strategy/reflection" variant="secondary">
+        <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary">
           {t('Review Reflection')}
         </Button>
       </div>
@@ -460,7 +597,7 @@ export function PersonalReportV2View({
             </h1>
             {generatedAt ? (
               <p className="text-gb-xs text-fg-muted">
-                {t('Generated')}: {new Date(generatedAt).toLocaleDateString('vi-VN')}
+                {t('Generated')}: {new Date(generatedAt).toLocaleDateString('en-US')}
               </p>
             ) : null}
           </div>
@@ -470,30 +607,30 @@ export function PersonalReportV2View({
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-gb-lg border-t border-line pt-gb-lg">
-          <Button href="/ai-strategy/reflection" variant="secondary" size="sm">
+          <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary" size="sm">
             {t('View confirmed information')}
           </Button>
         </div>
         {nextAt ? (
           <p className="text-gb-xs text-fg-muted">
-            {t('Next free generation')}: {new Date(nextAt).toLocaleString('vi-VN')}
+            {t('Next free generation')}: {new Date(nextAt).toLocaleString('en-US')}
           </p>
         ) : null}
         {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
       </header>
 
-      <CoreIdentityView section={report.coreIdentity} />
-      <DrivingForceView section={report.drivingForce} />
-      <SignaturePatternView section={report.signaturePattern} />
-      <EmergingThemesView section={report.emergingThemes} />
-      <PersonalPositioningView section={report.personalPositioning} />
-      <ProofOfMeView section={report.proofOfMe} />
+      <CoreIdentityView section={report.coreIdentity} returnTo={returnTo} />
+      <DrivingForceView section={report.drivingForce} returnTo={returnTo} onAnswered={() => void generate()} />
+      <SignaturePatternView section={report.signaturePattern} returnTo={returnTo} />
+      <EmergingThemesView section={report.emergingThemes} returnTo={returnTo} />
+      <PersonalPositioningView section={report.personalPositioning} returnTo={returnTo} />
+      <ProofOfMeView section={report.proofOfMe} returnTo={returnTo} />
 
       <div className="flex flex-wrap justify-between gap-gb-lg border-t border-line pt-gb-2xl">
-        <Button href="/ai-strategy/reflection" variant="secondary">
+        <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary">
           {t('View confirmed information')}
         </Button>
-        <Button href="/ai-strategy/matching">{t('Continue to Matching Report')}</Button>
+        <Button href={matchingReportHref ?? '/ai-strategy/matching'}>{t('Continue to Matching Report')}</Button>
       </div>
     </div>
   );

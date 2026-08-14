@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CandidateContext } from '@/features/apply/domain';
-import { buildProfileEvaluationInput } from './personal-report-v2';
+import { applyPersonalReportSupplements, buildProfileEvaluationInput } from './personal-report-v2';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -148,5 +148,28 @@ describe('buildProfileEvaluationInput', () => {
     expect(result.evidenceItems).toEqual([]);
     expect(result.competencyClaims).toEqual([]);
     expect(result.intendedDirection).toBeNull();
+  });
+});
+
+describe('applyPersonalReportSupplements', () => {
+  it('returns the context unchanged when there is no study_motivation supplement', () => {
+    const result = applyPersonalReportSupplements(baseContext, {});
+    expect(result).toBe(baseContext);
+  });
+
+  it('overlays a study_motivation answer onto a copy of the profile, without mutating the original', () => {
+    const result = applyPersonalReportSupplements(baseContext, {
+      study_motivation: 'I want to help hospitals reduce scheduling errors.',
+    });
+
+    expect(result.profile.study_motivation).toBe('I want to help hospitals reduce scheduling errors.');
+    expect(baseContext.profile.study_motivation).toBe('I like solving logistics puzzles.');
+    expect(result).not.toBe(baseContext);
+    expect(result.achievements).toBe(baseContext.achievements);
+  });
+
+  it('ignores supplement keys the report does not read', () => {
+    const result = applyPersonalReportSupplements(baseContext, { unrelated_field: 'ignored' });
+    expect(result).toBe(baseContext);
   });
 });

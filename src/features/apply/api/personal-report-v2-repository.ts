@@ -76,6 +76,54 @@ export async function getPersonalReportV2Record(
   };
 }
 
+/**
+ * Report-only supplementary answers — see
+ * `supabase-personal-report-supplements.sql` for why these are deliberately
+ * NOT written back to `student_profiles` or any confirmed snapshot. Read by
+ * Personal Report generation only, to fill in specific gaps the report
+ * itself asked about (currently just `study_motivation`).
+ */
+export async function getPersonalReportSupplements(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from('personal_report_supplements')
+    .select('field_key, answer')
+    .eq('user_id', userId);
+
+  if (error) {
+    const migrationMissing =
+      error.code === '42P01' || error.code === 'PGRST205' || error.code === '42703';
+    if (!migrationMissing) console.error('[personal-report-v2] supplement read failed', error);
+    return {};
+  }
+
+  return Object.fromEntries((data ?? []).map((row) => [row.field_key, row.answer]));
+}
+
+export async function savePersonalReportSupplement(
+  supabase: SupabaseClient,
+  args: { userId: string; fieldKey: string; answer: string },
+): Promise<{ error: { migrationMissing: boolean; message: string } | null }> {
+  const { error } = await supabase.from('personal_report_supplements').upsert(
+    {
+      user_id: args.userId,
+      field_key: args.fieldKey,
+      answer: args.answer,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,field_key' },
+  );
+
+  if (!error) return { error: null };
+
+  const migrationMissing =
+    error.code === '42P01' || error.code === 'PGRST205' || error.code === '42703';
+  console.error('[personal-report-v2] supplement upsert failed', error);
+  return { error: { migrationMissing, message: error.message } };
+}
+
 export async function savePersonalReportV2(
   supabase: SupabaseClient,
   args: {

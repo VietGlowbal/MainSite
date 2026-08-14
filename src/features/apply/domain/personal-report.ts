@@ -45,12 +45,31 @@ export type IntakeAction = {
   kind: IntakeActionKind;
   label: string;
   href: string;
+  /**
+   * Set only on `answer_reflection_question` actions the report can accept
+   * an answer for directly, without reopening (possibly locked) Candidate
+   * Information — see `supabase-personal-report-supplements.sql`. The UI
+   * renders an inline answer box instead of a plain link when this is
+   * present; every other action kind (adding/expanding an activity,
+   * attaching evidence) still needs the real form and has no `fieldKey`.
+   */
+  fieldKey?: string;
 };
 
 export type InsufficientData = {
   reason: string;
   actions: IntakeAction[];
 };
+
+/**
+ * The one `student_profiles` field a report gap is currently answerable
+ * for inline. Shared with `applyPersonalReportSupplements`
+ * (`src/lib/ai/personal-report-v2.ts`) and the `POST
+ * /api/ai-strategy/personal-report/supplement` route, which is the only
+ * place allowed to accept a `fieldKey` from the client — never trust one
+ * outside this set.
+ */
+export const STUDY_MOTIVATION_SUPPLEMENT_KEY = 'study_motivation';
 
 const REFLECTION_HREF = '/ai-strategy/reflection';
 const ACHIEVEMENTS_HREF = '/ai-strategy/reflection/achievements';
@@ -75,8 +94,8 @@ function attachEvidenceAction(): IntakeAction {
   };
 }
 
-function answerReflectionAction(label: string): IntakeAction {
-  return { kind: 'answer_reflection_question', label, href: REFLECTION_HREF };
+function answerReflectionAction(label: string, fieldKey: string): IntakeAction {
+  return { kind: 'answer_reflection_question', label, href: REFLECTION_HREF, fieldKey };
 }
 
 export type CoreIdentitySection = {
@@ -111,8 +130,8 @@ function buildCoreIdentity(evaluation: ProfileEvaluation, activities: readonly N
   if (!available) {
     const reason =
       readiness.level === 'none' || readiness.level === 'insufficient'
-        ? 'Hồ sơ hiện có ít hơn hai hoạt động độc lập, nên chưa thể xác lập một vai trò hay hành vi lặp lại.'
-        : 'Các hoạt động hiện có chưa mô tả rõ vai trò hoặc hành động cụ thể, nên chưa thể nhận diện một mẫu hình nhất quán.';
+        ? 'The profile currently has fewer than two independent activities, so a recurring role or behaviour cannot be established yet.'
+        : "The activities on file don't yet describe a clear role or specific action, so a consistent pattern can't be identified.";
     return {
       available: false,
       headline: null,
@@ -132,23 +151,23 @@ function buildCoreIdentity(evaluation: ProfileEvaluation, activities: readonly N
   }
 
   const headline = recurringBehaviour
-    ? `Người ${recurringBehaviour.charAt(0).toLowerCase()}${recurringBehaviour.slice(1)}`
+    ? `Someone who ${recurringBehaviour.charAt(0).toLowerCase()}${recurringBehaviour.slice(1)}`
     : recurringRole
-      ? `Người thường đóng vai trò ${recurringRole}`
-      : 'Một mẫu hình đang hình thành';
+      ? `Someone who typically takes on the role of ${recurringRole}`
+      : 'An emerging pattern';
 
   const interpretationParts: string[] = [];
-  if (recurringRole) interpretationParts.push(`Trong nhiều hoạt động, ứng viên lặp lại vai trò "${recurringRole}".`);
-  if (recurringBehaviour) interpretationParts.push(`Hành vi lặp lại rõ nhất là: ${recurringBehaviour.toLowerCase()}.`);
+  if (recurringRole) interpretationParts.push(`Across multiple activities, the candidate repeatedly takes on the role of "${recurringRole}".`);
+  if (recurringBehaviour) interpretationParts.push(`The clearest recurring behaviour is: ${recurringBehaviour.toLowerCase()}.`);
   if (valueOrientation) {
-    interpretationParts.push(`Giá trị mà hành vi này hướng tới là "${valueOrientation}".`);
+    interpretationParts.push(`The value this behaviour points toward is "${valueOrientation}".`);
   } else {
-    interpretationParts.push('Định hướng giá trị phía sau mẫu hình này vẫn cần thêm hoạt động để khẳng định.');
+    interpretationParts.push('The value orientation behind this pattern still needs more activities to confirm.');
   }
   interpretationParts.push(
     readiness.level === 'mature'
-      ? 'Đây là một quan sát dựa trên ba hoạt động độc lập trở lên.'
-      : 'Đây vẫn là một mẫu hình đang hình thành — cần thêm hoạt động để trở thành một nhận định chắc chắn.',
+      ? 'This observation is based on three or more independent activities.'
+      : 'This is still an emerging pattern — more activities are needed before it becomes a confident finding.',
   );
 
   return {
@@ -209,31 +228,34 @@ function buildDrivingForce(
       missingPersonalGrounding: null,
       reflectionPrompt: null,
       insufficientData: {
-        reason: 'Chưa có đủ hoạt động hoặc động lực được nêu rõ để xác định điều gì thực sự thúc đẩy ứng viên.',
+        reason: 'Not enough activities or clearly stated motivations exist yet to identify what genuinely drives the candidate.',
         actions: [
           addActivityAction(),
-          answerReflectionAction('Explain why you are interested in these subjects'),
+          answerReflectionAction(
+            'Explain why you are interested in these subjects',
+            STUDY_MOTIVATION_SUPPLEMENT_KEY,
+          ),
         ],
       },
     };
   }
 
   const headline = isHypothesis
-    ? 'Một giả thuyết đang hình thành về động lực'
+    ? 'An emerging hypothesis about motivation'
     : statedMotivation
-      ? 'Động lực đã được xác nhận rõ ràng'
-      : 'Động lực đang dần rõ nét';
+      ? 'Motivation clearly confirmed'
+      : 'Motivation is becoming clearer';
 
   const explanationParts: string[] = [];
   if (statedMotivation) {
-    explanationParts.push(`Ứng viên đã nói rõ động lực của mình: "${statedMotivation}".`);
+    explanationParts.push(`The candidate has clearly stated their motivation: "${statedMotivation}".`);
   } else {
     explanationParts.push(
-      'Ứng viên chưa nói rõ động lực của mình; nhận định dưới đây chỉ được suy ra từ việc lựa chọn hoạt động lặp lại nhiều lần, và vì vậy chỉ là một GIẢ THUYẾT ĐANG HÌNH THÀNH, không phải một sự thật đã được xác nhận.',
+      'The candidate has not clearly stated their motivation; the finding below is inferred only from a repeated pattern of activity choices, and is therefore an EMERGING HYPOTHESIS, not a confirmed fact.',
     );
   }
   if (recurrenceCount >= 2) {
-    explanationParts.push(`Ứng viên đã giải thích lý do của mình ở ${recurrenceCount} nguồn bằng chứng phù hợp.`);
+    explanationParts.push(`The candidate explained their reasoning across ${recurrenceCount} matching pieces of evidence.`);
   }
 
   return {
@@ -246,7 +268,7 @@ function buildDrivingForce(
     isHypothesis,
     missingPersonalGrounding: personallyGrounded
       ? null
-      : 'Ứng viên chưa từng nói rõ vì sao mình chọn những hoạt động này — nhận định hiện tại chỉ dựa trên sự lặp lại.',
+      : 'The candidate has never explained why they chose these activities — this finding is based on repetition alone.',
     reflectionPrompt: clarification?.clarificationPrompt ?? null,
     insufficientData: null,
   };
@@ -273,10 +295,10 @@ export type SignaturePatternSection = {
 };
 
 const STEP_LABEL: Record<SignaturePatternStepKey, string> = {
-  trigger: 'Điều khiến ứng viên bắt đầu',
-  response: 'Vai trò họ đảm nhận',
-  method: 'Cách họ thực hiện',
-  valueCreated: 'Giá trị tạo ra',
+  trigger: 'What prompted the candidate to start',
+  response: 'The role they took on',
+  method: 'How they went about it',
+  valueCreated: 'Value created',
 };
 
 function examplesFor(
@@ -306,8 +328,8 @@ function buildSignaturePattern(
       insufficientData: {
         reason:
           readiness.activityCount < 2
-            ? 'Cần ít nhất hai hoạt động độc lập để nhận diện một chuỗi hành vi lặp lại.'
-            : 'Các hoạt động hiện có chưa cho thấy một trình tự hành vi nhất quán (điều gì khiến bạn bắt đầu, vai trò, cách làm, và kết quả).',
+            ? 'At least two independent activities are needed to identify a repeating behavioural sequence.'
+            : "The activities on file don't yet show a consistent behavioural sequence (what prompted you to start, your role, your method, and the outcome).",
         actions: readiness.activityCount < 2 ? [addActivityAction()] : [expandReflectionAction()],
       },
     };
@@ -344,8 +366,8 @@ function buildSignaturePattern(
   const differentiation = base.metrics.differentiation;
   const distinctiveness =
     differentiation !== null && differentiation >= 80
-      ? 'Sự kết hợp giữa nhiều chủ đề khác nhau và một vai trò nhất quán là điều khiến mẫu hình này trở nên khác biệt, chứ không chỉ là một hoạt động lặp lại.'
-      : 'Mẫu hình này hiện vẫn giới hạn trong một phạm vi hẹp — cần thêm hoạt động ở các chủ đề khác để trở nên khác biệt rõ rệt hơn.';
+      ? 'The combination of several different themes with one consistent role is what makes this pattern distinctive, not just a repeated activity.'
+      : 'This pattern is still limited to a narrow scope — activities in other themes are needed for it to become clearly distinctive.';
 
   return {
     available: true,
@@ -402,7 +424,7 @@ function buildEmergingThemes(
       available: false,
       themes: [],
       insufficientData: {
-        reason: 'Chưa có hoạt động nào được gắn với một chủ đề hay lĩnh vực quan tâm rõ ràng.',
+        reason: 'No activities are yet linked to a clear theme or area of interest.',
         actions: [addActivityAction(), expandReflectionAction()],
       },
     };
@@ -420,14 +442,14 @@ function buildEmergingThemes(
 
       const limitation =
         theme.status === 'established_theme'
-          ? 'Chủ đề này đã được xác lập rõ ràng qua nhiều hoạt động.'
-          : `Cần thêm hoạt động rõ ràng gắn với "${theme.theme}" để chủ đề này trở nên chắc chắn hơn.`;
+          ? 'This theme is clearly established across multiple activities.'
+          : `More activities clearly linked to "${theme.theme}" are needed for this theme to become more confident.`;
 
       return {
         theme: theme.theme,
         status: theme.status,
         statusLabel: THEME_MATURITY_LABEL[theme.status],
-        explanation: `Ứng viên đã thể hiện sự quan tâm đến "${theme.theme}" qua ${theme.evidenceCount} hoạt động.`,
+        explanation: `The candidate has shown interest in "${theme.theme}" across ${theme.evidenceCount} activities.`,
         supportingExperiences,
         confidence: confidenceFromCoverage(theme.explicitLinkCount, Math.max(theme.evidenceCount, 1)),
         limitation,
@@ -442,7 +464,7 @@ function buildEmergingThemes(
       available: false,
       themes: [],
       insufficientData: {
-        reason: 'Chưa có chủ đề nào xuất hiện đủ rõ để ghi nhận là một xu hướng đang hình thành.',
+        reason: 'No theme has appeared clearly enough yet to record as an emerging trend.',
         actions: [addActivityAction(), expandReflectionAction()],
       },
     };
@@ -497,22 +519,22 @@ function buildPersonalPositioning(
       confidence: positioning.confidence,
       evidenceRefs: positioning.evidenceRefs,
       insufficientData: {
-        reason: 'Chưa có đủ dữ liệu về vai trò, mẫu hình hành vi hoặc chủ đề quan tâm để xây dựng một tuyên bố định vị.',
+        reason: 'Not enough data about role, behavioural pattern, or area of interest exists yet to build a positioning statement.',
         actions: [addActivityAction(), expandReflectionAction()],
       },
     };
   }
 
   const statementParts: string[] = [];
-  if (positioning.identity) statementParts.push(`là người ${positioning.identity.toLowerCase()}`);
-  if (positioning.signatureStrength) statementParts.push(`tạo giá trị bằng cách ${positioning.signatureStrength.toLowerCase()}`);
-  if (positioning.theme) statementParts.push(`quan tâm sâu sắc đến "${positioning.theme}"`);
-  if (positioning.intendedDirection) statementParts.push(`đang hướng tới ${positioning.intendedDirection.toLowerCase()}`);
+  if (positioning.identity) statementParts.push(`is someone who ${positioning.identity.toLowerCase()}`);
+  if (positioning.signatureStrength) statementParts.push(`creates value by ${positioning.signatureStrength.toLowerCase()}`);
+  if (positioning.theme) statementParts.push(`is deeply interested in "${positioning.theme}"`);
+  if (positioning.intendedDirection) statementParts.push(`is heading toward ${positioning.intendedDirection.toLowerCase()}`);
 
   const statement =
     statementParts.length > 0
-      ? `Ứng viên ${statementParts.join(', ')}.`
-      : 'Chưa đủ dữ liệu để phát biểu một tuyên bố định vị đầy đủ.';
+      ? `The candidate ${statementParts.join(', ')}.`
+      : 'Not enough data yet to state a complete positioning statement.';
 
   return {
     available: true,
@@ -603,7 +625,7 @@ function buildProofOfMe(
       available: false,
       cards: [],
       insufficientData: {
-        reason: 'Chưa có hoạt động hay thành tích nào được ghi nhận.',
+        reason: 'No activities or achievements have been recorded yet.',
         actions: [addActivityAction(), attachEvidenceAction()],
       },
     };

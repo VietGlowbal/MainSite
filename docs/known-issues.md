@@ -21,6 +21,8 @@ are regression records for fixed bugs, not open work:
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
 | §5–§5m | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i hardened `parseContentBlock`/`parseContentBlockValue`, which only checked the JSON's `type` field and not the rest of the shape — a real latent bug, but **not** the cause of the "planner tasks don't load" report it was written in response to; see §5l for what actually was. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. §5l is the one to read before touching the Planner UI: every task detail page 500'd because a server component imported pure helpers from a `'use client'` module, where calling an export throws and reading one silently yields `undefined`. The mappings now live in a directive-free `planner-presentation.ts`; never move them back. §5m records that reflection never asked for the career direction the matching and strategy reports score against, and that `goals` is a SHARED column — do not add a second career-goal column beside it. |
 | §5n–§5q | Fixed regression history for the per-application Candidate Information flow; preserve the tests and constraints. §5p made review/confirmation state per-application (`course_applications.personal_summary_reviewed_at`/`achievements_reviewed_at`/`candidate_confirmed_at`) instead of per-student. §5q fixed the two bugs that surfaced once that shipped: `reflection/confirm/page.tsx` redirected away unconditionally once confirmed, so the "Reflections" nav entry had nothing to link to and read-only Continue buttons had nowhere real to go — see §5q for the read-only `ReviewConfirmView` mode, the `applicationSubNav()` Overview↔Reflections swap, and `confirmedReflectionContinueHref`. |
+| §5r deleting an application | Migration written (`supabase-application-cascade-repair.sql`), **NOT YET CONFIRMED RUN** — repairs `ON DELETE CASCADE` drift across per-application child tables. |
+| §5s Personal Report nav/i18n/lock/CTA fixes | Fixed regression record — nav bar, English-only content, the `"|null"` extraction leak, and the Matching Report link are all fixed. The new inline-answer path uses `supabase-personal-report-supplements.sql`, **NOT YET CONFIRMED RUN**; it degrades to a 503 until then. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -1404,6 +1406,76 @@ in these tables (invisible in the app, since every read filters by
 `application_id`, but present in the database).
 
 | `supabase-application-cascade-repair.sql` |
+
+## 5s. Personal Report had no nav, was partly in Vietnamese, forced a locked-page detour, and linked to the wrong Matching Report — fixed 2026-08-14
+
+**Reported live from a screenshot of `/ai-strategy/personal-report`**: no
+header nav/breadcrumb on either the Personal Report or Reflections pages;
+several report sections rendered in Vietnamese despite the product being
+English-only outside the `t()` translation layer; gap-filling actions
+("Explain why you are interested in these subjects") sent students to the
+Reflections page even after it was locked by confirmation, a dead end; and
+the bottom CTA always linked to the generic `/ai-strategy/matching` instead
+of `/ai-strategy/<id>/matching-report` for the application actually being
+viewed. The screenshot also showed a literal `"...|null"` suffix leaking
+into rendered text (e.g. "Accepted onto the program.|null").
+
+**Fix, four parts:**
+
+1. **Navigation.** `/ai-strategy/personal-report/page.tsx` now accepts
+   `searchParams: Promise<{ return?: string }>`, derives + re-verifies
+   `applicationId` from `return` the same way
+   `ApplicationNavFromReturn` (reflection pages) already does, and renders
+   that nav component. `aiStrategyApplicationNav()`'s `personalReport` entry
+   (`src/shared/lib/ai-strategy-route-model.ts`) now carries the same
+   `?return=<app>/strategy/analysis` shape as `reflections`, so the nav
+   round-trips correctly regardless of which application the student came
+   from — the report itself stays user-level, only the nav context is
+   per-application.
+2. **English-only content.** `src/features/apply/domain/personal-report.ts`,
+   `src/lib/ai/personal-report-v2.ts`, `personal-report-v2-view.tsx`,
+   `candidate-context.ts`, and the two report/match-insights API routes had
+   hardcoded Vietnamese strings written directly into template/boilerplate
+   code (headlines, interpretations, fallback labels, API error messages,
+   the untrusted-data warning sent to the model) — not a translation-system
+   failure, `t()`/the i18n dictionaries were never involved for these. All
+   translated to English. `candidateConfidence().limitations` in
+   `ai-reports.ts` is confirmed genuinely dead code (only `.score` is read
+   anywhere) and was deliberately left as-is, out of scope.
+3. **The literal `"|null"` bug.** Three AI extraction prompts
+   (`cmcaitf-extraction.ts`, `narrative-activity-extraction.ts`,
+   `competency-extraction.ts`) used an ambiguous `"...|null"` shorthand to
+   mean "this field is a string or null" in their JSON-schema hint; the
+   model sometimes echoed it literally. Fixed both ends: the prompts now
+   show a concrete worked example with a real mix of string/`null` fields
+   instead of the shorthand, and a new
+   `sanitizeExtractedField()` (`src/lib/ai/evaluation/sanitize-extracted-field.ts`)
+   strips a literal trailing `|null`/lone `"null"` from every extracted
+   string field as defence-in-depth.
+4. **Inline report-answering, without reopening the confirmed-data lock.**
+   The owner chose (explicit decision, not a default): new answers to a
+   report's own follow-up questions go into a separate
+   `personal_report_supplements` table (`user_id`, `field_key`, `answer`),
+   read only when generating this report and merged onto a COPY of the
+   candidate context in memory — the confirmed `student_profiles` snapshot
+   and its lock are never touched or reopened. `IntakeAction` gained an
+   optional `fieldKey` marking which gaps are inline-answerable this way vs.
+   which still require the full Achievements form. Currently only
+   `study_motivation` (`STUDY_MOTIVATION_SUPPLEMENT_KEY`) is wired up. New
+   `POST /api/ai-strategy/personal-report/supplement` saves an answer (zod
+   validates `fieldKey` against an explicit allow-list); the client then
+   calls the existing generate endpoint to regenerate. The bottom CTA now
+   receives `matchingReportHref` computed by the page
+   (`/ai-strategy/<id>/matching-report` when an application resolves, the
+   generic `/ai-strategy/matching` otherwise) instead of a hardcoded generic
+   link.
+
+⚠️ **Action required in production — `supabase-personal-report-supplements.sql`
+has NOT been confirmed run.** Until it is, the supplement save route
+degrades to a 503 (tolerant-select/migration-missing pattern, same as every
+other optional migration in this file) rather than 500ing.
+
+| `src/app/ai-strategy/personal-report/page.tsx`, `src/shared/lib/ai-strategy-route-model.ts`, `src/features/apply/ui/personal-report-v2-view.tsx`, `src/features/apply/domain/personal-report.ts`, `src/lib/ai/personal-report-v2.ts`, `src/features/apply/api/candidate-context.ts`, `src/features/apply/api/personal-report-v2-repository.ts`, `src/app/api/ai-strategy/personal-report/route.ts`, `src/app/api/ai-strategy/personal-report/supplement/route.ts`, `src/app/api/applications/[id]/match-insights/route.ts`, `src/lib/ai/evaluation/sanitize-extracted-field.ts`, `src/lib/ai/evaluation/cmcaitf-extraction.ts`, `src/lib/ai/evaluation/narrative-activity-extraction.ts`, `src/lib/ai/evaluation/competency-extraction.ts`, `supabase-personal-report-supplements.sql` |
 
 ## 6. Open questions for the designer / owner
 

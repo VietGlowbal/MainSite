@@ -128,7 +128,7 @@ describe('buildPersonalReport', () => {
 
     expect(result.signaturePattern.available).toBe(true);
     expect(result.signaturePattern.patternStrength).toBe('emerging');
-    expect(result.coreIdentity.interpretation).toContain('đang hình thành');
+    expect(result.coreIdentity.interpretation).toContain('emerging pattern');
   });
 
   it('no activities at all: every synthesis section needs more evidence, with an add-activity action', () => {
@@ -170,8 +170,8 @@ describe('buildPersonalReport', () => {
     });
 
     expect(result.drivingForce.isHypothesis).toBe(true);
-    expect(result.drivingForce.headline).toContain('giả thuyết');
-    expect(result.drivingForce.explanation).toContain('GIẢ THUYẾT');
+    expect(result.drivingForce.headline).toContain('hypothesis');
+    expect(result.drivingForce.explanation).toContain('EMERGING HYPOTHESIS');
   });
 
   it('recurring behavioural pattern: names trigger, response, method and value with supporting examples', () => {

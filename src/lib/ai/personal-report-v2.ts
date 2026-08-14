@@ -1,4 +1,4 @@
-import type { CandidateContext } from '@/features/apply/domain';
+import { STUDY_MOTIVATION_SUPPLEMENT_KEY, type CandidateContext } from '@/features/apply/domain';
 import type {
   CmcaitfFields,
   CompetencyClaim,
@@ -88,7 +88,7 @@ export function isGroundedInSource(candidate: string | null | undefined, source:
 function achievementRecords(context: CandidateContext): FreeTextRecord[] {
   return context.achievements.map((row) => ({
     id: `achievement:${row.id}`,
-    title: text(row.title) || 'Thành tích chưa đặt tên',
+    title: text(row.title) || 'Untitled achievement',
     freeText: text(row.detail),
     row,
   }));
@@ -97,19 +97,40 @@ function achievementRecords(context: CandidateContext): FreeTextRecord[] {
 function activityRecords(context: CandidateContext): FreeTextRecord[] {
   return context.activities.map((row) => ({
     id: `activity:${row.id}`,
-    title: text(row.title) || 'Hoạt động chưa đặt tên',
+    title: text(row.title) || 'Untitled activity',
     freeText: text(row.description),
     row,
   }));
 }
 
+/**
+ * Overlays report-only supplementary answers (`personal_report_supplements`
+ * — see `supabase-personal-report-supplements.sql`) onto a COPY of the
+ * candidate's profile, purely for this generation call. Never mutates
+ * `context` itself and never gets written back to `student_profiles` or any
+ * confirmed snapshot — a student's confirmed Candidate Information stays
+ * exactly what they reviewed and approved, even after answering a report's
+ * own follow-up question this way.
+ */
+export function applyPersonalReportSupplements(
+  context: CandidateContext,
+  supplements: Record<string, string>,
+): CandidateContext {
+  const answer = supplements[STUDY_MOTIVATION_SUPPLEMENT_KEY];
+  if (!answer) return context;
+  return {
+    ...context,
+    profile: { ...context.profile, study_motivation: answer },
+  };
+}
+
 function writtenFieldsFor(context: CandidateContext): VaguenessField[] {
   const profile = context.profile as Record<string, unknown>;
   return [
-    { field: 'careerGoal', label: 'Mục tiêu nghề nghiệp sau khi tốt nghiệp', value: text(profile.goals) || null },
+    { field: 'careerGoal', label: 'Career goal after graduation', value: text(profile.goals) || null },
     {
       field: 'studyMotivation',
-      label: 'Vì sao bạn quan tâm đến các môn học này',
+      label: 'Why you are interested in these subjects',
       value: text(profile.study_motivation) || null,
     },
   ];

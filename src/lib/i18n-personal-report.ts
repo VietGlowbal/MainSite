@@ -52,4 +52,6 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'View confirmed information': 'Xem thông tin đã xác nhận',
   'Next free generation': 'Lần tạo miễn phí tiếp theo',
   'Continue to My Portal': 'Tiếp tục tới Cổng của tôi',
+  'Could not save your answer.': 'Không thể lưu câu trả lời của bạn.',
+  'Save & update report': 'Lưu & cập nhật báo cáo',
 };

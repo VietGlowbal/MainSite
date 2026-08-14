@@ -104,6 +104,35 @@ describe('extractCmcaitfFields', () => {
     expect(result[0]?.cmcaitf.transformation).toBeNull();
   });
 
+  it('strips a literal trailing "|null" the model echoed from the prompt schema hint', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      chatResponse(
+        JSON.stringify({
+          items: [
+            {
+              activityId: 'a1',
+              context: null,
+              motivation: 'Accepted onto the program.|null',
+              challenge: null,
+              action: null,
+              impact: null,
+              transformation: null,
+              future: null,
+            },
+          ],
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await extractCmcaitfFields({
+      inputs: [{ id: 'a1', title: 'Programme', freeText: 'Accepted onto the program.' }],
+      apiKey: 'test-key',
+    });
+
+    expect(result[0]?.cmcaitf.motivation).toBe('Accepted onto the program.');
+  });
+
   it('falls back to empty fields for an input the model did not return an item for', async () => {
     const fetchMock = vi.fn().mockResolvedValue(chatResponse(JSON.stringify({ items: [] })));
     vi.stubGlobal('fetch', fetchMock);
