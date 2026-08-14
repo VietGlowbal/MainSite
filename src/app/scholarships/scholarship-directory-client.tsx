@@ -216,9 +216,11 @@ export function ScholarshipDirectoryClient({
     scholarship: DirectoryScholarship;
     mode: 'linked' | 'directory';
   } | null>(null);
+  const [selected, setSelected] = useState<DirectoryScholarship | null>(null);
   const [universityOptions, setUniversityOptions] = useState<ScholarshipUniversityOption[]>([]);
   const [loadingUniversityOptions, setLoadingUniversityOptions] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const universityOptionsRequestRef = useRef(0);
 
   const setSaving = (scholarshipId: number, saving: boolean) => {
     setSavingIds((previous) => {
@@ -231,6 +233,7 @@ export function ScholarshipDirectoryClient({
 
   const closeUniversityPicker = () => {
     if (pendingSave && savingIds.has(pendingSave.scholarship.id)) return;
+    universityOptionsRequestRef.current += 1;
     setPendingSave(null);
     setUniversityOptions([]);
     setLoadingUniversityOptions(false);
@@ -320,6 +323,10 @@ export function ScholarshipDirectoryClient({
     mode: 'linked' | 'directory',
     linkedIds: number[] = [],
   ) => {
+    const requestId = ++universityOptionsRequestRef.current;
+    // The detail modal owns its own Escape and body-scroll effects. Remove it
+    // before mounting the picker so only one dialog is active at a time.
+    setSelected(null);
     setPendingSave({ scholarship: s, mode });
     setSaveError(null);
 
@@ -327,6 +334,7 @@ export function ScholarshipDirectoryClient({
       (university) => mode === 'directory' || linkedIds.includes(university.id),
     );
     if (mode === 'linked' && embedded.length === linkedIds.length) {
+      setLoadingUniversityOptions(false);
       setUniversityOptions(embedded);
       return;
     }
@@ -342,6 +350,7 @@ export function ScholarshipDirectoryClient({
         .limit(500);
       if (mode === 'linked') query = query.in('id', linkedIds);
       const { data, error } = await query;
+      if (requestId !== universityOptionsRequestRef.current) return;
       if (error) throw error;
 
       const options = ((data ?? []) as ScholarshipUniversityOption[]).sort((left, right) => {
@@ -354,9 +363,12 @@ export function ScholarshipDirectoryClient({
       });
       setUniversityOptions(options);
     } catch {
+      if (requestId !== universityOptionsRequestRef.current) return;
       setSaveError(t('We could not load the university list. Please try again.'));
     } finally {
-      setLoadingUniversityOptions(false);
+      if (requestId === universityOptionsRequestRef.current) {
+        setLoadingUniversityOptions(false);
+      }
     }
   };
 
@@ -383,10 +395,7 @@ export function ScholarshipDirectoryClient({
     router.push(focus != null ? `/apply?focus=${focus}` : '/apply');
   };
 
-  // Filters
-  const [selected, setSelected] = useState<DirectoryScholarship | null>(null);
-
-  // Pagination for the full directory: 9 cards per page (3 columns × 3 rows).
+  // Filters. Pagination for the full directory is 9 cards (3 columns × 3 rows).
   const resultsTopRef = useRef<HTMLDivElement>(null);
 
   const navigate = useCallback(

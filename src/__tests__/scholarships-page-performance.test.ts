@@ -209,4 +209,27 @@ describe('ScholarshipsPage performance', () => {
       { scholarshipId: 1, universityId: 42 },
     ]);
   });
+
+  it('orders saved scholarships oldest-to-newest with a stable id tie-breaker', async () => {
+    const savedBuilder = query({ data: [], error: null });
+    const select = vi.fn(() => savedBuilder);
+    const order = vi.fn(() => savedBuilder);
+    Object.assign(savedBuilder, { select, order });
+    mocks.createClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+      },
+      from: vi.fn((table: string) =>
+        table === 'user_scholarships'
+          ? savedBuilder
+          : query({ data: [], error: null }),
+      ),
+    });
+
+    await ScholarshipsPage({ searchParams: Promise.resolve({}) });
+
+    expect(select).toHaveBeenCalledWith('id, scholarship_id, university_id, saved_at');
+    expect(order).toHaveBeenNthCalledWith(1, 'saved_at', { ascending: true });
+    expect(order).toHaveBeenNthCalledWith(2, 'id', { ascending: true });
+  });
 });

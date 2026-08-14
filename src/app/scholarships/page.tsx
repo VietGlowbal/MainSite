@@ -44,8 +44,10 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
       applicationsPromise,
       supabase
         .from('user_scholarships')
-        .select('scholarship_id, university_id')
-        .eq('user_id', user.id),
+        .select('id, scholarship_id, university_id, saved_at')
+        .eq('user_id', user.id)
+        .order('saved_at', { ascending: true })
+        .order('id', { ascending: true }),
     ]);
 
   const currentSearch = scholarshipSearchParams(state, {}).toString();
