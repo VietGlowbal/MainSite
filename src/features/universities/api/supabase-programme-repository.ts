@@ -3,6 +3,8 @@ import {
   degreeLabel,
   durationYears,
   type CatalogueProgramme,
+  type CatalogueFieldValue,
+  type CatalogueProgrammeMatchingRecord,
   type ProgrammeAcademicUnit,
   type ProgrammeQueries,
 } from './programme-queries';
@@ -24,7 +26,58 @@ type RawRow = {
   official_url: string | null;
   verification_status: string | null;
   academic_units: unknown;
+  source_programme_id: string | null;
+  normalized_field: string | null;
 };
+
+type RawCourse = {
+  source_programme_id: string | null;
+  tuition_fee_min: number | null;
+  tuition_currency: string | null;
+  tuition_fee_text: string | null;
+  entry_requirements_summary: string | null;
+  english_requirements_summary: string | null;
+  source_confidence: number | null;
+  verification_status: string | null;
+};
+
+type RawFieldValue = {
+  id: string;
+  course_id: string;
+  field_name: string;
+  value_json: unknown;
+  null_reason: string | null;
+  source_url: string | null;
+  source_type: string | null;
+  evidence: string | null;
+  evidence_locator: string | null;
+  scope: string | null;
+  audience: string | null;
+  academic_cycle: string | null;
+  retrieved_at: string;
+  confidence: number;
+  verification_status: string;
+  display_mode: string;
+  use_for_eligibility: boolean;
+  validation_errors: string[] | null;
+};
+
+const MATCHING_FIELD_NAMES = [
+  'minimum_degree',
+  'minimum_gpa',
+  'gpa_scale',
+  'subject_prerequisites',
+  'admission_difficulty',
+  'ielts_overall',
+  'ielts_subscores',
+  'toefl',
+  'duolingo',
+  'standardized_tests',
+  'tuition',
+] as const;
+
+const NORMALIZED_FIELD_SELECT =
+  'id, course_id, field_name, value_json, null_reason, source_url, source_type, evidence, evidence_locator, scope, audience, academic_cycle, retrieved_at, confidence, verification_status, display_mode, use_for_eligibility, validation_errors';
 
 /**
  * The one verification state that must never be offered as a choice.
@@ -76,6 +129,84 @@ export class SupabaseProgrammeRepository implements ProgrammeQueries {
     return (data ?? [])
       .map((row) => toProgramme(row as RawRow))
       .filter((programme): programme is CatalogueProgramme => programme !== null);
+  }
+
+  async allForMatching(): Promise<CatalogueProgrammeMatchingRecord[]> {
+    const admin = createAdminClient();
+    const [programmesResult, coursesResult, currentFactsResult, factsResult] = await Promise.all([
+      admin.from('catalog_programmes').select(
+        'programme_id, university_id, programme_name, degree_level, credential, duration, official_url, verification_status, academic_units, source_programme_id, normalized_field',
+      ),
+      admin.from('courses').select(
+        'source_programme_id, tuition_fee_min, tuition_currency, tuition_fee_text, entry_requirements_summary, english_requirements_summary, source_confidence, verification_status',
+      ),
+      admin.from('course_current_field_values').select(NORMALIZED_FIELD_SELECT).in('field_name', [...MATCHING_FIELD_NAMES]),
+      admin.from('course_field_values').select(NORMALIZED_FIELD_SELECT).in('field_name', [...MATCHING_FIELD_NAMES]),
+    ]);
+    if (programmesResult.error || coursesResult.error) {
+      console.error('ProgrammeRepository.allForMatching failed:', programmesResult.error?.message ?? coursesResult.error?.message);
+      return [];
+    }
+    const coursesBySource = new Map<string, RawCourse>();
+    for (const row of (coursesResult.data ?? []) as RawCourse[]) {
+      if (row.source_programme_id) coursesBySource.set(row.source_programme_id, row);
+    }
+    const normalizedFactsByCourse = new Map<string, CatalogueFieldValue[]>();
+    // The current view is the normal read path. The base table is merged as a
+    // compatibility path for cycle/audience-specific facts that the view's
+    // DISTINCT key cannot retain. The loader selects the applicable fact and
+    // applies the verification contract at the adapter boundary.
+    const factRows = [
+      ...((currentFactsResult.data ?? []) as RawFieldValue[]),
+      ...((factsResult.data ?? []) as RawFieldValue[]),
+    ];
+    for (const row of factRows) {
+      if (!row.course_id || !MATCHING_FIELD_NAMES.includes(row.field_name as (typeof MATCHING_FIELD_NAMES)[number])) continue;
+      const fact: CatalogueFieldValue = {
+        id: row.id,
+        courseId: row.course_id,
+        fieldName: row.field_name,
+        valueJson: row.value_json,
+        nullReason: row.null_reason,
+        sourceUrl: row.source_url,
+        sourceType: row.source_type,
+        evidence: row.evidence,
+        evidenceLocator: row.evidence_locator,
+        scope: row.scope,
+        audience: row.audience,
+        academicCycle: row.academic_cycle,
+        retrievedAt: row.retrieved_at,
+        confidence: row.confidence,
+        verificationStatus: row.verification_status,
+        displayMode: row.display_mode,
+        useForEligibility: row.use_for_eligibility,
+        validationErrors: row.validation_errors ?? [],
+      };
+      const facts = normalizedFactsByCourse.get(row.course_id) ?? [];
+      facts.push(fact);
+      normalizedFactsByCourse.set(row.course_id, facts);
+    }
+    return (programmesResult.data ?? []).flatMap((row) => {
+      const programme = toProgramme(row as RawRow);
+      if (!programme) return [];
+      const raw = row as RawRow;
+      const course = raw.source_programme_id ? coursesBySource.get(raw.source_programme_id) ?? null : null;
+      return [{
+        ...programme,
+        sourceProgrammeId: raw.source_programme_id,
+        normalizedField: raw.normalized_field,
+        normalizedFacts: normalizedFactsByCourse.get(raw.programme_id) ?? [],
+        course: course ? {
+          tuitionFeeMin: course.tuition_fee_min,
+          tuitionCurrency: course.tuition_currency,
+          tuitionFeeText: course.tuition_fee_text,
+          entryRequirementsSummary: course.entry_requirements_summary,
+          englishRequirementsSummary: course.english_requirements_summary,
+          sourceConfidence: course.source_confidence,
+          verificationStatus: course.verification_status,
+        } : null,
+      }];
+    });
   }
 }
 

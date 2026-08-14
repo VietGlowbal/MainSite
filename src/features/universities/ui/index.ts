@@ -13,3 +13,4 @@ export {
   type ExplorerState,
   type ExplorerUniversity,
 } from './explorer-context';
+export { ProgrammeMatchResults } from './programme-match-results';

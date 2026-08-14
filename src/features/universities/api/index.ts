@@ -43,8 +43,11 @@ export function setProgrammeQueries(impl: ProgrammeQueries | null): void {
 export { SupabaseUniversityRepository };
 export { SupabaseProgrammeRepository };
 export { degreeLabel, durationYears } from './programme-queries';
+export { loadRankedProgrammeMatches } from './matching-candidate-loader';
 export type {
+  CatalogueFieldValue,
   CatalogueProgramme,
+  CatalogueProgrammeMatchingRecord,
   ProgrammeAcademicUnit,
   ProgrammeQueries,
 } from './programme-queries';

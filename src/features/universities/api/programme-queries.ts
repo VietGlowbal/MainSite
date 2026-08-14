@@ -47,9 +47,55 @@ export interface CatalogueProgramme {
   units: ProgrammeAcademicUnit[];
 }
 
+/** A row from the normalized catalogue v2 fact store. */
+export interface CatalogueFieldValue {
+  id: string;
+  courseId: string;
+  fieldName: string;
+  valueJson: unknown;
+  nullReason: string | null;
+  sourceUrl: string | null;
+  sourceType: string | null;
+  evidence: string | null;
+  evidenceLocator: string | null;
+  scope: string | null;
+  audience: string | null;
+  academicCycle: string | null;
+  retrievedAt: string;
+  confidence: number;
+  verificationStatus: string;
+  displayMode: string;
+  useForEligibility: boolean;
+  validationErrors: string[];
+}
+
+/**
+ * Catalogue identity plus the course data that is safely associated with it.
+ *
+ * V1 identity remains `catalog_programmes.programme_id`. Enrichment only joins
+ * `courses` where `source_programme_id` agrees, never on a cleaned display name.
+ */
+export interface CatalogueProgrammeMatchingRecord extends CatalogueProgramme {
+  sourceProgrammeId: string | null;
+  normalizedField: string | null;
+  normalizedFacts?: CatalogueFieldValue[];
+  course: {
+    tuitionFeeMin: number | null;
+    tuitionCurrency: string | null;
+    tuitionFeeText: string | null;
+    entryRequirementsSummary: string | null;
+    englishRequirementsSummary: string | null;
+    sourceConfidence: number | null;
+    verificationStatus: string | null;
+  } | null;
+}
+
 export interface ProgrammeQueries {
   /** Every catalogued programme for one university, or [] when it has none. */
   byUniversityId(universityId: number): Promise<CatalogueProgramme[]>;
+
+  /** The full catalogue and safely-linked existing course enrichment for matching. */
+  allForMatching(): Promise<CatalogueProgrammeMatchingRecord[]>;
 }
 
 /**
