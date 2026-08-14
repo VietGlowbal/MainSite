@@ -15,6 +15,8 @@ type Props = { searchParams: Promise<RawSearchParams> };
 
 export default async function ScholarshipsPage({ searchParams }: Props) {
   const state = parseScholarshipSearchParams(await searchParams);
+  const currentSearch = scholarshipSearchParams(state, {}).toString();
+  const returnTo = currentSearch ? `/scholarships?${currentSearch}` : '/scholarships';
   const directoryPromise = state.view === 'directory'
     ? loadScholarshipDirectory(state)
     : Promise.resolve(null);
@@ -22,7 +24,7 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect('/auth');
+  if (!user) redirect(`/auth?redirect=${encodeURIComponent(returnTo)}`);
 
   const applicationsPromise = state.view === 'ai'
     ? supabase
@@ -50,7 +52,6 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
         .order('id', { ascending: true }),
     ]);
 
-  const currentSearch = scholarshipSearchParams(state, {}).toString();
   if (directory && directory.canonicalSearch !== currentSearch) {
     redirect(directory.canonicalSearch ? `/scholarships?${directory.canonicalSearch}` : '/scholarships');
   }
