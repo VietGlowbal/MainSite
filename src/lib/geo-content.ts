@@ -283,7 +283,9 @@ export function listLegacyFileGuides(): GeoGuide[] {
 // ── Public API: DB-first, file-fallback (DB wins by slug) ────────────────────
 export async function listGeoGuides(): Promise<GeoGuide[]> {
   const [fileGuides, dbGuides] = await Promise.all([
-    Promise.resolve(listFileGuides()),
+    // Draft and archived CMS rows are never public. Keep legacy drafts
+    // available through listLegacyFileGuides() for the admin import job only.
+    Promise.resolve(listFileGuides().filter((guide) => guide.status === 'published')),
     listPublishedDbGuides(),
   ]);
   const bySlug = new Map<string, GeoGuide>();
@@ -295,7 +297,8 @@ export async function listGeoGuides(): Promise<GeoGuide[]> {
 export async function getGeoGuide(slug: string): Promise<GeoGuide | null> {
   const dbGuide = await getPublishedDbGuide(slug);
   if (dbGuide) return dbGuide;
-  return getFileGuide(slug);
+  const fileGuide = getFileGuide(slug);
+  return fileGuide?.status === 'published' ? fileGuide : null;
 }
 
 export async function listGeoTopics(): Promise<string[]> {
