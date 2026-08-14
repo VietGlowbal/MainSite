@@ -2,29 +2,31 @@
 
 import { useState } from 'react';
 import { useT } from '@/lib/i18n';
-import {
-  STUDY_MOTIVATION_SUPPLEMENT_KEY,
-  type CoreIdentitySection,
-  type DrivingForceSection,
-  type EmergingThemesSection,
-  type InsufficientData,
-  type PersonalPositioningSection,
-  type PersonalReportTrigger,
-  type PersonalReportV2,
-  type PersonalReportVersionSummary,
-  type ProofOfMeSection,
-  type ReportConfidence,
-  type SignaturePatternSection,
-} from '../domain';
-import { Badge, Button, Panel, PanelHeader, Select, Textarea } from '@/shared/ui';
+import type { PersonalReportTrigger, PersonalReportV2, PersonalReportVersionSummary } from '../domain';
+import { Badge, Button } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import {
+  ConfidenceBadge,
+  CoreIdentityView,
+  DrivingForceView,
+  EmergingThemesView,
+  PersonalPositioningView,
+  ProfileAtAGlanceView,
+  ProofOfMeView,
+  SignaturePatternView,
+  VersionHistoryPicker,
+  withReturn,
+} from './personal-report';
 
 /**
- * The canonical Personal Report — six sections, report-like, not a
- * dashboard. Renders `PersonalReportV2` (`src/features/apply/domain/
- * personal-report.ts`), which is itself a rendering of the Shared
- * Evaluation Engine's `ProfileEvaluation` — every claim shown here traces
- * back to that structured object.
+ * The canonical Personal Report — report-like, not a dashboard. Renders
+ * `PersonalReportV2` (`src/features/apply/domain/personal-report.ts`),
+ * which is itself a rendering of the Shared Evaluation Engine's
+ * `ProfileEvaluation` — every claim shown here traces back to that
+ * structured object. Each section lives in its own file under
+ * `./personal-report/` (implementation spec §33); this file is the shell
+ * that owns report state (current version, version history, generation)
+ * and lays the sections out top to bottom.
  *
  * ─── WHY ONE LONG PAGE, NOT SIX TABS ─────────────────────────────────────────
  *
@@ -42,536 +44,15 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
  * engine's own floor, not an average and not a new metric. It is shown once,
  * in the header, labelled "Overall evidence confidence" — never an
  * admissions-probability number.
+ *
+ * ─── ANALYTICS ARE OPTIONAL, NEVER A CRASH ───────────────────────────────────
+ *
+ * `report.analytics` / `report.overview` / `report.overallSummary` are all
+ * optional on `PersonalReportV2` — a version generated before this redesign
+ * shipped has none of them. Every place below that reads them is written to
+ * render nothing extra rather than throw when they're absent, so an old
+ * version in the history dropdown still opens cleanly.
  */
-
-const CONFIDENCE_LABEL: Record<ReportConfidence, string> = {
-  high: 'High',
-  medium: 'Medium',
-  low: 'Low',
-};
-
-const CONFIDENCE_BADGE_VARIANT: Record<ReportConfidence, 'safe-chip' | 'brand-chip' | 'neutral-chip'> = {
-  high: 'safe-chip',
-  medium: 'brand-chip',
-  low: 'neutral-chip',
-};
-
-function ConfidenceBadge({ confidence }: { confidence: ReportConfidence }) {
-  const t = useT();
-  return <Badge variant={CONFIDENCE_BADGE_VARIANT[confidence]}>{t(CONFIDENCE_LABEL[confidence])}</Badge>;
-}
-
-/**
- * Appends the current `?return=` context (this application's own path, when
- * the report was opened from one) onto an otherwise-stable, storable path —
- * see the file-level comment on `PersonalReportPage` for why this happens at
- * render time and never gets baked into the stored report.
- */
-function withReturn(href: string, returnTo: string | undefined): string {
-  return returnTo ? `${href}?return=${encodeURIComponent(returnTo)}` : href;
-}
-
-/**
- * A "gap" the report can accept an answer for directly — see the doc
- * comment on `IntakeAction.fieldKey` and `supabase-personal-report-
- * supplements.sql` for why this writes to a report-only table rather than
- * reopening (possibly locked) Candidate Information. Collapses to a plain
- * button; expands into a textarea + save in place, then triggers
- * `onAnswered` (the report's own regenerate) once saved.
- */
-function InlineAnswerAction({
-  label,
-  fieldKey,
-  onAnswered,
-}: {
-  label: string;
-  fieldKey: string;
-  onAnswered: () => void;
-}) {
-  const t = useT();
-  const [open, setOpen] = useState(false);
-  const [value, setValue] = useState('');
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  if (!open) {
-    return (
-      <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
-        {t(label)}
-      </Button>
-    );
-  }
-
-  async function save() {
-    if (!value.trim()) return;
-    setSaving(true);
-    setError(null);
-    try {
-      const response = await fetch('/api/ai-strategy/personal-report/supplement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fieldKey, answer: value.trim() }),
-      });
-      const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.error || t('Could not save your answer.'));
-      setOpen(false);
-      setValue('');
-      onAnswered();
-    } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : t('Could not save your answer.'));
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="flex w-full flex-col gap-gb-sm">
-      <Textarea
-        name={`report-answer-${fieldKey}`}
-        rows={3}
-        value={value}
-        onChange={(e) => setValue(e.target.value)}
-        placeholder={t(label)}
-        disabled={saving}
-        error={error ?? undefined}
-        autoFocus
-      />
-      <div className="flex gap-gb-sm">
-        <Button size="sm" onClick={() => void save()} disabled={saving || !value.trim()}>
-          {saving ? t('Saving…') : t('Save & update report')}
-        </Button>
-        <Button size="sm" variant="secondary" onClick={() => setOpen(false)} disabled={saving}>
-          {t('Cancel')}
-        </Button>
-      </div>
-    </div>
-  );
-}
-
-function InsufficientDataCard({
-  data,
-  returnTo,
-  onAnswered,
-}: {
-  data: InsufficientData;
-  returnTo: string | undefined;
-  onAnswered?: (() => void) | undefined;
-}) {
-  const t = useT();
-  return (
-    <div className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface-muted p-gb-xl">
-      <p className="text-gb-sm font-semibold text-fg">{t('More evidence needed')}</p>
-      <p className="text-gb-sm text-fg-tertiary" data-no-auto-translate>
-        {data.reason}
-      </p>
-      {data.actions.length > 0 ? (
-        <div className="flex flex-wrap gap-gb-md">
-          {data.actions.map((action) =>
-            action.fieldKey && onAnswered ? (
-              <InlineAnswerAction
-                key={action.kind + action.href}
-                label={action.label}
-                fieldKey={action.fieldKey}
-                onAnswered={onAnswered}
-              />
-            ) : (
-              <Button
-                key={action.kind + action.href}
-                href={withReturn(action.href, returnTo)}
-                variant="secondary"
-                size="sm"
-              >
-                {t(action.label)}
-              </Button>
-            ),
-          )}
-        </div>
-      ) : null}
-    </div>
-  );
-}
-
-function SectionShell({
-  eyebrow,
-  title,
-  confidence,
-  children,
-}: {
-  eyebrow: string;
-  title: string;
-  confidence?: ReportConfidence | undefined;
-  children: React.ReactNode;
-}) {
-  return (
-    <Panel as="section" elevation="flat" className="flex flex-col gap-gb-xl">
-      <PanelHeader
-        title={title}
-        description={eyebrow}
-        action={confidence ? <ConfidenceBadge confidence={confidence} /> : undefined}
-      />
-      <div className="flex flex-col gap-gb-lg">{children}</div>
-    </Panel>
-  );
-}
-
-/* ── Section 1 — Core Identity ─────────────────────────────────────────── */
-
-function CoreIdentityView({ section, returnTo }: { section: CoreIdentitySection; returnTo: string | undefined }) {
-  const t = useT();
-  return (
-    <SectionShell eyebrow={t('Core Identity')} title={t('Who they consistently are')} confidence={section.confidence}>
-      {section.available ? (
-        <div className="flex flex-col gap-gb-lg" data-no-auto-translate>
-          <h3 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">
-            {section.headline}
-          </h3>
-          <p className="text-gb-md leading-relaxed text-fg-tertiary">{section.interpretation}</p>
-          <div className="grid gap-gb-lg sm:grid-cols-3">
-            {section.recurringRole ? (
-              <div>
-                <p className="text-gb-xs text-fg-muted">{t('Recurring role')}</p>
-                <p className="text-gb-sm text-fg">{section.recurringRole}</p>
-              </div>
-            ) : null}
-            {section.valueOrientation ? (
-              <div>
-                <p className="text-gb-xs text-fg-muted">{t('Value orientation')}</p>
-                <p className="text-gb-sm text-fg">{section.valueOrientation}</p>
-              </div>
-            ) : null}
-          </div>
-          {section.recurringBehaviours.length > 0 ? (
-            <div className="flex flex-col gap-gb-sm">
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
-                {t('What GlowBal observed')}
-              </p>
-              <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary">
-                {section.observations.map((observation) => (
-                  <li key={observation}>{observation}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {section.stillDeveloping.length > 0 ? (
-            <p className="text-gb-xs text-fg-muted">
-              {t('Still developing')}: {section.stillDeveloping.join(' ')}
-            </p>
-          ) : null}
-        </div>
-      ) : (
-        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
-      )}
-    </SectionShell>
-  );
-}
-
-/* ── Section 2 — Driving Force ─────────────────────────────────────────── */
-
-function DrivingForceView({
-  section,
-  returnTo,
-  onAnswered,
-}: {
-  section: DrivingForceSection;
-  returnTo: string | undefined;
-  /** Omitted while viewing a past version — answering a question only ever updates the latest one. */
-  onAnswered?: (() => void) | undefined;
-}) {
-  const t = useT();
-  return (
-    <SectionShell eyebrow={t('Driving Force')} title={t('What consistently motivates them')} confidence={section.confidence}>
-      {section.available ? (
-        <div className="flex flex-col gap-gb-lg" data-no-auto-translate>
-          <div className="flex flex-wrap items-center gap-gb-md">
-            <h3 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">
-              {section.headline}
-            </h3>
-            {section.isHypothesis ? (
-              <Badge variant="neutral-chip">{t('Emerging hypothesis')}</Badge>
-            ) : null}
-          </div>
-          <p className="text-gb-md leading-relaxed text-fg-tertiary">{section.explanation}</p>
-          {section.repeatedMotivations.length > 0 ? (
-            <div className="flex flex-col gap-gb-sm">
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
-                {t('Repeated motivations')}
-              </p>
-              <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary">
-                {section.repeatedMotivations.map((motivation) => (
-                  <li key={motivation}>{motivation}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-          {section.missingPersonalGrounding ? (
-            <p className="rounded-gb-xl bg-surface-muted p-gb-lg text-gb-sm text-fg-tertiary">
-              {section.missingPersonalGrounding}
-            </p>
-          ) : null}
-          {section.reflectionPrompt ? (
-            <div className="flex flex-wrap items-center justify-between gap-gb-md rounded-gb-xl border border-line bg-surface-muted p-gb-lg">
-              <p className="text-gb-sm text-fg-tertiary">{section.reflectionPrompt}</p>
-              {onAnswered ? (
-                <InlineAnswerAction
-                  label="Answer this"
-                  fieldKey={STUDY_MOTIVATION_SUPPLEMENT_KEY}
-                  onAnswered={onAnswered}
-                />
-              ) : null}
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} onAnswered={onAnswered} />
-      )}
-    </SectionShell>
-  );
-}
-
-/* ── Section 3 — Signature Pattern ─────────────────────────────────────── */
-
-function SignaturePatternView({ section, returnTo }: { section: SignaturePatternSection; returnTo: string | undefined }) {
-  const t = useT();
-  return (
-    <SectionShell
-      eyebrow={t('Signature Pattern')}
-      title={t('The behavioural sequence that repeats')}
-      confidence={section.confidence}
-    >
-      {section.available ? (
-        <div className="flex flex-col gap-gb-lg" data-no-auto-translate>
-          <div className="flex flex-wrap items-center gap-gb-lg text-gb-sm text-fg-tertiary">
-            <span>
-              {t('Pattern strength')}:{' '}
-              {section.patternStrength === 'established' ? t('Established') : t('Emerging')}
-            </span>
-            <span>
-              {t('{count} supporting experiences', { count: section.supportingExperienceCount })}
-            </span>
-          </div>
-          <div className="grid gap-gb-lg sm:grid-cols-2">
-            {section.steps.map((step, index) => (
-              <div key={step.key} className="flex flex-col gap-gb-sm rounded-gb-xl border border-line p-gb-lg">
-                <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-brand">
-                  {index + 1}. {step.label}
-                </p>
-                <p className="text-gb-sm text-fg">{step.description}</p>
-                {step.examples.length > 0 ? (
-                  <p className="text-gb-xs text-fg-muted">{step.examples.join(', ')}</p>
-                ) : null}
-              </div>
-            ))}
-          </div>
-          {section.distinctiveness ? (
-            <p className="text-gb-sm text-fg-tertiary">{section.distinctiveness}</p>
-          ) : null}
-        </div>
-      ) : (
-        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
-      )}
-    </SectionShell>
-  );
-}
-
-/* ── Section 4 — Emerging Themes ───────────────────────────────────────── */
-
-function EmergingThemesView({ section, returnTo }: { section: EmergingThemesSection; returnTo: string | undefined }) {
-  const t = useT();
-  return (
-    <SectionShell eyebrow={t('Emerging Themes')} title={t('What they keep returning to')}>
-      {section.available ? (
-        <div className="flex flex-col gap-gb-lg">
-          {section.themes.map((theme) => (
-            <div key={theme.theme} className="flex flex-col gap-gb-sm rounded-gb-xl border border-line p-gb-lg" data-no-auto-translate>
-              <div className="flex flex-wrap items-center justify-between gap-gb-md">
-                <h3 className="text-gb-md font-semibold text-fg">{theme.theme}</h3>
-                <Badge variant="neutral-chip">{theme.statusLabel}</Badge>
-              </div>
-              <p className="text-gb-sm text-fg-tertiary">{theme.explanation}</p>
-              {theme.supportingExperiences.length > 0 ? (
-                <p className="text-gb-xs text-fg-muted">{theme.supportingExperiences.join(', ')}</p>
-              ) : null}
-              <p className="text-gb-xs text-fg-muted">{theme.limitation}</p>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
-      )}
-    </SectionShell>
-  );
-}
-
-/* ── Section 5 — Personal Positioning ──────────────────────────────────── */
-
-function PositioningTrait({ label, value }: { label: string; value: boolean }) {
-  const t = useT();
-  return (
-    <div className="flex items-center justify-between gap-gb-md rounded-gb-md border border-line px-gb-lg py-gb-sm">
-      <span className="text-gb-sm text-fg-tertiary">{label}</span>
-      <Badge variant={value ? 'safe-chip' : 'neutral-chip'}>{value ? t('Yes') : t('Not yet')}</Badge>
-    </div>
-  );
-}
-
-function PersonalPositioningView({
-  section,
-  returnTo,
-}: {
-  section: PersonalPositioningSection;
-  returnTo: string | undefined;
-}) {
-  const t = useT();
-  return (
-    <SectionShell
-      eyebrow={t('Personal Positioning')}
-      title={t('An evidence-grounded positioning statement')}
-      confidence={section.confidence}
-    >
-      {section.available ? (
-        <div className="flex flex-col gap-gb-lg">
-          <p className="text-gb-md leading-relaxed text-fg" data-no-auto-translate>
-            {section.statement}
-          </p>
-          <div className="grid gap-gb-sm sm:grid-cols-2">
-            <PositioningTrait label={t('Authentic')} value={section.authentic} />
-            <PositioningTrait label={t('Differentiated')} value={section.differentiated} />
-            <PositioningTrait label={t('Coherent')} value={section.coherent} />
-            <PositioningTrait label={t('Direction aligned')} value={section.directionAligned} />
-            <PositioningTrait label={t('Credible')} value={section.credible} />
-          </div>
-          {section.whatPreventsStrongerPositioning.length > 0 ? (
-            <div className="flex flex-col gap-gb-sm">
-              <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">
-                {t('What prevents stronger positioning')}
-              </p>
-              <ul className="flex list-disc flex-col gap-gb-xs pl-gb-xl text-gb-sm text-fg-tertiary">
-                {section.whatPreventsStrongerPositioning.map((limitation) => (
-                  <li key={limitation}>{limitation}</li>
-                ))}
-              </ul>
-            </div>
-          ) : null}
-        </div>
-      ) : (
-        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
-      )}
-    </SectionShell>
-  );
-}
-
-/* ── Section 6 — Proof of Me ────────────────────────────────────────────── */
-
-const VERIFICATION_LABEL: Record<string, string> = {
-  verified: 'Verified',
-  attributable: 'Checkable',
-  stated: 'Self-reported',
-};
-
-function ProofOfMeView({ section, returnTo }: { section: ProofOfMeSection; returnTo: string | undefined }) {
-  const t = useT();
-  return (
-    <SectionShell eyebrow={t('Proof of Me')} title={t('The evidence behind every claim above')}>
-      {section.available ? (
-        <div className="grid gap-gb-lg sm:grid-cols-2">
-          {section.cards.map((card) => (
-            <div key={card.activityId} className="flex flex-col gap-gb-md rounded-gb-xl border border-line p-gb-lg" data-no-auto-translate>
-              <div className="flex flex-wrap items-start justify-between gap-gb-md">
-                <div>
-                  <h3 className="text-gb-md font-semibold text-fg">{card.title}</h3>
-                  {card.role ? <p className="text-gb-xs text-fg-muted">{card.role}</p> : null}
-                </div>
-                <Badge variant={card.evidenceStrength === 'strong' ? 'safe-chip' : 'neutral-chip'}>
-                  {t('Evidence')}: {card.evidenceStrength}
-                </Badge>
-              </div>
-              {card.personalContribution ? (
-                <p className="text-gb-sm text-fg-tertiary">{card.personalContribution}</p>
-              ) : null}
-              {card.outcome ? <p className="text-gb-sm font-medium text-fg">{card.outcome}</p> : null}
-              {card.competenciesDemonstrated.length > 0 ? (
-                <div className="flex flex-wrap gap-gb-sm">
-                  {card.competenciesDemonstrated.map((competency) => (
-                    <Badge key={competency} variant="brand-chip">
-                      {competency}
-                    </Badge>
-                  ))}
-                </div>
-              ) : null}
-              {card.supports.length > 0 ? (
-                <p className="text-gb-xs text-fg-muted">
-                  {t('Supports')}: {card.supports.join(', ')}
-                </p>
-              ) : null}
-              <div className="flex items-center justify-between gap-gb-md border-t border-line pt-gb-md">
-                <Badge variant="neutral-chip">{t(VERIFICATION_LABEL[card.verificationStatus] ?? card.verificationStatus)}</Badge>
-                {card.evidenceSource ? (
-                  <span className="text-gb-xs text-fg-muted">{card.evidenceSource}</span>
-                ) : null}
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <InsufficientDataCard data={section.insufficientData!} returnTo={returnTo} />
-      )}
-    </SectionShell>
-  );
-}
-
-/* ── Version history ───────────────────────────────────────────────────── */
-
-const TRIGGER_LABEL: Record<PersonalReportTrigger, string> = {
-  manual: 'Manual update',
-  matching_report: 'Updated with your Matching Report',
-  supplement_answer: 'Updated after you answered a question',
-};
-
-function formatVersionLabel(
-  t: (key: string, vars?: Record<string, string | number>) => string,
-  version: PersonalReportVersionSummary,
-  isLatest: boolean,
-): string {
-  const date = version.generatedAt
-    ? new Date(version.generatedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
-    : '';
-  const reason = t(TRIGGER_LABEL[version.trigger] ?? TRIGGER_LABEL.manual);
-  return isLatest ? `${date} · ${t('Latest')} · ${reason}` : `${date} · ${reason}`;
-}
-
-function VersionHistoryPicker({
-  versions,
-  selectedVersionId,
-  latestVersionId,
-  disabled,
-  onSelect,
-}: {
-  versions: PersonalReportVersionSummary[];
-  selectedVersionId: string | null;
-  latestVersionId: string | null;
-  disabled: boolean;
-  onSelect: (versionId: string) => void;
-}) {
-  const t = useT();
-  if (versions.length < 2) return null;
-  return (
-    <Select
-      name="personal-report-version"
-      label={t('Version history')}
-      value={selectedVersionId ?? ''}
-      disabled={disabled}
-      onChange={(event) => onSelect(event.target.value)}
-      fieldClassName="w-full max-w-sm"
-    >
-      {versions.map((version) => (
-        <option key={version.id} value={version.id}>
-          {formatVersionLabel(t, version, version.id === latestVersionId)}
-        </option>
-      ))}
-    </Select>
-  );
-}
-
-/* ── Report shell ──────────────────────────────────────────────────────── */
 
 export function PersonalReportV2View({
   initialReport,
@@ -637,6 +118,8 @@ export function PersonalReportV2View({
         body: JSON.stringify({ trigger }),
       });
       const body = await response.json().catch(() => ({}));
+      // Assigned together (spec §24) — a partial swap could pair a new
+      // report body with the previous version's id/date.
       if (body.reportV2) setReport(body.reportV2 as PersonalReportV2);
       if (body.versionId) {
         setSelectedVersionId(body.versionId as string);
@@ -660,6 +143,9 @@ export function PersonalReportV2View({
       const response = await fetch(`/api/ai-strategy/personal-report/versions/${versionId}`);
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || t('Could not load that version.'));
+      // Same atomic swap as `generate` above — report, id, and date all move
+      // together so the header date can never point at a different
+      // version's content mid-render.
       setReport(body.reportV2 as PersonalReportV2);
       setSelectedVersionId(versionId);
       setViewedGeneratedAt(body.generatedAt as string);
@@ -719,7 +205,7 @@ export function PersonalReportV2View({
             <ConfidenceBadge confidence={report.overallEvidenceConfidence} />
           </div>
         </div>
-        <div className="flex flex-wrap items-end gap-gb-lg border-t border-line pt-gb-lg">
+        <div className="flex flex-wrap items-end gap-gb-lg border-t border-line pt-gb-lg print:hidden">
           <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary" size="sm">
             {t('View confirmed information')}
           </Button>
@@ -732,7 +218,7 @@ export function PersonalReportV2View({
           />
         </div>
         {isHistorical ? (
-          <div className="flex flex-wrap items-center justify-between gap-gb-md rounded-gb-xl bg-surface-muted p-gb-lg">
+          <div className="flex flex-wrap items-center justify-between gap-gb-md rounded-gb-xl bg-surface-muted p-gb-lg print:hidden">
             <p className="text-gb-sm text-fg-tertiary">
               {t("You're viewing an older version of this report — it won't update or accept answers.")}
             </p>
@@ -744,14 +230,32 @@ export function PersonalReportV2View({
         {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
       </header>
 
+      <ProfileAtAGlanceView overview={report.overview} analytics={report.analytics} />
       <CoreIdentityView section={report.coreIdentity} returnTo={returnTo} />
       <DrivingForceView section={report.drivingForce} returnTo={returnTo} onAnswered={onAnswered} />
-      <SignaturePatternView section={report.signaturePattern} returnTo={returnTo} />
-      <EmergingThemesView section={report.emergingThemes} returnTo={returnTo} />
-      <PersonalPositioningView section={report.personalPositioning} returnTo={returnTo} />
-      <ProofOfMeView section={report.proofOfMe} returnTo={returnTo} />
+      <SignaturePatternView
+        section={report.signaturePattern}
+        patternSupport={report.analytics?.signaturePatternSupport}
+        returnTo={returnTo}
+      />
+      <EmergingThemesView
+        section={report.emergingThemes}
+        themeMaturity={report.analytics?.themeMaturity}
+        returnTo={returnTo}
+      />
+      <PersonalPositioningView
+        section={report.personalPositioning}
+        positioningDimensions={report.analytics?.positioningDimensions}
+        returnTo={returnTo}
+      />
+      <ProofOfMeView
+        section={report.proofOfMe}
+        evidenceSummary={report.analytics?.evidenceSummary}
+        overallSummary={report.overallSummary}
+        returnTo={returnTo}
+      />
 
-      <div className="flex flex-wrap justify-between gap-gb-lg border-t border-line pt-gb-2xl">
+      <div className="flex flex-wrap justify-between gap-gb-lg border-t border-line pt-gb-2xl print:hidden">
         <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary">
           {t('View confirmed information')}
         </Button>

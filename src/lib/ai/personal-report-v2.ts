@@ -22,7 +22,7 @@ import { extractRoleAndTheme, type RoleThemeExtractionInput } from './evaluation
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v2-grounded';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v3-narrative-synthesis';
 
 type FreeTextRecord = { id: string; title: string; freeText: string; row: Record<string, unknown> };
 

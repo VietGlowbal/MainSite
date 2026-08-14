@@ -11,6 +11,8 @@ const mocks = vi.hoisted(() => ({
   runProfileEvaluation: vi.fn(),
   shouldRegenerate: vi.fn(),
   buildPersonalReport: vi.fn(),
+  synthesizePersonalReportNarrative: vi.fn(),
+  applyNarrativeSynthesis: vi.fn((report: unknown) => report),
 }));
 
 vi.mock('./candidate-context', () => ({
@@ -28,6 +30,10 @@ vi.mock('@/lib/ai/personal-report-v2', () => ({
   PERSONAL_REPORT_EXTRACTION_VERSION: 'extraction-v2',
 }));
 vi.mock('@/lib/ai/openai-client', () => ({ isOpenAIConfigured: mocks.isOpenAIConfigured }));
+vi.mock('@/lib/ai/personal-report-narrative-synthesis', () => ({
+  synthesizePersonalReportNarrative: mocks.synthesizePersonalReportNarrative,
+  applyNarrativeSynthesis: mocks.applyNarrativeSynthesis,
+}));
 vi.mock('@/shared/evaluation', () => ({
   ENGINE_VERSION: '1.1.0',
   runProfileEvaluation: mocks.runProfileEvaluation,

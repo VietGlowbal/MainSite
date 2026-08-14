@@ -72,6 +72,7 @@ function reportWithDrivingForceGap(): PersonalReportV2 {
       coherent: false,
       directionAligned: false,
       credible: false,
+      whyThisFits: [],
       whatPreventsStrongerPositioning: [],
       confidence: 'low',
       evidenceRefs: [],
@@ -245,5 +246,69 @@ describe('PersonalReportV2View — version history', () => {
 
     await user.click(screen.getByRole('button', { name: 'Back to latest' }));
     await waitFor(() => expect(screen.queryByText(/viewing an older version/i)).not.toBeInTheDocument());
+  });
+});
+
+function reportWithAnalytics(): PersonalReportV2 {
+  const base = reportWithDrivingForceGap();
+  return {
+    ...base,
+    overview: { summary: 'A synopsis of the profile.', evidenceRefs: [] },
+    overallSummary: { paragraphs: ['The strongest signal so far.'], evidenceRefs: [] },
+    signaturePattern: { ...base.signaturePattern, available: false },
+    emergingThemes: { ...base.emergingThemes, available: false },
+    personalPositioning: { ...base.personalPositioning, available: false },
+    proofOfMe: { ...base.proofOfMe, available: false },
+    analytics: {
+      competencyEvidenceProfile: [
+        { key: 'hard', label: 'Hard-skill specificity', score: 60, confidence: 'medium', evidenceRefs: [] },
+      ],
+      narrativeIdentitySignals: [
+        { key: 'patternConsistency', label: 'Pattern consistency', score: 70, confidence: 'medium', evidenceRefs: [] },
+      ],
+      signaturePatternSupport: [],
+      themeMaturity: [],
+      positioningDimensions: [],
+      evidenceSummary: {
+        totalItems: 0,
+        verification: { verified: 0, attributable: 0, stated: 0 },
+        strength: { strong: 0, moderate: 0, limited: 0 },
+        competencyClaims: { hard: 0, soft: 0, meta: 0 },
+      },
+    },
+  };
+}
+
+describe('PersonalReportV2View — analytics wiring', () => {
+  it('renders the profile-at-a-glance charts and overview synopsis when analytics are present', () => {
+    render(
+      <PersonalReportV2View
+        initialReport={reportWithAnalytics()}
+        initialVersionId="v1"
+        initialVersions={[{ id: 'v1', generatedAt: '2026-08-13T00:00:00.000Z', trigger: 'manual' }]}
+        studentName="Olivia"
+        generatedAt="2026-08-14T00:00:00.000Z"
+        migrationMissing={false}
+      />,
+    );
+
+    expect(screen.getByText('A synopsis of the profile.')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Competency & evidence profile' })).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Narrative identity signals' })).toBeInTheDocument();
+  });
+
+  it('renders nothing extra for a report version predating analytics, without crashing', () => {
+    render(
+      <PersonalReportV2View
+        initialReport={reportWithDrivingForceGap()}
+        initialVersionId="v1"
+        initialVersions={[{ id: 'v1', generatedAt: '2026-08-13T00:00:00.000Z', trigger: 'manual' }]}
+        studentName="Olivia"
+        generatedAt="2026-08-14T00:00:00.000Z"
+        migrationMissing={false}
+      />,
+    );
+
+    expect(screen.queryByText('Profile at a glance')).not.toBeInTheDocument();
   });
 });
