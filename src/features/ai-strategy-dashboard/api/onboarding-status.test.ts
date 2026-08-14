@@ -9,11 +9,11 @@ import { fetchOnboardingState } from './onboarding-status';
  * whatever `resolve()` computes for that table.
  */
 function buildSupabase(options: {
-  personalSummaryCompletedAt?: string | null;
-  achievementsCompletedAt?: string | null;
-  confirmedAt?: string | null;
-  /** Simulates `supabase-candidate-confirmation.sql` not having run yet. */
-  confirmedAtColumnMissing?: boolean;
+  personalSummaryReviewedAt?: string | null;
+  achievementsReviewedAt?: string | null;
+  candidateConfirmedAt?: string | null;
+  /** Simulates `supabase-per-application-onboarding.sql` not having run yet. */
+  perApplicationColumnsMissing?: boolean;
   hasApplicantAnalysis?: boolean;
   hasCompleteMatchAnalysis?: boolean;
   introSeenAt?: string | null;
@@ -21,24 +21,30 @@ function buildSupabase(options: {
 }) {
   function resolve(table: string, selected: string) {
     switch (table) {
-      case 'student_profiles':
-        if (options.confirmedAtColumnMissing && selected.includes('confirmed_at')) {
-          return { data: null, error: { code: '42703', message: 'column "confirmed_at" does not exist' } };
-        }
-        return {
-          data: {
-            personal_summary_completed_at: options.personalSummaryCompletedAt ?? null,
-            achievements_completed_at: options.achievementsCompletedAt ?? null,
-            ...(selected.includes('confirmed_at') ? { confirmed_at: options.confirmedAt ?? null } : {}),
-          },
-          error: null,
-        };
       case 'applicant_analyses':
         return { data: options.hasApplicantAnalysis ? { id: 'analysis-1' } : null, error: null };
       case 'application_match_analyses':
         return { data: options.hasCompleteMatchAnalysis ? { id: 'match-1' } : null, error: null };
       case 'course_applications':
-        return { data: { strategy_intro_seen_at: options.introSeenAt ?? null }, error: null };
+        if (options.perApplicationColumnsMissing && selected.includes('personal_summary_reviewed_at')) {
+          return {
+            data: null,
+            error: { code: '42703', message: 'column "personal_summary_reviewed_at" does not exist' },
+          };
+        }
+        return {
+          data: {
+            strategy_intro_seen_at: options.introSeenAt ?? null,
+            ...(selected.includes('personal_summary_reviewed_at')
+              ? {
+                  personal_summary_reviewed_at: options.personalSummaryReviewedAt ?? null,
+                  achievements_reviewed_at: options.achievementsReviewedAt ?? null,
+                  candidate_confirmed_at: options.candidateConfirmedAt ?? null,
+                }
+              : {}),
+          },
+          error: null,
+        };
       case 'application_strategy_recommendations':
         return {
           data: options.hasStrategyRecommendation ? { id: 'strategy-1' } : null,
@@ -89,9 +95,9 @@ describe('fetchOnboardingState', () => {
 
   it('reads the other five flags independently of the analysis gate', async () => {
     const supabase = buildSupabase({
-      personalSummaryCompletedAt: '2026-01-01T00:00:00Z',
-      achievementsCompletedAt: '2026-01-01T00:00:00Z',
-      confirmedAt: '2026-01-01T12:00:00Z',
+      personalSummaryReviewedAt: '2026-01-01T00:00:00Z',
+      achievementsReviewedAt: '2026-01-01T00:00:00Z',
+      candidateConfirmedAt: '2026-01-01T12:00:00Z',
       hasApplicantAnalysis: true,
       hasCompleteMatchAnalysis: true,
       introSeenAt: '2026-01-02T00:00:00Z',
@@ -121,15 +127,43 @@ describe('fetchOnboardingState', () => {
     });
   });
 
-  it('falls back to the two pre-existing flags when confirmed_at is not migrated yet, rather than failing the whole read', async () => {
+  /**
+   * The regression this whole feature exists to prevent: a student who
+   * already confirmed on an EARLIER application must not have a brand-new
+   * application inherit that as "already reviewed." Two applications, same
+   * student, only one of them touched — the untouched one must read as
+   * fully unstarted.
+   */
+  it('does not leak one application\'s review state onto a different, brand-new application', async () => {
+    // app-1 is fully reviewed and confirmed...
+    const confirmedApp = buildSupabase({
+      personalSummaryReviewedAt: '2026-01-01T00:00:00Z',
+      achievementsReviewedAt: '2026-01-01T00:00:00Z',
+      candidateConfirmedAt: '2026-01-01T12:00:00Z',
+    });
+    const stateForConfirmedApp = await fetchOnboardingState(confirmedApp as never, 'user-1', 'app-1');
+    expect(stateForConfirmedApp.candidateConfirmed).toBe(true);
+
+    // ...but app-2, a different (brand new) application for the same
+    // student, has never itself been reviewed — a separate fake client
+    // scoped to app-2's own (empty) row, standing in for what a real query
+    // filtered `.eq('id', 'app-2')` would return.
+    const newApp = buildSupabase({});
+    const stateForNewApp = await fetchOnboardingState(newApp as never, 'user-1', 'app-2');
+    expect(stateForNewApp.personalSummaryComplete).toBe(false);
+    expect(stateForNewApp.achievementsComplete).toBe(false);
+    expect(stateForNewApp.candidateConfirmed).toBe(false);
+  });
+
+  it('falls back to strategy_intro_seen_at alone when the per-application review columns are not migrated yet, rather than failing the whole read', async () => {
     const supabase = buildSupabase({
-      personalSummaryCompletedAt: '2026-01-01T00:00:00Z',
-      achievementsCompletedAt: '2026-01-01T00:00:00Z',
-      confirmedAtColumnMissing: true,
+      introSeenAt: '2026-01-02T00:00:00Z',
+      perApplicationColumnsMissing: true,
     });
     const state = await fetchOnboardingState(supabase as never, 'user-1', 'app-1');
-    expect(state.personalSummaryComplete).toBe(true);
-    expect(state.achievementsComplete).toBe(true);
+    expect(state.personalSummaryComplete).toBe(false);
+    expect(state.achievementsComplete).toBe(false);
     expect(state.candidateConfirmed).toBe(false);
+    expect(state.introSeen).toBe(true);
   });
 });

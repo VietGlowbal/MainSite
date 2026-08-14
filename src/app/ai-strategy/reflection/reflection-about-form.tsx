@@ -111,7 +111,13 @@ export type AboutFormValues = AboutYouValues &
     englishNotTaken?: boolean;
   };
 
-export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
+export function ReflectionAboutForm({
+  initial,
+  applicationId,
+}: {
+  initial: AboutFormValues;
+  applicationId?: string | undefined;
+}) {
   const t = useT();
   const { lang } = useLanguage();
   const router = useRouter();
@@ -138,26 +144,29 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
    * (the autosave effect re-runs on it; the button handlers close over it), so
    * passing it is both correct and simpler.
    */
-  const save = useCallback(async (payload: AboutFormValues): Promise<boolean> => {
-    setSaveState('saving');
-    try {
-      const response = await fetch('/api/reflection', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ about: payload }),
-      });
-      if (!response.ok) {
+  const save = useCallback(
+    async (payload: AboutFormValues): Promise<boolean> => {
+      setSaveState('saving');
+      try {
+        const response = await fetch('/api/reflection', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ about: payload, ...(applicationId ? { applicationId } : {}) }),
+        });
+        if (!response.ok) {
+          setSaveState('error');
+          return false;
+        }
+        dirty.current = false;
+        setSaveState('saved');
+        return true;
+      } catch {
         setSaveState('error');
         return false;
       }
-      dirty.current = false;
-      setSaveState('saved');
-      return true;
-    } catch {
-      setSaveState('error');
-      return false;
-    }
-  }, []);
+    },
+    [applicationId],
+  );
 
   // Debounced autosave. The timer restarts on every change, so a student
   // typing continuously produces one request when they pause rather than one
@@ -257,6 +266,17 @@ export function ReflectionAboutForm({ initial }: { initial: AboutFormValues }) {
       caption={mode === 'one' ? undefined : completedLabel}
     >
       <div className="flex flex-col gap-gb-2xl">
+        {answered > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-gb-lg rounded-gb-xl border border-line bg-surface-muted px-gb-xl py-gb-lg">
+            <p className="text-gb-sm text-fg-secondary">
+              {t('These answers are already filled in from your profile.')}
+            </p>
+            <Button type="button" variant="secondary" size="sm" onClick={() => void finish()}>
+              {t('Skip — my answers are still correct')}
+            </Button>
+          </div>
+        ) : null}
+
         <div className="flex flex-wrap items-center justify-between gap-gb-lg">
           <DisplayModeToggle
             mode={mode}

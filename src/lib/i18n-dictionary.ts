@@ -4424,4 +4424,13 @@ export const translations: Record<string, string> = {
   'Building your roadmap...': 'Đang xây dựng lộ trình của bạn...',
   'Contact information': 'Thông tin liên hệ',
   'Activities and leadership': 'Hoạt động và vai trò lãnh đạo',
+
+  // Per-application onboarding — Skip affordances (reflection-about-form.tsx,
+  // achievements/reflection-evidence-form.tsx)
+  'These answers are already filled in from your profile.':
+    'Các câu trả lời này đã được điền sẵn từ hồ sơ của bạn.',
+  'Skip — my answers are still correct': 'Bỏ qua — câu trả lời của tôi vẫn đúng',
+  'Your achievements and activities are already filled in from your profile.':
+    'Thành tích và hoạt động này đã được điền sẵn từ hồ sơ của bạn.',
+  'Skip — my achievements are still correct': 'Bỏ qua — thành tích của tôi vẫn đúng',
 };

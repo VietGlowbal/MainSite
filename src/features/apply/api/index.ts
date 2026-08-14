@@ -20,3 +20,4 @@ export {
 export type { PersonalReportRecord } from './ai-reports-repository';
 export { loadCandidateReflection } from './candidate-snapshot-repository';
 export type { CandidateReflectionRecord } from './candidate-snapshot-repository';
+export { verifiedApplicationId } from './verified-application-id';
