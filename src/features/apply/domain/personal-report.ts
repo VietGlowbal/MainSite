@@ -56,19 +56,23 @@ const REFLECTION_HREF = '/ai-strategy/reflection';
 const ACHIEVEMENTS_HREF = '/ai-strategy/reflection/achievements';
 
 function addActivityAction(): IntakeAction {
-  return { kind: 'add_activity', label: 'Thêm một hoạt động hoặc thành tích khác', href: ACHIEVEMENTS_HREF };
+  return { kind: 'add_activity', label: 'Add another activity or achievement', href: ACHIEVEMENTS_HREF };
 }
 
 function expandReflectionAction(): IntakeAction {
   return {
     kind: 'expand_activity_reflection',
-    label: 'Bổ sung chi tiết cho các hoạt động đã có (bối cảnh, hành động, kết quả)',
+    label: 'Add more detail to your existing activities (context, action, outcome)',
     href: ACHIEVEMENTS_HREF,
   };
 }
 
 function attachEvidenceAction(): IntakeAction {
-  return { kind: 'attach_evidence', label: 'Đính kèm minh chứng (chứng chỉ, thư xác nhận, tài liệu)', href: ACHIEVEMENTS_HREF };
+  return {
+    kind: 'attach_evidence',
+    label: 'Attach supporting evidence (certificate, confirmation letter, document)',
+    href: ACHIEVEMENTS_HREF,
+  };
 }
 
 function answerReflectionAction(label: string): IntakeAction {
@@ -206,7 +210,10 @@ function buildDrivingForce(
       reflectionPrompt: null,
       insufficientData: {
         reason: 'Chưa có đủ hoạt động hoặc động lực được nêu rõ để xác định điều gì thực sự thúc đẩy ứng viên.',
-        actions: [addActivityAction(), answerReflectionAction('Trả lời câu hỏi "Vì sao bạn quan tâm đến các môn học này?"')],
+        actions: [
+          addActivityAction(),
+          answerReflectionAction('Explain why you are interested in these subjects'),
+        ],
       },
     };
   }
