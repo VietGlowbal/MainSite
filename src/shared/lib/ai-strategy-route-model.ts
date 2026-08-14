@@ -7,7 +7,9 @@ export type ApplicationRouteKey =
   | 'strategyReport'
   | 'planner'
   | 'cv'
-  | 'essay';
+  | 'essay'
+  | 'scholarships'
+  | 'finalCheck';
 
 export type ApplicationRouteReadiness = {
   analysisReady: boolean;
@@ -23,6 +25,10 @@ export type ApplicationRouteReadiness = {
  * Essay remain on the current `/apply` implementations until their dedicated
  * merge phase; changing those two here would switch users between two existing
  * builders without migrating state.
+ *
+ * Scholarships and Final Check are included as locked future destinations so
+ * the route model represents the complete product architecture without
+ * rendering dead links. `SubNav` omits locked items.
  */
 export function aiStrategyApplicationNav(
   applicationId: string,
@@ -53,6 +59,10 @@ export function aiStrategyApplicationNav(
     // Deliberate compatibility adapters pending the CV/Essay consolidation.
     { key: 'cv', label: 'CV Support', href: `/apply/${applicationId}/cv` },
     { key: 'essay', label: 'Essay Support', href: `/apply/${applicationId}/statement-feedback` },
+    // Canonical future destinations. Locked items are intentionally omitted by
+    // SubNav until their product phases are implemented.
+    { key: 'scholarships', label: 'Scholarships', href: `${app}/scholarships`, locked: true },
+    { key: 'finalCheck', label: 'Final Check', href: `${app}/final-check`, locked: true },
   ];
 }
 
