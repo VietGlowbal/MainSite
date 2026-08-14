@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import { intakeOptionId, type IntakeChoice, type IntakeOption } from '../domain';
+import { useT } from '@/lib/i18n';
+import { localizeIntakeOption } from './intake-copy';
 import { ICONS, KitIcon } from '@/shared/ui';
 
 /**
@@ -43,6 +45,8 @@ export function IntakePicker({
   label: string;
   placeholder: string;
 }) {
+  const t = useT();
+  const localizedOptions = options.map((option) => localizeIntakeOption(option, t));
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(0);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -50,7 +54,7 @@ export function IntakePicker({
   const listId = useId();
 
   const selectedId = value ? intakeOptionId(value) : null;
-  const selected = options.find((option) => option.id === selectedId);
+  const selected = localizedOptions.find((option) => option.id === selectedId);
 
   /**
    * Open, with the highlight on the current choice rather than the top of the
@@ -165,7 +169,7 @@ export function IntakePicker({
           aria-label={label}
           className="absolute inset-x-0 top-full z-20 mt-gb-xs max-h-80 overflow-y-auto rounded-gb-xl border border-line bg-surface py-gb-xs shadow-gb-lg"
         >
-          {options.map((option, index) => {
+          {localizedOptions.map((option, index) => {
             const isSelected = option.id === selectedId;
             return (
               <li key={option.id}>

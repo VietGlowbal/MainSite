@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { loadCandidateReflection } from '@/features/apply/api';
+import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
+import { applicationIdFromPath } from '@/shared/lib';
 import { ReflectionChrome } from '../../reflection-chrome';
 import { ApplicationNavFromReturn } from '../application-nav-from-return';
 import { ReflectionEvidenceForm } from './reflection-evidence-form';
@@ -14,9 +15,12 @@ import { ConfirmedAchievementsView } from './confirmed-achievements-view';
  * rather than append-only; the API replaces the set wholesale on save, which
  * is only safe because the form always posts the complete list.
  *
- * Once confirmed (Review & Confirm), this page stops rendering the editable
- * form — see `ConfirmedAchievementsView`, which also folds in the read-only
- * document list rather than being a route of its own.
+ * Once THIS APPLICATION has been confirmed (Review & Confirm), this page
+ * stops rendering the editable form — see `ConfirmedAchievementsView`, which
+ * also folds in the read-only document list rather than being a route of its
+ * own. `applicationId` is derived the same way `reflection/page.tsx` does —
+ * see its own doc comment for why, and `docs/known-issues.md` for the
+ * incident this fixed.
  */
 export default async function ReflectionAchievementsPage({
   searchParams,
@@ -31,8 +35,15 @@ export default async function ReflectionAchievementsPage({
   if (!user) redirect('/auth');
 
   const { return: returnTo } = await searchParams;
+  const applicationId = returnTo
+    ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
+    : undefined;
 
-  const { reflection, documents, confirmedAt } = await loadCandidateReflection(supabase, user.id);
+  const { reflection, documents, confirmedAt } = await loadCandidateReflection(
+    supabase,
+    user.id,
+    applicationId,
+  );
 
   return (
     <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
@@ -42,9 +53,11 @@ export default async function ReflectionAchievementsPage({
           activities={reflection.activities}
           documents={documents}
           confirmedAt={confirmedAt}
+          returnTo={returnTo}
         />
       ) : (
         <ReflectionEvidenceForm
+          applicationId={applicationId}
           initialAchievements={reflection.achievements}
           initialActivities={reflection.activities}
           initialDocuments={documents}

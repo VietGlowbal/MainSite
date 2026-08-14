@@ -1,10 +1,25 @@
 import { useEffect, type ReactNode } from 'react';
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { StrategyHome } from '@/features/ai-strategy-dashboard/ui/strategy-home';
 import { StateBlock } from '@/features/application-strategy/ui/states';
 import { LanguageProvider, T, useLanguage } from '@/lib/i18n';
 import { StartCard } from '@/components/cv/CvStartFlow';
+import { HomeHowItWorks } from '@/features/marketing/ui/home-how-it-works';
+import { HomePartners } from '@/features/marketing/ui/home-partners';
+import { TopNav } from '@/shared/ui/top-nav';
+
+vi.mock('next/navigation', () => ({ usePathname: () => '/' }));
+vi.mock('@/shared/ui/use-nav-reveal', () => ({
+  useNavReveal: () => ({ ref: { current: null }, top: 0, isFloating: false, isHidden: false }),
+}));
+vi.stubGlobal(
+  'IntersectionObserver',
+  class {
+    observe() {}
+    disconnect() {}
+  },
+);
 
 function Vietnamese({ children }: { children: ReactNode }) {
   const { setLang } = useLanguage();
@@ -105,6 +120,48 @@ describe('Vietnamese screenshot copy', () => {
       ).toBeInTheDocument();
       expect(screen.getByText('Provider detail')).toBeInTheDocument();
       expect(screen.getByText('Raw AI or server response')).toBeInTheDocument();
+    });
+  });
+
+  it('localizes dynamic accessibility labels in the homepage journey', async () => {
+    render(
+      <LanguageProvider>
+        <Vietnamese>
+          <HomeHowItWorks />
+        </Vietnamese>
+      </LanguageProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: '1. Nhập thông tin đơn giản' })).toBeInTheDocument();
+    });
+  });
+
+  it('localizes the shared primary navigation landmark', async () => {
+    render(
+      <LanguageProvider>
+        <Vietnamese>
+          <TopNav logo={<span>GlowBal</span>} items={[]} />
+        </Vietnamese>
+      </LanguageProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole('navigation', { name: 'Chính' })).toBeInTheDocument();
+    });
+  });
+
+  it('localizes the animated homepage default without translating university names', async () => {
+    render(
+      <LanguageProvider>
+        <Vietnamese>
+          <HomePartners />
+        </Vietnamese>
+      </LanguageProvider>,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Mọi nơi')).toBeInTheDocument();
     });
   });
 });

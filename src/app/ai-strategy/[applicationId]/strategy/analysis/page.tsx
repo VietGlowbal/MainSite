@@ -13,6 +13,49 @@ import { createClient } from '@/lib/supabase/server';
  * this, a linked-to or bookmarked analysis URL could run (and pay for) an
  * AI call against an empty profile.
  */
+/**
+ * This application's own `course_applications.candidate_confirmed_at` — NOT
+ * the global `student_profiles.confirmed_at`, which is shared across every
+ * application a student has and would show the wrong date (or another
+ * application's date) here. Might not exist yet on a deployment where
+ * `supabase-per-application-onboarding.sql` hasn't run — this page must not
+ * 500 over a purely cosmetic "confirmed on {date}" line, so the read
+ * degrades to "unknown" (falls back to a base select with just the two
+ * columns this page already needed) rather than failing.
+ */
+async function loadApplication(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  applicationId: string,
+): Promise<{ courseName: string | null; universityName: string | null; confirmedAt: string | null }> {
+  const full = await supabase
+    .from('course_applications')
+    .select('course_name, university_name, candidate_confirmed_at')
+    .eq('id', applicationId)
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!full.error) {
+    const row = full.data as
+      | { course_name: string | null; university_name: string | null; candidate_confirmed_at: string | null }
+      | null;
+    return {
+      courseName: row?.course_name ?? null,
+      universityName: row?.university_name ?? null,
+      confirmedAt: row?.candidate_confirmed_at ?? null,
+    };
+  }
+
+  const base = await supabase
+    .from('course_applications')
+    .select('course_name, university_name')
+    .eq('id', applicationId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  const row = base.data as { course_name: string | null; university_name: string | null } | null;
+  return { courseName: row?.course_name ?? null, universityName: row?.university_name ?? null, confirmedAt: null };
+}
+
 export default async function StrategyAnalysisPage({
   params,
 }: {
@@ -33,8 +76,23 @@ export default async function StrategyAnalysisPage({
     redirect(onboardingStepHref(step, applicationId));
   }
 
+  const { courseName, universityName, confirmedAt } = await loadApplication(
+    supabase,
+    user.id,
+    applicationId,
+  );
+
+  const matchingSubtitle =
+    universityName && courseName ? `${universityName} — ${courseName}` : undefined;
+
   // Generates whichever of the two analyses is missing, then hands off to
   // `analysis/portrait`. The reports themselves are server-rendered pages —
   // see analysis-workspace.tsx on why generation stays in one place.
-  return <AnalysisWorkspace applicationId={applicationId} />;
+  return (
+    <AnalysisWorkspace
+      applicationId={applicationId}
+      confirmedAt={confirmedAt}
+      matchingSubtitle={matchingSubtitle}
+    />
+  );
 }

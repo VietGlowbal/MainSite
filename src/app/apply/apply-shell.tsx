@@ -20,7 +20,10 @@ export function ApplyShell({ children }: {
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
       <SiteNavigation tone="light" showSaved />
 
-      <main className="relative min-h-screen pb-gb-9xl pt-gb-6xl">
+      <main
+        id="portal"
+        className="relative min-h-screen scroll-mt-gb-9xl pb-gb-9xl pt-gb-6xl"
+      >
         <div
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-[480px]"

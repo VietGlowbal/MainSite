@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { Stepper, type StepperStep } from './stepper';
 
 /** The AI strategy spine. Steps 4 and 5 sit behind the paywall. */
@@ -103,5 +103,34 @@ describe('Stepper', () => {
     expect(
       screen.getByRole('navigation', { name: 'Your application journey' }),
     ).toBeInTheDocument();
+  });
+
+  it('respects explicit completion state for editable journeys', () => {
+    const editable = COURSE_JOURNEY.map((step, index) => ({
+      ...step,
+      complete: index === 0,
+    }));
+
+    render(<Stepper steps={editable} currentIndex={3} />);
+    const list = steps();
+    const marker = (li: HTMLElement) => li.querySelector('span[class*="rounded-gb-full"]');
+
+    expect(marker(list[0]!)?.querySelector('svg')).not.toBeNull();
+    expect(marker(list[1]!)?.querySelector('svg')).toBeNull();
+    expect(marker(list[1]!)?.textContent).toBe('2');
+  });
+
+  it('supports client-managed step selection', () => {
+    const selected: string[] = [];
+    render(
+      <Stepper
+        steps={COURSE_JOURNEY}
+        currentIndex={0}
+        onStepSelect={(key) => selected.push(key)}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Prepare documents/ }));
+    expect(selected).toEqual(['documents']);
   });
 });

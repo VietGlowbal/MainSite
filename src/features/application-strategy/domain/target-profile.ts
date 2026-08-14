@@ -12,11 +12,8 @@ import { TARGET_PROFILE_FIELDS, type CvTargetProfile, type DataOrigin, type Targ
  * mean the badge changes between runs for the same field, and the badge is the
  * student's only signal for which values they are the authority on.
  *
- * WHY THE LABELS ARE VIETNAMESE AND NOT RUN THROUGH t(). The rest of
- * /ai-strategy hardcodes Vietnamese, the approved frame for this screen is drawn
- * in Vietnamese, and `careerAlignment` is drawn in English in that same frame.
- * Matching the frame exactly beats internal consistency here; a dictionary pass
- * can lift all of /ai-strategy at once later.
+ * English is the source locale. The workspace passes these strings through
+ * `t()` so both locales use the same field definitions.
  */
 
 export type TargetProfileFieldDef = {
@@ -36,57 +33,57 @@ export const TARGET_PROFILE_FIELD_DEFS: readonly TargetProfileFieldDef[] = [
   {
     key: 'careerDirection',
     label: 'Career direction',
-    hint: 'Bạn muốn đi tới đâu sau khi tốt nghiệp.',
+    hint: 'Where do you want to go after graduation.',
     origin: 'profile',
-    example: 'Ví dụ: trở thành kỹ sư dữ liệu trong lĩnh vực y tế tại Đông Nam Á.',
+    example: 'Example: become a data engineer in healthcare in Southeast Asia.',
     rows: 3,
   },
   {
     key: 'universityPositioning',
     label: 'University positioning',
-    hint: 'Trường này tự định vị mình như thế nào.',
+    hint: 'How does this university position itself?',
     origin: 'university',
-    example: 'Ví dụ: đại học nghiên cứu chuyên sâu, xếp hạng cao về khoa học máy tính.',
+    example: 'Example: a research-intensive university highly ranked for computer science.',
     rows: 3,
   },
   {
     key: 'educationPhilosophy',
     label: 'Education philosophy',
-    hint: 'Cách trường dạy và điều họ coi trọng ở sinh viên.',
+    hint: 'How the university teaches and what it values in students.',
     origin: 'university',
-    example: 'Ví dụ: học qua dự án, chú trọng nền tảng lý thuyết vững.',
+    example: 'Example: project-based learning with a strong theoretical foundation.',
     rows: 3,
   },
   {
     key: 'environment',
     label: 'Environment',
-    hint: 'Môi trường học tập bạn sẽ bước vào.',
+    hint: 'The learning environment you will enter.',
     origin: 'university',
-    example: 'Ví dụ: lớp nhỏ, cộng đồng quốc tế, gắn với doanh nghiệp.',
+    example: 'Example: small classes, an international community, and strong industry links.',
     rows: 3,
   },
   {
     key: 'programmeObjectives',
     label: 'Programme objectives',
-    hint: 'Chương trình này cam kết đào tạo ra điều gì.',
+    hint: 'What this programme promises its graduates will be able to do.',
     origin: 'university',
-    example: 'Ví dụ: đào tạo kỹ sư có thể xây dựng hệ thống dữ liệu quy mô lớn.',
+    example: 'Example: train engineers who can build large-scale data systems.',
     rows: 4,
   },
   {
     key: 'priorityCapabilities',
     label: 'Priority capabilities',
-    hint: 'Những năng lực CV của bạn cần chứng minh rõ nhất.',
+    hint: 'The capabilities your CV most needs to prove.',
     origin: 'mixed',
-    example: 'Ví dụ: tư duy phân tích, lập trình, làm việc nhóm liên ngành.',
+    example: 'Example: analytical thinking, programming, and interdisciplinary teamwork.',
     rows: 4,
   },
   {
     key: 'careerAlignment',
     label: 'Career Alignment',
-    hint: 'Điểm gặp nhau giữa định hướng của bạn và chương trình này.',
+    hint: 'Where your direction and this programme meet.',
     origin: 'mixed',
-    example: 'Ví dụ: chương trình có hướng dữ liệu y tế, khớp với mục tiêu của bạn.',
+    example: 'Example: the programme focuses on health data, matching your career goal.',
     rows: 4,
   },
 ];

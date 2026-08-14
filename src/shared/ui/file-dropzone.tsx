@@ -30,6 +30,7 @@ export function FileDropzone({
   accept,
   multiple = false,
   label = 'Click to upload',
+  secondaryLabel = 'or drag and drop',
   hint,
   disabled = false,
   className,
@@ -41,6 +42,8 @@ export function FileDropzone({
   multiple?: boolean;
   /** The rose call to action. "or drag and drop" is appended. */
   label?: string;
+  /** Localisable text that follows the primary upload action. */
+  secondaryLabel?: string;
   /** The small print under it — formats and size limit. */
   hint?: string | undefined;
   disabled?: boolean;
@@ -110,7 +113,7 @@ export function FileDropzone({
 
         <span className="flex flex-col gap-gb-xxs">
           <span className="text-gb-sm text-fg-tertiary">
-            <span className="font-semibold text-brand">{label}</span> or drag and drop
+            <span className="font-semibold text-brand">{label}</span> {secondaryLabel}
           </span>
           {hint ? <span className="text-gb-xs text-fg-muted">{hint}</span> : null}
         </span>

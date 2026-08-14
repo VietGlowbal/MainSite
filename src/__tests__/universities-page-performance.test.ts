@@ -84,9 +84,18 @@ describe('UniversitiesPage performance', () => {
     expect(provider).toContain("await import('@/lib/supabase/client')");
   });
 
-  it('keeps the dynamic save label out of the DOM translator snapshot', () => {
+  it('keeps the localized dynamic save label out of the DOM translator snapshot', () => {
     const client = readFileSync('src/app/universities/university-list-client.tsx', 'utf8');
+    const markerIndex = client.indexOf('data-no-auto-translate');
+    const buttonStart = client.lastIndexOf('<button', markerIndex);
+    const buttonEnd = client.indexOf('</button>', markerIndex);
+    const saveButton = client.slice(buttonStart, buttonEnd);
 
-    expect(client).toMatch(/data-no-auto-translate[\s\S]*aria-pressed=\{saved\}[\s\S]*aria-label=\{saved/);
+    expect(markerIndex).toBeGreaterThan(-1);
+    expect(buttonStart).toBeGreaterThan(-1);
+    expect(buttonEnd).toBeGreaterThan(markerIndex);
+    expect(saveButton).toMatch(
+      /data-no-auto-translate[\s\S]*aria-pressed=\{saved\}[\s\S]*aria-label=\{t\(saved/,
+    );
   });
 });

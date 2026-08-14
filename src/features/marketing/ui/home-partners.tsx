@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Button } from '@/shared/ui';
+import { useT } from '@/lib/i18n';
 import {
   ORBIT_SAMPLES,
   ORBIT_TOTAL_LENGTH,
@@ -356,6 +357,7 @@ const NODE_CLASSES = [
  * the way it does.
  */
 function StudyWord({ word }: { word: string }) {
+  const t = useT();
   /** `nonce` exists to key the two animated spans: React reuses a DOM node when
       only its text changes, and a reused node does not replay a CSS animation.
       Bumping it on every swap forces a fresh element, which is what makes the
@@ -440,7 +442,7 @@ function StudyWord({ word }: { word: string }) {
         {...(shown.word === DEFAULT_STUDY_WORD ? {} : { 'data-no-auto-translate': true })}
         className={`${wordClasses} animate-gb-word-flip-in motion-reduce:animate-none`}
       >
-        {shown.word}
+        {shown.word === DEFAULT_STUDY_WORD ? t(shown.word) : shown.word}
       </span>
     </span>
   );

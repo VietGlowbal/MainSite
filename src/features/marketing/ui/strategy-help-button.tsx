@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useT } from '@/lib/i18n';
 import { flattenGuide, STRATEGY_GUIDE, stepIndexForPath } from '../domain/strategy-guide';
 import { GuidePanel } from './strategy-guide';
 import { ICONS, KitIcon, Modal } from '@/shared/ui';
@@ -79,6 +80,7 @@ function isSuppressed(pathname: string): boolean {
 }
 
 export function StrategyHelpButton() {
+  const t = useT();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
@@ -101,8 +103,8 @@ export function StrategyHelpButton() {
       <button
         type="button"
         onClick={openAtCurrentPage}
-        aria-label="How GlowBal works"
-        title="How GlowBal works"
+        aria-label={t('How GlowBal works')}
+        title={t('How GlowBal works')}
         className="fixed bottom-gb-3xl right-gb-3xl z-40 flex size-gb-7xl items-center justify-center rounded-gb-full bg-brand text-white shadow-gb-lg transition-transform hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand motion-reduce:transition-none motion-reduce:hover:scale-100"
       >
         <span aria-hidden="true" className="font-display text-gb-xl font-semibold">
@@ -113,7 +115,7 @@ export function StrategyHelpButton() {
       <Modal
         open={open}
         onClose={() => setOpen(false)}
-        label="How GlowBal works"
+        label={t('How GlowBal works')}
         className="max-w-[72rem] p-0"
       >
         {/* A DEFINITE height, not `max-h`: `GuidePanel` is `h-full` and its
@@ -124,7 +126,7 @@ export function StrategyHelpButton() {
         <div className="flex h-[min(88vh,46rem)] flex-col">
           <div className="flex shrink-0 items-start justify-between gap-gb-lg px-gb-3xl pt-gb-3xl">
             <div className="flex flex-col">
-              <p className="text-gb-sm font-semibold text-fg">How GlowBal works</p>
+              <p className="text-gb-sm font-semibold text-fg">{t('How GlowBal works')}</p>
               <p className="text-gb-xs text-fg-muted">
                 Step {activeIndex + 1} of {flat.length}
               </p>
