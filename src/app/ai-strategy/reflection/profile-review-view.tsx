@@ -7,6 +7,7 @@ import {
   destinationFlag,
   destinationLabel,
   destinationIdsFromStored,
+  intakeDisplayLabel,
   studyLevelLabel,
   subjectById,
   type StudyLevel,
@@ -152,7 +153,9 @@ export function ProfileReviewView({
                 : undefined
           }
         />
-        <Fact label={t('Target intake')} value={data.targetIntake} />
+        {/* Never the raw column — it holds season tokens from this flow and
+            month tokens from /profile, neither of which is a sentence. */}
+        <Fact label={t('Target intake')} value={intakeDisplayLabel(data.targetIntake)} />
       </Section>
 
       <Section

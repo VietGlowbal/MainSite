@@ -6,7 +6,7 @@ import { regions, subjectFamilies, supportNeeds } from '@/lib/onboarding-options
 import type { StudentProfile } from '@/lib/types';
 import { Input, Panel, PanelHeader, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import { SaveBar, SelectOptions, TagInput, type SaveMessage } from '../_form-parts';
+import { IntakeFields, SaveBar, SelectOptions, TagInput, type SaveMessage } from '../_form-parts';
 
 const BUDGET_OPTIONS = [
   // The planning test's four values stay first so a saved answer is visibly
@@ -141,22 +141,11 @@ export function PreferencesForm({
           >
             <SelectOptions options={STUDY_MODES} value={studyMode} />
           </Select>
-          <Input
-            name="target_intake"
-            label="Target intake"
-            placeholder="e.g. Sep 2027"
-            value={intake}
-            onChange={(e) => setIntake(e.target.value)}
-          />
-          <Input
-            name="application_cycle_year"
-            type="number"
-            min="2025"
-            max="2035"
-            label="Application cycle year"
-            placeholder="e.g. 2027"
-            value={cycleYear}
-            onChange={(e) => setCycleYear(e.target.value)}
+          <IntakeFields
+            intake={intake}
+            onIntakeChange={setIntake}
+            cycleYear={cycleYear}
+            onCycleYearChange={setCycleYear}
           />
           <Input
             name="campus_preferences"
