@@ -69,6 +69,7 @@ export async function POST(request: NextRequest) {
       if (fulfillError) {
         return NextResponse.json({ error: 'Failed to fulfill payment transaction' }, { status: 500 });
       }
+      const status = (fulfillResult as { status?: string } | null)?.status;
 
       // Update manual_payment_reviews state
       await admin
@@ -81,12 +82,26 @@ export async function POST(request: NextRequest) {
         })
         .eq('transaction_id', transactionId);
 
+      if (!['fulfilled', 'already_fulfilled'].includes(status ?? '')) {
+        return NextResponse.json(
+          {
+            success: false,
+            action: 'confirm',
+            status: status ?? 'paid_unfulfilled',
+            error: status === 'paid_unfulfilled'
+              ? 'Payment received but access could not be activated'
+              : 'Payment could not be confirmed',
+          },
+          { status: 409 },
+        );
+      }
+
       after(() => dispatchDueManualPaymentJobs(10).catch(() => undefined));
 
       return NextResponse.json({
         success: true,
         action: 'confirm',
-        status: (fulfillResult as { status?: string })?.status ?? 'fulfilled',
+        status,
       });
     } else {
       // action === 'reject'
