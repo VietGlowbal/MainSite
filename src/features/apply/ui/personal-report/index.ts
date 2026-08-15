@@ -3,6 +3,7 @@ export { AreasForGrowthView } from './areas-for-growth';
 export { CoreIdentityView } from './core-identity';
 export { DrivingForceView } from './driving-force';
 export { EmergingThemesView } from './emerging-themes';
+export { IdentityEvidenceProfileView } from './identity-evidence-profile';
 export { KeyTakeawaysView } from './key-takeaways';
 export { PersonalCanvasView, PERSONAL_REPORT_SECTION_IDS } from './personal-canvas';
 export {
