@@ -112,6 +112,7 @@ export {
 export type { DestinationOption } from './destination-catalog';
 export {
   generateIntakeOptions,
+  intakeDisplayLabel,
   intakeLabel,
   intakeOptionId,
   intakeOptionsWith,

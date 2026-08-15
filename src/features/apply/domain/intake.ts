@@ -29,6 +29,7 @@
  */
 
 import { z } from 'zod';
+import { formatMonthValue, parseMonthValue } from '@/shared/lib/month-value';
 
 export type IntakeSeason = 'autumn' | 'spring';
 
@@ -208,6 +209,22 @@ export function parseIntake(stored: string | null | undefined): IntakeChoice | u
   const laterToken = /^later-(\d{4})$/i.exec(value);
   if (laterToken?.[1]) return { type: 'later', afterYear: Number(laterToken[1]) };
 
+  /*
+   * The month token /profile's picker writes ("2027-09").
+   *
+   * That control is finer-grained than this one — it asks for a month, this
+   * question offers two seasons — so the month is rounded to the season it
+   * falls in, splitting the year at July. It is a read-only accommodation: a
+   * student who set a month on their profile sees this question answered
+   * rather than blank, and re-answering it here writes the season back, which
+   * is a coarser answer but the one they just gave. See `intakeDisplayLabel`
+   * for showing the stored value without rounding it.
+   */
+  const month = parseMonthValue(value);
+  if (month) {
+    return { type: 'specific', season: month.month >= 7 ? 'autumn' : 'spring', year: month.year };
+  }
+
   // The previous form's display strings.
   const laterText = /^later than (\d{4})$/i.exec(value);
   if (laterText?.[1]) return { type: 'later', afterYear: Number(laterText[1]) };
@@ -245,6 +262,31 @@ export function intakeLabel(choice: IntakeChoice): { label: string; detail: stri
     case 'undecided':
       return { label: 'Not decided yet', detail: 'I’m still exploring my options', glyph: '❔' };
   }
+}
+
+/**
+ * What to print for a stored `target_intake`, whichever generation wrote it.
+ *
+ * Three writers have shared this column: the reflection flow (tokens —
+ * `"autumn-2027"`, `"later-2029"`, `"undecided"`), /profile's month picker
+ * (`"2027-09"`), and the free-text box that picker replaced (anything at all).
+ * Every screen showing this value was printing it raw, so a student who
+ * answered the reflection step saw "autumn-2027" on their profile.
+ *
+ * A month is shown as the month — NOT rounded through `parseIntake` to
+ * "Autumn / Fall 2027", which would show a student a season they did not pick.
+ * A value no reader understands is returned as typed rather than dropped: it is
+ * still what the student wrote.
+ */
+export function intakeDisplayLabel(stored: string | null | undefined): string | null {
+  const value = stored?.trim();
+  if (!value) return null;
+
+  const month = formatMonthValue(value);
+  if (month) return month;
+
+  const choice = parseIntake(value);
+  return choice ? intakeLabel(choice).label : value;
 }
 
 /**
