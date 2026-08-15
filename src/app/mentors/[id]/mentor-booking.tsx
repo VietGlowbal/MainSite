@@ -471,7 +471,6 @@ function BookingIntake({
   const [questions, setQuestions] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<'vnpay' | 'manual_bank_transfer'>('vnpay');
   const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
 
   const fee = computeServiceFee(amount);
@@ -494,12 +493,12 @@ function BookingIntake({
     try {
       const key = idempotencyKey ?? crypto.randomUUID();
       setIdempotencyKey(key);
-      const res = await fetch(paymentMethod === 'manual_bank_transfer' ? '/api/payments/manual/checkout' : '/api/payments/vnpay/checkout', {
+      const res = await fetch('/api/payments/manual/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           product: 'mentorship',
-          ...(paymentMethod === 'manual_bank_transfer' ? { provider: 'manual_bank_transfer' } : {}),
+          provider: 'manual_bank_transfer',
           slot_id: slot.id,
           help_topic: finalTopic,
           help_questions: questions.trim(),
@@ -513,11 +512,11 @@ function BookingIntake({
         error?: string;
       };
       if (!res.ok) throw new Error(t(body.error ?? 'Could not start checkout.'));
-      if (!(paymentMethod === 'manual_bank_transfer' ? body.status_url : body.checkout_url)) {
+      if (!body.status_url) {
         throw new Error(t('The payment link was missing. Please try again.'));
       }
 
-      window.location.href = (paymentMethod === 'manual_bank_transfer' ? body.status_url : body.checkout_url)!;
+      window.location.href = body.status_url;
     } catch (err) {
       setError(err instanceof Error ? err.message : t('Could not start checkout.'));
       setSubmitting(false);
@@ -615,7 +614,7 @@ function BookingIntake({
           </div>
         </div>
 
-        <PaymentMethodSelector amountVnd={convertToVnd(total, currency)} value={paymentMethod} onChange={setPaymentMethod} />
+        <PaymentMethodSelector amountVnd={convertToVnd(total, currency)} value="manual_bank_transfer" onChange={() => undefined} />
 
         {error ? (
           <p role="alert" className="text-gb-sm text-fg-error">
@@ -630,7 +629,7 @@ function BookingIntake({
           <Button variant="primary" onClick={submit} disabled={submitting}>
             {submitting
               ? t('Redirecting…')
-              : paymentMethod === 'manual_bank_transfer' ? t('Continue with manual transfer') : t('Continue with VNPay')}
+              : t('Continue with manual transfer')}
           </Button>
         </div>
       </div>

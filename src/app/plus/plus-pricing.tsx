@@ -28,8 +28,8 @@ export function PlusPricing({
   const [currency, setCurrency] = useState<DisplayCurrency>(DEFAULT_DISPLAY_CURRENCY);
   const { t } = useLanguage();
   const [selectedPkg, setSelectedPkg] = useState<PlusPackage | null>(null);
-  const [paymentMethod, setPaymentMethod] = useState<'vnpay' | 'manual_bank_transfer'>('vnpay');
   const [agreedTerms, setAgreedTerms] = useState(false);
+  const [promoCode, setPromoCode] = useState('');
   const [termsOpen, setTermsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,36 +46,53 @@ export function PlusPricing({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(
-        paymentMethod === 'manual_bank_transfer'
-          ? '/api/payments/manual/checkout'
-          : '/api/payments/vnpay/checkout',
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            product: 'plus',
-            ...(paymentMethod === 'manual_bank_transfer' ? { provider: 'manual_bank_transfer' } : {}),
-            plan: selectedPkg.id,
-            currency,
-            applicationId: applicationId ?? undefined,
-            idempotency_key: crypto.randomUUID(),
-          }),
-        },
-      );
+      const res = await fetch('/api/payments/manual/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          product: 'plus',
+          provider: 'manual_bank_transfer',
+          plan: selectedPkg.id,
+          currency,
+          applicationId: applicationId ?? undefined,
+          idempotency_key: crypto.randomUUID(),
+        }),
+      });
       const data = await res.json();
-      if (
-        !res.ok ||
-        (paymentMethod === 'vnpay' && !data.checkout_url) ||
-        (paymentMethod === 'manual_bank_transfer' && !data.status_url)
-      ) {
+      if (!res.ok || !data.status_url) {
         throw new Error(data.error ?? t('Could not start checkout'));
       }
-      window.location.assign(
-        (paymentMethod === 'manual_bank_transfer' ? data.status_url : data.checkout_url) as string,
-      );
+      window.location.assign(data.status_url as string);
     } catch (err) {
       setError(err instanceof Error ? err.message : t('Something went wrong'));
+      setLoading(false);
+    }
+  }
+
+  async function handlePromoRedeem() {
+    if (!selectedPkg || loading || !promoCode.trim()) return;
+    if (!signedIn) {
+      setSelectedPkg(null);
+      const redirect = `/plus${applicationId ? `?application=${applicationId}` : ''}`;
+      router.push(`/auth?mode=signup&redirect=${encodeURIComponent(redirect)}`);
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/plus/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: promoCode.trim(), plan: selectedPkg.id }),
+      });
+      const data = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(t(data.error ?? 'Could not redeem promo code'));
+      setSelectedPkg(null);
+      setPromoCode('');
+      setLoading(false);
+      router.refresh();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('Could not redeem promo code'));
       setLoading(false);
     }
   }
@@ -156,7 +173,7 @@ export function PlusPricing({
               onSelect={() => {
                 setError(null);
                 setAgreedTerms(false);
-                setPaymentMethod('vnpay');
+                setPromoCode('');
                 setSelectedPkg(pkg);
               }}
             />
@@ -199,10 +216,37 @@ export function PlusPricing({
             <PaymentMethodSelector
               id={`plus-payment-${selectedPkg.id}`}
               name={`plus-payment-${selectedPkg.id}`}
-              value={paymentMethod}
-              onChange={setPaymentMethod}
+              value="manual_bank_transfer"
               amountVnd={selectedPkg.amountVnd}
             />
+
+            <div className="rounded-xl border border-[#EDE9EE] bg-white p-3.5">
+              <label
+                htmlFor="plus-promo-code"
+                className="mb-2 block text-xs font-bold text-[#141118]"
+              >
+                {t('Promo code')}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="plus-promo-code"
+                  type="text"
+                  autoComplete="off"
+                  value={promoCode}
+                  onChange={(event) => setPromoCode(event.target.value)}
+                  className="min-w-0 flex-1 rounded-lg border border-[#EDE9EE] px-3 py-2 text-sm text-[#141118] outline-none focus:border-[#E11D48] focus:ring-2 focus:ring-[#E11D48]/15"
+                  placeholder={t('Enter promo code')}
+                />
+                <button
+                  type="button"
+                  disabled={loading || promoCode.trim().length === 0}
+                  onClick={() => void handlePromoRedeem()}
+                  className="rounded-lg border border-[#E11D48] px-4 py-2 text-sm font-bold text-[#E11D48] transition-colors hover:bg-[#E11D48]/5 disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {t('Apply code')}
+                </button>
+              </div>
+            </div>
 
             {/* Terms and Conditions Checkbox */}
             <div className="flex items-start gap-3 rounded-xl border border-[#EDE9EE] bg-[#FBF9FA] p-3.5 text-xs text-[#141118]">

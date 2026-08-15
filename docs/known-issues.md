@@ -1659,6 +1659,22 @@ confirmed, so affected accounts remain Free until it runs successfully.
 
 | `supabase-manual-payment-fulfillment-repair.sql`, `supabase-manual-payment-subscription-conflict-repair.sql`, `src/app/api/admin/payments/manual/confirm/route.ts`, `src/app/api/admin/payments/review-action/route.ts`, `src/lib/payments/manual-payment-migration.test.ts`, `src/app/api/admin/payments/manual/review-security.test.ts` |
 
+## 5w. Plus promo redemption — implemented 2026-08-15, production migration pending
+
+The Plus checkout dialog now accepts the fixed `glowbalglowbal` campaign. The
+browser never grants an entitlement: a same-origin authenticated API validates
+the code, and a service-role-only database function performs the redemption and
+Plus grant in one transaction. `plus_promo_redemptions` has a unique
+`(user_id, campaign)` key, so retries or concurrent requests cannot extend the
+same account twice. The selected package determines the duration and AI-credit
+grant from a database-side allowlist.
+
+**Action required:** run `supabase-plus-promo-redemption.sql` in production.
+Until it is applied, the API intentionally returns a temporary-unavailable
+response and does not modify the user's entitlement.
+
+| `supabase-plus-promo-redemption.sql`, `src/app/api/plus/redeem/route.ts`, `src/app/plus/plus-pricing.tsx`, `src/app/api/plus/redeem/route.test.ts`, `src/app/plus/plus-pricing.test.tsx`, `src/lib/payments/plus-promo-migration.test.ts` |
+
 ## 6. Open questions for the designer / owner
 
 1. **The sitemap frame (`123:2864`, "Dg-final") no longer exists in the file.**

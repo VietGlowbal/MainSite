@@ -8,6 +8,7 @@ type Status = {
   status: string;
   status_label: string;
   reference: string;
+  transfer_description: string;
   amount_vnd: number;
   expires_at: string;
   can_claim: boolean;
@@ -240,11 +241,11 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
             <span className="font-medium text-fg-brand text-xs sm:text-sm">
               {t('Transfer reference (Mandatory)')}
             </span>
-            <CopyButton text={status.reference} label={t('Copy reference')} />
+            <CopyButton text={status.transfer_description || status.reference} label={t('Copy reference')} />
           </div>
           <div className="flex items-center justify-between rounded-lg border border-brand/20 bg-surface px-3 py-2">
             <code className="font-mono text-sm font-bold text-brand select-all">
-              {status.reference}
+              {status.transfer_description || status.reference}
             </code>
           </div>
           <p className="text-[11px] text-fg-tertiary">
