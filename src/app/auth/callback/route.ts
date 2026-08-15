@@ -3,20 +3,15 @@ import { cookies } from 'next/headers';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { captureReferral, REF_COOKIE } from '@/lib/referrals';
+import { sendEmail } from '@/lib/send-email';
+import { welcomeEmail } from '@/lib/emails/welcome';
 
-/** Redirect that also clears the referral cookie once it's been captured. */
 function redirectClearingRef(url: string): NextResponse {
   const res = NextResponse.redirect(url);
   res.cookies.set(REF_COOKIE, '', { path: '/', maxAge: 0 });
   return res;
 }
 
-/**
- * Resolve the canonical site URL once. We prefer NEXT_PUBLIC_SITE_URL so
- * production deploys always redirect users to the custom domain instead of
- * the *.vercel.app hostname they may have arrived on. Falls back to the
- * request origin in dev.
- */
 function canonicalOrigin(requestOrigin: string): string {
   let v = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, '');
   if (v && !/^https?:\/\//i.test(v)) {
@@ -37,14 +32,11 @@ export async function GET(request: Request) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // Check if user has completed onboarding
       const {
         data: { user },
       } = await supabase.auth.getUser();
 
       if (user) {
-        // Referral attribution (last-touch): credit the ambassador whose link
-        // this visitor last came through before authenticating. Best-effort.
         try {
           const refCode = (await cookies()).get(REF_COOKIE)?.value;
           if (refCode) {
@@ -54,13 +46,7 @@ export async function GET(request: Request) {
           /* non-fatal — never block auth on attribution */
         }
 
-        // Capture the phone number collected at sign-up. It rides along in user
-        // metadata (set during signUp) because there's no session to write the
-        // profile until the email link is clicked. Backfill it onto the profile
-        // once, here, the first time we have a session. Best-effort.
         const metaPhone = (user.user_metadata?.phone as string | undefined)?.trim();
-        // DOB rides along the same way (YYYY-MM-DD) and is backfilled onto the
-        // contact record here the first time we have a session.
         const metaDob = (user.user_metadata?.date_of_birth as string | undefined)?.trim();
         if (metaPhone || metaDob) {
           try {
@@ -81,17 +67,12 @@ export async function GET(request: Request) {
             if (metaDob && /^\d{4}-\d{2}-\d{2}$/.test(metaDob) && !existing?.date_of_birth) {
               patch.date_of_birth = metaDob;
             }
-            // Only write if there's something new beyond the keys we always set.
             if (Object.keys(patch).length > 2) {
               await admin.from('student_profiles').upsert(patch, { onConflict: 'user_id' });
             }
           } catch {
-            /* non-fatal — the values are still on the auth user's metadata */
+            /* non-fatal — values remain on auth metadata */
           }
-        }
-
-        if (safeNext) {
-          return redirectClearingRef(`${origin}${safeNext}`);
         }
 
         const { data: profile } = await supabase
@@ -100,13 +81,40 @@ export async function GET(request: Request) {
           .eq('user_id', user.id)
           .maybeSingle();
 
-        // Consider onboarding complete if the flag is set OR if the profile
-        // already has core fields filled in (covers cases where the flag
-        // wasn't set due to a race condition or schema migration)
-        const hasCompletedOnboarding =
+        const hasCompletedOnboarding = Boolean(
           profile?.onboarding_completed ||
-          (profile?.study_level && profile?.preferred_countries?.length > 0);
+            (profile?.study_level && profile?.preferred_countries?.length > 0),
+        );
 
+        // Idempotent event key means repeated callback visits cannot produce a
+        // second welcome email. Failure is intentionally non-fatal to auth.
+        if (user.email) {
+          const fullName = (user.user_metadata?.full_name as string | undefined)?.trim();
+          const firstName = fullName?.split(/\s+/)[0] || undefined;
+          const defaultNext = hasCompletedOnboarding ? '/ai-strategy' : '/onboarding';
+          const welcomeResult = await sendEmail({
+            to: user.email,
+            subject: 'Welcome to GlowBal — you’re in',
+            html: welcomeEmail({
+              firstName,
+              nextUrl: `${origin}${safeNext ?? defaultNext}`,
+              onboardingComplete: hasCompletedOnboarding,
+            }),
+            text: `Welcome to GlowBal. Your account is ready. Continue here: ${origin}${safeNext ?? defaultNext}`,
+            category: 'product_transactional',
+            template: 'welcome',
+            userId: user.id,
+            idempotencyKey: `welcome:${user.id}`,
+            tags: { kind: 'welcome' },
+          });
+          if (!welcomeResult.ok) {
+            console.error('[auth/callback] welcome email failed', welcomeResult.error);
+          }
+        }
+
+        if (safeNext) {
+          return redirectClearingRef(`${origin}${safeNext}`);
+        }
         if (hasCompletedOnboarding) {
           return redirectClearingRef(`${origin}/universities`);
         }
