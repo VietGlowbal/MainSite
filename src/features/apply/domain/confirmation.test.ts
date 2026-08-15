@@ -3,6 +3,8 @@ import { candidateReadiness } from './confirmation';
 import type { ReflectionValues } from './reflection';
 
 const READY: ReflectionValues = {
+  majors: [],
+  countries: [],
   achievements: [],
   activities: [],
 };
@@ -18,8 +20,6 @@ describe('candidateReadiness', () => {
   it('does not revive legacy majors, countries, study-level or intake gates when those fields are empty', () => {
     const readiness = candidateReadiness({
       ...READY,
-      majors: [],
-      countries: [],
       countryPreferenceFlexible: undefined,
       intendedLevel: undefined,
       intake: undefined,
