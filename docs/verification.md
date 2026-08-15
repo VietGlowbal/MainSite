@@ -336,9 +336,12 @@ describe — "`grep -rn MissingContent src/features/marketing` must be empty" �
 **not** met and was resolved a different way, so do not re-apply it as written:
 the components still contain `MissingContent`, and `/` avoids those unfinished
 states by passing `showPlaceholders={false}` to the partly written feature and
-scholarship content. Testimonials and FAQ are now finished sections on both
-`/` and `/dev/home`; testimonials use supplied anonymous quotes and explicitly
-illustrative portraits rather than fabricated student identities.
+scholarship content. Testimonials and FAQ are finished sections; testimonials
+use supplied anonymous quotes and explicitly illustrative portraits rather than
+fabricated student identities. **Since 2026-08-15 the testimonials section is
+hidden on `/`** at the owner's request — `HomeTestimonials` is unchanged and
+still renders on `/dev/home`; re-enabling it means re-adding the import and the
+element in `src/app/page.tsx`.
 
 What must stay true instead is a **rendered** assertion, not a grep — and it
 already exists, in `tests/e2e/home-preview.spec.ts` → *"the real home page never

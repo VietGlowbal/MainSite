@@ -1,18 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import type { ProfileReviewData } from '@/features/apply/api';
 import {
   destinationFlag,
   destinationLabel,
   destinationIdsFromStored,
+  intakeDisplayLabel,
   studyLevelLabel,
   subjectById,
   type StudyLevel,
 } from '@/features/apply/domain';
-import { useT } from '@/lib/i18n';
+import { useLanguage } from '@/lib/i18n';
 import { Button, Panel, PanelHeader } from '@/shared/ui';
+import { ReflectionBreadcrumb } from '@/features/apply/ui';
 
 /**
  * Step 1 — "Before we start, check your information."
@@ -74,15 +76,36 @@ export function ProfileReviewView({
   data,
   applicationId,
   returnTo,
+  applicationLabel,
 }: {
   data: ProfileReviewData;
   applicationId?: string | undefined;
   returnTo?: string | undefined;
+  /** e.g. "Cambridge · Computer Science" — drives the in-page breadcrumb. */
+  applicationLabel?: string | undefined;
 }) {
-  const t = useT();
+  // `lang` as well as `t`: a formatted month is composed at render and can
+  // never be a dictionary key, and this route is one the page translator only
+  // ever runs dictionary-only on. See shared/lib/month-value.ts.
+  const { t, lang } = useLanguage();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // "✓ {section} updated" — set when this page is reached right after
+  // saving a profile editor opened from here (see `withReturn` callers on
+  // `/profile/*`, which append `?updated=`). Cleared from the URL once read
+  // so refreshing the page does not keep showing a stale confirmation.
+  const [justUpdated, setJustUpdated] = useState(searchParams.get('updated'));
+  useEffect(() => {
+    if (!searchParams.get('updated')) return;
+    const params = new URLSearchParams(searchParams);
+    params.delete('updated');
+    const query = params.toString();
+    router.replace(query ? `/ai-strategy/reflection?${query}` : '/ai-strategy/reflection', { scroll: false });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const selfHref = '/ai-strategy/reflection';
   const backHere = returnTo ? withReturn(selfHref, returnTo) : selfHref;
@@ -121,6 +144,12 @@ export function ProfileReviewView({
 
   return (
     <div className="flex flex-col gap-gb-2xl">
+      {applicationLabel ? (
+        <ReflectionBreadcrumb
+          items={[{ label: applicationLabel }, { label: t('Profile') }]}
+        />
+      ) : null}
+
       <div className="flex flex-col gap-gb-xs">
         <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
           {t('Before we start, check your information')}
@@ -131,6 +160,21 @@ export function ProfileReviewView({
           )}
         </p>
       </div>
+
+      {justUpdated ? (
+        <div className="flex items-center gap-gb-sm rounded-gb-lg border border-tier-safe bg-tier-safe/10 px-gb-lg py-gb-md text-gb-sm font-medium text-on-tier-safe">
+          <span aria-hidden="true">✓</span>
+          {t('{section} updated', { section: justUpdated })}
+          <button
+            type="button"
+            onClick={() => setJustUpdated(null)}
+            className="ml-auto text-fg-tertiary hover:text-fg-secondary"
+            aria-label={t('Dismiss')}
+          >
+            ×
+          </button>
+        </div>
+      ) : null}
 
       <Section
         title={t('Study plans')}
@@ -152,7 +196,9 @@ export function ProfileReviewView({
                 : undefined
           }
         />
-        <Fact label={t('Target intake')} value={data.targetIntake} />
+        {/* Never the raw column — it holds season tokens from this flow and
+            month tokens from /profile, neither of which is a sentence. */}
+        <Fact label={t('Target intake')} value={intakeDisplayLabel(data.targetIntake, lang)} />
       </Section>
 
       <Section

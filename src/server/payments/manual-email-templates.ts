@@ -84,16 +84,77 @@ export function renderManualFounderEmail(input: {
   };
 }
 
-export function renderManualOutcomeEmail(input: { confirmed: boolean; recipientName: string; reference: string; productLabel: string; statusUrl: string }): { subject: string; html: string; text: string } {
+export function renderManualOutcomeEmail(input: {
+  confirmed: boolean;
+  recipientName: string;
+  reference: string;
+  productLabel: string;
+  statusUrl: string;
+}): { subject: string; html: string; text: string } {
   const name = escapeHtml(input.recipientName);
   const reference = escapeHtml(input.reference);
   const product = escapeHtml(input.productLabel);
   const statusUrl = escapeHtml(input.statusUrl);
-  const title = input.confirmed ? 'Payment confirmed' : 'Payment needs support';
-  const viTitle = input.confirmed ? 'Đã xác nhận thanh toán' : 'Thanh toán cần hỗ trợ';
+
+  if (!input.confirmed) {
+    const title = 'Payment needs support';
+    const viTitle = 'Thanh toán cần hỗ trợ';
+    return {
+      subject: `GlowBal — ${viTitle} (${input.reference})`,
+      html: `<div style="font-family:Arial,sans-serif;color:#171717;line-height:1.6;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff"><h1 style="font-size:20px;color:#e11d48;margin-bottom:16px">${viTitle} / ${title}</h1><p>Xin chào <strong>${name}</strong>,</p><p>Yêu cầu thanh toán cho gói <strong>${product}</strong> cần được hỗ trợ thêm.</p><p>Mã giao dịch: <code>${reference}</code></p><p><a href="${statusUrl}" style="color:#2563eb;text-decoration:underline">Xem chi tiết trạng thái thanh toán</a></p><p>Nếu cần hỗ trợ, vui lòng liên hệ: <a href="mailto:glowbal.edu@gmail.com" style="color:#2563eb">glowbal.edu@gmail.com</a></p><div style="border-top:1px solid #e2e8f0;padding-top:16px;margin-top:20px;font-size:14px;color:#334155"><p style="margin:0 0 4px">Trân trọng,</p><p style="margin:0;font-weight:bold;color:#0f172a">GLOWBAL EDUCATION</p></div></div>`,
+      text: `${viTitle}\n\nXin chào ${input.recipientName},\n\nYêu cầu thanh toán cho gói ${input.productLabel} cần được hỗ trợ thêm.\nMã giao dịch: ${input.reference}\nChi tiết: ${input.statusUrl}\nEmail hỗ trợ: glowbal.edu@gmail.com\n\nTrân trọng,\nGLOWBAL EDUCATION`,
+    };
+  }
+
+  const communityUrl = 'https://zalo.me/g/ggrpc483k4joxoev6dat';
+  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fzalo.me%2Fg%2Fggrpc483k4joxoev6dat';
+
   return {
-    subject: `GlowBal — ${title} (${input.reference})`,
-    html: `<div style="font-family:Arial,sans-serif"><h1>${viTitle} / ${title}</h1><p>Hello ${name},</p><p>${input.confirmed ? `Your payment for ${product} was confirmed.` : `Your payment for ${product} needs support review.`}</p><p>Reference: <code>${reference}</code></p><p><a href="${statusUrl}">Open payment status</a></p></div>`,
-    text: `${title}\nHello ${input.recipientName}\nProduct: ${input.productLabel}\nReference: ${input.reference}\n${input.statusUrl}`,
+    subject: `GlowBal — Xác nhận thanh toán thành công (${input.reference})`,
+    html: `<div style="font-family:Arial,sans-serif;color:#171717;line-height:1.6;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff">
+  <div style="margin-bottom:20px">
+    <strong style="color:#e11d48;font-size:18px;letter-spacing:0.5px">GLOWBAL EDUCATION</strong>
+  </div>
+  <p style="font-size:15px;margin-bottom:16px">Xin chào <strong>${name}</strong>,</p>
+  <p style="font-size:15px;margin-bottom:16px">GlowBal xác nhận bạn đã thanh toán thành công gói <strong>${product}</strong>. Cảm ơn bạn đã tin tưởng và lựa chọn đồng hành cùng GlowBal trên hành trình chinh phục những cơ hội học tập toàn cầu.</p>
+  <p style="font-size:15px;margin-bottom:16px">Từ hôm nay, bạn đã chính thức trở thành một phần của <strong>GlowBal Community</strong> nơi bạn có thể kết nối với những bạn trẻ cùng mục tiêu, cập nhật cơ hội học bổng, chia sẻ kinh nghiệm du học và học hỏi từ các Achiever/Mentor trong cộng đồng.</p>
+  <p style="font-size:15px;margin-bottom:12px">Tham gia GlowBal Community: <a href="${communityUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600" target="_blank" rel="noopener noreferrer">${communityUrl}</a></p>
+  <p style="font-size:15px;margin-bottom:8px">QR tham gia cộng đồng:</p>
+  <div style="margin:12px 0 20px">
+    <img src="${qrUrl}" alt="QR tham gia cộng đồng" width="180" height="180" style="display:block;border-radius:8px;border:1px solid #cbd5e1" />
+  </div>
+  <p style="font-size:15px;margin-bottom:20px">Hy vọng GlowBal sẽ trở thành người bạn đồng hành hữu ích, giúp bạn tự tin hơn trong từng bước chuẩn bị hồ sơ và tiến gần hơn đến ngôi trường mơ ước.</p>
+  <p style="font-size:16px;font-weight:bold;color:#e11d48;letter-spacing:1px;margin:24px 0 20px">GO GLOW – GO GLOBAL</p>
+  <div style="border-top:1px solid #e2e8f0;padding-top:20px;font-size:14px;color:#334155;line-height:1.6">
+    <p style="margin:0 0 4px">Trân trọng,</p>
+    <p style="margin:0 0 8px;font-weight:bold;color:#0f172a">GLOWBAL EDUCATION</p>
+    <p style="margin:0 0 4px">Email: <a href="mailto:glowbal.edu@gmail.com" style="color:#2563eb;text-decoration:none">glowbal.edu@gmail.com</a></p>
+    <p style="margin:0">Website: <a href="https://glowbal-education.com" style="color:#2563eb;text-decoration:none" target="_blank" rel="noopener noreferrer">GlowBal Education</a></p>
+  </div>
+  <div style="margin-top:24px;padding-top:12px;border-top:1px dashed #cbd5e1;font-size:12px;color:#64748b">
+    Mã giao dịch: <code>${reference}</code> · <a href="${statusUrl}" style="color:#64748b;text-decoration:underline">Xem chi tiết trạng thái</a>
+  </div>
+</div>`,
+    text: `Xin chào ${input.recipientName},
+
+GlowBal xác nhận bạn đã thanh toán thành công gói ${input.productLabel}. Cảm ơn bạn đã tin tưởng và lựa chọn đồng hành cùng GlowBal trên hành trình chinh phục những cơ hội học tập toàn cầu.
+
+Từ hôm nay, bạn đã chính thức trở thành một phần của GlowBal Community nơi bạn có thể kết nối với những bạn trẻ cùng mục tiêu, cập nhật cơ hội học bổng, chia sẻ kinh nghiệm du học và học hỏi từ các Achiever/Mentor trong cộng đồng.
+
+Tham gia GlowBal Community: ${communityUrl}
+QR tham gia cộng đồng: ${communityUrl}
+
+Hy vọng GlowBal sẽ trở thành người bạn đồng hành hữu ích, giúp bạn tự tin hơn trong từng bước chuẩn bị hồ sơ và tiến gần hơn đến ngôi trường mơ ước.
+
+GO GLOW – GO GLOBAL
+
+Trân trọng,
+GLOWBAL EDUCATION
+Email: glowbal.edu@gmail.com
+Website: GlowBal Education
+
+---
+Mã giao dịch: ${input.reference}
+Chi tiết: ${input.statusUrl}`,
   };
 }

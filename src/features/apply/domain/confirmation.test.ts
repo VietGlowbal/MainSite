@@ -3,34 +3,29 @@ import { candidateReadiness } from './confirmation';
 import type { ReflectionValues } from './reflection';
 
 const READY: ReflectionValues = {
-  majors: ['computer-science'],
-  countries: ['GB'],
-  intendedLevel: 'Bachelor’s Degree',
-  intake: { type: 'undecided' },
+  majors: [],
+  countries: [],
   achievements: [],
   activities: [],
 };
 
 describe('candidateReadiness', () => {
-  it('is ready when the four required questions are answered and nothing needs review', () => {
+  it('does not require fields from the retired twelve-question reflection wizard', () => {
     const readiness = candidateReadiness(READY);
+
     expect(readiness.ready).toBe(true);
     expect(readiness.blockingIssues).toEqual([]);
   });
 
-  it('lists a blocking issue per unanswered required question', () => {
+  it('does not revive legacy majors, countries, study-level or intake gates when those fields are empty', () => {
     const readiness = candidateReadiness({
       ...READY,
-      majors: [],
-      countries: [],
       countryPreferenceFlexible: undefined,
+      intendedLevel: undefined,
+      intake: undefined,
     });
-    expect(readiness.ready).toBe(false);
-    expect(readiness.blockingIssues.map((issue) => issue.key)).toEqual(['majors', 'countries']);
-  });
 
-  it('treats "open to other countries" as answering the countries question', () => {
-    const readiness = candidateReadiness({ ...READY, countries: [], countryPreferenceFlexible: true });
+    expect(readiness.ready).toBe(true);
     expect(readiness.blockingIssues).toEqual([]);
   });
 

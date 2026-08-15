@@ -1616,6 +1616,68 @@ like once the loop is verified working with real added detail.
 
 | `src/features/ai-strategy-dashboard/ui/analysis-workspace.tsx`, `src/features/ai-strategy-dashboard/domain/onboarding.ts`, `src/app/ai-strategy/[applicationId]/strategy/analysis/portrait/page.tsx` |
 
+## 5v. Founder confirmed manual Plus, but the account stayed Free — fixed in code 2026-08-15, production migration pending
+
+Production readback first showed three manual Plus transactions with an in-time
+founder confirmation, `manual_payment_reviews.state='confirmed'`, but
+`payment_transactions.status='paid_unfulfilled'`; all three had no
+`plus_subscriptions` row and the owning profile remained `plus_status=false`.
+This was not a client cache or entitlement-reader problem.
+
+The shared `fulfill_payment_transaction` function placed the profile update,
+subscription insert, ledger fulfilment, and `student_confirmed` outbox insert
+inside one exception block. Any SQL error — most plausibly the live outbox
+`kind` CHECK retaining an older value set because `CREATE TABLE IF NOT EXISTS`
+cannot repair an existing constraint — rolled every entitlement write back.
+The handler then suppressed `SQLSTATE`/`SQLERRM`, changed only the ledger to
+`paid_unfulfilled`, and returned JSON rather than a database error. Both founder
+routes consequently looked successful even though access was never activated.
+
+`supabase-manual-payment-fulfillment-repair.sql` is an append-only follow-up:
+it enumerates and replaces the actual outbox kind CHECK, moves notification
+enqueue into its own guarded block so email cannot roll back the product,
+records bounded failure diagnostics, and adds a service-role-only idempotent
+reconciliation function. Its final block repairs only manual Plus transactions
+with an explicit founder-confirmed review and no completed subscription.
+Per the owner's explicit decision, Plus receipt confirmation has no deadline;
+mentorship still respects slot ownership/hold expiry because a late review must
+not reclaim a scarce slot. The founder APIs now return HTTP 409 for a real
+`paid_unfulfilled` result instead of presenting it as success.
+
+After the owner ran that migration, the new bounded diagnostics exposed the
+remaining production error exactly: PostgreSQL `42P10` because
+`ON CONFLICT (payment_transaction_id)` could not infer the existing partial
+unique index. `supabase-manual-payment-subscription-conflict-repair.sql`
+replaces it with an equivalent full unique index (PostgreSQL still permits
+multiple `NULL` values) and reruns the guarded reconciliation for every
+founder-confirmed manual Plus payment still awaiting fulfilment.
+
+**Action required:** run
+`supabase-manual-payment-subscription-conflict-repair.sql` in production. The
+first repair migration is confirmed applied; the follow-up has not yet been
+confirmed, so affected accounts remain Free until it runs successfully.
+
+| `supabase-manual-payment-fulfillment-repair.sql`, `supabase-manual-payment-subscription-conflict-repair.sql`, `src/app/api/admin/payments/manual/confirm/route.ts`, `src/app/api/admin/payments/review-action/route.ts`, `src/lib/payments/manual-payment-migration.test.ts`, `src/app/api/admin/payments/manual/review-security.test.ts` |
+
+## 5w. Plus promo redemption — implemented 2026-08-15, production migration pending
+
+The Plus checkout dialog now accepts the fixed `gogogogoglowbal` v2 campaign. The
+browser never grants an entitlement: a same-origin authenticated API validates
+the code, and a service-role-only database function performs the redemption and
+Plus grant in one transaction. `plus_promo_redemptions` has a unique
+`(user_id, campaign)` key, so retries or concurrent requests cannot extend the
+same account twice. Rotating the campaign from v1 to v2 resets eligibility
+without deleting the old redemption audit trail. The selected package determines
+the duration and AI-credit grant from a database-side allowlist. Promo grants do
+not create a `payment_transactions` row and therefore add 0₫ to revenue.
+
+**Action required:** run `supabase-plus-promo-redemption.sql`, then
+`supabase-plus-promo-v2.sql`, in production. Until both are applied, the API
+intentionally returns a temporary-unavailable response and does not modify the
+user's entitlement.
+
+| `supabase-plus-promo-redemption.sql`, `supabase-plus-promo-v2.sql`, `src/app/api/plus/redeem/route.ts`, `src/app/plus/plus-pricing.tsx`, `src/app/api/plus/redeem/route.test.ts`, `src/app/plus/plus-pricing.test.tsx`, `src/lib/payments/plus-promo-migration.test.ts` |
+
 ## 6. Open questions for the designer / owner
 
 1. **The sitemap frame (`123:2864`, "Dg-final") no longer exists in the file.**

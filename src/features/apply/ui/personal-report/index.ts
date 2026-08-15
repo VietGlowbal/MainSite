@@ -5,7 +5,13 @@ export { DrivingForceView } from './driving-force';
 export { EmergingThemesView } from './emerging-themes';
 export { IdentityEvidenceProfileView } from './identity-evidence-profile';
 export { KeyTakeawaysView } from './key-takeaways';
-export { PersonalCanvasView, PERSONAL_REPORT_SECTION_IDS } from './personal-canvas';
+export {
+  PersonalCanvasView,
+  PERSONAL_REPORT_SECTION_IDS,
+} from './personal-canvas';
+export type { PersonalCanvasSectionKey } from './personal-canvas';
+export { PersonalCanvasWorkspace } from './personal-canvas-workspace';
+export { PersonalReportPrintView } from './personal-report-print';
 export {
   CapabilityProfileView,
   FuturePathwaysView,

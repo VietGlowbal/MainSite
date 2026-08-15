@@ -1,17 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
+  DIMENSION_LABELS,
   REFLECTION_DIMENSIONS,
   REFLECTION_DIMENSION_COUNT,
   activityReflectionProgress,
-  reflectionInspiration,
   reflectionQuestion,
   type ActivityReflectionValues,
   type ExperienceCategory,
   type ReflectionDimension,
 } from '@/features/apply/domain';
-import { Button, ProgressBar, Modal, Textarea } from '@/shared/ui';
+import { Button, ProgressBar, Modal, Textarea, useAutoGrowTextarea } from '@/shared/ui';
 
 /**
  * The activity-level reflection dialog — Context → Motivation → Challenge →
@@ -22,11 +22,20 @@ import { Button, ProgressBar, Modal, Textarea } from '@/shared/ui';
  * Every keystroke calls `onChange` with the whole updated
  * `ActivityReflectionValues`, and the parent (`reflection-evidence-form.tsx`)
  * holds it as part of the item's normal draft state. Closing this dialog —
- * the X, the backdrop, navigating away — therefore never loses an answer:
- * there is nothing "in" the dialog that is not already in the parent, the
- * same guarantee `EditEvidenceModal` already gives every other field on the
- * item. Persisting to the server is the parent's job (the ordinary
- * `PATCH /api/reflection` whole-list save), not this component's.
+ * the X, the backdrop, navigating away — therefore never loses an answer.
+ * `dimensionIndex`/`onDimensionIndexChange` are controlled the same way, for
+ * a different reason: the surrounding page's breadcrumb needs to say
+ * "Entrepreneurship Club / Challenge" and update live as the student moves
+ * between dimensions, which means the current dimension has to live above
+ * this component, not inside it.
+ *
+ * ─── THREE DISCLOSURE LEVELS, NOT TWO ────────────────────────────────────────
+ *
+ * Level 1 (always shown): the main question. Level 2 ("Help me think",
+ * collapsed by default): the two guiding prompts. Level 3 ("Need
+ * inspiration?", collapsed by default, only offered once Level 2 is open):
+ * the optional answer framework. Showing all three at once is exactly the
+ * "looks like homework" problem this redesign exists to fix.
  */
 
 export function ActivityReflectionModal({
@@ -36,6 +45,9 @@ export function ActivityReflectionModal({
   activityTitle,
   value,
   onChange,
+  dimensionIndex,
+  onDimensionIndexChange,
+  onAutosave,
   onRequestCard,
   t,
 }: {
@@ -45,48 +57,71 @@ export function ActivityReflectionModal({
   activityTitle: string;
   value: ActivityReflectionValues;
   onChange: (next: ActivityReflectionValues) => void;
+  /** 0-based index into `REFLECTION_DIMENSIONS`, owned by the parent so the page breadcrumb can reflect it. */
+  dimensionIndex: number;
+  onDimensionIndexChange: (index: number) => void;
+  /** Debounced save-in-the-background hook — resolves once the answer is persisted. */
+  onAutosave: () => Promise<void>;
   /** Called when the student finishes the last dimension and wants a Reflection Card. */
   onRequestCard: () => void;
   t: (s: string, vars?: Record<string, string | number>) => string;
 }) {
-  const [index, setIndex] = useState(0);
+  const [showGuidance, setShowGuidance] = useState(false);
   const [showInspiration, setShowInspiration] = useState(false);
+  const [saveState, setSaveState] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Reset to the first unanswered dimension (or the start) each time the
-  // dialog opens, rather than remembering the last position across
-  // different activities. Adjusted during render (React's documented
-  // pattern for resetting state when a prop changes) rather than in a
-  // `useEffect`, which would set state synchronously on mount.
-  const [wasOpen, setWasOpen] = useState(open);
-  if (open !== wasOpen) {
-    setWasOpen(open);
-    if (open) {
-      const firstUnanswered = REFLECTION_DIMENSIONS.findIndex((dim) => !value[dim]?.trim());
-      setIndex(firstUnanswered === -1 ? 0 : firstUnanswered);
-      setShowInspiration(false);
-    }
+  // Collapse both help levels again whenever the dialog opens or the
+  // dimension changes — a framework read for Challenge should not still be
+  // sitting open on Impact. Adjusting state during render (rather than in an
+  // effect) avoids the extra commit-then-cascading-render an effect would
+  // cause here — React bails out before painting the stale state.
+  const openStepKey = `${open}-${dimensionIndex}`;
+  const [lastOpenStepKey, setLastOpenStepKey] = useState(openStepKey);
+  if (open && openStepKey !== lastOpenStepKey) {
+    setLastOpenStepKey(openStepKey);
+    setShowGuidance(false);
+    setShowInspiration(false);
   }
 
-  const dimension: ReflectionDimension = REFLECTION_DIMENSIONS[index] ?? 'context';
+  useEffect(
+    () => () => {
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      if (savedTimer.current) clearTimeout(savedTimer.current);
+    },
+    [],
+  );
+
+  const dimension: ReflectionDimension = REFLECTION_DIMENSIONS[dimensionIndex] ?? 'context';
   const question = reflectionQuestion(category, dimension);
-  const isLast = index === REFLECTION_DIMENSION_COUNT - 1;
+  const isLast = dimensionIndex === REFLECTION_DIMENSION_COUNT - 1;
+  const textareaRef = useAutoGrowTextarea<HTMLTextAreaElement>(value[dimension] ?? '', { maxHeight: 360 });
 
   function updateAnswer(text: string) {
     onChange({ ...value, [dimension]: text, updatedAt: new Date().toISOString() });
+
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    setSaveState('saving');
+    saveTimer.current = setTimeout(() => {
+      void onAutosave().then(() => {
+        setSaveState('saved');
+        savedTimer.current = setTimeout(() => setSaveState('idle'), 2000);
+      });
+    }, 800);
   }
 
   function goNext() {
-    setShowInspiration(false);
     if (isLast) {
       onRequestCard();
       return;
     }
-    setIndex((i) => Math.min(i + 1, REFLECTION_DIMENSION_COUNT - 1));
+    onDimensionIndexChange(Math.min(dimensionIndex + 1, REFLECTION_DIMENSION_COUNT - 1));
   }
 
   function goBack() {
-    setShowInspiration(false);
-    setIndex((i) => Math.max(i - 1, 0));
+    onDimensionIndexChange(Math.max(dimensionIndex - 1, 0));
   }
 
   return (
@@ -94,14 +129,14 @@ export function ActivityReflectionModal({
       open={open}
       onClose={onClose}
       label={t('Reflect on {title}', { title: activityTitle })}
-      className="flex max-h-[90vh] w-full max-w-gb-width-md flex-col gap-gb-2xl overflow-y-auto p-gb-3xl sm:max-h-[85vh]"
+      className="flex max-h-[90vh] w-full max-w-gb-width-md flex-col gap-gb-xl overflow-y-auto p-gb-3xl sm:max-h-[85vh]"
     >
       <div className="flex flex-col gap-gb-md">
         <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-brand">{activityTitle}</p>
         <ProgressBar
-          value={Math.round(activityReflectionProgress(index + 1) * 100)}
+          value={Math.round(activityReflectionProgress(dimensionIndex + 1) * 100)}
           label={t('{current} of {total} · {dimension}', {
-            current: index + 1,
+            current: dimensionIndex + 1,
             total: REFLECTION_DIMENSION_COUNT,
             dimension: t(DIMENSION_LABELS[dimension]),
           })}
@@ -109,57 +144,91 @@ export function ActivityReflectionModal({
         />
       </div>
 
-      <div className="flex flex-col gap-gb-lg">
-        <h2 className="text-gb-lg font-semibold text-fg">{t(question.heading)}</h2>
-        <ul className="flex flex-col gap-gb-xs text-gb-sm text-fg-tertiary">
-          {question.guidance.map((line) => (
-            <li key={line}>{t(line)}</li>
-          ))}
-        </ul>
+      <h2 className="text-gb-lg font-semibold text-fg sm:text-gb-xl">{t(question.heading)}</h2>
+
+      {dimensionIndex === 0 ? (
+        <p className="text-gb-xs text-fg-tertiary">
+          {t('You don’t need polished answers. A few honest sentences is enough.')}
+        </p>
+      ) : null}
+
+      <div className="flex flex-col gap-gb-md">
+        <Textarea
+          ref={textareaRef}
+          name={`reflection-${dimension}`}
+          rows={3}
+          value={value[dimension] ?? ''}
+          onChange={(e) => updateAnswer(e.target.value)}
+          placeholder={t('Tell us what happened in your own words…')}
+          className="resize-none"
+        />
+        <div className="flex min-h-[1.25rem] items-center justify-between gap-gb-lg text-gb-xs">
+          <button
+            type="button"
+            onClick={() => setShowGuidance((v) => !v)}
+            aria-expanded={showGuidance}
+            className="flex items-center gap-gb-xs font-semibold text-fg-brand hover:underline"
+          >
+            💡 {showGuidance ? t('Hide help') : t('Help me think')}
+          </button>
+          <span aria-live="polite" className="text-fg-tertiary">
+            {saveState === 'saving' ? t('Saving…') : saveState === 'saved' ? t('Saved') : ''}
+          </span>
+        </div>
       </div>
 
-      <Textarea
-        name={`reflection-${dimension}`}
-        label={t('Your answer')}
-        rows={6}
-        value={value[dimension] ?? ''}
-        onChange={(e) => updateAnswer(e.target.value)}
-        placeholder={t('Write in your own words…')}
-      />
+      {showGuidance && (question.guidance.length > 0 || question.framework) ? (
+        <div className="flex flex-col gap-gb-md rounded-gb-lg bg-surface-muted p-gb-lg">
+          {question.guidance.length > 0 ? (
+            <div className="flex flex-col gap-gb-xs">
+              <p className="text-gb-xs font-semibold text-fg-tertiary">{t('Think about:')}</p>
+              <ul className="flex flex-col gap-gb-xs text-gb-sm text-fg-secondary">
+                {question.guidance.map((line) => (
+                  <li key={line}>• {t(line)}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
 
-      <div>
-        <button
-          type="button"
-          onClick={() => setShowInspiration((v) => !v)}
-          className="text-gb-sm font-semibold text-fg-brand hover:underline"
-        >
-          {showInspiration ? t('Hide example') : t('Need inspiration?')}
-        </button>
-        {showInspiration ? (
-          <p className="mt-gb-md rounded-gb-lg bg-surface-muted px-gb-lg py-gb-md text-gb-sm text-fg-secondary">
-            {t(reflectionInspiration(dimension))}
-          </p>
-        ) : null}
-      </div>
+          {question.framework ? (
+            <div>
+              <button
+                type="button"
+                onClick={() => setShowInspiration((v) => !v)}
+                aria-expanded={showInspiration}
+                className="text-gb-sm font-semibold text-fg-brand hover:underline"
+              >
+                {showInspiration ? t('Hide example') : t('Need inspiration?')}
+              </button>
+              {showInspiration ? (
+                <p className="mt-gb-md rounded-gb-lg bg-surface px-gb-lg py-gb-md text-gb-sm text-fg-secondary">
+                  {t('One way you could structure your answer:')} “{t(question.framework)}”
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
-      <div className="mt-gb-md flex items-center justify-between gap-gb-lg">
-        <Button type="button" variant="secondary" onClick={index === 0 ? onClose : goBack}>
-          {index === 0 ? t('Save & exit') : t('Back')}
+      <div className="mt-gb-md flex flex-wrap items-center justify-between gap-gb-lg">
+        <Button type="button" variant="secondary" onClick={dimensionIndex === 0 ? onClose : goBack}>
+          {dimensionIndex === 0 ? t('Save & exit') : t('Back')}
         </Button>
-        <Button type="button" onClick={goNext}>
-          {isLast ? t('Finish reflection') : t('Continue')}
-        </Button>
+        <div className="flex items-center gap-gb-lg">
+          {!isLast ? (
+            <button
+              type="button"
+              onClick={goNext}
+              className="text-gb-sm font-medium text-fg-tertiary hover:text-fg-secondary hover:underline"
+            >
+              {t('Skip for now')}
+            </button>
+          ) : null}
+          <Button type="button" onClick={goNext}>
+            {isLast ? t('Finish reflection') : t('Continue')}
+          </Button>
+        </div>
       </div>
     </Modal>
   );
 }
-
-const DIMENSION_LABELS: Record<ReflectionDimension, string> = {
-  context: 'Context',
-  motivation: 'Motivation',
-  challenge: 'Challenge',
-  action: 'Action',
-  impact: 'Impact',
-  transformation: 'Transformation',
-  future: 'Future',
-};

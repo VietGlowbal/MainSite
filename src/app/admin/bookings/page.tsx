@@ -58,9 +58,9 @@ function formatPlanName(plan?: string | null): string {
     case 'plus-starter':
       return 'GlowBal Plus · Starter (1 Month)';
     case 'plus-pro':
-      return 'GlowBal Plus · Pro (3 Months)';
+      return 'GlowBal Plus · Pro (12 Months / 1 Năm)';
     case 'plus-premium':
-      return 'GlowBal Plus · Premium (6 Months)';
+      return 'GlowBal Plus · Premium (12 Months / 1 Năm)';
     default:
       return plan ? `GlowBal Plus (${plan})` : 'GlowBal Plus Subscription';
   }
@@ -146,7 +146,12 @@ export default async function AdminBookingsPage() {
       productTitle,
       productSubtitle,
       amountVnd: Number(tx.amount_vnd ?? 0),
-      feeAmountVnd: booking ? Number(booking.glowbal_fee_vnd ?? 0) : Math.round(Number(tx.amount_vnd ?? 0) * 0.15),
+      feeAmountVnd:
+        tx.product_type === 'plus'
+          ? Number(tx.amount_vnd ?? 0)
+          : booking
+            ? Number(booking.glowbal_fee_vnd ?? 0)
+            : Math.round(Number(tx.amount_vnd ?? 0) * 0.15),
       customerName: tx.recipient_name || 'GlowBal customer',
       customerEmail: tx.recipient_email || '—',
       status: effectiveStatus,

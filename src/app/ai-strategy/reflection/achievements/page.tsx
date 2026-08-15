@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
+import { loadApplicationSummary, loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
-import { confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
+import { candidateInformationStepperSteps, confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
 import { applicationIdFromPath } from '@/shared/lib';
+import { Stepper } from '@/shared/ui';
 import { ReflectionChrome } from '../../reflection-chrome';
 import { ApplicationNavFromReturn } from '../application-nav-from-return';
 import { ReflectionEvidenceForm } from './reflection-evidence-form';
@@ -41,23 +42,28 @@ export default async function ReflectionAchievementsPage({
     ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
     : undefined;
 
-  const { reflection, documents, confirmedAt } = await loadCandidateReflection(
-    supabase,
-    user.id,
-    applicationId,
-  );
+  const [{ reflection, documents, confirmedAt }, onboardingState, applicationSummary] = await Promise.all([
+    loadCandidateReflection(supabase, user.id, applicationId),
+    applicationId ? fetchOnboardingState(supabase, user.id, applicationId) : Promise.resolve(undefined),
+    applicationId ? loadApplicationSummary(supabase, user.id, applicationId) : Promise.resolve(null),
+  ]);
 
   const continueHref = confirmedAt
-    ? applicationId
-      ? confirmedReflectionContinueHref(
-          applicationId,
-          (await fetchOnboardingState(supabase, user.id, applicationId)).aiAnalysisComplete,
-        )
+    ? applicationId && onboardingState
+      ? confirmedReflectionContinueHref(applicationId, onboardingState.aiAnalysisComplete)
       : returnTo
     : undefined;
 
+  const stepper =
+    applicationId && onboardingState ? (
+      <Stepper
+        {...candidateInformationStepperSteps(onboardingState, 'achievements', applicationId, returnTo)}
+        label="Application setup"
+      />
+    ) : undefined;
+
   return (
-    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
+    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
       {confirmedAt ? (
         <ConfirmedAchievementsView
           achievements={reflection.achievements}
@@ -69,6 +75,7 @@ export default async function ReflectionAchievementsPage({
       ) : (
         <ReflectionEvidenceForm
           applicationId={applicationId}
+          applicationLabel={applicationSummary?.label}
           initialAchievements={reflection.achievements}
           initialActivities={reflection.activities}
           initialDocuments={documents}

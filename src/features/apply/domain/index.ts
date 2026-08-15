@@ -37,7 +37,11 @@ export {
 } from './study-level';
 export type { StudyLevel } from './study-level';
 export {
+  DIMENSION_LABELS,
   EXPERIENCE_CATEGORIES,
+  EXPERIENCE_CATEGORY_META,
+  EXPERIENCE_SUBTYPES,
+  OTHER_EXPERIENCE_CATEGORY,
   REFLECTION_DIMENSIONS,
   REFLECTION_DIMENSION_COUNT,
   REFLECTION_CARD_STATUSES,
@@ -45,18 +49,20 @@ export {
   activityReflectionProgress,
   activityReflectionSchema,
   experienceCategoryFor,
+  firstUnansweredDimension,
   isReflectionCardEmpty,
   reflectionCardSchema,
   reflectionCardSkillSchema,
-  reflectionInspiration,
   reflectionQuestion,
 } from './activity-reflection';
 export type {
   ActivityReflectionValues,
   ExperienceCategory,
+  ExperienceSubtype,
   ReflectionCardStatus,
   ReflectionCardValues,
   ReflectionDimension,
+  TopLevelExperienceCategory,
 } from './activity-reflection';
 export {
   PERSONAL_REFLECTION_QUESTIONS,
@@ -112,6 +118,7 @@ export {
 export type { DestinationOption } from './destination-catalog';
 export {
   generateIntakeOptions,
+  intakeDisplayLabel,
   intakeLabel,
   intakeOptionId,
   intakeOptionsWith,

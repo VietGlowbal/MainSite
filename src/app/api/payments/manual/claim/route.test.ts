@@ -31,10 +31,23 @@ describe('POST /api/payments/manual/claim', () => {
     mocks.createClient.mockResolvedValue({
       auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } } })) },
     });
+    const from = vi.fn().mockReturnValue({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      insert: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'tx-1' }, error: null }),
+    });
     mocks.createAdminClient.mockReturnValue({
       rpc: vi.fn(async () => ({
         data: { ok: true, status: 'claimed', review_deadline_at: '2026-08-16T00:00:00.000Z' },
         error: null,
+      })),
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(async () => ({ data: null })),
+          })),
+        })),
       })),
     });
 
