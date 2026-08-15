@@ -98,6 +98,7 @@ function report(): PersonalReportV2 {
           evidenceSource: 'Birmingham Project Award',
         },
       ],
+      evidenceRefs: [],
       insufficientData: null,
     },
     analytics: {
