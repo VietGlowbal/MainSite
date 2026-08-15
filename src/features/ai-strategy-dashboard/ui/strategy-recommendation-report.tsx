@@ -184,14 +184,14 @@ function NarrativeTab({ recommendation }: { recommendation: StrategyRecommendati
             onClick={() => setShowPlusModal(true)}
             className="absolute inset-0 z-10 flex flex-col items-center justify-center p-6 text-center cursor-pointer bg-gradient-to-b from-transparent via-white/80 to-white rounded-2xl"
           >
-            <div className="max-w-md rounded-2xl border border-[#EDE9EE] bg-white p-6 shadow-xl backdrop-blur-md">
-              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-[#FFF0F3] text-xl">
+            <div className="max-w-md rounded-2xl border border-line bg-white p-6 shadow-xl backdrop-blur-md">
+              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-brand-subtle text-xl">
                 🔒
               </div>
-              <h3 className="text-lg font-bold text-[#141118]">
+              <h3 className="text-lg font-bold text-fg">
                 {t('Unlock your full strategic narrative')}
               </h3>
-              <p className="mt-2 text-xs text-[#6B6570] leading-relaxed">
+              <p className="mt-2 text-xs text-fg-tertiary leading-relaxed">
                 {t('Upgrade to GlowBal Plus to view your personalized application narrative, tailored storytelling angle, and strategic essays guidance.')}
               </p>
               <button
@@ -200,7 +200,7 @@ function NarrativeTab({ recommendation }: { recommendation: StrategyRecommendati
                   e.stopPropagation();
                   setShowPlusModal(true);
                 }}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#E11D48] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-[#B01238] transition-all cursor-pointer"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-brand-hover transition-all cursor-pointer"
               >
                 <span>{t('Upgrade to Plus')}</span>
                 <span>→</span>

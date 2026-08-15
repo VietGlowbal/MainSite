@@ -44,57 +44,15 @@ export const APPLICATION_FLOW_TRANSLATIONS: Record<string, string> = {
   Transformation: 'Sự thay đổi',
   Future: 'Tương lai',
 
-  // Activity Reflection — Headings per category
-  'What issue or need did you notice?': 'Bạn đã nhận thấy vấn đề hoặc nhu cầu nào?',
-  'Why did you choose to get involved?': 'Tại sao bạn lại chọn tham gia?',
-  'What was the hardest obstacle?': 'Trở ngại khó khăn nhất là gì?',
-  'What did you personally do?': 'Bạn đã đích thân làm gì?',
-  'What changed because of your contribution?': 'Điều gì đã thay đổi nhờ sự đóng góp của bạn?',
-  'How did the experience change you?': 'Trải nghiệm đó đã thay đổi bạn như thế nào?',
-  'How will it influence what you do next?': 'Nó sẽ ảnh hưởng thế nào đến những dự định tiếp theo của bạn?',
-
-  'What responsibility or opportunity did you take on?': 'Bạn đã đảm nhận trách nhiệm hoặc cơ hội nào?',
-  'Why did you decide to step up or lead?': 'Tại sao bạn quyết định đứng lên dẫn dắt?',
-  'What was the toughest leadership decision you faced?': 'Quyết định lãnh đạo khó khăn nhất bạn từng đối mặt là gì?',
-  'How did you lead the team through it?': 'Bạn đã dẫn dắt đội nhóm qua việc đó như thế nào?',
-  'How did your leadership affect the team or project?': 'Sự lãnh đạo của bạn đã ảnh hưởng thế nào đến đội nhóm hoặc dự án?',
-  'What kind of leader did this experience help you become?': 'Trải nghiệm này đã giúp bạn trở thành người lãnh đạo như thế nào?',
-  'How will this influence the way you lead in future?': 'Nó sẽ ảnh hưởng thế nào đến phong cách lãnh đạo của bạn trong tương lai?',
-
-  'What problem inspired you to start this project?': 'Vấn đề nào đã truyền cảm hứng để bạn bắt đầu dự án này?',
-  'Why did you want to solve it?': 'Tại sao bạn lại muốn giải quyết vấn đề đó?',
-  'What was the hardest part of making the idea work?': 'Phần khó nhất khi hiện thực hóa ý tưởng này là gì?',
-  'How did you develop, test or improve your solution?':
-    'Bạn đã phát triển, thử nghiệm hoặc cải tiến giải pháp của mình như thế nào?',
-  'What difference did the solution make?': 'Giải pháp đó đã tạo ra sự khác biệt gì?',
-  'What did building it teach you about solving problems?': 'Quá trình xây dựng dự án đã dạy cho bạn điều gì về cách giải quyết vấn đề?',
-  'What has it made you want to build or study next?': 'Nó khiến bạn muốn tạo ra hoặc nghiên cứu điều gì tiếp theo?',
-
-  'What question or gap did you set out to investigate?': 'Câu hỏi hoặc khoảng trống nghiên cứu nào bạn đã đặt ra để tìm hiểu?',
-  'Why was this question worth pursuing to you?': 'Tại sao câu hỏi này lại đáng để bạn theo đuổi?',
-  'Where did the evidence or method get hardest to pin down?': 'Giai đoạn nào trong việc thu thập chứng cứ hoặc phương pháp là khó xác định nhất?',
-  'How did you gather, test, or analyse what you needed?':
-    'Bạn đã thu thập, kiểm chứng hoặc phân tích những gì cần thiết như thế nào?',
-  'What did you find, and what does it explain?': 'Bạn đã phát hiện ra điều gì, và nó giải thích cho vấn đề gì?',
-  'How did it change the way you evaluate a claim or a problem?': 'Nó đã thay đổi cách bạn đánh giá một nhận định hoặc một vấn đề như thế nào?',
-  'How does it shape what you want to study or research next?': 'Nó định hình những gì bạn muốn theo học hoặc nghiên cứu tiếp theo như thế nào?',
-
-  'What challenge or goal were you pursuing?': 'Thử thách hoặc mục tiêu nào bạn đã theo đuổi?',
-  'Why was the goal important to you?': 'Tại sao mục tiêu đó lại quan trọng đối với bạn?',
-  'What moment tested your perseverance the most?': 'Khoảnh khắc nào đã thử thách sự kiên trì của bạn nhiều nhất?',
-  'What did you change or do to improve?': 'Bạn đã thay đổi hoặc làm gì để cải thiện?',
-  'What did you achieve, and what did it represent?': 'Bạn đã đạt được kết quả gì, và nó đại diện cho điều gì?',
-  'How did it change the way you approach learning or challenges?': 'Nó đã thay đổi cách bạn tiếp cận việc học hoặc đối mặt với thử thách như thế nào?',
-  'How does it connect to what you want to study or develop next?': 'Nó liên kết thế nào với những gì bạn muốn theo học hoặc phát triển tiếp theo?',
-
-  'What was the situation, and how did you become part of it?': 'Tình huống lúc đó là gì, và bạn đã tham gia vào như thế nào?',
-  'Why did this matter enough to you to get involved?': 'Tại sao việc này lại đủ quan trọng để bạn quyết định tham gia?',
-  'What was the hardest part?': 'Phần khó khăn nhất là gì?',
-  'What changed as a result?': 'Kết quả đã thay đổi điều gì?',
-  'How did it change you?': 'Nó đã thay đổi bạn như thế nào?',
-  'How does it connect to what you want to do next?': 'Nó liên kết thế nào với những việc bạn muốn làm tiếp theo?',
-
   // Activity Reflection — Dimension Guidance Prompts
+  //
+  // NOTE: the per-category main-question headings that used to live here
+  // (the original seven-category system's "Headings per category" block)
+  // were removed — they are superseded by the "Approved question bank"
+  // entries further down for the current four-category system, and having
+  // both caused duplicate-key TypeScript errors after a merge. The guidance
+  // bullets below are still current: `OTHER_QUESTIONS` in
+  // `activity-reflection.ts` reuses this exact wording.
   'What was the situation before you got involved?': 'Tình hình trước khi bạn tham gia như thế nào?',
   'What made this moment or opportunity worth acting on?': 'Điều gì khiến cơ hội hoặc thời điểm này đáng để bạn hành động?',
   'What made this matter to you personally?': 'Điều gì khiến việc này có ý nghĩa cá nhân đối với bạn?',
@@ -282,6 +240,7 @@ export const APPLICATION_FLOW_TRANSLATIONS: Record<string, string> = {
     'Tình huống đó là gì, và bạn đã trở thành một phần của nó như thế nào?',
   'Why did this matter enough to you to get involved?': 'Vì sao điều này đủ quan trọng để bạn tham gia?',
   'What was the hardest part?': 'Phần khó khăn nhất là gì?',
+  'What did you personally do?': 'Bạn đã đích thân làm gì?',
   'What changed as a result?': 'Điều gì đã thay đổi sau đó?',
   'How did it change you?': 'Điều đó đã thay đổi bạn như thế nào?',
   'How does it connect to what you want to do next?': 'Điều đó liên quan thế nào đến điều bạn muốn làm tiếp theo?',
