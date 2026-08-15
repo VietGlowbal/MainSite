@@ -55,18 +55,20 @@ type ConnectorGeometry = {
 
 const SOUND_STORAGE_KEY = 'glowbal-personal-canvas-sound';
 
+function initialSoundPreference(): boolean {
+  if (typeof window === 'undefined') return true;
+  try {
+    return window.localStorage.getItem(SOUND_STORAGE_KEY) !== 'off';
+  } catch {
+    return true;
+  }
+}
+
 function useCuteCanvasSounds() {
-  const [enabled, setEnabled] = useState(true);
+  const [enabled, setEnabled] = useState(initialSoundPreference);
   const audioRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(SOUND_STORAGE_KEY);
-      if (stored === 'off') setEnabled(false);
-    } catch {
-      // Local storage is best-effort only.
-    }
-
     return () => {
       const context = audioRef.current;
       audioRef.current = null;
@@ -386,7 +388,10 @@ export function PersonalCanvasWorkspace({
   const panelRef = useRef<HTMLElement>(null);
   const sounds = useCuteCanvasSounds();
 
-  const onAnswered = onRegenerate ? () => onRegenerate('supplement_answer') : undefined;
+  const onAnswered = useMemo(
+    () => (onRegenerate ? () => onRegenerate('supplement_answer') : undefined),
+    [onRegenerate],
+  );
   const specs = useMemo(
     () => sectionSpecs({ report, returnTo, onAnswered }),
     [report, returnTo, onAnswered],
@@ -450,10 +455,7 @@ export function PersonalCanvasWorkspace({
   });
 
   useLayoutEffect(() => {
-    if (!activeSection || focusMode) {
-      setConnector(null);
-      return;
-    }
+    if (!activeSection || focusMode) return;
 
     const workspace = workspaceRef.current;
     const panel = panelRef.current;
@@ -627,10 +629,10 @@ export function PersonalCanvasWorkspace({
           </aside>
         ) : null}
 
-        {connector ? (
+        {connector && activeSection && !focusMode ? (
           <svg
             aria-hidden="true"
-            className="pointer-events-none absolute left-0 top-0 z-10 hidden overflow-visible lg:block"
+            className="pointer-events-none absolute left-0 top-0 z-10 hidden overflow-visible text-fg-brand lg:block"
             width={connector.width}
             height={connector.height}
             viewBox={`0 0 ${connector.width} ${connector.height}`}
@@ -649,7 +651,7 @@ export function PersonalCanvasWorkspace({
               cy={connector.startY}
               r="7"
               fill="white"
-              stroke="var(--color-gb-brand-600)"
+              stroke="currentColor"
               strokeWidth="4"
             />
           </svg>
