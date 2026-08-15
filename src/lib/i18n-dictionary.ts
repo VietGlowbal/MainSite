@@ -95,6 +95,16 @@ export const translations: Record<string, string> = {
   'Find my scholarships': 'Tìm học bổng của tôi',
 
   // University catalogue.
+  'View your university matches': 'Xem các trường đại học phù hợp với bạn',
+  'Deterministic demo · fixed fixture data': 'Bản demo deterministic · dữ liệu fixture cố định',
+  'Your university matches': 'Các trường đại học phù hợp với bạn',
+  'No university matches yet': 'Chưa có trường đại học phù hợp',
+  'Add your target subject and destination preferences in your profile, then return here.':
+    'Thêm môn học mục tiêu và điểm đến mong muốn trong hồ sơ, sau đó quay lại đây.',
+  'Update preferences': 'Cập nhật tùy chọn',
+  'Recommended universities': 'Các trường đại học được đề xuất',
+  'Universities are ranked by profile fit, with Strong Chance, Target and Reach tiers.':
+    'Các trường đại học được xếp hạng theo mức độ phù hợp với hồ sơ, gồm các tier Strong Chance, Target và Reach.',
   "Choose from 200+ of the world's leading universities":
     'Chọn từ 200+ đại học tốt nhất thế giới',
   'Find a university': 'Tìm Đại học',
