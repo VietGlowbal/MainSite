@@ -180,9 +180,9 @@ function useCuteCanvasSounds() {
 function panelTitle(report: PersonalReportV2, section: PersonalCanvasSectionKey): string {
   switch (section) {
     case 'coreIdentity':
-      return report.coreIdentity.available ? report.coreIdentity.headline : 'Core Identity';
+      return report.coreIdentity.available ? report.coreIdentity.headline ?? 'Core Identity' : 'Core Identity';
     case 'drivingForces':
-      return report.drivingForce.available ? report.drivingForce.headline : 'Driving Forces';
+      return report.drivingForce.available ? report.drivingForce.headline ?? 'Driving Forces' : 'Driving Forces';
     case 'provenCapabilities':
       return 'What your evidence demonstrates you can do';
     case 'socialProof': {
