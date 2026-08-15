@@ -38,10 +38,12 @@ export type { ProcessingState } from './document-panel';
 export { DocumentPreviewDrawer } from './document-preview-drawer';
 export { EditEvidenceModal } from './edit-evidence-modal';
 export type { EvidenceDraft } from './edit-evidence-modal';
-export { AddTypeChooser, RemoveConfirmDialog } from './evidence-dialogs';
+export { ExperienceCategoryChooser, RemoveConfirmDialog } from './evidence-dialogs';
 export { ReviewFlowDrawer } from './review-flow';
 export { DuplicatePrompt } from './duplicate-prompt';
 export { ActivityReflectionModal } from './activity-reflection-modal';
+export { ReflectionBreadcrumb } from './reflection-breadcrumb';
+export type { ReflectionBreadcrumbItem } from './reflection-breadcrumb';
 export {
   ReflectionCardError,
   ReflectionCardLoading,

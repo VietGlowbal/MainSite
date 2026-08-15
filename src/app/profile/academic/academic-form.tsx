@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import {
   CURRICULUM_GRADE_FORMATS,
@@ -24,7 +25,7 @@ import {
   type MultiSelectOption,
 } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import { SaveBar, SelectOptions, type SaveMessage } from '../_form-parts';
+import { SaveBar, SelectOptions, returnAfterSave, type SaveMessage } from '../_form-parts';
 import { TargetSubjectsField } from './target-subjects-field';
 
 const STUDY_LEVELS = ['Secondary / High school', 'Foundation', 'Undergraduate', 'Postgraduate (Masters)', 'PhD / Doctorate', 'Other'];
@@ -52,10 +53,17 @@ function fieldSlug(value: string): string {
 export function AcademicForm({
   userId,
   initialProfile,
+  returnTo,
+  updatedLabel,
 }: {
   userId: string;
   initialProfile: StudentProfile | null;
+  /** Set when this editor was opened from an application — "Save" returns there instead of staying on `/profile/academic`. */
+  returnTo?: string | undefined;
+  /** e.g. "Academic information" — the section name shown in the "✓ … updated" confirmation back on the application. */
+  updatedLabel?: string | undefined;
 }) {
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [studyLevel, setStudyLevel] = useState(initialProfile?.study_level ?? '');
   const [institution, setInstitution] = useState(initialProfile?.current_institution ?? '');
@@ -148,7 +156,18 @@ export function AcademicForm({
       },
       { onConflict: 'user_id' },
     );
-    setMessage(error ? { text: error.message, ok: false } : { text: 'Saved successfully.', ok: true });
+
+    if (error) {
+      setMessage({ text: error.message, ok: false });
+      setSaving(false);
+      return;
+    }
+
+    if (returnTo) {
+      returnAfterSave(router, returnTo, updatedLabel ?? 'Academic information');
+      return;
+    }
+    setMessage({ text: 'Saved successfully.', ok: true });
     setSaving(false);
   };
 
@@ -301,7 +320,12 @@ export function AcademicForm({
 
         <TargetSubjectsField values={subjects} onChange={setSubjects} />
 
-        <SaveBar onSave={handleSave} saving={saving} message={message} />
+        <SaveBar
+          onSave={handleSave}
+          saving={saving}
+          message={message}
+          label={returnTo ? 'Save & return to application' : undefined}
+        />
       </Panel>
     </div>
   );

@@ -93,6 +93,7 @@ export {
   onboardingStepHref,
 } from './onboarding';
 export type { OnboardingState, OnboardingStep } from './onboarding';
+export { candidateInformationStepperSteps } from './candidate-information-steps';
 
 export {
   directionOptionSchema,
