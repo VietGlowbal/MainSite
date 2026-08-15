@@ -7,6 +7,52 @@ import { AdminBookingsClient, type PaymentItem } from './admin-bookings-client';
 
 export const dynamic = 'force-dynamic';
 
+type ReviewRecord = {
+  id: string;
+  transaction_id: string;
+  state: string;
+  claimed_at?: string | null;
+  review_deadline_at?: string | null;
+  reviewed_at?: string | null;
+  reviewer_note?: string | null;
+};
+
+type BookingRecord = {
+  id: number;
+  applicant_id: string;
+  achiever_id: string;
+  scheduled_at: string;
+  duration_mins: number;
+  session_price_vnd: number;
+  glowbal_fee_vnd: number;
+  achiever_payout_vnd: number;
+  status: string;
+  payment_reference?: string | null;
+  created_at: string;
+  achiever?: { display_name?: string | null } | null;
+};
+
+type TransactionRecord = {
+  id: string;
+  reference: string;
+  user_id: string;
+  provider: string;
+  product_type: string;
+  status: string;
+  amount_vnd: number;
+  booking_id?: number | null;
+  plus_plan?: string | null;
+  plus_ai_credits?: number | null;
+  plus_duration_months?: number | null;
+  recipient_name?: string | null;
+  recipient_email?: string | null;
+  summary?: string | null;
+  created_at: string;
+  expires_at?: string | null;
+  paid_at?: string | null;
+  fulfilled_at?: string | null;
+};
+
 function formatPlanName(plan?: string | null): string {
   switch (plan) {
     case 'plus-starter':
@@ -43,9 +89,9 @@ export default async function AdminBookingsPage() {
   const admin = createAdminClient();
 
   const [
-    { data: transactions },
-    { data: reviews },
-    { data: rawBookings },
+    transactionsRes,
+    reviewsRes,
+    bookingsRes,
   ] = await Promise.all([
     admin
       .from('payment_transactions')
@@ -65,14 +111,18 @@ export default async function AdminBookingsPage() {
       .order('created_at', { ascending: false }),
   ]);
 
-  const reviewMap = new Map<string, (typeof reviews extends (infer U)[] ? U : never)>();
-  reviews?.forEach((r) => {
+  const transactions = (transactionsRes.data ?? []) as unknown as TransactionRecord[];
+  const reviews = (reviewsRes.data ?? []) as unknown as ReviewRecord[];
+  const rawBookings = (bookingsRes.data ?? []) as unknown as BookingRecord[];
+
+  const reviewMap = new Map<string, ReviewRecord>();
+  reviews.forEach((r) => {
     reviewMap.set(r.transaction_id, r);
   });
 
-  const bookingMap = new Map<number, (typeof rawBookings extends (infer U)[] ? U : never)>();
-  const bookingRefMap = new Map<string, (typeof rawBookings extends (infer U)[] ? U : never)>();
-  rawBookings?.forEach((b) => {
+  const bookingMap = new Map<number, BookingRecord>();
+  const bookingRefMap = new Map<string, BookingRecord>();
+  rawBookings.forEach((b) => {
     bookingMap.set(b.id, b);
     if (b.payment_reference) {
       bookingRefMap.set(b.payment_reference.trim().toUpperCase(), b);
@@ -83,7 +133,7 @@ export default async function AdminBookingsPage() {
   const items: PaymentItem[] = [];
 
   // 1. Process payment transactions (both Plus subscriptions and Mentorship payments)
-  (transactions ?? []).forEach((tx) => {
+  transactions.forEach((tx) => {
     const review = reviewMap.get(tx.id);
     const booking = tx.booking_id ? bookingMap.get(tx.booking_id) : bookingRefMap.get(tx.reference.trim().toUpperCase());
 
@@ -113,7 +163,7 @@ export default async function AdminBookingsPage() {
     items.push({
       id: tx.id,
       transactionId: tx.id,
-      bookingId: booking?.id ?? tx.booking_id ?? undefined,
+      bookingId: booking?.id ?? (tx.booking_id ? Number(tx.booking_id) : undefined),
       reference: tx.reference,
       provider: tx.provider,
       productType: tx.product_type as 'plus' | 'mentorship',
@@ -128,12 +178,12 @@ export default async function AdminBookingsPage() {
       claimedAt: review?.claimed_at ?? null,
       createdAt: tx.created_at,
       expiresAt: tx.expires_at ?? null,
-      achieverName: booking?.achiever?.display_name,
+      achieverName: booking?.achiever?.display_name ?? undefined,
     });
   });
 
   // 2. Add any standalone bookings not linked to transactions
-  (rawBookings ?? []).forEach((b) => {
+  rawBookings.forEach((b) => {
     if (processedBookingIds.has(b.id)) return;
 
     items.push({
@@ -153,7 +203,7 @@ export default async function AdminBookingsPage() {
       claimedAt: null,
       createdAt: b.created_at,
       expiresAt: null,
-      achieverName: b.achiever?.display_name,
+      achieverName: b.achiever?.display_name ?? undefined,
     });
   });
 
