@@ -4872,4 +4872,8 @@ export const translations: Record<string, string> = {
   'Personal Report sections': 'Các phần của Báo cáo Cá nhân',
   'A profile of who you are as an applicant — built from your reflected experiences, evidence and recurring patterns.':
     'Bức chân dung về bản thân bạn với tư cách là ứng viên — được xây dựng từ các trải nghiệm phản tư, minh chứng và mô thức tính cách nổi bật.',
+  '✨ GLOWBAL PLUS': '✨ GLOWBAL PLUS',
+  'Upgrade to GlowBal Plus to view your personalized application narrative, tailored storytelling angle, and strategic essays guidance.':
+    'Nâng cấp GlowBal Plus để xem câu chuyện hồ sơ cá nhân hóa, góc kể chuyện phù hợp và hướng dẫn chiến lược bài luận.',
+  'Unlock your strategic narrative': 'Mở khóa câu chuyện chiến lược của bạn',
 };

@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { createAdminClient } from '@/lib/supabase/admin';
 import { isPaymentAdmin } from '@/lib/auth-helpers';
+import { loadAdminBookingsData } from '@/server/payments/admin-bookings';
 import { AdminHeading } from '../_ui';
 import { AdminBookingsClient, type PaymentItem } from './admin-bookings-client';
 
@@ -86,34 +86,10 @@ export default async function AdminBookingsPage() {
     redirect('/admin');
   }
 
-  const admin = createAdminClient();
-
-  const [
-    transactionsRes,
-    reviewsRes,
-    bookingsRes,
-  ] = await Promise.all([
-    admin
-      .from('payment_transactions')
-      .select('*')
-      .order('created_at', { ascending: false }),
-    admin
-      .from('manual_payment_reviews')
-      .select('*'),
-    admin
-      .from('bookings')
-      .select(`
-        *,
-        achiever:achiever_profiles!bookings_achiever_id_fkey (
-          display_name
-        )
-      `)
-      .order('created_at', { ascending: false }),
-  ]);
-
-  const transactions = (transactionsRes.data ?? []) as unknown as TransactionRecord[];
-  const reviews = (reviewsRes.data ?? []) as unknown as ReviewRecord[];
-  const rawBookings = (bookingsRes.data ?? []) as unknown as BookingRecord[];
+  const data = await loadAdminBookingsData();
+  const transactions = data.transactions as unknown as TransactionRecord[];
+  const reviews = data.reviews as unknown as ReviewRecord[];
+  const rawBookings = data.bookings as unknown as BookingRecord[];
 
   const reviewMap = new Map<string, ReviewRecord>();
   reviews.forEach((r) => {

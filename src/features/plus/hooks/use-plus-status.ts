@@ -15,20 +15,15 @@ type EntitlementsApiResponse = {
  * Otherwise, it queries `/api/entitlements/usage`.
  */
 export function usePlusStatus(initialPlus?: boolean) {
-  const [isPlus, setIsPlus] = useState<boolean>(initialPlus ?? false);
-  const [loading, setLoading] = useState<boolean>(initialPlus === undefined);
+  const [fetchedIsPlus, setFetchedIsPlus] = useState(false);
+  const [fetching, setFetching] = useState(initialPlus === undefined);
+  const isPlus = initialPlus ?? fetchedIsPlus;
+  const loading = initialPlus === undefined && fetching;
 
   useEffect(() => {
-    if (initialPlus !== undefined) {
-      setIsPlus(initialPlus);
-      setLoading(false);
-      return;
-    }
+    if (initialPlus !== undefined) return;
 
-    if (typeof window === 'undefined') {
-      setLoading(false);
-      return;
-    }
+    if (typeof window === 'undefined') return;
 
     let isMounted = true;
     async function checkEntitlement() {
@@ -38,17 +33,17 @@ export function usePlusStatus(initialPlus?: boolean) {
           : '/api/entitlements/usage';
         const res = await fetch(url);
         if (!res.ok) {
-          if (isMounted) setLoading(false);
+          if (isMounted) setFetching(false);
           return;
         }
         const data: EntitlementsApiResponse = await res.json();
         if (isMounted) {
           const active = data.plan === 'plus' || data.plan === 'admin' || data.plan === 'team';
-          setIsPlus(active);
-          setLoading(false);
+          setFetchedIsPlus(active);
+          setFetching(false);
         }
-      } catch (err) {
-        if (isMounted) setLoading(false);
+      } catch {
+        if (isMounted) setFetching(false);
       }
     }
 
