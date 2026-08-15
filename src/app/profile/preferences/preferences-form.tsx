@@ -7,8 +7,14 @@ import { regions, subjectFamilies, supportNeeds } from '@/lib/onboarding-options
 import type { StudentProfile } from '@/lib/types';
 import { Input, Panel, PanelHeader, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import { IntakeFields, SaveBar, SelectOptions, TagInput, type SaveMessage } from '../_form-parts';
-import { SaveBar, SelectOptions, TagInput, returnAfterSave, type SaveMessage } from '../_form-parts';
+import {
+  IntakeFields,
+  SaveBar,
+  SelectOptions,
+  TagInput,
+  returnAfterSave,
+  type SaveMessage,
+} from '../_form-parts';
 
 const BUDGET_OPTIONS = [
   // The planning test's four values stay first so a saved answer is visibly
