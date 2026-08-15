@@ -237,6 +237,7 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Contributing to this report': 'Đóng góp cho báo cáo này',
   'Outcome + capability + evidence': 'Kết quả + năng lực + bằng chứng',
   'Verified or attributable': 'Đã xác minh hoặc có thể truy nguồn',
+  verified: 'đã xác minh',
   'A result or change is stated': 'Có nêu kết quả hoặc thay đổi',
   'Includes a measurable result': 'Bao gồm kết quả có thể đo lường',
   'Distinct grounded capabilities': 'Các năng lực riêng biệt có cơ sở',
