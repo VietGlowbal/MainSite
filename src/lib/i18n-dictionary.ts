@@ -4149,9 +4149,6 @@ export const translations: Record<string, string> = {
   'Điều khoản và Điều kiện Sử dụng | GlowBal Education': 'Điều khoản và Điều kiện Sử dụng | GlowBal Education',
   'Điều khoản và Điều kiện Sử dụng Nền tảng GlowBal Education — Các điều khoản chi phối việc sử dụng nền tảng và dịch vụ GlowBal.':
     'Điều khoản và Điều kiện Sử dụng Nền tảng GlowBal Education — Các điều khoản chi phối việc sử dụng nền tảng và dịch vụ GlowBal.',
-  'Terms and Conditions of Use | GlowBal Education': 'Điều khoản và Điều kiện Sử dụng | GlowBal Education',
-  'Terms and Conditions of Use for the GlowBal Education Platform — The terms that govern your use of GlowBal platform and services.':
-    'Điều khoản và Điều kiện Sử dụng Nền tảng GlowBal Education — Các điều khoản chi phối việc sử dụng nền tảng và dịch vụ GlowBal.',
   '1. Chấp nhận Điều khoản': '1. Chấp nhận Điều khoản',
   '2. Định nghĩa': '2. Định nghĩa',
   '3. Điều kiện sử dụng': '3. Điều kiện sử dụng',
