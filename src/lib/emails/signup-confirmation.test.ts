@@ -3,7 +3,7 @@ import { signupConfirmationEmail } from './signup-confirmation';
 
 describe('signupConfirmationEmail', () => {
   it('renders the approved GlowBal branding and personalisation', () => {
-    const url = 'https://example.supabase.co/auth/v1/verify?token=secret&type=signup';
+    const url = 'https://example.supabase.co/auth/v1/verify?token=secret';
     const html = signupConfirmationEmail(url, 'August');
 
     expect(html).toContain('August');
