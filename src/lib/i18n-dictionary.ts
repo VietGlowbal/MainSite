@@ -4710,6 +4710,8 @@ export const translations: Record<string, string> = {
   'Upgrade to GlowBal Plus to unlock all scholarships for your saved universities.':
     'Nâng cấp lên GlowBal Plus để mở khóa tất cả học bổng cho các trường đã lưu của bạn.',
   'Unlock your full strategic narrative': 'Mở khóa toàn bộ câu chuyện chiến lược',
+  'Upgrade to GlowBal Plus to unlock this section':
+    'Nâng cấp lên GlowBal Plus để mở khóa phần này',
   'Upgrade to GlowBal Plus to access the complete personalized narrative, detailed positioning angles, and tailored storyline for your application.':
     'Nâng cấp lên GlowBal Plus để xem toàn bộ câu chuyện cá nhân hóa, góc định vị chi tiết và tuyến cốt truyện cho hồ sơ của bạn.',
   'Upgrade to GlowBal Plus to access the complete personalized narrative and shape your unique admissions identity.':
