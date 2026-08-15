@@ -58,9 +58,9 @@ function formatPlanName(plan?: string | null): string {
     case 'plus-starter':
       return 'GlowBal Plus · Starter (1 Month)';
     case 'plus-pro':
-      return 'GlowBal Plus · Pro (3 Months)';
+      return 'GlowBal Plus · Pro (12 Months / 1 Năm)';
     case 'plus-premium':
-      return 'GlowBal Plus · Premium (6 Months)';
+      return 'GlowBal Plus · Premium (12 Months / 1 Năm)';
     default:
       return plan ? `GlowBal Plus (${plan})` : 'GlowBal Plus Subscription';
   }

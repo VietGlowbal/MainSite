@@ -1,3 +1,4 @@
+import { forwardRef } from 'react';
 import { FormField, controlClasses } from './form-field';
 
 /**
@@ -6,6 +7,10 @@ import { FormField, controlClasses } from './form-field';
  * The design has no dedicated textarea frame; the SOP and reflection screens
  * (94:8622, 110:17958) use the same bordered box taller, which is what this is.
  * Same id-from-name rule as Input — see the note there.
+ *
+ * Ref-forwarded so callers can attach an auto-grow hook
+ * (`useAutoGrowTextarea`) to the underlying DOM node without this component
+ * needing to know anything about auto-grow itself.
  */
 
 type Props = Omit<React.ComponentProps<'textarea'>, 'className' | 'name'> & {
@@ -17,16 +22,10 @@ type Props = Omit<React.ComponentProps<'textarea'>, 'className' | 'name'> & {
   fieldClassName?: string | undefined;
 };
 
-export function Textarea({
-  label,
-  hint,
-  error,
-  className,
-  fieldClassName,
-  required,
-  rows = 4,
-  ...rest
-}: Props) {
+export const Textarea = forwardRef<HTMLTextAreaElement, Props>(function Textarea(
+  { label, hint, error, className, fieldClassName, required, rows = 4, ...rest },
+  ref,
+) {
   const id = rest.id ?? rest.name;
   const described = error ?? hint;
 
@@ -41,6 +40,7 @@ export function Textarea({
     >
       <textarea
         {...rest}
+        ref={ref}
         id={id}
         rows={rows}
         required={required}
@@ -50,4 +50,4 @@ export function Textarea({
       />
     </FormField>
   );
-}
+});

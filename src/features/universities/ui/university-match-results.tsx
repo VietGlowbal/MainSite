@@ -6,6 +6,7 @@ import { Badge, Container, Panel } from '@/shared/ui';
 import type { RankedUniversityMatch, UniversityMatchTierV1 } from '../domain';
 
 const TIER_ORDER: UniversityMatchTierV1[] = ['strong_chance', 'target', 'reach'];
+type MatchView = UniversityMatchTierV1 | 'all';
 
 function tierLabel(tier: UniversityMatchTierV1): string {
   if (tier === 'strong_chance') return 'Strong Chance';
@@ -30,10 +31,14 @@ export function UniversityMatchResults({
   matches: RankedUniversityMatch[];
   demo?: boolean;
 }) {
-  const [selectedTier, setSelectedTier] = useState<UniversityMatchTierV1>(
-    () => TIER_ORDER.find((tier) => matches.some((match) => match.tier === tier)) ?? 'strong_chance',
+  const [selectedView, setSelectedView] = useState<MatchView>(
+    () => (matches.some((match) => match.tier === 'target')
+      ? 'target'
+      : TIER_ORDER.find((tier) => matches.some((match) => match.tier === tier)) ?? 'all'),
   );
-  const selectedMatches = matches.filter((match) => match.tier === selectedTier);
+  const selectedMatches = selectedView === 'all'
+    ? matches
+    : matches.filter((match) => match.tier === selectedView);
 
   return (
     <Container className="flex flex-col gap-gb-4xl py-gb-6xl">
@@ -60,16 +65,16 @@ export function UniversityMatchResults({
             <h2 id="university-recommendations-heading" className="text-gb-xl font-semibold text-fg">Recommended universities</h2>
             <p className="text-gb-sm text-fg-tertiary">Universities are ranked by profile fit, with Strong Chance, Target and Reach tiers.</p>
           </div>
-          <div className="grid gap-gb-lg md:grid-cols-3" aria-label="University match tiers">
+          <div className="grid gap-gb-lg md:grid-cols-4" aria-label="University match tiers">
             {TIER_ORDER.map((tier) => {
               const tierMatches = matches.filter((match) => match.tier === tier);
-              const isSelected = selectedTier === tier;
+              const isSelected = selectedView === tier;
               return (
                 <button
                   key={tier}
                   type="button"
                   aria-pressed={isSelected}
-                  onClick={() => setSelectedTier(tier)}
+                  onClick={() => setSelectedView(tier)}
                   className={`flex min-h-32 flex-col justify-between rounded-gb-lg border p-gb-xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-brand focus-visible:ring-offset-2 ${
                     isSelected
                       ? 'border-fg-brand bg-surface-brand-subtle shadow-gb-sm'
@@ -86,6 +91,24 @@ export function UniversityMatchResults({
                 </button>
               );
             })}
+            <button
+              type="button"
+              aria-pressed={selectedView === 'all'}
+              onClick={() => setSelectedView('all')}
+              className={`flex min-h-32 flex-col justify-between rounded-gb-lg border p-gb-xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-brand focus-visible:ring-offset-2 ${
+                selectedView === 'all'
+                  ? 'border-fg-brand bg-surface-brand-subtle shadow-gb-sm'
+                  : 'border-border bg-surface hover:border-fg-brand hover:bg-surface-brand-subtle/50'
+              }`}
+            >
+              <span className="flex items-start justify-between gap-gb-md">
+                <span className="text-gb-lg font-semibold text-fg">Show all</span>
+                <Badge variant="brand-subtle">{matches.length}</Badge>
+              </span>
+              <span className="mt-gb-lg text-gb-sm text-fg-tertiary">
+                {selectedView === 'all' ? 'Showing all universities' : 'View all universities'}
+              </span>
+            </button>
           </div>
           {selectedMatches.length > 0 ? (
             <ol className="grid gap-gb-2xl lg:grid-cols-2">

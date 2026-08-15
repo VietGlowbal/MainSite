@@ -16,6 +16,18 @@ export async function POST(request: NextRequest) {
   if (!auth) return NextResponse.json({ error: 'Review is unavailable' }, { status: 403 });
   const { data, error } = await auth.admin.rpc('review_manual_payment', { p_review_id: auth.reviewId, p_token_version: auth.tokenVersion, p_action: 'confirm', p_reviewer_id: auth.userId, p_note: parsed.data.note ?? null });
   if (error) return NextResponse.json({ error: 'Could not confirm payment' }, { status: 503 });
+  const result = (data ?? {}) as { status?: string; error_code?: string };
+  if (!['fulfilled', 'already_fulfilled'].includes(result.status ?? '')) {
+    return NextResponse.json(
+      {
+        ...result,
+        error: result.status === 'paid_unfulfilled'
+          ? 'Payment received but access could not be activated'
+          : 'Payment could not be confirmed',
+      },
+      { status: 409, headers: { 'Cache-Control': 'no-store' } },
+    );
+  }
   after(() => dispatchDueManualPaymentJobs(2).catch(() => undefined));
-  return NextResponse.json(data, { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json(result, { headers: { 'Cache-Control': 'no-store' } });
 }

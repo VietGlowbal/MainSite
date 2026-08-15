@@ -36,7 +36,6 @@ import {
   type ScholarshipUniversityOption,
 } from './scholarship-university-picker';
 import { usePlusStatus } from '@/features/plus';
-import { PlusUpgradeModal } from '@/components/plus/plus-upgrade-modal';
 
 const ScholarshipDashboard = dynamic(
   () => import('./scholarship-dashboard').then((module) => module.ScholarshipDashboard),
@@ -139,7 +138,6 @@ export function ScholarshipDirectoryClient({
 }: Props) {
   const { t } = useLanguage();
   const { isPlus } = usePlusStatus(initialIsPlus);
-  const [showPlusModal, setShowPlusModal] = useState(false);
   const router = useRouter();
   const initialDirectory = useMemo<ScholarshipDirectoryResponse>(() => ({
     query: initialQueryState,
@@ -485,9 +483,6 @@ export function ScholarshipDirectoryClient({
     Math.max(1, Math.ceil((value?.total ?? 0) / 9));
 
   const goToPage = (key: 'page' | 'countryPage', page: number) => {
-    if (!isPlus && page >= 2) {
-      setShowPlusModal(true);
-    }
     navigate({ [key]: page }, false);
     resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -539,26 +534,22 @@ export function ScholarshipDirectoryClient({
 
         {isBlurred && (
           <div
-            onClick={() => setShowPlusModal(true)}
-            className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center cursor-pointer bg-gradient-to-b from-transparent via-white/70 to-white"
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center bg-gradient-to-b from-transparent via-white/70 to-white"
           >
-            <div className="max-w-md rounded-2xl border border-[#EDE9EE] bg-white p-6 shadow-xl backdrop-blur-md">
+            <div className="max-w-md rounded-2xl border border-[#EDE9EE] bg-white p-6 sm:p-8 shadow-xl">
               <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-[#FFF0F3] text-xl">
                 🔒
               </div>
-              <h3 className="text-lg font-bold text-[#141118]">
+              <h3 className="text-base sm:text-lg font-bold text-[#141118]">
                 {t('See all 3000 scholarships')}
               </h3>
-              <p className="mt-2 text-xs text-[#6B6570] leading-relaxed">
+              <p className="mt-2 text-xs text-[#6B6570] leading-relaxed max-w-sm">
                 {t('Upgrade to GlowBal Plus to browse all 3000+ scholarships worldwide, unlock advanced filtering and tailored application requirements.')}
               </p>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowPlusModal(true);
-                }}
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#E11D48] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-[#B01238] transition-all cursor-pointer"
+                onClick={() => router.push('/plus')}
+                className="mt-4 inline-flex items-center justify-center gap-2 rounded-xl bg-[#E11D48] px-6 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-[#B01238] transition-all cursor-pointer"
               >
                 <span>{t('See all 3000 scholarships')}</span>
                 <span>→</span>
@@ -926,14 +917,6 @@ export function ScholarshipDirectoryClient({
           t={t}
         />
       ) : null}
-
-      {/* Plus Upgrade Modal */}
-      <PlusUpgradeModal
-        open={showPlusModal}
-        onClose={() => setShowPlusModal(false)}
-        title={t('See all 3000 scholarships')}
-        subtitle={t('Upgrade to GlowBal Plus to browse all 3000+ scholarships worldwide, unlock advanced filtering and tailored application requirements.')}
-      />
 
       {tab === 'directory' && directory.error ? (
         <p role="alert" className="text-sm text-error-primary">{directory.error}</p>

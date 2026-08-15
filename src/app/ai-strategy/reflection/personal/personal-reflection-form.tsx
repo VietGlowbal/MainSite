@@ -9,8 +9,9 @@ import {
   personalReflectionQuestion,
   type PersonalReflectionValues,
 } from '@/features/apply/domain';
+import { ReflectionBreadcrumb } from '@/features/apply/ui';
 import { useT } from '@/lib/i18n';
-import { Button, ProgressBar, Textarea } from '@/shared/ui';
+import { Button, ProgressBar, Textarea, useAutoGrowTextarea } from '@/shared/ui';
 
 /**
  * Step 3 — Personal Reflection: five fixed, cross-cutting questions, one per
@@ -26,10 +27,13 @@ export function PersonalReflectionForm({
   applicationId,
   returnTo,
   initial,
+  applicationLabel,
 }: {
   applicationId?: string | undefined;
   returnTo?: string | undefined;
   initial: PersonalReflectionValues;
+  /** e.g. "Cambridge · Computer Science" — drives the in-page breadcrumb. */
+  applicationLabel?: string | undefined;
 }) {
   const t = useT();
   const router = useRouter();
@@ -41,8 +45,10 @@ export function PersonalReflectionForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const question = personalReflectionQuestion(PERSONAL_REFLECTION_QUESTIONS[index]?.key ?? 'q1');
+  const activeQuestionMeta = PERSONAL_REFLECTION_QUESTIONS[index] ?? PERSONAL_REFLECTION_QUESTIONS[0];
+  const question = personalReflectionQuestion(activeQuestionMeta.key);
   const isLast = index === PERSONAL_REFLECTION_QUESTION_COUNT - 1;
+  const textareaRef = useAutoGrowTextarea<HTMLTextAreaElement>(answers[question.key] ?? '', { maxHeight: 360 });
 
   async function save(finish: boolean) {
     setSaving(true);
@@ -92,6 +98,22 @@ export function PersonalReflectionForm({
 
   return (
     <div className="flex flex-col gap-gb-2xl">
+      {applicationLabel ? (
+        <ReflectionBreadcrumb
+          items={[
+            { label: applicationLabel },
+            { label: t('Personal Reflection') },
+            { label: t(activeQuestionMeta.shortLabel) },
+          ]}
+          mobile={{
+            backLabel: t('Personal Reflection'),
+            onBack: () => void handleBack(),
+            title: t(activeQuestionMeta.shortLabel),
+            meta: t('Question {current} of {total}', { current: index + 1, total: PERSONAL_REFLECTION_QUESTION_COUNT }),
+          }}
+        />
+      ) : null}
+
       <div className="flex flex-col gap-gb-lg">
         <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
           {t('Personal Reflection')}
@@ -116,15 +138,19 @@ export function PersonalReflectionForm({
         </ul>
       </div>
 
-      <Textarea
-        name={`personal-reflection-${question.key}`}
-        label={t('Your answer')}
-        rows={7}
-        value={answers[question.key] ?? ''}
-        onChange={(e) => setAnswers({ ...answers, [question.key]: e.target.value })}
-        onBlur={() => void save(false)}
-        placeholder={t('Write in your own words…')}
-      />
+      <div className="flex flex-col gap-gb-md">
+        <Textarea
+          ref={textareaRef}
+          name={`personal-reflection-${question.key}`}
+          rows={3}
+          value={answers[question.key] ?? ''}
+          onChange={(e) => setAnswers({ ...answers, [question.key]: e.target.value })}
+          onBlur={() => void save(false)}
+          placeholder={t('Tell us what happened in your own words…')}
+          className="resize-none"
+        />
+        <p className="min-h-[1rem] text-gb-xs text-fg-tertiary">{saving ? t('Saving…') : ''}</p>
+      </div>
 
       {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
 

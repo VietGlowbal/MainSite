@@ -7,11 +7,16 @@ import {
   ACHIEVEMENT_CATEGORY_ICON,
   ACTIVITY_CATEGORIES,
   ACTIVITY_CATEGORY_ICON,
+  DIMENSION_LABELS,
+  EXPERIENCE_CATEGORIES,
+  EXPERIENCE_CATEGORY_META,
+  REFLECTION_DIMENSIONS,
   activityReflectionAnsweredCount,
   activityReflectionSchema,
   evidenceCandidateToItem,
   evidenceExtractionResponseSchema,
   experienceCategoryFor,
+  firstUnansweredDimension,
   isReflectionCardEmpty,
   mergeDuplicate,
   reflectionStep,
@@ -19,6 +24,7 @@ import {
   type ActivityValues,
   type EvidenceDuplicate,
   type ReflectionCardValues,
+  type TopLevelExperienceCategory,
   applyEvidenceCandidates as applyEvidenceCandidatesRaw,
 } from '@/features/apply/domain';
 import { useDocumentUpload, useEvidenceDocuments, type EvidenceDocument } from '@/features/apply/hooks';
@@ -26,7 +32,7 @@ import {
   AchievementCard,
   ActivityCard,
   ActivityReflectionModal,
-  AddTypeChooser,
+  ExperienceCategoryChooser,
   DocumentPanel,
   DocumentPreviewDrawer,
   DuplicatePrompt,
@@ -35,19 +41,22 @@ import {
   EvidenceGrid,
   EvidenceSortSelect,
   EvidenceTabs,
+  ReflectionBreadcrumb,
   ReflectionCardError,
   ReflectionCardLoading,
   ReflectionCardView,
   RemoveConfirmDialog,
   ReflectionShell,
   ReviewFlowDrawer,
+  questionIcon,
   type EvidenceDraft,
   type EvidenceSort,
   type EvidenceTabKey,
   type ProcessingState,
+  type ReflectionBreadcrumbItem,
 } from '@/features/apply/ui';
 import { useT } from '@/lib/i18n';
-import { Button, Input, Modal } from '@/shared/ui';
+import { Button, Input, KitIcon, Modal } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 
 type EvidenceKind = 'achievement' | 'activity';
@@ -93,6 +102,35 @@ const newId = () =>
     ? crypto.randomUUID()
     : `tmp-${Math.random().toString(36).slice(2)}`;
 
+/** "Other" only ever holds legacy rows — it gets a plain label, not a card in `EXPERIENCE_CATEGORY_META`. */
+function ExperienceCategorySectionHeading({
+  category,
+  count,
+  t,
+}: {
+  category: TopLevelExperienceCategory | 'other';
+  count: number;
+  t: (s: string, vars?: Record<string, string | number>) => string;
+}) {
+  const meta = category === 'other' ? undefined : EXPERIENCE_CATEGORY_META[category];
+  return (
+    <div className="flex items-center gap-gb-sm">
+      {meta ? (
+        <span
+          aria-hidden="true"
+          className="flex size-6 items-center justify-center rounded-gb-full bg-brand-subtle text-fg-brand"
+        >
+          <KitIcon art={questionIcon(meta.icon)} frame={14} />
+        </span>
+      ) : null}
+      <h3 className="text-gb-sm font-semibold uppercase tracking-wide text-fg-tertiary">
+        {meta ? t(meta.label) : t('Other')}
+        <span className="ml-gb-sm font-normal normal-case text-fg-muted">({count})</span>
+      </h3>
+    </div>
+  );
+}
+
 type RemoveTarget = {
   title: string;
   description: string;
@@ -127,16 +165,43 @@ const SORT_OPTION_KEYS: EvidenceSort[] = [
   'needs_review_first',
 ];
 
+/**
+ * Groups a sorted list of cards under the four approved top-level
+ * categories (spec: "activity list overview should visually group by A/B/C/D"),
+ * in the same fixed `EXPERIENCE_CATEGORIES` order every time — legacy
+ * `category: 'other'` rows (never pickable going forward, but still
+ * possible on old rows) collect into a trailing "Other" group instead of
+ * being dropped. Sort order within each group is preserved from `items`.
+ */
+function groupByExperienceCategory<T>(
+  items: T[],
+  categoryOf: (item: T) => TopLevelExperienceCategory | 'other',
+): Array<{ category: TopLevelExperienceCategory | 'other'; items: T[] }> {
+  const groups = new Map<TopLevelExperienceCategory | 'other', T[]>();
+  for (const item of items) {
+    const category = categoryOf(item);
+    const bucket = groups.get(category);
+    if (bucket) bucket.push(item);
+    else groups.set(category, [item]);
+  }
+  return [...EXPERIENCE_CATEGORIES, 'other' as const]
+    .filter((category) => groups.has(category))
+    .map((category) => ({ category, items: groups.get(category)! }));
+}
+
 export function ReflectionEvidenceForm({
   initialAchievements,
   initialActivities,
   initialDocuments,
   applicationId,
+  applicationLabel,
 }: {
   initialAchievements: AchievementValues[];
   initialActivities: ActivityValues[];
   initialDocuments: EvidenceDocument[];
   applicationId?: string | undefined;
+  /** e.g. "Cambridge · Computer Science" — drives the in-page breadcrumb. */
+  applicationLabel?: string | undefined;
 }) {
   const t = useT();
   const router = useRouter();
@@ -157,7 +222,6 @@ export function ReflectionEvidenceForm({
   const [processing, setProcessing] = useState<ProcessingState>({ kind: 'idle' });
 
   const [editingDraft, setEditingDraft] = useState<EvidenceDraft | null>(null);
-  const [addChooserOpen, setAddChooserOpen] = useState(false);
   const [removeTarget, setRemoveTarget] = useState<RemoveTarget | null>(null);
   const [renameTarget, setRenameTarget] = useState<EvidenceDocument | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -174,6 +238,8 @@ export function ReflectionEvidenceForm({
   const [error, setError] = useState<string | null>(null);
 
   const [reflectTarget, setReflectTarget] = useState<{ kind: EvidenceKind; id: string } | null>(null);
+  const [dimensionIndex, setDimensionIndex] = useState(0);
+  const [categoryChooserOpen, setCategoryChooserOpen] = useState(false);
   const [cardTarget, setCardTarget] = useState<{ kind: EvidenceKind; id: string } | null>(null);
   const [cardState, setCardState] = useState<'loading' | 'error' | 'ready'>('loading');
   const [cardError, setCardError] = useState<string | null>(null);
@@ -258,17 +324,53 @@ export function ReflectionEvidenceForm({
     void persistEvidence();
   }
 
+  /** Opens the reflection dialog for `item`, resuming at its first unanswered dimension — not always Context. */
+  function openReflection(kind: EvidenceKind, id: string) {
+    const item = findItem(kind, id);
+    const resumeIndex = REFLECTION_DIMENSIONS.indexOf(firstUnansweredDimension(item?.reflection));
+    setDimensionIndex(resumeIndex === -1 ? 0 : resumeIndex);
+    setReflectTarget({ kind, id });
+  }
+
+  /** Reopens an already-generated Reflection Card for review without re-calling the AI. */
+  function viewCard(kind: EvidenceKind, id: string) {
+    setCardTarget({ kind, id });
+    setCardState('ready');
+    setCardError(null);
+  }
+
+  /**
+   * The one status label the spec's card vocabulary maps onto: not started →
+   * in progress · N/7 → complete → generating → review the card → confirmed.
+   * A card already generated always takes the student to `viewCard` (read
+   * the card) rather than back into the dimension-by-dimension editor.
+   */
   function reflectActionFor(kind: EvidenceKind, item: AchievementValues | ActivityValues) {
     if (!item.id) return undefined;
     const id = item.id;
     const hasCard = !isReflectionCardEmpty(item.reflectionCard);
+    const generating = cardTarget?.kind === kind && cardTarget.id === id && cardState === 'loading';
+    const confirmed = item.reflectionCard?.status === 'confirmed';
+
+    if (generating) {
+      return { label: t('Generating Reflection Card…'), hasCard: true, onClick: () => {} };
+    }
+    if (hasCard) {
+      return {
+        label: confirmed ? t('Confirmed') : t('Review Reflection Card'),
+        hasCard: true,
+        onClick: () => viewCard(kind, id),
+      };
+    }
+
     const answered = activityReflectionAnsweredCount(item.reflection);
-    const label = hasCard
-      ? t('Reflection Card ready')
-      : answered > 0
-        ? t('Continue reflection')
-        : t('Reflect on this experience');
-    return { label, hasCard, onClick: () => setReflectTarget({ kind, id }) };
+    const label =
+      answered === 0
+        ? t('Reflection not started')
+        : answered === REFLECTION_DIMENSIONS.length
+          ? t('Reflection complete')
+          : t('Reflection in progress · {answered}/{total}', { answered, total: REFLECTION_DIMENSIONS.length });
+    return { label, hasCard: false, onClick: () => openReflection(kind, id) };
   }
 
   function confirmCard(kind: EvidenceKind, id: string) {
@@ -517,9 +619,49 @@ export function ReflectionEvidenceForm({
 
   const hasExistingEvidence = achievements.length > 0 || activities.length > 0;
 
+  const activeReflectItem = reflectTarget ? findItem(reflectTarget.kind, reflectTarget.id) : undefined;
+  const activeCardItem = cardTarget ? findItem(cardTarget.kind, cardTarget.id) : undefined;
+  const activeDimension = REFLECTION_DIMENSIONS[dimensionIndex] ?? 'context';
+
+  const breadcrumbItems: ReflectionBreadcrumbItem[] = [
+    ...(applicationLabel ? [{ label: applicationLabel, onClick: returnTo ? () => router.push(returnTo) : undefined }] : []),
+    reflectTarget || cardTarget
+      ? { label: t('Experiences'), onClick: () => (reflectTarget ? setReflectTarget(null) : setCardTarget(null)) }
+      : { label: t('Experiences') },
+    ...(reflectTarget && activeReflectItem
+      ? [
+          { label: activeReflectItem.title, onClick: () => setReflectTarget(null) },
+          { label: t(DIMENSION_LABELS[activeDimension]) },
+        ]
+      : []),
+    ...(cardTarget && activeCardItem
+      ? [
+          { label: activeCardItem.title, onClick: () => setCardTarget(null) },
+          { label: t('Reflection Card') },
+        ]
+      : []),
+  ];
+
+  const mobileBreadcrumb = reflectTarget && activeReflectItem
+    ? {
+        backLabel: activeReflectItem.title,
+        onBack: () => setReflectTarget(null),
+        title: t(DIMENSION_LABELS[activeDimension]),
+        meta: t('{current} of {total}', { current: dimensionIndex + 1, total: REFLECTION_DIMENSIONS.length }),
+      }
+    : cardTarget && activeCardItem
+      ? {
+          backLabel: activeCardItem.title,
+          onBack: () => setCardTarget(null),
+          title: t('Reflection Card'),
+        }
+      : undefined;
+
   return (
     <ReflectionShell step="evidence">
       <div className="flex flex-col gap-gb-3xl">
+        <ReflectionBreadcrumb items={breadcrumbItems} mobile={mobileBreadcrumb} />
+
         {hasExistingEvidence && reviewQueue.length === 0 ? (
           <div className="flex flex-wrap items-center justify-between gap-gb-lg rounded-gb-xl border border-line bg-surface-muted px-gb-xl py-gb-lg">
             <p className="text-gb-sm text-fg-secondary">
@@ -567,7 +709,7 @@ export function ReflectionEvidenceForm({
               onConfirm: () => void removeDocument(document.id),
             })
           }
-          onAddManually={() => setAddChooserOpen(true)}
+          onAddManually={() => setCategoryChooserOpen(true)}
           labels={{
             recentlyUploaded: t('Recently uploaded'),
             noDocuments: t('You can upload multiple PDFs. Each file up to 10MB.'),
@@ -622,30 +764,39 @@ export function ReflectionEvidenceForm({
               heading={t('No academic achievements yet')}
               hint={t('Upload a CV or certificate, or add one manually.')}
               addLabel={t('Add achievement')}
-              onAdd={() => setAddChooserOpen(true)}
+              onAdd={() => setCategoryChooserOpen(true)}
             />
           ) : (
-            <EvidenceGrid>
-              {sortedAchievements.map((item) => (
-                <AchievementCard
-                  key={item.id}
-                  item={item}
-                  icon={ACHIEVEMENT_CATEGORY_ICON[item.category]}
-                  labels={cardLabels}
-                  onEdit={() => openEdit({ kind: 'achievement', ...item }, false)}
-                  onRemove={() =>
-                    setRemoveTarget({
-                      title: t('Remove this achievement?'),
-                      description: t(
-                        'This will remove it from your GlowBal profile, but not from your uploaded document.',
-                      ),
-                      onConfirm: () => removeItem('achievement', item.id),
-                    })
-                  }
-                  reflect={reflectActionFor('achievement', item)}
-                />
+            <div className="flex flex-col gap-gb-2xl">
+              {groupByExperienceCategory(sortedAchievements, (item) =>
+                experienceCategoryFor('achievement', item.category),
+              ).map((group) => (
+                <div key={group.category} className="flex flex-col gap-gb-lg">
+                  <ExperienceCategorySectionHeading category={group.category} count={group.items.length} t={t} />
+                  <EvidenceGrid>
+                    {group.items.map((item) => (
+                      <AchievementCard
+                        key={item.id}
+                        item={item}
+                        icon={ACHIEVEMENT_CATEGORY_ICON[item.category]}
+                        labels={cardLabels}
+                        onEdit={() => openEdit({ kind: 'achievement', ...item }, false)}
+                        onRemove={() =>
+                          setRemoveTarget({
+                            title: t('Remove this achievement?'),
+                            description: t(
+                              'This will remove it from your GlowBal profile, but not from your uploaded document.',
+                            ),
+                            onConfirm: () => removeItem('achievement', item.id),
+                          })
+                        }
+                        reflect={reflectActionFor('achievement', item)}
+                      />
+                    ))}
+                  </EvidenceGrid>
+                </div>
               ))}
-            </EvidenceGrid>
+            </div>
           )
         ) : sortedActivities.length === 0 ? (
           <EvidenceEmptyState
@@ -653,36 +804,45 @@ export function ReflectionEvidenceForm({
             heading={t('No extracurricular activities yet')}
             hint={t('Upload a document or add an activity manually.')}
             addLabel={t('Add activity')}
-            onAdd={() => setAddChooserOpen(true)}
+            onAdd={() => setCategoryChooserOpen(true)}
           />
         ) : (
-          <EvidenceGrid>
-            {sortedActivities.map((item) => (
-              <ActivityCard
-                key={item.id}
-                item={item}
-                icon={ACTIVITY_CATEGORY_ICON[item.category]}
-                labels={cardLabels}
-                onEdit={() => openEdit({ kind: 'activity', ...item }, false)}
-                onRemove={() =>
-                  setRemoveTarget({
-                    title: t('Remove this activity?'),
-                    description: t(
-                      'This will remove it from your GlowBal profile, but not from your uploaded document.',
-                    ),
-                    onConfirm: () => removeItem('activity', item.id),
-                  })
-                }
-                reflect={reflectActionFor('activity', item)}
-              />
-            ))}
-          </EvidenceGrid>
+          <div className="flex flex-col gap-gb-2xl">
+            {groupByExperienceCategory(sortedActivities, (item) => experienceCategoryFor('activity', item.category)).map(
+              (group) => (
+                <div key={group.category} className="flex flex-col gap-gb-lg">
+                  <ExperienceCategorySectionHeading category={group.category} count={group.items.length} t={t} />
+                  <EvidenceGrid>
+                    {group.items.map((item) => (
+                      <ActivityCard
+                        key={item.id}
+                        item={item}
+                        icon={ACTIVITY_CATEGORY_ICON[item.category]}
+                        labels={cardLabels}
+                        onEdit={() => openEdit({ kind: 'activity', ...item }, false)}
+                        onRemove={() =>
+                          setRemoveTarget({
+                            title: t('Remove this activity?'),
+                            description: t(
+                              'This will remove it from your GlowBal profile, but not from your uploaded document.',
+                            ),
+                            onConfirm: () => removeItem('activity', item.id),
+                          })
+                        }
+                        reflect={reflectActionFor('activity', item)}
+                      />
+                    ))}
+                  </EvidenceGrid>
+                </div>
+              ),
+            )}
+          </div>
         )}
 
         <p className="self-start">
           <button
             type="button"
-            onClick={() => setAddChooserOpen(true)}
+            onClick={() => setCategoryChooserOpen(true)}
             className="text-gb-sm font-semibold text-fg-brand hover:underline"
           >
             + {activeTab === 'academic' ? t('Add achievement') : t('Add activity')}
@@ -755,16 +915,16 @@ export function ReflectionEvidenceForm({
         t={t}
       />
 
-      <AddTypeChooser
-        open={addChooserOpen}
-        onClose={() => setAddChooserOpen(false)}
-        onChooseAcademic={() => {
-          setAddChooserOpen(false);
-          setEditingDraft({ kind: 'achievement', id: newId(), category: 'academic_award', title: '' });
-        }}
-        onChooseExtracurricular={() => {
-          setAddChooserOpen(false);
-          setEditingDraft({ kind: 'activity', id: newId(), category: 'community_project', title: '' });
+      <ExperienceCategoryChooser
+        open={categoryChooserOpen}
+        onClose={() => setCategoryChooserOpen(false)}
+        onChoose={(subtype) => {
+          setCategoryChooserOpen(false);
+          setEditingDraft(
+            subtype.kind === 'achievement'
+              ? { kind: 'achievement', id: newId(), category: subtype.category as AchievementValues['category'], title: '' }
+              : { kind: 'activity', id: newId(), category: subtype.category as ActivityValues['category'], title: '' },
+          );
         }}
         t={t}
       />
@@ -858,6 +1018,9 @@ export function ReflectionEvidenceForm({
                 activityTitle={item.title}
                 value={item.reflection ?? activityReflectionSchema.parse({})}
                 onChange={(next) => updateItem(reflectTarget.kind, reflectTarget.id, { reflection: next })}
+                dimensionIndex={dimensionIndex}
+                onDimensionIndexChange={setDimensionIndex}
+                onAutosave={persistEvidence}
                 onRequestCard={() => {
                   const { kind, id } = reflectTarget;
                   setReflectTarget(null);

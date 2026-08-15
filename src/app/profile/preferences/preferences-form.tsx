@@ -1,12 +1,14 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { regions, subjectFamilies, supportNeeds } from '@/lib/onboarding-options';
 import type { StudentProfile } from '@/lib/types';
 import { Input, Panel, PanelHeader, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { IntakeFields, SaveBar, SelectOptions, TagInput, type SaveMessage } from '../_form-parts';
+import { SaveBar, SelectOptions, TagInput, returnAfterSave, type SaveMessage } from '../_form-parts';
 
 const BUDGET_OPTIONS = [
   // The planning test's four values stay first so a saved answer is visibly
@@ -42,10 +44,15 @@ function normalizeCountries(values: string[]): string[] {
 export function PreferencesForm({
   userId,
   initialProfile,
+  returnTo,
+  updatedLabel,
 }: {
   userId: string;
   initialProfile: StudentProfile | null;
+  returnTo?: string | undefined;
+  updatedLabel?: string | undefined;
 }) {
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [countries, setCountries] = useState<string[]>(() => normalizeCountries(initialProfile?.preferred_countries ?? []));
   const [cities, setCities] = useState<string[]>(initialProfile?.preferred_cities ?? []);
@@ -78,7 +85,16 @@ export function PreferencesForm({
       },
       { onConflict: 'user_id' },
     );
-    setMessage(error ? { text: error.message, ok: false } : { text: 'Saved successfully.', ok: true });
+    if (error) {
+      setMessage({ text: error.message, ok: false });
+      setSaving(false);
+      return;
+    }
+    if (returnTo) {
+      returnAfterSave(router, returnTo, updatedLabel ?? 'Study plans');
+      return;
+    }
+    setMessage({ text: 'Saved successfully.', ok: true });
     setSaving(false);
   };
 
@@ -169,7 +185,12 @@ export function PreferencesForm({
           </Select>
         </div>
 
-        <SaveBar onSave={handleSave} saving={saving} message={message} label="Save preferences" />
+        <SaveBar
+          onSave={handleSave}
+          saving={saving}
+          message={message}
+          label={returnTo ? 'Save & return to application' : 'Save preferences'}
+        />
       </Panel>
     </div>
   );

@@ -32,6 +32,7 @@ export { Radio, RadioGroup } from './radio';
 export { RatingsBadge } from './ratings-badge';
 export { Select } from './select';
 export { Textarea } from './textarea';
+export { useAutoGrowTextarea } from './use-autogrow-textarea';
 export { Footer } from './footer';
 export type { FooterColumn, FooterLink, FooterSocial } from './footer';
 export {

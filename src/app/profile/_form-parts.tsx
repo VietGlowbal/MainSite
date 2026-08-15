@@ -18,6 +18,23 @@ import { Badge, Button, FormField, MonthPicker, Select, controlClasses } from '@
 export type SaveMessage = { text: string; ok: boolean } | null;
 
 /**
+ * "Save & return to application" — the shared success path every editor
+ * that can be opened from an application uses instead of just showing an
+ * inline "Saved successfully." message and leaving the student on
+ * `/profile/*`. Appends `?updated=<label>` so the page being returned to
+ * (currently only `/ai-strategy/reflection`, the Review Profile step) can
+ * show a "✓ {label} updated" confirmation without a manual refresh.
+ */
+export function returnAfterSave(
+  router: { push: (href: string) => void },
+  returnTo: string,
+  updatedLabel: string,
+): void {
+  const separator = returnTo.includes('?') ? '&' : '?';
+  router.push(`${returnTo}${separator}updated=${encodeURIComponent(updatedLabel)}`);
+}
+
+/**
  * The options for a <Select>, plus the stored value when it is not one of them.
  *
  * ⚠️ THIS IS NOT DEFENSIVE PADDING — it fixes a way the page lies. Several of

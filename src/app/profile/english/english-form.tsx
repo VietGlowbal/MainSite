@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   ENGLISH_TEST_FORMATS,
   STANDARDIZED_TEST_FORMATS,
@@ -10,7 +11,7 @@ import { createClient } from '@/lib/supabase/client';
 import type { EnglishTestScore, StandardizedTestScore } from '@/lib/types';
 import { Input, Panel, PanelHeader, RepeatableFieldset, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import { SaveBar, SelectOptions, type SaveMessage } from '../_form-parts';
+import { SaveBar, SelectOptions, returnAfterSave, type SaveMessage } from '../_form-parts';
 
 const ENGLISH_TEST_TYPES = [
   ...Object.keys(ENGLISH_TEST_FORMATS),
@@ -60,11 +61,16 @@ export function EnglishForm({
   userId,
   initialEnglishScores,
   initialStandardizedScores,
+  returnTo,
+  updatedLabel,
 }: {
   userId: string;
   initialEnglishScores: EnglishTestScore[];
   initialStandardizedScores: StandardizedTestScore[];
+  returnTo?: string | undefined;
+  updatedLabel?: string | undefined;
 }) {
+  const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
   const [englishScores, setEnglishScores] = useState<DraftEnglishScore[]>(
     initialEnglishScores.map((score) => ({ ...score, _localId: score.id })),
@@ -302,6 +308,10 @@ export function EnglishForm({
         }
       }
 
+      if (returnTo) {
+        returnAfterSave(router, returnTo, updatedLabel ?? 'Test scores');
+        return;
+      }
       setMessage({ text: 'Saved successfully.', ok: true });
     } catch (error) {
       setMessage({
@@ -510,7 +520,12 @@ export function EnglishForm({
         />
       </Panel>
 
-      <SaveBar onSave={handleSave} saving={saving} message={message} label="Save test scores" />
+      <SaveBar
+        onSave={handleSave}
+        saving={saving}
+        message={message}
+        label={returnTo ? 'Save & return to application' : 'Save test scores'}
+      />
     </div>
   );
 }
