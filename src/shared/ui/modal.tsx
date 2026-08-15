@@ -81,6 +81,9 @@ export function Modal({
   // server render deterministic and the client portal attached to body.
   if (!open || typeof document === 'undefined') return null;
 
+  const hasCustomMaxW = className?.includes('max-w-');
+  const hasCustomPadding = className?.includes('p-') || className?.includes('p0');
+
   const content = (
     <div
       className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/60 p-4 sm:p-6 backdrop-blur-sm"
@@ -93,9 +96,9 @@ export function Modal({
         aria-label={label}
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
-        className={`relative my-auto w-full max-w-lg rounded-2xl border border-[#EDE9EE] bg-white p-6 sm:p-8 shadow-2xl ${
-          className ?? ''
-        }`}
+        className={`relative my-auto w-full rounded-2xl border border-[#EDE9EE] bg-white shadow-2xl ${
+          hasCustomMaxW ? '' : 'max-w-lg'
+        } ${hasCustomPadding ? '' : 'p-6 sm:p-8'} ${className ?? ''}`}
       >
         {children}
       </div>

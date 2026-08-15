@@ -4,7 +4,7 @@
  * Task 8.8: Basic endpoint rate limiting
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { RateLimiter } from '../rate-limiter';
 
 describe('RateLimiter', () => {

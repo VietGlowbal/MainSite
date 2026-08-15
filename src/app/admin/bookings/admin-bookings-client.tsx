@@ -3,10 +3,28 @@
 import { useState } from 'react';
 import { Badge, Button, Panel, StatTile } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import type { PaymentItem } from '@/server/payments/admin-bookings';
 import { EmptyRow, TableShell, TD, TH } from '../_ui';
 
-export type { PaymentItem };
+export type PaymentItem = {
+  id: string;
+  transactionId?: string;
+  bookingId?: number;
+  reference: string;
+  provider: string;
+  productType: 'plus' | 'mentorship';
+  productTitle: string;
+  productSubtitle: string;
+  amountVnd: number;
+  feeAmountVnd: number;
+  customerName: string;
+  customerEmail: string;
+  status: string;
+  isClaimed: boolean;
+  claimedAt?: string | null;
+  createdAt: string;
+  expiresAt?: string | null;
+  achieverName?: string;
+};
 
 function formatVND(amount: number): string {
   return new Intl.NumberFormat('vi-VN').format(amount) + ' ₫';

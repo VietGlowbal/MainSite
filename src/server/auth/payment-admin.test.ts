@@ -42,6 +42,17 @@ describe('isPaymentAdmin', () => {
     expect(result).toBe(true);
   });
 
+  it('recognizes founder VinUniversity by ID', async () => {
+    const result = await isPaymentAdmin('39539b5e-842d-4bf0-aaa9-9611e411700f', 'random@example.com');
+    expect(result).toBe(true);
+  });
+
+  it('recognizes founder VinUniversity by email', async () => {
+    const result = await isPaymentAdmin('some-other-uuid', 'linhnk0505@gmail.com');
+    expect(result).toBe(true);
+  });
+
+
 
   it('recognizes user in MANUAL_PAYMENT_REVIEWER_USER_IDS', async () => {
     process.env.MANUAL_PAYMENT_REVIEWER_USER_IDS = '91056608-5d63-4dc3-9f7e-fbd48e4f3b84,11111111-2222-3333-4444-555555555555';

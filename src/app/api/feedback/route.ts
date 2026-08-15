@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { sendEmail } from '@/lib/send-email';
 
 const FEEDBACK_RECIPIENT = 'glowbal@purelymail.com';
 

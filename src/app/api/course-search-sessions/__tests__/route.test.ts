@@ -1,6 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { POST } from '../route';
-import { NextRequest } from 'next/server';
 
 // Mock the Supabase client
 const mockInsert = vi.fn();

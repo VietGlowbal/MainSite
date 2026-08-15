@@ -20,8 +20,7 @@ import { Button } from '@/shared/ui/button';
 import { ICONS, KitIcon } from '@/shared/ui/icons';
 import { Modal } from '@/shared/ui/modal';
 import { useLanguage } from '@/lib/i18n';
-import { PlusUpgradeModal } from '@/components/plus/plus-upgrade-modal';
-import { usePlusStatus } from '@/features/plus/hooks';
+import { usePlusStatus } from '@/features/plus/hooks/use-plus-status';
 import { ApplySectionHeading } from './section-heading';
 
 /**
@@ -809,9 +808,9 @@ function ScholarshipPicker({
   isPlus?: boolean;
 }) {
   const { t } = useLanguage();
+  const router = useRouter();
   const [chosen, setChosen] = useState<string | null>(null);
   const [viewing, setViewing] = useState<string | null>(null);
-  const [showPlusModal, setShowPlusModal] = useState(false);
 
   const viewed = viewing
     ? candidates.find(({ option, universityId }) => `${universityId}:${option.id}` === viewing)
@@ -858,118 +857,105 @@ function ScholarshipPicker({
   }
 
   return (
-    <>
-      <Modal open={open} onClose={close} label={heading} className="max-w-[720px] p-gb-3xl">
-        <h2 className="text-gb-lg font-semibold text-fg">{heading}</h2>
-        <p className="mt-gb-md text-gb-sm text-fg-tertiary">
-          {candidates.length === 0
-            ? mode === 'apply'
-              ? 'None of the universities you selected have a scholarship in our directory yet.'
-              : 'None of the universities on your saved list have a scholarship in our directory yet.'
-            : mode === 'apply'
-              ? 'Pick a scholarship to attach to your saved university. It will show on the university and in your plan.'
-              : 'Everything our directory links to the universities you saved. Open one to see who it is for and what it covers.'}
-        </p>
+    <Modal open={open} onClose={close} label={heading} className="max-w-[720px] p-gb-3xl">
+      <h2 className="text-gb-lg font-semibold text-fg">{heading}</h2>
+      <p className="mt-gb-md text-gb-sm text-fg-tertiary">
+        {candidates.length === 0
+          ? mode === 'apply'
+            ? 'None of the universities you selected have a scholarship in our directory yet.'
+            : 'None of the universities on your saved list have a scholarship in our directory yet.'
+          : mode === 'apply'
+            ? 'Pick a scholarship to attach to your saved university. It will show on the university and in your plan.'
+            : 'Everything our directory links to the universities you saved. Open one to see who it is for and what it covers.'}
+      </p>
 
-        {candidates.length > 0 ? (
-          <fieldset className="mt-gb-3xl flex max-h-[52vh] min-w-0 flex-col gap-gb-lg overflow-y-auto">
-            <legend className="sr-only">Available scholarships</legend>
-            {visibleCandidates.map((candidate) => {
-              const value = `${candidate.universityId}:${candidate.option.id}`;
-              return (
-                <ScholarshipCandidateCard
-                  key={value}
-                  candidate={candidate}
-                  chosen={chosen === value}
-                  onChoose={() => setChosen(value)}
-                  onView={() => setViewing(value)}
-                  selectable={mode === 'apply'}
-                />
-              );
-            })}
+      {candidates.length > 0 ? (
+        <fieldset className="mt-gb-3xl flex max-h-[52vh] min-w-0 flex-col gap-gb-lg overflow-y-auto">
+          <legend className="sr-only">Available scholarships</legend>
+          {visibleCandidates.map((candidate) => {
+            const value = `${candidate.universityId}:${candidate.option.id}`;
+            return (
+              <ScholarshipCandidateCard
+                key={value}
+                candidate={candidate}
+                chosen={chosen === value}
+                onChoose={() => setChosen(value)}
+                onView={() => setViewing(value)}
+                selectable={mode === 'apply'}
+              />
+            );
+          })}
 
-            {/* Blurred 4th+ candidates for non-Plus */}
-            {blurredCandidates.length > 0 && (
-              <div className="relative mt-2">
-                <div className="flex flex-col gap-gb-lg filter blur-xs opacity-40 select-none pointer-events-none">
-                  {blurredCandidates.map((candidate) => {
-                    const value = `${candidate.universityId}:${candidate.option.id}`;
-                    return (
-                      <ScholarshipCandidateCard
-                        key={value}
-                        candidate={candidate}
-                        chosen={false}
-                        onChoose={() => {}}
-                        onView={() => {}}
-                        selectable={false}
-                      />
-                    );
-                  })}
-                </div>
+          {/* Blurred 4th+ candidates for non-Plus */}
+          {blurredCandidates.length > 0 && (
+            <div className="relative mt-2">
+              <div className="flex flex-col gap-gb-lg filter blur-xs opacity-40 select-none pointer-events-none">
+                {blurredCandidates.map((candidate) => {
+                  const value = `${candidate.universityId}:${candidate.option.id}`;
+                  return (
+                    <ScholarshipCandidateCard
+                      key={value}
+                      candidate={candidate}
+                      chosen={false}
+                      onChoose={() => {}}
+                      onView={() => {}}
+                      selectable={false}
+                    />
+                  );
+                })}
+              </div>
 
-                <div
-                  onClick={() => setShowPlusModal(true)}
-                  className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 text-center cursor-pointer bg-gradient-to-b from-transparent via-white/80 to-white rounded-2xl"
-                >
-                  <div className="rounded-xl border border-[#EDE9EE] bg-white p-4 shadow-lg backdrop-blur-sm max-w-sm">
-                    <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-[#FFF0F3] text-base">
-                      🔒
-                    </div>
-                    <h4 className="text-sm font-bold text-[#141118]">
-                      {t('See all scholarships')}
-                    </h4>
-                    <p className="mt-1 text-xs text-[#6B6570]">
-                      {t('Upgrade to GlowBal Plus to unlock all {count} scholarships for your saved universities.', {
-                        count: candidates.length,
-                      })}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setShowPlusModal(true);
-                      }}
-                      className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#E11D48] px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-[#B01238] transition-all cursor-pointer"
-                    >
-                      <span>{t('See all scholarships')}</span>
-                      <span>→</span>
-                    </button>
+              <div
+                className="absolute inset-0 z-10 flex flex-col items-center justify-center p-4 text-center bg-gradient-to-b from-transparent via-white/80 to-white rounded-2xl"
+              >
+                <div className="rounded-xl border border-[#EDE9EE] bg-white p-4 shadow-lg backdrop-blur-sm max-w-sm">
+                  <div className="mx-auto mb-2 flex size-10 items-center justify-center rounded-full bg-[#FFF0F3] text-base">
+                    🔒
                   </div>
+                  <h4 className="text-sm font-bold text-[#141118]">
+                    {t('See all scholarships')}
+                  </h4>
+                  <p className="mt-1 text-xs text-[#6B6570]">
+                    {t('Upgrade to GlowBal Plus to unlock all {count} scholarships for your saved universities.', {
+                      count: candidates.length,
+                    })}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => router.push('/plus')}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[#E11D48] px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-[#B01238] transition-all cursor-pointer"
+                  >
+                    <span>{t('See all scholarships')}</span>
+                    <span>→</span>
+                  </button>
                 </div>
               </div>
-            )}
-          </fieldset>
-        ) : null}
+            </div>
+          )}
+        </fieldset>
+      ) : null}
 
-        {/* 375:13368 — the actions sit bottom-right. Browse mode has one button,
-            because there is nothing to confirm. */}
-        <div className="mt-gb-3xl flex items-center justify-end gap-gb-lg">
-          <Button variant="secondary" size="lg" onClick={close}>
-            {mode === 'apply' ? 'Back' : 'Close'}
+      {/* 375:13368 — the actions sit bottom-right. Browse mode has one button,
+          because there is nothing to confirm. */}
+      <div className="mt-gb-3xl flex items-center justify-end gap-gb-lg">
+        <Button variant="secondary" size="lg" onClick={close}>
+          {mode === 'apply' ? 'Back' : 'Close'}
+        </Button>
+        {mode === 'apply' ? (
+          <Button
+            size="lg"
+            disabled={!chosen || busy}
+            onClick={() => {
+              if (!chosen) return;
+              const [uni, sch] = chosen.split(':');
+              onApply({ universityId: Number(uni), scholarshipId: Number(sch) });
+            }}
+          >
+            {busy ? 'Please wait...' : 'Apply scholarship now'}
           </Button>
-          {mode === 'apply' ? (
-            <Button
-              size="lg"
-              disabled={!chosen || busy}
-              onClick={() => {
-                if (!chosen) return;
-                const [uni, sch] = chosen.split(':');
-                onApply({ universityId: Number(uni), scholarshipId: Number(sch) });
-              }}
-            >
-              {busy ? 'Please wait...' : 'Apply scholarship now'}
-            </Button>
-          ) : null}
-        </div>
-      </Modal>
-
-      <PlusUpgradeModal
-        open={showPlusModal}
-        onClose={() => setShowPlusModal(false)}
-        title={t('See all scholarships')}
-        subtitle={t('Upgrade to GlowBal Plus to unlock all scholarships for your saved universities.')}
-      />
-    </>
+        ) : null}
+      </div>
+    </Modal>
   );
 }
 

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState, useSyncExternalStore } from 'react';
+import { useRouter } from 'next/navigation';
 import { Badge, Button, Modal, Textarea } from '@/shared/ui';
 import { computeServiceFee, computeTotal, formatMoney } from '@/lib/currency';
 import { convertToVnd } from '@/lib/payments/vnpay-shared';
@@ -133,6 +134,7 @@ export function MentorBooking({
   isSignedIn: boolean;
 }) {
   const { lang, t } = useLanguage();
+  const router = useRouter();
   const locale = lang === 'vi' ? 'vi-VN' : 'en-GB';
   const mounted = useSyncExternalStore(subscribeToNothing, onClient, onServer);
 
@@ -407,9 +409,9 @@ export function MentorBooking({
                   disabled={selectedSlot === null}
                   onClick={() => {
                     if (!isSignedIn) {
-                      window.location.href = `/auth?next=${encodeURIComponent(
+                      router.push(`/auth?next=${encodeURIComponent(
                         `/advisors/${mentorId}`,
-                      )}`;
+                      )}`);
                       return;
                     }
                     setIntakeOpen(true);

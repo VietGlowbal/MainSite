@@ -116,6 +116,8 @@ export const translations: Record<string, string> = {
   'No universities in this tier yet': 'Chưa có trường đại học nào trong tier này',
   'Try another tier to see the universities that match your profile.':
     'Hãy thử tier khác để xem các trường đại học phù hợp với hồ sơ của bạn.',
+  'Showing all universities': 'Đang hiển thị tất cả các trường đại học',
+  'View all universities': 'Xem tất cả các trường đại học',
   "Choose from 200+ of the world's leading universities":
     'Chọn từ 200+ đại học tốt nhất thế giới',
   'Find a university': 'Tìm Đại học',
@@ -4872,10 +4874,8 @@ export const translations: Record<string, string> = {
   'Personal Report sections': 'Các phần của Báo cáo Cá nhân',
   'A profile of who you are as an applicant — built from your reflected experiences, evidence and recurring patterns.':
     'Bức chân dung về bản thân bạn với tư cách là ứng viên — được xây dựng từ các trải nghiệm phản tư, minh chứng và mô thức tính cách nổi bật.',
-
-  // ── GlowBal Plus upgrade prompts ───────────────────────────────────────────
   '✨ GLOWBAL PLUS': '✨ GLOWBAL PLUS',
-  'Unlock your strategic narrative': 'Mở khóa câu chuyện chiến lược của bạn',
   'Upgrade to GlowBal Plus to view your personalized application narrative, tailored storytelling angle, and strategic essays guidance.':
-    'Nâng cấp lên GlowBal Plus để xem câu chuyện ứng tuyển cá nhân hóa, góc kể chuyện riêng và hướng dẫn viết luận chiến lược của bạn.',
+    'Nâng cấp GlowBal Plus để xem câu chuyện hồ sơ cá nhân hóa, góc kể chuyện phù hợp và hướng dẫn chiến lược bài luận.',
+  'Unlock your strategic narrative': 'Mở khóa câu chuyện chiến lược của bạn',
 };
