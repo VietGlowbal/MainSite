@@ -8,11 +8,15 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import {
   ApplicantSnapshotView,
   AreasForGrowthView,
+  CapabilityProfileView,
   ConfidenceBadge,
   CoreIdentityView,
   DrivingForceView,
   EmergingThemesView,
+  FuturePathwaysView,
+  GrowthMatrixView,
   KeyTakeawaysView,
+  MotivationProfileView,
   PERSONAL_REPORT_SECTION_IDS,
   PersonalCanvasView,
   PersonalPositioningView,
@@ -20,6 +24,7 @@ import {
   ProfileAtAGlanceView,
   ProofOfMeView,
   SignaturePatternView,
+  SocialProofSummaryView,
   VersionHistoryPicker,
   withReturn,
 } from './personal-report';
@@ -58,9 +63,8 @@ function ReportChapter({
 /**
  * Canonical Personal Report shell. The existing grounded report engine and
  * versioning remain unchanged; this view reorganises those findings around
- * the six-part Personal Canvas product model:
- * Core Identity → Driving Forces → Proven Capabilities → Social Proof →
- * Areas for Growth → Long-Term Vision.
+ * the six-part Personal Canvas product model and adds evidence-backed visual
+ * interpretation on top of the stored report snapshot.
  */
 export function PersonalReportV2View({
   initialReport,
@@ -255,7 +259,10 @@ export function PersonalReportV2View({
         title="Driving Forces"
         description="What repeatedly motivates your choices, where those motivations appear in your experiences, and how confidently the evidence supports them."
       >
-        <DrivingForceView section={report.drivingForce} returnTo={returnTo} onAnswered={onAnswered} />
+        <div className="flex flex-col gap-gb-xl">
+          <DrivingForceView section={report.drivingForce} returnTo={returnTo} onAnswered={onAnswered} />
+          <MotivationProfileView report={report} />
+        </div>
       </ReportChapter>
 
       <ReportChapter
@@ -265,6 +272,7 @@ export function PersonalReportV2View({
         description="What your evidence demonstrates you can do, how those strengths combine, and the positioning they create for you as an applicant."
       >
         <div className="flex flex-col gap-gb-xl">
+          <CapabilityProfileView report={report} />
           <ProfileAtAGlanceView overview={undefined} analytics={report.analytics} />
           <PersonalPositioningView
             section={report.personalPositioning}
@@ -280,12 +288,15 @@ export function PersonalReportV2View({
         title="Social Proof"
         description="The tangible activities, outcomes and verification that make the claims in your profile credible."
       >
-        <ProofOfMeView
-          section={report.proofOfMe}
-          evidenceSummary={report.analytics?.evidenceSummary}
-          overallSummary={undefined}
-          returnTo={returnTo}
-        />
+        <div className="flex flex-col gap-gb-xl">
+          <SocialProofSummaryView report={report} />
+          <ProofOfMeView
+            section={report.proofOfMe}
+            evidenceSummary={report.analytics?.evidenceSummary}
+            overallSummary={undefined}
+            returnTo={returnTo}
+          />
+        </div>
       </ReportChapter>
 
       <ReportChapter
@@ -294,7 +305,10 @@ export function PersonalReportV2View({
         title="Areas for Growth"
         description="Where the current evidence is limited, what still needs development, and where stronger proof could make the profile more complete."
       >
-        <AreasForGrowthView report={report} />
+        <div className="flex flex-col gap-gb-xl">
+          <GrowthMatrixView report={report} />
+          <AreasForGrowthView report={report} />
+        </div>
       </ReportChapter>
 
       <ReportChapter
@@ -303,11 +317,14 @@ export function PersonalReportV2View({
         title="Long-Term Vision"
         description="The themes and directions emerging from the choices you repeatedly make — presented as possibilities, not predictions."
       >
-        <EmergingThemesView
-          section={report.emergingThemes}
-          themeMaturity={report.analytics?.themeMaturity}
-          returnTo={returnTo}
-        />
+        <div className="flex flex-col gap-gb-xl">
+          <FuturePathwaysView report={report} />
+          <EmergingThemesView
+            section={report.emergingThemes}
+            themeMaturity={report.analytics?.themeMaturity}
+            returnTo={returnTo}
+          />
+        </div>
       </ReportChapter>
 
       <KeyTakeawaysView report={report} />
