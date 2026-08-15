@@ -22,7 +22,6 @@ export function PaymentMethodSelector({
     <RadioGroup
       id={id}
       legend={t('Payment method')}
-      hint={t('VNPay is currently available in Sandbox. Manual bank transfer is confirmed by the founder. Stripe will be available soon.')}
       className="rounded-gb-lg border border-line bg-surface p-gb-xl"
     >
       <Radio
@@ -45,8 +44,7 @@ export function PaymentMethodSelector({
         value="manual_bank_transfer"
         checked={value === 'manual_bank_transfer'}
         onChange={() => onChange?.('manual_bank_transfer')}
-        label={t('Manual bank transfer')}
-        description={t('Transfer the exact VND amount; founder confirmation is required.')}
+        label={t('Bank transfer')}
       />
       <Radio
         id={`${id}-stripe`}

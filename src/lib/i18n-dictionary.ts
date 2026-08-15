@@ -4522,7 +4522,7 @@ export const translations: Record<string, string> = {
     'Thành tích và hoạt động này đã được điền sẵn từ hồ sơ của bạn.',
   'Skip — my achievements are still correct': 'Bỏ qua — thành tích của tôi vẫn đúng',
   'Payment method': 'Phương thức thanh toán',
-  'Manual bank transfer': 'Chuyển khoản ngân hàng thủ công',
+  'Manual bank transfer': 'Chuyển khoản ngân hàng',
   'Bank transfer payment | GlowBal': 'Thanh toán chuyển khoản ngân hàng | GlowBal',
   'Transfer the exact VND amount; founder confirmation is required.': 'Chuyển đúng số tiền VND; cần người sáng lập xác nhận.',
   'VNPay is currently available in Sandbox. Manual bank transfer is confirmed by the founder. Stripe will be available soon.': 'VNPay hiện khả dụng ở môi trường Sandbox. Chuyển khoản ngân hàng cần người sáng lập xác nhận. Stripe sẽ sớm khả dụng.',
@@ -4580,7 +4580,7 @@ export const translations: Record<string, string> = {
   'VNPay is currently available in Sandbox for testing. Stripe will be available soon.':
     'VNPay hiện khả dụng ở môi trường Sandbox để thử nghiệm. Stripe sẽ sớm khả dụng.',
   'Continue with VNPay': 'Tiếp tục với VNPay',
-  'Continue with manual transfer': 'Tiếp tục với chuyển khoản thủ công',
+  'Continue with manual transfer': 'Tiếp tục với chuyển khoản',
   'VNPay Sandbox checkout': 'Thanh toán VNPay Sandbox',
   'Payment result could not be verified': 'Không thể xác minh kết quả thanh toán',
   'Please return to GlowBal and check your payment status.':
@@ -4604,4 +4604,268 @@ export const translations: Record<string, string> = {
     'VNPay tính số tiền VND chuẩn được hiển thị ở mỗi gói. Các loại tiền khác chỉ là ước tính hiển thị. GlowBal giúp bạn tìm cơ hội và chuẩn bị hồ sơ tốt hơn; không đảm bảo kết quả học bổng.',
   'Choose a plan below to test payment in Vietnamese dong. Stripe is coming soon.':
     'Chọn một gói bên dưới để thử thanh toán bằng đồng Việt Nam. Stripe sẽ sớm khả dụng.',
+  'GlowBal Pricing | Choose how you want to shine': 'Bảng giá GlowBal | Chọn cách bạn muốn tỏa sáng',
+  'You don’t go it alone. GlowBal walks with you from picking schools to hitting submit. Choose the support plan that fits your study abroad journey.':
+    'Bạn không phải đi một mình. GlowBal đồng hành cùng bạn từ chọn trường đến khi nộp hồ sơ. Hãy chọn gói đồng hành phù hợp với hành trình du học của bạn.',
+  'Thanks for your support — you can extend or upgrade your plan below.':
+    'Cảm ơn bạn đã tin tưởng — bạn có thể gia hạn hoặc nâng cấp gói bên dưới.',
+  'Everything you need to start exploring — no payment required.':
+    'Mọi thứ bạn cần để bắt đầu khám phá — không cần thanh toán.',
+  'Continue free →': 'Tiếp tục miễn phí →',
+  'Chat with our in-house team for advice': 'Trò chuyện với đội ngũ tư vấn của chúng tôi',
+  'Payments are processed securely via VNPay and Bank Transfer (VietQR).':
+    'Thanh toán được xử lý bảo mật qua VNPay và Chuyển khoản ngân hàng (VietQR).',
+  'GlowBal Pricing': 'Bảng giá GlowBal',
+  'Choose how you want to': 'Chọn cách bạn muốn',
+  'shine': 'tỏa sáng',
+  'on your study-abroad journey': 'trên hành trình du học',
+  "You don't go it alone. GlowBal": 'Bạn không phải đi một mình. GlowBal',
+  'walks with you': 'đồng hành cùng bạn',
+  'from picking schools to hitting submit.': 'từ chọn trường đến khi nộp hồ sơ.',
+  'Launch offer · 2026 application season': 'Ưu đãi ra mắt · Mùa nộp hồ sơ 2026',
+  'all plans': 'tất cả các gói',
+  'Show prices in:': 'Hiển thị giá bằng:',
+  'You submit your application': 'Bạn chỉ nộp hồ sơ du học',
+  'once': 'một lần',
+  "Pick the level of support you're most at peace with.": 'Hãy chọn mức độ hỗ trợ khiến bạn an tâm nhất.',
+  'Could not start checkout': 'Không thể bắt đầu thanh toán',
+  'Something went wrong': 'Đã xảy ra lỗi',
+  '/mo': '/tháng',
+  'Choose payment method': 'Chọn phương thức thanh toán',
+  'Continue to payment': 'Tiếp tục thanh toán',
+  'Monthly': 'Gói tháng',
+  'Yearly': 'Gói năm',
+  'Yearly Premium': 'Gói năm cao cấp',
+  'GlowBal Monthly': 'GlowBal Tháng',
+  'GlowBal Yearly': 'GlowBal Năm',
+  'GlowBal Premium': 'GlowBal Cao cấp',
+  'Cancel anytime': 'Hủy bất kỳ lúc nào',
+  'Just 207,000₫/month': 'Chỉ 207.000₫/tháng',
+  '375,000₫/month': '375.000₫/tháng',
+  'You save 2,490,000₫': 'Tiết kiệm 2.490.000₫',
+  '🏆 Best value': '🏆 Tiết kiệm nhất',
+  '⭐ Most complete': '⭐ Toàn diện nhất',
+  'Start finding your direction — no commitment yet.': 'Bắt đầu tìm kiếm định hướng — chưa cần cam kết dài hạn.',
+  'By your side all season — no more ceilings.': 'Đồng hành suốt cả mùa nộp đơn — không còn giới hạn.',
+  'Stop carrying it alone — real experts stand behind your application.':
+    'Không còn phải tự xoay sở một mình — chuyên gia thực thụ đứng sau hồ sơ của bạn.',
+  'Easy / Target / Reach school matching — know exactly where you stand':
+    'Phân loại trường An toàn / Mục tiêu / Thử thách — biết chính xác bạn đang ở đâu',
+  'Deadline reminders so you never miss a submission':
+    'Nhắc nhở hạn chót để bạn không bao giờ bỏ lỡ kỳ nộp đơn',
+  'AI CV / SOP review': 'Đánh giá CV / SOP bằng AI',
+  '(limited)': '(giới hạn)',
+  'Roadmap capped at 2×/month · no scholarship matching yet':
+    'Lộ trình giới hạn 2 lần/tháng · chưa có gợi ý học bổng',
+  'Everything in Monthly,': 'Bao gồm toàn bộ tính năng gói Tháng,',
+  'every limit removed': 'mở khóa mọi giới hạn',
+  'Unlimited roadmap + CV/SOP edits —': 'Không giới hạn chỉnh sửa lộ trình & CV/SOP —',
+  'until your file is flawless': 'cho đến khi hồ sơ hoàn hảo',
+  'Scholarship matching + real-time progress tracking':
+    'Gợi ý học bổng thông minh & theo dõi tiến độ thời gian thực',
+  '3 free 1-on-1 sessions': '3 buổi trao đổi 1:1 miễn phí',
+  'with a real scholarship mentor': 'với cố vấn học bổng thực thụ',
+  'Everything in Yearly — plus': 'Bao gồm toàn bộ gói Năm — cộng thêm',
+  'the human touch': 'sự đồng hành trực tiếp',
+  'Strategy reviewed by a': 'Chiến lược được đánh giá bởi',
+  'real expert': 'chuyên gia thực tế',
+  ', not just AI': ', không chỉ có AI',
+  'An expert checks your': 'Chuyên gia kiểm tra',
+  'entire application': 'toàn bộ hồ sơ của bạn',
+  'before you submit': 'trước khi bạn nộp',
+  '5 one-on-one sessions': '5 buổi cố vấn chuyên sâu 1:1',
+  '+ mentor-vetted scholarship strategy': '+ chiến lược học bổng được cố vấn thẩm định',
+  'Priority support — someone’s always there when you need them':
+    'Hỗ trợ ưu tiên — luôn có người sẵn sàng khi bạn cần',
+  'Try it': 'Thử ngay',
+  'Start your journey': 'Bắt đầu hành trình',
+  'Go with an expert': 'Đồng hành cùng chuyên gia',
+  '1 month of Plus access': '1 tháng truy cập Plus',
+  'Choose one direction for this CV. Changing it will rebuild the Target Profile and CV.':
+    'Chọn một định hướng cho CV này. Thay đổi định hướng sẽ tạo lại Hồ sơ mục tiêu và CV.',
+  'Use for this CV': 'Dùng cho CV này',
+  'Select one of the available Personalized Strategy directions.':
+    'Hãy chọn một trong các định hướng có sẵn của Chiến lược cá nhân hóa.',
+  'Regenerate the Target Profile for the current direction.':
+    'Tạo lại Hồ sơ mục tiêu cho định hướng hiện tại.',
+  'Choose your CV direction': 'Chọn định hướng cho CV của bạn',
+  'Choose the direction for this CV. The AI only uses university, programme and profile data stored in Supabase; missing pieces are flagged, never invented.':
+    'Chọn định hướng cho CV này. AI chỉ sử dụng dữ liệu trường, chương trình và hồ sơ được lưu trong Supabase; phần thiếu sẽ được đánh dấu, không bịa thêm.',
+  'CV direction': 'Định hướng CV',
+
+  // ── Plus Gating & Upgrade Modals ──────────────────────────────────────────
+  'See all 3000 scholarships': 'Xem tất cả 3.000 học bổng',
+  'Upgrade to GlowBal Plus to browse all 3000+ scholarships worldwide, unlock advanced filtering and tailored application requirements.':
+    'Nâng cấp lên GlowBal Plus để tra cứu toàn bộ kho 3.000+ học bổng trên thế giới, mở khóa bộ lọc nâng cao và điều kiện chi tiết.',
+  'Upgrade to GlowBal Plus to unlock all 3000+ scholarships worldwide and maximize your admissions chances.':
+    'Nâng cấp lên GlowBal Plus để mở khóa toàn bộ kho 3.000+ học bổng trên thế giới và mở rộng cơ hội trúng tuyển.',
+  'Upgrade to GlowBal Plus to unlock all {count} scholarships for your saved universities.':
+    'Nâng cấp lên GlowBal Plus để mở khóa tất cả {count} học bổng cho các trường đã lưu của bạn.',
+  'Upgrade to GlowBal Plus to unlock all scholarships for your saved universities.':
+    'Nâng cấp lên GlowBal Plus để mở khóa tất cả học bổng cho các trường đã lưu của bạn.',
+  'Unlock your full strategic narrative': 'Mở khóa toàn bộ câu chuyện chiến lược',
+  'Upgrade to GlowBal Plus to access the complete personalized narrative, detailed positioning angles, and tailored storyline for your application.':
+    'Nâng cấp lên GlowBal Plus để xem toàn bộ câu chuyện cá nhân hóa, góc định vị chi tiết và tuyến cốt truyện cho hồ sơ của bạn.',
+  'Upgrade to GlowBal Plus to access the complete personalized narrative and shape your unique admissions identity.':
+    'Nâng cấp lên GlowBal Plus để xem câu chuyện cá nhân hóa hoàn chỉnh và định hình bản sắc hồ sơ du học của bạn.',
+  'Secure checkout with instant activation · 100% money-back guarantee within 7 days.':
+    'Thanh toán an toàn, kích hoạt ngay lập tức · Cam kết hoàn tiền 100% trong vòng 7 ngày.',
+  'Bank transfer': 'Chuyển khoản ngân hàng',
+  'Terms and Conditions of Use': 'Điều khoản và Điều kiện Sử dụng',
+  'I have read and agree to the': 'Tôi đã đọc và đồng ý với',
+  'of GlowBal Education.': 'của GlowBal Education.',
+  'I understand': 'Đã hiểu',
+
+  // ── Terms and Conditions of Use ──────────────────────────────────────────
+  'Terms and Conditions of Use | GlowBal Education': 'Điều khoản và Điều kiện Sử dụng | GlowBal Education',
+  'Terms and Conditions of Use for the GlowBal Education Platform — The terms that govern your use of GlowBal platform and services.':
+    'Điều khoản và Điều kiện Sử dụng Nền tảng GlowBal Education — Các điều khoản chi phối việc sử dụng nền tảng và dịch vụ GlowBal.',
+  'By accessing, registering for, or using the GlowBal Education platform (“GlowBal”, “Platform”, “we”, “us”), including the website, applications, and related services (“Services”), the User (“You”, “User”) confirms that they have read, understood, and agreed to comply with these Terms and Conditions of Use (“Terms”). If you do not agree with any part of these Terms, please do not use the Services.':
+    'Bằng việc truy cập, đăng ký hoặc sử dụng nền tảng GlowBal Education (“GlowBal”, “Nền tảng”, “chúng tôi”), bao gồm website, ứng dụng và các dịch vụ liên quan (“Dịch vụ”), Người dùng (“Bạn”, “Người dùng”) xác nhận rằng đã đọc, hiểu và đồng ý tuân thủ các Điều khoản và Điều kiện Sử dụng này (“Điều khoản”). Nếu bạn không đồng ý với bất kỳ nội dung nào của Điều khoản, vui lòng không sử dụng Dịch vụ.',
+  '1. Acceptance of Terms': '1. Chấp nhận điều khoản',
+  'By accessing, registering for, or using the GlowBal Education platform, you acknowledge and agree to be bound by these Terms and Conditions of Use.':
+    'Bằng việc truy cập, đăng ký hoặc sử dụng nền tảng GlowBal Education, bạn xác nhận đã đọc, hiểu và đồng ý tuân thủ các Điều khoản và Điều kiện Sử dụng này.',
+  '2. Definitions': '2. Định nghĩa',
+  '“Platform”': '“Nền tảng”',
+  ': the website, application, and technology ecosystem operated by GlowBal Education.':
+    ': hệ thống website, ứng dụng và các sản phẩm công nghệ do GlowBal vận hành.',
+  '“Services”': '“Dịch vụ”',
+  ': all features, digital tools, mentoring connections, and guidance products provided on the Platform.':
+    ': toàn bộ sản phẩm, tính năng và dịch vụ được GlowBal cung cấp trên Nền tảng.',
+  '“Content”': '“Nội dung”',
+  ': information, data, copy, images, videos, software, documents, and resources available on the Platform.':
+    ': thông tin, dữ liệu, văn bản, hình ảnh, video, phần mềm, tài liệu và các tài sản khác được cung cấp trên Nền tảng.',
+  '“User”': '“Người dùng”',
+  ': any individual who registers or uses the Services, whether free or paid.':
+    ': cá nhân đăng ký hoặc sử dụng Dịch vụ, bao gồm cả người dùng miễn phí và người dùng trả phí.',
+  '“Mentor / Advisor”': '“Cố vấn / Achiever / Mentor”',
+  ': individuals or organizations offering advisory guidance and feedback through the Platform.':
+    ': cá nhân hoặc tổ chức cung cấp dịch vụ tư vấn, cố vấn hoặc hỗ trợ thông qua hoặc liên quan đến Nền tảng.',
+  '“Educational Institution”': '“Tổ chức giáo dục”',
+  ': universities, colleges, scholarship organizations, and academic entities referenced on the Platform.':
+    ': trường đại học, cao đẳng, trường học, tổ chức học bổng hoặc tổ chức giáo dục khác được đề cập trên Nền tảng.',
+  '3. Eligibility and Account Terms': '3. Điều kiện sử dụng',
+  'GlowBal is intended for users aged 16 and above. Users confirm they possess legal capacity, provide truthful details, and maintain security over their accounts.':
+    'GlowBal dành cho Người dùng từ đủ 16 tuổi trở lên. Khi đăng ký hoặc sử dụng Dịch vụ, Người dùng xác nhận rằng đã đủ 16 tuổi, có đầy đủ năng lực để chấp nhận và thực hiện Điều khoản, cung cấp thông tin chính xác, trung thực và chịu trách nhiệm với tài khoản của mình.',
+  'Users between 16 and 18 years of age are encouraged to use the Platform under parental or guardian supervision, especially for paid plans or direct mentor sessions.':
+    'Người dùng từ 16 đến dưới 18 tuổi được khuyến nghị sử dụng Dịch vụ với sự đồng ý và giám sát của cha, mẹ hoặc người giám hộ hợp pháp, đặc biệt đối với các Dịch vụ có phát sinh thanh toán hoặc kết nối trực tiếp với Cố vấn/Achiever/Mentor.',
+  '4. Scope of Services': '4. Phạm vi dịch vụ',
+  'GlowBal provides technology tools to guide students through the university and scholarship application journey:':
+    'GlowBal cung cấp nền tảng công nghệ hỗ trợ giáo dục và định hướng du học, bao gồm nhưng không giới hạn:',
+  'GlowBal Matcher:': 'GlowBal Matcher:',
+  'intelligent discovery for target universities, scholarships, and mentors;':
+    'tìm kiếm và định hướng trường đại học, học bổng và Cố vấn;',
+  'Strategy Master:': 'Strategy Master:',
+  'profile diagnostics, strategic narratives, milestone timelines, CV, essays, and recommendation letters support;':
+    'phân tích hồ sơ, xây dựng chiến lược, theo dõi tiến độ và hỗ trợ tài liệu như CV, bài luận và thư giới thiệu;',
+  'My Portal:': 'My Portal:',
+  'centralized selection tracker, application portfolio, and document vault;':
+    'quản lý lựa chọn, theo dõi hồ sơ ứng tuyển và lưu trữ tài liệu;',
+  'Comprehensive database of global universities and scholarships with AI assistance tools.':
+    'Cơ sở dữ liệu về trường đại học, học bổng và Cố vấn; Các công cụ AI và dịch vụ trả phí khác.',
+  'Services are designed for preparation and guidance and do not constitute formal legal or financial advice.':
+    'Các Dịch vụ nhằm hỗ trợ Người dùng nghiên cứu, lập kế hoạch và chuẩn bị hồ sơ và không được xem là lời khuyên pháp lý, tài chính hoặc chuyên môn chính thức.',
+  '5. Role of GlowBal': '5. Vai trò của GlowBal',
+  'GlowBal is a technology and educational guidance platform. GlowBal is not a university, scholarship provider, admissions committee, or visa authority, and does not make final admission or visa determinations. All admissions and funding decisions belong solely to the respective institutions and authorities.':
+    'GlowBal là nền tảng công nghệ và đơn vị hỗ trợ, cung cấp công cụ, thông tin và kết nối cho Người dùng. GlowBal không phải là trường đại học, tổ chức cấp học bổng, cơ quan tuyển sinh hoặc cơ quan cấp visa; không có quyền quyết định việc tuyển sinh, cấp học bổng hoặc cấp visa. Các quyết định cuối cùng thuộc về trường đại học, tổ chức học bổng và cơ quan có thẩm quyền tương ứng.',
+  '6. No Guarantee of Outcomes': '6. Không cam kết về kết quả',
+  'GlowBal does not guarantee university admission, scholarship awards, visa approval, or specific score improvements. Recommendations are advisory and analytical. Users are responsible for independently verifying all dates, requirements, and official instructions.':
+    'GlowBal không cam kết hoặc bảo đảm rằng Người dùng sẽ được nhận vào một trường đại học cụ thể, nhận học bổng, được cấp visa hoặc đạt bất kỳ kết quả tuyển sinh cụ thể nào. Thông tin, phân tích, chiến lược và đề xuất trên GlowBal chỉ mang tính chất tham khảo và hỗ trợ. Người dùng có trách nhiệm tự kiểm tra và xác minh thông tin từ các nguồn chính thức trước khi đưa ra quyết định.',
+  '7. User Responsibilities': '7. Trách nhiệm của người dùng',
+  'Users agree to provide genuine materials, refrain from submitting fraudulent records, track deadlines independently, and preserve platform security and integrity.':
+    'Người dùng cam kết cung cấp thông tin và tài liệu trung thực, không sử dụng hồ sơ hoặc tài liệu giả mạo, tự xác minh deadline, quy trình ứng tuyển và không can thiệp phá hoại hoạt động của Nền tảng.',
+  '8. Refund Policy': '8. Chính sách hoàn tiền',
+  '8.1. Timeframe:': '8.1. Thời hạn yêu cầu:',
+  'Refund requests must be submitted within 24 hours of payment.':
+    'Trong vòng 24 giờ kể từ thời điểm đăng ký và thanh toán Dịch vụ.',
+  '8.2. Refund Rate:': '8.2. Mức hoàn tiền:',
+  '90% of the paid fee is refunded (10% is retained to cover payment gateway processing and operating costs).':
+    'Hoàn lại 90% số tiền đã thanh toán (10% còn lại giữ lại để bù đắp chi phí xử lý giao dịch, vận hành hệ thống).',
+  '8.3. Request Process:': '8.3. Cách thức yêu cầu:',
+  'Send an email to': 'Gửi email đến',
+  'with subject line': 'với tiêu đề',
+  '[REFUND REQUEST] – Full Name – Account Email': '[YÊU CẦU HOÀN TIỀN] – Họ tên – Email tài khoản',
+  'along with transaction details.': 'kèm đầy đủ chi tiết giao dịch.',
+  '8.4. Processing Time:': '8.4. Thời gian hoàn tiền:',
+  '07–14 business days back to the original payment method or a verified alternative.':
+    'Trong vòng 07–14 ngày làm việc về phương thức thanh toán ban đầu hoặc phương thức phù hợp.',
+  '8.5. Ineligibility:': '8.5. Trường hợp không đủ điều kiện:',
+  'Requests sent after 24 hours, unverified transactions, fraudulent activity, or violations of Terms are non-refundable.':
+    'Gửi sau 24 giờ, không xác minh được giao dịch, có dấu hiệu gian lận hoặc vi phạm Điều khoản.',
+  '9. Account Deferral Policy': '9. Chính sách bảo lưu tài khoản',
+  'Users may request an account deferral for up to 06 months from the payment date. Account benefits and subscriptions are strictly non-transferable.':
+    'Người dùng có thể yêu cầu bảo lưu tài khoản tối đa 06 tháng kể từ ngày thanh toán. Tài khoản và các quyền lợi đi kèm không được chuyển nhượng, cho mượn, cho thuê hoặc sử dụng bởi bên thứ ba.',
+  '10. Intellectual Property': '10. Quyền sở hữu trí tuệ',
+  'All software, content, branding, designs, frameworks, and digital assets on the Platform belong exclusively to GlowBal Education or its lawful licensors and are protected under international intellectual property law.':
+    'Toàn bộ Nội dung, phần mềm, thiết kế, thương hiệu, logo và các tài sản trí tuệ khác trên Nền tảng thuộc sở hữu của GlowBal hoặc bên cấp phép hợp pháp và được bảo vệ theo quy định pháp luật về sở hữu trí tuệ.',
+  '11. Privacy and Data Protection': '11. Quyền riêng tư và bảo vệ dữ liệu',
+  'GlowBal processes personal data in accordance with our Privacy Policy published on the Platform, maintaining technical and organizational security standards.':
+    'GlowBal thu thập và xử lý dữ liệu cá nhân của Người dùng theo Chính sách Bảo mật được công bố trên Nền tảng và áp dụng các biện pháp kỹ thuật, tổ chức phù hợp để bảo vệ dữ liệu.',
+  '12. Limitation of Liability': '12. Miễn trừ và giới hạn trách nhiệm',
+  'To the maximum extent permitted by applicable law, GlowBal’s total liability to any User shall not exceed the total fees paid by such User to GlowBal in the preceding 06 months.':
+    'Trong phạm vi pháp luật cho phép, trách nhiệm của GlowBal đối với Người dùng sẽ không vượt quá tổng số tiền Người dùng đã thanh toán cho GlowBal trong 06 tháng gần nhất trước thời điểm phát sinh khiếu nại.',
+  '13. Force Majeure': '13. Bất khả kháng',
+  'GlowBal is not liable for service delays or interruptions caused by events beyond reasonable control, including natural disasters, third-party infrastructure outages, or third-party AI/API policy modifications.':
+    'GlowBal không chịu trách nhiệm đối với sự chậm trễ hoặc không thể thực hiện nghĩa vụ do các sự kiện nằm ngoài khả năng kiểm soát hợp lý như thiên tai, dịch bệnh, chiến tranh, sự cố kỹ thuật bên thứ ba hoặc thay đổi chính sách từ nhà cung cấp API/AI.',
+  '14 - 19. Suspension, Termination & Governing Law': '14 - 19. Tạm ngừng, sửa đổi & Điều khoản chung',
+  'GlowBal reserves the right to suspend or terminate accounts in breach of these Terms. These Terms are governed by the laws of the Socialist Republic of Vietnam. Any dispute will first be resolved through friendly mutual negotiation.':
+    'GlowBal có quyền tạm ngừng hoặc chấm dứt tài khoản vi phạm Điều khoản. GlowBal có quyền sửa đổi Điều khoản và công bố phiên bản cập nhật trên Nền tảng. Điều khoản được điều chỉnh theo pháp luật nước CHXHCN Việt Nam. Mọi tranh chấp ưu tiên giải quyết qua thương lượng.',
+  '20. Contact Information': '20. Thông tin liên hệ',
+  'GLOWBAL EDUCATION': 'GLOWBAL EDUCATION',
+  '📧 Email:': '📧 Email:',
+  '🌐 Website:': '🌐 Website:',
+  'GlowBal Education': 'GlowBal Education',
+  'GO GLOW – GO GLOBAL ✈️🌍': 'GO GLOW – GO GLOBAL ✈️🌍',
+
+  // ── Personal Canvas Report (PR #199) ─────────────────────────────────────
+  'Experiences analysed': 'Hoạt động đã phân tích',
+  'Activities contributing evidence to this report': 'Các hoạt động đóng góp minh chứng cho báo cáo này',
+  'Strong evidence items': 'Minh chứng nổi bật',
+  'Experiences with evidence, outcomes and demonstrated capability': 'Trải nghiệm có minh chứng, kết quả và năng lực thực tế',
+  'Checkable evidence': 'Minh chứng có thể đối chiếu',
+  'Verified or attributable evidence sources': 'Nguồn minh chứng đã xác thực hoặc có thể quy chiếu',
+  'Recorded outcomes': 'Kết quả đã ghi nhận',
+  'Experiences with a stated result or change': 'Trải nghiệm có kết quả hoặc sự thay đổi cụ thể',
+  'Quantified outcomes': 'Kết quả định lượng',
+  'Outcomes containing a measurable result': 'Kết quả chứa số liệu đo lường được',
+  'Capabilities evidenced': 'Năng lực được chứng minh',
+  'Distinct grounded capability labels across experiences': 'Các nhóm năng lực rõ ràng được thể hiện qua các trải nghiệm',
+  'Applicant Snapshot': 'Tổng quan Ứng viên',
+  'Applicant profile themes': 'Chủ đề hồ sơ ứng viên',
+  'Evidence base': 'Cơ sở minh chứng',
+  'Where your profile can become stronger': 'Điểm có thể phát triển thêm trong hồ sơ',
+  'Evidence gap': 'Khoảng trống minh chứng',
+  'Growth opportunity': 'Cơ hội phát triển',
+  'Suggested direction': 'Định hướng đề xuất',
+  'Build more specific, verifiable evidence in this area so GlowBal can distinguish an emerging capability from a genuine development gap.':
+    'Xây dựng thêm minh chứng cụ thể, có thể kiểm chứng trong phần này để GlowBal làm nổi bật năng lực tiềm năng của bạn.',
+  'No high-confidence growth gaps identified yet.': 'Chưa phát hiện khoảng trống phát triển đáng kể nào.',
+  'As you add more reflected experiences, GlowBal can distinguish genuine development opportunities from simple missing data.':
+    'Khi bạn bổ sung thêm các trải nghiệm phản tư, GlowBal sẽ phân tích rõ hơn các cơ hội phát triển tiềm năng.',
+  'Key Takeaways': 'Điểm cốt lõi cần nhớ',
+  'What to remember before you build the application': 'Những điều cần lưu ý trước khi xây dựng hồ sơ',
+  'Three evidence-backed ideas to carry into your positioning, university matching and application strategy.':
+    'Ba ý tưởng dựa trên minh chứng thực tế giúp bạn định vị bản thân, chọn trường và lên chiến lược ứng tuyển.',
+  'What Makes You Stand Out': 'Điểm khiến bạn nổi bật',
+  'Your Competitive Advantage': 'Lợi thế cạnh tranh của bạn',
+  'Your Growth Opportunity': 'Cơ hội bứt phá của bạn',
+  '. Personal Canvas': '. Personal Canvas',
+  'View section →': 'Xem phần này →',
+  'Personal Canvas': 'Bản đồ cá nhân (Personal Canvas)',
+  'Your applicant profile, in six connected parts': 'Hồ sơ ứng viên của bạn qua 6 phần kết nối chặt chẽ',
+  'Start with the whole picture, then open any area to see the evidence and reasoning behind it.':
+    'Bắt đầu với bức tranh tổng thể, sau đó mở từng khu vực để xem minh chứng và lập luận chi tiết.',
+  'Driving Forces': 'Động lực thúc đẩy',
+  'Proven Capabilities': 'Năng lực đã chứng minh',
+  'Areas for Growth': 'Điểm cần phát triển',
+  'Social Proof': 'Minh chứng xã hội & Công nhận',
+  'Long-Term Vision': 'Tầm nhìn dài hạn',
+  'Forces': 'Động lực',
+  'Capabilities': 'Năng lực',
+  'Proof': 'Minh chứng',
+  'Growth': 'Phát triển',
+  'Vision': 'Tầm nhìn',
+  'Personal Report sections': 'Các phần của Báo cáo Cá nhân',
+  'A profile of who you are as an applicant — built from your reflected experiences, evidence and recurring patterns.':
+    'Bức chân dung về bản thân bạn với tư cách là ứng viên — được xây dựng từ các trải nghiệm phản tư, minh chứng và mô thức tính cách nổi bật.',
 };

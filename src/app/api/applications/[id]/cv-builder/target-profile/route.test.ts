@@ -21,6 +21,8 @@ vi.mock('@/lib/ai/cv-builder-context', () => ({
 }));
 vi.mock('@/lib/ai/cv-builder-strategy', () => ({
   loadLatestCvStrategySnapshot: loadLatestCvStrategySnapshotMock,
+  resolveCvSelectedDirection: (strategy: { directionOptions: Array<{ name: string }> }, selectedDirection: string) =>
+    strategy.directionOptions.find(({ name }) => name === selectedDirection) ?? null,
 }));
 vi.mock('@/lib/ai/cv-builder', () => ({
   generateCvTargetProfile: generateCvTargetProfileMock,
@@ -53,6 +55,10 @@ describe('POST cv-builder/target-profile', () => {
       version: 1,
       recommendationId: 'rec-1',
       createdAt: '2026-08-08T00:00:00Z',
+      directionOptions: [
+        { name: 'Accessible systems builder' },
+        { name: 'Research-led technologist' },
+      ],
     });
     generateCvTargetProfileMock.mockResolvedValue({
       universityName: 'Example University',
@@ -66,7 +72,10 @@ describe('POST cv-builder/target-profile', () => {
       new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expectedRecommendationId: 'rec-1' }),
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Research-led technologist',
+        }),
       }),
       { params: Promise.resolve({ id: 'app-1' }) },
     );
@@ -83,7 +92,8 @@ describe('POST cv-builder/target-profile', () => {
         apiKey: 'openai-key',
         model: 'gpt-4o',
         stream: streamOpenAITextMock,
-        strategy: expect.objectContaining({ recommendationId: 'rec-1' }),
+         strategy: expect.objectContaining({ recommendationId: 'rec-1' }),
+         selectedDirection: { name: 'Research-led technologist' },
       }),
     );
     expect(loadCvBuilderContextMock).toHaveBeenCalledWith(
@@ -101,8 +111,8 @@ describe('POST cv-builder/target-profile', () => {
       }),
       { params: Promise.resolve({ id: 'app-1' }) },
     );
-    expect(response.status).toBe(422);
-    expect(await response.json()).toMatchObject({ code: 'STRATEGY_REQUIRED' });
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'INVALID_DIRECTION' });
     expect(generateCvTargetProfileMock).not.toHaveBeenCalled();
   });
 
@@ -115,7 +125,10 @@ describe('POST cv-builder/target-profile', () => {
     const response = await POST(
       new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
         method: 'POST',
-        body: JSON.stringify({ expectedRecommendationId: 'rec-1' }),
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+        }),
       }),
       { params: Promise.resolve({ id: 'app-1' }) },
     );
@@ -128,7 +141,10 @@ describe('POST cv-builder/target-profile', () => {
     const response = await POST(
       new Request('http://localhost/api/applications/not-owned/cv-builder/target-profile', {
         method: 'POST',
-        body: JSON.stringify({ expectedRecommendationId: 'rec-1' }),
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+        }),
       }),
       { params: Promise.resolve({ id: 'not-owned' }) },
     );
@@ -158,7 +174,10 @@ describe('POST cv-builder/target-profile', () => {
       new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expectedRecommendationId: 'old-rec' }),
+        body: JSON.stringify({
+          expectedRecommendationId: 'old-rec',
+          selectedDirection: 'Accessible systems builder',
+        }),
       }),
       { params: Promise.resolve({ id: 'app-1' }) },
     );
@@ -173,11 +192,37 @@ describe('POST cv-builder/target-profile', () => {
       new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expectedRecommendationId: 'rec-1' }),
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+        }),
       }),
       { params: Promise.resolve({ id: 'app-1' }) },
     );
     expect(response.status).toBe(422);
     expect(await response.json()).toMatchObject({ code: 'STRATEGY_REQUIRED' });
+  });
+
+  it('rejects a direction that is not an exact F7 option', async () => {
+    loadLatestCvStrategySnapshotMock.mockResolvedValueOnce({
+      version: 1,
+      recommendationId: 'rec-1',
+      createdAt: '2026-08-08T00:00:00Z',
+      directionOptions: [{ name: 'Research-led technologist' }],
+    });
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Forged direction',
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'INVALID_DIRECTION' });
+    expect(generateCvTargetProfileMock).not.toHaveBeenCalled();
   });
 });

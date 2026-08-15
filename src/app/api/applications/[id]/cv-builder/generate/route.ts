@@ -12,6 +12,7 @@ import {
 } from '@/lib/ai/cv-builder-context';
 import {
   loadLatestCvStrategySnapshot,
+  resolveCvSelectedDirection,
   type CvStrategyDatabase,
 } from '@/lib/ai/cv-builder-strategy';
 import { streamOpenAIText } from '@/lib/ai/vinuni-grounded-evaluation';
@@ -71,6 +72,19 @@ export async function POST(
       { status: 422 },
     );
   }
+  const selectedDirectionName =
+    typeof payload?.selectedDirection === 'string'
+      ? payload.selectedDirection.trim()
+      : '';
+  if (!selectedDirectionName) {
+    return NextResponse.json(
+      {
+        code: 'INVALID_DIRECTION',
+        error: 'Select one of the available Personalized Strategy directions.',
+      },
+      { status: 400 },
+    );
+  }
   const strategy = await loadLatestCvStrategySnapshot(
     supabase as unknown as CvStrategyDatabase,
     id,
@@ -94,6 +108,16 @@ export async function POST(
       { status: 409 },
     );
   }
+  const selectedDirection = resolveCvSelectedDirection(strategy, selectedDirectionName);
+  if (!selectedDirection) {
+    return NextResponse.json(
+      {
+        code: 'INVALID_DIRECTION',
+        error: 'Select one of the available Personalized Strategy directions.',
+      },
+      { status: 400 },
+    );
+  }
 
   const form = CvBuilderFormSchema.safeParse(payload?.form);
   if (!form.success) {
@@ -113,7 +137,8 @@ export async function POST(
     !provenance ||
     provenance.version !== strategy.version ||
     provenance.recommendationId !== strategy.recommendationId ||
-    provenance.createdAt !== strategy.createdAt
+    provenance.createdAt !== strategy.createdAt ||
+    provenance.selectedDirection !== selectedDirection.name
   ) {
     return NextResponse.json(
       {
@@ -161,6 +186,7 @@ export async function POST(
             form: form.data,
             targetProfile,
             strategy,
+            selectedDirection,
             apiKey,
             model,
             requestedSections,
