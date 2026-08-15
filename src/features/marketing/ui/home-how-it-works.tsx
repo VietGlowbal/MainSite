@@ -3,6 +3,7 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import { useT } from '@/lib/i18n';
 import { ICONS, KitIcon, Section } from '@/shared/ui';
 
 const AUTOPLAY_MS = 5_500;
@@ -50,6 +51,7 @@ const panelVariants = {
 
 /** Five-step journey — selectable, auto-advancing and reduced-motion safe. */
 export function HomeHowItWorks() {
+  const t = useT();
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState(1);
   const [paused, setPaused] = useState(false);
@@ -129,7 +131,7 @@ export function HomeHowItWorks() {
                   <button
                     type="button"
                     aria-pressed={active}
-                    aria-label={`${index + 1}. ${step.title}`}
+                    aria-label={`${index + 1}. ${t(step.title)}`}
                     onClick={() => selectStep(index)}
                     className="group flex w-full flex-col items-center rounded-gb-lg text-center focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand"
                   >
@@ -152,7 +154,7 @@ export function HomeHowItWorks() {
                         active ? 'text-brand' : 'text-fg-secondary group-hover:text-fg'
                       }`}
                     >
-                      {step.title}
+                      {t(step.title)}
                     </span>
                   </button>
                 </li>
@@ -193,10 +195,10 @@ export function HomeHowItWorks() {
                     {String(activeIndex + 1).padStart(2, '0')} / {String(STEPS.length).padStart(2, '0')}
                   </p>
                   <h3 className="mt-gb-sm font-display text-gb-display-xs font-semibold md:text-gb-display-sm">
-                    {activeStep.title}
+                    {t(activeStep.title)}
                   </h3>
                   <p className="mt-gb-lg max-w-[620px] text-gb-md leading-relaxed text-white/70 md:text-gb-lg">
-                    {activeStep.description}
+                    {t(activeStep.description)}
                   </p>
                 </div>
 
@@ -204,7 +206,7 @@ export function HomeHowItWorks() {
                   <p className="text-gb-xs font-semibold uppercase tracking-[0.16em] text-brand">
                     Journey outcome
                   </p>
-                  <p className="mt-gb-md text-gb-lg font-semibold text-white">{activeStep.outcome}</p>
+                  <p className="mt-gb-md text-gb-lg font-semibold text-white">{t(activeStep.outcome)}</p>
                 </div>
               </div>
             </motion.article>

@@ -13,6 +13,7 @@ import type { ScholarshipDegree, ScholarshipMajor } from '../domain/query-state'
 import {
   SCHOLARSHIP_PAGE_SIZE_DEFAULT,
   SCHOLARSHIP_PAGE_SIZE_MAX,
+  type HomeScholarshipHighlights,
   type ScholarshipFacets,
   type ScholarshipForUniversity,
   type ScholarshipLabel,
@@ -33,6 +34,66 @@ const DEGREE_KEYWORDS: Record<Exclude<ScholarshipDegree, 'all'>, readonly string
   doctoral: ['doctoral', 'doctorate', 'phd'],
 };
 const SEARCH_COLUMNS = ['eligibility', 'applies_to_text', 'conditions', 'insight'] as const;
+const HOME_HIGHLIGHT_DEFAULT = 6;
+const HOME_HIGHLIGHT_MAX = 8;
+
+function homeHighlightScore(scholarship: DirectoryScholarship): number {
+  const ranking = scholarship.ranking_note?.toLowerCase() ?? '';
+  const coverage = scholarship.coverage?.toLowerCase() ?? '';
+  let score = 0;
+
+  if (ranking.includes('most prestigious')) score += 120;
+  else if (ranking.includes('top global')) score += 110;
+  else if (ranking.includes('top')) score += 90;
+  else if (ranking.includes('largest')) score += 80;
+  else score += 50;
+
+  if (coverage.includes('full ride')) score += 35;
+  else if (coverage.includes('full tuition') || coverage.includes('100%')) score += 28;
+  else if (coverage.includes('tuition')) score += 18;
+
+  if (scholarship.universities.some((university) => Boolean(university.logo_url))) score += 30;
+  if (scholarship.amountLabel) score += 12;
+  return score;
+}
+
+function isOpenHomeHighlight(scholarship: DirectoryScholarship): boolean {
+  const deadline = scholarship.deadline_text?.toLowerCase() ?? '';
+  return !deadline.includes('expired') && !deadline.includes('closed') && !deadline.includes('hết hạn');
+}
+
+function selectHomeHighlights(
+  candidates: DirectoryScholarship[],
+  limit: number,
+): DirectoryScholarship[] {
+  const seenUniversities = new Set<number>();
+  const seenScholarships = new Set<number>();
+  const selected: DirectoryScholarship[] = [];
+
+  const ranked = candidates
+    .filter((scholarship) => isOpenHomeHighlight(scholarship))
+    .filter((scholarship) => Boolean(scholarship.amountLabel || scholarship.coverage))
+    .sort((left, right) => homeHighlightScore(right) - homeHighlightScore(left) || left.id - right.id);
+
+  // The Home design promises a visible mark on every featured card. Prefer the
+  // editorial candidates with linked university crests, then fill from the
+  // remaining ranked set only when the database cannot supply enough of them.
+  const logoBacked = ranked.filter((scholarship) =>
+    scholarship.universities.some((university) => Boolean(university.logo_url)),
+  );
+
+  for (const scholarship of [...logoBacked, ...ranked]) {
+    if (seenScholarships.has(scholarship.id)) continue;
+    const universityId = scholarship.universityIds[0];
+    if (universityId != null && seenUniversities.has(universityId)) continue;
+    seenScholarships.add(scholarship.id);
+    if (universityId != null) seenUniversities.add(universityId);
+    selected.push(scholarship);
+    if (selected.length === limit) break;
+  }
+
+  return selected;
+}
 
 async function linkedScholarshipIds(
   filter: { universityId?: number; universityName?: string; universityCountry?: string },
@@ -152,6 +213,45 @@ async function listPublishedUncached(query: ScholarshipListQuery): Promise<Page<
 const listPublishedCached = unstable_cache(
   listPublishedUncached,
   ['published-scholarship-page'],
+  { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
+);
+
+const homeHighlightsCached = unstable_cache(
+  async (requestedLimit: number): Promise<HomeScholarshipHighlights> => {
+    const limit = clampPageSize(requestedLimit, HOME_HIGHLIGHT_MAX, HOME_HIGHLIGHT_DEFAULT);
+    const candidateLimit = Math.max(32, limit * 6);
+    const admin = createAdminClient();
+
+    const [countResult, candidateResult] = await Promise.all([
+      admin
+        .from('scholarships')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'published'),
+      admin
+        .from('scholarships')
+        .select(SCHOLARSHIPS_SELECT)
+        .eq('status', 'published')
+        .not('ranking_note', 'is', null)
+        .order('id', { ascending: true })
+        .limit(candidateLimit),
+    ]);
+
+    if (countResult.error) {
+      throw new Error(`Scholarship Home count failed: ${countResult.error.message}`);
+    }
+    if (candidateResult.error) {
+      throw new Error(`Scholarship Home highlights failed: ${candidateResult.error.message}`);
+    }
+
+    const candidates = ((candidateResult.data ?? []) as unknown as ScholarshipRow[]).map(
+      toDirectoryScholarship,
+    );
+    return {
+      total: countResult.count ?? candidates.length,
+      items: selectHomeHighlights(candidates, limit),
+    };
+  },
+  ['home-scholarship-highlights'],
   { revalidate: SCHOLARSHIPS_REVALIDATE, tags: ['scholarships'] },
 );
 
@@ -368,6 +468,10 @@ export class SupabaseScholarshipRepository implements ScholarshipQueries {
       });
     }
     return out;
+  }
+
+  async homeHighlights(limit = HOME_HIGHLIGHT_DEFAULT): Promise<HomeScholarshipHighlights> {
+    return homeHighlightsCached(limit);
   }
 
   async facets(): Promise<ScholarshipFacets> {

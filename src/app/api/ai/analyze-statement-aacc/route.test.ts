@@ -104,7 +104,7 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
   });
 
   it('streams NDJSON through the OpenAI provider by default', async () => {
-    const response = await POST(request());
+    const response = await POST(request({ applicationId: '' }));
     const events = (await response.text())
       .trim()
       .split('\n')
@@ -123,10 +123,35 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
     );
   });
 
+  it('uses the V2 NDJSON pipeline without production feature flags', async () => {
+    vi.stubEnv('VINUNI_GROUNDED_PIPELINE_ENABLED', '');
+    vi.stubEnv('VINUNI_ESSAY_PIPELINE_VERSION', '');
+    streamVinUniEvaluationV2Mock.mockImplementation(async function* () {
+      yield {
+        type: 'complete',
+        analysis: { isComplete: true },
+        inputHash: 'v2-default',
+        versions: { schema: 'v2-schema', rubric: 'v2-rubric', prompt: 'v2-prompt' },
+        timing: { firstSectionMs: 1000, totalMs: 5000 },
+      };
+    });
+
+    const response = await POST(request());
+    const events = (await response.text())
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toContain('application/x-ndjson');
+    expect(events.map(({ type }) => type)).toEqual(['complete']);
+    expect(streamVinUniEvaluationV2Mock).toHaveBeenCalledOnce();
+  });
+
   it('does not impose a hard timeout on long generations', async () => {
     const timeoutSpy = vi.spyOn(globalThis, 'setTimeout');
 
-    await (await POST(request())).text();
+    await (await POST(request({ applicationId: '' }))).text();
 
     expect(timeoutSpy.mock.calls.some(([, delay]) => delay === 60_000)).toBe(false);
   });
@@ -137,7 +162,7 @@ describe('POST /api/ai/analyze-statement-aacc', () => {
       throw new Error('provider unavailable');
     });
 
-    const response = await POST(request());
+    const response = await POST(request({ applicationId: '' }));
     const events = (await response.text())
       .trim()
       .split('\n')

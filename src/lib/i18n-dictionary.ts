@@ -1,3 +1,5 @@
+import { FIELD_OF_STUDY_TRANSLATIONS } from './fields-of-study';
+
 /**
  * Translation dictionary — English source string → Vietnamese.
  *
@@ -15,6 +17,11 @@
  * Do NOT translate brand names (GLOWBAL) or university names.
  */
 export const translations: Record<string, string> = {
+  // The comprehensive academic-profile subject taxonomy lives beside its
+  // canonical values. Entries declared later in this object deliberately win
+  // when an established product translation already exists for the same word.
+  ...FIELD_OF_STUDY_TRANSLATIONS,
+
   // ── Navigation ───────────────────────────────────────────────────────────
   Home: 'Trang chủ',
   Search: 'Tìm kiếm',
@@ -231,6 +238,9 @@ export const translations: Record<string, string> = {
   'Your browser does not support video playback.': 'Trình duyệt của bạn không hỗ trợ phát video.',
 
   // Testimonials, team and consultation.
+  Testimonials: 'Lời chia sẻ',
+  'Anonymous student': 'Học sinh ẩn danh',
+  'Illustrative portrait': 'Chân dung minh họa',
   'What do students say about GlowBal?': 'Học sinh nói gì về GlowBal?',
   'Student feedback': 'Chia sẻ của học sinh',
   'GlowBal helped me narrow hundreds of options down to the universities genuinely worth considering.':
@@ -242,6 +252,22 @@ export const translations: Record<string, string> = {
   'The team behind your journey.': 'Đội ngũ đằng sau hành trình của bạn.',
   'GlowBal is built by a team across technology, education, research and communication, including people who have experienced scholarship and study-abroad journeys themselves. We combine student insight, specialist knowledge and technology to turn fragmented advice into a clearer system.':
     'GlowBal được xây dựng bởi đội ngũ trong các lĩnh vực công nghệ, giáo dục, nghiên cứu và truyền thông, cùng những người đã trực tiếp trải qua hành trình học bổng và du học. Chúng mình kết hợp góc nhìn của người dùng, kiến thức chuyên môn và công nghệ để biến những lời khuyên rời rạc thành một hệ thống rõ ràng hơn.',
+  // Home roster cards — programme and scholarship lines, from the owner's
+  // member sheet. University names are never translated (see the crest alt
+  // text in features/marketing/ui/university-crests.ts), but a course of study
+  // is ordinary copy and is.
+  'Business Administration · Marketing': 'Quản trị kinh doanh · Marketing',
+  'Business Administration · Business Analytics':
+    'Quản trị kinh doanh · Phân tích kinh doanh',
+  // 'Business Administration' and 'Information Technology' are already in this
+  // catalogue further down (the programme-name block) — not repeated here.
+  'Computer Engineering': 'Kỹ thuật máy tính',
+  'International Political Economics': 'Kinh tế chính trị quốc tế',
+  "80% merit scholarship · 4× Dean's List": "Học bổng tài năng 80% · 4 lần Dean's List",
+  '90% merit scholarship · full ride at Lingnan':
+    'Học bổng tài năng 90% · học bổng toàn phần tại Lingnan',
+  '2× FTU academic encouragement scholarship':
+    '2 lần học bổng khuyến khích học tập FTU',
   'Founder & CEO': 'Nhà sáng lập & CEO',
   'CO - Founder': 'Đồng sáng lập',
   'Jack of all trades': 'Đa năng',
@@ -652,6 +678,8 @@ export const translations: Record<string, string> = {
   'Work experience': 'Kinh nghiệm làm việc',
   'Internships, jobs and volunteering': 'Thực tập, công việc và tình nguyện',
   'Add experience': 'Thêm kinh nghiệm',
+  // Approved profile-navigation label. Advisor verification uses the more
+  // specific "Verification documents" key below instead of overriding this.
   Documents: 'Lưu tài liệu',
   'Upload important documents and certificates': 'Tải lên tài liệu và chứng chỉ quan trọng',
   'Upload documents': 'Tải lên tài liệu',
@@ -1177,6 +1205,32 @@ export const translations: Record<string, string> = {
   'View scholarship': 'Xem học bổng',
   'Scroll or swipe to see more scholarships.':
     'Cuộn hoặc vuốt để xem thêm học bổng.',
+  'Scholarship spotlight': 'Học bổng nổi bật',
+  'A world of funding, brought into focus.':
+    'Thế giới học bổng, được chọn lọc rõ ràng.',
+  'Start with a few standout opportunities, then explore the library to find the scholarships that fit your goals, destination and story.':
+    'Bắt đầu với những cơ hội nổi bật, sau đó khám phá kho học bổng phù hợp với mục tiêu, điểm đến và câu chuyện của bạn.',
+  'published scholarships in one growing library':
+    'học bổng đã xuất bản trong một thư viện không ngừng mở rộng',
+  'published scholarships to explore': 'học bổng đã xuất bản để khám phá',
+  'published scholarships': 'học bổng đã xuất bản',
+  'ready to explore': 'sẵn sàng để khám phá',
+  'Explore all scholarships': 'Khám phá tất cả học bổng',
+  'Featured scholarships': 'Học bổng nổi bật',
+  'Award value': 'Giá trị giải thưởng',
+  'What it covers': 'Quyền lợi học bổng',
+  'Scholarship logo': 'Logo học bổng',
+  'University crest': 'Logo trường đại học',
+  'Scholarship mark': 'Biểu trưng học bổng',
+  'Funding support': 'Hỗ trợ tài chính',
+  'Full tuition': 'Toàn bộ học phí',
+  'Global opportunity': 'Cơ hội toàn cầu',
+  'Application window': 'Thời gian ứng tuyển',
+  'Check current dates': 'Kiểm tra thời hạn hiện tại',
+  'Previous scholarship': 'Học bổng trước',
+  'Next scholarship': 'Học bổng tiếp theo',
+  'Pause automatic rotation': 'Tạm dừng chuyển động tự động',
+  'Resume automatic rotation': 'Tiếp tục chuyển động tự động',
 
   // ── Home: testimonials (Figma 104:7265) ──────────────────────────────────
   'Learn from students who have succeeded': 'Học hỏi từ những sinh viên đã thành công',
@@ -1372,6 +1426,258 @@ export const translations: Record<string, string> = {
   'Subject':'Ngành học',
   'Search by name or university':'Tìm kiếm theo tên sinh viên hoặc trường',
 
+  // Advisor directory card hierarchy and dynamic labels. These use t() with
+  // interpolation, so counts, names, years and formatted prices never fall
+  // through to the network translator.
+  'University not listed': 'Chưa cập nhật trường đại học',
+  'Subject not listed': 'Chưa cập nhật ngành học',
+  '{price}/hour': '{price}/giờ',
+  'Class of {year}': 'Khóa {year}',
+  "Open the profile to see this advisor's experience and support topics.":
+    'Mở hồ sơ để xem kinh nghiệm và các nội dung cố vấn có thể hỗ trợ.',
+  'Session rate': 'Phí mỗi buổi',
+  "View {name}'s profile": 'Xem hồ sơ của {name}',
+  '{count} advisor': '{count} cố vấn',
+  '{count} advisors': '{count} cố vấn',
+  '{count} session': '{count} buổi',
+  '{count} sessions': '{count} buổi',
+  'Compare university, academic background, experience and rate.':
+    'So sánh trường đại học, nền tảng học thuật, kinh nghiệm và mức phí.',
+  'No advisors have been approved yet. Check back soon.':
+    'Chưa có cố vấn nào được phê duyệt. Vui lòng quay lại sau.',
+  'No advisor matches those filters yet. Try widening the country or subject.':
+    'Chưa có cố vấn phù hợp với bộ lọc. Hãy thử mở rộng quốc gia hoặc ngành học.',
+  "Master's": 'Thạc sĩ',
+
+  // Advisor profile stats, reviews and booking strings with live values.
+  '{rating} / 5': '{rating} / 5',
+  '{count} session delivered': 'Đã hoàn thành {count} buổi tư vấn',
+  '{count} sessions delivered': 'Đã hoàn thành {count} buổi tư vấn',
+  '{count} review': '{count} đánh giá',
+  '{count} reviews': '{count} đánh giá',
+  'Glowbal student': 'Học viên GlowBal',
+  '{student} · {date}': '{student} · {date}',
+  Mo: 'T2',
+  Tu: 'T3',
+  We: 'T4',
+  Th: 'T5',
+  Fr: 'T6',
+  Sa: 'T7',
+  Su: 'CN',
+  '{date} — no times available': '{date} — không có khung giờ trống',
+  'Choose or type a topic so your advisor can prepare.':
+    'Hãy chọn hoặc nhập một chủ đề để cố vấn có thể chuẩn bị.',
+  'Tell your advisor what you want to discuss — a sentence is enough.':
+    'Hãy cho cố vấn biết bạn muốn trao đổi điều gì — chỉ cần một câu là đủ.',
+  'Could not start checkout.': 'Không thể bắt đầu thanh toán.',
+  'The payment link was missing. Please try again.':
+    'Không tìm thấy liên kết thanh toán. Vui lòng thử lại.',
+  'Book a session with {name}': 'Đặt buổi tư vấn với {name}',
+  'Book {name}': 'Đặt lịch với {name}',
+  '{count} min': '{count} phút',
+  'Session ({count} min)': 'Buổi tư vấn ({count} phút)',
+  'Pay {amount}': 'Thanh toán {amount}',
+
+  // Errors returned by /api/mentorship/checkout. Translating the API message
+  // through t() keeps failed booking states bilingual as well as happy paths.
+  'Invalid JSON body': 'Dữ liệu gửi lên không hợp lệ',
+  'Invalid request': 'Yêu cầu không hợp lệ',
+  'Sign in required': 'Vui lòng đăng nhập',
+  'Slot not found': 'Không tìm thấy khung giờ',
+  'This slot is no longer available': 'Khung giờ này không còn khả dụng',
+  'Sessions must be booked at least an hour in advance':
+    'Buổi tư vấn phải được đặt trước ít nhất một giờ',
+  'Advisor not found': 'Không tìm thấy cố vấn',
+  'Advisor is not currently accepting bookings': 'Cố vấn hiện không nhận lịch đặt',
+  'Advisor pricing is not configured. Please try another advisor.':
+    'Mức phí của cố vấn chưa được thiết lập. Vui lòng chọn cố vấn khác.',
+  'Advisor pricing is not configured.': 'Mức phí của cố vấn chưa được thiết lập.',
+  'The booking total is below the payment minimum.':
+    'Tổng giá trị đặt lịch thấp hơn mức thanh toán tối thiểu.',
+  'Slot is no longer available': 'Khung giờ này không còn khả dụng',
+  'Could not create booking': 'Không thể tạo lịch hẹn',
+  'Could not start the payment. Please try again.':
+    'Không thể bắt đầu thanh toán. Vui lòng thử lại.',
+
+  // Advisor recruitment, application, verification and approval journey.
+  'Create your profile': 'Tạo hồ sơ của bạn',
+  'Tell us where you studied, what you experienced and how you can help.':
+    'Cho chúng tôi biết bạn đã học ở đâu, có trải nghiệm gì và có thể hỗ trợ điều gì.',
+  'Verify your experience': 'Xác minh kinh nghiệm của bạn',
+  'Your documents stay private and are reviewed only by GlowBal admins.':
+    'Tài liệu của bạn được bảo mật và chỉ quản trị viên GlowBal xem xét.',
+  'Start advising': 'Bắt đầu tư vấn',
+  'Once approved, choose your rate and availability and accept bookings.':
+    'Sau khi được duyệt, hãy chọn mức phí, lịch rảnh và bắt đầu nhận lịch đặt.',
+  'For students and alumni': 'Dành cho sinh viên và cựu sinh viên',
+  'Want to share your experience with future students?':
+    'Bạn muốn chia sẻ kinh nghiệm với thế hệ sinh viên tương lai?',
+  'Become a GlowBal advisor, set your own rate and availability, and help applicants make confident decisions.':
+    'Trở thành cố vấn GlowBal, tự đặt mức phí và lịch rảnh, đồng thời giúp ứng viên đưa ra quyết định tự tin hơn.',
+  'Apply to become an advisor': 'Đăng ký trở thành cố vấn',
+  'Free to apply · Reviewed within 48 hours': 'Đăng ký miễn phí · Xét duyệt trong vòng 48 giờ',
+  'How advisor applications work': 'Quy trình đăng ký cố vấn',
+  'Back to all advisors': 'Quay lại danh sách cố vấn',
+  'Advisor application': 'Đơn đăng ký cố vấn',
+  'Share your experience, set your hourly rate, and earn money helping applicants make stronger university decisions.':
+    'Chia sẻ kinh nghiệm, tự đặt mức phí theo giờ và có thêm thu nhập khi giúp ứng viên đưa ra quyết định đại học tốt hơn.',
+  'You have a fast-track invitation, so the document-evidence step is optional.':
+    'Bạn có lời mời đăng ký nhanh nên bước nộp tài liệu minh chứng là không bắt buộc.',
+  'Every advisor is verified manually before their profile goes live.':
+    'Mọi cố vấn đều được xác minh thủ công trước khi hồ sơ được công khai.',
+  'Step {number}': 'Bước {number}',
+  'Complete your profile': 'Hoàn thiện hồ sơ của bạn',
+  'University, experience and support topics': 'Trường đại học, kinh nghiệm và chủ đề hỗ trợ',
+  'Submit for review': 'Gửi để xét duyệt',
+  'Your evidence stays private': 'Tài liệu minh chứng luôn được bảo mật',
+  'Go live after approval': 'Hồ sơ được công khai sau khi duyệt',
+  'Set times and accept bookings': 'Đặt lịch rảnh và nhận lịch tư vấn',
+  'Complete your application': 'Hoàn thiện đơn đăng ký',
+  'Required fields are marked with an asterisk. You can review everything before submitting.':
+    'Các trường bắt buộc được đánh dấu bằng dấu sao. Bạn có thể xem lại mọi thông tin trước khi nộp.',
+  'Application submitted': 'Đã gửi đơn đăng ký',
+  'Thanks for applying. Your request is now in the admin review queue, and we’ll email you with the outcome within 48 hours.':
+    'Cảm ơn bạn đã đăng ký. Yêu cầu của bạn đang trong hàng đợi xét duyệt của quản trị viên và chúng tôi sẽ gửi kết quả qua email trong vòng 48 giờ.',
+  'Application status': 'Trạng thái đơn đăng ký',
+  'Admin verification': 'Quản trị viên xác minh',
+  'In review': 'Đang xét duyệt',
+  'Profile published': 'Hồ sơ được công khai',
+  'After approval': 'Sau khi được duyệt',
+  'You can add availability from your advisor dashboard while you wait. Students will only see your profile after an admin approves it.':
+    'Trong khi chờ, bạn có thể thêm lịch rảnh từ bảng điều khiển cố vấn. Sinh viên chỉ thấy hồ sơ sau khi quản trị viên phê duyệt.',
+  'Files must be 10 MB or smaller.': 'Tệp phải có dung lượng không quá 10 MB.',
+  'Upload failed: {message}': 'Tải lên thất bại: {message}',
+  'Profile photo must be 5 MB or smaller.': 'Ảnh hồ sơ phải có dung lượng không quá 5 MB.',
+  'Avatar upload failed: {message}': 'Tải ảnh đại diện thất bại: {message}',
+  'Please complete all required steps.': 'Vui lòng hoàn thành tất cả các bước bắt buộc.',
+  Identity: 'Danh tính',
+  Pricing: 'Mức phí',
+  Availability: 'Lịch rảnh',
+  'These four fields are required for verification. Only your display name and university show up publicly.':
+    'Bốn trường này là bắt buộc để xác minh. Chỉ tên hiển thị và trường đại học của bạn được công khai.',
+  'Display name (shown publicly)': 'Tên hiển thị (được công khai)',
+  'Full legal name (private)': 'Họ tên pháp lý đầy đủ (bảo mật)',
+  'Date of birth (private)': 'Ngày sinh (bảo mật)',
+  'We review every advisor manually. These four documents are stored privately and only seen by GlowBal admins.':
+    'Chúng tôi xét duyệt thủ công từng cố vấn. Bốn tài liệu này được lưu trữ riêng tư và chỉ quản trị viên GlowBal có thể xem.',
+  'This is what mentees see. Be specific about what you can help with — vague profiles get fewer bookings.':
+    'Đây là nội dung người được tư vấn sẽ thấy. Hãy nêu cụ thể điều bạn có thể hỗ trợ vì hồ sơ chung chung thường nhận ít lịch đặt hơn.',
+  'Profile photo (optional but recommended)': 'Ảnh hồ sơ (không bắt buộc nhưng nên có)',
+  'Profile photo preview': 'Xem trước ảnh hồ sơ',
+  'Degree level': 'Bậc học',
+  'Subject / programme': 'Ngành học / chương trình',
+  'Study start year': 'Năm bắt đầu học',
+  Bio: 'Giới thiệu bản thân',
+  'Topics you can help with': 'Chủ đề bạn có thể hỗ trợ',
+  '{count} selected · pick at least one': 'Đã chọn {count} · chọn ít nhất một mục',
+  'Special skills / strengths': 'Kỹ năng đặc biệt / điểm mạnh',
+  'What makes you stand out?': 'Điều gì khiến bạn nổi bật?',
+  'Languages you can advise in': 'Ngôn ngữ bạn có thể dùng để tư vấn',
+  Currency: 'Đơn vị tiền tệ',
+  'You keep 90% of your hourly rate. GlowBal adds a 10% service fee on top, charged to the mentee.':
+    'Bạn nhận 90% mức phí theo giờ. GlowBal cộng thêm 10% phí dịch vụ do người được tư vấn thanh toán.',
+  'Click any future date to add 1-hour slots. You can change these any time from your dashboard.':
+    'Chọn một ngày trong tương lai để thêm khung giờ 1 tiếng. Bạn có thể thay đổi bất cứ lúc nào từ bảng điều khiển.',
+  'Review & submit': 'Xem lại & nộp đơn',
+  'Double-check everything below. Your application goes to GlowBal admins for verification.':
+    'Hãy kiểm tra lại mọi thông tin bên dưới. Đơn của bạn sẽ được gửi đến quản trị viên GlowBal để xác minh.',
+  '(new — pending review)': '(mới — đang chờ xét duyệt)',
+  'By submitting, you confirm the details above are accurate and that you’ll respect mentee privacy.':
+    'Khi nộp đơn, bạn xác nhận thông tin trên là chính xác và cam kết tôn trọng quyền riêng tư của người được tư vấn.',
+  'By submitting, you confirm that all documents are genuine and that you’ll respect mentee privacy.':
+    'Khi nộp đơn, bạn xác nhận mọi tài liệu đều xác thực và cam kết tôn trọng quyền riêng tư của người được tư vấn.',
+  'GlowBal will email you within 48 hours with the outcome.':
+    'GlowBal sẽ gửi kết quả cho bạn qua email trong vòng 48 giờ.',
+  'Remove {document}': 'Xóa {document}',
+  'Display name': 'Tên hiển thị',
+  'Legal name': 'Họ tên pháp lý',
+  'Date of birth': 'Ngày sinh',
+  'Fast-track — not required': 'Đăng ký nhanh — không bắt buộc',
+  '{count} / 4 uploaded': 'Đã tải lên {count} / 4',
+  Topics: 'Chủ đề',
+  'Initial slots': 'Khung giờ ban đầu',
+  '{count} added': 'Đã thêm {count}',
+  'Add times to {count} selected day': 'Thêm giờ cho {count} ngày đã chọn',
+  'Add times to {count} selected days': 'Thêm giờ cho {count} ngày đã chọn',
+  '{count} slot': '{count} khung giờ',
+  '{count} slots': '{count} khung giờ',
+  '{count} day': '{count} ngày',
+  '{count} days': '{count} ngày',
+  'Advisor application progress': 'Tiến độ đăng ký cố vấn',
+  Optional: 'Không bắt buộc',
+  '{count}/800 characters': '{count}/800 ký tự',
+  'PNG, JPG or WebP up to 5 MB': 'PNG, JPG hoặc WebP, tối đa 5 MB',
+  'Upload document': 'Tải tài liệu lên',
+  'Replace document': 'Thay tài liệu',
+  'PDF, DOC, DOCX, PNG or JPG up to 10 MB': 'PDF, DOC, DOCX, PNG hoặc JPG, tối đa 10 MB',
+  'Enter the amount you want to receive for each one-hour session.':
+    'Nhập số tiền bạn muốn nhận cho mỗi buổi tư vấn một giờ.',
+  'Enter your rate': 'Nhập mức phí của bạn',
+  'Per one-hour session': 'Cho mỗi buổi tư vấn một giờ',
+  'Student pays': 'Học sinh thanh toán',
+  'Includes the 10% service fee': 'Đã bao gồm 10% phí dịch vụ',
+  'Custom time': 'Giờ tùy chỉnh',
+  'Invalid signup': 'Đơn đăng ký không hợp lệ',
+  'Date of birth looks invalid': 'Ngày sinh có vẻ không hợp lệ',
+  'All four verification documents are required.': 'Cần tải lên đủ bốn tài liệu xác minh.',
+  'You already have an advisor profile': 'Bạn đã có hồ sơ cố vấn',
+  'Hourly rate is below the minimum for this currency': 'Mức phí theo giờ thấp hơn mức tối thiểu của đơn vị tiền tệ này',
+  'Could not save your university. Please try again.': 'Không thể lưu trường đại học của bạn. Vui lòng thử lại.',
+  'Advisor signups are temporarily unavailable due to a database update. Please try again shortly.':
+    'Đăng ký cố vấn tạm thời không khả dụng do hệ thống đang cập nhật. Vui lòng thử lại sau ít phút.',
+  'Could not submit your application. Please try again.': 'Không thể nộp đơn. Vui lòng thử lại.',
+  'Could not submit your application.': 'Không thể nộp đơn.',
+
+  // Seeded advisor academic details and profile content. User-authored content
+  // still falls back to the original language when no exact dictionary entry
+  // exists; university names and advisor names are intentionally untouched.
+  'Computer Science, BA': 'Khoa học máy tính, Cử nhân',
+  'MSc Computer Science': 'Thạc sĩ Khoa học máy tính',
+  'Economics, AB': 'Kinh tế học, Cử nhân',
+  'PhD Aeronautical Engineering': 'Tiến sĩ Kỹ thuật Hàng không',
+  'MS Symbolic Systems': 'Thạc sĩ Hệ thống Biểu tượng',
+  'Business Administration': 'Quản trị Kinh doanh',
+  'BA Architecture': 'Cử nhân Kiến trúc',
+  'PhD Electrical Engineering': 'Tiến sĩ Kỹ thuật Điện',
+  'Cambridge CS undergrad. I help applicants demystify the SAQ, technical interviews, and the personal statement. Happy to chat in English or Vietnamese.':
+    'Sinh viên Cử nhân Khoa học máy tính tại Cambridge. Tôi giúp ứng viên hiểu rõ SAQ, phỏng vấn kỹ thuật và bài luận cá nhân. Sẵn sàng trao đổi bằng tiếng Anh hoặc tiếng Việt.',
+  "Oxford MSc CS, now working in fintech. I review SOPs line-by-line and run mock technical interviews. I'll also tell you honestly when a school isn't worth it.":
+    'Tốt nghiệp Thạc sĩ Khoa học máy tính tại Oxford, hiện làm việc trong lĩnh vực công nghệ tài chính. Tôi góp ý SOP từng dòng và tổ chức phỏng vấn kỹ thuật thử. Tôi cũng sẽ trao đổi thẳng thắn khi một trường chưa thực sự phù hợp với bạn.',
+  'Harvard ’25, majoring in Economics with a minor in Statistics. I love helping students with the Common App essays — yes, all 650 words of them.':
+    'Harvard khóa 2025, chuyên ngành Kinh tế học và ngành phụ Thống kê. Tôi rất thích hỗ trợ học sinh với bài luận Common App — bao gồm toàn bộ 650 từ.',
+  'PhD candidate at Imperial. I help applicants for engineering and physics programmes navigate research statements and interview panels.':
+    'Nghiên cứu sinh Tiến sĩ tại Imperial. Tôi hỗ trợ ứng viên các chương trình kỹ thuật và vật lý xây dựng bài luận nghiên cứu và chuẩn bị cho hội đồng phỏng vấn.',
+  'Stanford alum now at a YC-backed AI startup. I focus on Stanford-specific essays, internship prep, and breaking into Bay Area tech.':
+    'Cựu sinh viên Stanford, hiện làm việc tại một startup AI được YC hậu thuẫn. Tôi tập trung vào bài luận riêng của Stanford, chuẩn bị thực tập và định hướng gia nhập ngành công nghệ tại Bay Area.',
+  'VNU Hanoi business student. I work mostly with applicants targeting top Vietnamese universities and exchange programmes — affordable rates in VND.':
+    'Sinh viên ngành Kinh doanh tại VNU Hà Nội. Tôi chủ yếu hỗ trợ ứng viên nhắm đến các trường hàng đầu Việt Nam và chương trình trao đổi, với mức phí phù hợp bằng VND.',
+  'UCL Architecture grad. Portfolio reviews, design-school interviews, and how to actually survive crit week as a first-year.':
+    'Tốt nghiệp Kiến trúc tại UCL. Tôi hỗ trợ góp ý portfolio, luyện phỏng vấn trường thiết kế và chia sẻ cách vượt qua tuần phản biện trong năm nhất.',
+  'MIT EECS PhD. I help applicants for top US engineering programmes nail their statement of purpose and prepare for grilling interviews.':
+    'Nghiên cứu sinh Tiến sĩ EECS tại MIT. Tôi giúp ứng viên các chương trình kỹ thuật hàng đầu Hoa Kỳ hoàn thiện bài luận mục đích và chuẩn bị cho các vòng phỏng vấn chuyên sâu.',
+  SAQ: 'SAQ',
+  'SOP review': 'Góp ý bài luận mục đích (SOP)',
+  Internships: 'Thực tập',
+  'Research applications': 'Hồ sơ nghiên cứu',
+  'Visa & relocation': 'Visa & chuyển nơi ở',
+  'Portfolio review': 'Góp ý portfolio',
+  'Common App': 'Common App',
+  'STEM Olympiad veteran': 'Có kinh nghiệm thi Olympic STEM',
+  'Strong writer': 'Viết luận tốt',
+  'Mock interviews': 'Phỏng vấn thử',
+  'Tech-savvy': 'Am hiểu công nghệ',
+  'Startup experience': 'Kinh nghiệm khởi nghiệp',
+  'Empathetic listener': 'Biết lắng nghe và thấu cảm',
+  'Public speaking': 'Thuyết trình trước công chúng',
+  Multilingual: 'Đa ngôn ngữ',
+  Hindi: 'Tiếng Hindi',
+  Mandarin: 'Tiếng Quan Thoại',
+  Japanese: 'Tiếng Nhật',
+  Korean: 'Tiếng Hàn',
+  Spanish: 'Tiếng Tây Ban Nha',
+  Arabic: 'Tiếng Ả Rập',
+  French: 'Tiếng Pháp',
+
   // ── University detail, /universities/[id] (Figma 375:10629) ───────────────
   //
   // The section bar and the strip/rail labels. Listed here rather than left to
@@ -1544,7 +1850,7 @@ export const translations: Record<string, string> = {
   // `Please wait...` is already covered further up this file.
 
   // The scholarship detail panel (375:13369)
-  'Scholarship value': 'Gía trị học bổng',
+  'Scholarship value': 'Giá trị học bổng',
   'Who it is for': 'Đối tượng',
   'Application conditions': 'Điều kiện ứng tuyển',
   Analysis: 'Phân tích',
@@ -1590,6 +1896,19 @@ export const translations: Record<string, string> = {
     'Đây không giống link trang khoá học — link cần bắt đầu bằng http:// hoặc https://',
   'Save subject': 'Lưu ngành',
   'Saving...': 'Đang lưu...',
+  'Choose a university for this scholarship': 'Chọn trường đại học cho học bổng này',
+  'This scholarship is linked to more than one university. Choose the one you plan to apply to.':
+    'Học bổng này liên kết với nhiều trường đại học. Hãy chọn trường bạn dự định ứng tuyển.',
+  'This scholarship is not tied to a specific university in our data. Choose the university you plan to apply to, then check the official eligibility rules.':
+    'Trong dữ liệu của chúng tôi, học bổng này không gắn với một trường cụ thể. Hãy chọn trường bạn dự định ứng tuyển, sau đó kiểm tra điều kiện chính thức.',
+  'University options': 'Các trường đại học để lựa chọn',
+  'Loading universities...': 'Đang tải danh sách trường...',
+  'No universities match your search.': 'Không có trường đại học nào khớp với tìm kiếm của bạn.',
+  'No universities are available in the directory yet.': 'Chưa có trường đại học nào trong danh mục.',
+  'Save scholarship and university': 'Lưu học bổng và trường đại học',
+  'Could not save this scholarship. Please try again.': 'Không thể lưu học bổng này. Vui lòng thử lại.',
+  'Could not remove this scholarship. Please try again.': 'Không thể xóa học bổng này. Vui lòng thử lại.',
+  'We could not load the university list. Please try again.': 'Không thể tải danh sách trường đại học. Vui lòng thử lại.',
   'Pick a subject or paste a course link to continue.':
     'Chọn một ngành hoặc dán link khoá học để tiếp tục.',
   'Saving a subject is not switched on in this environment yet — the user_universities.program column has not been added. Nothing was changed.':
@@ -1911,11 +2230,31 @@ export const translations: Record<string, string> = {
   // English is the source of truth for this screen (OpenAI-backed since it
   // switched off DeepSeek); these keys mirror the copy that used to be
   // hardcoded in Vietnamese directly in the JSX.
+  'Complete your Personalized Strategy before building a CV.':
+    'Hoàn tất Chiến lược cá nhân hóa trước khi tạo CV.',
+  'Open Personalized Strategy': 'Mở Chiến lược cá nhân hóa',
+  'Your Target Profile will be generated from the current strategy.':
+    'Hồ sơ mục tiêu sẽ được tạo từ chiến lược hiện tại.',
+  'Strategic directions': 'Các định hướng chiến lược',
+  'Your AI-recommended CV direction': 'Định hướng CV do AI đề xuất',
+  'These directions are read-only. The Recommended direction is locked to your Personalized Strategy.':
+    'Các định hướng này chỉ đọc. Định hướng Đề xuất được khóa theo Chiến lược cá nhân hóa.',
+  '{count} directions evaluated': '{count} định hướng đã được đánh giá',
+  'Strategy alignment': 'Căn chỉnh chiến lược',
+  'Chosen direction': 'Định hướng đã chọn',
+  'Locked strategy direction': 'Định hướng chiến lược đã khóa',
+  'Retry Target Profile': 'Thử lại Hồ sơ mục tiêu',
+  'Regenerate the Target Profile for the current strategy.':
+    'Tạo lại Hồ sơ mục tiêu cho chiến lược hiện tại.',
+  'chosenDirection must match one of directionOptions':
+    'Định hướng đã chọn phải khớp với một trong các lựa chọn định hướng',
+  'Your Personalized Strategy sets the direction. The AI only uses university, programme and profile data stored in Supabase; missing pieces are flagged, never invented.':
+    'Chiến lược cá nhân hóa định hướng. AI chỉ sử dụng dữ liệu trường, chương trình và hồ sơ được lưu trong Supabase; phần thiếu sẽ được đánh dấu, không bịa thêm.',
   'CV creation progress': 'Tiến trình tạo CV',
   Content: 'Nội dung',
   'CV Draft': 'Bản CV',
   'No Target Profile yet. Enter a career direction and start generating.':
-    'Chưa có Target Profile. Hãy nhập định hướng và bắt đầu tạo.',
+    'Chưa có hồ sơ mục tiêu. Hãy nhập định hướng và bắt đầu tạo.',
   'University positioning': 'Định vị trường',
   'Educational philosophy': 'Triết lý giáo dục',
   Environment: 'Môi trường',
@@ -2001,8 +2340,8 @@ export const translations: Record<string, string> = {
   'Career direction (optional)': 'Định hướng nghề nghiệp (không bắt buộc)',
   'e.g. Software Engineer in education technology': 'Ví dụ: Software Engineer in education technology',
   'AI is working…': 'AI đang làm…',
-  'Regenerate Target Profile': 'Tạo lại Target Profile',
-  'Create Target Profile': 'Tạo Target Profile',
+  'Regenerate Target Profile': 'Tạo lại hồ sơ mục tiêu',
+  'Create Target Profile': 'Tạo hồ sơ mục tiêu',
   'Continue to content →': 'Tiếp tục nhập nội dung →',
   'Enter your CV data': 'Nhập dữ liệu cho CV',
   'Review the existing information and add your experience, awards and skills.':
@@ -2012,7 +2351,7 @@ export const translations: Record<string, string> = {
   'Your CV is ready. Review and edit it.': 'CV đã được tạo. Kiểm tra và chỉnh sửa.',
   'AI is building your CV.': 'AI đang xây dựng CV của bạn.',
   'Click directly on the CV content to edit it before running a review.':
-    'Nhấp trực tiếp vào nội dung trong bản CV để chỉnh sửa trước khi review.',
+    'Nhấp trực tiếp vào nội dung trong bản CV để chỉnh sửa trước khi đánh giá.',
   'Evidence coverage': 'Độ phủ dẫn chứng',
   '3 strengths': '3 điểm mạnh',
   'Needs more evidence': 'Cần bổ sung',
@@ -2024,10 +2363,10 @@ export const translations: Record<string, string> = {
   'Use these answers to improve the CV': 'Dùng câu trả lời để cải thiện CV',
   'Click the introduction or any bullet on the CV to edit it.':
     'Nhấp vào phần giới thiệu hoặc bullet trên CV để chỉnh sửa.',
-  'AI is reviewing…': 'AI đang review…',
-  'Run CV Review': 'Chạy CV Review',
+  'AI is reviewing…': 'AI đang đánh giá…',
+  'Run CV Review': 'Đánh giá CV',
   'Answer every question and regenerate the CV before running Review.':
-    'Hãy trả lời đủ các câu hỏi và tạo lại CV trước khi chạy Review.',
+    'Hãy trả lời đủ các câu hỏi và tạo lại CV trước khi đánh giá.',
   'Choose layout →': 'Chọn layout →',
   'Choose how the CV is presented': 'Chọn cách trình bày CV',
   'Both layouts use the same content; you can switch templates before downloading the PDF.':
@@ -2041,20 +2380,28 @@ export const translations: Record<string, string> = {
   '{count} items completed': '{count} mục đã hoàn tất',
   // Status/error strings held in component state as their English source
   // and looked up via t(status) / t(error) at render time.
-  'AI is preparing the Target Profile…': 'AI đang chuẩn bị Target Profile…',
+  'AI is preparing the Target Profile…': 'AI đang chuẩn bị hồ sơ mục tiêu…',
   'Preparing profile and programme data…': 'Đang chuẩn bị dữ liệu hồ sơ và chương trình…',
-  'AI is building the Target Profile…': 'AI đang xây dựng Target Profile…',
+  'AI is building the Target Profile…': 'AI đang xây dựng hồ sơ mục tiêu…',
   'AI is normalizing and arranging the CV…': 'AI đang chuẩn hóa và sắp xếp CV…',
   'AI is evaluating the current CV…': 'AI đang đánh giá CV hiện tại…',
-  'Could not create the Target Profile.': 'Chưa thể tạo Target Profile. Vui lòng thử lại.',
-  'Create a Target Profile first.': 'Hãy tạo Target Profile trước.',
+  'Could not create the Target Profile.': 'Chưa thể tạo hồ sơ mục tiêu. Vui lòng thử lại.',
+  'Create a Target Profile first.': 'Hãy tạo hồ sơ mục tiêu trước.',
   'Could not create the CV.': 'Không thể tạo CV.',
-  'Could not review the CV.': 'Không thể review CV.',
-  'Invalid Target Profile.': 'Target Profile không hợp lệ.',
+  'Could not review the CV.': 'Không thể đánh giá CV.',
+  'Invalid Target Profile.': 'Hồ sơ mục tiêu không hợp lệ.',
   'Invalid list of sections to generate.': 'Danh sách phần cần tạo không hợp lệ.',
   'Invalid CV generation mode.': 'Chế độ tạo CV không hợp lệ.',
   'Could not finish the CV. Please retry the missing sections.':
     'Chưa thể hoàn tất CV. Vui lòng thử lại phần còn thiếu.',
+  'A current Personalized Strategy is required before building a CV.':
+    'Cần có Chiến lược cá nhân hóa hiện tại trước khi tạo CV.',
+  'A current Personalized Strategy is required before generating a CV.':
+    'Cần có Chiến lược cá nhân hóa hiện tại trước khi tạo CV.',
+  'Your Personalized Strategy changed. Refresh the CV Builder and try again.':
+    'Chiến lược cá nhân hóa của bạn đã thay đổi. Hãy làm mới trình tạo CV rồi thử lại.',
+  'The Target Profile was created from an older strategy. Regenerate it and try again.':
+    'Hồ sơ mục tiêu được tạo từ chiến lược cũ. Hãy tạo lại rồi thử lại.',
   'Invalid career direction.': 'Định hướng nghề nghiệp không hợp lệ.',
   // Approved product vocabulary (kept exact for static crawl parity).
   'Search Universities': 'Tìm Đại học',
@@ -2387,6 +2734,169 @@ export const translations: Record<string, string> = {
   'Which countries are you interested in?': 'Bạn quan tâm đến những quốc gia nào?',
   'Total budget': 'Tổng ngân sách',
   'Select your tuition budget (USD)': 'Chọn ngân sách học phí của bạn (USD)',
+  // Reflection step 1, rebuilt as one question per screen.
+  // Candidate Information redesign — modes, chrome, scores and conversions.
+  // Subject catalogue and intake seasons (spec 2).
+  // Questions 5-8 (spec 2).
+  'Search subjects or browse below': 'Tìm ngành hoặc xem danh sách bên dưới',
+  'No subjects found for “{query}”': 'Không tìm thấy ngành nào cho “{query}”',
+  Others: 'Khác',
+  'Add as Other': 'Thêm vào mục Khác',
+  'Select all': 'Chọn tất cả',
+  'Show all countries': 'Xem tất cả quốc gia',
+  'What subject are you interested in?': 'Bạn quan tâm đến ngành nào?',
+  'e.g. Marine Biology': 'ví dụ: Sinh học biển',
+  'No countries found for “{query}”': 'Không tìm thấy quốc gia nào cho “{query}”',
+  '🌍 I’m open to other countries': '🌍 Tôi sẵn sàng cân nhắc các quốc gia khác',
+  'Show me strong options outside my current choices too.':
+    'Hãy gợi ý cho tôi cả những lựa chọn tốt ngoài danh sách hiện tại.',
+  'A Master’s normally requires an undergraduate degree first. You can still choose this if you’re planning ahead.':
+    'Bậc thạc sĩ thường yêu cầu có bằng đại học trước. Bạn vẫn có thể chọn nếu đang lên kế hoạch dài hạn.',
+  'Not sure which one to choose? You can update this information later.':
+    'Chưa chắc nên chọn mục nào? Bạn có thể cập nhật thông tin này sau.',
+  'Choose at least one subject you’re interested in.': 'Hãy chọn ít nhất một ngành bạn quan tâm.',
+  'Choose at least one destination or tell us you’re open to suggestions.':
+    'Hãy chọn ít nhất một điểm đến, hoặc cho chúng tôi biết bạn sẵn sàng nghe gợi ý.',
+  'Choose the level of study you’re currently considering.':
+    'Hãy chọn bậc học bạn đang cân nhắc.',
+  'Choose when you would like to start.': 'Hãy chọn thời điểm bạn muốn bắt đầu.',
+  'Autumn / Fall': 'Mùa thu',
+  Spring: 'Mùa xuân',
+  'Data Science & Analytics': 'Khoa học dữ liệu & phân tích',
+  'Artificial Intelligence': 'Trí tuệ nhân tạo',
+  'Cyber Security': 'An ninh mạng',
+  'Information Technology': 'Công nghệ thông tin',
+  'Business & Management': 'Kinh doanh & quản trị',
+  'Finance & Accounting': 'Tài chính & kế toán',
+  Entrepreneurship: 'Khởi nghiệp',
+  Mathematics: 'Toán học',
+  Physics: 'Vật lý',
+  Chemistry: 'Hoá học',
+  'Environmental Science': 'Khoa học môi trường',
+  Nursing: 'Điều dưỡng',
+  Pharmacy: 'Dược',
+  'Biomedical Science': 'Khoa học y sinh',
+  'Electrical Engineering': 'Kỹ thuật điện',
+  'Chemical Engineering': 'Kỹ thuật hoá học',
+  'Aerospace Engineering': 'Kỹ thuật hàng không vũ trụ',
+  'International Relations': 'Quan hệ quốc tế',
+  Sociology: 'Xã hội học',
+  History: 'Lịch sử',
+  Philosophy: 'Triết học',
+  Architecture: 'Kiến trúc',
+  'Arts & Design': 'Nghệ thuật & thiết kế',
+  'Media & Communication': 'Truyền thông & báo chí',
+  Film: 'Điện ảnh',
+  'Hospitality & Tourism': 'Khách sạn & du lịch',
+  Agriculture: 'Nông nghiệp',
+  '{answered} of {total} completed': 'Đã hoàn thành {answered}/{total}',
+  'One question at a time': 'Từng câu một',
+  'Show all questions': 'Hiển thị tất cả câu hỏi',
+  'How would you like to answer?': 'Bạn muốn trả lời theo cách nào?',
+  'Not saved': 'Chưa lưu',
+  'Save & Exit': 'Lưu & thoát',
+  'Save & Continue': 'Lưu & tiếp tục',
+  'Highest level of education': 'Trình độ học vấn cao nhất',
+  'What qualification is it?': 'Đó là bằng cấp gì?',
+  'Not sure? You can update this later in your profile settings.':
+    'Chưa chắc chắn? Bạn có thể cập nhật sau trong phần hồ sơ.',
+  'Search country or nationality': 'Tìm quốc gia hoặc quốc tịch',
+  'No country or nationality matches that.': 'Không có quốc gia hoặc quốc tịch nào khớp.',
+  'What is your GPA?': 'GPA của bạn là bao nhiêu?',
+  'What is your English test score?': 'Điểm tiếng Anh của bạn là bao nhiêu?',
+  'What is your annual tuition budget?': 'Ngân sách học phí hằng năm của bạn là bao nhiêu?',
+  'Enter GPA': 'Nhập GPA',
+  'Convert with AI': 'Quy đổi bằng AI',
+  'Your GPA': 'GPA của bạn',
+  'Out of {max}': 'Trên thang {max}',
+  'Tell us about your grades': 'Hãy cho chúng tôi biết về điểm của bạn',
+  'e.g. 9 As at GCSE and 4 A*s at A Level': 'ví dụ: 9 điểm A ở GCSE và 4 điểm A* ở A Level',
+  'Any system — describe them however they were given to you.':
+    'Hệ thống nào cũng được — hãy mô tả đúng như bạn nhận được.',
+  'Understanding your grades…': 'Đang đọc điểm của bạn…',
+  'Estimate my GPA': 'Ước tính GPA của tôi',
+  'Estimated GPA': 'GPA ước tính',
+  'Use this GPA': 'Dùng GPA này',
+  'An approximate equivalent for matching — not an official conversion.':
+    'Mức tương đương gần đúng để so khớp — không phải quy đổi chính thức.',
+  'We could not read those grades.': 'Chúng tôi chưa đọc được số điểm đó.',
+  'We could not read that result.': 'Chúng tôi chưa đọc được kết quả đó.',
+  'Equivalent test': 'Chứng chỉ tương đương',
+  'Your IELTS band': 'Điểm IELTS của bạn',
+  'Out of {max}, in half bands': 'Trên thang {max}, theo bậc 0,5',
+  'I haven’t taken an English test yet': 'Tôi chưa thi chứng chỉ tiếng Anh',
+  'Test type': 'Loại bài thi',
+  'Select a test': 'Chọn một bài thi',
+  'Tell us what English qualification or result you have':
+    'Hãy cho biết bạn có chứng chỉ hoặc kết quả tiếng Anh nào',
+  'e.g. Grade A in Cambridge C1 Advanced': 'ví dụ: Grade A trong Cambridge C1 Advanced',
+  'Understanding your result…': 'Đang đọc kết quả của bạn…',
+  'Estimate my IELTS': 'Ước tính IELTS của tôi',
+  'Estimated IELTS': 'IELTS ước tính',
+  'Use this score': 'Dùng điểm này',
+  'Secondary school or equivalent': 'Trung học phổ thông hoặc tương đương',
+  'Associate degree or diploma': 'Cao đẳng hoặc bằng nghề',
+  'Undergraduate degree': 'Bằng đại học',
+  'Postgraduate degree': 'Bằng sau đại học',
+  'PhD or equivalent': 'Tiến sĩ hoặc tương đương',
+  'Something else — tell us': 'Khác — hãy cho chúng tôi biết',
+  'e.g. National Diploma in Engineering': 'ví dụ: Bằng kỹ sư quốc gia',
+  'Select the option that best describes your current or most advanced qualification.':
+    'Chọn phương án mô tả đúng nhất bằng cấp hiện tại hoặc cao nhất của bạn.',
+  'Select the country or nationality that best represents you.':
+    'Chọn quốc gia hoặc quốc tịch phù hợp nhất với bạn.',
+  'Enter your GPA or let AI estimate it from your grades.':
+    'Nhập GPA của bạn, hoặc để AI ước tính từ điểm số của bạn.',
+  'Enter your IELTS score or choose an equivalent English test and we’ll convert it for you.':
+    'Nhập điểm IELTS, hoặc chọn một chứng chỉ tiếng Anh tương đương và chúng tôi sẽ quy đổi giúp bạn.',
+  'Choose everywhere you would consider studying.':
+    'Chọn tất cả những nơi bạn cân nhắc đi học.',
+  'The qualification you want to apply for, not the one you already hold.':
+    'Bằng cấp bạn muốn ứng tuyển, không phải bằng bạn đang có.',
+  'A rough idea is fine — it shapes which scholarships we look for.':
+    'Ước chừng cũng được — điều này định hướng học bổng chúng tôi tìm cho bạn.',
+  'Set it in either currency — the two stay in step with each other.':
+    'Đặt theo đơn vị tiền nào cũng được — hai ô luôn đồng bộ với nhau.',
+  Scores: 'Điểm số',
+  Aspirations: 'Nguyện vọng',
+  Budget: 'Ngân sách',
+  'Duolingo English Test': 'Duolingo English Test',
+  'Cambridge English': 'Cambridge English',
+  AP: 'AP',
+  'Question {current} of {total}': 'Câu hỏi {current} / {total}',
+  'Select your nationality': 'Chọn quốc tịch của bạn',
+  'Write it on whichever scale your school uses.':
+    'Ghi theo thang điểm mà trường bạn đang dùng.',
+  'Leave this empty if you have not taken it yet.':
+    'Để trống nếu bạn chưa thi.',
+  'Which subjects are you interested in?': 'Bạn quan tâm đến những ngành nào?',
+  'Pick as many as you are considering — you can change these later.':
+    'Chọn bao nhiêu tuỳ ý — bạn có thể thay đổi sau.',
+  'Search countries': 'Tìm quốc gia',
+  'When do you want to start?': 'Bạn muốn bắt đầu khi nào?',
+  'Select an intake': 'Chọn kỳ nhập học',
+  'This is what the Planner counts back from when it sets your deadlines.':
+    'Kế hoạch của bạn sẽ tính ngược từ mốc này để đặt hạn chót.',
+  'What do you want to do after you graduate?':
+    'Bạn muốn làm gì sau khi tốt nghiệp?',
+  'A sentence or two is plenty.': 'Một hai câu là đủ.',
+  'Your strategy report uses this to judge which direction fits you best.':
+    'Báo cáo chiến lược dùng thông tin này để chọn hướng đi phù hợp nhất với bạn.',
+  'Why this subject?': 'Vì sao bạn chọn ngành này?',
+  'What got you interested, and what keeps you interested.':
+    'Điều gì khiến bạn bắt đầu quan tâm, và điều gì giữ bạn ở lại với nó.',
+  'Your personal report builds its "driving force" section from this.':
+    'Báo cáo cá nhân sẽ dựng phần “động lực” của bạn từ câu trả lời này.',
+  'How will your study be funded?': 'Việc học của bạn sẽ được tài trợ thế nào?',
+  'Annual tuition budget': 'Ngân sách học phí hằng năm',
+  'Annual tuition budget (USD)': 'Ngân sách học phí hằng năm (USD)',
+  'Converted at {rate} VND to 1 USD.': 'Quy đổi theo tỷ giá {rate} VND / 1 USD.',
+  'Autumn / Fall 2026': 'Kỳ mùa thu 2026',
+  'Spring 2027': 'Kỳ mùa xuân 2027',
+  'Autumn / Fall 2027': 'Kỳ mùa thu 2027',
+  'Spring 2028': 'Kỳ mùa xuân 2028',
+  'Autumn / Fall 2028': 'Kỳ mùa thu 2028',
+  'Later than 2028': 'Sau năm 2028',
   'High school': 'Trung học phổ thông',
   '2 - Year Associate Degree': 'Chương trình cao đẳng 2 năm',
   '4 - Year Bachelor’s Degree': 'Chương trình cử nhân 4 năm',
@@ -2395,15 +2905,98 @@ export const translations: Record<string, string> = {
   'Master or Post-Graduate Certificate': 'Thạc sĩ hoặc chứng chỉ sau đại học',
   'Bachelor’s Degree': 'Bằng cử nhân',
   'College Diploma / Certificate': 'Bằng cao đẳng / Chứng chỉ',
+  'Advanced study after your undergraduate degree.':
+    'Chương trình học nâng cao sau khi hoàn thành bậc đại học.',
+  'An undergraduate degree, typically lasting 3–4 years.':
+    'Chương trình cử nhân, thường kéo dài từ 3 đến 4 năm.',
+  'Vocational or academic qualifications at college level.':
+    'Bằng cấp nghề hoặc học thuật ở bậc cao đẳng.',
   'Personal savings or parents': 'Tiền tiết kiệm cá nhân hoặc gia đình',
   'Student loan': 'Khoản vay sinh viên',
   'Employer or sponsor': 'Nhà tuyển dụng hoặc đơn vị tài trợ',
   'Not decided yet': 'Chưa quyết định',
+  'Autumn / Fall {year}': 'Mùa thu {year}',
+  'Spring {year}': 'Mùa xuân {year}',
+  'September – December {year}': 'Tháng 9 – Tháng 12 năm {year}',
+  'January – April {year}': 'Tháng 1 – Tháng 4 năm {year}',
+  'Later than {year}': 'Sau năm {year}',
+  'Starting from {year} or later': 'Bắt đầu từ năm {year} trở đi',
+  'I’m still exploring my options': 'Tôi vẫn đang tìm hiểu các lựa chọn',
+  'Save {name} to your list': 'Lưu {name} vào danh sách của bạn',
+  'Remove {name} from your list': 'Xóa {name} khỏi danh sách của bạn',
+  'Add {name} to my portal': 'Thêm {name} vào Trang lưu',
+  'Remove {name} from my portal': 'Xóa {name} khỏi Trang lưu',
+  'Add to my portal': 'Thêm vào Trang lưu',
+  'Added to my portal': 'Đã thêm vào Trang lưu',
   Design: 'Thiết kế',
   'What is your intended level of study?': 'Bạn dự định học ở bậc nào?',
   'Intended level of study': 'Bậc học dự định',
   'Select a funding source': 'Chọn nguồn tài trợ',
   'Select a band': 'Chọn khoảng điểm',
+
+  // Candidate information — Q9 to Q12. ("Scholarship" and "Complete" are
+  // already above; both funding labels and the CTA reuse those entries.)
+  'Family funds or your own savings will cover most of the cost.':
+    'Tiền của gia đình hoặc tiền tiết kiệm của bạn sẽ chi trả phần lớn chi phí.',
+  'You are hoping to fund some or all of it with a scholarship.':
+    'Bạn hy vọng học bổng sẽ chi trả một phần hoặc toàn bộ chi phí.',
+  'A government or private loan you will repay after graduating.':
+    'Khoản vay của nhà nước hoặc tư nhân mà bạn sẽ trả sau khi tốt nghiệp.',
+  'A company, government body or organisation is paying.':
+    'Một công ty, cơ quan nhà nước hoặc tổ chức sẽ chi trả.',
+  'You are still working it out — that is a normal answer here.':
+    'Bạn vẫn đang cân nhắc — đó là câu trả lời hoàn toàn bình thường.',
+  'You can change this later — it only shapes which scholarships we look for.':
+    'Bạn có thể thay đổi sau — thông tin này chỉ định hướng việc tìm học bổng.',
+  'Why are you interested in these subjects?': 'Vì sao bạn quan tâm đến những ngành này?',
+  'Answer for one subject or all of them — your personal report builds its “driving force” section from this.':
+    'Trả lời cho một ngành hoặc tất cả — báo cáo cá nhân sẽ dựng phần “động lực” từ câu trả lời này.',
+  'Tuition only, in your own currency — living costs are not included.':
+    'Chỉ tính học phí, theo đơn vị tiền tệ của bạn — chưa gồm chi phí sinh hoạt.',
+  'What you told us before': 'Điều bạn đã cho chúng tôi biết trước đó',
+  'Your subject': 'Ngành của bạn',
+
+  // Q9 / Q10 — the written answers and their idea helper.
+  'We could not come up with ideas.': 'Chúng tôi chưa nghĩ ra gợi ý nào.',
+  'Example: I want to work in sustainable energy and help build a cleaner future.':
+    'Ví dụ: Tôi muốn làm việc trong lĩnh vực năng lượng bền vững và góp phần xây dựng một tương lai sạch hơn.',
+  'Here are some things to think about:': 'Một vài điều để bạn suy nghĩ:',
+  'What kind of work excites you?': 'Loại công việc nào khiến bạn hào hứng?',
+  'What impact do you want to make?': 'Bạn muốn tạo ra tác động gì?',
+  'Where do you see yourself in the future?': 'Bạn hình dung mình ở đâu trong tương lai?',
+  'Generate ideas with AI': 'Gợi ý ý tưởng bằng AI',
+  'Thinking…': 'Đang nghĩ…',
+  'Pick one to start from': 'Chọn một gợi ý để bắt đầu',
+  'It goes straight into the box — edit it however you like.':
+    'Gợi ý sẽ được đưa thẳng vào ô trả lời — bạn sửa lại thế nào cũng được.',
+  'Your answer doesn’t need to be perfect — this can be short and you can always change it later.':
+    'Câu trả lời không cần hoàn hảo — bạn có thể viết ngắn và sửa lại bất cứ lúc nào.',
+  'Choose your subjects first and we’ll ask about them here.':
+    'Hãy chọn ngành học trước, chúng tôi sẽ hỏi về chúng ở đây.',
+  'Choose a subject to tell us more about.': 'Chọn một ngành để kể thêm cho chúng tôi.',
+  'Your subjects': 'Các ngành của bạn',
+  answered: 'đã trả lời',
+  'Why are you interested in {subject}?': 'Vì sao bạn quan tâm đến {subject}?',
+  'Example: I first became interested in {subject} when I started building my own projects and realised I loved solving real problems.':
+    'Ví dụ: Tôi bắt đầu quan tâm đến {subject} khi tự làm những dự án của riêng mình và nhận ra mình thích giải quyết các vấn đề thực tế.',
+  'Need a nudge? Consider these:': 'Cần gợi ý? Hãy thử nghĩ về:',
+  'What first interested you in {subject}?': 'Điều gì khiến bạn quan tâm đến {subject} đầu tiên?',
+  'What parts of {subject} excite you most?':
+    'Phần nào của {subject} khiến bạn hào hứng nhất?',
+  'What would you like to do with {subject}?': 'Bạn muốn làm gì với {subject}?',
+  'You only need to answer for one subject — you can add more later if you want.':
+    'Bạn chỉ cần trả lời cho một ngành — có thể bổ sung thêm sau nếu muốn.',
+
+  // Q12 — the multi-currency tuition budget.
+  'Which currency do you think in?': 'Bạn quen tính theo đơn vị tiền tệ nào?',
+  'Other currency': 'Đơn vị tiền tệ khác',
+  '{amount} and above per year': 'Từ {amount} trở lên mỗi năm',
+  '{range} per year': '{range} mỗi năm',
+  'Roughly {conversions}': 'Tương đương khoảng {conversions}',
+  'Conversions are approximate and are not saved — we store the range in your own currency.':
+    'Số quy đổi chỉ mang tính tham khảo và không được lưu — chúng tôi lưu khoảng ngân sách theo đơn vị tiền tệ của bạn.',
+  'This is tuition only. Living costs, flights and visa fees are not included — we show those separately on each course.':
+    'Đây chỉ là học phí. Chi phí sinh hoạt, vé máy bay và lệ phí visa không bao gồm — chúng tôi hiển thị riêng ở từng khóa học.',
   'AI Assessment | GlowBal': 'Đánh giá AI | GlowBal',
   'Application Strategy | GlowBal': 'Chiến lược ứng tuyển | GlowBal',
   'Statement writer | GlowBal': 'Công cụ viết bài luận | GlowBal',
@@ -2527,8 +3120,6 @@ export const translations: Record<string, string> = {
   'Cambridge International (IGCSE / AS & A Level)': 'Cambridge International (IGCSE / AS & A Level)',
   'AP + US High School Diploma': 'AP + Bằng tốt nghiệp trung học Mỹ',
   'IELTS Academic': 'IELTS Academic',
-  'Duolingo English Test': 'Duolingo English Test',
-  'Cambridge English': 'Cambridge English',
   SAT: 'SAT',
   'AP Exams': 'Kỳ thi AP',
   'GCSE / IGCSE': 'GCSE / IGCSE',
@@ -2573,8 +3164,17 @@ export const translations: Record<string, string> = {
   'Grading scale:': 'Thang điểm:',
   'This saved curriculum is no longer in the current test. It will be preserved unless you remove it.': 'Chương trình học đã lưu này không còn trong bài kiểm tra hiện tại. Chương trình sẽ được giữ lại trừ khi bạn xóa.',
   'Your academic story': 'Câu chuyện học tập của bạn',
+  'Free text and subjects. This is what the AI reads when it scores how well you match a course.':
+    'Văn bản tự do và các môn học. Đây là thông tin AI đọc khi đánh giá mức độ phù hợp của bạn với một khóa học.',
+  'Academic background summary': 'Tóm tắt nền tảng học thuật',
+  'Target subjects / fields of study': 'Môn học / lĩnh vực học tập mục tiêu',
   'Briefly describe your academic history and any notable achievements…': 'Mô tả ngắn gọn quá trình học tập và thành tích nổi bật của bạn…',
   'e.g. Computer Science, Engineering, Business…': 'ví dụ: Khoa học máy tính, Kỹ thuật, Kinh doanh…',
+  'Select a subject or field…': 'Chọn một môn học hoặc lĩnh vực…',
+  'Choose from the list. You can add more than one.': 'Chọn từ danh sách. Bạn có thể thêm nhiều lựa chọn.',
+  'Other subject / field of study': 'Môn học / lĩnh vực học tập khác',
+  'Enter another subject or field…': 'Nhập môn học hoặc lĩnh vực khác…',
+  'Remove {subject}': 'Xóa {subject}',
   'e.g. National Science Olympiad finalist': 'ví dụ: lọt vào chung kết Olympic Khoa học Quốc gia',
   'What it was, and what you did…': 'Đó là gì và bạn đã làm gì…',
   Skills: 'Kỹ năng',
@@ -2657,6 +3257,10 @@ export const translations: Record<string, string> = {
   'e.g. Software Engineer, Researcher…': 'ví dụ: Kỹ sư phần mềm, Nhà nghiên cứu…',
   'When you plan to start': 'Bạn dự định bắt đầu khi nào',
   'Account details': 'Thông tin tài khoản',
+  'Update your name and email address.': 'Cập nhật họ tên và địa chỉ email của bạn.',
+  'Changing your email requires confirmation.': 'Bạn cần xác nhận khi thay đổi email.',
+  'Full name and email address are required.': 'Vui lòng nhập đầy đủ họ tên và địa chỉ email.',
+  'Saved. Check your inbox to confirm your new email address.': 'Đã lưu. Hãy kiểm tra hộp thư để xác nhận địa chỉ email mới.',
   'Personal details': 'Thông tin cá nhân',
   'Select nationality…': 'Chọn quốc tịch…',
   'A few sentences about yourself…': 'Vài câu về bản thân bạn…',
@@ -3108,9 +3712,6 @@ export const translations: Record<string, string> = {
   'Add activity': 'Thêm hoạt động',
   'Extracurricular activity type': 'Loại hoạt động phi học thuật',
   'Describe why you joined, your role, key contributions, results, impact, or what made this activity meaningful.': 'Lí do tham gia, vai trò, đóng góp chính, kết quả đạt được, tác động hoặc điều khiến hoạt động này có ý nghĩa với bạn.',
-  Scores: 'Điểm số',
-  Aspirations: 'Nguyện vọng',
-  Budget: 'Ngân sách',
   'CV content | GlowBal': 'Nội dung CV | GlowBal',
   'Build your CV | GlowBal': 'Tạo CV | GlowBal',
   'Choose now': 'Chọn ngay',
@@ -3143,6 +3744,8 @@ export const translations: Record<string, string> = {
   'Add {count} selected items': 'Điền {count} mục đã chọn',
   Skip: 'Bỏ qua',
   'Candidate information': 'Thông tin ứng viên',
+  'Personal and study information': 'Thông tin cá nhân và học tập',
+  'Achievements and activities': 'Thành tích và hoạt động',
   'Finish': 'Hoàn tất',
   'Submit Bug Report': 'Gửi báo cáo lỗi',
   'Page URL is required': 'Vui lòng nhập URL trang',
@@ -3262,6 +3865,31 @@ export const translations: Record<string, string> = {
   'Below 6': 'Dưới 6',
   'Black line = strong benchmark {score}/10': 'Đường màu đen = mốc tốt {score}/10',
   'Career direction': 'Định hướng nghề nghiệp',
+  'Where do you want to go after graduation.': 'Bạn muốn đi tới đâu sau khi tốt nghiệp.',
+  'Example: become a data engineer in healthcare in Southeast Asia.':
+    'Ví dụ: trở thành kỹ sư dữ liệu trong lĩnh vực y tế tại Đông Nam Á.',
+  'How does this university position itself?': 'Trường này tự định vị mình như thế nào.',
+  'Example: a research-intensive university highly ranked for computer science.':
+    'Ví dụ: đại học nghiên cứu chuyên sâu, xếp hạng cao về khoa học máy tính.',
+  'How the university teaches and what it values in students.':
+    'Cách trường dạy và điều họ coi trọng ở sinh viên.',
+  'Example: project-based learning with a strong theoretical foundation.':
+    'Ví dụ: học qua dự án, chú trọng nền tảng lý thuyết vững.',
+  'The learning environment you will enter.': 'Môi trường học tập bạn sẽ bước vào.',
+  'Example: small classes, an international community, and strong industry links.':
+    'Ví dụ: lớp nhỏ, cộng đồng quốc tế, gắn với doanh nghiệp.',
+  'What this programme promises its graduates will be able to do.':
+    'Chương trình này cam kết đào tạo ra điều gì.',
+  'Example: train engineers who can build large-scale data systems.':
+    'Ví dụ: đào tạo kỹ sư có thể xây dựng hệ thống dữ liệu quy mô lớn.',
+  'The capabilities your CV most needs to prove.':
+    'Những năng lực CV của bạn cần chứng minh rõ nhất.',
+  'Example: analytical thinking, programming, and interdisciplinary teamwork.':
+    'Ví dụ: tư duy phân tích, lập trình, làm việc nhóm liên ngành.',
+  'Where your direction and this programme meet.':
+    'Điểm gặp nhau giữa định hướng của bạn và chương trình này.',
+  'Example: the programme focuses on health data, matching your career goal.':
+    'Ví dụ: chương trình có hướng dữ liệu y tế, khớp với mục tiêu của bạn.',
   'Change': 'Chuyển biến',
   'Check profile data': 'Kiểm tra dữ liệu hồ sơ',
   'Choose a layout and export PDF': 'Chọn bố cục và xuất PDF',
@@ -3527,4 +4155,727 @@ export const translations: Record<string, string> = {
     'Dán trang khóa học và chúng tôi sẽ theo dõi đây như một đơn ứng tuyển riêng, bên cạnh đơn bạn đã có tại đây.',
   'Adding…': 'Đang thêm…',
   'Add course': 'Thêm khóa học',
+
+  // Achievements & activities — the card-grid redesign of reflection step 2.
+  'We could not upload that file. Please try again.':
+    'Chúng tôi không thể tải tệp này lên. Vui lòng thử lại.',
+  'Most recent': 'Mới nhất',
+  Oldest: 'Cũ nhất',
+  'Achievement type': 'Loại thành tích',
+  'Reviewed first': 'Đã xem trước',
+  'Needs review first': 'Cần xem lại trước',
+  'Edit {title}': 'Chỉnh sửa {title}',
+  'Remove {title}': 'Xóa {title}',
+  'Extracted from {fileName}': 'Trích xuất từ {fileName}',
+  'Added manually': 'Được thêm thủ công',
+  'Please check this': 'Vui lòng kiểm tra mục này',
+  Reviewed: 'Đã xem lại',
+  'Possible duplicate': 'Có thể trùng lặp',
+  'Upload your achievements': 'Tải lên thành tích của bạn',
+  'Upload your CV or certificate PDFs and we’ll automatically extract your achievements.':
+    'Tải lên CV hoặc chứng chỉ PDF của bạn, chúng tôi sẽ tự động trích xuất thành tích.',
+  'Remove this document?': 'Xóa tài liệu này?',
+  'Achievements already saved to your profile will remain.':
+    'Các thành tích đã lưu vào hồ sơ của bạn sẽ vẫn được giữ lại.',
+  'Recently uploaded': 'Đã tải lên gần đây',
+  'You can upload multiple PDFs. Each file up to 10MB.':
+    'Bạn có thể tải lên nhiều tệp PDF. Mỗi tệp tối đa 10MB.',
+  Rename: 'Đổi tên',
+  Reprocess: 'Xử lý lại',
+  'Uploading {fileName}': 'Đang tải lên {fileName}',
+  'Finding achievements…': 'Đang tìm thành tích…',
+  '{count} achievements found': 'Tìm thấy {count} thành tích',
+  'We’ve extracted achievements from your document.':
+    'Chúng tôi đã trích xuất thành tích từ tài liệu của bạn.',
+  'We couldn’t find any clear achievements in this document.':
+    'Chúng tôi không tìm thấy thành tích rõ ràng nào trong tài liệu này.',
+  'Add one manually': 'Thêm thủ công',
+  'We couldn’t read that document. Try uploading another copy.':
+    'Chúng tôi không thể đọc tài liệu này. Hãy thử tải lên một bản khác.',
+  'Review achievements ({count})': 'Xem lại thành tích ({count})',
+  'No academic achievements yet': 'Chưa có thành tích học thuật nào',
+  'Upload a CV or certificate, or add one manually.':
+    'Tải lên CV hoặc chứng chỉ, hoặc thêm thủ công.',
+  'Remove this achievement?': 'Xóa thành tích này?',
+  'This will remove it from your GlowBal profile, but not from your uploaded document.':
+    'Thao tác này sẽ xóa mục này khỏi hồ sơ GlowBal của bạn, nhưng không xóa khỏi tài liệu đã tải lên.',
+  'No extracurricular activities yet': 'Chưa có hoạt động ngoại khóa nào',
+  'Upload a document or add an activity manually.':
+    'Tải lên tài liệu hoặc thêm hoạt động thủ công.',
+  'Remove this activity?': 'Xóa hoạt động này?',
+  'You still have {count} extracted achievements to review.':
+    'Bạn vẫn còn {count} thành tích được trích xuất cần xem lại.',
+  'Review first': 'Xem lại trước',
+  'Continue anyway': 'Vẫn tiếp tục',
+  'Review & Confirm': 'Xem lại & Xác nhận',
+  'File name': 'Tên tệp',
+  'Save changes': 'Lưu thay đổi',
+  '{count} possible duplicates': '{count} mục có thể trùng lặp',
+  '“{title}” looks like it might already be on your profile as “{existing}”.':
+    '“{title}” có vẻ đã có trong hồ sơ của bạn dưới tên “{existing}”.',
+  'Keep both': 'Giữ cả hai',
+  Merge: 'Gộp lại',
+  'Academic Award / Prize': 'Giải thưởng / Phần thưởng học thuật',
+  Competition: 'Cuộc thi',
+  'Publication / Research': 'Xuất bản / Nghiên cứu',
+  Certification: 'Chứng chỉ',
+  'Volunteering / Community Service': 'Tình nguyện / Hoạt động cộng đồng',
+  'Project / Entrepreneurship': 'Dự án / Khởi nghiệp',
+  Mentoring: 'Cố vấn / Hướng dẫn',
+  'Edit achievement': 'Chỉnh sửa thành tích',
+  'Edit activity': 'Chỉnh sửa hoạt động',
+  Title: 'Tiêu đề',
+  'Organisation / project': 'Tổ chức / dự án',
+  Period: 'Giai đoạn',
+  Description: 'Mô tả',
+  'What would you like to add?': 'Bạn muốn thêm gì?',
+  'Academic achievement': 'Thành tích học thuật',
+  'Extracurricular activity': 'Hoạt động ngoại khóa',
+  'All extracted achievements reviewed': 'Đã xem lại tất cả thành tích được trích xuất',
+  'Review achievements': 'Xem lại thành tích',
+  '{current} of {total}': '{current} / {total}',
+
+  // Review & Confirm, and the read-only views once confirmed.
+  'Confirmed profile': 'Hồ sơ đã xác nhận',
+  'This information was confirmed on {date} and is used to generate your reports.':
+    'Thông tin này đã được xác nhận vào ngày {date} và được dùng để tạo báo cáo của bạn.',
+  'This information is locked and was used to generate your reports.':
+    'Thông tin này đã bị khóa và được dùng để tạo báo cáo của bạn.',
+  'This information is used to generate your reports.':
+    'Thông tin này được dùng để tạo báo cáo của bạn.',
+  'All fields are read-only.': 'Tất cả các trường đều chỉ đọc.',
+  'Original grades': 'Điểm gốc',
+  'Confirmed achievements': 'Thành tích đã xác nhận',
+  'These achievements were confirmed on {date} and were included in your reports.':
+    'Những thành tích này đã được xác nhận vào ngày {date} và đã được đưa vào báo cáo của bạn.',
+  'Confirmed supporting documents': 'Tài liệu hỗ trợ đã xác nhận',
+  'These documents supported your confirmed profile and were included in your report inputs.':
+    'Những tài liệu này hỗ trợ hồ sơ đã xác nhận của bạn và đã được đưa vào dữ liệu đầu vào của báo cáo.',
+  'No documents were uploaded.': 'Chưa có tài liệu nào được tải lên.',
+  PDF: 'PDF',
+  'Preview {fileName}': 'Xem trước {fileName}',
+  'Need to make a change? Contact GlowBal Support if something in your confirmed information is incorrect.':
+    'Cần thay đổi? Liên hệ Hỗ trợ GlowBal nếu có thông tin nào trong hồ sơ đã xác nhận của bạn không chính xác.',
+  'We could not confirm your information. Please try again.':
+    'Chúng tôi không thể xác nhận thông tin của bạn. Vui lòng thử lại.',
+  'Check everything below carefully — once confirmed, this information is locked and used to generate your reports.':
+    'Hãy kiểm tra kỹ mọi thông tin bên dưới — sau khi xác nhận, thông tin này sẽ bị khóa và được dùng để tạo báo cáo của bạn.',
+  'You’re ready to confirm': 'Bạn đã sẵn sàng để xác nhận',
+  'Every required question has been answered and reviewed.':
+    'Mọi câu hỏi bắt buộc đã được trả lời và xem lại.',
+  'A few things need your attention before you can confirm':
+    'Có một vài điều cần bạn chú ý trước khi có thể xác nhận',
+  'Fix this': 'Sửa mục này',
+  '{count} extracted achievements still need review.':
+    'Còn {count} thành tích được trích xuất cần xem lại.',
+  '{count} extracted activities still need review.':
+    'Còn {count} hoạt động được trích xuất cần xem lại.',
+  'GPA / equivalent': 'GPA / điểm tương đương',
+  'IELTS / English test': 'IELTS / bài thi tiếng Anh',
+  'SAT / other test scores': 'SAT / điểm thi khác',
+  'Study preferences': 'Nguyện vọng học tập',
+  Countries: 'Quốc gia',
+  'Open to suggestions': 'Sẵn sàng cân nhắc gợi ý',
+  'Preferred intake': 'Kỳ nhập học mong muốn',
+  'Why {subject}': 'Vì sao chọn {subject}',
+  'Subject motivation': 'Động lực chọn ngành',
+  '{count} more subject motivations on file.': 'Còn {count} động lực chọn ngành khác đã lưu.',
+  'Financial plan': 'Kế hoạch tài chính',
+  Funding: 'Nguồn tài trợ',
+  'Achievements & activities': 'Thành tích & hoạt động',
+  '{count} on file': '{count} mục đã lưu',
+  'Supporting documents': 'Tài liệu hỗ trợ',
+  'I confirm that the information above is accurate.': 'Tôi xác nhận thông tin trên là chính xác.',
+  'Once confirmed, this information is locked and cannot be edited without contacting GlowBal Support.':
+    'Sau khi xác nhận, thông tin này sẽ bị khóa và không thể chỉnh sửa nếu không liên hệ Hỗ trợ GlowBal.',
+  'Confirm & Generate Reports': 'Xác nhận & Tạo báo cáo',
+  'Confirm your information': 'Xác nhận thông tin của bạn',
+  'Confirm your information?': 'Xác nhận thông tin của bạn?',
+  'This locks your candidate information exactly as shown and begins generating your reports. You will not be able to edit it afterwards without contacting GlowBal Support.':
+    'Thao tác này sẽ khóa thông tin ứng viên của bạn đúng như hiển thị và bắt đầu tạo báo cáo. Bạn sẽ không thể chỉnh sửa sau đó nếu không liên hệ Hỗ trợ GlowBal.',
+  'Confirming…': 'Đang xác nhận…',
+
+  // Edit achievement / edit activity — the large two-column editor.
+  'Add academic achievement': 'Thêm thành tích học thuật',
+  'Add extracurricular activity': 'Thêm hoạt động ngoại khóa',
+  'Edit academic achievement': 'Chỉnh sửa thành tích học thuật',
+  'Edit extracurricular activity': 'Chỉnh sửa hoạt động ngoại khóa',
+  'Add a new academic achievement to your profile.':
+    'Thêm một thành tích học thuật mới vào hồ sơ của bạn.',
+  'Add a new extracurricular activity to your profile.':
+    'Thêm một hoạt động ngoại khóa mới vào hồ sơ của bạn.',
+  'Update the details of this achievement. All changes will be saved to your profile.':
+    'Cập nhật chi tiết của thành tích này. Mọi thay đổi sẽ được lưu vào hồ sơ của bạn.',
+  'Close editor': 'Đóng trình chỉnh sửa',
+  'Select the category that best describes this achievement.':
+    'Chọn danh mục mô tả đúng nhất thành tích này.',
+  'Select the category that best describes this activity.':
+    'Chọn danh mục mô tả đúng nhất hoạt động này.',
+  'Activity title': 'Tên hoạt động',
+  'Enter the full name of your achievement.': 'Nhập tên đầy đủ của thành tích.',
+  'Enter the full name of your activity.': 'Nhập tên đầy đủ của hoạt động.',
+  'Name of the competition, program or organisation.': 'Tên cuộc thi, chương trình hoặc tổ chức.',
+  'The body or institution that organised this achievement.':
+    'Cơ quan hoặc tổ chức đã tổ chức thành tích này.',
+  'Name of the club, school or organisation, if any.':
+    'Tên câu lạc bộ, trường học hoặc tổ chức (nếu có).',
+  'Choose the level of this achievement.': 'Chọn cấp độ của thành tích này.',
+  'Select a level': 'Chọn cấp độ',
+  'Not applicable': 'Không áp dụng',
+  'Describe the level': 'Mô tả cấp độ',
+  'Year you received or achieved this award.': 'Năm bạn nhận hoặc đạt được giải thưởng này.',
+  'Select a year': 'Chọn năm',
+  'When this activity started, and ended if it has — "Present" for ongoing.':
+    'Thời gian hoạt động bắt đầu, và kết thúc nếu đã kết thúc — dùng "Present" nếu vẫn đang diễn ra.',
+  'Enter an achievement name.': 'Vui lòng nhập tên thành tích.',
+  'Enter an activity title.': 'Vui lòng nhập tên hoạt động.',
+  'Add a short description.': 'Vui lòng thêm mô tả ngắn.',
+  'Choose the year you received this award.': 'Chọn năm bạn nhận được giải thưởng này.',
+  'Provide a brief description of your achievement and its significance.':
+    'Cung cấp mô tả ngắn gọn về thành tích của bạn và ý nghĩa của nó.',
+  'Describe what you did, your responsibilities and any impact or outcome.':
+    'Mô tả những gì bạn đã làm, trách nhiệm của bạn và bất kỳ tác động hoặc kết quả nào.',
+  'Discard changes?': 'Hủy các thay đổi?',
+  'You have unsaved changes.': 'Bạn có thay đổi chưa được lưu.',
+  'Keep editing': 'Tiếp tục chỉnh sửa',
+  Discard: 'Hủy bỏ',
+  'Local / City level': 'Cấp địa phương / thành phố',
+  'Regional level': 'Cấp khu vực',
+  'University level': 'Cấp đại học',
+  'Community level': 'Cấp cộng đồng',
+  'Organisation level': 'Cấp tổ chức',
+
+  // Report Generation page — after Review & Confirm, before the reports themselves.
+  'Your reports are ready': 'Báo cáo của bạn đã sẵn sàng',
+  'Your information is confirmed': 'Thông tin của bạn đã được xác nhận',
+  "We've finished analysing your profile.": 'Chúng tôi đã hoàn tất phân tích hồ sơ của bạn.',
+  "We're now creating your personalised GlowBal reports.":
+    'Chúng tôi đang tạo các báo cáo cá nhân hóa GlowBal cho bạn.',
+  'Confirmed {date}': 'Đã xác nhận {date}',
+  'Building your personalised reports': 'Đang xây dựng báo cáo cá nhân hóa của bạn',
+  '{count} of {total} reports complete': 'Đã hoàn thành {count} / {total} báo cáo',
+  'Report generation progress': 'Tiến trình tạo báo cáo',
+  'Personal Report is ready.': 'Báo cáo cá nhân đã sẵn sàng.',
+  'Matching Report is ready.': 'Báo cáo phù hợp đã sẵn sàng.',
+  'A complete overview of your profile, strengths, achievements and academic background.':
+    'Tổng quan đầy đủ về hồ sơ, thế mạnh, thành tích và nền tảng học vấn của bạn.',
+  'Generating…': 'Đang tạo…',
+  "We couldn't finish this report. We'll retry it using your confirmed information.":
+    'Chúng tôi chưa hoàn thành báo cáo này. Chúng tôi sẽ thử lại bằng thông tin đã xác nhận của bạn.',
+  'Open report': 'Mở báo cáo',
+  'Shows how strongly your profile matches your selected university and course.':
+    'Cho thấy mức độ phù hợp giữa hồ sơ của bạn với trường và ngành học bạn đã chọn.',
+  "We're still working on your reports": 'Chúng tôi vẫn đang xử lý báo cáo của bạn',
+  "Some of your reports couldn't be completed. Your confirmed information is safe and we'll retry them.":
+    'Một số báo cáo chưa thể hoàn thành. Thông tin đã xác nhận của bạn vẫn an toàn và chúng tôi sẽ thử lại.',
+  'View my reports': 'Xem báo cáo của tôi',
+  "You don't need to keep this page open — we'll keep working in the background.":
+    'Bạn không cần giữ trang này mở — chúng tôi sẽ tiếp tục xử lý trong nền.',
+  'Reports are generated from the information you confirmed.':
+    'Báo cáo được tạo từ thông tin bạn đã xác nhận.',
+  'View confirmed information': 'Xem thông tin đã xác nhận',
+  // Extended production-route audit: metadata, catalog descriptions and
+  // validation copy that is supplied through variables rather than t('...').
+  'Meet the team behind GlowBal — the people helping students find global universities, scholarships, and application strategies.':
+    'Gặp gỡ đội ngũ đứng sau GlowBal — những người giúp học sinh tìm trường đại học quốc tế, học bổng và chiến lược ứng tuyển.',
+  'GlowBal Strategy: two AI reports — one about you, one about the course — and an ordered plan that closes the gap between them.':
+    'Chiến lược GlowBal: hai báo cáo AI — một về bạn, một về khóa học — cùng kế hoạch theo thứ tự để thu hẹp khoảng cách giữa hai bên.',
+  'Build and edit the structured content of your CV.':
+    'Xây dựng và chỉnh sửa nội dung có cấu trúc cho CV của bạn.',
+  'Choose how your CV is presented and export it.':
+    'Chọn cách trình bày CV và xuất bản hoàn chỉnh.',
+  'See whether your CV proves what this programme is looking for.':
+    'Kiểm tra xem CV của bạn đã chứng minh được những gì chương trình đang tìm kiếm hay chưa.',
+  'Define what your CV needs to prove for this programme.':
+    'Xác định những điều CV cần chứng minh cho chương trình này.',
+  'Prepare your CV and personal statement for this application.':
+    'Chuẩn bị CV và bài luận cá nhân cho hồ sơ ứng tuyển này.',
+  'Get line-by-line AI feedback on your personal statement or SOP.':
+    'Nhận phản hồi AI theo từng dòng cho bài luận cá nhân hoặc SOP của bạn.',
+  'The courses you are applying to, how far along each one is, and the universities you have saved.':
+    'Các khóa học bạn đang ứng tuyển, tiến độ của từng hồ sơ và những trường bạn đã lưu.',
+  'Choose a format and how to start building your CV.':
+    'Chọn định dạng và cách bắt đầu xây dựng CV của bạn.',
+  'GLOWBAL is offline for a short redesign. Leave your email and we’ll let you know when we’re back.':
+    'GLOWBAL tạm ngừng để thiết kế lại. Hãy để lại email và chúng tôi sẽ báo khi trở lại.',
+  'Please enter a valid email address.': 'Vui lòng nhập địa chỉ email hợp lệ.',
+  'Please enter a valid date of birth.': 'Vui lòng nhập ngày sinh hợp lệ.',
+  'The waitlist table is not set up yet. Create `waitlist_signups` in Supabase.':
+    'Danh sách chờ chưa được thiết lập. Vui lòng thử lại sau.',
+  'Something went wrong saving your signup. Please try again.':
+    'Đã xảy ra lỗi khi lưu đăng ký. Vui lòng thử lại.',
+  "You're on the list. We'll email you the moment we're back.":
+    'Bạn đã có trong danh sách. Chúng tôi sẽ gửi email ngay khi trở lại.',
+  'How GlowBal takes you from searching universities, to applying for a course, to a personalised strategy that improves your chances of getting in.':
+    'Cách GlowBal đồng hành từ lúc tìm trường, ứng tuyển khóa học đến khi có chiến lược cá nhân hóa giúp tăng cơ hội trúng tuyển.',
+  'Student-first global course and university guidance platform.':
+    'Nền tảng định hướng khóa học và đại học toàn cầu lấy học sinh làm trung tâm.',
+  'Pick the subject you want to apply for at a university on your saved list.':
+    'Chọn ngành bạn muốn ứng tuyển tại một trường trong danh sách đã lưu.',
+  'Study-abroad news, generated guides, trending topics, and scholarship stories from Glowbal.':
+    'Tin du học, hướng dẫn, chủ đề nổi bật và câu chuyện học bổng từ GlowBal.',
+  'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.':
+    'GlowBal giúp học sinh khám phá các trường đại học toàn cầu, tìm học bổng và xây dựng chiến lược ứng tuyển với AI cùng người hỗ trợ thực tế.',
+  'Something went wrong saving your details. Please try again.':
+    'Đã xảy ra lỗi khi lưu thông tin. Vui lòng thử lại.',
+  "Thanks — we'll be in touch shortly.": 'Cảm ơn bạn — chúng tôi sẽ sớm liên hệ.',
+  'Upgrade to GlowBal Plus for more AI application strategies, full scholarship details, a document checklist, and priority student-supporter access.':
+    'Nâng cấp lên GlowBal Plus để có thêm chiến lược ứng tuyển AI, thông tin học bổng đầy đủ, danh sách tài liệu và quyền ưu tiên kết nối người hỗ trợ.',
+  'How GlowBal collects, uses, and protects your personal information when you discover universities, scholarships, and build your application plan.':
+    'Cách GlowBal thu thập, sử dụng và bảo vệ thông tin cá nhân khi bạn tìm trường, học bổng và xây dựng kế hoạch ứng tuyển.',
+  'English-language and standardized test results': 'Kết quả tiếng Anh và các bài thi chuẩn hóa',
+  'Your academic or professional CV': 'CV học thuật hoặc nghề nghiệp của bạn',
+  'Your statement of purpose or personal statement': 'SOP hoặc bài luận cá nhân của bạn',
+  'The terms that govern your use of GlowBal — the platform for discovering universities, scholarships, and building application strategies.':
+    'Các điều khoản áp dụng khi sử dụng GlowBal — nền tảng tìm trường, học bổng và xây dựng chiến lược ứng tuyển.',
+  'Find universities that match your goals': 'Tìm các trường đại học phù hợp với mục tiêu của bạn',
+  'Discover programs and compare options': 'Khám phá chương trình và so sánh các lựa chọn',
+  'Prepare and submit your application': 'Chuẩn bị và nộp hồ sơ ứng tuyển',
+  'Plan your finances and explore funding': 'Lập kế hoạch tài chính và tìm nguồn hỗ trợ',
+  'Connect with advisors and prepare for success': 'Kết nối với cố vấn và chuẩn bị để thành công',
+  'It is hard to know which universities are realistic, ambitious, affordable, or worth applying to.':
+    'Thật khó để biết trường nào vừa sức, tham vọng, phù hợp ngân sách hoặc đáng để ứng tuyển.',
+  'Scholarship information is scattered across different websites, deadlines, eligibility pages, and university portals.':
+    'Thông tin học bổng nằm rải rác trên nhiều website, hạn chót, trang điều kiện và cổng thông tin của trường.',
+  'Even after finding a scholarship, many students are unsure how to prepare documents or improve their chances.':
+    'Ngay cả khi đã tìm được học bổng, nhiều học sinh vẫn chưa biết chuẩn bị tài liệu hoặc cải thiện cơ hội như thế nào.',
+  'GlowBal connects you with real people who have studied abroad, won scholarships, and supported others through the journey.':
+    'GlowBal kết nối bạn với những người đã du học, giành học bổng và đồng hành cùng người khác trong hành trình này.',
+  'Search for a university you’re interested in, or browse by country, subject, budget, and scholarship availability.':
+    'Tìm trường bạn quan tâm hoặc duyệt theo quốc gia, ngành học, ngân sách và học bổng hiện có.',
+  'Add your basic details so GlowBal can show relevant scholarships and save your application plan.':
+    'Thêm thông tin cơ bản để GlowBal hiển thị học bổng phù hợp và lưu kế hoạch ứng tuyển của bạn.',
+  'View scholarship opportunities linked to your chosen university and save the ones you want to apply for.':
+    'Xem các cơ hội học bổng liên quan đến trường đã chọn và lưu những học bổng bạn muốn ứng tuyển.',
+  'Get a personalised strategy showing what to prepare, what to improve, and how to approach each scholarship.':
+    'Nhận chiến lược cá nhân hóa về những gì cần chuẩn bị, cần cải thiện và cách tiếp cận từng học bổng.',
+  'PDF preferred. Helps us verify your background.':
+    'Ưu tiên PDF. Tài liệu này giúp chúng tôi xác minh hồ sơ của bạn.',
+  'Official letter or PDF showing you were accepted.':
+    'Thư chính thức hoặc PDF chứng minh bạn đã được chấp nhận.',
+  'Most recent academic transcript or grade summary.':
+    'Bảng điểm hoặc bản tổng hợp kết quả học tập gần nhất.',
+  'Photo of your university student card (alumni: a graduation cert is fine).':
+    'Ảnh thẻ sinh viên đại học (cựu sinh viên có thể dùng bằng tốt nghiệp).',
+  'Grades, subjects and test scores against what the course asks for.':
+    'Đối chiếu điểm số, môn học và kết quả thi với yêu cầu của khóa học.',
+  'What you have done outside the classroom, and how consistently.':
+    'Những gì bạn đã làm ngoài lớp học và mức độ duy trì nhất quán.',
+  'How clearly your statement makes the case only you could make.':
+    'Mức độ bài luận thể hiện rõ câu chuyện riêng chỉ bạn mới có thể kể.',
+  'Evidence that something changed because you were involved.':
+    'Bằng chứng cho thấy sự tham gia của bạn đã tạo ra thay đổi.',
+  'How well who you are lines up with how this course teaches.':
+    'Mức độ con người và cách học của bạn phù hợp với phương pháp giảng dạy của khóa học.',
+  'Build a CV against what this course asks for, then export it as a PDF.':
+    'Xây dựng CV theo yêu cầu của khóa học rồi xuất thành PDF.',
+  'Leads with education, research and publications. Single column, full detail.':
+    'Ưu tiên học vấn, nghiên cứu và công bố. Một cột, đầy đủ chi tiết.',
+  'Leads with skills and technical projects. Two columns, scannable.':
+    'Ưu tiên kỹ năng và dự án kỹ thuật. Hai cột, dễ đọc nhanh.',
+  'Leads with roles, organisations and community impact. Two columns.':
+    'Ưu tiên vai trò, tổ chức và tác động cộng đồng. Bố cục hai cột.',
+  'Your background, grades, achievements and what you are aiming for.':
+    'Nền tảng, điểm số, thành tích và mục tiêu của bạn.',
+  'What your profile says about you, read back as a candidate portrait.':
+    'Những gì hồ sơ thể hiện về bạn, được phản ánh thành chân dung ứng viên.',
+  'How well you fit a course, with the requirements and costs beside it.':
+    'Mức độ phù hợp với khóa học, kèm theo yêu cầu và chi phí.',
+  'AI feedback on your essay and your CV, one draft at a time.':
+    'Phản hồi AI cho bài luận và CV của bạn theo từng bản nháp.',
+  'A last check over everything you are about to send.':
+    'Kiểm tra lần cuối mọi thứ bạn sắp gửi.',
+  'A. Is your CV aligned with the course?': 'A. CV của bạn có phù hợp với khóa học không?',
+  'B. Does the reader understand who you are?': 'B. Người đọc có hiểu bạn là ai không?',
+  'C. Does it include enough examples and results?': 'C. CV có đủ ví dụ và kết quả không?',
+  'D. Does the important content stand out?': 'D. Nội dung quan trọng có đủ nổi bật không?',
+  'E. Is the CV concise enough for one page?': 'E. CV có đủ súc tích để nằm trong một trang không?',
+  'General information': 'Thông tin chung',
+  'About me': 'Giới thiệu bản thân',
+  Projects: 'Dự án',
+  'Awards and achievements': 'Giải thưởng và thành tích',
+  Publications: 'Công bố',
+  Certifications: 'Chứng chỉ',
+  Interests: 'Sở thích',
+  'Strong foundation': 'Nền tảng tốt',
+  'Needs improvement': 'Cần cải thiện',
+  'Not focused enough': 'Chưa đủ tập trung',
+  Urgent: 'Khẩn cấp',
+  High: 'Cao',
+  Medium: 'Trung bình',
+  Low: 'Thấp',
+  'Highly recommended': 'Rất khuyến nghị',
+  'Already in your portfolio': 'Đã có trong hồ sơ của bạn',
+  'Suggested opportunity': 'Cơ hội được đề xuất',
+  'Identity fit': 'Mức độ phù hợp bản sắc',
+  'Evidence strength': 'Độ mạnh của bằng chứng',
+  Consistency: 'Tính nhất quán',
+  'Future alignment': 'Mức độ phù hợp tương lai',
+  Scalability: 'Khả năng mở rộng',
+  'Weighing strategic directions...': 'Đang cân nhắc các hướng chiến lược...',
+  'Positioning your story...': 'Đang định vị câu chuyện của bạn...',
+  'Evaluating your portfolio...': 'Đang đánh giá hồ sơ của bạn...',
+  'Building your roadmap...': 'Đang xây dựng lộ trình của bạn...',
+  'Contact information': 'Thông tin liên hệ',
+  'Activities and leadership': 'Hoạt động và vai trò lãnh đạo',
+
+  // Per-application onboarding — Skip affordances (reflection-about-form.tsx,
+  // achievements/reflection-evidence-form.tsx)
+  'These answers are already filled in from your profile.':
+    'Các câu trả lời này đã được điền sẵn từ hồ sơ của bạn.',
+  'Skip — my answers are still correct': 'Bỏ qua — câu trả lời của tôi vẫn đúng',
+  'Your achievements and activities are already filled in from your profile.':
+    'Thành tích và hoạt động này đã được điền sẵn từ hồ sơ của bạn.',
+  'Skip — my achievements are still correct': 'Bỏ qua — thành tích của tôi vẫn đúng',
+  'Payment method': 'Phương thức thanh toán',
+  'Manual bank transfer': 'Chuyển khoản ngân hàng',
+  'Bank transfer payment | GlowBal': 'Thanh toán chuyển khoản ngân hàng | GlowBal',
+  'Transfer the exact VND amount; founder confirmation is required.': 'Chuyển đúng số tiền VND; cần người sáng lập xác nhận.',
+  'VNPay is currently available in Sandbox. Manual bank transfer is confirmed by the founder. Stripe will be available soon.': 'VNPay hiện khả dụng ở môi trường Sandbox. Chuyển khoản ngân hàng cần người sáng lập xác nhận. Stripe sẽ sớm khả dụng.',
+  'I have transferred': 'Tôi đã chuyển khoản',
+  'Payment status': 'Trạng thái thanh toán',
+  'Awaiting transfer': 'Đang chờ chuyển khoản',
+  'Transfer reported — awaiting founder': 'Đã báo chuyển khoản — chờ người sáng lập',
+  'Confirmed': 'Đã xác nhận',
+  'Expired': 'Đã hết hạn',
+  'Received late — support review required': 'Đã nhận trễ — cần hỗ trợ kiểm tra',
+  'Founder payment review': 'Kiểm tra thanh toán của người sáng lập',
+  'State:': 'Trạng thái:',
+  'Checkout expiry': 'Hạn thanh toán',
+  'Current ledger': 'Sổ cái hiện tại',
+  'Reviewer note': 'Ghi chú người duyệt',
+  'Confirm received': 'Xác nhận đã nhận',
+  'Review link is missing.': 'Thiếu liên kết kiểm tra.',
+  'This review is unavailable.': 'Không thể mở kiểm tra này.',
+  'Could not load payment status': 'Không thể tải trạng thái thanh toán',
+  'Could not record transfer claim': 'Không thể ghi nhận đã chuyển khoản',
+  'Loading payment status…': 'Đang tải trạng thái thanh toán…',
+  Copy: 'Sao chép',
+  'Copied!': 'Đã sao chép!',
+  Error: 'Lỗi',
+  'VietQR Payment': 'Thanh toán VietQR',
+  'Transfer reported — awaiting confirmation': 'Đã báo chuyển khoản — chờ xác nhận',
+  'Payment expired': 'Thanh toán đã hết hạn',
+  'Scan QR to Pay': 'Quét mã QR để thanh toán',
+  'Your GlowBal purchase has been confirmed and activated.': 'Giao dịch GlowBal của bạn đã được xác nhận và kích hoạt.',
+  'We have received your transfer report. Founder will verify shortly.': 'Chúng tôi đã ghi nhận bạn báo chuyển khoản. Người sáng lập sẽ sớm xác minh.',
+  'This transaction has expired. Please create a new checkout.': 'Giao dịch này đã hết hạn. Vui lòng tạo yêu cầu thanh toán mới.',
+  'Open any banking app or e-wallet to scan the VietQR code.': 'Mở ứng dụng ngân hàng hoặc ví điện tử bất kỳ để quét mã VietQR.',
+  VietQR: 'VietQR',
+  'Instant transfer 24/7': 'Chuyển khoản nhanh 24/7',
+  'Copy amount': 'Sao chép số tiền',
+  'Transfer reference (Mandatory)': 'Nội dung chuyển khoản (Bắt buộc)',
+  'Copy reference': 'Sao chép mã chuyển khoản',
+  'Keep this exact reference code in transfer description to auto-verify': 'Giữ nguyên mã tham chiếu này trong nội dung chuyển khoản để hệ thống tự động xác minh',
+  'Copy account number': 'Sao chép số tài khoản',
+  'Expires at': 'Hết hạn lúc',
+  'Processing…': 'Đang xử lý…',
+  'I have transferred money': 'Tôi đã chuyển khoản',
+  'You reported transfer. The system will update your access once confirmed.': 'Bạn đã báo chuyển khoản. Hệ thống sẽ cập nhật quyền truy cập sau khi được xác nhận.',
+  'Back to plans': 'Quay lại các gói',
+  Reference: 'Mã tham chiếu',
+  'GlowBal bank transfer QR code': 'Mã QR chuyển khoản ngân hàng GlowBal',
+  Bank: 'Ngân hàng',
+  'Account holder': 'Chủ tài khoản',
+  'Account number': 'Số tài khoản',
+  Expires: 'Hết hạn',
+  'VNPay': 'VNPay',
+  'Stripe': 'Stripe',
+  Sandbox: 'Sandbox',
+  'You will pay {amount}': 'Bạn sẽ thanh toán {amount}',
+  'VNPay is currently available in Sandbox for testing. Stripe will be available soon.':
+    'VNPay hiện khả dụng ở môi trường Sandbox để thử nghiệm. Stripe sẽ sớm khả dụng.',
+  'Continue with VNPay': 'Tiếp tục với VNPay',
+  'Continue with manual transfer': 'Tiếp tục với chuyển khoản',
+  'VNPay Sandbox checkout': 'Thanh toán VNPay Sandbox',
+  'Payment result could not be verified': 'Không thể xác minh kết quả thanh toán',
+  'Please return to GlowBal and check your payment status.':
+    'Vui lòng quay lại GlowBal và kiểm tra trạng thái thanh toán.',
+  'Payment was not completed': 'Thanh toán chưa hoàn tất',
+  'No payment was recorded. You can try again when you are ready.':
+    'Chưa ghi nhận thanh toán. Bạn có thể thử lại khi sẵn sàng.',
+  'Payment successful': 'Thanh toán thành công',
+  'Your GlowBal purchase has been confirmed.': 'Giao dịch GlowBal của bạn đã được xác nhận.',
+  'Payment received — confirming your purchase': 'Đã nhận thanh toán — đang xác nhận giao dịch',
+  'Payment received — contact support': 'Đã nhận thanh toán — vui lòng liên hệ hỗ trợ',
+  'VNPay has returned a successful payment. Confirmation may take a moment.':
+    'VNPay đã trả về giao dịch thành công. Việc xác nhận có thể mất một chút thời gian.',
+  'Your payment was received but needs a support review.':
+    'Đã nhận thanh toán nhưng cần bộ phận hỗ trợ kiểm tra.',
+  'Return to GlowBal': 'Quay lại GlowBal',
+  'VNPay payment result': 'Kết quả thanh toán VNPay',
+  'Payments are processed securely by VNPay Sandbox.':
+    'Thanh toán được xử lý an toàn qua VNPay Sandbox.',
+  'VNPay charges the canonical VND amount shown in each plan. Other currencies are display estimates. GlowBal helps you discover opportunities and prepare stronger applications; it does not guarantee scholarship outcomes.':
+    'VNPay tính số tiền VND chuẩn được hiển thị ở mỗi gói. Các loại tiền khác chỉ là ước tính hiển thị. GlowBal giúp bạn tìm cơ hội và chuẩn bị hồ sơ tốt hơn; không đảm bảo kết quả học bổng.',
+  'Choose a plan below to test payment in Vietnamese dong. Stripe is coming soon.':
+    'Chọn một gói bên dưới để thử thanh toán bằng đồng Việt Nam. Stripe sẽ sớm khả dụng.',
+  'GlowBal Pricing | Choose how you want to shine': 'Bảng giá GlowBal | Chọn cách bạn muốn tỏa sáng',
+  'You don’t go it alone. GlowBal walks with you from picking schools to hitting submit. Choose the support plan that fits your study abroad journey.':
+    'Bạn không phải đi một mình. GlowBal đồng hành cùng bạn từ chọn trường đến khi nộp hồ sơ. Hãy chọn gói đồng hành phù hợp với hành trình du học của bạn.',
+  'Thanks for your support — you can extend or upgrade your plan below.':
+    'Cảm ơn bạn đã tin tưởng — bạn có thể gia hạn hoặc nâng cấp gói bên dưới.',
+  'Everything you need to start exploring — no payment required.':
+    'Mọi thứ bạn cần để bắt đầu khám phá — không cần thanh toán.',
+  'Continue free →': 'Tiếp tục miễn phí →',
+  'Chat with our in-house team for advice': 'Trò chuyện với đội ngũ tư vấn của chúng tôi',
+  'Payments are processed securely via VNPay and Bank Transfer (VietQR).':
+    'Thanh toán được xử lý bảo mật qua VNPay và Chuyển khoản ngân hàng (VietQR).',
+  'GlowBal Pricing': 'Bảng giá GlowBal',
+  'Choose how you want to': 'Chọn cách bạn muốn',
+  'shine': 'tỏa sáng',
+  'on your study-abroad journey': 'trên hành trình du học',
+  "You don't go it alone. GlowBal": 'Bạn không phải đi một mình. GlowBal',
+  'walks with you': 'đồng hành cùng bạn',
+  'from picking schools to hitting submit.': 'từ chọn trường đến khi nộp hồ sơ.',
+  'Launch offer · 2026 application season': 'Ưu đãi ra mắt · Mùa nộp hồ sơ 2026',
+  'all plans': 'tất cả các gói',
+  'Show prices in:': 'Hiển thị giá bằng:',
+  'You submit your application': 'Bạn chỉ nộp hồ sơ du học',
+  'once': 'một lần',
+  "Pick the level of support you're most at peace with.": 'Hãy chọn mức độ hỗ trợ khiến bạn an tâm nhất.',
+  'Could not start checkout': 'Không thể bắt đầu thanh toán',
+  'Something went wrong': 'Đã xảy ra lỗi',
+  '/mo': '/tháng',
+  'Choose payment method': 'Chọn phương thức thanh toán',
+  'Continue to payment': 'Tiếp tục thanh toán',
+  'Monthly': 'Gói tháng',
+  'Yearly': 'Gói năm',
+  'Yearly Premium': 'Gói năm cao cấp',
+  'GlowBal Monthly': 'GlowBal Tháng',
+  'GlowBal Yearly': 'GlowBal Năm',
+  'GlowBal Premium': 'GlowBal Cao cấp',
+  'Cancel anytime': 'Hủy bất kỳ lúc nào',
+  'Just 207,000₫/month': 'Chỉ 207.000₫/tháng',
+  '375,000₫/month': '375.000₫/tháng',
+  'You save 2,490,000₫': 'Tiết kiệm 2.490.000₫',
+  '🏆 Best value': '🏆 Tiết kiệm nhất',
+  '⭐ Most complete': '⭐ Toàn diện nhất',
+  'Start finding your direction — no commitment yet.': 'Bắt đầu tìm kiếm định hướng — chưa cần cam kết dài hạn.',
+  'By your side all season — no more ceilings.': 'Đồng hành suốt cả mùa nộp đơn — không còn giới hạn.',
+  'Stop carrying it alone — real experts stand behind your application.':
+    'Không còn phải tự xoay sở một mình — chuyên gia thực thụ đứng sau hồ sơ của bạn.',
+  'Easy / Target / Reach school matching — know exactly where you stand':
+    'Phân loại trường An toàn / Mục tiêu / Thử thách — biết chính xác bạn đang ở đâu',
+  'Deadline reminders so you never miss a submission':
+    'Nhắc nhở hạn chót để bạn không bao giờ bỏ lỡ kỳ nộp đơn',
+  'AI CV / SOP review': 'Đánh giá CV / SOP bằng AI',
+  '(limited)': '(giới hạn)',
+  'Roadmap capped at 2×/month · no scholarship matching yet':
+    'Lộ trình giới hạn 2 lần/tháng · chưa có gợi ý học bổng',
+  'Everything in Monthly,': 'Bao gồm toàn bộ tính năng gói Tháng,',
+  'every limit removed': 'mở khóa mọi giới hạn',
+  'Unlimited roadmap + CV/SOP edits —': 'Không giới hạn chỉnh sửa lộ trình & CV/SOP —',
+  'until your file is flawless': 'cho đến khi hồ sơ hoàn hảo',
+  'Scholarship matching + real-time progress tracking':
+    'Gợi ý học bổng thông minh & theo dõi tiến độ thời gian thực',
+  '3 free 1-on-1 sessions': '3 buổi trao đổi 1:1 miễn phí',
+  'with a real scholarship mentor': 'với cố vấn học bổng thực thụ',
+  'Everything in Yearly — plus': 'Bao gồm toàn bộ gói Năm — cộng thêm',
+  'the human touch': 'sự đồng hành trực tiếp',
+  'Strategy reviewed by a': 'Chiến lược được đánh giá bởi',
+  'real expert': 'chuyên gia thực tế',
+  ', not just AI': ', không chỉ có AI',
+  'An expert checks your': 'Chuyên gia kiểm tra',
+  'entire application': 'toàn bộ hồ sơ của bạn',
+  'before you submit': 'trước khi bạn nộp',
+  '5 one-on-one sessions': '5 buổi cố vấn chuyên sâu 1:1',
+  '+ mentor-vetted scholarship strategy': '+ chiến lược học bổng được cố vấn thẩm định',
+  'Priority support — someone’s always there when you need them':
+    'Hỗ trợ ưu tiên — luôn có người sẵn sàng khi bạn cần',
+  'Try it': 'Thử ngay',
+  'Start your journey': 'Bắt đầu hành trình',
+  'Go with an expert': 'Đồng hành cùng chuyên gia',
+  '1 month of Plus access': '1 tháng truy cập Plus',
+  'Choose one direction for this CV. Changing it will rebuild the Target Profile and CV.':
+    'Chọn một định hướng cho CV này. Thay đổi định hướng sẽ tạo lại Hồ sơ mục tiêu và CV.',
+  'Use for this CV': 'Dùng cho CV này',
+  'Select one of the available Personalized Strategy directions.':
+    'Hãy chọn một trong các định hướng có sẵn của Chiến lược cá nhân hóa.',
+  'Regenerate the Target Profile for the current direction.':
+    'Tạo lại Hồ sơ mục tiêu cho định hướng hiện tại.',
+  'Choose your CV direction': 'Chọn định hướng cho CV của bạn',
+  'Choose the direction for this CV. The AI only uses university, programme and profile data stored in Supabase; missing pieces are flagged, never invented.':
+    'Chọn định hướng cho CV này. AI chỉ sử dụng dữ liệu trường, chương trình và hồ sơ được lưu trong Supabase; phần thiếu sẽ được đánh dấu, không bịa thêm.',
+  'CV direction': 'Định hướng CV',
+
+  // ── Plus Gating & Upgrade Modals ──────────────────────────────────────────
+  'See all 3000 scholarships': 'Xem tất cả 3.000 học bổng',
+  'Upgrade to GlowBal Plus to browse all 3000+ scholarships worldwide, unlock advanced filtering and tailored application requirements.':
+    'Nâng cấp lên GlowBal Plus để tra cứu toàn bộ kho 3.000+ học bổng trên thế giới, mở khóa bộ lọc nâng cao và điều kiện chi tiết.',
+  'Upgrade to GlowBal Plus to unlock all 3000+ scholarships worldwide and maximize your admissions chances.':
+    'Nâng cấp lên GlowBal Plus để mở khóa toàn bộ kho 3.000+ học bổng trên thế giới và mở rộng cơ hội trúng tuyển.',
+  'Upgrade to GlowBal Plus to unlock all {count} scholarships for your saved universities.':
+    'Nâng cấp lên GlowBal Plus để mở khóa tất cả {count} học bổng cho các trường đã lưu của bạn.',
+  'Upgrade to GlowBal Plus to unlock all scholarships for your saved universities.':
+    'Nâng cấp lên GlowBal Plus để mở khóa tất cả học bổng cho các trường đã lưu của bạn.',
+  'Unlock your full strategic narrative': 'Mở khóa toàn bộ câu chuyện chiến lược',
+  'Upgrade to GlowBal Plus to access the complete personalized narrative, detailed positioning angles, and tailored storyline for your application.':
+    'Nâng cấp lên GlowBal Plus để xem toàn bộ câu chuyện cá nhân hóa, góc định vị chi tiết và tuyến cốt truyện cho hồ sơ của bạn.',
+  'Upgrade to GlowBal Plus to access the complete personalized narrative and shape your unique admissions identity.':
+    'Nâng cấp lên GlowBal Plus để xem câu chuyện cá nhân hóa hoàn chỉnh và định hình bản sắc hồ sơ du học của bạn.',
+  'Secure checkout with instant activation · 100% money-back guarantee within 7 days.':
+    'Thanh toán an toàn, kích hoạt ngay lập tức · Cam kết hoàn tiền 100% trong vòng 7 ngày.',
+  'Bank transfer': 'Chuyển khoản ngân hàng',
+  'Terms and Conditions of Use': 'Điều khoản và Điều kiện Sử dụng',
+  'I have read and agree to the': 'Tôi đã đọc và đồng ý với',
+  'of GlowBal Education.': 'của GlowBal Education.',
+  'I understand': 'Đã hiểu',
+
+  // ── Terms and Conditions of Use ──────────────────────────────────────────
+  'Terms and Conditions of Use | GlowBal Education': 'Điều khoản và Điều kiện Sử dụng | GlowBal Education',
+  'Terms and Conditions of Use for the GlowBal Education Platform — The terms that govern your use of GlowBal platform and services.':
+    'Điều khoản và Điều kiện Sử dụng Nền tảng GlowBal Education — Các điều khoản chi phối việc sử dụng nền tảng và dịch vụ GlowBal.',
+  'By accessing, registering for, or using the GlowBal Education platform (“GlowBal”, “Platform”, “we”, “us”), including the website, applications, and related services (“Services”), the User (“You”, “User”) confirms that they have read, understood, and agreed to comply with these Terms and Conditions of Use (“Terms”). If you do not agree with any part of these Terms, please do not use the Services.':
+    'Bằng việc truy cập, đăng ký hoặc sử dụng nền tảng GlowBal Education (“GlowBal”, “Nền tảng”, “chúng tôi”), bao gồm website, ứng dụng và các dịch vụ liên quan (“Dịch vụ”), Người dùng (“Bạn”, “Người dùng”) xác nhận rằng đã đọc, hiểu và đồng ý tuân thủ các Điều khoản và Điều kiện Sử dụng này (“Điều khoản”). Nếu bạn không đồng ý với bất kỳ nội dung nào của Điều khoản, vui lòng không sử dụng Dịch vụ.',
+  '1. Acceptance of Terms': '1. Chấp nhận điều khoản',
+  'By accessing, registering for, or using the GlowBal Education platform, you acknowledge and agree to be bound by these Terms and Conditions of Use.':
+    'Bằng việc truy cập, đăng ký hoặc sử dụng nền tảng GlowBal Education, bạn xác nhận đã đọc, hiểu và đồng ý tuân thủ các Điều khoản và Điều kiện Sử dụng này.',
+  '2. Definitions': '2. Định nghĩa',
+  '“Platform”': '“Nền tảng”',
+  ': the website, application, and technology ecosystem operated by GlowBal Education.':
+    ': hệ thống website, ứng dụng và các sản phẩm công nghệ do GlowBal vận hành.',
+  '“Services”': '“Dịch vụ”',
+  ': all features, digital tools, mentoring connections, and guidance products provided on the Platform.':
+    ': toàn bộ sản phẩm, tính năng và dịch vụ được GlowBal cung cấp trên Nền tảng.',
+  '“Content”': '“Nội dung”',
+  ': information, data, copy, images, videos, software, documents, and resources available on the Platform.':
+    ': thông tin, dữ liệu, văn bản, hình ảnh, video, phần mềm, tài liệu và các tài sản khác được cung cấp trên Nền tảng.',
+  '“User”': '“Người dùng”',
+  ': any individual who registers or uses the Services, whether free or paid.':
+    ': cá nhân đăng ký hoặc sử dụng Dịch vụ, bao gồm cả người dùng miễn phí và người dùng trả phí.',
+  '“Mentor / Advisor”': '“Cố vấn / Achiever / Mentor”',
+  ': individuals or organizations offering advisory guidance and feedback through the Platform.':
+    ': cá nhân hoặc tổ chức cung cấp dịch vụ tư vấn, cố vấn hoặc hỗ trợ thông qua hoặc liên quan đến Nền tảng.',
+  '“Educational Institution”': '“Tổ chức giáo dục”',
+  ': universities, colleges, scholarship organizations, and academic entities referenced on the Platform.':
+    ': trường đại học, cao đẳng, trường học, tổ chức học bổng hoặc tổ chức giáo dục khác được đề cập trên Nền tảng.',
+  '3. Eligibility and Account Terms': '3. Điều kiện sử dụng',
+  'GlowBal is intended for users aged 16 and above. Users confirm they possess legal capacity, provide truthful details, and maintain security over their accounts.':
+    'GlowBal dành cho Người dùng từ đủ 16 tuổi trở lên. Khi đăng ký hoặc sử dụng Dịch vụ, Người dùng xác nhận rằng đã đủ 16 tuổi, có đầy đủ năng lực để chấp nhận và thực hiện Điều khoản, cung cấp thông tin chính xác, trung thực và chịu trách nhiệm với tài khoản của mình.',
+  'Users between 16 and 18 years of age are encouraged to use the Platform under parental or guardian supervision, especially for paid plans or direct mentor sessions.':
+    'Người dùng từ 16 đến dưới 18 tuổi được khuyến nghị sử dụng Dịch vụ với sự đồng ý và giám sát của cha, mẹ hoặc người giám hộ hợp pháp, đặc biệt đối với các Dịch vụ có phát sinh thanh toán hoặc kết nối trực tiếp với Cố vấn/Achiever/Mentor.',
+  '4. Scope of Services': '4. Phạm vi dịch vụ',
+  'GlowBal provides technology tools to guide students through the university and scholarship application journey:':
+    'GlowBal cung cấp nền tảng công nghệ hỗ trợ giáo dục và định hướng du học, bao gồm nhưng không giới hạn:',
+  'GlowBal Matcher:': 'GlowBal Matcher:',
+  'intelligent discovery for target universities, scholarships, and mentors;':
+    'tìm kiếm và định hướng trường đại học, học bổng và Cố vấn;',
+  'Strategy Master:': 'Strategy Master:',
+  'profile diagnostics, strategic narratives, milestone timelines, CV, essays, and recommendation letters support;':
+    'phân tích hồ sơ, xây dựng chiến lược, theo dõi tiến độ và hỗ trợ tài liệu như CV, bài luận và thư giới thiệu;',
+  'My Portal:': 'My Portal:',
+  'centralized selection tracker, application portfolio, and document vault;':
+    'quản lý lựa chọn, theo dõi hồ sơ ứng tuyển và lưu trữ tài liệu;',
+  'Comprehensive database of global universities and scholarships with AI assistance tools.':
+    'Cơ sở dữ liệu về trường đại học, học bổng và Cố vấn; Các công cụ AI và dịch vụ trả phí khác.',
+  'Services are designed for preparation and guidance and do not constitute formal legal or financial advice.':
+    'Các Dịch vụ nhằm hỗ trợ Người dùng nghiên cứu, lập kế hoạch và chuẩn bị hồ sơ và không được xem là lời khuyên pháp lý, tài chính hoặc chuyên môn chính thức.',
+  '5. Role of GlowBal': '5. Vai trò của GlowBal',
+  'GlowBal is a technology and educational guidance platform. GlowBal is not a university, scholarship provider, admissions committee, or visa authority, and does not make final admission or visa determinations. All admissions and funding decisions belong solely to the respective institutions and authorities.':
+    'GlowBal là nền tảng công nghệ và đơn vị hỗ trợ, cung cấp công cụ, thông tin và kết nối cho Người dùng. GlowBal không phải là trường đại học, tổ chức cấp học bổng, cơ quan tuyển sinh hoặc cơ quan cấp visa; không có quyền quyết định việc tuyển sinh, cấp học bổng hoặc cấp visa. Các quyết định cuối cùng thuộc về trường đại học, tổ chức học bổng và cơ quan có thẩm quyền tương ứng.',
+  '6. No Guarantee of Outcomes': '6. Không cam kết về kết quả',
+  'GlowBal does not guarantee university admission, scholarship awards, visa approval, or specific score improvements. Recommendations are advisory and analytical. Users are responsible for independently verifying all dates, requirements, and official instructions.':
+    'GlowBal không cam kết hoặc bảo đảm rằng Người dùng sẽ được nhận vào một trường đại học cụ thể, nhận học bổng, được cấp visa hoặc đạt bất kỳ kết quả tuyển sinh cụ thể nào. Thông tin, phân tích, chiến lược và đề xuất trên GlowBal chỉ mang tính chất tham khảo và hỗ trợ. Người dùng có trách nhiệm tự kiểm tra và xác minh thông tin từ các nguồn chính thức trước khi đưa ra quyết định.',
+  '7. User Responsibilities': '7. Trách nhiệm của người dùng',
+  'Users agree to provide genuine materials, refrain from submitting fraudulent records, track deadlines independently, and preserve platform security and integrity.':
+    'Người dùng cam kết cung cấp thông tin và tài liệu trung thực, không sử dụng hồ sơ hoặc tài liệu giả mạo, tự xác minh deadline, quy trình ứng tuyển và không can thiệp phá hoại hoạt động của Nền tảng.',
+  '8. Refund Policy': '8. Chính sách hoàn tiền',
+  '8.1. Timeframe:': '8.1. Thời hạn yêu cầu:',
+  'Refund requests must be submitted within 24 hours of payment.':
+    'Trong vòng 24 giờ kể từ thời điểm đăng ký và thanh toán Dịch vụ.',
+  '8.2. Refund Rate:': '8.2. Mức hoàn tiền:',
+  '90% of the paid fee is refunded (10% is retained to cover payment gateway processing and operating costs).':
+    'Hoàn lại 90% số tiền đã thanh toán (10% còn lại giữ lại để bù đắp chi phí xử lý giao dịch, vận hành hệ thống).',
+  '8.3. Request Process:': '8.3. Cách thức yêu cầu:',
+  'Send an email to': 'Gửi email đến',
+  'with subject line': 'với tiêu đề',
+  '[REFUND REQUEST] – Full Name – Account Email': '[YÊU CẦU HOÀN TIỀN] – Họ tên – Email tài khoản',
+  'along with transaction details.': 'kèm đầy đủ chi tiết giao dịch.',
+  '8.4. Processing Time:': '8.4. Thời gian hoàn tiền:',
+  '07–14 business days back to the original payment method or a verified alternative.':
+    'Trong vòng 07–14 ngày làm việc về phương thức thanh toán ban đầu hoặc phương thức phù hợp.',
+  '8.5. Ineligibility:': '8.5. Trường hợp không đủ điều kiện:',
+  'Requests sent after 24 hours, unverified transactions, fraudulent activity, or violations of Terms are non-refundable.':
+    'Gửi sau 24 giờ, không xác minh được giao dịch, có dấu hiệu gian lận hoặc vi phạm Điều khoản.',
+  '9. Account Deferral Policy': '9. Chính sách bảo lưu tài khoản',
+  'Users may request an account deferral for up to 06 months from the payment date. Account benefits and subscriptions are strictly non-transferable.':
+    'Người dùng có thể yêu cầu bảo lưu tài khoản tối đa 06 tháng kể từ ngày thanh toán. Tài khoản và các quyền lợi đi kèm không được chuyển nhượng, cho mượn, cho thuê hoặc sử dụng bởi bên thứ ba.',
+  '10. Intellectual Property': '10. Quyền sở hữu trí tuệ',
+  'All software, content, branding, designs, frameworks, and digital assets on the Platform belong exclusively to GlowBal Education or its lawful licensors and are protected under international intellectual property law.':
+    'Toàn bộ Nội dung, phần mềm, thiết kế, thương hiệu, logo và các tài sản trí tuệ khác trên Nền tảng thuộc sở hữu của GlowBal hoặc bên cấp phép hợp pháp và được bảo vệ theo quy định pháp luật về sở hữu trí tuệ.',
+  '11. Privacy and Data Protection': '11. Quyền riêng tư và bảo vệ dữ liệu',
+  'GlowBal processes personal data in accordance with our Privacy Policy published on the Platform, maintaining technical and organizational security standards.':
+    'GlowBal thu thập và xử lý dữ liệu cá nhân của Người dùng theo Chính sách Bảo mật được công bố trên Nền tảng và áp dụng các biện pháp kỹ thuật, tổ chức phù hợp để bảo vệ dữ liệu.',
+  '12. Limitation of Liability': '12. Miễn trừ và giới hạn trách nhiệm',
+  'To the maximum extent permitted by applicable law, GlowBal’s total liability to any User shall not exceed the total fees paid by such User to GlowBal in the preceding 06 months.':
+    'Trong phạm vi pháp luật cho phép, trách nhiệm của GlowBal đối với Người dùng sẽ không vượt quá tổng số tiền Người dùng đã thanh toán cho GlowBal trong 06 tháng gần nhất trước thời điểm phát sinh khiếu nại.',
+  '13. Force Majeure': '13. Bất khả kháng',
+  'GlowBal is not liable for service delays or interruptions caused by events beyond reasonable control, including natural disasters, third-party infrastructure outages, or third-party AI/API policy modifications.':
+    'GlowBal không chịu trách nhiệm đối với sự chậm trễ hoặc không thể thực hiện nghĩa vụ do các sự kiện nằm ngoài khả năng kiểm soát hợp lý như thiên tai, dịch bệnh, chiến tranh, sự cố kỹ thuật bên thứ ba hoặc thay đổi chính sách từ nhà cung cấp API/AI.',
+  '14 - 19. Suspension, Termination & Governing Law': '14 - 19. Tạm ngừng, sửa đổi & Điều khoản chung',
+  'GlowBal reserves the right to suspend or terminate accounts in breach of these Terms. These Terms are governed by the laws of the Socialist Republic of Vietnam. Any dispute will first be resolved through friendly mutual negotiation.':
+    'GlowBal có quyền tạm ngừng hoặc chấm dứt tài khoản vi phạm Điều khoản. GlowBal có quyền sửa đổi Điều khoản và công bố phiên bản cập nhật trên Nền tảng. Điều khoản được điều chỉnh theo pháp luật nước CHXHCN Việt Nam. Mọi tranh chấp ưu tiên giải quyết qua thương lượng.',
+  '20. Contact Information': '20. Thông tin liên hệ',
+  'GLOWBAL EDUCATION': 'GLOWBAL EDUCATION',
+  '📧 Email:': '📧 Email:',
+  '🌐 Website:': '🌐 Website:',
+  'GlowBal Education': 'GlowBal Education',
+  'GO GLOW – GO GLOBAL ✈️🌍': 'GO GLOW – GO GLOBAL ✈️🌍',
+
+  // ── Personal Canvas Report (PR #199) ─────────────────────────────────────
+  'Experiences analysed': 'Hoạt động đã phân tích',
+  'Activities contributing evidence to this report': 'Các hoạt động đóng góp minh chứng cho báo cáo này',
+  'Strong evidence items': 'Minh chứng nổi bật',
+  'Experiences with evidence, outcomes and demonstrated capability': 'Trải nghiệm có minh chứng, kết quả và năng lực thực tế',
+  'Checkable evidence': 'Minh chứng có thể đối chiếu',
+  'Verified or attributable evidence sources': 'Nguồn minh chứng đã xác thực hoặc có thể quy chiếu',
+  'Recorded outcomes': 'Kết quả đã ghi nhận',
+  'Experiences with a stated result or change': 'Trải nghiệm có kết quả hoặc sự thay đổi cụ thể',
+  'Quantified outcomes': 'Kết quả định lượng',
+  'Outcomes containing a measurable result': 'Kết quả chứa số liệu đo lường được',
+  'Capabilities evidenced': 'Năng lực được chứng minh',
+  'Distinct grounded capability labels across experiences': 'Các nhóm năng lực rõ ràng được thể hiện qua các trải nghiệm',
+  'Applicant Snapshot': 'Tổng quan Ứng viên',
+  'Applicant profile themes': 'Chủ đề hồ sơ ứng viên',
+  'Evidence base': 'Cơ sở minh chứng',
+  'Where your profile can become stronger': 'Điểm có thể phát triển thêm trong hồ sơ',
+  'Evidence gap': 'Khoảng trống minh chứng',
+  'Growth opportunity': 'Cơ hội phát triển',
+  'Suggested direction': 'Định hướng đề xuất',
+  'Build more specific, verifiable evidence in this area so GlowBal can distinguish an emerging capability from a genuine development gap.':
+    'Xây dựng thêm minh chứng cụ thể, có thể kiểm chứng trong phần này để GlowBal làm nổi bật năng lực tiềm năng của bạn.',
+  'No high-confidence growth gaps identified yet.': 'Chưa phát hiện khoảng trống phát triển đáng kể nào.',
+  'As you add more reflected experiences, GlowBal can distinguish genuine development opportunities from simple missing data.':
+    'Khi bạn bổ sung thêm các trải nghiệm phản tư, GlowBal sẽ phân tích rõ hơn các cơ hội phát triển tiềm năng.',
+  'Key Takeaways': 'Điểm cốt lõi cần nhớ',
+  'What to remember before you build the application': 'Những điều cần lưu ý trước khi xây dựng hồ sơ',
+  'Three evidence-backed ideas to carry into your positioning, university matching and application strategy.':
+    'Ba ý tưởng dựa trên minh chứng thực tế giúp bạn định vị bản thân, chọn trường và lên chiến lược ứng tuyển.',
+  'What Makes You Stand Out': 'Điểm khiến bạn nổi bật',
+  'Your Competitive Advantage': 'Lợi thế cạnh tranh của bạn',
+  'Your Growth Opportunity': 'Cơ hội bứt phá của bạn',
+  '. Personal Canvas': '. Personal Canvas',
+  'View section →': 'Xem phần này →',
+  'Personal Canvas': 'Bản đồ cá nhân (Personal Canvas)',
+  'Your applicant profile, in six connected parts': 'Hồ sơ ứng viên của bạn qua 6 phần kết nối chặt chẽ',
+  'Start with the whole picture, then open any area to see the evidence and reasoning behind it.':
+    'Bắt đầu với bức tranh tổng thể, sau đó mở từng khu vực để xem minh chứng và lập luận chi tiết.',
+  'Driving Forces': 'Động lực thúc đẩy',
+  'Proven Capabilities': 'Năng lực đã chứng minh',
+  'Areas for Growth': 'Điểm cần phát triển',
+  'Social Proof': 'Minh chứng xã hội & Công nhận',
+  'Long-Term Vision': 'Tầm nhìn dài hạn',
+  'Forces': 'Động lực',
+  'Capabilities': 'Năng lực',
+  'Proof': 'Minh chứng',
+  'Growth': 'Phát triển',
+  'Vision': 'Tầm nhìn',
+  'Personal Report sections': 'Các phần của Báo cáo Cá nhân',
+  'A profile of who you are as an applicant — built from your reflected experiences, evidence and recurring patterns.':
+    'Bức chân dung về bản thân bạn với tư cách là ứng viên — được xây dựng từ các trải nghiệm phản tư, minh chứng và mô thức tính cách nổi bật.',
+  '✨ GLOWBAL PLUS': '✨ GLOWBAL PLUS',
+  'Upgrade to GlowBal Plus to view your personalized application narrative, tailored storytelling angle, and strategic essays guidance.':
+    'Nâng cấp GlowBal Plus để xem câu chuyện hồ sơ cá nhân hóa, góc kể chuyện phù hợp và hướng dẫn chiến lược bài luận.',
+  'Unlock your strategic narrative': 'Mở khóa câu chuyện chiến lược của bạn',
 };

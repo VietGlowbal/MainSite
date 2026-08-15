@@ -7,6 +7,13 @@
  *  - no feature/app/server imports — shared/ is a leaf
  *  - no legacy class names (.glowbal-*, .auth-*, ...); see CLAUDE.md
  */
+export { DonutChart, HorizontalBarChart, MetricBar, RadarChart } from './charts';
+export type {
+  DonutChartSegment,
+  HorizontalBarChartDatum,
+  MetricBarTone,
+  RadarChartDatum,
+} from './charts';
 export { Avatar } from './avatar';
 export type { AvatarSize } from './avatar';
 export { Badge, admissionBadgeVariant } from './badge';

@@ -11,8 +11,9 @@ import { ICONS, KitIcon } from '@/shared/ui/icons';
  *
  * Points at `/apply#saved` since the merge: the saved list is the lower half of
  * that page (Figma 562:15078), and the anchor scrolls past the applications
- * tracker to it. `#saved` is a contract with `SavedListSection`, which carries
- * that id and a `scroll-mt-gb-9xl` so the sticky header does not cover the
+ * tracker to it. `#saved` is a contract with the persistent wrapper around the
+ * saved-list Suspense boundary. The wrapper exists even while rows are loading
+ * and carries `scroll-mt-gb-9xl` so the sticky header does not cover the
  * heading.
  *
  * WHY THIS EXISTS. Before it, nothing in the product linked to the saved list at

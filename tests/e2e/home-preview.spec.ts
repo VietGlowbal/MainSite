@@ -74,6 +74,7 @@ function masked(page: import('@playwright/test').Page) {
   return [
     page.locator(`[data-testid="${TID.heroGlobe}"]`),
     page.locator(`[data-testid="${TID.heroPartners}"]`),
+    page.locator(`[data-testid="${TID.homeScholarships}"]`),
   ];
 }
 
@@ -206,8 +207,25 @@ test.describe('home preview — desktop', () => {
     const teamHeading = page.getByRole('heading', { name: 'The team behind your journey.' });
     const teamSection = teamHeading.locator('..').locator('..').locator('..');
     await expect(teamSection.locator('article')).toHaveCount(8);
-    await expect(teamSection.getByRole('heading', { level: 3, name: 'Khánh Linh' })).toBeVisible();
-    await expect(teamSection.getByRole('heading', { level: 3, name: 'James' })).toBeVisible();
+    // Full names, as the owner's member sheet spells them.
+    await expect(
+      teamSection.getByRole('heading', { level: 3, name: 'Nguyễn Khánh Linh' }),
+    ).toBeVisible();
+    await expect(
+      teamSection.getByRole('heading', { level: 3, name: 'James Lapslie' }),
+    ).toBeVisible();
+    // Every card names the university its member studies at, via that
+    // institution's crest — see features/marketing/ui/university-crests.ts.
+    await expect(teamSection.getByRole('img', { name: 'VinUniversity' })).toHaveCount(3);
+    await expect(
+      teamSection.getByRole('img', { name: 'Hanoi University of Science and Technology' }),
+    ).toHaveCount(3);
+    await expect(
+      teamSection.getByRole('img', { name: 'Foreign Trade University' }),
+    ).toHaveCount(1);
+    await expect(
+      teamSection.getByRole('img', { name: 'University of Birmingham' }),
+    ).toHaveCount(1);
 
     const order = await page.evaluate(() => {
       const headings = [...document.querySelectorAll('h2')];

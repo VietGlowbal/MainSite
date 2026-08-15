@@ -211,9 +211,6 @@ describe('Task 8.6: Store results and update session status', () => {
         update: vi.fn().mockReturnThis(),
       });
 
-      // Spy on storeWebSearchResults
-      const mockStoreWebSearchResults = vi.fn().mockResolvedValue(true);
-      
       // We need to intercept the actual function call, so we'll check the session update instead
       await POST(mockRequest);
 

@@ -3,12 +3,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   createClientMock,
   loadCvBuilderContextMock,
+  loadLatestCvStrategySnapshotMock,
   streamCvBuilderGenerationMock,
   validateTargetProfileMock,
   streamOpenAITextMock,
 } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
   loadCvBuilderContextMock: vi.fn(),
+  loadLatestCvStrategySnapshotMock: vi.fn(),
   streamCvBuilderGenerationMock: vi.fn(),
   validateTargetProfileMock: vi.fn((value) => value),
   streamOpenAITextMock: vi.fn(),
@@ -18,6 +20,11 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: createClientMock }));
 vi.mock('@/lib/ai/cv-builder-context', () => ({
   isCvBuilderEnabled: () => true,
   loadCvBuilderContext: loadCvBuilderContextMock,
+}));
+vi.mock('@/lib/ai/cv-builder-strategy', () => ({
+  loadLatestCvStrategySnapshot: loadLatestCvStrategySnapshotMock,
+  resolveCvSelectedDirection: (strategy: { directionOptions: Array<{ name: string }> }, selectedDirection: string) =>
+    strategy.directionOptions.find(({ name }) => name === selectedDirection) ?? null,
 }));
 vi.mock('@/lib/ai/cv-builder', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/lib/ai/cv-builder')>();
@@ -63,6 +70,24 @@ describe('POST cv-builder/generate', () => {
     loadCvBuilderContextMock.mockResolvedValue({
       validSourceRefs: new Set(),
     });
+    loadLatestCvStrategySnapshotMock.mockResolvedValue({
+      version: 1,
+      recommendationId: 'rec-1',
+      createdAt: '2026-08-08T00:00:00Z',
+      directionOptions: [
+        { name: 'Accessible systems builder' },
+        { name: 'Research-led technologist' },
+      ],
+    });
+    validateTargetProfileMock.mockImplementation((value) => ({
+      ...value,
+      strategyProvenance: {
+        version: 1,
+        recommendationId: 'rec-1',
+        createdAt: '2026-08-08T00:00:00Z',
+        selectedDirection: 'Accessible systems builder',
+      },
+    }));
     streamCvBuilderGenerationMock.mockImplementation(async function* () {
       yield { type: 'section', section: 'about_me', data: { text: 'About Alex.' } };
       yield {
@@ -78,7 +103,12 @@ describe('POST cv-builder/generate', () => {
       new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ targetProfile: { keywords: ['A', 'B', 'C'] }, form }),
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+          targetProfile: { keywords: ['A', 'B', 'C'] },
+          form,
+        }),
       }),
       { params: Promise.resolve({ id: 'app-1' }) },
     );
@@ -94,6 +124,7 @@ describe('POST cv-builder/generate', () => {
         apiKey: 'openai-key',
         model: 'gpt-4o',
         stream: streamOpenAITextMock,
+        strategy: expect.objectContaining({ recommendationId: 'rec-1' }),
       }),
     );
   });
@@ -105,6 +136,8 @@ describe('POST cv-builder/generate', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           targetProfile: { keywords: ['A', 'B', 'C'] },
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
           form,
           mode: 'clarification',
         }),
@@ -118,5 +151,157 @@ describe('POST cv-builder/generate', () => {
         clarification: true,
       }),
     );
+  });
+
+  it('returns 401 before reading application data when the user is signed out', async () => {
+    createClientMock.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn(async () => ({ data: { user: null } })),
+      },
+    });
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
+        method: 'POST',
+        body: JSON.stringify({ expectedRecommendationId: 'rec-1' }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(401);
+    expect(loadCvBuilderContextMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for an application outside the signed-in owner scope', async () => {
+    loadCvBuilderContextMock.mockResolvedValueOnce(null);
+    const response = await POST(
+      new Request('http://localhost/api/applications/not-owned/cv-builder/generate', {
+        method: 'POST',
+        body: JSON.stringify({ expectedRecommendationId: 'rec-1' }),
+      }),
+      { params: Promise.resolve({ id: 'not-owned' }) },
+    );
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: 'Application not found' });
+    expect(loadLatestCvStrategySnapshotMock).not.toHaveBeenCalled();
+  });
+
+  it('requires an expected strategy id before validating generation input', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
+        method: 'POST',
+        body: JSON.stringify({ form }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ code: 'STRATEGY_REQUIRED' });
+    expect(loadLatestCvStrategySnapshotMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale strategy before invoking the model', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expectedRecommendationId: 'old-rec',
+          selectedDirection: 'Accessible systems builder',
+          targetProfile: { keywords: ['A', 'B', 'C'] },
+          form,
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'STRATEGY_STALE' });
+    expect(streamCvBuilderGenerationMock).not.toHaveBeenCalled();
+  });
+
+  it('accepts valid target provenance and ignores forged strategy content', async () => {
+    const trustedTargetProfile = {
+      keywords: ['A', 'B', 'C'],
+      strategyProvenance: {
+        version: 1,
+        recommendationId: 'rec-1',
+        createdAt: '2026-08-08T00:00:00Z',
+        selectedDirection: 'Accessible systems builder',
+      },
+    };
+    validateTargetProfileMock.mockImplementationOnce((value) => value);
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+          targetProfile: trustedTargetProfile,
+          strategy: { recommendationId: 'forged-rec', chosenDirection: 'Forged' },
+          form,
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(200);
+    expect(streamCvBuilderGenerationMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        strategy: expect.objectContaining({
+          recommendationId: 'rec-1',
+        }),
+        selectedDirection: expect.objectContaining({
+          name: 'Accessible systems builder',
+        }),
+      }),
+    );
+    expect(streamCvBuilderGenerationMock.mock.calls[0]?.[0].strategy).not.toMatchObject({
+      recommendationId: 'forged-rec',
+      chosenDirection: 'Forged',
+    });
+  });
+
+  it('rejects a Target Profile whose direction provenance does not match the selected option', async () => {
+    validateTargetProfileMock.mockImplementationOnce((value) => value);
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+          targetProfile: {
+            keywords: ['A', 'B', 'C'],
+            strategyProvenance: {
+              version: 1,
+              recommendationId: 'rec-1',
+              createdAt: '2026-08-08T00:00:00Z',
+              selectedDirection: 'Research-led technologist',
+            },
+          },
+          form,
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'STRATEGY_STALE' });
+    expect(streamCvBuilderGenerationMock).not.toHaveBeenCalled();
+  });
+
+  it('returns STRATEGY_REQUIRED when latest F7 is missing', async () => {
+    loadLatestCvStrategySnapshotMock.mockResolvedValue(null);
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+          targetProfile: { keywords: ['A', 'B', 'C'] },
+          form,
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ code: 'STRATEGY_REQUIRED' });
   });
 });

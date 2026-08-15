@@ -7,6 +7,7 @@ import type {
   CvReviewStreamEvent,
 } from '@/lib/ai/cv-review';
 import { useT } from '@/lib/i18n';
+import type { CvPublicTemplateId } from '@/lib/ai/cv-builder';
 import { CvReviewFeedback } from './CvReviewFeedback';
 
 async function readNdjson(
@@ -33,9 +34,11 @@ async function readNdjson(
 export function CvReviewWorkspace({
   applicationId,
   targetName,
+  template,
 }: {
   applicationId: string;
   targetName: string;
+  template: CvPublicTemplateId;
   contextNote?: string | null;
 }) {
   const t = useT();
@@ -65,10 +68,11 @@ export function CvReviewWorkspace({
       if (file) {
         const body = new FormData();
         body.set('file', file);
+        body.set('template', template);
         init.body = body;
       } else {
         init.headers = { 'Content-Type': 'application/json' };
-        init.body = JSON.stringify({ text });
+        init.body = JSON.stringify({ text, template });
       }
       const response = await fetch(
         `/api/applications/${applicationId}/cv-review`,
@@ -114,7 +118,7 @@ export function CvReviewWorkspace({
             <p className="mt-2 text-sm text-slate-500">{targetName}</p>
           </div>
           <span className="rounded-full border border-pink-200 bg-pink-50 px-4 py-2 text-xs font-semibold text-pink-700">
-            {t('Evidence-based analysis')}
+            {template === 'academic' ? 'Harvard' : 'AACC'} · {t('Evidence-based analysis')}
           </span>
         </header>
 

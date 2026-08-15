@@ -1,10 +1,18 @@
 import { describe, expect, it } from 'vitest';
-import { isOnboardingComplete, nextOnboardingStep, onboardingStepHref, type OnboardingState } from './onboarding';
+import {
+  confirmedReflectionContinueHref,
+  isOnboardingComplete,
+  nextOnboardingStep,
+  onboardingStepHref,
+  type OnboardingState,
+} from './onboarding';
 
 function state(overrides: Partial<OnboardingState> = {}): OnboardingState {
   return {
     personalSummaryComplete: false,
     achievementsComplete: false,
+    personalReflectionComplete: false,
+    candidateConfirmed: false,
     aiAnalysisComplete: false,
     introSeen: false,
     strategyComplete: false,
@@ -29,13 +37,44 @@ describe('nextOnboardingStep', () => {
       nextOnboardingStep(
         state({ personalSummaryComplete: true, achievementsComplete: true }),
       ),
+    ).toBe('personal-reflection');
+  });
+
+  it('routes to confirm once personal reflection is done', () => {
+    expect(
+      nextOnboardingStep(
+        state({
+          personalSummaryComplete: true,
+          achievementsComplete: true,
+          personalReflectionComplete: true,
+        }),
+      ),
+    ).toBe('confirm');
+  });
+
+  it('routes to analysis once the candidate information has been confirmed', () => {
+    expect(
+      nextOnboardingStep(
+        state({
+          personalSummaryComplete: true,
+          achievementsComplete: true,
+          personalReflectionComplete: true,
+          candidateConfirmed: true,
+        }),
+      ),
     ).toBe('analysis');
   });
 
   it('routes to the intro once analysis is done but the intro has not been seen', () => {
     expect(
       nextOnboardingStep(
-        state({ personalSummaryComplete: true, achievementsComplete: true, aiAnalysisComplete: true }),
+        state({
+          personalSummaryComplete: true,
+          achievementsComplete: true,
+          personalReflectionComplete: true,
+          candidateConfirmed: true,
+          aiAnalysisComplete: true,
+        }),
       ),
     ).toBe('intro');
   });
@@ -46,6 +85,8 @@ describe('nextOnboardingStep', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
+          candidateConfirmed: true,
           aiAnalysisComplete: true,
           introSeen: true,
         }),
@@ -59,6 +100,8 @@ describe('nextOnboardingStep', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
+          candidateConfirmed: true,
           aiAnalysisComplete: true,
           introSeen: true,
           strategyComplete: true,
@@ -76,6 +119,22 @@ describe('nextOnboardingStep', () => {
       ),
     ).toBe('achievements');
   });
+
+  it('does not let analysis run ahead of confirmation even if it somehow already has data', () => {
+    // Candidate information must be explicitly confirmed before analysis is
+    // treated as the next step, even if an analysis row exists from a prior
+    // run — resuming should not paper over a missing confirmation.
+    expect(
+      nextOnboardingStep(
+        state({
+          personalSummaryComplete: true,
+          achievementsComplete: true,
+          personalReflectionComplete: true,
+          aiAnalysisComplete: true,
+        }),
+      ),
+    ).toBe('confirm');
+  });
 });
 
 describe('isOnboardingComplete', () => {
@@ -83,7 +142,13 @@ describe('isOnboardingComplete', () => {
     expect(isOnboardingComplete(state())).toBe(false);
     expect(
       isOnboardingComplete(
-        state({ personalSummaryComplete: true, achievementsComplete: true, aiAnalysisComplete: true }),
+        state({
+          personalSummaryComplete: true,
+          achievementsComplete: true,
+          personalReflectionComplete: true,
+          candidateConfirmed: true,
+          aiAnalysisComplete: true,
+        }),
       ),
     ).toBe(false);
     // Everything but the strategy report — still not complete.
@@ -92,6 +157,8 @@ describe('isOnboardingComplete', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
+          candidateConfirmed: true,
           aiAnalysisComplete: true,
           introSeen: true,
         }),
@@ -99,12 +166,14 @@ describe('isOnboardingComplete', () => {
     ).toBe(false);
   });
 
-  it('is true only when all five steps are done', () => {
+  it('is true only when all seven steps are done', () => {
     expect(
       isOnboardingComplete(
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
+          candidateConfirmed: true,
           aiAnalysisComplete: true,
           introSeen: true,
           strategyComplete: true,
@@ -127,6 +196,16 @@ describe('onboardingStepHref', () => {
     expect(href).toContain('/ai-strategy/reflection/achievements?return=');
   });
 
+  it('routes personal reflection the same way', () => {
+    const href = onboardingStepHref('personal-reflection', 'app-1');
+    expect(href).toContain('/ai-strategy/reflection/personal?return=');
+  });
+
+  it('routes confirm the same way, into the shared reflection flow', () => {
+    const href = onboardingStepHref('confirm', 'app-1');
+    expect(href).toContain('/ai-strategy/reflection/confirm?return=');
+  });
+
   it('routes the remaining steps to their own per-Strategy pages', () => {
     expect(onboardingStepHref('analysis', 'app-1')).toBe('/ai-strategy/app-1/strategy/analysis');
     expect(onboardingStepHref('intro', 'app-1')).toBe('/ai-strategy/app-1/strategy/intro');
@@ -134,5 +213,18 @@ describe('onboardingStepHref', () => {
       '/ai-strategy/app-1/strategy/analysis/recommendation',
     );
     expect(onboardingStepHref('dashboard', 'app-1')).toBe('/ai-strategy/app-1/strategy/dashboard');
+  });
+});
+
+describe('confirmedReflectionContinueHref', () => {
+  it('sends the student to the analysis gate while reports are still pending', () => {
+    expect(confirmedReflectionContinueHref('app-1', false)).toBe('/ai-strategy/app-1/strategy/analysis');
+  });
+
+  it('carries a return param to this Strategy once reports exist, so the Personal Report keeps its nav band', () => {
+    const href = confirmedReflectionContinueHref('app-1', true);
+    expect(href).toBe(
+      `/ai-strategy/personal-report?return=${encodeURIComponent('/ai-strategy/app-1/strategy/analysis')}`,
+    );
   });
 });

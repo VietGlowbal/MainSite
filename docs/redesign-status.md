@@ -103,7 +103,7 @@ Both carry banner frames naming them:
 | `/mentors` | `154:8345` | **Tính năng** | Search + 4-across card grid. ⚠️ Not yet migrated — expect a pass when it is. |
 | `/about` | `153:11401` | **Tính năng** | Net-new route. Real team from `lib/team.ts`. ⚠️ Same provenance risk. |
 | `/news` | `153:18266` | **Tính năng** | Blog list, data-driven topic tabs. ⚠️ Same provenance risk. **Merged 31/07:** `/guides` and `/news` served the same data through two designs; the redesign is now the only UI and `/news` the only URL. See §"Two blog routes became one" below. |
-| `/` | `375:9844` | **Khanh Linh - Chi** | **Promoted 28/07**, replacing the 976-line legacy landing. Ships no `MissingContent`: testimonials and FAQ are omitted outright, Features and the scholarship rail take `showPlaceholders={false}`. Owns its chrome, including its own `MobileNav` — without that a phone gets no navigation at all. |
+| `/` | `375:9844` | **Khanh Linh - Chi** | **Promoted 28/07**, replacing the 976-line legacy landing. Ships no `MissingContent`: Testimonials and FAQ now render as finished sections, while Features and the scholarship rail take `showPlaceholders={false}`. Testimonials were restyled 14/08 from an owner-supplied black/red reference, using three local AI-generated Vietnamese-student portraits that are explicitly labelled illustrative and never assigned fabricated names. Owns its chrome, including its own `MobileNav` — without that a phone gets no navigation at all. |
 | `/dev/home` | `375:9844` | **Khanh Linh - Chi** | Still here after the swap, on purpose: it keeps every section INCLUDING the placeholders, so the copy gaps stay visible. Renders no real data — check data against `/`. |
 | `/universities/[id]` | `375:10629` | **Khanh Linh - Chi** | **Built 28/07, wired up + extended 30/07.** ONE page for all 97, keyed on the numeric id (there is no `slug` column). `/universities/vinuni` now 308-redirects here; VinUni's colleges, FAQ and AACC statement analyser render as extras from `src/lib/vinuni-content.ts`. See the notes below. |
 | `/mentors/[id]` | `375:21633` | **Khanh Linh - Chi** | **Built 29/07.** Replaced `MentorProfile.tsx` + `BookMentorModal.tsx` + `MentorAvailabilityGrid.tsx`, all three deleted. Real 7-column booking calendar (the frame's is a broken 10-column instance — see below). Fixed two live bugs in the process: the page 404'd for every signed-out visitor, and it serialised the mentor's PII into the client payload. |
@@ -142,9 +142,11 @@ Each is documented in a comment at the top of the relevant file.
   those params (the "funnel from `/scholarships`" this note claimed was already
   stale — that page sends `?focus=<id>`). See §"Applications now come from the
   saved list" below.
-- **`/apply` crests fall back to initials.** Only 4 of 29 live rows carry a
-  `university_id` to join a `logo_url` from. ⚠️ This shrinks by itself from
-  01/08: every application created from a saved university carries one.
+- **`/apply` crests join by university identity and fall back to initials.**
+  Production reconciliation on 14/08 verified all 37 active applications now
+  carry a `university_id` and all 37 linked universities have a `logo_url`.
+  `Avatar` still renders initials when either field is absent or the image
+  request fails; the fallback is defensive, not the normal production state.
 - **`/apply` adds five things `562:15078` does not draw** (01/08, after the owner
   called the page boring). All five are recorded in the file headers of
   `my-application-section.tsx` and `saved-list-section.tsx`; the reason they are

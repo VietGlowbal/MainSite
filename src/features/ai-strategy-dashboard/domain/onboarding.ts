@@ -24,6 +24,21 @@
  *    Matching Report first" error on the strategy page instead of the
  *    correct, earlier "try the analysis again" state — fixed by requiring
  *    both here rather than only the Personal Report.
+ *  - personalReflectionComplete — shared across every Strategy
+ *    (`course_applications.personal_reflection_reviewed_at`), the five
+ *    cross-cutting Personal Reflection questions
+ *    (`src/features/apply/domain/personal-reflection.ts`). Sits between
+ *    `achievementsComplete` and `candidateConfirmed`: it asks what patterns
+ *    exist across the activities just reviewed, so it has to come after them,
+ *    and Review & Confirm has to be able to show it as done, so it has to
+ *    come before that checkpoint.
+ *  - candidateConfirmed — shared across every Strategy, like the steps
+ *    above: `student_profiles.confirmed_at` is set once the student has
+ *    reviewed everything on Review & Confirm and pressed "Confirm & Generate
+ *    Reports". Sits between `personalReflectionComplete` and
+ *    `aiAnalysisComplete` — analysis must not run against candidate
+ *    information the student has not explicitly approved, which is the
+ *    entire point of that checkpoint.
  *  - introSeen — per Strategy: `course_applications.strategy_intro_seen_at`
  *    is set, marked when the Strategy Introduction page is opened.
  *  - strategyComplete — per Strategy: an `application_strategy_recommendations`
@@ -38,6 +53,8 @@
 export type OnboardingState = {
   personalSummaryComplete: boolean;
   achievementsComplete: boolean;
+  personalReflectionComplete: boolean;
+  candidateConfirmed: boolean;
   aiAnalysisComplete: boolean;
   introSeen: boolean;
   strategyComplete: boolean;
@@ -46,6 +63,8 @@ export type OnboardingState = {
 export type OnboardingStep =
   | 'personal-summary'
   | 'achievements'
+  | 'personal-reflection'
+  | 'confirm'
   | 'analysis'
   | 'intro'
   | 'strategy'
@@ -56,6 +75,8 @@ export function isOnboardingComplete(state: OnboardingState): boolean {
   return (
     state.personalSummaryComplete &&
     state.achievementsComplete &&
+    state.personalReflectionComplete &&
+    state.candidateConfirmed &&
     state.aiAnalysisComplete &&
     state.introSeen &&
     state.strategyComplete
@@ -73,6 +94,8 @@ export function isOnboardingComplete(state: OnboardingState): boolean {
 export function nextOnboardingStep(state: OnboardingState): OnboardingStep {
   if (!state.personalSummaryComplete) return 'personal-summary';
   if (!state.achievementsComplete) return 'achievements';
+  if (!state.personalReflectionComplete) return 'personal-reflection';
+  if (!state.candidateConfirmed) return 'confirm';
   if (!state.aiAnalysisComplete) return 'analysis';
   if (!state.introSeen) return 'intro';
   if (!state.strategyComplete) return 'strategy';
@@ -91,6 +114,10 @@ export function onboardingStepHref(
       return `/ai-strategy/reflection?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
     case 'achievements':
       return `/ai-strategy/reflection/achievements?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
+    case 'personal-reflection':
+      return `/ai-strategy/reflection/personal?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
+    case 'confirm':
+      return `/ai-strategy/reflection/confirm?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
     case 'analysis':
       return analysisHref;
     case 'intro':
@@ -100,4 +127,29 @@ export function onboardingStepHref(
     case 'dashboard':
       return `/ai-strategy/${applicationId}/strategy/dashboard`;
   }
+}
+
+/**
+ * Where "Continue" on a confirmed, read-only Candidate Information view
+ * (Reflections / Achievements / Review & Confirm) should send the student —
+ * the report-generation gate while reports are still pending, or straight to
+ * the Personal Report once they exist. Reported live 2026-08-14: these
+ * Continue buttons used to carry a static `returnTo` that could point back
+ * at the analysis gate even after reports already existed, or nowhere useful
+ * at all once a student arrived without one.
+ *
+ * Points at the canonical, user-level `/ai-strategy/personal-report` (not
+ * the per-application `.../strategy/analysis/portrait` path) since that
+ * route became a redirect-only legacy alias for it — going there directly
+ * avoids sending a student through an extra redirect hop on every Continue
+ * click.
+ */
+export function confirmedReflectionContinueHref(
+  applicationId: string,
+  aiAnalysisComplete: boolean,
+): string {
+  const analysisHref = `/ai-strategy/${applicationId}/strategy/analysis`;
+  return aiAnalysisComplete
+    ? `/ai-strategy/personal-report?return=${encodeURIComponent(analysisHref)}`
+    : analysisHref;
 }

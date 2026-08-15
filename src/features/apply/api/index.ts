@@ -14,7 +14,26 @@ export {
 } from './candidate-context';
 export {
   getMatchingReportPageData,
-  getPersonalReportRecord,
   listMatchingApplications,
 } from './ai-reports-repository';
-export type { PersonalReportRecord } from './ai-reports-repository';
+export { loadCandidateReflection } from './candidate-snapshot-repository';
+export type { CandidateReflectionRecord } from './candidate-snapshot-repository';
+export { verifiedApplicationId } from './verified-application-id';
+export { loadProfileReview } from './profile-review';
+export type {
+  CurriculumGradeSummary,
+  EnglishTestSummary,
+  ProfileReviewData,
+  StandardizedTestSummary,
+} from './profile-review';
+export {
+  createPersonalReportV2Version,
+  getLatestPersonalReportV2,
+  getPersonalReportSupplements,
+  getPersonalReportV2Version,
+  listPersonalReportV2Versions,
+  savePersonalReportSupplement,
+} from './personal-report-v2-repository';
+export type { PersonalReportV2Record } from './personal-report-v2-repository';
+export { regeneratePersonalReport } from './personal-report-generation';
+export type { RegeneratePersonalReportResult } from './personal-report-generation';

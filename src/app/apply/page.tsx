@@ -5,6 +5,7 @@ import { formatTuitionForCard, officialWebsite } from '@/features/universities/d
 import { formatAmount } from '@/lib/scholarships-data';
 import { createClient } from '@/lib/supabase/server';
 import { getServerIdentity } from '@/server/auth/server-identity';
+import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import type { CourseApplication } from '@/lib/apply-types';
 import { ApplicationProgressClient } from './application-progress-client';
 import { ApplyShell } from './apply-shell';
@@ -82,12 +83,15 @@ async function fetchApplications(userId: string): Promise<CourseApplication[]> {
  *
  * ─── TWO QUERIES FOR THE WHOLE PAGE, NOT TWO PER ROW ─────────────────────────
  *
- * `nextOnboardingStep` needs three facts: the student's profile flags (one row,
- * shared by every application), whether an analysis exists for this application,
- * and whether the intro has been seen. The first is read once and the second in
- * a single `in (...)` across every id; the third is already on the
- * `course_applications` rows this page has. Calling `fetchOnboardingState` per
- * application would have been N round trips to render a list.
+ * `nextOnboardingStep` needs three facts: whether THIS application's
+ * reflections/achievements have been reviewed (per-application — see
+ * `supabase-per-application-onboarding.sql`; a shared `student_profiles` flag
+ * would incorrectly mark a brand-new application "ready" the moment ANY
+ * other application had been reviewed), whether an analysis exists for this
+ * application, and whether the intro has been seen. The first two are read
+ * once each in a single `in (...)` across every id; the third is already on
+ * the `course_applications` rows this page has. Calling `fetchOnboardingState`
+ * per application would have been N round trips to render a list.
  *
  * ─── WHY THE ROWS NEED IT AT ALL ─────────────────────────────────────────────
  *
@@ -101,31 +105,56 @@ async function fetchStrategyReadiness(
   applicationsPromise: Promise<CourseApplication[]>,
 ): Promise<Record<string, boolean>> {
   const supabase = await createClient();
-  const profilePromise = supabase
-    .from('student_profiles')
-    .select('personal_summary_completed_at, achievements_completed_at')
-    .eq('user_id', userId)
-    .maybeSingle()
-    .then((result) => result);
+  // Filtered by `user_id`, not by application id, so — unlike the
+  // per-application review read below — this does not need to wait for
+  // `applicationsPromise` to resolve. Started immediately to keep the same
+  // "independent reads run in parallel, not serialized behind
+  // `course_applications`" property the original single-profile-row version
+  // of this function had.
   const analysesPromise = supabase
     .from('applicant_analyses')
     .select('application_id')
-    .eq('user_id', userId);
-  const [applications, { data: profile }, { data: analyses }] = await Promise.all([
-    applicationsPromise,
-    profilePromise,
-    analysesPromise,
-  ]);
+    .eq('user_id', userId)
+    // Supabase's query builder does not fire the request until it is
+    // awaited/`.then()`ed — appending `.then()` here starts it immediately
+    // rather than leaving it to fire only once `Promise.all` below reaches
+    // it, which by then would be AFTER `applicationsPromise` resolves.
+    .then((result) => result);
+
+  const applications = await applicationsPromise;
   if (applications.length === 0) return {};
 
+  const ids = applications.map((app) => app.id);
+  // Same PostgREST-fails-the-whole-select-on-one-unknown-column caveat as
+  // every other tolerant read in this project — a missing migration degrades
+  // to "not reviewed" for every row (the safe default: a slightly stale
+  // "continue applying" label, never a false "ready").
+  const reviewedPromise = supabase
+    .from('course_applications')
+    .select('id, personal_summary_reviewed_at, achievements_reviewed_at')
+    .in('id', ids)
+    .then((result) => result);
+  const [{ data: analyses }, reviewed] = await Promise.all([analysesPromise, reviewedPromise]);
+
   const analysed = new Set((analyses ?? []).map((row) => String(row.application_id)));
-  const profileDone = Boolean(
-    profile?.personal_summary_completed_at && profile?.achievements_completed_at,
+
+  if (reviewed.error) {
+    console.warn(
+      'apply: could not read per-application review columns — run supabase-per-application-onboarding.sql.',
+      reviewed.error.message,
+    );
+  }
+  const reviewedById = new Map(
+    (reviewed.error ? [] : (reviewed.data ?? [])).map((row) => [
+      String(row.id),
+      Boolean(row.personal_summary_reviewed_at && row.achievements_reviewed_at),
+    ]),
   );
 
   const readiness: Record<string, boolean> = {};
   for (const app of applications) {
-    readiness[app.id] = profileDone && analysed.has(app.id) && Boolean(app.strategyIntroSeenAt);
+    readiness[app.id] =
+      (reviewedById.get(app.id) ?? false) && analysed.has(app.id) && Boolean(app.strategyIntroSeenAt);
   }
   return readiness;
 }
@@ -363,12 +392,24 @@ export default async function ApplyPage({ searchParams }: Props) {
     redirect('/auth?redirect=%2Fapply');
   }
 
+  const supabase = await createClient();
   const applicationsPromise = fetchApplications(user.id);
   const savedRowsPromise = fetchSavedRows(user.id);
   const strategyReadyPromise = fetchStrategyReadiness(user.id, applicationsPromise);
-  const applications = await applicationsPromise;
+  const profilePromise = supabase
+    .from('student_profiles')
+    .select('plus_status, plus_expires_at, is_admin')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const [applications, strategyReadyById, profileResult] = await Promise.all([
+    applicationsPromise,
+    strategyReadyPromise,
+    profilePromise,
+  ]);
+
+  const isPlus = isPlusEntitlementActive(profileResult.data ?? {});
   const logoByUniversityId = applicationLogos(applications);
-  const strategyReadyById = await strategyReadyPromise;
 
   return (
     <ApplyShell userName={user.name} userAvatarUrl={user.avatarUrl}>
@@ -377,6 +418,7 @@ export default async function ApplyPage({ searchParams }: Props) {
         logoByUniversityId={logoByUniversityId}
         savedRowsPromise={savedRowsPromise}
         strategyReadyById={strategyReadyById}
+        isPlus={isPlus}
       />
     </ApplyShell>
   );

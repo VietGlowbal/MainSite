@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
+  useCallback,
   useEffect,
   useMemo,
   useRef,
@@ -32,10 +34,13 @@ import {
   type CvBuilderStreamEvent,
   type CvDisplaySectionKey,
   type CvSectionTitleKey,
+  type CvBuilderDraftStrategyBinding,
   type CvTargetProfileV1,
+  type CvPublicTemplateId,
   type CvTemplateId,
   type GeneratedCvV1,
 } from '@/lib/ai/cv-builder';
+import type { CvStrategySnapshot } from '@/lib/ai/cv-builder-strategy';
 import { CvReviewFeedback } from './CvReviewFeedback';
 
 type AnyStreamEvent =
@@ -52,7 +57,7 @@ type AnyStreamEvent =
       timing: { totalMs: number };
     };
 
-const steps = ['Target Profile', 'Content', 'CV Draft', 'Layout & PDF'];
+const steps = ['Target Profile', 'Content', 'CV Draft'];
 const inputClass =
   'w-full rounded-lg border border-slate-300 bg-white px-3.5 py-3 text-sm text-slate-950 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-50';
 const cvSectionOrder: CvDisplaySectionKey[] = [
@@ -83,6 +88,24 @@ async function readNdjson(response: Response, onEvent: (event: AnyStreamEvent) =
     if (done) break;
   }
   if (buffer.trim()) onEvent(JSON.parse(buffer));
+}
+
+type CvBuilderApiError = Error & { code?: string };
+
+async function apiErrorFromResponse(
+  response: Response,
+  fallback: string,
+): Promise<CvBuilderApiError> {
+  const payload = await response.json().catch(() => null);
+  const error = new Error(
+    payload && typeof payload === 'object' && typeof payload.error === 'string'
+      ? payload.error
+      : fallback,
+  ) as CvBuilderApiError;
+  if (payload && typeof payload === 'object' && typeof payload.code === 'string') {
+    error.code = payload.code;
+  }
+  return error;
 }
 
 function TypingText({ text }: { text: string }) {
@@ -144,17 +167,19 @@ function SectionTitle({ number, children }: { number: string; children: React.Re
 
 function WorkflowProgress({
   step,
+  targetReady,
   cvReady,
   onChange,
 }: {
   step: number;
+  targetReady: boolean;
   cvReady: boolean;
   onChange: (step: number) => void;
 }) {
   const t = useT();
   return (
     <nav aria-label={t('CV creation progress')} className="mx-auto w-full max-w-4xl print:hidden">
-      <ol className="grid grid-cols-4">
+      <ol className="grid grid-cols-3">
         {steps.map((label, index) => (
           <li key={label} className="relative">
             {index < steps.length - 1 && (
@@ -168,8 +193,12 @@ function WorkflowProgress({
             )}
             <button
               type="button"
+              aria-label={t(label)}
               aria-current={index === step ? 'step' : undefined}
-              disabled={index > 1 && !cvReady}
+              disabled={
+                (index === 1 && !targetReady) ||
+                (index === 2 && !cvReady)
+              }
               className="relative z-10 flex w-full flex-col items-center gap-2 text-center disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => onChange(index)}
             >
@@ -199,28 +228,160 @@ function WorkflowProgress({
   );
 }
 
+function StrategyDirections({
+  strategy,
+  selectedDirection,
+  onSelect,
+  disabled = false,
+}: {
+  strategy: CvStrategySnapshot;
+  selectedDirection: string;
+  onSelect?: (direction: string) => void;
+  disabled?: boolean;
+}) {
+  const t = useT();
+  return (
+    <section className="mt-8" aria-labelledby="cv-strategy-directions">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h2 id="cv-strategy-directions" className="text-lg font-semibold text-slate-950">
+            {t('Strategic directions')}
+          </h2>
+          <p className="mt-1 text-xs leading-5 text-slate-500">
+            {t('Choose one direction for this CV. Changing it will rebuild the Target Profile and CV.')}
+          </p>
+        </div>
+        <span className="text-xs font-semibold text-slate-500">
+          {t('{count} directions evaluated', { count: strategy.directionOptions.length })}
+        </span>
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {strategy.directionOptions.map((option) => {
+          const recommended = option.name === strategy.chosenDirection;
+          const dimensions = [
+            ['Identity fit', option.identityFit],
+            ['Evidence strength', option.evidenceStrength],
+            ['Consistency', option.consistency],
+            ['Differentiation', option.differentiation],
+            ['Future alignment', option.futureAlignment],
+            ['Scalability', option.scalability],
+          ] as const;
+          return (
+            <article
+              key={option.name}
+              className="rounded-xl"
+              aria-label={`${t('Direction')} ${option.name}`}
+            >
+              <button
+                type="button"
+                aria-pressed={selectedDirection === option.name}
+                aria-label={`${t('Direction')} ${option.name}`}
+                disabled={disabled}
+                 onClick={() => onSelect?.(option.name)}
+                className={`w-full rounded-xl border p-5 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-not-allowed disabled:opacity-60 ${
+                  selectedDirection === option.name
+                    ? 'border-rose-400 bg-rose-50/60 ring-2 ring-rose-200'
+                    : 'border-slate-200 bg-white hover:border-rose-200 hover:bg-rose-50/20'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-slate-950">{option.name}</h3>
+                  <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                    {recommended ? (
+                      <span className="rounded-full border border-rose-300 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-700">
+                        {t('Recommended')}
+                      </span>
+                    ) : null}
+                    {selectedDirection === option.name ? (
+                      <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                        {t('Use for this CV')}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+                <p className="mt-4 text-xs font-semibold text-slate-600">
+                  {t('Overall')}: <span className="text-slate-950">{option.overall.toFixed(1)}/10</span>
+                </p>
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  {dimensions.map(([label, value]) => (
+                    <div key={label} className="flex items-center justify-between gap-2">
+                      <dt className="text-slate-500">{t(label)}</dt>
+                      <dd className="font-semibold text-slate-800">{value.toFixed(1)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {recommended ? (
+                  <p className="mt-4 border-t border-rose-200 pt-3 text-xs leading-5 text-slate-700">
+                    <span className="font-semibold">{t('Why this direction')}: </span>
+                    {strategy.chosenDirectionWhy}
+                  </p>
+                ) : null}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function TargetProfile({
   profile,
   status,
+  strategy,
+  selectedDirection,
+  onSelectDirection,
+  directionsDisabled,
+  applicationId,
 }: {
   profile: CvTargetProfileV1 | null;
   status: string;
+  strategy: CvStrategySnapshot | null;
+  selectedDirection: string;
+  onSelectDirection?: (direction: string) => void;
+  directionsDisabled?: boolean;
+  applicationId: string;
 }) {
   const t = useT();
+  if (strategy === null) {
+    return (
+      <div className="grid min-h-64 place-items-center rounded-2xl border border-amber-200 bg-amber-50/60 p-8 text-center">
+        <div>
+          <p className="text-sm font-semibold text-amber-900">
+            {t('Complete your Personalized Strategy before building a CV.')}
+          </p>
+          <Link
+            className="mt-4 inline-flex rounded-lg bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-rose-700"
+            href={`/ai-strategy/${applicationId}/strategy-report`}
+          >
+            {t('Open Personalized Strategy')}
+          </Link>
+        </div>
+      </div>
+    );
+  }
   if (!profile) {
     return (
-      <div className="grid min-h-64 place-items-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-8 text-center">
-        <div>
-          <div
-            className={`mx-auto h-3 w-3 rounded-full ${
-              status ? 'animate-pulse bg-rose-500' : 'bg-slate-300'
-            }`}
-          />
-          <p className="mt-4 text-sm font-semibold text-slate-700">
-            {status
-              ? t(status)
-              : t('No Target Profile yet. Enter a career direction and start generating.')}
-          </p>
+      <div>
+        <StrategyDirections
+          strategy={strategy}
+          selectedDirection={selectedDirection}
+          onSelect={onSelectDirection}
+          disabled={directionsDisabled}
+        />
+        <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-8 text-center">
+          <div>
+            <div
+              className={`mx-auto h-3 w-3 rounded-full ${
+                status ? 'animate-pulse bg-rose-500' : 'bg-slate-300'
+              }`}
+            />
+            <p role="status" aria-live="polite" className="mt-4 text-sm font-semibold text-slate-700">
+              {status
+                ? t(status)
+                : t('Your Target Profile will be generated from the current strategy.')}
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -245,6 +406,12 @@ function TargetProfile({
           </span>
         ))}
       </div>
+      <StrategyDirections
+        strategy={strategy}
+        selectedDirection={selectedDirection}
+        onSelect={onSelectDirection}
+        disabled={directionsDisabled}
+      />
       <h2 className="mt-8 text-sm font-semibold text-slate-950">{t('Information used to position the CV')}</h2>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {insights.map(([label, insight]) => (
@@ -296,6 +463,39 @@ function TargetProfile({
           ))}
         </ol>
       </section>
+      {strategy ? (
+        <section
+          className="mt-6 rounded-xl border border-slate-200 bg-slate-50/70 p-5"
+          aria-labelledby="cv-strategy-alignment"
+        >
+          <h2 id="cv-strategy-alignment" className="text-lg font-semibold text-slate-950">
+            {t('Strategy alignment')}
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-slate-700">{strategy.narrative}</p>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            <article className="rounded-lg border border-slate-200 bg-white p-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                {t('Chosen direction')}
+              </h3>
+              <p className="mt-2 text-sm font-semibold text-slate-950">{strategy.chosenDirection}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{strategy.chosenDirectionWhy}</p>
+            </article>
+            <article className="rounded-lg border border-slate-200 bg-white p-4">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+                {t('Positioning')}
+              </h3>
+              <p className="mt-2 text-sm leading-5 text-slate-700">{strategy.positioning.after}</p>
+              <p className="mt-2 text-xs leading-5 text-slate-600">{strategy.positioning.rationale}</p>
+            </article>
+          </div>
+          <div className="mt-4 rounded-lg border border-slate-200 bg-white p-4">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+              {t('Differentiation')}
+            </h3>
+            <p className="mt-2 text-sm leading-5 text-slate-700">{strategy.differentiation.proposal}</p>
+          </div>
+        </section>
+      ) : null}
     </div>
   );
 }
@@ -1325,22 +1525,30 @@ export function CvBuilderWorkspace({
   universityName,
   programmeName,
   prefill,
+  initialTemplate = 'academic',
+  strategy,
 }: {
   applicationId: string;
   userId: string;
   universityName: string;
   programmeName: string;
   prefill: CvBuilderFormV1;
+  initialTemplate?: CvPublicTemplateId;
+  strategy: CvStrategySnapshot | null;
 }) {
   const t = useT();
+  const router = useRouter();
   const storageKey = cvBuilderDraftKey(userId, applicationId);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(prefill);
-  const [careerDirection, setCareerDirection] = useState('');
+  const [selectedDirection, setSelectedDirection] = useState(
+    strategy?.chosenDirection ?? '',
+  );
   const [targetProfile, setTargetProfile] = useState<CvTargetProfileV1 | null>(null);
+  const [sourceRecommendationId, setSourceRecommendationId] = useState<string | null>(null);
   const [generatedCv, setGeneratedCv] = useState<GeneratedCvV1 | null>(null);
   const [partial, setPartial] = useState<CvBuilderModelEvent[]>([]);
-  const [template, setTemplate] = useState<CvTemplateId>('academic');
+  const template = initialTemplate;
   const [status, setStatus] = useState('');
   const [error, setError] = useState('');
   const [missingSections, setMissingSections] = useState<CvBuilderModelEvent['section'][]>([]);
@@ -1352,10 +1560,50 @@ export function CvBuilderWorkspace({
     Record<string, string>
   >({});
   const controllers = useRef<AbortController[]>([]);
+  const requestGeneration = useRef(0);
   const retryClarification = useRef(false);
+  const autoGenerationKey = useRef<string | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const reviewRef = useRef<HTMLDivElement>(null);
   const [tooLong, setTooLong] = useState(false);
+
+  const abortRequests = useCallback(() => {
+    requestGeneration.current += 1;
+    controllers.current.forEach((controller) => controller.abort());
+    controllers.current = [];
+  }, []);
+
+  const resetAiState = useCallback((resetAutoGenerationGuard: boolean) => {
+    setTargetProfile(null);
+    setSourceRecommendationId(null);
+    setGeneratedCv(null);
+    setPartial((current) => (current.length ? [] : current));
+    setMissingSections((current) => (current.length ? [] : current));
+    setReview(null);
+    setReviewEvents((current) => (current.length ? [] : current));
+    setClarificationAnswers((current) =>
+      Object.keys(current).length ? {} : current,
+    );
+    setStep(0);
+    if (resetAutoGenerationGuard) autoGenerationKey.current = null;
+  }, []);
+
+  const persistSafeDraft = useCallback(
+    (overrides?: { selectedDirection?: string }) => {
+      const nextDirection = overrides?.selectedDirection ?? selectedDirection;
+    localStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        schemaVersion: CV_BUILDER_SCHEMA_VERSION,
+        applicationId,
+        form,
+        selectedTemplate: template,
+        ...(nextDirection ? { selectedDirection: nextDirection } : {}),
+      }),
+    );
+    },
+    [applicationId, form, selectedDirection, storageKey, template],
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -1363,16 +1611,45 @@ export function CvBuilderWorkspace({
     try {
       value = saved ? JSON.parse(saved) : null;
     } catch {}
-    const restored = restoreCvBuilderDraft(value, applicationId);
+    const draftDirection =
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      typeof (value as Record<string, unknown>).selectedDirection === 'string'
+        ? String((value as Record<string, unknown>).selectedDirection)
+        : '';
+    const expectedDirection =
+      strategy?.directionOptions.some(({ name }) => name === draftDirection)
+        ? draftDirection
+        : strategy?.chosenDirection;
+    const restored = restoreCvBuilderDraft(
+      value,
+      applicationId,
+      strategy
+        ? ({
+            version: strategy.version,
+            recommendationId: strategy.recommendationId,
+            createdAt: strategy.createdAt,
+            selectedDirection: expectedDirection,
+          } satisfies CvBuilderDraftStrategyBinding)
+        : null,
+    );
     if (restored) {
       setForm(restored.form);
+      setSelectedDirection(
+        restored.selectedDirection ?? expectedDirection ?? strategy?.chosenDirection ?? '',
+      );
       setTargetProfile(restored.targetProfile ?? null);
       setGeneratedCv(restored.generatedCv ?? null);
-      setTemplate(restored.selectedTemplate === 'technical' ? 'technical' : 'academic');
+      setSourceRecommendationId(restored.sourceRecommendationId ?? null);
     }
     setHydrated(true);
-    return () => controllers.current.forEach((controller) => controller.abort());
-  }, [applicationId, prefill, storageKey]);
+    return () => {
+      requestGeneration.current += 1;
+      controllers.current.forEach((controller) => controller.abort());
+      controllers.current = [];
+    };
+  }, [applicationId, prefill, storageKey, strategy]);
 
   useEffect(() => {
     if (!hydrated) return;
@@ -1383,6 +1660,10 @@ export function CvBuilderWorkspace({
           JSON.stringify({
             schemaVersion: CV_BUILDER_SCHEMA_VERSION,
             applicationId,
+            ...(sourceRecommendationId
+              ? { sourceRecommendationId }
+              : {}),
+            ...(selectedDirection ? { selectedDirection } : {}),
             targetProfile: targetProfile ?? undefined,
             form,
             generatedCv: generatedCv ?? undefined,
@@ -1392,37 +1673,80 @@ export function CvBuilderWorkspace({
       350,
     );
     return () => clearTimeout(timer);
-  }, [applicationId, form, generatedCv, hydrated, storageKey, targetProfile, template]);
+  }, [
+    applicationId,
+    form,
+    generatedCv,
+    hydrated,
+    sourceRecommendationId,
+    selectedDirection,
+    storageKey,
+    targetProfile,
+    template,
+  ]);
 
   useEffect(() => {
     if (!generatedCv || !previewRef.current) return;
     setTooLong(previewRef.current.scrollHeight > 2246);
   }, [generatedCv, template]);
 
-  const startRequest = () => {
+  const startRequest = useCallback(() => {
     controllers.current.forEach((controller) => controller.abort());
     const controller = new AbortController();
     controllers.current = [controller];
+    requestGeneration.current += 1;
     setBusy(true);
     setError('');
     return controller;
-  };
+  }, []);
 
-  const buildTarget = async () => {
+  const clearDraft = useCallback(() => {
+    abortRequests();
+    localStorage.removeItem(storageKey);
+    setForm(prefill);
+    setSelectedDirection(strategy?.chosenDirection ?? '');
+    resetAiState(true);
+    setError('');
+    setStatus('');
+    setBusy(false);
+    setMissingSections([]);
+    retryClarification.current = false;
+    setTooLong(false);
+  }, [abortRequests, prefill, resetAiState, storageKey, strategy]);
+
+  const buildTarget = useCallback(async (directionName = selectedDirection) => {
+    if (!strategy) {
+      setError(t('Complete your Personalized Strategy before building a CV.'));
+      return;
+    }
+    if (!strategy.directionOptions.some(({ name }) => name === directionName)) {
+      setError(t('Select one of the available Personalized Strategy directions.'));
+      return;
+    }
     const controller = startRequest();
+    const generation = requestGeneration.current;
     setStatus('AI is preparing the Target Profile…');
     try {
       const response = await fetch(`/api/applications/${applicationId}/cv-builder/target-profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ careerDirection }),
+         body: JSON.stringify({
+           expectedRecommendationId: strategy.recommendationId,
+           selectedDirection: directionName,
+         }),
         signal: controller.signal,
       });
-      if (!response.ok) throw new Error((await response.json()).error ?? 'Could not create the Target Profile.');
+      if (!response.ok) {
+        throw await apiErrorFromResponse(response, 'Could not create the Target Profile.');
+      }
       await readNdjson(response, (event) => {
+        if (controller.signal.aborted || generation !== requestGeneration.current) return;
         if (event.type === 'status') setStatus(event.message);
         else if (event.type === 'complete' && 'targetProfile' in event) {
           setTargetProfile(event.targetProfile);
+          setSourceRecommendationId(
+            event.targetProfile.strategyProvenance?.recommendationId ?? strategy.recommendationId,
+          );
           setStatus('');
         } else if (event.type === 'error') {
           setStatus('');
@@ -1430,21 +1754,127 @@ export function CvBuilderWorkspace({
         }
       });
     } catch (reason) {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Could not create the Target Profile.');
+      if (!controller.signal.aborted && generation === requestGeneration.current) {
+        const apiError = reason as CvBuilderApiError;
+        if (apiError?.code === 'STRATEGY_STALE') {
+          resetAiState(false);
+          autoGenerationKey.current = `${strategy.recommendationId}:${directionName}`;
+          persistSafeDraft({ selectedDirection: directionName });
+          router.refresh();
+        }
+        setError(reason instanceof Error ? reason.message : 'Could not create the Target Profile.');
+      }
     } finally {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && generation === requestGeneration.current) {
         setBusy(false);
         setStatus('');
       }
     }
-  };
+  }, [
+    applicationId,
+    persistSafeDraft,
+    resetAiState,
+    router,
+    selectedDirection,
+    startRequest,
+    strategy,
+    t,
+  ]);
+
+  const handleDirectionChange = useCallback(
+    (directionName: string) => {
+      if (
+        !strategy ||
+        directionName === selectedDirection ||
+        !strategy.directionOptions.some(({ name }) => name === directionName)
+      ) {
+        return;
+      }
+      abortRequests();
+      resetAiState(false);
+      setSelectedDirection(directionName);
+      setStatus('AI is preparing the Target Profile…');
+      persistSafeDraft({ selectedDirection: directionName });
+      autoGenerationKey.current = `${strategy.recommendationId}:${directionName}`;
+      void buildTarget(directionName);
+    },
+    [
+      abortRequests,
+      buildTarget,
+      persistSafeDraft,
+      resetAiState,
+      selectedDirection,
+      strategy,
+    ],
+  );
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (!strategy) {
+      setSelectedDirection('');
+      resetAiState(false);
+      return;
+    }
+    const directionName = strategy.directionOptions.some(
+      ({ name }) => name === selectedDirection,
+    )
+      ? selectedDirection
+      : strategy.chosenDirection;
+    if (directionName !== selectedDirection) {
+      setSelectedDirection(directionName);
+      resetAiState(false);
+      persistSafeDraft({ selectedDirection: directionName });
+      return;
+    }
+    const generationKey = `${strategy.recommendationId}:${directionName}`;
+    if (autoGenerationKey.current === generationKey) return;
+    autoGenerationKey.current = generationKey;
+    if (
+      sourceRecommendationId !== strategy.recommendationId ||
+      targetProfile?.strategyProvenance?.selectedDirection !== directionName
+    ) {
+      setTargetProfile(null);
+      setSourceRecommendationId(null);
+      setGeneratedCv(null);
+      setPartial([]);
+      setReview(null);
+      setReviewEvents([]);
+    }
+    if (
+      sourceRecommendationId === strategy.recommendationId &&
+      targetProfile?.strategyProvenance?.selectedDirection === directionName
+    ) {
+      return;
+    }
+    void buildTarget();
+  }, [
+    buildTarget,
+    hydrated,
+    persistSafeDraft,
+    resetAiState,
+    selectedDirection,
+    sourceRecommendationId,
+    strategy,
+    targetProfile,
+  ]);
 
   const generate = async (
     requestedSections?: CvBuilderModelEvent['section'][],
     formOverride = form,
     clarificationRound = false,
   ) => {
-    if (!targetProfile) return setError('Create a Target Profile first.');
+    if (strategy === null) {
+      setError(t('Complete your Personalized Strategy before building a CV.'));
+      return;
+    }
+    if (
+      !targetProfile ||
+      (strategy &&
+        (sourceRecommendationId !== strategy.recommendationId ||
+          targetProfile.strategyProvenance?.selectedDirection !== selectedDirection))
+    ) {
+      return setError(t('Regenerate the Target Profile for the current direction.'));
+    }
     const validatedForm = CvBuilderFormSchema.safeParse(formOverride);
     if (!validatedForm.success) {
       setStatus('');
@@ -1453,6 +1883,7 @@ export function CvBuilderWorkspace({
       return;
     }
     const controller = startRequest();
+    const generation = requestGeneration.current;
     const acceptedBefore = requestedSections?.length
       ? partial.length
         ? partial
@@ -1475,18 +1906,23 @@ export function CvBuilderWorkspace({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          targetProfile,
+           ...(strategy ? { expectedRecommendationId: strategy.recommendationId } : {}),
+           selectedDirection,
+           targetProfile,
           form: validatedForm.data,
           requestedSections,
           mode: clarificationRound ? 'clarification' : undefined,
         }),
         signal: controller.signal,
       });
-      if (!response.ok) throw new Error((await response.json()).error ?? 'Could not create the CV.');
+      if (!response.ok) {
+        throw await apiErrorFromResponse(response, 'Could not create the CV.');
+      }
       const received: CvBuilderModelEvent[] = [];
       let receivedComplete = false;
       let rebuiltComplete = false;
       await readNdjson(response, (event) => {
+        if (controller.signal.aborted || generation !== requestGeneration.current) return;
         if (event.type === 'section') {
           const sectionEvent = {
             section: event.section,
@@ -1541,6 +1977,7 @@ export function CvBuilderWorkspace({
           }
         }
       });
+      if (controller.signal.aborted || generation !== requestGeneration.current) return;
       if (requestedSections?.length && !receivedComplete) {
         const merged = new Map(
           [...acceptedBefore, ...received].map((event) => [event.section, event]),
@@ -1563,9 +2000,18 @@ export function CvBuilderWorkspace({
         if (clarificationRound) setClarificationAnswers({});
       }
     } catch (reason) {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Could not create the CV.');
+      if (!controller.signal.aborted && generation === requestGeneration.current) {
+        const apiError = reason as CvBuilderApiError;
+        if (apiError?.code === 'STRATEGY_STALE') {
+          resetAiState(false);
+          if (strategy) autoGenerationKey.current = strategy.recommendationId;
+          persistSafeDraft();
+          router.refresh();
+        }
+        setError(reason instanceof Error ? reason.message : 'Could not create the CV.');
+      }
     } finally {
-      if (!controller.signal.aborted) {
+      if (!controller.signal.aborted && generation === requestGeneration.current) {
         setBusy(false);
         setStatus('');
       }
@@ -1575,6 +2021,7 @@ export function CvBuilderWorkspace({
   const reviewCv = async () => {
     if (!generatedCv || generatedCv.assessment.followUpQuestions?.length) return;
     const controller = startRequest();
+    const generation = requestGeneration.current;
     setReview(null);
     setReviewEvents([]);
     setStatus('AI is evaluating the current CV…');
@@ -1587,20 +2034,24 @@ export function CvBuilderWorkspace({
       const response = await fetch(`/api/applications/${applicationId}/cv-review`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
+        body: JSON.stringify({ text, template }),
         signal: controller.signal,
       });
       if (!response.ok) throw new Error((await response.json()).error ?? 'Could not review the CV.');
       await readNdjson(response, (event) => {
+        if (controller.signal.aborted || generation !== requestGeneration.current) return;
         if (event.type === 'section') setReviewEvents((current) => [...current, event as CvReviewSectionEvent]);
         else if (event.type === 'complete' && 'analysis' in event) setReview(event.analysis);
         else if (event.type === 'error') setError(event.message);
       });
+      if (controller.signal.aborted || generation !== requestGeneration.current) return;
       setStatus('');
     } catch (reason) {
-      if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Could not review the CV.');
+      if (!controller.signal.aborted && generation === requestGeneration.current) {
+        setError(reason instanceof Error ? reason.message : 'Could not review the CV.');
+      }
     } finally {
-      if (!controller.signal.aborted) setBusy(false);
+      if (!controller.signal.aborted && generation === requestGeneration.current) setBusy(false);
     }
   };
 
@@ -1726,14 +2177,7 @@ export function CvBuilderWorkspace({
           </div>
           <button
             className="rounded-lg border border-slate-300 px-4 py-2 text-xs font-semibold transition hover:border-rose-300 hover:text-rose-700"
-            onClick={() => {
-              localStorage.removeItem(storageKey);
-              setForm(prefill);
-              setTargetProfile(null);
-              setGeneratedCv(null);
-              setPartial([]);
-              setStep(0);
-            }}
+            onClick={clearDraft}
           >
             {t('Clear the draft on this device')}
           </button>
@@ -1741,10 +2185,29 @@ export function CvBuilderWorkspace({
       </header>
 
       <div className="mx-auto max-w-[1216px] px-5 py-8 print:max-w-none print:p-0">
-        <WorkflowProgress step={step} cvReady={Boolean(generatedCv)} onChange={setStep} />
+        <WorkflowProgress
+          step={step}
+          targetReady={Boolean(
+            strategy &&
+              selectedDirection &&
+              targetProfile &&
+              sourceRecommendationId === strategy.recommendationId &&
+              targetProfile.strategyProvenance?.selectedDirection === selectedDirection,
+          )}
+          cvReady={Boolean(
+            generatedCv &&
+              strategy &&
+              sourceRecommendationId === strategy.recommendationId &&
+              targetProfile?.strategyProvenance?.selectedDirection === selectedDirection,
+          )}
+          onChange={setStep}
+        />
         <div className="mt-10">
           {error && (
-            <div className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 print:hidden">
+            <div
+              role="alert"
+              className="mb-5 rounded-2xl border border-red-200 bg-red-50 px-5 py-4 text-sm text-red-700 print:hidden"
+            >
               {t(error)}
               {missingSections.length > 0 && (
                 <button
@@ -1763,44 +2226,53 @@ export function CvBuilderWorkspace({
           {step === 0 && (
             <section className="print:hidden">
               <div className="mx-auto max-w-4xl text-center">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Target Profile</p>
-                <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{t('Decide what the CV needs to prove.')}</h2>
+                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">{t('Target Profile')}</p>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{t('Choose your CV direction')}</h2>
                 <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-600">
-                  {t('The AI only uses university, programme and profile data stored in Supabase. Missing pieces are flagged, never invented.')}
+                        {t('Choose the direction for this CV. The AI only uses university, programme and profile data stored in Supabase; missing pieces are flagged, never invented.')}
                 </p>
-                <label className="mt-8 block text-left text-xs font-semibold text-slate-600">
-                  {t('Career direction (optional)')}
-                  <textarea
-                    className="mt-2 min-h-28 w-full resize-y rounded-xl border border-slate-300 bg-white p-4 text-sm text-slate-950 outline-none transition focus:border-rose-400 focus:ring-4 focus:ring-rose-50"
-                    value={careerDirection}
-                    onChange={(event) => setCareerDirection(event.target.value)}
-                    placeholder={t('e.g. Software Engineer in education technology')}
-                  />
-                </label>
-                <div className="mt-5 flex flex-wrap justify-center gap-3">
-                  <button
-                    className="rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
-                    disabled={busy}
-                    onClick={buildTarget}
-                  >
-                    {busy
-                      ? t('AI is working…')
-                      : targetProfile
-                        ? t('Regenerate Target Profile')
-                        : t('Create Target Profile')}
-                  </button>
-                  {targetProfile && (
-                    <button
-                      className="rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:text-rose-700"
-                      onClick={() => setStep(1)}
+                {strategy ? (
+                  <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50/50 px-4 py-3 text-left text-sm text-slate-700">
+                    <span>
+                       <span className="font-semibold">{t('CV direction')}: </span>
+                       {selectedDirection}
+                    </span>
+                    <Link
+                      className="font-semibold text-rose-700 underline-offset-4 hover:underline"
+                      href={`/ai-strategy/${applicationId}/strategy-report`}
                     >
-                      {t('Continue to content →')}
-                    </button>
-                  )}
-                </div>
+                      {t('Open Personalized Strategy')}
+                    </Link>
+                  </div>
+                ) : null}
+                {strategy && targetProfile && sourceRecommendationId === strategy.recommendationId ? (
+                  <button
+                    className="mt-5 rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:text-rose-700"
+                    onClick={() => setStep(1)}
+                  >
+                    {t('Continue to content →')}
+                  </button>
+                ) : null}
+                {strategy && error && !targetProfile ? (
+                  <button
+                    className="mt-5 rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
+                    disabled={busy}
+                    onClick={() => void buildTarget()}
+                  >
+                    {t('Retry Target Profile')}
+                  </button>
+                ) : null}
               </div>
               <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
-                <TargetProfile profile={targetProfile} status={status} />
+                <TargetProfile
+                  profile={targetProfile}
+                  status={status}
+                  strategy={strategy}
+                  selectedDirection={selectedDirection}
+                  onSelectDirection={handleDirectionChange}
+                  directionsDisabled={false}
+                  applicationId={applicationId}
+                />
               </div>
             </section>
           )}
@@ -1831,8 +2303,8 @@ export function CvBuilderWorkspace({
           )}
 
           {step === 2 && (
-            <section className="print:hidden">
-              <div className="mb-8">
+            <section className="print:block">
+              <div className="mb-8 print:hidden">
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">{t('CV Draft')}</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight">
                   {generatedCv ? t('Your CV is ready. Review and edit it.') : t('AI is building your CV.')}
@@ -1858,8 +2330,8 @@ export function CvBuilderWorkspace({
                 </div>
               )}
               {generatedCv && (
-                <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-                  <aside className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 xl:sticky xl:top-6">
+                <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)] print:block">
+                  <aside className="rounded-2xl border border-slate-200 bg-slate-50/70 p-5 xl:sticky xl:top-6 print:hidden">
                     <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-600">{t('Evidence coverage')}</p>
                     <h2 className="mt-3 text-xl font-semibold">{t('3 strengths')}</h2>
                     <ol className="mt-5 space-y-3">
@@ -1945,12 +2417,17 @@ export function CvBuilderWorkspace({
                         {t('Answer every question and regenerate the CV before running Review.')}
                       </p>
                     )}
-                    <button className="mt-3 w-full rounded-lg border border-rose-300 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 transition hover:bg-rose-100" onClick={() => setStep(3)}>
-                      {t('Choose layout →')}
+                    {tooLong && (
+                      <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+                        {t('The CV may run past two pages. Shorten the introduction or the bullets.')}
+                      </p>
+                    )}
+                    <button className="mt-3 w-full rounded-lg bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-rose-700" onClick={() => window.print()}>
+                      {t('Download PDF / Print CV')}
                     </button>
                   </aside>
-                  <div className="overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-4 sm:p-6">
-                    <div ref={previewRef} className="mx-auto w-fit">
+                  <div className="overflow-auto rounded-2xl border border-slate-200 bg-slate-100 p-4 sm:p-6 print:overflow-visible print:border-0 print:bg-white print:p-0">
+                    <div ref={previewRef} className="mx-auto w-fit print:w-full">
                       <CvPaper
                         form={form}
                         cv={generatedCv}
@@ -1973,72 +2450,6 @@ export function CvBuilderWorkspace({
             </section>
           )}
 
-          {step === 3 && generatedCv && (
-            <section className="print:block">
-              <div className="mb-8 print:hidden">
-                <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">Layout & PDF</p>
-                <h2 className="mt-2 text-3xl font-semibold tracking-tight">{t('Choose how the CV is presented')}</h2>
-                <p className="mt-2 text-sm text-slate-600">
-                  {t('Both layouts use the same content; you can switch templates before downloading the PDF.')}
-                </p>
-              </div>
-              <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)] print:block">
-              <aside className="rounded-2xl border border-slate-200 bg-white p-5 xl:sticky xl:top-6 print:hidden">
-                <p className="text-xs font-bold uppercase tracking-[0.2em] text-rose-600">Select layout</p>
-                <div className="mt-5 space-y-3">
-                  {(
-                    [
-                      ['academic', 'Harvard', 'Black and white, single column, ATS-optimized.'],
-                      ['technical', 'AACC', 'Light rose–slate, emphasizes personal character.'],
-                    ] as const
-                  ).map(([id, name, description]) => (
-                    <button
-                      key={id}
-                      type="button"
-                      aria-pressed={template === id}
-                      className={`w-full rounded-xl border p-4 text-left transition ${
-                        template === id
-                          ? 'border-rose-400 bg-rose-50'
-                          : 'border-slate-200 bg-white hover:border-rose-200'
-                      }`}
-                      onClick={() => setTemplate(id)}
-                    >
-                      <strong className="block">{name}</strong>
-                      <span className="mt-1 block text-xs leading-5 text-slate-500">
-                        {t(description)}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-                <p className="mt-5 rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">
-                  {t('AI suggests: {rationale}', { rationale: generatedCv.layout.rationale })}
-                </p>
-                {tooLong && (
-                  <p className="mt-3 rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
-                    {t('The CV may run past two pages. Shorten the introduction or the bullets.')}
-                  </p>
-                )}
-                <button
-                  className="mt-5 w-full rounded-lg bg-rose-600 px-5 py-3 text-sm font-bold text-white transition hover:bg-rose-700"
-                  onClick={() => window.print()}
-                >
-                  {t('Download PDF / Print CV')}
-                </button>
-              </aside>
-              <div className="overflow-auto rounded-2xl bg-slate-100 p-4 sm:p-6 print:overflow-visible print:bg-white print:p-0">
-                <div className="mx-auto w-fit print:w-full">
-                  <CvPaper
-                    form={form}
-                    cv={generatedCv}
-                    template={template}
-                    onFormChange={editForm}
-                    onCvChange={editGenerated}
-                  />
-                </div>
-              </div>
-              </div>
-            </section>
-          )}
         </div>
       </div>
     </main>

@@ -3,11 +3,13 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   createClientMock,
   loadCvBuilderContextMock,
+  loadLatestCvStrategySnapshotMock,
   generateCvTargetProfileMock,
   streamOpenAITextMock,
 } = vi.hoisted(() => ({
   createClientMock: vi.fn(),
   loadCvBuilderContextMock: vi.fn(),
+  loadLatestCvStrategySnapshotMock: vi.fn(),
   generateCvTargetProfileMock: vi.fn(),
   streamOpenAITextMock: vi.fn(),
 }));
@@ -16,6 +18,11 @@ vi.mock('@/lib/supabase/server', () => ({ createClient: createClientMock }));
 vi.mock('@/lib/ai/cv-builder-context', () => ({
   isCvBuilderEnabled: () => true,
   loadCvBuilderContext: loadCvBuilderContextMock,
+}));
+vi.mock('@/lib/ai/cv-builder-strategy', () => ({
+  loadLatestCvStrategySnapshot: loadLatestCvStrategySnapshotMock,
+  resolveCvSelectedDirection: (strategy: { directionOptions: Array<{ name: string }> }, selectedDirection: string) =>
+    strategy.directionOptions.find(({ name }) => name === selectedDirection) ?? null,
 }));
 vi.mock('@/lib/ai/cv-builder', () => ({
   generateCvTargetProfile: generateCvTargetProfileMock,
@@ -44,6 +51,15 @@ describe('POST cv-builder/target-profile', () => {
       confidence: 'low',
       limitations: [],
     });
+    loadLatestCvStrategySnapshotMock.mockResolvedValue({
+      version: 1,
+      recommendationId: 'rec-1',
+      createdAt: '2026-08-08T00:00:00Z',
+      directionOptions: [
+        { name: 'Accessible systems builder' },
+        { name: 'Research-led technologist' },
+      ],
+    });
     generateCvTargetProfileMock.mockResolvedValue({
       universityName: 'Example University',
       programmeName: 'BSc Computer Science',
@@ -56,7 +72,10 @@ describe('POST cv-builder/target-profile', () => {
       new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ careerDirection: 'Software Engineering' }),
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Research-led technologist',
+        }),
       }),
       { params: Promise.resolve({ id: 'app-1' }) },
     );
@@ -73,11 +92,137 @@ describe('POST cv-builder/target-profile', () => {
         apiKey: 'openai-key',
         model: 'gpt-4o',
         stream: streamOpenAITextMock,
+         strategy: expect.objectContaining({ recommendationId: 'rec-1' }),
+         selectedDirection: { name: 'Research-led technologist' },
       }),
     );
     expect(loadCvBuilderContextMock).toHaveBeenCalledWith(
       'app-1',
       expect.objectContaining({ id: 'user-1' }),
     );
+  });
+
+  it('requires the exact expected recommendation id and rejects legacy free text', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ careerDirection: 'Software Engineering' }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'INVALID_DIRECTION' });
+    expect(generateCvTargetProfileMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 401 before reading application data when the user is signed out', async () => {
+    createClientMock.mockResolvedValueOnce({
+      auth: {
+        getUser: vi.fn(async () => ({ data: { user: null } })),
+      },
+    });
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(401);
+    expect(loadCvBuilderContextMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for an application outside the signed-in owner scope', async () => {
+    loadCvBuilderContextMock.mockResolvedValueOnce(null);
+    const response = await POST(
+      new Request('http://localhost/api/applications/not-owned/cv-builder/target-profile', {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+        }),
+      }),
+      { params: Promise.resolve({ id: 'not-owned' }) },
+    );
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: 'Application not found' });
+    expect(loadLatestCvStrategySnapshotMock).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 for a non-owner before validating a malformed business payload', async () => {
+    loadCvBuilderContextMock.mockResolvedValueOnce(null);
+    const response = await POST(
+      new Request('http://localhost/api/applications/not-owned/cv-builder/target-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: '{"expectedRecommendationId":',
+      }),
+      { params: Promise.resolve({ id: 'not-owned' }) },
+    );
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toMatchObject({ error: 'Application not found' });
+    expect(loadLatestCvStrategySnapshotMock).not.toHaveBeenCalled();
+  });
+
+  it('rejects a stale recommendation before calling OpenAI', async () => {
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expectedRecommendationId: 'old-rec',
+          selectedDirection: 'Accessible systems builder',
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ code: 'STRATEGY_STALE' });
+    expect(generateCvTargetProfileMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks when no valid F7 strategy exists', async () => {
+    loadLatestCvStrategySnapshotMock.mockResolvedValue(null);
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Accessible systems builder',
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(422);
+    expect(await response.json()).toMatchObject({ code: 'STRATEGY_REQUIRED' });
+  });
+
+  it('rejects a direction that is not an exact F7 option', async () => {
+    loadLatestCvStrategySnapshotMock.mockResolvedValueOnce({
+      version: 1,
+      recommendationId: 'rec-1',
+      createdAt: '2026-08-08T00:00:00Z',
+      directionOptions: [{ name: 'Research-led technologist' }],
+    });
+    const response = await POST(
+      new Request('http://localhost/api/applications/app-1/cv-builder/target-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          expectedRecommendationId: 'rec-1',
+          selectedDirection: 'Forged direction',
+        }),
+      }),
+      { params: Promise.resolve({ id: 'app-1' }) },
+    );
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: 'INVALID_DIRECTION' });
+    expect(generateCvTargetProfileMock).not.toHaveBeenCalled();
   });
 });

@@ -35,14 +35,20 @@ export type StepperStep = {
   href?: string | undefined;
   /** Behind a paywall or otherwise unreachable. Never renders as complete. */
   locked?: boolean | undefined;
+  /**
+   * Explicit completion state for editable journeys. When omitted, completion
+   * is derived from `currentIndex` for backwards compatibility.
+   */
+  complete?: boolean | undefined;
 };
 
 type StepState = 'complete' | 'current' | 'upcoming' | 'locked';
 
 function stateFor(index: number, currentIndex: number, step: StepperStep): StepState {
   if (step.locked) return 'locked';
-  if (index < currentIndex) return 'complete';
   if (index === currentIndex) return 'current';
+  if (step.complete !== undefined) return step.complete ? 'complete' : 'upcoming';
+  if (index < currentIndex) return 'complete';
   return 'upcoming';
 }
 
@@ -122,6 +128,7 @@ export function Stepper({
   currentIndex,
   label = 'Progress through this journey',
   className,
+  onStepSelect,
 }: {
   steps: StepperStep[];
   /** Index of the step in progress. Everything before it reads as complete. */
@@ -129,6 +136,8 @@ export function Stepper({
   /** Accessible name for the navigation landmark. */
   label?: string;
   className?: string | undefined;
+  /** Makes unlocked steps buttons for client-managed journeys. */
+  onStepSelect?: ((key: string, index: number) => void) | undefined;
 }) {
   return (
     <nav
@@ -178,6 +187,14 @@ export function Stepper({
                 >
                   {content}
                 </a>
+              ) : onStepSelect && state !== 'locked' ? (
+                <button
+                  type="button"
+                  onClick={() => onStepSelect(step.key, index)}
+                  className="rounded-gb-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+                >
+                  {content}
+                </button>
               ) : (
                 content
               )}

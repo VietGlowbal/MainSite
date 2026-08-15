@@ -3,12 +3,19 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { isAdmin } from '@/lib/auth-helpers';
 import { createClient } from '@/lib/supabase/server';
-import { deleteArticle, getArticleById, updateArticle } from '@/lib/geo-cms';
+import {
+  deleteArticle,
+  GeoArticleConflictError,
+  getArticleById,
+  updateArticle,
+  validateArticleForPublish,
+} from '@/lib/geo-cms';
 
 /** Refresh the public pages that render GEO articles after a mutation. */
-function revalidateArticle(slug?: string) {
+function revalidateArticle(slug?: string, previousSlug?: string) {
   revalidatePath('/news');
   if (slug) revalidatePath(`/news/${slug}`);
+  if (previousSlug && previousSlug !== slug) revalidatePath(`/news/${previousSlug}`);
 }
 
 /**
@@ -43,6 +50,7 @@ const patchSchema = z.object({
   reading_time_minutes: z.number().int().positive().nullish(),
   meta: z.record(z.string(), z.unknown()).optional(),
   status: z.enum(['draft', 'published', 'archived']).optional(),
+  expected_updated_at: z.string().datetime({ offset: true }).optional(),
 });
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -70,10 +78,23 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
   }
 
   try {
+    const existing = await getArticleById(id);
+    if (!existing) return NextResponse.json({ error: 'Article not found' }, { status: 404 });
+
+    if (parsed.data.status === 'published') {
+      const errors = validateArticleForPublish({ ...existing, ...parsed.data });
+      if (errors.length) {
+        return NextResponse.json({ error: 'Complete the publish checklist', errors }, { status: 400 });
+      }
+    }
+
     const article = await updateArticle(id, parsed.data);
-    revalidateArticle(article.slug);
+    revalidateArticle(article.slug, existing.slug);
     return NextResponse.json({ article });
   } catch (err) {
+    if (err instanceof GeoArticleConflictError) {
+      return NextResponse.json({ error: err.message, code: 'ARTICLE_CONFLICT' }, { status: 409 });
+    }
     return NextResponse.json({ error: (err as Error).message }, { status: 400 });
   }
 }

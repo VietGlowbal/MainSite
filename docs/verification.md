@@ -1,9 +1,19 @@
 # Verification
 
-Last reconciled with `main` at `de4a7fe` on **2026-08-06**. The latest measured
-results are also summarized in [current-status.md](current-status.md).
+Last measured on branch `fix/feedback-118` at `24117e3` plus the PR #182 My
+Portal logo reconciliation and cron-budget work on **2026-08-14**. Results are
+also summarized in [current-status.md](current-status.md).
 
-## Gates — run after every page, not at the end of a wave
+## Gates
+
+GitHub Actions runs the full pull-request gate automatically. Local pushes do
+not run it. Use the same aggregate command manually before a PR when needed:
+
+```powershell
+npm.cmd run verify:pr
+```
+
+For targeted iteration, run the relevant individual commands:
 
 ```powershell
 npm.cmd run typecheck
@@ -13,10 +23,8 @@ npm.cmd test
 npm.cmd run build
 ```
 
-Run `npm ci` first on a fresh or suspect checkout. This local `node_modules` was
-out of sync on 2026-08-06: `mammoth` and `@react-pdf/renderer` were present in
-both manifests but not installed. Do not diagnose the resulting import failures
-as product regressions before repairing the install.
+Run `npm ci` first on a fresh or suspect checkout. Do not diagnose missing-module
+errors as product regressions before confirming the install is current.
 
 ⚠️ **`npm run build` is not optional.** A branch that was behind `origin` once
 merged cleanly, passed typecheck, and still failed on Vercel with
@@ -24,19 +32,26 @@ merged cleanly, passed typecheck, and still failed on Vercel with
 the other side's imports. Neither `tsc --noEmit` on the pre-merge tree nor the
 tests caught it. Run the build after every merge, not only before a PR.
 
-Current local snapshot before a clean reinstall:
+Current measured local snapshot (Node 24.19.0):
 
-| Gate | 2026-08-06 result |
+The 2026-08-14 Node 24.19.0 runtime alignment ran the complete
+`npm run verify:pr` gate after the logo-reconciliation work. The aggregate gate
+passed in 248 seconds.
+
+| Gate | 2026-08-14 result |
 |---|---|
 | Lint | **Pass:** 0 errors, 23 warnings. |
-| Base typecheck | Blocked by missing installed `mammoth` and `@react-pdf/renderer`; the missing renderer types also produce three follow-on implicit-`any` errors. |
-| Strict typecheck | Blocked by missing installed `mammoth`. |
-| Vitest | **1511 pass / 19 fail / 2 todo** across **127 passing / 3 failing** files. The observed failures all come from the two missing packages: CV PDF import, CV review API import, and CV target-profile API import. |
-| Build | Not rerun after the install drift was confirmed. |
+| Base typecheck | **Pass.** |
+| Strict typecheck | **Pass.** |
+| Vitest | **1983 pass / 2 todo** across **195 passing** files; coverage enabled. |
+| Build | **Pass:** Next.js 16.2.3 production build completed. Placeholder Supabase fetches and the existing NFT trace warning were non-fatal. |
 | E2E | Not rerun in the docs refresh. |
 
-These numbers describe this checkout, not the expected clean-CI baseline. After
-`npm ci`, rerun all five gates and replace this table with the clean result.
+The follow-up cron-budget repair was checked on the resulting working tree with
+10/10 focused Vitest tests, base and strict TypeScript, targeted ESLint, and a
+Next.js 16.2.3 production build; all passed. The full coverage suite and E2E
+were not rerun after that follow-up, so the aggregate table above remains the
+latest full-suite measurement rather than a claim about the current tree.
 
 Per wave, plus a legacy sweep of the page's whole tree:
 
@@ -319,15 +334,17 @@ foreach ($k in @('legal_name','date_of_birth','stripe_account_id','storage_key')
 `/` now renders the new design (Figma `375:9844`). The gate this section used to
 describe — "`grep -rn MissingContent src/features/marketing` must be empty" — was
 **not** met and was resolved a different way, so do not re-apply it as written:
-the components still contain `MissingContent`, and `/` avoids it by omitting the
-two sections that have no copy (testimonials, FAQ) and passing
-`showPlaceholders={false}` to the two that are partly written.
+the components still contain `MissingContent`, and `/` avoids those unfinished
+states by passing `showPlaceholders={false}` to the partly written feature and
+scholarship content. Testimonials and FAQ are now finished sections on both
+`/` and `/dev/home`; testimonials use supplied anonymous quotes and explicitly
+illustrative portraits rather than fabricated student identities.
 
 What must stay true instead is a **rendered** assertion, not a grep — and it
 already exists, in `tests/e2e/home-preview.spec.ts` → *"the real home page never
-ships a missing-content marker"*. Trust that over a source scan: `src/app/page.tsx`
-mentions `MissingContent` in its header comment, explaining which sections are
-omitted and why, so grepping the file reports a hit that means nothing.
+ships a missing-content marker"*. Trust that over a source scan: the marketing
+component tree intentionally retains preview-only placeholder branches, so a
+grep can report matches that never render on `/`.
 
 ⚠️ `grep -rn "home-landing" src` is **not** empty, and this doc previously
 implied it would be. The route was swapped, but the legacy tree
@@ -335,5 +352,6 @@ implied it would be. The route was swapped, but the legacy tree
 now orphaned — see known-issues.md §3. `globals.css` still carries two
 `.home-landing-root` rules for it.
 
-`/dev/home` deliberately keeps the full composition **including** the
-placeholders, so the outstanding copy gaps stay visible somewhere.
+`/dev/home` deliberately keeps the full composition, including the remaining
+preview-only feature placeholders, so the outstanding copy gaps stay visible
+somewhere.

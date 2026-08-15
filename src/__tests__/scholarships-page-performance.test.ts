@@ -169,10 +169,91 @@ describe('ScholarshipsPage performance', () => {
     await render;
   });
 
+  it('preserves the selected scholarship and filters through authentication', async () => {
+    mocks.createClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null } }),
+      },
+      from: vi.fn(() => query({ data: [], error: null })),
+    });
+    mocks.redirect.mockImplementation((destination: string) => {
+      throw new Error(`redirect:${destination}`);
+    });
+
+    await expect(
+      ScholarshipsPage({
+        searchParams: Promise.resolve({
+          q: 'Rhodes Scholarship',
+          country: 'United Kingdom',
+          page: '2',
+        }),
+      }),
+    ).rejects.toThrow(
+      'redirect:/auth?redirect=%2Fscholarships%3Fq%3DRhodes%2BScholarship%26country%3DUnited%2BKingdom%26page%3D2',
+    );
+  });
+
   it('loads the browser Supabase client only when save state is mutated', () => {
     const client = readFileSync('src/app/scholarships/scholarship-directory-client.tsx', 'utf8');
 
     expect(client).not.toContain("import { createClient } from '@/lib/supabase/client'");
     expect(client).toContain("await import('@/lib/supabase/client')");
+  });
+
+  it('counts a scholarship as saved only when its destination is also in My Portal', async () => {
+    mocks.createClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+      },
+      from: vi.fn((table: string) => {
+        if (table === 'user_universities') {
+          return query({
+            data: [{ university_id: 42, universities: { country: 'Canada' } }],
+            error: null,
+          });
+        }
+        if (table === 'user_scholarships') {
+          return query({
+            data: [
+              { scholarship_id: 1, university_id: 42 },
+              { scholarship_id: 2, university_id: null },
+              { scholarship_id: 3, university_id: 99 },
+            ],
+            error: null,
+          });
+        }
+        return query({ data: [], error: null });
+      }),
+    });
+
+    const page = await ScholarshipsPage({ searchParams: Promise.resolve({}) });
+    const client = clientFrom(page);
+
+    expect(client.props.savedScholarships).toEqual([
+      { scholarshipId: 1, universityId: 42 },
+    ]);
+  });
+
+  it('orders saved scholarships oldest-to-newest with a stable id tie-breaker', async () => {
+    const savedBuilder = query({ data: [], error: null });
+    const select = vi.fn(() => savedBuilder);
+    const order = vi.fn(() => savedBuilder);
+    Object.assign(savedBuilder, { select, order });
+    mocks.createClient.mockResolvedValue({
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'user-1' } } }),
+      },
+      from: vi.fn((table: string) =>
+        table === 'user_scholarships'
+          ? savedBuilder
+          : query({ data: [], error: null }),
+      ),
+    });
+
+    await ScholarshipsPage({ searchParams: Promise.resolve({}) });
+
+    expect(select).toHaveBeenCalledWith('id, scholarship_id, university_id, saved_at');
+    expect(order).toHaveBeenNthCalledWith(1, 'saved_at', { ascending: true });
+    expect(order).toHaveBeenNthCalledWith(2, 'id', { ascending: true });
   });
 });

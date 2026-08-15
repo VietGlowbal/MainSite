@@ -12,6 +12,7 @@ import {
 } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useHashScrollTarget } from '@/features/apply/hooks';
 import { useParseRefresh } from '@/features/apply/parse-refresh';
 import type { CourseApplication } from '@/lib/apply-types';
 import { Button } from '@/shared/ui/button';
@@ -42,6 +43,7 @@ function DeferredSavedList({
   focusUniversityId,
   setFocusUniversityId,
   setPlanError,
+  isPlus,
 }: {
   savedRowsPromise: Promise<SavedRow[]>;
   onPlan: (rows: SavedRow[]) => Promise<void>;
@@ -50,6 +52,7 @@ function DeferredSavedList({
   focusUniversityId: number | null;
   setFocusUniversityId: Dispatch<SetStateAction<number | null>>;
   setPlanError: Dispatch<SetStateAction<string | null>>;
+  isPlus?: boolean;
 }) {
   const savedRows = use(savedRowsPromise);
   const router = useRouter();
@@ -93,6 +96,7 @@ function DeferredSavedList({
       onGoToApplications={onGoToApplications}
       planning={planning}
       focusUniversityId={focusUniversityId}
+      isPlus={isPlus}
     />
   );
 }
@@ -140,6 +144,7 @@ export type ApplicationProgressClientProps = {
    */
   strategyReadyById?: Record<string, boolean>;
   isLoggedOut?: boolean;
+  isPlus?: boolean;
 };
 
 export function ApplicationProgressClient({
@@ -148,6 +153,7 @@ export function ApplicationProgressClient({
   savedRowsPromise,
   strategyReadyById = {},
   isLoggedOut = false,
+  isPlus,
 }: ApplicationProgressClientProps) {
   const router = useRouter();
 
@@ -156,6 +162,7 @@ export function ApplicationProgressClient({
   useParseRefresh(applications);
 
   const applicationsRef = useRef<HTMLElement>(null);
+  const savedSectionRef = useHashScrollTarget<HTMLDivElement>('#saved');
   const [planning, setPlanning] = useState(false);
   const [planError, setPlanError] = useState<string | null>(null);
   /** Set by ?focus=<universityId> below; the saved list ticks and scrolls to it. */
@@ -294,17 +301,29 @@ export function ApplicationProgressClient({
           </Button>
         </div>
       ) : (
-        <Suspense fallback={<SavedListSkeleton />}>
-          <DeferredSavedList
-            savedRowsPromise={savedRowsPromise}
-            onPlan={planApplications}
-            onGoToApplications={scrollToApplications}
-            planning={planning}
-            focusUniversityId={focusUniversityId}
-            setFocusUniversityId={setFocusUniversityId}
-            setPlanError={setPlanError}
-          />
-        </Suspense>
+        /*
+         * Keep the fragment target OUTSIDE Suspense. On a direct or client-side
+         * visit to /apply#saved, the saved rows may still be streaming; if the
+         * id only appears with SavedListSection, the browser looks for it while
+         * the skeleton is mounted, finds nothing, and leaves the student at the
+         * top of My Portal. `savedSectionRef` also retries from a passive effect
+         * because the App Router can run its cross-page fragment lookup before
+         * this client subtree mounts at all.
+         */
+        <div ref={savedSectionRef} id="saved" className="scroll-mt-gb-9xl">
+          <Suspense fallback={<SavedListSkeleton />}>
+            <DeferredSavedList
+              savedRowsPromise={savedRowsPromise}
+              onPlan={planApplications}
+              onGoToApplications={scrollToApplications}
+              planning={planning}
+              focusUniversityId={focusUniversityId}
+              setFocusUniversityId={setFocusUniversityId}
+              setPlanError={setPlanError}
+              isPlus={isPlus}
+            />
+          </Suspense>
+        </div>
       )}
     </>
   );

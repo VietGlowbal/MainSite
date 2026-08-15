@@ -49,6 +49,9 @@ export const TID = {
    */
   heroPartners: 'hero-partners',
 
+  /** The continuously rotating scholarship pillars on the public Home page. */
+  homeScholarships: 'home-scholarships',
+
   // ── Auth ──────────────────────────────────────────────────────────────
   authEmailInput: 'auth-email',
   authPasswordInput: 'auth-password',
@@ -73,6 +76,9 @@ export const TID = {
   scholarshipList: 'scholarship-list',
   scholarshipCard: 'scholarship-card',
   scholarshipContinueToApply: 'scholarship-continue-to-apply',
+  scholarshipUniversityPicker: 'scholarship-university-picker',
+  scholarshipUniversityOption: 'scholarship-university-option',
+  scholarshipUniversitySave: 'scholarship-university-save',
 
   // ── Onboarding ────────────────────────────────────────────────────────
   onboardingStep: 'onboarding-step',

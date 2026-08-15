@@ -1,5 +1,83 @@
 {
   "enabledPlugins": {
     "frontend-design@claude-plugins-official": true
+  },
+  "permissions": {
+    "allow": [
+      "Bash(git status:*)",
+      "Bash(git log:*)",
+      "Bash(git diff:*)",
+      "Bash(git show:*)",
+      "Bash(git branch:*)",
+      "Bash(git ls-files:*)",
+      "Bash(git blame:*)",
+      "Bash(git remote -v)",
+      "Bash(git stash list)",
+      "Bash(ls:*)",
+      "Bash(cat:*)",
+      "Bash(head:*)",
+      "Bash(tail:*)",
+      "Bash(wc:*)",
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(rg:*)",
+      "Bash(sed -n:*)",
+      "Bash(echo:*)",
+      "Bash(which:*)",
+      "Bash(sort:*)",
+      "Bash(uniq:*)",
+      "Bash(awk:*)",
+      "Bash(npm run typecheck)",
+      "Bash(npm run typecheck:strict)",
+      "Bash(npm run lint)",
+      "Bash(npm test)",
+      "Bash(npm run test)",
+      "Bash(npm run test:ci)",
+      "Bash(npm run build)",
+      "Bash(npm run verify:pr)",
+      "Bash(npm run check:node)",
+      "Bash(npx tsc --noEmit)",
+      "Bash(npx tsc -p:*)",
+      "Bash(npx vitest run:*)",
+      "Bash(npx eslint:*)",
+      "Bash(node --version)",
+      "Bash(node .claude/hooks/:*)",
+      "PowerShell(git status:*)",
+      "PowerShell(git log:*)",
+      "PowerShell(git diff:*)",
+      "PowerShell(git show:*)",
+      "PowerShell(git branch:*)",
+      "PowerShell(npm run typecheck)",
+      "PowerShell(npm run typecheck:strict)",
+      "PowerShell(npm run lint)",
+      "PowerShell(npm test)",
+      "PowerShell(npm run test)",
+      "PowerShell(npm run build)",
+      "PowerShell(npm run verify:pr)",
+      "PowerShell(npm.cmd run typecheck)",
+      "PowerShell(npm.cmd run typecheck:strict)",
+      "PowerShell(npm.cmd run lint)",
+      "PowerShell(npm.cmd test)",
+      "PowerShell(npm.cmd run build)",
+      "PowerShell(npm.cmd run verify:pr)",
+      "PowerShell(npx tsc --noEmit)",
+      "PowerShell(npx tsc -p:*)",
+      "PowerShell(npx vitest run:*)",
+      "PowerShell(npx eslint:*)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node .claude/hooks/migration-guard.mjs",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
   }
 }

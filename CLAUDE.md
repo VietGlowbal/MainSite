@@ -10,6 +10,34 @@ Hướng dẫn này giúp Claude Code hiểu đúng bối cảnh dự án GlowBa
 >
 > chủ dự án yêu cầu bộ ghi chú bàn giao này. Đừng xoá.
 
+## Môi trường & lệnh hay dùng
+
+Máy dev là **Windows**; shell mặc định là PowerShell, Bash (Git Bash) cũng có.
+
+- **Thư mục làm việc đã đúng sẵn** — đừng prefix `cd`/`Set-Location`. Lịch sử
+  phiên cho thấy hơn 1.100 lệnh đã lãng phí token vì việc này.
+- **`jq` KHÔNG được cài.** Đừng viết pipeline dựa vào `jq` — dùng `node -e`.
+- Node được ghim ở `24.19.x` (`.nvmrc`, `engines`).
+
+| Việc | Lệnh |
+|---|---|
+| Typecheck | `npm run typecheck` · strict: `npm run typecheck:strict` |
+| Lint | `npm run lint` |
+| Unit test | `npm test` · một file: `npx vitest run <file>` |
+| Build (bắt buộc sau mỗi merge) | `npm run build` |
+| Cổng đầy đủ trước PR | `npm run verify:pr` |
+| E2E | `npm run test:e2e` |
+
+Chi tiết + baseline đo được: `docs/verification.md`.
+
+**Slash command có sẵn** (`.claude/commands/`):
+`/verify` chọn đúng cổng kiểm tra cho thay đổi hiện tại · `/db-schema` liệt kê
+schema Supabase thật (**không bao giờ đoán tên bảng** — xem `docs/README.md`).
+
+Một PreToolUse hook (`.claude/hooks/migration-guard.mjs`) sẽ nhắc khi bạn sửa
+một file `supabase-*.sql` đã commit: migration đã chạy không sửa lại được, phải
+viết file follow-up mới (`docs/known-issues.md §0`).
+
 ## Bối cảnh sản phẩm
 
 GlowBal là nền tảng AI đồng hành cho sinh viên Việt Nam apply du học & săn học bổng. Các tính năng lõi:

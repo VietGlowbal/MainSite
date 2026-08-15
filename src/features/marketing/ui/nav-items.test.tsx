@@ -16,7 +16,7 @@ describe('getMarketingNavPresentation', () => {
           ],
         },
         { href: '/ai-strategy', label: 'Strategy Master' },
-        { href: '/apply', label: 'My Portal' },
+        { href: '/apply#portal', label: 'My Portal' },
       ],
       primaryAction: { href: '/onboarding', label: 'Plan your Global Education' },
       accountAction: { href: '/auth?mode=signup', label: 'Register' },

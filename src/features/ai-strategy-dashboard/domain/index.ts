@@ -86,7 +86,12 @@ export type { RecommendationLink, StrategyTool, StrategyToolKey } from './strate
 export { COACH_SEED_INTENTS } from './coach';
 export type { CoachMessage, CoachRole, CoachSeedIntent, CoachThread } from './coach';
 
-export { isOnboardingComplete, nextOnboardingStep, onboardingStepHref } from './onboarding';
+export {
+  confirmedReflectionContinueHref,
+  isOnboardingComplete,
+  nextOnboardingStep,
+  onboardingStepHref,
+} from './onboarding';
 export type { OnboardingState, OnboardingStep } from './onboarding';
 
 export {

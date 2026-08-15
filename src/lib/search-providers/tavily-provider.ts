@@ -95,8 +95,6 @@ const AIRankingResponseSchema = z.object({
   rankedResults: z.array(RankedResultSchema).describe('Top course results ranked by quality'),
 });
 
-type AIRankingResponse = z.infer<typeof AIRankingResponseSchema>;
-
 /**
  * Tavily Search Provider
  */
@@ -353,7 +351,7 @@ Reject results that don't meet quality standards. Better to return 3 great resul
         throw new Error('No content in AI response');
       }
 
-      const parsed: AIRankingResponse = JSON.parse(content);
+      const parsed = AIRankingResponseSchema.parse(JSON.parse(content));
       
       // Filter out rejected results and convert to SearchResult format
       return parsed.rankedResults

@@ -10,9 +10,11 @@ import {
 } from '@/features/marketing/ui';
 import { Badge, Container, Footer, VerifiedMark } from '@/shared/ui';
 import { formatMoney } from '@/lib/currency';
+import { T } from '@/lib/i18n';
 import type { PublicMentor, PublicMentorReview } from '@/lib/mentors';
 import type { Currency, MentorAvailabilitySlot } from '@/types/mentorship';
 import { MentorBooking } from './mentor-booking';
+import { LocalizedReviewByline } from './mentor-i18n';
 
 /**
  * /mentors/[id] — Figma 375:21633 "Detail cố vấn" (1440x1823).
@@ -84,7 +86,7 @@ function SectionCard({
         id={`${id}-heading`}
         className="font-display text-gb-display-xs font-semibold text-fg"
       >
-        {heading}
+        <T k={heading} />
       </h2>
       <div className="mt-gb-3xl">{children}</div>
     </section>
@@ -102,13 +104,7 @@ function MentorHeader({ mentor }: { mentor: PublicMentor }) {
     ? `${years[0]} – ${years[1]}`
     : (years[0]?.toString() ?? null);
 
-  const courseLine = [
-    period,
-    DEGREE_LABELS[mentor.degree_level] ?? mentor.degree_level,
-    mentor.subject,
-  ]
-    .filter(Boolean)
-    .join(' · ');
+  const degreeLabel = DEGREE_LABELS[mentor.degree_level] ?? mentor.degree_level;
 
   return (
     <div className="flex flex-col gap-gb-3xl rounded-gb-2xl bg-surface-muted p-gb-4xl sm:flex-row sm:gap-gb-5xl">
@@ -150,7 +146,11 @@ function MentorHeader({ mentor }: { mentor: PublicMentor }) {
           ) : null}
         </div>
 
-        {courseLine ? <p className="text-gb-md text-fg-tertiary">{courseLine}</p> : null}
+        <p className="text-gb-md text-fg-tertiary">
+          {period ? <>{period} · </> : null}
+          <T k={degreeLabel} />
+          {mentor.subject ? <> · <T k={mentor.subject} /></> : null}
+        </p>
 
         <MentorStats mentor={mentor} />
       </div>
@@ -169,16 +169,31 @@ function MentorStats({ mentor }: { mentor: PublicMentor }) {
    * the table is today. So an unrated mentor says so instead of showing a 0.0
    * that reads like a bad score.
    */
-  const ratingLabel =
-    sessions > 0 && rating > 0 ? `${rating.toFixed(1)} / 5` : 'No ratings yet';
-
-  const parts = [
-    ratingLabel,
-    sessions === 1 ? '1 session delivered' : `${sessions} sessions delivered`,
-    mentor.languages.length > 0 ? mentor.languages.join(', ') : null,
-  ].filter(Boolean) as string[];
-
-  return <p className="text-gb-md text-fg-tertiary">{parts.join('  |  ')}</p>;
+  return (
+    <p className="text-gb-md text-fg-tertiary">
+      {sessions > 0 && rating > 0 ? (
+        <T k="{rating} / 5" vars={{ rating: rating.toFixed(1) }} />
+      ) : (
+        <T k="No ratings yet" />
+      )}
+      {'  |  '}
+      <T
+        k={sessions === 1 ? '{count} session delivered' : '{count} sessions delivered'}
+        vars={{ count: sessions }}
+      />
+      {mentor.languages.length > 0 ? (
+        <>
+          {'  |  '}
+          {mentor.languages.map((language, index) => (
+            <span key={language}>
+              {index > 0 ? ', ' : null}
+              <T k={language} />
+            </span>
+          ))}
+        </>
+      ) : null}
+    </p>
+  );
 }
 
 /** Figma 375:21811 — the booking card in the sidebar. */
@@ -199,13 +214,13 @@ function BookingCard({
       </span>
 
       <div className="mt-gb-3xl flex flex-col gap-gb-xs">
-        <p className="text-gb-md font-semibold text-fg-brand">Book this advisor</p>
+        <p className="text-gb-md font-semibold text-fg-brand"><T k="Book this advisor" /></p>
         <p className="text-gb-xl font-semibold text-fg">
           {formatMoney(amount, currency)}
-          <span className="text-fg-tertiary">/hour</span>
+          <span className="text-fg-tertiary"><T k="/hour" /></span>
         </p>
         <p className="text-gb-sm text-fg-tertiary">
-          + 10% service fee · paid securely through Stripe
+          <T k="+ 10% service fee · paid securely through Stripe" />
         </p>
       </div>
 
@@ -219,7 +234,7 @@ function BookingCard({
         href={bookHref}
         className="mt-gb-2xl flex w-full items-center justify-center rounded-gb-md bg-brand px-gb-xl py-gb-lg text-gb-md font-semibold text-on-brand transition-colors hover:bg-brand-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
       >
-        Book a session
+        <T k="Book a session" />
       </a>
     </div>
   );
@@ -256,7 +271,7 @@ function ReviewList({
   if (reviews.length === 0) {
     return (
       <p className="text-gb-lg text-fg-tertiary">
-        No reviews yet — be the first to book and leave one.
+        <T k="No reviews yet — be the first to book and leave one." />
       </p>
     );
   }
@@ -264,12 +279,14 @@ function ReviewList({
   return (
     <div className="flex flex-col gap-gb-2xl">
       <p className="text-gb-sm text-fg-muted">
-        {count === 1 ? '1 review' : `${count} reviews`}
+        <T k={count === 1 ? '{count} review' : '{count} reviews'} vars={{ count }} />
       </p>
       <ul className="flex flex-col gap-gb-xl">
         {reviews.map((review) => (
           <li key={review.id} className="rounded-gb-xl bg-surface p-gb-2xl">
-            <p className="text-gb-sm font-semibold text-fg">{review.rating} / 5</p>
+            <p className="text-gb-sm font-semibold text-fg">
+              <T k="{rating} / 5" vars={{ rating: review.rating }} />
+            </p>
             {review.comment ? (
               <p className="mt-gb-md text-gb-md text-fg-tertiary">{review.comment}</p>
             ) : null}
@@ -283,11 +300,7 @@ function ReviewList({
                 children do not survive hydration reliably, which cost a round
                 on the availability copy in mentor-booking.tsx. */}
             <p className="mt-gb-md text-gb-xs text-fg-muted">
-              {`Glowbal student · ${new Date(review.created_at).toLocaleDateString('en-GB', {
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric',
-              })}`}
+              <LocalizedReviewByline createdAt={review.created_at} />
             </p>
           </li>
         ))}
@@ -328,7 +341,7 @@ export function MentorDetail({
             href="/advisors"
             className="inline-flex items-center gap-gb-sm text-gb-sm font-semibold text-fg-tertiary transition-colors hover:text-fg"
           >
-            <span aria-hidden="true">←</span> All advisors
+            <span aria-hidden="true">←</span> <T k="All advisors" />
           </Link>
         </Container>
 
@@ -351,7 +364,9 @@ export function MentorDetail({
             <div className="order-2 flex min-w-0 flex-col gap-gb-5xl lg:order-none">
               {mentor.bio ? (
                 <SectionCard id="about" heading="About">
-                  <p className="whitespace-pre-line text-gb-lg text-fg-tertiary">{mentor.bio}</p>
+                  <p className="whitespace-pre-line text-gb-lg text-fg-tertiary">
+                    <T k={mentor.bio} />
+                  </p>
                 </SectionCard>
               ) : null}
 
@@ -360,7 +375,7 @@ export function MentorDetail({
                   <ul className="flex flex-wrap gap-gb-md">
                     {mentor.strengths.map((strength) => (
                       <li key={strength}>
-                        <Badge variant="brand-chip">{strength}</Badge>
+                        <Badge variant="brand-chip"><T k={strength} /></Badge>
                       </li>
                     ))}
                   </ul>
@@ -372,7 +387,7 @@ export function MentorDetail({
                   <ul className="flex flex-wrap gap-gb-md">
                     {mentor.help_topics.map((topic) => (
                       <li key={topic}>
-                        <Badge variant="info-chip">{topic}</Badge>
+                        <Badge variant="info-chip"><T k={topic} /></Badge>
                       </li>
                     ))}
                   </ul>
@@ -405,16 +420,15 @@ export function MentorDetail({
                  * send the student to an error, so it says so up front.
                  */
                 <div className="rounded-gb-2xl border border-line bg-surface p-gb-4xl">
-                  <p className="text-gb-md font-semibold text-fg">Not bookable yet</p>
+                  <p className="text-gb-md font-semibold text-fg"><T k="Not bookable yet" /></p>
                   <p className="mt-gb-md text-gb-sm text-fg-tertiary">
-                    This advisor hasn&rsquo;t set a session price. Browse the directory for advisors
-                    who are taking bookings.
+                    <T k="This advisor hasn’t set a session price. Browse the directory for advisors who are taking bookings." />
                   </p>
                   <Link
                     href="/advisors"
                     className="mt-gb-2xl flex w-full items-center justify-center rounded-gb-md border border-line bg-surface px-gb-xl py-gb-lg text-gb-md font-semibold text-fg transition-colors hover:bg-surface-hover"
                   >
-                    Find an advisor
+                    <T k="Find an advisor" />
                   </Link>
                 </div>
               )}

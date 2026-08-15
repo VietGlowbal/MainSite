@@ -93,6 +93,14 @@ export const strategyRecommendationSchema = z.object({
   differentiationProposal: z.string().min(1).max(600),
   // F7.6
   roadmap: strategyRoadmapSchema,
+}).superRefine((strategy, context) => {
+  if (!strategy.directionOptions.some(({ name }) => name === strategy.chosenDirection)) {
+    context.addIssue({
+      code: 'custom',
+      path: ['chosenDirection'],
+      message: 'chosenDirection must match one of directionOptions',
+    });
+  }
 });
 export type StrategyRecommendation = z.infer<typeof strategyRecommendationSchema>;
 
