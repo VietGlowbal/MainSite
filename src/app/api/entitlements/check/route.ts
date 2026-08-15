@@ -8,7 +8,7 @@ import { getUserEntitlement, canCreateCourseSearchSession } from '@/lib/entitlem
  * Check user's entitlement and usage limits
  * Returns entitlement data and whether user can create a search session
  */
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const supabase = await createClient();
     

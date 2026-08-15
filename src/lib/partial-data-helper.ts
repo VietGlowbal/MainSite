@@ -12,14 +12,11 @@ import type { CourseApplication } from './apply-types';
 /**
  * Key fields that should be present in a complete course application
  */
-const KEY_FIELDS = [
-  'tuition_fees',
-  'entry_requirements',
-  'deadlines',
-  'application_method',
-] as const;
-
-type KeyField = typeof KEY_FIELDS[number];
+type KeyField =
+  | 'tuition_fees'
+  | 'entry_requirements'
+  | 'deadlines'
+  | 'application_method';
 
 /**
  * Field labels for display

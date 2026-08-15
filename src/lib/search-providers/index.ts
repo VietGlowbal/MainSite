@@ -143,7 +143,7 @@ export async function checkProviderHealth(): Promise<{
       
       // Try to create provider instance (validates configuration)
       try {
-        const provider = new TavilySearchProvider();
+        new TavilySearchProvider();
         
         // Optional: Perform actual connectivity test
         // Skipped in health check to avoid API costs

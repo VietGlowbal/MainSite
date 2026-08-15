@@ -4,7 +4,6 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { canCreateCourseSearchSession, getUserEntitlement } from '@/lib/entitlements/entitlement-service';
 import { searchCachedCourses, storeCachedResults, type ConfidenceLabel } from '@/lib/course-search/cached-search';
 import { getSearchProvider } from '@/lib/search-providers';
-import type { SearchResult } from '@/lib/search-providers';
 import { courseSearchSessionLimiter, applyRateLimit } from '@/lib/rate-limiter';
 
 // Vercel Pro allows long-running functions (up to 300s). Give the synchronous
@@ -116,7 +115,7 @@ export async function POST(request: Request) {
     // Create Supabase client and check authentication
     const supabase = await createClient();
     
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
     
     // Task 17.1 - Allow anonymous users (logged-out users)
     let userId: string | null = null;

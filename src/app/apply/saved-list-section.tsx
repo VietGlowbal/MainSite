@@ -21,7 +21,7 @@ import { ICONS, KitIcon } from '@/shared/ui/icons';
 import { Modal } from '@/shared/ui/modal';
 import { useLanguage } from '@/lib/i18n';
 import { PlusUpgradeModal } from '@/components/plus/plus-upgrade-modal';
-import { usePlusStatus } from '@/features/plus/hooks';
+import { usePlusStatus } from '@/features/plus';
 import { ApplySectionHeading } from './section-heading';
 
 /**

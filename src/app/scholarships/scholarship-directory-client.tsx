@@ -35,7 +35,7 @@ import {
   ScholarshipUniversityPicker,
   type ScholarshipUniversityOption,
 } from './scholarship-university-picker';
-import { usePlusStatus } from '@/features/plus/hooks';
+import { usePlusStatus } from '@/features/plus';
 import { PlusUpgradeModal } from '@/components/plus/plus-upgrade-modal';
 
 const ScholarshipDashboard = dynamic(

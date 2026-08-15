@@ -6,14 +6,7 @@
  * Run with: npm test ai-course-selector-integration.test.ts
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-
-// Import services under test
-import {
-  getUserEntitlement,
-  canCreateCourseSearchSession,
-  canAddCoursesToApply,
-} from '@/lib/entitlements/entitlement-service';
+import { describe, it, expect } from 'vitest';
 
 /**
  * CRITICAL INTEGRATION TEST NOTES:
@@ -34,8 +27,6 @@ describe('AI Course Selector - Integration Tests (Task 28)', () => {
       // SKIP in CI, RUN MANUALLY with valid admin user ID
       
       // Example admin user ID - replace with real admin from your DB
-      const adminUserId = 'admin-test-user-id';
-      
       // Uncomment when ready to test with real admin:
       // const entitlement = await getUserEntitlement(adminUserId);
       // expect(entitlement.plan).toBe('admin');
@@ -48,8 +39,6 @@ describe('AI Course Selector - Integration Tests (Task 28)', () => {
     });
 
     it('should allow admin to bypass course search limits', async () => {
-      const adminUserId = 'admin-test-user-id';
-      
       // Uncomment when ready to test with real admin:
       // const result = await canCreateCourseSearchSession(adminUserId);
       // expect(result.allowed).toBe(true);
@@ -59,8 +48,6 @@ describe('AI Course Selector - Integration Tests (Task 28)', () => {
     });
 
     it('should allow admin to bypass course add limits', async () => {
-      const adminUserId = 'admin-test-user-id';
-      
       // Uncomment when ready to test with real admin:
       // const result = await canAddCoursesToApply(adminUserId, 100);
       // expect(result.allowed).toBe(true);

@@ -138,7 +138,6 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
 
   const isFulfilled = status.status === 'fulfilled';
   const isClaimed = status.status === 'claimed';
-  const isPending = status.status === 'pending';
   const isExpired = status.status === 'expired' || status.status === 'failed';
   const accountNumberToDisplay = status.account_number || status.account_number_masked || '';
 
