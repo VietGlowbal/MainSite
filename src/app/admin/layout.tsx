@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { isAdmin } from '@/lib/auth-helpers';
+import { isAdmin, isPaymentAdmin } from '@/lib/auth-helpers';
 import { Badge } from '@/shared/ui';
 import { AdminTabs } from './admin-tabs';
 
@@ -26,6 +26,8 @@ export default async function AdminLayout({ children }: { children: ReactNode })
   if (!user) redirect('/auth?redirect=/admin');
   if (!(await isAdmin(user.id))) redirect('/apply');
 
+  const canViewPayments = await isPaymentAdmin(user.id, user.email);
+
   return (
     <main className="min-h-screen bg-transparent px-gb-xl py-gb-3xl md:px-gb-4xl md:py-gb-5xl">
       <div className="mx-auto flex max-w-gb-desktop flex-col gap-gb-4xl">
@@ -42,7 +44,7 @@ export default async function AdminLayout({ children }: { children: ReactNode })
             </p>
           </div>
 
-          <AdminTabs />
+          <AdminTabs canViewPayments={canViewPayments} />
         </header>
 
         {children}

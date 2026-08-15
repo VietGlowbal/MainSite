@@ -7,6 +7,7 @@ import {
 } from '@/features/scholarships/directory-query';
 import { loadScholarshipDirectory } from '@/features/scholarships/directory-loader';
 import { ScholarshipDirectoryClient } from './scholarship-directory-client';
+import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 
 export const revalidate = 43200;
 
@@ -35,7 +36,7 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
         .order('created_at', { ascending: false })
     : Promise.resolve({ data: [] });
 
-  const [directory, facets, savedResult, applicationsResult, savedScholarshipsResult] =
+  const [directory, facets, savedResult, applicationsResult, savedScholarshipsResult, profileResult] =
     await Promise.all([
       directoryPromise,
       getScholarshipQueries().facets(),
@@ -50,7 +51,14 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
         .eq('user_id', user.id)
         .order('saved_at', { ascending: true })
         .order('id', { ascending: true }),
+      supabase
+        .from('student_profiles')
+        .select('plus_status, plus_expires_at, is_admin')
+        .eq('user_id', user.id)
+        .maybeSingle(),
     ]);
+
+  const isPlus = isPlusEntitlementActive(profileResult.data ?? {});
 
   if (directory && directory.canonicalSearch !== currentSearch) {
     redirect(directory.canonicalSearch ? `/scholarships?${directory.canonicalSearch}` : '/scholarships');
@@ -62,7 +70,11 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
   }>;
   const savedUniversityIds = savedRows.map((row) => row.university_id);
   const savedUniversityIdSet = new Set(savedUniversityIds);
-  const savedScholarships = (savedScholarshipsResult.data ?? [])
+  const savedScholarshipsData = (savedScholarshipsResult.data ?? []) as Array<{
+    scholarship_id: number;
+    university_id: number;
+  }>;
+  const savedScholarships = savedScholarshipsData
     .map((row) => ({
       scholarshipId: Number(row.scholarship_id),
       universityId: Number(row.university_id),
@@ -84,7 +96,18 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
         .filter((country): country is string => Boolean(country)),
     ),
   ];
-  const applications = applicationsResult.data ?? [];
+  const applications = (applicationsResult.data ?? []) as Array<{
+    id: string;
+    university_name: string;
+    course_name: string;
+    degree_level: string | null;
+    subject: string | null;
+    country: string | null;
+    country_flag: string | null;
+    intake: string | null;
+    deadline: string | null;
+    status: string;
+  }>;
 
   // AI-owned data path: intentionally unchanged by this performance pass.
   const appIds = applications.map((application) => application.id);
@@ -127,6 +150,7 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
           focusUniversity={directory?.focusUniversity ?? null}
           savedScholarships={savedScholarships}
           canonicalSearch={directory?.canonicalSearch ?? currentSearch}
+          isPlus={isPlus}
         />
       </div>
     </main>

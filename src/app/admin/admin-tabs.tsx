@@ -3,10 +3,14 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-const TABS = [
+export type AdminTabsProps = {
+  canViewPayments?: boolean;
+};
+
+const ALL_TABS = [
   { href: '/admin', label: 'Overview', match: 'exact' as const },
   { href: '/admin/achievers', label: 'Advisor applications', match: 'prefix' as const },
-  { href: '/admin/bookings', label: 'Bookings & payments', match: 'prefix' as const },
+  { href: '/admin/bookings', label: 'Bookings & payments', match: 'prefix' as const, paymentOnly: true },
   { href: '/admin/news', label: 'News & GEO', match: 'prefix' as const },
   { href: '/admin/users', label: 'Users', match: 'prefix' as const },
   { href: '/admin/coordinators', label: 'Coordinators', match: 'prefix' as const },
@@ -22,12 +26,13 @@ const TABS = [
  * and a horizontal scroller hides tabs behind an edge with nothing to say they
  * are there.
  */
-export function AdminTabs() {
+export function AdminTabs({ canViewPayments = false }: AdminTabsProps) {
   const pathname = usePathname();
+  const tabs = ALL_TABS.filter((tab) => !tab.paymentOnly || canViewPayments);
 
   return (
     <nav aria-label="Admin sections" className="flex flex-wrap gap-gb-md">
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const active =
           tab.match === 'exact'
             ? pathname === tab.href
