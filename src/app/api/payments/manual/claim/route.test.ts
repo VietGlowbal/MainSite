@@ -36,6 +36,13 @@ describe('POST /api/payments/manual/claim', () => {
         data: { ok: true, status: 'claimed', review_deadline_at: '2026-08-16T00:00:00.000Z' },
         error: null,
       })),
+      from: vi.fn(() => ({
+        select: vi.fn(() => ({
+          eq: vi.fn(() => ({
+            maybeSingle: vi.fn(async () => ({ data: null })),
+          })),
+        })),
+      })),
     });
 
     const response = await POST(new NextRequest('https://glowbal.test/api/payments/manual/claim', {
