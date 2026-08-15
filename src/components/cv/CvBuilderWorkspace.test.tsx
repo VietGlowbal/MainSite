@@ -1227,7 +1227,7 @@ describe('CvBuilderWorkspace', () => {
       </LanguageProvider>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Chọn định hướng CV' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Chọn định hướng cho CV của bạn' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Các định hướng chiến lược' })).toBeVisible();
     expect(screen.getAllByText('Đề xuất')).toHaveLength(1);
     expect(screen.getByText('Định hướng CV:')).toBeVisible();
