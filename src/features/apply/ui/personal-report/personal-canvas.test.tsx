@@ -99,7 +99,6 @@ function report(): PersonalReportV2 {
           evidenceRefs: [],
         },
       ],
-      evidenceRefs: [],
       insufficientData: null,
     },
     analytics: {
