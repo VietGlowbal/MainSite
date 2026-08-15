@@ -2121,6 +2121,19 @@ export const translations: Record<string, string> = {
   'Why study abroad': 'Vì sao du học',
 
   // Programme Fit
+  'View your programme matches': 'Xem các chương trình học phù hợp với bạn',
+  'Deterministic demo · fixed fixture data': 'Bản demo deterministic · dữ liệu fixture cố định',
+  'Your programme matches': 'Các chương trình học phù hợp với bạn',
+  'No catalogue matches yet': 'Chưa có kết quả phù hợp từ danh mục',
+  'Add your target subject and destination preferences in your profile, then return here.':
+    'Thêm môn học mục tiêu và điểm đến mong muốn trong hồ sơ, sau đó quay lại đây.',
+  'Update preferences': 'Cập nhật tùy chọn',
+  'Recommended programmes': 'Các chương trình học được đề xuất',
+  'Eligible programmes appear first, followed by programmes whose eligibility needs more evidence.':
+    'Các chương trình đủ điều kiện sẽ hiển thị trước, tiếp theo là các chương trình cần thêm bằng chứng về điều kiện.',
+  'Known eligibility gaps': 'Các điều kiện chưa đáp ứng',
+  'These are separated from normal recommendations because available verified evidence shows a mandatory requirement is not met.':
+    'Các chương trình này được tách khỏi đề xuất thông thường vì bằng chứng đã xác minh cho thấy bạn chưa đáp ứng một yêu cầu bắt buộc.',
   'How well you match this course, university and its scholarships':
     'Phân tích mức độ phù hợp (giữa ứng viên với ngành - trường - học bổng)',
   // "Why this university", "Admission requirements", "Costs and scholarships"
