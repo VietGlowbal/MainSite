@@ -6,6 +6,7 @@ import {
 } from '@/lib/ai/cv-builder-context';
 import {
   loadLatestCvStrategySnapshot,
+  resolveCvSelectedDirection,
   type CvStrategyDatabase,
 } from '@/lib/ai/cv-builder-strategy';
 import { streamOpenAIText } from '@/lib/ai/vinuni-grounded-evaluation';
@@ -41,23 +42,29 @@ export async function POST(
   if (!context) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
   const payload = await request.json().catch(() => null);
-  const expectedRecommendationId =
+  const validBody =
     payload &&
     typeof payload === 'object' &&
     !Array.isArray(payload) &&
-    Object.keys(payload).length === 1 &&
-    typeof payload.expectedRecommendationId === 'string'
-      ? payload.expectedRecommendationId.trim()
-      : '';
-  if (!expectedRecommendationId) {
+    Object.keys(payload).length === 2 &&
+    Object.keys(payload).every((key) =>
+      key === 'expectedRecommendationId' || key === 'selectedDirection',
+    ) &&
+    typeof payload.expectedRecommendationId === 'string' &&
+    typeof payload.selectedDirection === 'string' &&
+    payload.expectedRecommendationId.trim().length > 0 &&
+    payload.selectedDirection.trim().length > 0;
+  if (!validBody) {
     return NextResponse.json(
       {
-        code: 'STRATEGY_REQUIRED',
-        error: 'A current Personalized Strategy is required before building a CV.',
+        code: 'INVALID_DIRECTION',
+        error: 'Select one of the available Personalized Strategy directions.',
       },
-      { status: 422 },
+      { status: 400 },
     );
   }
+  const expectedRecommendationId = payload.expectedRecommendationId.trim();
+  const selectedDirectionName = payload.selectedDirection.trim();
 
   const strategy = await loadLatestCvStrategySnapshot(
     supabase as unknown as CvStrategyDatabase,
@@ -80,6 +87,16 @@ export async function POST(
         error: 'Your Personalized Strategy changed. Refresh the CV Builder and try again.',
       },
       { status: 409 },
+    );
+  }
+  const selectedDirection = resolveCvSelectedDirection(strategy, selectedDirectionName);
+  if (!selectedDirection) {
+    return NextResponse.json(
+      {
+        code: 'INVALID_DIRECTION',
+        error: 'Select one of the available Personalized Strategy directions.',
+      },
+      { status: 400 },
     );
   }
 
@@ -118,6 +135,7 @@ export async function POST(
           const targetProfile = await generateCvTargetProfile({
             context,
             strategy,
+            selectedDirection,
             apiKey,
             model,
             stream: streamOpenAIText,

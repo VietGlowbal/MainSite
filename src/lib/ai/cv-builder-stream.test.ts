@@ -193,19 +193,20 @@ const strategy: CvStrategySnapshot = {
 
 describe('CV builder model streams', () => {
   it('builds a target profile only from known Supabase source references', async () => {
+    const selectedDirection = strategy.directionOptions[1];
     const stream = vi.fn(async function* (request: { messages: { content: string }[] }) {
       expect(request.messages[0].content).toContain('"universityDna"');
       expect(request.messages[0].content).toContain('"programmeDna"');
-      expect(request.messages[1].content).toContain(strategy.chosenDirection);
-      expect(request.messages[1].content).toContain(strategy.narrative);
-      expect(request.messages[1].content).toContain(strategy.positioning.after);
-      expect(request.messages[1].content).not.toContain(strategy.directionOptions[1].name);
+      expect(request.messages[1].content).toContain(selectedDirection.name);
+      expect(request.messages[1].content).toContain('"selectedDirection"');
+      expect(request.messages[1].content).not.toContain(strategy.chosenDirection);
       yield { content: JSON.stringify(targetJson) };
     });
 
     const profile = await generateCvTargetProfile({
       context: targetContext,
       strategy,
+      selectedDirection,
       apiKey: 'openai-key',
       model: 'gpt-4o',
       stream,
@@ -219,6 +220,7 @@ describe('CV builder model streams', () => {
       version: 1,
       recommendationId: strategy.recommendationId,
       createdAt: strategy.createdAt,
+      selectedDirection: selectedDirection.name,
     });
   });
 
@@ -238,6 +240,7 @@ describe('CV builder model streams', () => {
       generateCvTargetProfile({
         context: targetContext,
         strategy,
+        selectedDirection: strategy.directionOptions[0],
         apiKey: 'openai-key',
         model: 'gpt-4o',
         stream,
@@ -309,8 +312,7 @@ describe('CV builder model streams', () => {
         'The trusted strategy is positioning and inference only. It is never applicant evidence.',
       );
       expect(request.messages[1].content).toContain(strategy.chosenDirection);
-      expect(request.messages[1].content).toContain(strategy.narrative);
-      expect(request.messages[1].content).toContain(strategy.positioning.after);
+      expect(request.messages[1].content).toContain('"selectedDirection"');
       expect(request.messages[1].content).not.toContain(strategy.directionOptions[1].name);
       const output = `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`;
       yield { content: output.slice(0, 100) };
@@ -323,6 +325,7 @@ describe('CV builder model streams', () => {
       form,
       targetProfile: targetJson,
       strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o',
       stream,
@@ -411,6 +414,7 @@ describe('CV builder model streams', () => {
       form,
       targetProfile: targetJson,
       strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o',
       stream,
@@ -509,6 +513,7 @@ describe('CV builder model streams', () => {
       form,
       targetProfile: targetJson,
       strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o',
       stream,
@@ -603,6 +608,7 @@ describe('CV builder model streams', () => {
       form,
       targetProfile: targetJson,
       strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o-mini',
       requestedSections: ['experience'],
@@ -657,6 +663,7 @@ describe('CV builder model streams', () => {
         form,
         targetProfile: targetJson,
         strategy,
+        selectedDirection: strategy.directionOptions[0],
         apiKey: 'openai-key',
         model: 'gpt-4o-mini',
         requestedSections: ['assessment'],
@@ -713,6 +720,7 @@ describe('CV builder model streams', () => {
       form,
       targetProfile: targetJson,
       strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o-mini',
       requestedSections: ['about_me'],

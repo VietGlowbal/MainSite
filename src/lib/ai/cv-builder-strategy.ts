@@ -2,6 +2,7 @@ import {
   strategyRecommendationFromRow,
   type StrategyRecommendationRecord,
 } from '@/features/ai-strategy-dashboard/domain';
+import type { DirectionOption } from '@/features/ai-strategy-dashboard/domain';
 
 export const CV_STRATEGY_SNAPSHOT_VERSION = 1 as const;
 
@@ -30,6 +31,19 @@ export type CvStrategySnapshot = StrategyRecommendationRecord & {
     proposal: string;
   };
 };
+
+/** The one F7 option a student selected for this CV run. Always resolve it from
+ * the owner-scoped snapshot; never accept the option details from the browser. */
+export type CvSelectedDirection = DirectionOption;
+
+export function resolveCvSelectedDirection(
+  strategy: CvStrategySnapshot,
+  selectedDirection: string,
+): CvSelectedDirection | null {
+  return (
+    strategy.directionOptions.find(({ name }) => name === selectedDirection) ?? null
+  );
+}
 
 export type CvStrategyDatabase = {
   from: (table: string) => {

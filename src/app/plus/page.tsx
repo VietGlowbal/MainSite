@@ -26,71 +26,25 @@ import {
 } from '@/shared/ui';
 import { PlusPricing } from './plus-pricing';
 
-/**
- * /plus — GlowBal Plus, rebuilt on the design system 2026-08-02.
- *
- * ⚠️ THERE IS NO FIGMA FRAME FOR THIS PAGE, and that is the whole reason it
- * looked out of date. docs/redesign-status.md files /plus under "designed but
- * not built" against 115:13253 / 132:9601 / 196:16799 / 115:17014 — four frames
- * on the RETIRED "Tính năng" canvas, drawing a free/$10/$100 split that
- * lib/plus.ts stopped matching long ago. Nothing was ever redrawn onto "Khanh
- * Linh - Chi", so the page kept its pre-redesign styling (slate/pink literals,
- * rounded-3xl, gradient pills) while every route around it moved to the tokens.
- * The owner confirmed the page was missed and asked for it to be brought up to
- * the current UI, with room to make it more interesting than the frames were.
- *
- * So this is built from `src/styles/tokens.css` and `src/shared/ui` only — the
- * same standing as `Panel`, `StatTile` and the admin console. Nothing here
- * invents a colour, a radius or a type step, and the three-band rhythm (black
- * hero → muted plans → white comparison → muted close) is the one Home already
- * uses. Two things beyond a straight restyle, both deliberate:
- *
- *  1. The plan cards straddle the hero's bottom edge. See the note in
- *     plus-pricing.tsx for why that is an absolutely positioned strip and not a
- *     negative margin.
- *  2. `?status=cancelled` is answered. Stripe's `cancel_url` has pointed here
- *     since checkout was written (src/app/api/plus/checkout/route.ts) and the
- *     page ignored it, so abandoning payment returned you to an unchanged
- *     pricing page with no confirmation that nothing had been charged.
- *
- * Page chrome is its own (SiteNavigation + Footer), so '/plus' had to be
- * added to OWN_CHROME_ROUTES in src/components/nav-reveal.tsx or the app header
- * renders on top of this one.
- */
-
 export const metadata: Metadata = {
-  title: 'GlowBal Plus | Unlock your full scholarship plan',
+  title: 'GlowBal Pricing | Choose how you want to shine',
   description:
-    'Upgrade to GlowBal Plus for more AI application strategies, full scholarship details, a document checklist, and priority student-supporter access.',
+    'You don’t go it alone. GlowBal walks with you from picking schools to hitting submit. Choose the support plan that fits your study abroad journey.',
 };
 
-/** What Plus adds, as three claims short enough to read on the hero. */
-const HERO_POINTS: readonly { icon: keyof typeof ICONS; label: string }[] = [
-  { icon: 'zapFast', label: 'More AI strategy credits' },
-  { icon: 'gift01', label: 'Full scholarship details' },
-  { icon: 'messageChatCircle', label: 'Priority supporter access' },
-];
-
-/**
- * A frosted panel on the black band, for the four states the page can arrive
- * in: fresh from onboarding, back from a cancelled checkout, already on Plus,
- * or sent here by a gated application.
- *
- * Frosted rather than a white card: a white block on the hero reads as a modal
- * that failed to open, and three of the four states are informational.
- */
-function HeroNotice({
+function TopAlert({
   emphasis = false,
   children,
 }: {
-  /** Rose hairline instead of the white one — used for "you are on Plus". */
   emphasis?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div
-      className={`flex w-full max-w-gb-width-xl flex-col items-center gap-gb-xs rounded-gb-xl border bg-white/8 px-gb-3xl py-gb-2xl text-center ${
-        emphasis ? 'border-brand' : 'border-white/12'
+      className={`mx-auto flex w-full max-w-2xl flex-col items-center gap-1 rounded-2xl border p-4 text-center text-sm shadow-sm ${
+        emphasis
+          ? 'border-[#E11D48]/30 bg-[#E11D48]/5 text-[#141118]'
+          : 'border-[#EDE9EE] bg-white text-[#6B6570]'
       }`}
     >
       {children}
@@ -126,157 +80,107 @@ export default async function PlusPage({
   }
 
   const currentPlan = getPlusPackage(planLabel);
-
   const isSignedIn = !!user;
 
   return (
-    <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
+    <div className="gb-page-full-bleed gb-has-mobile-header bg-[#FBF9FA] text-[#141118]">
       <SiteNavigation showSaved />
 
-      <main>
-        {/* ── Hero ─────────────────────────────────────────────────────────
-            The rose bloom is a radial gradient on the brand token rather than a
-            blurred element: `filter` would make this a containing block for
-            fixed descendants, which is exactly what the header dropdown's
-            position note in shared/ui/top-nav.tsx warns about. */}
-        <section className="relative isolate overflow-hidden bg-surface-inverse-strong pt-gb-9xl pb-gb-6xl">
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 -top-1/3 -z-10 h-[120%] bg-[radial-gradient(50%_45%_at_50%_45%,var(--color-gb-brand-600),transparent_70%)] opacity-25"
-          />
-
-          <Container className="flex flex-col items-center gap-gb-3xl text-center">
+      <main className="pt-6 sm:pt-8">
+        {/* Contextual Notices */}
+        {(isWelcome || isCancelled || isPlus || applicationId) && (
+          <Container className="mb-6 space-y-3 px-4">
             {isWelcome ? (
-              <HeroNotice>
-                <p className="text-gb-md font-semibold text-white">
-                  🎉 Your profile is set up
-                </p>
-                <p className="text-gb-sm text-fg-on-inverse-muted">
+              <TopAlert>
+                <p className="font-bold text-[#141118]">🎉 Your profile is set up</p>
+                <p className="text-xs text-[#6B6570]">
                   Get the most from GlowBal with Plus — or keep exploring for free.
                 </p>
                 <Link
                   href="/universities"
-                  className="mt-gb-xs text-gb-sm font-semibold text-white underline-offset-4 hover:underline"
+                  className="mt-1 text-xs font-semibold text-[#E11D48] underline-offset-4 hover:underline"
                 >
                   Maybe later — see my matches →
                 </Link>
-              </HeroNotice>
+              </TopAlert>
             ) : null}
 
             {isCancelled ? (
-              <HeroNotice>
-                <p className="text-gb-md font-semibold text-white">Checkout cancelled</p>
-                <p className="text-gb-sm text-fg-on-inverse-muted">
-                  Nothing was charged. Your plan is unchanged — pick it up again whenever you are
-                  ready.
+              <TopAlert>
+                <p className="font-bold text-[#141118]">Checkout cancelled</p>
+                <p className="text-xs text-[#6B6570]">
+                  Nothing was charged. Your plan is unchanged — pick it up again whenever you are ready.
                 </p>
-              </HeroNotice>
+              </TopAlert>
             ) : null}
 
             {isPlus ? (
-              <HeroNotice emphasis>
-                <p className="text-gb-md font-semibold text-white">You&rsquo;re on GlowBal Plus</p>
-                <p className="text-gb-sm text-fg-on-inverse-muted">
-                  Thanks for your support — you can extend your plan any time below.
+              <TopAlert emphasis>
+                <p className="font-bold text-[#141118]">You’re on GlowBal Plus</p>
+                <p className="text-xs text-[#6B6570]">
+                  Thanks for your support — you can extend or upgrade your plan below.
                 </p>
-                {/* The stored plan id is not a label; only render a tier name we
-                    can resolve, so a stale or unknown id shows nothing rather
-                    than "plus-pro". */}
-                {currentPlan ? <Badge variant="outline">{currentPlan.name}</Badge> : null}
-              </HeroNotice>
+                {currentPlan ? (
+                  <Badge variant="outline" className="mt-1 border-[#E11D48] text-[#E11D48]">
+                    {currentPlan.name}
+                  </Badge>
+                ) : null}
+              </TopAlert>
             ) : null}
 
-            <Badge variant="outline">GlowBal Plus</Badge>
-
-            <h1 className="max-w-gb-width-xl font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-white md:text-gb-display-xl">
-              Unlock your full scholarship plan
-            </h1>
-
-            <p className="max-w-gb-width-xl text-gb-md text-fg-on-inverse-muted md:text-gb-xl">
-              Go beyond searching — more AI application strategies, full scholarship details, a
-              document checklist, and priority student-supporter access. Designed to help you apply
-              with a clearer, stronger strategy.
-            </p>
-
-            <ul className="flex flex-wrap items-center justify-center gap-gb-lg">
-              {HERO_POINTS.map((point) => (
-                <li
-                  key={point.label}
-                  className="inline-flex items-center gap-gb-md rounded-gb-full border border-white/12 bg-white/8 px-gb-2xl py-gb-lg text-gb-sm font-medium text-white"
-                >
-                  <span className="text-brand">
-                    <KitIcon art={ICONS[point.icon]} frame={20} />
-                  </span>
-                  {point.label}
-                </li>
-              ))}
-            </ul>
-
             {applicationId ? (
-              <HeroNotice>
-                <p className="text-gb-sm font-medium text-white">
+              <TopAlert>
+                <p className="font-medium text-[#141118]">
                   Unlock the full application plan to keep building this application.
                 </p>
                 <Link
                   href={`/apply/${applicationId}?sop=1`}
-                  className="text-gb-sm font-semibold text-fg-on-inverse-muted underline-offset-4 transition-colors hover:text-white hover:underline"
+                  className="text-xs font-semibold text-[#E11D48] underline-offset-4 hover:underline"
                 >
                   Continue with limited plan →
                 </Link>
-              </HeroNotice>
+              </TopAlert>
             ) : null}
-
-            <HeroNotice>
-              <p className="text-gb-sm font-semibold text-white">VNPay Sandbox checkout</p>
-              <p className="text-gb-sm text-fg-on-inverse-muted">
-                Choose a plan below to test payment in Vietnamese dong. Stripe is coming soon.
-              </p>
-            </HeroNotice>
           </Container>
-        </section>
+        )}
 
-        {/* Currency switcher (still on the black band) + tier cards + the
-            Free-vs-paid comparison. */}
+        {/* ── Main Redesigned Pricing Section ───────────────────────────── */}
         <PlusPricing signedIn={isSignedIn} applicationId={applicationId} />
 
-        {/* ── Free plan, and the way out of the funnel ───────────────────── */}
-        <section className="bg-surface-muted py-gb-9xl">
-          <Container className="flex flex-col gap-gb-4xl">
-            <div className="flex flex-col gap-gb-4xl rounded-gb-2xl border border-line bg-surface p-gb-4xl md:flex-row md:items-center md:justify-between">
-              <div className="flex min-w-0 flex-col gap-gb-2xl">
-                <div className="flex flex-col gap-gb-xs">
-                  <h2 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg">
+        {/* ── Free Plan & Help CTA ────────────────────────────────────────── */}
+        <section className="bg-white py-16 border-t border-[#EDE9EE]">
+          <Container className="flex flex-col gap-10 max-w-[1140px] px-4 sm:px-6">
+            <div className="flex flex-col gap-8 rounded-3xl border border-[#EDE9EE] bg-[#FBF9FA] p-8 md:flex-row md:items-center md:justify-between shadow-sm">
+              <div className="flex min-w-0 flex-col gap-4">
+                <div className="flex flex-col gap-1">
+                  <h2 className="text-2xl font-extrabold tracking-tight text-[#141118]">
                     Continue with the Free plan
                   </h2>
-                  <p className="text-gb-md text-fg-tertiary">
-                    Everything you need to start — no payment required.
+                  <p className="text-sm text-[#6B6570]">
+                    Everything you need to start exploring — no payment required.
                   </p>
                 </div>
-                <ul className="grid gap-gb-lg sm:grid-cols-2">
+                <ul className="grid gap-3 sm:grid-cols-2">
                   {FREE_FEATURES.map((feature) => (
-                    <li key={feature} className="flex items-start gap-gb-md">
-                      <span className="mt-gb-xxs shrink-0 text-brand">
-                        <KitIcon art={ICONS.checkCircle} frame={20} />
-                      </span>
-                      <span className="text-gb-sm text-fg-tertiary">{feature}</span>
+                    <li key={feature} className="flex items-start gap-2.5 text-sm text-[#2B2730]">
+                      <span className="shrink-0 text-[#2ABDD8] font-bold">✓</span>
+                      <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
               </div>
 
-              <Button href="/universities" size="xl" className="shrink-0">
-                Continue free
-                <KitIcon art={ICONS.arrowRight} frame={20} />
+              <Button href="/universities" size="xl" variant="secondary" className="shrink-0 rounded-xl">
+                Continue free →
               </Button>
             </div>
 
-            {/* Talk to a person. The Messenger link is the only support channel
-                that exists today, so it is a real destination, not a promise. */}
-            <div className="flex flex-col items-center gap-gb-lg rounded-gb-2xl border border-line bg-brand-subtle p-gb-4xl text-center">
-              <span className="flex size-gb-6xl items-center justify-center rounded-gb-full bg-brand text-on-brand">
+            {/* Talk to a person */}
+            <div className="flex flex-col items-center gap-4 rounded-3xl border border-[#EDE9EE] bg-[#E11D48]/5 p-8 text-center">
+              <span className="flex size-12 items-center justify-center rounded-full bg-[#E11D48] text-white shadow-md">
                 <KitIcon art={ICONS.messageSmileCircle} frame={24} />
               </span>
-              <h2 className="font-display text-gb-xl font-semibold text-fg">
+              <h2 className="text-xl font-bold text-[#141118]">
                 Not sure which plan fits you?
               </h2>
               <Button
@@ -285,13 +189,14 @@ export default async function PlusPage({
                 rel="noopener noreferrer"
                 size="lg"
                 variant="secondary"
+                className="rounded-xl border-[#E11D48] text-[#E11D48] hover:bg-[#E11D48] hover:text-white"
               >
-                Not sure? Chat with our in-house team for more info
+                Chat with our in-house team for advice
               </Button>
             </div>
 
-            <div className="mx-auto flex max-w-gb-width-xl flex-col items-center gap-gb-md text-center text-gb-xs text-fg-muted">
-              <p className="inline-flex items-center gap-gb-sm">
+            <div className="mx-auto flex max-w-2xl flex-col items-center gap-2 text-center text-xs text-[#6B6570]">
+              <p className="inline-flex items-center gap-1.5 font-medium">
                 <svg
                   width="14"
                   height="14"
@@ -306,12 +211,10 @@ export default async function PlusPage({
                   <rect x="3" y="11" width="18" height="11" rx="2" />
                   <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                 </svg>
-                Payments are processed securely by VNPay Sandbox.
+                Payments are processed securely via VNPay and Bank Transfer (VietQR).
               </p>
               <p>
-                VNPay charges the canonical VND amount shown in each plan. Other currencies are
-                display estimates. GlowBal helps you discover opportunities and prepare stronger
-                applications; it does not guarantee scholarship outcomes.
+                GlowBal helps you discover opportunities and prepare stronger applications; it does not guarantee scholarship outcomes.
               </p>
             </div>
           </Container>

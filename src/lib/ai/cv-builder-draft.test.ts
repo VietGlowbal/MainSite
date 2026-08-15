@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   CV_BUILDER_LEGACY_SCHEMA_VERSION,
   CV_BUILDER_SCHEMA_VERSION,
+  CV_BUILDER_V2_SCHEMA_VERSION,
   cvBuilderDraftKey,
   restoreCvBuilderDraft,
   type CvBuilderFormV1,
@@ -31,6 +32,7 @@ const validTargetProfile = (strategyProvenance: {
   version: 1;
   recommendationId: string;
   createdAt: string;
+  selectedDirection?: string;
 }) => ({
   universityName: 'Example University',
   programmeName: 'Computer Science',
@@ -61,7 +63,7 @@ const validTargetProfile = (strategyProvenance: {
   strategyProvenance,
 });
 
-describe('CV Builder draft v2 migration', () => {
+describe('CV Builder draft v3 migration', () => {
   it('preserves v1 form/template while discarding old AI output', () => {
     const restored = restoreCvBuilderDraft(
       {
@@ -84,15 +86,17 @@ describe('CV Builder draft v2 migration', () => {
     expect(restored).not.toHaveProperty('generatedCv');
   });
 
-  it('restores v2 AI only when source recommendation matches current F7', () => {
+  it('restores v3 AI only when recommendation and selected direction match current F7', () => {
     const draft = {
       schemaVersion: CV_BUILDER_SCHEMA_VERSION,
       applicationId: 'app-1',
       sourceRecommendationId: 'rec-current',
+      selectedDirection: 'Accessible systems builder',
       targetProfile: validTargetProfile({
         version: 1,
         recommendationId: 'rec-current',
         createdAt: '2026-08-15T00:00:00.000Z',
+        selectedDirection: 'Accessible systems builder',
       }),
       form,
       selectedTemplate: 'academic' as const,
@@ -103,11 +107,13 @@ describe('CV Builder draft v2 migration', () => {
         version: 1,
         recommendationId: 'rec-current',
         createdAt: '2026-08-15T00:00:00.000Z',
+        selectedDirection: 'Accessible systems builder',
       }),
     ).toMatchObject({ sourceRecommendationId: 'rec-current', generatedCv: draft.generatedCv });
-    expect(
-      restoreCvBuilderDraft(draft, 'app-1', 'rec-new'),
-    ).toMatchObject({ form, selectedTemplate: 'academic' });
+    expect(restoreCvBuilderDraft(draft, 'app-1', 'rec-new')).toMatchObject({
+      form,
+      selectedTemplate: 'academic',
+    });
     expect(
       restoreCvBuilderDraft(draft, 'app-1', 'rec-new'),
     ).not.toHaveProperty('generatedCv');
@@ -123,6 +129,7 @@ describe('CV Builder draft v2 migration', () => {
       schemaVersion: CV_BUILDER_SCHEMA_VERSION,
       applicationId: 'app-1',
       sourceRecommendationId: current.recommendationId,
+      selectedDirection: 'Accessible systems builder',
       form,
       selectedTemplate: 'technical' as const,
       generatedCv: { plainText: 'AI CV' },
@@ -134,11 +141,13 @@ describe('CV Builder draft v2 migration', () => {
         version: 1,
         recommendationId: 'rec-other',
         createdAt: current.createdAt,
+        selectedDirection: 'Accessible systems builder',
       }),
       validTargetProfile({
         version: 1,
         recommendationId: current.recommendationId,
         createdAt: '2026-08-14T00:00:00.000Z',
+        selectedDirection: 'Accessible systems builder',
       }),
     ]) {
       const restored = restoreCvBuilderDraft(
@@ -153,6 +162,35 @@ describe('CV Builder draft v2 migration', () => {
       expect(restored).not.toHaveProperty('targetProfile');
       expect(restored).not.toHaveProperty('generatedCv');
     }
+  });
+
+  it('discards AI from a v2 draft even when its old provenance matches', () => {
+    const restored = restoreCvBuilderDraft(
+      {
+        schemaVersion: CV_BUILDER_V2_SCHEMA_VERSION,
+        applicationId: 'app-1',
+        sourceRecommendationId: 'rec-current',
+        targetProfile: validTargetProfile({
+          version: 1,
+          recommendationId: 'rec-current',
+          createdAt: '2026-08-15T00:00:00.000Z',
+          selectedDirection: 'Accessible systems builder',
+        }),
+        form,
+        generatedCv: { plainText: 'old AI CV' },
+        selectedTemplate: 'academic',
+      },
+      'app-1',
+      {
+        version: 1,
+        recommendationId: 'rec-current',
+        createdAt: '2026-08-15T00:00:00.000Z',
+        selectedDirection: 'Accessible systems builder',
+      },
+    );
+    expect(restored).toMatchObject({ form, selectedTemplate: 'academic' });
+    expect(restored).not.toHaveProperty('generatedCv');
+    expect(restored).not.toHaveProperty('targetProfile');
   });
 
   it('keeps the existing localStorage key for v2 drafts', () => {
