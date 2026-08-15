@@ -11,10 +11,14 @@ import {
 
 const NO_DATA = { reason: 'More evidence needed.', actions: [] };
 
-function proof(overrides: Partial<ProofCard> & Pick<ProofCard, 'activityId' | 'title'>): ProofCard {
+function proof({
+  activityId,
+  title,
+  ...overrides
+}: Partial<ProofCard> & Pick<ProofCard, 'activityId' | 'title'>): ProofCard {
   return {
-    activityId: overrides.activityId,
-    title: overrides.title,
+    activityId,
+    title,
     role: null,
     personalContribution: null,
     outcome: null,
@@ -135,7 +139,7 @@ describe('Personal Report Pass 2 insights', () => {
   it('turns repeated named capabilities into an evidence radar and star ratings', () => {
     render(<CapabilityProfileView report={report()} />);
     expect(screen.getByRole('list', { name: 'Named capability evidence profile' })).toBeInTheDocument();
-    expect(screen.getByText('Leadership')).toBeInTheDocument();
+    expect(screen.getAllByText('Leadership').length).toBeGreaterThan(0);
     expect(screen.getAllByLabelText(/out of 5 evidence stars/i).length).toBeGreaterThan(0);
   });
 
