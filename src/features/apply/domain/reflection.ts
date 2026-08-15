@@ -1,8 +1,11 @@
 import { z } from 'zod';
 import { ENGLISH_TESTS, SCORE_METHODS } from './academic-scores';
+import { activityReflectionSchema, reflectionCardSchema } from './activity-reflection';
 import { destinationIdsFromStored } from './destination-catalog';
 import { FUNDING_SOURCE_IDS, fundingSourceFromStored } from './funding-catalog';
 import { intakeChoiceSchema, parseIntake, serialiseIntake } from './intake';
+import { personalReflectionSchema } from './personal-reflection';
+import { studyLevelFromStored, type StudyLevel } from './study-level';
 import {
   ALL_CURRENCIES,
   convertAmount,
@@ -527,6 +530,16 @@ export const achievementSchema = z.object({
   detail: optionalText(2000),
   evidenceKey: optionalText(500),
   ...reviewFields,
+  /**
+   * Activity-level reflection — Context/Motivation/Challenge/Action/Impact/
+   * Transformation/Future — and the AI-generated Reflection Card built from
+   * it. Both optional and both carried on the item itself: an achievement or
+   * activity is fully usable with neither, and adding them here (rather than
+   * a side table keyed by id) means the existing evidence array — already
+   * read, written, and snapshotted as one unit — needs no second reader.
+   */
+  reflection: activityReflectionSchema.optional(),
+  reflectionCard: reflectionCardSchema.optional(),
 });
 
 export const activitySchema = z.object({
@@ -545,6 +558,8 @@ export const activitySchema = z.object({
   period: optionalText(80),
   description: optionalText(2000),
   ...reviewFields,
+  reflection: activityReflectionSchema.optional(),
+  reflectionCard: reflectionCardSchema.optional(),
 });
 
 export const evidenceSchema = z.object({
@@ -552,7 +567,21 @@ export const evidenceSchema = z.object({
   activities: z.array(activitySchema).max(20).default([]),
 });
 
-export const reflectionSchema = aboutYouSchema.merge(aspirationsSchema).merge(evidenceSchema);
+/**
+ * The five cross-cutting Personal Reflection answers — see
+ * `personal-reflection.ts`. Optional and separate from `evidenceSchema`:
+ * these are not about one activity, so they do not belong inside either
+ * array, but they do belong in the same snapshot payload as everything else
+ * Review & Confirm locks.
+ */
+export const personalReflectionSectionSchema = z.object({
+  personalReflection: personalReflectionSchema.optional(),
+});
+
+export const reflectionSchema = aboutYouSchema
+  .merge(aspirationsSchema)
+  .merge(evidenceSchema)
+  .merge(personalReflectionSectionSchema);
 
 export type AboutYouValues = z.infer<typeof aboutYouSchema>;
 export type AspirationsValues = z.infer<typeof aspirationsSchema>;
@@ -595,6 +624,23 @@ export type ReflectionProfileRow = {
    */
   subject_motivations?: Record<string, unknown> | null;
   target_intake?: string | null;
+  /** See `personal-reflection.ts` — `{ q1: "...", ..., q5: "..." }`. */
+  personal_reflection_answers?: Record<string, unknown> | null;
+};
+
+/**
+ * Canonical `StudyLevel` → the older reflection form's three display-string
+ * options, so `intendedLevel` keeps working for every existing reader
+ * (`t(reflection.intendedLevel)`, `reflectionBlockingIssues`) without a
+ * second vocabulary. `phd` has no dedicated card in the three-option list;
+ * it lands on the postgraduate option, the nearest of the three — see
+ * `study-level.ts`.
+ */
+const CANONICAL_TO_INTENDED_LEVEL: Record<StudyLevel, (typeof INTENDED_LEVELS)[number]> = {
+  undergraduate: 'Bachelor’s Degree',
+  postgraduate: 'Master or Post-Graduate Certificate',
+  phd: 'Master or Post-Graduate Certificate',
+  diploma: 'College Diploma / Certificate',
 };
 
 /** The key inside `subject_motivations` that names the primary subject. */
@@ -727,8 +773,17 @@ export function reflectionFromProfile(
     majors: profile?.target_subjects ?? [],
     // Countries are normalised to ISO codes, because the grid keys on them.
     countries: destinationIdsFromStored(profile?.preferred_countries),
-    ...(oneOf(INTENDED_LEVELS, profile?.study_level) !== undefined
-      ? { intendedLevel: oneOf(INTENDED_LEVELS, profile?.study_level) }
+    /*
+     * ⚠️ TWO GENERATIONS OF VALUE, AGAIN. `study_level` is written by the
+     * onboarding wizard as a canonical token (`undergraduate` / `postgraduate`
+     * / `phd`) and, historically, by this form as an `INTENDED_LEVELS` display
+     * string. `studyLevelFromStored` understands both; without it, a student
+     * who only ever completed onboarding read back `intendedLevel: undefined`
+     * here despite having answered the equivalent question, which blocked
+     * Review & Confirm on a question already answered. See `study-level.ts`.
+     */
+    ...(studyLevelFromStored(profile?.study_level) !== undefined
+      ? { intendedLevel: CANONICAL_TO_INTENDED_LEVEL[studyLevelFromStored(profile?.study_level)!] }
       : {}),
     // Understands both the id this form writes and the display strings the
     // previous one wrote — see `fundingSourceFromStored`.
@@ -754,6 +809,17 @@ export function reflectionFromProfile(
       : {}),
     achievements,
     activities,
+    ...(profile?.personal_reflection_answers
+      ? {
+          personalReflection: personalReflectionSchema.parse(
+            Object.fromEntries(
+              Object.entries(profile.personal_reflection_answers).filter(
+                ([, value]) => typeof value === 'string',
+              ),
+            ),
+          ),
+        }
+      : {}),
   };
 }
 

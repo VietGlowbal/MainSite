@@ -3,21 +3,29 @@
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import {
+  ACHIEVEMENT_CATEGORIES,
   ACHIEVEMENT_CATEGORY_ICON,
+  ACTIVITY_CATEGORIES,
   ACTIVITY_CATEGORY_ICON,
+  activityReflectionAnsweredCount,
+  activityReflectionSchema,
   evidenceCandidateToItem,
   evidenceExtractionResponseSchema,
+  experienceCategoryFor,
+  isReflectionCardEmpty,
   mergeDuplicate,
   reflectionStep,
   type AchievementValues,
   type ActivityValues,
   type EvidenceDuplicate,
+  type ReflectionCardValues,
   applyEvidenceCandidates as applyEvidenceCandidatesRaw,
 } from '@/features/apply/domain';
 import { useDocumentUpload, useEvidenceDocuments, type EvidenceDocument } from '@/features/apply/hooks';
 import {
   AchievementCard,
   ActivityCard,
+  ActivityReflectionModal,
   AddTypeChooser,
   DocumentPanel,
   DocumentPreviewDrawer,
@@ -27,6 +35,9 @@ import {
   EvidenceGrid,
   EvidenceSortSelect,
   EvidenceTabs,
+  ReflectionCardError,
+  ReflectionCardLoading,
+  ReflectionCardView,
   RemoveConfirmDialog,
   ReflectionShell,
   ReviewFlowDrawer,
@@ -38,6 +49,19 @@ import {
 import { useT } from '@/lib/i18n';
 import { Button, Input, Modal } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+
+type EvidenceKind = 'achievement' | 'activity';
+
+function categoryLabelFor(kind: EvidenceKind, category: string): string {
+  const list = kind === 'achievement' ? ACHIEVEMENT_CATEGORIES : ACTIVITY_CATEGORIES;
+  return list.find((entry) => entry.value === category)?.label ?? category;
+}
+
+function experienceCategoryForKind(kind: EvidenceKind, category: string) {
+  return kind === 'achievement'
+    ? experienceCategoryFor('achievement', category as AchievementValues['category'])
+    : experienceCategoryFor('activity', category as ActivityValues['category']);
+}
 
 /**
  * Reflection step 2 of 2 — achievements and activities.
@@ -149,7 +173,111 @@ export function ReflectionEvidenceForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [reflectTarget, setReflectTarget] = useState<{ kind: EvidenceKind; id: string } | null>(null);
+  const [cardTarget, setCardTarget] = useState<{ kind: EvidenceKind; id: string } | null>(null);
+  const [cardState, setCardState] = useState<'loading' | 'error' | 'ready'>('loading');
+  const [cardError, setCardError] = useState<string | null>(null);
+
   useLoadingIndicator(saving, t('Saving your achievements'));
+
+  function findItem(kind: EvidenceKind, id: string): AchievementValues | ActivityValues | undefined {
+    return kind === 'achievement'
+      ? achievements.find((item) => item.id === id)
+      : activities.find((item) => item.id === id);
+  }
+
+  function updateItem(
+    kind: EvidenceKind,
+    id: string,
+    patch: Partial<AchievementValues> & Partial<ActivityValues>,
+  ) {
+    if (kind === 'achievement') {
+      setAchievements((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+    } else {
+      setActivities((prev) => prev.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+    }
+  }
+
+  /**
+   * Persists the whole current lists — the same request `handleSubmit` sends
+   * — before calling the AI so a network failure generating the card never
+   * costs the student their raw reflection answers (spec: "Persist raw
+   * answers before calling AI").
+   */
+  async function persistEvidence() {
+    await fetch('/api/reflection', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        achievements: achievements.filter((a) => a.title.trim().length > 0),
+        activities: activities.filter((a) => a.title.trim().length > 0),
+        ...(applicationId ? { applicationId } : {}),
+      }),
+    });
+  }
+
+  async function generateCard(kind: EvidenceKind, id: string) {
+    const item = findItem(kind, id);
+    if (!item?.reflection) return;
+
+    setCardTarget({ kind, id });
+    setCardState('loading');
+    setCardError(null);
+    await persistEvidence();
+
+    try {
+      const response = await fetch('/api/reflection/reflection-card', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: item.title,
+          organisation: ('competition' in item ? item.competition : undefined) ?? item.organisation,
+          categoryLabel: categoryLabelFor(kind, item.category),
+          reflection: item.reflection,
+        }),
+      });
+      const body = await response.json().catch(() => null);
+      if (!response.ok) {
+        setCardState('error');
+        setCardError(
+          body?.error ?? t('We saved your reflection, but couldn’t create the summary.'),
+        );
+        return;
+      }
+      const card = body.card as ReflectionCardValues;
+      updateItem(kind, id, { reflectionCard: card });
+      setCardState('ready');
+    } catch {
+      setCardState('error');
+      setCardError(t('We saved your reflection, but couldn’t create the summary.'));
+    }
+  }
+
+  function saveCard(kind: EvidenceKind, id: string, next: ReflectionCardValues) {
+    updateItem(kind, id, { reflectionCard: next });
+    void persistEvidence();
+  }
+
+  function reflectActionFor(kind: EvidenceKind, item: AchievementValues | ActivityValues) {
+    if (!item.id) return undefined;
+    const id = item.id;
+    const hasCard = !isReflectionCardEmpty(item.reflectionCard);
+    const answered = activityReflectionAnsweredCount(item.reflection);
+    const label = hasCard
+      ? t('Reflection Card ready')
+      : answered > 0
+        ? t('Continue reflection')
+        : t('Reflect on this experience');
+    return { label, hasCard, onClick: () => setReflectTarget({ kind, id }) };
+  }
+
+  function confirmCard(kind: EvidenceKind, id: string) {
+    const item = findItem(kind, id);
+    if (!item?.reflectionCard) return;
+    updateItem(kind, id, { reflectionCard: { ...item.reflectionCard, status: 'confirmed' } });
+    void persistEvidence();
+    setCardTarget(null);
+  }
 
   const reviewQueue: EvidenceDraft[] = [
     ...achievements
@@ -340,12 +468,11 @@ export function ReflectionEvidenceForm({
 
       // The step used to hand off straight to `returnTo` (normally the
       // analysis gate) or the standalone report page. It now always goes
-      // through Review & Confirm first — the checkpoint that locks candidate
-      // information before reports are generated — carrying the same
-      // eventual destination through as `return` so confirming sends the
-      // student on to exactly where this step used to.
+      // through Personal Reflection next, then Review & Confirm — carrying
+      // the same eventual destination through as `return` so each step
+      // sends the student on to exactly where this step used to.
       const confirmReturn = returnTo || '/ai-strategy/report';
-      router.push(`/ai-strategy/reflection/confirm?return=${encodeURIComponent(confirmReturn)}`);
+      router.push(`/ai-strategy/reflection/personal?return=${encodeURIComponent(confirmReturn)}`);
     } catch {
       setError(t('We could not save that. Please try again.'));
       setSaving(false);
@@ -515,6 +642,7 @@ export function ReflectionEvidenceForm({
                       onConfirm: () => removeItem('achievement', item.id),
                     })
                   }
+                  reflect={reflectActionFor('achievement', item)}
                 />
               ))}
             </EvidenceGrid>
@@ -545,6 +673,7 @@ export function ReflectionEvidenceForm({
                     onConfirm: () => removeItem('activity', item.id),
                   })
                 }
+                reflect={reflectActionFor('activity', item)}
               />
             ))}
           </EvidenceGrid>
@@ -714,6 +843,62 @@ export function ReflectionEvidenceForm({
             </Button>
           </div>
         </form>
+      </Modal>
+
+      {reflectTarget
+        ? (() => {
+            const item = findItem(reflectTarget.kind, reflectTarget.id);
+            if (!item) return null;
+            const category = experienceCategoryForKind(reflectTarget.kind, item.category);
+            return (
+              <ActivityReflectionModal
+                open
+                onClose={() => setReflectTarget(null)}
+                category={category}
+                activityTitle={item.title}
+                value={item.reflection ?? activityReflectionSchema.parse({})}
+                onChange={(next) => updateItem(reflectTarget.kind, reflectTarget.id, { reflection: next })}
+                onRequestCard={() => {
+                  const { kind, id } = reflectTarget;
+                  setReflectTarget(null);
+                  void generateCard(kind, id);
+                }}
+                t={t}
+              />
+            );
+          })()
+        : null}
+
+      <Modal
+        open={cardTarget !== null}
+        onClose={() => (cardState === 'loading' ? undefined : setCardTarget(null))}
+        label={t('Reflection Card')}
+        className="max-w-gb-width-md p-gb-3xl"
+      >
+        {cardTarget && cardState === 'loading' ? <ReflectionCardLoading t={t} /> : null}
+        {cardTarget && cardState === 'error' ? (
+          <ReflectionCardError
+            message={cardError ?? ''}
+            onRetry={() => void generateCard(cardTarget.kind, cardTarget.id)}
+            t={t}
+          />
+        ) : null}
+        {cardTarget && cardState === 'ready'
+          ? (() => {
+              const item = findItem(cardTarget.kind, cardTarget.id);
+              if (!item?.reflectionCard) return null;
+              return (
+                <ReflectionCardView
+                  card={item.reflectionCard}
+                  editable
+                  onSave={(next) => saveCard(cardTarget.kind, cardTarget.id, next)}
+                  onRegenerate={() => void generateCard(cardTarget.kind, cardTarget.id)}
+                  onConfirm={() => confirmCard(cardTarget.kind, cardTarget.id)}
+                  t={t}
+                />
+              );
+            })()
+          : null}
       </Modal>
     </ReflectionShell>
   );

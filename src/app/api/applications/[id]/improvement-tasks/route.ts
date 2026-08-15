@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import { PILLAR_BY_KEY, PILLAR_ORDER, type ImprovementAction, type PillarKey } from '@/lib/match-insights';
 
 /**
@@ -49,10 +50,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   // Plus gate.
   const { data: profile } = await supabase
     .from('student_profiles')
-    .select('plus_status')
+    .select('plus_status, plus_expires_at')
     .eq('user_id', user.id)
     .maybeSingle();
-  if (!profile?.plus_status) {
+  if (!isPlusEntitlementActive(profile ?? {})) {
     return NextResponse.json(
       { error: 'Improvement tasks are a GlowBal Plus feature.', upgrade: true },
       { status: 403 },

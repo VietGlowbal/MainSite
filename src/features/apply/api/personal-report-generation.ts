@@ -6,6 +6,7 @@ import {
   PERSONAL_REPORT_EXTRACTION_VERSION,
 } from '@/lib/ai/personal-report-v2';
 import { isOpenAIConfigured } from '@/lib/ai/openai-client';
+import { applyNarrativeSynthesis, synthesizePersonalReportNarrative } from '@/lib/ai/personal-report-narrative-synthesis';
 import { ENGINE_VERSION, runProfileEvaluation, shouldRegenerate } from '@/shared/evaluation';
 import { candidateContextHash, loadCandidateContext } from './candidate-context';
 import {
@@ -83,7 +84,7 @@ export async function regeneratePersonalReport(args: {
       apiKey,
     });
     const evaluation = runProfileEvaluation(evaluationInput);
-    const reportV2 = buildPersonalReport({
+    const deterministicReport = buildPersonalReport({
       evaluation,
       activities: evaluationInput.narrativeActivities,
       intendedDirection: evaluationInput.intendedDirection,
@@ -91,6 +92,14 @@ export async function regeneratePersonalReport(args: {
     });
 
     const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
+    const synthesis = await synthesizePersonalReportNarrative({
+      report: deterministicReport,
+      intendedDirection: evaluationInput.intendedDirection,
+      apiKey,
+      model: modelName,
+    });
+    const reportV2 = applyNarrativeSynthesis(deterministicReport, synthesis);
+
     const { record: inserted, error } = await createPersonalReportV2Version(supabase, {
       userId,
       reportV2,

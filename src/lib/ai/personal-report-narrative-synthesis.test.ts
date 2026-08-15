@@ -1,0 +1,362 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import type { PersonalReportV2 } from '@/features/apply/domain';
+import {
+  allowedEvidenceIdsFor,
+  applyNarrativeSynthesis,
+  synthesisInputFromReport,
+  synthesizePersonalReportNarrative,
+} from './personal-report-narrative-synthesis';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
+
+function chatResponse(content: string) {
+  return new Response(
+    JSON.stringify({ choices: [{ finish_reason: 'stop', message: { content } }] }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  );
+}
+
+const NOT_AVAILABLE_INSUFFICIENT = { reason: 'Not enough evidence yet.', actions: [] };
+
+/** A fully "available" report — every section populated, matching evidence refs a
+ * synthesis response could legitimately cite. */
+function fullReport(overrides: Partial<PersonalReportV2> = {}): PersonalReportV2 {
+  return {
+    generatedAt: '2026-08-14T00:00:00.000Z',
+    overallEvidenceConfidence: 'medium',
+    coreIdentity: {
+      available: true,
+      headline: 'Someone who organises people around a shared goal',
+      interpretation: 'Across multiple activities, the candidate repeatedly takes on the role of "organiser".',
+      recurringRole: 'organiser',
+      recurringBehaviours: ['coordinating volunteers'],
+      valueOrientation: 'community impact',
+      observations: ['Coding club: coordinating volunteers'],
+      evidenceRefs: [{ id: 'activity-1', kind: 'activity', label: 'Coding club' }],
+      confidence: 'medium',
+      stillDeveloping: [],
+      insufficientData: null,
+    },
+    drivingForce: {
+      available: true,
+      headline: 'Motivation is becoming clearer',
+      explanation: 'The candidate has not clearly stated their motivation.',
+      repeatedMotivations: ['wants to help others learn to code'],
+      evidenceRefs: [{ id: 'activity-1', kind: 'activity', label: 'Coding club' }],
+      confidence: 'medium',
+      isHypothesis: true,
+      missingPersonalGrounding: 'The candidate has never explained why they chose these activities.',
+      reflectionPrompt: null,
+      insufficientData: null,
+    },
+    signaturePattern: {
+      available: true,
+      steps: [
+        { key: 'trigger', label: 'Trigger', description: 'coding', examples: ['Coding club'] },
+        { key: 'response', label: 'Response', description: 'organiser', examples: ['Coding club'] },
+        { key: 'method', label: 'Method', description: 'coordinating volunteers', examples: ['Coding club'] },
+        { key: 'valueCreated', label: 'Value created', description: 'more students learned to code', examples: ['Coding club'] },
+      ],
+      patternStrength: 'emerging',
+      supportingExperienceCount: 2,
+      confidence: 'medium',
+      distinctiveness: null,
+      evidenceRefs: [{ id: 'activity-1', kind: 'activity', label: 'Coding club' }],
+      insufficientData: null,
+    },
+    emergingThemes: {
+      available: true,
+      themes: [
+        {
+          theme: 'Computer science education',
+          status: 'strong_emerging_theme',
+          statusLabel: 'Strong emerging theme',
+          explanation: 'The candidate has shown interest in "Computer science education" across 2 activities.',
+          supportingExperiences: ['Coding club'],
+          confidence: 'medium',
+          limitation: 'More activities are needed.',
+          evidenceRefs: [{ id: 'theme-1', kind: 'activity', label: 'Coding club theme link' }],
+        },
+      ],
+      insufficientData: null,
+    },
+    personalPositioning: {
+      available: true,
+      statement: 'The candidate is someone who organises people, creates value by coordinating volunteers.',
+      positioningStatus: 'positioned',
+      authentic: true,
+      differentiated: true,
+      coherent: true,
+      directionAligned: false,
+      credible: true,
+      whyThisFits: ['A consistent role or behaviour is grounded in real activity records.'],
+      whatPreventsStrongerPositioning: [],
+      confidence: 'medium',
+      evidenceRefs: [{ id: 'positioning-1', kind: 'activity', label: 'Coding club positioning' }],
+      insufficientData: null,
+    },
+    proofOfMe: {
+      available: true,
+      cards: [
+        {
+          activityId: 'activity-1',
+          title: 'Coding club',
+          role: 'organiser',
+          personalContribution: 'Coordinated weekly sessions',
+          outcome: 'More students learned to code',
+          competenciesDemonstrated: ['Leadership'],
+          supports: ['Core Identity'],
+          evidenceStrength: 'strong',
+          verificationStatus: 'verified',
+          evidenceSource: 'Coding club',
+          evidenceRefs: [{ id: 'proof-1', kind: 'activity', label: 'Coding club proof' }],
+        },
+      ],
+      insufficientData: null,
+    },
+    ...overrides,
+  } as PersonalReportV2;
+}
+
+function insufficientReport(): PersonalReportV2 {
+  return fullReport({
+    coreIdentity: {
+      available: false,
+      headline: null,
+      interpretation: null,
+      recurringRole: null,
+      recurringBehaviours: [],
+      valueOrientation: null,
+      observations: [],
+      evidenceRefs: [],
+      confidence: 'low',
+      stillDeveloping: [],
+      insufficientData: NOT_AVAILABLE_INSUFFICIENT,
+    },
+    drivingForce: {
+      available: false,
+      headline: null,
+      explanation: null,
+      repeatedMotivations: [],
+      evidenceRefs: [],
+      confidence: 'low',
+      isHypothesis: false,
+      missingPersonalGrounding: null,
+      reflectionPrompt: null,
+      insufficientData: NOT_AVAILABLE_INSUFFICIENT,
+    },
+    personalPositioning: {
+      available: false,
+      statement: null,
+      positioningStatus: 'insufficient_data',
+      authentic: false,
+      differentiated: false,
+      coherent: false,
+      directionAligned: false,
+      credible: false,
+      whyThisFits: [],
+      whatPreventsStrongerPositioning: [],
+      confidence: 'low',
+      evidenceRefs: [],
+      insufficientData: NOT_AVAILABLE_INSUFFICIENT,
+    },
+  });
+}
+
+describe('synthesisInputFromReport', () => {
+  it('carries the intendedDirection parameter through, not a value derived from the report itself', () => {
+    const input = synthesisInputFromReport(fullReport(), 'Computer science at university');
+    expect(input.personalPositioning?.intendedDirection).toBe('Computer science at university');
+  });
+
+  it('marks a section null when its report section is unavailable, rather than sending partial data', () => {
+    const input = synthesisInputFromReport(insufficientReport(), null);
+    expect(input.coreIdentity).toBeNull();
+    expect(input.drivingForce).toBeNull();
+    expect(input.personalPositioning).toBeNull();
+  });
+
+  it('keeps isHypothesis explicit so the model cannot present an inferred motivation as stated fact', () => {
+    const input = synthesisInputFromReport(fullReport(), null);
+    expect(input.drivingForce?.isHypothesis).toBe(true);
+  });
+});
+
+describe('allowedEvidenceIdsFor', () => {
+  it('collects every evidence id referenced anywhere in the report', () => {
+    const allowed = allowedEvidenceIdsFor(fullReport());
+    expect([...allowed.keys()].sort()).toEqual(
+      ['activity-1', 'positioning-1', 'proof-1', 'theme-1'].sort(),
+    );
+  });
+});
+
+describe('synthesizePersonalReportNarrative', () => {
+  it('makes no call and returns null when nothing in the report is available to write about', async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: insufficientReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+    });
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(result).toBeNull();
+  });
+
+  it('hydrates a response that only cites known evidence ids', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      chatResponse(
+        JSON.stringify({
+          overview: null,
+          coreIdentity: {
+            headline: 'A natural organiser',
+            paragraphs: ['The candidate repeatedly steps into an organising role.'],
+            evidenceIds: ['activity-1'],
+          },
+          drivingForce: null,
+          personalPositioning: null,
+          overallSummary: null,
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+    });
+
+    expect(result?.coreIdentity?.headline).toBe('A natural organiser');
+    expect(result?.coreIdentity?.evidenceRefs).toEqual([
+      { id: 'activity-1', kind: 'activity', label: 'Coding club' },
+    ]);
+  });
+
+  it('rejects the entire synthesis when any section cites an unknown evidence id', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      chatResponse(
+        JSON.stringify({
+          overview: null,
+          coreIdentity: {
+            headline: 'A natural organiser',
+            paragraphs: ['The candidate repeatedly steps into an organising role.'],
+            evidenceIds: ['activity-1', 'made-up-id'],
+          },
+          drivingForce: null,
+          personalPositioning: null,
+          overallSummary: null,
+        }),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+    });
+
+    expect(result?.coreIdentity).toBeNull();
+  });
+
+  it('falls back to null (deterministic copy) when the completion call throws', async () => {
+    const fetchMock = vi.fn().mockRejectedValue(new Error('network down'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+    });
+
+    expect(result).toBeNull();
+  });
+
+  it('falls back to null when the response is not valid JSON matching the schema', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(chatResponse('not json at all'));
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(),
+      intendedDirection: null,
+      apiKey: 'test-key',
+      model: 'gpt-4o',
+    });
+
+    expect(result).toBeNull();
+  });
+});
+
+describe('applyNarrativeSynthesis', () => {
+  it('returns the report unchanged when synthesis is null', () => {
+    const report = fullReport();
+    expect(applyNarrativeSynthesis(report, null)).toBe(report);
+  });
+
+  it('overlays prose onto an available section without touching its score, confidence, or evidence refs', () => {
+    const report = fullReport();
+    const applied = applyNarrativeSynthesis(report, {
+      overview: null,
+      coreIdentity: {
+        headline: 'A natural organiser',
+        paragraphs: ['Better-written paragraph.'],
+        evidenceRefs: [{ id: 'activity-1', kind: 'activity', label: 'Coding club' }],
+      },
+      drivingForce: null,
+      personalPositioning: null,
+      overallSummary: null,
+    });
+
+    expect(applied.coreIdentity.headline).toBe('A natural organiser');
+    expect(applied.coreIdentity.interpretation).toBe('Better-written paragraph.');
+    expect(applied.coreIdentity.confidence).toBe(report.coreIdentity.confidence);
+    expect(applied.coreIdentity.evidenceRefs).toBe(report.coreIdentity.evidenceRefs);
+  });
+
+  it('never overlays a section the deterministic report marked unavailable', () => {
+    const report = insufficientReport();
+    const applied = applyNarrativeSynthesis(report, {
+      overview: null,
+      coreIdentity: {
+        headline: 'A natural organiser',
+        paragraphs: ['Should never be applied.'],
+        evidenceRefs: [],
+      },
+      drivingForce: null,
+      personalPositioning: null,
+      overallSummary: null,
+    });
+
+    expect(applied.coreIdentity).toBe(report.coreIdentity);
+  });
+
+  it('overwrites whyThisFits with the synthesised whyItFits, leaving the positioning booleans untouched', () => {
+    const report = fullReport();
+    const applied = applyNarrativeSynthesis(report, {
+      overview: null,
+      coreIdentity: null,
+      drivingForce: null,
+      personalPositioning: {
+        statement: 'A sharper positioning statement.',
+        whyItFits: ['Because of X.', 'Because of Y.'],
+        evidenceRefs: [{ id: 'positioning-1', kind: 'activity', label: 'Coding club positioning' }],
+      },
+      overallSummary: null,
+    });
+
+    expect(applied.personalPositioning.statement).toBe('A sharper positioning statement.');
+    expect(applied.personalPositioning.whyThisFits).toEqual(['Because of X.', 'Because of Y.']);
+    expect(applied.personalPositioning.authentic).toBe(report.personalPositioning.authentic);
+    expect(applied.personalPositioning.credible).toBe(report.personalPositioning.credible);
+  });
+});

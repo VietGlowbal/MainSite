@@ -19,6 +19,13 @@ export {
 export { loadCandidateReflection } from './candidate-snapshot-repository';
 export type { CandidateReflectionRecord } from './candidate-snapshot-repository';
 export { verifiedApplicationId } from './verified-application-id';
+export { loadProfileReview } from './profile-review';
+export type {
+  CurriculumGradeSummary,
+  EnglishTestSummary,
+  ProfileReviewData,
+  StandardizedTestSummary,
+} from './profile-review';
 export {
   createPersonalReportV2Version,
   getLatestPersonalReportV2,

@@ -22,7 +22,7 @@ import { extractRoleAndTheme, type RoleThemeExtractionInput } from './evaluation
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v2-grounded';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v3-narrative-synthesis';
 
 type FreeTextRecord = { id: string; title: string; freeText: string; row: Record<string, unknown> };
 
@@ -85,11 +85,56 @@ export function isGroundedInSource(candidate: string | null | undefined, source:
   return matched >= required;
 }
 
+/**
+ * Folds an item's structured Context/Motivation/Challenge/Action/Impact/
+ * Transformation/Future reflection (and, if confirmed, its AI Reflection
+ * Card) into the free text the CMCAITF/competency/role extraction pipeline
+ * below already runs over.
+ *
+ * ─── WHY ENRICH THE FREE TEXT RATHER THAN BYPASS EXTRACTION ─────────────────
+ *
+ * This pipeline's whole job is CMCAITF — extracting exactly these seven
+ * dimensions from a single free-text field, with a grounding check
+ * (`isGroundedInSource`) against that same text. A student who has answered
+ * the seven reflection questions directly has already done that extraction
+ * far more reliably than the model can from a one-paragraph `detail`/
+ * `description` — so their answers are prepended, labelled, ahead of the
+ * original text rather than replacing the extraction step. The result is a
+ * richer, still-groundable source: the extractor finds the CMCAITF fields
+ * verbatim (or close to it) instead of inferring them, and every downstream
+ * grounding check still passes because the source text now actually
+ * contains what it is checking against. The confirmed Reflection Card's
+ * `story`/`keyTakeaway`/`futureConnection` are appended too, since a
+ * confirmed card is the student's own approved synthesis of the same
+ * material.
+ */
+function enrichedFreeText(row: Record<string, unknown>, baseText: string): string {
+  const reflection = row['reflection'] as Record<string, unknown> | null | undefined;
+  const card = row['reflection_card'] as Record<string, unknown> | null | undefined;
+
+  const reflectionLines = reflection
+    ? (['context', 'motivation', 'challenge', 'action', 'impact', 'transformation', 'future'] as const)
+        .map((dim) => {
+          const value = text(reflection[dim]);
+          return value ? `${dim[0]?.toUpperCase()}${dim.slice(1)}: ${value}` : null;
+        })
+        .filter((line): line is string => line !== null)
+    : [];
+
+  const cardLines = [
+    card ? text(card['story']) : '',
+    card ? text(card['keyTakeaway']) : '',
+    card ? text(card['futureConnection']) : '',
+  ].filter((line) => line.length > 0);
+
+  return [...reflectionLines, ...cardLines, baseText].filter((part) => part.length > 0).join('\n');
+}
+
 function achievementRecords(context: CandidateContext): FreeTextRecord[] {
   return context.achievements.map((row) => ({
     id: `achievement:${row.id}`,
     title: text(row.title) || 'Untitled achievement',
-    freeText: text(row.detail),
+    freeText: enrichedFreeText(row, text(row.detail)),
     row,
   }));
 }
@@ -98,7 +143,7 @@ function activityRecords(context: CandidateContext): FreeTextRecord[] {
   return context.activities.map((row) => ({
     id: `activity:${row.id}`,
     title: text(row.title) || 'Untitled activity',
-    freeText: text(row.description),
+    freeText: enrichedFreeText(row, text(row.description)),
     row,
   }));
 }

@@ -25,7 +25,7 @@ export { PersonalReportV2View } from './personal-report-v2-view';
 export { MatchingReportView } from './matching-report-view';
 export { ResearchProgress, ResearchingInline } from './research-progress';
 export { AchievementCard, ActivityCard } from './achievement-cards';
-export type { AchievementCardValue, ActivityCardValue } from './achievement-cards';
+export type { AchievementCardValue, ActivityCardValue, ReflectAction } from './achievement-cards';
 export {
   EvidenceEmptyState,
   EvidenceGrid,
@@ -41,3 +41,9 @@ export type { EvidenceDraft } from './edit-evidence-modal';
 export { AddTypeChooser, RemoveConfirmDialog } from './evidence-dialogs';
 export { ReviewFlowDrawer } from './review-flow';
 export { DuplicatePrompt } from './duplicate-prompt';
+export { ActivityReflectionModal } from './activity-reflection-modal';
+export {
+  ReflectionCardError,
+  ReflectionCardLoading,
+  ReflectionCardView,
+} from './reflection-card-view';

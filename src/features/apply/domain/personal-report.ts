@@ -14,6 +14,7 @@ import {
   type ProfileEvaluation,
   type ThemeMaturityResult,
 } from '@/shared/evaluation';
+import { buildPersonalReportAnalytics, type PersonalReportAnalytics } from './personal-report-analytics';
 
 /**
  * The canonical Personal Report — user-level, six sections, built entirely
@@ -491,6 +492,18 @@ function buildEmergingThemes(
   return { available: true, themes: built, insufficientData: null };
 }
 
+/**
+ * The five F4.5 positioning dimensions — also the axis keys for the
+ * "Positioning Profile" radar chart (`personal-report-analytics.ts`, which
+ * imports this rather than the other way around, to avoid a module cycle).
+ */
+export type PositioningDimensionKey =
+  | 'authenticity'
+  | 'differentiation'
+  | 'coherence'
+  | 'directionAlignment'
+  | 'credibility';
+
 export type PersonalPositioningSection = {
   available: boolean;
   statement: string | null;
@@ -500,11 +513,34 @@ export type PersonalPositioningSection = {
   coherent: boolean;
   directionAligned: boolean;
   credible: boolean;
+  /** Deterministic by default (one line per true dimension); overwritten by narrative synthesis when it succeeds. */
+  whyThisFits: string[];
   whatPreventsStrongerPositioning: string[];
   confidence: ReportConfidence;
   evidenceRefs: EvidenceRef[];
   insufficientData: InsufficientData | null;
 };
+
+const POSITIONING_FIT_REASON: Record<PositioningDimensionKey, string> = {
+  authenticity: 'A consistent role or behaviour is grounded in real activity records, not a claimed trait.',
+  differentiation: 'A distinctive method combined with a clear theme sets this profile apart.',
+  coherence: 'Identity, signature pattern and theme all point toward the same direction.',
+  directionAlignment: 'The stated intended direction matches the strongest emerging theme.',
+  credibility: 'Every element of this positioning is backed by linked evidence.',
+};
+
+function whyThisFits(positioning: ApplicantPositioning): string[] {
+  const flags: Record<PositioningDimensionKey, boolean> = {
+    authenticity: positioning.authentic,
+    differentiation: positioning.differentiated,
+    coherence: positioning.coherent,
+    directionAlignment: positioning.directionAligned,
+    credibility: positioning.credible,
+  };
+  return (Object.keys(flags) as PositioningDimensionKey[])
+    .filter((key) => flags[key])
+    .map((key) => POSITIONING_FIT_REASON[key]);
+}
 
 function buildPersonalPositioning(
   evaluation: ProfileEvaluation,
@@ -533,6 +569,7 @@ function buildPersonalPositioning(
       coherent: false,
       directionAligned: false,
       credible: false,
+      whyThisFits: [],
       whatPreventsStrongerPositioning: positioning.limitations,
       confidence: positioning.confidence,
       evidenceRefs: positioning.evidenceRefs,
@@ -563,6 +600,7 @@ function buildPersonalPositioning(
     coherent: positioning.coherent,
     directionAligned: positioning.directionAligned,
     credible: positioning.credible,
+    whyThisFits: whyThisFits(positioning),
     whatPreventsStrongerPositioning: positioning.limitations,
     confidence: positioning.confidence,
     evidenceRefs: positioning.evidenceRefs,
@@ -633,6 +671,31 @@ function supportsFor(
   return supports;
 }
 
+/** Shared by `buildProofOfMe` and the report analytics builder, so the evidence-strength counts shown in the KPI band always match what the Proof of Me cards actually display. */
+function competenciesByActivityMap(evaluation: ProfileEvaluation): Map<string, string[]> {
+  const competenciesByActivity = new Map<string, string[]>();
+  for (const claim of evaluation.competencies.claims) {
+    for (const ref of claim.evidenceRefs) {
+      const existing = competenciesByActivity.get(ref.id) ?? [];
+      if (!existing.includes(claim.label)) existing.push(claim.label);
+      competenciesByActivity.set(ref.id, existing);
+    }
+  }
+  return competenciesByActivity;
+}
+
+function proofOfMeStrengthCounts(
+  evaluation: ProfileEvaluation,
+  activities: readonly NarrativeActivity[],
+): { strong: number; moderate: number; limited: number } {
+  const proofs = buildEvidenceToIdentityMap(activities, competenciesByActivityMap(evaluation));
+  return {
+    strong: proofs.filter((proof) => proof.evidenceStrength === 'strong').length,
+    moderate: proofs.filter((proof) => proof.evidenceStrength === 'moderate').length,
+    limited: proofs.filter((proof) => proof.evidenceStrength === 'limited').length,
+  };
+}
+
 function buildProofOfMe(
   evaluation: ProfileEvaluation,
   activities: readonly NarrativeActivity[],
@@ -649,16 +712,7 @@ function buildProofOfMe(
     };
   }
 
-  const competenciesByActivity = new Map<string, string[]>();
-  for (const claim of evaluation.competencies.claims) {
-    for (const ref of claim.evidenceRefs) {
-      const existing = competenciesByActivity.get(ref.id) ?? [];
-      if (!existing.includes(claim.label)) existing.push(claim.label);
-      competenciesByActivity.set(ref.id, existing);
-    }
-  }
-
-  const proofs = buildEvidenceToIdentityMap(activities, competenciesByActivity);
+  const proofs = buildEvidenceToIdentityMap(activities, competenciesByActivityMap(evaluation));
   const activityById = new Map(activities.map((activity) => [activity.id, activity]));
 
   const cards: ProofCard[] = proofs.slice(0, 12).map((proof) => {
@@ -682,6 +736,86 @@ function buildProofOfMe(
   return { available: true, cards, insufficientData: null };
 }
 
+export type ReportOverview = { summary: string; evidenceRefs: EvidenceRef[] };
+export type ReportOverallSummary = { paragraphs: string[]; evidenceRefs: EvidenceRef[] };
+
+/**
+ * The "Your profile at a glance" synopsis (implementation spec §5) —
+ * deterministic by default so the block never has nothing to show; narrative
+ * synthesis (`src/lib/ai/personal-report-narrative-synthesis.ts`) overwrites
+ * it with better-written prose over these exact same facts when it succeeds.
+ */
+function buildOverview(
+  coreIdentity: CoreIdentitySection,
+  drivingForce: DrivingForceSection,
+  emergingThemes: EmergingThemesSection,
+): ReportOverview | null {
+  if (!coreIdentity.available && !drivingForce.available && !emergingThemes.available) return null;
+
+  const parts: string[] = [];
+  const evidenceRefs: EvidenceRef[] = [];
+
+  if (coreIdentity.available && coreIdentity.headline) {
+    parts.push(`${coreIdentity.headline}.`);
+    evidenceRefs.push(...coreIdentity.evidenceRefs);
+  }
+  if (drivingForce.available && drivingForce.repeatedMotivations.length > 0) {
+    parts.push(
+      drivingForce.isHypothesis
+        ? 'Their choices repeatedly point toward a motivation that is still an emerging hypothesis rather than a confirmed fact.'
+        : 'They have clearly explained what motivates these choices.',
+    );
+    evidenceRefs.push(...drivingForce.evidenceRefs);
+  }
+  const topTheme = emergingThemes.available ? emergingThemes.themes[0] : null;
+  if (topTheme) {
+    parts.push(`Their strongest emerging theme is "${topTheme.theme}".`);
+    evidenceRefs.push(...topTheme.evidenceRefs);
+  }
+
+  if (parts.length === 0) return null;
+  return { summary: parts.join(' '), evidenceRefs };
+}
+
+/**
+ * "What this report suggests overall" — deterministic by default, appears at
+ * the end of Proof of Me. Never an action plan (spec §18: that belongs to the
+ * Strategy Report), just the strongest signal, the key emerging signal, and
+ * the biggest limitation, all already computed by the sections above.
+ */
+function buildOverallSummary(
+  coreIdentity: CoreIdentitySection,
+  emergingThemes: EmergingThemesSection,
+  proofOfMe: ProofOfMeSection,
+): ReportOverallSummary | null {
+  if (!proofOfMe.available) return null;
+
+  const paragraphs: string[] = [];
+  const evidenceRefs: EvidenceRef[] = [];
+
+  const strongestCard = proofOfMe.cards.find((card) => card.evidenceStrength === 'strong');
+  if (strongestCard) {
+    paragraphs.push(`The strongest evidence-backed signal is "${strongestCard.title}".`);
+    evidenceRefs.push(...strongestCard.evidenceRefs);
+  }
+  const topTheme = emergingThemes.available ? emergingThemes.themes[0] : null;
+  if (topTheme) {
+    paragraphs.push(`"${topTheme.theme}" is the clearest emerging theme so far.`);
+    evidenceRefs.push(...topTheme.evidenceRefs);
+  }
+  const limitedCount = proofOfMe.cards.filter((card) => card.evidenceStrength === 'limited').length;
+  if (limitedCount > 0) {
+    paragraphs.push(
+      `${limitedCount} piece${limitedCount === 1 ? '' : 's'} of evidence still ${limitedCount === 1 ? 'has' : 'have'} limited support — attaching documents or more detail would strengthen ${limitedCount === 1 ? 'it' : 'them'}.`,
+    );
+  } else if (coreIdentity.stillDeveloping.length > 0) {
+    paragraphs.push(coreIdentity.stillDeveloping[0] as string);
+  }
+
+  if (paragraphs.length === 0) return null;
+  return { paragraphs, evidenceRefs };
+}
+
 export type PersonalReportV2 = {
   generatedAt: string;
   overallEvidenceConfidence: ReportConfidence;
@@ -691,6 +825,21 @@ export type PersonalReportV2 = {
   emergingThemes: EmergingThemesSection;
   personalPositioning: PersonalPositioningSection;
   proofOfMe: ProofOfMeSection;
+  /**
+   * Deterministic chart data (implementation spec §24) — every graph on the
+   * report reads only from here, never computes its own number. Optional,
+   * not because a fresh report can omit it (`buildPersonalReport` always sets
+   * it), but because a report VERSION generated before this field existed is
+   * still a valid stored `PersonalReportV2` snapshot with no way to backfill
+   * it (the raw activities behind an old version were never persisted,
+   * only the evaluation). Rendering an old version without analytics shows
+   * an honest "not available for this version" state, never a crash.
+   */
+  analytics?: PersonalReportAnalytics;
+  /** "Your profile at a glance" synopsis — see `buildOverview`. Same optionality reasoning as `analytics`. */
+  overview?: ReportOverview | null;
+  /** "What this report suggests overall", shown at the end of Proof of Me — see `buildOverallSummary`. */
+  overallSummary?: ReportOverallSummary | null;
 };
 
 export function buildPersonalReport(args: {
@@ -701,15 +850,30 @@ export function buildPersonalReport(args: {
 }): PersonalReportV2 {
   const { evaluation, activities, intendedDirection, generatedAt } = args;
   const themes = themeMaturityResults(activities);
+  const coreIdentity = buildCoreIdentity(evaluation, activities);
+  const drivingForce = buildDrivingForce(evaluation, activities);
+  const signaturePattern = buildSignaturePattern(evaluation, activities);
+  const emergingThemes = buildEmergingThemes(activities, themes);
+  const proofOfMe = buildProofOfMe(evaluation, activities, themes);
 
   return {
     generatedAt,
     overallEvidenceConfidence: evaluation.confidence,
-    coreIdentity: buildCoreIdentity(evaluation, activities),
-    drivingForce: buildDrivingForce(evaluation, activities),
-    signaturePattern: buildSignaturePattern(evaluation, activities),
-    emergingThemes: buildEmergingThemes(activities, themes),
+    coreIdentity,
+    drivingForce,
+    signaturePattern,
+    emergingThemes,
     personalPositioning: buildPersonalPositioning(evaluation, themes, intendedDirection),
-    proofOfMe: buildProofOfMe(evaluation, activities, themes),
+    proofOfMe,
+    analytics: buildPersonalReportAnalytics({
+      evaluation,
+      signaturePatternSteps: signaturePattern.steps,
+      supportingExperienceCount: signaturePattern.supportingExperienceCount,
+      signaturePatternConfidence: signaturePattern.confidence,
+      emergingThemes: emergingThemes.themes,
+      proofStrengthCounts: proofOfMeStrengthCounts(evaluation, activities),
+    }),
+    overview: buildOverview(coreIdentity, drivingForce, emergingThemes),
+    overallSummary: buildOverallSummary(coreIdentity, emergingThemes, proofOfMe),
   };
 }

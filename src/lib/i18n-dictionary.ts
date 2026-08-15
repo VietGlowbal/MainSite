@@ -102,6 +102,20 @@ export const translations: Record<string, string> = {
   'Find my scholarships': 'Tìm học bổng của tôi',
 
   // University catalogue.
+  'View your university matches': 'Xem các trường đại học phù hợp với bạn',
+  'Deterministic demo · fixed fixture data': 'Bản demo deterministic · dữ liệu fixture cố định',
+  'Your university matches': 'Các trường đại học phù hợp với bạn',
+  'No university matches yet': 'Chưa có trường đại học phù hợp',
+  'Add your target subject and destination preferences in your profile, then return here.':
+    'Thêm môn học mục tiêu và điểm đến mong muốn trong hồ sơ, sau đó quay lại đây.',
+  'Update preferences': 'Cập nhật tùy chọn',
+  'Recommended universities': 'Các trường đại học được đề xuất',
+  'Universities are ranked by profile fit, with Strong Chance, Target and Reach tiers.':
+    'Các trường đại học được xếp hạng theo mức độ phù hợp với hồ sơ, gồm các tier Strong Chance, Target và Reach.',
+  'University match tiers': 'Các tier phù hợp của trường đại học',
+  'No universities in this tier yet': 'Chưa có trường đại học nào trong tier này',
+  'Try another tier to see the universities that match your profile.':
+    'Hãy thử tier khác để xem các trường đại học phù hợp với hồ sơ của bạn.',
   "Choose from 200+ of the world's leading universities":
     'Chọn từ 200+ đại học tốt nhất thế giới',
   'Find a university': 'Tìm Đại học',
@@ -2214,11 +2228,31 @@ export const translations: Record<string, string> = {
   // English is the source of truth for this screen (OpenAI-backed since it
   // switched off DeepSeek); these keys mirror the copy that used to be
   // hardcoded in Vietnamese directly in the JSX.
+  'Complete your Personalized Strategy before building a CV.':
+    'Hoàn tất Chiến lược cá nhân hóa trước khi tạo CV.',
+  'Open Personalized Strategy': 'Mở Chiến lược cá nhân hóa',
+  'Your Target Profile will be generated from the current strategy.':
+    'Hồ sơ mục tiêu sẽ được tạo từ chiến lược hiện tại.',
+  'Strategic directions': 'Các định hướng chiến lược',
+  'Your AI-recommended CV direction': 'Định hướng CV do AI đề xuất',
+  'These directions are read-only. The Recommended direction is locked to your Personalized Strategy.':
+    'Các định hướng này chỉ đọc. Định hướng Đề xuất được khóa theo Chiến lược cá nhân hóa.',
+  '{count} directions evaluated': '{count} định hướng đã được đánh giá',
+  'Strategy alignment': 'Căn chỉnh chiến lược',
+  'Chosen direction': 'Định hướng đã chọn',
+  'Locked strategy direction': 'Định hướng chiến lược đã khóa',
+  'Retry Target Profile': 'Thử lại Hồ sơ mục tiêu',
+  'Regenerate the Target Profile for the current strategy.':
+    'Tạo lại Hồ sơ mục tiêu cho chiến lược hiện tại.',
+  'chosenDirection must match one of directionOptions':
+    'Định hướng đã chọn phải khớp với một trong các lựa chọn định hướng',
+  'Your Personalized Strategy sets the direction. The AI only uses university, programme and profile data stored in Supabase; missing pieces are flagged, never invented.':
+    'Chiến lược cá nhân hóa định hướng. AI chỉ sử dụng dữ liệu trường, chương trình và hồ sơ được lưu trong Supabase; phần thiếu sẽ được đánh dấu, không bịa thêm.',
   'CV creation progress': 'Tiến trình tạo CV',
   Content: 'Nội dung',
   'CV Draft': 'Bản CV',
   'No Target Profile yet. Enter a career direction and start generating.':
-    'Chưa có Target Profile. Hãy nhập định hướng và bắt đầu tạo.',
+    'Chưa có hồ sơ mục tiêu. Hãy nhập định hướng và bắt đầu tạo.',
   'University positioning': 'Định vị trường',
   'Educational philosophy': 'Triết lý giáo dục',
   Environment: 'Môi trường',
@@ -2304,8 +2338,8 @@ export const translations: Record<string, string> = {
   'Career direction (optional)': 'Định hướng nghề nghiệp (không bắt buộc)',
   'e.g. Software Engineer in education technology': 'Ví dụ: Software Engineer in education technology',
   'AI is working…': 'AI đang làm…',
-  'Regenerate Target Profile': 'Tạo lại Target Profile',
-  'Create Target Profile': 'Tạo Target Profile',
+  'Regenerate Target Profile': 'Tạo lại hồ sơ mục tiêu',
+  'Create Target Profile': 'Tạo hồ sơ mục tiêu',
   'Continue to content →': 'Tiếp tục nhập nội dung →',
   'Enter your CV data': 'Nhập dữ liệu cho CV',
   'Review the existing information and add your experience, awards and skills.':
@@ -2315,7 +2349,7 @@ export const translations: Record<string, string> = {
   'Your CV is ready. Review and edit it.': 'CV đã được tạo. Kiểm tra và chỉnh sửa.',
   'AI is building your CV.': 'AI đang xây dựng CV của bạn.',
   'Click directly on the CV content to edit it before running a review.':
-    'Nhấp trực tiếp vào nội dung trong bản CV để chỉnh sửa trước khi review.',
+    'Nhấp trực tiếp vào nội dung trong bản CV để chỉnh sửa trước khi đánh giá.',
   'Evidence coverage': 'Độ phủ dẫn chứng',
   '3 strengths': '3 điểm mạnh',
   'Needs more evidence': 'Cần bổ sung',
@@ -2327,10 +2361,10 @@ export const translations: Record<string, string> = {
   'Use these answers to improve the CV': 'Dùng câu trả lời để cải thiện CV',
   'Click the introduction or any bullet on the CV to edit it.':
     'Nhấp vào phần giới thiệu hoặc bullet trên CV để chỉnh sửa.',
-  'AI is reviewing…': 'AI đang review…',
-  'Run CV Review': 'Chạy CV Review',
+  'AI is reviewing…': 'AI đang đánh giá…',
+  'Run CV Review': 'Đánh giá CV',
   'Answer every question and regenerate the CV before running Review.':
-    'Hãy trả lời đủ các câu hỏi và tạo lại CV trước khi chạy Review.',
+    'Hãy trả lời đủ các câu hỏi và tạo lại CV trước khi đánh giá.',
   'Choose layout →': 'Chọn layout →',
   'Choose how the CV is presented': 'Chọn cách trình bày CV',
   'Both layouts use the same content; you can switch templates before downloading the PDF.':
@@ -2344,20 +2378,28 @@ export const translations: Record<string, string> = {
   '{count} items completed': '{count} mục đã hoàn tất',
   // Status/error strings held in component state as their English source
   // and looked up via t(status) / t(error) at render time.
-  'AI is preparing the Target Profile…': 'AI đang chuẩn bị Target Profile…',
+  'AI is preparing the Target Profile…': 'AI đang chuẩn bị hồ sơ mục tiêu…',
   'Preparing profile and programme data…': 'Đang chuẩn bị dữ liệu hồ sơ và chương trình…',
-  'AI is building the Target Profile…': 'AI đang xây dựng Target Profile…',
+  'AI is building the Target Profile…': 'AI đang xây dựng hồ sơ mục tiêu…',
   'AI is normalizing and arranging the CV…': 'AI đang chuẩn hóa và sắp xếp CV…',
   'AI is evaluating the current CV…': 'AI đang đánh giá CV hiện tại…',
-  'Could not create the Target Profile.': 'Chưa thể tạo Target Profile. Vui lòng thử lại.',
-  'Create a Target Profile first.': 'Hãy tạo Target Profile trước.',
+  'Could not create the Target Profile.': 'Chưa thể tạo hồ sơ mục tiêu. Vui lòng thử lại.',
+  'Create a Target Profile first.': 'Hãy tạo hồ sơ mục tiêu trước.',
   'Could not create the CV.': 'Không thể tạo CV.',
-  'Could not review the CV.': 'Không thể review CV.',
-  'Invalid Target Profile.': 'Target Profile không hợp lệ.',
+  'Could not review the CV.': 'Không thể đánh giá CV.',
+  'Invalid Target Profile.': 'Hồ sơ mục tiêu không hợp lệ.',
   'Invalid list of sections to generate.': 'Danh sách phần cần tạo không hợp lệ.',
   'Invalid CV generation mode.': 'Chế độ tạo CV không hợp lệ.',
   'Could not finish the CV. Please retry the missing sections.':
     'Chưa thể hoàn tất CV. Vui lòng thử lại phần còn thiếu.',
+  'A current Personalized Strategy is required before building a CV.':
+    'Cần có Chiến lược cá nhân hóa hiện tại trước khi tạo CV.',
+  'A current Personalized Strategy is required before generating a CV.':
+    'Cần có Chiến lược cá nhân hóa hiện tại trước khi tạo CV.',
+  'Your Personalized Strategy changed. Refresh the CV Builder and try again.':
+    'Chiến lược cá nhân hóa của bạn đã thay đổi. Hãy làm mới trình tạo CV rồi thử lại.',
+  'The Target Profile was created from an older strategy. Regenerate it and try again.':
+    'Hồ sơ mục tiêu được tạo từ chiến lược cũ. Hãy tạo lại rồi thử lại.',
   'Invalid career direction.': 'Định hướng nghề nghiệp không hợp lệ.',
   // Approved product vocabulary (kept exact for static crawl parity).
   'Search Universities': 'Tìm Đại học',
@@ -4479,4 +4521,87 @@ export const translations: Record<string, string> = {
   'Your achievements and activities are already filled in from your profile.':
     'Thành tích và hoạt động này đã được điền sẵn từ hồ sơ của bạn.',
   'Skip — my achievements are still correct': 'Bỏ qua — thành tích của tôi vẫn đúng',
+  'Payment method': 'Phương thức thanh toán',
+  'Manual bank transfer': 'Chuyển khoản ngân hàng thủ công',
+  'Bank transfer payment | GlowBal': 'Thanh toán chuyển khoản ngân hàng | GlowBal',
+  'Transfer the exact VND amount; founder confirmation is required.': 'Chuyển đúng số tiền VND; cần người sáng lập xác nhận.',
+  'VNPay is currently available in Sandbox. Manual bank transfer is confirmed by the founder. Stripe will be available soon.': 'VNPay hiện khả dụng ở môi trường Sandbox. Chuyển khoản ngân hàng cần người sáng lập xác nhận. Stripe sẽ sớm khả dụng.',
+  'I have transferred': 'Tôi đã chuyển khoản',
+  'Payment status': 'Trạng thái thanh toán',
+  'Awaiting transfer': 'Đang chờ chuyển khoản',
+  'Transfer reported — awaiting founder': 'Đã báo chuyển khoản — chờ người sáng lập',
+  'Confirmed': 'Đã xác nhận',
+  'Expired': 'Đã hết hạn',
+  'Received late — support review required': 'Đã nhận trễ — cần hỗ trợ kiểm tra',
+  'Founder payment review': 'Kiểm tra thanh toán của người sáng lập',
+  'State:': 'Trạng thái:',
+  'Checkout expiry': 'Hạn thanh toán',
+  'Current ledger': 'Sổ cái hiện tại',
+  'Reviewer note': 'Ghi chú người duyệt',
+  'Confirm received': 'Xác nhận đã nhận',
+  'Review link is missing.': 'Thiếu liên kết kiểm tra.',
+  'This review is unavailable.': 'Không thể mở kiểm tra này.',
+  'Could not load payment status': 'Không thể tải trạng thái thanh toán',
+  'Could not record transfer claim': 'Không thể ghi nhận đã chuyển khoản',
+  'Loading payment status…': 'Đang tải trạng thái thanh toán…',
+  Copy: 'Sao chép',
+  'Copied!': 'Đã sao chép!',
+  Error: 'Lỗi',
+  'VietQR Payment': 'Thanh toán VietQR',
+  'Transfer reported — awaiting confirmation': 'Đã báo chuyển khoản — chờ xác nhận',
+  'Payment expired': 'Thanh toán đã hết hạn',
+  'Scan QR to Pay': 'Quét mã QR để thanh toán',
+  'Your GlowBal purchase has been confirmed and activated.': 'Giao dịch GlowBal của bạn đã được xác nhận và kích hoạt.',
+  'We have received your transfer report. Founder will verify shortly.': 'Chúng tôi đã ghi nhận bạn báo chuyển khoản. Người sáng lập sẽ sớm xác minh.',
+  'This transaction has expired. Please create a new checkout.': 'Giao dịch này đã hết hạn. Vui lòng tạo yêu cầu thanh toán mới.',
+  'Open any banking app or e-wallet to scan the VietQR code.': 'Mở ứng dụng ngân hàng hoặc ví điện tử bất kỳ để quét mã VietQR.',
+  VietQR: 'VietQR',
+  'Instant transfer 24/7': 'Chuyển khoản nhanh 24/7',
+  'Copy amount': 'Sao chép số tiền',
+  'Transfer reference (Mandatory)': 'Nội dung chuyển khoản (Bắt buộc)',
+  'Copy reference': 'Sao chép mã chuyển khoản',
+  'Keep this exact reference code in transfer description to auto-verify': 'Giữ nguyên mã tham chiếu này trong nội dung chuyển khoản để hệ thống tự động xác minh',
+  'Copy account number': 'Sao chép số tài khoản',
+  'Expires at': 'Hết hạn lúc',
+  'Processing…': 'Đang xử lý…',
+  'I have transferred money': 'Tôi đã chuyển khoản',
+  'You reported transfer. The system will update your access once confirmed.': 'Bạn đã báo chuyển khoản. Hệ thống sẽ cập nhật quyền truy cập sau khi được xác nhận.',
+  'Back to plans': 'Quay lại các gói',
+  Reference: 'Mã tham chiếu',
+  'GlowBal bank transfer QR code': 'Mã QR chuyển khoản ngân hàng GlowBal',
+  Bank: 'Ngân hàng',
+  'Account holder': 'Chủ tài khoản',
+  'Account number': 'Số tài khoản',
+  Expires: 'Hết hạn',
+  'VNPay': 'VNPay',
+  'Stripe': 'Stripe',
+  Sandbox: 'Sandbox',
+  'You will pay {amount}': 'Bạn sẽ thanh toán {amount}',
+  'VNPay is currently available in Sandbox for testing. Stripe will be available soon.':
+    'VNPay hiện khả dụng ở môi trường Sandbox để thử nghiệm. Stripe sẽ sớm khả dụng.',
+  'Continue with VNPay': 'Tiếp tục với VNPay',
+  'Continue with manual transfer': 'Tiếp tục với chuyển khoản thủ công',
+  'VNPay Sandbox checkout': 'Thanh toán VNPay Sandbox',
+  'Payment result could not be verified': 'Không thể xác minh kết quả thanh toán',
+  'Please return to GlowBal and check your payment status.':
+    'Vui lòng quay lại GlowBal và kiểm tra trạng thái thanh toán.',
+  'Payment was not completed': 'Thanh toán chưa hoàn tất',
+  'No payment was recorded. You can try again when you are ready.':
+    'Chưa ghi nhận thanh toán. Bạn có thể thử lại khi sẵn sàng.',
+  'Payment successful': 'Thanh toán thành công',
+  'Your GlowBal purchase has been confirmed.': 'Giao dịch GlowBal của bạn đã được xác nhận.',
+  'Payment received — confirming your purchase': 'Đã nhận thanh toán — đang xác nhận giao dịch',
+  'Payment received — contact support': 'Đã nhận thanh toán — vui lòng liên hệ hỗ trợ',
+  'VNPay has returned a successful payment. Confirmation may take a moment.':
+    'VNPay đã trả về giao dịch thành công. Việc xác nhận có thể mất một chút thời gian.',
+  'Your payment was received but needs a support review.':
+    'Đã nhận thanh toán nhưng cần bộ phận hỗ trợ kiểm tra.',
+  'Return to GlowBal': 'Quay lại GlowBal',
+  'VNPay payment result': 'Kết quả thanh toán VNPay',
+  'Payments are processed securely by VNPay Sandbox.':
+    'Thanh toán được xử lý an toàn qua VNPay Sandbox.',
+  'VNPay charges the canonical VND amount shown in each plan. Other currencies are display estimates. GlowBal helps you discover opportunities and prepare stronger applications; it does not guarantee scholarship outcomes.':
+    'VNPay tính số tiền VND chuẩn được hiển thị ở mỗi gói. Các loại tiền khác chỉ là ước tính hiển thị. GlowBal giúp bạn tìm cơ hội và chuẩn bị hồ sơ tốt hơn; không đảm bảo kết quả học bổng.',
+  'Choose a plan below to test payment in Vietnamese dong. Stripe is coming soon.':
+    'Chọn một gói bên dưới để thử thanh toán bằng đồng Việt Nam. Stripe sẽ sớm khả dụng.',
 };

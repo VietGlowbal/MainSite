@@ -3,6 +3,8 @@
 import { useMemo, useState, useSyncExternalStore } from 'react';
 import { Badge, Button, Modal, Textarea } from '@/shared/ui';
 import { computeServiceFee, computeTotal, formatMoney } from '@/lib/currency';
+import { convertToVnd } from '@/lib/payments/vnpay-shared';
+import { PaymentMethodSelector } from '@/components/payments/payment-method-selector';
 import { useLanguage } from '@/lib/i18n';
 import type { Currency, MentorAvailabilitySlot } from '@/types/mentorship';
 
@@ -467,6 +469,8 @@ function BookingIntake({
   const [questions, setQuestions] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'vnpay' | 'manual_bank_transfer'>('vnpay');
+  const [idempotencyKey, setIdempotencyKey] = useState<string | null>(null);
 
   const fee = computeServiceFee(amount);
   const total = computeTotal(amount);
@@ -486,26 +490,32 @@ function BookingIntake({
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/mentorship/checkout', {
+      const key = idempotencyKey ?? crypto.randomUUID();
+      setIdempotencyKey(key);
+      const res = await fetch(paymentMethod === 'manual_bank_transfer' ? '/api/payments/manual/checkout' : '/api/payments/vnpay/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          product: 'mentorship',
+          ...(paymentMethod === 'manual_bank_transfer' ? { provider: 'manual_bank_transfer' } : {}),
           slot_id: slot.id,
           help_topic: finalTopic,
           help_questions: questions.trim(),
+          idempotency_key: key,
         }),
       });
 
       const body = (await res.json().catch(() => ({}))) as {
         checkout_url?: string;
+        status_url?: string;
         error?: string;
       };
       if (!res.ok) throw new Error(t(body.error ?? 'Could not start checkout.'));
-      if (!body.checkout_url) {
+      if (!(paymentMethod === 'manual_bank_transfer' ? body.status_url : body.checkout_url)) {
         throw new Error(t('The payment link was missing. Please try again.'));
       }
 
-      window.location.href = body.checkout_url;
+      window.location.href = (paymentMethod === 'manual_bank_transfer' ? body.status_url : body.checkout_url)!;
     } catch (err) {
       setError(err instanceof Error ? err.message : t('Could not start checkout.'));
       setSubmitting(false);
@@ -541,7 +551,10 @@ function BookingIntake({
               <button
                 key={suggestion}
                 type="button"
-                onClick={() => setTopic(t(suggestion))}
+                onClick={() => {
+                  setTopic(t(suggestion));
+                  setIdempotencyKey(null);
+                }}
                 aria-pressed={topic === suggestion || topic === t(suggestion)}
                 className="rounded-gb-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
@@ -561,7 +574,10 @@ function BookingIntake({
           <input
             id="help-topic"
             value={topic}
-            onChange={(e) => setTopic(e.target.value)}
+            onChange={(e) => {
+              setTopic(e.target.value);
+              setIdempotencyKey(null);
+            }}
             maxLength={200}
             placeholder={t('Or type your own topic')}
             className="mt-gb-lg w-full rounded-gb-md border border-line bg-surface px-gb-lg py-gb-md text-gb-sm text-fg placeholder:text-fg-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
@@ -575,7 +591,10 @@ function BookingIntake({
           rows={5}
           maxLength={1500}
           value={questions}
-          onChange={(e) => setQuestions(e.target.value)}
+          onChange={(e) => {
+            setQuestions(e.target.value);
+            setIdempotencyKey(null);
+          }}
           placeholder={t("e.g. I'm applying for Computer Science and would like advice on my personal statement.")}
         />
 
@@ -594,6 +613,8 @@ function BookingIntake({
           </div>
         </div>
 
+        <PaymentMethodSelector amountVnd={convertToVnd(total, currency)} value={paymentMethod} onChange={setPaymentMethod} />
+
         {error ? (
           <p role="alert" className="text-gb-sm text-fg-error">
             {error}
@@ -607,7 +628,7 @@ function BookingIntake({
           <Button variant="primary" onClick={submit} disabled={submitting}>
             {submitting
               ? t('Redirecting…')
-              : t('Pay {amount}', { amount: formatMoney(total, currency) })}
+              : paymentMethod === 'manual_bank_transfer' ? t('Continue with manual transfer') : t('Continue with VNPay')}
           </Button>
         </div>
       </div>

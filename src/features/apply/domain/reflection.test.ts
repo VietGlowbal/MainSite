@@ -61,6 +61,43 @@ describe('reflectionFromProfile', () => {
     expect(reflectionFromProfile(null)).toEqual(EMPTY);
   });
 
+  it('recognises the onboarding wizard’s canonical study_level token, not just the old reflection form’s display string', () => {
+    // The exact bug CLAUDE.md's application-flow spec names by example: a
+    // student who only ever completed onboarding (which writes
+    // `study_level: 'undergraduate'`) used to read back `intendedLevel:
+    // undefined` here — an unrelated vocabulary the old `oneOf(INTENDED_LEVELS,
+    // ...)` check could not recognise — which blocked Review & Confirm on a
+    // question the student had, in effect, already answered.
+    const profile: ReflectionProfileRow = { study_level: 'undergraduate' };
+    expect(reflectionFromProfile(profile).intendedLevel).toBe('Bachelor’s Degree');
+  });
+
+  it('maps postgraduate and phd the same way', () => {
+    expect(reflectionFromProfile({ study_level: 'postgraduate' }).intendedLevel).toBe(
+      'Master or Post-Graduate Certificate',
+    );
+    // No dedicated PhD card exists in the older three-option list; it lands
+    // on the nearest of the three rather than being dropped.
+    expect(reflectionFromProfile({ study_level: 'phd' }).intendedLevel).toBe(
+      'Master or Post-Graduate Certificate',
+    );
+  });
+
+  it('reads personal_reflection_answers into the personalReflection field, so the confirm snapshot carries it automatically', () => {
+    const profile: ReflectionProfileRow = {
+      personal_reflection_answers: { q1: 'Answer one', q2: 'Answer two' },
+    };
+    expect(reflectionFromProfile(profile).personalReflection).toEqual({
+      q1: 'Answer one',
+      q2: 'Answer two',
+    });
+  });
+
+  it('omits personalReflection entirely when nothing has been answered yet', () => {
+    expect(reflectionFromProfile({ personal_reflection_answers: null }).personalReflection).toBeUndefined();
+    expect(reflectionFromProfile(null).personalReflection).toBeUndefined();
+  });
+
   it('drops a stored value that is no longer a valid option', () => {
     // If an option is renamed, the old value must not survive into the form:
     // it would render as an empty select that nevertheless fails validation,

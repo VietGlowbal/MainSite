@@ -37,6 +37,14 @@ const PROFILE_FIELDS = [
   'target_intake',
   'study_motivation',
   'subject_motivations',
+  /*
+   * The five cross-cutting Personal Reflection answers (see
+   * `personal-reflection.ts`) — what patterns exist across the student's
+   * experiences and what genuinely drives them. Read here so the Personal
+   * Report's pattern-detection pass sees the same answers the confirmed
+   * snapshot locked in, not a stale or missing context.
+   */
+  'personal_reflection_answers',
 ] as const;
 
 function trimText(value: unknown, max = 1200): unknown {
@@ -85,6 +93,41 @@ function refsFor(kind: EvidenceKind, rows: Array<Record<string, unknown> & { id:
   );
 }
 
+/**
+ * Achievements/activities with their reflection + Reflection Card, tolerant
+ * of `supabase-application-experience-flow.sql` not having run yet —
+ * PostgREST fails the WHOLE select on one unknown column, so requesting
+ * `reflection`/`reflection_card` unconditionally would silently drop every
+ * achievement/activity (not just the two new fields) on an unmigrated
+ * deployment, the same trap every other reader in this feature already
+ * guards against.
+ */
+async function selectEvidenceWithReflection(
+  supabase: SupabaseClient,
+  table: 'student_achievements' | 'student_activities',
+  baseColumns: string,
+  userId: string,
+) {
+  const withReflection = await supabase
+    .from(table)
+    .select(`${baseColumns},reflection,reflection_card`)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+    .limit(20);
+  if (!withReflection.error) return withReflection;
+
+  console.warn(
+    `[candidate-context] could not read reflection/reflection_card on ${table} — run supabase-application-experience-flow.sql. Loading the rest.`,
+    withReflection.error.message,
+  );
+  return supabase
+    .from(table)
+    .select(baseColumns)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true })
+    .limit(20);
+}
+
 export async function loadCandidateContext(
   supabase: SupabaseClient,
   userId: string,
@@ -92,18 +135,18 @@ export async function loadCandidateContext(
   const [profileResult, achievementsResult, activitiesResult, englishResult, standardizedResult, docsResult] =
     await Promise.all([
       supabase.from('student_profiles').select('*').eq('user_id', userId).maybeSingle(),
-      supabase
-        .from('student_achievements')
-        .select('id,category,title,competition,organisation,level,year,detail,evidence_key')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true })
-        .limit(20),
-      supabase
-        .from('student_activities')
-        .select('id,category,title,organisation,level,period,description')
-        .eq('user_id', userId)
-        .order('created_at', { ascending: true })
-        .limit(20),
+      selectEvidenceWithReflection(
+        supabase,
+        'student_achievements',
+        'id,category,title,competition,organisation,level,year,detail,evidence_key',
+        userId,
+      ),
+      selectEvidenceWithReflection(
+        supabase,
+        'student_activities',
+        'id,category,title,organisation,level,period,description',
+        userId,
+      ),
       supabase
         .from('english_test_scores')
         .select('id,test_type,overall_score,listening_score,reading_score,writing_score,speaking_score,test_date')
@@ -130,12 +173,12 @@ export async function loadCandidateContext(
       rawProfile[field] === undefined ? [] : [[field, trimText(rawProfile[field])]],
     ),
   );
-  const achievements = ((achievementsResult.data ?? []) as Array<Record<string, unknown> & { id: string }>).map(
-    cleanRow,
-  );
-  const activities = ((activitiesResult.data ?? []) as Array<Record<string, unknown> & { id: string }>).map(
-    cleanRow,
-  );
+  const achievements = (
+    (achievementsResult.data ?? []) as unknown as Array<Record<string, unknown> & { id: string }>
+  ).map(cleanRow);
+  const activities = (
+    (activitiesResult.data ?? []) as unknown as Array<Record<string, unknown> & { id: string }>
+  ).map(cleanRow);
   const englishTests = ((englishResult.data ?? []) as Array<Record<string, unknown> & { id: string }>).map(
     cleanRow,
   );

@@ -8,7 +8,6 @@ import {
   PLUS_COMPARISON,
   PLUS_DISPLAY_CURRENCIES,
   PLUS_PACKAGES,
-  PLUS_SALES_ENABLED,
   currencyLabel,
   formatPlanPrice,
   type ComparisonValue,
@@ -16,8 +15,10 @@ import {
   type PlanColumn,
   type PlusPackage,
 } from '@/lib/plus';
-import { Button, Container, ICONS, KitIcon } from '@/shared/ui';
+import { Button, Container, ICONS, KitIcon, Modal } from '@/shared/ui';
+import { PaymentMethodSelector } from '@/components/payments/payment-method-selector';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { useLanguage } from '@/lib/i18n';
 
 /**
  * PlusPricing — the interactive middle of /plus: currency switcher, the three
@@ -33,8 +34,9 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
  * same standing as `Panel` / `StatTile` / the admin console: nothing here
  * invents a colour, a radius or a type step.
  *
- * It owns the display/checkout currency (USD by default) and feeds it to every
- * price label and to the checkout call, so Stripe charges in what was chosen.
+ * It owns the display currency (USD by default) and feeds it to every price
+ * label. VNPay always charges the canonical VND amount; the selected currency
+ * is retained only as a frozen display estimate in the payment ledger.
  *
  * Three things about the layout are deliberate:
  *
@@ -135,16 +137,20 @@ function PlanCard({
   applicationId: string | null;
 }) {
   const router = useRouter();
+  const { t } = useLanguage();
   const [loading, setLoading] = useState(false);
+  const [paymentOpen, setPaymentOpen] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'vnpay' | 'manual_bank_transfer'>('vnpay');
   useLoadingIndicator(loading, 'Opening secure checkout');
   const [error, setError] = useState<string | null>(null);
   const featured = pkg.highlighted;
 
   // Starts checkout for a signed-in student, or sends a guest to sign up first
   // and back here afterwards.
-  async function select() {
+  async function startCheckout() {
     if (loading) return;
     if (!signedIn) {
+      setPaymentOpen(false);
       const redirect = `/plus${applicationId ? `?application=${applicationId}` : ''}`;
       router.push(`/auth?mode=signup&redirect=${encodeURIComponent(redirect)}`);
       return;
@@ -152,28 +158,33 @@ function PlanCard({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/plus/checkout', {
+      const res = await fetch(paymentMethod === 'manual_bank_transfer' ? '/api/payments/manual/checkout' : '/api/payments/vnpay/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: pkg.id, currency, applicationId: applicationId ?? undefined }),
+        body: JSON.stringify({
+          product: 'plus',
+          ...(paymentMethod === 'manual_bank_transfer' ? { provider: 'manual_bank_transfer' } : {}),
+          plan: pkg.id,
+          currency,
+          applicationId: applicationId ?? undefined,
+          idempotency_key: crypto.randomUUID(),
+        }),
       });
       const data = await res.json();
-      if (!res.ok || !data.checkout_url) {
+      if (!res.ok || (paymentMethod === 'vnpay' && !data.checkout_url) || (paymentMethod === 'manual_bank_transfer' && !data.status_url)) {
         throw new Error(data.error ?? 'Could not start checkout');
       }
-      window.location.assign(data.checkout_url as string);
+      window.location.assign((paymentMethod === 'manual_bank_transfer' ? data.status_url : data.checkout_url) as string);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Something went wrong');
       setLoading(false);
     }
   }
 
-  const ctaLabel = !PLUS_SALES_ENABLED
-    ? 'Coming soon'
-    : loading
+  const ctaLabel = loading
       ? 'Starting checkout…'
       : signedIn
-        ? 'Choose this plan'
+        ? 'Continue with VNPay'
         : 'Sign up & choose';
 
   return (
@@ -235,8 +246,12 @@ function PlanCard({
         size="lg"
         variant={featured ? 'primary' : 'secondary'}
         className="mt-gb-3xl w-full"
-        onClick={select}
-        disabled={!PLUS_SALES_ENABLED || loading}
+        onClick={() => {
+          setError(null);
+          setPaymentMethod('vnpay');
+          setPaymentOpen(true);
+        }}
+        disabled={loading}
         aria-busy={loading}
       >
         {ctaLabel}
@@ -244,11 +259,41 @@ function PlanCard({
 
       {error ? <p className="mt-gb-md text-center text-gb-xs text-fg-error">{error}</p> : null}
 
-      {PLUS_SALES_ENABLED && !signedIn ? (
+      {!signedIn ? (
         <p className="mt-gb-lg text-center text-gb-xs text-fg-muted">
           No account yet? Selecting a plan signs you up first — it&rsquo;s free to start.
         </p>
       ) : null}
+
+      <Modal
+        open={paymentOpen}
+        onClose={() => setPaymentOpen(false)}
+        label={`Choose payment method for ${pkg.name}`}
+        className="max-w-[560px] p-gb-3xl"
+      >
+        <div className="flex flex-col gap-gb-xl">
+          <div>
+            <h4 className="font-display text-gb-xl font-semibold text-fg">{t('Payment method')}</h4>
+            <p className="mt-gb-xs text-gb-sm text-fg-tertiary">{pkg.name} · {formatPlanPrice(pkg.amountVnd, 'VND')}</p>
+          </div>
+          <PaymentMethodSelector
+            amountVnd={pkg.amountVnd}
+            id={`plus-payment-${pkg.id}`}
+            name={`plus-payment-method-${pkg.id}`}
+            value={paymentMethod}
+            onChange={setPaymentMethod}
+          />
+          <Button
+            size="lg"
+            variant={featured ? 'primary' : 'secondary'}
+            onClick={startCheckout}
+            disabled={loading}
+            aria-busy={loading}
+          >
+            {loading ? t('Starting checkout…') : signedIn ? paymentMethod === 'manual_bank_transfer' ? t('Continue with manual transfer') : t('Continue with VNPay') : t('Sign up & choose')}
+          </Button>
+        </div>
+      </Modal>
     </div>
   );
 }

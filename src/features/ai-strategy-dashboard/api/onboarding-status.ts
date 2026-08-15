@@ -36,12 +36,13 @@ async function selectApplicationFlags(
   strategy_intro_seen_at?: string | null;
   personal_summary_reviewed_at?: string | null;
   achievements_reviewed_at?: string | null;
+  personal_reflection_reviewed_at?: string | null;
   candidate_confirmed_at?: string | null;
 } | null> {
   const full = await supabase
     .from('course_applications')
     .select(
-      'strategy_intro_seen_at, personal_summary_reviewed_at, achievements_reviewed_at, candidate_confirmed_at',
+      'strategy_intro_seen_at, personal_summary_reviewed_at, achievements_reviewed_at, personal_reflection_reviewed_at, candidate_confirmed_at',
     )
     .eq('id', applicationId)
     .eq('user_id', userId)
@@ -49,9 +50,19 @@ async function selectApplicationFlags(
   if (!full.error) return full.data;
 
   console.warn(
-    '[onboarding-status] could not read per-application review columns — run supabase-per-application-onboarding.sql. Reading the rest.',
+    '[onboarding-status] could not read per-application review columns — run supabase-application-experience-flow.sql (personal_reflection_reviewed_at) or supabase-per-application-onboarding.sql. Reading the rest.',
     full.error.message,
   );
+  const withoutPersonalReflection = await supabase
+    .from('course_applications')
+    .select(
+      'strategy_intro_seen_at, personal_summary_reviewed_at, achievements_reviewed_at, candidate_confirmed_at',
+    )
+    .eq('id', applicationId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (!withoutPersonalReflection.error) return withoutPersonalReflection.data;
+
   const base = await supabase
     .from('course_applications')
     .select('strategy_intro_seen_at')
@@ -96,6 +107,7 @@ export async function fetchOnboardingState(
   return {
     personalSummaryComplete: Boolean(application?.personal_summary_reviewed_at),
     achievementsComplete: Boolean(application?.achievements_reviewed_at),
+    personalReflectionComplete: Boolean(application?.personal_reflection_reviewed_at),
     candidateConfirmed: Boolean(application?.candidate_confirmed_at),
     aiAnalysisComplete: Boolean(analysis.data) && Boolean(matchAnalysis.data),
     introSeen: Boolean(application?.strategy_intro_seen_at),

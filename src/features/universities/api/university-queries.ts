@@ -160,6 +160,9 @@ export interface UniversityQueries {
    * for the caller to stop needing every row — that is Track A's job.
    */
   listAllForLegacyExplorer(): Promise<UniversityListItem[]>;
+
+  /** The full university projection used by the deterministic matcher. */
+  allForMatching(): Promise<UniversityListItem[]>;
 }
 
 /** Clamp a caller-supplied page size into this feature's allowed range. */

@@ -4,11 +4,14 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   EDUCATION_LEVEL_META,
+  PERSONAL_REFLECTION_QUESTION_COUNT,
   destinationFlag,
   destinationLabel,
   formatBudgetRange,
   fundingSourceLabel,
   isCompleteBudget,
+  isReflectionCardEmpty,
+  personalReflectionAnsweredCount,
   reflectionStep,
   subjectById,
   type CandidateReadiness,
@@ -38,6 +41,14 @@ import { Button, Checkbox, Modal, Panel, PanelHeader } from '@/shared/ui';
 
 function editHref(step: 'about' | 'evidence', returnTo: string | undefined) {
   const path = reflectionStep(step).path;
+  return returnTo ? `${path}?return=${encodeURIComponent(returnTo)}` : path;
+}
+
+/** Personal Reflection isn't one of `REFLECTION_STEPS` — see that file's own
+ * doc comment on why only "about"/"evidence" are counted steps — so its Edit
+ * link is built the same way, just not through `reflectionStep()`. */
+function personalReflectionHref(returnTo: string | undefined) {
+  const path = '/ai-strategy/reflection/personal';
   return returnTo ? `${path}?return=${encodeURIComponent(returnTo)}` : path;
 }
 
@@ -114,6 +125,11 @@ export function ReviewConfirmView({
 
   const aboutHref = readOnly ? undefined : editHref('about', returnTo);
   const evidenceHref = readOnly ? undefined : editHref('evidence', returnTo);
+  const personalHref = readOnly ? undefined : personalReflectionHref(returnTo);
+  const confirmedCardCount =
+    reflection.achievements.filter((a) => !isReflectionCardEmpty(a.reflectionCard)).length +
+    reflection.activities.filter((a) => !isReflectionCardEmpty(a.reflectionCard)).length;
+  const personalReflectionAnswered = personalReflectionAnsweredCount(reflection.personalReflection);
   const confirmedDate = confirmedAt
     ? new Date(confirmedAt).toLocaleDateString('en-US', {
         day: 'numeric',
@@ -332,17 +348,33 @@ export function ReviewConfirmView({
         </ReviewSection>
 
         <ReviewSection
-          title={t('Achievements & activities')}
+          title={t('Experiences')}
           editLabel={t('Edit')}
           editHref={evidenceHref}
         >
           <Field
-            label={t('Academic achievements')}
-            value={t('{count} on file', { count: reflection.achievements.length })}
+            label={t('Activities added')}
+            value={t('{count} on file', {
+              count: reflection.achievements.length + reflection.activities.length,
+            })}
           />
           <Field
-            label={t('Extracurricular activities')}
-            value={t('{count} on file', { count: reflection.activities.length })}
+            label={t('Reflection Cards')}
+            value={t('{count} confirmed', { count: confirmedCardCount })}
+          />
+        </ReviewSection>
+
+        <ReviewSection
+          title={t('Personal Reflection')}
+          editLabel={t('Edit')}
+          editHref={personalHref}
+        >
+          <Field
+            label={t('Questions completed')}
+            value={t('{count} of {total}', {
+              count: personalReflectionAnswered,
+              total: PERSONAL_REFLECTION_QUESTION_COUNT,
+            })}
           />
         </ReviewSection>
 
