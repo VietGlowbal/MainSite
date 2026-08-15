@@ -40,6 +40,29 @@ describe('manual payment configuration', () => {
     expect(getManualPaymentConfig().accountNumberMasked).not.toContain('012345678');
     process.env = original;
   });
+
+  it('uses the production origin for email links when the configured site URL is local', () => {
+    const original = { ...process.env };
+    Object.assign(process.env, {
+      MANUAL_PAYMENT_REVIEW_SECRET: 'a'.repeat(48),
+      MANUAL_PAYMENT_REVIEWER_USER_IDS: '11111111-1111-4111-8111-111111111111',
+      MANUAL_PAYMENT_FOUNDER_EMAIL: 'founder@example.test',
+      MANUAL_PAYMENT_FROM_EMAIL: 'payments@example.test',
+      MANUAL_PAYMENT_BANK_LABEL: 'ACME Bank',
+      MANUAL_PAYMENT_BANK_ACCOUNT_HOLDER: 'Glowbal Education',
+      MANUAL_PAYMENT_BANK_ACCOUNT_NUMBER: '012345678901',
+      MANUAL_PAYMENT_BANK_QR_URL: 'https://cdn.example.test/qr.png',
+      MANUAL_PAYMENT_BANK_QR_REVISION: 'qr-v1',
+      MANUAL_PAYMENT_RECONCILIATION_SECRET: 'b'.repeat(48),
+      MANUAL_PAYMENT_EMAIL_SITE_URL: 'http://localhost:3000',
+      NEXT_PUBLIC_SITE_URL: 'http://localhost:3000',
+    });
+    try {
+      expect(getManualPaymentConfig().siteUrl).toBe('https://glowbal-education.com');
+    } finally {
+      process.env = original;
+    }
+  });
 });
 
 describe('manual review capability', () => {

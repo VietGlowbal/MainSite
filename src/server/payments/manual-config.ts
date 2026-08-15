@@ -1,3 +1,5 @@
+import { PRODUCTION_SITE_URL } from '@/lib/site-url';
+
 export type ManualPaymentConfig = {
   reviewerUserIds: string[];
   founderEmail: string;
@@ -50,6 +52,22 @@ function reviewerIds(): string[] {
   return [...new Set(ids)];
 }
 
+function publicEmailSiteUrl(): string {
+  const value = process.env.MANUAL_PAYMENT_EMAIL_SITE_URL?.trim();
+  if (!value) return PRODUCTION_SITE_URL;
+  try {
+    const parsed = new URL(value);
+    const hostname = parsed.hostname.toLowerCase();
+    if (parsed.protocol !== 'https:' || parsed.username || parsed.password
+      || hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '::1') {
+      return PRODUCTION_SITE_URL;
+    }
+    return parsed.origin;
+  } catch {
+    return PRODUCTION_SITE_URL;
+  }
+}
+
 export function brandManualPaymentSender(value: string): string {
   const address = value.match(/<([^<>]+)>\s*$/)?.[1]?.trim() || value.trim();
   return `GlowBal <${address}>`;
@@ -60,7 +78,6 @@ export function getManualPaymentConfig(): ManualPaymentConfig {
   if (!/^\d{6,34}$/.test(accountNumber)) {
     throw new Error('MANUAL_PAYMENT_BANK_ACCOUNT_NUMBER must contain digits only');
   }
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim() || 'http://localhost:3000';
   return {
     reviewerUserIds: reviewerIds(),
     founderEmail: required('MANUAL_PAYMENT_FOUNDER_EMAIL'),
@@ -73,7 +90,7 @@ export function getManualPaymentConfig(): ManualPaymentConfig {
     accountNumberMasked: `••••••••${accountNumber.slice(-3)}`,
     bankQrUrl: httpsUrl('MANUAL_PAYMENT_BANK_QR_URL'),
     bankQrRevision: required('MANUAL_PAYMENT_BANK_QR_REVISION'),
-    siteUrl: siteUrl.replace(/\/$/, ''),
+    siteUrl: publicEmailSiteUrl(),
   };
 }
 

@@ -217,8 +217,16 @@ MANUAL_PAYMENT_BANK_ACCOUNT_HOLDER=GlowBal Education
 MANUAL_PAYMENT_BANK_ACCOUNT_NUMBER=123456789
 MANUAL_PAYMENT_BANK_QR_URL=https://your-domain.tld/assets/bank-qr.png
 MANUAL_PAYMENT_BANK_QR_REVISION=qr-v1
+MANUAL_PAYMENT_EMAIL_SITE_URL=https://glowbal-education.com
 NEXT_PUBLIC_SITE_URL=https://your-domain.tld
 ```
+
+Transactional payment emails use `MANUAL_PAYMENT_EMAIL_SITE_URL`. It accepts
+only a public HTTPS origin and defaults to `https://glowbal-education.com`, so
+running the app on localhost cannot put a localhost link into founder/student
+emails. A review token created against a local database will not exist in the
+production database; test the clickable review flow against the same deployed
+environment that created the transaction.
 
 Configure a protected scheduler to `POST /api/payments/manual/outbox` with
 `Authorization: Bearer $MANUAL_PAYMENT_RECONCILIATION_SECRET`. The checkout

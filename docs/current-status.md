@@ -41,6 +41,10 @@ job was retried once and verified `sent` with a provider message ID.
 The manual-payment status surface now has all 24 new EN→VI dictionary entries;
 the production i18n checker reports zero missing static keys and zero placeholder
 mismatches instead of failing CI on that route.
+Transactional payment-email links now use the server-only
+`MANUAL_PAYMENT_EMAIL_SITE_URL` and fall back to the canonical production origin
+`https://glowbal-education.com`; localhost, non-HTTPS, credential-bearing, and
+malformed overrides cannot leak into founder or student emails.
 
 VNPay Sandbox checkout is implemented in the working tree for mentorship and
 GlowBal Plus. Stripe remains visible but disabled as a demo/"Coming soon"
