@@ -16,6 +16,10 @@ const dictionaryFile = path.join(root, 'src/lib/i18n-catalog.ts');
 const sourceRoots = ['src/app', 'src/components', 'src/features', 'src/shared/ui'];
 const excludedSegments = new Set(['admin', 'api', 'dev', 'demo-throwaway']);
 const privateSegments = new Set(['profile', 'dashboard', 'apply', 'onboarding', 'my-universities', 'ai-strategy']);
+// These legal documents are intentionally maintained as authoritative
+// Vietnamese copy. Keep them visible in the report, but do not treat their
+// source language as an untranslated UI regression.
+const authoritativeVietnameseRoutes = new Set(['/privacy', '/terms']);
 // Keep the object-literal scan intentionally narrow: these property names are
 // user-facing copy in route metadata/nav configuration, while broad scanning
 // would pull in user-authored records and university/program data.
@@ -271,23 +275,7 @@ function hasVietnamese(value) {
   return /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/u.test(value);
 }
 
-/**
- * Routes whose SOURCE language is Vietnamese by design.
- *
- * The rule everywhere else is: author in English, let the dictionary supply
- * Vietnamese. These two are the exception the owner signed off on — they are
- * the binding legal documents of a Vietnamese company, so the Vietnamese text
- * is the authoritative one and an English rendering is a translation OF it,
- * not the other way round. Holding them to the usual direction would mean the
- * legally operative wording lived in a dictionary value.
- *
- * This is a route exemption, not a blanket one: any Vietnamese literal added
- * anywhere else still fails the check. Keep this list to legal copy.
- */
-const VI_AUTHORITATIVE_ROUTES = new Set(['/privacy', '/terms']);
-
-function isViSourceProtected(key, item) {
-  if (item && VI_AUTHORITATIVE_ROUTES.has(item.route)) return true;
+function isViSourceProtected(key) {
   return /^https?:|^\/|^\W*\d|@|%|^rgb\(|^[\p{P}\d\s]+$/u.test(key)
     || protectedStatic.has(key);
 }
@@ -335,8 +323,12 @@ function main() {
   const dictionaryBacked = scopedOccurrences.filter(({ key }) => dictionary[key] !== undefined);
   const candidates = scopedOccurrences.filter(({ key }) => dictionary[key] === undefined && !hasVietnamese(key));
   const viSource = scopedOccurrences.filter(({ key }) => hasVietnamese(key));
-  const viSourceProtected = viSource.filter((item) => isViSourceProtected(item.key, item));
-  const actionableViSource = viSource.filter((item) => !isViSourceProtected(item.key, item));
+  const viSourceProtected = viSource.filter(({ key, route }) =>
+    authoritativeVietnameseRoutes.has(route) || isViSourceProtected(key),
+  );
+  const actionableViSource = viSource.filter(({ key, route }) =>
+    !authoritativeVietnameseRoutes.has(route) && !isViSourceProtected(key),
+  );
   const protectedItems = candidates.filter(({ key }) => isProtectedStatic(key));
   const missing = candidates.filter(({ key }) => !isProtectedStatic(key));
   const regexProtectedCount = protectedItems.filter(({ key }) => !protectedStatic.has(key)).length;
@@ -347,8 +339,8 @@ function main() {
   const noAutoCandidates = noAuto.filter(({ key }) => dictionary[key] === undefined && !hasVietnamese(key));
   const noAutoMissing = noAutoCandidates.filter(({ key }) => !isProtectedStatic(key));
   const noAutoViSource = noAuto.filter(({ key }) => hasVietnamese(key));
-  const noAutoActionableViSource = noAutoViSource.filter(
-    (item) => !isViSourceProtected(item.key, item),
+  const noAutoActionableViSource = noAutoViSource.filter(({ key, route }) =>
+    !authoritativeVietnameseRoutes.has(route) && !isViSourceProtected(key),
   );
 
   const report = {

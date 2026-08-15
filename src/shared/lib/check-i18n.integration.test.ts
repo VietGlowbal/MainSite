@@ -54,7 +54,7 @@ describe('production i18n checker', () => {
     // one — widening it to a product route would silence the check for that
     // whole screen, so make that a deliberate act rather than a quiet one.
     const script = readFileSync('scripts/check-i18n.mjs', 'utf8');
-    const declared = /VI_AUTHORITATIVE_ROUTES = new Set\(\[([^\]]*)\]\)/.exec(script)?.[1] ?? '';
+    const declared = /authoritativeVietnameseRoutes = new Set\(\[([^\]]*)\]\)/.exec(script)?.[1] ?? '';
     const routes = [...declared.matchAll(/'([^']+)'/g)].map((match) => match[1]);
     expect(routes).toEqual(['/privacy', '/terms']);
   });

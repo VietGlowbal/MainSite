@@ -48,7 +48,7 @@ describe('PlusPricing payment dialog', () => {
     expect(screen.getByRole('button', { name: 'Apply code' })).toBeDisabled();
 
     fireEvent.change(screen.getByRole('textbox', { name: 'Promo code' }), {
-      target: { value: 'glowbalglowbal' },
+      target: { value: 'gogogogoglowbal' },
     });
     expect(screen.getByRole('button', { name: 'Apply code' })).not.toBeDisabled();
   });
@@ -64,7 +64,7 @@ describe('PlusPricing payment dialog', () => {
     render(<PlusPricing signedIn applicationId={null} />);
     fireEvent.click(screen.getByRole('button', { name: 'Start your journey' }));
     fireEvent.change(screen.getByRole('textbox', { name: 'Promo code' }), {
-      target: { value: 'glowbalglowbal' },
+      target: { value: 'gogogogoglowbal' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Apply code' }));
 
@@ -72,7 +72,7 @@ describe('PlusPricing payment dialog', () => {
       '/api/plus/redeem',
       expect.objectContaining({
         method: 'POST',
-        body: JSON.stringify({ code: 'glowbalglowbal', plan: 'plus-pro' }),
+        body: JSON.stringify({ code: 'gogogogoglowbal', plan: 'plus-pro' }),
       }),
     ));
     expect(mocks.refresh).toHaveBeenCalled();

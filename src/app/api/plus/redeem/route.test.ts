@@ -29,7 +29,7 @@ function signedIn(rpc = vi.fn()) {
 describe('POST /api/plus/redeem', () => {
   it('rejects cross-origin promo redemption before authentication', async () => {
     const response = await POST(request(
-      { code: 'glowbalglowbal', plan: 'plus-pro' },
+      { code: 'gogogogoglowbal', plan: 'plus-pro' },
       'https://attacker.test',
     ));
 
@@ -45,17 +45,25 @@ describe('POST /api/plus/redeem', () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
+  it('rejects the retired promo code', async () => {
+    const rpc = signedIn();
+    const response = await POST(request({ code: 'glowbalglowbal', plan: 'plus-pro' }));
+
+    expect(response.status).toBe(400);
+    expect(rpc).not.toHaveBeenCalled();
+  });
+
   it('atomically grants the selected plan to the authenticated user', async () => {
     const rpc = signedIn(vi.fn(async () => ({
       data: { ok: true, plan: 'plus-pro', expires_at: '2027-08-15T00:00:00Z' },
       error: null,
     })));
-    const response = await POST(request({ code: '  GLOWBALGLOWBAL ', plan: 'plus-pro' }));
+    const response = await POST(request({ code: '  GOGOGOGOGLOWBAL ', plan: 'plus-pro' }));
 
     expect(response.status).toBe(200);
     expect(rpc).toHaveBeenCalledWith('redeem_plus_promo', {
       p_user_id: 'user-1',
-      p_campaign: 'glowbalglowbal-v1',
+      p_campaign: 'gogogogoglowbal-v2',
       p_plan: 'plus-pro',
     });
   });
@@ -65,7 +73,7 @@ describe('POST /api/plus/redeem', () => {
       data: { ok: false, reason: 'already_redeemed' },
       error: null,
     })));
-    const response = await POST(request({ code: 'glowbalglowbal', plan: 'plus-pro' }));
+    const response = await POST(request({ code: 'gogogogoglowbal', plan: 'plus-pro' }));
 
     expect(response.status).toBe(409);
   });
