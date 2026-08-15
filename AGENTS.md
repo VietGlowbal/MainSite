@@ -7,17 +7,31 @@ This version has breaking changes — APIs, conventions, and file structure may 
 
 ## Persistent memory
 
-- For every task, use agentmemory before planning or changing files.
-- Before work, call `memory_smart_search` or `memory_recall` with the project,
-  task, and affected feature terms; read relevant hits before deriving context.
-- After material work, call `memory_save` for durable decisions, verified
-  findings, outcomes, checks run, and unresolved risks. Do not store secrets,
-  credentials, personal data, transient logs, or unverified assumptions.
-- Treat code, configuration, and current documentation as the source of truth;
-  correct or supersede stale memory when discovered.
-- If memory tools are unavailable, report that once and continue with the
-  project context workflow. Do not install or start a memory service without
-  explicit user approval.
+> ⚠️ This section used to mandate an `agentmemory` MCP server (`memory_recall`,
+> `memory_smart_search`, `memory_save`). **That server has never been connected
+> to this project** — a sweep of all 28 recorded sessions on 2026-08-15 found
+> zero calls to any `memory_*` tool, because none was ever available. The
+> instruction only ever cost each session a failed attempt or an apology.
+> Replaced with the mechanism that does exist.
+
+Durable cross-session memory lives in **`docs/`**, which is version-controlled
+and reviewable. Treat it as the memory store:
+
+- **Recall** by following the router in `docs/README.md` and searching
+  `docs/current-status.md` for the affected feature — not by re-deriving context
+  from the code.
+- **Save** by updating `docs/current-status.md` and the task-specific document,
+  per the workflow below. A decision that is not written there did not persist.
+- Never store secrets, credentials, personal data, or unverified assumptions in
+  documentation.
+- Code and configuration are the source of truth; correct or supersede stale
+  documentation when you find it rather than working around it.
+
+Claude Code additionally keeps a private per-user memory outside the repo
+(`~/.claude/projects/<project>/memory/` with a `MEMORY.md` index). That is for
+user preferences and cross-session working context, **not** a substitute for
+`docs/` — anything the next contributor needs belongs in the repo. Do not
+install or start a memory service without explicit user approval.
 
 ## Project context workflow
 

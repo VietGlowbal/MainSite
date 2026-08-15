@@ -19,12 +19,17 @@ material work; keep detailed design history in the topic-specific documents.
    two by trusting a `.sql` file or a stale to-do instead of querying, and one by
    probing three invented table names, missing on all three, and reporting that
    the course catalogue did not exist. It did. Do not preserve a table count in
-   prose; enumerate the current schema with one call:
+   prose; enumerate the current schema with one call — **`/db-schema` runs this
+   for you** and also prints the per-table column and row-count variants:
 
    ```bash
-   curl -s "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" \
-     | jq -r '.definitions | keys[]'
+   node --env-file=.env.local -e "const u=process.env.NEXT_PUBLIC_SUPABASE_URL,k=process.env.SUPABASE_SERVICE_ROLE_KEY;fetch(u+'/rest/v1/',{headers:{apikey:k}}).then(r=>r.json()).then(d=>console.log(Object.keys(d.definitions).sort().join('\n')))"
    ```
+
+   ⚠️ **`jq` is not installed on this machine.** This line used to carry a
+   `curl … | jq` pipeline that could never have run here; it was replaced on
+   2026-08-15 after being verified live (93 tables). Do not reintroduce `jq`
+   into a documented command without checking it exists.
 
    See [known-issues.md §0](known-issues.md) for the migration trap and
    [§1a](known-issues.md) for the guessing one.
@@ -45,6 +50,30 @@ unrelated history end to end.
 | [verification.md](verification.md) | Before claiming anything works. Commands, the latest measured local baseline, CI behavior, and how to see gated pages. |
 | [audit-2026-08-03.md](audit-2026-08-03.md) | For the security/operations audit evidence. It is a dated snapshot; use its revalidation banner before quoting a finding as current. |
 | [plans/](plans/) and the `*-design.md` files | For original intent and decisions. Their headers say whether implementation completed and where it landed. |
+
+## Root-level documents this router does NOT cover
+
+Fourteen `.md` files sit at the repository root. They predate `docs/` and none
+of them is a live status board — several are point-in-time implementation
+summaries whose claims have not been reconciled since they were written. Do not
+read them speculatively; open one only when the row below matches your task.
+
+| Root file | Open it when |
+|---|---|
+| `README.md`, `SETUP.md` | Environment, install, env vars, running locally. `SETUP.md` is the fuller one. |
+| `AGENTS.md`, `CLAUDE.md` | Always loaded automatically — no need to open them. |
+| `ADMISSION_FIT_FEATURE.md` | Changing reach/recommend/safe tiering or `src/lib/admission-fit.ts`. |
+| `GEO_CMS_SPEC.md` | Working on the GEO/news CMS or the `geo:*` npm scripts. |
+| `UNIVERSITY_CRONS.md` | Touching university data crons or refresh scheduling. |
+| `NEWSLETTER_*.md` (5 files) | Newsletter work only. `NEWSLETTER_SYSTEM.md` is the entry point; the other four are architecture, deployment checklist, an implementation summary, and an end-user guide. Read one, not five. |
+| `MENTORSHIP_REDESIGN.md` | Historical redesign summary. `known-issues.md §1b` is the live mentorship record — prefer it. |
+| `TECH_SOLUTION.md` | Original solution overview. Predates the FSD migration; treat as intent, not current architecture. |
+
+`.kiro/specs/` holds four older feature specs (`ai-application-strategy`,
+`ai-course-selector`, `ai-strategy-dashboard`, `university-explorer`). They are
+requirement/design/task documents from an earlier planning tool, not a status
+board — `.kiro/specs/ai-course-selector/tasks.md` alone is 1,678 lines. Consult
+them for original intent only.
 
 ## Things NOT written here, on purpose
 
