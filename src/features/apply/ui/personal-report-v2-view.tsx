@@ -14,6 +14,7 @@ import {
   ConfidenceBadge,
   KeyTakeawaysView,
   PersonalCanvasWorkspace,
+  PersonalReportPrintView,
   VersionHistoryPicker,
   withReturn,
 } from './personal-report';
@@ -22,8 +23,9 @@ import {
  * Canonical user-level Personal Report.
  *
  * The evaluation engine, report snapshots and version history remain unchanged.
- * The six report chapters are now explored through the interactive Personal
- * Canvas instead of being duplicated as a long sequence beneath the Canvas.
+ * The six report chapters are explored through the interactive Personal Canvas
+ * on screen. A linear, complete six-chapter fallback is rendered only for
+ * print/PDF media so export never depends on which Canvas panel is open.
  */
 export function PersonalReportV2View({
   initialReport,
@@ -238,11 +240,15 @@ export function PersonalReportV2View({
 
       <ApplicantSnapshotView report={report} />
 
-      <PersonalCanvasWorkspace
-        report={report}
-        returnTo={returnTo}
-        onRegenerate={onRegenerate}
-      />
+      <div className="print:hidden">
+        <PersonalCanvasWorkspace
+          report={report}
+          returnTo={returnTo}
+          onRegenerate={onRegenerate}
+        />
+      </div>
+
+      <PersonalReportPrintView report={report} returnTo={returnTo} />
 
       <KeyTakeawaysView report={report} />
 
