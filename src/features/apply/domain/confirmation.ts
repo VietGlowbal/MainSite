@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { reflectionSchema, type ReflectionValues } from './reflection';
-import { reflectionBlockingIssues, type BlockingIssue } from './reflection-steps';
+import type { BlockingIssue } from './reflection-steps';
 
 /**
  * Review & Confirm — the checkpoint between finishing Candidate Information
@@ -33,23 +33,40 @@ export type CandidateSnapshotDocument = z.infer<typeof candidateSnapshotDocument
 export type CandidateSnapshotPayload = z.infer<typeof candidateSnapshotPayloadSchema>;
 
 export type CandidateReadiness = {
+  /**
+   * Kept in the response shape for backwards compatibility with the existing
+   * Review & Confirm UI/API contract. The redesigned application flow no
+   * longer has required questions in the old twelve-question "about" wizard,
+   * so legacy questionnaire validation must not populate this list.
+   */
   blockingIssues: BlockingIssue[];
   achievementsNeedingReview: number;
   activitiesNeedingReview: number;
-  /** No blocking question unanswered, and nothing still `needs_review`. */
+  /** Nothing extracted by AI is still waiting for the student to review it. */
   ready: boolean;
 };
 
 /**
  * Is this student ready to confirm?
  *
- * Used identically by the Review & Confirm page (to show the readiness
- * banner and disable the confirm panel) and the confirm API route (to reject
- * a request that arrives past a client that let something slip through) —
- * one rule, checked in both places rather than trusted from the client.
+ * The application setup redesign replaced the old twelve-question reflection
+ * questionnaire with a read-only review of canonical onboarding/profile data.
+ * That profile review deliberately allows fields to be absent: the student is
+ * confirming that what GlowBal currently knows is accurate, not completing a
+ * second copy of onboarding.
+ *
+ * `reflectionBlockingIssues()` still exists for the retired questionnaire's
+ * own backwards-compatible form, but it MUST NOT gate this checkpoint. Doing
+ * so made Review & Confirm require `majors`, `countries`, `intendedLevel` and
+ * `intake` even though the new application flow no longer asks those questions
+ * here — leaving students permanently unable to confirm or generate reports.
+ *
+ * The only data-level blocker that belongs at this checkpoint is unresolved AI
+ * extraction: an achievement/activity marked `needs_review` must be accepted,
+ * edited or removed before it can be frozen into the confirmed snapshot.
  */
 export function candidateReadiness(reflection: ReflectionValues): CandidateReadiness {
-  const blockingIssues = reflectionBlockingIssues(reflection);
+  const blockingIssues: BlockingIssue[] = [];
   const achievementsNeedingReview = reflection.achievements.filter(
     (item) => item.reviewStatus === 'needs_review',
   ).length;
@@ -61,9 +78,6 @@ export function candidateReadiness(reflection: ReflectionValues): CandidateReadi
     blockingIssues,
     achievementsNeedingReview,
     activitiesNeedingReview,
-    ready:
-      blockingIssues.length === 0 &&
-      achievementsNeedingReview === 0 &&
-      activitiesNeedingReview === 0,
+    ready: achievementsNeedingReview === 0 && activitiesNeedingReview === 0,
   };
 }
