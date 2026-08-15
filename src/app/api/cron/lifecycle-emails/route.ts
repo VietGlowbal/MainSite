@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import type { User } from '@supabase/supabase-js';
 import { isAuthorizedCron } from '@/lib/cron-auth';
 import { createAdminClient } from '@/server/db/admin';
 import { sendEmail } from '@/lib/send-email';
@@ -29,9 +30,9 @@ function firstName(metadata: Record<string, unknown> | undefined): string | unde
   return fullName ? fullName.split(/\s+/)[0] : undefined;
 }
 
-async function listAllUsers() {
+async function listAllUsers(): Promise<User[]> {
   const admin = createAdminClient();
-  const users = [];
+  const users: User[] = [];
   for (let page = 1; page <= 10; page += 1) {
     const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 200 });
     if (error) throw error;
