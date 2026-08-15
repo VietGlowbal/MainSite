@@ -1,5 +1,6 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { buildPersonalReport, type PersonalReportTrigger } from '../domain';
+import { buildPersonalCanvasDetails } from '../domain/personal-canvas-details';
 import {
   applyPersonalReportSupplements,
   buildProfileEvaluationInput,
@@ -98,7 +99,24 @@ export async function regeneratePersonalReport(args: {
       apiKey,
       model: modelName,
     });
-    const reportV2 = applyNarrativeSynthesis(deterministicReport, synthesis);
+    const synthesizedReport = applyNarrativeSynthesis(deterministicReport, synthesis);
+
+    // Personal Canvas visual data is generated once and stored with this
+    // append-only report version. The UI therefore never invents a new score
+    // on render, and revisiting a historical report always shows the same
+    // stars/bars/pathways that belonged to that snapshot.
+    const reportV2 = {
+      ...synthesizedReport,
+      canvasDetails: buildPersonalCanvasDetails({
+        activities: evaluationInput.narrativeActivities,
+        coreIdentity: synthesizedReport.coreIdentity,
+        drivingForce: synthesizedReport.drivingForce,
+        emergingThemes: synthesizedReport.emergingThemes,
+        personalPositioning: synthesizedReport.personalPositioning,
+        proofOfMe: synthesizedReport.proofOfMe,
+        intendedDirection: evaluationInput.intendedDirection,
+      }),
+    };
 
     const { record: inserted, error } = await createPersonalReportV2Version(supabase, {
       userId,
