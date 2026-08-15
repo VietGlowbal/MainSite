@@ -65,10 +65,16 @@ export type {
 } from './match-university';
 
 export { evaluateUniversityMatch, rankUniversityMatches } from './university-matching';
-export { UNIVERSITY_MATCH_TIER_THRESHOLDS } from './university-matching';
+export {
+  DEFAULT_UNIVERSITY_MATCH_TIER_POLICY,
+  universityMatchTierCounts,
+} from './university-matching';
 export { demoUniversityMatches } from './university-matching-demo';
 export type {
   RankedUniversityMatch,
+  UniversityMatchEvaluation,
+  UniversityMatchTierCounts,
+  UniversityMatchTierPolicy,
   UniversityMatchTierV1,
   UniversityMatchingCandidate,
 } from './university-matching';
