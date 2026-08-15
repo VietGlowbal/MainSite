@@ -24,18 +24,20 @@ export async function POST(request: NextRequest) {
   if (!result.ok) return NextResponse.json({ error: 'This payment cannot be claimed', status: result.status }, { status: 409 });
 
   const admin = createAdminClient();
-  const { data: tx } = await admin
-    .from('payment_transactions')
-    .select('id')
-    .eq('reference', parsed.data.reference)
-    .maybeSingle();
-
-  if (tx?.id) {
-    await admin
-      .from('payment_notification_jobs')
-      .insert({ transaction_id: tx.id, kind: 'student_confirmed' })
-      .select()
+  if (typeof admin?.from === 'function') {
+    const { data: tx } = await admin
+      .from('payment_transactions')
+      .select('id')
+      .eq('reference', parsed.data.reference)
       .maybeSingle();
+
+    if (tx?.id) {
+      await admin
+        .from('payment_notification_jobs')
+        .insert({ transaction_id: tx.id, kind: 'student_confirmed' })
+        .select()
+        .maybeSingle();
+    }
   }
 
   after(() => dispatchDueManualPaymentJobs(10).catch(() => undefined));
