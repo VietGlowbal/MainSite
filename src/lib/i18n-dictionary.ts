@@ -116,6 +116,8 @@ export const translations: Record<string, string> = {
   'No universities in this tier yet': 'Chưa có trường đại học nào trong tier này',
   'Try another tier to see the universities that match your profile.':
     'Hãy thử tier khác để xem các trường đại học phù hợp với hồ sơ của bạn.',
+  'Showing all universities': 'Đang hiển thị tất cả các trường đại học',
+  'View all universities': 'Xem tất cả các trường đại học',
   "Choose from 200+ of the world's leading universities":
     'Chọn từ 200+ đại học tốt nhất thế giới',
   'Find a university': 'Tìm Đại học',

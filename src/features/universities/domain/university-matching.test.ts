@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   evaluateUniversityMatch,
   rankUniversityMatches,
+  universityMatchTierCounts,
   type UniversityMatchingCandidate,
 } from './university-matching';
 import { demoUniversityMatches } from './university-matching-demo';
@@ -26,7 +27,7 @@ function university(overrides: Partial<UniversityMatchingCandidate>): University
 }
 
 describe('university matching v1', () => {
-  it('scores university strengths against the target subject and assigns Strong Chance', () => {
+  it('scores university strengths against the target subject', () => {
     const result = evaluateUniversityMatch(profile, university({
       strengths: 'Computer Science, Artificial Intelligence and Robotics',
       best_for: 'Postgraduate technology students',
@@ -37,10 +38,9 @@ describe('university matching v1', () => {
 
     expect(result.breakdown?.subjects.score).toBe(25);
     expect(result.score).toBeGreaterThanOrEqual(75);
-    expect(result.tier).toBe('strong_chance');
   });
 
-  it('keeps a plausible destination with weaker strength alignment in Target', () => {
+  it('keeps a plausible destination with weaker strength alignment in the raw score', () => {
     const result = evaluateUniversityMatch(profile, university({
       strengths: 'Business, Management and Economics',
       best_for: 'Postgraduate study',
@@ -52,10 +52,9 @@ describe('university matching v1', () => {
     expect(result.breakdown?.subjects.score).toBe(0);
     expect(result.score).toBeGreaterThanOrEqual(55);
     expect(result.score).toBeLessThan(75);
-    expect(result.tier).toBe('target');
   });
 
-  it('places a destination and strength mismatch in Reach', () => {
+  it('keeps destination and strength mismatch visible in watch-outs', () => {
     const result = evaluateUniversityMatch(profile, university({
       country: 'United Kingdom',
       strengths: 'Arts, Design and Media Studies',
@@ -65,7 +64,6 @@ describe('university matching v1', () => {
       international_environment: 'Historic campus town',
     }));
 
-    expect(result.tier).toBe('reach');
     expect(result.watchOuts.length).toBeGreaterThan(0);
   });
 
@@ -77,6 +75,48 @@ describe('university matching v1', () => {
     ]);
 
     expect(matches.map((match) => match.universityId)).toEqual([1, 2, 3]);
+  });
+
+  it('assigns relative tiers as 25% Strong Chance, 50% Target and 25% Reach', () => {
+    const matches = rankUniversityMatches(
+      profile,
+      Array.from({ length: 8 }, (_, index) => university({
+        id: index + 1,
+        name: `University ${index + 1}`,
+      })),
+    );
+
+    expect(matches.filter((match) => match.tier === 'strong_chance')).toHaveLength(2);
+    expect(matches.filter((match) => match.tier === 'target')).toHaveLength(4);
+    expect(matches.filter((match) => match.tier === 'reach')).toHaveLength(2);
+    expect(matches.slice(0, 2).every((match) => match.tier === 'strong_chance')).toBe(true);
+    expect(matches.slice(2, 6).every((match) => match.tier === 'target')).toBe(true);
+    expect(matches.slice(6).every((match) => match.tier === 'reach')).toBe(true);
+  });
+
+  it('supports a custom tier policy without changing the raw score order', () => {
+    const matches = rankUniversityMatches(
+      profile,
+      Array.from({ length: 10 }, (_, index) => university({
+        id: index + 1,
+        name: `University ${index + 1}`,
+      })),
+      { strongChanceRatio: 0.4, targetRatio: 0.4, reachRatio: 0.2 },
+    );
+
+    expect(matches.filter((match) => match.tier === 'strong_chance')).toHaveLength(4);
+    expect(matches.filter((match) => match.tier === 'target')).toHaveLength(4);
+    expect(matches.filter((match) => match.tier === 'reach')).toHaveLength(2);
+    expect(matches.map((match) => match.universityId)).toEqual(
+      Array.from({ length: 10 }, (_, index) => index + 1),
+    );
+  });
+
+  it('keeps tier allocation deterministic for small result sets', () => {
+    expect(universityMatchTierCounts(1)).toEqual({ strong_chance: 0, target: 1, reach: 0 });
+    expect(universityMatchTierCounts(2)).toEqual({ strong_chance: 1, target: 1, reach: 0 });
+    expect(universityMatchTierCounts(3)).toEqual({ strong_chance: 1, target: 1, reach: 1 });
+    expect(universityMatchTierCounts(108)).toEqual({ strong_chance: 27, target: 54, reach: 27 });
   });
 
   it('provides a public fixture covering all three university tiers', () => {
