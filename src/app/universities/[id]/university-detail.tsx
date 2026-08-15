@@ -30,7 +30,7 @@ import { TID, testId } from '@/shared/lib/testids';
 import type { University } from '@/lib/types';
 import { FadeInImage } from '../fade-in-image';
 import { DetailNav, type DetailSection } from './detail-nav';
-import { UniversitySaveHeader } from './save-university-button';
+import { AddToPortalButton, UniversitySaveHeader } from './save-university-button';
 
 /**
  * /universities/[id] — Figma 375:10629 "Detail trường" (1440x4505).
@@ -619,6 +619,13 @@ export function UniversityDetail({
                 <RailRow label="English requirement" value={university.english_requirement} />
               ) : null}
             </div>
+
+            <AddToPortalButton
+              universityId={university.id}
+              universityName={university.name}
+              isSignedIn={isSignedIn}
+              initialSaved={isSaved}
+            />
 
             <div className="flex flex-col gap-gb-3xl rounded-gb-xl border border-line bg-surface-muted p-gb-4xl shadow-xs">
               <span className="flex size-[56px] items-center justify-center rounded-gb-lg border border-line-strong bg-surface text-brand shadow-xs">

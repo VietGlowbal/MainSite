@@ -157,6 +157,48 @@ export function UniversitySaveHeader(props: SaveUniversityProps) {
   );
 }
 
+/**
+ * The sidebar's big "Add to my portal" button — same `useSaveUniversity`
+ * toggle as the header heart and the list-card heart, just a full-width
+ * button with a label instead of an icon-only circle, for the rail next to
+ * "At a glance" where a small heart would get lost.
+ */
+export function AddToPortalButton(props: SaveUniversityProps) {
+  const t = useT();
+  const { universityName } = props;
+  const { saved, pending, error, toggle } = useSaveUniversity(props);
+
+  const label = t(saved ? 'Remove {name} from my portal' : 'Add {name} to my portal', {
+    name: universityName,
+  });
+
+  return (
+    <div className="flex flex-col gap-gb-xs">
+      <button
+        type="button"
+        onClick={() => void toggle()}
+        aria-pressed={saved}
+        aria-label={label}
+        title={label}
+        data-saved={saved ? 'true' : 'false'}
+        className={`flex w-full items-center justify-center gap-gb-sm rounded-gb-md px-gb-btn-xl py-gb-lg text-gb-md font-semibold shadow-gb-xs-skeuomorphic transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+          saved
+            ? 'bg-brand-subtle text-brand hover:bg-brand hover:text-on-brand'
+            : 'bg-brand text-on-brand hover:bg-brand-hover'
+        } ${pending ? 'opacity-70' : ''}`}
+      >
+        <KitIcon art={ICONS.heart} frame={24} filled={saved} />
+        {saved ? t('Added to my portal') : t('Add to my portal')}
+      </button>
+      {error ? (
+        <span role="status" className="text-gb-xs text-fg-error">
+          {error}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
 export function SaveUniversityButton(props: SaveUniversityProps) {
   const t = useT();
   const { universityName } = props;
