@@ -39,7 +39,7 @@ export function AreasForGrowthView({ report }: { report: PersonalReportV2 }) {
               <div className="mt-auto border-t border-line pt-gb-md">
                 <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">Suggested direction</p>
                 <p className="mt-gb-xs text-gb-sm text-fg-tertiary">
-                  Add stronger, more specific evidence in this area before treating it as an established strength.
+                  Build more specific, verifiable evidence in this area so GlowBal can distinguish an emerging capability from a genuine development gap.
                 </p>
               </div>
             </article>
@@ -53,13 +53,6 @@ export function AreasForGrowthView({ report }: { report: PersonalReportV2 }) {
           </p>
         </div>
       )}
-
-      <div className="rounded-gb-xl border border-dashed border-line p-gb-lg">
-        <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">Next iteration</p>
-        <p className="mt-gb-xs text-gb-sm text-fg-tertiary">
-          This section is ready for the dedicated impact × effort matrix once growth recommendations are generated as structured report data.
-        </p>
-      </div>
     </SectionShell>
   );
 }
