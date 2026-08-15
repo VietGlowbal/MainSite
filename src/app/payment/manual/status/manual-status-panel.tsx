@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
+import { generateVietQrUrl } from '@/lib/payments/vietqr';
 
 type Status = {
   status: string;
@@ -141,6 +142,18 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
   const isClaimed = status.status === 'claimed';
   const isExpired = status.status === 'expired' || status.status === 'failed';
   const accountNumberToDisplay = status.account_number || status.account_number_masked || '';
+  const qrUrlToDisplay =
+    status.bank_qr_url ||
+    (status.account_number
+      ? generateVietQrUrl({
+          bankId: status.bank_label,
+          accountNumber: status.account_number,
+          accountHolder: status.account_holder,
+          amountVnd: status.amount_vnd,
+          description: status.transfer_description || status.reference,
+          template: 'compact2',
+        })
+      : undefined);
 
   return (
     <section
@@ -184,35 +197,35 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
                 : t('Scan QR to Pay')}
         </h1>
 
-        <p className="mt-1.5 text-sm text-fg-tertiary">
-          {isFulfilled
-            ? t('Your GlowBal purchase has been confirmed and activated.')
-            : isClaimed
-              ? t('We have received your transfer report. Founder will verify shortly.')
+        {!isClaimed && (
+          <p className="mt-1.5 text-sm text-fg-tertiary">
+            {isFulfilled
+              ? t('Your GlowBal purchase has been confirmed and activated.')
               : isExpired
                 ? t('This transaction has expired. Please create a new checkout.')
                 : t('Open any banking app or e-wallet to scan the VietQR code.')}
-        </p>
+          </p>
+        )}
       </div>
 
       {/* QR Code Container (Visible when Pending or Claimed) */}
-      {!isFulfilled && !isExpired && status.bank_qr_url && (
-        <div className="mt-6 flex w-full flex-col items-center rounded-2xl border border-line bg-gradient-to-b from-surface-muted/80 to-surface p-5 text-center shadow-inner">
-          <div className="relative overflow-hidden rounded-2xl border-2 border-white bg-white p-3 shadow-md">
+      {!isFulfilled && !isExpired && qrUrlToDisplay && (
+        <div className="mt-6 flex w-full flex-col items-center text-center">
+          <div className="relative overflow-hidden rounded-2xl bg-white p-2.5 shadow-sm border border-line/80">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={status.bank_qr_url}
+              src={qrUrlToDisplay}
               alt={t('GlowBal bank transfer QR code')}
-              width={260}
-              height={260}
-              className="size-[220px] rounded-xl object-contain sm:size-[260px]"
+              width={340}
+              height={340}
+              className="size-[280px] rounded-xl object-contain sm:size-[340px]"
             />
           </div>
-          <div className="mt-3 flex items-center gap-2">
-            <span className="rounded-md bg-white px-2.5 py-1 text-[11px] font-bold text-blue-700 shadow-sm border border-line">
+          <div className="mt-3.5 flex items-center gap-2">
+            <span className="rounded-md bg-surface-muted px-2.5 py-1 text-[11px] font-bold text-blue-700 border border-line">
               VietQR
             </span>
-            <span className="rounded-md bg-white px-2.5 py-1 text-[11px] font-bold text-red-600 shadow-sm border border-line">
+            <span className="rounded-md bg-surface-muted px-2.5 py-1 text-[11px] font-bold text-red-600 border border-line">
               {status.bank_label ?? 'Napas 24/7'}
             </span>
             <span className="text-xs text-fg-muted font-medium">

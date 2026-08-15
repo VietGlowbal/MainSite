@@ -1,5 +1,6 @@
 import { getManualPaymentConfig } from './manual-config';
 import type { ManualEmailAttachment } from './manual-email-templates';
+import { generateVietQrUrl } from '@/lib/payments/vietqr';
 
 export type TransactionalEmail = {
   jobId: string;
@@ -44,9 +45,33 @@ export async function sendManualTransactionalEmail(email: TransactionalEmail): P
   return payload.id;
 }
 
-export async function fetchConfiguredQrAttachment(): Promise<{ filename: string; contentId: string; content: string }> {
+export async function fetchConfiguredQrAttachment(options?: {
+  amountVnd?: number;
+  description?: string;
+}): Promise<{ filename: string; contentId: string; content: string }> {
   const config = getManualPaymentConfig();
-  const response = await fetch(config.bankQrUrl, { signal: AbortSignal.timeout(8_000) });
+  let targetUrl = config.bankQrUrl;
+  if (options?.amountVnd && options.amountVnd > 0) {
+    targetUrl = generateVietQrUrl({
+      bankId: config.bankLabel,
+      accountNumber: config.accountNumber,
+      accountHolder: config.accountHolder,
+      amountVnd: options.amountVnd,
+      description: options.description,
+      template: 'compact2',
+    });
+  }
+
+  let response: Response;
+  try {
+    response = await fetch(targetUrl, { signal: AbortSignal.timeout(8_000) });
+    if (!response.ok && targetUrl !== config.bankQrUrl) {
+      response = await fetch(config.bankQrUrl, { signal: AbortSignal.timeout(8_000) });
+    }
+  } catch {
+    response = await fetch(config.bankQrUrl, { signal: AbortSignal.timeout(8_000) });
+  }
+
   if (!response.ok) throw new Error(`Configured bank QR asset returned ${response.status}`);
   const bytes = new Uint8Array(await response.arrayBuffer());
   if (!bytes.length || bytes.length > 2_000_000) throw new Error('Configured bank QR asset has an invalid size');

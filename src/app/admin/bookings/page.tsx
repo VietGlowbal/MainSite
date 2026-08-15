@@ -146,7 +146,12 @@ export default async function AdminBookingsPage() {
       productTitle,
       productSubtitle,
       amountVnd: Number(tx.amount_vnd ?? 0),
-      feeAmountVnd: booking ? Number(booking.glowbal_fee_vnd ?? 0) : Math.round(Number(tx.amount_vnd ?? 0) * 0.15),
+      feeAmountVnd:
+        tx.product_type === 'plus'
+          ? Number(tx.amount_vnd ?? 0)
+          : booking
+            ? Number(booking.glowbal_fee_vnd ?? 0)
+            : Math.round(Number(tx.amount_vnd ?? 0) * 0.15),
       customerName: tx.recipient_name || 'GlowBal customer',
       customerEmail: tx.recipient_email || '—',
       status: effectiveStatus,

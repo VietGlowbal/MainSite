@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { manualStatusLabel } from '@/lib/payments/manual';
 import { getManualPaymentConfig } from '@/server/payments/manual-config';
+import { generateVietQrUrl } from '@/lib/payments/vietqr';
 
 export const dynamic = 'force-dynamic';
 
@@ -44,5 +45,25 @@ export async function GET(request: NextRequest) {
   const transfer_description = transferDescParts.join(' ');
 
   const config = getManualPaymentConfig();
-  return NextResponse.json({ ...data, status, status_label: manualStatusLabel(status), can_claim: canClaim, bank_label: config.bankLabel, account_holder: config.accountHolder, account_number: config.accountNumber, account_number_masked: config.accountNumberMasked, bank_qr_url: config.bankQrUrl, transfer_description });
+  const dynamicQrUrl = generateVietQrUrl({
+    bankId: config.bankLabel,
+    accountNumber: config.accountNumber,
+    accountHolder: config.accountHolder,
+    amountVnd: Number(data.amount_vnd ?? 0),
+    description: transfer_description || data.reference,
+    template: 'compact2',
+  });
+
+  return NextResponse.json({
+    ...data,
+    status,
+    status_label: manualStatusLabel(status),
+    can_claim: canClaim,
+    bank_label: config.bankLabel,
+    account_holder: config.accountHolder,
+    account_number: config.accountNumber,
+    account_number_masked: config.accountNumberMasked,
+    bank_qr_url: dynamicQrUrl,
+    transfer_description,
+  });
 }
