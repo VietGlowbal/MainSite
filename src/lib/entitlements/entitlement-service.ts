@@ -37,9 +37,10 @@ export interface EntitlementCheckResult {
 }
 
 export function isPlusEntitlementActive(
-  profile: { plus_status?: boolean | null; plus_expires_at?: string | null },
+  profile: { plus_status?: boolean | null; plus_expires_at?: string | null; is_admin?: boolean | null },
   now = new Date(),
 ): boolean {
+  if (profile.is_admin === true) return true;
   return profile.plus_status === true
     && typeof profile.plus_expires_at === 'string'
     && new Date(profile.plus_expires_at).getTime() > now.getTime();

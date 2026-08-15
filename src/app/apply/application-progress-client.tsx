@@ -43,6 +43,7 @@ function DeferredSavedList({
   focusUniversityId,
   setFocusUniversityId,
   setPlanError,
+  isPlus,
 }: {
   savedRowsPromise: Promise<SavedRow[]>;
   onPlan: (rows: SavedRow[]) => Promise<void>;
@@ -51,6 +52,7 @@ function DeferredSavedList({
   focusUniversityId: number | null;
   setFocusUniversityId: Dispatch<SetStateAction<number | null>>;
   setPlanError: Dispatch<SetStateAction<string | null>>;
+  isPlus?: boolean;
 }) {
   const savedRows = use(savedRowsPromise);
   const router = useRouter();
@@ -94,6 +96,7 @@ function DeferredSavedList({
       onGoToApplications={onGoToApplications}
       planning={planning}
       focusUniversityId={focusUniversityId}
+      isPlus={isPlus}
     />
   );
 }
@@ -141,6 +144,7 @@ export type ApplicationProgressClientProps = {
    */
   strategyReadyById?: Record<string, boolean>;
   isLoggedOut?: boolean;
+  isPlus?: boolean;
 };
 
 export function ApplicationProgressClient({
@@ -149,6 +153,7 @@ export function ApplicationProgressClient({
   savedRowsPromise,
   strategyReadyById = {},
   isLoggedOut = false,
+  isPlus,
 }: ApplicationProgressClientProps) {
   const router = useRouter();
 
@@ -315,6 +320,7 @@ export function ApplicationProgressClient({
               focusUniversityId={focusUniversityId}
               setFocusUniversityId={setFocusUniversityId}
               setPlanError={setPlanError}
+              isPlus={isPlus}
             />
           </Suspense>
         </div>

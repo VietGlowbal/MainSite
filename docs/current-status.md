@@ -2,7 +2,7 @@
 
 Last reconciled: **2026-08-15 (Asia/Bangkok)**
 
-Code snapshot: `main` after PR #195 and commit `afab5f1` merged. Plus Pricing modal features cleaned Payment Method selector (no 'thủ công', no sandbox clutter), mandatory Terms & Conditions agreement checkbox gating checkout, interactive 20-section Terms & Conditions modal and updated `/terms` page, with 100% i18n dictionary and test suite coverage.
+Code snapshot: `main` with Founder-restricted Bookings & Payments console tab and actionable Payment Approval Queue. Bookings & payments admin tab is gated strictly to designated founder emails (khanhlinh05.work@gmail.com, taduchien314@gmail.com) and reviewer UUIDs (a8bccd1d-dcbc-409e-879c-90c483a7c3a1). Transfer claims by students trigger highlighted review entries in the console with one-click fulfilment for Plus subscriptions and Mentorship sessions.
 
 Founder-confirmed manual bank transfer is implemented in the working tree for
 mentorship and GlowBal Plus, alongside the existing VNPay Sandbox path and
