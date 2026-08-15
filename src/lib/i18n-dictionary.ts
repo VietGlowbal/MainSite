@@ -4574,7 +4574,6 @@ export const translations: Record<string, string> = {
   'Invalid promo code': 'Mã ưu đãi không hợp lệ',
   'This promo has already been used on your account': 'Mã ưu đãi này đã được sử dụng cho tài khoản của bạn',
   'Promo redemption is unavailable': 'Tính năng áp dụng mã ưu đãi hiện không khả dụng',
-  'Upgrade to GlowBal Plus to unlock this section': 'Nâng cấp lên GlowBal Plus để mở khóa phần này',
   'Manual bank transfer': 'Chuyển khoản ngân hàng',
   'Bank transfer payment | GlowBal': 'Thanh toán chuyển khoản ngân hàng | GlowBal',
   'Transfer the exact VND amount; founder confirmation is required.': 'Chuyển đúng số tiền VND; cần người sáng lập xác nhận.',
