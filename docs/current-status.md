@@ -38,6 +38,9 @@ job. A failing student instruction could consume that slot and leave the new
 founder email untouched at `attempts = 0`. Claim now dispatches a batch of ten,
 and the SQL lease orders `founder_claimed` first. The newest affected founder
 job was retried once and verified `sent` with a provider message ID.
+The manual-payment status surface now has all 24 new EN→VI dictionary entries;
+the production i18n checker reports zero missing static keys and zero placeholder
+mismatches instead of failing CI on that route.
 
 VNPay Sandbox checkout is implemented in the working tree for mentorship and
 GlowBal Plus. Stripe remains visible but disabled as a demo/"Coming soon"
