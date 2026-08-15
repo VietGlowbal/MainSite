@@ -12,6 +12,13 @@ export {
   MotivationProfileView,
   SocialProofSummaryView,
 } from './personal-report-insights';
+export {
+  SnapshotCapabilityProfileView,
+  SnapshotFuturePathwaysView,
+  SnapshotGrowthMatrixView,
+  SnapshotMotivationProfileView,
+  SnapshotSocialProofSummaryView,
+} from './personal-report-snapshot-insights';
 export { PersonalPositioningView } from './personal-positioning';
 export { ProfileAtAGlanceView } from './profile-at-a-glance';
 export { ProofOfMeView } from './proof-of-me';
