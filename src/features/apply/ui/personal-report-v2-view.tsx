@@ -12,12 +12,12 @@ import {
   CoreIdentityView,
   DrivingForceView,
   EmergingThemesView,
+  IdentityEvidenceProfileView,
   KeyTakeawaysView,
   PERSONAL_REPORT_SECTION_IDS,
   PersonalCanvasView,
   PersonalPositioningView,
   PersonalReportSectionNav,
-  ProfileAtAGlanceView,
   ProofOfMeView,
   SignaturePatternView,
   SnapshotCapabilityProfileView,
@@ -247,6 +247,7 @@ export function PersonalReportV2View({
       >
         <div className="flex flex-col gap-gb-xl">
           <CoreIdentityView section={report.coreIdentity} returnTo={returnTo} />
+          <IdentityEvidenceProfileView report={report} />
           <SignaturePatternView
             section={report.signaturePattern}
             patternSupport={report.analytics?.signaturePatternSupport}
@@ -275,7 +276,6 @@ export function PersonalReportV2View({
       >
         <div className="flex flex-col gap-gb-xl">
           <SnapshotCapabilityProfileView report={report} />
-          <ProfileAtAGlanceView overview={undefined} analytics={report.analytics} />
           <PersonalPositioningView
             section={report.personalPositioning}
             positioningDimensions={report.analytics?.positioningDimensions}
