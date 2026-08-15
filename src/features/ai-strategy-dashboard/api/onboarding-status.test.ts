@@ -11,9 +11,12 @@ import { fetchOnboardingState } from './onboarding-status';
 function buildSupabase(options: {
   personalSummaryReviewedAt?: string | null;
   achievementsReviewedAt?: string | null;
+  personalReflectionReviewedAt?: string | null;
   candidateConfirmedAt?: string | null;
   /** Simulates `supabase-per-application-onboarding.sql` not having run yet. */
   perApplicationColumnsMissing?: boolean;
+  /** Simulates only `supabase-application-experience-flow.sql` (the personal_reflection_reviewed_at column) not having run yet. */
+  personalReflectionColumnMissing?: boolean;
   hasApplicantAnalysis?: boolean;
   hasCompleteMatchAnalysis?: boolean;
   introSeenAt?: string | null;
@@ -32,6 +35,15 @@ function buildSupabase(options: {
             error: { code: '42703', message: 'column "personal_summary_reviewed_at" does not exist' },
           };
         }
+        if (
+          options.personalReflectionColumnMissing &&
+          selected.includes('personal_reflection_reviewed_at')
+        ) {
+          return {
+            data: null,
+            error: { code: '42703', message: 'column "personal_reflection_reviewed_at" does not exist' },
+          };
+        }
         return {
           data: {
             strategy_intro_seen_at: options.introSeenAt ?? null,
@@ -41,6 +53,9 @@ function buildSupabase(options: {
                   achievements_reviewed_at: options.achievementsReviewedAt ?? null,
                   candidate_confirmed_at: options.candidateConfirmedAt ?? null,
                 }
+              : {}),
+            ...(selected.includes('personal_reflection_reviewed_at')
+              ? { personal_reflection_reviewed_at: options.personalReflectionReviewedAt ?? null }
               : {}),
           },
           error: null,
@@ -93,10 +108,11 @@ describe('fetchOnboardingState', () => {
     expect(state.aiAnalysisComplete).toBe(true);
   });
 
-  it('reads the other five flags independently of the analysis gate', async () => {
+  it('reads the other six flags independently of the analysis gate', async () => {
     const supabase = buildSupabase({
       personalSummaryReviewedAt: '2026-01-01T00:00:00Z',
       achievementsReviewedAt: '2026-01-01T00:00:00Z',
+      personalReflectionReviewedAt: '2026-01-01T06:00:00Z',
       candidateConfirmedAt: '2026-01-01T12:00:00Z',
       hasApplicantAnalysis: true,
       hasCompleteMatchAnalysis: true,
@@ -107,6 +123,7 @@ describe('fetchOnboardingState', () => {
     expect(state).toEqual({
       personalSummaryComplete: true,
       achievementsComplete: true,
+      personalReflectionComplete: true,
       candidateConfirmed: true,
       aiAnalysisComplete: true,
       introSeen: true,
@@ -120,11 +137,26 @@ describe('fetchOnboardingState', () => {
     expect(state).toEqual({
       personalSummaryComplete: false,
       achievementsComplete: false,
+      personalReflectionComplete: false,
       candidateConfirmed: false,
       aiAnalysisComplete: false,
       introSeen: false,
       strategyComplete: false,
     });
+  });
+
+  it('falls back to the other per-application flags when only personal_reflection_reviewed_at is unmigrated', async () => {
+    const supabase = buildSupabase({
+      personalSummaryReviewedAt: '2026-01-01T00:00:00Z',
+      achievementsReviewedAt: '2026-01-01T00:00:00Z',
+      candidateConfirmedAt: '2026-01-01T12:00:00Z',
+      personalReflectionColumnMissing: true,
+    });
+    const state = await fetchOnboardingState(supabase as never, 'user-1', 'app-1');
+    expect(state.personalSummaryComplete).toBe(true);
+    expect(state.achievementsComplete).toBe(true);
+    expect(state.candidateConfirmed).toBe(true);
+    expect(state.personalReflectionComplete).toBe(false);
   });
 
   /**

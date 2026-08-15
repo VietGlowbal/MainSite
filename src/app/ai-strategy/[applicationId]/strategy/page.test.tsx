@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   state: {
     personalSummaryComplete: false,
     achievementsComplete: false,
+    personalReflectionComplete: false,
     candidateConfirmed: false,
     aiAnalysisComplete: false,
     introSeen: false,
@@ -60,6 +61,7 @@ describe('StrategyHomePage', () => {
     mocks.state = {
       personalSummaryComplete: false,
       achievementsComplete: false,
+      personalReflectionComplete: false,
       candidateConfirmed: false,
       aiAnalysisComplete: false,
       introSeen: false,
@@ -75,6 +77,7 @@ describe('StrategyHomePage', () => {
     mocks.state = {
       personalSummaryComplete: true,
       achievementsComplete: true,
+      personalReflectionComplete: true,
       candidateConfirmed: true,
       aiAnalysisComplete: false,
       introSeen: false,
@@ -86,10 +89,27 @@ describe('StrategyHomePage', () => {
     expect(startHrefOf(result)).toBe('/ai-strategy/app-2/strategy/analysis');
   });
 
+  it('sends a student who finished achievements but not Personal Reflection to the Personal Reflection step', async () => {
+    mocks.state = {
+      personalSummaryComplete: true,
+      achievementsComplete: true,
+      personalReflectionComplete: false,
+      candidateConfirmed: false,
+      aiAnalysisComplete: false,
+      introSeen: false,
+      strategyComplete: false,
+    };
+
+    const result = await StrategyHomePage({ params: Promise.resolve({ applicationId: 'app-4' }) });
+
+    expect(startHrefOf(result)).toContain('/ai-strategy/reflection/personal?return=');
+  });
+
   it('sends a student who finished reflections but has not confirmed yet to Review & Confirm', async () => {
     mocks.state = {
       personalSummaryComplete: true,
       achievementsComplete: true,
+      personalReflectionComplete: true,
       candidateConfirmed: false,
       aiAnalysisComplete: false,
       introSeen: false,

@@ -1,25 +1,33 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
+import { loadCandidateReflection, loadProfileReview, verifiedApplicationId } from '@/features/apply/api';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
 import { confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
 import { applicationIdFromPath } from '@/shared/lib';
 import { ReflectionChrome } from '../reflection-chrome';
 import { ApplicationNavFromReturn } from './application-nav-from-return';
-import { ReflectionAboutForm } from './reflection-about-form';
+import { ProfileReviewView } from './profile-review-view';
 import { ConfirmedReflectionView } from './confirmed-reflection-view';
 
 /**
- * Reflection step 1 of 2 — personal and study information.
+ * Step 1 of the application setup flow — "Review Existing Profile".
  *
- * The values come back through `loadCandidateReflection`, so a student who
- * has already filled part of this in during onboarding sees it prefilled
- * rather than being asked twice.
+ * Used to render a twelve-question "about" wizard that re-asked facts
+ * onboarding already collected (study level, subjects, countries, GPA,
+ * IELTS, budget). It now shows a read-only summary of the canonical data
+ * (`loadProfileReview` — `student_profiles` + `english_test_scores` +
+ * `standardized_test_scores`) with Edit actions out to the `/profile/*` page
+ * that owns each fact, and a single "Yes, this information is correct" CTA.
+ * `ReflectionAboutForm`/`ABOUT_QUESTIONS` still exist for the confirmed
+ * read-only view below (which renders whatever was true at confirm time,
+ * including the older aspirational fields — career goal, funding source —
+ * that have no `/profile/*` home yet) and for backwards compatibility with
+ * data shaped by the old flow.
  *
  * Once THIS APPLICATION has been confirmed (Review & Confirm), this page
- * stops rendering the editable form — a confirmed record is locked, and
- * showing the form here would let a student change fields the PATCH route
- * will now reject anyway. See `ConfirmedReflectionView`.
+ * stops rendering the editable summary — a confirmed record is locked, and
+ * editing a canonical field here would let a student change fields the
+ * PATCH route will now reject anyway. See `ConfirmedReflectionView`.
  *
  * ─── PER-APPLICATION, DERIVED FROM `return` ──────────────────────────────────
  *
@@ -71,36 +79,10 @@ export default async function ReflectionAboutPage({
       {confirmedAt ? (
         <ConfirmedReflectionView values={initial} confirmedAt={confirmedAt} continueHref={continueHref} />
       ) : (
-        <ReflectionAboutForm
+        <ProfileReviewView
+          data={await loadProfileReview(supabase, user.id)}
           applicationId={applicationId}
-          initial={{
-            highestEducation: initial.highestEducation,
-            nationality: initial.nationality,
-            gpa: initial.gpa,
-            ielts: initial.ielts,
-            majors: initial.majors,
-            countries: initial.countries,
-            intendedLevel: initial.intendedLevel,
-            fundingSource: initial.fundingSource,
-            tuitionBudget: initial.tuitionBudget,
-            careerGoal: initial.careerGoal,
-            studyMotivation: initial.studyMotivation,
-            subjectMotivations: initial.subjectMotivations,
-            primaryMotivationSubject: initial.primaryMotivationSubject,
-            intake: initial.intake,
-            customSubject: initial.customSubject,
-            countryPreferenceFlexible: initial.countryPreferenceFlexible,
-            otherEducation: initial.otherEducation,
-            // Score provenance, so a returning student lands back in the mode
-            // they used rather than staring at an empty converter beside a GPA
-            // they never typed.
-            gpaMethod: initial.gpaMethod,
-            gpaSource: initial.gpaSource,
-            ieltsMethod: initial.ieltsMethod,
-            englishTest: initial.englishTest,
-            englishTestScore: initial.englishTestScore,
-            englishNotTaken: initial.englishNotTaken,
-          }}
+          returnTo={returnTo}
         />
       )}
     </ReflectionChrome>

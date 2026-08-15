@@ -21,6 +21,7 @@ export {
   evidenceSchema,
   evidenceSourceSchema,
   parseBudgetBand,
+  personalReflectionSectionSchema,
   profileUpdateFromReflection,
   reflectionCompleteness,
   reflectionFromProfile,
@@ -28,6 +29,45 @@ export {
   usdBandFromVndRange,
   vndRangeFromUsdBand,
 } from './reflection';
+export {
+  STUDY_LEVELS,
+  STUDY_LEVEL_LABELS,
+  studyLevelFromStored,
+  studyLevelLabel,
+} from './study-level';
+export type { StudyLevel } from './study-level';
+export {
+  EXPERIENCE_CATEGORIES,
+  REFLECTION_DIMENSIONS,
+  REFLECTION_DIMENSION_COUNT,
+  REFLECTION_CARD_STATUSES,
+  activityReflectionAnsweredCount,
+  activityReflectionProgress,
+  activityReflectionSchema,
+  experienceCategoryFor,
+  isReflectionCardEmpty,
+  reflectionCardSchema,
+  reflectionCardSkillSchema,
+  reflectionInspiration,
+  reflectionQuestion,
+} from './activity-reflection';
+export type {
+  ActivityReflectionValues,
+  ExperienceCategory,
+  ReflectionCardStatus,
+  ReflectionCardValues,
+  ReflectionDimension,
+} from './activity-reflection';
+export {
+  PERSONAL_REFLECTION_QUESTIONS,
+  PERSONAL_REFLECTION_QUESTION_COUNT,
+  personalReflectionAnsweredCount,
+  personalReflectionComplete,
+  personalReflectionProgress,
+  personalReflectionQuestion,
+  personalReflectionSchema,
+} from './personal-reflection';
+export type { PersonalReflectionKey, PersonalReflectionValues } from './personal-reflection';
 export {
   ADMISSIONS_TESTS,
   ENGLISH_TESTS,

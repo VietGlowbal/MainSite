@@ -143,6 +143,36 @@ describe('PATCH /api/reflection', () => {
     expect(achievementsUpsert).toBeUndefined();
   });
 
+  it('profileReviewed stamps completion without writing any student_profiles fact column', async () => {
+    // The new Step 1 Review Profile page's "Yes, this information is
+    // correct" CTA. It must never touch `study_level`/`target_subjects`/etc
+    // — those are canonical facts this page only displays, never re-asks —
+    // only the completion timestamp `fetchOnboardingState` reads.
+    const { supabase, upserts } = buildSupabase();
+    createClientMock.mockResolvedValue(supabase);
+
+    const response = await PATCH(request({ profileReviewed: true }));
+
+    expect(response.status).toBe(200);
+    const profileUpsert = upserts.find((u) => u.table === 'student_profiles');
+    expect(profileUpsert?.value).toEqual({
+      user_id: 'user-1',
+      personal_summary_completed_at: expect.any(String),
+    });
+  });
+
+  it('an about payload takes priority over profileReviewed when both are somehow sent', async () => {
+    const { supabase, upserts } = buildSupabase();
+    createClientMock.mockResolvedValue(supabase);
+
+    await PATCH(request({ about: { majors: [], countries: [] }, profileReviewed: true }));
+
+    const profileUpserts = upserts.filter((u) => u.table === 'student_profiles');
+    // Exactly one profile upsert — not one for `about` and a second for
+    // `profileReviewed` stamping the same flag twice.
+    expect(profileUpserts).toHaveLength(1);
+  });
+
   it('rejects an invalid payload', async () => {
     const { supabase } = buildSupabase();
     createClientMock.mockResolvedValue(supabase);

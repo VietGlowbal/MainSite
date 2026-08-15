@@ -1,5 +1,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
+  activityReflectionSchema,
+  reflectionCardSchema,
   reflectionFromProfile,
   type AchievementValues,
   type ActivityValues,
@@ -40,6 +42,8 @@ const PROFILE_BASE_COLUMNS =
   'nationality, current_qualification, study_level, target_subjects, preferred_countries, budget_range, funding_source, tuition_budget_usd, grades_summary, goals';
 /** Added by supabase-reflection-questions.sql and supabase-reflection-subject-motivations.sql. */
 const PROFILE_NEW_COLUMNS = 'study_motivation, subject_motivations, target_intake';
+/** Added by supabase-application-experience-flow.sql. */
+const PROFILE_PERSONAL_REFLECTION_COLUMN = 'personal_reflection_answers';
 /**
  * Added by supabase-candidate-confirmation.sql. Read ONLY when no
  * `applicationId` is given — see `loadCandidateReflection`'s own doc comment
@@ -59,6 +63,29 @@ async function selectProfile(
   const applicationConfirmedAt = applicationId
     ? await selectApplicationConfirmedAt(supabase, userId, applicationId)
     : undefined;
+
+  const withPersonalReflection = await supabase
+    .from('student_profiles')
+    .select(
+      `${PROFILE_BASE_COLUMNS}, ${PROFILE_NEW_COLUMNS}, ${PROFILE_PERSONAL_REFLECTION_COLUMN}, ${PROFILE_CONFIRM_COLUMN}`,
+    )
+    .eq('user_id', userId)
+    .maybeSingle();
+
+  if (!withPersonalReflection.error) {
+    const row = (withPersonalReflection.data ?? null) as
+      | (ReflectionProfileRow & { confirmed_at?: string | null })
+      | null;
+    return {
+      row,
+      confirmedAt: applicationId ? (applicationConfirmedAt ?? null) : (row?.confirmed_at ?? null),
+    };
+  }
+
+  console.warn(
+    '[candidate-snapshot-repository] could not read personal_reflection_answers — run supabase-application-experience-flow.sql. Loading the rest.',
+    withPersonalReflection.error.message,
+  );
 
   const full = await supabase
     .from('student_profiles')
@@ -134,6 +161,9 @@ const ACHIEVEMENT_BASE_COLUMNS =
 const ACTIVITY_BASE_COLUMNS = 'id, category, title, organisation, level, period, description';
 /** Added by supabase-reflection-review-status.sql. */
 const REVIEW_COLUMNS = 'review_status, source_type, sources';
+/** Added by supabase-application-experience-flow.sql. */
+const REFLECTION_COLUMNS =
+  'reflection, reflection_card, reflection_card_status, reflection_updated_at, reflection_card_generated_at';
 
 async function selectEvidenceRows(
   supabase: Client,
@@ -141,15 +171,27 @@ async function selectEvidenceRows(
   baseColumns: string,
   userId: string,
 ): Promise<Row[]> {
-  const full = await supabase
+  const withReflection = await supabase
     .from(table)
-    .select(`${baseColumns}, ${REVIEW_COLUMNS}`)
+    .select(`${baseColumns}, ${REVIEW_COLUMNS}, ${REFLECTION_COLUMNS}`)
     .eq('user_id', userId)
     .order('created_at', { ascending: true });
   // `baseColumns` is a runtime string, not a literal type, so supabase-js
   // cannot parse the select column list into a precise row type — `Row` is
   // deliberately loose, and every field read through it below is narrowed
   // by hand.
+  if (!withReflection.error) return (withReflection.data ?? []) as unknown as Row[];
+
+  console.warn(
+    `[candidate-snapshot-repository] could not read ${REFLECTION_COLUMNS} on ${table} — run supabase-application-experience-flow.sql. Loading the rest.`,
+    withReflection.error.message,
+  );
+
+  const full = await supabase
+    .from(table)
+    .select(`${baseColumns}, ${REVIEW_COLUMNS}`)
+    .eq('user_id', userId)
+    .order('created_at', { ascending: true });
   if (!full.error) return (full.data ?? []) as unknown as Row[];
 
   console.warn(
@@ -178,6 +220,31 @@ function sourceTypeFromRow(row: Row): AchievementValues['sourceType'] {
   return row['source_type'] === 'document' ? 'document' : 'manual';
 }
 
+/**
+ * `reflection`/`reflection_card` on a row — parsed leniently (an invalid or
+ * partial stored shape drops the offending field rather than failing the
+ * whole record) since these are AI/user-authored JSONB, not a validated
+ * write path guaranteed to match the current schema shape.
+ */
+function reflectionFieldsFromRow(row: Row): Pick<AchievementValues, 'reflection' | 'reflectionCard'> {
+  const reflectionParsed = activityReflectionSchema.safeParse(row['reflection'] ?? {});
+  const cardRaw = row['reflection_card'];
+  const card =
+    cardRaw && typeof cardRaw === 'object'
+      ? reflectionCardSchema.safeParse({
+          ...(cardRaw as Record<string, unknown>),
+          status: row['reflection_card_status'] ?? (cardRaw as Record<string, unknown>)['status'],
+        })
+      : undefined;
+
+  return {
+    ...(reflectionParsed.success && Object.keys(reflectionParsed.data).length > 0
+      ? { reflection: reflectionParsed.data }
+      : {}),
+    ...(card?.success ? { reflectionCard: card.data } : {}),
+  };
+}
+
 function achievementFromRow(row: Row): AchievementValues {
   return {
     id: row['id'] as string,
@@ -192,6 +259,7 @@ function achievementFromRow(row: Row): AchievementValues {
     reviewStatus: reviewStatusFromRow(row),
     sourceType: sourceTypeFromRow(row),
     ...(sourcesFromRow(row) ? { sources: sourcesFromRow(row) } : {}),
+    ...reflectionFieldsFromRow(row),
   };
 }
 
@@ -207,6 +275,7 @@ function activityFromRow(row: Row): ActivityValues {
     reviewStatus: reviewStatusFromRow(row),
     sourceType: sourceTypeFromRow(row),
     ...(sourcesFromRow(row) ? { sources: sourcesFromRow(row) } : {}),
+    ...reflectionFieldsFromRow(row),
   };
 }
 

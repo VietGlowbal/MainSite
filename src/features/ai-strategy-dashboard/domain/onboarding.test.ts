@@ -11,6 +11,7 @@ function state(overrides: Partial<OnboardingState> = {}): OnboardingState {
   return {
     personalSummaryComplete: false,
     achievementsComplete: false,
+    personalReflectionComplete: false,
     candidateConfirmed: false,
     aiAnalysisComplete: false,
     introSeen: false,
@@ -36,6 +37,18 @@ describe('nextOnboardingStep', () => {
       nextOnboardingStep(
         state({ personalSummaryComplete: true, achievementsComplete: true }),
       ),
+    ).toBe('personal-reflection');
+  });
+
+  it('routes to confirm once personal reflection is done', () => {
+    expect(
+      nextOnboardingStep(
+        state({
+          personalSummaryComplete: true,
+          achievementsComplete: true,
+          personalReflectionComplete: true,
+        }),
+      ),
     ).toBe('confirm');
   });
 
@@ -45,6 +58,7 @@ describe('nextOnboardingStep', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
           candidateConfirmed: true,
         }),
       ),
@@ -57,6 +71,7 @@ describe('nextOnboardingStep', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
           candidateConfirmed: true,
           aiAnalysisComplete: true,
         }),
@@ -70,6 +85,7 @@ describe('nextOnboardingStep', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
           candidateConfirmed: true,
           aiAnalysisComplete: true,
           introSeen: true,
@@ -84,6 +100,7 @@ describe('nextOnboardingStep', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
           candidateConfirmed: true,
           aiAnalysisComplete: true,
           introSeen: true,
@@ -112,6 +129,7 @@ describe('nextOnboardingStep', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
           aiAnalysisComplete: true,
         }),
       ),
@@ -127,6 +145,7 @@ describe('isOnboardingComplete', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
           candidateConfirmed: true,
           aiAnalysisComplete: true,
         }),
@@ -138,6 +157,7 @@ describe('isOnboardingComplete', () => {
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
           candidateConfirmed: true,
           aiAnalysisComplete: true,
           introSeen: true,
@@ -146,12 +166,13 @@ describe('isOnboardingComplete', () => {
     ).toBe(false);
   });
 
-  it('is true only when all six steps are done', () => {
+  it('is true only when all seven steps are done', () => {
     expect(
       isOnboardingComplete(
         state({
           personalSummaryComplete: true,
           achievementsComplete: true,
+          personalReflectionComplete: true,
           candidateConfirmed: true,
           aiAnalysisComplete: true,
           introSeen: true,
@@ -173,6 +194,11 @@ describe('onboardingStepHref', () => {
   it('routes achievements the same way', () => {
     const href = onboardingStepHref('achievements', 'app-1');
     expect(href).toContain('/ai-strategy/reflection/achievements?return=');
+  });
+
+  it('routes personal reflection the same way', () => {
+    const href = onboardingStepHref('personal-reflection', 'app-1');
+    expect(href).toContain('/ai-strategy/reflection/personal?return=');
   });
 
   it('routes confirm the same way, into the shared reflection flow', () => {

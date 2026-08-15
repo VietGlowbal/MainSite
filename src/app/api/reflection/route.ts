@@ -8,6 +8,8 @@ import {
   activitySchema,
   aspirationsSchema,
   profileUpdateFromReflection,
+  type ActivityReflectionValues,
+  type ReflectionCardValues,
 } from '@/features/apply/domain';
 
 /**
@@ -58,6 +60,18 @@ const LATER_COLUMNS = ['study_motivation', 'subject_motivations', 'target_intake
  */
 const REVIEW_COLUMNS = ['review_status', 'source_type', 'sources'] as const;
 
+/**
+ * `supabase-application-experience-flow.sql`'s reflection columns, shared by
+ * both tables — same names, same retry pattern as `REVIEW_COLUMNS`.
+ */
+const REFLECTION_COLUMNS = [
+  'reflection',
+  'reflection_card',
+  'reflection_card_status',
+  'reflection_updated_at',
+  'reflection_card_generated_at',
+] as const;
+
 /** A shallow copy of `row` without the given keys. */
 function omit<T extends Record<string, unknown>>(row: T, keys: readonly string[]): Partial<T> {
   const next: Partial<T> = { ...row };
@@ -69,6 +83,18 @@ const bodySchema = z.object({
   about: aboutPayload.optional(),
   achievements: z.array(achievementSchema).max(20).optional(),
   activities: z.array(activitySchema).max(20).optional(),
+  /**
+   * "Yes, this information is correct" on the new Step 1 Review Profile
+   * page. That page shows canonical data it never asks the student to
+   * re-type (study level, subjects, countries, grades, test scores — all
+   * owned by `/profile/*` and onboarding), so it must NOT post an `about`
+   * payload: `profileUpdateFromReflection` writes every absent field as an
+   * explicit `null`, which would silently clear real data the moment the
+   * new page saved nothing for it. This flag stamps the same completion
+   * timestamps `about` normally does, without touching a single
+   * `student_profiles` fact column.
+   */
+  profileReviewed: z.boolean().optional(),
   /**
    * The application this edit is being made in the context of — derived by
    * the reflection pages from their own `?return=` param
@@ -105,7 +131,7 @@ export async function PATCH(request: Request) {
     );
   }
 
-  const { about, achievements, activities } = parsed.data;
+  const { about, achievements, activities, profileReviewed } = parsed.data;
   const applicationId = await verifiedApplicationId(supabase, user.id, parsed.data.applicationId);
 
   /*
@@ -226,6 +252,32 @@ export async function PATCH(request: Request) {
         );
       }
     }
+  } else if (profileReviewed) {
+    // "Yes, this information is correct" on the new Review Profile page —
+    // stamp completion without writing a single fact column. See the
+    // `profileReviewed` field's own doc comment on `bodySchema` for why this
+    // must not fall through to the `about` branch above.
+    const { error } = await supabase.from('student_profiles').upsert(
+      { user_id: user.id, personal_summary_completed_at: new Date().toISOString() },
+      { onConflict: 'user_id' },
+    );
+    if (error) {
+      console.error('[reflection] profile-reviewed stamp failed:', error);
+      return NextResponse.json({ error: 'Could not save your information' }, { status: 500 });
+    }
+
+    if (applicationId) {
+      const stamped = await supabase
+        .from('course_applications')
+        .update({ personal_summary_reviewed_at: new Date().toISOString() })
+        .eq('id', applicationId);
+      if (stamped.error) {
+        console.warn(
+          '[reflection] could not stamp personal_summary_reviewed_at — run supabase-per-application-onboarding.sql.',
+          stamped.error.message,
+        );
+      }
+    }
   }
 
   /*
@@ -237,6 +289,61 @@ export async function PATCH(request: Request) {
    * the student with an empty list they can refill, not a merged one they
    * cannot untangle.
    */
+  /** Reflection/card fields for one evidence row, shared by both tables below. */
+  function reflectionColumns(item: {
+    reflection?: ActivityReflectionValues;
+    reflectionCard?: ReflectionCardValues;
+  }) {
+    const { status, ...cardWithoutStatus } = item.reflectionCard ?? {};
+    return {
+      reflection: item.reflection ?? null,
+      reflection_card: item.reflectionCard ? cardWithoutStatus : null,
+      reflection_card_status: status ?? null,
+      reflection_updated_at: item.reflection ? new Date().toISOString() : null,
+      reflection_card_generated_at: item.reflectionCard ? new Date().toISOString() : null,
+    };
+  }
+
+  /**
+   * Insert with the same two-tier tolerant retry every writer in this route
+   * uses: strip the newest columns first (reflection), then the older ones
+   * (review status), so a deployment missing only
+   * `supabase-application-experience-flow.sql` does not also lose review
+   * status it already had.
+   */
+  async function insertEvidenceRows(
+    table: 'student_achievements' | 'student_activities',
+    rows: Array<Record<string, unknown>>,
+  ): Promise<{ error: string | null }> {
+    const { error } = await supabase.from(table).insert(rows);
+    if (!error) return { error: null };
+
+    if (migrationMissing(error)) {
+      console.warn(
+        `[reflection] ${REFLECTION_COLUMNS.join('/')} missing on ${table} — run supabase-application-experience-flow.sql. Saving without reflection.`,
+      );
+      const withoutReflection = rows.map((row) => omit(row, REFLECTION_COLUMNS));
+      const retry = await supabase.from(table).insert(withoutReflection);
+      if (!retry.error) return { error: null };
+
+      if (migrationMissing(retry.error)) {
+        console.warn(
+          `[reflection] ${REVIEW_COLUMNS.join('/')} missing on ${table} — run supabase-reflection-review-status.sql. Saving without review status either.`,
+        );
+        const withoutReview = withoutReflection.map((row) => omit(row, REVIEW_COLUMNS));
+        const secondRetry = await supabase.from(table).insert(withoutReview);
+        if (!secondRetry.error) return { error: null };
+        console.error(`[reflection] ${table} insert failed:`, secondRetry.error);
+        return { error: `Could not save your ${table === 'student_achievements' ? 'achievements' : 'activities'}` };
+      }
+      console.error(`[reflection] ${table} insert failed:`, retry.error);
+      return { error: `Could not save your ${table === 'student_achievements' ? 'achievements' : 'activities'}` };
+    }
+
+    console.error(`[reflection] ${table} insert failed:`, error);
+    return { error: `Could not save your ${table === 'student_achievements' ? 'achievements' : 'activities'}` };
+  }
+
   if (achievements) {
     await supabase.from('student_achievements').delete().eq('user_id', user.id);
     if (achievements.length > 0) {
@@ -253,23 +360,10 @@ export async function PATCH(request: Request) {
         review_status: item.reviewStatus ?? null,
         source_type: item.sourceType ?? null,
         sources: item.sources ?? null,
+        ...reflectionColumns(item),
       }));
-      const { error } = await supabase.from('student_achievements').insert(rows);
-
-      if (error && migrationMissing(error)) {
-        console.warn(
-          `[reflection] ${REVIEW_COLUMNS.join('/')} missing on student_achievements — run supabase-reflection-review-status.sql. Saving without review status.`,
-        );
-        const stripped = rows.map((row) => omit(row, REVIEW_COLUMNS));
-        const retry = await supabase.from('student_achievements').insert(stripped);
-        if (retry.error) {
-          console.error('[reflection] achievements insert failed:', retry.error);
-          return NextResponse.json({ error: 'Could not save your achievements' }, { status: 500 });
-        }
-      } else if (error) {
-        console.error('[reflection] achievements insert failed:', error);
-        return NextResponse.json({ error: 'Could not save your achievements' }, { status: 500 });
-      }
+      const { error } = await insertEvidenceRows('student_achievements', rows);
+      if (error) return NextResponse.json({ error }, { status: 500 });
     }
   }
 
@@ -287,23 +381,10 @@ export async function PATCH(request: Request) {
         review_status: item.reviewStatus ?? null,
         source_type: item.sourceType ?? null,
         sources: item.sources ?? null,
+        ...reflectionColumns(item),
       }));
-      const { error } = await supabase.from('student_activities').insert(rows);
-
-      if (error && migrationMissing(error)) {
-        console.warn(
-          `[reflection] ${REVIEW_COLUMNS.join('/')} missing on student_activities — run supabase-reflection-review-status.sql. Saving without review status.`,
-        );
-        const stripped = rows.map((row) => omit(row, REVIEW_COLUMNS));
-        const retry = await supabase.from('student_activities').insert(stripped);
-        if (retry.error) {
-          console.error('[reflection] activities insert failed:', retry.error);
-          return NextResponse.json({ error: 'Could not save your activities' }, { status: 500 });
-        }
-      } else if (error) {
-        console.error('[reflection] activities insert failed:', error);
-        return NextResponse.json({ error: 'Could not save your activities' }, { status: 500 });
-      }
+      const { error } = await insertEvidenceRows('student_activities', rows);
+      if (error) return NextResponse.json({ error }, { status: 500 });
     }
   }
 
