@@ -96,6 +96,7 @@ function report(): PersonalReportV2 {
           evidenceStrength: 'strong',
           verificationStatus: 'attributable',
           evidenceSource: 'Birmingham Project Award',
+          evidenceRefs: [],
         },
       ],
       evidenceRefs: [],
