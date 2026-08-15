@@ -108,4 +108,187 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Assessed separately in the evidence framework below.':
     'Được đánh giá riêng trong phần khung bằng chứng bên dưới.',
   'Not enough activities yet to assess.': 'Chưa đủ hoạt động để đánh giá.',
+
+  // Personal Canvas — six-part report shell and Pass 2 evidence-backed insights.
+  'Personal Canvas': 'Bức tranh Cá nhân',
+  'A profile of who you are as an applicant — built from your reflected experiences, evidence and recurring patterns.':
+    'Hồ sơ về bạn với tư cách ứng viên — được xây dựng từ các trải nghiệm đã tự nhìn nhận, bằng chứng và những mẫu hành vi lặp lại.',
+  'Applicant Snapshot': 'Chân dung Ứng viên',
+  'Applicant profile themes': 'Các chủ đề trong hồ sơ ứng viên',
+  'Evidence base': 'Nền tảng bằng chứng',
+  'Your applicant profile is still taking shape': 'Hồ sơ ứng viên của bạn vẫn đang dần định hình',
+  'Add more reflected experiences to help GlowBal identify reliable patterns across your profile.':
+    'Hãy bổ sung thêm các trải nghiệm đã tự nhìn nhận để GlowBal xác định những mẫu đáng tin cậy trong hồ sơ của bạn.',
+  'Evidence count is unavailable for this report version.': 'Không có số lượng bằng chứng cho phiên bản báo cáo này.',
+  Identity: 'Bản sắc',
+  Forces: 'Động lực',
+  Capabilities: 'Năng lực',
+  Proof: 'Bằng chứng',
+  Growth: 'Phát triển',
+  Vision: 'Tầm nhìn',
+  'Personal Report sections': 'Các phần của Báo cáo Cá nhân',
+  'Driving Forces': 'Các động lực',
+  'Proven Capabilities': 'Năng lực đã được chứng minh',
+  'Social Proof': 'Bằng chứng xã hội',
+  'Areas for Growth': 'Các lĩnh vực cần phát triển',
+  'Long-Term Vision': 'Tầm nhìn dài hạn',
+  'The recurring roles, behaviours and patterns that describe who you consistently show yourself to be.':
+    'Các vai trò, hành vi và mẫu lặp lại mô tả con người mà bạn liên tục thể hiện.',
+  'What repeatedly motivates your choices, where those motivations appear in your experiences, and how confidently the evidence supports them.':
+    'Những điều liên tục thúc đẩy lựa chọn của bạn, nơi các động lực đó xuất hiện trong trải nghiệm và mức độ bằng chứng hỗ trợ chúng.',
+  'What your evidence demonstrates you can do, how those strengths combine, and the positioning they create for you as an applicant.':
+    'Những điều bằng chứng cho thấy bạn có thể làm, cách các thế mạnh kết hợp và vị thế chúng tạo ra cho bạn với tư cách ứng viên.',
+  'The tangible activities, outcomes and verification that make the claims in your profile credible.':
+    'Các hoạt động, kết quả và xác minh hữu hình giúp những nhận định trong hồ sơ của bạn trở nên đáng tin cậy.',
+  'Where the current evidence is limited, what still needs development, and where stronger proof could make the profile more complete.':
+    'Những nơi bằng chứng hiện tại còn hạn chế, điều vẫn cần phát triển và nơi minh chứng mạnh hơn có thể giúp hồ sơ hoàn thiện hơn.',
+  'The themes and directions emerging from the choices you repeatedly make — presented as possibilities, not predictions.':
+    'Các chủ đề và hướng đi nổi lên từ những lựa chọn bạn lặp lại — được trình bày như những khả năng, không phải dự đoán.',
+  'Continue to Matching Report': 'Tiếp tục tới Báo cáo Độ phù hợp',
+  'View section →': 'Xem phần →',
+  'Your applicant profile, in six connected parts': 'Hồ sơ ứng viên của bạn qua sáu phần liên kết',
+  'Start with the whole picture, then open any area to see the evidence and reasoning behind it.':
+    'Bắt đầu với bức tranh tổng thể, sau đó mở từng phần để xem bằng chứng và lập luận phía sau.',
+  '1. Core': '1. Cốt lõi',
+  'Where more evidence or development could strengthen your profile': 'Nơi thêm bằng chứng hoặc phát triển có thể củng cố hồ sơ của bạn',
+  'Your recurring identity patterns': 'Các mẫu bản sắc lặp lại của bạn',
+  'What repeatedly motivates your choices': 'Điều liên tục thúc đẩy các lựa chọn của bạn',
+  'What your evidence shows you can do': 'Những điều bằng chứng cho thấy bạn có thể làm',
+  'The evidence behind your profile': 'Bằng chứng đứng sau hồ sơ của bạn',
+  'The directions emerging from your current trajectory': 'Những hướng đi đang nổi lên từ quỹ đạo hiện tại của bạn',
+
+  // Growth and identity evidence views.
+  'Where your profile can become stronger': 'Nơi hồ sơ của bạn có thể trở nên mạnh hơn',
+  'Evidence gap': 'Khoảng trống bằng chứng',
+  'Growth opportunity': 'Cơ hội phát triển',
+  'Suggested direction': 'Hướng đi đề xuất',
+  'Build more specific, verifiable evidence in this area so GlowBal can distinguish an emerging capability from a genuine development gap.':
+    'Hãy xây dựng bằng chứng cụ thể và có thể xác minh hơn trong lĩnh vực này để GlowBal phân biệt năng lực đang hình thành với khoảng trống phát triển thực sự.',
+  'No high-confidence growth gaps identified yet.': 'Chưa xác định được khoảng trống phát triển nào với độ tin cậy cao.',
+  'As you add more reflected experiences, GlowBal can distinguish genuine development opportunities from simple missing data.':
+    'Khi bạn bổ sung thêm các trải nghiệm đã tự nhìn nhận, GlowBal có thể phân biệt cơ hội phát triển thực sự với dữ liệu đơn thuần còn thiếu.',
+  'Identity evidence profile': 'Hồ sơ bằng chứng bản sắc',
+  'How established is the pattern behind your identity?': 'Mẫu hành vi đứng sau bản sắc của bạn đã được xác lập đến mức nào?',
+  'These are evidence-health signals from your reflected experiences. They describe how strongly GlowBal can support the identity analysis — not how “good” your personality is.':
+    'Đây là các tín hiệu về chất lượng bằng chứng từ những trải nghiệm bạn đã tự nhìn nhận. Chúng mô tả mức độ GlowBal có thể hỗ trợ phân tích bản sắc — không phải đánh giá tính cách của bạn “tốt” đến đâu.',
+  'What the signals mean': 'Ý nghĩa của các tín hiệu',
+  confidence: 'độ tin cậy',
+  'Core identity evidence signals': 'Các tín hiệu bằng chứng về bản sắc cốt lõi',
+  'How consistently specific behaviours recur across separate experiences.': 'Mức độ các hành vi cụ thể lặp lại nhất quán qua các trải nghiệm khác nhau.',
+  'How strongly your experiences converge around repeated areas of interest.': 'Mức độ các trải nghiệm của bạn hội tụ quanh những lĩnh vực quan tâm lặp lại.',
+  'Whether the available outcomes show a reliable development pattern over time.': 'Liệu các kết quả hiện có có cho thấy một mẫu phát triển đáng tin cậy theo thời gian hay không.',
+  'How distinctive the combination of your recurring role, method and themes appears.': 'Mức độ khác biệt của sự kết hợp giữa vai trò lặp lại, phương pháp và chủ đề của bạn.',
+  'How much usable evidence supports the identity analysis.': 'Lượng bằng chứng hữu dụng hỗ trợ cho phân tích bản sắc.',
+  'An evidence-backed identity signal.': 'Một tín hiệu bản sắc có bằng chứng hỗ trợ.',
+
+  // Closing summary.
+  'Key Takeaways': 'Điểm chính cần ghi nhớ',
+  'What to remember before you build the application': 'Những điều cần ghi nhớ trước khi xây dựng hồ sơ ứng tuyển',
+  'Three evidence-backed ideas to carry into your positioning, university matching and application strategy.':
+    'Ba ý chính có bằng chứng hỗ trợ để bạn sử dụng trong định vị, lựa chọn trường phù hợp và chiến lược ứng tuyển.',
+  'What Makes You Stand Out': 'Điều khiến bạn nổi bật',
+  'Your Competitive Advantage': 'Lợi thế cạnh tranh của bạn',
+  'Your Growth Opportunity': 'Cơ hội phát triển của bạn',
+  'Your strongest differentiator will become clearer as you add more reflected experiences.':
+    'Điểm khác biệt mạnh nhất của bạn sẽ rõ hơn khi bạn bổ sung thêm các trải nghiệm đã tự nhìn nhận.',
+  'Your competitive advantage is still emerging from the evidence currently available.':
+    'Lợi thế cạnh tranh của bạn vẫn đang dần hình thành từ các bằng chứng hiện có.',
+  'Continue adding specific evidence so emerging strengths can be separated from areas that genuinely need development.':
+    'Tiếp tục bổ sung bằng chứng cụ thể để phân biệt các thế mạnh đang hình thành với những lĩnh vực thực sự cần phát triển.',
+
+  // Pass 2 capability, motivation, proof, growth and pathway analytics.
+  'Capability profile': 'Hồ sơ năng lực',
+  'The strongest named capabilities in this report snapshot. Scores represent strength of supporting evidence, not an ability ceiling.':
+    'Các năng lực nổi bật nhất được nêu tên trong phiên bản báo cáo này. Điểm số thể hiện độ mạnh của bằng chứng hỗ trợ, không phải giới hạn năng lực.',
+  'The strongest named capabilities extracted from your evidence. Scores represent evidence strength, not ability ceilings.':
+    'Các năng lực nổi bật nhất được rút ra từ bằng chứng của bạn. Điểm số thể hiện độ mạnh của bằng chứng, không phải giới hạn năng lực.',
+  'Named capability evidence profile': 'Hồ sơ bằng chứng năng lực được nêu tên',
+  'Supporting evidence': 'Bằng chứng hỗ trợ',
+  'Rating rule: recurrence + evidence quality + verification + recorded outcomes. One activity cannot receive more than 3 stars; two cannot receive 5 stars.':
+    'Quy tắc xếp hạng: mức độ lặp lại + chất lượng bằng chứng + xác minh + kết quả được ghi nhận. Một hoạt động không thể nhận quá 3 sao; hai hoạt động không thể nhận 5 sao.',
+  'Very strong evidence': 'Bằng chứng rất mạnh',
+  'Strong evidence': 'Bằng chứng mạnh',
+  'Consistent evidence': 'Bằng chứng nhất quán',
+  'Emerging evidence': 'Bằng chứng đang hình thành',
+  'Limited evidence': 'Bằng chứng hạn chế',
+  'High confidence': 'Độ tin cậy cao',
+  'Medium confidence': 'Độ tin cậy trung bình',
+  'Low confidence': 'Độ tin cậy thấp',
+  'Motivation profile': 'Hồ sơ động lực',
+  'What repeatedly appears in your stated motivations': 'Những điều liên tục xuất hiện trong các động lực bạn đã nêu',
+  'These bars show recurrence across motivations you explicitly recorded. They are not personality scores.':
+    'Các thanh này cho thấy mức độ lặp lại trong những động lực bạn đã ghi nhận rõ ràng. Đây không phải điểm số tính cách.',
+  'What repeatedly appears in your own stated motivations': 'Những điều liên tục xuất hiện trong các động lực do chính bạn nêu',
+  'These bars show recurrence across the motivations you explicitly recorded. They are not personality scores.':
+    'Các thanh này cho thấy mức độ lặp lại trong những động lực bạn đã ghi nhận rõ ràng. Đây không phải điểm số tính cách.',
+  'Repeated stated motivations': 'Các động lực đã nêu lặp lại',
+  'Experiences analysed': 'Trải nghiệm đã phân tích',
+  'Activities contributing evidence to this report': 'Các hoạt động đóng góp bằng chứng cho báo cáo này',
+  'Strong evidence items': 'Hạng mục bằng chứng mạnh',
+  'Experiences with evidence, outcomes and demonstrated capability': 'Các trải nghiệm có bằng chứng, kết quả và năng lực được thể hiện',
+  'Checkable evidence': 'Bằng chứng có thể kiểm chứng',
+  'Verified or attributable evidence sources': 'Nguồn bằng chứng đã xác minh hoặc có thể truy nguồn',
+  'Recorded outcomes': 'Kết quả đã ghi nhận',
+  'Experiences with a stated result or change': 'Các trải nghiệm có kết quả hoặc thay đổi được nêu rõ',
+  'Quantified outcomes': 'Kết quả định lượng',
+  'Outcomes containing a measurable result': 'Các kết quả có yếu tố đo lường được',
+  'Capabilities evidenced': 'Năng lực có bằng chứng hỗ trợ',
+  'Distinct grounded capability labels across experiences': 'Các nhãn năng lực riêng biệt có cơ sở từ nhiều trải nghiệm',
+  'Contributing to this report': 'Đóng góp cho báo cáo này',
+  'Outcome + capability + evidence': 'Kết quả + năng lực + bằng chứng',
+  'Verified or attributable': 'Đã xác minh hoặc có thể truy nguồn',
+  'A result or change is stated': 'Có nêu kết quả hoặc thay đổi',
+  'Includes a measurable result': 'Bao gồm kết quả có thể đo lường',
+  'Distinct grounded capabilities': 'Các năng lực riêng biệt có cơ sở',
+  'Stronger positioning': 'Định vị mạnh hơn',
+  'Profile coherence': 'Tính mạch lạc của hồ sơ',
+  'Identity evidence': 'Bằng chứng bản sắc',
+  'Theme depth': 'Độ sâu của chủ đề',
+  'Growth priority matrix': 'Ma trận ưu tiên phát triển',
+  'Where additional evidence could strengthen your profile': 'Nơi bằng chứng bổ sung có thể củng cố hồ sơ của bạn',
+  'Impact reflects how central the current gap is to your personal profile. Effort estimates whether it can be improved by clarifying current evidence or needs new experiences.':
+    'Tác động phản ánh mức độ trọng tâm của khoảng trống hiện tại đối với hồ sơ cá nhân. Nỗ lực ước tính liệu có thể cải thiện bằng cách làm rõ bằng chứng hiện có hay cần thêm trải nghiệm mới.',
+  'Impact reflects how central the current gap is to your personal profile. Effort is an estimate based on whether the gap can be fixed by clarifying existing evidence or requires new experiences.':
+    'Tác động phản ánh mức độ trọng tâm của khoảng trống hiện tại đối với hồ sơ cá nhân. Nỗ lực được ước tính dựa trên việc khoảng trống có thể được khắc phục bằng cách làm rõ bằng chứng hiện có hay cần trải nghiệm mới.',
+  'Quick wins': 'Cải thiện nhanh',
+  'Major investments': 'Đầu tư lớn',
+  'Useful additions': 'Bổ sung hữu ích',
+  'Longer-term depth': 'Phát triển chiều sâu dài hạn',
+  'High impact · Low/medium effort': 'Tác động cao · Nỗ lực thấp/trung bình',
+  'High impact · High effort': 'Tác động cao · Nỗ lực cao',
+  'Medium impact · Low/medium effort': 'Tác động trung bình · Nỗ lực thấp/trung bình',
+  'Medium impact · High effort': 'Tác động trung bình · Nỗ lực cao',
+  impact: 'tác động',
+  effort: 'nỗ lực',
+  signal: 'tín hiệu',
+  Positioning: 'Định vị',
+  Theme: 'Chủ đề',
+  High: 'Cao',
+  Medium: 'Trung bình',
+  Low: 'Thấp',
+  'Add stronger supporting evidence, specific outcomes, or verification to the experiences already on your profile.':
+    'Bổ sung bằng chứng hỗ trợ mạnh hơn, kết quả cụ thể hoặc xác minh cho những trải nghiệm đã có trong hồ sơ.',
+  'Clarify the direction you want to pursue and connect it explicitly to the experiences that already support it.':
+    'Làm rõ hướng đi bạn muốn theo đuổi và kết nối trực tiếp hướng đó với những trải nghiệm đang hỗ trợ nó.',
+  'Add or deepen experiences that show this pattern in another context, rather than relying on a single activity.':
+    'Bổ sung hoặc đào sâu các trải nghiệm thể hiện mẫu này trong bối cảnh khác, thay vì chỉ dựa vào một hoạt động.',
+  'Strengthen this area with another specific, reflected example that shows your role, action and outcome.':
+    'Củng cố lĩnh vực này bằng một ví dụ cụ thể khác đã được tự nhìn nhận, thể hiện vai trò, hành động và kết quả của bạn.',
+  'Strengthen an existing experience with specific outcomes or checkable supporting evidence.':
+    'Củng cố một trải nghiệm hiện có bằng kết quả cụ thể hoặc bằng chứng hỗ trợ có thể kiểm chứng.',
+  'State the direction you want to pursue and explicitly connect it to the experiences already supporting it.':
+    'Nêu rõ hướng đi bạn muốn theo đuổi và kết nối trực tiếp với các trải nghiệm đang hỗ trợ hướng đó.',
+  'Build depth by showing this pattern in another context rather than relying on a single experience.':
+    'Tạo chiều sâu bằng cách thể hiện mẫu này trong một bối cảnh khác thay vì chỉ dựa vào một trải nghiệm.',
+  'Add another reflected example that clearly records your role, action and outcome.':
+    'Bổ sung một ví dụ đã tự nhìn nhận khác, ghi rõ vai trò, hành động và kết quả của bạn.',
+  'Supported by': 'Được hỗ trợ bởi',
+  'Possible future directions': 'Các hướng đi tương lai có thể cân nhắc',
+  'Your stated direction is separated from evidence-backed emerging themes. The latter are possibilities to explore, not career predictions.':
+    'Hướng đi bạn đã nêu được tách riêng khỏi các chủ đề đang hình thành có bằng chứng hỗ trợ. Các chủ đề này là khả năng để khám phá, không phải dự đoán nghề nghiệp.',
+  'These are evidence-backed themes already present in your experiences. They are possibilities to explore, not career predictions.':
+    'Đây là các chủ đề có bằng chứng hỗ trợ đã xuất hiện trong trải nghiệm của bạn. Chúng là những khả năng để khám phá, không phải dự đoán nghề nghiệp.',
+  'Stated direction': 'Hướng đi đã nêu',
+  'This is the direction you explicitly stated, shown separately from AI-inferred emerging themes.':
+    'Đây là hướng đi bạn đã nêu rõ, được hiển thị riêng với các chủ đề đang hình thành do AI suy luận.',
 };
