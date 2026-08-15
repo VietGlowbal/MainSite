@@ -236,6 +236,22 @@ export const translations: Record<string, string> = {
   'The team behind your journey.': 'Đội ngũ đằng sau hành trình của bạn.',
   'GlowBal is built by a team across technology, education, research and communication, including people who have experienced scholarship and study-abroad journeys themselves. We combine student insight, specialist knowledge and technology to turn fragmented advice into a clearer system.':
     'GlowBal được xây dựng bởi đội ngũ trong các lĩnh vực công nghệ, giáo dục, nghiên cứu và truyền thông, cùng những người đã trực tiếp trải qua hành trình học bổng và du học. Chúng mình kết hợp góc nhìn của người dùng, kiến thức chuyên môn và công nghệ để biến những lời khuyên rời rạc thành một hệ thống rõ ràng hơn.',
+  // Home roster cards — programme and scholarship lines, from the owner's
+  // member sheet. University names are never translated (see the crest alt
+  // text in features/marketing/ui/university-crests.ts), but a course of study
+  // is ordinary copy and is.
+  'Business Administration · Marketing': 'Quản trị kinh doanh · Marketing',
+  'Business Administration · Business Analytics':
+    'Quản trị kinh doanh · Phân tích kinh doanh',
+  // 'Business Administration' and 'Information Technology' are already in this
+  // catalogue further down (the programme-name block) — not repeated here.
+  'Computer Engineering': 'Kỹ thuật máy tính',
+  'International Political Economics': 'Kinh tế chính trị quốc tế',
+  "80% merit scholarship · 4× Dean's List": "Học bổng tài năng 80% · 4 lần Dean's List",
+  '90% merit scholarship · full ride at Lingnan':
+    'Học bổng tài năng 90% · học bổng toàn phần tại Lingnan',
+  '2× FTU academic encouragement scholarship':
+    '2 lần học bổng khuyến khích học tập FTU',
   'Founder & CEO': 'Nhà sáng lập & CEO',
   'CO - Founder': 'Đồng sáng lập',
   'Jack of all trades': 'Đa năng',
