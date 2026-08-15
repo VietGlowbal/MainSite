@@ -4,6 +4,18 @@
  */
 export { TID, testId, type TestId } from './testids';
 export {
+  MONTH_ABBREVIATIONS,
+  MONTH_NAMES,
+  clampMonthValue,
+  currentMonthValue,
+  formatMonthValue,
+  monthValue,
+  parseMonthValue,
+  shiftMonthValue,
+  toMonthValue,
+  type MonthParts,
+} from './month-value';
+export {
   clampPage,
   clampPageSize,
   pageOffset,

@@ -26,6 +26,7 @@ export { Container } from './container';
 export { FeatureCard } from './feature-card';
 export { CONTROL_BASE, FormField, controlClasses } from './form-field';
 export { Input } from './input';
+export { MonthPicker } from './month-picker';
 export { Pagination, paginationRange } from './pagination';
 export { Radio, RadioGroup } from './radio';
 export { RatingsBadge } from './ratings-badge';
