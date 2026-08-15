@@ -1,6 +1,7 @@
 'use client';
 
 import type { PersonalReportV2 } from '../../domain';
+import type { PersonalCanvasDetails } from '../../domain/personal-canvas-details';
 
 export const PERSONAL_REPORT_SECTION_IDS = {
   coreIdentity: 'personal-report-core-identity',
@@ -14,11 +15,16 @@ export const PERSONAL_REPORT_SECTION_IDS = {
 export type PersonalReportSectionId =
   (typeof PERSONAL_REPORT_SECTION_IDS)[keyof typeof PERSONAL_REPORT_SECTION_IDS];
 
+type ReportWithCanvasDetails = PersonalReportV2 & { canvasDetails?: PersonalCanvasDetails };
+
 function firstUseful(values: Array<string | null | undefined>, fallback: string): string {
   return values.find((value) => Boolean(value?.trim()))?.trim() ?? fallback;
 }
 
 function strongestCapabilityLabels(report: PersonalReportV2): string[] {
+  const stored = (report as ReportWithCanvasDetails).canvasDetails?.capabilities;
+  if (stored && stored.length > 0) return stored.slice(0, 2).map((capability) => capability.name);
+
   return (report.analytics?.competencyEvidenceProfile ?? [])
     .filter((metric) => metric.score !== null)
     .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))
@@ -69,11 +75,17 @@ function CanvasCell({
  * shrinking the diagram until its labels become unusable.
  */
 export function PersonalCanvasView({ report }: { report: PersonalReportV2 }) {
+  const canvasDetails = (report as ReportWithCanvasDetails).canvasDetails;
   const capabilities = strongestCapabilityLabels(report);
-  const themes = report.emergingThemes.themes.slice(0, 2).map((theme) => theme.theme);
+  const themePathways = canvasDetails?.futurePathways.filter((pathway) => !pathway.isStatedDirection).slice(0, 2);
+  const themes = themePathways?.length
+    ? themePathways.map((pathway) => pathway.label)
+    : report.emergingThemes.themes.slice(0, 2).map((theme) => theme.theme);
   const evidenceCount = report.analytics?.evidenceSummary.totalItems;
+  const storedGrowth = canvasDetails?.growthPriorities[0]?.gap;
   const growthPreview = firstUseful(
     [
+      storedGrowth,
       report.personalPositioning.whatPreventsStrongerPositioning[0],
       report.coreIdentity.stillDeveloping[0],
       report.emergingThemes.themes[0]?.limitation,
@@ -86,6 +98,7 @@ export function PersonalCanvasView({ report }: { report: PersonalReportV2 }) {
     'Your recurring identity patterns',
   );
   const drivingPreview =
+    canvasDetails?.motivations.slice(0, 2).map((motivation) => motivation.label).join(' · ') ||
     report.drivingForce.repeatedMotivations.slice(0, 2).join(' · ') ||
     firstUseful([report.drivingForce.headline], 'What repeatedly motivates your choices');
   const capabilityPreview = capabilities.join(' · ') || 'What your evidence shows you can do';

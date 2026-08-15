@@ -280,7 +280,7 @@ function reportWithAnalytics(): PersonalReportV2 {
 }
 
 describe('PersonalReportV2View — analytics wiring', () => {
-  it('renders the profile-at-a-glance charts and overview synopsis when analytics are present', () => {
+  it('renders the applicant synopsis and identity evidence profile when analytics are present', () => {
     render(
       <PersonalReportV2View
         initialReport={reportWithAnalytics()}
@@ -293,11 +293,11 @@ describe('PersonalReportV2View — analytics wiring', () => {
     );
 
     expect(screen.getByText('A synopsis of the profile.')).toBeInTheDocument();
-    expect(screen.getByRole('list', { name: 'Competency & evidence profile' })).toBeInTheDocument();
-    expect(screen.getByRole('list', { name: 'Narrative identity signals' })).toBeInTheDocument();
+    expect(screen.getByText('Identity evidence profile')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Core identity evidence signals' })).toBeInTheDocument();
   });
 
-  it('renders nothing extra for a report version predating analytics, without crashing', () => {
+  it('omits identity analytics for a report version predating analytics, without crashing', () => {
     render(
       <PersonalReportV2View
         initialReport={reportWithDrivingForceGap()}
@@ -309,6 +309,6 @@ describe('PersonalReportV2View — analytics wiring', () => {
       />,
     );
 
-    expect(screen.queryByText('Profile at a glance')).not.toBeInTheDocument();
+    expect(screen.queryByText('Identity evidence profile')).not.toBeInTheDocument();
   });
 });

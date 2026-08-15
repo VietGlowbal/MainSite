@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
@@ -33,12 +33,7 @@ export function Modal({
   className?: string | undefined;
   children: React.ReactNode;
 }) {
-  const [mounted, setMounted] = useState(false);
   const panelRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   // `onClose` is almost never memoized by callers (most pass an inline
   // `() => setX(null)`, or — like a form with its own dirty-check — a
@@ -81,7 +76,10 @@ export function Modal({
     };
   }, [open]);
 
-  if (!open || !mounted) return null;
+  // Client Components can still be rendered on the server. Guarding the
+  // portal target directly avoids a mount-only state update while keeping the
+  // server render deterministic and the client portal attached to body.
+  if (!open || typeof document === 'undefined') return null;
 
   const content = (
     <div
