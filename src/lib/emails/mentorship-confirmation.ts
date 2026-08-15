@@ -1,17 +1,14 @@
 import { sendEmail } from '@/lib/send-email';
 import { formatMoney } from '@/lib/currency';
+import { emailButton, escapeHtml, glowbalEmailLayout } from '@/lib/email/template';
+import type { EmailTemplateId } from '@/lib/email/types';
 import type { Currency } from '@/types/mentorship';
 
 /**
- * Send confirmation emails to both the mentor and the mentee after a booking
- * is paid. Includes meeting link, .ics calendar attachment, and the help
- * request the mentee filled in.
- *
- * The Resend API supports inline base64 attachments via `attachments[]`.
- * We extend `sendEmail` here because the existing helper doesn't support
- * attachments — see `sendEmailWithAttachments` below.
+ * Confirmation emails sent to both mentor and mentee after a paid booking.
+ * Calendar attachments now flow through the same Resend transport as every
+ * other GlowBal email, so sender identity, logging and idempotency are shared.
  */
-
 interface MentorshipEmailContext {
   bookingId: number;
   mentorName: string;
@@ -60,116 +57,109 @@ function googleCalendarUrl(opts: {
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
 }
 
-async function sendEmailWithAttachments(opts: {
+function calendarLink(href: string): string {
+  return `<div style="margin-top:14px;text-align:center;"><a href="${escapeHtml(href)}" style="font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;font-weight:700;color:#FAFAFA;text-decoration:none;border-bottom:1px solid #737373;">Add to Google Calendar</a></div>`;
+}
+
+function bookingDetails(rows: Array<[string, string]>): string {
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;background:#111114;border:1px solid #2A2A2E;border-radius:14px;text-align:left;">
+      ${rows.map(([label, value], index) => `
+        <tr>
+          <td style="padding:${index === 0 ? '16px' : '10px 16px'} 8px ${index === rows.length - 1 ? '16px' : '10px'} 16px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#737373;white-space:nowrap;">${escapeHtml(label)}</td>
+          <td style="padding:${index === 0 ? '16px' : '10px 16px'} 16px ${index === rows.length - 1 ? '16px' : '10px'} 8px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:19px;color:#FAFAFA;text-align:right;">${escapeHtml(value)}</td>
+        </tr>`).join('')}
+    </table>`;
+}
+
+function helpBlock(ctx: MentorshipEmailContext, mentorView: boolean): string {
+  if (!ctx.helpTopic) return '';
+  return `
+    <div style="margin-top:22px;padding:18px;background:#111114;border-left:3px solid #E11D48;border-radius:10px;text-align:left;">
+      <div style="font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:17px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#E11D48;">${mentorView ? 'What they want help with' : 'Your session focus'}</div>
+      <div style="margin-top:7px;font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:20px;font-weight:700;color:#FAFAFA;">${escapeHtml(ctx.helpTopic)}</div>
+      ${ctx.helpQuestions ? `<div style="margin-top:7px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:20px;color:#A3A3A3;">${escapeHtml(ctx.helpQuestions)}</div>` : ''}
+      ${ctx.helpOutcome ? `<div style="margin-top:7px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#737373;">Goal: ${escapeHtml(ctx.helpOutcome)}</div>` : ''}
+    </div>`;
+}
+
+export async function sendEmailWithAttachments(opts: {
   to: string;
   subject: string;
   html: string;
+  text?: string;
   attachments?: { filename: string; content: string; contentType?: string }[];
+  idempotencyKey?: string;
+  template?: EmailTemplateId;
 }): Promise<void> {
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.WAITLIST_FROM_EMAIL ?? 'mentorship@glowbal.com';
-
-  if (!apiKey || apiKey.startsWith('re_your_')) {
-    console.warn('[mentorship-email] RESEND_API_KEY not configured — skipping', opts.to);
-    return;
-  }
-
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      from,
-      to: opts.to,
-      subject: opts.subject,
-      html: opts.html,
-      attachments: opts.attachments?.map((a) => ({
-        filename: a.filename,
-        content: Buffer.from(a.content).toString('base64'),
-      })),
-    }),
+  const result = await sendEmail({
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text,
+    attachments: opts.attachments?.map((attachment) => ({
+      filename: attachment.filename,
+      content: Buffer.from(attachment.content).toString('base64'),
+      contentType: attachment.contentType,
+    })),
+    category: 'product_transactional',
+    template: opts.template ?? 'mentorship-confirmation',
+    idempotencyKey: opts.idempotencyKey,
+    tags: { kind: opts.template ?? 'mentorship-confirmation' },
   });
 
-  if (!res.ok) {
-    const body = await res.text();
-    console.error('[mentorship-email] Resend error:', res.status, body);
+  if (!result.ok) {
+    throw new Error(result.error);
   }
 }
 
-export async function sendMenteeConfirmation(
-  ctx: MentorshipEmailContext,
-): Promise<void> {
+export async function sendMenteeConfirmation(ctx: MentorshipEmailContext): Promise<void> {
   const end = new Date(ctx.scheduledAt.getTime() + ctx.durationMins * 60 * 1000);
   const calLink = googleCalendarUrl({
     start: ctx.scheduledAt,
     end,
-    title: `Glowbal advising session with ${ctx.mentorName}`,
+    title: `GlowBal advising session with ${ctx.mentorName}`,
     description: [
       `Join: ${ctx.meetingLink}`,
       ctx.helpTopic ? `Topic: ${ctx.helpTopic}` : '',
       ctx.helpQuestions ? `Questions: ${ctx.helpQuestions}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n'),
+    ].filter(Boolean).join('\n'),
     location: ctx.meetingLink,
   });
 
-  const html = `
-    <div style="font-family:ui-sans-serif,system-ui,Arial; max-width:560px; margin:0 auto; padding:24px; color:#0f172a">
-      <h1 style="font-size:22px; font-weight:600; margin:0 0 12px">Your advising session is booked 🎉</h1>
-      <p style="color:#475569; line-height:1.6">
-        Thanks ${escapeHtml(ctx.menteeName)} — your session with
-        <strong>${escapeHtml(ctx.mentorName)}</strong> is confirmed.
-      </p>
-
-      <table style="margin:20px 0; width:100%; border-collapse:collapse;">
-        <tr><td style="padding:8px 0; color:#64748b">When</td><td style="padding:8px 0">${escapeHtml(formatLondonTime(ctx.scheduledAt))}</td></tr>
-        <tr><td style="padding:8px 0; color:#64748b">Duration</td><td style="padding:8px 0">${ctx.durationMins} minutes</td></tr>
-        <tr><td style="padding:8px 0; color:#64748b">Total paid</td><td style="padding:8px 0">${formatMoney(ctx.amountTotal, ctx.currency)}</td></tr>
-        <tr><td style="padding:8px 0; color:#64748b">Booking ID</td><td style="padding:8px 0">#${ctx.bookingId}</td></tr>
-      </table>
-
-      <p style="margin:20px 0">
-        <a href="${ctx.meetingLink}" style="display:inline-block; background:linear-gradient(135deg,#FF3D9A,#FF85B3); color:#fff; padding:12px 22px; border-radius:999px; text-decoration:none; font-weight:600">Join the meeting</a>
-        <a href="${calLink}" style="display:inline-block; margin-left:8px; padding:12px 22px; border:1px solid #e2e8f0; border-radius:999px; color:#0f172a; text-decoration:none; font-weight:600">Add to Google Calendar</a>
-      </p>
-
-      ${
-        ctx.helpTopic
-          ? `<div style="margin-top:24px; padding:16px; background:#f8fafc; border-radius:12px;">
-               <p style="margin:0 0 8px; color:#64748b; font-size:13px">What you wanted help with</p>
-               <p style="margin:0 0 6px; font-weight:600">${escapeHtml(ctx.helpTopic)}</p>
-               ${ctx.helpQuestions ? `<p style="margin:6px 0; color:#475569">${escapeHtml(ctx.helpQuestions)}</p>` : ''}
-               ${ctx.helpOutcome ? `<p style="margin:6px 0; color:#475569"><em>Goal: ${escapeHtml(ctx.helpOutcome)}</em></p>` : ''}
-             </div>`
-          : ''
-      }
-
-      <p style="margin-top:28px; color:#94a3b8; font-size:13px">
-        The .ics file attached lets you add this session to any calendar app.
-      </p>
-    </div>
-  `;
+  const html = glowbalEmailLayout({
+    preheader: `Your advising session with ${ctx.mentorName} is confirmed.`,
+    eyebrow: 'Mentorship confirmed',
+    titleHtml: 'Your advising session is booked.',
+    bodyHtml: `
+      <div>Thanks ${escapeHtml(ctx.menteeName)} — your session with <strong style="color:#FAFAFA;">${escapeHtml(ctx.mentorName)}</strong> is confirmed.</div>
+      ${bookingDetails([
+        ['When (London)', formatLondonTime(ctx.scheduledAt)],
+        ['Duration', `${ctx.durationMins} minutes`],
+        ['Total paid', formatMoney(ctx.amountTotal, ctx.currency)],
+        ['Booking ID', `#${ctx.bookingId}`],
+      ])}
+      ${helpBlock(ctx, false)}`,
+    actionHtml: emailButton('Join the meeting →', ctx.meetingLink),
+    afterActionHtml: `${calendarLink(calLink)}<div style="margin-top:18px;font-size:12px;line-height:18px;color:#737373;">A calendar (.ics) file is attached for Apple Calendar, Outlook and other calendar apps.</div>`,
+    includeSocials: false,
+  });
 
   await sendEmailWithAttachments({
     to: ctx.menteeEmail,
-    subject: `Your Glowbal advising session with ${ctx.mentorName} is confirmed`,
+    subject: `Your GlowBal advising session with ${ctx.mentorName} is confirmed`,
     html,
-    attachments: [
-      {
-        filename: `glowbal-session-${ctx.bookingId}.ics`,
-        content: ctx.icsContent,
-        contentType: 'text/calendar',
-      },
-    ],
+    text: `Your GlowBal session with ${ctx.mentorName} is confirmed for ${formatLondonTime(ctx.scheduledAt)}. Join: ${ctx.meetingLink}`,
+    idempotencyKey: `mentorship-confirmation:mentee:${ctx.bookingId}`,
+    attachments: [{
+      filename: `glowbal-session-${ctx.bookingId}.ics`,
+      content: ctx.icsContent,
+      contentType: 'text/calendar',
+    }],
   });
 }
 
-export async function sendMentorNotification(
-  ctx: MentorshipEmailContext,
-): Promise<void> {
+export async function sendMentorNotification(ctx: MentorshipEmailContext): Promise<void> {
   const end = new Date(ctx.scheduledAt.getTime() + ctx.durationMins * 60 * 1000);
   const calLink = googleCalendarUrl({
     start: ctx.scheduledAt,
@@ -180,73 +170,40 @@ export async function sendMentorNotification(
       `Join: ${ctx.meetingLink}`,
       ctx.helpTopic ? `Topic: ${ctx.helpTopic}` : '',
       ctx.helpQuestions ? `Questions: ${ctx.helpQuestions}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n'),
+    ].filter(Boolean).join('\n'),
     location: ctx.meetingLink,
   });
 
-  const html = `
-    <div style="font-family:ui-sans-serif,system-ui,Arial; max-width:560px; margin:0 auto; padding:24px; color:#0f172a">
-      <h1 style="font-size:22px; font-weight:600; margin:0 0 12px">New advising booking</h1>
-      <p style="color:#475569; line-height:1.6">
-        Hi ${escapeHtml(ctx.mentorName)} — <strong>${escapeHtml(ctx.menteeName)}</strong> just booked
-        a session with you.
-      </p>
-
-      <table style="margin:20px 0; width:100%; border-collapse:collapse;">
-        <tr><td style="padding:8px 0; color:#64748b">When</td><td style="padding:8px 0">${escapeHtml(formatLondonTime(ctx.scheduledAt))}</td></tr>
-        <tr><td style="padding:8px 0; color:#64748b">Duration</td><td style="padding:8px 0">${ctx.durationMins} minutes</td></tr>
-        <tr><td style="padding:8px 0; color:#64748b">Mentee</td><td style="padding:8px 0">${escapeHtml(ctx.menteeName)} &lt;${escapeHtml(ctx.menteeEmail)}&gt;</td></tr>
-        <tr><td style="padding:8px 0; color:#64748b">Booking ID</td><td style="padding:8px 0">#${ctx.bookingId}</td></tr>
-      </table>
-
-      ${
-        ctx.helpTopic
-          ? `<div style="margin-top:16px; padding:16px; background:#f8fafc; border-radius:12px;">
-               <p style="margin:0 0 8px; color:#64748b; font-size:13px">What they want help with</p>
-               <p style="margin:0 0 6px; font-weight:600">${escapeHtml(ctx.helpTopic)}</p>
-               ${ctx.helpQuestions ? `<p style="margin:6px 0; color:#475569">${escapeHtml(ctx.helpQuestions)}</p>` : ''}
-               ${ctx.helpOutcome ? `<p style="margin:6px 0; color:#475569"><em>Goal: ${escapeHtml(ctx.helpOutcome)}</em></p>` : ''}
-             </div>`
-          : ''
-      }
-
-      <p style="margin:24px 0">
-        <a href="${ctx.meetingLink}" style="display:inline-block; background:linear-gradient(135deg,#FF3D9A,#FF85B3); color:#fff; padding:12px 22px; border-radius:999px; text-decoration:none; font-weight:600">Join the meeting</a>
-        <a href="${calLink}" style="display:inline-block; margin-left:8px; padding:12px 22px; border:1px solid #e2e8f0; border-radius:999px; color:#0f172a; text-decoration:none; font-weight:600">Add to Google Calendar</a>
-      </p>
-
-      <p style="margin-top:28px; color:#94a3b8; font-size:13px">
-        Your payout (after Glowbal&rsquo;s 10% service fee) will be released after the session is marked complete.
-      </p>
-    </div>
-  `;
+  const html = glowbalEmailLayout({
+    preheader: `${ctx.menteeName} booked an advising session with you.`,
+    eyebrow: 'New mentorship booking',
+    titleHtml: 'You have a new advising session.',
+    bodyHtml: `
+      <div>Hi ${escapeHtml(ctx.mentorName)} — <strong style="color:#FAFAFA;">${escapeHtml(ctx.menteeName)}</strong> has booked a session with you.</div>
+      ${bookingDetails([
+        ['When (London)', formatLondonTime(ctx.scheduledAt)],
+        ['Duration', `${ctx.durationMins} minutes`],
+        ['Mentee', `${ctx.menteeName} <${ctx.menteeEmail}>`],
+        ['Booking ID', `#${ctx.bookingId}`],
+      ])}
+      ${helpBlock(ctx, true)}`,
+    actionHtml: emailButton('Join the meeting →', ctx.meetingLink),
+    afterActionHtml: `${calendarLink(calLink)}<div style="margin-top:18px;font-size:12px;line-height:18px;color:#737373;">Your payout, after GlowBal's service fee, is released after the session is marked complete.</div>`,
+    includeSocials: false,
+  });
 
   await sendEmailWithAttachments({
     to: ctx.mentorEmail,
-    subject: `New Glowbal advising booking from ${ctx.menteeName}`,
+    subject: `New GlowBal advising booking from ${ctx.menteeName}`,
     html,
-    attachments: [
-      {
-        filename: `glowbal-session-${ctx.bookingId}.ics`,
-        content: ctx.icsContent,
-        contentType: 'text/calendar',
-      },
-    ],
+    text: `${ctx.menteeName} booked a GlowBal advising session for ${formatLondonTime(ctx.scheduledAt)}. Join: ${ctx.meetingLink}`,
+    idempotencyKey: `mentorship-confirmation:mentor:${ctx.bookingId}`,
+    attachments: [{
+      filename: `glowbal-session-${ctx.bookingId}.ics`,
+      content: ctx.icsContent,
+      contentType: 'text/calendar',
+    }],
   });
 }
 
-// ── Send a generic mentorship email (kept exported for tests) ──────────────
-
-export { sendEmailWithAttachments };
 export { sendEmail };
-
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
