@@ -1,4 +1,5 @@
 import { translations as baseTranslations } from './i18n-dictionary';
+import { APPLICATION_FLOW_TRANSLATIONS } from './i18n-application-flow';
 import { PERSONAL_REPORT_TRANSLATIONS } from './i18n-personal-report';
 
 /**
@@ -10,4 +11,5 @@ import { PERSONAL_REPORT_TRANSLATIONS } from './i18n-personal-report';
 export const translations: Record<string, string> = {
   ...baseTranslations,
   ...PERSONAL_REPORT_TRANSLATIONS,
+  ...APPLICATION_FLOW_TRANSLATIONS,
 };

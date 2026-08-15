@@ -25,6 +25,13 @@ import { questionIcon } from './question-chrome';
 
 export type CardAction = { label: string; onClick: () => void };
 
+export type ReflectAction = {
+  label: string;
+  onClick: () => void;
+  /** Whether an AI Reflection Card already exists — swaps the label/tone. */
+  hasCard: boolean;
+};
+
 function EvidenceCard({
   icon,
   title,
@@ -41,6 +48,7 @@ function EvidenceCard({
   onRemove,
   removeLabel,
   onViewSource,
+  reflect,
 }: {
   icon: string;
   title: string;
@@ -60,6 +68,7 @@ function EvidenceCard({
   onRemove: () => void;
   removeLabel: string;
   onViewSource?: (() => void) | undefined;
+  reflect?: ReflectAction | undefined;
 }) {
   return (
     <article className="flex flex-col gap-gb-lg rounded-gb-xl border border-line bg-surface p-gb-xl shadow-gb-xs transition-colors hover:border-line-strong">
@@ -96,6 +105,19 @@ function EvidenceCard({
           <KitIcon art={ICONS.messageSmileCircle} frame={13} />
           {possibleDuplicateLabel}
         </p>
+      ) : null}
+
+      {reflect ? (
+        <button
+          type="button"
+          onClick={reflect.onClick}
+          className={`flex items-center gap-gb-xs self-start text-gb-xs font-semibold hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+            reflect.hasCard ? 'text-fg-secondary' : 'text-fg-brand'
+          }`}
+        >
+          <KitIcon art={reflect.hasCard ? ICONS.checkCircle : ICONS.zap} frame={13} />
+          {reflect.label}
+        </button>
       ) : null}
 
       <div className="flex items-center justify-between gap-gb-md pt-gb-xs">
@@ -206,6 +228,7 @@ export function AchievementCard({
   onEdit,
   onRemove,
   onViewSource,
+  reflect,
 }: {
   item: AchievementCardValue;
   icon: string;
@@ -217,6 +240,7 @@ export function AchievementCard({
   onEdit: () => void;
   onRemove: () => void;
   onViewSource?: (() => void) | undefined;
+  reflect?: ReflectAction | undefined;
 }) {
   const metadata = [item.year ? String(item.year) : null, item.level ?? null]
     .filter(Boolean)
@@ -239,6 +263,7 @@ export function AchievementCard({
       onRemove={onRemove}
       removeLabel={labels.remove(item.title)}
       {...(onViewSource ? { onViewSource } : {})}
+      {...(reflect ? { reflect } : {})}
     />
   );
 }
@@ -264,6 +289,7 @@ export function ActivityCard({
   onEdit,
   onRemove,
   onViewSource,
+  reflect,
 }: {
   item: ActivityCardValue;
   icon: string;
@@ -275,6 +301,7 @@ export function ActivityCard({
   onEdit: () => void;
   onRemove: () => void;
   onViewSource?: (() => void) | undefined;
+  reflect?: ReflectAction | undefined;
 }) {
   const metadata = [item.period ?? null, item.level ?? null].filter(Boolean).join(' · ');
   const needsReview = item.reviewStatus === 'needs_review';
@@ -295,6 +322,7 @@ export function ActivityCard({
       onRemove={onRemove}
       removeLabel={labels.remove(item.title)}
       {...(onViewSource ? { onViewSource } : {})}
+      {...(reflect ? { reflect } : {})}
     />
   );
 }

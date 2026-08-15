@@ -24,12 +24,21 @@
  *    Matching Report first" error on the strategy page instead of the
  *    correct, earlier "try the analysis again" state — fixed by requiring
  *    both here rather than only the Personal Report.
- *  - candidateConfirmed — shared across every Strategy, like the two steps
+ *  - personalReflectionComplete — shared across every Strategy
+ *    (`course_applications.personal_reflection_reviewed_at`), the five
+ *    cross-cutting Personal Reflection questions
+ *    (`src/features/apply/domain/personal-reflection.ts`). Sits between
+ *    `achievementsComplete` and `candidateConfirmed`: it asks what patterns
+ *    exist across the activities just reviewed, so it has to come after them,
+ *    and Review & Confirm has to be able to show it as done, so it has to
+ *    come before that checkpoint.
+ *  - candidateConfirmed — shared across every Strategy, like the steps
  *    above: `student_profiles.confirmed_at` is set once the student has
  *    reviewed everything on Review & Confirm and pressed "Confirm & Generate
- *    Reports". Sits between `achievementsComplete` and `aiAnalysisComplete`
- *    — analysis must not run against candidate information the student has
- *    not explicitly approved, which is the entire point of that checkpoint.
+ *    Reports". Sits between `personalReflectionComplete` and
+ *    `aiAnalysisComplete` — analysis must not run against candidate
+ *    information the student has not explicitly approved, which is the
+ *    entire point of that checkpoint.
  *  - introSeen — per Strategy: `course_applications.strategy_intro_seen_at`
  *    is set, marked when the Strategy Introduction page is opened.
  *  - strategyComplete — per Strategy: an `application_strategy_recommendations`
@@ -44,6 +53,7 @@
 export type OnboardingState = {
   personalSummaryComplete: boolean;
   achievementsComplete: boolean;
+  personalReflectionComplete: boolean;
   candidateConfirmed: boolean;
   aiAnalysisComplete: boolean;
   introSeen: boolean;
@@ -53,6 +63,7 @@ export type OnboardingState = {
 export type OnboardingStep =
   | 'personal-summary'
   | 'achievements'
+  | 'personal-reflection'
   | 'confirm'
   | 'analysis'
   | 'intro'
@@ -64,6 +75,7 @@ export function isOnboardingComplete(state: OnboardingState): boolean {
   return (
     state.personalSummaryComplete &&
     state.achievementsComplete &&
+    state.personalReflectionComplete &&
     state.candidateConfirmed &&
     state.aiAnalysisComplete &&
     state.introSeen &&
@@ -82,6 +94,7 @@ export function isOnboardingComplete(state: OnboardingState): boolean {
 export function nextOnboardingStep(state: OnboardingState): OnboardingStep {
   if (!state.personalSummaryComplete) return 'personal-summary';
   if (!state.achievementsComplete) return 'achievements';
+  if (!state.personalReflectionComplete) return 'personal-reflection';
   if (!state.candidateConfirmed) return 'confirm';
   if (!state.aiAnalysisComplete) return 'analysis';
   if (!state.introSeen) return 'intro';
@@ -101,6 +114,8 @@ export function onboardingStepHref(
       return `/ai-strategy/reflection?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
     case 'achievements':
       return `/ai-strategy/reflection/achievements?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
+    case 'personal-reflection':
+      return `/ai-strategy/reflection/personal?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
     case 'confirm':
       return `/ai-strategy/reflection/confirm?return=${encodeURIComponent(options?.returnTo ?? analysisHref)}`;
     case 'analysis':
