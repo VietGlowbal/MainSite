@@ -11,6 +11,7 @@ export {
 } from './personal-canvas';
 export type { PersonalCanvasSectionKey } from './personal-canvas';
 export { PersonalCanvasWorkspace } from './personal-canvas-workspace';
+export { PersonalReportPrintView } from './personal-report-print';
 export {
   CapabilityProfileView,
   FuturePathwaysView,
