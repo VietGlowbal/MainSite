@@ -204,4 +204,29 @@ describe('manual payment notification jobs', () => {
       process.env = original;
     }
   });
+
+  it('skips student_instructions email without sending', async () => {
+    const original = { ...process.env };
+    Object.assign(process.env, {
+      MANUAL_PAYMENT_REVIEW_SECRET: 'a'.repeat(48),
+      MANUAL_PAYMENT_REVIEWER_USER_IDS: '11111111-1111-4111-8111-111111111111',
+      MANUAL_PAYMENT_FOUNDER_EMAIL: 'founder@example.test',
+      MANUAL_PAYMENT_FROM_EMAIL: 'payments@example.test',
+      MANUAL_PAYMENT_BANK_LABEL: 'Techcombank',
+      MANUAL_PAYMENT_BANK_ACCOUNT_HOLDER: 'Glowbal Education',
+      MANUAL_PAYMENT_BANK_ACCOUNT_NUMBER: '012345678901',
+      MANUAL_PAYMENT_BANK_QR_URL: 'https://cdn.example.test/qr.png',
+      MANUAL_PAYMENT_BANK_QR_REVISION: 'qr-v1',
+      MANUAL_PAYMENT_RECONCILIATION_SECRET: 'b'.repeat(48),
+    });
+    try {
+      const result = await sendManualPaymentJob({
+        id: 'job-2', transaction_id: 'tx-2', kind: 'student_instructions', review: null,
+        transaction: { reference: 'GLOWMANUALABC123', amount_vnd: 125000, product_type: 'plus', plus_plan: 'plus-starter', expires_at: new Date().toISOString() },
+      });
+      expect(result).toBe('skipped_retired_instruction');
+    } finally {
+      process.env = original;
+    }
+  });
 });

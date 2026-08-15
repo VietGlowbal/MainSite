@@ -1,7 +1,7 @@
 import { getManualPaymentConfig } from './manual-config';
 import { createManualReviewToken } from './manual-capability';
-import { fetchConfiguredQrAttachment, sendManualTransactionalEmail } from './manual-email';
-import { renderManualFounderEmail, renderManualOutcomeEmail, renderManualStudentEmail } from './manual-email-templates';
+import { sendManualTransactionalEmail } from './manual-email';
+import { renderManualFounderEmail, renderManualOutcomeEmail } from './manual-email-templates';
 import { createAdminClient } from '@/lib/supabase/admin';
 
 type Job = {
@@ -59,16 +59,11 @@ export async function sendManualPaymentJob(job: Job): Promise<string> {
   const statusUrl = `${config.siteUrl}/payment/manual/status?reference=${encodeURIComponent(reference)}`;
   const recipientName = stringValue(tx.recipient_name, 'GlowBal student');
   const recipientEmail = stringValue(tx.recipient_email);
-  const expiresAt = new Date(stringValue(tx.expires_at));
 
   if (job.kind === 'student_instructions') {
-    const rendered = renderManualStudentEmail({
-      locale: tx.locale === 'vi' ? 'vi' : 'en', recipientName, bankLabel: config.bankLabel,
-      accountHolder: config.accountHolder, accountNumberMasked: config.accountNumberMasked,
-      amountVnd, reference, productLabel, expiresAt, statusUrl, qrCid: 'manual-payment-qr',
-    });
-    const qr = await fetchConfiguredQrAttachment({ amountVnd, description: reference });
-    return sendManualTransactionalEmail({ ...rendered, jobId: job.id, kind: job.kind, to: recipientEmail, attachments: [qr] });
+    // Retired per project owner request: Mail 1 (bank transfer instructions) is omitted.
+    // Instead, Mail 2 (confirmation + community access) is sent when the user reports payment.
+    return 'skipped_retired_instruction';
   }
   if (job.kind === 'founder_review') {
     throw new Error('Checkout-time founder notifications are no longer delivered');
