@@ -2,7 +2,9 @@
 
 import { useCallback, useState } from 'react';
 import {
+  ACHIEVEMENT_CATEGORIES,
   ACHIEVEMENT_CATEGORY_ICON,
+  ACTIVITY_CATEGORIES,
   ACTIVITY_CATEGORY_ICON,
   LEVEL_SUGGESTIONS,
   type AchievementCategory,
@@ -50,22 +52,13 @@ export type EvidenceDraft =
   | ({ kind: 'achievement' } & AchievementValues)
   | ({ kind: 'activity' } & ActivityValues);
 
-const ACADEMIC_TYPES: ReadonlyArray<{ value: AchievementCategory; label: string }> = [
-  { value: 'academic_award', label: 'Academic Award / Prize' },
-  { value: 'competition', label: 'Competition' },
-  { value: 'research', label: 'Publication / Research' },
-  { value: 'certification', label: 'Certification' },
-  { value: 'other', label: 'Other' },
-];
-
-const EXTRACURRICULAR_TYPES: ReadonlyArray<{ value: ActivityCategory; label: string }> = [
-  { value: 'leadership', label: 'Leadership' },
-  { value: 'community_project', label: 'Volunteering / Community Service' },
-  { value: 'innovation', label: 'Project / Entrepreneurship' },
-  { value: 'personal_growth', label: 'Personal Growth' },
-  { value: 'mentoring', label: 'Mentoring' },
-  { value: 'other', label: 'Other' },
-];
+// Reuse the SAME canonical labels the cards/tabs/`ExperienceCategoryChooser`
+// show elsewhere — these used to be a locally duplicated list with drifted
+// wording ("Academic Award / Prize" vs. the canonical "Academic Awards &
+// Prizes", etc.), so a student could pick a category here and see different
+// copy for it everywhere else on the page.
+const ACADEMIC_TYPES: ReadonlyArray<{ value: AchievementCategory; label: string }> = ACHIEVEMENT_CATEGORIES;
+const EXTRACURRICULAR_TYPES: ReadonlyArray<{ value: ActivityCategory; label: string }> = ACTIVITY_CATEGORIES;
 
 /**
  * `LEVEL_SUGGESTIONS`, worded as the design's "International level" style

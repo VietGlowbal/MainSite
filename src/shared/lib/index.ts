@@ -24,3 +24,4 @@ export {
   type Crumb,
   type SubNavItem,
 } from './app-routes';
+export { isAllowedInternalReturnPath } from './return-path';

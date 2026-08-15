@@ -3,8 +3,9 @@ import { createClient } from '@/lib/supabase/server';
 import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
 import { candidateReadiness } from '@/features/apply/domain';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
-import { confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
+import { candidateInformationStepperSteps, confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
 import { applicationIdFromPath } from '@/shared/lib';
+import { Stepper } from '@/shared/ui';
 import { ReflectionChrome } from '../../reflection-chrome';
 import { ApplicationNavFromReturn } from '../application-nav-from-return';
 import { ReviewConfirmView } from './review-confirm-view';
@@ -43,25 +44,29 @@ export default async function ReviewConfirmPage({
     ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
     : undefined;
 
-  const { reflection, documents, confirmedAt } = await loadCandidateReflection(
-    supabase,
-    user.id,
-    applicationId,
-  );
+  const [{ reflection, documents, confirmedAt }, onboardingState] = await Promise.all([
+    loadCandidateReflection(supabase, user.id, applicationId),
+    applicationId ? fetchOnboardingState(supabase, user.id, applicationId) : Promise.resolve(undefined),
+  ]);
 
   const readiness = candidateReadiness(reflection);
 
   const continueHref = confirmedAt
-    ? applicationId
-      ? confirmedReflectionContinueHref(
-          applicationId,
-          (await fetchOnboardingState(supabase, user.id, applicationId)).aiAnalysisComplete,
-        )
+    ? applicationId && onboardingState
+      ? confirmedReflectionContinueHref(applicationId, onboardingState.aiAnalysisComplete)
       : returnTo || '/ai-strategy/report'
     : undefined;
 
+  const stepper =
+    applicationId && onboardingState ? (
+      <Stepper
+        {...candidateInformationStepperSteps(onboardingState, 'confirm', applicationId, returnTo)}
+        label="Application setup"
+      />
+    ) : undefined;
+
   return (
-    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
+    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
       <ReviewConfirmView
         reflection={reflection}
         documents={documents}
