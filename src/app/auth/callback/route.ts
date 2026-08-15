@@ -86,9 +86,13 @@ export async function GET(request: Request) {
             (profile?.study_level && profile?.preferred_countries?.length > 0),
         );
 
-        // Idempotent event key means repeated callback visits cannot produce a
-        // second welcome email. Failure is intentionally non-fatal to auth.
-        if (user.email) {
+        // /auth/callback also serves non-signup auth flows. Only accounts created
+        // by our email/password signup route carry this marker, so an existing
+        // user logging in through another callback can never receive a surprise
+        // "welcome" email. The marker is cleared after a successful/duplicate
+        // delivery, while the event key remains a second layer of idempotency.
+        const welcomePending = user.user_metadata?.glowbal_welcome_pending === true;
+        if (user.email && welcomePending) {
           const fullName = (user.user_metadata?.full_name as string | undefined)?.trim();
           const firstName = fullName?.split(/\s+/)[0] || undefined;
           const defaultNext = hasCompletedOnboarding ? '/ai-strategy' : '/onboarding';
@@ -109,6 +113,17 @@ export async function GET(request: Request) {
           });
           if (!welcomeResult.ok) {
             console.error('[auth/callback] welcome email failed', welcomeResult.error);
+          } else if (!welcomeResult.skipped || welcomeResult.reason === 'duplicate') {
+            try {
+              await createAdminClient().auth.admin.updateUserById(user.id, {
+                user_metadata: {
+                  ...user.user_metadata,
+                  glowbal_welcome_pending: false,
+                },
+              });
+            } catch {
+              /* event-key idempotency remains the fallback if metadata update fails */
+            }
           }
         }
 
