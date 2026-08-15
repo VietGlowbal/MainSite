@@ -1,6 +1,11 @@
+'use client';
+
+import { useState } from 'react';
 import Link from 'next/link';
 import { Badge, Container, Panel } from '@/shared/ui';
 import type { RankedUniversityMatch, UniversityMatchTierV1 } from '../domain';
+
+const TIER_ORDER: UniversityMatchTierV1[] = ['strong_chance', 'target', 'reach'];
 
 function tierLabel(tier: UniversityMatchTierV1): string {
   if (tier === 'strong_chance') return 'Strong Chance';
@@ -25,6 +30,11 @@ export function UniversityMatchResults({
   matches: RankedUniversityMatch[];
   demo?: boolean;
 }) {
+  const [selectedTier, setSelectedTier] = useState<UniversityMatchTierV1>(
+    () => TIER_ORDER.find((tier) => matches.some((match) => match.tier === tier)) ?? 'strong_chance',
+  );
+  const selectedMatches = matches.filter((match) => match.tier === selectedTier);
+
   return (
     <Container className="flex flex-col gap-gb-4xl py-gb-6xl">
       <div className="flex flex-col gap-gb-lg">
@@ -50,9 +60,43 @@ export function UniversityMatchResults({
             <h2 id="university-recommendations-heading" className="text-gb-xl font-semibold text-fg">Recommended universities</h2>
             <p className="text-gb-sm text-fg-tertiary">Universities are ranked by profile fit, with Strong Chance, Target and Reach tiers.</p>
           </div>
-          <ol className="grid gap-gb-2xl lg:grid-cols-2">
-            {matches.map((match) => <UniversityMatchCard key={match.universityId} match={match} />)}
-          </ol>
+          <div className="grid gap-gb-lg md:grid-cols-3" aria-label="University match tiers">
+            {TIER_ORDER.map((tier) => {
+              const tierMatches = matches.filter((match) => match.tier === tier);
+              const isSelected = selectedTier === tier;
+              return (
+                <button
+                  key={tier}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedTier(tier)}
+                  className={`flex min-h-32 flex-col justify-between rounded-gb-lg border p-gb-xl text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fg-brand focus-visible:ring-offset-2 ${
+                    isSelected
+                      ? 'border-fg-brand bg-surface-brand-subtle shadow-gb-sm'
+                      : 'border-border bg-surface hover:border-fg-brand hover:bg-surface-brand-subtle/50'
+                  }`}
+                >
+                  <span className="flex items-start justify-between gap-gb-md">
+                    <span className="text-gb-lg font-semibold text-fg">{tierLabel(tier)}</span>
+                    <Badge variant={tierVariant(tier)}>{tierMatches.length}</Badge>
+                  </span>
+                  <span className="mt-gb-lg text-gb-sm text-fg-tertiary">
+                    {isSelected ? 'Showing these universities' : 'View universities'}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          {selectedMatches.length > 0 ? (
+            <ol className="grid gap-gb-2xl lg:grid-cols-2">
+              {selectedMatches.map((match) => <UniversityMatchCard key={match.universityId} match={match} />)}
+            </ol>
+          ) : (
+            <Panel className="flex flex-col gap-gb-md">
+              <h3 className="text-gb-lg font-semibold text-fg">No universities in this tier yet</h3>
+              <p className="text-gb-md text-fg-tertiary">Try another tier to see the universities that match your profile.</p>
+            </Panel>
+          )}
         </section>
       )}
     </Container>

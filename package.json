@@ -45,6 +45,7 @@
     "notify-newsletter": "tsx scripts/notify-newsletter.ts",
     "worker:dev": "node --env-file=.env.local scripts/course-parse-worker.mjs",
     "backfill:domains": "node --env-file=.env.local scripts/backfill-university-domains.mjs",
+    "import:university-programs": "node --use-system-ca --env-file=.env.local scripts/import-university-programs-csv.mjs",
     "import:courses:crawl": "node --use-system-ca --env-file=.env.local scripts/import-crawl-programmes-to-courses.mjs"
   },
   "dependencies": {
