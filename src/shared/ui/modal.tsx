@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useSyncExternalStore } from 'react';
+import { useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 
 /**
@@ -18,12 +18,6 @@ import { createPortal } from 'react-dom';
  *   - Rendered via React Portal to document.body so CSS transforms on parents
  *     cannot clip or distort the viewport overlay.
  */
-
-/** No subscription to make — this only exists to flip the snapshot once after hydration. */
-function subscribeNoop() {
-  return () => {};
-}
-
 export function Modal({
   open,
   onClose,
@@ -39,15 +33,6 @@ export function Modal({
   className?: string | undefined;
   children: React.ReactNode;
 }) {
-  // `createPortal` needs `document.body`, which doesn't exist during SSR.
-  // `useSyncExternalStore` flips this to `true` after hydration without the
-  // extra setState-in-effect render cascade a `useState` + mount-effect pair
-  // would cause.
-  const mounted = useSyncExternalStore(
-    subscribeNoop,
-    () => true,
-    () => false,
-  );
   const panelRef = useRef<HTMLDivElement | null>(null);
 
   // `onClose` is almost never memoized by callers (most pass an inline
@@ -91,7 +76,10 @@ export function Modal({
     };
   }, [open]);
 
-  if (!open || !mounted) return null;
+  // Client Components can still be rendered on the server. Guarding the
+  // portal target directly avoids a mount-only state update while keeping the
+  // server render deterministic and the client portal attached to body.
+  if (!open || typeof document === 'undefined') return null;
 
   const content = (
     <div
