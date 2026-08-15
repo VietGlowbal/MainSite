@@ -105,6 +105,10 @@ export const translations: Record<string, string> = {
   'Recommended universities': 'Các trường đại học được đề xuất',
   'Universities are ranked by profile fit, with Strong Chance, Target and Reach tiers.':
     'Các trường đại học được xếp hạng theo mức độ phù hợp với hồ sơ, gồm các tier Strong Chance, Target và Reach.',
+  'University match tiers': 'Các tier phù hợp của trường đại học',
+  'No universities in this tier yet': 'Chưa có trường đại học nào trong tier này',
+  'Try another tier to see the universities that match your profile.':
+    'Hãy thử tier khác để xem các trường đại học phù hợp với hồ sơ của bạn.',
   "Choose from 200+ of the world's leading universities":
     'Chọn từ 200+ đại học tốt nhất thế giới',
   'Find a university': 'Tìm Đại học',
