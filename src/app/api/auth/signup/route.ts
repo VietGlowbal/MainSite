@@ -58,6 +58,10 @@ export async function POST(request: NextRequest) {
         phone: input.phone ?? '',
         date_of_birth: input.date_of_birth ?? '',
         marketing_consent: true,
+        // The generic /auth/callback route is also used by non-signup auth
+        // flows. This marker keeps the welcome email specific to accounts
+        // created through this signup path rather than emailing every login.
+        glowbal_welcome_pending: true,
       },
       redirectTo: callbackUrl.toString(),
     },
