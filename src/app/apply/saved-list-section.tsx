@@ -20,7 +20,7 @@ import { Button } from '@/shared/ui/button';
 import { ICONS, KitIcon } from '@/shared/ui/icons';
 import { Modal } from '@/shared/ui/modal';
 import { useLanguage } from '@/lib/i18n';
-import { usePlusStatus } from '@/features/plus/hooks/use-plus-status';
+import { usePlusStatus } from '@/features/plus';
 import { ApplySectionHeading } from './section-heading';
 
 /**
