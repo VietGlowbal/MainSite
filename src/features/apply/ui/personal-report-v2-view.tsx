@@ -8,15 +8,11 @@ import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import {
   ApplicantSnapshotView,
   AreasForGrowthView,
-  CapabilityProfileView,
   ConfidenceBadge,
   CoreIdentityView,
   DrivingForceView,
   EmergingThemesView,
-  FuturePathwaysView,
-  GrowthMatrixView,
   KeyTakeawaysView,
-  MotivationProfileView,
   PERSONAL_REPORT_SECTION_IDS,
   PersonalCanvasView,
   PersonalPositioningView,
@@ -24,7 +20,11 @@ import {
   ProfileAtAGlanceView,
   ProofOfMeView,
   SignaturePatternView,
-  SocialProofSummaryView,
+  SnapshotCapabilityProfileView,
+  SnapshotFuturePathwaysView,
+  SnapshotGrowthMatrixView,
+  SnapshotMotivationProfileView,
+  SnapshotSocialProofSummaryView,
   VersionHistoryPicker,
   withReturn,
 } from './personal-report';
@@ -63,8 +63,10 @@ function ReportChapter({
 /**
  * Canonical Personal Report shell. The existing grounded report engine and
  * versioning remain unchanged; this view reorganises those findings around
- * the six-part Personal Canvas product model and adds evidence-backed visual
- * interpretation on top of the stored report snapshot.
+ * the six-part Personal Canvas product model and renders the structured
+ * Canvas analytics stored with each new report version. Historical versions
+ * without those fields fall back to deterministic derivation from their own
+ * stored Proof of Me / section data.
  */
 export function PersonalReportV2View({
   initialReport,
@@ -261,7 +263,7 @@ export function PersonalReportV2View({
       >
         <div className="flex flex-col gap-gb-xl">
           <DrivingForceView section={report.drivingForce} returnTo={returnTo} onAnswered={onAnswered} />
-          <MotivationProfileView report={report} />
+          <SnapshotMotivationProfileView report={report} />
         </div>
       </ReportChapter>
 
@@ -272,7 +274,7 @@ export function PersonalReportV2View({
         description="What your evidence demonstrates you can do, how those strengths combine, and the positioning they create for you as an applicant."
       >
         <div className="flex flex-col gap-gb-xl">
-          <CapabilityProfileView report={report} />
+          <SnapshotCapabilityProfileView report={report} />
           <ProfileAtAGlanceView overview={undefined} analytics={report.analytics} />
           <PersonalPositioningView
             section={report.personalPositioning}
@@ -289,7 +291,7 @@ export function PersonalReportV2View({
         description="The tangible activities, outcomes and verification that make the claims in your profile credible."
       >
         <div className="flex flex-col gap-gb-xl">
-          <SocialProofSummaryView report={report} />
+          <SnapshotSocialProofSummaryView report={report} />
           <ProofOfMeView
             section={report.proofOfMe}
             evidenceSummary={report.analytics?.evidenceSummary}
@@ -306,7 +308,7 @@ export function PersonalReportV2View({
         description="Where the current evidence is limited, what still needs development, and where stronger proof could make the profile more complete."
       >
         <div className="flex flex-col gap-gb-xl">
-          <GrowthMatrixView report={report} />
+          <SnapshotGrowthMatrixView report={report} />
           <AreasForGrowthView report={report} />
         </div>
       </ReportChapter>
@@ -318,7 +320,7 @@ export function PersonalReportV2View({
         description="The themes and directions emerging from the choices you repeatedly make — presented as possibilities, not predictions."
       >
         <div className="flex flex-col gap-gb-xl">
-          <FuturePathwaysView report={report} />
+          <SnapshotFuturePathwaysView report={report} />
           <EmergingThemesView
             section={report.emergingThemes}
             themeMaturity={report.analytics?.themeMaturity}
