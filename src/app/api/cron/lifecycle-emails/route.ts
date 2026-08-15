@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { User } from '@supabase/supabase-js';
 import { isAuthorizedCron } from '@/lib/cron-auth';
-import { createAdminClient } from '@/server/db/admin';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/send-email';
 import { SITE_URL } from '@/lib/site-url';
 import { onboardingCompleteEmail, onboardingReminderEmail } from '@/lib/emails/lifecycle';
