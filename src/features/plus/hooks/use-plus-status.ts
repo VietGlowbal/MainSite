@@ -18,22 +18,25 @@ export function usePlusStatus(initialPlus?: boolean) {
   const [isPlus, setIsPlus] = useState<boolean>(initialPlus ?? false);
   const [loading, setLoading] = useState<boolean>(initialPlus === undefined);
 
-  useEffect(() => {
-    if (initialPlus !== undefined) {
-      setIsPlus(initialPlus);
-      setLoading(false);
-      return;
-    }
+  // Sync state to a changed `initialPlus` during render (not in an effect):
+  // it is already known before the effect would run, so setting it there
+  // would just cause an extra, avoidable cascading render.
+  const [syncedInitialPlus, setSyncedInitialPlus] = useState(initialPlus);
+  if (initialPlus !== undefined && initialPlus !== syncedInitialPlus) {
+    setSyncedInitialPlus(initialPlus);
+    setIsPlus(initialPlus);
+    setLoading(false);
+  }
 
-    if (typeof window === 'undefined') {
-      setLoading(false);
-      return;
-    }
+  useEffect(() => {
+    // Effects never run during server rendering, so `window` is always
+    // defined here — no separate SSR branch needed.
+    if (initialPlus !== undefined) return;
 
     let isMounted = true;
     async function checkEntitlement() {
       try {
-        const url = typeof window !== 'undefined' && window.location?.origin
+        const url = window.location?.origin
           ? `${window.location.origin}/api/entitlements/usage`
           : '/api/entitlements/usage';
         const res = await fetch(url);
