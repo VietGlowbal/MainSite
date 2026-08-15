@@ -1659,6 +1659,25 @@ confirmed, so affected accounts remain Free until it runs successfully.
 
 | `supabase-manual-payment-fulfillment-repair.sql`, `supabase-manual-payment-subscription-conflict-repair.sql`, `src/app/api/admin/payments/manual/confirm/route.ts`, `src/app/api/admin/payments/review-action/route.ts`, `src/lib/payments/manual-payment-migration.test.ts`, `src/app/api/admin/payments/manual/review-security.test.ts` |
 
+## 5w. Plus promo redemption — implemented 2026-08-15, production migration pending
+
+The Plus checkout dialog now accepts the fixed `gogogogoglowbal` v2 campaign. The
+browser never grants an entitlement: a same-origin authenticated API validates
+the code, and a service-role-only database function performs the redemption and
+Plus grant in one transaction. `plus_promo_redemptions` has a unique
+`(user_id, campaign)` key, so retries or concurrent requests cannot extend the
+same account twice. Rotating the campaign from v1 to v2 resets eligibility
+without deleting the old redemption audit trail. The selected package determines
+the duration and AI-credit grant from a database-side allowlist. Promo grants do
+not create a `payment_transactions` row and therefore add 0₫ to revenue.
+
+**Action required:** run `supabase-plus-promo-redemption.sql`, then
+`supabase-plus-promo-v2.sql`, in production. Until both are applied, the API
+intentionally returns a temporary-unavailable response and does not modify the
+user's entitlement.
+
+| `supabase-plus-promo-redemption.sql`, `supabase-plus-promo-v2.sql`, `src/app/api/plus/redeem/route.ts`, `src/app/plus/plus-pricing.tsx`, `src/app/api/plus/redeem/route.test.ts`, `src/app/plus/plus-pricing.test.tsx`, `src/lib/payments/plus-promo-migration.test.ts` |
+
 ## 6. Open questions for the designer / owner
 
 1. **The sitemap frame (`123:2864`, "Dg-final") no longer exists in the file.**

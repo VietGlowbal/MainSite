@@ -14,10 +14,10 @@ export default function TermsPage() {
       lastUpdated="15/08/2026"
       intro={
         <p className="leading-relaxed">
-          Bằng việc truy cập, đăng ký hoặc sử dụng nền tảng GlowBal Education (&quot;GlowBal&quot;, &quot;Nền
-          tảng&quot;, &quot;chúng tôi&quot;), bao gồm website, ứng dụng và các dịch vụ liên quan (&quot;Dịch vụ&quot;),
-          Người dùng (&quot;Bạn&quot;, &quot;Người dùng&quot;) xác nhận rằng đã đọc, hiểu và đồng ý tuân thủ các Điều
-          khoản và Điều kiện Sử dụng này (&quot;Điều khoản&quot;). Nếu bạn không đồng ý với bất kỳ nội dung
+          Bằng việc truy cập, đăng ký hoặc sử dụng nền tảng GlowBal Education (“GlowBal”, “Nền
+          tảng”, “chúng tôi”), bao gồm website, ứng dụng và các dịch vụ liên quan (“Dịch vụ”),
+          Người dùng (“Bạn”, “Người dùng”) xác nhận rằng đã đọc, hiểu và đồng ý tuân thủ các Điều
+          khoản và Điều kiện Sử dụng này (“Điều khoản”). Nếu bạn không đồng ý với bất kỳ nội dung
           nào của Điều khoản, vui lòng không sử dụng Dịch vụ.
         </p>
       }
@@ -36,27 +36,27 @@ export default function TermsPage() {
           body: (
             <ul className="list-disc space-y-1.5 pl-5">
               <li>
-                <b>&quot;Nền tảng&quot;</b> là hệ thống website, ứng dụng và các sản phẩm công nghệ do
+                <b>“Nền tảng”</b> là hệ thống website, ứng dụng và các sản phẩm công nghệ do
                 GlowBal vận hành.
               </li>
               <li>
-                <b>&quot;Dịch vụ&quot;</b> là toàn bộ sản phẩm, tính năng và dịch vụ được GlowBal cung cấp
+                <b>“Dịch vụ”</b> là toàn bộ sản phẩm, tính năng và dịch vụ được GlowBal cung cấp
                 trên Nền tảng.
               </li>
               <li>
-                <b>&quot;Nội dung&quot;</b> là thông tin, dữ liệu, văn bản, hình ảnh, video, phần mềm, tài
+                <b>“Nội dung”</b> là thông tin, dữ liệu, văn bản, hình ảnh, video, phần mềm, tài
                 liệu và các tài sản khác được cung cấp trên Nền tảng.
               </li>
               <li>
-                <b>&quot;Người dùng&quot;</b> là cá nhân đăng ký hoặc sử dụng Dịch vụ, bao gồm cả người
+                <b>“Người dùng”</b> là cá nhân đăng ký hoặc sử dụng Dịch vụ, bao gồm cả người
                 dùng miễn phí và người dùng trả phí.
               </li>
               <li>
-                <b>&quot;Cố vấn/Achiever/Mentor&quot;</b> là cá nhân hoặc tổ chức cung cấp dịch vụ tư vấn,
+                <b>“Cố vấn/Achiever/Mentor”</b> là cá nhân hoặc tổ chức cung cấp dịch vụ tư vấn,
                 cố vấn hoặc hỗ trợ thông qua hoặc liên quan đến Nền tảng.
               </li>
               <li>
-                <b>&quot;Tổ chức giáo dục&quot;</b> là trường đại học, cao đẳng, trường học, tổ chức học
+                <b>“Tổ chức giáo dục”</b> là trường đại học, cao đẳng, trường học, tổ chức học
                 bổng hoặc tổ chức giáo dục khác được đề cập trên Nền tảng.
               </li>
             </ul>
