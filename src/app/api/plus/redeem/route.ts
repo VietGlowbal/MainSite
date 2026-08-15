@@ -4,8 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sameOrigin } from '@/server/payments/manual-review-auth';
 
-const PROMO_CODE = 'glowbalglowbal';
-const PROMO_CAMPAIGN = 'glowbalglowbal-v1';
+const PROMO_CODE = 'gogogogoglowbal';
+const PROMO_CAMPAIGN = 'gogogogoglowbal-v2';
 const Body = z.object({
   code: z.string().trim().min(1).max(64),
   plan: z.enum(['plus-starter', 'plus-pro', 'plus-premium']),
