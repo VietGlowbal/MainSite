@@ -33,19 +33,22 @@ function branded(value: string): string {
 }
 
 /**
- * WAITLIST_FROM_EMAIL is retained as a compatibility fallback while production
- * moves to the general EMAIL_FROM_* variables. New deployments should set
- * EMAIL_FROM_DEFAULT=support@glowbal-education.com.
+ * support@glowbal-education.com is the product-wide default sender.
+ *
+ * EMAIL_FROM_* may override it for a deliberately configured sending stream,
+ * but the old WAITLIST_FROM_EMAIL variable is intentionally not consulted here:
+ * production historically used it for unrelated mentorship/waitlist mail and
+ * allowing it to win would silently keep new product mail on the old identity.
  */
 export function getEmailSender(kind: EmailSenderKind = 'default'): string {
-  const legacy = process.env.WAITLIST_FROM_EMAIL;
+  const defaultAddress = address(process.env.EMAIL_FROM_DEFAULT, EMAIL_BRAND.supportEmail);
   if (kind === 'mentorship') {
-    return branded(address(process.env.EMAIL_FROM_MENTORSHIP, process.env.EMAIL_FROM_DEFAULT || legacy || EMAIL_BRAND.supportEmail));
+    return branded(address(process.env.EMAIL_FROM_MENTORSHIP, defaultAddress));
   }
   if (kind === 'marketing') {
-    return branded(address(process.env.EMAIL_FROM_MARKETING, process.env.EMAIL_FROM_DEFAULT || legacy || EMAIL_BRAND.supportEmail));
+    return branded(address(process.env.EMAIL_FROM_MARKETING, defaultAddress));
   }
-  return branded(address(process.env.EMAIL_FROM_DEFAULT, legacy || EMAIL_BRAND.supportEmail));
+  return branded(defaultAddress);
 }
 
 export function getEmailReplyTo(): string {
