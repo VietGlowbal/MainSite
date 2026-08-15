@@ -63,7 +63,13 @@ export function PersonalReportPrintView({
   const t = useT();
 
   return (
-    <div className="hidden flex-col gap-gb-3xl print:flex">
+    // Duplicates the interactive Canvas content in a flat, printable layout —
+    // real report content for sighted print users, but a screen reader
+    // shouldn't see two copies of the same report, and none of the section
+    // components here get `onAnswered` (no interactive save flow makes sense
+    // on a printed page), so their gap actions render as plain links rather
+    // than the inline-answer buttons the interactive Canvas uses.
+    <div className="hidden flex-col gap-gb-3xl print:flex" aria-hidden="true">
       <PrintChapter
         index={1}
         title={t('Core Identity')}
