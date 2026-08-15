@@ -60,6 +60,7 @@ const SUPPRESSED_PREFIXES = [
   '/coordinator',
   '/dev',
   '/demo-throwaway',
+  '/demo',
   '/onboarding',
 ];
 

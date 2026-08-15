@@ -335,7 +335,19 @@ export function NavReveal() {
    * a prefix entry silently covers routes that do not exist yet, so a legacy
    * page added underneath one would lose its navigation with nothing to say so.
    */
-  const OWN_CHROME_PREFIXES = ['/ai-strategy'];
+  const OWN_CHROME_PREFIXES = [
+    '/ai-strategy',
+    /*
+     * `/demo/*` — unlinked demo prototypes (currently the GlowBal Planner demo
+     * at /demo/planner/cambridge-engineering) that ship a deliberately tiny
+     * header, not the full site nav. Distinct from `/demo-throwaway`, which
+     * renders StrategyChrome (a real SiteNavigation instance) and so needs no
+     * entry here — the CSS `:has([data-testid='nav-header'])` guard in
+     * globals.css already hides the global nav for it. `/demo` does not match
+     * that path: `startsWith('/demo/')` requires the slash.
+     */
+    '/demo',
+  ];
 
   // The dashboard owns its header; its document workspaces use the shared one.
   const isApplicationWorkspaceRoute = /^\/apply\/[^/]+$/.test(pathname);

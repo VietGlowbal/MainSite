@@ -35,6 +35,11 @@ const FEATURES = [
   // /ai-strategy/[applicationId]. Listed so the domain/api/ui zone rules below
   // apply to it; without an entry here a new feature gets no boundaries at all.
   'application-strategy',
+  // The GlowBal Planner demo (/demo/planner/cambridge-engineering, spec
+  // GlowBal Planner v0.1). No api/ slice — everything is a local mock plus
+  // localStorage, no Supabase — but it still gets the same domain/ui/hooks
+  // boundaries as every other feature.
+  'planner-demo',
 ];
 
 const TEST_FILES = ['**/__tests__/**/*.{ts,tsx}', '**/*.test.{ts,tsx}'];

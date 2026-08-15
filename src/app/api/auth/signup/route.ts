@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/send-email';
 import { signupConfirmationEmail } from '@/lib/emails/signup-confirmation';
+import { resolveRequestOrigin } from '@/lib/site-url';
 
 /**
  * POST /api/auth/signup
@@ -29,11 +30,7 @@ const BodySchema = z.object({
 });
 
 function siteOrigin(request: NextRequest): string {
-  let v = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, '');
-  if (v && !/^https?:\/\//i.test(v)) {
-    v = `${v.startsWith('localhost') ? 'http' : 'https'}://${v}`;
-  }
-  return v || new URL(request.url).origin;
+  return resolveRequestOrigin(new URL(request.url).origin);
 }
 
 export async function POST(request: NextRequest) {
