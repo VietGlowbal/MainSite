@@ -1616,6 +1616,40 @@ like once the loop is verified working with real added detail.
 
 | `src/features/ai-strategy-dashboard/ui/analysis-workspace.tsx`, `src/features/ai-strategy-dashboard/domain/onboarding.ts`, `src/app/ai-strategy/[applicationId]/strategy/analysis/portrait/page.tsx` |
 
+## 5v. Founder confirmed manual Plus, but the account stayed Free — fixed in code 2026-08-15, production migration pending
+
+Production readback showed three manual Plus transactions with an in-time
+founder confirmation, `manual_payment_reviews.state='confirmed'`, but
+`payment_transactions.status='paid_unfulfilled'`; all three had no
+`plus_subscriptions` row and the owning profile remained `plus_status=false`.
+This was not a client cache or entitlement-reader problem.
+
+The shared `fulfill_payment_transaction` function placed the profile update,
+subscription insert, ledger fulfilment, and `student_confirmed` outbox insert
+inside one exception block. Any SQL error — most plausibly the live outbox
+`kind` CHECK retaining an older value set because `CREATE TABLE IF NOT EXISTS`
+cannot repair an existing constraint — rolled every entitlement write back.
+The handler then suppressed `SQLSTATE`/`SQLERRM`, changed only the ledger to
+`paid_unfulfilled`, and returned JSON rather than a database error. Both founder
+routes consequently looked successful even though access was never activated.
+
+`supabase-manual-payment-fulfillment-repair.sql` is an append-only follow-up:
+it enumerates and replaces the actual outbox kind CHECK, moves notification
+enqueue into its own guarded block so email cannot roll back the product,
+records bounded failure diagnostics, and adds a service-role-only idempotent
+reconciliation function. Its final block repairs only manual Plus transactions
+with an explicit founder-confirmed review and no completed subscription.
+Per the owner's explicit decision, Plus receipt confirmation has no deadline;
+mentorship still respects slot ownership/hold expiry because a late review must
+not reclaim a scarce slot. The founder APIs now return HTTP 409 for a real
+`paid_unfulfilled` result instead of presenting it as success.
+
+**Action required:** run `supabase-manual-payment-fulfillment-repair.sql` in
+production. It has not been run from this workspace; until it runs, the three
+existing transactions remain unfulfilled.
+
+| `supabase-manual-payment-fulfillment-repair.sql`, `src/app/api/admin/payments/manual/confirm/route.ts`, `src/app/api/admin/payments/review-action/route.ts`, `src/lib/payments/manual-payment-migration.test.ts`, `src/app/api/admin/payments/manual/review-security.test.ts` |
+
 ## 6. Open questions for the designer / owner
 
 1. **The sitemap frame (`123:2864`, "Dg-final") no longer exists in the file.**
