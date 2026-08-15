@@ -4,6 +4,11 @@ import {
   isCvBuilderEnabled,
   loadCvBuilderContext,
 } from '@/lib/ai/cv-builder-context';
+import {
+  loadLatestCvStrategySnapshot,
+  resolveCvSelectedDirection,
+  type CvStrategyDatabase,
+} from '@/lib/ai/cv-builder-strategy';
 import { streamOpenAIText } from '@/lib/ai/vinuni-grounded-evaluation';
 import { createClient } from '@/lib/supabase/server';
 
@@ -29,18 +34,71 @@ export async function POST(
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const payload = await request.json().catch(() => null);
-  const careerDirection = payload?.careerDirection;
-  if (
-    careerDirection !== undefined &&
-    (typeof careerDirection !== 'string' || careerDirection.trim().length > 300)
-  ) {
-    return NextResponse.json({ error: 'Invalid career direction.' }, { status: 400 });
-  }
-
   const { id } = await params;
+  // Resolve the owner-scoped application before inspecting business payloads.
+  // This keeps malformed requests from revealing whether another user's
+  // application exists (the same 404 contract as all other CV Builder APIs).
   const context = await loadCvBuilderContext(id, user);
   if (!context) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
+
+  const payload = await request.json().catch(() => null);
+  const validBody =
+    payload &&
+    typeof payload === 'object' &&
+    !Array.isArray(payload) &&
+    Object.keys(payload).length === 2 &&
+    Object.keys(payload).every((key) =>
+      key === 'expectedRecommendationId' || key === 'selectedDirection',
+    ) &&
+    typeof payload.expectedRecommendationId === 'string' &&
+    typeof payload.selectedDirection === 'string' &&
+    payload.expectedRecommendationId.trim().length > 0 &&
+    payload.selectedDirection.trim().length > 0;
+  if (!validBody) {
+    return NextResponse.json(
+      {
+        code: 'INVALID_DIRECTION',
+        error: 'Select one of the available Personalized Strategy directions.',
+      },
+      { status: 400 },
+    );
+  }
+  const expectedRecommendationId = payload.expectedRecommendationId.trim();
+  const selectedDirectionName = payload.selectedDirection.trim();
+
+  const strategy = await loadLatestCvStrategySnapshot(
+    supabase as unknown as CvStrategyDatabase,
+    id,
+    user.id,
+  );
+  if (!strategy) {
+    return NextResponse.json(
+      {
+        code: 'STRATEGY_REQUIRED',
+        error: 'A current Personalized Strategy is required before building a CV.',
+      },
+      { status: 422 },
+    );
+  }
+  if (strategy.recommendationId !== expectedRecommendationId) {
+    return NextResponse.json(
+      {
+        code: 'STRATEGY_STALE',
+        error: 'Your Personalized Strategy changed. Refresh the CV Builder and try again.',
+      },
+      { status: 409 },
+    );
+  }
+  const selectedDirection = resolveCvSelectedDirection(strategy, selectedDirectionName);
+  if (!selectedDirection) {
+    return NextResponse.json(
+      {
+        code: 'INVALID_DIRECTION',
+        error: 'Select one of the available Personalized Strategy directions.',
+      },
+      { status: 400 },
+    );
+  }
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
@@ -76,7 +134,8 @@ export async function POST(
         try {
           const targetProfile = await generateCvTargetProfile({
             context,
-            careerDirection,
+            strategy,
+            selectedDirection,
             apiKey,
             model,
             stream: streamOpenAIText,

@@ -35,6 +35,8 @@ import {
   ScholarshipUniversityPicker,
   type ScholarshipUniversityOption,
 } from './scholarship-university-picker';
+import { usePlusStatus } from '@/features/plus/hooks/use-plus-status';
+import { PlusUpgradeModal } from '@/components/plus/plus-upgrade-modal';
 
 const ScholarshipDashboard = dynamic(
   () => import('./scholarship-dashboard').then((module) => module.ScholarshipDashboard),
@@ -87,6 +89,7 @@ type Props = {
   // Only rows whose scholarship and university are both present in My Portal.
   savedScholarships?: Array<{ scholarshipId: number; universityId: number }>;
   canonicalSearch: string;
+  isPlus?: boolean;
 };
 
 const MAJOR_FILTERS: ReadonlyArray<{ value: ScholarshipMajor; label: string }> = [
@@ -132,8 +135,11 @@ export function ScholarshipDirectoryClient({
   focusUniversity: initialFocusUniversity = null,
   savedScholarships = [],
   canonicalSearch,
+  isPlus: initialIsPlus,
 }: Props) {
   const { t } = useLanguage();
+  const { isPlus } = usePlusStatus(initialIsPlus);
+  const [showPlusModal, setShowPlusModal] = useState(false);
   const router = useRouter();
   const initialDirectory = useMemo<ScholarshipDirectoryResponse>(() => ({
     query: initialQueryState,
@@ -479,6 +485,9 @@ export function ScholarshipDirectoryClient({
     Math.max(1, Math.ceil((value?.total ?? 0) / 9));
 
   const goToPage = (key: 'page' | 'countryPage', page: number) => {
+    if (!isPlus && page >= 2) {
+      setShowPlusModal(true);
+    }
     navigate({ [key]: page }, false);
     resultsTopRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
@@ -503,22 +512,63 @@ export function ScholarshipDirectoryClient({
     navigate({ universityId: null, countryPage: 1 });
   };
 
-  const renderGrid = (items: DirectoryScholarship[]) => (
-    <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3" {...testId(TID.scholarshipList)}>
-      {items.map((s) => (
-        <ScholarshipDirectoryCard
-          key={s.id}
-          scholarship={s}
-          matched={matchedIds.has(s.id)}
-          saved={savedIds.has(s.id)}
-          busy={savingIds.has(s.id)}
-          onOpen={() => setSelected(s)}
-          onToggleSave={() => toggleSave(s)}
-          t={t}
-        />
-      ))}
-    </div>
-  );
+  const renderGrid = (items: DirectoryScholarship[], page = 1) => {
+    const isBlurred = !isPlus && page >= 2;
+
+    return (
+      <div className="relative">
+        <div
+          className={`grid gap-5 sm:grid-cols-2 xl:grid-cols-3 transition-all ${
+            isBlurred ? 'filter blur-md opacity-40 select-none pointer-events-none' : ''
+          }`}
+          {...testId(TID.scholarshipList)}
+        >
+          {items.map((s) => (
+            <ScholarshipDirectoryCard
+              key={s.id}
+              scholarship={s}
+              matched={matchedIds.has(s.id)}
+              saved={savedIds.has(s.id)}
+              busy={savingIds.has(s.id)}
+              onOpen={() => setSelected(s)}
+              onToggleSave={() => toggleSave(s)}
+              t={t}
+            />
+          ))}
+        </div>
+
+        {isBlurred && (
+          <div
+            onClick={() => setShowPlusModal(true)}
+            className="absolute inset-0 z-20 flex flex-col items-center justify-center p-6 text-center cursor-pointer bg-gradient-to-b from-transparent via-white/70 to-white"
+          >
+            <div className="max-w-md rounded-2xl border border-[#EDE9EE] bg-white p-6 shadow-xl backdrop-blur-md">
+              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-[#FFF0F3] text-xl">
+                🔒
+              </div>
+              <h3 className="text-lg font-bold text-[#141118]">
+                {t('See all 3000 scholarships')}
+              </h3>
+              <p className="mt-2 text-xs text-[#6B6570] leading-relaxed">
+                {t('Upgrade to GlowBal Plus to browse all 3000+ scholarships worldwide, unlock advanced filtering and tailored application requirements.')}
+              </p>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPlusModal(true);
+                }}
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-[#E11D48] px-5 py-2.5 text-xs sm:text-sm font-bold text-white shadow-md hover:bg-[#B01238] transition-all cursor-pointer"
+              >
+                <span>{t('See all 3000 scholarships')}</span>
+                <span>→</span>
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     // Extra bottom padding when the floating "Continue to Apply" bar is shown,
@@ -770,7 +820,7 @@ export function ScholarshipDirectoryClient({
 
               <section>
                 <SectionBanner>{t('Scholarships at {name}', { name: focusUniversity!.name })}</SectionBanner>
-                {renderGrid(sectionAtUni)}
+                {renderGrid(sectionAtUni, focusPage?.page ?? 1)}
                 <Pagination
                   page={focusPage!.page}
                   pageCount={pageCount(focusPage)}
@@ -785,7 +835,7 @@ export function ScholarshipDirectoryClient({
                       ? t('Other scholarships in {country}', { country: focusUniversity!.country })
                       : t('Other scholarships')}
                   </SectionBanner>
-                  {renderGrid(sectionSameCountry)}
+                  {renderGrid(sectionSameCountry, countryPage?.page ?? 1)}
                   <Pagination
                     page={countryPage!.page}
                     pageCount={pageCount(countryPage)}
@@ -816,7 +866,7 @@ export function ScholarshipDirectoryClient({
 
               {/* Personalized note */}
               {queryState.sort === 'relevance' && matchedIds.size > 0 && !hasActiveFilters && (
-                <p className="flex items-center gap-2 rounded-full border border-brand-subtle bg-surface px-3 py-2 text-xs font-semibold text-fg-brand shadow-gb-xs w-fit">
+                <p className="flex items-center gap-2 text-xs font-medium text-fg-secondary">
                   <span className="inline-block h-2 w-2 rounded-full bg-brand shadow-[0_0_0_4px_var(--color-brand-subtle)]" />
                   {t('Matched to your saved universities on this page')}
                 </p>
@@ -837,7 +887,7 @@ export function ScholarshipDirectoryClient({
                 />
               ) : (
                 <div ref={resultsTopRef} className="scroll-mt-4">
-                  {renderGrid(directoryItems)}
+                  {renderGrid(directoryItems, directoryPage?.page ?? 1)}
                   <Pagination
                     page={directoryPage!.page}
                     pageCount={pageCount(directoryPage)}
@@ -876,6 +926,14 @@ export function ScholarshipDirectoryClient({
           t={t}
         />
       ) : null}
+
+      {/* Plus Upgrade Modal */}
+      <PlusUpgradeModal
+        open={showPlusModal}
+        onClose={() => setShowPlusModal(false)}
+        title={t('See all 3000 scholarships')}
+        subtitle={t('Upgrade to GlowBal Plus to browse all 3000+ scholarships worldwide, unlock advanced filtering and tailored application requirements.')}
+      />
 
       {tab === 'directory' && directory.error ? (
         <p role="alert" className="text-sm text-error-primary">{directory.error}</p>

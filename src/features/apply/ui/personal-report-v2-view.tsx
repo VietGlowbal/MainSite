@@ -1,59 +1,73 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useT } from '@/lib/i18n';
 import type { PersonalReportTrigger, PersonalReportV2, PersonalReportVersionSummary } from '../domain';
 import { Badge, Button } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import {
+  ApplicantSnapshotView,
+  AreasForGrowthView,
   ConfidenceBadge,
   CoreIdentityView,
   DrivingForceView,
   EmergingThemesView,
+  IdentityEvidenceProfileView,
+  KeyTakeawaysView,
+  PERSONAL_REPORT_SECTION_IDS,
+  PersonalCanvasView,
   PersonalPositioningView,
-  ProfileAtAGlanceView,
+  PersonalReportSectionNav,
   ProofOfMeView,
   SignaturePatternView,
+  SnapshotCapabilityProfileView,
+  SnapshotFuturePathwaysView,
+  SnapshotGrowthMatrixView,
+  SnapshotMotivationProfileView,
+  SnapshotSocialProofSummaryView,
   VersionHistoryPicker,
   withReturn,
 } from './personal-report';
 
-/**
- * The canonical Personal Report — report-like, not a dashboard. Renders
- * `PersonalReportV2` (`src/features/apply/domain/personal-report.ts`),
- * which is itself a rendering of the Shared Evaluation Engine's
- * `ProfileEvaluation` — every claim shown here traces back to that
- * structured object. Each section lives in its own file under
- * `./personal-report/` (implementation spec §33); this file is the shell
- * that owns report state (current version, version history, generation)
- * and lays the sections out top to bottom.
- *
- * ─── WHY ONE LONG PAGE, NOT SIX TABS ─────────────────────────────────────────
- *
- * The v1 view (`personal-report-view.tsx`, now superseded) used a tab strip.
- * The rebuild spec asks for something "report-like, generous white space,
- * not dashboard-heavy" — a report is read top to bottom, not clicked through
- * section by section, and a PDF export (structural groundwork only, not
- * built yet) reads naturally from a single scroll rather than six hidden
- * panels. Each section is its own `<section>` with its own heading, so a
- * long page still has real in-page structure for a screen reader.
- *
- * ─── ONE CONFIDENCE NUMBER, LABELLED HONESTLY ────────────────────────────────
- *
- * `overallEvidenceConfidence` is exactly `ProfileEvaluation.confidence` — the
- * engine's own floor, not an average and not a new metric. It is shown once,
- * in the header, labelled "Overall evidence confidence" — never an
- * admissions-probability number.
- *
- * ─── ANALYTICS ARE OPTIONAL, NEVER A CRASH ───────────────────────────────────
- *
- * `report.analytics` / `report.overview` / `report.overallSummary` are all
- * optional on `PersonalReportV2` — a version generated before this redesign
- * shipped has none of them. Every place below that reads them is written to
- * render nothing extra rather than throw when they're absent, so an old
- * version in the history dropdown still opens cleanly.
- */
+function ReportChapter({
+  id,
+  index,
+  title,
+  description,
+  children,
+}: {
+  id: string;
+  index: number;
+  title: string;
+  description: string;
+  children: ReactNode;
+}) {
+  return (
+    <section id={id} className="scroll-mt-28 flex flex-col gap-gb-xl">
+      <div className="flex flex-col gap-gb-sm border-t border-line pt-gb-3xl">
+        <p className="text-gb-xs font-semibold uppercase tracking-[0.14em] text-fg-brand">
+          {index}. Personal Canvas
+        </p>
+        <div className="flex max-w-3xl flex-col gap-gb-xs">
+          <h2 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
+            {title}
+          </h2>
+          <p className="text-gb-sm leading-relaxed text-fg-tertiary">{description}</p>
+        </div>
+      </div>
+      {children}
+    </section>
+  );
+}
 
+/**
+ * Canonical Personal Report shell. The existing grounded report engine and
+ * versioning remain unchanged; this view reorganises those findings around
+ * the six-part Personal Canvas product model and renders the structured
+ * Canvas analytics stored with each new report version. Historical versions
+ * without those fields fall back to deterministic derivation from their own
+ * stored Proof of Me / section data.
+ */
 export function PersonalReportV2View({
   initialReport,
   initialVersionId,
@@ -65,22 +79,12 @@ export function PersonalReportV2View({
   matchingReportHref,
 }: {
   initialReport: PersonalReportV2 | null;
-  /** The id of `initialReport`'s own version row, when a report exists. */
   initialVersionId: string | null;
-  /** Every past version's id/date/trigger, newest first — powers the version-history dropdown. */
   initialVersions: PersonalReportVersionSummary[];
   studentName: string;
   generatedAt: string | null;
   migrationMissing: boolean;
-  /**
-   * This application's own `?return=` path, when the report was opened from
-   * one — verified server-side by the page, never trusted from the URL
-   * directly. See the file-level comment on `PersonalReportPage`. Threaded
-   * into every link below that should carry the student back to where they
-   * came from, but never stored as part of the report itself.
-   */
   returnTo?: string | undefined;
-  /** This application's own Matching Report, when known; the generic chooser otherwise. */
   matchingReportHref?: string | undefined;
 }) {
   const t = useT();
@@ -118,8 +122,6 @@ export function PersonalReportV2View({
         body: JSON.stringify({ trigger }),
       });
       const body = await response.json().catch(() => ({}));
-      // Assigned together (spec §24) — a partial swap could pair a new
-      // report body with the previous version's id/date.
       if (body.reportV2) setReport(body.reportV2 as PersonalReportV2);
       if (body.versionId) {
         setSelectedVersionId(body.versionId as string);
@@ -143,9 +145,6 @@ export function PersonalReportV2View({
       const response = await fetch(`/api/ai-strategy/personal-report/versions/${versionId}`);
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || t('Could not load that version.'));
-      // Same atomic swap as `generate` above — report, id, and date all move
-      // together so the header date can never point at a different
-      // version's content mid-render.
       setReport(body.reportV2 as PersonalReportV2);
       setSelectedVersionId(versionId);
       setViewedGeneratedAt(body.generatedAt as string);
@@ -188,19 +187,25 @@ export function PersonalReportV2View({
   return (
     <div className="flex flex-col gap-gb-3xl">
       <header className="flex flex-col gap-gb-lg">
-        <Badge variant="brand-subtle">{t('Personal Report')}</Badge>
+        <div className="flex flex-wrap items-center gap-gb-sm">
+          <Badge variant="brand-subtle">{t('Personal Report')}</Badge>
+          <span className="text-gb-xs text-fg-muted">Personal Canvas</span>
+        </div>
         <div className="flex flex-wrap items-end justify-between gap-gb-lg">
           <div className="flex flex-col gap-gb-xs">
             <h1 className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg" data-no-auto-translate>
               {studentName}
             </h1>
+            <p className="max-w-2xl text-gb-sm text-fg-tertiary">
+              A profile of who you are as an applicant — built from your reflected experiences, evidence and recurring patterns.
+            </p>
             {viewedGeneratedAt ? (
               <p className="text-gb-xs text-fg-muted">
                 {t('Generated')}: {new Date(viewedGeneratedAt).toLocaleDateString('en-US')}
               </p>
             ) : null}
           </div>
-          <div className="flex items-center gap-gb-md">
+          <div className="flex items-center gap-gb-md rounded-gb-xl bg-surface-muted px-gb-lg py-gb-md">
             <span className="text-gb-sm text-fg-tertiary">{t('Overall evidence confidence')}:</span>
             <ConfidenceBadge confidence={report.overallEvidenceConfidence} />
           </div>
@@ -230,30 +235,112 @@ export function PersonalReportV2View({
         {error ? <p className="text-gb-sm text-fg-error">{error}</p> : null}
       </header>
 
-      <ProfileAtAGlanceView overview={report.overview} analytics={report.analytics} />
-      <CoreIdentityView section={report.coreIdentity} returnTo={returnTo} />
-      <DrivingForceView section={report.drivingForce} returnTo={returnTo} onAnswered={onAnswered} />
-      <SignaturePatternView
-        section={report.signaturePattern}
-        patternSupport={report.analytics?.signaturePatternSupport}
-        returnTo={returnTo}
-      />
-      <EmergingThemesView
-        section={report.emergingThemes}
-        themeMaturity={report.analytics?.themeMaturity}
-        returnTo={returnTo}
-      />
-      <PersonalPositioningView
-        section={report.personalPositioning}
-        positioningDimensions={report.analytics?.positioningDimensions}
-        returnTo={returnTo}
-      />
-      <ProofOfMeView
-        section={report.proofOfMe}
-        evidenceSummary={report.analytics?.evidenceSummary}
-        overallSummary={report.overallSummary}
-        returnTo={returnTo}
-      />
+      <ApplicantSnapshotView report={report} />
+      <PersonalCanvasView report={report} />
+      <PersonalReportSectionNav />
+
+      <ReportChapter
+        id={PERSONAL_REPORT_SECTION_IDS.coreIdentity}
+        index={1}
+        title="Core Identity"
+        description="The recurring roles, behaviours and patterns that describe who you consistently show yourself to be."
+      >
+        <div className="flex flex-col gap-gb-xl">
+          <CoreIdentityView section={report.coreIdentity} returnTo={returnTo} />
+          <IdentityEvidenceProfileView report={report} />
+          <SignaturePatternView
+            section={report.signaturePattern}
+            patternSupport={report.analytics?.signaturePatternSupport}
+            returnTo={returnTo}
+          />
+        </div>
+      </ReportChapter>
+
+      <ReportChapter
+        id={PERSONAL_REPORT_SECTION_IDS.drivingForces}
+        index={2}
+        title="Driving Forces"
+        description="What repeatedly motivates your choices, where those motivations appear in your experiences, and how confidently the evidence supports them."
+      >
+        <div className="flex flex-col gap-gb-xl">
+          <DrivingForceView section={report.drivingForce} returnTo={returnTo} onAnswered={onAnswered} />
+          <SnapshotMotivationProfileView report={report} />
+        </div>
+      </ReportChapter>
+
+      <ReportChapter
+        id={PERSONAL_REPORT_SECTION_IDS.provenCapabilities}
+        index={3}
+        title="Proven Capabilities"
+        description="What your evidence demonstrates you can do, how those strengths combine, and the positioning they create for you as an applicant."
+      >
+        <div className="flex flex-col gap-gb-xl">
+          <SnapshotCapabilityProfileView report={report} />
+          <PersonalPositioningView
+            section={report.personalPositioning}
+            positioningDimensions={report.analytics?.positioningDimensions}
+            returnTo={returnTo}
+          />
+        </div>
+      </ReportChapter>
+
+      <ReportChapter
+        id={PERSONAL_REPORT_SECTION_IDS.socialProof}
+        index={4}
+        title="Social Proof"
+        description="The tangible activities, outcomes and verification that make the claims in your profile credible."
+      >
+        <div className="flex flex-col gap-gb-xl">
+          <SnapshotSocialProofSummaryView report={report} />
+          <ProofOfMeView
+            section={report.proofOfMe}
+            evidenceSummary={report.analytics?.evidenceSummary}
+            overallSummary={undefined}
+            returnTo={returnTo}
+          />
+        </div>
+      </ReportChapter>
+
+      <ReportChapter
+        id={PERSONAL_REPORT_SECTION_IDS.areasForGrowth}
+        index={5}
+        title="Areas for Growth"
+        description="Where the current evidence is limited, what still needs development, and where stronger proof could make the profile more complete."
+      >
+        <div className="flex flex-col gap-gb-xl">
+          <SnapshotGrowthMatrixView report={report} />
+          <AreasForGrowthView report={report} />
+        </div>
+      </ReportChapter>
+
+      <ReportChapter
+        id={PERSONAL_REPORT_SECTION_IDS.longTermVision}
+        index={6}
+        title="Long-Term Vision"
+        description="The themes and directions emerging from the choices you repeatedly make — presented as possibilities, not predictions."
+      >
+        <div className="flex flex-col gap-gb-xl">
+          <SnapshotFuturePathwaysView report={report} />
+          <EmergingThemesView
+            section={report.emergingThemes}
+            themeMaturity={report.analytics?.themeMaturity}
+            returnTo={returnTo}
+          />
+        </div>
+      </ReportChapter>
+
+      <KeyTakeawaysView report={report} />
+
+      {report.overallSummary && report.overallSummary.paragraphs.length > 0 ? (
+        <section className="flex flex-col gap-gb-md rounded-gb-xl bg-surface-muted p-gb-xl" data-no-auto-translate>
+          <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">What this report suggests overall</p>
+          {report.overallSummary.paragraphs.map((paragraph) => (
+            <p key={paragraph} className="text-gb-sm leading-relaxed text-fg-tertiary">
+              {paragraph}
+            </p>
+          ))}
+        </section>
+      ) : null}
 
       <div className="flex flex-wrap justify-between gap-gb-lg border-t border-line pt-gb-2xl print:hidden">
         <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary">

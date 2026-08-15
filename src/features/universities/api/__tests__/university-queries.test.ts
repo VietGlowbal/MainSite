@@ -117,4 +117,10 @@ describe('UniversityQueries contract', () => {
     expect(f.countries[0]).toEqual({ value: 'Australia', count: 2 });
     expect(f.countries.map((c) => c.value)).toContain('Canada');
   });
+
+  it('returns the full projection for university matching', async () => {
+    const matches = await repo.allForMatching();
+    expect(matches.map((university) => university.id)).toEqual([1, 2, 3, 4, 5]);
+    expect(matches.find((university) => university.id === 1)?.strengths).toBeNull();
+  });
 });

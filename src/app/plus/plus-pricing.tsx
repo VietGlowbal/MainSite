@@ -4,53 +4,19 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   DEFAULT_DISPLAY_CURRENCY,
-  PLAN_COLUMNS,
-  PLUS_COMPARISON,
   PLUS_DISPLAY_CURRENCIES,
   PLUS_PACKAGES,
-  PLUS_SALES_ENABLED,
   currencyLabel,
   formatPlanPrice,
-  type ComparisonValue,
   type DisplayCurrency,
-  type PlanColumn,
   type PlusPackage,
 } from '@/lib/plus';
-import { Button, Container, ICONS, KitIcon } from '@/shared/ui';
+import { Container, Modal } from '@/shared/ui';
+import { PaymentMethodSelector } from '@/components/payments/payment-method-selector';
+import { TermsModal } from '@/components/legal/terms-modal';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { useLanguage } from '@/lib/i18n';
 
-/**
- * PlusPricing — the interactive middle of /plus: currency switcher, the three
- * tier cards, and the Free-vs-paid comparison.
- *
- * ⚠️ NO FIGMA SOURCE. /plus was never redrawn onto the "Khanh Linh - Chi"
- * canvas — docs/redesign-status.md lists it under "designed but not built"
- * against four frames on the RETIRED "Tính năng" canvas (115:13253, 132:9601,
- * 196:16799, 115:17014), and those draw a three-tier free/$10/$100 page that no
- * longer matches lib/plus.ts. The product owner confirmed on 2026-08-02 that the
- * page was missed in the redesign and asked for it to be built on the system
- * rather than from a frame. So this is tokens + shared primitives only, in the
- * same standing as `Panel` / `StatTile` / the admin console: nothing here
- * invents a colour, a radius or a type step.
- *
- * It owns the display/checkout currency (USD by default) and feeds it to every
- * price label and to the checkout call, so Stripe charges in what was chosen.
- *
- * Three things about the layout are deliberate:
- *
- *  - The switcher is still on the hero's black band and the cards straddle the
- *    seam beneath it. The 96px dark strip behind the cards' top edge is an
- *    absolutely positioned block, NOT a negative margin: a negative margin on
- *    the first in-flow child collapses through `Container` and drags the whole
- *    light band up with it, which hides the overlap instead of creating it.
- *  - The card CTA is a real `Button`, not the whole card. The card used to be
- *    `role="button"` with a styled span inside it pretending to be one; the kit
- *    has a button and a disabled state, and with sales off that state is the
- *    honest thing to render.
- *  - The Pro column is tinted the whole height of the comparison table. The
- *    header alone left the reader counting rows to keep their place across five
- *    columns on a table that scrolls sideways on a phone.
- */
 export function PlusPricing({
   signedIn,
   applicationId,
@@ -58,93 +24,21 @@ export function PlusPricing({
   signedIn: boolean;
   applicationId: string | null;
 }) {
-  const [currency, setCurrency] = useState<DisplayCurrency>(DEFAULT_DISPLAY_CURRENCY);
-
-  return (
-    <>
-      {/* Currency switcher — the last element on the hero's black band. */}
-      <div className="bg-surface-inverse-strong pb-gb-7xl">
-        <Container className="flex flex-col items-center gap-gb-lg">
-          <p className="text-gb-sm font-medium text-fg-on-inverse-muted">Show prices in</p>
-          <div
-            role="group"
-            aria-label="Display currency"
-            className="inline-flex flex-wrap items-center justify-center gap-gb-xxs rounded-gb-full border border-white/12 bg-white/8 p-gb-xs"
-          >
-            {PLUS_DISPLAY_CURRENCIES.map((code) => {
-              const active = currency === code;
-              return (
-                <button
-                  key={code}
-                  type="button"
-                  onClick={() => setCurrency(code)}
-                  aria-pressed={active}
-                  className={`rounded-gb-full px-gb-xl py-gb-md text-gb-sm font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                    active
-                      ? 'bg-brand text-on-brand'
-                      : 'text-fg-on-inverse-muted hover:bg-white/8 hover:text-white'
-                  }`}
-                >
-                  {currencyLabel(code)}
-                </button>
-              );
-            })}
-          </div>
-        </Container>
-      </div>
-
-      {/* Plans. The cards start at this band's top edge, so the dark strip
-          behind them is what puts their first 96px on black. */}
-      <div className="relative bg-surface-muted pb-gb-9xl">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 top-0 h-gb-9xl bg-surface-inverse-strong"
-        />
-        <Container className="relative">
-          {/* Stretch, not `items-start`: the three cards carry three, three and
-              three bullets of different lengths, and left to their natural
-              heights their CTAs landed on three different lines. */}
-          <div className="grid gap-gb-3xl lg:grid-cols-3">
-            {PLUS_PACKAGES.map((pkg) => (
-              <PlanCard
-                key={pkg.id}
-                pkg={pkg}
-                currency={currency}
-                signedIn={signedIn}
-                applicationId={applicationId}
-              />
-            ))}
-          </div>
-        </Container>
-      </div>
-
-      <ComparisonTable currency={currency} />
-    </>
-  );
-}
-
-function PlanCard({
-  pkg,
-  currency,
-  signedIn,
-  applicationId,
-}: {
-  pkg: PlusPackage;
-  currency: DisplayCurrency;
-  signedIn: boolean;
-  applicationId: string | null;
-}) {
   const router = useRouter();
+  const [currency, setCurrency] = useState<DisplayCurrency>(DEFAULT_DISPLAY_CURRENCY);
+  const { t } = useLanguage();
+  const [selectedPkg, setSelectedPkg] = useState<PlusPackage | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<'vnpay' | 'manual_bank_transfer'>('vnpay');
+  const [agreedTerms, setAgreedTerms] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-  useLoadingIndicator(loading, 'Opening secure checkout');
   const [error, setError] = useState<string | null>(null);
-  const featured = pkg.highlighted;
+  useLoadingIndicator(loading, t('Opening secure checkout'));
 
-  // Starts checkout for a signed-in student, or sends a guest to sign up first
-  // and back here afterwards.
-  async function select() {
-    if (loading) return;
+  async function handleCheckout() {
+    if (!selectedPkg || loading || !agreedTerms) return;
     if (!signedIn) {
+      setSelectedPkg(null);
       const redirect = `/plus${applicationId ? `?application=${applicationId}` : ''}`;
       router.push(`/auth?mode=signup&redirect=${encodeURIComponent(redirect)}`);
       return;
@@ -152,231 +46,373 @@ function PlanCard({
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch('/api/plus/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan: pkg.id, currency, applicationId: applicationId ?? undefined }),
-      });
+      const res = await fetch(
+        paymentMethod === 'manual_bank_transfer'
+          ? '/api/payments/manual/checkout'
+          : '/api/payments/vnpay/checkout',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            product: 'plus',
+            ...(paymentMethod === 'manual_bank_transfer' ? { provider: 'manual_bank_transfer' } : {}),
+            plan: selectedPkg.id,
+            currency,
+            applicationId: applicationId ?? undefined,
+            idempotency_key: crypto.randomUUID(),
+          }),
+        },
+      );
       const data = await res.json();
-      if (!res.ok || !data.checkout_url) {
-        throw new Error(data.error ?? 'Could not start checkout');
+      if (
+        !res.ok ||
+        (paymentMethod === 'vnpay' && !data.checkout_url) ||
+        (paymentMethod === 'manual_bank_transfer' && !data.status_url)
+      ) {
+        throw new Error(data.error ?? t('Could not start checkout'));
       }
-      window.location.assign(data.checkout_url as string);
+      window.location.assign(
+        (paymentMethod === 'manual_bank_transfer' ? data.status_url : data.checkout_url) as string,
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Something went wrong');
+      setError(err instanceof Error ? err.message : t('Something went wrong'));
       setLoading(false);
     }
   }
 
-  const ctaLabel = !PLUS_SALES_ENABLED
-    ? 'Coming soon'
-    : loading
-      ? 'Starting checkout…'
-      : signedIn
-        ? 'Choose this plan'
-        : 'Sign up & choose';
+  return (
+    <section className="relative w-full overflow-hidden bg-[#FBF9FA] py-12 md:py-16 text-[#141118]">
+      {/* Ambient background glow highlights */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -top-24 left-1/2 h-[520px] w-[1100px] -translate-x-1/2 rounded-full bg-[radial-gradient(closest-side,rgba(244,63,94,0.12),transparent_70%)] blur-2xl"
+      />
+      <div
+        aria-hidden
+        className="pointer-events-none absolute top-12 right-[5%] h-[480px] w-[900px] rounded-full bg-[radial-gradient(closest-side,rgba(42,189,216,0.10),transparent_65%)] blur-2xl"
+      />
+
+      <Container className="relative mx-auto max-w-[1140px] px-4 sm:px-6">
+        {/* Header */}
+        <header className="mx-auto mb-4 max-w-[720px] text-center">
+          <div className="mb-4 inline-block text-[13px] font-bold tracking-[0.16em] uppercase text-[#E11D48]">
+            {t('GlowBal Pricing')}
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl md:text-5xl leading-[1.1]">
+            {t('Choose how you want to')}{' '}
+            <span className="relative inline-block text-[#E11D48] whitespace-nowrap">
+              {t('shine')}
+              <span
+                aria-hidden
+                className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[124%] h-[150%] -z-10 rounded-full bg-[radial-gradient(closest-side,rgba(244,63,94,0.30),transparent_75%)] blur-[2px]"
+              />
+            </span>{' '}
+            {t('on your study-abroad journey')}
+          </h1>
+          <p className="mt-4 text-base sm:text-lg text-[#6B6570]">
+            {t("You don't go it alone. GlowBal")}{' '}
+            <b className="font-semibold text-[#141118]">{t('walks with you')}</b>{' '}
+            {t('from picking schools to hitting submit.')}
+          </p>
+        </header>
+
+        {/* Launch ribbon */}
+        <div className="mx-auto mb-10 mt-6 flex w-fit flex-wrap items-center justify-center gap-2.5 rounded-full border border-[#EDE9EE] bg-white px-5 py-2.5 shadow-[0_6px_20px_rgba(20,17,24,0.05)] text-sm font-semibold text-[#141118]">
+          <span className="rounded-full bg-[#E11D48] px-2.5 py-0.5 text-xs font-extrabold tracking-wider text-white">
+            −50%
+          </span>
+          <span>{t('Launch offer · 2026 application season')}</span>
+          <span className="font-medium text-[#6B6570]">· {t('all plans')}</span>
+        </div>
+
+        {/* Currency Switcher (Discreet) */}
+        <div className="mb-8 flex items-center justify-center gap-2">
+          <span className="text-xs font-medium text-[#6B6570]">{t('Show prices in:')}</span>
+          <div className="inline-flex rounded-full border border-[#EDE9EE] bg-white p-1 shadow-sm">
+            {PLUS_DISPLAY_CURRENCIES.map((code) => (
+              <button
+                key={code}
+                type="button"
+                onClick={() => setCurrency(code)}
+                className={`rounded-full px-3 py-1 text-xs font-bold transition-all ${
+                  currency === code
+                    ? 'bg-[#E11D48] text-white shadow-sm'
+                    : 'text-[#6B6570] hover:text-[#141118]'
+                }`}
+              >
+                {currencyLabel(code)}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 3 Pricing Cards Grid */}
+        <div className="grid gap-6 sm:gap-8 lg:grid-cols-3 lg:items-stretch">
+          {PLUS_PACKAGES.map((pkg) => (
+            <PlanCard
+              key={pkg.id}
+              pkg={pkg}
+              currency={currency}
+              onSelect={() => {
+                setError(null);
+                setAgreedTerms(false);
+                setPaymentMethod('vnpay');
+                setSelectedPkg(pkg);
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Foot quote */}
+        <p className="mt-12 text-center text-sm text-[#6B6570]">
+          {t('You submit your application')}{' '}
+          <b className="font-semibold text-[#141118]">{t('once')}</b>.{' '}
+          {t("Pick the level of support you're most at peace with.")}
+        </p>
+      </Container>
+
+      {/* Top-Level Payment Method Modal */}
+      {selectedPkg ? (
+        <Modal
+          open={Boolean(selectedPkg)}
+          onClose={() => {
+            if (!loading) setSelectedPkg(null);
+          }}
+          label={t('Choose payment method')}
+        >
+          <div className="space-y-5">
+            <div className="flex items-start justify-between border-b border-[#EDE9EE] pb-4">
+              <div>
+                <h3 className="text-xl font-extrabold text-[#141118]">{t(selectedPkg.name)}</h3>
+                <p className="text-xs text-[#6B6570] mt-0.5">{t(selectedPkg.durationLabel)}</p>
+              </div>
+              <div className="text-right">
+                <div className="text-2xl font-extrabold text-[#E11D48]">
+                  {formatPlanPrice(selectedPkg.amountVnd, currency)}
+                </div>
+                <div className="text-xs line-through text-[#6B6570]">
+                  {formatPlanPrice(selectedPkg.anchorVnd, currency)}
+                </div>
+              </div>
+            </div>
+
+            <PaymentMethodSelector
+              id={`plus-payment-${selectedPkg.id}`}
+              name={`plus-payment-${selectedPkg.id}`}
+              value={paymentMethod}
+              onChange={setPaymentMethod}
+              amountVnd={selectedPkg.amountVnd}
+            />
+
+            {/* Terms and Conditions Checkbox */}
+            <div className="flex items-start gap-3 rounded-xl border border-[#EDE9EE] bg-[#FBF9FA] p-3.5 text-xs text-[#141118]">
+              <input
+                type="checkbox"
+                id="agree-terms-checkbox"
+                checked={agreedTerms}
+                onChange={(e) => setAgreedTerms(e.target.checked)}
+                className="mt-0.5 size-4 shrink-0 rounded border-gray-300 text-[#E11D48] accent-[#E11D48] cursor-pointer focus:ring-[#E11D48]"
+              />
+              <label htmlFor="agree-terms-checkbox" className="cursor-pointer select-none leading-relaxed text-[#6B6570]">
+                {t('I have read and agree to the')}{' '}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setTermsOpen(true);
+                  }}
+                  className="font-bold text-[#E11D48] underline decoration-[#E11D48]/40 hover:decoration-[#E11D48] cursor-pointer"
+                >
+                  {t('Terms and Conditions of Use')}
+                </button>{' '}
+                {t('of GlowBal Education.')}
+              </label>
+            </div>
+
+            {error ? (
+              <div className="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+                {error}
+              </div>
+            ) : null}
+
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => setSelectedPkg(null)}
+                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-[#6B6570] hover:text-[#141118] transition-colors cursor-pointer"
+              >
+                {t('Cancel')}
+              </button>
+              <button
+                type="button"
+                disabled={loading || !agreedTerms}
+                onClick={() => void handleCheckout()}
+                className="rounded-xl bg-[#E11D48] px-6 py-2.5 text-sm font-bold text-white shadow-md hover:bg-[#B01238] transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {loading ? t('Processing…') : t('Continue to payment')}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      ) : null}
+
+      {/* Full Terms and Conditions Dialog */}
+      <TermsModal
+        open={termsOpen}
+        onClose={() => setTermsOpen(false)}
+      />
+    </section>
+  );
+}
+
+function PlanCard({
+  pkg,
+  currency,
+  onSelect,
+}: {
+  pkg: PlusPackage;
+  currency: DisplayCurrency;
+  onSelect: () => void;
+}) {
+  const { t } = useLanguage();
+  const isHero = pkg.highlighted;
 
   return (
     <div
-      /*
-       * No `h-full`: the grid already stretches every card to the row height,
-       * and a definite height is what stops the featured card growing past it.
-       * With `auto` height, `-my` makes the stretched box 48px TALLER than its
-       * grid area — so the Pro card stands 24px proud at both ends instead of
-       * sliding up and leaving its foot 24px short of its neighbours'.
-       */
-      className={`relative flex flex-col rounded-gb-2xl border bg-surface p-gb-4xl transition-shadow ${
-        featured
-          ? 'border-brand shadow-gb-lg lg:-my-gb-3xl'
-          : 'border-line shadow-gb-xs hover:shadow-gb-lg'
+      className={`relative flex flex-col justify-between rounded-[22px] p-7 sm:p-8 transition-all duration-300 ${
+        isHero
+          ? 'bg-gradient-to-b from-[#E7204C] via-[#E11D48] to-[#B01238] text-white shadow-[0_26px_60px_rgba(225,29,72,0.34)] lg:-translate-y-3.5 lg:hover:-translate-y-4.5 before:absolute before:-inset-4 sm:before:-inset-6 before:-z-10 before:rounded-[34px] before:bg-[radial-gradient(closest-side,rgba(244,63,94,0.34),transparent_70%)] before:blur-[6px]'
+          : 'border border-[#EDE9EE] bg-white text-[#141118] shadow-[0_4px_16px_rgba(20,17,24,0.04)] hover:-translate-y-1 hover:shadow-[0_16px_40px_rgba(20,17,24,0.09)]'
       }`}
     >
-      {featured ? (
-        <span className="absolute -top-gb-lg left-1/2 -translate-x-1/2 rounded-gb-full bg-brand px-gb-lg py-gb-xs text-gb-xs font-semibold whitespace-nowrap text-on-brand shadow-gb-xs">
-          Most popular
-        </span>
-      ) : null}
-
-      {/* The tier name alone is the heading: the page is already titled GlowBal
-          Plus, and "GlowBal Plus {name}" would render as two adjacent text
-          nodes, neither of which can match a dictionary key. */}
-      <h3 className="font-display text-gb-xl font-semibold text-fg">{pkg.name}</h3>
-      <p className="mt-gb-xs min-h-gb-5xl text-gb-sm text-fg-tertiary">{pkg.tagline}</p>
-
-      <p className="mt-gb-3xl font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg">
-        {formatPlanPrice(pkg.amountVnd, currency)}
-      </p>
-      <p className="mt-gb-xs text-gb-sm text-fg-tertiary">{pkg.durationLabel}</p>
-
-      {/* Credits get their own plate rather than a bullet: they are the one
-          number that differs by an order of magnitude between tiers. */}
-      <div className="mt-gb-3xl flex items-center gap-gb-lg rounded-gb-xl bg-brand-subtle px-gb-2xl py-gb-lg">
-        <span className="flex size-gb-5xl shrink-0 items-center justify-center rounded-gb-full bg-brand text-on-brand">
-          <KitIcon art={ICONS.zapFast} frame={20} />
-        </span>
-        <span className="flex flex-wrap items-baseline gap-gb-sm">
-          <span className="font-display text-gb-xl font-semibold text-fg-brand">{pkg.aiCredits}</span>
-          <span className="text-gb-sm font-medium text-fg-brand">AI strategy credits</span>
-        </span>
-      </div>
-
-      <ul className="mt-gb-3xl flex flex-1 flex-col gap-gb-lg">
-        {pkg.highlights.map((highlight) => (
-          <li key={highlight} className="flex items-start gap-gb-md">
-            <span className="mt-gb-xxs shrink-0 text-brand">
-              <KitIcon art={ICONS.checkCircle} frame={20} />
-            </span>
-            <span className="text-gb-sm text-fg-tertiary">{highlight}</span>
-          </li>
-        ))}
-      </ul>
-
-      <Button
-        size="lg"
-        variant={featured ? 'primary' : 'secondary'}
-        className="mt-gb-3xl w-full"
-        onClick={select}
-        disabled={!PLUS_SALES_ENABLED || loading}
-        aria-busy={loading}
-      >
-        {ctaLabel}
-      </Button>
-
-      {error ? <p className="mt-gb-md text-center text-gb-xs text-fg-error">{error}</p> : null}
-
-      {PLUS_SALES_ENABLED && !signedIn ? (
-        <p className="mt-gb-lg text-center text-gb-xs text-fg-muted">
-          No account yet? Selecting a plan signs you up first — it&rsquo;s free to start.
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-/** One cell of the comparison: a tick, a dash, or a short value. */
-function Cell({ value, accent }: { value: ComparisonValue; accent: boolean }) {
-  if (value === true) {
-    return (
-      <span className={`inline-flex items-center justify-center ${accent ? 'text-brand' : 'text-fg-tertiary'}`}>
-        <KitIcon art={ICONS.checkCircle} frame={20} />
-        <span className="sr-only">Included</span>
-      </span>
-    );
-  }
-  if (value === false) {
-    // A dash, not a cross: nine of the eleven rows are "this tier does not go
-    // that far", which is a boundary, not a failure.
-    return (
-      <span className="inline-flex items-center justify-center text-gb-sm text-fg-muted">
-        <span aria-hidden>—</span>
-        <span className="sr-only">Not included</span>
-      </span>
-    );
-  }
-  return (
-    <span className={`text-gb-sm font-semibold ${accent ? 'text-fg-brand' : 'text-fg'}`}>{value}</span>
-  );
-}
-
-function ComparisonTable({ currency }: { currency: DisplayCurrency }) {
-  // The price sits under each column name so the columns read as real,
-  // comparable options. Free renders a formatted zero rather than the word
-  // "Free" — that column is already headed "Free", and repeating it left the
-  // one column with no price to compare against the three that have one.
-  const priceFor = (key: PlanColumn): string => {
-    if (key === 'free') return formatPlanPrice(0, currency);
-    const pkg = PLUS_PACKAGES.find((p) => p.id === key);
-    return pkg ? formatPlanPrice(pkg.amountVnd, currency) : '—';
-  };
-
-  return (
-    <section className="bg-surface py-gb-9xl">
-      <Container className="flex flex-col gap-gb-5xl">
-        <div className="mx-auto max-w-gb-width-xl text-center">
-          <h2 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight text-fg md:text-gb-display-sm">
-            Compare Free &amp; Plus
-          </h2>
-          <p className="mt-gb-lg text-gb-md text-fg-tertiary">
-            Start free, upgrade when you&rsquo;re ready. Here&rsquo;s exactly what each option
-            includes.
-          </p>
+      {/* Badge */}
+      {pkg.badge ? (
+        <div
+          className={`absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 rounded-full px-4 py-1.5 text-xs font-bold tracking-wide whitespace-nowrap shadow-md ${
+            pkg.badgeType === 'save'
+              ? 'bg-white text-[#E11D48] shadow-[0_6px_18px_rgba(225,29,72,0.28)]'
+              : 'bg-[#106574] text-white shadow-[0_6px_16px_rgba(16,101,116,0.28)]'
+          }`}
+        >
+          {pkg.badge}
         </div>
+      ) : null}
 
-        <div className="flex flex-col gap-gb-lg">
-          {/*
-            `contain:paint` is not decoration. The table is 720px at its
-            narrowest and this wrapper scrolls it, which is correct — but Chrome
-            still counts a scroll container's overflow toward the ROOT element's
-            scrollWidth, so `<html>` reported 687px on a 390px phone. Nothing
-            could scroll (body's own overflow-x is `clip`, see
-            docs/redesign-status.md on why), yet the page measured as
-            overflowing and full-page screenshots came out 687px wide with a
-            dead band down the right. Paint containment is the only thing that
-            fixed it — `max-width`, `overflow-x: scroll`, clipping the section
-            and clipping <html> all left it at 687. Safe here: the wrapper holds
-            nothing but the table, so there is no fixed descendant for the new
-            containing block to capture.
-          */}
-          <div className="overflow-x-auto rounded-gb-2xl border border-line shadow-gb-xs [contain:paint]">
-            <table className="w-full min-w-[720px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-line bg-surface-muted">
-                  <th scope="col" className="px-gb-3xl py-gb-2xl text-gb-sm font-semibold text-fg-tertiary">
-                    Features
-                  </th>
-                  {PLAN_COLUMNS.map((col) => {
-                    const accent = col.key === 'plus-pro';
-                    return (
-                      <th
-                        key={col.key}
-                        scope="col"
-                        className={`px-gb-xl py-gb-2xl text-center${accent ? ' bg-brand-subtle' : ''}`}
-                      >
-                        <span
-                          className={`block text-gb-sm font-semibold ${accent ? 'text-fg-brand' : 'text-fg'}`}
-                        >
-                          {col.name}
-                        </span>
-                        <span className="mt-gb-xxs block text-gb-xs text-fg-muted">
-                          {priceFor(col.key)}
-                        </span>
-                      </th>
-                    );
-                  })}
-                </tr>
-              </thead>
-              <tbody>
-                {PLUS_COMPARISON.map((row) => (
-                  <tr key={row.label} className="border-b border-line last:border-0">
-                    <th
-                      scope="row"
-                      className="px-gb-3xl py-gb-xl text-gb-sm font-medium text-fg-secondary"
-                    >
-                      {row.label}
-                    </th>
-                    {PLAN_COLUMNS.map((col) => (
-                      <td
-                        key={col.key}
-                        className={`px-gb-xl py-gb-xl text-center${
-                          col.key === 'plus-pro' ? ' bg-brand-subtle' : ''
-                        }`}
-                      >
-                        <Cell value={row.values[col.key]} accent={col.key === 'plus-pro'} />
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      <div>
+        {/* Tier & Name */}
+        <div
+          className={`text-[12px] font-bold tracking-[0.14em] uppercase ${
+            isHero ? 'text-white/80' : 'text-[#6B6570]'
+          }`}
+        >
+          {t(pkg.tierLabel)}
+        </div>
+        <h2 className="mt-1 text-2xl font-extrabold tracking-tight">{t(pkg.name)}</h2>
+
+        {/* Price Block */}
+        <div className="mt-4 mb-2">
+          <div
+            className={`text-[15px] line-through ${
+              isHero ? 'text-white/70 decoration-white/60' : 'text-[#6B6570] decoration-[#6B6570]/60'
+            }`}
+          >
+            {formatPlanPrice(pkg.anchorVnd, currency)}
+          </div>
+          <div className="mt-0.5 flex items-baseline gap-1 text-3xl sm:text-4xl font-extrabold tracking-tight">
+            <span>{formatPlanPrice(pkg.amountVnd, currency)}</span>
+            <span
+              className={`text-base font-semibold ${
+                isHero ? 'text-white/80' : 'text-[#6B6570]'
+              }`}
+            >
+              {pkg.durationMonths === 1 ? t('/mo') : t('/yr')}
+            </span>
+          </div>
+          <div
+            className={`mt-1 text-sm font-medium ${
+              isHero ? 'text-white/85' : 'text-[#6B6570]'
+            }`}
+          >
+            {t(pkg.perMonthLabel)}
           </div>
 
-          {/* The table is 720px wide at its narrowest and a phone is not, so say
-              so rather than leaving a cut-off column to be discovered. */}
-          <p className="text-gb-xs text-fg-muted md:hidden">
-            Scroll the table sideways to see every plan.
-          </p>
+          {pkg.savePill ? (
+            <span
+              className={`mt-3 inline-block rounded-lg px-3 py-1 text-xs sm:text-[13px] font-bold ${
+                isHero ? 'bg-white/20 text-white' : 'bg-[#E11D48]/10 text-[#E11D48]'
+              }`}
+            >
+              {t(pkg.savePill)}
+            </span>
+          ) : null}
         </div>
-      </Container>
-    </section>
+
+        {/* Transform quote */}
+        <div
+          className={`mt-4 mb-1 border-l-[3px] pl-3 text-sm font-semibold italic leading-snug ${
+            isHero ? 'border-white/70 text-white' : 'border-[#2ABDD8] text-[#106574]'
+          }`}
+        >
+          {t(pkg.tagline)}
+        </div>
+
+        <hr className={`my-4.5 border-t ${isHero ? 'border-white/20' : 'border-[#EDE9EE]'}`} />
+
+        {/* Features list */}
+        <ul className="flex flex-col gap-3 text-sm">
+          {pkg.bullets.map((bullet, idx) => (
+            <li
+              key={idx}
+              className={`relative pl-7 leading-snug ${
+                isHero
+                  ? 'text-white/95'
+                  : bullet.type === 'gap'
+                    ? 'text-[#6B6570]'
+                    : 'text-[#2B2730]'
+              }`}
+            >
+              <span
+                className={`absolute left-0 top-0 text-sm font-bold ${
+                  bullet.type === 'gift'
+                    ? isHero
+                    : bullet.type === 'gap'
+                      ? 'text-[#C9A227]'
+                      : isHero
+                        ? 'text-white'
+                        : 'text-[#2ABDD8]'
+                }`}
+              >
+                {bullet.type === 'gift' ? '🎁' : bullet.type === 'gap' ? '⚠' : '✓'}
+              </span>
+              <span>
+                {bullet.text ? `${t(bullet.text)} ` : ''}
+                {bullet.strong ? (
+                  <b className="font-bold">{t(bullet.strong)}</b>
+                ) : null}
+                {bullet.extra ? ` ${t(bullet.extra)}` : ''}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* Action Button */}
+      <div className="mt-8">
+        <button
+          type="button"
+          onClick={onSelect}
+          className={`w-full rounded-xl py-3.5 text-center text-sm sm:text-base font-bold tracking-wide transition-all duration-200 cursor-pointer ${
+            pkg.ctaVariant === 'ghost'
+              ? 'border-[1.5px] border-[#106574] bg-white text-[#106574] hover:bg-[#106574] hover:text-white shadow-sm active:scale-[0.98]'
+              : pkg.ctaVariant === 'solid'
+                ? 'bg-white text-[#E11D48] shadow-lg hover:brightness-95 active:scale-[0.98]'
+                : 'bg-[#106574] text-white shadow-lg hover:brightness-110 active:scale-[0.98]'
+          }`}
+        >
+          {t(pkg.ctaText)}
+        </button>
+      </div>
+    </div>
   );
 }

@@ -27,11 +27,11 @@
  * `canonicalOrigin` in src/app/auth/callback/route.ts.
  */
 
-const FALLBACK_ORIGIN = 'https://glowbal-education.com';
+export const PRODUCTION_SITE_URL = 'https://glowbal-education.com';
 
 function resolveSiteUrl(): string {
   let value = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, '');
-  if (!value) return FALLBACK_ORIGIN;
+  if (!value) return PRODUCTION_SITE_URL;
   // Accept a bare hostname in the env var, the way canonicalOrigin() does —
   // "glowbal-education.com" and "localhost:3000" are both things people set.
   if (!/^https?:\/\//i.test(value)) {

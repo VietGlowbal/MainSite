@@ -36,6 +36,16 @@ export interface EntitlementCheckResult {
   reason?: string;
 }
 
+export function isPlusEntitlementActive(
+  profile: { plus_status?: boolean | null; plus_expires_at?: string | null; is_admin?: boolean | null },
+  now = new Date(),
+): boolean {
+  if (profile.is_admin === true) return true;
+  return profile.plus_status === true
+    && typeof profile.plus_expires_at === 'string'
+    && new Date(profile.plus_expires_at).getTime() > now.getTime();
+}
+
 /**
  * Default limits per plan tier
  * 
@@ -71,7 +81,7 @@ export async function hasActiveGlowBalSubscription(userId: string): Promise<bool
   
   const { data, error } = await supabase
     .from('student_profiles')
-    .select('plus_status')
+    .select('plus_status, plus_expires_at')
     .eq('user_id', userId)
     .single();
   
@@ -79,7 +89,7 @@ export async function hasActiveGlowBalSubscription(userId: string): Promise<bool
     return false;
   }
   
-  return data.plus_status === true;
+  return isPlusEntitlementActive(data);
 }
 
 /**

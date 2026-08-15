@@ -231,6 +231,7 @@ describe('POST /api/ai/analyze-statement', () => {
     profileResultMock.mockResolvedValue({
       data: {
         plus_status: true,
+        plus_expires_at: '2099-01-01T00:00:00.000Z',
         sop_analyses_used: 0,
         profile_summary: 'Private profile summary must not reach the LOR prompt.',
         bio: 'Private biography must not reach the LOR prompt.',
@@ -338,7 +339,7 @@ describe('POST /api/ai/analyze-statement', () => {
     expect(prompt).not.toContain('Student background');
     expect(prompt).not.toContain('Private profile summary');
     expect(fromMock).not.toHaveBeenCalledWith('uploaded_documents');
-    expect(profileSelectMock).toHaveBeenCalledWith('plus_status, sop_analyses_used');
+    expect(profileSelectMock).toHaveBeenCalledWith('plus_status, plus_expires_at, sop_analyses_used');
     expect(requestBody.max_tokens).toBe(3500);
     expect(await response.json()).toMatchObject({
       rawScore: 71,
@@ -355,7 +356,7 @@ describe('POST /api/ai/analyze-statement', () => {
 
   it('rate limits repeated LOR quality reviews per user', async () => {
     profileResultMock.mockResolvedValue({
-      data: { plus_status: true, sop_analyses_used: 0 },
+      data: { plus_status: true, plus_expires_at: '2099-01-01T00:00:00.000Z', sop_analyses_used: 0 },
     });
     fetchApplicationWorkspaceMock.mockResolvedValue({
       application: { universityName: 'Cambridge', courseName: 'Computer Science' },

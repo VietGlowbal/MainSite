@@ -4,6 +4,7 @@ import {
   streamCvBuilderGeneration,
   type CvBuilderFormV1,
 } from './cv-builder';
+import type { CvStrategySnapshot } from './cv-builder-strategy';
 
 const targetJson = {
   universityName: 'Example University',
@@ -130,17 +131,82 @@ const targetContext = {
   limitations: ['Core modules unavailable.'],
 };
 
+const strategy: CvStrategySnapshot = {
+  id: 'rec-1',
+  applicationId: 'app-1',
+  sourceAnalysisId: 'analysis-1',
+  sourceMatchAnalysisId: 'match-1',
+  pdfStoragePath: null,
+  createdAt: '2026-08-08T00:00:00Z',
+  version: 1,
+  recommendationId: 'rec-1',
+  frameworks: ['F1', 'F2', 'F3', 'F4', 'F5', 'F6', 'F7'],
+  directionOptions: [
+    {
+      name: 'Business Analytics for Education',
+      identityFit: 9,
+      evidenceStrength: 8,
+      consistency: 9,
+      differentiation: 8,
+      futureAlignment: 9,
+      scalability: 8,
+      overall: 8.5,
+    },
+    {
+      name: 'Education Entrepreneurship',
+      identityFit: 7,
+      evidenceStrength: 7,
+      consistency: 7,
+      differentiation: 7,
+      futureAlignment: 8,
+      scalability: 7,
+      overall: 7.2,
+    },
+  ],
+  chosenDirection: 'Business Analytics for Education',
+  chosenDirectionWhy: 'It best connects the applicant evidence to the programme.',
+  narrative: 'The applicant turns information gaps into practical education tools.',
+  positioningBefore: 'A student interested in technology and education.',
+  positioningAfter: 'A builder of data-informed education tools.',
+  positioningRationale: 'This gives the evidence a focused through-line.',
+  portfolioEvaluations: [],
+  differentiationInsight: 'Generic technical projects are common.',
+  differentiationProposal: 'Connect analytics with measurable education access.',
+  roadmap: {
+    chosenStrategy: 'Build education analytics evidence.',
+    why: 'It is the clearest fit.',
+    prioritize: ['Research'],
+    avoid: ['Unrelated projects'],
+    expectedPositioning: 'A builder of data-informed education tools.',
+    longTermNarrative: 'From information gaps to scalable tools.',
+  },
+  positioning: {
+    before: 'A student interested in technology and education.',
+    after: 'A builder of data-informed education tools.',
+    rationale: 'This gives the evidence a focused through-line.',
+  },
+  differentiation: {
+    insight: 'Generic technical projects are common.',
+    proposal: 'Connect analytics with measurable education access.',
+  },
+};
+
 describe('CV builder model streams', () => {
   it('builds a target profile only from known Supabase source references', async () => {
+    const selectedDirection = strategy.directionOptions[1];
     const stream = vi.fn(async function* (request: { messages: { content: string }[] }) {
       expect(request.messages[0].content).toContain('"universityDna"');
       expect(request.messages[0].content).toContain('"programmeDna"');
+      expect(request.messages[1].content).toContain(selectedDirection.name);
+      expect(request.messages[1].content).toContain('"selectedDirection"');
+      expect(request.messages[1].content).not.toContain(strategy.chosenDirection);
       yield { content: JSON.stringify(targetJson) };
     });
 
     const profile = await generateCvTargetProfile({
       context: targetContext,
-      careerDirection: 'Software Engineering',
+      strategy,
+      selectedDirection,
       apiKey: 'openai-key',
       model: 'gpt-4o',
       stream,
@@ -150,6 +216,12 @@ describe('CV builder model streams', () => {
     expect(profile.keywords).toHaveLength(3);
     expect(profile.evidenceSignals).toHaveLength(5);
     expect(profile.limitations).toContain('Core modules unavailable.');
+    expect(profile.strategyProvenance).toMatchObject({
+      version: 1,
+      recommendationId: strategy.recommendationId,
+      createdAt: strategy.createdAt,
+      selectedDirection: selectedDirection.name,
+    });
   });
 
   it('allocates enough output tokens for a complete Target Profile JSON object', async () => {
@@ -167,7 +239,8 @@ describe('CV builder model streams', () => {
     await expect(
       generateCvTargetProfile({
         context: targetContext,
-        careerDirection: 'Software Engineering',
+        strategy,
+        selectedDirection: strategy.directionOptions[0],
         apiKey: 'openai-key',
         model: 'gpt-4o',
         stream,
@@ -235,6 +308,12 @@ describe('CV builder model streams', () => {
       expect(request.messages[0].content).toContain(
         'Assess applicant evidence only from form',
       );
+      expect(request.messages[0].content).toContain(
+        'The trusted strategy is positioning and inference only. It is never applicant evidence.',
+      );
+      expect(request.messages[1].content).toContain(strategy.chosenDirection);
+      expect(request.messages[1].content).toContain('"selectedDirection"');
+      expect(request.messages[1].content).not.toContain(strategy.directionOptions[1].name);
       const output = `${lines.map((line) => JSON.stringify(line)).join('\n')}\n`;
       yield { content: output.slice(0, 100) };
       yield { content: output.slice(100) };
@@ -245,6 +324,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
+      strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o',
       stream,
@@ -332,6 +413,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
+      strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o',
       stream,
@@ -429,6 +512,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
+      strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o',
       stream,
@@ -522,6 +607,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
+      strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o-mini',
       requestedSections: ['experience'],
@@ -575,6 +662,8 @@ describe('CV builder model streams', () => {
       for await (const event of streamCvBuilderGeneration({
         form,
         targetProfile: targetJson,
+        strategy,
+        selectedDirection: strategy.directionOptions[0],
         apiKey: 'openai-key',
         model: 'gpt-4o-mini',
         requestedSections: ['assessment'],
@@ -630,6 +719,8 @@ describe('CV builder model streams', () => {
     for await (const event of streamCvBuilderGeneration({
       form,
       targetProfile: targetJson,
+      strategy,
+      selectedDirection: strategy.directionOptions[0],
       apiKey: 'openai-key',
       model: 'gpt-4o-mini',
       requestedSections: ['about_me'],

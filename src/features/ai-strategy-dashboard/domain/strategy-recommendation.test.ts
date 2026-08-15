@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { strategyRecommendationFromRow, strategyRecommendationSchema } from './strategy-recommendation';
+import {
+  strategyRecommendationFromRow,
+  strategyRecommendationSchema,
+} from './strategy-recommendation';
 
 function directionOption(overrides: Partial<Record<string, unknown>> = {}) {
   return {
@@ -70,6 +73,13 @@ describe('strategyRecommendationSchema', () => {
   it('rejects a direction score outside 0-10', () => {
     const result = strategyRecommendationSchema.safeParse(
       validStrategy({ directionOptions: [directionOption({ overall: 15 }), directionOption()] }),
+    );
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a chosen direction that is not one of the candidate options', () => {
+    const result = strategyRecommendationSchema.safeParse(
+      validStrategy({ chosenDirection: 'A direction that was not evaluated' }),
     );
     expect(result.success).toBe(false);
   });
@@ -145,4 +155,5 @@ describe('strategyRecommendationFromRow', () => {
     expect(strategyRecommendationFromRow(row({ direction_options: 'not an array' }))).toBeNull();
     expect(strategyRecommendationFromRow(row({ roadmap: null }))).toBeNull();
   });
+
 });

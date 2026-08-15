@@ -10,6 +10,11 @@ import {
   isCvBuilderEnabled,
   loadCvBuilderContext,
 } from '@/lib/ai/cv-builder-context';
+import {
+  loadLatestCvStrategySnapshot,
+  resolveCvSelectedDirection,
+  type CvStrategyDatabase,
+} from '@/lib/ai/cv-builder-strategy';
 import { streamOpenAIText } from '@/lib/ai/vinuni-grounded-evaluation';
 import { createClient } from '@/lib/supabase/server';
 
@@ -51,6 +56,69 @@ export async function POST(
   if (!context) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
   const payload = await request.json().catch(() => null);
+  const expectedRecommendationId =
+    payload &&
+    typeof payload === 'object' &&
+    !Array.isArray(payload) &&
+    typeof payload.expectedRecommendationId === 'string'
+      ? payload.expectedRecommendationId.trim()
+      : '';
+  if (!expectedRecommendationId) {
+    return NextResponse.json(
+      {
+        code: 'STRATEGY_REQUIRED',
+        error: 'A current Personalized Strategy is required before generating a CV.',
+      },
+      { status: 422 },
+    );
+  }
+  const selectedDirectionName =
+    typeof payload?.selectedDirection === 'string'
+      ? payload.selectedDirection.trim()
+      : '';
+  if (!selectedDirectionName) {
+    return NextResponse.json(
+      {
+        code: 'INVALID_DIRECTION',
+        error: 'Select one of the available Personalized Strategy directions.',
+      },
+      { status: 400 },
+    );
+  }
+  const strategy = await loadLatestCvStrategySnapshot(
+    supabase as unknown as CvStrategyDatabase,
+    id,
+    user.id,
+  );
+  if (!strategy) {
+    return NextResponse.json(
+      {
+        code: 'STRATEGY_REQUIRED',
+        error: 'A current Personalized Strategy is required before generating a CV.',
+      },
+      { status: 422 },
+    );
+  }
+  if (strategy.recommendationId !== expectedRecommendationId) {
+    return NextResponse.json(
+      {
+        code: 'STRATEGY_STALE',
+        error: 'Your Personalized Strategy changed. Refresh the CV Builder and try again.',
+      },
+      { status: 409 },
+    );
+  }
+  const selectedDirection = resolveCvSelectedDirection(strategy, selectedDirectionName);
+  if (!selectedDirection) {
+    return NextResponse.json(
+      {
+        code: 'INVALID_DIRECTION',
+        error: 'Select one of the available Personalized Strategy directions.',
+      },
+      { status: 400 },
+    );
+  }
+
   const form = CvBuilderFormSchema.safeParse(payload?.form);
   if (!form.success) {
     return NextResponse.json(
@@ -63,6 +131,22 @@ export async function POST(
     targetProfile = validateTargetProfile(payload?.targetProfile, context.validSourceRefs);
   } catch {
     return NextResponse.json({ error: 'Invalid Target Profile.' }, { status: 400 });
+  }
+  const provenance = targetProfile.strategyProvenance;
+  if (
+    !provenance ||
+    provenance.version !== strategy.version ||
+    provenance.recommendationId !== strategy.recommendationId ||
+    provenance.createdAt !== strategy.createdAt ||
+    provenance.selectedDirection !== selectedDirection.name
+  ) {
+    return NextResponse.json(
+      {
+        code: 'STRATEGY_STALE',
+        error: 'The Target Profile was created from an older strategy. Regenerate it and try again.',
+      },
+      { status: 409 },
+    );
   }
   const requestedSections = payload?.requestedSections;
   if (
@@ -101,6 +185,8 @@ export async function POST(
           for await (const event of streamCvBuilderGeneration({
             form: form.data,
             targetProfile,
+            strategy,
+            selectedDirection,
             apiKey,
             model,
             requestedSections,

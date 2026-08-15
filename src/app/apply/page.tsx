@@ -5,6 +5,7 @@ import { formatTuitionForCard, officialWebsite } from '@/features/universities/d
 import { formatAmount } from '@/lib/scholarships-data';
 import { createClient } from '@/lib/supabase/server';
 import { getServerIdentity } from '@/server/auth/server-identity';
+import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import type { CourseApplication } from '@/lib/apply-types';
 import { ApplicationProgressClient } from './application-progress-client';
 import { ApplyShell } from './apply-shell';
@@ -391,12 +392,24 @@ export default async function ApplyPage({ searchParams }: Props) {
     redirect('/auth?redirect=%2Fapply');
   }
 
+  const supabase = await createClient();
   const applicationsPromise = fetchApplications(user.id);
   const savedRowsPromise = fetchSavedRows(user.id);
   const strategyReadyPromise = fetchStrategyReadiness(user.id, applicationsPromise);
-  const applications = await applicationsPromise;
+  const profilePromise = supabase
+    .from('student_profiles')
+    .select('plus_status, plus_expires_at, is_admin')
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  const [applications, strategyReadyById, profileResult] = await Promise.all([
+    applicationsPromise,
+    strategyReadyPromise,
+    profilePromise,
+  ]);
+
+  const isPlus = isPlusEntitlementActive(profileResult.data ?? {});
   const logoByUniversityId = applicationLogos(applications);
-  const strategyReadyById = await strategyReadyPromise;
 
   return (
     <ApplyShell userName={user.name} userAvatarUrl={user.avatarUrl}>
@@ -405,6 +418,7 @@ export default async function ApplyPage({ searchParams }: Props) {
         logoByUniversityId={logoByUniversityId}
         savedRowsPromise={savedRowsPromise}
         strategyReadyById={strategyReadyById}
+        isPlus={isPlus}
       />
     </ApplyShell>
   );
