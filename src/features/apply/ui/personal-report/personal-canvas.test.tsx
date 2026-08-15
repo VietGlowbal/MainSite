@@ -1,7 +1,11 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import type { PersonalReportV2 } from '../../domain';
-import { PersonalCanvasView, PERSONAL_REPORT_SECTION_IDS } from './personal-canvas';
+import {
+  PersonalCanvasView,
+  type PersonalCanvasSectionKey,
+} from './personal-canvas';
+import { PersonalCanvasWorkspace } from './personal-canvas-workspace';
 
 const NOT_AVAILABLE = {
   reason: 'Not enough evidence yet.',
@@ -19,7 +23,7 @@ function report(): PersonalReportV2 {
       recurringRole: 'Builder',
       recurringBehaviours: ['Builds practical solutions'],
       valueOrientation: 'Impact',
-      observations: [],
+      observations: ['Takes an active role in shaping practical responses.'],
       evidenceRefs: [],
       confidence: 'medium',
       stillDeveloping: [],
@@ -78,13 +82,50 @@ function report(): PersonalReportV2 {
       evidenceRefs: [],
       insufficientData: null,
     },
-    proofOfMe: { available: false, cards: [], insufficientData: NOT_AVAILABLE },
+    proofOfMe: {
+      available: true,
+      cards: [
+        {
+          activityId: 'activity-1',
+          title: 'Birmingham Project Award',
+          role: 'Team lead',
+          personalContribution: 'Led a team to complete the project.',
+          outcome: 'Won the Birmingham Project Award.',
+          competenciesDemonstrated: ['Team Leadership'],
+          supports: ['Core Identity'],
+          evidenceStrength: 'strong',
+          verificationStatus: 'attributable',
+          evidenceSource: 'Birmingham Project Award',
+        },
+      ],
+      insufficientData: null,
+    },
     analytics: {
       competencyEvidenceProfile: [
-        { key: 'hard', label: 'Hard-skill specificity', score: 80, confidence: 'medium', evidenceRefs: [] },
-        { key: 'soft', label: 'Soft-skill specificity', score: 70, confidence: 'medium', evidenceRefs: [] },
+        {
+          key: 'hard',
+          label: 'Hard-skill specificity',
+          score: 80,
+          confidence: 'medium',
+          evidenceRefs: [],
+        },
+        {
+          key: 'soft',
+          label: 'Soft-skill specificity',
+          score: 70,
+          confidence: 'medium',
+          evidenceRefs: [],
+        },
       ],
-      narrativeIdentitySignals: [],
+      narrativeIdentitySignals: [
+        {
+          key: 'patternConsistency',
+          label: 'Pattern consistency',
+          score: 62,
+          confidence: 'medium',
+          evidenceRefs: [],
+        },
+      ],
       signaturePatternSupport: [],
       themeMaturity: [],
       positioningDimensions: [],
@@ -99,20 +140,66 @@ function report(): PersonalReportV2 {
 }
 
 describe('PersonalCanvasView', () => {
-  it('links all six Personal Canvas areas to their report sections', () => {
-    render(<PersonalCanvasView report={report()} />);
+  it('renders all six Personal Canvas areas as interactive controls', () => {
+    const onSelect = vi.fn();
 
-    const targets = [
-      ['Core Identity', PERSONAL_REPORT_SECTION_IDS.coreIdentity],
-      ['Driving Forces', PERSONAL_REPORT_SECTION_IDS.drivingForces],
-      ['Proven Capabilities', PERSONAL_REPORT_SECTION_IDS.provenCapabilities],
-      ['Social Proof', PERSONAL_REPORT_SECTION_IDS.socialProof],
-      ['Areas for Growth', PERSONAL_REPORT_SECTION_IDS.areasForGrowth],
-      ['Long-Term Vision', PERSONAL_REPORT_SECTION_IDS.longTermVision],
-    ] as const;
+    render(
+      <PersonalCanvasView
+        report={report()}
+        activeSection={null}
+        onSelect={onSelect}
+      />,
+    );
 
-    for (const [label, id] of targets) {
-      expect(screen.getAllByRole('link', { name: new RegExp(label, 'i') })[0]).toHaveAttribute('href', `#${id}`);
+    const labels = [
+      'Core Identity',
+      'Driving Forces',
+      'Proven Capabilities',
+      'Social Proof',
+      'Areas for Growth',
+      'Long-Term Vision',
+    ];
+
+    for (const label of labels) {
+      expect(screen.getAllByRole('button', { name: new RegExp(label, 'i') }).length).toBeGreaterThan(0);
     }
+
+    fireEvent.click(screen.getAllByRole('button', { name: /social proof/i })[0]!);
+    expect(onSelect).toHaveBeenCalledWith('socialProof' satisfies PersonalCanvasSectionKey);
+  });
+
+  it('marks the selected Canvas section as active', () => {
+    render(
+      <PersonalCanvasView
+        report={report()}
+        activeSection="coreIdentity"
+        onSelect={() => undefined}
+      />,
+    );
+
+    expect(screen.getAllByRole('button', { name: /core identity/i })[0]).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+  });
+});
+
+describe('PersonalCanvasWorkspace', () => {
+  it('opens a contextual detail panel from the selected Canvas section and closes it', () => {
+    render(
+      <PersonalCanvasWorkspace
+        report={report()}
+        returnTo={undefined}
+        onRegenerate={undefined}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: /social proof/i })[0]!);
+
+    expect(screen.getByRole('complementary', { name: /social proof details/i })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /overview/i })).toHaveAttribute('aria-selected', 'true');
+
+    fireEvent.click(screen.getByRole('button', { name: /close section/i }));
+    expect(screen.queryByRole('complementary', { name: /social proof details/i })).not.toBeInTheDocument();
   });
 });
