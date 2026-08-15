@@ -29,7 +29,7 @@
  */
 
 import { z } from 'zod';
-import { formatMonthValue, parseMonthValue } from '@/shared/lib/month-value';
+import { formatMonthValue, parseMonthValue, type MonthLang } from '@/shared/lib/month-value';
 
 export type IntakeSeason = 'autumn' | 'spring';
 
@@ -277,12 +277,21 @@ export function intakeLabel(choice: IntakeChoice): { label: string; detail: stri
  * "Autumn / Fall 2027", which would show a student a season they did not pick.
  * A value no reader understands is returned as typed rather than dropped: it is
  * still what the student wrote.
+ *
+ * `lang` reaches the month branch only. The season labels below are static
+ * English strings, so the page translator can substitute those from the
+ * dictionary on its own; a formatted month cannot be a dictionary key, and
+ * every screen printing one is on a PII route where that translator is
+ * dictionary-only. See `shared/lib/month-value.ts`.
  */
-export function intakeDisplayLabel(stored: string | null | undefined): string | null {
+export function intakeDisplayLabel(
+  stored: string | null | undefined,
+  lang: MonthLang = 'en',
+): string | null {
   const value = stored?.trim();
   if (!value) return null;
 
-  const month = formatMonthValue(value);
+  const month = formatMonthValue(value, 'short', lang);
   if (month) return month;
 
   const choice = parseIntake(value);

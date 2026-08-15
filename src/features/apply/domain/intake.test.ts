@@ -142,6 +142,15 @@ describe('intakeDisplayLabel', () => {
     expect(intakeDisplayLabel('2028-01')).toBe('Jan 2028');
   });
 
+  it('localises the month, which no dictionary lookup downstream could', () => {
+    // Every screen that prints this is on a PII route, where the page
+    // translator substitutes exact dictionary keys only — and "Sep 2027" is
+    // built at render, so it is never one.
+    expect(intakeDisplayLabel('2027-09', 'vi')).toBe('Tháng 9/2027');
+    expect(intakeDisplayLabel('2027-09', 'en')).toBe('Sep 2027');
+    expect(intakeDisplayLabel('2027-09')).toBe('Sep 2027');
+  });
+
   it('turns this flow’s own tokens into sentences', () => {
     // The bug it exists for: /profile printed the raw column, so a student who
     // answered the reflection step saw "autumn-2027" as their target intake.

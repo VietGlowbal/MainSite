@@ -23,6 +23,13 @@
 
 export type MonthParts = { year: number; month: number };
 
+/**
+ * Structurally the `Lang` union from `@/lib/i18n`, redeclared rather than
+ * imported: that module is a React client component, and nothing in this file
+ * may pull in a framework. Callers pass their `lang` straight through.
+ */
+export type MonthLang = 'en' | 'vi';
+
 /** Trigger labels and the picker grid. Index 0 is January. */
 export const MONTH_ABBREVIATIONS = [
   'Jan',
@@ -54,6 +61,52 @@ export const MONTH_NAMES = [
   'November',
   'December',
 ] as const;
+
+/* ─────────────────────────────────────────────────────────────────────────
+   Vietnamese
+
+   ⚠️ NOT AUTOMATIC, AND THAT IS THE POINT. `/profile` and `/ai-strategy` are
+   on `PII_ROUTE_PREFIXES` in `src/lib/dom-translate.tsx`, so the whole-page
+   translator runs there WITHOUT the network: it can only substitute strings
+   that are already exact keys in the static dictionary. A label built at
+   runtime — "Sep 2027" — is never such a key, so a month formatted in English
+   here would stay English for a Vietnamese student no matter what is added to
+   `i18n-dictionary.ts`. Hence the second set of names and the `lang` argument.
+
+   The forms below are a judgment call, made in one place so the owner can
+   change them in one place: "Th9" in the picker's twelve-cell grid, where a
+   full "Tháng 9" would not fit three to a row, and "Tháng 9/2027" wherever a
+   chosen intake is read as a value.
+   ───────────────────────────────────────────────────────────────────────── */
+
+const MONTH_ABBREVIATIONS_VI = [
+  'Th1',
+  'Th2',
+  'Th3',
+  'Th4',
+  'Th5',
+  'Th6',
+  'Th7',
+  'Th8',
+  'Th9',
+  'Th10',
+  'Th11',
+  'Th12',
+] as const;
+
+const MONTH_NAMES_VI = MONTH_ABBREVIATIONS_VI.map(
+  (_, index) => `Tháng ${index + 1}`,
+) as readonly string[];
+
+/** The month names to draw a control with, for a language. */
+export function monthLabels(lang: MonthLang = 'en'): {
+  abbreviations: readonly string[];
+  names: readonly string[];
+} {
+  return lang === 'vi'
+    ? { abbreviations: MONTH_ABBREVIATIONS_VI, names: MONTH_NAMES_VI }
+    : { abbreviations: MONTH_ABBREVIATIONS, names: MONTH_NAMES };
+}
 
 /**
  * Bounds on the year, wide on purpose.
@@ -144,13 +197,27 @@ export function toMonthValue(raw: string | null | undefined): string {
   return monthValue(year, Number(numeric[0]));
 }
 
-/** `"2027-09"` → `"Sep 2027"`, or `"September 2027"` when `style` is `long`. */
+/**
+ * `"2027-09"` → `"Sep 2027"`, or `"September 2027"` when `style` is `long`.
+ *
+ * In Vietnamese: `"Tháng 9/2027"` and `"Tháng 9 năm 2027"`. The joiner differs
+ * per language rather than being a shared `${month} ${year}` template, because
+ * "Tháng 9 2027" is not how the date is written.
+ */
 export function formatMonthValue(
   value: string | null | undefined,
   style: 'short' | 'long' = 'short',
+  lang: MonthLang = 'en',
 ): string {
   const parts = parseMonthValue(value);
   if (!parts) return '';
+
+  if (lang === 'vi') {
+    return style === 'long'
+      ? `Tháng ${parts.month} năm ${parts.year}`
+      : `Tháng ${parts.month}/${parts.year}`;
+  }
+
   const names = style === 'long' ? MONTH_NAMES : MONTH_ABBREVIATIONS;
   return `${names[parts.month - 1] ?? ''} ${parts.year}`;
 }

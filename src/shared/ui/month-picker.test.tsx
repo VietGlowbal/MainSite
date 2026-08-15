@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { LanguageProvider } from '@/lib/i18n';
 import { MonthPicker } from './month-picker';
 
 /** A fixed "today" so the floor on the grid does not move with the suite. */
@@ -24,6 +25,10 @@ function Harness({ initial = '', onChange }: { initial?: string; onChange?: (v: 
 }
 
 const trigger = () => screen.getByRole('button', { name: /target intake/i });
+
+// The provider reads the stored preference, so a Vietnamese test would leak
+// into every case after it.
+afterEach(() => localStorage.removeItem('glowbal-language'));
 
 describe('MonthPicker', () => {
   it('shows the placeholder until a month is chosen, then the month', async () => {
@@ -139,6 +144,27 @@ describe('MonthPicker', () => {
     await user.click(screen.getByRole('button', { name: 'Clear' }));
 
     expect(trigger()).toHaveTextContent('Select a month');
+  });
+
+  it('draws the months in Vietnamese when that is the language', async () => {
+    // /profile is a PII route, so the page translator there is dictionary-only
+    // and cannot touch a label composed at render. If this regresses, a
+    // Vietnamese student reads "Sep 2027" in an otherwise Vietnamese form.
+    localStorage.setItem('glowbal-language', 'vi');
+    const user = userEvent.setup();
+    render(
+      <LanguageProvider>
+        <Harness initial="2027-09" />
+      </LanguageProvider>,
+    );
+
+    const field = await screen.findByRole('button', { name: /Kỳ nhập học mục tiêu|Target intake/ });
+    expect(field).toHaveTextContent('Tháng 9/2027');
+
+    await user.click(field);
+    expect(screen.getByRole('radio', { name: 'Tháng 9 năm 2027' })).toBeInTheDocument();
+    // The grid cells stay short — "Tháng 9" three to a row does not fit.
+    expect(screen.getByRole('radio', { name: 'Tháng 9 năm 2027' })).toHaveTextContent('Th9');
   });
 
   it('carries the value in a hidden input, for a native form post', () => {

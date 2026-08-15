@@ -3281,6 +3281,9 @@ export const translations: Record<string, string> = {
   'Previous year': 'Năm trước',
   'Next year': 'Năm sau',
   'Clear': 'Xoá',
+  // The month itself is already localised by `formatMonthValue` before it is
+  // interpolated — this key only translates the frame around it.
+  '{intake} · applying {year}': '{intake} · nộp hồ sơ {year}',
   'e.g. Large city campus, close to industry hubs': 'ví dụ: Khuôn viên thành phố lớn, gần các trung tâm ngành',
   'Select a support area…': 'Chọn lĩnh vực cần hỗ trợ…',
   'Earn while you study. Most teaching & research roles open from year 2 onwards.': 'Kiếm thu nhập trong khi học. Hầu hết vị trí giảng dạy và nghiên cứu mở từ năm thứ hai trở đi.',

@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { useLanguage } from '@/lib/i18n';
 import {
-  MONTH_ABBREVIATIONS,
-  MONTH_NAMES,
   clampMonthValue,
   currentMonthValue,
   formatMonthValue,
+  monthLabels,
   monthValue,
   parseMonthValue,
 } from '@/shared/lib/month-value';
@@ -102,6 +102,15 @@ export function MonthPicker({
 }: Props) {
   const id = name;
   const described = error ?? hint;
+
+  /*
+   * Month names are formatted here rather than left to the page translator.
+   * /profile and /ai-strategy are PII routes, where that translator is
+   * dictionary-only — and "Sep 2027" is composed at runtime, so it can never
+   * be a dictionary key. See the note in shared/lib/month-value.ts.
+   */
+  const { lang } = useLanguage();
+  const { abbreviations } = monthLabels(lang);
 
   const today = currentMonthValue(now ?? new Date());
   /**
@@ -260,7 +269,7 @@ export function MonthPicker({
           className={`${CONTROL_BASE} ${error ? CONTROL_INVALID : CONTROL_IDLE} flex items-center justify-between gap-gb-lg text-left`}
         >
           <span className={value ? 'text-fg' : 'text-fg-muted'}>
-            {formatMonthValue(value) || placeholder}
+            {formatMonthValue(value, 'short', lang) || placeholder}
           </span>
           <span className="shrink-0 text-gb-neutral-400">
             <KitIcon art={ICONS.calendar} frame={18} />
@@ -296,7 +305,7 @@ export function MonthPicker({
               className="grid grid-cols-3 gap-gb-sm p-gb-md"
               onKeyDown={onGridKeyDown}
             >
-              {MONTH_ABBREVIATIONS.map((abbreviation, index) => {
+              {abbreviations.map((abbreviation, index) => {
                 const month = monthValue(viewYear, index + 1);
                 const outOfRange = !selectable(month);
                 const selected = month !== '' && month === value;
@@ -309,7 +318,7 @@ export function MonthPicker({
                     role="radio"
                     data-value={month}
                     aria-checked={selected}
-                    aria-label={`${MONTH_NAMES[index] ?? abbreviation} ${viewYear}`}
+                    aria-label={formatMonthValue(month, 'long', lang) || abbreviation}
                     disabled={outOfRange}
                     tabIndex={month === cursor ? 0 : -1}
                     onClick={() => pick(month)}
@@ -345,7 +354,9 @@ export function MonthPicker({
               >
                 {clearLabel}
               </button>
-              <span className="text-gb-xs text-fg-muted">{formatMonthValue(value, 'long')}</span>
+              <span className="text-gb-xs text-fg-muted">
+                {formatMonthValue(value, 'long', lang)}
+              </span>
             </div>
           </div>
         ) : null}

@@ -3,6 +3,7 @@ import {
   clampMonthValue,
   currentMonthValue,
   formatMonthValue,
+  monthLabels,
   monthValue,
   parseMonthValue,
   shiftMonthValue,
@@ -81,6 +82,36 @@ describe('formatMonthValue', () => {
   it('is empty for anything that is not a token, so callers can fall back', () => {
     expect(formatMonthValue('autumn-2027')).toBe('');
     expect(formatMonthValue(null)).toBe('');
+  });
+
+  it('writes the Vietnamese form, joiner and all', () => {
+    // This cannot be left to the page translator: /profile and /ai-strategy
+    // are PII routes, where it substitutes exact dictionary keys only, and a
+    // string built at render is never one.
+    expect(formatMonthValue('2027-09', 'short', 'vi')).toBe('Tháng 9/2027');
+    expect(formatMonthValue('2027-09', 'long', 'vi')).toBe('Tháng 9 năm 2027');
+    // Not "Tháng 9 2027" — the year is not joined the way English joins it.
+    expect(formatMonthValue('2027-09', 'short', 'vi')).not.toContain('9 2027');
+  });
+});
+
+describe('monthLabels', () => {
+  it('gives twelve names in either language', () => {
+    for (const lang of ['en', 'vi'] as const) {
+      const { abbreviations, names } = monthLabels(lang);
+      expect(abbreviations).toHaveLength(12);
+      expect(names).toHaveLength(12);
+    }
+  });
+
+  it('keeps the grid labels short enough to sit three to a row', () => {
+    expect(monthLabels('vi').abbreviations[8]).toBe('Th9');
+    expect(monthLabels('vi').names[8]).toBe('Tháng 9');
+    expect(monthLabels('en').abbreviations[8]).toBe('Sep');
+  });
+
+  it('defaults to English', () => {
+    expect(monthLabels().abbreviations[0]).toBe('Jan');
   });
 });
 

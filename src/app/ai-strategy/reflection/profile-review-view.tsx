@@ -12,7 +12,7 @@ import {
   subjectById,
   type StudyLevel,
 } from '@/features/apply/domain';
-import { useT } from '@/lib/i18n';
+import { useLanguage } from '@/lib/i18n';
 import { Button, Panel, PanelHeader } from '@/shared/ui';
 import { ReflectionBreadcrumb } from '@/features/apply/ui';
 
@@ -84,7 +84,10 @@ export function ProfileReviewView({
   /** e.g. "Cambridge · Computer Science" — drives the in-page breadcrumb. */
   applicationLabel?: string | undefined;
 }) {
-  const t = useT();
+  // `lang` as well as `t`: a formatted month is composed at render and can
+  // never be a dictionary key, and this route is one the page translator only
+  // ever runs dictionary-only on. See shared/lib/month-value.ts.
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [submitting, setSubmitting] = useState(false);
@@ -195,7 +198,7 @@ export function ProfileReviewView({
         />
         {/* Never the raw column — it holds season tokens from this flow and
             month tokens from /profile, neither of which is a sentence. */}
-        <Fact label={t('Target intake')} value={intakeDisplayLabel(data.targetIntake)} />
+        <Fact label={t('Target intake')} value={intakeDisplayLabel(data.targetIntake, lang)} />
       </Section>
 
       <Section
