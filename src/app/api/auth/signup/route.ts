@@ -8,14 +8,7 @@ import { signupConfirmationEmail } from '@/lib/emails/signup-confirmation';
  * POST /api/auth/signup
  *
  * Email/password sign-up that delivers the confirmation email via Resend
- * instead of Supabase's built-in SMTP, which is rate-limited on the free tier
- * ("email rate limit exceeded").
- *
- * How it works: we use the admin API's generateLink to create the (unconfirmed)
- * user and obtain the *exact same* confirmation URL Supabase would have emailed,
- * without Supabase sending anything. We then send that link ourselves through
- * Resend. The /auth/callback route is unchanged — the link is identical to the
- * one Supabase's own template would contain, so confirmation works the same way.
+ * instead of Supabase's built-in SMTP, which is rate-limited on the free tier.
  */
 
 const BodySchema = z.object({
@@ -24,7 +17,6 @@ const BodySchema = z.object({
   full_name: z.string().max(160).optional(),
   phone: z.string().max(20).optional(),
   date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
-  // A path to return to after confirmation (validated to be a local path).
   next: z.string().optional(),
 });
 
@@ -49,23 +41,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please enter a valid email and password.' }, { status: 400 });
   }
   const input = parsed.data;
+  const normalizedEmail = input.email.trim().toLowerCase();
 
-  // Build the post-confirmation redirect from a *local* path only (no open
-  // redirects), mirroring the callback's handling.
   const safeNext = input.next && input.next.startsWith('/') ? input.next : null;
   const callbackUrl = new URL('/auth/callback', siteOrigin(request));
   if (safeNext) callbackUrl.searchParams.set('next', safeNext);
 
   const admin = createAdminClient();
-
-  // Create the user + get the confirmation link, without Supabase emailing it.
   const { data, error } = await admin.auth.admin.generateLink({
     type: 'signup',
-    email: input.email,
+    email: normalizedEmail,
     password: input.password,
     options: {
-      // Same metadata we used to pass to auth.signUp, so the callback can
-      // backfill phone + date of birth onto the profile after confirmation.
       data: {
         full_name: input.full_name ?? '',
         phone: input.phone ?? '',
@@ -77,9 +64,7 @@ export async function POST(request: NextRequest) {
   });
 
   if (error) {
-    // Most common case: the email is already registered.
-    const alreadyExists =
-      error.status === 422 || /already|registered|exists/i.test(error.message);
+    const alreadyExists = error.status === 422 || /already|registered|exists/i.test(error.message);
     if (alreadyExists) {
       return NextResponse.json(
         { error: 'An account with this email already exists. Try signing in instead.' },
@@ -103,11 +88,21 @@ export async function POST(request: NextRequest) {
   }
 
   const firstName = (input.full_name ?? '').trim().split(/\s+/)[0] || undefined;
-  await sendEmail({
-    to: input.email,
-    subject: 'Confirm your GLOWBAL account',
+  const emailResult = await sendEmail({
+    to: normalizedEmail,
+    subject: 'Confirm your GlowBal account',
     html: signupConfirmationEmail(confirmUrl, firstName),
+    text: 'Confirm your GlowBal account using the secure button in the HTML version of this email. If you did not create a GlowBal account, you can ignore this message.',
+    category: 'security',
+    template: 'signup-confirmation',
+    userId: data.user?.id,
+    idempotencyKey: `signup-confirmation:${data.user?.id ?? normalizedEmail}`,
+    tags: { kind: 'signup-confirmation' },
   });
+
+  if (!emailResult.ok) {
+    console.error('[auth/signup] confirmation email failed', emailResult.error);
+  }
 
   return NextResponse.json({ ok: true });
 }
