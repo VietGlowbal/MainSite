@@ -92,15 +92,16 @@ describe('breadcrumbTrail', () => {
 });
 
 describe('applicationSubNav', () => {
-  it('links everything once the analysis, strategy and planner are ready', () => {
+  it('links everything once the analysis, strategy and planner are ready, swapping Overview for Reflections', () => {
     const items = applicationSubNav('app_1', {
       analysisReady: true,
       strategyReady: true,
       plannerReady: true,
+      candidateConfirmed: true,
     });
     expect(items.every((item) => !item.locked)).toBe(true);
     expect(items.map((item) => item.key)).toEqual([
-      'overview',
+      'reflections',
       'portrait',
       'fit',
       'strategyReport',
@@ -108,6 +109,9 @@ describe('applicationSubNav', () => {
       'cv',
       'statement',
     ]);
+    expect(items.find((item) => item.key === 'reflections')?.href).toBe(
+      '/ai-strategy/reflection/confirm?return=%2Fai-strategy%2Fapp_1%2Fstrategy%2Fanalysis',
+    );
     expect(items.find((item) => item.key === 'strategyReport')?.href).toBe(
       '/ai-strategy/app_1/strategy/analysis/recommendation',
     );
@@ -117,13 +121,14 @@ describe('applicationSubNav', () => {
     );
   });
 
-  it('marks the planner and strategy report locked when not yet reachable', () => {
+  it('marks the planner and strategy report locked when not yet reachable, and shows Overview instead of Reflections', () => {
     // SubNav (src/shared/ui/sub-nav.tsx) is what decides whether a locked
     // entry renders at all — this list just has to keep marking them.
     const items = applicationSubNav('app_1', {
       analysisReady: false,
       strategyReady: false,
       plannerReady: false,
+      candidateConfirmed: false,
     });
     expect(items.find((i) => i.key === 'planner')?.locked).toBe(true);
     expect(items.find((i) => i.key === 'strategyReport')?.locked).toBe(true);
@@ -131,6 +136,18 @@ describe('applicationSubNav', () => {
     // The tools never lock — they do not depend on the analysis.
     expect(items.find((i) => i.key === 'cv')?.locked).toBeUndefined();
     expect(items.find((i) => i.key === 'overview')?.locked).toBeUndefined();
+    expect(items.find((i) => i.key === 'reflections')).toBeUndefined();
+  });
+
+  it('locks Reflections if analysis is somehow ready before candidate confirmation', () => {
+    const items = applicationSubNav('app_1', {
+      analysisReady: true,
+      strategyReady: false,
+      plannerReady: false,
+      candidateConfirmed: false,
+    });
+    expect(items.find((i) => i.key === 'reflections')?.locked).toBe(true);
+    expect(items.find((i) => i.key === 'overview')).toBeUndefined();
   });
 });
 
@@ -170,6 +187,14 @@ describe('activeSubNavKey', () => {
   it('returns null off the application journey', () => {
     expect(activeSubNavKey('/apply')).toBeNull();
     expect(activeSubNavKey('/universities')).toBeNull();
+  });
+
+  it('highlights Reflections for all three Candidate Information pages', () => {
+    expect(activeSubNavKey('/ai-strategy/reflection')).toBe('reflections');
+    expect(activeSubNavKey('/ai-strategy/reflection/achievements')).toBe('reflections');
+    expect(activeSubNavKey('/ai-strategy/reflection/confirm?return=%2Fai-strategy%2Fa')).toBe(
+      'reflections',
+    );
   });
 });
 

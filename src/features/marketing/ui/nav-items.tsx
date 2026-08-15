@@ -48,7 +48,13 @@ const INCOMPLETE_MARKETING_NAV_ITEMS: readonly TopNavEntry[] = [
    * page is everything the student owns — applications, deadlines, saved
    * universities and scholarships — and "Application" undersold it as one form.
    */
-  { href: '/apply', label: 'My Portal' },
+  /*
+   * The explicit top anchor matters when the student is already on /apply at
+   * #saved. Next.js preserves the current scroll position when the Page is
+   * still visible, so a plain /apply link does not reliably mean "back to the
+   * top". The heart uses the sibling #saved anchor.
+   */
+  { href: '/apply#portal', label: 'My Portal' },
 ];
 
 export type MarketingNavState = Readonly<{

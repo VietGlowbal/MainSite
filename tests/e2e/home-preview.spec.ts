@@ -74,6 +74,7 @@ function masked(page: import('@playwright/test').Page) {
   return [
     page.locator(`[data-testid="${TID.heroGlobe}"]`),
     page.locator(`[data-testid="${TID.heroPartners}"]`),
+    page.locator(`[data-testid="${TID.homeScholarships}"]`),
   ];
 }
 

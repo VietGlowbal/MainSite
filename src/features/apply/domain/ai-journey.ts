@@ -47,7 +47,7 @@ export const AI_JOURNEY: StepDef[] = [
     label: 'Output report',
     blurb: 'What your profile says about you, read back as a candidate portrait.',
     paid: false,
-    href: '/ai-strategy/report',
+    href: '/ai-strategy/personal-report',
   },
   {
     key: 'university',

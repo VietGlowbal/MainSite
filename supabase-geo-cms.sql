@@ -211,3 +211,36 @@ begin
       with check (true);
   end if;
 end $$;
+
+-- ── 6. News image storage ───────────────────────────────────────────────────
+-- The browser never receives the service-role key. Uploads and deletes go
+-- through /api/admin/news/images, while public readers only need GET access.
+insert into storage.buckets (id, name, public)
+values ('news-images', 'news-images', true)
+on conflict (id) do update set public = true;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects'
+      and policyname = 'Public can read Glowbal news images'
+  ) then
+    create policy "Public can read Glowbal news images"
+      on storage.objects for select
+      to anon, authenticated
+      using (bucket_id = 'news-images');
+  end if;
+
+  if not exists (
+    select 1 from pg_policies
+    where schemaname = 'storage' and tablename = 'objects'
+      and policyname = 'Service role manages Glowbal news images'
+  ) then
+    create policy "Service role manages Glowbal news images"
+      on storage.objects for all
+      to service_role
+      using (bucket_id = 'news-images')
+      with check (bucket_id = 'news-images');
+  end if;
+end $$;

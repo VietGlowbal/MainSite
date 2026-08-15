@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { fetchApplicationWorkspace } from '@/lib/api/application-workspace';
 import { streamCvReview, type CvReviewStreamEvent } from '@/lib/ai/cv-review';
 import { extractDocumentBytes } from '@/lib/ai/document-text';
+import { parseCvPublicTemplate } from '@/lib/ai/cv-builder';
 import { streamOpenAIText } from '@/lib/ai/vinuni-grounded-evaluation';
 import { createClient } from '@/lib/supabase/server';
 
@@ -15,6 +16,8 @@ async function readCvText(request: Request) {
   const contentType = request.headers.get('content-type') ?? '';
   if (contentType.includes('multipart/form-data')) {
     const formData = await request.formData();
+    const template = parseCvPublicTemplate(formData.get('template'));
+    if (!template) return { error: 'Please choose a supported CV format.', status: 400 };
     const file = formData.get('file');
     if (!(file instanceof File)) return { error: 'Please choose a CV file.', status: 400 };
     if (file.size > MAX_FILE_BYTES) {
@@ -27,7 +30,7 @@ async function readCvText(request: Request) {
         file.name,
       );
       return text
-        ? { text }
+        ? { text, template }
         : {
             error: 'Could not read the CV. Use a PDF/DOCX with selectable text, or paste the content instead.',
             status: 400,
@@ -41,7 +44,10 @@ async function readCvText(request: Request) {
   }
 
   const body = await request.json().catch(() => ({}));
-  return { text: typeof body?.text === 'string' ? body.text.trim() : '' };
+  const template = parseCvPublicTemplate(body?.template);
+  return template
+    ? { text: typeof body?.text === 'string' ? body.text.trim() : '', template }
+    : { error: 'Please choose a supported CV format.', status: 400 };
 }
 
 export async function POST(
@@ -105,6 +111,7 @@ export async function POST(
       try {
         for await (const event of streamCvReview({
           cvText: input.text,
+          template: input.template,
           targetProfile,
           apiKey,
           model,

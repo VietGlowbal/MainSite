@@ -611,19 +611,25 @@ export function StatementWriter({
               setVinUniAnalysis(event.analysis);
             }
           } else {
-            streamError = event.message;
+            streamError =
+              typeof event.message === 'string'
+                ? event.message
+                : 'AI returned an invalid response. Please try again.';
+            const sections = Array.isArray(event.sections) ? event.sections : [];
             setMissingSections(
-              event.sections.filter((section): section is VinUniRequestedSection =>
-                [
-                  'A',
-                  'B',
-                  'C',
-                  'D:ability',
-                  'D:aspirations',
-                  'D:creativity',
-                  'D:commitment',
-                  'E',
-                ].includes(section),
+              sections.filter(
+                (section): section is VinUniRequestedSection =>
+                  typeof section === 'string' &&
+                  [
+                    'A',
+                    'B',
+                    'C',
+                    'D:ability',
+                    'D:aspirations',
+                    'D:creativity',
+                    'D:commitment',
+                    'E',
+                  ].includes(section),
               ),
             );
           }

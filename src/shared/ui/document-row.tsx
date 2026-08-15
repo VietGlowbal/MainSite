@@ -56,6 +56,8 @@ export function DocumentRow({
   error,
   onRemove,
   removeLabel,
+  completeLabel = 'Complete',
+  uploadingLabel = 'Uploading…',
 }: {
   fileName: string;
   /** Total size in bytes. Omit when unknown (a stored document, not an upload). */
@@ -68,6 +70,9 @@ export function DocumentRow({
   /** Omit to render a row that cannot be removed. */
   onRemove?: (() => void) | undefined;
   removeLabel?: string | undefined;
+  /** Localisable status labels for embedded translated flows. */
+  completeLabel?: string | undefined;
+  uploadingLabel?: string | undefined;
 }) {
   const done = uploaded ?? total;
   const percent =
@@ -95,11 +100,11 @@ export function DocumentRow({
             {status === 'error' ? (
               <span className="font-medium text-fg-error">{error ?? 'Upload failed'}</span>
             ) : status === 'uploading' ? (
-              <span>Uploading…</span>
+              <span>{uploadingLabel}</span>
             ) : (
               <span className="flex items-center gap-gb-xs font-medium text-tier-safe">
                 <KitIcon art={ICONS.checkCircle} frame={14} className="shrink-0" />
-                Complete
+                {completeLabel}
               </span>
             )}
           </p>

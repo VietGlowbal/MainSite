@@ -36,11 +36,11 @@ VinUniversity, Computer Science
 EXPERIENCE
 Built a robotics programme for 30 students.`;
 
-function jsonRequest(text = cvText) {
+function jsonRequest(text = cvText, template = 'technical') {
   return new Request('http://localhost/api/applications/app-1/cv-review', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ text }),
+    body: JSON.stringify({ text, template }),
   });
 }
 
@@ -95,6 +95,7 @@ describe('POST /api/applications/[id]/cv-review', () => {
     expect(streamCvReviewMock).toHaveBeenCalledWith(
       expect.objectContaining({
         cvText,
+        template: 'technical',
         apiKey: 'openai-key',
         model: 'gpt-4o',
         stream: streamOpenAITextMock,
@@ -112,6 +113,7 @@ describe('POST /api/applications/[id]/cv-review', () => {
   it('extracts an uploaded DOCX in memory without persisting it', async () => {
     extractDocumentBytesMock.mockResolvedValue(cvText);
     const body = new FormData();
+    body.set('template', 'academic');
     body.set(
       'file',
       new File([new Uint8Array([80, 75, 3, 4])], 'cv.docx', {
@@ -134,6 +136,21 @@ describe('POST /api/applications/[id]/cv-review', () => {
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'cv.docx',
     );
+    expect(streamCvReviewMock).toHaveBeenCalledWith(
+      expect.objectContaining({ template: 'academic' }),
+    );
+  });
+
+  it('rejects a missing or unsupported CV format before opening the stream', async () => {
+    const missing = new Request('http://localhost/api/applications/app-1/cv-review', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: cvText }),
+    });
+
+    expect((await POST(missing, context)).status).toBe(400);
+    expect((await POST(jsonRequest(cvText, 'leadership'), context)).status).toBe(400);
+    expect(streamCvReviewMock).not.toHaveBeenCalled();
   });
 
   it('rejects unauthenticated and unauthorized application requests', async () => {
@@ -151,6 +168,7 @@ describe('POST /api/applications/[id]/cv-review', () => {
 
     extractDocumentBytesMock.mockResolvedValueOnce(null);
     const body = new FormData();
+    body.set('template', 'academic');
     body.set('file', new File([new Uint8Array([1, 2])], 'scan.pdf', { type: 'application/pdf' }));
     const response = await POST(
       new Request('http://localhost/api/applications/app-1/cv-review', {

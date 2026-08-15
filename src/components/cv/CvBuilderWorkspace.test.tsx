@@ -516,7 +516,7 @@ describe('CvBuilderWorkspace', () => {
     ).toEqual(expect.objectContaining({ mode: 'clarification' }));
   });
 
-  it('offers only Harvard and AACC layouts and switches the CV preview', async () => {
+  it('locks the selected starting format and finishes on the CV Draft step', async () => {
     localStorage.setItem(
       'glowbal:cv-builder:v1:user-1:app-1',
       JSON.stringify({
@@ -525,7 +525,7 @@ describe('CvBuilderWorkspace', () => {
         targetProfile,
         form: prefill,
         generatedCv,
-        selectedTemplate: 'technical',
+        selectedTemplate: 'academic',
       }),
     );
     render(
@@ -535,16 +535,15 @@ describe('CvBuilderWorkspace', () => {
         universityName="Example University"
         programmeName="Computer Science"
         prefill={prefill}
+        initialTemplate="technical"
       />,
     );
 
     await userEvent.click(screen.getByRole('button', { name: /CV Draft/ }));
-    await userEvent.click(screen.getByRole('button', { name: /Choose layout/ }));
 
-    const harvard = screen.getByRole('button', { name: /Harvard/ });
-    const aacc = screen.getByRole('button', { name: /AACC/ });
-    expect(aacc).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByRole('button', { name: /Leadership/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Layout & PDF/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Choose layout/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Download PDF / Print CV' })).toBeVisible();
     expect(screen.getByRole('article', { name: 'CV AACC' })).toHaveClass(
       'cv-aacc',
       'cv-harvard',
@@ -557,13 +556,6 @@ describe('CvBuilderWorkspace', () => {
     expect(screen.queryByText(/Do you think outside the box/)).not.toBeInTheDocument();
     expect(screen.queryByText(/stick-to-it-ive/)).not.toBeInTheDocument();
 
-    await userEvent.click(harvard);
-    expect(screen.getByRole('article', { name: 'CV Harvard' })).toHaveClass(
-      'cv-harvard',
-    );
-
-    await userEvent.click(aacc);
-    expect(aacc).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('reorders CV sections with accessible buttons and drag and drop', async () => {

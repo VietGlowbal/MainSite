@@ -48,6 +48,11 @@ describe('registrableDomain', () => {
     expect(registrableDomain('https://gradstudies.someuni.edu/x/y')).toBe('someuni.edu');
   });
 
+  it('accepts a bare host from legacy application imports', () => {
+    expect(registrableDomain('www.birmingham.ac.uk')).toBe('birmingham.ac.uk');
+    expect(registrableDomain('catalog.mit.edu')).toBe('mit.edu');
+  });
+
   it('keeps the third label under a registry-operated suffix', () => {
     // The failure this guards: taking the last two labels collapses every
     // British university to "ac.uk", which then matches all of them together.

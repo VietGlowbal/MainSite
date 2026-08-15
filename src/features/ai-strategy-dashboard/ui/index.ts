@@ -28,7 +28,21 @@ export { ContentBlockInput } from './content-block';
 /**
  * The detail page needs the same category/priority pill mappings the
  * planner table and board already use, so a task's chips can't read
- * differently on its own page than they do everywhere else it's listed —
- * see `planner-shared.tsx`'s own header comment.
+ * differently on its own page than they do everywhere else it's listed.
+ *
+ * These come from `planner-presentation.ts`, NOT from `planner-shared.tsx`.
+ * The detail page is a server component, `planner-shared.tsx` is
+ * `'use client'`, and re-exporting a client module's function through this
+ * barrel does not make it callable on the server — it made every task detail
+ * page 500. See `planner-presentation.ts`'s header and
+ * `docs/known-issues.md §5l`.
  */
-export { PRIORITY_LABEL, PRIORITY_VARIANT, categoryLabel, categoryVariant, formatDate } from './planner-shared';
+export {
+  PRIORITY_LABEL,
+  PRIORITY_VARIANT,
+  STATUS_SELECT_CLASS,
+  STATUS_VARIANT,
+  categoryLabel,
+  categoryVariant,
+  formatDate,
+} from './planner-presentation';

@@ -28,6 +28,7 @@ export {
 } from './scholarship-queries';
 export type {
   DirectoryScholarship,
+  HomeScholarshipHighlights,
   Page,
   ScholarshipFacets,
   ScholarshipForUniversity,

@@ -5,6 +5,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/link-applications",
+      "schedule": "30 2 * * *"
+    },
+    {
       "path": "/api/cron/university-images",
       "schedule": "0 3 * * *"
     },

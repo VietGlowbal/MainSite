@@ -10,7 +10,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { translations } from './i18n-dictionary';
+import { translations } from './i18n-catalog';
 
 export type Lang = 'en' | 'vi';
 

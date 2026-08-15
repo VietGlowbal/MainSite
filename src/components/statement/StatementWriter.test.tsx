@@ -777,6 +777,30 @@ describe('StatementWriter VinUni routing', () => {
     second.close();
   });
 
+  it('shows a stream error that omits sections without crashing', async () => {
+    const stream = streamingResponse();
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(stream.response));
+    renderVinUniWriter();
+
+    await userEvent.type(
+      screen.getByRole('textbox', { name: /N.i dung b.i lu.n/ }),
+      'A'.repeat(220),
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Analyze' }));
+    stream.send({
+      type: 'error',
+      code: 'STREAM_FAILED',
+      message: 'AI analysis did not complete. Please try again.',
+      retryable: true,
+    });
+    stream.close();
+
+    expect(
+      await screen.findByText('AI analysis did not complete. Please try again.'),
+    ).toBeVisible();
+    expect(screen.queryByText(/Cannot read properties of undefined/)).not.toBeInTheDocument();
+  });
+
   it('drops a completed response when the editor input hash is stale', async () => {
     const stream = streamingResponse();
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(stream.response));

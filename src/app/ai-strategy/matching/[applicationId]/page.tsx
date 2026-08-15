@@ -1,27 +1,11 @@
-import { notFound, redirect } from 'next/navigation';
-import { getMatchingReportPageData } from '@/features/apply/api';
-import { MatchingReportView } from '@/features/apply/ui';
-import { createClient } from '@/lib/supabase/server';
-import { ReflectionChrome } from '../../reflection-chrome';
+import { redirect } from 'next/navigation';
 
-export default async function MatchingReportPage({
+/** Legacy Matching Report URL retained as a compatibility alias. */
+export default async function LegacyMatchingReportPage({
   params,
 }: {
   params: Promise<{ applicationId: string }>;
 }) {
   const { applicationId } = await params;
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/auth');
-
-  const result = await getMatchingReportPageData(supabase, user.id, applicationId);
-  if (!result.data) notFound();
-
-  return (
-    <ReflectionChrome user={user}>
-      <MatchingReportView data={result.data} migrationMissing={result.migrationMissing} />
-    </ReflectionChrome>
-  );
+  redirect(`/ai-strategy/${applicationId}/matching-report`);
 }

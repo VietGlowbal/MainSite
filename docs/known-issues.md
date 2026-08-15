@@ -19,7 +19,12 @@ are regression records for fixed bugs, not open work:
 | §1 and §1c | Fixed production migration records; do not reopen from stale branch notes. |
 | §1b mentorship RLS | Public reads are worked around in `src/lib/mentors.ts`; the underlying policy/admin visibility design remains unresolved until live policies are rechecked. |
 | §2, §2b, §3, §4, §4b | Still relevant code/design debt unless a later section explicitly records a fix. |
-| §5–§5i | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i fixed a recommendation detail page crash: `parseContentBlock`/`parseContentBlockValue` only checked the JSON's `type` field, not the rest of the shape, so a malformed `content_schema` crashed the genUI content block's `.map()` calls instead of degrading to `null`. |
+| §5–§5m | Fixed regression history; preserve the tests and constraints. §5g fixed the biggest one: `personal_summary_completed_at`/`achievements_completed_at` were never written by any code, so no student could ever truly complete reflections. Some non-application entry points into the reflection forms still don't carry a `return` context — see §5g's third row. §5h fixed `load-evaluation.ts` selecting five `course_applications` columns that only exist on a different, superseded schema for that table name — Personal Report and Matching Report 404'd for every application. Also merged the duplicate report-page nav bar into the one `ApplicationNav` bar, and locked nav entries are now omitted rather than shown dimmed. §5i hardened `parseContentBlock`/`parseContentBlockValue`, which only checked the JSON's `type` field and not the rest of the shape — a real latent bug, but **not** the cause of the "planner tasks don't load" report it was written in response to; see §5l for what actually was. §5j is a design-constraint record, not a bug fix: the header's kinetic-typography animation must stay low-opacity and flash only one word instance at a time, never a whole row — both were tried and both crowded the real nav text. §5k fixed a real stacking-order bug found while adding the animation's delayed reveal: the red background fill was painted after (on top of) the canvas, so once it faded in it buried the animation instead of backing it — the fill div must stay before the canvas in source order. §5l is the one to read before touching the Planner UI: every task detail page 500'd because a server component imported pure helpers from a `'use client'` module, where calling an export throws and reading one silently yields `undefined`. The mappings now live in a directive-free `planner-presentation.ts`; never move them back. §5m records that reflection never asked for the career direction the matching and strategy reports score against, and that `goals` is a SHARED column — do not add a second career-goal column beside it. |
+| §5n–§5q | Fixed regression history for the per-application Candidate Information flow; preserve the tests and constraints. §5p made review/confirmation state per-application (`course_applications.personal_summary_reviewed_at`/`achievements_reviewed_at`/`candidate_confirmed_at`) instead of per-student. §5q fixed the two bugs that surfaced once that shipped: `reflection/confirm/page.tsx` redirected away unconditionally once confirmed, so the "Reflections" nav entry had nothing to link to and read-only Continue buttons had nowhere real to go — see §5q for the read-only `ReviewConfirmView` mode, the `applicationSubNav()` Overview↔Reflections swap, and `confirmedReflectionContinueHref`. |
+| §5r deleting an application | Migration written (`supabase-application-cascade-repair.sql`), **NOT YET CONFIRMED RUN** — repairs `ON DELETE CASCADE` drift across per-application child tables. |
+| §5s Personal Report nav/i18n/lock/CTA fixes | Fixed regression record — nav bar, English-only content, the `"|null"` extraction leak, and the Matching Report link are all fixed. The new inline-answer path uses `supabase-personal-report-supplements.sql`, **NOT YET CONFIRMED RUN**; it degrades to a 503 until then. |
+| §5t Personal Report versioning + no more cooldown | Fixed regression record — the one-row-per-student model with a 24h cooldown (root cause of "isn't generating at all" across multiple applications) is replaced by an append-only `student_personal_report_versions` table with no time-based limit, plus a version-history dropdown and two new regeneration triggers. `supabase-personal-report-versions.sql`, **NOT YET CONFIRMED RUN**; degrades to the not-enabled state until then. |
+| §5u three more `?return=`-dropping entry points | Fixed regression record — §5s fixed the nav band and gap-action links for whichever entry point already carried `?return=`, but three routes with `applicationId` in scope (`AnalysisWorkspace`, `confirmedReflectionContinueHref`, the legacy portrait alias) never built it. All three fixed; see this section for why the report also reads shallow on thin achievement data — expected given the design, not a separate bug. |
 | §6 | Owner/designer decisions, not implementation bugs. |
 
 For current branch, recent-work, and verification status, read
@@ -994,6 +999,622 @@ reused for reads too), degrading to `null` on any malformed row instead of
 throwing. `null` already has a real, intentional meaning on this page — "no
 content block, the task is finished elsewhere" — so a malformed row now
 reads the same as a `null` one rather than crashing. | `src/features/ai-strategy-dashboard/domain/recommendation.ts` |
+
+## 5j. `ApplicationNavBackground` — a canvas animation confined to a real header has no room for full-strength text, and a flash must target one instance, not a whole row
+
+**Not a bug fix — a design constraint worth recording**, discovered building
+the header's kinetic-typography animation (`src/components/application-nav-background.tsx`)
+in two passes. The reference the owner supplied was designed for a fullscreen
+canvas with real empty space around the text; `ApplicationNav`'s actual
+header is two tightly-packed lines with no spare height.
+
+1. First pass drew the animation as a full-height backdrop behind the real
+   breadcrumb/nav text (matching the reference layout) but flashed an
+   entire tiled marquee row white at once. Confined to the real header, that
+   read as the whole line turning white directly under "Overview / Personal
+   Report / …" — unreadable. Shipped instead as a dedicated strip below the
+   header (PR #167).
+2. The owner asked for the animation to live inside the header's existing
+   bounds instead, and to follow the reference's full three-phase spec
+   (typing reveal + dual marquee + alignment flash), not the simplified
+   strip version. Porting the reference's own alignment math found the real
+   bug: it only ever highlights the ONE word instance whose position
+   matches the trigger (`Math.abs(x - targetX) < 2`), not the whole row —
+   the first pass's "whole row flashes" behaviour was never what the
+   reference did, it was an over-simplification introduced while adapting
+   it. Fixed to match per-instance, plus a low base-opacity pass
+   (`BASE_ALPHA`/`FLASH_PEAK_ALPHA`) — three lines of decorative text at
+   full strength directly behind two lines of real content is clutter at
+   this scale even without a flash bug.
+
+**Do not restore full-opacity multi-line text or whole-row flashes here** —
+both were tried, both failed the same way: outshining or crowding the real
+navigation. If this component grows a new phase or row, size it against the
+header's own measured height (`ResizeObserver`, not viewport dimensions) and
+keep highlights scoped to the single instance that triggered them.
+
+## 5k. `ApplicationNav` — a delayed background-fill layer painted after the canvas buries the animation instead of backing it
+
+Owner asked for three follow-on changes to §5j's animation: size the three
+words to actually fill the header's height (rather than the deliberately
+small text §5j settled on), restrict the boot line's flash to only its first
+two characters ("Go", never the repeated `o`s after it), and hold the brand-
+red fill plus the real breadcrumb/nav content back for ~3 seconds so a
+visitor sees the animation play against the page's own background before the
+chrome arrives (`gb-app-nav-reveal`, `src/styles/tokens.css`, `animation-delay:
+3s`).
+
+Implementing the delay introduced a real bug, caught only by pixel-sampling a
+screenshot (a compressed PNG alone reads as "the animation vanished after the
+red arrives" — the same false alarm §5j's build nearly repeated): the fill
+was added as a sibling `<div>` **after** `ApplicationNavBackground` in JSX.
+Plain elements with no `z-index` paint in DOM order, so once its fade-in
+finished it was a fully opaque `bg-brand` layer sitting *in front of* the
+canvas — not behind it. The animation kept running correctly the entire
+time; it was just being painted over.
+
+**The fill div must stay before the canvas in source order.** Correct stack,
+bottom to top: delayed red fill → `ApplicationNavBackground` canvas → delayed
+`Container` (breadcrumbs/nav). Before the 3s mark the fill is transparent, so
+the canvas shows against the page's own background; after, the fill is
+opaque red and the canvas draws on top of it, which is the point — the
+marquee should read as texture on the red, not as a flash of white against
+whatever the page happens to render before the header settles in.
+
+## 5l. Every Planner task detail page 500'd — a server component was calling functions exported from a `'use client'` module
+
+**This is the real cause of the "planner tasks don't load" report, and §5i was
+not it.** §5i fixed a genuine latent bug in `parseContentBlock` (a malformed
+`content_schema` crashing the genUI renderer), but that was never what students
+were hitting: the page threw before it could reach any content block.
+
+The task detail page
+(`app/ai-strategy/[applicationId]/strategy/recommendations/[recommendationId]/page.tsx`)
+is a server component. It imported `categoryLabel`, `categoryVariant`,
+`formatDate`, `PRIORITY_LABEL` and `PRIORITY_VARIANT` from the feature's `ui`
+barrel, which re-exported them from `planner-shared.tsx` — a `'use client'`
+module. A client module's exports do not reach a server component as values;
+they arrive as client references, and the two failure modes are asymmetric,
+which is exactly why this survived a fix attempt and a round of review:
+
+- **Calling one throws.** `categoryLabel(...)` → `Attempted to call
+  categoryLabel() from the server but categoryLabel is on the client. It's not
+  possible to invoke a client function from the server, it can only be
+  rendered as a Component or passed to props of a Client Component.` The page
+  renders `categoryVariant(rec.category)` whenever the task has a category, and
+  a generated recommendation essentially always does — so **every** task detail
+  page 500'd.
+- **Reading one does not throw.** `PRIORITY_VARIANT[rec.priority]` silently
+  evaluated to `undefined`, so the priority badge would have rendered with no
+  variant and an empty label. Silent, and invisible next to the crash.
+
+`dashboard-summary.tsx` (also a server component) had the same bug in a
+narrower form: it called `formatDate(deadline)` from the client module, so the
+Planner dashboard crashed for any application that had a deadline set and
+worked for any that did not.
+
+**The fix** is `planner-presentation.ts` — a plain module, no directive,
+holding the pure mappings and the date formatter. A module with no directive
+is usable from both graphs; `planner-shared.tsx` keeps only the React
+components and imports its mappings from next door. **Never move these back,
+and never add `'use client'` to `planner-presentation.ts`** — a component is
+safe to import across the boundary (it renders as a Client Component), a
+plain function or object is not.
+
+Guarded by `planner-presentation.test.tsx`. A unit test cannot reproduce the
+RSC boundary (vitest has one module graph), so it asserts the structural
+property instead: the module stays directive-free, the barrel points at it
+rather than at `planner-shared`, and `dashboard-summary.tsx` does not reach for
+the client module to get `formatDate`. The directive check verifies itself
+against `planner-shared.tsx` so it cannot quietly stop matching anything.
+
+**How to check this class of bug in future:** a `next build` will not catch it
+and neither will `tsc` — the types are identical either way, and the failure is
+at render. A throwaway server-component route under `src/app/dev/` that calls
+the suspect imports inside `try`/`catch` and prints the result reproduces it in
+seconds without needing a database row, which is how this one was found and
+confirmed fixed.
+
+## 5m. Reflection was never asked the questions the reports read — and `goals` is shared, not free
+
+**Not a crash — a silent quality problem**, found while acting on owner
+feedback about the reflection pages.
+
+`src/lib/ai/match-insights.ts` builds two of its prompt inputs from
+`student_profiles` columns that reflection never wrote:
+
+```
+careerDirection  ← career_interests / goals / target_subjects
+personalContext  ← the personal report's summary, else goals
+```
+
+and F7 scores every candidate direction on a `futureAlignment` dimension
+defined as "fit with the target programme and **career direction**". Reflection
+is the one flow every student completes, and it asked for none of it — so for
+anyone who never visited the separate `/profile` pages, the model was scoring
+future alignment against a blank and nothing anywhere said so. Three questions
+now fill it (career goal, why-this-subject, target intake).
+
+**⚠️ `goals` IS SHARED. DO NOT ADD A SECOND CAREER-GOAL COLUMN.** It is a base
+schema column that `supabase-strategy-personal-summary.sql` already repurposed
+as "Career goals" for the unified profile editor, and reflection's career-goal
+question writes to that same column deliberately. A second column for the same
+fact is how the reflection form and the profile editor end up showing a student
+two different answers to the same question. Only `study_motivation` (the reason
+for the choice, which is genuinely not the destination) and `target_intake`
+were added.
+
+**The PATCH degrades rather than failing.** `/api/reflection` retries the
+upsert without the two new columns on a `42703`/`PGRST204`, following the
+`migrationMissing()` pattern `match-insights/route.ts` established. This
+project has a standing habit of shipping code ahead of its migrations
+(§0d–§0f were all instances), and without the retry an unapplied
+`supabase-reflection-questions.sql` would cost a student their nationality,
+grades and budget — the whole step — over two optional answers.
+
+## 5n. Fixed 2026-08-13 — do not re-introduce
+
+**Reported in production**: confirming Candidate Information ("Confirm &
+Generate Reports") failed for a real student with "We could not confirm
+your information. Please try again." — `POST
+/api/candidate-information/confirm` returned `503`. The owner had already
+run `supabase-candidate-confirmation.sql` against the live Supabase project
+before reporting this, ruling out the migration-not-run explanation the 503
+message implied.
+
+**Root cause, and it's two bugs, not one.** (1) `supabase-candidate-
+confirmation.sql` created `confirmed_candidate_snapshots` with RLS enabled
+and only a `SELECT` policy — no `INSERT` policy. The confirm route inserts
+through the ordinary user-session client (`createClient()`, not
+`createAdminClient()`), because confirming is an action the signed-in
+student takes on their own profile, so RLS applies to that insert like any
+other write in this app. With no `INSERT` policy, RLS defaults to denying
+every insert, including the owner's own — Supabase returned `403`,
+Postgres code `42501` (`insufficient_privilege`), message `new row violates
+row-level security policy for table "confirmed_candidate_snapshots"`. (2)
+The route's own `migrationMissing()` classifier made the failure mode worse:
+it matched ANY error whose message contained the string
+`confirmed_candidate_snapshots` (meant to catch "relation does not exist"),
+and the RLS-violation message above happens to contain exactly that
+substring — so a genuine permission error was misclassified as "migration
+not run yet," returning the `503`/"try again shortly" that could never
+actually succeed on retry, since nothing about waiting or retrying grants
+the missing permission.
+
+**Fix**: added the missing `INSERT WITH CHECK (auth.uid() = user_id)`
+policy to `supabase-candidate-confirmation.sql` (idempotent — safe to
+re-run on a project that already has the table). Also narrowed
+`migrationMissing()` in `route.ts` to only match Postgres/PostgREST codes
+that actually mean "does not exist" (`42703`, `PGRST204`, `42P01`) or a
+message containing the phrase "does not exist" — no longer matches on a
+table/column name appearing anywhere in an unrelated error's message, so a
+future permission or constraint error surfaces as a real `500` instead of
+the misleading "come back later" `503`. New test asserts a `42501` RLS
+error returns `500`, not `503`.
+
+## 5o. Fixed 2026-08-13 — do not re-introduce
+
+**Reported live**: "the candidate information for a new application can't be
+confirmed, it's always the same [profile] — you can't generate reports for
+new applications." A student with one already-confirmed application could
+not get a second, new application through onboarding at all.
+
+**Root cause: a client-side navigation dead end, not a backend/gating bug.**
+`student_profiles.confirmed_at` (and `confirmed_candidate_snapshots`) are, by
+design, per-STUDENT, not per-application — Candidate Information is one
+shared profile across every application a student has (see the file-level
+comment on `OnboardingState` in `onboarding.ts`). Report generation itself
+(`applicant_analyses`/`application_match_analyses`) is correctly keyed by
+`application_id` and was never broken — a student who somehow reached
+`/ai-strategy/<newAppId>/strategy/analysis` directly would have generated
+reports for it just fine. The break was in getting there:
+`/ai-strategy/[applicationId]/strategy/page.tsx`'s CTA (added by §5f, before
+the Review & Confirm checkpoint existed) unconditionally linked to
+`onboardingStepHref('personal-summary', id)`, i.e.
+`/ai-strategy/reflection?return=...`, for every application. But once
+`confirmed_at` is set (true for every application once true for any one of
+them), `/ai-strategy/reflection` and `/ai-strategy/reflection/achievements`
+render `ConfirmedReflectionView`/`ConfirmedAchievementsView` instead of the
+editable form — a deliberately button-free "here's what you confirmed"
+summary, with no Next/Continue action and no `returnTo` even threaded into
+it. A student clicking "Start My Strategy" on a new application's Overview
+therefore landed on a screen with nothing to click; the only way out (the
+"Overview" breadcrumb) bounced them straight back to the same CTA — an
+infinite loop with no error message anywhere.
+
+**Fix, two parts:**
+1. `strategy/page.tsx`'s CTA now targets `onboardingStepHref(nextOnboardingStep(state), applicationId)`
+   instead of a hardcoded `'personal-summary'`. This is safe now in a way it
+   was not when §5f's original comment was written: the Review & Confirm
+   `'confirm'` step (added later, #174) sits between "reflections done" and
+   `'analysis'` in the step order, so a not-yet-confirmed student is still
+   routed through reflections → achievements → confirm, in order, exactly as
+   before. Only once `candidateConfirmed` is already true does the CTA now
+   correctly skip straight to `'analysis'` — there is nothing left to review,
+   since a confirmed profile is by definition the one already reviewed and
+   approved.
+2. `ConfirmedReflectionView`/`ConfirmedAchievementsView` gained an optional
+   `returnTo` prop (threaded through from each page's own `?return=` search
+   param) rendering a "Continue" button to it when present, as a defensive
+   escape hatch for any other way a student could land on these
+   already-confirmed views (a bookmark, the browser Back button, a stale
+   link) with nothing else to click.
+
+**What was deliberately NOT done**: adding `application_id` to
+`confirmed_candidate_snapshots`/`student_profiles.confirmed_at` to make
+confirmation per-application. That would contradict this feature's explicit,
+tested design — Candidate Information is one profile shared across every
+application, confirmed once — and would be a much larger schema change for a
+bug that was actually a missing link on a screen, not a data-modeling gap.
+
+**If this is still failing after both fixes ship**: re-run
+`supabase-candidate-confirmation.sql` in the Supabase SQL editor (it is
+idempotent) to pick up the new policy — the code fix alone does not grant
+the missing database permission; the migration must actually be re-run.
+| `supabase-candidate-confirmation.sql`, `src/app/api/candidate-information/confirm/route.ts` |
+
+## 5p. Fixed 2026-08-13 — do not re-introduce
+
+**§5o's own fix was itself wrong, per explicit owner correction the same
+day.** §5o's item 1 (`strategy/page.tsx`'s CTA now targeting
+`onboardingStepHref(nextOnboardingStep(state), applicationId)`) fixed the
+dead-end loop, but had a side effect: once a student had confirmed on ANY
+application, `candidateConfirmed` (read from the GLOBAL
+`student_profiles.confirmed_at`) was true for every future application too —
+so a brand-new application's onboarding silently skipped Reflections,
+Achievements, AND Review & Confirm entirely and jumped straight into report
+generation. Reported live: "this is wrong. We want them to go through the
+normal reflections and application UI again... but for the flow to always be
+the same." §5o's own "what was deliberately NOT done" note (ruling out
+per-application confirmation as too large a change) was reconsidered and
+reversed here, at the owner's explicit direction.
+
+**Fix: made the entire onboarding review/confirmation state per-application**,
+not per-student. New migration `supabase-per-application-onboarding.sql`
+adds `personal_summary_reviewed_at`, `achievements_reviewed_at`,
+`candidate_confirmed_at` to `course_applications` (plus a nullable
+`application_id` on `confirmed_candidate_snapshots`, tagging each
+confirmation with the application it belongs to). `fetchOnboardingState`
+(`onboarding-status.ts`) now reads these three columns instead of the global
+`student_profiles` ones — the change that makes `nextOnboardingStep` correctly
+resolve to `'personal-summary'` for every new application again, restoring
+§5o's CTA fix to actually work as intended. `apply/page.tsx`'s
+`fetchStrategyReadiness` (the "ready" vs "continue applying" label on My
+Portal tracker rows) got the same per-application fix, since it had the
+identical global-flag bug independently. The underlying candidate data
+(`student_profiles`, `student_achievements`, `student_activities`) stays one
+profile shared across every application, unchanged — only the
+review/confirmation STATE is now tracked separately per application, so a
+student can edit it again for a new application even after locking it for an
+earlier one (`PATCH /api/reflection`'s lock and `POST
+/api/candidate-information/confirm`'s idempotency both moved from
+`student_profiles.confirmed_at` to `course_applications.candidate_confirmed_at`
+for the application in question, verified server-side via the new
+`verifiedApplicationId` — `applicationId` arrives from the client already
+derived from an untrusted `?return=` URL via `applicationIdFromPath`, the
+same pattern `ApplicationNavFromReturn` already used, and is never trusted
+without an ownership re-check).
+
+Per explicit owner direction: the flow order is always Reflections →
+Achievements → Review & Confirm → Analysis, for every application, with a
+one-click "Skip — my answers/achievements are still correct" button at the
+top of the first two pages for a returning student who does not need to
+retype anything — never an automatic system skip. Every entry point with no
+application context (the legacy `/ai-strategy/report` generation) keeps
+today's exact global-fallback behaviour, unchanged, when no `applicationId`
+resolves.
+
+| `supabase-per-application-onboarding.sql`, `onboarding-status.ts`, `src/app/api/reflection/route.ts`, `src/app/api/candidate-information/confirm/route.ts`, `candidate-snapshot-repository.ts`, `verified-application-id.ts`, the three reflection pages, `reflection-about-form.tsx`, `reflection-evidence-form.tsx`, `review-confirm-view.tsx`, `apply/page.tsx` |
+
+## 5q. Fixed 2026-08-14 — do not re-introduce
+
+**§5p shipped the per-application migration, but two things still broke,
+reported live the day after with the migration already run in production**:
+"the continue button on the read only doesn't work and the header isn't
+updating correct with reflections being added as an option (the continue
+should either lead to reports being generated or to the personal report
+page)."
+
+Root cause of both: `reflection/confirm/page.tsx` (Review & Confirm) redirected
+away unconditionally the moment `confirmedAt` was set —
+`if (confirmedAt) redirect(returnTo || '/ai-strategy/report')`. That meant
+the one page the owner wanted a "Reflections" nav entry to link to, read-only,
+could never actually be rendered in its confirmed state — there was nothing
+for `applicationSubNav()` to point at, and no page for a `?return=`-carrying
+Continue button anywhere in the flow to land on.
+
+**Fix, three parts:**
+
+1. `reflection/confirm/page.tsx` now renders `ReviewConfirmView` in a new
+   `readOnly` mode instead of redirecting once `confirmedAt` is set — the
+   acknowledgement checkbox, Confirm button, edit links and confirmation
+   modal are all hidden; a confirmed banner and a "Continue" button replace
+   them, matching what `ConfirmedReflectionView`/`ConfirmedAchievementsView`
+   already did for the other two Candidate Information pages.
+2. `applicationSubNav()` (`src/shared/lib/app-routes.ts`) gained a
+   `candidateConfirmed` option and a `reflections` entry that links to
+   `/ai-strategy/reflection/confirm?return=...` — it REPLACES `overview`
+   once `analysisReady` is true (owner: "maybe remove the overview option
+   after we've generated the reports"), rather than both showing at once.
+   `activeSubNavKey()` now maps every `/ai-strategy/reflection*` path to
+   `'reflections'` so the tab highlights correctly on all three Candidate
+   Information pages.
+3. The "Continue" button on all three read-only Candidate Information views
+   (`ReviewConfirmView`, `ConfirmedReflectionView`, `ConfirmedAchievementsView`)
+   used to carry a raw, static `returnTo` query param — which could point at
+   the analysis gate even after this application's reports already existed,
+   or nowhere at all if the page was opened without one. All three now take a
+   computed `continueHref` instead, built by the new
+   `confirmedReflectionContinueHref(applicationId, aiAnalysisComplete)`
+   (`domain/onboarding.ts`): the report-generation gate while reports are
+   still pending, the Personal Report once they exist. Each of the three
+   pages computes it with one extra `fetchOnboardingState` call when
+   `applicationId` resolves, falling back to the legacy raw `returnTo` when it
+   does not (no-application-context entry points, unchanged).
+
+| `src/shared/lib/app-routes.ts`, `src/components/application-nav.tsx`, `src/features/ai-strategy-dashboard/domain/onboarding.ts`, `src/app/ai-strategy/reflection/confirm/page.tsx`, `src/app/ai-strategy/reflection/confirm/review-confirm-view.tsx`, `src/app/ai-strategy/reflection/page.tsx`, `src/app/ai-strategy/reflection/confirmed-reflection-view.tsx`, `src/app/ai-strategy/reflection/achievements/page.tsx`, `src/app/ai-strategy/reflection/achievements/confirmed-achievements-view.tsx` |
+
+## 5r. Deleting an application leaves its reports/tasks/CV+statement work behind — migration written, NOT YET CONFIRMED RUN
+
+**Reported live 2026-08-14**: "the delete for an application isn't working as when an application is deleted, all the other elements outside the direct application (including reports) are kept."
+
+`DELETE /api/applications/[id]` (`src/app/api/applications/[id]/route.ts`) has
+always been, deliberately, a single `DELETE FROM course_applications` with
+nothing else — its own doc comment says every child table is `ON DELETE
+CASCADE`, and every one of this repo's `supabase-*.sql` files DOES declare
+that on every table that stores per-application data (`application_stages`,
+`application_tasks`, `application_requirements`, `application_sources`,
+`application_match_analyses`, `application_recommendations`,
+`application_events`, `applicant_analyses`,
+`application_strategy_recommendations`, `application_strategies`,
+`application_lor_strategies`, and the CV/statement/coach tables one level
+further down via `application_strategies`/`application_recommendations`). On
+paper this should already work.
+
+**Root cause: the exact trap §0 already cost the owner four re-runs over.**
+`CREATE TABLE IF NOT EXISTS` is a no-op against a table that already exists;
+editing a `CREATE TABLE` statement's `ON DELETE` clause after the table has
+already been created in production does nothing to the live constraint. If
+any of these tables were first created before their file's `CASCADE` clause
+was written — plausible across 60 migration files iterated on over many
+sessions — production is still enforcing whatever delete rule (typically `NO
+ACTION`) the table had on day one, regardless of what the `.sql` file says
+today. Verifying this needed live `information_schema` access this session
+did not have (no `SUPABASE_SERVICE_ROLE_KEY` in the sandbox, the same
+recurring limitation noted throughout this file) — the fix below does not
+depend on knowing in advance which tables actually drifted.
+
+**Fix**: `supabase-application-cascade-repair.sql` — for each (child table,
+FK column, parent table) triple, looks up the ACTUAL constraint by name via
+`information_schema` (not a guessed name), drops it, and re-adds an
+identical one with `ON DELETE CASCADE` — a genuine no-op wherever the
+constraint was already correct, a real repair wherever it was not. Before
+tightening each constraint it also deletes any row already orphaned by the
+drift (a child row whose `application_id`/`strategy_id`/etc. no longer
+points at an existing parent) — otherwise `ADD CONSTRAINT` fails outright the
+moment a single past buggy delete has already left one behind, and leaving
+those rows in the database is the exact "keep our databases clean" complaint
+this migration exists to fix. Only touches tables that exist in the target
+environment, so it is safe regardless of which optional migrations have been
+applied, and safe to run repeatedly. `confirmed_candidate_snapshots` and
+`personal_statements` are deliberately excluded — their `application_id` FK
+is `ON DELETE SET NULL` by design (a statement or a confirmation snapshot
+stays the student's own even once the application it was drafted for is
+gone), not a bug.
+
+⚠️ **Action required in production — this migration has NOT been confirmed
+run.** Until it is, deleting an application will keep leaving orphaned rows
+in these tables (invisible in the app, since every read filters by
+`application_id`, but present in the database).
+
+| `supabase-application-cascade-repair.sql` |
+
+## 5s. Personal Report had no nav, was partly in Vietnamese, forced a locked-page detour, and linked to the wrong Matching Report — fixed 2026-08-14
+
+**Reported live from a screenshot of `/ai-strategy/personal-report`**: no
+header nav/breadcrumb on either the Personal Report or Reflections pages;
+several report sections rendered in Vietnamese despite the product being
+English-only outside the `t()` translation layer; gap-filling actions
+("Explain why you are interested in these subjects") sent students to the
+Reflections page even after it was locked by confirmation, a dead end; and
+the bottom CTA always linked to the generic `/ai-strategy/matching` instead
+of `/ai-strategy/<id>/matching-report` for the application actually being
+viewed. The screenshot also showed a literal `"...|null"` suffix leaking
+into rendered text (e.g. "Accepted onto the program.|null").
+
+**Fix, four parts:**
+
+1. **Navigation.** `/ai-strategy/personal-report/page.tsx` now accepts
+   `searchParams: Promise<{ return?: string }>`, derives + re-verifies
+   `applicationId` from `return` the same way
+   `ApplicationNavFromReturn` (reflection pages) already does, and renders
+   that nav component. `aiStrategyApplicationNav()`'s `personalReport` entry
+   (`src/shared/lib/ai-strategy-route-model.ts`) now carries the same
+   `?return=<app>/strategy/analysis` shape as `reflections`, so the nav
+   round-trips correctly regardless of which application the student came
+   from — the report itself stays user-level, only the nav context is
+   per-application.
+2. **English-only content.** `src/features/apply/domain/personal-report.ts`,
+   `src/lib/ai/personal-report-v2.ts`, `personal-report-v2-view.tsx`,
+   `candidate-context.ts`, and the two report/match-insights API routes had
+   hardcoded Vietnamese strings written directly into template/boilerplate
+   code (headlines, interpretations, fallback labels, API error messages,
+   the untrusted-data warning sent to the model) — not a translation-system
+   failure, `t()`/the i18n dictionaries were never involved for these. All
+   translated to English. `candidateConfidence().limitations` in
+   `ai-reports.ts` is confirmed genuinely dead code (only `.score` is read
+   anywhere) and was deliberately left as-is, out of scope.
+3. **The literal `"|null"` bug.** Three AI extraction prompts
+   (`cmcaitf-extraction.ts`, `narrative-activity-extraction.ts`,
+   `competency-extraction.ts`) used an ambiguous `"...|null"` shorthand to
+   mean "this field is a string or null" in their JSON-schema hint; the
+   model sometimes echoed it literally. Fixed both ends: the prompts now
+   show a concrete worked example with a real mix of string/`null` fields
+   instead of the shorthand, and a new
+   `sanitizeExtractedField()` (`src/lib/ai/evaluation/sanitize-extracted-field.ts`)
+   strips a literal trailing `|null`/lone `"null"` from every extracted
+   string field as defence-in-depth.
+4. **Inline report-answering, without reopening the confirmed-data lock.**
+   The owner chose (explicit decision, not a default): new answers to a
+   report's own follow-up questions go into a separate
+   `personal_report_supplements` table (`user_id`, `field_key`, `answer`),
+   read only when generating this report and merged onto a COPY of the
+   candidate context in memory — the confirmed `student_profiles` snapshot
+   and its lock are never touched or reopened. `IntakeAction` gained an
+   optional `fieldKey` marking which gaps are inline-answerable this way vs.
+   which still require the full Achievements form. Currently only
+   `study_motivation` (`STUDY_MOTIVATION_SUPPLEMENT_KEY`) is wired up. New
+   `POST /api/ai-strategy/personal-report/supplement` saves an answer (zod
+   validates `fieldKey` against an explicit allow-list); the client then
+   calls the existing generate endpoint to regenerate. The bottom CTA now
+   receives `matchingReportHref` computed by the page
+   (`/ai-strategy/<id>/matching-report` when an application resolves, the
+   generic `/ai-strategy/matching` otherwise) instead of a hardcoded generic
+   link.
+
+⚠️ **Action required in production — `supabase-personal-report-supplements.sql`
+has NOT been confirmed run.** Until it is, the supplement save route
+degrades to a 503 (tolerant-select/migration-missing pattern, same as every
+other optional migration in this file) rather than 500ing.
+
+| `src/app/ai-strategy/personal-report/page.tsx`, `src/shared/lib/ai-strategy-route-model.ts`, `src/features/apply/ui/personal-report-v2-view.tsx`, `src/features/apply/domain/personal-report.ts`, `src/lib/ai/personal-report-v2.ts`, `src/features/apply/api/candidate-context.ts`, `src/features/apply/api/personal-report-v2-repository.ts`, `src/app/api/ai-strategy/personal-report/route.ts`, `src/app/api/ai-strategy/personal-report/supplement/route.ts`, `src/app/api/applications/[id]/match-insights/route.ts`, `src/lib/ai/evaluation/sanitize-extracted-field.ts`, `src/lib/ai/evaluation/cmcaitf-extraction.ts`, `src/lib/ai/evaluation/narrative-activity-extraction.ts`, `src/lib/ai/evaluation/competency-extraction.ts`, `supabase-personal-report-supplements.sql` |
+
+## 5t. Personal Report stopped generating across multiple applications — replaced the one-row cooldown model with append-only versions — fixed 2026-08-14
+
+**Reported live, immediately after §5s shipped**: "The personal report now
+isn't generating at all. I believe this is because it's shared with multiple
+applications." The owner also asked for the report to be regenerable over
+time with git-style version history (a dropdown to view older versions), and
+for two concrete regeneration triggers: whenever a Matching Report
+generates, and after a student answers one of the report's own follow-up
+questions.
+
+**Root cause, confirmed by reading the two generation call sites together**:
+`student_personal_reports` was one row per student (`user_id` PRIMARY KEY,
+upserted on every regeneration) with a 24h "free tier" regeneration cooldown
+— a limit built around a single manual "regenerate" button. Once
+per-application onboarding (§5p) made editing achievements/reflections
+possible again for every new application, a student routinely changed their
+SHARED profile between applications; `AnalysisWorkspace`'s
+`fetchOrGeneratePersonal` fires on every application's confirm screen, so a
+student progressing through a second or third application kept hitting the
+cooldown wall on a report that had nothing to do with the application in
+front of them — the POST returned `429` with `stale: true`, and the confirm
+screen showed the Personal Report card as failed with no way to clear it for
+24 hours. This is exactly what "shared with multiple applications" was
+describing.
+
+**Fix — replaced the model, not just the limit:**
+
+1. New append-only `student_personal_report_versions` table
+   (`supabase-personal-report-versions.sql`) — every generation is its own
+   row (same shape `application_match_analyses` already uses for the
+   Matching Report), never upserted. A one-time idempotent backfill copies
+   each student's existing latest `report_v2` row over as their first
+   version, so nobody's history appears to start empty.
+2. **No more time-based cooldown.** Regeneration is now gated purely on
+   whether the input actually changed (`shouldRegenerate`, checked before
+   any OpenAI call, so a same-day repeat trigger with no real change costs
+   nothing extra) — an explicit owner decision (`AskUserQuestion`:
+   "remove the time cooldown," recommended because the hash check already
+   prevents wasted calls and is exactly what fixes this bug).
+3. Every version stores a `trigger` (`'manual'` | `'matching_report'` |
+   `'supplement_answer'`) recording why it was created, shown in the
+   version-history dropdown.
+4. New shared orchestration, `regeneratePersonalReport`
+   (`src/features/apply/api/personal-report-generation.ts`) — the one place
+   that loads context+supplements, hashes, decides regenerate-or-cached, and
+   writes a new version. Used by both `POST
+   /api/ai-strategy/personal-report` (`trigger: 'manual'`/`'supplement_answer'`,
+   client-driven) and, new, `POST /api/applications/[id]/match-insights`
+   (`trigger: 'matching_report'`, called best-effort right after a
+   successful Matching Report insert — never fails the Matching Report
+   response if the refresh itself fails).
+5. Two new read routes, `GET /api/ai-strategy/personal-report/versions`
+   (list) and `GET /api/ai-strategy/personal-report/versions/[id]` (one
+   version, ownership-checked by filtering on the signed-in user's id in
+   the query itself). `PersonalReportV2View` gained a version-history
+   `Select` (hidden when there is only one version) — picking a past
+   version fetches and displays it read-only: the Driving Force inline
+   "Answer this" action falls back to a plain link instead of accepting a
+   new answer, and a banner offers "Back to latest."
+
+⚠️ **Action required in production — `supabase-personal-report-versions.sql`
+has NOT been confirmed run.** Until it is, `getLatestPersonalReportV2`
+degrades to `migrationMissing: true` and the report page shows its
+not-enabled state — same tolerant-select/migration-missing pattern as every
+other optional migration in this file.
+
+**Also fixed while wiring the shared orchestration into a second call site**:
+`buildProfileEvaluationInput` (`src/lib/ai/personal-report-v2.ts`) always
+called its three extraction functions with `model` — `string | undefined`
+from an optional param — which is a genuine `exactOptionalPropertyTypes`
+violation invisible until a `features/apply/api` file (subject to
+`tsconfig.strict.json`) imported it transitively for the first time.
+Widened `extractCmcaitfFields`/`extractCompetencyClaims`/`extractRoleAndTheme`'s
+`model?: string` params to `model?: string | undefined` — no behavior
+change, just makes the existing call site typecheck under strict mode.
+
+| `supabase-personal-report-versions.sql`, `src/features/apply/api/personal-report-v2-repository.ts`, `src/features/apply/api/personal-report-generation.ts`, `src/app/api/ai-strategy/personal-report/route.ts`, `src/app/api/ai-strategy/personal-report/versions/route.ts`, `src/app/api/ai-strategy/personal-report/versions/[id]/route.ts`, `src/app/api/applications/[id]/match-insights/route.ts`, `src/app/ai-strategy/personal-report/page.tsx`, `src/features/apply/ui/personal-report-v2-view.tsx`, `src/features/apply/domain/personal-report.ts`, `src/lib/ai/evaluation/cmcaitf-extraction.ts`, `src/lib/ai/evaluation/competency-extraction.ts`, `src/lib/ai/evaluation/narrative-activity-extraction.ts` |
+
+## 5u. Personal Report still missing its nav band after §5s — three more entry points never carried `?return=` — fixed 2026-08-14
+
+**Reported live, with a real screenshot**: opening the Personal Report still
+showed the plain site header (no red `ApplicationNav` band), and the
+"Add more detail to your existing activities" gap action navigated straight
+to `/ai-strategy/reflection/achievements`, which read-only once any
+application has ever been confirmed (`student_profiles.confirmed_at` is a
+global "has ever confirmed once" flag — see §5p) — a dead end for a student
+trying to enrich a thin achievement description.
+
+**Root cause**: §5s fixed the ONE entry point that already had `?return=`
+threading right (`aiStrategyApplicationNav()`'s nav tab) and made every
+in-page link (gap actions, "View confirmed information") correctly carry
+whatever `returnTo` the page received — but never audited every OTHER route
+that navigates a student TO `/ai-strategy/personal-report` in the first
+place. Three had an `applicationId` sitting right there in scope and simply
+never used it, so `returnTo` was `undefined` by the time the student landed:
+
+1. `AnalysisWorkspace`'s `personalHref` (`analysis-workspace.tsx`) — the
+   "View my reports"/"Open report" links on the confirm screen, the most
+   common path into the Personal Report right after generation.
+2. `confirmedReflectionContinueHref` (`domain/onboarding.ts`) — the
+   "Continue" button on the read-only Reflections / Achievements / Review &
+   Confirm views once reports exist. This is very likely the exact path
+   the reporting screenshot came from.
+3. `/ai-strategy/[applicationId]/strategy/analysis/portrait` — the legacy
+   compatibility redirect alias; it didn't even destructure `params`, let
+   alone use `applicationId` from it.
+
+**Fix**: all three now build
+`` `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis`)}` ``,
+the same shape every other entry point already used. With `returnTo`
+correctly populated, `ApplicationNavFromReturn` renders the band again, and
+— since `InsufficientDataCard`'s gap-action buttons already run every
+`action.href` through `withReturn()` (built in §5s) — "Add more detail"
+now correctly lands on THIS application's own achievements page with its
+own per-application lock state, editable whenever that specific
+application hasn't been confirmed yet, instead of silently consulting the
+global flag.
+
+**Not a separate bug, likely the same complaint**: the same report was also
+described as looking shallow — several sections saying "more evidence
+needed" despite six achievements existing. Investigated the evaluation
+engine's synthesis thresholds (`synthesisReadiness`,
+`src/shared/evaluation/f4-narrative-identity.ts`): activity COUNT was fine
+(7 items clears the 3+ "mature" floor); what was missing was `role`/
+`behaviour`/context text on each record, which only comes from a rich
+`detail`/`description` field the extraction pipeline can synthesise from —
+short one-line achievement entries ("accepted onto the program") genuinely
+do not carry that. The report is deliberately built to say "insufficient
+evidence" rather than invent depth from thin data (CLAUDE.md's own rule for
+this feature). The gap-filling loop this section fixes IS the intended way
+a student adds that missing depth — it was simply broken, so no student
+could ever complete it. Not re-touching the evaluation engine's scoring
+itself without a specific product call on what "good enough" should look
+like once the loop is verified working with real added detail.
+
+| `src/features/ai-strategy-dashboard/ui/analysis-workspace.tsx`, `src/features/ai-strategy-dashboard/domain/onboarding.ts`, `src/app/ai-strategy/[applicationId]/strategy/analysis/portrait/page.tsx` |
 
 ## 6. Open questions for the designer / owner
 

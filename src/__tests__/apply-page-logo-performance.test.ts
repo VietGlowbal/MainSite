@@ -181,7 +181,12 @@ describe('ApplyPage logo loading', () => {
     await expect(savedRowsPromise).resolves.toEqual([]);
   });
 
-  it('starts the strategy profile read before applications finish loading', async () => {
+  it('starts the applicant-analyses read before applications finish loading', async () => {
+    // `fetchStrategyReadiness` (src/app/apply/page.tsx) reads
+    // `applicant_analyses` filtered by `user_id` — unlike the per-application
+    // review-column read, which needs the ids `course_applications` resolves
+    // to, this one has no such dependency, so it must not be serialized
+    // behind `course_applications` finishing.
     const applications = deferred<unknown>();
     const started: string[] = [];
     const executed: string[] = [];
@@ -202,14 +207,13 @@ describe('ApplyPage logo loading', () => {
       },
       from: vi.fn((table: string) => {
         started.push(table);
-        if (table === 'student_profiles') {
+        if (table === 'applicant_analyses') {
           const resolved = Promise.resolve(results[table]);
           const builder: Record<string, unknown> = {};
           const chain = () => builder;
           Object.assign(builder, {
             select: chain,
             eq: chain,
-            maybeSingle: chain,
             then: (onFulfilled: (value: unknown) => unknown, onRejected?: (error: unknown) => unknown) => {
               executed.push(table);
               return resolved.then(onFulfilled, onRejected);
@@ -231,8 +235,7 @@ describe('ApplyPage logo loading', () => {
 
     let schedulingError: unknown;
     try {
-      expect(executed).toContain('student_profiles');
-      expect(started).toContain('applicant_analyses');
+      expect(executed).toContain('applicant_analyses');
     } catch (error) {
       schedulingError = error;
     }
@@ -270,5 +273,15 @@ describe('ApplyPage logo loading', () => {
 
     expect(client).not.toContain("import { createClient } from '@/lib/supabase/client'");
     expect(client.match(/await import\('\@\/lib\/supabase\/client'\)/g)).toHaveLength(2);
+  });
+
+  it('keeps distinct portal and saved-list anchors available during streaming', () => {
+    const shell = readFileSync('src/app/apply/apply-shell.tsx', 'utf8');
+    const progress = readFileSync('src/app/apply/application-progress-client.tsx', 'utf8');
+    const savedList = readFileSync('src/app/apply/saved-list-section.tsx', 'utf8');
+
+    expect(shell).toContain('id="portal"');
+    expect(progress).toMatch(/<div ref=\{savedSectionRef\} id="saved"[\s\S]*?<Suspense fallback=/);
+    expect(savedList).not.toContain('id="saved"');
   });
 });

@@ -8,28 +8,154 @@ export {
   ACHIEVEMENT_CATEGORIES,
   ACTIVITY_CATEGORIES,
   EDUCATION_LEVELS,
-  FUNDING_SOURCES,
+  EDUCATION_LEVEL_META,
+  INTAKE_TERMS,
   INTENDED_LEVELS,
+  REVIEW_STATUSES,
   TUITION_BUDGETS_USD,
+  VND_PER_USD,
   aboutYouSchema,
   achievementSchema,
   activitySchema,
   aspirationsSchema,
   evidenceSchema,
+  evidenceSourceSchema,
+  parseBudgetBand,
+  personalReflectionSectionSchema,
   profileUpdateFromReflection,
   reflectionCompleteness,
   reflectionFromProfile,
   reflectionSchema,
+  usdBandFromVndRange,
+  vndRangeFromUsdBand,
 } from './reflection';
+export {
+  STUDY_LEVELS,
+  STUDY_LEVEL_LABELS,
+  studyLevelFromStored,
+  studyLevelLabel,
+} from './study-level';
+export type { StudyLevel } from './study-level';
+export {
+  EXPERIENCE_CATEGORIES,
+  REFLECTION_DIMENSIONS,
+  REFLECTION_DIMENSION_COUNT,
+  REFLECTION_CARD_STATUSES,
+  activityReflectionAnsweredCount,
+  activityReflectionProgress,
+  activityReflectionSchema,
+  experienceCategoryFor,
+  isReflectionCardEmpty,
+  reflectionCardSchema,
+  reflectionCardSkillSchema,
+  reflectionInspiration,
+  reflectionQuestion,
+} from './activity-reflection';
+export type {
+  ActivityReflectionValues,
+  ExperienceCategory,
+  ReflectionCardStatus,
+  ReflectionCardValues,
+  ReflectionDimension,
+} from './activity-reflection';
+export {
+  PERSONAL_REFLECTION_QUESTIONS,
+  PERSONAL_REFLECTION_QUESTION_COUNT,
+  personalReflectionAnsweredCount,
+  personalReflectionComplete,
+  personalReflectionProgress,
+  personalReflectionQuestion,
+  personalReflectionSchema,
+} from './personal-reflection';
+export type { PersonalReflectionKey, PersonalReflectionValues } from './personal-reflection';
+export {
+  ADMISSIONS_TESTS,
+  ENGLISH_TESTS,
+  GPA_SCALE,
+  IELTS_SCALE,
+  SCORE_METHODS,
+  admissionsTestScale,
+  englishTest,
+  englishTestScale,
+  formatScore,
+  ieltsFromEnglishTest,
+  validateGpa,
+  validateIelts,
+  validateScore,
+} from './academic-scores';
+export type {
+  AdmissionsTestId,
+  EnglishTestId,
+  IeltsEstimate,
+  ScoreMethod,
+  ScoreScale,
+  StoredScores,
+} from './academic-scores';
+export {
+  OTHER_SUBJECT_ID,
+  SELECTABLE_SUBJECTS,
+  SUBJECTS,
+  normaliseQuery,
+  searchSubjects,
+  subjectById,
+} from './subject-catalog';
+export type { SubjectGroup, SubjectOption } from './subject-catalog';
+export {
+  DESTINATIONS,
+  POPULAR_DESTINATIONS,
+  destinationById,
+  destinationFlag,
+  destinationIdsFromStored,
+  destinationLabel,
+  searchDestinations,
+} from './destination-catalog';
+export type { DestinationOption } from './destination-catalog';
+export {
+  generateIntakeOptions,
+  intakeLabel,
+  intakeOptionId,
+  intakeOptionsWith,
+  intakeStartMonth,
+  parseIntake,
+  serialiseIntake,
+} from './intake';
+export type { IntakeChoice, IntakeOption, IntakeSeason } from './intake';
+export {
+  FUNDING_SOURCE_CATALOG,
+  FUNDING_SOURCE_IDS,
+  fundingSource,
+  fundingSourceFromStored,
+  fundingSourceLabel,
+} from './funding-catalog';
+export type { FundingSource, FundingSourceId } from './funding-catalog';
+export {
+  ALL_CURRENCIES,
+  PRIMARY_CURRENCIES,
+  convertAmount,
+  convertBudget,
+  currencyMeta,
+  defaultBudget,
+  formatAmount,
+  formatBudgetRange,
+  isCompleteBudget,
+  parseBudget,
+  reBase,
+  serialiseBudget,
+} from './tuition-budget';
+export type { CurrencyCode, CurrencyMeta, TuitionBudget } from './tuition-budget';
 export { AI_JOURNEY, AI_JOURNEY_STEPS, aiJourneySteps } from './ai-journey';
 export type { AiJourneyStep } from './ai-journey';
 export {
+  ABOUT_QUESTIONS,
+  ABOUT_QUESTION_COUNT,
   REFLECTION_STEPS,
   REFLECTION_STEP_COUNT,
+  aboutQuestionProgress,
+  reflectionBlockingIssues,
   reflectionProgress,
   reflectionStep,
 } from './reflection-steps';
-export type { ReflectionStepKey } from './reflection-steps';
+export type { AboutQuestionKey, BlockingIssue, ReflectionStepKey } from './reflection-steps';
 export {
   courseUrlLabel,
   displayCourseName,
@@ -47,39 +173,88 @@ export type {
   ActivityCategory,
   ActivityValues,
   AspirationsValues,
+  EvidenceSource,
   ReflectionProfileRow,
   ReflectionValues,
+  ReviewStatus,
+  TuitionBudgetUsd,
 } from './reflection';
 export {
   applyEvidenceCandidates,
   evidenceCandidateSchema,
+  evidenceCandidateToItem,
   evidenceExtractionResponseSchema,
+  mergeDuplicate,
   validateEvidenceExtraction,
 } from './reflection-extraction';
 export type {
   EvidenceCandidate,
+  EvidenceDuplicate,
   EvidenceExtractionResponse,
   EvidenceSourcePage,
 } from './reflection-extraction';
 export {
+  ACHIEVEMENT_CATEGORY_ICON,
+  ACTIVITY_CATEGORY_ICON,
+  LEVEL_SUGGESTIONS,
+} from './achievement-catalog';
+export {
+  candidateReadiness,
+  candidateSnapshotPayloadSchema,
+} from './confirmation';
+export type {
+  CandidateReadiness,
+  CandidateSnapshotDocument,
+  CandidateSnapshotPayload,
+} from './confirmation';
+export {
   MATCH_PROMPT_VERSION_V2,
-  REPORT_PROMPT_VERSION,
   candidateConfidence,
   canonicalize,
   enforceFitClassification,
-  hydratePersonalReport,
-  personalReportDraftSchema,
-  personalReportSchema,
   programmeFitSchema,
 } from './ai-reports';
 export type {
   CandidateContext,
   EvidenceKind,
   EvidenceRef,
-  PersonalReport,
-  PersonalReportDraft,
   ProgrammeFit,
   MatchingAnalysisView,
   MatchingApplicationSummary,
   MatchingReportPageData,
 } from './ai-reports';
+export {
+  buildPersonalReport,
+  STUDY_MOTIVATION_SUPPLEMENT_KEY,
+  themeMaturityResults,
+} from './personal-report';
+export type {
+  CoreIdentitySection,
+  DrivingForceSection,
+  EmergingTheme,
+  EmergingThemesSection,
+  EmergingThemeStatus,
+  IntakeAction,
+  IntakeActionKind,
+  InsufficientData,
+  PersonalPositioningSection,
+  PersonalReportTrigger,
+  PersonalReportV2,
+  PersonalReportVersionSummary,
+  PositioningDimensionKey,
+  ProofCard,
+  ProofOfMeSection,
+  ReportConfidence,
+  ReportOverallSummary,
+  ReportOverview,
+  SignaturePatternSection,
+  SignaturePatternStep,
+  SignaturePatternStepKey,
+} from './personal-report';
+export type {
+  PersonalReportAnalytics,
+  PositioningDimension,
+  ReportChartMetric,
+  SignaturePatternSupportItem,
+  ThemeChartItem,
+} from './personal-report-analytics';

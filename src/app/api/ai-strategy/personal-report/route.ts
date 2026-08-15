@@ -1,132 +1,67 @@
 import { NextResponse } from 'next/server';
-import {
-  candidateContextHash,
-  getPersonalReportRecord,
-  loadCandidateContext,
-} from '@/features/apply/api';
-import {
-  REPORT_PROMPT_VERSION,
-  hydratePersonalReport,
-} from '@/features/apply/domain';
-import { generatePersonalReportDraft } from '@/lib/ai/personal-report';
-import { isOpenAIConfigured } from '@/lib/ai/openai-client';
+import { z } from 'zod';
+import { regeneratePersonalReport } from '@/features/apply/api';
 import { createClient } from '@/lib/supabase/server';
 
+/**
+ * Canonical user-level Personal Report generation.
+ *
+ * The actual decision logic (regenerate or return the cached latest
+ * version) lives in `regeneratePersonalReport`
+ * (`src/features/apply/api/personal-report-generation.ts`), shared with the
+ * Matching Report route so both can trigger a Personal Report refresh. See
+ * that module's doc comment for why there is no time-based cooldown here.
+ */
 export const runtime = 'nodejs';
-// A valid report may require one bounded schema/evidence repair. Each
-// provider call is capped at 45s, so 120s leaves room for both calls and
-// the surrounding authenticated reads/write without unbounded retries.
 export const maxDuration = 120;
 
-const COOLDOWN_MS = 24 * 60 * 60 * 1000;
+const bodySchema = z.object({ trigger: z.enum(['manual', 'supplement_answer']).optional() });
 
-function nextRegenerationAt(generatedAt: string): string {
-  return new Date(new Date(generatedAt).getTime() + COOLDOWN_MS).toISOString();
-}
-
-export async function POST() {
+export async function POST(request: Request) {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return NextResponse.json({ error: 'Bạn cần đăng nhập.' }, { status: 401 });
+  if (!user) return NextResponse.json({ error: 'You need to sign in.' }, { status: 401 });
 
-  const [context, stored, profileResult] = await Promise.all([
-    loadCandidateContext(supabase, user.id),
-    getPersonalReportRecord(supabase, user.id),
-    supabase.from('student_profiles').select('plus_status').eq('user_id', user.id).maybeSingle(),
-  ]);
-  if (stored.migrationMissing) {
-    return NextResponse.json(
-      { error: 'Tính năng báo cáo chưa được kích hoạt trong môi trường này.' },
-      { status: 503 },
-    );
-  }
+  const rawBody = await request.json().catch(() => ({}));
+  const parsedBody = bodySchema.safeParse(rawBody);
+  const trigger = parsedBody.success ? (parsedBody.data.trigger ?? 'manual') : 'manual';
 
-  const inputHash = candidateContextHash(context);
-  const current = stored.record;
-  if (
-    current &&
-    current.inputHash === inputHash &&
-    current.promptVersion === REPORT_PROMPT_VERSION
-  ) {
-    return NextResponse.json({
-      report: current.report,
-      cached: true,
-      nextRegenerationAt: nextRegenerationAt(current.generatedAt),
-    });
-  }
+  const result = await regeneratePersonalReport({ supabase, userId: user.id, trigger });
 
-  const isPlus = Boolean(profileResult.data?.plus_status);
-  if (current && !isPlus) {
-    const nextAt = nextRegenerationAt(current.generatedAt);
-    if (Date.now() < new Date(nextAt).getTime()) {
+  switch (result.status) {
+    case 'migration_missing':
+      return NextResponse.json(
+        { error: 'This feature is not enabled in this environment.' },
+        { status: 503 },
+      );
+    case 'not_configured':
+      return NextResponse.json(
+        { error: 'The AI service is not configured. Missing OPENAI_API_KEY.' },
+        { status: 503 },
+      );
+    case 'error':
       return NextResponse.json(
         {
-          error: 'Bạn đã cập nhật dữ liệu, nhưng chưa thể tạo lại báo cáo miễn phí ngay lúc này.',
-          report: current.report,
-          stale: true,
-          nextRegenerationAt: nextAt,
+          error: result.message,
+          ...(result.record ? { reportV2: result.record.reportV2 } : {}),
         },
-        { status: 429 },
+        { status: 502 },
       );
-    }
-  }
-
-  if (!isOpenAIConfigured()) {
-    return NextResponse.json(
-      { error: 'Dịch vụ AI chưa được cấu hình. Thiếu OPENAI_API_KEY.' },
-      { status: 503 },
-    );
-  }
-
-  try {
-    const generated = await generatePersonalReportDraft(context);
-    const report = hydratePersonalReport(generated.draft, context);
-    const now = new Date().toISOString();
-    const { error } = await supabase.from('student_personal_reports').upsert(
-      {
-        user_id: user.id,
-        report,
-        input_hash: inputHash,
-        prompt_version: REPORT_PROMPT_VERSION,
-        model_name: generated.model,
-        generated_at: now,
-        updated_at: now,
-      },
-      { onConflict: 'user_id' },
-    );
-    if (error) {
-      const migrationMissing =
-        error.code === '42P01' ||
-        error.code === 'PGRST205' ||
-        /student_personal_reports/i.test(error.message ?? '');
-      console.error('[personal-report] upsert failed', error);
-      return NextResponse.json(
-        {
-          error: migrationMissing
-            ? 'Tính năng báo cáo chưa được kích hoạt trong môi trường này.'
-            : 'Không thể lưu báo cáo.',
-        },
-        { status: migrationMissing ? 503 : 500 },
-      );
-    }
-
-    return NextResponse.json({
-      report,
-      cached: false,
-      nextRegenerationAt: new Date(Date.now() + COOLDOWN_MS).toISOString(),
-    });
-  } catch (error) {
-    console.error('[personal-report] generation failed', {
-      code: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
-    });
-    return NextResponse.json(
-      {
-        error: 'AI chưa thể tạo báo cáo hợp lệ. Báo cáo cũ, nếu có, vẫn được giữ nguyên.',
-        ...(current ? { report: current.report } : {}),
-      },
-      { status: 502 },
-    );
+    case 'cached':
+      return NextResponse.json({
+        reportV2: result.record.reportV2,
+        cached: true,
+        versionId: result.record.id,
+        generatedAt: result.record.generatedAt,
+      });
+    case 'regenerated':
+      return NextResponse.json({
+        reportV2: result.record.reportV2,
+        cached: false,
+        versionId: result.record.id,
+        generatedAt: result.record.generatedAt,
+      });
   }
 }

@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AcademicForm } from '@/app/profile/academic/academic-form';
 import { EnglishForm } from '@/app/profile/english/english-form';
 import { PreferencesForm } from '@/app/profile/preferences/preferences-form';
 
@@ -44,6 +45,41 @@ describe('profile editors for onboarding answers', () => {
         expect.objectContaining({
           user_id: 'user-1',
           support_needs: 'Scholarships and funding',
+        }),
+        { onConflict: 'user_id' },
+      ),
+    );
+  });
+
+  it('adds canonical and custom target subjects from the academic dropdown', async () => {
+    render(
+      <AcademicForm
+        userId="user-1"
+        initialProfile={{ target_subjects: ['Legacy Biomimetics'] }}
+      />,
+    );
+
+    const subjectPicker = screen.getByLabelText('Target subjects / fields of study');
+    fireEvent.change(subjectPicker, { target: { value: 'Computer Science' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+
+    expect(screen.getByRole('button', { name: 'Remove Computer Science' })).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Remove Legacy Biomimetics' })).toBeVisible();
+
+    fireEvent.change(subjectPicker, { target: { value: '__other__' } });
+    const customSubject = screen.getByLabelText('Other subject / field of study');
+    fireEvent.change(customSubject, { target: { value: 'Astrobiology' } });
+    fireEvent.keyDown(customSubject, { key: 'Enter' });
+
+    expect(screen.getByRole('button', { name: 'Remove Astrobiology' })).toBeVisible();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+
+    await waitFor(() =>
+      expect(mocks.upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: 'user-1',
+          target_subjects: ['Legacy Biomimetics', 'Computer Science', 'Astrobiology'],
         }),
         { onConflict: 'user_id' },
       ),

@@ -1,22 +1,12 @@
 'use client';
 
 import { usePathname } from 'next/navigation';
-import { activeSubNavKey, type SubNavItem } from '@/shared/lib';
+import { activeAiStrategyApplicationKey } from '@/shared/lib/ai-strategy-route-model';
+import type { SubNavItem } from '@/shared/lib/app-routes';
 import { SubNav, type SubNavTone } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
 
-/**
- * The application context bar, bound to the current route.
- *
- * A thin client wrapper so `SubNav` stays a generic primitive: the primitive
- * knows how to draw a secondary bar, this knows which of GlowBal's routes maps
- * to which entry. Putting `activeSubNavKey` inside the primitive would tie a
- * shared component to this product's URL shapes.
- *
- * It reads the pathname itself rather than taking `activeKey` from the server,
- * because the strategy pages navigate client-side between each other — a
- * server-computed active entry would be one navigation stale.
- */
+/** The application context bar, bound to the current canonical route model. */
 export function ApplicationSubNav({
   items,
   tone,
@@ -30,7 +20,7 @@ export function ApplicationSubNav({
   return (
     <SubNav
       items={items}
-      activeKey={activeSubNavKey(pathname)}
+      activeKey={activeAiStrategyApplicationKey(pathname, items)}
       label={t('Application sections')}
       tone={tone}
     />

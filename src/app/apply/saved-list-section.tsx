@@ -682,7 +682,7 @@ function ScholarshipCandidateCard({
           className="h-gb-6xl w-[110px] shrink-0 object-contain"
         />
       ) : (
-        /* The frame always has a crest. 9 of 106 rows have no logo_url, and
+        /* The frame always has a crest. Directory rows may have no logo_url, and
            without a placeholder the divider and text jump left on those. */
         <span className="flex h-gb-6xl w-[110px] shrink-0 items-center justify-center font-display text-gb-xl text-fg-muted">
           {universityName.slice(0, 1)}
@@ -1171,7 +1171,7 @@ export function SavedListSection({
   const coveragePercent = bestCoveragePercent(rows);
 
   return (
-    <section id="saved" className="flex scroll-mt-gb-9xl flex-col gap-gb-6xl">
+    <section className="flex flex-col gap-gb-6xl">
       {/*
         Figma 562:15092. h2, not h1 — on 562:15078 this heading and
         "My application" are drawn identically, but they are two sections of one

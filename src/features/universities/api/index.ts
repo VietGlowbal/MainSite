@@ -52,7 +52,7 @@ export type {
   ProgrammeQueries,
 } from './programme-queries';
 export { AUTO_PARSE_SOURCE, resolveUniversity } from './university-resolver';
-export type { ResolveInput, ResolveOutcome } from './university-resolver';
+export type { ResolveInput, ResolveOptions, ResolveOutcome } from './university-resolver';
 export {
   UNIVERSITY_LIST_COLUMNS,
   UNIVERSITY_PAGE_SIZE_DEFAULT,

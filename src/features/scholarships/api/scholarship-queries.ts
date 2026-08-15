@@ -69,6 +69,12 @@ export interface ScholarshipFacets {
   total: number;
 }
 
+/** The counted, editorially-ranked slice used by the public Home showcase. */
+export interface HomeScholarshipHighlights {
+  total: number;
+  items: DirectoryScholarship[];
+}
+
 export interface ScholarshipQueries {
   /** Adapter name, e.g. "supabase". */
   readonly name: string;
@@ -95,6 +101,13 @@ export interface ScholarshipQueries {
    * map. Returns a Map for O(1) joining; unknown ids are simply absent.
    */
   byIds(ids: number[]): Promise<Map<number, ScholarshipLabel>>;
+
+  /**
+   * Return a small set of published scholarships with an editorial ranking,
+   * plus the exact size of the published library. This keeps Home from loading
+   * the entire 2,800+ row directory just to render a handful of cards.
+   */
+  homeHighlights(limit?: number): Promise<HomeScholarshipHighlights>;
 
   facets(): Promise<ScholarshipFacets>;
 }

@@ -56,7 +56,7 @@ export default async function MatchingApplicationsPage() {
             {result.applications.map((application) => (
               <Link
                 key={application.id}
-                href={`/ai-strategy/matching/${application.id}`}
+                href={`/ai-strategy/${application.id}/matching-report`}
                 className="rounded-gb-2xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
               >
                 <Panel className="flex items-center justify-between gap-gb-xl transition-colors hover:border-line-strong hover:bg-surface-hover">

@@ -124,7 +124,14 @@ export function registrableDomain(url: string): string | null {
   try {
     host = new URL(url).hostname.toLowerCase();
   } catch {
-    return null;
+    // Legacy application imports accepted bare hosts such as
+    // `www.birmingham.ac.uk`. Treat them as HTTPS URLs for identity matching;
+    // malformed text still throws and returns null below.
+    try {
+      host = new URL(`https://${url}`).hostname.toLowerCase();
+    } catch {
+      return null;
+    }
   }
 
   // An IP address has no registrable name to speak of.

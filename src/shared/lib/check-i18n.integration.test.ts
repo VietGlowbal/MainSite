@@ -18,12 +18,30 @@ describe('production i18n checker', () => {
         missing: unknown[];
         actionableViSource: unknown[];
         parity: unknown[];
+        auditedObjectProperties: string[];
+        dynamicTranslationCalls: unknown[];
+        dynamicCatalogMissing: unknown[];
       };
       expect(output).toContain('missing static keys: 0');
       expect(output).toContain('actionable VI-only source: 0');
       expect(report.missing).toHaveLength(0);
       expect(report.actionableViSource).toHaveLength(0);
       expect(report.parity).toHaveLength(0);
+      expect(report.auditedObjectProperties).toEqual(
+        expect.arrayContaining([
+          'body',
+          'blurb',
+          'definition',
+          'description',
+          'detail',
+          'hint',
+          'message',
+          'section',
+          'subtitle',
+        ]),
+      );
+      expect(report.dynamicTranslationCalls.length).toBeGreaterThan(0);
+      expect(report.dynamicCatalogMissing).toHaveLength(0);
     } finally {
       if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true });
     }

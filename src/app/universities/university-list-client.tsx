@@ -11,6 +11,7 @@ import {
 } from 'react';
 import { useRouter } from 'next/navigation';
 import { useNavigationSession } from '@/components/navigation-session';
+import { useT } from '@/lib/i18n';
 import { Badge } from '@/shared/ui/badge';
 import { Button } from '@/shared/ui/button';
 import { Container } from '@/shared/ui/container';
@@ -100,6 +101,7 @@ function UniversityCard({
   uni: ExplorerUniversity;
   preloadImage?: boolean;
 }) {
+  const t = useT();
   const {
     authPending,
     isShortlisted,
@@ -114,10 +116,10 @@ function UniversityCard({
     e.stopPropagation();
     if (saved) {
       removeFromShortlist(uni.id);
-      showToast('Removed from your list');
+      showToast(t('Removed from your list'));
     } else {
       addToShortlist(uni.id);
-      showToast('Saved to your list');
+      showToast(t('Saved to your list'));
     }
   }
 
@@ -156,7 +158,7 @@ function UniversityCard({
           onClick={toggleSave}
           {...testId(TID.uniCardSaveButton)}
           aria-pressed={saved}
-          aria-label={saved ? 'Remove from your list' : 'Save to your list'}
+          aria-label={t(saved ? 'Remove from your list' : 'Save to your list')}
           className={`absolute right-gb-lg top-gb-lg z-10 flex size-gb-6xl items-center justify-center rounded-gb-full shadow-gb-xs transition-colors ${
             saved ? 'bg-brand text-on-brand' : 'bg-surface/90 text-fg-secondary hover:bg-surface'
           }`}

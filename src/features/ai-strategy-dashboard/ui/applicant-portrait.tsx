@@ -116,7 +116,7 @@ export function ApplicantPortrait({
       </header>
 
       {sections.length === 0 ? (
-        <EmptyPortrait />
+        <EmptyPortrait applicationId={applicationId} />
       ) : (
         <>
           <ReportTabs
@@ -158,7 +158,7 @@ export function ApplicantPortrait({
       )}
 
       {pendingSectionCount > 0 ? (
-        <PendingSections count={pendingSectionCount} vagueness={vagueness} />
+        <PendingSections count={pendingSectionCount} vagueness={vagueness} applicationId={applicationId} />
       ) : null}
 
       <div className="flex justify-center pt-gb-xl">
@@ -312,12 +312,15 @@ function ProofOfMe({ evidence }: { evidence: EvidenceProfile }) {
 function PendingSections({
   count,
   vagueness,
+  applicationId,
 }: {
   count: number;
   vagueness: VaguenessReport;
+  applicationId: string;
 }) {
   const { t } = useLanguage();
   const blocking = vagueness.findings.filter((finding) => finding.severity !== 'ok');
+  const reflectionHref = `/ai-strategy/reflection?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis/portrait`)}`;
 
   return (
     <Panel className="flex flex-col gap-gb-lg">
@@ -339,7 +342,7 @@ function PendingSections({
       ) : null}
 
       <Link
-        href="/ai-strategy/reflection"
+        href={reflectionHref}
         className="self-start text-gb-sm font-semibold text-fg-brand hover:underline"
       >
         {t('Update your reflections')}
@@ -348,8 +351,9 @@ function PendingSections({
   );
 }
 
-function EmptyPortrait() {
+function EmptyPortrait({ applicationId }: { applicationId: string }) {
   const { t } = useLanguage();
+  const reflectionHref = `/ai-strategy/reflection?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis/portrait`)}`;
   return (
     <Panel className="flex flex-col gap-gb-md">
       <h2 className="text-gb-md font-semibold text-fg">{t('Your portrait is not ready yet')}</h2>
@@ -359,7 +363,7 @@ function EmptyPortrait() {
         )}
       </p>
       <Link
-        href="/ai-strategy/reflection"
+        href={reflectionHref}
         className="self-start text-gb-sm font-semibold text-fg-brand hover:underline"
       >
         {t('Start your reflections')}

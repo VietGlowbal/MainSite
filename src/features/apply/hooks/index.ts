@@ -5,6 +5,9 @@
  * dozen unrelated fields, so a component re-renders only for the slice it uses.
  */
 export { useParseRefresh } from './use-parse-refresh';
+export { useHashScrollTarget } from './use-hash-scroll-target';
+export { useEvidenceDocuments } from './use-evidence-documents';
+export type { EvidenceDocument } from './use-evidence-documents';
 
 /**
  * Document upload now lives in `src/shared/hooks`, re-exported here.
