@@ -9,6 +9,7 @@ import {
 import { loadLorEvidence } from '@/lib/ai/lor-evidence.server';
 import { applyRateLimit, lorAiLimiter } from '@/lib/rate-limiter';
 import { createClient } from '@/lib/supabase/server';
+import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import { FREE_SOP_ANALYSES } from '@/lib/plus';
 
 const AIAnalysisSchema = z.object({
@@ -155,6 +156,7 @@ export async function POST(request: Request) {
   // capped at FREE_SOP_ANALYSES free runs.
   type ProfileRow = {
     plus_status?: boolean | null;
+    plus_expires_at?: string | null;
     sop_analyses_used?: number | null;
     profile_summary?: string | null;
     bio?: string | null;
@@ -168,7 +170,7 @@ export async function POST(request: Request) {
   if (isLor) {
     const result = await supabase
       .from('student_profiles')
-      .select('plus_status, sop_analyses_used')
+      .select('plus_status, plus_expires_at, sop_analyses_used')
       .eq('user_id', user.id)
       .maybeSingle();
     profile = result.data;
@@ -176,7 +178,7 @@ export async function POST(request: Request) {
     const result = await supabase
       .from('student_profiles')
       .select(
-        'plus_status, sop_analyses_used, profile_summary, bio, achievements, skills, goals, grades_summary, career_interests',
+        'plus_status, plus_expires_at, sop_analyses_used, profile_summary, bio, achievements, skills, goals, grades_summary, career_interests',
       )
       .eq('user_id', user.id)
       .maybeSingle();
@@ -187,7 +189,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Review usage profile is unavailable.' }, { status: 500 });
   }
 
-  const isPlus = !!profile?.plus_status;
+  const isPlus = isPlusEntitlementActive(profile ?? {});
   const usedSoFar = (profile?.sop_analyses_used as number | undefined) ?? 0;
   const quotaMessage = isLor
     ? `You've used your ${FREE_SOP_ANALYSES} free LOR quality reviews. Upgrade to GlowBal Plus for more AI reviews.`

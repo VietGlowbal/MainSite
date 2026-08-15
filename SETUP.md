@@ -196,3 +196,56 @@ The CLI prints a `whsec_…` secret — paste it into `STRIPE_WEBHOOK_SECRET` in
 - **Resend** — booking confirmation emails use the same `RESEND_API_KEY`
   that powers the waitlist. If it's missing the webhook still confirms the
   booking and updates the database — emails just get logged and skipped.
+
+### 7e. Founder-confirmed manual bank transfer (not applied by this task)
+
+Apply `supabase-vnpay-payments.sql` first, then the guarded follow-up
+`supabase-manual-payment-founder.sql`. Never edit an already-applied migration
+in place. This task does not connect to Supabase or send real email.
+
+Keep all of these values server-only in `.env.local`/deployment secrets:
+
+```bash
+RESEND_API_KEY=re_xxx
+MANUAL_PAYMENT_REVIEWER_USER_IDS=founder-user-uuid
+MANUAL_PAYMENT_FOUNDER_EMAIL=founder@example.com
+MANUAL_PAYMENT_FROM_EMAIL=payments@your-domain.tld
+MANUAL_PAYMENT_REVIEW_SECRET=at-least-32-random-characters
+MANUAL_PAYMENT_RECONCILIATION_SECRET=at-least-32-random-characters
+MANUAL_PAYMENT_BANK_LABEL=Your bank
+MANUAL_PAYMENT_BANK_ACCOUNT_HOLDER=GlowBal Education
+MANUAL_PAYMENT_BANK_ACCOUNT_NUMBER=123456789
+MANUAL_PAYMENT_BANK_QR_URL=https://your-domain.tld/assets/bank-qr.png
+MANUAL_PAYMENT_BANK_QR_REVISION=qr-v1
+NEXT_PUBLIC_SITE_URL=https://your-domain.tld
+```
+
+Configure a protected scheduler to `POST /api/payments/manual/outbox` with
+`Authorization: Bearer $MANUAL_PAYMENT_RECONCILIATION_SECRET`. The checkout
+and review routes make an immediate best-effort outbox attempt; the scheduler
+is authoritative for retries and failed-job visibility. Run one Sandbox/manual
+Plus and one mentorship flow through claim, confirm, reject, expiry, replay,
+and late-receipt support review before enabling production sales.
+
+Verification recorded 2026-08-15: the focused manual/VNPay/payment-UI Vitest
+suite passed **40/40**; the full suite passed **2,381 tests** with 2 todo tests
+under the CI-like 15-second timeout; base and strict TypeScript passed; full
+ESLint had 0 errors; and the Next.js 16.3.1 production build generated all
+125 pages. These checks used no remote database migration and sent no real
+email.
+
+If an earlier SQL Editor run stopped with PostgreSQL `42883` at
+`make_interval(minutes => ...)`, pull the corrected migration and run the whole
+`supabase-manual-payment-founder.sql` file again. The valid PostgreSQL named
+argument is `mins`; the migration is guarded for a complete rerun.
+
+Also rerun the corrected guarded migration if an earlier application created
+`lease_manual_payment_notification_jobs` with `tx record; review record;`. The
+correct declaration uses `tx jsonb; review jsonb;`; runtime compatibility can
+deliver old wrapped jobs, but replacing the database function prevents future
+`"?column?"` wrappers at the source.
+
+Rerun the guarded migration after updating to the one-founder-email flow. It
+replaces checkout so only `student_instructions` is queued initially, retires
+unsent legacy `founder_review` jobs, and keeps the single actionable
+`founder_claimed` email for when the student reports the transfer.

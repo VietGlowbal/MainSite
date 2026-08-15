@@ -6,6 +6,11 @@ import {
   loadCvBuilderContext,
 } from '@/lib/ai/cv-builder-context';
 import { getServerIdentity } from '@/server/auth/server-identity';
+import { createClient } from '@/lib/supabase/server';
+import {
+  loadLatestCvStrategySnapshot,
+  type CvStrategyDatabase,
+} from '@/lib/ai/cv-builder-strategy';
 
 export default async function CvBuilderPage({
   params,
@@ -22,6 +27,11 @@ export default async function CvBuilderPage({
   if (!user) redirect('/auth');
   const context = await loadCvBuilderContext(applicationId, user);
   if (!context) notFound();
+  const strategy = await loadLatestCvStrategySnapshot(
+    (await createClient()) as unknown as CvStrategyDatabase,
+    applicationId,
+    user.id,
+  );
 
   return (
     <CvBuilderWorkspace
@@ -31,6 +41,7 @@ export default async function CvBuilderPage({
       programmeName={context.programmeName}
       prefill={context.prefill}
       initialTemplate={template}
+      strategy={strategy}
     />
   );
 }

@@ -12,10 +12,10 @@ import {
 import {
   FREE_FEATURES,
   GLOWBAL_FB_CHAT_URL,
-  PLUS_SALES_ENABLED,
   getPlusPackage,
 } from '@/lib/plus';
 import { createClient } from '@/lib/supabase/server';
+import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import {
   Badge,
   Button,
@@ -118,10 +118,10 @@ export default async function PlusPage({
   if (user) {
     const { data: profile } = await supabase
       .from('student_profiles')
-      .select('plus_status, plus_plan')
+      .select('plus_status, plus_plan, plus_expires_at')
       .eq('user_id', user.id)
       .maybeSingle();
-    isPlus = !!profile?.plus_status;
+    isPlus = isPlusEntitlementActive(profile ?? {});
     planLabel = profile?.plus_plan ?? null;
   }
 
@@ -226,17 +226,12 @@ export default async function PlusPage({
               </HeroNotice>
             ) : null}
 
-            {!PLUS_SALES_ENABLED ? (
-              <HeroNotice>
-                <p className="text-gb-sm font-semibold text-white">
-                  GlowBal Plus is coming soon
-                </p>
-                <p className="text-gb-sm text-fg-on-inverse-muted">
-                  The plans below are a preview — they are not on sale yet. Everything in the Free
-                  plan is fully available in the meantime.
-                </p>
-              </HeroNotice>
-            ) : null}
+            <HeroNotice>
+              <p className="text-gb-sm font-semibold text-white">VNPay Sandbox checkout</p>
+              <p className="text-gb-sm text-fg-on-inverse-muted">
+                Choose a plan below to test payment in Vietnamese dong. Stripe is coming soon.
+              </p>
+            </HeroNotice>
           </Container>
         </section>
 
@@ -295,41 +290,29 @@ export default async function PlusPage({
               </Button>
             </div>
 
-            {/* Fine print. With sales off nothing is being charged, so the
-                payment reassurance is withheld rather than shown against a
-                checkout that refuses. */}
             <div className="mx-auto flex max-w-gb-width-xl flex-col items-center gap-gb-md text-center text-gb-xs text-fg-muted">
-              {PLUS_SALES_ENABLED ? (
-                <>
-                  <p className="inline-flex items-center gap-gb-sm">
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      aria-hidden="true"
-                    >
-                      <rect x="3" y="11" width="18" height="11" rx="2" />
-                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                    </svg>
-                    Payments are processed securely by Stripe.
-                  </p>
-                  <p>
-                    Choose your currency above — you&rsquo;ll be charged in the currency you select;
-                    conversions from VND are approximate. GlowBal helps you discover opportunities
-                    and prepare stronger applications; it does not guarantee scholarship outcomes.
-                  </p>
-                </>
-              ) : (
-                <p>
-                  GlowBal helps you discover opportunities and prepare stronger applications; it
-                  does not guarantee scholarship outcomes.
-                </p>
-              )}
+              <p className="inline-flex items-center gap-gb-sm">
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <rect x="3" y="11" width="18" height="11" rx="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                Payments are processed securely by VNPay Sandbox.
+              </p>
+              <p>
+                VNPay charges the canonical VND amount shown in each plan. Other currencies are
+                display estimates. GlowBal helps you discover opportunities and prepare stronger
+                applications; it does not guarantee scholarship outcomes.
+              </p>
             </div>
           </Container>
         </section>

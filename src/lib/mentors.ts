@@ -238,6 +238,11 @@ export async function getPublicMentorSlots(
 ): Promise<MentorAvailabilitySlot[]> {
   const supabase = createAdminClient();
 
+  // Release abandoned VNPay holds before rendering the public calendar. The
+  // RPC is safe to re-run and is deliberately best-effort until the payment
+  // migration has been deployed in every environment.
+  await supabase.rpc('reclaim_vnpay_expired_holds');
+
   const leadTimeMs = 60 * 60 * 1000; // mirrors the checkout guard
   const fromIso = new Date(Date.now() + leadTimeMs).toISOString();
   const toIso = new Date(

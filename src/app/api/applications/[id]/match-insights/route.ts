@@ -11,6 +11,7 @@ import { extractDocumentText } from '@/lib/ai/document-text';
 import { defaultOpenAIModel } from '@/lib/ai/openai-client';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
+import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import {
   weightedScore,
   matchLabel,
@@ -83,7 +84,7 @@ export async function POST(
   const [candidate, profileResult, documentsResult, personalResult, universityResult] =
     await Promise.all([
       loadCandidateContext(supabase, userId),
-      supabase.from('student_profiles').select('plus_status').eq('user_id', userId).maybeSingle(),
+      supabase.from('student_profiles').select('plus_status, plus_expires_at').eq('user_id', userId).maybeSingle(),
       supabase
         .from('uploaded_documents')
         .select('id,type,storage_key,mime_type,parsed_text')
@@ -93,7 +94,7 @@ export async function POST(
         ? Promise.resolve({ data: null, error: null })
         : supabase.from('universities').select('*').eq('id', universityId).maybeSingle(),
     ]);
-  const isPlus = Boolean(profileResult.data?.plus_status);
+  const isPlus = isPlusEntitlementActive(profileResult.data ?? {});
   const university = (universityResult.data ?? null) as Record<string, unknown> | null;
   const course = (application.courses ?? {}) as Record<string, unknown>;
   const docs = (documentsResult.data ?? []) as DocRow[];
