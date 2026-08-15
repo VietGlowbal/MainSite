@@ -12,7 +12,7 @@ function recipientLabel(to: string | string[]): string {
  * The single low-level mail transport for GlowBal.
  *
  * - Uses support@glowbal-education.com by default.
- * - Preserves WAITLIST_FROM_EMAIL as a deployment compatibility fallback.
+ * - Supports deliberate EMAIL_FROM_* overrides through the shared config.
  * - Supports attachments, plain text, reply-to and Resend idempotency.
  * - Writes best-effort delivery/audit rows when supabase-email-system.sql exists.
  */
