@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PersonalReportV2 } from '../../domain';
 import {
   PersonalCanvasView,
@@ -11,6 +11,10 @@ const NOT_AVAILABLE = {
   reason: 'Not enough evidence yet.',
   actions: [],
 };
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 function report(): PersonalReportV2 {
   return {
@@ -141,7 +145,7 @@ function report(): PersonalReportV2 {
 }
 
 describe('PersonalCanvasView', () => {
-  it('renders all six Personal Canvas areas as interactive controls', () => {
+  it('renders all six Personal Canvas areas as interactive controls without the old intro block', () => {
     const onSelect = vi.fn();
 
     render(
@@ -151,6 +155,13 @@ describe('PersonalCanvasView', () => {
         onSelect={onSelect}
       />,
     );
+
+    expect(
+      screen.queryByText('Your applicant profile, in six connected parts'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Start with the whole picture/i),
+    ).not.toBeInTheDocument();
 
     const labels = [
       'Core Identity',
@@ -162,7 +173,9 @@ describe('PersonalCanvasView', () => {
     ];
 
     for (const label of labels) {
-      expect(screen.getAllByRole('button', { name: new RegExp(label, 'i') }).length).toBeGreaterThan(0);
+      expect(
+        screen.getAllByRole('button', { name: new RegExp(label, 'i') }).length,
+      ).toBeGreaterThan(0);
     }
 
     fireEvent.click(screen.getAllByRole('button', { name: /social proof/i })[0]!);
@@ -186,7 +199,7 @@ describe('PersonalCanvasView', () => {
 });
 
 describe('PersonalCanvasWorkspace', () => {
-  it('opens a contextual detail panel from the selected Canvas section and closes it', () => {
+  it('opens a contextual detail panel, has no sound toggle, and animates closed', async () => {
     render(
       <PersonalCanvasWorkspace
         report={report()}
@@ -195,12 +208,85 @@ describe('PersonalCanvasWorkspace', () => {
       />,
     );
 
+    expect(screen.queryByRole('button', { name: /sounds/i })).not.toBeInTheDocument();
+
     fireEvent.click(screen.getAllByRole('button', { name: /social proof/i })[0]!);
 
-    expect(screen.getByRole('complementary', { name: /social proof details/i })).toBeInTheDocument();
-    expect(screen.getByRole('tab', { name: /overview/i })).toHaveAttribute('aria-selected', 'true');
+    expect(
+      screen.getByRole('complementary', { name: /social proof details/i }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /overview/i })).toHaveAttribute(
+      'aria-selected',
+      'true',
+    );
+    expect(screen.getByRole('button', { name: /focus this section/i })).toContainHTML('<svg');
 
     fireEvent.click(screen.getByRole('button', { name: /close section/i }));
-    expect(screen.queryByRole('complementary', { name: /social proof details/i })).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('complementary', { name: /social proof details/i }),
+      ).not.toBeInTheDocument();
+    });
+  });
+
+  it('captures new supporting evidence inside an insufficient Canvas section and regenerates', async () => {
+    const withGap = report();
+    withGap.coreIdentity = {
+      ...withGap.coreIdentity,
+      available: false,
+      headline: null,
+      interpretation: null,
+      recurringRole: null,
+      recurringBehaviours: [],
+      valueOrientation: null,
+      insufficientData: {
+        reason: 'A second experience is needed to establish a recurring pattern.',
+        actions: [
+          {
+            kind: 'add_activity',
+            label: 'Add another activity or achievement',
+            href: '/ai-strategy/reflection/achievements',
+          },
+        ],
+      },
+    };
+
+    const onRegenerate = vi.fn();
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <PersonalCanvasWorkspace
+        report={withGap}
+        returnTo={undefined}
+        onRegenerate={onRegenerate}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole('button', { name: /core identity/i })[0]!);
+    expect(screen.getByText('More evidence needed')).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Add another activity or achievement' }),
+    );
+    fireEvent.change(screen.getByRole('textbox'), {
+      target: {
+        value: 'I organised a peer mentoring programme and matched 18 students with mentors.',
+      },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save & update report' }));
+
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        '/api/ai-strategy/personal-report/evidence',
+        expect.objectContaining({ method: 'POST' }),
+      );
+      expect(onRegenerate).toHaveBeenCalledWith('supplement_answer');
+    });
   });
 });

@@ -14,7 +14,10 @@ import {
   extractCompetencyClaims,
   type CompetencyExtractionSource,
 } from './evaluation/competency-extraction';
-import { extractRoleAndTheme, type RoleThemeExtractionInput } from './evaluation/narrative-activity-extraction';
+import {
+  extractRoleAndTheme,
+  type RoleThemeExtractionInput,
+} from './evaluation/narrative-activity-extraction';
 
 /**
  * Bump when the semantic extraction/grounding contract changes independently
@@ -22,9 +25,19 @@ import { extractRoleAndTheme, type RoleThemeExtractionInput } from './evaluation
  * prompt_version column so a prompt/grounding improvement invalidates a
  * cached report even when ENGINE_VERSION did not change.
  */
-export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v3-narrative-synthesis';
+export const PERSONAL_REPORT_EXTRACTION_VERSION = 'personal-report-extraction-v4-inline-evidence';
 
-type FreeTextRecord = { id: string; title: string; freeText: string; row: Record<string, unknown> };
+/** Dynamic report-only evidence rows use this namespace in the supplements table. */
+export const PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX = 'evidence:';
+
+type FreeTextRecord = {
+  id: string;
+  title: string;
+  freeText: string;
+  row: Record<string, unknown>;
+};
+
+type InlineEvidenceSupplement = { answer: string };
 
 function text(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
@@ -40,9 +53,49 @@ function normalize(value: string): string {
 }
 
 const GROUNDING_STOP_WORDS = new Set([
-  'a', 'an', 'and', 'are', 'as', 'at', 'be', 'because', 'by', 'for', 'from', 'had', 'has', 'have',
-  'i', 'in', 'is', 'it', 'my', 'of', 'on', 'or', 'that', 'the', 'their', 'this', 'to', 'was', 'were',
-  'with', 'và', 'của', 'tôi', 'mình', 'là', 'vì', 'cho', 'để', 'trong', 'đã', 'một', 'những', 'các',
+  'a',
+  'an',
+  'and',
+  'are',
+  'as',
+  'at',
+  'be',
+  'because',
+  'by',
+  'for',
+  'from',
+  'had',
+  'has',
+  'have',
+  'i',
+  'in',
+  'is',
+  'it',
+  'my',
+  'of',
+  'on',
+  'or',
+  'that',
+  'the',
+  'their',
+  'this',
+  'to',
+  'was',
+  'were',
+  'with',
+  'và',
+  'của',
+  'tôi',
+  'mình',
+  'là',
+  'vì',
+  'cho',
+  'để',
+  'trong',
+  'đã',
+  'một',
+  'những',
+  'các',
 ]);
 
 function meaningfulTokens(value: string): string[] {
@@ -68,7 +121,11 @@ function numbers(value: string): string[] {
  * "education access"), stored downstream as inferences linked to the source
  * record rather than represented as quoted observations.
  */
-export function isGroundedInSource(candidate: string | null | undefined, source: string, threshold = 0.55): boolean {
+export function isGroundedInSource(
+  candidate: string | null | undefined,
+  source: string,
+  threshold = 0.55,
+): boolean {
   if (!candidate?.trim() || !source.trim()) return false;
   const candidateNormalized = normalize(candidate);
   const sourceNormalized = normalize(source);
@@ -81,7 +138,8 @@ export function isGroundedInSource(candidate: string | null | undefined, source:
   if (candidateTokens.length === 0) return false;
   const sourceTokens = new Set(meaningfulTokens(source));
   const matched = candidateTokens.filter((token) => sourceTokens.has(token)).length;
-  const required = candidateTokens.length <= 3 ? 1 : Math.ceil(candidateTokens.length * threshold);
+  const required =
+    candidateTokens.length <= 3 ? 1 : Math.ceil(candidateTokens.length * threshold);
   return matched >= required;
 }
 
@@ -114,9 +172,11 @@ function enrichedFreeText(row: Record<string, unknown>, baseText: string): strin
 
   const reflectionLines = reflection
     ? (['context', 'motivation', 'challenge', 'action', 'impact', 'transformation', 'future'] as const)
-        .map((dim) => {
-          const value = text(reflection[dim]);
-          return value ? `${dim[0]?.toUpperCase()}${dim.slice(1)}: ${value}` : null;
+        .map((dimension) => {
+          const value = text(reflection[dimension]);
+          return value
+            ? `${dimension[0]?.toUpperCase()}${dimension.slice(1)}: ${value}`
+            : null;
         })
         .filter((line): line is string => line !== null)
     : [];
@@ -127,7 +187,9 @@ function enrichedFreeText(row: Record<string, unknown>, baseText: string): strin
     card ? text(card['futureConnection']) : '',
   ].filter((line) => line.length > 0);
 
-  return [...reflectionLines, ...cardLines, baseText].filter((part) => part.length > 0).join('\n');
+  return [...reflectionLines, ...cardLines, baseText]
+    .filter((part) => part.length > 0)
+    .join('\n');
 }
 
 function achievementRecords(context: CandidateContext): FreeTextRecord[] {
@@ -148,31 +210,85 @@ function activityRecords(context: CandidateContext): FreeTextRecord[] {
   }));
 }
 
+function inlineEvidenceTitle(answer: string): string {
+  const firstLine = answer
+    .split(/\r?\n/)
+    .map((part) => part.trim())
+    .find(Boolean);
+  const compact = (firstLine || answer).replace(/\s+/g, ' ').trim();
+  if (compact.length <= 88) return compact;
+  return `${compact.slice(0, 85).trimEnd()}…`;
+}
+
+function inlineEvidenceActivities(
+  supplements: Record<string, string>,
+): CandidateContext['activities'] {
+  return Object.entries(supplements)
+    .filter(([fieldKey]) => fieldKey.startsWith(PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX))
+    .sort(([left], [right]) => left.localeCompare(right))
+    .flatMap(([fieldKey, raw]) => {
+      let payload: InlineEvidenceSupplement | null = null;
+      try {
+        const parsed = JSON.parse(raw) as unknown;
+        if (parsed && typeof parsed === 'object' && typeof (parsed as { answer?: unknown }).answer === 'string') {
+          payload = { answer: (parsed as { answer: string }).answer.trim() };
+        }
+      } catch {
+        return [];
+      }
+
+      if (!payload?.answer) return [];
+      const id = fieldKey.slice(PERSONAL_REPORT_EVIDENCE_SUPPLEMENT_PREFIX.length);
+      return [
+        {
+          id: `personal-report-evidence:${id}`,
+          title: inlineEvidenceTitle(payload.answer),
+          description: payload.answer,
+          source_type: 'personal_report_supplement',
+        },
+      ];
+    });
+}
+
 /**
  * Overlays report-only supplementary answers (`personal_report_supplements`
  * — see `supabase-personal-report-supplements.sql`) onto a COPY of the
- * candidate's profile, purely for this generation call. Never mutates
- * `context` itself and never gets written back to `student_profiles` or any
- * confirmed snapshot — a student's confirmed Candidate Information stays
- * exactly what they reviewed and approved, even after answering a report's
- * own follow-up question this way.
+ * candidate context, purely for this generation call. It never mutates or
+ * writes back to the student's confirmed Candidate Information.
+ *
+ * Motivation supplements replace the effective report-only motivation.
+ * Quick evidence captured from the Personal Canvas is appended as a
+ * self-reported activity source. It deliberately carries no document or
+ * verification flag, so F3 continues to treat it as self-reported evidence.
  */
 export function applyPersonalReportSupplements(
   context: CandidateContext,
   supplements: Record<string, string>,
 ): CandidateContext {
-  const answer = supplements[STUDY_MOTIVATION_SUPPLEMENT_KEY];
-  if (!answer) return context;
+  const motivation = supplements[STUDY_MOTIVATION_SUPPLEMENT_KEY];
+  const supplementalActivities = inlineEvidenceActivities(supplements);
+  if (!motivation && supplementalActivities.length === 0) return context;
+
   return {
     ...context,
-    profile: { ...context.profile, study_motivation: answer },
+    profile: motivation
+      ? { ...context.profile, study_motivation: motivation }
+      : context.profile,
+    activities:
+      supplementalActivities.length > 0
+        ? [...context.activities, ...supplementalActivities]
+        : context.activities,
   };
 }
 
 function writtenFieldsFor(context: CandidateContext): VaguenessField[] {
   const profile = context.profile as Record<string, unknown>;
   return [
-    { field: 'careerGoal', label: 'Career goal after graduation', value: text(profile.goals) || null },
+    {
+      field: 'careerGoal',
+      label: 'Career goal after graduation',
+      value: text(profile.goals) || null,
+    },
     {
       field: 'studyMotivation',
       label: 'Why you are interested in these subjects',
@@ -181,7 +297,9 @@ function writtenFieldsFor(context: CandidateContext): VaguenessField[] {
   ];
 }
 
-function profileMotivationsFor(context: CandidateContext): NonNullable<ProfileEvaluationInput['profileMotivations']> {
+function profileMotivationsFor(
+  context: CandidateContext,
+): NonNullable<ProfileEvaluationInput['profileMotivations']> {
   const profile = context.profile as Record<string, unknown>;
   const result: Array<{ id: string; label: string; value: string }> = [];
   const general = text(profile.study_motivation);
@@ -190,8 +308,14 @@ function profileMotivationsFor(context: CandidateContext): NonNullable<ProfileEv
   }
 
   const subjectMotivations = profile.subject_motivations;
-  if (subjectMotivations && typeof subjectMotivations === 'object' && !Array.isArray(subjectMotivations)) {
-    for (const [subject, raw] of Object.entries(subjectMotivations as Record<string, unknown>)) {
+  if (
+    subjectMotivations &&
+    typeof subjectMotivations === 'object' &&
+    !Array.isArray(subjectMotivations)
+  ) {
+    for (const [subject, raw] of Object.entries(
+      subjectMotivations as Record<string, unknown>,
+    )) {
       const value = text(raw);
       if (!value || result.some((item) => normalize(item.value) === normalize(value))) continue;
       result.push({
@@ -204,12 +328,18 @@ function profileMotivationsFor(context: CandidateContext): NonNullable<ProfileEv
   return result;
 }
 
-function evidenceSourceKindFor(record: FreeTextRecord, kind: 'achievement' | 'activity'): EvidenceSourceKind {
+function evidenceSourceKindFor(
+  record: FreeTextRecord,
+  kind: 'achievement' | 'activity',
+): EvidenceSourceKind {
   if (kind === 'achievement' && text(record.row.evidence_key)) return 'uploaded_document';
   return 'structured_achievement';
 }
 
-function outcomesFromImpact(impact: string | null): { quantifiedOutcome: string | null; qualitativeOutcome: string | null } {
+function outcomesFromImpact(impact: string | null): {
+  quantifiedOutcome: string | null;
+  qualitativeOutcome: string | null;
+} {
   if (!impact) return { quantifiedOutcome: null, qualitativeOutcome: null };
   return /\d/.test(impact)
     ? { quantifiedOutcome: impact, qualitativeOutcome: null }
@@ -283,7 +413,9 @@ export async function buildProfileEvaluationInput(args: {
     groundCmcaitf(record, sourceById.get(record.id)?.freeText ?? ''),
   );
   const competencyClaims = groundCompetencies(rawCompetencyClaims, sourceById);
-  const cmcaitfById = new Map(reflectionRecords.map((record) => [record.id, record.cmcaitf]));
+  const cmcaitfById = new Map(
+    reflectionRecords.map((record) => [record.id, record.cmcaitf]),
+  );
   const roleThemeById = new Map(roleThemeResults.map((result) => [result.id, result]));
 
   const narrativeActivities: NarrativeActivity[] = all.map((record) => {
@@ -306,7 +438,9 @@ export async function buildProfileEvaluationInput(args: {
   const evidenceItems: EvidenceItemInput[] = all.map((record) => {
     const kind = record.id.startsWith('achievement:') ? 'achievement' : 'activity';
     const cmcaitf = cmcaitfById.get(record.id);
-    const { quantifiedOutcome, qualitativeOutcome } = outcomesFromImpact(cmcaitf?.impact ?? null);
+    const { quantifiedOutcome, qualitativeOutcome } = outcomesFromImpact(
+      cmcaitf?.impact ?? null,
+    );
 
     return {
       id: record.id,
@@ -315,7 +449,8 @@ export async function buildProfileEvaluationInput(args: {
       quantifiedOutcome,
       qualitativeOutcome,
       hasDocument: kind === 'achievement' && Boolean(text(record.row.evidence_key)),
-      attributingOrganisation: text(record.row.organisation) || text(record.row.competition) || null,
+      attributingOrganisation:
+        text(record.row.organisation) || text(record.row.competition) || null,
       level: text(record.row.level) || null,
     };
   });
