@@ -1618,7 +1618,7 @@ like once the loop is verified working with real added detail.
 
 ## 5v. Founder confirmed manual Plus, but the account stayed Free — fixed in code 2026-08-15, production migration pending
 
-Production readback showed three manual Plus transactions with an in-time
+Production readback first showed three manual Plus transactions with an in-time
 founder confirmation, `manual_payment_reviews.state='confirmed'`, but
 `payment_transactions.status='paid_unfulfilled'`; all three had no
 `plus_subscriptions` row and the owning profile remained `plus_status=false`.
@@ -1644,11 +1644,20 @@ mentorship still respects slot ownership/hold expiry because a late review must
 not reclaim a scarce slot. The founder APIs now return HTTP 409 for a real
 `paid_unfulfilled` result instead of presenting it as success.
 
-**Action required:** run `supabase-manual-payment-fulfillment-repair.sql` in
-production. It has not been run from this workspace; until it runs, the three
-existing transactions remain unfulfilled.
+After the owner ran that migration, the new bounded diagnostics exposed the
+remaining production error exactly: PostgreSQL `42P10` because
+`ON CONFLICT (payment_transaction_id)` could not infer the existing partial
+unique index. `supabase-manual-payment-subscription-conflict-repair.sql`
+replaces it with an equivalent full unique index (PostgreSQL still permits
+multiple `NULL` values) and reruns the guarded reconciliation for every
+founder-confirmed manual Plus payment still awaiting fulfilment.
 
-| `supabase-manual-payment-fulfillment-repair.sql`, `src/app/api/admin/payments/manual/confirm/route.ts`, `src/app/api/admin/payments/review-action/route.ts`, `src/lib/payments/manual-payment-migration.test.ts`, `src/app/api/admin/payments/manual/review-security.test.ts` |
+**Action required:** run
+`supabase-manual-payment-subscription-conflict-repair.sql` in production. The
+first repair migration is confirmed applied; the follow-up has not yet been
+confirmed, so affected accounts remain Free until it runs successfully.
+
+| `supabase-manual-payment-fulfillment-repair.sql`, `supabase-manual-payment-subscription-conflict-repair.sql`, `src/app/api/admin/payments/manual/confirm/route.ts`, `src/app/api/admin/payments/review-action/route.ts`, `src/lib/payments/manual-payment-migration.test.ts`, `src/app/api/admin/payments/manual/review-security.test.ts` |
 
 ## 6. Open questions for the designer / owner
 

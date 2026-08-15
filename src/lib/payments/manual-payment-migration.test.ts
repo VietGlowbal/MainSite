@@ -7,6 +7,10 @@ const fulfillmentRepairPath = resolve(
   process.cwd(),
   'supabase-manual-payment-fulfillment-repair.sql',
 );
+const subscriptionConflictRepairPath = resolve(
+  process.cwd(),
+  'supabase-manual-payment-subscription-conflict-repair.sql',
+);
 
 describe('manual founder-payment migration contract', () => {
   it('defines provider-neutral constraints, atomic checkout, fulfilment, review, and outbox leasing', () => {
@@ -88,5 +92,22 @@ describe('manual Plus fulfilment repair migration contract', () => {
     expect(sql).toMatch(
       /review\.review_deadline_at\s*<=\s*now\(\)\s+and\s+tx\.product_type\s*=\s*'mentorship'/i,
     );
+  });
+});
+
+describe('manual Plus subscription conflict repair migration contract', () => {
+  it('replaces the partial transaction index and retries confirmed Plus reconciliation', () => {
+    expect(existsSync(subscriptionConflictRepairPath)).toBe(true);
+    const sql = existsSync(subscriptionConflictRepairPath)
+      ? readFileSync(subscriptionConflictRepairPath, 'utf8')
+      : '';
+
+    expect(sql).toContain('drop index if exists public.plus_subscriptions_payment_transaction_id');
+    expect(sql).toMatch(
+      /create unique index plus_subscriptions_payment_transaction_id\s+on public\.plus_subscriptions\s*\(payment_transaction_id\)/i,
+    );
+    expect(sql).not.toMatch(/where\s+payment_transaction_id\s+is\s+not\s+null/i);
+    expect(sql).toContain('reconcile_confirmed_manual_plus_payment');
+    expect(sql).toMatch(/review\.state\s*=\s*'confirmed'/i);
   });
 });
