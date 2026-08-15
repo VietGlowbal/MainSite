@@ -19,6 +19,8 @@ import { z } from 'zod';
 export const PERSONAL_REFLECTION_QUESTIONS = [
   {
     key: 'q1',
+    /** Short form for the breadcrumb/mobile header — the full `heading` is too long to fit there. */
+    shortLabel: 'Experiences That Shaped You',
     heading: 'Looking back, which experiences have shaped you the most?',
     guidance: [
       'Which moments or activities still stand out?',
@@ -27,6 +29,7 @@ export const PERSONAL_REFLECTION_QUESTIONS = [
   },
   {
     key: 'q2',
+    shortLabel: 'What Pulls Your Attention',
     heading: 'What keeps pulling your attention, even when nobody asks you to do it?',
     guidance: [
       'Which problems, topics or communities do you keep returning to?',
@@ -35,6 +38,7 @@ export const PERSONAL_REFLECTION_QUESTIONS = [
   },
   {
     key: 'q3',
+    shortLabel: 'Proudest Contributions',
     heading:
       'Think about your best moments. What made you feel proud, not because of awards, but because of what you accomplished?',
     guidance: [
@@ -44,11 +48,13 @@ export const PERSONAL_REFLECTION_QUESTIONS = [
   },
   {
     key: 'q4',
+    shortLabel: 'Biggest Challenge',
     heading: 'Think about the biggest challenge you’ve faced. How did it change the way you think or act?',
     guidance: ['What happened?', 'What became different about you afterwards?'],
   },
   {
     key: 'q5',
+    shortLabel: 'Future Impact',
     heading: 'Imagine yourself 10 years from now. What would make you feel that your work truly mattered?',
     guidance: ['Who or what would you want your work to benefit?', 'Why does that matter personally?'],
   },

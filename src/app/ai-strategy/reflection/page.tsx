@@ -1,9 +1,15 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { loadCandidateReflection, loadProfileReview, verifiedApplicationId } from '@/features/apply/api';
+import {
+  loadApplicationSummary,
+  loadCandidateReflection,
+  loadProfileReview,
+  verifiedApplicationId,
+} from '@/features/apply/api';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
-import { confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
+import { candidateInformationStepperSteps, confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
 import { applicationIdFromPath } from '@/shared/lib';
+import { Stepper } from '@/shared/ui';
 import { ReflectionChrome } from '../reflection-chrome';
 import { ApplicationNavFromReturn } from './application-nav-from-return';
 import { ProfileReviewView } from './profile-review-view';
@@ -59,30 +65,38 @@ export default async function ReflectionAboutPage({
     ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
     : undefined;
 
-  const { reflection: initial, confirmedAt } = await loadCandidateReflection(
-    supabase,
-    user.id,
-    applicationId,
-  );
+  const [{ reflection: initial, confirmedAt }, onboardingState, applicationSummary, profileReview] =
+    await Promise.all([
+      loadCandidateReflection(supabase, user.id, applicationId),
+      applicationId ? fetchOnboardingState(supabase, user.id, applicationId) : Promise.resolve(undefined),
+      applicationId ? loadApplicationSummary(supabase, user.id, applicationId) : Promise.resolve(null),
+      loadProfileReview(supabase, user.id),
+    ]);
 
   const continueHref = confirmedAt
-    ? applicationId
-      ? confirmedReflectionContinueHref(
-          applicationId,
-          (await fetchOnboardingState(supabase, user.id, applicationId)).aiAnalysisComplete,
-        )
+    ? applicationId && onboardingState
+      ? confirmedReflectionContinueHref(applicationId, onboardingState.aiAnalysisComplete)
       : returnTo
     : undefined;
 
+  const stepper =
+    applicationId && onboardingState ? (
+      <Stepper
+        {...candidateInformationStepperSteps(onboardingState, 'personal-summary', applicationId, returnTo)}
+        label="Application setup"
+      />
+    ) : undefined;
+
   return (
-    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
+    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
       {confirmedAt ? (
         <ConfirmedReflectionView values={initial} confirmedAt={confirmedAt} continueHref={continueHref} />
       ) : (
         <ProfileReviewView
-          data={await loadProfileReview(supabase, user.id)}
+          data={profileReview}
           applicationId={applicationId}
           returnTo={returnTo}
+          applicationLabel={applicationSummary?.label}
         />
       )}
     </ReflectionChrome>
