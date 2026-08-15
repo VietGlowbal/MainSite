@@ -6,8 +6,7 @@ import type { DirectionOption, PortfolioOpportunity, StrategyRecommendationRecor
 import { ReportPanel, ReportTabs, useReportTabs } from './report-chrome';
 import { useLanguage } from '@/lib/i18n';
 import { Badge, Button, Panel, ScoreRing, type BadgeVariant } from '@/shared/ui';
-import { usePlusStatus } from '@/features/plus';
-import { PlusUpgradeModal } from '@/components/plus/plus-upgrade-modal';
+import { usePlusStatus } from '@/features/plus/hooks/use-plus-status';
 
 /**
  * F7 Personalized Strategy — the "pdf-style" strategy report.
@@ -161,8 +160,8 @@ function DirectionCard({ option, isChosen }: { option: DirectionOption; isChosen
 
 function NarrativeTab({ recommendation }: { recommendation: StrategyRecommendationRecord }) {
   const { t } = useLanguage();
+  const router = useRouter();
   const { isPlus } = usePlusStatus();
-  const [showPlusModal, setShowPlusModal] = useState(false);
 
   return (
     <section className="flex flex-col gap-gb-md">
@@ -181,8 +180,7 @@ function NarrativeTab({ recommendation }: { recommendation: StrategyRecommendati
 
         {!isPlus && (
           <div
-            onClick={() => setShowPlusModal(true)}
-            className="absolute inset-0 z-10 flex cursor-pointer flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-transparent via-surface/80 to-surface p-6 text-center"
+            className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-transparent via-surface/80 to-surface p-6 text-center"
           >
             <div className="max-w-md rounded-2xl border border-line bg-surface p-6 shadow-xl backdrop-blur-md">
               <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-brand-subtle text-xl">
@@ -196,10 +194,7 @@ function NarrativeTab({ recommendation }: { recommendation: StrategyRecommendati
               </p>
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setShowPlusModal(true);
-                }}
+                onClick={() => router.push('/plus')}
                 className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-xs font-bold text-on-brand shadow-md transition-all hover:bg-brand-hover sm:text-sm"
               >
                 <span>{t('Upgrade to Plus')}</span>
@@ -209,13 +204,6 @@ function NarrativeTab({ recommendation }: { recommendation: StrategyRecommendati
           </div>
         )}
       </div>
-
-      <PlusUpgradeModal
-        open={showPlusModal}
-        onClose={() => setShowPlusModal(false)}
-        title={t('Unlock your strategic narrative')}
-        subtitle={t('Upgrade to GlowBal Plus to view your personalized application narrative, tailored storytelling angle, and strategic essays guidance.')}
-      />
     </section>
   );
 }
