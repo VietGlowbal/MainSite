@@ -4878,4 +4878,5 @@ export const translations: Record<string, string> = {
   'Upgrade to GlowBal Plus to view your personalized application narrative, tailored storytelling angle, and strategic essays guidance.':
     'Nâng cấp GlowBal Plus để xem câu chuyện hồ sơ cá nhân hóa, góc kể chuyện phù hợp và hướng dẫn chiến lược bài luận.',
   'Unlock your strategic narrative': 'Mở khóa câu chuyện chiến lược của bạn',
+  'Upgrade to GlowBal Plus to unlock this section': 'Nâng cấp GlowBal Plus để mở khóa phần này',
 };
