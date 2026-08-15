@@ -67,7 +67,7 @@ export async function sendManualPaymentJob(job: Job): Promise<string> {
       accountHolder: config.accountHolder, accountNumberMasked: config.accountNumberMasked,
       amountVnd, reference, productLabel, expiresAt, statusUrl, qrCid: 'manual-payment-qr',
     });
-    const qr = await fetchConfiguredQrAttachment();
+    const qr = await fetchConfiguredQrAttachment({ amountVnd, description: reference });
     return sendManualTransactionalEmail({ ...rendered, jobId: job.id, kind: job.kind, to: recipientEmail, attachments: [qr] });
   }
   if (job.kind === 'founder_review') {

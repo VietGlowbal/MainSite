@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLanguage } from '@/lib/i18n';
+import { generateVietQrUrl } from '@/lib/payments/vietqr';
 
 type Status = {
   status: string;
@@ -141,6 +142,18 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
   const isClaimed = status.status === 'claimed';
   const isExpired = status.status === 'expired' || status.status === 'failed';
   const accountNumberToDisplay = status.account_number || status.account_number_masked || '';
+  const qrUrlToDisplay =
+    status.bank_qr_url ||
+    (status.account_number
+      ? generateVietQrUrl({
+          bankId: status.bank_label,
+          accountNumber: status.account_number,
+          accountHolder: status.account_holder,
+          amountVnd: status.amount_vnd,
+          description: status.transfer_description || status.reference,
+          template: 'compact2',
+        })
+      : undefined);
 
   return (
     <section
@@ -196,12 +209,12 @@ export function ManualStatusPanel({ reference }: { reference: string }) {
       </div>
 
       {/* QR Code Container (Visible when Pending or Claimed) */}
-      {!isFulfilled && !isExpired && status.bank_qr_url && (
+      {!isFulfilled && !isExpired && qrUrlToDisplay && (
         <div className="mt-6 flex w-full flex-col items-center text-center">
           <div className="relative overflow-hidden rounded-2xl bg-white p-2.5 shadow-sm border border-line/80">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={status.bank_qr_url}
+              src={qrUrlToDisplay}
               alt={t('GlowBal bank transfer QR code')}
               width={340}
               height={340}
