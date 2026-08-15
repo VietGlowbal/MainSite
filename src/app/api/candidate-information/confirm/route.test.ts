@@ -1,10 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const READY_REFLECTION = {
-  majors: ['computer-science'],
-  countries: ['GB'],
-  intendedLevel: 'Bachelor’s Degree' as const,
-  intake: { type: 'undecided' as const },
   achievements: [],
   activities: [],
 };
@@ -115,22 +111,35 @@ describe('POST /api/candidate-information/confirm', () => {
     expect(mocks.from).toHaveBeenCalledTimes(1);
   });
 
-  it('rejects confirmation while a required question is unanswered', async () => {
+  it('allows confirmation when retired reflection fields were never collected', async () => {
     mocks.loadCandidateReflection.mockResolvedValue({
-      reflection: { ...READY_REFLECTION, majors: [] },
+      reflection: {
+        ...READY_REFLECTION,
+        majors: [],
+        countries: [],
+        countryPreferenceFlexible: undefined,
+        intendedLevel: undefined,
+        intake: undefined,
+      },
       documents: [],
       confirmedAt: null,
+    });
+    mocks.from.mockImplementation((table: string) => {
+      if (table === 'confirmed_candidate_snapshots') {
+        return insertBuilder({ data: { id: 'snap-no-legacy', confirmed_at: '2026-08-13T12:00:00Z' }, error: null });
+      }
+      if (table === 'student_profiles') {
+        return updateBuilder({ error: null });
+      }
+      throw new Error(`unexpected table ${table}`);
     });
 
     const { POST } = await import('./route');
     const response = await POST(request());
     const body = await response.json();
 
-    expect(response.status).toBe(422);
-    expect(body.error).toBe('NOT_READY');
-    expect(body.blockingIssues).toEqual([
-      { key: 'majors', message: 'Choose at least one subject you’re interested in.' },
-    ]);
+    expect(response.status).toBe(200);
+    expect(body.snapshotId).toBe('snap-no-legacy');
   });
 
   it('rejects confirmation while an extracted achievement still needs review', async () => {
