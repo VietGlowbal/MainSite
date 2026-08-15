@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PersonalReportV2 } from '../domain';
@@ -138,6 +138,11 @@ describe('PersonalReportV2View — inline report answers', () => {
       />,
     );
 
+    // The Personal Canvas shows nothing until a section is selected — open
+    // "Driving Forces" first (both the mobile and desktop layouts render at
+    // once in jsdom, so pick the first match; either opens the same panel).
+    await user.click(screen.getAllByRole('button', { name: /Driving Forces/i })[0]!);
+
     await user.click(
       screen.getByRole('button', { name: 'Explain why you are interested in these subjects' }),
     );
@@ -235,13 +240,17 @@ describe('PersonalReportV2View — version history', () => {
     });
     await screen.findByText(/viewing an older version/i);
 
+    // The gap action only renders once its Canvas section is open.
+    await user.click(screen.getAllByRole('button', { name: /Driving Forces/i })[0]!);
+    const panel = within(screen.getByRole('complementary', { name: 'Driving Forces details' }));
+
     // Answering inline is disabled while viewing history — the gap action falls back to a
     // plain link instead of the inline textarea button.
     expect(
-      screen.queryByRole('button', { name: 'Explain why you are interested in these subjects' }),
+      panel.queryByRole('button', { name: 'Explain why you are interested in these subjects' }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Explain why you are interested in these subjects' }),
+      panel.getByRole('link', { name: 'Explain why you are interested in these subjects' }),
     ).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Back to latest' }));
@@ -280,7 +289,9 @@ function reportWithAnalytics(): PersonalReportV2 {
 }
 
 describe('PersonalReportV2View — analytics wiring', () => {
-  it('renders the applicant synopsis and identity evidence profile when analytics are present', () => {
+  it('renders the applicant synopsis and identity evidence profile when analytics are present', async () => {
+    const user = userEvent.setup();
+
     render(
       <PersonalReportV2View
         initialReport={reportWithAnalytics()}
@@ -293,8 +304,18 @@ describe('PersonalReportV2View — analytics wiring', () => {
     );
 
     expect(screen.getByText('A synopsis of the profile.')).toBeInTheDocument();
-    expect(screen.getByText('Identity evidence profile')).toBeInTheDocument();
-    expect(screen.getByRole('list', { name: 'Core identity evidence signals' })).toBeInTheDocument();
+
+    // The identity evidence profile lives in the Core Identity Canvas
+    // section's detail panel, which only renders once that section is
+    // selected — see the Driving Forces test above for the same pattern.
+    await user.click(screen.getAllByRole('button', { name: /Core Identity/i })[0]!);
+
+    // Scoped to the open panel: the same content is also duplicated in the
+    // print-only view (`aria-hidden`, so excluded from role queries, but
+    // still real text `getByText` would otherwise match twice).
+    const panel = within(screen.getByRole('complementary', { name: 'Core Identity details' }));
+    expect(panel.getByText('Identity evidence profile')).toBeInTheDocument();
+    expect(panel.getByRole('list', { name: 'Core identity evidence signals' })).toBeInTheDocument();
   });
 
   it('omits identity analytics for a report version predating analytics, without crashing', () => {
