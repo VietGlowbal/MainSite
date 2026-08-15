@@ -2244,6 +2244,10 @@ export const translations: Record<string, string> = {
   'Chosen direction': 'Định hướng đã chọn',
   'Locked strategy direction': 'Định hướng chiến lược đã khóa',
   'Retry Target Profile': 'Thử lại Hồ sơ mục tiêu',
+  'Analyze this direction': 'Phân tích định hướng này',
+  'Analyze with AI': 'Phân tích với AI',
+  'Select a strategic direction above and submit to analyze with AI.':
+    'Chọn một định hướng chiến lược phía trên rồi ấn phân tích để AI xử lý.',
   'Regenerate the Target Profile for the current strategy.':
     'Tạo lại Hồ sơ mục tiêu cho chiến lược hiện tại.',
   'chosenDirection must match one of directionOptions':

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as manualConfig from './manual-config';
 import { getManualPaymentConfig } from './manual-config';
 import { createManualReviewToken, verifyManualReviewToken } from './manual-capability';
-import { renderManualFounderEmail, renderManualStudentEmail } from './manual-email-templates';
+import { renderManualFounderEmail, renderManualOutcomeEmail, renderManualStudentEmail } from './manual-email-templates';
 import * as manualOutbox from './manual-outbox';
 import { sendManualPaymentJob } from './manual-outbox';
 
@@ -124,6 +124,44 @@ describe('manual payment email templates', () => {
     expect(email.html).toContain('15 Aug 2026, 14:30');
     expect(email.html).toContain('Xác nhận hoặc từ chối thanh toán');
     expect(email.text).toContain('Thời điểm người dùng báo đã chuyển');
+  });
+
+  it('renders the payment confirmation email with Zalo community link and QR code', () => {
+    const email = renderManualOutcomeEmail({
+      confirmed: true,
+      recipientName: '<Student Name>',
+      reference: 'GLOWMANUAL123',
+      productLabel: 'GlowBal Plus · Starter',
+      statusUrl: 'https://glowbal-education.com/payment/manual/status?reference=GLOWMANUAL123',
+    });
+
+    expect(email.subject).toBe('GlowBal — Xác nhận thanh toán thành công (GLOWMANUAL123)');
+    expect(email.html).toContain('Xin chào <strong>&lt;Student Name&gt;</strong>');
+    expect(email.html).toContain('GlowBal xác nhận bạn đã thanh toán thành công gói <strong>GlowBal Plus · Starter</strong>.');
+    expect(email.html).toContain('GlowBal Community');
+    expect(email.html).toContain('https://zalo.me/g/ggrpc483k4joxoev6dat');
+    expect(email.html).toContain('QR tham gia cộng đồng:');
+    expect(email.html).toContain('api.qrserver.com');
+    expect(email.html).toContain('GO GLOW – GO GLOBAL');
+    expect(email.html).toContain('GLOWBAL EDUCATION');
+    expect(email.html).toContain('glowbal.edu@gmail.com');
+    expect(email.html).toContain('https://glowbal-education.com');
+    expect(email.text).toContain('Tham gia GlowBal Community: https://zalo.me/g/ggrpc483k4joxoev6dat');
+    expect(email.text).toContain('GO GLOW – GO GLOBAL');
+  });
+
+  it('renders the payment support email when unconfirmed', () => {
+    const email = renderManualOutcomeEmail({
+      confirmed: false,
+      recipientName: 'Student Name',
+      reference: 'GLOWMANUAL456',
+      productLabel: 'GlowBal Plus',
+      statusUrl: 'https://glowbal-education.com/payment/manual/status?reference=GLOWMANUAL456',
+    });
+
+    expect(email.subject).toBe('GlowBal — Thanh toán cần hỗ trợ (GLOWMANUAL456)');
+    expect(email.html).toContain('Thanh toán cần hỗ trợ');
+    expect(email.text).toContain('Thanh toán cần hỗ trợ');
   });
 });
 

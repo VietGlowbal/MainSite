@@ -57,6 +57,7 @@ function StatusBadge({ status, isClaimed }: { status: string; isClaimed?: boolea
     case 'pending':
     case 'pending_payment':
       return <Badge variant="brand-chip">Chờ thanh toán (Pending)</Badge>;
+    case 'paid':
     case 'confirmed':
     case 'fulfilled':
       return <Badge variant="safe-chip">Đã duyệt (Confirmed)</Badge>;
@@ -85,7 +86,12 @@ export function AdminBookingsClient({ initialItems }: { initialItems: PaymentIte
     (item) => item.status === 'pending' || item.status === 'pending_payment' || item.status === 'claimed',
   );
   const confirmedItems = items.filter(
-    (item) => item.status === 'confirmed' || item.status === 'fulfilled' || item.status === 'completed' || item.status === 'reviewed',
+    (item) =>
+      item.status === 'confirmed' ||
+      item.status === 'fulfilled' ||
+      item.status === 'completed' ||
+      item.status === 'reviewed' ||
+      item.status === 'paid',
   );
 
   const totalRevenue = confirmedItems.reduce((sum, item) => sum + item.feeAmountVnd, 0);
@@ -153,7 +159,13 @@ export function AdminBookingsClient({ initialItems }: { initialItems: PaymentIte
       return item.status === 'pending' || item.status === 'pending_payment' || item.status === 'claimed';
     }
     if (filter === 'confirmed') {
-      return item.status === 'confirmed' || item.status === 'fulfilled' || item.status === 'completed' || item.status === 'reviewed';
+      return (
+        item.status === 'confirmed' ||
+        item.status === 'fulfilled' ||
+        item.status === 'completed' ||
+        item.status === 'reviewed' ||
+        item.status === 'paid'
+      );
     }
     if (filter === 'plus') {
       return item.productType === 'plus';
