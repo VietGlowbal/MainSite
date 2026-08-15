@@ -3269,6 +3269,21 @@ export const translations: Record<string, string> = {
   'Budget and study mode': 'Ngân sách và hình thức học',
   'Select budget…': 'Chọn ngân sách…',
   'Select mode…': 'Chọn hình thức…',
+  // The month picker that replaced the free-text "Target intake" box, and its
+  // chrome in src/shared/ui/month-picker.tsx.
+  'Select a month': 'Chọn tháng',
+  'Select a year…': 'Chọn năm…',
+  'The month you want to start studying.': 'Tháng bạn muốn bắt đầu nhập học.',
+  'The admissions round you plan to apply in.': 'Đợt tuyển sinh bạn dự định nộp hồ sơ.',
+  'Your saved answer is not a month. Pick one to replace it.':
+    'Câu trả lời đã lưu không phải là một tháng. Hãy chọn một tháng để thay thế.',
+  'Choose your target intake': 'Chọn kỳ nhập học mục tiêu',
+  'Previous year': 'Năm trước',
+  'Next year': 'Năm sau',
+  'Clear': 'Xoá',
+  // The month itself is already localised by `formatMonthValue` before it is
+  // interpolated — this key only translates the frame around it.
+  '{intake} · applying {year}': '{intake} · nộp hồ sơ {year}',
   'e.g. Large city campus, close to industry hubs': 'ví dụ: Khuôn viên thành phố lớn, gần các trung tâm ngành',
   'Select a support area…': 'Chọn lĩnh vực cần hỗ trợ…',
   'Earn while you study. Most teaching & research roles open from year 2 onwards.': 'Kiếm thu nhập trong khi học. Hầu hết vị trí giảng dạy và nghiên cứu mở từ năm thứ hai trở đi.',

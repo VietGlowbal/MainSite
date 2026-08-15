@@ -1,7 +1,9 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Badge, Button, FormField, controlClasses } from '@/shared/ui';
+import { intakeDisplayLabel } from '@/features/apply/domain';
+import { currentMonthValue, parseMonthValue, toMonthValue } from '@/shared/lib';
+import { Badge, Button, FormField, MonthPicker, Select, controlClasses } from '@/shared/ui';
 
 /**
  * The two shapes every /profile editor repeats.
@@ -91,6 +93,83 @@ export function SaveBar({
         {message?.text ?? ''}
       </p>
     </div>
+  );
+}
+
+/**
+ * "When do you plan to start?" — the pair of fields /profile/goals and
+ * /profile/preferences both ask.
+ *
+ * ─── WHY IT IS NOT TWO TEXT BOXES ANY MORE ──────────────────────────────────
+ *
+ * Both were free text ("e.g. Sep 2027", "e.g. 2027"). Typing a date is slower
+ * than picking one, it reads as unfinished next to the selects around it, and
+ * — the part that actually costs something — it let two students describe the
+ * same intake four different ways, in a column the matching engine wants to
+ * compare against. The month picker writes one canonical `YYYY-MM` token and
+ * the cycle year is a list, so neither field can hold a typo again.
+ *
+ * ─── AN ANSWER THE PICKER CANNOT DRAW IS NOT DISCARDED ──────────────────────
+ *
+ * `target_intake` is shared with the reflection flow, which writes season
+ * tokens and can write "undecided" — none of which is a month. Rather than
+ * showing an empty field over a non-empty column (where the next save would
+ * quietly erase a real answer), `intake` stays exactly as stored until the
+ * student picks a month, and what is stored is named underneath the control.
+ *
+ * Renders the two fields bare rather than in a wrapper, because /preferences
+ * places them in a six-field grid alongside budget and study mode while /goals
+ * gives them a row of their own. The caller owns the layout.
+ */
+export function IntakeFields({
+  intake,
+  onIntakeChange,
+  cycleYear,
+  onCycleYearChange,
+}: {
+  /** The stored `target_intake` — a month token, or an older answer. */
+  intake: string;
+  onIntakeChange: (next: string) => void;
+  cycleYear: string;
+  onCycleYearChange: (next: string) => void;
+}) {
+  const monthValue = toMonthValue(intake);
+  const unrepresented = intake !== '' && monthValue === '';
+
+  // UTC, matching `currentMonthValue` — see the note there on hydration.
+  const firstYear = parseMonthValue(currentMonthValue())?.year ?? new Date().getUTCFullYear();
+  const yearOptions = Array.from({ length: 9 }, (_, offset) => String(firstYear + offset));
+
+  return (
+    <>
+      <MonthPicker
+        name="target_intake"
+        label="Target intake"
+        value={monthValue}
+        onChange={onIntakeChange}
+        dialogLabel="Choose your target intake"
+        {...(unrepresented
+          ? {
+              // The saved answer stands in for the placeholder rather than
+              // being spliced into the hint: it is the student's own words (or
+              // a label built from them), so it must not go through a
+              // dictionary, and the sentence beside it must.
+              placeholder: intakeDisplayLabel(intake) ?? undefined,
+              hint: 'Your saved answer is not a month. Pick one to replace it.',
+            }
+          : { hint: 'The month you want to start studying.' })}
+      />
+      <Select
+        name="application_cycle_year"
+        label="Application cycle year"
+        placeholder="Select a year…"
+        hint="The admissions round you plan to apply in."
+        value={cycleYear}
+        onChange={(e) => onCycleYearChange(e.target.value)}
+      >
+        <SelectOptions options={yearOptions} value={cycleYear} />
+      </Select>
+    </>
   );
 }
 
