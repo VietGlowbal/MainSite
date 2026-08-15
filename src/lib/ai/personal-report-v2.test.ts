@@ -152,7 +152,7 @@ describe('buildProfileEvaluationInput', () => {
 });
 
 describe('applyPersonalReportSupplements', () => {
-  it('returns the context unchanged when there is no study_motivation supplement', () => {
+  it('returns the context unchanged when there is no study_motivation or evidence supplement', () => {
     const result = applyPersonalReportSupplements(baseContext, {});
     expect(result).toBe(baseContext);
   });
@@ -168,8 +168,29 @@ describe('applyPersonalReportSupplements', () => {
     expect(result.achievements).toBe(baseContext.achievements);
   });
 
-  it('ignores supplement keys the report does not read', () => {
-    const result = applyPersonalReportSupplements(baseContext, { unrelated_field: 'ignored' });
+  it('appends quick Canvas evidence as a report-only self-reported activity', () => {
+    const answer =
+      'I organised a peer mentoring programme and matched 18 students with volunteer mentors.';
+    const result = applyPersonalReportSupplements(baseContext, {
+      'evidence:test-entry': JSON.stringify({ answer }),
+    });
+
+    expect(result).not.toBe(baseContext);
+    expect(result.activities).toHaveLength(baseContext.activities.length + 1);
+    expect(result.activities.at(-1)).toMatchObject({
+      id: 'personal-report-evidence:test-entry',
+      title: answer,
+      description: answer,
+      source_type: 'personal_report_supplement',
+    });
+    expect(baseContext.activities).toHaveLength(1);
+  });
+
+  it('ignores malformed evidence supplements and keys the report does not read', () => {
+    const result = applyPersonalReportSupplements(baseContext, {
+      unrelated_field: 'ignored',
+      'evidence:broken': '{not-json',
+    });
     expect(result).toBe(baseContext);
   });
 });
