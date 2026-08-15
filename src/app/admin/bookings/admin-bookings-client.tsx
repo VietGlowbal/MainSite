@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Badge, Button, Panel, StatTile, type BadgeVariant } from '@/shared/ui';
+import { Badge, Button, Panel, StatTile } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { EmptyRow, TableShell, TD, TH } from '../_ui';
 

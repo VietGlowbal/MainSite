@@ -14,12 +14,8 @@ import { getUserEntitlement } from '@/lib/entitlements/entitlement-service';
  */
 
 // Mock the Supabase client
-const mockSelect = vi.fn();
-const mockSingle = vi.fn();
 const mockFrom = vi.fn();
 const mockGetUser = vi.fn();
-const mockEq = vi.fn();
-const mockOrder = vi.fn();
 
 vi.mock('@/lib/supabase/server', () => ({
   createClient: vi.fn(() => ({

@@ -2,18 +2,15 @@
 
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
 import { useT } from '@/lib/i18n';
 
-const feedbackSchema = z.object({
-  pageUrl: z.string().url('Please enter a valid URL'),
-  steps: z.string().min(10, 'Please describe the steps in at least 10 characters'),
-  expected: z.string().min(5, 'Please describe what you expected'),
-  actual: z.string().min(5, 'Please describe what actually happened'),
-});
-
-type FeedbackForm = z.infer<typeof feedbackSchema>;
+type FeedbackForm = {
+  pageUrl: string;
+  steps: string;
+  expected: string;
+  actual: string;
+};
 
 export default function FeedbackPage() {
   const t = useT();

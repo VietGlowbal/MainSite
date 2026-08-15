@@ -1161,7 +1161,11 @@ describe('CvBuilderWorkspace', () => {
 
   it('lets the student choose an alternative direction and sends it to Target Profile once', async () => {
     localStorage.removeItem('glowbal:cv-builder:v1:user-1:app-1');
-    const fetchMock = vi.fn((_url: string, _init?: RequestInit) => targetProfileResponse());
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      void url;
+      void init;
+      return targetProfileResponse();
+    });
     vi.stubGlobal('fetch', fetchMock);
     render(
       <CvBuilderWorkspace
