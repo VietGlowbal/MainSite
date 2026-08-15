@@ -30,6 +30,12 @@ export type UniversityMatchingCandidate = Pick<University,
 
 export type UniversityMatchTierV1 = 'strong_chance' | 'target' | 'reach';
 
+export type UniversityMatchTierPolicy = Readonly<{
+  strongChanceRatio: number;
+  targetRatio: number;
+  reachRatio: number;
+}>;
+
 export type RankedUniversityMatch = {
   universityId: number;
   universityName: string;
@@ -41,10 +47,13 @@ export type RankedUniversityMatch = {
   watchOuts: string[];
 };
 
-const TIER_THRESHOLDS = {
-  strongChanceMin: 75,
-  targetMin: 55,
-} as const;
+export type UniversityMatchEvaluation = Omit<RankedUniversityMatch, 'tier'>;
+
+export const DEFAULT_UNIVERSITY_MATCH_TIER_POLICY = {
+  strongChanceRatio: 0.25,
+  targetRatio: 0.5,
+  reachRatio: 0.25,
+} as const satisfies UniversityMatchTierPolicy;
 
 const BREAKDOWN_KEYS: Array<keyof MatchBreakdown> = [
   'country',
@@ -55,10 +64,35 @@ const BREAKDOWN_KEYS: Array<keyof MatchBreakdown> = [
   'support',
 ];
 
-function tierForScore(score: number): UniversityMatchTierV1 {
-  if (score >= TIER_THRESHOLDS.strongChanceMin) return 'strong_chance';
-  if (score >= TIER_THRESHOLDS.targetMin) return 'target';
-  return 'reach';
+export type UniversityMatchTierCounts = Record<UniversityMatchTierV1, number>;
+
+/**
+ * Allocate a ranked candidate list into relative tiers for this user's result set.
+ * Cumulative rounding keeps the intended distribution stable for small lists too.
+ */
+export function universityMatchTierCounts(
+  total: number,
+  policy: UniversityMatchTierPolicy = DEFAULT_UNIVERSITY_MATCH_TIER_POLICY,
+): UniversityMatchTierCounts {
+  if (!Number.isInteger(total) || total < 0) {
+    throw new RangeError('University match total must be a non-negative integer');
+  }
+
+  const ratios = [policy.strongChanceRatio, policy.targetRatio, policy.reachRatio];
+  if (
+    ratios.some((ratio) => !Number.isFinite(ratio) || ratio < 0) ||
+    Math.abs(ratios.reduce((sum, ratio) => sum + ratio, 0) - 1) > 0.0001
+  ) {
+    throw new Error('University match tier ratios must be non-negative and sum to 1');
+  }
+
+  const strongChanceCount = Math.round(total * policy.strongChanceRatio);
+  const targetEnd = Math.round(total * (policy.strongChanceRatio + policy.targetRatio));
+  return {
+    strong_chance: strongChanceCount,
+    target: targetEnd - strongChanceCount,
+    reach: total - targetEnd,
+  };
 }
 
 function breakdownReasons(
@@ -81,7 +115,7 @@ function breakdownReasons(
 export function evaluateUniversityMatch(
   profile: StudentProfile,
   university: UniversityMatchingCandidate,
-): RankedUniversityMatch {
+): UniversityMatchEvaluation {
   const result = computeMatchResult(profile, university);
   const reasons = breakdownReasons(result.breakdown);
   return {
@@ -89,7 +123,6 @@ export function evaluateUniversityMatch(
     universityName: university.name,
     country: university.country,
     score: result.percentage,
-    tier: tierForScore(result.percentage),
     breakdown: result.breakdown,
     ...reasons,
   };
@@ -99,10 +132,22 @@ export function evaluateUniversityMatch(
 export function rankUniversityMatches(
   profile: StudentProfile,
   universities: UniversityMatchingCandidate[],
+  policy: UniversityMatchTierPolicy = DEFAULT_UNIVERSITY_MATCH_TIER_POLICY,
 ): RankedUniversityMatch[] {
-  return universities
+  const ranked = universities
     .map((university) => evaluateUniversityMatch(profile, university))
     .sort((left, right) => right.score - left.score || left.universityId - right.universityId);
-}
 
-export { TIER_THRESHOLDS as UNIVERSITY_MATCH_TIER_THRESHOLDS };
+  const counts = universityMatchTierCounts(ranked.length, policy);
+  const strongChanceEnd = counts.strong_chance;
+  const targetEnd = strongChanceEnd + counts.target;
+
+  return ranked.map((match, index) => {
+    const tier = index < strongChanceEnd
+      ? 'strong_chance'
+      : index < targetEnd
+        ? 'target'
+        : 'reach';
+    return { ...match, tier };
+  });
+}
