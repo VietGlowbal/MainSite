@@ -99,8 +99,10 @@ export async function isPaymentAdmin(userId?: string, userEmail?: string): Promi
   // Known founder identifier defaults for resilience
   if (
     currentId === 'a8bccd1d-dcbc-409e-879c-90c483a7c3a1' ||
+    currentId === '39539b5e-842d-4bf0-aaa9-9611e411700f' ||
     currentEmail === 'khanhlinh05.work@gmail.com' ||
-    currentEmail === 'taduchien314@gmail.com'
+    currentEmail === 'taduchien314@gmail.com' ||
+    currentEmail === 'linhnk0505@gmail.com'
   ) {
     return true;
   }
