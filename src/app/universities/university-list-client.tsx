@@ -320,6 +320,12 @@ function DirectoryBrowseView({
         <p className="text-gb-md text-fg-tertiary md:text-gb-lg">
           Explore universities worldwide and find your perfect fit.
         </p>
+        <Link
+          href="/universities/matches"
+          className="w-fit text-gb-sm font-medium text-fg-brand hover:underline"
+        >
+          View your university matches
+        </Link>
       </div>
 
       <form className="grid gap-gb-lg md:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]" onSubmit={submit}>

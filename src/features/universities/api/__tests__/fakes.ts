@@ -56,6 +56,10 @@ export class InMemoryUniversityRepository implements UniversityQueries {
     );
   }
 
+  async allForMatching(): Promise<UniversityListItem[]> {
+    return [...this.rows];
+  }
+
   async getById(id: number): Promise<UniversityDetail | null> {
     const row = this.rows.find((r) => r.id === id);
     return row ? (row as UniversityDetail) : null;

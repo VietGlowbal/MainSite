@@ -63,3 +63,12 @@ export type {
   UniversityCandidate,
   UniversityMatch,
 } from './match-university';
+
+export { evaluateUniversityMatch, rankUniversityMatches } from './university-matching';
+export { UNIVERSITY_MATCH_TIER_THRESHOLDS } from './university-matching';
+export { demoUniversityMatches } from './university-matching-demo';
+export type {
+  RankedUniversityMatch,
+  UniversityMatchTierV1,
+  UniversityMatchingCandidate,
+} from './university-matching';

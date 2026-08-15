@@ -77,6 +77,20 @@ export class SupabaseUniversityRepository implements UniversityQueries {
     return (data ?? []) as unknown as UniversityListItem[];
   }
 
+  async allForMatching(): Promise<UniversityListItem[]> {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from('universities')
+      .select(LIST_SELECT)
+      .order('id', { ascending: true });
+
+    if (error) {
+      console.error('UniversityRepository.allForMatching failed:', error.message);
+      return [];
+    }
+    return (data ?? []) as unknown as UniversityListItem[];
+  }
+
   async getById(id: number): Promise<UniversityDetail | null> {
     const admin = createAdminClient();
     const { data, error } = await admin
