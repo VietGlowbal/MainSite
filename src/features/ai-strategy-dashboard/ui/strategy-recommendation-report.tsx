@@ -7,6 +7,7 @@ import { ReportPanel, ReportTabs, useReportTabs } from './report-chrome';
 import { useLanguage } from '@/lib/i18n';
 import { Badge, Button, Panel, ScoreRing, type BadgeVariant } from '@/shared/ui';
 import { usePlusStatus } from '@/features/plus/hooks/use-plus-status';
+import type { ReactNode } from 'react';
 
 /**
  * F7 Personalized Strategy — the "pdf-style" strategy report.
@@ -65,6 +66,40 @@ const TABS = [
   { key: 'roadmap', label: 'Roadmap' },
 ] as const;
 
+/** Wraps any tab content with a blur + "Go Plus" CTA for non-Plus users. */
+function BlurredTab({ children }: { children: ReactNode }) {
+  const { t } = useLanguage();
+  const router = useRouter();
+  const { isPlus } = usePlusStatus();
+
+  if (isPlus) return <>{children}</>;
+
+  return (
+    <div className="relative select-none overflow-hidden rounded-2xl">
+      {/* blurred content */}
+      <div className="pointer-events-none blur-md opacity-30">{children}</div>
+
+      {/* overlay */}
+      <div className="absolute inset-0 z-10 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 rounded-2xl border border-line bg-surface/90 p-8 text-center shadow-xl backdrop-blur-md">
+          <span className="text-3xl">🔒</span>
+          <p className="text-gb-sm font-semibold text-fg">
+            {t('Upgrade to GlowBal Plus to unlock this section')}
+          </p>
+          <button
+            type="button"
+            onClick={() => router.push('/plus')}
+            className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-sm font-bold text-on-brand shadow-md transition-all hover:bg-brand-hover"
+          >
+            <span>{t('Upgrade to Plus')}</span>
+            <span>→</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function StrategyRecommendationReport({
   applicationId,
   recommendation,
@@ -96,12 +131,22 @@ export function StrategyRecommendationReport({
 
       <ReportPanel tabKey={active}>
         {active === 'direction' ? <DirectionTab recommendation={recommendation} /> : null}
-        {active === 'narrative' ? <NarrativeTab recommendation={recommendation} /> : null}
-        {active === 'positioning' ? <PositioningTab recommendation={recommendation} /> : null}
-        {active === 'portfolio' ? <PortfolioTab recommendation={recommendation} /> : null}
-        {active === 'differentiation' ? <DifferentiationTab recommendation={recommendation} /> : null}
+        {active === 'narrative' ? (
+          <BlurredTab><NarrativeTab recommendation={recommendation} /></BlurredTab>
+        ) : null}
+        {active === 'positioning' ? (
+          <BlurredTab><PositioningTab recommendation={recommendation} /></BlurredTab>
+        ) : null}
+        {active === 'portfolio' ? (
+          <BlurredTab><PortfolioTab recommendation={recommendation} /></BlurredTab>
+        ) : null}
+        {active === 'differentiation' ? (
+          <BlurredTab><DifferentiationTab recommendation={recommendation} /></BlurredTab>
+        ) : null}
         {active === 'roadmap' ? (
-          <RoadmapTab applicationId={applicationId} recommendation={recommendation} />
+          <BlurredTab>
+            <RoadmapTab applicationId={applicationId} recommendation={recommendation} />
+          </BlurredTab>
         ) : null}
       </ReportPanel>
     </div>
@@ -160,50 +205,15 @@ function DirectionCard({ option, isChosen }: { option: DirectionOption; isChosen
 
 function NarrativeTab({ recommendation }: { recommendation: StrategyRecommendationRecord }) {
   const { t } = useLanguage();
-  const router = useRouter();
-  const { isPlus } = usePlusStatus();
 
   return (
     <section className="flex flex-col gap-gb-md">
       <h2 className="text-gb-lg font-semibold text-fg">
         {t('Your story, retold through this direction')}
       </h2>
-
-      <div className="relative">
-        <p
-          className={`max-w-2xl text-gb-sm leading-relaxed text-fg-secondary transition-all ${
-            !isPlus ? 'filter blur-md opacity-30 select-none pointer-events-none' : ''
-          }`}
-        >
-          {recommendation.narrative}
-        </p>
-
-        {!isPlus && (
-          <div
-            className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl bg-gradient-to-b from-transparent via-surface/80 to-surface p-6 text-center"
-          >
-            <div className="max-w-md rounded-2xl border border-line bg-surface p-6 shadow-xl backdrop-blur-md">
-              <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-brand-subtle text-xl">
-                🔒
-              </div>
-              <h3 className="text-lg font-bold text-fg">
-                {t('Unlock your full strategic narrative')}
-              </h3>
-              <p className="mt-2 text-xs leading-relaxed text-fg-tertiary">
-                {t('Upgrade to GlowBal Plus to view your personalized application narrative, tailored storytelling angle, and strategic essays guidance.')}
-              </p>
-              <button
-                type="button"
-                onClick={() => router.push('/plus')}
-                className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-brand px-5 py-2.5 text-xs font-bold text-on-brand shadow-md transition-all hover:bg-brand-hover sm:text-sm"
-              >
-                <span>{t('Upgrade to Plus')}</span>
-                <span>→</span>
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
+      <p className="max-w-2xl text-gb-sm leading-relaxed text-fg-secondary">
+        {recommendation.narrative}
+      </p>
     </section>
   );
 }
