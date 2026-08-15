@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 
 /**
  * Modal — the overlay shape the design uses for both dialogs in the file: the
@@ -14,11 +15,8 @@ import { useEffect, useRef } from 'react';
  *   - Focus moves into the panel on open and returns to whatever opened it on
  *     close, so a keyboard user is not dumped at the top of the document.
  *   - The backdrop closes it; a click inside the panel does not bubble out.
- *
- * NOT a focus trap. Tab can still walk out of the panel into the page behind.
- * That is a real gap for screen-reader users and wants `inert` on the page root
- * (or a portal plus a trap) to fix properly; it is called out here rather than
- * left to be discovered.
+ *   - Rendered via React Portal to document.body so CSS transforms on parents
+ *     cannot clip or distort the viewport overlay.
  */
 export function Modal({
   open,
@@ -78,11 +76,14 @@ export function Modal({
     };
   }, [open]);
 
-  if (!open) return null;
+  // Client Components can still be rendered on the server. Guarding the
+  // portal target directly avoids a mount-only state update while keeping the
+  // server render deterministic and the client portal attached to body.
+  if (!open || typeof document === 'undefined') return null;
 
-  return (
+  const content = (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-scrim p-gb-xl backdrop-blur-sm"
+      className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-black/60 p-4 sm:p-6 backdrop-blur-sm"
       onClick={onClose}
     >
       <div
@@ -92,12 +93,14 @@ export function Modal({
         aria-label={label}
         tabIndex={-1}
         onClick={(event) => event.stopPropagation()}
-        className={`relative my-auto w-full rounded-gb-xl border border-line bg-surface shadow-gb-lg ${
-          className ?? 'max-w-gb-width-sm p-gb-5xl'
+        className={`relative my-auto w-full max-w-lg rounded-2xl border border-[#EDE9EE] bg-white p-6 sm:p-8 shadow-2xl ${
+          className ?? ''
         }`}
       >
         {children}
       </div>
     </div>
   );
+
+  return createPortal(content, document.body);
 }
