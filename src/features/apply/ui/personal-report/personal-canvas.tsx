@@ -31,7 +31,9 @@ function firstUseful(values: Array<string | null | undefined>, fallback: string)
 
 function strongestCapabilityLabels(report: PersonalReportV2): string[] {
   const stored = (report as ReportWithCanvasDetails).canvasDetails?.capabilities;
-  if (stored && stored.length > 0) return stored.slice(0, 2).map((capability) => capability.name);
+  if (stored && stored.length > 0) {
+    return stored.slice(0, 2).map((capability) => capability.name);
+  }
 
   return (report.analytics?.competencyEvidenceProfile ?? [])
     .filter((metric) => metric.score !== null)
@@ -54,7 +56,11 @@ function canvasPreviews(report: PersonalReportV2): Record<PersonalCanvasSectionK
 
   return {
     coreIdentity: firstUseful(
-      [report.coreIdentity.recurringRole, report.coreIdentity.valueOrientation, report.coreIdentity.headline],
+      [
+        report.coreIdentity.recurringRole,
+        report.coreIdentity.valueOrientation,
+        report.coreIdentity.headline,
+      ],
       'Your recurring identity patterns',
     ),
     drivingForces:
@@ -112,9 +118,9 @@ function CanvasCell({
       aria-pressed={active}
       onClick={() => onSelect(section)}
       className={[
-        'group relative flex min-h-[13.75rem] flex-col overflow-hidden rounded-[1.5rem]',
-        'bg-brand px-gb-xl py-gb-xl text-white shadow-sm',
-        'transition duration-300 ease-out hover:-translate-y-0.5 hover:brightness-[0.98]',
+        'group relative flex min-h-[13.75rem] flex-col overflow-hidden rounded-[1.75rem]',
+        'border border-white/15 bg-brand px-gb-xl py-gb-xl text-white shadow-md',
+        'transition duration-300 ease-out hover:-translate-y-1 hover:scale-[1.008] hover:shadow-xl',
         'focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand',
         active
           ? 'z-20 -translate-y-0.5 ring-[3px] ring-white ring-offset-[5px] ring-offset-surface shadow-xl'
@@ -123,22 +129,24 @@ function CanvasCell({
         className,
       ].join(' ')}
     >
-      <span className="text-gb-xs font-semibold uppercase tracking-[0.14em] text-white/70">
+      <span className="rounded-full border border-white/15 bg-white/10 px-gb-sm py-1 text-gb-xs font-semibold uppercase tracking-[0.14em] text-white/75 backdrop-blur-sm">
         {index}. Personal Canvas
       </span>
 
-      <div className={`mt-auto flex max-w-[19rem] flex-col gap-gb-sm ${isRight ? 'items-end' : 'items-start'}`}>
+      <div
+        className={`mt-auto flex max-w-[19rem] flex-col gap-gb-sm ${isRight ? 'items-end' : 'items-start'}`}
+      >
         <h3 className="font-display text-gb-display-xs font-semibold tracking-gb-display-tight">
           {title}
         </h3>
         <p
-          className={`text-gb-sm leading-relaxed text-white/80 ${isRight ? 'text-right' : 'text-left'}`}
+          className={`text-gb-sm leading-relaxed text-white/82 ${isRight ? 'text-right' : 'text-left'}`}
           data-no-auto-translate
         >
           {preview}
         </p>
-        <span className="text-gb-xs font-semibold text-white/80 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
-          Explore →
+        <span className="inline-flex items-center gap-1 text-gb-xs font-semibold text-white/80 opacity-70 transition-all group-hover:translate-x-0.5 group-hover:opacity-100 group-focus-visible:opacity-100">
+          Explore <span aria-hidden="true">→</span>
         </span>
       </div>
     </button>
@@ -148,12 +156,11 @@ function CanvasCell({
 /**
  * Personal Canvas navigation surface.
  *
- * Desktop deliberately mirrors the approved Personal Canvas model:
- * four quadrants form one 2×2 block with a visible cross-gap, while Core
- * Identity overlaps the exact centre of that gap. Long-Term Vision sits below
- * as the sixth connected area. The component is controlled so the workspace
- * can open a contextual report panel without changing route or scrolling to a
- * separate chapter.
+ * Desktop mirrors the approved Personal Canvas model: four quadrants form a
+ * 2×2 block while Core Identity overlaps the exact centre. Long-Term Vision
+ * remains a sixth, full-width connected area below the quadrant block. The
+ * component is controlled so the workspace can open contextual report detail
+ * without changing route or scrolling to a separate chapter.
  */
 export function PersonalCanvasView({
   report,
@@ -167,22 +174,7 @@ export function PersonalCanvasView({
   const previews = canvasPreviews(report);
 
   return (
-    <section aria-labelledby="personal-canvas-title" className="flex flex-col gap-gb-xl">
-      <div className="mx-auto flex max-w-2xl flex-col gap-gb-sm text-center">
-        <p className="text-gb-xs font-semibold uppercase tracking-[0.14em] text-fg-brand">
-          Personal Canvas
-        </p>
-        <h2
-          id="personal-canvas-title"
-          className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg"
-        >
-          Your applicant profile, in six connected parts
-        </h2>
-        <p className="text-gb-sm leading-relaxed text-fg-tertiary">
-          Start with the whole picture, then open any area to inspect the evidence and reasoning behind it.
-        </p>
-      </div>
-
+    <section aria-label="Personal Canvas" className="flex flex-col gap-gb-xl">
       {/* Narrow screens use readable cards rather than shrinking the diagram. */}
       <div className="grid gap-gb-sm rounded-gb-2xl bg-brand/5 p-gb-sm md:hidden">
         <button
@@ -190,18 +182,60 @@ export function PersonalCanvasView({
           data-canvas-section="coreIdentity"
           aria-pressed={activeSection === 'coreIdentity'}
           onClick={() => onSelect('coreIdentity')}
-          className="rounded-gb-xl bg-brand px-gb-xl py-gb-lg text-left text-white shadow-sm"
+          className={[
+            'rounded-[1.5rem] border border-white/15 bg-brand px-gb-xl py-gb-lg text-left text-white shadow-md',
+            'transition duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg',
+            activeSection === 'coreIdentity'
+              ? 'ring-[3px] ring-white ring-offset-[4px] ring-offset-surface'
+              : '',
+          ].join(' ')}
         >
-          <span className="text-gb-xs font-semibold uppercase tracking-[0.14em] text-white/70">1. Core</span>
-          <p className="mt-gb-sm font-display text-gb-display-xs font-semibold">Core Identity</p>
-          <p className="mt-gb-xs text-gb-sm text-white/80" data-no-auto-translate>{previews.coreIdentity}</p>
+          <span className="inline-flex rounded-full border border-white/15 bg-white/10 px-gb-sm py-1 text-gb-xs font-semibold uppercase tracking-[0.14em] text-white/75">
+            1. Core
+          </span>
+          <p className="mt-gb-lg font-display text-gb-display-xs font-semibold">Core Identity</p>
+          <p className="mt-gb-xs text-gb-sm text-white/80" data-no-auto-translate>
+            {previews.coreIdentity}
+          </p>
         </button>
 
         <div className="grid gap-gb-sm sm:grid-cols-2">
-          <CanvasCell section="drivingForces" index={2} title="Driving Forces" preview={previews.drivingForces} active={activeSection === 'drivingForces'} side="left" onSelect={onSelect} />
-          <CanvasCell section="provenCapabilities" index={3} title="Proven Capabilities" preview={previews.provenCapabilities} active={activeSection === 'provenCapabilities'} side="left" onSelect={onSelect} />
-          <CanvasCell section="areasForGrowth" index={5} title="Areas for Growth" preview={previews.areasForGrowth} active={activeSection === 'areasForGrowth'} side="left" onSelect={onSelect} />
-          <CanvasCell section="socialProof" index={4} title="Social Proof" preview={previews.socialProof} active={activeSection === 'socialProof'} side="left" onSelect={onSelect} />
+          <CanvasCell
+            section="drivingForces"
+            index={2}
+            title="Driving Forces"
+            preview={previews.drivingForces}
+            active={activeSection === 'drivingForces'}
+            side="left"
+            onSelect={onSelect}
+          />
+          <CanvasCell
+            section="provenCapabilities"
+            index={3}
+            title="Proven Capabilities"
+            preview={previews.provenCapabilities}
+            active={activeSection === 'provenCapabilities'}
+            side="left"
+            onSelect={onSelect}
+          />
+          <CanvasCell
+            section="areasForGrowth"
+            index={5}
+            title="Areas for Growth"
+            preview={previews.areasForGrowth}
+            active={activeSection === 'areasForGrowth'}
+            side="left"
+            onSelect={onSelect}
+          />
+          <CanvasCell
+            section="socialProof"
+            index={4}
+            title="Social Proof"
+            preview={previews.socialProof}
+            active={activeSection === 'socialProof'}
+            side="left"
+            onSelect={onSelect}
+          />
         </div>
 
         <CanvasCell
@@ -211,12 +245,12 @@ export function PersonalCanvasView({
           preview={previews.longTermVision}
           active={activeSection === 'longTermVision'}
           side="left"
-          className="min-h-[9rem]"
+          className="min-h-[11.5rem]"
           onSelect={onSelect}
         />
       </div>
 
-      {/* Desktop Personal Canvas: exact quadrant + overlapping central-circle geometry. */}
+      {/* Desktop Personal Canvas: quadrant + overlapping central-circle geometry. */}
       <div className="mx-auto hidden w-full max-w-[62rem] rounded-[2rem] border border-brand/10 bg-brand/5 p-gb-md shadow-sm md:block">
         <div className="relative grid grid-cols-2 grid-rows-2 gap-gb-md">
           <CanvasCell
@@ -270,15 +304,22 @@ export function PersonalCanvasView({
                 'pointer-events-auto flex h-full w-full flex-col items-center justify-center rounded-full',
                 'border-[6px] border-white bg-brand px-gb-xl text-center text-white shadow-xl',
                 'ring-[10px] ring-brand/10 transition duration-300 ease-out',
-                'hover:scale-[1.025] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand',
+                'hover:scale-[1.025] hover:shadow-2xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand',
                 activeSection === 'coreIdentity'
                   ? 'scale-[1.035] ring-white/30 shadow-2xl'
                   : '',
               ].join(' ')}
             >
-              <span className="text-gb-xs font-semibold uppercase tracking-[0.14em] text-white/70">1. Core</span>
-              <span className="mt-gb-sm font-display text-gb-display-xs font-semibold">Core Identity</span>
-              <span className="mt-gb-xs max-w-[11rem] text-gb-xs leading-relaxed text-white/80" data-no-auto-translate>
+              <span className="rounded-full border border-white/15 bg-white/10 px-gb-sm py-1 text-gb-xs font-semibold uppercase tracking-[0.14em] text-white/75">
+                1. Core
+              </span>
+              <span className="mt-gb-sm font-display text-gb-display-xs font-semibold">
+                Core Identity
+              </span>
+              <span
+                className="mt-gb-xs max-w-[11rem] text-gb-xs leading-relaxed text-white/80"
+                data-no-auto-translate
+              >
                 {previews.coreIdentity}
               </span>
             </button>
@@ -292,7 +333,7 @@ export function PersonalCanvasView({
           preview={previews.longTermVision}
           active={activeSection === 'longTermVision'}
           side="left"
-          className="mt-gb-md min-h-[9.75rem]"
+          className="mt-gb-md"
           onSelect={onSelect}
         />
       </div>
