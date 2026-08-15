@@ -1,6 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const READY_REFLECTION = {
+  majors: [],
+  countries: [],
   achievements: [],
   activities: [],
 };
@@ -115,8 +117,6 @@ describe('POST /api/candidate-information/confirm', () => {
     mocks.loadCandidateReflection.mockResolvedValue({
       reflection: {
         ...READY_REFLECTION,
-        majors: [],
-        countries: [],
         countryPreferenceFlexible: undefined,
         intendedLevel: undefined,
         intake: undefined,
