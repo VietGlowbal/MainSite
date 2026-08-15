@@ -22,7 +22,6 @@ import {
   HomePartners,
   HomeScholarships,
   HomeTeam,
-  HomeTestimonials,
   PARTNER_LOGOS,
   type ContactState,
 } from '@/features/marketing/ui';
@@ -265,7 +264,9 @@ export default async function Home() {
         <HomePainPoints />
         <HomeHowItWorks />
         <HomeFeatures />
-        <HomeTestimonials />
+        {/* Testimonials tạm ẩn khỏi "/" theo yêu cầu của chủ dự án (15/08).
+            Component `HomeTestimonials` vẫn còn nguyên và vẫn render ở
+            `/dev/home` — bật lại chỉ cần import và đặt lại đúng chỗ này. */}
         <HomeTeam members={team} />
         <HomeContact action={submitContact} />
         <HomeFaq />
