@@ -101,9 +101,7 @@ function UniversityCard({
   preloadImage?: boolean;
 }) {
   const {
-    isLoggedIn,
     authPending,
-    requireLogin,
     isShortlisted,
     addToShortlist,
     removeFromShortlist,
@@ -171,32 +169,9 @@ function UniversityCard({
         <div className="flex flex-col gap-gb-xl">
           <div className="flex flex-col gap-gb-lg">
             <h3 className="text-gb-lg font-semibold text-fg">
-              {/*
-               * `after:` turns this one anchor into the card's whole hit area.
-               * The login gate still comes first for guests: the anchor has a
-               * real href so the URL is visible on hover and copyable, and the
-               * click is intercepted rather than the link being withheld.
-               */}
+              {/* `after:` turns this one anchor into the card's whole hit area. */}
               <Link
                 href={`/universities/${uni.id}`}
-                onClick={(e) => {
-                  if (!isLoggedIn) {
-                    e.preventDefault();
-                    requireLogin();
-                  }
-                }}
-                /*
-                 * A guest's click is cancelled in favour of the login gate, so
-                 * there is no navigation to show a loader for. RouteLoading
-                 * listens in the CAPTURE phase — it runs before React's handler,
-                 * so `defaultPrevented` is still false by the time it decides —
-                 * and its own doc notes that a click which turns out not to
-                 * navigate leaves a handle open until SAFETY_MS. That is a flat
-                 * 10-second fake loader on the gate. `data-no-loader` is the
-                 * opt-out it provides; signed-in users still get the loader,
-                 * because they really do navigate.
-                 */
-                {...(isLoggedIn ? {} : { 'data-no-loader': '' })}
                 className="after:absolute after:inset-0 after:content-[''] focus-visible:outline-none"
               >
                 {uni.name}

@@ -146,19 +146,12 @@ export function UniversityExplorerProvider({
 
   const setView = useCallback(
     (view: ExplorerState['activeView'], universityId?: number) => {
-      // Opening a university profile (and the scholarship CTA inside it) is
-      // gated behind login — guests get the sign-in prompt instead. We collect
-      // user data to train the matcher, so anonymous browsing stops at the list.
-      if (view === 'detail' && !isLoggedIn) {
-        setLoginGateOpen(true);
-        return;
-      }
       setActiveView(view);
       setSelectedUniversityId(
         view === 'detail' && universityId != null ? universityId : null,
       );
     },
-    [isLoggedIn],
+    [],
   );
 
   const setFilter = useCallback((filter: FilterCategory) => {
