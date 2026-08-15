@@ -3,6 +3,7 @@ export { evaluateEligibility } from './eligibility';
 export { evaluateAdmission } from './admission';
 export { evaluatePreference } from './preference';
 export { evaluateProgrammeMatch, rankProgrammeMatches } from './ranking';
+export { demoProgrammeMatches } from './demo';
 export type {
   AdmissionResult,
   AdmissionTierV1,

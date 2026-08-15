@@ -20,15 +20,16 @@ function percentage(value: number | null): string {
   return value === null ? 'Unavailable' : `${Math.round(value)}%`;
 }
 
-export function ProgrammeMatchResults({ matches }: { matches: RankedProgrammeMatch[] }) {
+export function ProgrammeMatchResults({ matches, demo = false }: { matches: RankedProgrammeMatch[]; demo?: boolean }) {
   const recommendable = matches.filter((match) => match.eligibility.status !== 'not_eligible');
   const ineligible = matches.filter((match) => match.eligibility.status === 'not_eligible');
   return (
     <Container className="flex flex-col gap-gb-4xl py-gb-6xl">
       <div className="flex flex-col gap-gb-lg">
         <Link href="/universities" className="text-gb-sm font-medium text-fg-brand hover:underline">Back to university search</Link>
+        {demo ? <Badge variant="brand-subtle">Deterministic demo · fixed fixture data</Badge> : null}
         <h1 className="font-display text-gb-display-xs font-semibold text-fg md:text-gb-display-sm">Your programme matches</h1>
-        <p className="max-w-gb-width-xl text-gb-md text-fg-tertiary">Programme recommendations use your onboarding profile and the evidence available today. Admission realism is not an admission probability.</p>
+        <p className="max-w-gb-width-xl text-gb-md text-fg-tertiary">{demo ? 'This public demo uses a fixed student profile and catalogue fixture to show deterministic scoring, verified evidence, known gaps and unknown evidence states.' : 'Programme recommendations use your onboarding profile and the evidence available today. Admission realism is not an admission probability.'}</p>
       </div>
 
       {recommendable.length === 0 ? (

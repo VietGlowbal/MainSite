@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateAdmission, evaluateEligibility, evaluatePreference, MATCHING_MODEL_V1, rankProgrammeMatches } from '.';
+import { demoProgrammeMatches, evaluateAdmission, evaluateEligibility, evaluatePreference, MATCHING_MODEL_V1, rankProgrammeMatches } from '.';
 import type { MatchEvidence, MatchingProgrammeCandidate, StudentMatchingProfile } from './types';
 
 const studentEvidence: MatchEvidence = { source: 'fixture', scope: 'student', field: 'value', reliability: 'structured' };
@@ -125,5 +125,15 @@ describe('deterministic programme matching v1', () => {
       candidate({ programmeId: 'best-preference', selectivity: { score: 55, evidence: programmeEvidence, reason: 'Fixture.' } }),
     ]);
     expect(matches.map((match) => match.programmeId)).toEqual(['best-preference', 'low-preference', 'failed']);
+  });
+
+  it('provides a public fixture covering verified, failed, and unknown states', () => {
+    const matches = demoProgrammeMatches();
+
+    expect(matches).toHaveLength(3);
+    expect(matches.find((match) => match.programmeId === 'demo-verified-computer-science')?.eligibility.status).toBe('eligible');
+    expect(matches.find((match) => match.programmeId === 'demo-known-gap-data-science')?.eligibility.status).toBe('not_eligible');
+    expect(matches.find((match) => match.programmeId === 'demo-unknown-software-engineering')?.eligibility.status).toBe('unknown');
+    expect(matches.find((match) => match.programmeId === 'demo-verified-computer-science')?.admission.factors.find((factor) => factor.key === 'prerequisites')?.status).toBe('scored');
   });
 });
