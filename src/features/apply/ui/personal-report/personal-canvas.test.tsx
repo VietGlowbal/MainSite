@@ -66,7 +66,7 @@ function report(): PersonalReportV2 {
     personalPositioning: {
       available: true,
       statement: 'An impact-oriented builder.',
-      positioningStatus: 'developing',
+      positioningStatus: 'emerging_positioning',
       authentic: true,
       differentiated: false,
       coherent: true,
