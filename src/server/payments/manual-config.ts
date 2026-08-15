@@ -1,4 +1,5 @@
 import { PRODUCTION_SITE_URL } from '@/lib/site-url';
+import { getEmailSender } from '@/lib/email/config';
 
 export type ManualPaymentConfig = {
   reviewerUserIds: string[];
@@ -81,7 +82,10 @@ export function getManualPaymentConfig(): ManualPaymentConfig {
   return {
     reviewerUserIds: reviewerIds(),
     founderEmail: required('MANUAL_PAYMENT_FOUNDER_EMAIL'),
-    fromEmail: brandManualPaymentSender(required('MANUAL_PAYMENT_FROM_EMAIL')),
+    // Payment mail follows the same configured sender identity as the rest of
+    // GlowBal. The obsolete MANUAL_PAYMENT_FROM_EMAIL setting no longer creates
+    // a separate public sender by accident.
+    fromEmail: getEmailSender('default'),
     reviewSecret: secret('MANUAL_PAYMENT_REVIEW_SECRET'),
     reconciliationSecret: secret('MANUAL_PAYMENT_RECONCILIATION_SECRET'),
     bankLabel: required('MANUAL_PAYMENT_BANK_LABEL'),
