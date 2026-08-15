@@ -531,13 +531,19 @@ export function PersonalCanvasWorkspace({
       });
     };
 
-    // One frame catches the post-grid layout; the second catches the first
-    // spring-animation frame of the panel. ResizeObserver keeps the connector
-    // attached as the panel or Canvas continues to settle.
-    const firstFrame = window.requestAnimationFrame(() => {
+    // Grid columns and the panel both animate on open. Track their real
+    // bounding boxes only while that transition is in flight, then let the
+    // observers below handle any later responsive/content changes.
+    let animationFrame = 0;
+    const startedAt = performance.now();
+    const trackOpeningLayout = (now: number) => {
       update();
-      window.requestAnimationFrame(update);
-    });
+      if (now - startedAt < 650) {
+        animationFrame = window.requestAnimationFrame(trackOpeningLayout);
+      }
+    };
+    animationFrame = window.requestAnimationFrame(trackOpeningLayout);
+
     const observer =
       typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
     observer?.observe(workspace);
@@ -545,7 +551,7 @@ export function PersonalCanvasWorkspace({
     window.addEventListener('resize', update);
 
     return () => {
-      window.cancelAnimationFrame(firstFrame);
+      window.cancelAnimationFrame(animationFrame);
       observer?.disconnect();
       window.removeEventListener('resize', update);
     };
