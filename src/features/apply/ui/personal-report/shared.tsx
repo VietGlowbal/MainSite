@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 import { useT } from '@/lib/i18n';
 import type { InsufficientData, ReportConfidence } from '../../domain';
 import { Badge, Button, Panel, PanelHeader, Textarea } from '@/shared/ui';
@@ -18,7 +18,10 @@ export const CONFIDENCE_LABEL: Record<ReportConfidence, string> = {
   low: 'Low',
 };
 
-const CONFIDENCE_BADGE_VARIANT: Record<ReportConfidence, 'safe-chip' | 'brand-chip' | 'neutral-chip'> = {
+const CONFIDENCE_BADGE_VARIANT: Record<
+  ReportConfidence,
+  'safe-chip' | 'brand-chip' | 'neutral-chip'
+> = {
   high: 'safe-chip',
   medium: 'brand-chip',
   low: 'neutral-chip',
@@ -26,7 +29,11 @@ const CONFIDENCE_BADGE_VARIANT: Record<ReportConfidence, 'safe-chip' | 'brand-ch
 
 export function ConfidenceBadge({ confidence }: { confidence: ReportConfidence }) {
   const t = useT();
-  return <Badge variant={CONFIDENCE_BADGE_VARIANT[confidence]}>{t(CONFIDENCE_LABEL[confidence])}</Badge>;
+  return (
+    <Badge variant={CONFIDENCE_BADGE_VARIANT[confidence]}>
+      {t(CONFIDENCE_LABEL[confidence])}
+    </Badge>
+  );
 }
 
 /**
@@ -37,6 +44,30 @@ export function ConfidenceBadge({ confidence }: { confidence: ReportConfidence }
  */
 export function withReturn(href: string, returnTo: string | undefined): string {
   return returnTo ? `${href}?return=${encodeURIComponent(returnTo)}` : href;
+}
+
+/**
+ * The interactive Canvas can answer report-owned gaps without reopening the
+ * student's confirmed Candidate Information. Providing this once around the
+ * active panel means every `InsufficientDataCard` inside that panel can offer
+ * the same inline evidence path without threading a callback through every
+ * report section component. Historical report versions intentionally provide
+ * no callback and therefore remain read-only.
+ */
+const PersonalReportInlineUpdateContext = createContext<(() => void) | undefined>(undefined);
+
+export function PersonalReportInlineUpdateProvider({
+  onAnswered,
+  children,
+}: {
+  onAnswered: (() => void) | undefined;
+  children: ReactNode;
+}) {
+  return (
+    <PersonalReportInlineUpdateContext.Provider value={onAnswered}>
+      {children}
+    </PersonalReportInlineUpdateContext.Provider>
+  );
 }
 
 /**
@@ -86,7 +117,9 @@ export function InlineAnswerAction({
       setValue('');
       onAnswered();
     } catch (requestError) {
-      setError(requestError instanceof Error ? requestError.message : t('Could not save your answer.'));
+      setError(
+        requestError instanceof Error ? requestError.message : t('Could not save your answer.'),
+      );
       setSaving(false);
     }
   }
@@ -97,7 +130,7 @@ export function InlineAnswerAction({
         name={`report-answer-${fieldKey}`}
         rows={3}
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(event) => setValue(event.target.value)}
         placeholder={t(label)}
         disabled={saving}
         error={error ?? undefined}
@@ -107,7 +140,93 @@ export function InlineAnswerAction({
         <Button size="sm" onClick={() => void save()} disabled={saving || !value.trim()}>
           {saving ? t('Saving…') : t('Save & update report')}
         </Button>
-        <Button size="sm" variant="secondary" onClick={() => setOpen(false)} disabled={saving}>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => setOpen(false)}
+          disabled={saving}
+        >
+          {t('Cancel')}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Captures one additional self-reported experience directly from a Personal
+ * Canvas evidence gap. It is deliberately report-only: the server stores it
+ * alongside other Personal Report supplements, and generation consumes it as
+ * self-reported evidence without changing a confirmed Candidate Information
+ * snapshot. Students can still use the deeper achievements page when they
+ * want structured reflection or document verification.
+ */
+export function InlineEvidenceAction({
+  label,
+  onAnswered,
+}: {
+  label: string;
+  onAnswered: () => void;
+}) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const [value, setValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!open) {
+    return (
+      <Button variant="secondary" size="sm" onClick={() => setOpen(true)}>
+        {t(label)}
+      </Button>
+    );
+  }
+
+  async function save() {
+    if (!value.trim()) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/ai-strategy/personal-report/evidence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answer: value.trim() }),
+      });
+      const body = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(body.error || t('Could not save your answer.'));
+      setOpen(false);
+      setValue('');
+      onAnswered();
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error ? requestError.message : t('Could not save your answer.'),
+      );
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="flex w-full flex-col gap-gb-sm">
+      <Textarea
+        name="personal-report-inline-evidence"
+        rows={4}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        placeholder={t(label)}
+        disabled={saving}
+        error={error ?? undefined}
+        autoFocus
+      />
+      <div className="flex flex-wrap gap-gb-sm">
+        <Button size="sm" onClick={() => void save()} disabled={saving || !value.trim()}>
+          {saving ? t('Saving…') : t('Save & update report')}
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => setOpen(false)}
+          disabled={saving}
+        >
           {t('Cancel')}
         </Button>
       </div>
@@ -125,21 +244,37 @@ export function InsufficientDataCard({
   onAnswered?: (() => void) | undefined;
 }) {
   const t = useT();
+  const contextualOnAnswered = useContext(PersonalReportInlineUpdateContext);
+  const inlineUpdate = onAnswered ?? contextualOnAnswered;
+  const remainingActions = inlineUpdate
+    ? data.actions.filter((action) => action.kind !== 'add_activity')
+    : data.actions;
+
   return (
     <div className="flex flex-col gap-gb-md rounded-gb-xl border border-line bg-surface-muted p-gb-xl">
       <p className="text-gb-sm font-semibold text-fg">{t('More evidence needed')}</p>
       <p className="text-gb-sm text-fg-tertiary" data-no-auto-translate>
         {data.reason}
       </p>
-      {data.actions.length > 0 ? (
+
+      {inlineUpdate ? (
+        <div className="print:hidden">
+          <InlineEvidenceAction
+            label="Add another activity or achievement"
+            onAnswered={inlineUpdate}
+          />
+        </div>
+      ) : null}
+
+      {remainingActions.length > 0 ? (
         <div className="flex flex-wrap gap-gb-md print:hidden">
-          {data.actions.map((action) =>
-            action.fieldKey && onAnswered ? (
+          {remainingActions.map((action) =>
+            action.fieldKey && inlineUpdate ? (
               <InlineAnswerAction
                 key={action.kind + action.href}
                 label={action.label}
                 fieldKey={action.fieldKey}
-                onAnswered={onAnswered}
+                onAnswered={inlineUpdate}
               />
             ) : (
               <Button
@@ -167,10 +302,14 @@ export function SectionShell({
   eyebrow: string;
   title: string;
   confidence?: ReportConfidence | undefined;
-  children: React.ReactNode;
+  children: ReactNode;
 }) {
   return (
-    <Panel as="section" elevation="flat" className="flex flex-col gap-gb-xl print:break-inside-avoid print:border-0 print:shadow-none">
+    <Panel
+      as="section"
+      elevation="flat"
+      className="flex flex-col gap-gb-xl print:break-inside-avoid print:border-0 print:shadow-none"
+    >
       <PanelHeader
         title={title}
         description={eyebrow}
