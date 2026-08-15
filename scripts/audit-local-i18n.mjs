@@ -32,6 +32,9 @@ const knownProper = new Set([
   'Massachusetts Institute of Technology (MIT)', 'Imperial College London', 'University of Oxford',
   'Harvard University', 'National University of Singapore (NUS)',
   'London School of Economics and Political Science (LSE)', 'University of Toronto', 'VinUniversity',
+  // Crest alt text on the Home roster cards — institution names, never
+  // translated. See features/marketing/ui/university-crests.ts.
+  'Hanoi University of Science and Technology', 'Foreign Trade University',
   'United States', 'United Kingdom', 'Australia', 'Canada', 'China', 'Germany', 'Hong Kong', 'Japan',
   'South Korea', 'France', 'Italy', 'Netherlands', 'Singapore', 'Czech Republic', 'Hungary', 'Ireland',
   'New Zealand', 'Vietnam', 'English, Vietnamese',
