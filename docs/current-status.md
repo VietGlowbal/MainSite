@@ -2,7 +2,7 @@
 
 Last reconciled: **2026-08-15 (Asia/Bangkok)**
 
-Code snapshot: `main` after PR #195 merged (Redesign application setup flow: profile review, activity reflection, AI Reflection Cards, personal reflection).
+Code snapshot: `main` after PR #195 and commit `afab5f1` merged. Plus Pricing modal features cleaned Payment Method selector (no 'thủ công', no sandbox clutter), mandatory Terms & Conditions agreement checkbox gating checkout, interactive 20-section Terms & Conditions modal and updated `/terms` page, with 100% i18n dictionary and test suite coverage.
 
 Founder-confirmed manual bank transfer is implemented in the working tree for
 mentorship and GlowBal Plus, alongside the existing VNPay Sandbox path and

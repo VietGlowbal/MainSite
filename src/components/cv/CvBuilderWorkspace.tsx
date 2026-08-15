@@ -228,7 +228,17 @@ function WorkflowProgress({
   );
 }
 
-function StrategyDirections({ strategy }: { strategy: CvStrategySnapshot }) {
+function StrategyDirections({
+  strategy,
+  selectedDirection,
+  onSelect,
+  disabled = false,
+}: {
+  strategy: CvStrategySnapshot;
+  selectedDirection: string;
+  onSelect?: (direction: string) => void;
+  disabled?: boolean;
+}) {
   const t = useT();
   return (
     <section className="mt-8" aria-labelledby="cv-strategy-directions">
@@ -238,7 +248,7 @@ function StrategyDirections({ strategy }: { strategy: CvStrategySnapshot }) {
             {t('Strategic directions')}
           </h2>
           <p className="mt-1 text-xs leading-5 text-slate-500">
-            {t('These directions are read-only. The Recommended direction is locked to your Personalized Strategy.')}
+            {t('Choose one direction for this CV. Changing it will rebuild the Target Profile and CV.')}
           </p>
         </div>
         <span className="text-xs font-semibold text-slate-500">
@@ -259,38 +269,54 @@ function StrategyDirections({ strategy }: { strategy: CvStrategySnapshot }) {
           return (
             <article
               key={option.name}
-              className={`rounded-xl border p-5 ${
-                recommended
-                  ? 'border-rose-300 bg-rose-50/50'
-                  : 'border-slate-200 bg-white'
-              }`}
+              className="rounded-xl"
               aria-label={`${t('Direction')} ${option.name}`}
             >
-              <div className="flex items-start justify-between gap-3">
-                <h3 className="text-sm font-semibold text-slate-950">{option.name}</h3>
-                {recommended ? (
-                  <span className="shrink-0 rounded-full border border-rose-300 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-700">
-                    {t('Recommended')}
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-4 text-xs font-semibold text-slate-600">
-                {t('Overall')}: <span className="text-slate-950">{option.overall.toFixed(1)}/10</span>
-              </p>
-              <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
-                {dimensions.map(([label, value]) => (
-                  <div key={label} className="flex items-center justify-between gap-2">
-                    <dt className="text-slate-500">{t(label)}</dt>
-                    <dd className="font-semibold text-slate-800">{value.toFixed(1)}</dd>
+              <button
+                type="button"
+                aria-pressed={selectedDirection === option.name}
+                aria-label={`${t('Direction')} ${option.name}`}
+                disabled={disabled}
+                 onClick={() => onSelect?.(option.name)}
+                className={`w-full rounded-xl border p-5 text-left transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-rose-500 disabled:cursor-not-allowed disabled:opacity-60 ${
+                  selectedDirection === option.name
+                    ? 'border-rose-400 bg-rose-50/60 ring-2 ring-rose-200'
+                    : 'border-slate-200 bg-white hover:border-rose-200 hover:bg-rose-50/20'
+                }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <h3 className="text-sm font-semibold text-slate-950">{option.name}</h3>
+                  <div className="flex shrink-0 flex-wrap justify-end gap-1.5">
+                    {recommended ? (
+                      <span className="rounded-full border border-rose-300 bg-white px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-700">
+                        {t('Recommended')}
+                      </span>
+                    ) : null}
+                    {selectedDirection === option.name ? (
+                      <span className="rounded-full border border-emerald-300 bg-emerald-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-emerald-700">
+                        {t('Use for this CV')}
+                      </span>
+                    ) : null}
                   </div>
-                ))}
-              </dl>
-              {recommended ? (
-                <p className="mt-4 border-t border-rose-200 pt-3 text-xs leading-5 text-slate-700">
-                  <span className="font-semibold">{t('Why this direction')}: </span>
-                  {strategy.chosenDirectionWhy}
+                </div>
+                <p className="mt-4 text-xs font-semibold text-slate-600">
+                  {t('Overall')}: <span className="text-slate-950">{option.overall.toFixed(1)}/10</span>
                 </p>
-              ) : null}
+                <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  {dimensions.map(([label, value]) => (
+                    <div key={label} className="flex items-center justify-between gap-2">
+                      <dt className="text-slate-500">{t(label)}</dt>
+                      <dd className="font-semibold text-slate-800">{value.toFixed(1)}</dd>
+                    </div>
+                  ))}
+                </dl>
+                {recommended ? (
+                  <p className="mt-4 border-t border-rose-200 pt-3 text-xs leading-5 text-slate-700">
+                    <span className="font-semibold">{t('Why this direction')}: </span>
+                    {strategy.chosenDirectionWhy}
+                  </p>
+                ) : null}
+              </button>
             </article>
           );
         })}
@@ -303,11 +329,17 @@ function TargetProfile({
   profile,
   status,
   strategy,
+  selectedDirection,
+  onSelectDirection,
+  directionsDisabled,
   applicationId,
 }: {
   profile: CvTargetProfileV1 | null;
   status: string;
   strategy: CvStrategySnapshot | null;
+  selectedDirection: string;
+  onSelectDirection?: (direction: string) => void;
+  directionsDisabled?: boolean;
   applicationId: string;
 }) {
   const t = useT();
@@ -331,7 +363,12 @@ function TargetProfile({
   if (!profile) {
     return (
       <div>
-        <StrategyDirections strategy={strategy} />
+        <StrategyDirections
+          strategy={strategy}
+          selectedDirection={selectedDirection}
+          onSelect={onSelectDirection}
+          disabled={directionsDisabled}
+        />
         <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-8 text-center">
           <div>
             <div
@@ -369,7 +406,12 @@ function TargetProfile({
           </span>
         ))}
       </div>
-      <StrategyDirections strategy={strategy} />
+      <StrategyDirections
+        strategy={strategy}
+        selectedDirection={selectedDirection}
+        onSelect={onSelectDirection}
+        disabled={directionsDisabled}
+      />
       <h2 className="mt-8 text-sm font-semibold text-slate-950">{t('Information used to position the CV')}</h2>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {insights.map(([label, insight]) => (
@@ -1499,6 +1541,9 @@ export function CvBuilderWorkspace({
   const storageKey = cvBuilderDraftKey(userId, applicationId);
   const [step, setStep] = useState(0);
   const [form, setForm] = useState(prefill);
+  const [selectedDirection, setSelectedDirection] = useState(
+    strategy?.chosenDirection ?? '',
+  );
   const [targetProfile, setTargetProfile] = useState<CvTargetProfileV1 | null>(null);
   const [sourceRecommendationId, setSourceRecommendationId] = useState<string | null>(null);
   const [generatedCv, setGeneratedCv] = useState<GeneratedCvV1 | null>(null);
@@ -1522,6 +1567,12 @@ export function CvBuilderWorkspace({
   const reviewRef = useRef<HTMLDivElement>(null);
   const [tooLong, setTooLong] = useState(false);
 
+  const abortRequests = useCallback(() => {
+    requestGeneration.current += 1;
+    controllers.current.forEach((controller) => controller.abort());
+    controllers.current = [];
+  }, []);
+
   const resetAiState = useCallback((resetAutoGenerationGuard: boolean) => {
     setTargetProfile(null);
     setSourceRecommendationId(null);
@@ -1537,7 +1588,9 @@ export function CvBuilderWorkspace({
     if (resetAutoGenerationGuard) autoGenerationKey.current = null;
   }, []);
 
-  const persistSafeDraft = useCallback(() => {
+  const persistSafeDraft = useCallback(
+    (overrides?: { selectedDirection?: string }) => {
+      const nextDirection = overrides?.selectedDirection ?? selectedDirection;
     localStorage.setItem(
       storageKey,
       JSON.stringify({
@@ -1545,9 +1598,12 @@ export function CvBuilderWorkspace({
         applicationId,
         form,
         selectedTemplate: template,
+        ...(nextDirection ? { selectedDirection: nextDirection } : {}),
       }),
     );
-  }, [applicationId, form, storageKey, template]);
+    },
+    [applicationId, form, selectedDirection, storageKey, template],
+  );
 
   useEffect(() => {
     const saved = localStorage.getItem(storageKey);
@@ -1555,6 +1611,17 @@ export function CvBuilderWorkspace({
     try {
       value = saved ? JSON.parse(saved) : null;
     } catch {}
+    const draftDirection =
+      value &&
+      typeof value === 'object' &&
+      !Array.isArray(value) &&
+      typeof (value as Record<string, unknown>).selectedDirection === 'string'
+        ? String((value as Record<string, unknown>).selectedDirection)
+        : '';
+    const expectedDirection =
+      strategy?.directionOptions.some(({ name }) => name === draftDirection)
+        ? draftDirection
+        : strategy?.chosenDirection;
     const restored = restoreCvBuilderDraft(
       value,
       applicationId,
@@ -1563,11 +1630,15 @@ export function CvBuilderWorkspace({
             version: strategy.version,
             recommendationId: strategy.recommendationId,
             createdAt: strategy.createdAt,
+            selectedDirection: expectedDirection,
           } satisfies CvBuilderDraftStrategyBinding)
         : null,
     );
     if (restored) {
       setForm(restored.form);
+      setSelectedDirection(
+        restored.selectedDirection ?? expectedDirection ?? strategy?.chosenDirection ?? '',
+      );
       setTargetProfile(restored.targetProfile ?? null);
       setGeneratedCv(restored.generatedCv ?? null);
       setSourceRecommendationId(restored.sourceRecommendationId ?? null);
@@ -1592,6 +1663,7 @@ export function CvBuilderWorkspace({
             ...(sourceRecommendationId
               ? { sourceRecommendationId }
               : {}),
+            ...(selectedDirection ? { selectedDirection } : {}),
             targetProfile: targetProfile ?? undefined,
             form,
             generatedCv: generatedCv ?? undefined,
@@ -1607,6 +1679,7 @@ export function CvBuilderWorkspace({
     generatedCv,
     hydrated,
     sourceRecommendationId,
+    selectedDirection,
     storageKey,
     targetProfile,
     template,
@@ -1628,11 +1701,10 @@ export function CvBuilderWorkspace({
   }, []);
 
   const clearDraft = useCallback(() => {
-    requestGeneration.current += 1;
-    controllers.current.forEach((controller) => controller.abort());
-    controllers.current = [];
+    abortRequests();
     localStorage.removeItem(storageKey);
     setForm(prefill);
+    setSelectedDirection(strategy?.chosenDirection ?? '');
     resetAiState(true);
     setError('');
     setStatus('');
@@ -1640,11 +1712,15 @@ export function CvBuilderWorkspace({
     setMissingSections([]);
     retryClarification.current = false;
     setTooLong(false);
-  }, [prefill, resetAiState, storageKey]);
+  }, [abortRequests, prefill, resetAiState, storageKey, strategy]);
 
-  const buildTarget = useCallback(async () => {
+  const buildTarget = useCallback(async (directionName = selectedDirection) => {
     if (!strategy) {
       setError(t('Complete your Personalized Strategy before building a CV.'));
+      return;
+    }
+    if (!strategy.directionOptions.some(({ name }) => name === directionName)) {
+      setError(t('Select one of the available Personalized Strategy directions.'));
       return;
     }
     const controller = startRequest();
@@ -1654,7 +1730,10 @@ export function CvBuilderWorkspace({
       const response = await fetch(`/api/applications/${applicationId}/cv-builder/target-profile`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ expectedRecommendationId: strategy.recommendationId }),
+         body: JSON.stringify({
+           expectedRecommendationId: strategy.recommendationId,
+           selectedDirection: directionName,
+         }),
         signal: controller.signal,
       });
       if (!response.ok) {
@@ -1679,8 +1758,8 @@ export function CvBuilderWorkspace({
         const apiError = reason as CvBuilderApiError;
         if (apiError?.code === 'STRATEGY_STALE') {
           resetAiState(false);
-          autoGenerationKey.current = strategy.recommendationId;
-          persistSafeDraft();
+          autoGenerationKey.current = `${strategy.recommendationId}:${directionName}`;
+          persistSafeDraft({ selectedDirection: directionName });
           router.refresh();
         }
         setError(reason instanceof Error ? reason.message : 'Could not create the Target Profile.');
@@ -1696,20 +1775,64 @@ export function CvBuilderWorkspace({
     persistSafeDraft,
     resetAiState,
     router,
+    selectedDirection,
     startRequest,
     strategy,
     t,
   ]);
 
+  const handleDirectionChange = useCallback(
+    (directionName: string) => {
+      if (
+        !strategy ||
+        directionName === selectedDirection ||
+        !strategy.directionOptions.some(({ name }) => name === directionName)
+      ) {
+        return;
+      }
+      abortRequests();
+      resetAiState(false);
+      setSelectedDirection(directionName);
+      setStatus('AI is preparing the Target Profile…');
+      persistSafeDraft({ selectedDirection: directionName });
+      autoGenerationKey.current = `${strategy.recommendationId}:${directionName}`;
+      void buildTarget(directionName);
+    },
+    [
+      abortRequests,
+      buildTarget,
+      persistSafeDraft,
+      resetAiState,
+      selectedDirection,
+      strategy,
+    ],
+  );
+
   useEffect(() => {
     if (!hydrated) return;
     if (!strategy) {
+      setSelectedDirection('');
       resetAiState(false);
       return;
     }
-    if (autoGenerationKey.current === strategy.recommendationId) return;
-    autoGenerationKey.current = strategy.recommendationId;
-    if (sourceRecommendationId !== strategy.recommendationId) {
+    const directionName = strategy.directionOptions.some(
+      ({ name }) => name === selectedDirection,
+    )
+      ? selectedDirection
+      : strategy.chosenDirection;
+    if (directionName !== selectedDirection) {
+      setSelectedDirection(directionName);
+      resetAiState(false);
+      persistSafeDraft({ selectedDirection: directionName });
+      return;
+    }
+    const generationKey = `${strategy.recommendationId}:${directionName}`;
+    if (autoGenerationKey.current === generationKey) return;
+    autoGenerationKey.current = generationKey;
+    if (
+      sourceRecommendationId !== strategy.recommendationId ||
+      targetProfile?.strategyProvenance?.selectedDirection !== directionName
+    ) {
       setTargetProfile(null);
       setSourceRecommendationId(null);
       setGeneratedCv(null);
@@ -1719,12 +1842,21 @@ export function CvBuilderWorkspace({
     }
     if (
       sourceRecommendationId === strategy.recommendationId &&
-      targetProfile
+      targetProfile?.strategyProvenance?.selectedDirection === directionName
     ) {
       return;
     }
     void buildTarget();
-  }, [buildTarget, hydrated, resetAiState, sourceRecommendationId, strategy, targetProfile]);
+  }, [
+    buildTarget,
+    hydrated,
+    persistSafeDraft,
+    resetAiState,
+    selectedDirection,
+    sourceRecommendationId,
+    strategy,
+    targetProfile,
+  ]);
 
   const generate = async (
     requestedSections?: CvBuilderModelEvent['section'][],
@@ -1737,9 +1869,11 @@ export function CvBuilderWorkspace({
     }
     if (
       !targetProfile ||
-      (strategy && sourceRecommendationId !== strategy.recommendationId)
+      (strategy &&
+        (sourceRecommendationId !== strategy.recommendationId ||
+          targetProfile.strategyProvenance?.selectedDirection !== selectedDirection))
     ) {
-      return setError(t('Regenerate the Target Profile for the current strategy.'));
+      return setError(t('Regenerate the Target Profile for the current direction.'));
     }
     const validatedForm = CvBuilderFormSchema.safeParse(formOverride);
     if (!validatedForm.success) {
@@ -1772,8 +1906,9 @@ export function CvBuilderWorkspace({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...(strategy ? { expectedRecommendationId: strategy.recommendationId } : {}),
-          targetProfile,
+           ...(strategy ? { expectedRecommendationId: strategy.recommendationId } : {}),
+           selectedDirection,
+           targetProfile,
           form: validatedForm.data,
           requestedSections,
           mode: clarificationRound ? 'clarification' : undefined,
@@ -2054,10 +2189,17 @@ export function CvBuilderWorkspace({
           step={step}
           targetReady={Boolean(
             strategy &&
+              selectedDirection &&
               targetProfile &&
-              sourceRecommendationId === strategy.recommendationId,
+              sourceRecommendationId === strategy.recommendationId &&
+              targetProfile.strategyProvenance?.selectedDirection === selectedDirection,
           )}
-          cvReady={Boolean(generatedCv)}
+          cvReady={Boolean(
+            generatedCv &&
+              strategy &&
+              sourceRecommendationId === strategy.recommendationId &&
+              targetProfile?.strategyProvenance?.selectedDirection === selectedDirection,
+          )}
           onChange={setStep}
         />
         <div className="mt-10">
@@ -2085,15 +2227,15 @@ export function CvBuilderWorkspace({
             <section className="print:hidden">
               <div className="mx-auto max-w-4xl text-center">
                 <p className="text-xs font-bold uppercase tracking-[0.22em] text-rose-600">{t('Target Profile')}</p>
-                <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{t('Your AI-recommended CV direction')}</h2>
+                <h2 className="mt-4 text-3xl font-semibold tracking-tight sm:text-4xl">{t('Choose your CV direction')}</h2>
                 <p className="mx-auto mt-4 max-w-2xl text-sm leading-6 text-slate-600">
-                  {t('Your Personalized Strategy sets the direction. The AI only uses university, programme and profile data stored in Supabase; missing pieces are flagged, never invented.')}
+                        {t('Choose the direction for this CV. The AI only uses university, programme and profile data stored in Supabase; missing pieces are flagged, never invented.')}
                 </p>
                 {strategy ? (
                   <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-rose-200 bg-rose-50/50 px-4 py-3 text-left text-sm text-slate-700">
                     <span>
-                      <span className="font-semibold">{t('Locked strategy direction')}: </span>
-                      {strategy.chosenDirection}
+                       <span className="font-semibold">{t('CV direction')}: </span>
+                       {selectedDirection}
                     </span>
                     <Link
                       className="font-semibold text-rose-700 underline-offset-4 hover:underline"
@@ -2126,6 +2268,9 @@ export function CvBuilderWorkspace({
                   profile={targetProfile}
                   status={status}
                   strategy={strategy}
+                  selectedDirection={selectedDirection}
+                  onSelectDirection={handleDirectionChange}
+                  directionsDisabled={false}
                   applicationId={applicationId}
                 />
               </div>

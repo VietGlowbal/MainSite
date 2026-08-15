@@ -260,15 +260,17 @@ const strategyTargetProfile: CvTargetProfileV1 = {
     version: 1,
     recommendationId: strategy.recommendationId,
     createdAt: strategy.createdAt,
+    selectedDirection: strategy.chosenDirection,
   },
 };
 
 function boundDraft(generated = false) {
   return {
-    schemaVersion: 'cv-builder-v2',
+    schemaVersion: 'cv-builder-v3',
     applicationId: 'app-1',
     sourceRecommendationId: strategy.recommendationId,
     targetProfile: strategyTargetProfile,
+    selectedDirection: strategy.chosenDirection,
     form: prefill,
     ...(generated ? { generatedCv } : {}),
     selectedTemplate: 'academic',
@@ -306,8 +308,9 @@ describe('CvBuilderWorkspace', () => {
     localStorage.setItem(
       'glowbal:cv-builder:v1:user-1:app-1',
       JSON.stringify({
-        schemaVersion: 'cv-builder-v2',
+        schemaVersion: 'cv-builder-v3',
         sourceRecommendationId: strategy.recommendationId,
+        selectedDirection: strategy.chosenDirection,
         applicationId: 'app-1',
         targetProfile: strategyTargetProfile,
         form: prefill,
@@ -422,8 +425,9 @@ describe('CvBuilderWorkspace', () => {
     localStorage.setItem(
       'glowbal:cv-builder:v1:user-1:app-1',
       JSON.stringify({
-        schemaVersion: 'cv-builder-v2',
+        schemaVersion: 'cv-builder-v3',
         sourceRecommendationId: strategy.recommendationId,
+        selectedDirection: strategy.chosenDirection,
         applicationId: 'app-1',
         targetProfile: strategyTargetProfile,
         form: prefill,
@@ -607,8 +611,9 @@ describe('CvBuilderWorkspace', () => {
     localStorage.setItem(
       'glowbal:cv-builder:v1:user-1:app-1',
       JSON.stringify({
-        schemaVersion: 'cv-builder-v2',
+        schemaVersion: 'cv-builder-v3',
         sourceRecommendationId: strategy.recommendationId,
+        selectedDirection: strategy.chosenDirection,
         applicationId: 'app-1',
         targetProfile: strategyTargetProfile,
         form: prefill,
@@ -655,8 +660,9 @@ describe('CvBuilderWorkspace', () => {
     localStorage.setItem(
       'glowbal:cv-builder:v1:user-1:app-1',
       JSON.stringify({
-        schemaVersion: 'cv-builder-v2',
+        schemaVersion: 'cv-builder-v3',
         sourceRecommendationId: strategy.recommendationId,
+        selectedDirection: strategy.chosenDirection,
         applicationId: 'app-1',
         targetProfile: strategyTargetProfile,
         form: prefill,
@@ -699,8 +705,9 @@ describe('CvBuilderWorkspace', () => {
     localStorage.setItem(
       'glowbal:cv-builder:v1:user-1:app-1',
       JSON.stringify({
-        schemaVersion: 'cv-builder-v2',
+        schemaVersion: 'cv-builder-v3',
         sourceRecommendationId: strategy.recommendationId,
+        selectedDirection: strategy.chosenDirection,
         applicationId: 'app-1',
         targetProfile: strategyTargetProfile,
         form: prefill,
@@ -760,8 +767,9 @@ describe('CvBuilderWorkspace', () => {
     localStorage.setItem(
       'glowbal:cv-builder:v1:user-1:app-1',
       JSON.stringify({
-        schemaVersion: 'cv-builder-v2',
+        schemaVersion: 'cv-builder-v3',
         sourceRecommendationId: strategy.recommendationId,
+        selectedDirection: strategy.chosenDirection,
         applicationId: 'app-1',
         targetProfile: strategyTargetProfile,
         form: prefill,
@@ -802,7 +810,7 @@ describe('CvBuilderWorkspace', () => {
     });
   });
 
-  it('auto-generates a strategy-bound target profile once in StrictMode and renders locked direction cards', async () => {
+  it('auto-generates a strategy-bound target profile once in StrictMode and renders selectable direction cards', async () => {
     localStorage.removeItem('glowbal:cv-builder:v1:user-1:app-1');
     const fetchMock = vi.fn().mockResolvedValue(
       new Response(
@@ -814,6 +822,7 @@ describe('CvBuilderWorkspace', () => {
               version: 1,
               recommendationId: strategy.recommendationId,
               createdAt: strategy.createdAt,
+              selectedDirection: strategy.chosenDirection,
             },
           },
         }) + '\n',
@@ -838,12 +847,16 @@ describe('CvBuilderWorkspace', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
       expectedRecommendationId: strategy.recommendationId,
+      selectedDirection: strategy.chosenDirection,
     });
     expect(await screen.findByRole('heading', { name: 'Strategic directions' })).toBeVisible();
     expect(screen.getAllByRole('article', { name: /Direction / })).toHaveLength(2);
     expect(screen.getAllByText('Recommended')).toHaveLength(1);
     expect(screen.getByRole('heading', { name: 'Strategy alignment' })).toBeVisible();
-    expect(screen.queryByRole('button', { name: /Accessible systems builder/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Accessible systems builder/ })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 
   it('blocks CV builder when the strategy snapshot is missing and links to the strategy report', () => {
@@ -884,6 +897,7 @@ describe('CvBuilderWorkspace', () => {
                 version: 1,
                 recommendationId: strategy.recommendationId,
                 createdAt: strategy.createdAt,
+                selectedDirection: strategy.chosenDirection,
               },
             },
           }) + '\n',
@@ -936,6 +950,7 @@ describe('CvBuilderWorkspace', () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
       expectedRecommendationId: strategy.recommendationId,
+      selectedDirection: strategy.chosenDirection,
     });
     expect(screen.queryByRole('article', { name: 'CV Harvard' })).not.toBeInTheDocument();
     await waitFor(() => {
@@ -993,13 +1008,15 @@ describe('CvBuilderWorkspace', () => {
   });
 
   it('clears AI state, persists the safe form draft, and refreshes after a stale strategy response', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          code: 'STRATEGY_STALE',
-          error: 'Your Personalized Strategy changed. Refresh the CV Builder and try again.',
-        }),
-        { status: 409, headers: { 'Content-Type': 'application/json' } },
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            code: 'STRATEGY_STALE',
+            error: 'Your Personalized Strategy changed. Refresh the CV Builder and try again.',
+          }),
+          { status: 409, headers: { 'Content-Type': 'application/json' } },
+        ),
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
@@ -1031,13 +1048,15 @@ describe('CvBuilderWorkspace', () => {
   });
 
   it('renders stale strategy errors in Vietnamese', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          code: 'STRATEGY_STALE',
-          error: 'Your Personalized Strategy changed. Refresh the CV Builder and try again.',
-        }),
-        { status: 409, headers: { 'Content-Type': 'application/json' } },
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            code: 'STRATEGY_STALE',
+            error: 'Your Personalized Strategy changed. Refresh the CV Builder and try again.',
+          }),
+          { status: 409, headers: { 'Content-Type': 'application/json' } },
+        ),
       ),
     );
     vi.stubGlobal('fetch', fetchMock);
@@ -1060,6 +1079,43 @@ describe('CvBuilderWorkspace', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Chiến lược cá nhân hóa của bạn đã thay đổi. Hãy làm mới trình tạo CV rồi thử lại.',
     );
+  });
+
+  it('keeps the selected alternative direction in the safe draft after a stale response', async () => {
+    localStorage.removeItem('glowbal:cv-builder:v1:user-1:app-1');
+    const fetchMock = vi.fn(() =>
+      Promise.resolve(
+        new Response(
+          JSON.stringify({
+            code: 'STRATEGY_STALE',
+            error: 'Your Personalized Strategy changed. Refresh the CV Builder and try again.',
+          }),
+          { status: 409, headers: { 'Content-Type': 'application/json' } },
+        ),
+      ),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+    render(
+      <CvBuilderWorkspace
+        applicationId="app-1"
+        userId="user-1"
+        universityName="Example University"
+        programmeName="Computer Science"
+        prefill={prefill}
+        strategy={strategy}
+      />,
+    );
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const alternative = await screen.findByRole('button', {
+      name: /Research-led technologist/,
+    });
+    await userEvent.click(alternative);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    await waitFor(() => {
+      const saved = JSON.parse(localStorage.getItem('glowbal:cv-builder:v1:user-1:app-1') ?? '{}');
+      expect(saved.selectedDirection).toBe('Research-led technologist');
+    });
   });
 
   it('does not allow Content or CV Draft navigation while F7 or Target Profile is unavailable', () => {
@@ -1093,7 +1149,7 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Your AI-recommended CV direction' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Choose your CV direction' })).toBeVisible();
     expect(screen.getAllByRole('article', { name: /Direction / })).toHaveLength(2);
     expect(screen.getAllByText('Recommended')).toHaveLength(1);
     expect(screen.getByRole('link', { name: 'Open Personalized Strategy' })).toHaveAttribute(
@@ -1101,6 +1157,38 @@ describe('CvBuilderWorkspace', () => {
       '/ai-strategy/app-1/strategy-report',
     );
     expect(screen.getByRole('status')).toBeVisible();
+  });
+
+  it('lets the student choose an alternative direction and sends it to Target Profile once', async () => {
+    localStorage.removeItem('glowbal:cv-builder:v1:user-1:app-1');
+    const fetchMock = vi.fn((_url: string, _init?: RequestInit) => targetProfileResponse());
+    vi.stubGlobal('fetch', fetchMock);
+    render(
+      <CvBuilderWorkspace
+        applicationId="app-1"
+        userId="user-1"
+        universityName="Example University"
+        programmeName="Computer Science"
+        prefill={prefill}
+        strategy={strategy}
+      />,
+    );
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    const alternative = await screen.findByRole('button', {
+      name: /Research-led technologist/,
+    });
+    expect(alternative).toHaveAttribute('aria-pressed', 'false');
+    expect(alternative).not.toBeDisabled();
+    await userEvent.click(alternative);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(JSON.parse(fetchMock.mock.calls[1]?.[1]?.body as string)).toMatchObject({
+      expectedRecommendationId: strategy.recommendationId,
+      selectedDirection: 'Research-led technologist',
+    });
+    expect(
+      await screen.findByRole('button', { name: /Research-led technologist/ }),
+    ).toHaveAttribute('aria-pressed', 'true');
   });
 
   it('translates the strategy block in Vietnamese', async () => {
@@ -1139,10 +1227,10 @@ describe('CvBuilderWorkspace', () => {
       </LanguageProvider>,
     );
 
-    expect(await screen.findByRole('heading', { name: 'Định hướng CV do AI đề xuất' })).toBeVisible();
+    expect(await screen.findByRole('heading', { name: 'Chọn định hướng CV' })).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Các định hướng chiến lược' })).toBeVisible();
     expect(screen.getAllByText('Đề xuất')).toHaveLength(1);
-    expect(screen.getByText('Định hướng chiến lược đã khóa:')).toBeVisible();
+    expect(screen.getByText('Định hướng CV:')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Căn chỉnh chiến lược' })).toBeVisible();
     expect(screen.getAllByText(strategy.chosenDirection).length).toBeGreaterThan(0);
   });
