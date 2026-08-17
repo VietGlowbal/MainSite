@@ -8,6 +8,12 @@ import { TID } from '../../src/shared/lib/testids';
  * with onboarding already completed. Without them the suite skips rather than
  * fails, so CI stays green until the account is provisioned.
  *
+ * ⚠️ That account also needs a non-empty `phone` and `date_of_birth` in
+ * `student_profiles`. Since 2026-08-17 the proxy holds accounts missing either
+ * at /auth/complete-profile — which is under /auth, so an under-provisioned
+ * account fails the very first assertion below ("leaves /auth") with a message
+ * that looks like a redirect bug rather than missing seed data.
+ *
  * The shortlist test writes to `user_universities` for that user only, and
  * cleans up after itself. Do not point these at a real account.
  */

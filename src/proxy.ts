@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { createServerClient } from '@supabase/ssr';
 import { SITE_GATE_COOKIE, isSiteLockEnabled, verifyGateCookie } from '@/lib/site-gate';
+import { contactDetailsComplete } from '@/features/auth/domain';
 
 // Routes that require authentication
 const PROTECTED_ROUTES = [
@@ -116,8 +117,17 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged in user on /auth → redirect away
-  if (userId && pathname.startsWith('/auth') && !pathname.startsWith('/auth/callback')) {
+  // Logged in user on /auth → redirect away.
+  //
+  // /auth/complete-profile is exempt alongside /auth/callback: it is a screen
+  // only a signed-in student can be on, so without the exemption the gate below
+  // would redirect them to /apply and /apply would redirect them straight back.
+  if (
+    userId &&
+    pathname.startsWith('/auth') &&
+    !pathname.startsWith('/auth/callback') &&
+    !pathname.startsWith('/auth/complete-profile')
+  ) {
     const redirectTarget = request.nextUrl.searchParams.get('redirect');
     if (redirectTarget?.startsWith('/')) {
       return NextResponse.redirect(new URL(redirectTarget, request.url));
@@ -143,29 +153,58 @@ export async function proxy(request: NextRequest) {
   // now, and that is what this gate was protecting. /my-universities stays for
   // the child routes (/program, /[id]) that did not move.
   const ONBOARDING_GATED = ['/apply', '/my-universities', '/profile'];
+
+  // Contact-details gate: every account must carry a name, a phone number and a
+  // date of birth, but only the email/password form can ask for them at
+  // sign-up. Google hands back a name and nothing else, which is how 333 of 409
+  // accounts reached the app with no phone and no date of birth between them.
+  // Students missing either are held at /auth/complete-profile.
+  //
+  // Runs BEFORE the onboarding gate on purpose: two fields first, the
+  // nine-question wizard second. It also covers /onboarding itself, which the
+  // onboarding gate necessarily cannot.
+  //
+  // /universities and /advisors stay open — they return further up as public
+  // marketing routes, so someone still deciding whether GlowBal is worth an
+  // account never meets this wall.
+  const CONTACT_GATED = [...PROTECTED_ROUTES, '/onboarding'];
+  const needsContactCheck = userId && CONTACT_GATED.some((route) => pathname.startsWith(route));
+
   const needsOnboardingCheck =
     userId &&
     ONBOARDING_GATED.some((route) => pathname.startsWith(route)) &&
     !pathname.startsWith('/onboarding');
 
-  if (needsOnboardingCheck) {
+  if (needsContactCheck || needsOnboardingCheck) {
+    // One read serving both gates — they want overlapping columns off the same
+    // row, and this runs on every navigation into the app.
     const { data: profile } = await supabase
       .from('student_profiles')
-      .select('onboarding_completed, study_level, preferred_countries')
+      .select('onboarding_completed, study_level, preferred_countries, phone, date_of_birth')
       .eq('user_id', userId)
       .maybeSingle();
 
-    const completed =
-      profile?.onboarding_completed ||
-      (profile?.study_level &&
-        Array.isArray(profile?.preferred_countries) &&
-        profile.preferred_countries.length > 0);
-
-    if (!completed) {
+    if (needsContactCheck && !contactDetailsComplete(profile)) {
       const url = request.nextUrl.clone();
-      url.pathname = '/onboarding';
+      url.pathname = '/auth/complete-profile';
       url.search = '';
+      url.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
       return NextResponse.redirect(url);
+    }
+
+    if (needsOnboardingCheck) {
+      const completed =
+        profile?.onboarding_completed ||
+        (profile?.study_level &&
+          Array.isArray(profile?.preferred_countries) &&
+          profile.preferred_countries.length > 0);
+
+      if (!completed) {
+        const url = request.nextUrl.clone();
+        url.pathname = '/onboarding';
+        url.search = '';
+        return NextResponse.redirect(url);
+      }
     }
   }
 

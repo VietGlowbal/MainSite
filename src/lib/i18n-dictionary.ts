@@ -728,6 +728,37 @@ export const translations: Record<string, string> = {
     'Tham gia cùng hàng nghìn sinh viên đang tìm ngôi trường mơ ước.',
   'Continue with Google': 'Tiếp tục với Google',
   OR: 'HOẶC',
+
+  // /auth/complete-profile — the contact-details gate. These need entries
+  // rather than machine translation: /auth is a PII route, so DomTranslator
+  // never calls /api/translate here and an unlisted string stays English. It is
+  // a mandatory screen, so English-only copy would wall off Vietnamese students
+  // at exactly the wrong moment.
+  'One more step': 'Còn một bước nữa',
+  "Signing in with Google doesn't pass these on to us. We need them to match you to scholarships with age limits and to reach you about application deadlines.":
+    'Đăng nhập bằng Google không gửi những thông tin này cho chúng tôi. Chúng tôi cần chúng để tìm học bổng có giới hạn độ tuổi phù hợp với bạn và để liên hệ về hạn nộp hồ sơ.',
+  Name: 'Họ và tên',
+  "A Vietnamese number starting 0 is fine — or include your country code.":
+    'Số Việt Nam bắt đầu bằng 0 đều được — hoặc bạn có thể thêm mã quốc gia.',
+  'Send me scholarship and deadline reminders':
+    'Gửi cho tôi nhắc nhở về học bổng và hạn nộp hồ sơ',
+  'Optional. Your details are saved either way — this only covers non-essential messages.':
+    'Không bắt buộc. Thông tin của bạn vẫn được lưu — mục này chỉ áp dụng cho tin nhắn không thiết yếu.',
+  // 'Saving…' and 'Something went wrong' are deliberately not repeated here —
+  // both already exist further down this file.
+  // Validation messages from src/features/auth/domain/contact-details.ts.
+  'Please enter your name.': 'Vui lòng nhập họ và tên của bạn.',
+  'Please enter your phone number.': 'Vui lòng nhập số điện thoại của bạn.',
+  'Please enter your date of birth.': 'Vui lòng nhập ngày sinh của bạn.',
+  "That doesn't look like a phone number. Include your country code, e.g. +84.":
+    'Số điện thoại có vẻ chưa đúng. Hãy thêm mã quốc gia, ví dụ +84.',
+  'Please enter a valid date.': 'Vui lòng nhập ngày hợp lệ.',
+  'Date of birth cannot be in the future.': 'Ngày sinh không thể ở tương lai.',
+  'Please check the year — that date looks like a typo.':
+    'Vui lòng kiểm tra lại năm — ngày này có vẻ bị nhập nhầm.',
+  'Could not save your details. Please try again.':
+    'Không thể lưu thông tin của bạn. Vui lòng thử lại.',
+  'Please check the fields below.': 'Vui lòng kiểm tra lại các trường bên dưới.',
   'Full name': 'Họ và tên',
   'Enter your full name': 'Nhập họ và tên của bạn',
   'Email address': 'Địa chỉ email',
