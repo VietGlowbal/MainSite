@@ -88,6 +88,55 @@ export function normalizePhone(raw: string): string | null {
   return `+${digits}`;
 }
 
+/**
+ * Does this `YYYY-MM-DD` string name a day that actually exists?
+ *
+ * `Date.parse` is not this check. It NORMALISES impossible dates rather than
+ * rejecting them — `Date.parse('2002-02-30')` succeeds and silently means
+ * 2 March. A submission straight to the API (no browser date picker in the way)
+ * therefore passed validation and reached Postgres, which is stricter than
+ * JavaScript and rejects the original string against a `date` column: a 500 on
+ * /api/account/contact-details, and on the signup route an auth account created
+ * carrying a date of birth nothing can read.
+ *
+ * So the parsed components must round-trip back to the ones submitted.
+ */
+export function isRealCalendarDate(iso: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(iso);
+  if (!match) return false;
+
+  const [, year, month, day] = match as unknown as [string, string, string, string];
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+  const date = new Date(Date.UTC(y, m - 1, d));
+
+  return (
+    date.getUTCFullYear() === y && date.getUTCMonth() === m - 1 && date.getUTCDate() === d
+  );
+}
+
+/**
+ * Sanitise a `?next=` destination down to a same-origin path.
+ *
+ * `raw.startsWith('/')` is NOT sufficient on its own: `//attacker.example` and
+ * `/\attacker.example` both begin with a slash and are read as PROTOCOL-RELATIVE
+ * URLs by `window.location.assign` and by `redirect()`, which sends the student
+ * off GlowBal entirely. A crafted /auth/complete-profile link would then be an
+ * open redirect wearing a trusted origin.
+ *
+ * `/auth` is excluded separately so the destination can never bounce back into
+ * the gate that produced it.
+ */
+export function safeInternalPath(raw: string | null | undefined, fallback: string): string {
+  if (typeof raw !== 'string') return fallback;
+  if (!raw.startsWith('/')) return fallback;
+  // Second character decides protocol-relative; browsers treat `\` as `/` here.
+  if (raw.startsWith('//') || raw.startsWith('/\\')) return fallback;
+  if (raw === '/auth' || raw.startsWith('/auth/') || raw.startsWith('/auth?')) return fallback;
+  return raw;
+}
+
 /** Age in whole years on `today`, from an ISO `YYYY-MM-DD` date. */
 export function ageOn(isoDate: string, today: Date): number {
   const [y, m, d] = isoDate.split('-').map(Number) as [number, number, number];
@@ -123,7 +172,7 @@ export function validateContactDetails(
   const dob = input.date_of_birth.trim();
   if (dob === '') {
     errors.date_of_birth = 'Please enter your date of birth.';
-  } else if (!/^\d{4}-\d{2}-\d{2}$/.test(dob) || Number.isNaN(Date.parse(dob))) {
+  } else if (!isRealCalendarDate(dob)) {
     errors.date_of_birth = 'Please enter a valid date.';
   } else {
     const age = ageOn(dob, now);

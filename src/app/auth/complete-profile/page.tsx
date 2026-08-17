@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { contactDetailsComplete } from '@/features/auth/domain';
+import { contactDetailsComplete, safeInternalPath } from '@/features/auth/domain';
 import { CompleteProfileForm } from './complete-profile-form';
 
 /**
@@ -43,7 +43,7 @@ export default async function CompleteProfilePage({
     .maybeSingle();
 
   const { next } = await searchParams;
-  const safeNext = next?.startsWith('/') && !next.startsWith('/auth') ? next : '/apply';
+  const safeNext = safeInternalPath(next, '/apply');
 
   // Already filled in — a stale bookmark or a second tab should not make anyone
   // re-enter details we hold.

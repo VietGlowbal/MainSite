@@ -167,7 +167,25 @@ export async function proxy(request: NextRequest) {
   // /universities and /advisors stay open — they return further up as public
   // marketing routes, so someone still deciding whether GlowBal is worth an
   // account never meets this wall.
-  const CONTACT_GATED = [...PROTECTED_ROUTES, '/onboarding'];
+  //
+  // PROTECTED_ROUTES is NOT the list of authenticated routes, which is why the
+  // three below are named explicitly. `/ai-strategy/*`, `/scholarships` and
+  // `/universities/matches` each call getUser() and redirect to /auth from
+  // inside their own server component instead of relying on this file, so a
+  // gate built from PROTECTED_ROUTES alone leaves them reachable by typing the
+  // URL — the exact bypass the hard gate exists to close. `/universities` is an
+  // exact-match public route above, so the `/matches` child still lands here.
+  //
+  // Payment returns (`/plus/success`, `/payment/*`) are deliberately left OUT.
+  // They are where a student lands after handing over money, and bouncing that
+  // redirect into a form loses them the confirmation they just paid for.
+  const CONTACT_GATED = [
+    ...PROTECTED_ROUTES,
+    '/onboarding',
+    '/ai-strategy',
+    '/scholarships',
+    '/universities/matches',
+  ];
   const needsContactCheck = userId && CONTACT_GATED.some((route) => pathname.startsWith(route));
 
   const needsOnboardingCheck =

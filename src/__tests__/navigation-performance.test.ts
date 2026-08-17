@@ -92,6 +92,25 @@ describe('authenticated navigation performance', () => {
     expect(tableRead).toHaveBeenCalledTimes(1);
   });
 
+  /*
+   * These four authenticate inside their own server components rather than via
+   * PROTECTED_ROUTES, so a gate built from that list alone left them reachable
+   * by typing the URL. `/universities` is an exact-match public route, which is
+   * what lets its `/matches` child reach the gate at all.
+   */
+  it.each(['/ai-strategy/personal-report', '/scholarships', '/universities/matches', '/onboarding'])(
+    'gates %s, which enforces auth in its own page rather than in PROTECTED_ROUTES',
+    async (route) => {
+      await proxy(new NextRequest(`http://localhost${route}`));
+      expect(tableRead).toHaveBeenCalledWith('student_profiles');
+    },
+  );
+
+  it('leaves payment returns ungated so a paid-for confirmation is never bounced', async () => {
+    await proxy(new NextRequest('http://localhost/plus/success'));
+    expect(tableRead).not.toHaveBeenCalled();
+  });
+
   it('reads no profile at all for a guest, or on a public route', async () => {
     auth.getClaims.mockResolvedValue({ data: { claims: {} }, error: null });
     await proxy(new NextRequest('http://localhost/dashboard'));

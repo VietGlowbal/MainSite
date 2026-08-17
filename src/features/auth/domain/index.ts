@@ -8,10 +8,12 @@ export {
   ageOn,
   contactDetailsComplete,
   hasText,
+  isRealCalendarDate,
   MAX_AGE,
   MIN_AGE,
   NAME_MAX,
   normalizePhone,
+  safeInternalPath,
   validateContactDetails,
 } from './contact-details';
 export type {

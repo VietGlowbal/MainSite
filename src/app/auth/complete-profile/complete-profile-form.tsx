@@ -95,7 +95,16 @@ export function CompleteProfileForm({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-gb-xl">
+      {/*
+        method="post" for the same reason /auth's form carries it: a submit that
+        beats hydration, or one with JavaScript unavailable, never reaches
+        onSubmit and falls back to the browser default — GET, which writes every
+        named field into the URL, the history entry and every access log on the
+        way. Those fields here are a student's name, phone number and date of
+        birth. There is no POST handler at this path, so such a submit fails
+        visibly instead of leaking.
+      */}
+      <form method="post" onSubmit={handleSubmit} className="flex flex-col gap-gb-xl">
         <Input
           name="fullName"
           label={t('Name')}

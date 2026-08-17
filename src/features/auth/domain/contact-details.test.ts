@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   ageOn,
   contactDetailsComplete,
+  isRealCalendarDate,
   normalizePhone,
+  safeInternalPath,
   validateContactDetails,
 } from './contact-details';
 
@@ -82,5 +84,58 @@ describe('validateContactDetails', () => {
   it('rejects a malformed date', () => {
     expect(validateContactDetails({ ...valid, date_of_birth: '09/08/2002' }, NOW).date_of_birth).toBeDefined();
     expect(validateContactDetails({ ...valid, date_of_birth: '2002-13-45' }, NOW).date_of_birth).toBeDefined();
+  });
+
+  it('rejects a well-formed date of a day that does not exist', () => {
+    // Date.parse would accept these by normalising them; Postgres would not,
+    // and the student would meet a 500 instead of a field error.
+    expect(validateContactDetails({ ...valid, date_of_birth: '2002-02-30' }, NOW).date_of_birth).toBeDefined();
+    expect(validateContactDetails({ ...valid, date_of_birth: '2001-02-29' }, NOW).date_of_birth).toBeDefined();
+  });
+});
+
+describe('isRealCalendarDate', () => {
+  it('accepts real days, including a genuine leap day', () => {
+    expect(isRealCalendarDate('2002-08-09')).toBe(true);
+    expect(isRealCalendarDate('2000-02-29')).toBe(true);
+    expect(isRealCalendarDate('2004-02-29')).toBe(true);
+  });
+
+  it('rejects days that do not exist, which Date.parse silently rolls over', () => {
+    expect(Number.isNaN(Date.parse('2002-02-30'))).toBe(false); // the trap itself
+    expect(isRealCalendarDate('2002-02-30')).toBe(false);
+    expect(isRealCalendarDate('2001-02-29')).toBe(false);
+    expect(isRealCalendarDate('1900-02-29')).toBe(false);
+    expect(isRealCalendarDate('2002-04-31')).toBe(false);
+    expect(isRealCalendarDate('2002-13-01')).toBe(false);
+    expect(isRealCalendarDate('2002-00-10')).toBe(false);
+  });
+});
+
+describe('safeInternalPath', () => {
+  it('keeps an ordinary same-origin path', () => {
+    expect(safeInternalPath('/apply', '/fallback')).toBe('/apply');
+    expect(safeInternalPath('/my-universities/program?tier=reach', '/fallback')).toBe(
+      '/my-universities/program?tier=reach',
+    );
+  });
+
+  it('rejects protocol-relative targets that would leave the origin', () => {
+    // Both begin with '/', which a naive startsWith check would wave through.
+    expect(safeInternalPath('//attacker.example', '/fallback')).toBe('/fallback');
+    expect(safeInternalPath('/\\attacker.example', '/fallback')).toBe('/fallback');
+  });
+
+  it('rejects absolute URLs and non-paths', () => {
+    expect(safeInternalPath('https://attacker.example', '/fallback')).toBe('/fallback');
+    expect(safeInternalPath('apply', '/fallback')).toBe('/fallback');
+    expect(safeInternalPath(undefined, '/fallback')).toBe('/fallback');
+    expect(safeInternalPath(null, '/fallback')).toBe('/fallback');
+  });
+
+  it('refuses to bounce back into the gate that produced it', () => {
+    expect(safeInternalPath('/auth', '/fallback')).toBe('/fallback');
+    expect(safeInternalPath('/auth/complete-profile', '/fallback')).toBe('/fallback');
+    expect(safeInternalPath('/auth?redirect=/apply', '/fallback')).toBe('/fallback');
   });
 });
