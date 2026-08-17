@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { captureReferral, REF_COOKIE } from '@/lib/referrals';
 import { sendEmail } from '@/lib/send-email';
 import { welcomeEmail } from '@/lib/emails/welcome';
+import { contactDetailsComplete } from '@/features/auth/domain';
 
 function redirectClearingRef(url: string): NextResponse {
   const res = NextResponse.redirect(url);
@@ -77,7 +78,7 @@ export async function GET(request: Request) {
 
         const { data: profile } = await supabase
           .from('student_profiles')
-          .select('onboarding_completed, study_level, target_subjects, preferred_countries')
+          .select('onboarding_completed, study_level, target_subjects, preferred_countries, phone, date_of_birth')
           .eq('user_id', user.id)
           .maybeSingle();
 
@@ -125,6 +126,18 @@ export async function GET(request: Request) {
               /* event-key idempotency remains the fallback if metadata update fails */
             }
           }
+        }
+
+        // Missing name / phone / date of birth → collect them now, at the one
+        // moment the student is already mid-flow and expecting to be asked
+        // things. `src/proxy.ts` enforces the same rule on every protected
+        // route afterwards; catching it here just means a Google sign-in does
+        // not land on a page only to bounce off it on the next click.
+        if (!contactDetailsComplete(profile)) {
+          const completeUrl = new URL('/auth/complete-profile', origin);
+          const after = safeNext ?? (hasCompletedOnboarding ? '/universities' : '/onboarding');
+          completeUrl.searchParams.set('next', after);
+          return redirectClearingRef(completeUrl.toString());
         }
 
         if (safeNext) {
