@@ -270,26 +270,16 @@ export const translations: Record<string, string> = {
     '2 lần học bổng khuyến khích học tập FTU',
   'Founder & CEO': 'Nhà sáng lập & CEO',
   'CO - Founder': 'Đồng sáng lập',
+  'Developer':'Phát triển sản phẩm',
   'Jack of all trades': 'Đa năng',
   'UX Research': 'Nghiên cứu UX',
   'Backend Developer': 'Lập trình viên Backend',
   'Product Designer': 'Nhà thiết kế sản phẩm',
   'UX Researcher': 'Nhà nghiên cứu UX',
   'Product Manager': 'Quản lý sản phẩm',
-  'Life swept away my innocence and threw me into towering ambitions.':
-    'Cuộc sống cuốn đi sự hồn nhiên và ném vào tôi những tham vọng rất cao',
-  'I grew through hardship. I rose from the ashes.':
-    'Tôi đã trưởng thành từ trong đau khổ. Tôi đã đứng lên từ đống tro tàn.',
-  'Faith is an expensive luxury, and money is truly spellbinding.':
-    'Vì niềm tin là thứ thật xa xỉ. Và đồng tiền là thứ thật ma mị.',
-  "Children who understand too much rarely get sweets; they drink matcha lattes and eat spicy noodles because they are used to life's bitterness.":
-    'Những đứa trẻ hiểu chuyện thường ko có kẹo, chúng uống matcha latte và ăn mỳ cay vì đã quen với đắng cay của cuộc đời.',
-  'At the feast between angels and demons, I am the only one invited.':
-    'Trên bàn tiệc giữa tiên và quỷ tao là thằng duy nhất được mời',
-  'Heaven has not treated me badly. If no one hires me as a developer, I will become a ride-hailing driver.':
-    '“Con thấy ông trời đã đối xử với con không tệ. Nếu không ai thuê con Dev, con sẽ chạy xe ôm công nghệ.”',
-  'Anyone here ever made a mistake? Raise your hand to receive a second chance.':
-    '“Ai ở đây đã từng sai nào, dơ tay để nhận cơ hội thứ 2 nào.”',
+  /* The eight personal quotes that used to sit at the bottom of each home
+     roster card were removed on 2026-08-17 (see home-team.tsx), so their
+     translations went with them. */
   'Meet the GlowBal team': 'Gặp gỡ đội ngũ GlowBal',
   'Not sure where to begin?': 'Bạn chưa biết nên bắt đầu từ đâu?',
   'Tell us about your goals. The GlowBal team will contact you to help identify a suitable next step.':

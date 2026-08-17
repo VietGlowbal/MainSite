@@ -57,8 +57,8 @@ import { crestFor, type UniversityKey } from './university-crests';
  * page's carousel (about-team.tsx), which is a per-frame rAF loop because
  * its motion genuinely cannot be expressed in CSS.
  *
- * ⚠️ NOTHING IS HIDDEN BEHIND HOVER, AND NOTHING NEEDS IT EITHER. The bio,
- * the programme and the scholarship are all in the resting card. A
+ * ⚠️ NOTHING IS HIDDEN BEHIND HOVER, AND NOTHING NEEDS IT EITHER. The
+ * programme and the scholarship are both in the resting card. A
  * reveal-on-hover panel was the first sketch and got dropped: it puts the
  * most interesting content of the section out of reach of every touch
  * device, which is most of this audience. An earlier pass also held each
@@ -75,6 +75,14 @@ import { crestFor, type UniversityKey } from './university-crests';
  * programme and scholarship strip were already doing the section's actual
  * work — see `git log` on this file for what they looked like.
  *
+ * ─── NO PERSONAL QUOTE EITHER (dropped 2026-08-17) ───────────────────────────
+ *
+ * Each card used to close with a one-line quote from the roster sheet (`bio`),
+ * translated in src/lib/i18n-dictionary.ts. Removed on the owner's request, so
+ * the card now ends on the scholarship strip. The field is gone from
+ * `RosterMember` rather than left unrendered — `git show` this file's previous
+ * revision for the eight lines and their Vietnamese.
+ *
  * ─── PHOTOS STILL COME FROM SUPABASE ─────────────────────────────────────────
  *
  * Unchanged from the earlier build: the roster below is the display copy, and
@@ -87,7 +95,6 @@ import { crestFor, type UniversityKey } from './university-crests';
 type RosterMember = {
   readonly name: string;
   readonly role: string;
-  readonly bio: string;
   readonly university: UniversityKey;
   /**
    * Course of study, as the roster sheet records it. `null` where the sheet
@@ -104,7 +111,6 @@ const HOME_TEAM: readonly RosterMember[] = [
   {
     name: 'Nguyễn Khánh Linh',
     role: 'Founder & CEO',
-    bio: 'Life swept away my innocence and threw me into towering ambitions.',
     university: 'vinuniversity',
     programme: 'Business Administration · Marketing',
     scholarship: "80% merit scholarship · 4× Dean's List",
@@ -113,7 +119,6 @@ const HOME_TEAM: readonly RosterMember[] = [
   {
     name: 'Nguyễn Hoàng Linh',
     role: 'CO - Founder',
-    bio: 'I grew through hardship. I rose from the ashes.',
     university: 'vinuniversity',
     programme: 'Business Administration · Business Analytics',
     scholarship: null,
@@ -121,8 +126,7 @@ const HOME_TEAM: readonly RosterMember[] = [
   },
   {
     name: 'Chu Tuấn Linh',
-    role: 'Jack of all trades',
-    bio: 'Faith is an expensive luxury, and money is truly spellbinding.',
+    role: 'Developer',
     university: 'hust',
     programme: 'Information Technology',
     scholarship: null,
@@ -131,7 +135,6 @@ const HOME_TEAM: readonly RosterMember[] = [
   {
     name: 'Phạm Quỳnh Chi',
     role: 'UX Research',
-    bio: "Children who understand too much rarely get sweets; they drink matcha lattes and eat spicy noodles because they are used to life's bitterness.",
     university: 'vinuniversity',
     programme: 'Business Administration',
     scholarship: '90% merit scholarship · full ride at Lingnan',
@@ -140,7 +143,6 @@ const HOME_TEAM: readonly RosterMember[] = [
   {
     name: 'Nguyễn Huấn',
     role: 'Backend Developer',
-    bio: 'At the feast between angels and demons, I am the only one invited.',
     university: 'hust',
     programme: 'Computer Engineering',
     scholarship: null,
@@ -149,7 +151,6 @@ const HOME_TEAM: readonly RosterMember[] = [
   {
     name: 'Tạ Đức Hiển',
     role: 'Product Designer',
-    bio: 'Heaven has not treated me badly. If no one hires me as a developer, I will become a ride-hailing driver.',
     university: 'hust',
     programme: 'Computer Engineering',
     scholarship: null,
@@ -158,7 +159,6 @@ const HOME_TEAM: readonly RosterMember[] = [
   {
     name: 'Hương Phùng',
     role: 'UX Researcher',
-    bio: 'Some nights I wish I could go back in life. Not to change sh**, but to feel a couple things twice.',
     university: 'ftu',
     programme: 'International Political Economics',
     scholarship: '2× FTU academic encouragement scholarship',
@@ -167,7 +167,6 @@ const HOME_TEAM: readonly RosterMember[] = [
   {
     name: 'James Lapslie',
     role: 'Product Manager',
-    bio: 'Anyone here ever made a mistake? Raise your hand to receive a second chance.',
     /* The sheet gives James a university but no course, so `programme` is null
        and his card shows "University of Birmingham" on that line instead. */
     university: 'birmingham',
@@ -211,9 +210,10 @@ export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) 
       </div>
 
       {/* `items-start` is load-bearing, not tidiness. A grid stretches its
-          items to the tallest in the row by default, so the member with the
-          two-line bio would hand every card beside them the same height and
-          leave 200px of empty white under the short ones. Hugging the content
+          items to the tallest in the row by default, so a member whose
+          scholarship strip wraps to two lines would hand every card beside
+          them the same height and leave white space under the short ones,
+          which now end on the programme line. Hugging the content
           is also what lets the stagger read as a deck rather than as a table
           with one row nudged down. */}
       <div className="grid grid-cols-1 items-start gap-gb-4xl sm:grid-cols-2 lg:grid-cols-4">
@@ -310,10 +310,6 @@ export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) 
                     {member.scholarship}
                   </p>
                 )}
-
-                <p className="mt-gb-xs text-gb-sm leading-relaxed text-fg-tertiary">
-                  {member.bio}
-                </p>
               </div>
             </article>
           );
