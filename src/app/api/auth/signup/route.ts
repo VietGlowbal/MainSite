@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/send-email';
 import { signupConfirmationEmail } from '@/lib/emails/signup-confirmation';
+import { NAME_MAX, normalizePhone, validateContactDetails } from '@/features/auth/domain';
 
 /**
  * POST /api/auth/signup
@@ -11,12 +12,25 @@ import { signupConfirmationEmail } from '@/lib/emails/signup-confirmation';
  * instead of Supabase's built-in SMTP, which is rate-limited on the free tier.
  */
 
+/**
+ * Name, phone and date of birth are REQUIRED, not optional.
+ *
+ * They were `.optional()` with an `?? ''` default until 2026-08-17, which meant
+ * the form's `required` attributes were the only thing enforcing them — and an
+ * HTML attribute is not enforcement, it is a suggestion to a cooperating
+ * browser. A direct POST created an account with three blank fields, and the
+ * blanks (not nulls) then read as "present" to every NOT NULL check downstream.
+ *
+ * The shape check is Zod's; the content rules live in the auth domain so this
+ * route and /api/account/contact-details cannot drift apart on what a valid
+ * phone number is.
+ */
 const BodySchema = z.object({
   email: z.string().email(),
   password: z.string().min(6).max(200),
-  full_name: z.string().max(160).optional(),
-  phone: z.string().max(20).optional(),
-  date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  full_name: z.string().min(1).max(NAME_MAX),
+  phone: z.string().min(1).max(32),
+  date_of_birth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   next: z.string().optional(),
 });
 
@@ -41,6 +55,21 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Please enter a valid email and password.' }, { status: 400 });
   }
   const input = parsed.data;
+
+  const fieldErrors = validateContactDetails({
+    full_name: input.full_name,
+    phone: input.phone,
+    date_of_birth: input.date_of_birth,
+  });
+  if (Object.keys(fieldErrors).length > 0) {
+    return NextResponse.json(
+      { error: 'Please check the fields below.', errors: fieldErrors },
+      { status: 400 },
+    );
+  }
+  // Non-null: validateContactDetails rejects anything normalizePhone refuses.
+  const phone = normalizePhone(input.phone) as string;
+
   const normalizedEmail = input.email.trim().toLowerCase();
 
   const safeNext = input.next && input.next.startsWith('/') ? input.next : null;
@@ -54,9 +83,9 @@ export async function POST(request: NextRequest) {
     password: input.password,
     options: {
       data: {
-        full_name: input.full_name ?? '',
-        phone: input.phone ?? '',
-        date_of_birth: input.date_of_birth ?? '',
+        full_name: input.full_name.trim(),
+        phone,
+        date_of_birth: input.date_of_birth,
         marketing_consent: true,
         // The generic /auth/callback route is also used by non-signup auth
         // flows. This marker keeps the welcome email specific to accounts
