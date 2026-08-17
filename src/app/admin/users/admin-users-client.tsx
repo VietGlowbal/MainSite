@@ -27,6 +27,8 @@ type AdminUser = {
   mentor_status: string | null;
   mentor_name: string | null;
   login_count: number;
+  has_plus_access: boolean;
+  plus_expires_at: string | null;
 };
 
 type LoadState =
@@ -38,6 +40,7 @@ const FILTERS = [
   { key: 'all', label: 'All' },
   { key: 'admins', label: 'Admins' },
   { key: 'mentors', label: 'Advisors' },
+  { key: 'plus', label: 'Plus access' },
 ] as const;
 
 type Filter = (typeof FILTERS)[number]['key'];
@@ -110,6 +113,34 @@ export function AdminUsersClient() {
     }
   }
 
+  async function setPlusAccess(userId: string, nextHasAccess: boolean) {
+    setBusy(userId);
+    setError(null);
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: userId, plus_access: nextHasAccess }),
+      });
+      if (!res.ok) {
+        const body = (await res.json().catch(() => ({}))) as { error?: string };
+        throw new Error(body.error ?? `Request failed (${res.status})`);
+      }
+      if (state.kind === 'ready') {
+        setState({
+          kind: 'ready',
+          users: state.users.map((u) =>
+            u.id === userId ? { ...u, has_plus_access: nextHasAccess } : u,
+          ),
+        });
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update.');
+    } finally {
+      setBusy(null);
+    }
+  }
+
   async function kickUser(user: AdminUser) {
     const label = user.email ?? user.full_name ?? user.id;
     const confirmed = window.confirm(
@@ -146,6 +177,7 @@ export function AdminUsersClient() {
     return state.users.filter((u) => {
       if (filter === 'admins' && !u.is_admin) return false;
       if (filter === 'mentors' && !u.mentor_status) return false;
+      if (filter === 'plus' && !u.has_plus_access) return false;
       if (!q) return true;
       return (
         (u.email?.toLowerCase().includes(q) ?? false) ||
@@ -189,13 +221,15 @@ export function AdminUsersClient() {
   const total = state.users.length;
   const adminCount = state.users.filter((u) => u.is_admin).length;
   const mentorCount = state.users.filter((u) => u.mentor_status).length;
+  const plusCount = state.users.filter((u) => u.has_plus_access).length;
 
   return (
     <div className="flex flex-col gap-gb-3xl">
-      <div className="grid gap-gb-xl sm:grid-cols-3">
+      <div className="grid gap-gb-xl sm:grid-cols-4">
         <StatTile label="Total users" value={total} />
         <StatTile label="Admins" value={adminCount} tone="brand" />
         <StatTile label="Advisor profiles" value={mentorCount} tone="info" />
+        <StatTile label="Plus access" value={plusCount} tone="safe" />
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-gb-xl">
@@ -271,7 +305,8 @@ export function AdminUsersClient() {
                           Advisor · {u.mentor_status}
                         </Badge>
                       )}
-                      {!u.is_admin && !u.is_coordinator && !u.mentor_status && (
+                      {u.has_plus_access && <Badge variant="safe-chip">Plus</Badge>}
+                      {!u.is_admin && !u.is_coordinator && !u.mentor_status && !u.has_plus_access && (
                         <span className="text-gb-xs text-fg-muted">Student</span>
                       )}
                     </div>
@@ -294,6 +329,13 @@ export function AdminUsersClient() {
                         onClick={() => void setAdmin(u.id, !u.is_admin)}
                       >
                         {u.is_admin ? 'Remove admin' : 'Make admin'}
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        disabled={isBusy}
+                        onClick={() => void setPlusAccess(u.id, !u.has_plus_access)}
+                      >
+                        {u.has_plus_access ? 'Revoke Plus' : 'Grant Plus'}
                       </Button>
                       {/*
                         Deletion is permanent and there is no undo, so it does

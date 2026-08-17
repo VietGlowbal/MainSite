@@ -13,7 +13,7 @@ export default function AdminUsersPage() {
     <section className="flex flex-col gap-gb-3xl">
       <AdminHeading
         title="Users"
-        description="Promote admins or remove accounts. Admin changes apply immediately; deletions are permanent."
+        description="Promote admins, grant or revoke GlowBal Plus access, or remove accounts. Changes apply immediately; deletions are permanent."
       />
       <AdminUsersClient />
     </section>

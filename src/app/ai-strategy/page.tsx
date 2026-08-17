@@ -7,61 +7,51 @@ import {
   FOOTER_RATINGS,
   FOOTER_SOCIAL,
   FOOTER_TAGLINE,
-  StrategyGuide,
+  StrategyHub,
 } from '@/features/marketing/ui';
-import { guideArea } from '@/features/marketing/domain';
 import { createClient } from '@/lib/supabase/server';
-import { Button, Container, Footer, Panel } from '@/shared/ui';
-import { T } from '@/lib/i18n';
+import { Footer } from '@/shared/ui';
 
 /**
- * /ai-strategy — what GlowBal Strategy is, and nothing else.
+ * /ai-strategy — the Strategy Hub. Reached from the "Strategy Master" nav
+ * action (`STRATEGY_ACTION` in `features/marketing/ui/nav-items.tsx`, still
+ * pointed at this same route — no navigation change needed for this rebuild).
  *
- * ─── IT IS AREA 3 NOW, NOT THE WHOLE WALKTHROUGH (03/08, owner) ───────────────
+ * ─── REBUILT FROM THE APPROVED PROTOTYPE (owner, 17/08) ──────────────────────
  *
- * This route carried the entire fourteen-step explainer, which made it two
- * pages at once: "how GlowBal works" and "what the Strategy is". The owner
- * asked for the split. The general help page is /how-it-works, reached from the
- * top nav; this page is the third stage on its own — the two AI reports and the
- * improvement plan built from them.
- *
- * The content is the SAME source either way: `guideArea('strategy')` reads the
- * area out of features/marketing/domain/strategy-guide.ts, which is what
- * /how-it-works renders all three of. There is no second copy of this stage's
- * description to fall out of step, which matters here more than anywhere —
- * see the ⚠️ at the top of that file for what happened the last time a page
- * described the product in its own words.
+ * Previously a plain explainer (Stage 3 of the `/how-it-works` walkthrough,
+ * via `guideArea('strategy')`). The owner supplied a combined interactive
+ * HTML/CSS/JS prototype ("GlowBal Strategy Hub — Combined Demo") and asked
+ * for it rebuilt as the real landing page for every application, with its
+ * animations and synthesized sound effects intact. `StrategyHub` and its
+ * `strategy-hub/*` siblings are that rebuild — see their file comments for
+ * what changed versus the prototype (real destinations instead of the
+ * prototype's dead "#" links and toast-only demo buttons, `HeroGlobe` reused
+ * instead of the prototype's static globe image, no fabricated testimonials).
  *
  * WHAT THIS PAGE IS NOT. It is not the Strategy itself. That is built for one
- * specific course and is entered from an application:
- * /ai-strategy/[applicationId]/strategy, off the "Ready to strengthen this
- * application?" prompt in the workspace. This page explains it and points
- * there; the steps below carry the real links where a student can act now.
+ * specific course and is entered from an application: "Continue applying" on
+ * `/apply` bounces through `/apply/[applicationId]` to
+ * `/ai-strategy/[applicationId]/strategy`. This page is the hub that sends a
+ * student there; the reports section links to what's real today.
  *
- * PAYWALL, WHEN IT COMES (owner, 01/08): it goes here — on the Strategy, after
- * the application stage, not before it. Deliberately not built while the
- * product is still being tested, and deliberately not mentioned in the guide
- * content, because no /ai-strategy route checks an entitlement today. GlowBal
- * Plus (Stripe, three tiers) and an entitlement service already exist and are
- * the pieces to build it from. When it lands, this page is the natural place
- * for the pricing line, because it is the last thing a student reads before the
- * gate.
+ * PAYWALL — LANDED (owner, 17/08). `/ai-strategy/[applicationId]/layout.tsx`
+ * now gates the whole per-application workspace behind GlowBal Plus
+ * (`isPlusEntitlementActive`), redirecting to `/plus?application=<id>`. The
+ * two user-level reports this page links to directly — Personal Report and,
+ * once an application is open, Matching Report — stay free; only the
+ * application-specific Strategy/planner sits behind the gate, per the standing
+ * "paywall goes on the Strategy, after the application stage" call.
  *
- * ⚠️ PUBLIC, AND THAT REVERSES AN EARLIER INSTRUCTION. The owner asked on 31/07
- * for this route to require sign-in, paired with the same rule on /apply. That
- * instruction was about a version of this page made entirely of one student's
- * own data — a list of their strategies, removed on 02/08. What is left is
- * marketing copy about a feature, so gating it would hide the explanation of
- * the thing we want them to sign up for. Say the word and it goes back behind
- * auth; the session is read here only to draw the right header.
+ * ⚠️ STILL PUBLIC. Marketing copy about a feature should not require an
+ * account to read — same reasoning as before this rebuild. The session is
+ * read here only to decide whether to show the signed-out sign-up close.
  */
 
-const AREA = guideArea('strategy');
-
 export const metadata: Metadata = {
-  title: 'GlowBal Strategy',
+  title: 'GlowBal Strategy Hub',
   description:
-    'GlowBal Strategy: two AI reports — one about you, one about the course — and an ordered plan that closes the gap between them.',
+    'Build a strategy for wherever you apply. Open an application in My Portal and GlowBal builds the strategy around the exact university and course you picked.',
 };
 
 export default async function AiStrategyPage() {
@@ -82,84 +72,7 @@ export default async function AiStrategyPage() {
           immediately overwritten with Vietnamese. Header/footer stay outside
           this boundary until their remaining legacy copy is migrated. */}
       <main data-no-auto-translate>
-        {/* Hero */}
-        <section className="pt-gb-7xl">
-          <Container className="flex max-w-3xl flex-col gap-gb-xl">
-            <p className="text-gb-sm font-semibold uppercase tracking-wide text-fg-brand">
-              <T k="Stage" /> {AREA.number} <T k="of 3 ·" /> <T k={AREA.title} />
-            </p>
-            <h1 className="font-display text-gb-display-md font-semibold tracking-gb-display-tight text-fg">
-              <T k="The part that changes your odds" />
-            </h1>
-            <p className="text-gb-lg text-fg-tertiary"><T k={AREA.summary} /></p>
-            <p className="text-gb-md text-fg-tertiary">
-              {AREA.steps.length}{' '}<T k="steps, built for one specific course — so it can compare you against that course’s real requirements rather than a generic checklist. You start it from an application you have already planned." />
-            </p>
-            <div className="flex flex-wrap gap-gb-lg">
-              <Button href="/apply" size="lg">
-                <T k="Open My Portal" />
-              </Button>
-              <Button href="/how-it-works" variant="secondary" size="lg">
-                <T k="See the whole journey" />
-              </Button>
-            </div>
-          </Container>
-        </section>
-
-        {/* Area 3, step by step. Same component and same content file as
-            /how-it-works — it is handed one area instead of three. */}
-        <section className="pt-gb-6xl">
-          <Container>
-            <StrategyGuide areas={[AREA]} />
-          </Container>
-        </section>
-
-        {/* Where the Strategy is actually started, said plainly. The steps
-            above deliberately do not claim a link for the ones that have none. */}
-        <section className="pt-gb-9xl">
-          <Container>
-            <Panel className="flex flex-col items-start gap-gb-lg">
-              <h2 className="font-display text-gb-xl font-semibold text-fg">
-                <T k="Where you start one" />
-              </h2>
-              <p className="max-w-2xl text-gb-md text-fg-tertiary">
-                <T k="A Strategy belongs to a single course, so it opens from an application rather than from here. Plan one in My Portal, then use “Ready to strengthen this application?” at the bottom of it." />
-              </p>
-              <div className="flex flex-wrap gap-gb-lg">
-                <Button href="/apply" size="lg">
-                  <T k="Go to My Portal" />
-                </Button>
-                <Button href="/universities" variant="secondary" size="lg">
-                  <T k="Find a university first" />
-                </Button>
-              </div>
-            </Panel>
-          </Container>
-        </section>
-
-        {/* Signed-out visitors get the sign-up close. */}
-        {isSignedIn ? null : (
-          <section className="pt-gb-3xl">
-            <Container>
-              <Panel className="flex flex-col items-start gap-gb-lg">
-                <h2 className="font-display text-gb-xl font-semibold text-fg">
-                  <T k="Ready to start yours?" />
-                </h2>
-                <p className="max-w-2xl text-gb-md text-fg-tertiary">
-                  <T k="Create a free account to save universities, plan an application and build your first strategy." />
-                </p>
-                <div className="flex flex-wrap gap-gb-lg">
-                  <Button href="/auth" size="lg">
-                    <T k="Create an account" />
-                  </Button>
-                  <Button href="/how-it-works" variant="secondary" size="lg">
-                    <T k="Read how GlowBal works" />
-                  </Button>
-                </div>
-              </Panel>
-            </Container>
-          </section>
-        )}
+        <StrategyHub isSignedIn={isSignedIn} />
       </main>
 
       <Footer

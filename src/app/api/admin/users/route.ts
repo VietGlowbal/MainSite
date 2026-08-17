@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 import { z } from 'zod';
 import type { User } from '@supabase/supabase-js';
 import { isAdmin } from '@/lib/auth-helpers';
+import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -53,7 +54,7 @@ export async function GET() {
   // Join with student_profiles so we can show is_admin + onboarding status.
   const { data: profiles } = await admin
     .from('student_profiles')
-    .select('user_id, is_admin, is_coordinator, onboarding_completed, study_level');
+    .select('user_id, is_admin, is_coordinator, onboarding_completed, study_level, plus_status, plus_expires_at');
 
   // Join with mentor profiles (achiever_profiles) so we can flag mentor status.
   const { data: mentors } = await admin
@@ -86,20 +87,26 @@ export async function GET() {
     mentor_status: mentorByUser.get(u.id)?.status ?? null,
     mentor_name: mentorByUser.get(u.id)?.display_name ?? null,
     login_count: loginCountByUser.get(u.id) ?? 0,
+    has_plus_access: isPlusEntitlementActive(profileByUser.get(u.id) ?? {}),
+    plus_expires_at: profileByUser.get(u.id)?.plus_expires_at ?? null,
   }));
 
   return NextResponse.json({ users });
 }
+
+const PLUS_GRANT_MONTHS = 12;
 
 const PatchSchema = z
   .object({
     user_id: z.string().uuid(),
     is_admin: z.boolean().optional(),
     is_coordinator: z.boolean().optional(),
+    plus_access: z.boolean().optional(),
   })
-  .refine((v) => v.is_admin !== undefined || v.is_coordinator !== undefined, {
-    message: 'Nothing to update',
-  });
+  .refine(
+    (v) => v.is_admin !== undefined || v.is_coordinator !== undefined || v.plus_access !== undefined,
+    { message: 'Nothing to update' },
+  );
 
 export async function PATCH(request: NextRequest) {
   const guard = await requireAdmin();
@@ -115,7 +122,7 @@ export async function PATCH(request: NextRequest) {
   if (!parsed.success) {
     return NextResponse.json({ error: 'Invalid request' }, { status: 400 });
   }
-  const { user_id, is_admin, is_coordinator } = parsed.data;
+  const { user_id, is_admin, is_coordinator, plus_access } = parsed.data;
 
   // Don't let an admin demote themselves — easy way to lock yourself out.
   if (user_id === guard.user!.id && is_admin === false) {
@@ -127,11 +134,37 @@ export async function PATCH(request: NextRequest) {
 
   const admin = createAdminClient();
 
-  // Upsert the role flags onto student_profiles. If the user has never
-  // completed onboarding there might not be a row yet, so we upsert.
-  const update: { user_id: string; is_admin?: boolean; is_coordinator?: boolean } = { user_id };
+  // Upsert the role/entitlement flags onto student_profiles. If the user has
+  // never completed onboarding there might not be a row yet, so we upsert.
+  const update: {
+    user_id: string;
+    is_admin?: boolean;
+    is_coordinator?: boolean;
+    plus_status?: boolean;
+    plus_plan?: string;
+    plus_started_at?: string;
+    plus_expires_at?: string;
+  } = { user_id };
   if (is_admin !== undefined) update.is_admin = is_admin;
   if (is_coordinator !== undefined) update.is_coordinator = is_coordinator;
+
+  // Manual grant — this is the My Portal workspace paywall's admin override,
+  // separate from (and additive with) the VNPay and manual bank-transfer
+  // checkout paths at /plus. Revoking only flips plus_status: the shared
+  // isPlusEntitlementActive() helper already treats a false plus_status as
+  // inactive regardless of plus_expires_at, so there's nothing else to unwind.
+  let grantedNow: Date | null = null;
+  if (plus_access === true) {
+    grantedNow = new Date();
+    const expires = new Date(grantedNow);
+    expires.setMonth(expires.getMonth() + PLUS_GRANT_MONTHS);
+    update.plus_status = true;
+    update.plus_plan = 'admin-grant';
+    update.plus_started_at = grantedNow.toISOString();
+    update.plus_expires_at = expires.toISOString();
+  } else if (plus_access === false) {
+    update.plus_status = false;
+  }
 
   const { error } = await admin
     .from('student_profiles')
@@ -139,6 +172,24 @@ export async function PATCH(request: NextRequest) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  // Best-effort audit trail alongside paid subscriptions — a failure here
+  // must not undo the access grant above, so its error is logged, not thrown.
+  if (grantedNow) {
+    const expires = new Date(grantedNow);
+    expires.setMonth(expires.getMonth() + PLUS_GRANT_MONTHS);
+    const { error: subError } = await admin.from('plus_subscriptions').insert({
+      user_id,
+      plan: 'admin-grant',
+      duration_months: PLUS_GRANT_MONTHS,
+      status: 'active',
+      started_at: grantedNow.toISOString(),
+      expires_at: expires.toISOString(),
+    });
+    if (subError) {
+      console.warn('admin/users: plus_subscriptions audit insert failed:', subError.message);
+    }
   }
 
   // Revoking the role stops all of that coordinator's ambassador links

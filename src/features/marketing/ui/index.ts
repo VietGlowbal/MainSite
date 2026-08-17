@@ -31,6 +31,7 @@ export { HomeTestimonials } from './home-testimonials';
 export { MissingContent } from './missing-content';
 export { GuidePanel, StrategyGuide } from './strategy-guide';
 export { StrategyHelpButton } from './strategy-help-button';
+export { StrategyHub } from './strategy-hub/strategy-hub';
 export {
   FOOTER_COLUMNS,
   FOOTER_COPYRIGHT,
