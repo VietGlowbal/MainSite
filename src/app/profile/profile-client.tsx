@@ -16,6 +16,7 @@ import {
   ProgressBar,
   ScoreRing,
 } from '@/shared/ui';
+import type { ProgressTone } from '@/shared/ui';
 
 /**
  * /profile — rebuilt against the design tokens.
@@ -108,102 +109,213 @@ type SectionDef = {
   pct: (input: SectionInputs) => number;
 };
 
+type SectionGroup = {
+  key: string;
+  title: string;
+  description: string;
+  /**
+   * Which step of the categorical accent scale this group wears. Assigned in
+   * reading order, so group one is the brand rose — see the token note.
+   */
+  accent: ProgressTone;
+  sections: SectionDef[];
+};
+
 /**
- * The eight editors under /profile, in the order a student would sensibly work
- * through them. Each `pct` counts only the fields its own editor writes — a
- * card that can never reach 100% because the page scores it on something the
- * form does not ask for is worse than no score at all.
+ * Everything an accent step paints, resolved up front.
+ *
+ * A lookup rather than a template string because Tailwind scans source text
+ * for finished class names — `bg-accent-${n}` compiles to nothing at all, and
+ * the failure is silent: no error, just an uncoloured page.
  */
-const SECTIONS: SectionDef[] = [
+const ACCENT: Record<ProgressTone, { wash: string; solid: string; text: string; hover: string }> = {
+  brand: {
+    wash: 'bg-brand-subtle',
+    solid: 'bg-brand',
+    text: 'text-fg-brand',
+    hover: 'hover:border-brand',
+  },
+  'accent-1': {
+    wash: 'bg-accent-1-subtle',
+    solid: 'bg-accent-1',
+    text: 'text-accent-1',
+    hover: 'hover:border-accent-1',
+  },
+  'accent-2': {
+    wash: 'bg-accent-2-subtle',
+    solid: 'bg-accent-2',
+    text: 'text-accent-2',
+    hover: 'hover:border-accent-2',
+  },
+  'accent-3': {
+    wash: 'bg-accent-3-subtle',
+    solid: 'bg-accent-3',
+    text: 'text-accent-3',
+    hover: 'hover:border-accent-3',
+  },
+};
+
+/**
+ * The eight editors under /profile, grouped the way the student already met
+ * them rather than in an order invented here.
+ *
+ * ─── WHY THREE GROUPS ───────────────────────────────────────────────────────
+ *
+ * This grid is the edit surface for the onboarding quiz: a student comes back
+ * to change an answer they gave at sign-up. So the grouping follows the flow
+ * in `onboarding-wizard.tsx` — its eight steps, then `/onboarding/documents`:
+ *
+ *   1 study level ─────────────────→ Academic background
+ *   2 subjects ─┐
+ *   3 countries │
+ *   4 budget    ├────────────────── → Target preferences
+ *   5 campus    │
+ *   8 support ──┘
+ *   6 curriculum + grading ────────→ Academic background
+ *   7 test results ────────────────→ Test scores
+ *   9 documents ───────────────────→ Documents
+ *
+ * Group 1 is the "where and what" half of that quiz, group 2 the "what you
+ * have got" half, group 3 the paperwork. Ungrouped, the eight cards read as
+ * one undifferentiated wall and the student cannot see which of them they have
+ * already answered.
+ *
+ * ─── WHY SOME CARDS SAY "NOT STARTED" TO A STUDENT WHO FINISHED ─────────────
+ *
+ * Only four of the eight hold quiz answers. Achievements, Work experience and
+ * Application goals were NEVER ASKED — the goals question was câu 9 until the
+ * owner removed it on 2026-07-30 (see the scope note in the wizard), and the
+ * other two have never been in the flow. Personal information comes from
+ * sign-up, not onboarding, which is why it is down with Documents and not up
+ * with the answers.
+ *
+ * Within each group the quiz-backed cards lead and the never-asked ones
+ * follow, so a group never opens on a "Not started" badge.
+ *
+ * Each `pct` counts only the fields its own editor writes — a card that can
+ * never reach 100% because the page scores it on something the form does not
+ * ask for is worse than no score at all.
+ */
+const SECTION_GROUPS: SectionGroup[] = [
   {
-    key: 'personal',
-    href: '/profile/personal',
-    title: 'Personal information',
-    description: 'Name, nationality, location and contact details',
-    pct: ({ profile: p }) =>
-      ratio([
-        filled(p?.phone),
-        filled(p?.date_of_birth),
-        filled(p?.location),
-        filled(p?.nationality),
-        filled(p?.bio),
-      ]),
+    key: 'direction',
+    accent: 'accent-1',
+    title: 'Your study direction',
+    description: 'Where and what you want to study — the answers you gave when you signed up.',
+    sections: [
+      {
+        key: 'preferences',
+        href: '/profile/preferences',
+        title: 'Target preferences',
+        description: 'Countries, subjects, budget and preferred cities',
+        pct: ({ profile: p }) =>
+          ratio([
+            filled(p?.preferred_countries),
+            filled(p?.target_subjects),
+            filled(p?.budget_range),
+            filled(p?.campus_preferences),
+            filled(p?.support_needs),
+            filled(p?.study_mode_preference),
+            filled(p?.target_intake),
+          ]),
+      },
+      {
+        key: 'goals',
+        href: '/profile/goals',
+        title: 'Application goals',
+        description: 'What you want to achieve and your dream career',
+        pct: ({ profile: p }) =>
+          ratio([
+            filled(p?.goals),
+            filled(p?.career_interests),
+            filled(p?.target_intake),
+            filled(p?.application_cycle_year),
+          ]),
+      },
+    ],
   },
   {
-    key: 'academic',
-    href: '/profile/academic',
-    title: 'Academic background',
-    description: 'Your education history, grades and subjects',
-    pct: ({ profile: p }) =>
-      ratio([
-        filled(p?.study_level),
-        filled(p?.current_institution),
-        filled(p?.current_qualification),
-        filled(p?.predicted_grades),
-        filled(p?.academic_background),
-        filled(p?.curriculum),
-        filled(p?.curriculum_grades),
-      ]),
+    key: 'record',
+    accent: 'accent-2',
+    title: 'Your academic record',
+    description: 'Your grades, test results and everything you have done so far.',
+    sections: [
+      {
+        key: 'academic',
+        href: '/profile/academic',
+        title: 'Academic background',
+        description: 'Your education history, grades and subjects',
+        pct: ({ profile: p }) =>
+          ratio([
+            filled(p?.study_level),
+            filled(p?.current_institution),
+            filled(p?.current_qualification),
+            filled(p?.predicted_grades),
+            filled(p?.academic_background),
+            filled(p?.curriculum),
+            filled(p?.curriculum_grades),
+          ]),
+      },
+      {
+        key: 'english',
+        href: '/profile/english',
+        title: 'Test scores',
+        description: 'English-language and standardized test results',
+        pct: ({ testScores }) => band(testScores),
+      },
+      {
+        key: 'achievements',
+        href: '/profile/achievements',
+        title: 'Achievements',
+        description: 'Awards, extracurriculars and leadership roles',
+        pct: ({ profile: p }) =>
+          Math.round((band(p?.achievements?.length ?? 0) + band(p?.skills?.length ?? 0)) / 2),
+      },
+      {
+        key: 'work',
+        href: '/profile/work',
+        title: 'Work experience',
+        description: 'Internships, jobs and volunteering',
+        pct: ({ workEntries }) => band(workEntries),
+      },
+    ],
   },
   {
-    key: 'english',
-    href: '/profile/english',
-    title: 'Test scores',
-    description: 'English-language and standardized test results',
-    pct: ({ testScores }) => band(testScores),
-  },
-  {
-    key: 'preferences',
-    href: '/profile/preferences',
-    title: 'Target preferences',
-    description: 'Countries, subjects, budget and preferred cities',
-    pct: ({ profile: p }) =>
-      ratio([
-        filled(p?.preferred_countries),
-        filled(p?.target_subjects),
-        filled(p?.budget_range),
-        filled(p?.campus_preferences),
-        filled(p?.support_needs),
-        filled(p?.study_mode_preference),
-        filled(p?.target_intake),
-      ]),
-  },
-  {
-    key: 'achievements',
-    href: '/profile/achievements',
-    title: 'Achievements',
-    description: 'Awards, extracurriculars and leadership roles',
-    pct: ({ profile: p }) =>
-      Math.round((band(p?.achievements?.length ?? 0) + band(p?.skills?.length ?? 0)) / 2),
-  },
-  {
-    key: 'work',
-    href: '/profile/work',
-    title: 'Work experience',
-    description: 'Internships, jobs and volunteering',
-    pct: ({ workEntries }) => band(workEntries),
-  },
-  {
-    key: 'documents',
-    href: '/profile/documents',
-    title: 'Documents',
-    description: 'Upload important documents and certificates',
-    pct: ({ documents }) => band(documents.length),
-  },
-  {
-    key: 'goals',
-    href: '/profile/goals',
-    title: 'Application goals',
-    description: 'What you want to achieve and your dream career',
-    pct: ({ profile: p }) =>
-      ratio([
-        filled(p?.goals),
-        filled(p?.career_interests),
-        filled(p?.target_intake),
-        filled(p?.application_cycle_year),
-      ]),
+    key: 'paperwork',
+    accent: 'accent-3',
+    title: 'Documents & personal details',
+    description: 'Files and contact details your applications are built on.',
+    sections: [
+      {
+        key: 'documents',
+        href: '/profile/documents',
+        title: 'Documents',
+        description: 'Upload important documents and certificates',
+        pct: ({ documents }) => band(documents.length),
+      },
+      {
+        key: 'personal',
+        href: '/profile/personal',
+        title: 'Personal information',
+        description: 'Name, nationality, location and contact details',
+        pct: ({ profile: p }) =>
+          ratio([
+            filled(p?.phone),
+            filled(p?.date_of_birth),
+            filled(p?.location),
+            filled(p?.nationality),
+            filled(p?.bio),
+          ]),
+      },
+    ],
   },
 ];
+
+/**
+ * Flat view of the same eight, for the one figure that must not change shape
+ * when the grouping does: overall profile strength.
+ */
+const SECTIONS: SectionDef[] = SECTION_GROUPS.flatMap((group) => group.sections);
 
 const PLAN_LABELS: Record<string, string> = {
   // Current feature tiers
@@ -344,31 +456,125 @@ function ProfileHero({
 }
 
 /* ─────────────────────────────────────────────────────────────────────────
+   SECTION GROUP
+
+   The owner's note on the first grouped build was that the three groups did
+   not read as three things — a bold line and a grey line above a grid is not
+   enough separation when every card below it is the same white rectangle.
+
+   So a group leads with a banner it owns: its accent wash, a numbered tile in
+   the solid accent, and a count of how many of its cards are finished. The
+   number is the part that does the most work. "1 / 2 done" is a fact the page
+   already knew and never said, and it turns each banner into a small scoreboard
+   rather than a label.
+
+   The accent then carries down into the cards through their progress fill and
+   hover border, which is what ties a card to its banner once the student has
+   scrolled the heading off screen.
+───────────────────────────────────────────────────────────────────────── */
+
+function SectionGroupBlock({
+  group,
+  index,
+  input,
+}: {
+  group: SectionGroup;
+  index: number;
+  input: SectionInputs;
+}) {
+  const { t } = useLanguage();
+  const accent = ACCENT[group.accent];
+  const done = group.sections.filter((section) => section.pct(input) >= 100).length;
+  const total = group.sections.length;
+  const allDone = done === total;
+  const headingId = `profile-group-${group.key}`;
+
+  return (
+    <section aria-labelledby={headingId} className="flex flex-col gap-gb-xl">
+      <div className={`flex items-center gap-gb-xl rounded-gb-xl ${accent.wash} p-gb-xl`}>
+        {/* Bricolage, because a lone numeral is the one place on this page a
+            display face reads as a mark rather than as loud body text. */}
+        <span
+          aria-hidden="true"
+          className={`flex size-gb-5xl shrink-0 items-center justify-center rounded-gb-lg ${accent.solid} font-display text-gb-lg font-semibold text-on-accent shadow-gb-xs`}
+        >
+          {index + 1}
+        </span>
+
+        <div className="flex min-w-0 flex-1 flex-col gap-gb-xxs">
+          <h3 id={headingId} className="font-display text-gb-lg font-semibold text-fg">
+            {t(group.title)}
+          </h3>
+          <p className="text-gb-sm text-fg-tertiary">{t(group.description)}</p>
+        </div>
+
+        {/* Reads as a tally, not a badge, so it does not compete with the
+            per-card status chips it sits above. Solid once the group is
+            finished — the only moment on this page that rewards completing
+            something. */}
+        <span
+          className={`hidden shrink-0 items-center gap-gb-xs rounded-gb-full px-gb-lg py-gb-xs text-gb-sm font-semibold sm:inline-flex ${
+            allDone ? `${accent.solid} text-on-accent` : `bg-surface ${accent.text}`
+          }`}
+        >
+          {allDone ? <KitIcon art={ICONS.checkCircle} frame={16} /> : null}
+          {t('{done} of {total} done', { done, total })}
+        </span>
+      </div>
+
+      <div className="grid gap-gb-xl sm:grid-cols-2">
+        {group.sections.map((section) => (
+          <SectionCard key={section.key} section={section} input={input} accent={group.accent} />
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────────
    SECTION CARD
 ───────────────────────────────────────────────────────────────────────── */
 
-function SectionCard({ section, input }: { section: SectionDef; input: SectionInputs }) {
+function SectionCard({
+  section,
+  input,
+  accent,
+}: {
+  section: SectionDef;
+  input: SectionInputs;
+  accent: ProgressTone;
+}) {
+  const { t } = useLanguage();
+  const tone = ACCENT[accent];
   const pct = section.pct(input);
   const done = pct >= 100;
+  const untouched = pct === 0;
 
   return (
     <Link
       href={section.href}
-      className="group flex flex-col gap-gb-lg rounded-gb-2xl border border-line bg-surface p-gb-2xl shadow-gb-xs transition-colors hover:border-brand focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className={`group flex flex-col gap-gb-lg rounded-gb-2xl border bg-surface p-gb-2xl shadow-gb-xs transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-gb-xxs hover:shadow-gb-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${tone.hover} ${
+        /* Dashed while a card holds nothing, so an empty slot looks empty
+           rather than looking like a filled card that happens to read 0%. */
+        untouched ? 'border-dashed border-line-strong' : 'border-line'
+      }`}
     >
       <div className="flex items-start justify-between gap-gb-md">
-        <h3 className="min-w-0 text-gb-md font-semibold text-fg">{section.title}</h3>
-        <Badge variant={done ? 'safe-chip' : pct === 0 ? 'neutral-chip' : 'brand-chip'}>
-          {done ? 'Complete' : pct === 0 ? 'Not started' : `${pct}%`}
+        {/* h4, not h3: the card sits inside a group whose banner is the h3, and
+            a card title at the same level would flatten that nesting for anyone
+            navigating the page by headings. */}
+        <h4 className="min-w-0 text-gb-md font-semibold text-fg">{t(section.title)}</h4>
+        <Badge variant={done ? 'safe-chip' : untouched ? 'neutral-chip' : 'brand-chip'}>
+          {done ? t('Complete') : untouched ? t('Not started') : `${pct}%`}
         </Badge>
       </div>
 
-      <p className="text-gb-sm text-fg-tertiary">{section.description}</p>
+      <p className="text-gb-sm text-fg-tertiary">{t(section.description)}</p>
 
       <div className="mt-auto flex flex-col gap-gb-lg pt-gb-md">
-        <ProgressBar value={pct} label={section.title} size="sm" />
-        <span className="inline-flex items-center gap-gb-xs text-gb-sm font-semibold text-fg-brand">
-          {pct === 0 ? 'Get started' : done ? 'Review' : 'Continue'}
+        <ProgressBar value={pct} label={t(section.title)} size="sm" tone={accent} />
+        <span className={`inline-flex items-center gap-gb-xs text-gb-sm font-semibold ${tone.text}`}>
+          {untouched ? t('Get started') : done ? t('Review') : t('Continue')}
           <KitIcon
             art={ICONS.arrowRight}
             frame={16}
@@ -495,6 +701,7 @@ export function ProfileClient({
   plusStatus,
   plusPlan,
 }: Props) {
+  const { t } = useLanguage();
   const input: SectionInputs = { profile, documents, workEntries, testScores };
   const strength = Math.round(
     SECTIONS.reduce((total, section) => total + section.pct(input), 0) / SECTIONS.length,
@@ -517,17 +724,15 @@ export function ProfileClient({
       <div className="grid gap-gb-4xl lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-gb-xl">
           <div className="flex flex-col gap-gb-xxs">
-            <h2 className="font-display text-gb-xl font-semibold text-fg">Profile sections</h2>
+            <h2 className="font-display text-gb-xl font-semibold text-fg">{t('Profile sections')}</h2>
             <p className="text-gb-sm text-fg-tertiary">
-              Keep these up to date for better recommendations and stronger application plans.
+              {t('Keep these up to date for better recommendations and stronger application plans.')}
             </p>
           </div>
 
-          <div className="grid gap-gb-xl sm:grid-cols-2">
-            {SECTIONS.map((section) => (
-              <SectionCard key={section.key} section={section} input={input} />
-            ))}
-          </div>
+          {SECTION_GROUPS.map((group, index) => (
+            <SectionGroupBlock key={group.key} group={group} index={index} input={input} />
+          ))}
         </div>
 
         <aside className="flex flex-col gap-gb-xl">

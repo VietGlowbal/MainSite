@@ -680,6 +680,21 @@ export const translations: Record<string, string> = {
   'What you want to achieve and your dream career': 'Điều bạn muốn đạt được và nghề nghiệp mơ ước',
   'Add goals': 'Thêm mục tiêu',
   'Profile sections': 'Các mục hồ sơ',
+  // The three groups the profile cards are arranged into. They follow the
+  // onboarding flow, so a student returning to change a quiz answer finds it
+  // where they left it — see the note above SECTION_GROUPS in profile-client.
+  'Your study direction': 'Định hướng du học',
+  'Where and what you want to study — the answers you gave when you signed up.':
+    'Nơi bạn muốn học và ngành bạn muốn theo — những câu trả lời bạn đã đưa ra khi đăng ký.',
+  'Your academic record': 'Hồ sơ học thuật',
+  'Your grades, test results and everything you have done so far.':
+    'Điểm số, kết quả các bài thi và mọi thành quả bạn đã đạt được.',
+  'Documents & personal details': 'Tài liệu & thông tin cá nhân',
+  'Files and contact details your applications are built on.':
+    'Tài liệu và thông tin liên hệ dùng để xây dựng hồ sơ ứng tuyển của bạn.',
+  // The tally on each group banner. Interpolated, so both numbers stay outside
+  // the dictionary — never split this into "{done} of" + "done".
+  '{done} of {total} done': '{done}/{total} đã hoàn tất',
   'Suggested next steps': 'Các bước gợi ý tiếp theo',
   'Complete these to get the most out of Glowbal.': 'Hoàn thành những mục này để tận dụng tối đa Glowbal.',
   'Add your achievements': 'Thêm thành tích của bạn',
