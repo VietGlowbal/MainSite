@@ -17,6 +17,7 @@ import { useParseRefresh } from '@/features/apply/parse-refresh';
 import type { CourseApplication } from '@/lib/apply-types';
 import { Button } from '@/shared/ui/button';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import type { UniversityScholarships } from './application-scholarships';
 import { MyApplicationSection } from './my-application-section';
 import type { SavedRow } from './saved-list-section';
 
@@ -143,6 +144,12 @@ export type ApplicationProgressClientProps = {
    * conservative "build your strategy" link rather than four dead ones.
    */
   strategyReadyById?: Record<string, boolean>;
+  /**
+   * The scholarships chosen for — and offerable at — each university on the
+   * tracker, keyed by universities.id. Feeds the drawer under each application
+   * row. Empty in the signed-out shell and in the /dev preview.
+   */
+  scholarshipsByUniversityId?: Record<number, UniversityScholarships>;
   isLoggedOut?: boolean;
   isPlus?: boolean;
 };
@@ -152,6 +159,7 @@ export function ApplicationProgressClient({
   logoByUniversityId,
   savedRowsPromise,
   strategyReadyById = {},
+  scholarshipsByUniversityId = {},
   isLoggedOut = false,
   isPlus,
 }: ApplicationProgressClientProps) {
@@ -282,6 +290,7 @@ export function ApplicationProgressClient({
         applications={applications}
         logoByUniversityId={logoByUniversityId}
         strategyReadyById={strategyReadyById}
+        scholarshipsByUniversityId={scholarshipsByUniversityId}
         sectionRef={applicationsRef}
       />
 
