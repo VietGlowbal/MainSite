@@ -1783,6 +1783,33 @@ export const translations: Record<string, string> = {
   'Could not reach the server. Please try again.':
     'Không kết nối được máy chủ. Vui lòng thử lại.',
 
+  // ── The scholarship drawer under an application row (18/08) ───────────────
+  //
+  // apply/application-scholarships.tsx — the awards a student chose for that
+  // university, nested under the application the way an e-commerce cart nests
+  // gifts under a line item. Numbers are their own text nodes in the component
+  // (the count, the "covers up to" percentage, "N more available"), so only the
+  // words around them are keyed — an interpolated "2 chosen" could never be a
+  // dictionary hit on this route.
+  'Scholarships you are applying for': 'Học bổng bạn đang ứng tuyển',
+  chosen: 'đã chọn',
+  'Nothing chosen yet': 'Chưa chọn học bổng nào',
+  'Covers up to': 'Hỗ trợ tới',
+  'available at this university': 'học bổng có tại trường này',
+  'more available at this university': 'học bổng khác tại trường này',
+  'Pick the funding you want to go after with this application — it will show here and on your saved list.':
+    'Chọn nguồn hỗ trợ tài chính bạn muốn theo đuổi cho hồ sơ này — học bổng sẽ hiện ở đây và trong danh sách đã lưu.',
+  'No scholarships are listed for this university yet.':
+    'Trường này hiện chưa có học bổng nào trong hệ thống.',
+  'Choose scholarships': 'Chọn học bổng',
+  'Change scholarships': 'Đổi học bổng',
+  'Tick the scholarships you want to apply for with this application.':
+    'Tích chọn những học bổng bạn muốn ứng tuyển cùng hồ sơ này.',
+  'These are saved against the university, so the same choice shows on your saved list.':
+    'Học bổng được lưu theo trường, nên lựa chọn này cũng hiện trong danh sách đã lưu của bạn.',
+  'Could not update your scholarships. Please try again.':
+    'Không cập nhật được học bổng của bạn. Vui lòng thử lại.',
+
   // ── Saved list, now the lower half of /apply (Figma 562:15078, previously
   //    375:12701 · 375:12841 · 375:13295 · 375:13369 · 502:18462) and the
   //    subject picker (375:13546) ────────────────────────────────────────────
