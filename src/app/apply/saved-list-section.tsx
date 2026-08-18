@@ -1058,6 +1058,33 @@ export function SavedListSection({
   const router = useRouter();
 
   const [rows, setRows] = useState(initialRows);
+  /*
+   * ⚠️ THE LOCAL COPY HAS TO FOLLOW THE SERVER, and until 18/08 it never did.
+   *
+   * `useState(initialRows)` seeds once. Every `router.refresh()` on this page —
+   * this section's own `applyScholarship`, the shell's `planApplications`, and
+   * now the tracker's scholarship drawer above — re-renders the server tree and
+   * hands down fresh rows, but a refresh deliberately PRESERVES client state,
+   * so the list kept rendering the rows it was mounted with. Attaching an award
+   * left its badge and the discounted tuition figure absent until a full
+   * reload; removing one from the drawer above left both standing.
+   *
+   * Reference equality is the right guard: `savedRows` comes from
+   * `use(savedRowsPromise)`, which returns the same array for the same promise
+   * and a new one only when the server has genuinely re-read. Adjusting state
+   * during render rather than from an effect — the pattern `focusedRow` below
+   * already uses, and the one React documents for "reset state when a prop
+   * changes".
+   *
+   * Optimistic local edits are not lost to this: `remove` deletes the row in
+   * the database before dropping it here, so the next server read does not
+   * contain it either.
+   */
+  const [seededRows, setSeededRows] = useState(initialRows);
+  if (initialRows !== seededRows) {
+    setSeededRows(initialRows);
+    setRows(initialRows);
+  }
   const [selected, setSelected] = useState<number[]>([]);
   const [removing, setRemoving] = useState<number[]>([]);
   /** null = closed. The mode decides scope and whether anything is selectable. */

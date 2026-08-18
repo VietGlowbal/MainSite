@@ -241,6 +241,7 @@ function ScholarshipChoiceDialog({
   chosenIds,
   onSave,
   busy,
+  error,
 }: {
   open: boolean;
   onClose: () => void;
@@ -249,6 +250,9 @@ function ScholarshipChoiceDialog({
   chosenIds: number[];
   onSave: (ids: number[]) => void;
   busy: boolean;
+  /** A failed save. Shown here, not only in the drawer, because the dialog
+      stays open on failure so the student can retry from their own ticks. */
+  error: string | null;
 }) {
   const [ticked, setTicked] = useState<number[]>(chosenIds);
   /* Re-seed from the server's answer whenever the dialog is reopened or the
@@ -369,6 +373,12 @@ function ScholarshipChoiceDialog({
           </fieldset>
         )}
 
+        {error ? (
+          <p role="alert" className="text-gb-sm font-medium text-fg-error">
+            {error}
+          </p>
+        ) : null}
+
         <div className="flex flex-wrap items-center justify-end gap-gb-lg">
           <Button variant="secondary" size="lg" onClick={onClose} disabled={busy}>
             Cancel
@@ -464,32 +474,71 @@ export function ApplicationScholarships({
       return;
     }
 
-    /* One statement each way. `onConflict` matches the table's own
-       `unique (user_id, scholarship_id)`, so re-ticking something saved under
-       another university moves it here rather than failing. */
-    const addResult = add.length
-      ? await supabase.from('user_scholarships').upsert(
-          add.map((scholarshipId) => ({
-            user_id: user.id,
-            scholarship_id: scholarshipId,
-            university_id: universityId,
-          })),
-          { onConflict: 'user_id,scholarship_id' },
-        )
-      : null;
-    const removeResult = remove.length
-      ? await supabase
-          .from('user_scholarships')
-          .delete()
-          .eq('user_id', user.id)
-          .eq('university_id', universityId)
-          .in('scholarship_id', remove)
-      : null;
+    /*
+     * ─── ONE STATEMENT EACH WAY, AND THE UI FOLLOWS WHAT ACTUALLY LANDED ─────
+     *
+     * A tick and an untick in the same Save are two independent statements —
+     * there is no transaction to wrap them in from the browser, and inventing
+     * an RPC for a two-row edit would be a migration for nothing. What that
+     * costs is a window where one succeeds and the other does not, so:
+     *
+     *   - the delete does not run if the upsert failed. Otherwise a failed
+     *     swap would take the old award away and put nothing in its place;
+     *   - `applied` tracks what the database now holds, statement by statement,
+     *     and the drawer is set to THAT rather than rolled back wholesale. The
+     *     earlier version restored the previous selection on any error, which
+     *     after a half-applied swap showed the student an award that had just
+     *     been deleted;
+     *   - `router.refresh()` runs either way, so the server's own answer
+     *     replaces this reckoning on the next render.
+     *
+     * `onConflict` matches the table's `unique (user_id, scholarship_id)`, so
+     * re-ticking something saved under another university moves it here rather
+     * than failing.
+     */
+    const applied = new Set(previous);
+    let failed = false;
+
+    if (add.length) {
+      const { error: addError } = await supabase.from('user_scholarships').upsert(
+        add.map((scholarshipId) => ({
+          user_id: user.id,
+          scholarship_id: scholarshipId,
+          university_id: universityId,
+        })),
+        { onConflict: 'user_id,scholarship_id' },
+      );
+      if (addError) failed = true;
+      else for (const id of add) applied.add(id);
+    }
+
+    if (!failed && remove.length) {
+      const { error: removeError } = await supabase
+        .from('user_scholarships')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('university_id', universityId)
+        .in('scholarship_id', remove);
+      if (removeError) failed = true;
+      else for (const id of remove) applied.delete(id);
+    }
 
     setBusy(false);
-    if (addResult?.error || removeResult?.error) {
-      setChosenIds(previous);
+    /* Existing awards keep their order and new ones are appended, so a save
+       that changed nothing in the database produces an identical array — which
+       is what keeps the dialog's ticks intact for a retry (it re-seeds itself
+       whenever the chosen set changes). */
+    setChosenIds([
+      ...previous.filter((id) => applied.has(id)),
+      ...nextIds.filter((id) => applied.has(id) && !previous.includes(id)),
+    ]);
+
+    if (failed) {
       setError('Could not update your scholarships. Please try again.');
+      setOpen(true);
+      // Not closed: the dialog shows the error, and the ticks the student made
+      // are still there to retry with.
+      router.refresh();
       return;
     }
 
@@ -629,6 +678,7 @@ export function ApplicationScholarships({
         chosenIds={chosenIds}
         onSave={(ids) => void save(ids)}
         busy={busy}
+        error={error}
       />
     </div>
   );

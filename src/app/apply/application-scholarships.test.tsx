@@ -28,14 +28,16 @@ vi.mock('next/navigation', () => ({
  * contract with `user_scholarships`, and getting the delete's filters wrong
  * would silently clear a student's awards at OTHER universities.
  */
+type WriteResult = Promise<{ error: { message: string } | null }>;
+
 const mocks = vi.hoisted(() => ({
   refresh: vi.fn(),
-  // Argument types are declared rather than inferred: `vi.fn(() => …)` types
-  // itself as taking no arguments, and `npm run build` type-checks test files.
-  upsert: vi.fn((_rows: unknown, _options: unknown) => Promise.resolve({ error: null })),
+  // Signatures are declared rather than inferred: `vi.fn(() => …)` types itself
+  // as taking no arguments, and `npm run build` type-checks test files too.
+  upsert: vi.fn<(rows: unknown, options: unknown) => WriteResult>(),
   del: vi.fn(),
   eq: vi.fn(),
-  in: vi.fn((_column: string, _values: unknown) => Promise.resolve({ error: null })),
+  in: vi.fn<(column: string, values: unknown) => WriteResult>(),
 }));
 
 vi.mock('@/lib/supabase/client', () => {
@@ -59,7 +61,11 @@ vi.mock('@/lib/supabase/client', () => {
   };
 });
 
-beforeEach(() => vi.clearAllMocks());
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.upsert.mockResolvedValue({ error: null });
+  mocks.in.mockResolvedValue({ error: null });
+});
 
 const chevening: ApplicationScholarship = {
   id: 1,
@@ -183,6 +189,36 @@ describe('ApplicationScholarships', () => {
     );
     expect(mocks.del).not.toHaveBeenCalled();
     await waitFor(() => expect(mocks.refresh).toHaveBeenCalled());
+  });
+
+  it('does not delete the old award when adding the new one failed', async () => {
+    mocks.upsert.mockResolvedValueOnce({ error: { message: 'insert failed' } });
+
+    render(
+      <ApplicationScholarships
+        universityId={7}
+        universityName="University College London (UCL)"
+        chosen={[chevening]}
+        options={[chevening, globalExcellence]}
+      />,
+    );
+
+    // Swap one award for the other in a single Save.
+    fireEvent.click(screen.getByRole('button', { name: /change scholarships/i }));
+    fireEvent.click(screen.getByLabelText(`Choose ${globalExcellence.name}`));
+    fireEvent.click(screen.getByLabelText(`Choose ${chevening.name}`));
+    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+    await waitFor(() => expect(screen.getAllByRole('alert').length).toBeGreaterThan(0));
+    // The half that failed must not take the other half with it: without the
+    // early exit, the student would be left with neither award.
+    expect(mocks.del).not.toHaveBeenCalled();
+    // …and the drawer still shows what the database still holds. Asserted via
+    // its ticket's Remove control: the dialog stays open on failure, so the
+    // name itself now appears both there and on the ticket.
+    expect(
+      screen.getByRole('button', { name: `Remove ${chevening.name}` }),
+    ).toBeInTheDocument();
   });
 
   it('says so plainly when the university has no scholarships listed', () => {
