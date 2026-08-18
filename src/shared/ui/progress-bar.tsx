@@ -16,11 +16,27 @@
  * precisely how ARIA spells "indeterminate" — assistive tech announces it as
  * busy rather than inventing a percentage. `label` is required in both cases
  * because a bare bar announces as "progress bar" and nothing else.
+ *
+ * TONE is for a bar that sits inside a group already carrying one of the
+ * categorical accents, so the fill matches the group instead of every bar on a
+ * page being brand rose regardless of what it belongs to. It is decoration
+ * only — never the sole carrier of meaning, since a colour a student cannot
+ * distinguish has to leave the number and the label doing the work anyway.
  */
+const TONES = {
+  brand: 'bg-brand',
+  'accent-1': 'bg-accent-1',
+  'accent-2': 'bg-accent-2',
+  'accent-3': 'bg-accent-3',
+} as const;
+
+export type ProgressTone = keyof typeof TONES;
+
 export function ProgressBar({
   value,
   label,
   size = 'md',
+  tone = 'brand',
   className,
 }: {
   /**
@@ -33,9 +49,12 @@ export function ProgressBar({
   /** Accessible name. What the bar is measuring, e.g. "Checklist progress". */
   label: string;
   size?: 'sm' | 'md';
+  /** Fill colour. Defaults to the brand rose. */
+  tone?: ProgressTone;
   className?: string | undefined;
 }) {
   const height = size === 'sm' ? 'h-gb-sm' : 'h-gb-md';
+  const fill = TONES[tone];
   const indeterminate = value === undefined;
 
   return (
@@ -51,10 +70,12 @@ export function ProgressBar({
         /* Reduced motion gets a static third-width segment rather than nothing:
            an empty track reads as "0% and stuck", which is the opposite of what
            this state means. */
-        <div className="animate-gb-progress-sweep h-full w-2/5 rounded-gb-full bg-brand motion-reduce:w-1/3 motion-reduce:animate-none" />
+        <div
+          className={`animate-gb-progress-sweep h-full w-2/5 rounded-gb-full ${fill} motion-reduce:w-1/3 motion-reduce:animate-none`}
+        />
       ) : (
         <div
-          className="h-full rounded-gb-full bg-brand transition-[width] duration-500 ease-out motion-reduce:transition-none"
+          className={`h-full rounded-gb-full ${fill} transition-[width] duration-500 ease-out motion-reduce:transition-none`}
           style={{ width: `${clamp(value)}%` }}
         />
       )}

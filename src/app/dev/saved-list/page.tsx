@@ -1,7 +1,9 @@
 import { notFound } from 'next/navigation';
 import { ApplicationProgressClient } from '@/app/apply/application-progress-client';
+import type { UniversityScholarships } from '@/app/apply/application-scholarships';
 import { ApplyShell } from '@/app/apply/apply-shell';
 import type { SavedRow } from '@/app/apply/saved-list-section';
+import type { CourseApplication } from '@/lib/apply-types';
 import { getScholarshipQueries } from '@/features/scholarships/api';
 import { getUniversityQueries } from '@/features/universities/api';
 import { formatTuitionForCard, officialWebsite, splitList } from '@/features/universities/domain';
@@ -144,12 +146,57 @@ export default async function SavedListPreviewPage() {
     };
   });
 
+  /*
+   * ONE PREVIEW APPLICATION, so the tracker's scholarship drawer (18/08) is
+   * visible here at all. The empty tracker this page used to show is still a
+   * state worth looking at, but it draws no rows — and the drawer only exists
+   * on a row.
+   *
+   * Everything on it is either real or obviously not a student's: the
+   * university, its country and the scholarships come from the same
+   * repositories as the rows below, and the id, the progress and the deadline
+   * are stated as preview values. Its links (the workspace, the strategy) go
+   * nowhere, like every other control on this page — see the header.
+   */
+  const previewUniversity = universities.items[0];
+  const previewApplication: CourseApplication[] = previewUniversity
+    ? [
+        {
+          id: 'preview-application',
+          userId: 'preview-user',
+          universityId: previewUniversity.id,
+          universityName: previewUniversity.name,
+          courseName: splitList(previewUniversity.strengths)[0] ?? 'Preview subject',
+          country: previewUniversity.country,
+          status: 'researching',
+          progressPercentage: 35,
+          parseStatus: 'complete',
+          importStatus: 'complete',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        } as CourseApplication,
+      ]
+    : [];
+
+  const previewScholarships: Record<number, UniversityScholarships> = previewUniversity
+    ? {
+        [previewUniversity.id]: {
+          // Two chosen, the rest offered — the state the drawer is for.
+          chosen: (rows[0]?.options ?? []).slice(0, 2),
+          options: rows[0]?.options ?? [],
+        },
+      }
+    : {};
+
   return (
     <ApplyShell userName="Preview user" userAvatarUrl={null}>
       <ApplicationProgressClient
-        applications={[]}
-        logoByUniversityId={{}}
+        applications={previewApplication}
+        logoByUniversityId={
+          previewUniversity ? { [previewUniversity.id]: previewUniversity.logo_url ?? null } : {}
+        }
         savedRowsPromise={Promise.resolve(rows)}
+        scholarshipsByUniversityId={previewScholarships}
       />
     </ApplyShell>
   );

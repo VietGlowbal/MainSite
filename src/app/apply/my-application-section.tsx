@@ -22,6 +22,8 @@ import { Modal } from '@/shared/ui/modal';
 import { ProgressBar } from '@/shared/ui/progress-bar';
 import { ScoreRing } from '@/shared/ui/score-ring';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { ApplicationScholarships } from './application-scholarships';
+import type { UniversityScholarships } from './application-scholarships';
 import { ApplySectionHeading } from './section-heading';
 
 /**
@@ -378,11 +380,19 @@ function ApplicationRow({
   app,
   logoUrl,
   strategyReady,
+  scholarships,
 }: {
   app: CourseApplication;
   logoUrl: string | null;
   /** False until the AI analysis is done — see `RowQuickLinks`. */
   strategyReady: boolean;
+  /**
+   * The awards saved for this row's university, and everything else the
+   * directory offers there. Undefined for a row with no `university_id` (a
+   * pasted course URL that never matched the directory), which is why the
+   * drawer below is conditional — see application-scholarships.tsx.
+   */
+  scholarships: UniversityScholarships | undefined;
 }) {
   const router = useRouter();
   const course = courseLine(app);
@@ -394,7 +404,15 @@ function ApplicationRow({
   const workspaceHref = `/apply/${app.id}`;
 
   return (
-    <li className="group relative flex flex-col gap-gb-3xl overflow-hidden rounded-gb-2xl border border-line bg-surface p-gb-xl transition duration-200 hover:-translate-y-gb-xxs hover:border-gb-brand-300 hover:shadow-gb-lg lg:flex-row lg:items-center lg:justify-between">
+    /*
+      TWO STACKED BLOCKS SINCE 18/08, not one row. The frame's row is the first
+      child; the scholarship drawer is the second, full width beneath it. It has
+      to be a sibling rather than something inside the left-hand text column: it
+      is a control surface with its own disclosure and its own dialog, and
+      nesting it in the column that reflows around a 100px gauge would have left
+      it 200px narrower than the card for no reason.
+    */
+    <li className="group relative flex flex-col gap-gb-2xl overflow-hidden rounded-gb-2xl border border-line bg-surface p-gb-xl transition duration-200 hover:-translate-y-gb-xxs hover:border-gb-brand-300 hover:shadow-gb-lg">
       {/*
         The rose rail that unrolls on hover. Purely an affordance: the whole row
         is a link target in everything but markup (the CTA is the accessible
@@ -406,6 +424,7 @@ function ApplicationRow({
         className="absolute inset-y-0 left-0 w-gb-xs origin-top scale-y-0 bg-brand transition-transform duration-200 group-hover:scale-y-100 motion-reduce:transition-none"
       />
 
+      <div className="flex flex-col gap-gb-3xl lg:flex-row lg:items-center lg:justify-between">
       {/* Figma 337:18790 "_Job post" */}
       <div className="flex min-w-0 flex-1 items-center gap-gb-2xl">
         <Avatar
@@ -517,6 +536,22 @@ function ApplicationRow({
           </div>
         </div>
       </div>
+      </div>
+
+      {/*
+        The scholarships this application is being made with. Only for rows that
+        resolved to a university — `user_scholarships` is keyed by
+        `university_id`, so a pasted-URL row that never matched the directory has
+        nothing to look up and gets no drawer rather than an empty one.
+      */}
+      {app.universityId != null && scholarships ? (
+        <ApplicationScholarships
+          universityId={app.universityId}
+          universityName={university ?? urlLabel ?? 'this university'}
+          chosen={scholarships.chosen}
+          options={scholarships.options}
+        />
+      ) : null}
     </li>
   );
 }
@@ -584,11 +619,20 @@ export function MyApplicationSection({
   applications,
   logoByUniversityId,
   strategyReadyById,
+  scholarshipsByUniversityId = {},
   sectionRef,
 }: {
   applications: CourseApplication[];
   /** universities.logo_url keyed by universities.id, for the row crest. */
   logoByUniversityId: Record<number, string | null>;
+  /**
+   * The chosen and offerable scholarships for each university on this list,
+   * keyed by universities.id — the drawer under each row. Keyed by UNIVERSITY,
+   * not by application, because that is how `user_scholarships` is keyed; see
+   * application-scholarships.tsx. Defaults to empty so the signed-out shell and
+   * the design preview at /dev/saved-list render the rows without it.
+   */
+  scholarshipsByUniversityId?: Record<number, UniversityScholarships>;
   /**
    * Whether each application's strategy is finished, keyed by application id.
    * Decides between the four quick links and the single "build your strategy"
@@ -626,6 +670,11 @@ export function MyApplicationSection({
                 app.universityId != null ? (logoByUniversityId[app.universityId] ?? null) : null
               }
               strategyReady={strategyReadyById[app.id] ?? false}
+              scholarships={
+                app.universityId != null
+                  ? scholarshipsByUniversityId[app.universityId]
+                  : undefined
+              }
             />
           ))}
         </ul>

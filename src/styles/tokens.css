@@ -109,6 +109,13 @@
   --color-gb-blue-500: #3b82f6;
   --color-gb-blue-600: #2563eb;
 
+  /* Green, and the hex is deliberately repeated from the tier scale above
+     rather than aliased — exactly the reasoning given for blue. `safe` is a
+     risk classification on a university card; this is a category colour for
+     telling sibling groups apart. Repainting one must not repaint the other. */
+  --color-gb-green-50: #f0fdf4;
+  --color-gb-green-700: #15803d;
+
   /* ── Alpha overlays — from the kit's component-colors/alpha/* ─────────────
      The blog post card (Figma I153:18284;1390:634) frames its cover photo with
      a hairline, then floats a frosted attribution strip over the bottom of it
@@ -398,6 +405,37 @@
      colour for the matching surface. */
   --gb-info-surface: var(--color-gb-blue-50);
   --gb-info-on: var(--color-gb-blue-600);
+
+  /* ── Categorical accents — ⚠️ NOT DESIGN-CONFIRMED ───────────────────────
+     A short ORDERED set for telling sibling groups of the same kind apart —
+     first used by the three groups of section cards on /profile, a page the
+     redesign never drew a frame for (see the note at the top of
+     profile-client.tsx). The owner asked for those groups to be easier to tell
+     apart than a heading alone makes them.
+
+     WHY A SCALE RATHER THAN THREE ONE-OFF COLOURS. The next screen that needs
+     to separate peer groups should reach for the same three in the same order,
+     or the product accumulates a different palette per page. Numbered, not
+     named, because the meaning is "group 1 of n" — nothing about rose says
+     "study direction", and naming it that would make the scale unusable
+     anywhere else.
+
+     Each is a solid (fills a marker, a progress bar) plus a wash (tints a
+     header block behind it). Rose is the brand, so a page's first group reads
+     as the primary one for free.
+
+     Deliberately NOT the tier scale, whose three colours mean reach / recommend
+     / safe. Same reasoning as the info chips above: these sit on a profile
+     card, not a university card, and a rebrand of one must not repaint the
+     other. Ask the designer before treating any of this as final. */
+  --gb-accent-1: var(--color-gb-brand-600);
+  --gb-accent-1-surface: var(--color-gb-brand-50);
+  --gb-accent-2: var(--color-gb-blue-600);
+  --gb-accent-2-surface: var(--color-gb-blue-50);
+  --gb-accent-3: var(--color-gb-green-700);
+  --gb-accent-3-surface: var(--color-gb-green-50);
+  /* All three solids are dark enough to carry white; one token, not three. */
+  --gb-on-accent: var(--color-gb-neutral-0);
   /* Standalone filled mark, so no pair — the tick on top of it is white. */
   --gb-verified: var(--color-gb-blue-500);
 
@@ -497,6 +535,16 @@
   /* Informational chip: pair bg-info-subtle with text-fg-info. */
   --color-info-subtle: var(--gb-info-surface);
   --color-fg-info: var(--gb-info-on);
+
+  /* Categorical accents: pair bg-accent-<n> with text-on-accent, or tint a
+     block with bg-accent-<n>-subtle and label it text-accent-<n>. */
+  --color-accent-1: var(--gb-accent-1);
+  --color-accent-1-subtle: var(--gb-accent-1-surface);
+  --color-accent-2: var(--gb-accent-2);
+  --color-accent-2-subtle: var(--gb-accent-2-surface);
+  --color-accent-3: var(--gb-accent-3);
+  --color-accent-3-subtle: var(--gb-accent-3-surface);
+  --color-on-accent: var(--gb-on-accent);
   /* text-fg-verified — drives the seal via currentColor. */
   --color-fg-verified: var(--gb-verified);
 }

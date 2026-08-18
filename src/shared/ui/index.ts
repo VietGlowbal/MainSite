@@ -75,6 +75,7 @@ export { DocumentRow, formatBytes } from './document-row';
 export type { DocumentStatus } from './document-row';
 export { FileDropzone } from './file-dropzone';
 export { ProgressBar } from './progress-bar';
+export type { ProgressTone } from './progress-bar';
 export { RangeHistogram } from './range-histogram';
 export { RepeatableFieldset } from './repeatable-fieldset';
 export { ScoreRing, scoreRingColor } from './score-ring';

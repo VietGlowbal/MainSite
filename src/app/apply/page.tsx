@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { getScholarshipQueries } from '@/features/scholarships/api';
-import { formatTuitionForCard, officialWebsite } from '@/features/universities/domain';
+import {
+  formatDeadlineLabel,
+  formatTuitionForCard,
+  officialWebsite,
+} from '@/features/universities/domain';
 import { formatAmount } from '@/lib/scholarships-data';
 import { createClient } from '@/lib/supabase/server';
 import { getServerIdentity } from '@/server/auth/server-identity';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import type { CourseApplication } from '@/lib/apply-types';
+import type {
+  ApplicationScholarship,
+  UniversityScholarships,
+} from './application-scholarships';
 import { ApplicationProgressClient } from './application-progress-client';
 import { ApplyShell } from './apply-shell';
 import type { SavedRow, ScholarshipOption } from './saved-list-section';
@@ -157,6 +165,142 @@ async function fetchStrategyReadiness(
       (reviewedById.get(app.id) ?? false) && analysed.has(app.id) && Boolean(app.strategyIntroSeenAt);
   }
   return readiness;
+}
+
+/**
+ * The scholarships behind each application row's drawer — added 18/08.
+ *
+ * WHY THE TRACKER READS THIS ITSELF instead of taking it off `fetchSavedRows`,
+ * which already joins the same table: those rows are streamed into a Suspense
+ * boundary and arrive after the tracker has rendered, and — more decisively —
+ * they only cover universities that are still ON the saved list. An application
+ * outlives the saved row it was planned from (removing a university does not
+ * delete its application), so hanging the drawer off the saved list would blank
+ * it for exactly the students furthest along.
+ *
+ * TWO READS, ONE ROUND TRIP EACH, FOR THE WHOLE LIST:
+ *
+ *   1. `user_scholarships` joined to `scholarships` — what the student chose.
+ *      The join, rather than `byIds`, because it is one trip and this page
+ *      already makes the identical call in `fetchSavedRows`.
+ *   2. `byUniversityIds` — everything the directory offers at those
+ *      universities, which is what the drawer's picker chooses from.
+ *
+ * ⚠️ THE TWO SETS OVERLAP BUT NEITHER CONTAINS THE OTHER. Measured live on
+ * 18/08: 39 of the 84 saved awards point at a scholarship that is not linked to
+ * the university it was saved under (the directory's `scholarship_universities`
+ * rows have moved since, or the award was saved from a country-wide listing).
+ * So `chosen` cannot be derived by filtering `options`, and the drawer unions
+ * the two rather than dropping a student's own choice on the floor.
+ */
+async function fetchApplicationScholarships(
+  userId: string,
+  applicationsPromise: Promise<CourseApplication[]>,
+): Promise<Record<number, UniversityScholarships>> {
+  const supabase = await createClient();
+
+  /*
+   * Filtered by user, not by university, so it does not have to wait for the
+   * applications to resolve — same `.then()` trick as `fetchStrategyReadiness`,
+   * which fires the request now rather than when `Promise.all` reaches it.
+   */
+  const savedPromise = supabase
+    .from('user_scholarships')
+    .select(
+      'scholarship_id, university_id, scholarships(id, name, scope, amount_min, amount_max, amount_currency, coverage, funding_type, deadline_date, deadline_text, source_url)',
+    )
+    .eq('user_id', userId)
+    .then((result) => result);
+
+  const applications = await applicationsPromise;
+  const universityIds = [
+    ...new Set(
+      applications.flatMap((app) => (app.universityId != null ? [app.universityId] : [])),
+    ),
+  ];
+  if (universityIds.length === 0) {
+    // Still await the in-flight read so it is not left dangling.
+    await savedPromise;
+    return {};
+  }
+
+  const [saved, optionsByUniversity] = await Promise.all([
+    savedPromise,
+    getScholarshipQueries().byUniversityIds(universityIds),
+  ]);
+
+  if (saved.error) {
+    // An empty drawer and a failed read look identical on screen, so say which
+    // one happened — the same reason `fetchSavedRows` logs its failure.
+    console.error('apply: reading user_scholarships failed:', saved.error.message);
+  }
+
+  type SavedScholarshipRow = {
+    university_id: number | null;
+    scholarships:
+      | {
+          id: number;
+          name: string;
+          scope: string | null;
+          amount_min: number | null;
+          amount_max: number | null;
+          amount_currency: string | null;
+          coverage: string | null;
+          funding_type: string[] | null;
+          deadline_date: string | null;
+          deadline_text: string | null;
+          source_url: string | null;
+        }
+      | null;
+  };
+
+  const wanted = new Set(universityIds);
+  const chosenByUniversity = new Map<number, ApplicationScholarship[]>();
+
+  for (const row of (saved.error ? [] : (saved.data ?? [])) as unknown as SavedScholarshipRow[]) {
+    const universityId = row.university_id;
+    if (universityId == null || !wanted.has(universityId)) continue;
+    // PostgREST returns an embedded one-to-one as an object, but the generated
+    // types widen it to an array on some versions — normalise both.
+    const s = Array.isArray(row.scholarships) ? row.scholarships[0] : row.scholarships;
+    if (!s) continue;
+
+    const entry: ApplicationScholarship = {
+      id: s.id,
+      name: s.name,
+      scope: s.scope,
+      amountLabel: formatAmount(s.amount_min, s.amount_max, s.amount_currency),
+      /* `deadline_date` is an ISO date and `deadline_text` is free prose;
+         `formatDeadlineLabel` handles both and leaves prose it cannot parse
+         alone, which is what the scholarship repository does with the pair. */
+      deadlineLabel: formatDeadlineLabel(s.deadline_date ?? s.deadline_text),
+      coverage: s.coverage,
+      fundingType: s.funding_type,
+      sourceUrl: s.source_url,
+    };
+
+    const bucket = chosenByUniversity.get(universityId);
+    if (bucket) bucket.push(entry);
+    else chosenByUniversity.set(universityId, [entry]);
+  }
+
+  const byUniversity: Record<number, UniversityScholarships> = {};
+  for (const universityId of universityIds) {
+    byUniversity[universityId] = {
+      chosen: chosenByUniversity.get(universityId) ?? [],
+      options: (optionsByUniversity.get(universityId) ?? []).map((option) => ({
+        id: option.id,
+        name: option.name,
+        scope: option.scope,
+        amountLabel: option.amountLabel,
+        deadlineLabel: option.deadlineLabel,
+        coverage: option.coverage,
+        fundingType: option.fundingType,
+        sourceUrl: option.sourceUrl,
+      })),
+    };
+  }
+  return byUniversity;
 }
 
 /**
@@ -396,17 +540,20 @@ export default async function ApplyPage({ searchParams }: Props) {
   const applicationsPromise = fetchApplications(user.id);
   const savedRowsPromise = fetchSavedRows(user.id);
   const strategyReadyPromise = fetchStrategyReadiness(user.id, applicationsPromise);
+  const scholarshipsPromise = fetchApplicationScholarships(user.id, applicationsPromise);
   const profilePromise = supabase
     .from('student_profiles')
     .select('plus_status, plus_expires_at, is_admin')
     .eq('user_id', user.id)
     .maybeSingle();
 
-  const [applications, strategyReadyById, profileResult] = await Promise.all([
-    applicationsPromise,
-    strategyReadyPromise,
-    profilePromise,
-  ]);
+  const [applications, strategyReadyById, scholarshipsByUniversityId, profileResult] =
+    await Promise.all([
+      applicationsPromise,
+      strategyReadyPromise,
+      scholarshipsPromise,
+      profilePromise,
+    ]);
 
   const isPlus = isPlusEntitlementActive(profileResult.data ?? {});
   const logoByUniversityId = applicationLogos(applications);
@@ -418,6 +565,7 @@ export default async function ApplyPage({ searchParams }: Props) {
         logoByUniversityId={logoByUniversityId}
         savedRowsPromise={savedRowsPromise}
         strategyReadyById={strategyReadyById}
+        scholarshipsByUniversityId={scholarshipsByUniversityId}
         isPlus={isPlus}
       />
     </ApplyShell>
