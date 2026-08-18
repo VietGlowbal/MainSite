@@ -1,18 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import type { StudentProfile } from '@/lib/types';
 import {
-  rankUniversityMatches,
-  type RankedUniversityMatch,
+  rankUniversityRecommendations,
+  RECOMMENDATION_CONFIG,
+  recommendationProfileHasPreferences,
+  type RecommendationProgramme,
+  type RecommendationResponse,
+  type RecommendationUniversity,
 } from '../domain';
-import { getUniversityQueries } from './index';
+import { getProgrammeQueries, getUniversityQueries } from './index';
+import type { CatalogueProgramme, UniversityListItem } from './index';
 
-type UniversityMatchProfileRow = Pick<StudentProfile,
+type UniversityRecommendationProfileRow = Pick<StudentProfile,
   | 'study_level'
   | 'target_subjects'
   | 'preferred_countries'
   | 'budget_range'
   | 'campus_preferences'
-  | 'support_needs'
 >;
 
 function stringArray(value: unknown): string[] {
@@ -31,37 +35,91 @@ function stringArray(value: unknown): string[] {
   }
 }
 
-function toStudentProfile(row: UniversityMatchProfileRow): StudentProfile {
+function toProfile(row: UniversityRecommendationProfileRow): UniversityRecommendationProfileRow {
   return {
     study_level: typeof row.study_level === 'string' ? row.study_level : null,
     target_subjects: stringArray(row.target_subjects),
     preferred_countries: stringArray(row.preferred_countries),
     budget_range: typeof row.budget_range === 'string' ? row.budget_range : null,
     campus_preferences: typeof row.campus_preferences === 'string' ? row.campus_preferences : null,
-    support_needs: typeof row.support_needs === 'string' ? row.support_needs : null,
   };
 }
 
-/** Load only university-level recommendations for the authenticated student. */
-export async function loadRankedUniversityMatches(
+function toUniversity(university: UniversityListItem): RecommendationUniversity {
+  return {
+    id: university.id,
+    name: university.name,
+    country: university.country,
+    strengths: university.strengths,
+    best_for: university.best_for,
+    international_environment: university.international_environment,
+    housing: university.housing,
+    teaching_style: university.teaching_style,
+    tuition_usd: university.tuition_usd,
+  };
+}
+
+function toProgramme(programme: CatalogueProgramme): RecommendationProgramme {
+  return {
+    id: programme.id,
+    universityId: programme.universityId,
+    name: programme.name,
+    degreeLevel: programme.degreeLevel,
+    normalizedSubject: programme.normalizedSubject,
+    officialUrl: programme.officialUrl,
+    verificationStatus: programme.verificationStatus,
+    retrievedAt: programme.retrievedAt,
+  };
+}
+
+function toProgrammeMap(
+  programmes: Map<number, CatalogueProgramme[]>,
+): Map<number, RecommendationProgramme[]> {
+  return new Map([...programmes.entries()].map(([universityId, entries]) => [
+    universityId,
+    entries.map(toProgramme),
+  ]));
+}
+
+/** Load server-side recommendation inputs and return a typed UI response. */
+export async function loadUniversityRecommendations(
   supabase: SupabaseClient,
   userId: string,
-): Promise<RankedUniversityMatch[]> {
-  const [profileResult, universities] = await Promise.all([
-    supabase
-      .from('student_profiles')
-      .select('study_level,target_subjects,preferred_countries,budget_range,campus_preferences,support_needs')
-      .eq('user_id', userId)
-      .maybeSingle(),
-    getUniversityQueries().allForMatching(),
-  ]);
+): Promise<RecommendationResponse> {
+  const generatedAt = new Date().toISOString();
+  try {
+    const [profileResult, universities] = await Promise.all([
+      supabase
+        .from('student_profiles')
+        .select('study_level,target_subjects,preferred_countries,budget_range,campus_preferences')
+        .eq('user_id', userId)
+        .maybeSingle(),
+      getUniversityQueries().allForMatching(),
+    ]);
 
-  if (profileResult.error) {
-    console.error('loadRankedUniversityMatches profile read failed:', profileResult.error.message);
-    return [];
+    if (profileResult.error) {
+      console.error('loadUniversityRecommendations profile read failed:', profileResult.error.message);
+      return { status: 'error', results: [], algorithmVersion: RECOMMENDATION_CONFIG.version, generatedAt };
+    }
+
+    if (!profileResult.data) {
+      return { status: 'incomplete_profile', results: [], algorithmVersion: RECOMMENDATION_CONFIG.version, generatedAt };
+    }
+
+    const profile = toProfile(profileResult.data as UniversityRecommendationProfileRow);
+    if (!recommendationProfileHasPreferences(profile)) {
+      return { status: 'incomplete_profile', results: [], algorithmVersion: RECOMMENDATION_CONFIG.version, generatedAt };
+    }
+    const universityIds = universities.map((university) => university.id);
+    const programmeRows = await getProgrammeQueries().byUniversityIds(universityIds);
+    return rankUniversityRecommendations(
+      profile,
+      universities.map(toUniversity),
+      toProgrammeMap(programmeRows),
+      { asOf: generatedAt },
+    );
+  } catch (error) {
+    console.error('loadUniversityRecommendations failed:', error instanceof Error ? error.message : error);
+    return { status: 'error', results: [], algorithmVersion: RECOMMENDATION_CONFIG.version, generatedAt };
   }
-
-  if (!profileResult.data) return [];
-  const profile = toStudentProfile(profileResult.data as UniversityMatchProfileRow);
-  return rankUniversityMatches(profile, universities);
 }

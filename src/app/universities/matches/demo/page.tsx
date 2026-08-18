@@ -11,12 +11,12 @@ import {
 } from '@/features/marketing/navigation';
 import { Footer } from '@/shared/ui/footer';
 
-/** Public fixture route for demonstrating university-only deterministic tiers. */
+/** Public fixture route for demonstrating deterministic recommendations. */
 export default function UniversityMatchesDemoPage() {
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
       <SiteNavigation tone="light" showSaved />
-      <UniversityMatchResults matches={demoUniversityMatches()} demo />
+      <UniversityMatchResults recommendation={demoUniversityMatches()} demo />
       <Footer
         logo={<GlowbalLogo height={28} />}
         tagline={FOOTER_TAGLINE}

@@ -44,12 +44,19 @@ export interface CatalogueProgramme {
    */
   duration: string | null;
   officialUrl: string | null;
+  normalizedSubject: string | null;
+  programmeStatus: string | null;
+  verificationStatus: string | null;
+  retrievedAt: string | null;
   units: ProgrammeAcademicUnit[];
 }
 
 export interface ProgrammeQueries {
   /** Every catalogued programme for one university, or [] when it has none. */
   byUniversityId(universityId: number): Promise<CatalogueProgramme[]>;
+
+  /** Batch equivalent used by recommendation flows to avoid one query per university. */
+  byUniversityIds(universityIds: number[]): Promise<Map<number, CatalogueProgramme[]>>;
 }
 
 /**

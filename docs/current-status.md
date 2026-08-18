@@ -4,6 +4,30 @@ Last reconciled: **2026-08-15 (Asia/Bangkok)**
 
 Code snapshot: `main` with Founder-restricted Bookings & Payments console tab and actionable Payment Approval Queue. Bookings & payments admin tab is gated strictly to designated founder emails (khanhlinh05.work@gmail.com, taduchien314@gmail.com) and reviewer UUIDs (a8bccd1d-dcbc-409e-879c-90c483a7c3a1). Transfer claims by students trigger highlighted review entries in the console with one-click fulfilment for Plus subscriptions and Mentorship sessions.
 
+Working tree 2026-08-18: `/universities/matches` now uses deterministic
+`university-rec-v1` preference recommendations. The route loads profile inputs,
+batch-loads `catalog_programmes`, keeps candidate data availability in
+`evidenceCoverage`, separates reasons from warnings, and no longer renders
+admission-style tiers or percentages. The audit pass fixed the old global
+programme bucket in the comparator, added explicit positive/negative evidence
+and confidence-aware `rankingScoreInternal`, keeps
+flexible scholarship-dependent budgets outside the numeric budget dimension with
+a separate funding preference, and reports unknown source freshness instead of
+applying an unverified 365-day threshold. The final surgical pass confirmed that
+the live catalogue has no completeness metadata: an absent subject programme is
+unknown (never a verified mismatch), study-level evidence is bound to
+subject-relevant programmes when a subject is active; a catalogue row at a
+different level is unknown rather than proof that the requested programme level
+is absent. Subject matching uses phrase boundaries, and affordability uses the
+student's maximum annual budget (including cheaper tuition). Each related
+programme now carries its own verification label. Targeted
+recommendation/domain/API/UI tests pass 55/55;
+full ESLint passes; the direct i18n checker reports zero missing keys. Full
+TypeScript, full Vitest, and production build remain blocked by missing
+dependencies/generated routes in the current worktree (`@mdxeditor/editor`,
+`@react-pdf/renderer`, `mammoth`, `.next` validator), plus unrelated test
+failures; no recommendation test fails.
+
 Founder-confirmed manual bank transfer is implemented in the working tree for
 mentorship and GlowBal Plus, alongside the existing VNPay Sandbox path and
 disabled Stripe choice. The vertical slice includes controlled provider UI,

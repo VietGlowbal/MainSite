@@ -67,4 +67,4 @@ export type {
   UniversityListQuery,
   UniversityQueries,
 } from './university-queries';
-export { loadRankedUniversityMatches } from './university-matching-loader';
+export { loadUniversityRecommendations } from './university-matching-loader';
