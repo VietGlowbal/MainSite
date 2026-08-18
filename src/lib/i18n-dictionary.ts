@@ -2294,6 +2294,10 @@ export const translations: Record<string, string> = {
   'Chosen direction': 'Định hướng đã chọn',
   'Locked strategy direction': 'Định hướng chiến lược đã khóa',
   'Retry Target Profile': 'Thử lại Hồ sơ mục tiêu',
+  'Analyze this direction': 'Phân tích định hướng này',
+  'Analyze with AI': 'Phân tích với AI',
+  'Select a strategic direction above and submit to analyze with AI.':
+    'Chọn một định hướng chiến lược phía trên rồi ấn phân tích để AI xử lý.',
   'Regenerate the Target Profile for the current strategy.':
     'Tạo lại Hồ sơ mục tiêu cho chiến lược hiện tại.',
   'chosenDirection must match one of directionOptions':
@@ -3319,6 +3323,21 @@ export const translations: Record<string, string> = {
   'Budget and study mode': 'Ngân sách và hình thức học',
   'Select budget…': 'Chọn ngân sách…',
   'Select mode…': 'Chọn hình thức…',
+  // The month picker that replaced the free-text "Target intake" box, and its
+  // chrome in src/shared/ui/month-picker.tsx.
+  'Select a month': 'Chọn tháng',
+  'Select a year…': 'Chọn năm…',
+  'The month you want to start studying.': 'Tháng bạn muốn bắt đầu nhập học.',
+  'The admissions round you plan to apply in.': 'Đợt tuyển sinh bạn dự định nộp hồ sơ.',
+  'Your saved answer is not a month. Pick one to replace it.':
+    'Câu trả lời đã lưu không phải là một tháng. Hãy chọn một tháng để thay thế.',
+  'Choose your target intake': 'Chọn kỳ nhập học mục tiêu',
+  'Previous year': 'Năm trước',
+  'Next year': 'Năm sau',
+  'Clear': 'Xoá',
+  // The month itself is already localised by `formatMonthValue` before it is
+  // interpolated — this key only translates the frame around it.
+  '{intake} · applying {year}': '{intake} · nộp hồ sơ {year}',
   'e.g. Large city campus, close to industry hubs': 'ví dụ: Khuôn viên thành phố lớn, gần các trung tâm ngành',
   'Select a support area…': 'Chọn lĩnh vực cần hỗ trợ…',
   'Earn while you study. Most teaching & research roles open from year 2 onwards.': 'Kiếm thu nhập trong khi học. Hầu hết vị trí giảng dạy và nghiên cứu mở từ năm thứ hai trở đi.',
@@ -4180,6 +4199,42 @@ export const translations: Record<string, string> = {
   'Your CV review will appear here.': 'Kết quả đánh giá CV sẽ xuất hiện ở đây.',
   'Your CV will be reviewed against the target profile. You can still enter content first.': 'CV của bạn sẽ được đánh giá theo hồ sơ mục tiêu. Bạn vẫn có thể nhập nội dung trước.',
   'Your uploaded CVs': 'Các CV bạn đã tải lên',
+  // ── Privacy Policy page ───────────────────────────────────────────────────
+  'Chính sách Bảo mật | GlowBal Education': 'Chính sách Bảo mật | GlowBal Education',
+  'Chính sách Bảo mật của nền tảng GlowBal Education — Cách GlowBal thu thập, sử dụng và bảo vệ thông tin cá nhân của bạn.':
+    'Chính sách Bảo mật của nền tảng GlowBal Education — Cách GlowBal thu thập, sử dụng và bảo vệ thông tin cá nhân của bạn.',
+  '1. Đối tượng sử dụng': '1. Đối tượng sử dụng',
+  '2. Thông tin GlowBal thu thập': '2. Thông tin GlowBal thu thập',
+  '3. Mục đích sử dụng dữ liệu': '3. Mục đích sử dụng dữ liệu',
+  '4. Dữ liệu và công nghệ AI': '4. Dữ liệu và công nghệ AI',
+  '5. Chia sẻ thông tin': '5. Chia sẻ thông tin',
+  '6. Bảo mật và lưu trữ dữ liệu': '6. Bảo mật và lưu trữ dữ liệu',
+  '7. Quyền của Người dùng': '7. Quyền của Người dùng',
+  '8. Cookie và dịch vụ bên thứ ba': '8. Cookie và dịch vụ bên thứ ba',
+  '9. Thay đổi chính sách': '9. Thay đổi chính sách',
+  '10. Liên hệ': '10. Liên hệ',
+
+  // ── Terms and Conditions of Use ──────────────────────────────────────────
+  'Điều khoản và Điều kiện Sử dụng | GlowBal Education': 'Điều khoản và Điều kiện Sử dụng | GlowBal Education',
+  'Điều khoản và Điều kiện Sử dụng Nền tảng GlowBal Education — Các điều khoản chi phối việc sử dụng nền tảng và dịch vụ GlowBal.':
+    'Điều khoản và Điều kiện Sử dụng Nền tảng GlowBal Education — Các điều khoản chi phối việc sử dụng nền tảng và dịch vụ GlowBal.',
+  '1. Chấp nhận Điều khoản': '1. Chấp nhận Điều khoản',
+  '2. Định nghĩa': '2. Định nghĩa',
+  '3. Điều kiện sử dụng': '3. Điều kiện sử dụng',
+  '4. Phạm vi dịch vụ': '4. Phạm vi dịch vụ',
+  '5. Vai trò của GlowBal': '5. Vai trò của GlowBal',
+  '6. Không cam kết về kết quả': '6. Không cam kết về kết quả',
+  '7. Trách nhiệm của Người dùng': '7. Trách nhiệm của Người dùng',
+  '8. Chính sách hoàn tiền': '8. Chính sách hoàn tiền',
+  '9. Chính sách bảo lưu tài khoản': '9. Chính sách bảo lưu tài khoản',
+  '10. Quyền sở hữu trí tuệ': '10. Quyền sở hữu trí tuệ',
+  '11. Quyền riêng tư và bảo vệ dữ liệu': '11. Quyền riêng tư và bảo vệ dữ liệu',
+  '12. Miễn trừ và giới hạn trách nhiệm': '12. Miễn trừ và giới hạn trách nhiệm',
+  '13. Bất khả kháng': '13. Bất khả kháng',
+  '14. Tạm ngừng và chấm dứt tài khoản': '14. Tạm ngừng và chấm dứt tài khoản',
+  '15–19. Thay đổi điều khoản và Điều khoản chung': '15–19. Thay đổi điều khoản và Điều khoản chung',
+  '20. Thông tin liên hệ': '20. Thông tin liên hệ',
+  'Upgrade to GlowBal Plus to unlock this section': 'Nâng cấp lên GlowBal Plus để mở khóa phần này',
   Zoom: 'Thu phóng',
   'short by {score} points': 'còn thiếu {score} điểm',
   Section: 'Phần',
@@ -4578,6 +4633,13 @@ export const translations: Record<string, string> = {
     'Thành tích và hoạt động này đã được điền sẵn từ hồ sơ của bạn.',
   'Skip — my achievements are still correct': 'Bỏ qua — thành tích của tôi vẫn đúng',
   'Payment method': 'Phương thức thanh toán',
+  'Promo code': 'Mã ưu đãi',
+  'Enter promo code': 'Nhập mã ưu đãi',
+  'Apply code': 'Áp dụng mã',
+  'Could not redeem promo code': 'Không thể áp dụng mã ưu đãi',
+  'Invalid promo code': 'Mã ưu đãi không hợp lệ',
+  'This promo has already been used on your account': 'Mã ưu đãi này đã được sử dụng cho tài khoản của bạn',
+  'Promo redemption is unavailable': 'Tính năng áp dụng mã ưu đãi hiện không khả dụng',
   'Manual bank transfer': 'Chuyển khoản ngân hàng',
   'Bank transfer payment | GlowBal': 'Thanh toán chuyển khoản ngân hàng | GlowBal',
   'Transfer the exact VND amount; founder confirmation is required.': 'Chuyển đúng số tiền VND; cần người sáng lập xác nhận.',
@@ -4760,8 +4822,6 @@ export const translations: Record<string, string> = {
   'Upgrade to GlowBal Plus to unlock all scholarships for your saved universities.':
     'Nâng cấp lên GlowBal Plus để mở khóa tất cả học bổng cho các trường đã lưu của bạn.',
   'Unlock your full strategic narrative': 'Mở khóa toàn bộ câu chuyện chiến lược',
-  'Upgrade to GlowBal Plus to unlock this section':
-    'Nâng cấp lên GlowBal Plus để mở khóa phần này',
   'Upgrade to GlowBal Plus to access the complete personalized narrative, detailed positioning angles, and tailored storyline for your application.':
     'Nâng cấp lên GlowBal Plus để xem toàn bộ câu chuyện cá nhân hóa, góc định vị chi tiết và tuyến cốt truyện cho hồ sơ của bạn.',
   'Upgrade to GlowBal Plus to access the complete personalized narrative and shape your unique admissions identity.':
@@ -4930,4 +4990,16 @@ export const translations: Record<string, string> = {
   'Upgrade to GlowBal Plus to view your personalized application narrative, tailored storytelling angle, and strategic essays guidance.':
     'Nâng cấp GlowBal Plus để xem câu chuyện hồ sơ cá nhân hóa, góc kể chuyện phù hợp và hướng dẫn chiến lược bài luận.',
   'Unlock your strategic narrative': 'Mở khóa câu chuyện chiến lược của bạn',
+  'Unlock full positioning analysis': 'Mở khóa phân tích định vị toàn diện',
+  'Upgrade to GlowBal Plus to view your Before vs. After positioning comparison and strategic rationale.':
+    'Nâng cấp lên GlowBal Plus để xem so sánh định vị Trước vs. Sau và luận điểm chiến lược chi tiết.',
+  'Unlock activity portfolio evaluations': 'Mở khóa đánh giá hồ sơ hoạt động',
+  'Upgrade to GlowBal Plus to view strategic evaluations and recommendations for every activity in your portfolio.':
+    'Nâng cấp lên GlowBal Plus để xem đánh giá chiến lược và đề xuất tối ưu cho từng hoạt động trong hồ sơ của bạn.',
+  'Unlock differentiation insights': 'Mở khóa góc nhìn khác biệt hóa',
+  'Upgrade to GlowBal Plus to discover how to stand out against common applicant patterns.':
+    'Nâng cấp lên GlowBal Plus để khám phá cách tạo sự nổi bật so với các ứng viên có cùng đặc điểm.',
+  'Unlock your complete admission roadmap': 'Mở khóa toàn bộ lộ trình trúng tuyển',
+  'Upgrade to GlowBal Plus to access full prioritized action items, things to avoid, and automated Planner tasks.':
+    'Nâng cấp lên GlowBal Plus để truy cập danh sách việc cần ưu tiên, điểm cần tránh và tự động thêm nhiệm vụ vào Kế hoạch.',
 };

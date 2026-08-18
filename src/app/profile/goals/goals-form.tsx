@@ -3,9 +3,9 @@
 import { useState, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import type { StudentProfile } from '@/lib/types';
-import { Input, Panel, PanelHeader, Textarea } from '@/shared/ui';
+import { Panel, PanelHeader, Textarea } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
-import { SaveBar, TagInput, type SaveMessage } from '../_form-parts';
+import { IntakeFields, SaveBar, TagInput, type SaveMessage } from '../_form-parts';
 
 const CAREER_SUGGESTIONS = ['Software Engineer', 'Data Scientist', 'Product Manager', 'Consultant', 'Entrepreneur', 'Doctor', 'Lawyer', 'Academic Researcher', 'Finance Analyst', 'Designer'];
 
@@ -76,22 +76,11 @@ export function GoalsForm({
         />
 
         <div className="grid gap-gb-2xl sm:grid-cols-2">
-          <Input
-            name="target_intake"
-            label="Target intake"
-            placeholder="e.g. Sep 2027"
-            value={targetIntake}
-            onChange={(e) => setTargetIntake(e.target.value)}
-          />
-          <Input
-            name="application_cycle_year"
-            type="number"
-            min="2025"
-            max="2035"
-            label="Application cycle year"
-            placeholder="e.g. 2027"
-            value={cycleYear}
-            onChange={(e) => setCycleYear(e.target.value)}
+          <IntakeFields
+            intake={targetIntake}
+            onIntakeChange={setTargetIntake}
+            cycleYear={cycleYear}
+            onCycleYearChange={setCycleYear}
           />
         </div>
 

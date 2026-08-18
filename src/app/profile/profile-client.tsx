@@ -1,6 +1,8 @@
 'use client';
 
 import Link from 'next/link';
+import { intakeDisplayLabel } from '@/features/apply/domain';
+import { useLanguage } from '@/lib/i18n';
 import type { UploadedDocument, StudentProfile } from '@/lib/types';
 import { SignOutButton } from '@/components/sign-out-button';
 import {
@@ -263,8 +265,20 @@ function ProfileHero({
   isMentor: boolean;
   strength: number;
 }) {
-  const intake = profile?.target_intake
-    ? `${profile.target_intake}${profile.application_cycle_year ? ` ${profile.application_cycle_year}` : ''}`
+  // Through the formatter, not raw: the column holds a `2027-09` month token
+  // from /profile's picker or an `autumn-2027` season token from the
+  // reflection flow, and this line used to print either one verbatim.
+  //
+  // Both the month and the sentence joining it to the cycle year are built
+  // here rather than left to the page translator — /profile is a PII route,
+  // where that translator can only substitute exact dictionary keys, and
+  // neither of these strings exists until render.
+  const { lang, t } = useLanguage();
+  const intakeLabel = intakeDisplayLabel(profile?.target_intake, lang);
+  const intake = intakeLabel
+    ? profile?.application_cycle_year
+      ? t('{intake} · applying {year}', { intake: intakeLabel, year: profile.application_cycle_year })
+      : intakeLabel
     : null;
 
   return (

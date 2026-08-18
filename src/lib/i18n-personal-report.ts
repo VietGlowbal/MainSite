@@ -292,4 +292,16 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Stated direction': 'Hướng đi đã nêu',
   'This is the direction you explicitly stated, shown separately from AI-inferred emerging themes.':
     'Đây là hướng đi bạn đã nêu rõ, được hiển thị riêng với các chủ đề đang hình thành do AI suy luận.',
+
+  // Interactive Personal Canvas
+  'Motivation Signals': 'Tín hiệu động lực',
+  'Where the current evidence is limited and where stronger proof could make the profile more complete. This is diagnosis, not your application strategy.':
+    'Những nơi bằng chứng hiện tại còn hạn chế và bằng chứng mạnh hơn có thể giúp hồ sơ hoàn thiện hơn. Đây là chẩn đoán, không phải chiến lược ứng tuyển của bạn.',
+  'Evidence Gaps': 'Khoảng trống bằng chứng',
+  'Keyboard: 1–6 opens a section · Esc closes · F toggles focus':
+    'Bàn phím: 1–6 mở một phần · Esc đóng · F bật/tắt chế độ tập trung',
+  'Close section': 'Đóng phần này',
+  'Explore →': 'Khám phá →',
+  'Start with the whole picture, then open any area to inspect the evidence and reasoning behind it.':
+    'Bắt đầu với bức tranh tổng thể, sau đó mở từng phần để xem bằng chứng và lý giải phía sau.',
 };

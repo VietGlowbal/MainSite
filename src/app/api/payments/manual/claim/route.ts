@@ -21,8 +21,25 @@ export async function POST(request: NextRequest) {
   if (error) return NextResponse.json({ error: 'Could not record transfer claim' }, { status: 503 });
   const result = data as { ok?: boolean; reason?: string; status?: string; review_deadline_at?: string };
   if (!result.ok && result.reason === 'not_found') return NextResponse.json({ error: 'Payment not found' }, { status: 404 });
-  if (!result.ok && result.reason === 'expired') return NextResponse.json({ error: 'This payment has expired', status: 'expired' }, { status: 409 });
   if (!result.ok) return NextResponse.json({ error: 'This payment cannot be claimed', status: result.status }, { status: 409 });
+
+  const admin = createAdminClient();
+  if (typeof admin?.from === 'function') {
+    const { data: tx } = await admin
+      .from('payment_transactions')
+      .select('id')
+      .eq('reference', parsed.data.reference)
+      .maybeSingle();
+
+    if (tx?.id) {
+      await admin
+        .from('payment_notification_jobs')
+        .insert({ transaction_id: tx.id, kind: 'student_confirmed' })
+        .select()
+        .maybeSingle();
+    }
+  }
+
   after(() => dispatchDueManualPaymentJobs(10).catch(() => undefined));
   return NextResponse.json({ status: result.status ?? 'claimed', review_deadline_at: result.review_deadline_at });
 }

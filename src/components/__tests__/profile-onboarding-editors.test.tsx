@@ -17,6 +17,14 @@ vi.mock('@/lib/supabase/client', () => ({
   createClient: () => ({ from: mocks.from }),
 }));
 
+// These editors now call useRouter() to support "Save & return to
+// application" (only exercised when a `returnTo` prop is passed, which none
+// of these tests do) — mocked here so rendering without a Next.js router
+// context doesn't throw.
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ push: vi.fn() }),
+}));
+
 vi.mock('@/shared/ui/loading-overlay', () => ({
   useLoadingIndicator: () => {},
 }));

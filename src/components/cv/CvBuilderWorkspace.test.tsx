@@ -283,11 +283,17 @@ function Vietnamese({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
-function targetProfileResponse() {
+function targetProfileResponse(selectedDirection = strategy.chosenDirection) {
   return new Response(
     JSON.stringify({
       type: 'complete',
-      targetProfile: strategyTargetProfile,
+      targetProfile: {
+        ...strategyTargetProfile,
+        strategyProvenance: {
+          ...strategyTargetProfile.strategyProvenance,
+          selectedDirection,
+        },
+      },
     }) + '\n',
     { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } },
   );
@@ -844,6 +850,8 @@ describe('CvBuilderWorkspace', () => {
       </StrictMode>,
     );
 
+    const submitBtn = await screen.findByRole('button', { name: 'Analyze this direction' });
+    await userEvent.click(submitBtn);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
       expectedRecommendationId: strategy.recommendationId,
@@ -917,6 +925,8 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
+    const submitBtn = await screen.findByRole('button', { name: 'Analyze this direction' });
+    await userEvent.click(submitBtn);
     expect(await screen.findByRole('status')).toHaveAttribute('aria-live', 'polite');
     expect(await screen.findByRole('button', { name: 'Retry Target Profile' })).toBeVisible();
     await userEvent.click(screen.getByRole('button', { name: 'Retry Target Profile' }));
@@ -947,6 +957,9 @@ describe('CvBuilderWorkspace', () => {
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Clear the draft on this device' }));
+    expect(fetchMock).not.toHaveBeenCalled();
+    const submitBtn = await screen.findByRole('button', { name: 'Analyze this direction' });
+    await userEvent.click(submitBtn);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     expect(JSON.parse(String(fetchMock.mock.calls[0]?.[1]?.body))).toEqual({
       expectedRecommendationId: strategy.recommendationId,
@@ -993,8 +1006,12 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
+    const submitFirst = await screen.findByRole('button', { name: 'Analyze this direction' });
+    await userEvent.click(submitFirst);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await userEvent.click(screen.getByRole('button', { name: 'Clear the draft on this device' }));
+    const submitSecond = await screen.findByRole('button', { name: 'Analyze this direction' });
+    await userEvent.click(submitSecond);
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
 
     // The first request ignores AbortController in this mock and resolves late.
@@ -1036,6 +1053,8 @@ describe('CvBuilderWorkspace', () => {
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Clear the draft on this device' }));
+    const submitBtn = await screen.findByRole('button', { name: 'Analyze this direction' });
+    await userEvent.click(submitBtn);
     expect(await screen.findByRole('alert')).toHaveTextContent('Your Personalized Strategy changed.');
     expect(routerRefreshMock).toHaveBeenCalledTimes(1);
     await waitFor(() => {
@@ -1076,6 +1095,8 @@ describe('CvBuilderWorkspace', () => {
     );
 
     await userEvent.click(screen.getByRole('button', { name: 'Xóa bản nháp trên thiết bị' }));
+    const submitBtn = await screen.findByRole('button', { name: 'Phân tích định hướng này' });
+    await userEvent.click(submitBtn);
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Chiến lược cá nhân hóa của bạn đã thay đổi. Hãy làm mới trình tạo CV rồi thử lại.',
     );
@@ -1106,12 +1127,14 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const alternative = await screen.findByRole('button', {
       name: /Research-led technologist/,
     });
     await userEvent.click(alternative);
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock).not.toHaveBeenCalled();
+    const submitBtn = await screen.findByRole('button', { name: 'Analyze this direction' });
+    await userEvent.click(submitBtn);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     await waitFor(() => {
       const saved = JSON.parse(localStorage.getItem('glowbal:cv-builder:v1:user-1:app-1') ?? '{}');
       expect(saved.selectedDirection).toBe('Research-led technologist');
@@ -1157,6 +1180,7 @@ describe('CvBuilderWorkspace', () => {
       '/ai-strategy/app-1/strategy-report',
     );
     expect(screen.getByRole('status')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Analyze this direction' })).toBeVisible();
   });
 
   it('lets the student choose an alternative direction and sends it to Target Profile once', async () => {
@@ -1178,21 +1202,23 @@ describe('CvBuilderWorkspace', () => {
       />,
     );
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const alternative = await screen.findByRole('button', {
       name: /Research-led technologist/,
     });
     expect(alternative).toHaveAttribute('aria-pressed', 'false');
     expect(alternative).not.toBeDisabled();
     await userEvent.click(alternative);
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(JSON.parse(fetchMock.mock.calls[1]?.[1]?.body as string)).toMatchObject({
-      expectedRecommendationId: strategy.recommendationId,
-      selectedDirection: 'Research-led technologist',
-    });
+    expect(fetchMock).not.toHaveBeenCalled();
     expect(
       await screen.findByRole('button', { name: /Research-led technologist/ }),
     ).toHaveAttribute('aria-pressed', 'true');
+    const submitBtn = await screen.findByRole('button', { name: 'Analyze this direction' });
+    await userEvent.click(submitBtn);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      expectedRecommendationId: strategy.recommendationId,
+      selectedDirection: 'Research-led technologist',
+    });
   });
 
   it('translates the strategy block in Vietnamese', async () => {
@@ -1237,5 +1263,53 @@ describe('CvBuilderWorkspace', () => {
     expect(screen.getByText('Định hướng CV:')).toBeVisible();
     expect(screen.getByRole('heading', { name: 'Căn chỉnh chiến lược' })).toBeVisible();
     expect(screen.getAllByText(strategy.chosenDirection).length).toBeGreaterThan(0);
+  });
+
+  it('does not trigger AI analysis when selecting a direction until submit is clicked', async () => {
+    localStorage.removeItem('glowbal:cv-builder:v1:user-1:app-1');
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      void url;
+      const body = JSON.parse(String(init?.body ?? '{}'));
+      return targetProfileResponse(body.selectedDirection);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <LanguageProvider>
+        <Vietnamese>
+          <CvBuilderWorkspace
+            applicationId="app-1"
+            userId="user-1"
+            universityName="Example University"
+            programmeName="Computer Science"
+            prefill={prefill}
+            strategy={strategy}
+          />
+        </Vietnamese>
+      </LanguageProvider>,
+    );
+
+    // Initial load: no AI request made
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    // Select alternative direction: still no AI request
+    const alternative = await screen.findByRole('button', {
+      name: /Research-led technologist/,
+    });
+    await userEvent.click(alternative);
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(alternative).toHaveAttribute('aria-pressed', 'true');
+
+    // Click submit button in Vietnamese: AI runs
+    const submitBtn = await screen.findByRole('button', { name: 'Phân tích định hướng này' });
+    await userEvent.click(submitBtn);
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
+    expect(JSON.parse(fetchMock.mock.calls[0]?.[1]?.body as string)).toMatchObject({
+      expectedRecommendationId: strategy.recommendationId,
+      selectedDirection: 'Research-led technologist',
+    });
+
+    // Once analyzed, Continue to content button appears
+    expect(await screen.findByRole('button', { name: 'Tiếp tục nhập nội dung →' })).toBeVisible();
   });
 });

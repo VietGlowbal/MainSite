@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   generateIntakeOptions,
+  intakeDisplayLabel,
   intakeOptionsWith,
   intakeStartMonth,
   parseIntake,
@@ -114,12 +115,54 @@ describe('serialise / parse', () => {
     expect(parseIntake('Fall 2027')).toEqual({ type: 'specific', season: 'autumn', year: 2027 });
   });
 
+  it('rounds /profile’s month token to the season it falls in', () => {
+    // The profile picker asks for a month; this question offers two seasons.
+    // Rounding is what keeps the reflection step from reading as unanswered
+    // for a student who set their intake on /profile instead.
+    expect(parseIntake('2027-09')).toEqual({ type: 'specific', season: 'autumn', year: 2027 });
+    expect(parseIntake('2027-07')).toEqual({ type: 'specific', season: 'autumn', year: 2027 });
+    expect(parseIntake('2027-06')).toEqual({ type: 'specific', season: 'spring', year: 2027 });
+    expect(parseIntake('2028-01')).toEqual({ type: 'specific', season: 'spring', year: 2028 });
+  });
+
   it('treats an unreadable value as unanswered', () => {
     // Better a blank question than a control showing a choice it cannot offer.
     expect(parseIntake('sometime soon')).toBeUndefined();
     expect(parseIntake('')).toBeUndefined();
     expect(parseIntake(null)).toBeUndefined();
     expect(parseIntake(undefined)).toBeUndefined();
+  });
+});
+
+describe('intakeDisplayLabel', () => {
+  it('prints a month as the month, without rounding it to a season', () => {
+    // Showing "Autumn / Fall 2027" to a student who picked September would be
+    // showing them a choice they did not make.
+    expect(intakeDisplayLabel('2027-09')).toBe('Sep 2027');
+    expect(intakeDisplayLabel('2028-01')).toBe('Jan 2028');
+  });
+
+  it('localises the month, which no dictionary lookup downstream could', () => {
+    // Every screen that prints this is on a PII route, where the page
+    // translator substitutes exact dictionary keys only — and "Sep 2027" is
+    // built at render, so it is never one.
+    expect(intakeDisplayLabel('2027-09', 'vi')).toBe('Tháng 9/2027');
+    expect(intakeDisplayLabel('2027-09', 'en')).toBe('Sep 2027');
+    expect(intakeDisplayLabel('2027-09')).toBe('Sep 2027');
+  });
+
+  it('turns this flow’s own tokens into sentences', () => {
+    // The bug it exists for: /profile printed the raw column, so a student who
+    // answered the reflection step saw "autumn-2027" as their target intake.
+    expect(intakeDisplayLabel('autumn-2027')).toBe('Autumn / Fall 2027');
+    expect(intakeDisplayLabel('later-2029')).toBe('Later than 2029');
+    expect(intakeDisplayLabel('undecided')).toBe('Not decided yet');
+  });
+
+  it('returns an unreadable value as typed rather than dropping it', () => {
+    expect(intakeDisplayLabel('sometime soon')).toBe('sometime soon');
+    expect(intakeDisplayLabel('')).toBeNull();
+    expect(intakeDisplayLabel(null)).toBeNull();
   });
 });
 

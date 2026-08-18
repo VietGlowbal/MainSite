@@ -1,9 +1,10 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
+import { loadApplicationSummary, loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
 import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
-import { confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
+import { candidateInformationStepperSteps, confirmedReflectionContinueHref } from '@/features/ai-strategy-dashboard/domain';
 import { applicationIdFromPath } from '@/shared/lib';
+import { Stepper } from '@/shared/ui';
 import { ReflectionChrome } from '../../reflection-chrome';
 import { ApplicationNavFromReturn } from '../application-nav-from-return';
 import { ConfirmedPersonalReflectionView } from './confirmed-personal-reflection-view';
@@ -39,20 +40,29 @@ export default async function PersonalReflectionPage({
     ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
     : undefined;
 
-  const { reflection, confirmedAt } = await loadCandidateReflection(supabase, user.id, applicationId);
+  const [{ reflection, confirmedAt }, onboardingState, applicationSummary] = await Promise.all([
+    loadCandidateReflection(supabase, user.id, applicationId),
+    applicationId ? fetchOnboardingState(supabase, user.id, applicationId) : Promise.resolve(undefined),
+    applicationId ? loadApplicationSummary(supabase, user.id, applicationId) : Promise.resolve(null),
+  ]);
+
+  const stepper =
+    applicationId && onboardingState ? (
+      <Stepper
+        {...candidateInformationStepperSteps(onboardingState, 'personal-reflection', applicationId, returnTo)}
+        label="Application setup"
+      />
+    ) : undefined;
 
   return (
-    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />}>
+    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
       {confirmedAt ? (
         <ConfirmedPersonalReflectionView
           answers={reflection.personalReflection}
           confirmedAt={confirmedAt}
           continueHref={
-            applicationId
-              ? confirmedReflectionContinueHref(
-                  applicationId,
-                  (await fetchOnboardingState(supabase, user.id, applicationId)).aiAnalysisComplete,
-                )
+            applicationId && onboardingState
+              ? confirmedReflectionContinueHref(applicationId, onboardingState.aiAnalysisComplete)
               : returnTo
           }
         />
@@ -61,6 +71,7 @@ export default async function PersonalReflectionPage({
           applicationId={applicationId}
           returnTo={returnTo}
           initial={reflection.personalReflection ?? {}}
+          applicationLabel={applicationSummary?.label}
         />
       )}
     </ReflectionChrome>

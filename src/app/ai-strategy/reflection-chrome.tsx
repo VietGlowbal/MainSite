@@ -20,6 +20,7 @@ import { Container, Footer } from '@/shared/ui';
  */
 export function ReflectionChrome({
   nav,
+  stepper,
   children,
 }: {
   user: User | null;
@@ -34,6 +35,13 @@ export function ReflectionChrome({
    * layout they had.
    */
   nav?: React.ReactNode | undefined;
+  /**
+   * The high-level "Application setup" stepper (✓ Profile ● Experiences
+   * ○ Personal reflection ○ Review) — a different, coarser thing from the
+   * per-page breadcrumb each step renders itself. Sits inside the content
+   * measure (unlike `nav`), directly above whatever the page renders.
+   */
+  stepper?: React.ReactNode | undefined;
   children: React.ReactNode;
 }) {
   return (
@@ -43,7 +51,10 @@ export function ReflectionChrome({
       {nav}
 
       <main className="min-h-screen pb-gb-9xl pt-gb-5xl">
-        <Container className="max-w-4xl">{children}</Container>
+        <Container className="max-w-4xl">
+          {stepper ? <div className="mb-gb-3xl">{stepper}</div> : null}
+          {children}
+        </Container>
       </main>
 
       <Footer

@@ -52,16 +52,20 @@ import { crestFor, type UniversityKey } from './university-crests';
  * ─── STAYS A SERVER COMPONENT ────────────────────────────────────────────────
  *
  * Every interaction here is `group-hover`/`group-focus-within` in CSS: the
- * lift, the desaturation, the portrait's slow zoom, the rule that draws itself
- * in under the name. Nothing needs state, so this ships no JavaScript — unlike
- * the About page's carousel (about-team.tsx), which is a per-frame rAF loop
- * because its motion genuinely cannot be expressed in CSS.
+ * lift, the portrait's slow zoom, the rule that draws itself in under the
+ * name. Nothing needs state, so this ships no JavaScript — unlike the About
+ * page's carousel (about-team.tsx), which is a per-frame rAF loop because
+ * its motion genuinely cannot be expressed in CSS.
  *
- * ⚠️ NOTHING IS HIDDEN BEHIND HOVER. The bio, the programme and the
- * scholarship are all in the resting card. A reveal-on-hover panel was the
- * first sketch and got dropped: it puts the most interesting content of the
- * section out of reach of every touch device, which is most of this audience.
- * Hover only ever enriches what is already on screen.
+ * ⚠️ NOTHING IS HIDDEN BEHIND HOVER, AND NOTHING NEEDS IT EITHER. The bio,
+ * the programme and the scholarship are all in the resting card. A
+ * reveal-on-hover panel was the first sketch and got dropped: it puts the
+ * most interesting content of the section out of reach of every touch
+ * device, which is most of this audience. An earlier pass also held each
+ * portrait back at 65% colour until hover/focus, matching the About page's
+ * carousel tiles — dropped on the owner's explicit request: every photo
+ * should read at its best without a pointer resting on the card. Hover now
+ * only ever adds the zoom; it never gates colour or content.
  *
  * ─── NO SCHOLARSHIP TALLY, NO CARD NUMBERS ───────────────────────────────────
  *
@@ -234,11 +238,11 @@ export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) 
                     alt={member.name}
                     fill
                     sizes="(max-width: 639px) calc(100vw - 32px), (max-width: 1023px) calc((100vw - 96px) / 2), 280px"
-                    /* Held slightly back from full colour at rest so the eight
-                       portraits — shot on eight different days, in eight
-                       different lights — read as one set, then released on
-                       hover. Same 35% the About page's tiles use. */
-                    className="object-cover grayscale-[35%] transition duration-500 ease-out group-hover:scale-[1.04] group-hover:grayscale-0 group-focus-within:scale-[1.04] group-focus-within:grayscale-0 motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                    /* Full colour at rest — the owner wants every portrait
+                       readable at its best without requiring a pointer, which
+                       rules out both a resting desaturation and a hover-only
+                       reveal. The zoom-on-hover stays as pure enrichment. */
+                    className="object-cover transition duration-500 ease-out group-hover:scale-[1.04] group-focus-within:scale-[1.04] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                   />
                 ) : (
                   <div
@@ -255,19 +259,19 @@ export function HomeTeam({ members = [] }: { members?: readonly TeamMember[] }) 
                     whatever is behind them bleed through and shift those
                     colours. */}
                 {crest ? (
-                  <span className="absolute -bottom-gb-xs right-gb-lg inline-flex h-gb-6xl items-center justify-center rounded-gb-md border border-line bg-surface px-gb-lg shadow-gb-xs">
-                    {/* 24px tall, width free. Three of these are lockups whose
+                  <span className="absolute -bottom-gb-md right-gb-lg inline-flex h-[58px] items-center justify-center rounded-gb-md border border-line bg-surface px-gb-lg shadow-gb-xs">
+                    {/* 30px tall, width free. Three of these are lockups whose
                         wordmark is set beside a crest — at the 20px this badge
                         started on, Foreign Trade University's two lines of type
-                        collapsed into a grey smear. 24 is the point at which
-                        each mark is still identifiable at arm's length without
-                        the chip growing into the portrait. */}
+                        collapsed into a grey smear. 30 (bumped up from the
+                        original 24 per owner request) reads clearly at arm's
+                        length without the chip growing into the portrait. */}
                     <Image
                       src={crest.src}
                       alt={crest.name}
                       width={crest.width}
                       height={crest.height}
-                      className="h-[24px] w-auto max-w-[132px] object-contain"
+                      className="h-[30px] w-auto max-w-[150px] object-contain"
                     />
                   </span>
                 ) : null}

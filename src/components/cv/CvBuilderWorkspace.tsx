@@ -331,16 +331,20 @@ function TargetProfile({
   strategy,
   selectedDirection,
   onSelectDirection,
+  onSubmitDirection,
   directionsDisabled,
   applicationId,
+  busy,
 }: {
   profile: CvTargetProfileV1 | null;
   status: string;
   strategy: CvStrategySnapshot | null;
   selectedDirection: string;
   onSelectDirection?: (direction: string) => void;
+  onSubmitDirection?: () => void;
   directionsDisabled?: boolean;
   applicationId: string;
+  busy?: boolean;
 }) {
   const t = useT();
   if (strategy === null) {
@@ -367,20 +371,30 @@ function TargetProfile({
           strategy={strategy}
           selectedDirection={selectedDirection}
           onSelect={onSelectDirection}
-          disabled={directionsDisabled}
+          disabled={directionsDisabled || busy}
         />
         <div className="mt-6 grid min-h-64 place-items-center rounded-2xl border border-dashed border-rose-200 bg-rose-50/30 p-8 text-center">
           <div>
             <div
               className={`mx-auto h-3 w-3 rounded-full ${
-                status ? 'animate-pulse bg-rose-500' : 'bg-slate-300'
+                busy || status ? 'animate-pulse bg-rose-500' : 'bg-slate-300'
               }`}
             />
             <p role="status" aria-live="polite" className="mt-4 text-sm font-semibold text-slate-700">
-              {status
-                ? t(status)
-                : t('Your Target Profile will be generated from the current strategy.')}
+              {busy
+                ? t(status || 'AI is preparing the Target Profile…')
+                : t('Select a strategic direction above and submit to analyze with AI.')}
             </p>
+            {!busy && onSubmitDirection ? (
+              <button
+                type="button"
+                className="mt-5 inline-flex items-center gap-2 rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:cursor-not-allowed disabled:opacity-50"
+                disabled={!selectedDirection}
+                onClick={onSubmitDirection}
+              >
+                {t('Analyze this direction')}
+              </button>
+            ) : null}
           </div>
         </div>
       </div>
@@ -410,7 +424,7 @@ function TargetProfile({
         strategy={strategy}
         selectedDirection={selectedDirection}
         onSelect={onSelectDirection}
-        disabled={directionsDisabled}
+        disabled={directionsDisabled || busy}
       />
       <h2 className="mt-8 text-sm font-semibold text-slate-950">{t('Information used to position the CV')}</h2>
       <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
@@ -1793,14 +1807,12 @@ export function CvBuilderWorkspace({
       abortRequests();
       resetAiState(false);
       setSelectedDirection(directionName);
-      setStatus('AI is preparing the Target Profile…');
+      setError('');
+      setStatus('');
       persistSafeDraft({ selectedDirection: directionName });
-      autoGenerationKey.current = `${strategy.recommendationId}:${directionName}`;
-      void buildTarget(directionName);
     },
     [
       abortRequests,
-      buildTarget,
       persistSafeDraft,
       resetAiState,
       selectedDirection,
@@ -1826,9 +1838,6 @@ export function CvBuilderWorkspace({
       persistSafeDraft({ selectedDirection: directionName });
       return;
     }
-    const generationKey = `${strategy.recommendationId}:${directionName}`;
-    if (autoGenerationKey.current === generationKey) return;
-    autoGenerationKey.current = generationKey;
     if (
       sourceRecommendationId !== strategy.recommendationId ||
       targetProfile?.strategyProvenance?.selectedDirection !== directionName
@@ -1840,15 +1849,7 @@ export function CvBuilderWorkspace({
       setReview(null);
       setReviewEvents([]);
     }
-    if (
-      sourceRecommendationId === strategy.recommendationId &&
-      targetProfile?.strategyProvenance?.selectedDirection === directionName
-    ) {
-      return;
-    }
-    void buildTarget();
   }, [
-    buildTarget,
     hydrated,
     persistSafeDraft,
     resetAiState,
@@ -2245,7 +2246,10 @@ export function CvBuilderWorkspace({
                     </Link>
                   </div>
                 ) : null}
-                {strategy && targetProfile && sourceRecommendationId === strategy.recommendationId ? (
+                {strategy &&
+                targetProfile &&
+                sourceRecommendationId === strategy.recommendationId &&
+                targetProfile.strategyProvenance?.selectedDirection === selectedDirection ? (
                   <button
                     className="mt-5 rounded-lg border border-slate-300 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-rose-300 hover:text-rose-700"
                     onClick={() => setStep(1)}
@@ -2257,7 +2261,7 @@ export function CvBuilderWorkspace({
                   <button
                     className="mt-5 rounded-lg bg-rose-600 px-6 py-3 text-sm font-bold text-white transition hover:bg-rose-700 disabled:opacity-50"
                     disabled={busy}
-                    onClick={() => void buildTarget()}
+                    onClick={() => void buildTarget(selectedDirection)}
                   >
                     {t('Retry Target Profile')}
                   </button>
@@ -2265,13 +2269,19 @@ export function CvBuilderWorkspace({
               </div>
               <div className="mt-10 rounded-2xl border border-slate-200 bg-white p-5 sm:p-7">
                 <TargetProfile
-                  profile={targetProfile}
+                  profile={
+                    targetProfile?.strategyProvenance?.selectedDirection === selectedDirection
+                      ? targetProfile
+                      : null
+                  }
                   status={status}
                   strategy={strategy}
                   selectedDirection={selectedDirection}
                   onSelectDirection={handleDirectionChange}
+                  onSubmitDirection={() => void buildTarget(selectedDirection)}
                   directionsDisabled={false}
                   applicationId={applicationId}
+                  busy={busy}
                 />
               </div>
             </section>

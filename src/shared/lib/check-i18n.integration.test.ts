@@ -46,4 +46,16 @@ describe('production i18n checker', () => {
       if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true });
     }
   });
+
+  it('keeps the Vietnamese-source exemption to the two legal routes', () => {
+    // `actionable VI-only source: 0` above is satisfiable two ways: by writing
+    // English source, or by exempting the route. The exemption exists for
+    // /privacy and /terms, whose Vietnamese wording is the legally operative
+    // one — widening it to a product route would silence the check for that
+    // whole screen, so make that a deliberate act rather than a quiet one.
+    const script = readFileSync('scripts/check-i18n.mjs', 'utf8');
+    const declared = /authoritativeVietnameseRoutes = new Set\(\[([^\]]*)\]\)/.exec(script)?.[1] ?? '';
+    const routes = [...declared.matchAll(/'([^']+)'/g)].map((match) => match[1]);
+    expect(routes).toEqual(['/privacy', '/terms']);
+  });
 });

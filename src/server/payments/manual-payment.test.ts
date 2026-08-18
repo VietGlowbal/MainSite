@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as manualConfig from './manual-config';
 import { getManualPaymentConfig } from './manual-config';
 import { createManualReviewToken, verifyManualReviewToken } from './manual-capability';
-import { renderManualFounderEmail, renderManualStudentEmail } from './manual-email-templates';
+import { renderManualFounderEmail, renderManualOutcomeEmail, renderManualStudentEmail } from './manual-email-templates';
 import * as manualOutbox from './manual-outbox';
 import { sendManualPaymentJob } from './manual-outbox';
 
@@ -125,6 +125,44 @@ describe('manual payment email templates', () => {
     expect(email.html).toContain('Xác nhận hoặc từ chối thanh toán');
     expect(email.text).toContain('Thời điểm người dùng báo đã chuyển');
   });
+
+  it('renders the payment confirmation email with Zalo community link and QR code', () => {
+    const email = renderManualOutcomeEmail({
+      confirmed: true,
+      recipientName: '<Student Name>',
+      reference: 'GLOWMANUAL123',
+      productLabel: 'GlowBal Plus · Starter',
+      statusUrl: 'https://glowbal-education.com/payment/manual/status?reference=GLOWMANUAL123',
+    });
+
+    expect(email.subject).toBe('GlowBal — Xác nhận thanh toán thành công (GLOWMANUAL123)');
+    expect(email.html).toContain('Xin chào <strong>&lt;Student Name&gt;</strong>');
+    expect(email.html).toContain('GlowBal xác nhận bạn đã thanh toán thành công gói <strong>GlowBal Plus · Starter</strong>.');
+    expect(email.html).toContain('GlowBal Community');
+    expect(email.html).toContain('https://zalo.me/g/ggrpc483k4joxoev6dat');
+    expect(email.html).toContain('QR tham gia cộng đồng:');
+    expect(email.html).toContain('api.qrserver.com');
+    expect(email.html).toContain('GO GLOW – GO GLOBAL');
+    expect(email.html).toContain('GLOWBAL EDUCATION');
+    expect(email.html).toContain('glowbal.edu@gmail.com');
+    expect(email.html).toContain('https://glowbal-education.com');
+    expect(email.text).toContain('Tham gia GlowBal Community: https://zalo.me/g/ggrpc483k4joxoev6dat');
+    expect(email.text).toContain('GO GLOW – GO GLOBAL');
+  });
+
+  it('renders the payment support email when unconfirmed', () => {
+    const email = renderManualOutcomeEmail({
+      confirmed: false,
+      recipientName: 'Student Name',
+      reference: 'GLOWMANUAL456',
+      productLabel: 'GlowBal Plus',
+      statusUrl: 'https://glowbal-education.com/payment/manual/status?reference=GLOWMANUAL456',
+    });
+
+    expect(email.subject).toBe('GlowBal — Thanh toán cần hỗ trợ (GLOWMANUAL456)');
+    expect(email.html).toContain('Thanh toán cần hỗ trợ');
+    expect(email.text).toContain('Thanh toán cần hỗ trợ');
+  });
 });
 
 describe('manual payment notification jobs', () => {
@@ -162,6 +200,31 @@ describe('manual payment notification jobs', () => {
         id: 'job-1', transaction_id: 'tx-1', kind: 'founder_review', review: null,
         transaction: { reference: 'GLOWMANUALABC123', amount_vnd: 125000, product_type: 'plus', plus_plan: 'plus-starter', expires_at: new Date().toISOString() },
       })).rejects.toThrow('no longer delivered');
+    } finally {
+      process.env = original;
+    }
+  });
+
+  it('skips student_instructions email without sending', async () => {
+    const original = { ...process.env };
+    Object.assign(process.env, {
+      MANUAL_PAYMENT_REVIEW_SECRET: 'a'.repeat(48),
+      MANUAL_PAYMENT_REVIEWER_USER_IDS: '11111111-1111-4111-8111-111111111111',
+      MANUAL_PAYMENT_FOUNDER_EMAIL: 'founder@example.test',
+      MANUAL_PAYMENT_FROM_EMAIL: 'payments@example.test',
+      MANUAL_PAYMENT_BANK_LABEL: 'Techcombank',
+      MANUAL_PAYMENT_BANK_ACCOUNT_HOLDER: 'Glowbal Education',
+      MANUAL_PAYMENT_BANK_ACCOUNT_NUMBER: '012345678901',
+      MANUAL_PAYMENT_BANK_QR_URL: 'https://cdn.example.test/qr.png',
+      MANUAL_PAYMENT_BANK_QR_REVISION: 'qr-v1',
+      MANUAL_PAYMENT_RECONCILIATION_SECRET: 'b'.repeat(48),
+    });
+    try {
+      const result = await sendManualPaymentJob({
+        id: 'job-2', transaction_id: 'tx-2', kind: 'student_instructions', review: null,
+        transaction: { reference: 'GLOWMANUALABC123', amount_vnd: 125000, product_type: 'plus', plus_plan: 'plus-starter', expires_at: new Date().toISOString() },
+      });
+      expect(result).toBe('skipped_retired_instruction');
     } finally {
       process.env = original;
     }
