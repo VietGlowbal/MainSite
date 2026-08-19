@@ -42,9 +42,12 @@ import type { SavedRow, ScholarshipOption } from './saved-list-section';
  */
 
 export const metadata: Metadata = {
-  title: 'Application Progress | GlowBal',
+  title: 'Application Tracker & Saved Universities',
   description:
-    'The courses you are applying to, how far along each one is, and the universities you have saved.',
+    'Track your course application progress, deadlines, and manage saved universities all in one place.',
+  alternates: {
+    canonical: '/apply',
+  },
 };
 
 async function fetchApplications(userId: string): Promise<CourseApplication[]> {

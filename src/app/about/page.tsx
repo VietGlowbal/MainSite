@@ -37,9 +37,18 @@ import { Container, Footer } from '@/shared/ui';
  */
 
 export const metadata: Metadata = {
-  title: 'About GlowBal | The team helping students study abroad',
+  title: 'About GlowBal — The Team Helping Students Study Abroad',
   description:
-    'Meet the team behind GlowBal — the people helping students find global universities, scholarships, and application strategies.',
+    'Meet the team behind GlowBal — passionate educators, engineers, and mentors helping Vietnamese students study globally.',
+  openGraph: {
+    title: 'About GlowBal — The Team Helping Students Study Abroad | GlowBal',
+    description:
+      'Meet the team behind GlowBal — passionate educators, engineers, and mentors helping Vietnamese students study globally.',
+    url: '/about',
+  },
+  alternates: {
+    canonical: '/about',
+  },
 };
 
 // Team roster changes rarely; mirror the home page's 12h ISR.

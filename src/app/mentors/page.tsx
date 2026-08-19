@@ -14,9 +14,25 @@ import { MentorsClient } from './mentors-client';
  */
 
 export const metadata: Metadata = {
-  title: 'Find an advisor | GlowBal',
+  title: 'Connect with Student Advisors & Mentors',
   description:
-    'Talk to a student who has already been admitted where you are applying.',
+    'Talk 1-on-1 with admitted students and mentors who have successfully applied to top global universities. Get honest advice, profile reviews, and interview prep.',
+  keywords: [
+    'study abroad mentor',
+    'university advisor',
+    'student counseling',
+    'study abroad advice',
+    'cố vấn du học',
+  ],
+  openGraph: {
+    title: 'Connect with Student Advisors & Mentors | GlowBal',
+    description:
+      'Talk 1-on-1 with admitted students and mentors who have successfully applied to top global universities.',
+    url: '/advisors',
+  },
+  alternates: {
+    canonical: '/advisors',
+  },
 };
 
 export const revalidate = 300;

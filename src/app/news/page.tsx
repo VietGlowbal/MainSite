@@ -1,10 +1,28 @@
+import type { Metadata } from 'next';
 import { listGeoGuides, listGeoTopics } from '@/lib/geo-content';
 import { NewsClient } from './news-client';
 
-export const metadata = {
-  title: 'GLOWBAL News & Guides',
+export const metadata: Metadata = {
+  title: 'Study Abroad Guides, Insights & News',
   description:
-    'Study-abroad news, generated guides, trending topics, and scholarship stories from Glowbal.',
+    'Read actionable guides on study abroad costs, scholarship application strategies, visa requirements, and student success stories.',
+  keywords: [
+    'study abroad guides',
+    'scholarship application tips',
+    'international student costs',
+    'study in uk',
+    'study in us',
+    'kinh nghiệm du học',
+  ],
+  openGraph: {
+    title: 'Study Abroad Guides, Insights & News | GlowBal',
+    description:
+      'Read actionable guides on study abroad costs, scholarship application strategies, visa requirements, and student success stories.',
+    url: '/news',
+  },
+  alternates: {
+    canonical: '/news',
+  },
 };
 
 // Re-render at most every 5 minutes; admin edits trigger on-demand

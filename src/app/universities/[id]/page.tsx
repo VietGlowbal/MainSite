@@ -43,15 +43,31 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const university = await loadUniversity((await params).id);
-  if (!university) return { title: 'University not found | GlowBal' };
+  if (!university) return { title: 'University not found' };
 
   // `specific_insight` is populated on all 97 rows and is the closest thing the
   // table has to a description; it is editorial prose, so it is trimmed rather
   // than reworded.
-  const description = university.specific_insight?.slice(0, 155) ?? undefined;
+  const description =
+    university.specific_insight?.slice(0, 155) ??
+    `Explore admissions, tuition fees, scholarships, and courses at ${university.name}.`;
+  const url = `/universities/${university.id}`;
+  const title = `${university.name} - Admissions & Scholarships`;
+
   return {
-    title: `${university.name} | GlowBal`,
-    ...(description ? { description } : {}),
+    title,
+    description,
+    openGraph: {
+      title: `${university.name} | GlowBal`,
+      description,
+      url,
+      images: university.image_url
+        ? [{ url: university.image_url, alt: university.name }]
+        : undefined,
+    },
+    alternates: {
+      canonical: url,
+    },
   };
 }
 

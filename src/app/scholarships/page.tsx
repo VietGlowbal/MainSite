@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getScholarshipQueries } from '@/features/scholarships/api';
@@ -8,6 +9,28 @@ import {
 import { loadScholarshipDirectory } from '@/features/scholarships/directory-loader';
 import { ScholarshipDirectoryClient } from './scholarship-directory-client';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
+
+export const metadata: Metadata = {
+  title: 'Find Scholarships & Financial Aid',
+  description:
+    'Discover hundreds of international scholarships, government grants, and university funding opportunities tailored for Vietnamese students.',
+  keywords: [
+    'scholarships for international students',
+    'study abroad scholarships',
+    'university financial aid',
+    'scholarship deadlines',
+    'học bổng du học',
+  ],
+  openGraph: {
+    title: 'Find Scholarships & Financial Aid | GlowBal',
+    description:
+      'Discover hundreds of international student scholarships and university funding opportunities.',
+    url: '/scholarships',
+  },
+  alternates: {
+    canonical: '/scholarships',
+  },
+};
 
 export const revalidate = 43200;
 

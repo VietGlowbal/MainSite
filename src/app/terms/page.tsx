@@ -2,9 +2,12 @@ import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal/legal-page';
 
 export const metadata: Metadata = {
-  title: 'Điều khoản và Điều kiện Sử dụng | GlowBal Education',
+  title: 'Điều khoản và Điều kiện Sử dụng',
   description:
     'Điều khoản và Điều kiện Sử dụng Nền tảng GlowBal Education — Các điều khoản chi phối việc sử dụng nền tảng và dịch vụ GlowBal.',
+  alternates: {
+    canonical: '/terms',
+  },
 };
 
 export default function TermsPage() {

@@ -2,9 +2,12 @@ import type { Metadata } from 'next';
 import { LegalPage } from '@/components/legal/legal-page';
 
 export const metadata: Metadata = {
-  title: 'Chính sách Bảo mật | GlowBal Education',
+  title: 'Chính sách Bảo mật',
   description:
     'Chính sách Bảo mật của nền tảng GlowBal Education — Cách GlowBal thu thập, sử dụng và bảo vệ thông tin cá nhân của bạn.',
+  alternates: {
+    canonical: '/privacy',
+  },
 };
 
 export default function PrivacyPage() {

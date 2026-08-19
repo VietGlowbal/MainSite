@@ -43,9 +43,18 @@ import { Button, Container, Footer, Panel } from '@/shared/ui';
  */
 
 export const metadata: Metadata = {
-  title: 'How GlowBal works',
+  title: 'How GlowBal Works — AI & Mentor Study Abroad Guidance',
   description:
-    'How GlowBal takes you from searching universities, to applying for a course, to a personalised strategy that improves your chances of getting in.',
+    'Discover how GlowBal takes you from university search to course applications, scholarship discovery, and personalized AI strategies.',
+  openGraph: {
+    title: 'How GlowBal Works — AI & Mentor Study Abroad Guidance | GlowBal',
+    description:
+      'Discover how GlowBal takes you from university search to course applications, scholarship discovery, and personalized AI strategies.',
+    url: '/how-it-works',
+  },
+  alternates: {
+    canonical: '/how-it-works',
+  },
 };
 
 export default async function HowItWorksPage() {

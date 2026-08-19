@@ -10,6 +10,7 @@ import { LanguageProvider } from '@/lib/i18n';
 import { DomTranslator } from '@/lib/dom-translate';
 import { StrategyHelpButton } from '@/features/marketing/strategy-help';
 import { GlobalLoadingOverlay } from '@/shared/ui/loading-overlay';
+import { SITE_URL } from '@/lib/site-url';
 import './globals.css';
 
 // Body face, per the Figma variable "Font family/font-family-body".
@@ -39,8 +40,26 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'GLOWBAL',
-  description: 'Student-first global course and university guidance platform.',
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
+    template: '%s | GlowBal',
+  },
+  description:
+    'Student-first global course and university guidance platform. Discover 100+ global universities, find scholarships, and build AI application strategies.',
+  keywords: [
+    'study abroad scholarships',
+    'university scholarships',
+    'international student scholarships',
+    'find universities abroad',
+    'AI scholarship application strategy',
+    'study abroad support',
+    'scholarships for Vietnamese students',
+    'global university search',
+    'GlowBal education',
+    'học bổng du học',
+    'du học',
+  ],
   icons: {
     // Static pink globe supplied by the GLOWBAL brand team.
     icon: [{ url: '/favicon.png', type: 'image/png', sizes: '64x64' }],
@@ -49,6 +68,42 @@ export const metadata: Metadata = {
      * src/app/apple-icon.tsx. It renders at 180px on a home screen, where a
      * frame lifted from a 32px favicon would look like exactly that.
      */
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'vi_VN',
+    alternateLocale: ['en_US'],
+    url: SITE_URL,
+    siteName: 'GlowBal',
+    title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
+    description:
+      'Student-first global course and university guidance platform. Discover 100+ global universities, find scholarships, and build AI application strategies.',
+    images: [
+      {
+        url: '/glowbal-logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'GlowBal - Find Universities, Scholarships & Study Abroad Support',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
+    description:
+      'Student-first global course and university guidance platform. Discover 100+ global universities, find scholarships, and build AI application strategies.',
+    images: ['/glowbal-logo.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
   verification: {
     google: 'OSoUXS4-MCwjQrwvxe2PPmdR3NlzeR120fIvgmn3qm8',

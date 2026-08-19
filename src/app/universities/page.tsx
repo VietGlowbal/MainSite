@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import {
   getUniversityFacets,
   loadUniversityDirectory,
@@ -17,6 +18,29 @@ import {
 } from '@/features/marketing/navigation';
 import { Footer } from '@/shared/ui/footer';
 import { UniversityListClient } from './university-list-client';
+
+export const metadata: Metadata = {
+  title: 'Explore Global Universities',
+  description:
+    'Search and compare 100+ accredited universities across UK, US, Australia, Singapore, and more. Filter by location, tuition fees, and admission criteria.',
+  keywords: [
+    'explore universities',
+    'global university list',
+    'study abroad universities',
+    'top universities ranking',
+    'vietnamese students abroad',
+    'danh sách trường đại học du học',
+  ],
+  openGraph: {
+    title: 'Explore Global Universities | GlowBal',
+    description:
+      'Search and compare 100+ accredited global universities. Filter by location, tuition fees, and admission criteria.',
+    url: '/universities',
+  },
+  alternates: {
+    canonical: '/universities',
+  },
+};
 
 export const revalidate = 43200;
 

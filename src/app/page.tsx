@@ -32,6 +32,7 @@ import { Footer } from '@/shared/ui';
 import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
 import { headers } from 'next/headers';
 import { getTeamMembers } from '@/lib/team';
+import { SITE_URL } from '@/lib/site-url';
 
 /**
  * Five consultation requests per IP per hour. Generous for a person filling the
@@ -57,7 +58,36 @@ export const metadata: Metadata = {
     'study abroad support',
     'scholarships for Vietnamese students',
     'global university search',
+    'GlowBal education',
+    'học bổng du học',
+    'du học',
   ],
+  alternates: {
+    canonical: '/',
+  },
+  openGraph: {
+    title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
+    description:
+      'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
+    url: '/',
+    siteName: 'GlowBal',
+    images: [
+      {
+        url: '/glowbal-logo.png',
+        width: 1200,
+        height: 630,
+        alt: 'GlowBal - Find Universities, Scholarships & Study Abroad Support',
+      },
+    ],
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
+    description:
+      'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
+    images: ['/glowbal-logo.png'],
+  },
 };
 
 // Nothing on this page reads PER-REQUEST state, so it still prerenders. The 12h
@@ -242,12 +272,46 @@ export default async function Home() {
     getHomeScholarshipSpotlight(),
   ]);
 
+  const homeJsonLd = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Organization',
+        '@id': `${SITE_URL}/#organization`,
+        name: 'GlowBal Education',
+        alternateName: 'GlowBal',
+        url: SITE_URL,
+        logo: {
+          '@type': 'ImageObject',
+          url: `${SITE_URL}/glowbal-logo.png`,
+        },
+        description:
+          'Student-first global course and university guidance platform helping students find scholarships and build application strategies.',
+      },
+      {
+        '@type': 'WebSite',
+        '@id': `${SITE_URL}/#website`,
+        url: SITE_URL,
+        name: 'GlowBal',
+        description: 'Find Universities, Scholarships & Study Abroad Support',
+        publisher: {
+          '@id': `${SITE_URL}/#organization`,
+        },
+        inLanguage: ['vi', 'en'],
+      },
+    ],
+  };
+
   return (
     /* gb-page-full-bleed tells globals.css to drop the sidebar gutter and the
        mobile header offset — this page owns its own chrome. It also has to be
        listed in OWN_CHROME_ROUTES in src/components/nav-reveal.tsx, or the
        legacy app sidebar renders on top of it. */
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface-inverse-strong">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd) }}
+      />
       <SiteNavigation tone="dark" />
       {/* TopNav is desktop-only (hidden below md). Without this the landing
           page has NO navigation on a phone at all: "/" is in OWN_CHROME_ROUTES,
