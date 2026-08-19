@@ -64,17 +64,34 @@ export type {
   UniversityMatch,
 } from './match-university';
 
-export { evaluateUniversityMatch, rankUniversityMatches } from './university-matching';
 export {
-  DEFAULT_UNIVERSITY_MATCH_TIER_POLICY,
-  universityMatchTierCounts,
-} from './university-matching';
+  normalizeBudget,
+  normalizeRecommendationProfile,
+  normalizeStudyLevel,
+  programmeVerificationConfidence,
+  rankUniversityRecommendations,
+  recommendationProfileHasPreferences,
+} from './university-recommendation';
+export { RECOMMENDATION_CONFIG } from './university-recommendation-config';
 export { demoUniversityMatches } from './university-matching-demo';
 export type {
-  RankedUniversityMatch,
-  UniversityMatchEvaluation,
-  UniversityMatchTierCounts,
-  UniversityMatchTierPolicy,
-  UniversityMatchTierV1,
-  UniversityMatchingCandidate,
-} from './university-matching';
+  CanonicalStudyLevel,
+  DataQuality,
+  DimensionEvaluation,
+  EvidenceState,
+  RecommendationReason,
+  MatchReasonCode,
+  MatchWarning,
+  MatchWarningCode,
+  NormalizedBudget,
+  ProgrammeMatch,
+  ProgrammeVerificationConfidence,
+  RecommendationConfig,
+  RecommendationDimension,
+  RecommendationProgramme,
+  RecommendationProfile,
+  RecommendationResponse,
+  RecommendationResult,
+  RecommendationStatus,
+  RecommendationUniversity,
+} from './university-recommendation';

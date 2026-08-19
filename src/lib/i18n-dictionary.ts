@@ -121,6 +121,56 @@ export const translations: Record<string, string> = {
   "Choose from 200+ of the world's leading universities":
     'Chọn từ 200+ đại học tốt nhất thế giới',
   'Find a university': 'Tìm Đại học',
+  'Recommended for you': 'Đề xuất dành cho bạn',
+  'This public demo uses fixed profile, university and programme data to show deterministic recommendations.':
+    'Bản demo công khai này dùng dữ liệu hồ sơ, trường và chương trình cố định để hiển thị đề xuất nhất quán.',
+  'These recommendations use your preferences and the university and programme data currently available.':
+    'Các đề xuất này dùng tùy chọn của bạn cùng dữ liệu trường và chương trình hiện có.',
+  'Universities worth exploring': 'Các trường đại học đáng khám phá',
+  'Each result is explained with positive reasons and separate data warnings. These are not admission predictions.':
+    'Mỗi kết quả có lý do phù hợp và cảnh báo dữ liệu riêng. Đây không phải dự đoán khả năng được nhận.',
+  "These recommendations are based on your preferences and currently available university data. They are not predictions of admission outcomes. Always verify programme requirements, tuition, and deadlines on the university's official website.":
+    'Các đề xuất này dựa trên tùy chọn của bạn và dữ liệu trường hiện có. Đây không phải dự đoán kết quả tuyển sinh. Hãy luôn kiểm tra yêu cầu chương trình, học phí và hạn chót trên website chính thức của trường.',
+  'Tell us what you want to study': 'Cho chúng tôi biết bạn muốn học gì',
+  'Add a subject, destination, study level, budget, or campus preference to get recommendations based on your profile.':
+    'Thêm ngành học, điểm đến, bậc học, ngân sách hoặc lựa chọn khuôn viên để nhận đề xuất theo hồ sơ của bạn.',
+  'No universities to show yet': 'Chưa có trường đại học để hiển thị',
+  'We could not find university data to compare with the preferences in your profile. Try updating them or explore the full directory.':
+    'Chưa tìm thấy dữ liệu trường để so sánh với tùy chọn trong hồ sơ. Hãy cập nhật tùy chọn hoặc xem toàn bộ danh mục.',
+  'Explore universities': 'Khám phá các trường đại học',
+  'Recommendations are temporarily unavailable': 'Đề xuất tạm thời không khả dụng',
+  'There was a problem loading university data. Please try again later or continue with the university directory.':
+    'Đã xảy ra lỗi khi tải dữ liệu trường. Vui lòng thử lại sau hoặc tiếp tục xem danh mục trường.',
+  'Open university directory': 'Mở danh mục trường đại học',
+  'Country not available': 'Chưa có thông tin quốc gia',
+  'More complete data': 'Dữ liệu đầy đủ hơn',
+  'Some data available': 'Có một phần dữ liệu',
+  'More data needed': 'Cần thêm dữ liệu',
+  'Why this university appears': 'Vì sao trường này xuất hiện',
+  'Things to check': 'Điều cần kiểm tra',
+  'Related programmes': 'Chương trình liên quan',
+  'View university details': 'Xem chi tiết trường',
+  'A relevant programme was found in the catalogue': 'Tìm thấy chương trình liên quan trong danh mục',
+  'The programme matches your subject preference': 'Chương trình phù hợp với ngành bạn quan tâm',
+  'The country matches your destination preference': 'Quốc gia phù hợp với điểm đến bạn chọn',
+  'The study level matches your preference': 'Bậc học phù hợp với lựa chọn của bạn',
+  'Published tuition fits within your maximum annual budget': 'Học phí được công bố phù hợp với mức học phí hằng năm tối đa của bạn',
+  'The campus information matches your preference': 'Thông tin khuôn viên phù hợp với lựa chọn của bạn',
+  'The university information contains a relevant subject signal': 'Thông tin trường có tín hiệu liên quan đến ngành bạn quan tâm',
+  'Programme availability needs verification': 'Cần xác minh khả năng cung cấp chương trình',
+  'Programme information for this subject is not available': 'Chưa có thông tin chương trình cho ngành này',
+  'No matching programme was found in the current catalogue': 'Chưa tìm thấy chương trình phù hợp trong danh mục hiện có',
+  'Tuition information is missing': 'Thiếu thông tin học phí',
+  'Tuition currency or annual period needs verification': 'Cần xác minh đơn vị tiền tệ hoặc kỳ tính học phí',
+  'Your budget depends on scholarships, so affordability needs verification': 'Ngân sách của bạn phụ thuộc vào học bổng, nên cần xác minh khả năng chi trả',
+  'The programme study level should be confirmed': 'Cần xác nhận bậc học của chương trình',
+  'No programme matching both your subject and study level was found in the current catalogue': 'Chưa tìm thấy chương trình phù hợp cả ngành và bậc học trong danh mục hiện có',
+  'Some published data conflicts and needs checking': 'Một số dữ liệu công bố mâu thuẫn và cần kiểm tra',
+  'The programme source may be out of date': 'Nguồn chương trình có thể đã cũ',
+  'The programme source date is unavailable': 'Không có ngày của nguồn chương trình',
+  'Verified programme': 'Chương trình đã được xác minh',
+  'Programme review pending': 'Chương trình đang chờ rà soát',
+  'Programme verification unavailable': 'Chưa có trạng thái xác minh chương trình',
 
   // Partner orbit interaction.
   // University names live in alt attributes, which DomTranslator never touches,

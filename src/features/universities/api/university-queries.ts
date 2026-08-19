@@ -54,8 +54,8 @@ export interface UniversityListQuery {
  * Columns the list view actually consumes.
  *
  * This is a real projection but a modest one: 28 of the 33 columns are read
- * somewhere between `computeMatchResult`, `classifyAdmissionFit`,
- * `toExplorerUniversity` and the card components. Excluded are `arwu_rank`,
+ * somewhere between the recommendation loader, `toExplorerUniversity` and
+ * the card components. Excluded are `arwu_rank`,
  * `national_rank`, `special_test`, `weaknesses` and `images_resolved_at`,
  * which only the CSV importer and the imagery cron touch.
  *

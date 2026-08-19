@@ -12,13 +12,85 @@ prototype) and added the GlowBal Plus paywall on the per-application AI
 Strategy workspace it had been missing since 01/08. See "Last completed work"
 below.
 
-`main` independently carries substantial unrelated work merged by other
-sessions since this branch diverged: a Founder-restricted Bookings & Payments
-admin console (manual bank transfer + VNPay Sandbox checkout for Mentorship
-and GlowBal Plus, with a Payment Approval Queue gated to designated founder
-accounts), a university-matching feature, and in-progress CV Builder F7
-integration. None of that is this branch's own work — see the corresponding
-"Working tree 2026-08-15 (...)" rows below for their own detail.
+Working tree 2026-08-18: `/universities/matches` now uses deterministic
+`university-rec-v1` preference recommendations. The route loads profile inputs,
+batch-loads `catalog_programmes`, keeps candidate data availability in
+`evidenceCoverage`, separates reasons from warnings, and no longer renders
+admission-style tiers or percentages. The audit pass fixed the old global
+programme bucket in the comparator, added explicit positive/negative evidence
+and confidence-aware `rankingScoreInternal`, keeps
+flexible scholarship-dependent budgets outside the numeric budget dimension with
+a separate funding preference, and reports unknown source freshness instead of
+applying an unverified 365-day threshold. The final surgical pass confirmed that
+the live catalogue has no completeness metadata: an absent subject programme is
+unknown (never a verified mismatch), study-level evidence is bound to
+subject-relevant programmes when a subject is active; a catalogue row at a
+different level is unknown rather than proof that the requested programme level
+is absent. Subject matching uses phrase boundaries, and affordability uses the
+student's maximum annual budget (including cheaper tuition). Each related
+programme now carries its own verification label. The 2026-08-19 CI repair
+makes `exactOptionalPropertyTypes` explicit in the recommendation loader,
+domain output, and fixtures: strict TypeScript passes and focused
+recommendation/domain/API/UI tests pass 36/36 after `npm ci`. The aggregate
+`verify:pr` gate was not run locally because this checkout has Node 22.15.0
+while CI requires Node 24.19.x; CI is the pending confirmation. Full lint,
+full Vitest, and production build were not rerun in this pass.
+
+Founder-confirmed manual bank transfer is implemented in the working tree for
+mentorship and GlowBal Plus, alongside the existing VNPay Sandbox path and
+disabled Stripe choice. The vertical slice includes controlled provider UI,
+atomic checkout/claim/status/review routes, owner-scoped status reads,
+allowlisted admin + versioned HMAC review capabilities, same-origin claim/
+confirm/reject POSTs, a guarded follow-up migration, shared fulfilment, and a
+durable Resend outbox with CID QR instructions and bilingual EN/VI templates.
+The outbound sender display name is normalized to `GlowBal` even when the
+configured address is the bare Resend local-test sender.
+The status route reads the student's own review row through ordinary-client
+RLS, and claim/idempotency/mentorship pricing paths fail closed. The first
+remote manual-migration attempt failed before completion; no real email was
+sent.
+
+The first manual-payment SQL Editor run exposed PostgreSQL error `42883` in
+the outbox retry function: `make_interval` accepts the named argument `mins`,
+not `minutes`. The migration now uses `mins` and has a regression contract test;
+the guarded manual-payment migration can be run again from the beginning.
+Live local-email testing then exposed a second migration defect: the outbox
+lease function declared JSON expressions as `record`, so Postgres wrapped both
+payloads under `"?column?"` and every notification failed before reaching
+Resend. The migration now leases into `jsonb`; runtime also unwraps the legacy
+shape so already-created jobs remain deliverable before the migration is rerun.
+
+Founder notification is now one actionable email per transaction, enqueued only
+after the student reports the transfer. Checkout sends instructions only to the
+student; unsent legacy `founder_review` jobs are retired. The founder template
+now includes name, email, supplied phone, user ID, product, amount, reference,
+checkout/claim/review-deadline timestamps, and the authenticated review button.
+Local testing found that claim dispatch originally leased only one arbitrary due
+job. A failing student instruction could consume that slot and leave the new
+founder email untouched at `attempts = 0`. Claim now dispatches a batch of ten,
+and the SQL lease orders `founder_claimed` first. The newest affected founder
+job was retried once and verified `sent` with a provider message ID.
+The manual-payment status surface now has all 24 new EN→VI dictionary entries;
+the production i18n checker reports zero missing static keys and zero placeholder
+mismatches instead of failing CI on that route.
+Transactional payment-email links now use the server-only
+`MANUAL_PAYMENT_EMAIL_SITE_URL` and fall back to the canonical production origin
+`https://glowbal-education.com`; localhost, non-HTTPS, credential-bearing, and
+malformed overrides cannot leak into founder or student emails.
+
+VNPay Sandbox checkout is implemented in the working tree for mentorship and
+GlowBal Plus. Stripe remains visible but disabled as a demo/"Coming soon"
+choice, and its existing backend is unchanged. VNPay uses server-derived VND
+amounts, HMAC-SHA512 signing, a read-only Return page, and an IPN-driven,
+idempotent fulfilment function. The database function also protects exact
+mentor-slot ownership, handles checkout expiry and late successful callbacks,
+enforces Plus expiry, and revokes security-definer RPC access from browser
+roles.
+
+CV Builder F7 integration work is in progress in the working tree: the builder
+now consumes an owner-scoped, versioned Personalized Strategy snapshot, binds
+Target Profile and generation requests to its recommendation id, and preserves
+form/template drafts while clearing stale AI output.
 
 This is the primary status file after the routing index in `docs/README.md`. It
 records the present state of the repository, the last completed work, its

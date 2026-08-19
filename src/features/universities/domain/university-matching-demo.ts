@@ -1,5 +1,9 @@
 import type { StudentProfile } from '@/lib/types';
-import { rankUniversityMatches, type UniversityMatchingCandidate } from './university-matching';
+import {
+  rankUniversityRecommendations,
+  type RecommendationProgramme,
+  type RecommendationUniversity,
+} from './university-recommendation';
 
 const demoProfile: StudentProfile = {
   study_level: 'postgraduate',
@@ -10,7 +14,7 @@ const demoProfile: StudentProfile = {
   support_needs: 'Parents / family alignment',
 };
 
-const demoUniversities: UniversityMatchingCandidate[] = [
+const demoUniversities: RecommendationUniversity[] = [
   {
     id: 9101,
     name: 'Northstar Institute of Technology',
@@ -18,9 +22,7 @@ const demoUniversities: UniversityMatchingCandidate[] = [
     strengths: 'Computer Science, Artificial Intelligence, Robotics',
     best_for: 'Postgraduate technology students',
     tuition_usd: '$20,000',
-    living_cost_usd: '$10,000',
     international_environment: 'Big city campus with an international community',
-    scholarship: 'Merit scholarships available',
   },
   {
     id: 9102,
@@ -29,9 +31,7 @@ const demoUniversities: UniversityMatchingCandidate[] = [
     strengths: 'Business, Management, Economics',
     best_for: 'Postgraduate study',
     tuition_usd: '$15,000',
-    living_cost_usd: '$10,000',
     international_environment: 'Suburban campus',
-    scholarship: 'Limited funding information',
   },
   {
     id: 9103,
@@ -40,13 +40,42 @@ const demoUniversities: UniversityMatchingCandidate[] = [
     strengths: 'Arts, Design, Media Studies',
     best_for: 'Creative undergraduate study',
     tuition_usd: '$50,000',
-    living_cost_usd: '$20,000',
     international_environment: 'Historic campus town',
-    scholarship: 'Limited funding information',
   },
 ];
 
-/** Fixed public fixture for demonstrating university-only deterministic tiers. */
+const demoProgrammes: RecommendationProgramme[] = [
+  {
+    id: 'demo-northstar-cs',
+    universityId: 9101,
+    name: 'MSc Computer Science',
+    degreeLevel: 'master',
+    normalizedSubject: 'Computer Science',
+    officialUrl: 'https://example.com/northstar/computer-science',
+    verificationStatus: 'RULE_VALIDATED',
+    retrievedAt: '2026-08-01T00:00:00.000Z',
+  },
+  {
+    id: 'demo-northstar-ai',
+    universityId: 9101,
+    name: 'MSc Artificial Intelligence',
+    degreeLevel: 'master',
+    normalizedSubject: 'Artificial Intelligence',
+    officialUrl: 'https://example.com/northstar/artificial-intelligence',
+    verificationStatus: 'NEEDS_REVIEW',
+    retrievedAt: '2026-08-01T00:00:00.000Z',
+  },
+];
+
+/** Fixed public fixture for demonstrating deterministic recommendations. */
 export function demoUniversityMatches() {
-  return rankUniversityMatches(demoProfile, demoUniversities);
+  const programmes = new Map<number, RecommendationProgramme[]>();
+  for (const programme of demoProgrammes) {
+    const current = programmes.get(programme.universityId) ?? [];
+    current.push(programme);
+    programmes.set(programme.universityId, current);
+  }
+  return rankUniversityRecommendations(demoProfile, demoUniversities, programmes, {
+    asOf: '2026-08-18T00:00:00.000Z',
+  });
 }

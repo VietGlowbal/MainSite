@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { loadRankedUniversityMatches } from '@/features/universities/api';
+import { loadUniversityRecommendations } from '@/features/universities/api';
 import { UniversityMatchResults } from '@/features/universities/ui';
 import { GlowbalLogo } from '@/components/glowbal-logo';
 import { SiteNavigation } from '@/components/site-navigation';
@@ -19,11 +19,11 @@ export default async function UniversityMatchesPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth?redirect=/universities/matches');
 
-  const matches = await loadRankedUniversityMatches(supabase, user.id);
+  const recommendation = await loadUniversityRecommendations(supabase, user.id);
   return (
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface">
       <SiteNavigation tone="light" showSaved />
-      <UniversityMatchResults matches={matches} />
+      <UniversityMatchResults recommendation={recommendation} />
       <Footer
         logo={<GlowbalLogo height={28} />}
         tagline={FOOTER_TAGLINE}

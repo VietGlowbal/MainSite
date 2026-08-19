@@ -22,7 +22,10 @@ type RawRow = {
   credential: string | null;
   duration: string | null;
   official_url: string | null;
+  normalized_field: string | null;
+  programme_status: string | null;
   verification_status: string | null;
+  source_retrieved_at: string | null;
   academic_units: unknown;
 };
 
@@ -54,28 +57,37 @@ export class SupabaseProgrammeRepository implements ProgrammeQueries {
   readonly name = 'supabase';
 
   async byUniversityId(universityId: number): Promise<CatalogueProgramme[]> {
-    if (!Number.isFinite(universityId)) return [];
+    const byUniversity = await this.byUniversityIds([universityId]);
+    return byUniversity.get(universityId) ?? [];
+  }
+
+  async byUniversityIds(universityIds: number[]): Promise<Map<number, CatalogueProgramme[]>> {
+    const ids = [...new Set(universityIds.filter((id) => Number.isFinite(id)))];
+    const result = new Map<number, CatalogueProgramme[]>();
+    if (ids.length === 0) return result;
 
     const admin = createAdminClient();
     const { data, error } = await admin
       .from('catalog_programmes')
       .select(
-        'programme_id, university_id, programme_name, degree_level, credential, duration, official_url, verification_status, academic_units',
+        'programme_id, university_id, programme_name, degree_level, credential, duration, official_url, normalized_field, programme_status, verification_status, source_retrieved_at, academic_units',
       )
-      .eq('university_id', universityId)
+      .in('university_id', ids)
+      .order('university_id', { ascending: true })
       .order('programme_name', { ascending: true });
 
     if (error) {
-      // Logged rather than thrown: an empty catalogue is a legitimate answer for
-      // 82 of the 106 universities, so the caller already handles []. Without the
-      // log, a broken read would be indistinguishable from that.
-      console.error('ProgrammeRepository.byUniversityId failed:', error.message);
-      return [];
+      throw new Error(`ProgrammeRepository.byUniversityIds failed: ${error.message}`);
     }
 
-    return (data ?? [])
-      .map((row) => toProgramme(row as RawRow))
-      .filter((programme): programme is CatalogueProgramme => programme !== null);
+    for (const row of data ?? []) {
+      const programme = toProgramme(row as RawRow);
+      if (!programme) continue;
+      const current = result.get(programme.universityId) ?? [];
+      current.push(programme);
+      result.set(programme.universityId, current);
+    }
+    return result;
   }
 }
 
@@ -99,6 +111,10 @@ function toProgramme(row: RawRow): CatalogueProgramme | null {
     credential: row.credential,
     duration: row.duration,
     officialUrl: row.official_url,
+    normalizedSubject: row.normalized_field,
+    programmeStatus: row.programme_status,
+    verificationStatus: row.verification_status,
+    retrievedAt: row.source_retrieved_at,
     units: toUnits(row.academic_units),
   };
 }

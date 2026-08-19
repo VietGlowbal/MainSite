@@ -85,8 +85,7 @@ export class SupabaseUniversityRepository implements UniversityQueries {
       .order('id', { ascending: true });
 
     if (error) {
-      console.error('UniversityRepository.allForMatching failed:', error.message);
-      return [];
+      throw new Error(`UniversityRepository.allForMatching failed: ${error.message}`);
     }
     return (data ?? []) as unknown as UniversityListItem[];
   }
