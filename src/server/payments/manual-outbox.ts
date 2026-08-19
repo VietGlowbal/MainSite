@@ -71,11 +71,19 @@ export async function sendManualPaymentJob(job: Job): Promise<string> {
   if (job.kind === 'founder_claimed') {
     const reviewToken = requireManualReviewToken(review, config.reviewSecret);
     const reviewUrl = `${config.siteUrl}/payment/manual/review?token=${encodeURIComponent(reviewToken)}`;
+    const studentPhone = stringValue(tx.recipient_phone);
+    const transferDescParts = [recipientName, studentPhone, String(amountVnd)].filter(Boolean);
+    const transferDescription = transferDescParts.join(' ');
     const rendered = renderManualFounderEmail({
-      reference, amountVnd, studentId: stringValue(tx.user_id),
-      studentName: recipientName, studentEmail: recipientEmail,
-      studentPhone: stringValue(tx.recipient_phone),
-      productLabel, summary: stringValue(tx.summary, productType === 'mentorship' ? 'Mentorship slot held' : 'Plus plan purchase'),
+      reference,
+      transferDescription,
+      amountVnd,
+      studentId: stringValue(tx.user_id),
+      studentName: recipientName,
+      studentEmail: recipientEmail,
+      studentPhone,
+      productLabel,
+      summary: stringValue(tx.summary, productType === 'mentorship' ? 'Mentorship slot held' : 'Plus plan purchase'),
       checkoutCreatedAt: new Date(stringValue(tx.created_at)),
       claimedAt: new Date(stringValue(review?.claimed_at)),
       reviewDeadlineAt: new Date(stringValue(review?.review_deadline_at, stringValue(tx.expires_at))),

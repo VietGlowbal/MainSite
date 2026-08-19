@@ -123,6 +123,10 @@ describe('manual payment email templates', () => {
     expect(email.html).toContain('11111111-1111-4111-8111-111111111111');
     expect(email.html).toContain('15 Aug 2026, 14:30');
     expect(email.html).toContain('Xác nhận hoặc từ chối thanh toán');
+    expect(email.html).toContain('Nội dung chuyển khoản (VietQR)');
+    expect(email.html).toContain('&lt;Student&gt; +84 912 345 678 455000');
+    expect(email.html).toContain('GLOWMANUALABC123');
+    expect(email.text).toContain('Nội dung chuyển khoản (VietQR): <Student> +84 912 345 678 455000');
     expect(email.text).toContain('Thời điểm người dùng báo đã chuyển');
   });
 

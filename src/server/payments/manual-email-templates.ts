@@ -56,6 +56,7 @@ export function renderManualStudentEmail(input: ManualStudentEmailInput): {
 
 export function renderManualFounderEmail(input: {
   reference: string;
+  transferDescription?: string;
   amountVnd: number;
   studentId: string;
   studentName: string;
@@ -69,18 +70,22 @@ export function renderManualFounderEmail(input: {
   reviewUrl: string;
 }): { subject: string; html: string; text: string } {
   const phoneValue = input.studentPhone?.trim() || 'Không cung cấp';
+  const transferDesc =
+    input.transferDescription?.trim() ||
+    [input.studentName, input.studentPhone, String(input.amountVnd)].filter(Boolean).join(' ') ||
+    input.reference;
   const values = [
-    input.reference, input.studentId, input.studentName, input.studentEmail,
+    input.reference, transferDesc, input.studentId, input.studentName, input.studentEmail,
     phoneValue, input.productLabel, input.summary, input.reviewUrl,
   ].map(escapeHtml);
-  const [reference, studentId, name, email, phone, product, summary, review] = values;
+  const [reference, transferDescription, studentId, name, email, phone, product, summary, review] = values;
   const checkoutCreated = escapeHtml(dateLabel(input.checkoutCreatedAt));
   const claimed = escapeHtml(dateLabel(input.claimedAt));
   const reviewDeadline = escapeHtml(dateLabel(input.reviewDeadlineAt));
   return {
     subject: `GlowBal — Người dùng đã báo chuyển khoản (${input.reference})`,
-    html: `<div style="font-family:Arial,sans-serif;color:#171717;line-height:1.5"><h1>Người dùng đã báo chuyển khoản</h1><p>Vui lòng đối chiếu giao dịch ngân hàng trước khi xác nhận.</p><h2>Thông tin người dùng</h2><table style="border-collapse:collapse"><tr><td style="padding:4px 16px 4px 0"><strong>Họ tên</strong></td><td>${name}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Email</strong></td><td>${email}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Số điện thoại</strong></td><td>${phone}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Mã người dùng</strong></td><td><code>${studentId}</code></td></tr></table><h2>Thông tin thanh toán</h2><table style="border-collapse:collapse"><tr><td style="padding:4px 16px 4px 0"><strong>Mã chuyển khoản</strong></td><td><code>${reference}</code></td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Sản phẩm</strong></td><td>${product}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Số tiền</strong></td><td><strong>${money(input.amountVnd)}</strong></td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Chi tiết</strong></td><td>${summary}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Tạo yêu cầu lúc</strong></td><td>${checkoutCreated}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Báo đã chuyển lúc</strong></td><td>${claimed}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Hạn duyệt</strong></td><td>${reviewDeadline}</td></tr></table><p style="margin-top:24px"><a href="${review}" style="background:#e51d48;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700">Xác nhận hoặc từ chối thanh toán</a></p><p>Mở liên kết chỉ để xem. Chỉ xác nhận sau khi tiền đã vào tài khoản.</p></div>`,
-    text: `Người dùng đã báo chuyển khoản\n\nTHÔNG TIN NGƯỜI DÙNG\nHọ tên: ${input.studentName}\nEmail: ${input.studentEmail}\nSố điện thoại: ${phoneValue}\nMã người dùng: ${input.studentId}\n\nTHÔNG TIN THANH TOÁN\nMã chuyển khoản: ${input.reference}\nSản phẩm: ${input.productLabel}\nSố tiền: ${money(input.amountVnd)}\nChi tiết: ${input.summary}\nTạo yêu cầu lúc: ${dateLabel(input.checkoutCreatedAt)}\nThời điểm người dùng báo đã chuyển: ${dateLabel(input.claimedAt)}\nHạn duyệt: ${dateLabel(input.reviewDeadlineAt)}\n\nXác nhận hoặc từ chối thanh toán: ${input.reviewUrl}\nChỉ xác nhận sau khi tiền đã vào tài khoản.`,
+    html: `<div style="font-family:Arial,sans-serif;color:#171717;line-height:1.5"><h1>Người dùng đã báo chuyển khoản</h1><p>Vui lòng đối chiếu giao dịch ngân hàng trước khi xác nhận.</p><h2>Thông tin người dùng</h2><table style="border-collapse:collapse"><tr><td style="padding:4px 16px 4px 0"><strong>Họ tên</strong></td><td>${name}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Email</strong></td><td>${email}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Số điện thoại</strong></td><td>${phone}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Mã người dùng</strong></td><td><code>${studentId}</code></td></tr></table><h2>Thông tin thanh toán</h2><table style="border-collapse:collapse"><tr><td style="padding:4px 16px 4px 0"><strong>Nội dung chuyển khoản (VietQR)</strong></td><td><code>${transferDescription}</code></td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Mã giao dịch hệ thống</strong></td><td><code>${reference}</code></td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Sản phẩm</strong></td><td>${product}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Số tiền</strong></td><td><strong>${money(input.amountVnd)}</strong></td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Chi tiết</strong></td><td>${summary}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Tạo yêu cầu lúc</strong></td><td>${checkoutCreated}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Báo đã chuyển lúc</strong></td><td>${claimed}</td></tr><tr><td style="padding:4px 16px 4px 0"><strong>Hạn duyệt</strong></td><td>${reviewDeadline}</td></tr></table><p style="margin-top:24px"><a href="${review}" style="background:#e51d48;color:#fff;padding:12px 18px;border-radius:8px;text-decoration:none;font-weight:700">Xác nhận hoặc từ chối thanh toán</a></p><p>Mở liên kết chỉ để xem. Chỉ xác nhận sau khi tiền đã vào tài khoản.</p></div>`,
+    text: `Người dùng đã báo chuyển khoản\n\nTHÔNG TIN NGƯỜI DÙNG\nHọ tên: ${input.studentName}\nEmail: ${input.studentEmail}\nSố điện thoại: ${phoneValue}\nMã người dùng: ${input.studentId}\n\nTHÔNG TIN THANH TOÁN\nNội dung chuyển khoản (VietQR): ${transferDesc}\nMã giao dịch hệ thống: ${input.reference}\nSản phẩm: ${input.productLabel}\nSố tiền: ${money(input.amountVnd)}\nChi tiết: ${input.summary}\nTạo yêu cầu lúc: ${dateLabel(input.checkoutCreatedAt)}\nThời điểm người dùng báo đã chuyển: ${dateLabel(input.claimedAt)}\nHạn duyệt: ${dateLabel(input.reviewDeadlineAt)}\n\nXác nhận hoặc từ chối thanh toán: ${input.reviewUrl}\nChỉ xác nhận sau khi tiền đã vào tài khoản.`,
   };
 }
 
