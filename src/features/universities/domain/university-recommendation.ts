@@ -48,6 +48,10 @@ export interface MatchWarning {
 
 export type DataQuality = 'high' | 'medium' | 'low';
 
+export type RecommendationBand = 'top_pick' | 'good_fit' | 'worth_exploring';
+
+export type SelectivityContext = 'highly_selective' | 'selective' | 'lower_selectivity' | 'not_assessed';
+
 export type CanonicalStudyLevel =
   | 'secondary'
   | 'foundation'
@@ -86,6 +90,7 @@ export type RecommendationUniversity = Omit<Pick<University,
   | 'housing'
   | 'teaching_style'
   | 'tuition_usd'
+  | 'accept_rate'
 >, 'country'> & {
   country: string | null;
 };
@@ -116,6 +121,9 @@ export interface RecommendationResult {
   universityId: number;
   universityName: string;
   country: string | null;
+  recommendationRank: number;
+  recommendationBand: RecommendationBand;
+  selectivityContext: SelectivityContext;
   programmeMatches: ProgrammeMatch[];
   positiveEvidence: number;
   negativeEvidence: number;
@@ -126,6 +134,22 @@ export interface RecommendationResult {
   warnings: MatchWarning[];
   algorithmVersion: string;
 }
+
+export interface RecommendationBandInput {
+  result: Pick<RecommendationResult,
+    | 'positiveEvidence'
+    | 'negativeEvidence'
+    | 'rankingScoreInternal'
+  >;
+  activeDimensionCount: number;
+}
+
+type CandidateRecommendationResult = Omit<RecommendationResult,
+  | 'recommendationRank'
+  | 'recommendationBand'
+> & {
+  recommendationBand: RecommendationBand | null;
+};
 
 export type RecommendationStatus = 'success' | 'incomplete_profile' | 'empty' | 'error';
 
@@ -589,6 +613,84 @@ function dataQuality(coverage: number, config: RecommendationConfig): DataQualit
   return 'low';
 }
 
+/**
+ * Maps already-computed evidence onto a stable product label. These thresholds
+ * are presentation heuristics, never admission probabilities or percentiles.
+ */
+export function deriveRecommendationBand(
+  { result, activeDimensionCount }: RecommendationBandInput,
+  config: RecommendationConfig = RECOMMENDATION_CONFIG,
+): RecommendationBand | null {
+  if (result.positiveEvidence <= 0) return null;
+
+  const { topPick, goodFit, worthExploring } = config.recommendationBands;
+  if (
+    activeDimensionCount >= topPick.minActiveDimensions
+    && result.rankingScoreInternal !== null
+    && result.rankingScoreInternal >= topPick.minRankingScore
+    && result.positiveEvidence >= topPick.minPositiveEvidence
+    && result.negativeEvidence <= topPick.maxNegativeEvidence
+  ) {
+    return 'top_pick';
+  }
+  if (
+    activeDimensionCount >= goodFit.minActiveDimensions
+    && result.rankingScoreInternal !== null
+    && result.rankingScoreInternal >= goodFit.minRankingScore
+    && result.positiveEvidence >= goodFit.minPositiveEvidence
+    && result.negativeEvidence <= goodFit.maxNegativeEvidence
+  ) {
+    return 'good_fit';
+  }
+  if (
+    activeDimensionCount >= worthExploring.minActiveDimensions
+    && result.positiveEvidence >= worthExploring.minPositiveEvidence
+    && result.negativeEvidence <= worthExploring.maxNegativeEvidence
+  ) {
+    return 'worth_exploring';
+  }
+  return null;
+}
+
+/** A result is presentable only when the product band policy can support it. */
+export function isMeaningfulRecommendation(
+  input: RecommendationBandInput,
+  config: RecommendationConfig = RECOMMENDATION_CONFIG,
+): boolean {
+  return input.result.positiveEvidence > 0 && deriveRecommendationBand(input, config) !== null;
+}
+
+/**
+ * Parse only a general acceptance rate: a standalone percentage/range or a
+ * leading percentage explicitly labelled "overall". Programme-specific and
+ * unstructured prose stays unassessed rather than being over-interpreted.
+ */
+function generalAcceptanceRate(value: string | null | undefined): number | null {
+  const match = value?.trim().match(
+    /^~?\s*(\d+(?:\.\d+)?)(?:\s*[–-]\s*(\d+(?:\.\d+)?))?\s*%\s*(?:$|overall\b)/i,
+  );
+  if (!match?.[1]) return null;
+  const lower = Number.parseFloat(match[1]);
+  const upper = match[2] ? Number.parseFloat(match[2]) : lower;
+  return Number.isFinite(upper) && upper >= 0 && upper <= 100 ? upper : null;
+}
+
+/**
+ * General-admissions context derived only from conservatively parsed acceptance
+ * rates. Ranking/prestige and unstructured difficulty notes are intentionally
+ * excluded because neither is defensible selectivity evidence here.
+ */
+export function deriveSelectivityContext(
+  university: Pick<RecommendationUniversity, 'accept_rate'>,
+  config: RecommendationConfig = RECOMMENDATION_CONFIG,
+): SelectivityContext {
+  const rate = generalAcceptanceRate(university.accept_rate);
+  if (rate === null) return 'not_assessed';
+  if (rate <= config.selectivity.highlySelectiveMaxAcceptanceRate) return 'highly_selective';
+  if (rate <= config.selectivity.selectiveMaxAcceptanceRate) return 'selective';
+  return 'lower_selectivity';
+}
+
 function uniqueReasons(evaluations: DimensionEvaluation[]): MatchReasonCode[] {
   return [...new Set(evaluations.flatMap((evaluation) => evaluation.reasonCodes))];
 }
@@ -620,7 +722,7 @@ function evaluateUniversity(
   university: RecommendationUniversity,
   programmes: RecommendationProgramme[],
   options: Required<RecommendationOptions>,
-): RecommendationResult {
+): CandidateRecommendationResult {
   const subject = programmeMatchesFor(profile, university, programmes, options.asOf, options.config);
   const evaluations: Record<RecommendationDimension, DimensionEvaluation> = {
     subject: subject.evaluation,
@@ -675,7 +777,7 @@ function evaluateUniversity(
     return value === undefined ? { code } : { code, value };
   });
 
-  return {
+  const candidate = {
     universityId: university.id,
     universityName: university.name,
     country: university.country ?? null,
@@ -688,6 +790,14 @@ function evaluateUniversity(
     reasons,
     warnings,
     algorithmVersion: options.config.version,
+  };
+  return {
+    ...candidate,
+    recommendationBand: deriveRecommendationBand({
+      result: candidate,
+      activeDimensionCount: profile.activeDimensions.length,
+    }, options.config),
+    selectivityContext: deriveSelectivityContext(university, options.config),
   };
 }
 
@@ -706,14 +816,14 @@ export function rankUniversityRecommendations(
   };
   if (profile.activeDimensions.length === 0) return { status: 'incomplete_profile', results: [], ...base };
 
-  const bestProgrammeQuality = (result: RecommendationResult): number => {
+  const bestProgrammeQuality = (result: Pick<CandidateRecommendationResult, 'programmeMatches'>): number => {
     return result.programmeMatches.reduce(
       (best, programme) => Math.max(best, programmeQuality(programme.verificationStatus)),
       0,
     );
   };
 
-  const results = universities
+  const candidates = universities
     .map((university) => evaluateUniversity(profile, university, programmesByUniversityId.get(university.id) ?? [], { config, asOf }))
     .sort((left, right) => {
       return (right.rankingScoreInternal ?? -1) - (left.rankingScoreInternal ?? -1)
@@ -723,6 +833,17 @@ export function rankUniversityRecommendations(
         || bestProgrammeQuality(right) - bestProgrammeQuality(left)
         || left.universityId - right.universityId;
     });
+  const meaningfulCandidates = candidates.filter((candidate) =>
+    isMeaningfulRecommendation({
+      result: candidate,
+      activeDimensionCount: profile.activeDimensions.length,
+    }, config) && candidate.recommendationBand !== null,
+  );
+  const results: RecommendationResult[] = meaningfulCandidates.map((candidate, index) => ({
+      ...candidate,
+      recommendationRank: index + 1,
+      recommendationBand: candidate.recommendationBand!,
+    }));
 
   return {
     status: results.length > 0 ? 'success' : 'empty',

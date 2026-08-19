@@ -1,14 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { Badge, Container, Panel } from '@/shared/ui';
+import { useMemo, useState } from 'react';
+import { Badge, Button, Container, Panel } from '@/shared/ui';
 import { useT } from '@/lib/i18n';
 import {
   programmeVerificationConfidence,
+  RECOMMENDATION_UI_CONFIG,
   type RecommendationReason,
   type MatchWarning,
+  type RecommendationBand,
   type RecommendationResponse,
   type RecommendationResult,
+  type SelectivityContext,
 } from '../domain';
 
 const REASON_COPY: Record<RecommendationReason['code'], string> = {
@@ -61,10 +65,17 @@ function warningText(warning: MatchWarning, t: ReturnType<typeof useT>): string 
   return t(WARNING_COPY[warning.code]);
 }
 
-function dataQualityLabel(quality: RecommendationResult['dataQuality'], t: ReturnType<typeof useT>): string {
-  if (quality === 'high') return t('More complete data');
-  if (quality === 'medium') return t('Some data available');
-  return t('More data needed');
+function recommendationBandLabel(band: RecommendationBand, t: ReturnType<typeof useT>): string {
+  if (band === 'top_pick') return t('Top pick');
+  if (band === 'good_fit') return t('Good fit');
+  return t('Worth exploring');
+}
+
+function selectivityLabel(context: SelectivityContext, t: ReturnType<typeof useT>): string {
+  if (context === 'highly_selective') return t('Highly selective overall');
+  if (context === 'selective') return t('Selective overall');
+  if (context === 'lower_selectivity') return t('Lower selectivity overall');
+  return t('Selectivity not assessed');
 }
 
 export function UniversityMatchResults({
@@ -75,6 +86,32 @@ export function UniversityMatchResults({
   demo?: boolean;
 }) {
   const t = useT();
+  const [recommendationFilter, setRecommendationFilter] = useState<RecommendationBand | null>(null);
+  const [selectivityFilter, setSelectivityFilter] = useState<SelectivityContext | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(RECOMMENDATION_UI_CONFIG.initialVisibleResults);
+  const hasActiveFilter = recommendationFilter !== null || selectivityFilter !== null;
+  const filteredResults = useMemo(() => recommendation.results.filter((result) => {
+    const recommendationMatches = recommendationFilter === null || result.recommendationBand === recommendationFilter;
+    const selectivityMatches = selectivityFilter === null || result.selectivityContext === selectivityFilter;
+    return recommendationMatches && selectivityMatches;
+  }), [recommendation.results, recommendationFilter, selectivityFilter]);
+  const visibleResults = filteredResults.slice(0, visibleCount);
+
+  const changeRecommendationFilter = (filter: RecommendationBand | null) => {
+    setRecommendationFilter(filter);
+    setVisibleCount(RECOMMENDATION_UI_CONFIG.initialVisibleResults);
+  };
+
+  const changeSelectivityFilter = (filter: SelectivityContext | null) => {
+    setSelectivityFilter(filter);
+    setVisibleCount(RECOMMENDATION_UI_CONFIG.initialVisibleResults);
+  };
+
+  const resetFilters = () => {
+    setRecommendationFilter(null);
+    setSelectivityFilter(null);
+    setVisibleCount(RECOMMENDATION_UI_CONFIG.initialVisibleResults);
+  };
 
   return (
     <Container className="flex flex-col gap-gb-4xl py-gb-6xl">
@@ -85,7 +122,7 @@ export function UniversityMatchResults({
         <p className="max-w-gb-width-xl text-gb-md text-fg-tertiary">
           {demo
             ? t('This public demo uses fixed profile, university and programme data to show deterministic recommendations.')
-            : t('These recommendations use your preferences and the university and programme data currently available.')}
+            : t('These universities are ranked by how well they match your preferences. Admission selectivity uses available overall university acceptance data. Programme-specific competitiveness may differ, and this is not a prediction of your personal admission chances.')}
         </p>
       </div>
 
@@ -95,20 +132,129 @@ export function UniversityMatchResults({
       {recommendation.status === 'success' ? (
         <section aria-labelledby="university-recommendations-heading" className="flex flex-col gap-gb-2xl">
           <div className="flex flex-col gap-gb-xs">
-            <h2 id="university-recommendations-heading" className="text-gb-xl font-semibold text-fg">{t('Universities worth exploring')}</h2>
+            <h2 id="university-recommendations-heading" className="text-gb-xl font-semibold text-fg">{t('Recommended universities')}</h2>
             <p className="text-gb-sm text-fg-tertiary">
               {t('Each result is explained with positive reasons and separate data warnings. These are not admission predictions.')}
             </p>
           </div>
-          <ol className="grid gap-gb-2xl lg:grid-cols-2">
-            {recommendation.results.map((result) => <UniversityRecommendationCard key={result.universityId} result={result} t={t} />)}
-          </ol>
+          <RecommendationFilters
+            recommendationFilter={recommendationFilter}
+            selectivityFilter={selectivityFilter}
+            onRecommendationFilterChange={changeRecommendationFilter}
+            onSelectivityFilterChange={changeSelectivityFilter}
+            onShowAll={resetFilters}
+            showAllDisabled={!hasActiveFilter}
+            t={t}
+          />
+          {filteredResults.length === 0 ? (
+            <FilteredEmptyState onShowAll={resetFilters} t={t} />
+          ) : (
+            <>
+              <p className="text-gb-sm text-fg-tertiary" aria-live="polite">
+                {t('Showing {visible} of {total} recommendations', {
+                  visible: visibleResults.length,
+                  total: filteredResults.length,
+                })}
+              </p>
+              <ol className="grid gap-gb-2xl lg:grid-cols-2">
+                {visibleResults.map((result) => <UniversityRecommendationCard key={result.universityId} result={result} t={t} />)}
+              </ol>
+              {visibleCount < filteredResults.length ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  className="self-start"
+                  onClick={() => setVisibleCount((current) => current + RECOMMENDATION_UI_CONFIG.loadMoreIncrement)}
+                >
+                  {t('Show more recommendations')}
+                </Button>
+              ) : null}
+            </>
+          )}
           <p className="max-w-gb-width-xl text-gb-sm text-fg-muted">
             {t("These recommendations are based on your preferences and currently available university data. They are not predictions of admission outcomes. Always verify programme requirements, tuition, and deadlines on the university's official website.")}
           </p>
         </section>
       ) : null}
     </Container>
+  );
+}
+
+function RecommendationFilters({
+  recommendationFilter,
+  selectivityFilter,
+  onRecommendationFilterChange,
+  onSelectivityFilterChange,
+  onShowAll,
+  showAllDisabled,
+  t,
+}: {
+  recommendationFilter: RecommendationBand | null;
+  selectivityFilter: SelectivityContext | null;
+  onRecommendationFilterChange: (filter: RecommendationBand | null) => void;
+  onSelectivityFilterChange: (filter: SelectivityContext | null) => void;
+  onShowAll: () => void;
+  showAllDisabled: boolean;
+  t: ReturnType<typeof useT>;
+}) {
+  const recommendationBands: RecommendationBand[] = ['top_pick', 'good_fit', 'worth_exploring'];
+  const selectivityContexts: SelectivityContext[] = ['highly_selective', 'selective', 'lower_selectivity', 'not_assessed'];
+
+  return (
+    <div className="flex flex-col gap-gb-lg rounded-gb-lg border border-line bg-surface-muted p-gb-xl">
+      <div className="flex flex-col gap-gb-xs">
+        <p className="text-gb-sm font-semibold text-fg">{t('Recommendation')}</p>
+        <div className="flex flex-wrap gap-gb-sm">
+          {recommendationBands.map((band) => (
+            <FilterChip
+              key={band}
+              pressed={recommendationFilter === band}
+              onClick={() => onRecommendationFilterChange(recommendationFilter === band ? null : band)}
+            >
+              {recommendationBandLabel(band, t)}
+            </FilterChip>
+          ))}
+        </div>
+      </div>
+      <div className="flex flex-col gap-gb-xs">
+        <p className="text-gb-sm font-semibold text-fg">{t('Admission selectivity')}</p>
+        <div className="flex flex-wrap gap-gb-sm">
+          {selectivityContexts.map((context) => (
+            <FilterChip
+              key={context}
+              pressed={selectivityFilter === context}
+              onClick={() => onSelectivityFilterChange(selectivityFilter === context ? null : context)}
+            >
+              {selectivityLabel(context, t)}
+            </FilterChip>
+          ))}
+        </div>
+      </div>
+      <Button variant="secondary" size="sm" className="self-start" disabled={showAllDisabled} onClick={onShowAll}>
+        {t('Show all')}
+      </Button>
+    </div>
+  );
+}
+
+function FilterChip({ children, pressed, onClick }: {
+  children: React.ReactNode;
+  pressed: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <Button variant={pressed ? 'primary' : 'secondary'} size="sm" aria-pressed={pressed} onClick={onClick}>
+      {children}
+    </Button>
+  );
+}
+
+function FilteredEmptyState({ onShowAll, t }: { onShowAll: () => void; t: ReturnType<typeof useT> }) {
+  return (
+    <Panel className="flex flex-col items-start gap-gb-md">
+      <h3 className="text-gb-lg font-semibold text-fg">{t('No recommendations match these filters.')}</h3>
+      <Button variant="secondary" size="sm" onClick={onShowAll}>{t('Show all')}</Button>
+    </Panel>
   );
 }
 
@@ -146,15 +292,23 @@ function UniversityRecommendationCard({ result, t }: { result: RecommendationRes
   return (
     <Panel as="li" className="flex flex-col gap-gb-2xl">
       <div className="flex flex-wrap items-start justify-between gap-gb-lg">
-        <div className="flex min-w-0 flex-col gap-gb-xs">
-          <h3 className="text-gb-lg font-semibold text-fg">
-            <Link href={`/universities/${result.universityId}`} className="hover:text-fg-brand hover:underline">
-              {result.universityName}
-            </Link>
-          </h3>
-          <p className="text-gb-sm text-fg-tertiary">{result.country ?? t('Country not available')}</p>
+        <div className="flex min-w-0 gap-gb-md">
+          <span className="shrink-0 text-gb-sm font-semibold text-fg-brand" aria-label={t('Recommendation rank {rank}', { rank: result.recommendationRank })}>
+            #{result.recommendationRank}
+          </span>
+          <div className="flex min-w-0 flex-col gap-gb-xs">
+            <h3 className="text-gb-lg font-semibold text-fg">
+              <Link href={`/universities/${result.universityId}`} className="hover:text-fg-brand hover:underline">
+                {result.universityName}
+              </Link>
+            </h3>
+            <p className="text-gb-sm text-fg-tertiary">{result.country ?? t('Country not available')}</p>
+          </div>
         </div>
-        <Badge variant={result.dataQuality === 'high' ? 'brand-subtle' : 'neutral'}>{dataQualityLabel(result.dataQuality, t)}</Badge>
+        <div className="flex flex-wrap gap-gb-xs">
+          <Badge variant="brand-subtle">{recommendationBandLabel(result.recommendationBand, t)}</Badge>
+          <Badge variant="neutral">{selectivityLabel(result.selectivityContext, t)}</Badge>
+        </div>
       </div>
 
       {result.reasons.length > 0 ? <ReasonList heading={t('Why this university appears')} entries={result.reasons.map((reason) => reasonText(reason, t))} /> : null}

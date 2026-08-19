@@ -58,6 +58,7 @@ function toUniversity(university: UniversityListItem): RecommendationUniversity 
     ...(university.housing === undefined ? {} : { housing: university.housing }),
     ...(university.teaching_style === undefined ? {} : { teaching_style: university.teaching_style }),
     ...(university.tuition_usd === undefined ? {} : { tuition_usd: university.tuition_usd }),
+    ...(university.accept_rate === undefined ? {} : { accept_rate: university.accept_rate }),
   };
 }
 
