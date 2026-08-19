@@ -50,6 +50,7 @@ describe('loadUniversityRecommendations', () => {
       id: 1,
       name: 'Example University',
       country: 'Canada',
+      accept_rate: '4-5%',
     })]));
     setProgrammeQueries({
       byUniversityId: vi.fn(),
@@ -84,6 +85,7 @@ describe('loadUniversityRecommendations', () => {
 
     expect(result.status).toBe('success');
     expect(result.results[0]?.programmeMatches[0]?.programmeName).toBe('MSc Computer Science');
+    expect(result.results[0]?.selectivityContext).toBe('highly_selective');
   });
 
   it('returns error instead of presenting a repository failure as an empty result', async () => {

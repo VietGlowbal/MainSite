@@ -36,6 +36,36 @@ recommendation/domain/API/UI tests pass 36/36 after `npm ci`. The aggregate
 while CI requires Node 24.19.x; CI is the pending confirmation. Full lint,
 full Vitest, and production build were not rerun in this pass.
 
+Working tree 2026-08-19: `/universities/matches` presentation V2 now returns
+only meaningful, globally ranked recommendations with absolute `top_pick`,
+`good_fit`, or `worth_exploring` bands, plus independent admission-selectivity
+context. The client starts unfiltered, combines band/selectivity chips with
+AND semantics, preserves global rank after filtering, resets a 12-result
+window on filter changes, and loads 12 more at a time. A read-only live audit
+found 108 universities and 97 populated `accept_rate`/`admission_difficulty`
+texts, but many rates are programme-qualified prose and neither field has
+per-field provenance or freshness. V2 consequently derives `highly_selective`
+(general acceptance rate <=10%), `selective` (>10% and <=35%), and
+`lower_selectivity` (>35%) only from a standalone or explicit overall
+acceptance rate; missing, ambiguous, programme-specific, conflicting, or
+unparseable values remain `not_assessed`. University rankings/prestige and
+difficulty prose are not used. The UI labels these as overall university
+selectivity and explains that programme competitiveness may differ. A
+representative eight-candidate audit across five profiles produced 6-8
+meaningful results per profile, with 0-5 top picks, 0-4 good fits, and 0-1
+worth-exploring results; thresholds were unchanged. Focused
+recommendation/domain/API/UI plus i18n tests pass 50/50; strict TypeScript,
+i18n checker, and lint pass (the latter has one unrelated manual-payment
+warning). The follow-up breadth guard now uses normalized profile active
+dimensions: three are required for `top_pick`, two for `good_fit`, and one for
+`worth_exploring`; this changes presentation bands only, not evidence, score,
+sort order, or rank. Re-running the same eight-candidate fixture audit with a
+country-plus-budget profile added produced rich-profile counts of 4/3/1,
+incomplete-catalogue counts of 3/4/1, destination-only 0/0/7,
+country-plus-budget 0/6/2, budget-only 0/0/6, and sparse-subject-only 0/0/6
+for top/good/worth. Focused recommendation/domain/API/UI plus i18n tests now
+pass 55/55. No aggregate gate, full Vitest, or production build was run.
+
 Founder-confirmed manual bank transfer is implemented in the working tree for
 mentorship and GlowBal Plus, alongside the existing VNPay Sandbox path and
 disabled Stripe choice. The vertical slice includes controlled provider UI,

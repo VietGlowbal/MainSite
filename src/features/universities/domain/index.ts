@@ -65,6 +65,9 @@ export type {
 } from './match-university';
 
 export {
+  deriveRecommendationBand,
+  deriveSelectivityContext,
+  isMeaningfulRecommendation,
   normalizeBudget,
   normalizeRecommendationProfile,
   normalizeStudyLevel,
@@ -72,7 +75,7 @@ export {
   rankUniversityRecommendations,
   recommendationProfileHasPreferences,
 } from './university-recommendation';
-export { RECOMMENDATION_CONFIG } from './university-recommendation-config';
+export { RECOMMENDATION_CONFIG, RECOMMENDATION_UI_CONFIG } from './university-recommendation-config';
 export { demoUniversityMatches } from './university-matching-demo';
 export type {
   CanonicalStudyLevel,
@@ -87,6 +90,8 @@ export type {
   ProgrammeMatch,
   ProgrammeVerificationConfidence,
   RecommendationConfig,
+  RecommendationBand,
+  RecommendationBandInput,
   RecommendationDimension,
   RecommendationProgramme,
   RecommendationProfile,
@@ -94,4 +99,5 @@ export type {
   RecommendationResult,
   RecommendationStatus,
   RecommendationUniversity,
+  SelectivityContext,
 } from './university-recommendation';

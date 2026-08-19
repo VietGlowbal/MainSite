@@ -122,6 +122,23 @@ export const translations: Record<string, string> = {
     'Chọn từ 200+ đại học tốt nhất thế giới',
   'Find a university': 'Tìm Đại học',
   'Recommended for you': 'Đề xuất dành cho bạn',
+  'These universities are ranked by how well they match your preferences. Admission selectivity uses available overall university acceptance data. Programme-specific competitiveness may differ, and this is not a prediction of your personal admission chances.':
+    'Các trường này được xếp hạng theo mức độ phù hợp với sở thích của bạn. Mức độ chọn lọc tuyển sinh dùng dữ liệu tỷ lệ trúng tuyển tổng thể hiện có của trường. Tính cạnh tranh của từng chương trình có thể khác, và đây không phải là dự đoán cơ hội trúng tuyển cá nhân của bạn.',
+  Recommendation: 'Đề xuất',
+  'Admission selectivity': 'Mức độ chọn lọc tuyển sinh',
+  'Top pick': 'Ưu tiên hàng đầu',
+  'Good fit': 'Phù hợp tốt',
+  'Worth exploring': 'Đáng để tìm hiểu',
+  'Highly selective': 'Chọn lọc cao',
+  'Highly selective overall': 'Chọn lọc cao (tổng thể)',
+  Selective: 'Có chọn lọc',
+  'Selective overall': 'Có chọn lọc (tổng thể)',
+  'Lower selectivity overall': 'Mức chọn lọc thấp hơn (tổng thể)',
+  'Selectivity not assessed': 'Chưa đánh giá mức độ chọn lọc',
+  'Show more recommendations': 'Xem thêm đề xuất',
+  'Showing {visible} of {total} recommendations': 'Đang hiển thị {visible} trong số {total} đề xuất',
+  'No recommendations match these filters.': 'Không có đề xuất nào khớp với các bộ lọc này.',
+  'Recommendation rank {rank}': 'Thứ hạng đề xuất {rank}',
   'This public demo uses fixed profile, university and programme data to show deterministic recommendations.':
     'Bản demo công khai này dùng dữ liệu hồ sơ, trường và chương trình cố định để hiển thị đề xuất nhất quán.',
   'These recommendations use your preferences and the university and programme data currently available.':
