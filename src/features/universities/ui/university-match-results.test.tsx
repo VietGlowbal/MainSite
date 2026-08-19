@@ -56,8 +56,8 @@ describe('UniversityMatchResults', () => {
     render(<UniversityMatchResults recommendation={{
       ...success,
       results: [{
-        ...success.results[0],
-        programmeMatches: [{ ...success.results[0].programmeMatches[0], verificationStatus: 'NEEDS_REVIEW' }],
+        ...success.results[0]!,
+        programmeMatches: [{ ...success.results[0]!.programmeMatches[0]!, verificationStatus: 'NEEDS_REVIEW' }],
         warnings: [{ code: 'PROGRAMME_NOT_VERIFIED', value: 'MSc Computer Science' }],
       }],
     }} />);
@@ -71,17 +71,17 @@ describe('UniversityMatchResults', () => {
     render(<UniversityMatchResults recommendation={{
       ...success,
       results: [{
-        ...success.results[0],
+        ...success.results[0]!,
         programmeMatches: [
-          success.results[0].programmeMatches[0],
+          success.results[0]!.programmeMatches[0]!,
           {
-            ...success.results[0].programmeMatches[0],
+            ...success.results[0]!.programmeMatches[0]!,
             programmeId: 'programme-2',
             programmeName: 'MSc Artificial Intelligence',
             verificationStatus: 'NEEDS_REVIEW',
           },
           {
-            ...success.results[0].programmeMatches[0],
+            ...success.results[0]!.programmeMatches[0]!,
             programmeId: 'programme-3',
             programmeName: 'MSc Data Science',
             verificationStatus: null,

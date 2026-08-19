@@ -28,13 +28,13 @@ subject-relevant programmes when a subject is active; a catalogue row at a
 different level is unknown rather than proof that the requested programme level
 is absent. Subject matching uses phrase boundaries, and affordability uses the
 student's maximum annual budget (including cheaper tuition). Each related
-programme now carries its own verification label. Targeted
-recommendation/domain/API/UI tests pass 55/55;
-full ESLint passes; the direct i18n checker reports zero missing keys. Full
-TypeScript, full Vitest, and production build remain blocked by missing
-dependencies/generated routes in the current worktree (`@mdxeditor/editor`,
-`@react-pdf/renderer`, `mammoth`, `.next` validator), plus unrelated test
-failures; no recommendation test fails.
+programme now carries its own verification label. The 2026-08-19 CI repair
+makes `exactOptionalPropertyTypes` explicit in the recommendation loader,
+domain output, and fixtures: strict TypeScript passes and focused
+recommendation/domain/API/UI tests pass 36/36 after `npm ci`. The aggregate
+`verify:pr` gate was not run locally because this checkout has Node 22.15.0
+while CI requires Node 24.19.x; CI is the pending confirmation. Full lint,
+full Vitest, and production build were not rerun in this pass.
 
 Founder-confirmed manual bank transfer is implemented in the working tree for
 mentorship and GlowBal Plus, alongside the existing VNPay Sandbox path and

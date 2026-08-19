@@ -50,12 +50,14 @@ function toUniversity(university: UniversityListItem): RecommendationUniversity 
     id: university.id,
     name: university.name,
     country: university.country,
-    strengths: university.strengths,
-    best_for: university.best_for,
-    international_environment: university.international_environment,
-    housing: university.housing,
-    teaching_style: university.teaching_style,
-    tuition_usd: university.tuition_usd,
+    ...(university.strengths === undefined ? {} : { strengths: university.strengths }),
+    ...(university.best_for === undefined ? {} : { best_for: university.best_for }),
+    ...(university.international_environment === undefined
+      ? {}
+      : { international_environment: university.international_environment }),
+    ...(university.housing === undefined ? {} : { housing: university.housing }),
+    ...(university.teaching_style === undefined ? {} : { teaching_style: university.teaching_style }),
+    ...(university.tuition_usd === undefined ? {} : { tuition_usd: university.tuition_usd }),
   };
 }
 

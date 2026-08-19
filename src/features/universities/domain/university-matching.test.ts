@@ -89,7 +89,7 @@ describe('university recommendation v1', () => {
     );
 
     expect(result.status).toBe('success');
-    expect(result.results[0].rankingScoreInternal).toBe(expectedScore);
+    expect(result.results[0]!.rankingScoreInternal).toBe(expectedScore);
   });
 
   it('keeps flexible scholarship-dependent budgets unknown, not unlimited', () => {
@@ -106,7 +106,7 @@ describe('university recommendation v1', () => {
       new Map(),
       { asOf },
     );
-    const result = response.results[0];
+    const result = response.results[0]!;
 
     expect(normalized.budget).toBeNull();
     expect(normalized.fundingPreference).toEqual({ scholarshipDependent: true });
@@ -141,7 +141,7 @@ describe('university recommendation v1', () => {
       [university({ tuition_usd })],
       new Map(),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     const cheaper = evaluate('$15,000 per year');
     const compatible = evaluate('$25,000 per year');
@@ -172,7 +172,7 @@ describe('university recommendation v1', () => {
       [university({ tuition_usd: '$20,000 per year' })],
       new Map(),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(result.positiveEvidence).toBe(1);
     expect(result.negativeEvidence).toBe(0);
@@ -184,7 +184,7 @@ describe('university recommendation v1', () => {
       [university({ strengths: null })],
       new Map(),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(result.positiveEvidence).toBeCloseTo(0.2 / 0.75);
     expect(result.rankingScoreInternal).toBeCloseTo(0.2 / 0.75);
@@ -203,7 +203,7 @@ describe('university recommendation v1', () => {
       [university()],
       programmeMap(programme()),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(result.rankingScoreInternal).toBe(1);
     expect(result.evidenceCoverage).toBe(1);
@@ -218,7 +218,7 @@ describe('university recommendation v1', () => {
         programme({ id: 'economics', name: 'BA Economics', normalizedSubject: 'Economics', degreeLevel: 'bachelor' }),
       ),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(result.positiveEvidence).toBe(0);
     expect(result.negativeEvidence).toBe(0);
@@ -233,13 +233,13 @@ describe('university recommendation v1', () => {
       [university()],
       programmeMap(programme({ name: 'BSc Artificial Intelligence', normalizedSubject: 'Artificial Intelligence' })),
       { asOf },
-    ).results[0];
+    ).results[0]!;
     const computerScience = rankUniversityRecommendations(
       { study_level: null, target_subjects: ['Computer Science'], preferred_countries: [], budget_range: null, campus_preferences: null },
       [university()],
       programmeMap(programme({ name: 'MSc Computer Science and Artificial Intelligence', normalizedSubject: null })),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(art.programmeMatches).toEqual([]);
     expect(art.negativeEvidence).toBe(0);
@@ -264,7 +264,7 @@ describe('university recommendation v1', () => {
         programme({ id: 'mba', name: 'Master of Business Administration', normalizedSubject: 'Business Management', degreeLevel: 'master' }),
       ),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(bachelorCsAndMba.reasons.map((reason) => reason.code)).toContain('SUBJECT_MATCH');
     expect(bachelorCsAndMba.reasons.map((reason) => reason.code)).not.toContain('STUDY_LEVEL_MATCH');
@@ -290,7 +290,7 @@ describe('university recommendation v1', () => {
         programme({ id: 'msc-cs', name: 'MSc Computer Science', degreeLevel: 'master' }),
       ),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(bachelorAndMasterCs.reasons.map((reason) => reason.code)).toContain('STUDY_LEVEL_MATCH');
     expect(bachelorAndMasterCs.positiveEvidence).toBe(1);
@@ -308,7 +308,7 @@ describe('university recommendation v1', () => {
       [university()],
       programmeMap(programme({ id: 'mba', name: 'Master of Business Administration', normalizedSubject: 'Business Management', degreeLevel: 'master' })),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(postgraduateOnly.reasons.map((reason) => reason.code)).toContain('STUDY_LEVEL_MATCH');
     expect(postgraduateOnly.positiveEvidence).toBe(1);
@@ -330,8 +330,8 @@ describe('university recommendation v1', () => {
     );
 
     expect(result.results.map((item) => item.universityId)).toEqual([1, 2]);
-    expect(result.results[0].rankingScoreInternal).toBeGreaterThan(result.results[1].rankingScoreInternal ?? -1);
-    expect(result.results[0].evidenceCoverage).toBe(1);
+    expect(result.results[0]!.rankingScoreInternal).toBeGreaterThan(result.results[1]!.rankingScoreInternal ?? -1);
+    expect(result.results[0]!.evidenceCoverage).toBe(1);
   });
 
   it('treats missing budget as unknown rather than a positive match', () => {
@@ -344,7 +344,7 @@ describe('university recommendation v1', () => {
       })],
       new Map(),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(result.reasons.some((reason) => reason.code === 'BUDGET_COMPATIBLE')).toBe(false);
     expect(result.warnings.map((warning) => warning.code)).toContain('TUITION_DATA_MISSING');
@@ -357,13 +357,13 @@ describe('university recommendation v1', () => {
       [university({ id: 1, country: 'Australia' })],
       new Map(),
       { asOf },
-    ).results[0];
+    ).results[0]!;
     const unknown = rankUniversityRecommendations(
       { ...profile, target_subjects: [], preferred_countries: ['Canada'], budget_range: null, campus_preferences: null, study_level: null },
       [university({ id: 2, country: null })],
       new Map(),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(mismatch.rankingScoreInternal).toBe(0);
     expect(mismatch.negativeEvidence).toBe(0.2 / 0.2);
@@ -387,13 +387,13 @@ describe('university recommendation v1', () => {
       [university()],
       programmeMap(programme({ retrievedAt: null })),
       { asOf },
-    ).results[0];
+    ).results[0]!;
     const oldTimestamp = rankUniversityRecommendations(
       { ...profile, study_level: null, budget_range: null, campus_preferences: null },
       [university()],
       programmeMap(programme({ retrievedAt: '2020-01-01T00:00:00.000Z' })),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(missingTimestamp.warnings.map((warning) => warning.code)).toContain('SOURCE_FRESHNESS_UNKNOWN');
     expect(oldTimestamp.warnings.map((warning) => warning.code)).not.toContain('STALE_SOURCE');
@@ -410,9 +410,9 @@ describe('university recommendation v1', () => {
     );
 
     expect(result.results.map((item) => item.universityId)).toEqual([1, 2]);
-    expect(result.results[0].reasons.map((reason) => reason.code)).toContain('PROGRAMME_FOUND');
-    expect(result.results[1].reasons.map((reason) => reason.code)).toContain('SUBJECT_SIGNAL_FOUND');
-    expect(result.results[1].warnings.map((warning) => warning.code)).toContain('PROGRAMME_NOT_VERIFIED');
+    expect(result.results[0]!.reasons.map((reason) => reason.code)).toContain('PROGRAMME_FOUND');
+    expect(result.results[1]!.reasons.map((reason) => reason.code)).toContain('SUBJECT_SIGNAL_FOUND');
+    expect(result.results[1]!.warnings.map((warning) => warning.code)).toContain('PROGRAMME_NOT_VERIFIED');
   });
 
   it('orders programme evidence quality within the subject dimension, not as a global bucket', () => {
@@ -432,8 +432,8 @@ describe('university recommendation v1', () => {
     );
 
     expect(result.results.map((item) => item.universityId)).toEqual([3, 1, 2]);
-    expect(result.results[0].rankingScoreInternal).toBeGreaterThan(result.results[1].rankingScoreInternal ?? -1);
-    expect(result.results[1].warnings.map((warning) => warning.code)).toContain('PROGRAMME_NOT_VERIFIED');
+    expect(result.results[0]!.rankingScoreInternal).toBeGreaterThan(result.results[1]!.rankingScoreInternal ?? -1);
+    expect(result.results[1]!.warnings.map((warning) => warning.code)).toContain('PROGRAMME_NOT_VERIFIED');
   });
 
   it('keeps adversarial sparse, broad-fit, mismatch, unknown, and explicit-mismatch candidates defensible', () => {
@@ -483,10 +483,10 @@ describe('university recommendation v1', () => {
       expect.closeTo(0),
       expect.closeTo(0.45),
     ]);
-    expect(result.results[0].rankingScoreInternal).toBeGreaterThan(result.results[1].rankingScoreInternal ?? -1);
-    expect(result.results[1].rankingScoreInternal).toBeGreaterThan(result.results[2].rankingScoreInternal ?? -1);
-    expect(result.results[3].rankingScoreInternal).toBe(0);
-    expect(result.results[4].warnings.map((warning) => warning.code)).toContain('NO_MATCHING_PROGRAMME_FOUND');
+    expect(result.results[0]!.rankingScoreInternal).toBeGreaterThan(result.results[1]!.rankingScoreInternal ?? -1);
+    expect(result.results[1]!.rankingScoreInternal).toBeGreaterThan(result.results[2]!.rankingScoreInternal ?? -1);
+    expect(result.results[3]!.rankingScoreInternal).toBe(0);
+    expect(result.results[4]!.warnings.map((warning) => warning.code)).toContain('NO_MATCHING_PROGRAMME_FOUND');
   });
 
   it('lets a sparse .40 fit beat a .405 fit with verified negative evidence', () => {
@@ -527,7 +527,7 @@ describe('university recommendation v1', () => {
       programme({ id: 'c', name: 'MSc Software Engineering', universityId: 1, normalizedSubject: 'Computer Science and Software Engineering' }),
       programme({ id: 'd', name: 'MSc Computer Science and Data Science', universityId: 1, normalizedSubject: 'Computer Science and Data Science' }),
     ];
-    const result = rankUniversityRecommendations(profile, [university()], programmeMap(...programmes), { asOf }).results[0];
+    const result = rankUniversityRecommendations(profile, [university()], programmeMap(...programmes), { asOf }).results[0]!;
 
     expect(result.programmeMatches).toHaveLength(3);
     expect(result.programmeMatches.map((item) => item.programmeId)).toEqual(['a', 'b', 'd']);
@@ -539,7 +539,7 @@ describe('university recommendation v1', () => {
       [university()],
       programmeMap(programme({ verificationStatus: 'REJECTED' })),
       { asOf },
-    ).results[0];
+    ).results[0]!;
 
     expect(result.programmeMatches).toEqual([]);
     expect(result.reasons).not.toContainEqual(expect.objectContaining({ code: 'PROGRAMME_FOUND' }));

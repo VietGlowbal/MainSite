@@ -630,16 +630,19 @@ function evaluateUniversity(
     campus: evaluateCampus(profile, university),
   };
   const denominator = activeWeight(profile, options.config);
-  const scored = profile.activeDimensions.map((dimension) => evaluations[dimension]);
+  const scored = profile.activeDimensions.map((dimension) => ({
+    evaluation: evaluations[dimension],
+    weight: options.config.weights[dimension],
+  }));
   const matchedPoints = scored.reduce(
-    (total, evaluation, index) => total + (evaluation.state === 'present' && evaluation.score !== null
-      ? evaluation.score * options.config.weights[profile.activeDimensions[index]]
+    (total, { evaluation, weight }) => total + (evaluation.state === 'present' && evaluation.score !== null
+      ? evaluation.score * weight
       : 0),
     0,
   );
   const negativePoints = scored.reduce(
-    (total, evaluation, index) => total + (evaluation.state === 'present' && evaluation.score !== null
-      ? (1 - evaluation.score) * options.config.weights[profile.activeDimensions[index]]
+    (total, { evaluation, weight }) => total + (evaluation.state === 'present' && evaluation.score !== null
+      ? (1 - evaluation.score) * weight
       : 0),
     0,
   );
@@ -657,17 +660,20 @@ function evaluateUniversity(
   const rankingScoreInternal = denominator > 0
     ? positiveEvidence * (1 - negativeEvidence)
     : null;
-  const reasons = uniqueReasons(scored).map((code) => ({
-    code,
-    value: reasonValue(code, profile, subject.matches),
-  }));
+  const reasons: RecommendationReason[] = uniqueReasons(scored.map(({ evaluation }) => evaluation)).map((code) => {
+    const value = reasonValue(code, profile, subject.matches);
+    return value === undefined ? { code } : { code, value };
+  });
   const fundingWarnings: MatchWarningCode[] = profile.fundingPreference?.scholarshipDependent
     ? ['SCHOLARSHIP_DEPENDENT_BUDGET']
     : [];
-  const warnings = uniqueWarnings([...scored, { score: null, state: 'missing', reasonCodes: [], warningCodes: fundingWarnings }]).map((code) => ({
-    code,
-    value: warningValue(code, subject.matches),
-  }));
+  const warnings: MatchWarning[] = uniqueWarnings([
+    ...scored.map(({ evaluation }) => evaluation),
+    { score: null, state: 'missing', reasonCodes: [], warningCodes: fundingWarnings },
+  ]).map((code) => {
+    const value = warningValue(code, subject.matches);
+    return value === undefined ? { code } : { code, value };
+  });
 
   return {
     universityId: university.id,
