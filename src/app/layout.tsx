@@ -50,6 +50,9 @@ export const metadata: Metadata = {
      * frame lifted from a 32px favicon would look like exactly that.
      */
   },
+  verification: {
+    google: 'OSoUXS4-MCwjQrwvxe2PPmdR3NlzeR120fIvgmn3qm8',
+  },
 };
 
 export default function RootLayout({
