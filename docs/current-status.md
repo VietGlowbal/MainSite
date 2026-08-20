@@ -87,7 +87,10 @@ passed 163/163; the new dev bootstrap route passes 3/3 and strict TypeScript
 passes. Local auth origin tests pass 2/2: non-production now preserves the
 request origin even when `.env.local` contains the production public URL.
 Supabase Auth must still allow `http://localhost:3000/auth/callback` as a
-Redirect URL for local OAuth or email-confirmation testing.
+Redirect URL for local OAuth or email-confirmation testing. The canonical
+Planner's diagnostic and UI literals are now covered by a dedicated static
+i18n catalog; `node scripts/check-i18n.mjs --all` reports zero missing keys and
+the integration checker passes.
 
 Code snapshot: branch `claude/university-application-flow-0khm6v`, merged
 with `main`. Two passes on this branch: the application setup flow redesign
