@@ -4,18 +4,20 @@ import { render } from '@testing-library/react';
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   fetchOnboardingState: vi.fn(),
+  getPlannerMode: vi.fn(() => 'legacy'),
   nextOnboardingStep: vi.fn(() => 'dashboard'),
-  applicationSubNav: vi.fn(() => []),
+  aiStrategyApplicationNav: vi.fn(() => []),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
 vi.mock('@/features/ai-strategy-dashboard/api', () => ({
   fetchOnboardingState: mocks.fetchOnboardingState,
+  getPlannerMode: mocks.getPlannerMode,
 }));
 vi.mock('@/features/ai-strategy-dashboard/domain', () => ({
   nextOnboardingStep: mocks.nextOnboardingStep,
 }));
-vi.mock('@/shared/lib/app-routes', () => ({ applicationSubNav: mocks.applicationSubNav }));
+vi.mock('@/shared/lib/ai-strategy-route-model', () => ({ aiStrategyApplicationNav: mocks.aiStrategyApplicationNav }));
 vi.mock('@/shared/ui/breadcrumbs', () => ({ Breadcrumbs: vi.fn(() => null) }));
 vi.mock('./application-sub-nav', () => ({ ApplicationSubNav: vi.fn(() => null) }));
 
@@ -48,5 +50,23 @@ describe('ApplicationNav', () => {
     );
 
     expect(container.querySelector('[data-no-auto-translate]')).toBeInTheDocument();
+  });
+
+  it('unlocks the Planner for canonical Plus/admin users before legacy onboarding finishes', async () => {
+    const supabase = { auth: { getUser: vi.fn() } };
+    mocks.createClient.mockResolvedValue(supabase);
+    mocks.fetchOnboardingState.mockResolvedValue({ aiAnalysisComplete: false, strategyComplete: false });
+    mocks.nextOnboardingStep.mockReturnValue('analysis');
+    mocks.getPlannerMode.mockResolvedValue('canonical');
+
+    await ApplicationNav({ applicationId: 'app-1', userId: 'user-1' });
+
+    expect(mocks.getPlannerMode).toHaveBeenCalledWith(supabase, 'user-1');
+    expect(mocks.aiStrategyApplicationNav).toHaveBeenCalledWith('app-1', {
+      analysisReady: false,
+      strategyReady: false,
+      plannerReady: true,
+      candidateConfirmed: undefined,
+    });
   });
 });
