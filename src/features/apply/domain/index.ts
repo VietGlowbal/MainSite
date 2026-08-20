@@ -265,3 +265,29 @@ export type {
   SignaturePatternSupportItem,
   ThemeChartItem,
 } from './personal-report-analytics';
+
+export { academicBandClassification } from './ai-reports';
+
+export {
+  CLASSIFICATION_META,
+  DIMENSION_META,
+  DIMENSION_ORDER,
+  MATCH_SCORE_DISCLAIMER,
+  alignmentLevel,
+  eligibilityRows,
+  fitRows,
+  matchSummary,
+  overallMatchPercent,
+  readinessPercent,
+  tieredGaps,
+} from './matching-report-presentation';
+export type {
+  AlignmentLevel,
+  ClassificationTone,
+  DimensionKey,
+  EligibilityRow,
+  FitRow,
+  GapEntry,
+  GapTier,
+  MatchSummary,
+} from './matching-report-presentation';
