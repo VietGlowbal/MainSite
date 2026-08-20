@@ -1,4 +1,4 @@
-import { fetchOnboardingState } from '@/features/ai-strategy-dashboard/api';
+import { fetchOnboardingState, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
 import { nextOnboardingStep } from '@/features/ai-strategy-dashboard/domain';
 import { aiStrategyApplicationNav } from '@/shared/lib/ai-strategy-route-model';
 import { Breadcrumbs } from '@/shared/ui/breadcrumbs';
@@ -31,10 +31,15 @@ export async function ApplicationNav({
 
   const state = await fetchOnboardingState(supabase, authenticatedUserId, applicationId);
   const step = nextOnboardingStep(state);
+  const plannerMode = await getPlannerMode(supabase, authenticatedUserId);
   const items = aiStrategyApplicationNav(applicationId, {
     analysisReady: state.aiAnalysisComplete,
     strategyReady: state.strategyComplete,
-    plannerReady: step === 'dashboard',
+    // Plus/admin users have the canonical Planner as their product entry
+    // point. It derives whatever useful work it can from the application, so
+    // it must not disappear behind the legacy recommendation onboarding flow.
+    // Free users retain that established gate and legacy board behaviour.
+    plannerReady: plannerMode === 'canonical' || step === 'dashboard',
     candidateConfirmed: state.candidateConfirmed,
   });
 

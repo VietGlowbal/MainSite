@@ -32,7 +32,11 @@ export default async function PlannerPage({
 
   const state = await fetchOnboardingState(supabase, user.id, applicationId);
   const step = nextOnboardingStep(state);
-  if (step !== 'dashboard') {
+  // The legacy board is the final stage of its older recommendation funnel.
+  // Canonical Planner is a Plus/admin workspace and starts from the current
+  // application state instead; it must remain reachable from the application
+  // navigation even before that legacy funnel is complete.
+  if (plannerMode === 'legacy' && step !== 'dashboard') {
     redirect(onboardingStepHref(step, applicationId));
   }
 

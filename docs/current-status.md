@@ -2,6 +2,15 @@
 
 Last reconciled: **2026-08-15 (Asia/Bangkok)**
 
+Working tree 2026-08-21: the canonical Application Planner is now a usable
+application-navigation destination for Plus and admin users, rather than a
+hidden URL behind the legacy recommendation onboarding gate. `ApplicationNav`
+unlocks its Planner item for canonical entitlement and the Planner route accepts
+that entry directly; free users retain the existing legacy onboarding gate.
+Focused navigation tests pass 14/14 and TypeScript passes. The production
+Supabase migration and deployment remain required before the canonical route
+can initialize a real plan.
+
 Working tree 2026-08-20: Core 1 Assess is now callable end to end through
 `getApplicationAssessments(supabase, applicationId, userId)`: the source
 adapter fetches validated application facts and F5/F7 metadata,
