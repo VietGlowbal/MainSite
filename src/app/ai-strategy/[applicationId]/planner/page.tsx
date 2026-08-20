@@ -14,6 +14,7 @@ import {
 } from '@/features/ai-strategy-dashboard/ui';
 import { getUniversityQueries } from '@/features/universities/api';
 import { createClient } from '@/lib/supabase/server';
+import { isAdmin } from '@/server/auth/auth-helpers';
 import { Container } from '@/shared/ui';
 
 /** Canonical application-level Planner route. */
@@ -29,6 +30,7 @@ export default async function PlannerPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
+  const canGenerateCanonicalPlan = process.env.NODE_ENV !== 'production' || await isAdmin(user.id);
 
   const state = await fetchOnboardingState(supabase, user.id, applicationId);
   const step = nextOnboardingStep(state);
@@ -107,7 +109,12 @@ export default async function PlannerPage({
           <HierarchicalApplicationPlanner applicationId={applicationId} planner={canonicalPlanner} />
         ) : (
           <>
-            {process.env.NODE_ENV !== 'production' ? <GenerateCanonicalPlanButton applicationId={applicationId} /> : null}
+            {canGenerateCanonicalPlan ? (
+              <GenerateCanonicalPlanButton
+                applicationId={applicationId}
+                endpoint={process.env.NODE_ENV === 'production' ? 'admin' : 'dev'}
+              />
+            ) : null}
             <ApplicationPlanner
               applicationId={applicationId}
               recommendations={recommendations}
