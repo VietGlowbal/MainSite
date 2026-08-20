@@ -103,6 +103,13 @@ function text(value: unknown): string { return typeof value === 'string' ? value
 function nullableText(value: unknown): string | null { return typeof value === 'string' ? value : null; }
 function number(value: unknown): number { return typeof value === 'number' ? value : 0; }
 function texts(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; }
-function provenances(value: unknown): PersistedPlanPhase['sourceProvenances'] { return texts(value).filter((value): value is PersistedPlanPhase['sourceProvenances'][number] => ['database_factual', 'deterministically_derived', 'ai_generated', 'user_provided', 'unknown'].includes(value)); }
+function provenances(value: unknown): PersistedPlanPhase['sourceProvenances'] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item === 'string' && ['database_factual', 'deterministically_derived', 'ai_generated', 'user_provided', 'unknown'].includes(item)) return [item as PersistedPlanPhase['sourceProvenances'][number]];
+    if (item && typeof item === 'object' && (item as Record<string, unknown>).kind === 'ai_planning') return [item as PersistedPlanPhase['sourceProvenances'][number]];
+    return [];
+  });
+}
 function planReadiness(value: unknown): PersistedPlan['readiness'] { return value === 'empty' || value === 'requires_user_input' || value === 'requires_enrichment' ? value : 'empty'; }
 function nodeReadiness(value: unknown): PersistedPlanMicroStep['readiness'] { return value === 'requires_user_input' || value === 'requires_enrichment' ? value : 'requires_enrichment'; }
