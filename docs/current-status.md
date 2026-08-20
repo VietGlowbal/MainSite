@@ -12,6 +12,62 @@ prototype) and added the GlowBal Plus paywall on the per-application AI
 Strategy workspace it had been missing since 01/08. See "Last completed work"
 below.
 
+Working tree 2026-08-20 (branch `claude/feature-2-strategy-review-ahahsw`,
+PR #216): the four Strategy reports. Detail and the decisions behind them are in
+[strategy-reports-spec.md](strategy-reports-spec.md) and
+[feature-2-plan.md](feature-2-plan.md).
+
+- **F5 Programme Fit is implemented.** `src/shared/evaluation/f5-programme-fit.ts`
+  was interfaces-only (`buildProgrammeFitPlaceholder` returned `not_available`
+  for every dimension) and was the one framework with no test file. It now
+  scores against the documented weights (academic 25, persona 25, career 20,
+  financial 15, readiness 15) via `weightedScore`, so a missing dimension is
+  renormalised and disclosed rather than scored zero. Hard eligibility gates run
+  before any arithmetic and can only produce `currently_ineligible`; only an
+  explicit `not_met` fails, since `unknown` means unchecked. The band is decided
+  by the academic dimension alone, tested in both directions.
+- **`strong_match` added** between match and safety, thresholds shared through
+  `academicBandClassification()`. An academic score of 4 now classifies as
+  `strong_match` where it previously fell into `match`.
+- **`fitDimensionSchema.score` no longer requires an integer.** Five integers
+  could only render as multiples of 20, so the report layout's 75/88/92% were
+  unreachable. Percentages convert as `(score - 1) / 4 * 100`.
+- **The Matching Report route was pointing at the wrong component.**
+  `/ai-strategy/[applicationId]/matching-report` rendered `ProgrammeFitReport`
+  (a six-tab view of catalogue facts, no F5 in it), while `MatchingReportView` —
+  built on the F5 contract — was exported and rendered by nothing. The route now
+  renders the latter, rebuilt as six sections. `ProgrammeFitReport` is retained;
+  the older `/strategy/analysis/*` surfaces still reach it.
+- **The Strategy Report is five sections**, not six engine-named tabs. Direction
+  scores are derived into a key strength and biggest challenge, and the ranking
+  now carries the margin to the leader. Academic and experience development
+  strategies are named as not generated rather than padded — they need new
+  prompt fields.
+- **Final Application Check is built** at `/ai-strategy/[applicationId]/final-check`
+  and unlocked in the nav. Readiness is computed deterministically from
+  component coverage minus outstanding critical findings; the generation schema
+  has no field for a score, so a model cannot author one. `not_required` is
+  distinguished from `missing`, and a recommender strategy never counts as a
+  reviewed letter.
+  ⚠️ **`supabase-final-check.sql` has NOT been run.** Until it is, generation
+  returns 503 with a named hint and the page renders the live inventory only.
+- **Four Personal Canvas bugs fixed.** Modifier chords were treated as canvas
+  shortcuts, so Cmd/Ctrl+F toggled focus mode and called `preventDefault()` —
+  find-in-page was broken across the whole report. The detail panel moved no
+  focus, stranding keyboard and screen-reader users behind a full-screen mobile
+  overlay. The keydown effect had no dependency array. `contentEditable` hosts
+  were not guarded.
+- **No admission probability anywhere.** Both the match score and the readiness
+  figure measure alignment/completeness, with disclaimers pinned by tests that
+  assert no user-facing string uses chance, odds, likelihood or probability
+  wording in either language.
+
+Verification for that work: typecheck, typecheck:strict, lint (one pre-existing
+unrelated manual-payment warning), `check-i18n` at 0 missing static keys and 0
+missing dynamic catalog entries, full Vitest 2735 passing across 292 files, and
+a production build that emits every new route. Local builds need Supabase env
+vars present; CI supplies them.
+
 Working tree 2026-08-18: `/universities/matches` now uses deterministic
 `university-rec-v1` preference recommendations. The route loads profile inputs,
 batch-loads `catalog_programmes`, keeps candidate data availability in

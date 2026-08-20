@@ -15,6 +15,21 @@ Where this spec and the code disagree, this spec is the intent and the code is
 the current state. Neither overrides the evidence contract in
 `docs/ai-strategy-canonical-architecture.md`.
 
+## Build status (2026-08-20, PR #216)
+
+| Piece | State |
+|---|---|
+| F5 engine + tests | **Built.** `src/shared/evaluation/f5-programme-fit.ts` |
+| `strong_match`, decimal scores | **Built.** Shared via `academicBandClassification()` |
+| Matching Report, six sections | **Built.** Canonical route repointed off the legacy tab view |
+| Strategy Report, five sections | **Built.** Sections 1-4; roadmap still the existing prioritise/avoid path |
+| Final Check | **Built.** Route, engine, prompt, UI, migration written |
+| Personal Report additions | **Not built.** Star ratings, snapshot shape, Key Takeaways slots, structured Areas for Growth |
+| Academic + experience strategies | **Not built.** Need new F7 prompt fields |
+| Admissions Perspective, 2 of 4 blocks | **Not built.** "Questions we still have" and "What we'd like to see" need new AI output and a column |
+| Engine migration off `applicant_analyses` | **Not started.** Blocks the clean Strategy Report |
+| `supabase-final-check.sql` | **Written, NOT RUN.** Generation 503s until applied |
+
 ## Decisions in force
 
 1. **Five scored dimensions**, not the four in the report mock. No schema
