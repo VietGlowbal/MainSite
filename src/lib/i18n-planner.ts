@@ -36,4 +36,5 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'No tasks match those filters.': 'Không có nhiệm vụ nào phù hợp với bộ lọc này.',
   'complete ·': 'hoàn thành ·',
   Unscheduled: 'Chưa lên lịch',
+  'Generate the deterministic Core 3 hierarchy for this application.': 'Tạo cấu trúc Core 3 xác định cho hồ sơ này.',
 };

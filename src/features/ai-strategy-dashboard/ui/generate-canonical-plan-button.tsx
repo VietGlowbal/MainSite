@@ -3,8 +3,15 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 
-/** Development-only bootstrap for exercising the Core 3 -> Core 4 flow end to end. */
-export function GenerateCanonicalPlanButton({ applicationId }: { applicationId: string }) {
+/** Admin/local bootstrap for exercising the Core 3 -> Core 4 flow end to end. */
+export function GenerateCanonicalPlanButton({
+  applicationId,
+  endpoint = 'dev',
+}: {
+  applicationId: string;
+  /** Production uses the admin-protected endpoint; local development keeps the dev endpoint. */
+  endpoint?: 'admin' | 'dev';
+}) {
   const router = useRouter();
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -13,7 +20,7 @@ export function GenerateCanonicalPlanButton({ applicationId }: { applicationId: 
     setPending(true);
     setError(null);
     try {
-      const response = await fetch(`/api/dev/applications/${encodeURIComponent(applicationId)}/planner/sync`, {
+      const response = await fetch(`/api/${endpoint}/applications/${encodeURIComponent(applicationId)}/planner/sync`, {
         method: 'POST',
       });
       const body = await response.json().catch(() => ({}));
@@ -28,7 +35,7 @@ export function GenerateCanonicalPlanButton({ applicationId }: { applicationId: 
 
   return <div className="rounded-gb-xl border border-line bg-surface-muted p-gb-lg">
     <div className="flex flex-wrap items-center justify-between gap-gb-md">
-      <div><p className="text-gb-sm font-semibold text-fg">Canonical Planner is not generated yet</p><p className="text-gb-xs text-fg-muted">Development only: generate the deterministic Core 3 hierarchy for this application.</p></div>
+      <div><p className="text-gb-sm font-semibold text-fg">Canonical Planner is not generated yet</p><p className="text-gb-xs text-fg-muted">Generate the deterministic Core 3 hierarchy for this application.</p></div>
       <button type="button" onClick={() => void generate()} disabled={pending} className="rounded-gb-lg bg-brand px-gb-lg py-gb-sm text-gb-sm font-semibold text-on-brand disabled:cursor-not-allowed disabled:opacity-60">
         {pending ? 'Generating…' : 'Generate canonical plan'}
       </button>

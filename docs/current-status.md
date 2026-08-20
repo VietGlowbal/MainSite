@@ -596,6 +596,15 @@ verification step, now with one fewer known-broken page in the path.
 
 ## Open risks that still deserve priority
 
+### AI Planner production bootstrap (working tree)
+
+The canonical Planner hierarchy can now be generated in production only by an
+authenticated admin, and only for that admin's own application. The route
+enforces same-origin POSTs, UUID validation, the existing admin guard, and
+the existing application ownership check. Non-admins see the established
+legacy Planner until their canonical hierarchy has been created through the
+normal product flow.
+
 The dated audit remains the detailed evidence record. A code-only recheck on
 2026-08-06 found no commit that obviously closes its highest-priority items:
 
