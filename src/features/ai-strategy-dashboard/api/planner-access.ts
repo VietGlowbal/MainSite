@@ -3,6 +3,7 @@ import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service'
 import { createAdminClient } from '@/server/db/admin';
 import { isAdmin } from '@/server/auth/auth-helpers';
 import { getApplicationPlanner } from './get-application-planner';
+import { getApplicationAssessments } from './get-application-assessments';
 import { syncApplicationPlan } from './sync-application-plan';
 import { getPlannerMicroSteps } from '../domain';
 
@@ -20,7 +21,11 @@ export async function getPlannerMode(supabase: SupabaseClient, userId: string): 
   return isPlusEntitlementActive(data ?? {}) || await isAdmin(userId) ? 'canonical' : 'legacy';
 }
 
-/** Idempotent production initializer. Existing plans are only read, never regenerated on page load. */
+/**
+ * Idempotent production initializer and source-change reconciler. The Core 1
+ * fingerprint is deterministic and does not make an AI request; a changed
+ * fingerprint is the only page-load condition that can start enrichment.
+ */
 export async function ensureApplicationPlan(
   supabase: SupabaseClient,
   applicationId: string,
@@ -38,7 +43,10 @@ export async function ensureApplicationPlan(
     const needsInputUpgrade = getPlannerMicroSteps(existing).some((micro) =>
       micro.domainNodeId.includes('attention-focus') && micro.contentSchema === null,
     );
-    if (existing.plan && !needsInputUpgrade) return { kind: 'ready', created: false };
+    const { context } = await getApplicationAssessments(supabase, applicationId, userId);
+    const sourceFingerprint = `:source:${context.provenance.contextHash}`;
+    const sourceChanged = existing.plan !== null && !existing.plan.domainPlanId.includes(sourceFingerprint);
+    if (existing.plan && !needsInputUpgrade && !sourceChanged) return { kind: 'ready', created: false };
     // Trusted server client is the sole Core 3 writer after RLS hardening.
     await syncApplicationPlan(createAdminClient(), applicationId, userId);
     return { kind: 'ready', created: true };
