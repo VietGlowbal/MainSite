@@ -338,8 +338,11 @@ reconciled as the same canonical node and keeps Core 4 status, date, content,
 and evidence. AI planning provenance (`provider`, `model`, prompt/enrichment
 version, timestamp, source decisions) is stored alongside—never instead of—the
 factual source provenance in the existing hierarchy JSONB metadata. Provider or
-validation failure persists the deterministic scaffold; page loads and normal
-execution updates do not make an AI call.
+validation failure persists the deterministic scaffold. On page load the
+server compares the current deterministic Core 1 `contextHash` with the source
+fingerprint in the persisted plan ID; equal fingerprints make no AI call,
+while changed source facts reconcile and enrich once. Normal execution
+status/deadline updates do not affect that fingerprint and never call AI.
 
 For an entitled Plus/admin user, `getPlannerMode()` selects the canonical
 experience and `ensureApplicationPlan()` creates the hierarchy once when no

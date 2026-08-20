@@ -23,6 +23,12 @@ persisted in the existing source-provenance JSONB field alongside factual
 provenance, so no new migration is needed. Focused enrichment/Core 3/persistence
 tests pass 26/26 and strict TypeScript passes.
 
+Working tree 2026-08-21: canonical Planner page entry now compares Core 1's
+deterministic `contextHash` with the persisted plan source fingerprint. Equal
+fingerprints do not invoke AI; changed factual/planning context triggers a
+safe canonical reconcile and optional enrichment. Core 4 status/deadline
+execution writes are excluded from the fingerprint and do not invoke AI.
+
 Working tree 2026-08-20: Core 1 Assess is now callable end to end through
 `getApplicationAssessments(supabase, applicationId, userId)`: the source
 adapter fetches validated application facts and F5/F7 metadata,
