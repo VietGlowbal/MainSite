@@ -8,6 +8,7 @@ function fakeSupabase(options: { owned?: boolean; micro?: Record<string, unknown
     application_plans: [{ id: 'plan-1' }],
     application_plan_phases: [{ id: 'phase-1' }],
     application_plan_steps: [{ id: 'step-1' }],
+    application_plan_micro_steps: [{ id: 'micro-1', content_schema: null, content_value: null }],
   };
   const from = (table: string) => {
     let updatePayload: Record<string, unknown> | null = null;

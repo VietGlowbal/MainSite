@@ -82,7 +82,7 @@ export type ImprovementActionType =
  * CV builder, an advisor booking) — there is nothing to fill in on this page,
  * only a brief and a link to the tool that does the work.
  */
-export const CONTENT_BLOCK_TYPES = ['structured_table', 'long_text', 'checklist'] as const;
+export const CONTENT_BLOCK_TYPES = ['structured_table', 'long_text', 'checklist', 'single_select'] as const;
 export type ContentBlockType = (typeof CONTENT_BLOCK_TYPES)[number];
 
 export type ContentBlockColumnType = 'text' | 'number' | 'date' | 'select';
@@ -102,7 +102,9 @@ export type ContentBlock =
   /** A single narrative answer — motivation, impact, personal story: anything that doesn't decompose into rows. */
   | { type: 'long_text'; prompt: string; minWords?: number }
   /** Discrete steps to complete rather than content to write, e.g. "request official transcripts". */
-  | { type: 'checklist'; items: string[] };
+  | { type: 'checklist'; items: string[] }
+  /** A deterministic planning decision; `semanticKey` is never inferred from UI text. */
+  | { type: 'single_select'; prompt: string; options: { value: string; label: string }[]; semanticKey: string };
 
 /**
  * The student's saved answer for a `ContentBlock`, shaped to match it.
@@ -112,7 +114,8 @@ export type ContentBlockValue =
   | { type: 'structured_table'; rows: Record<string, string>[] }
   | { type: 'long_text'; text: string }
   /** The subset of `ContentBlock['items']` (by exact text) the student has ticked. */
-  | { type: 'checklist'; checkedItems: string[] };
+  | { type: 'checklist'; checkedItems: string[] }
+  | { type: 'single_select'; value: string };
 
 export type ImprovementAction = {
   id: string;

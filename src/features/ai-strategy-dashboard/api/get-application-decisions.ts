@@ -11,6 +11,6 @@ export async function getApplicationDecisions(
   applicationId: string,
   userId: string,
 ): Promise<DecisionResult[]> {
-  const { assessments } = await getApplicationAssessments(supabase, applicationId, userId);
-  return compileDecisions(assessments);
+  const { assessments, context } = await getApplicationAssessments(supabase, applicationId, userId);
+  return compileDecisions(assessments, context.plannerInputs);
 }

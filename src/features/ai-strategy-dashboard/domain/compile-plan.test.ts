@@ -55,7 +55,10 @@ describe('compilePlan', () => {
   it('preserves a user-choice gate without selecting an option', () => {
     const plan = compilePlan([decision('decision:attention-focus', 'needs_user_choice')]);
     expect(plan).toMatchObject({ readiness: 'requires_user_input', phases: [{ id: 'phase:confirm_choices' }] });
-    expect(plan.phases[0]?.steps[0]?.microSteps[0]).toMatchObject({ readiness: 'requires_user_input' });
+    expect(plan.phases[0]?.steps[0]?.microSteps[0]).toMatchObject({
+      readiness: 'requires_user_input',
+      contentSchema: { type: 'single_select', semanticKey: 'planner.attention_focus' },
+    });
   });
 
   it('does not label an available direction as recommended', () => {

@@ -61,6 +61,7 @@ export function compilePlanningContext(sources: PlanningContextSources): Plannin
     missingInputSignals: missingInputSignals(applicantState?.evidence.items ?? [], applicantState?.narrativeIdentity.base.missingInputs ?? []),
     deadlines,
     userConstraints: sorted(sources.userConstraints, (a, b) => compareText(a.kind, b.kind) || compareText(a.value, b.value)),
+    plannerInputs: sorted(sources.plannerInputs ?? [], (a, b) => compareText(a.semanticKey, b.semanticKey) || compareText(a.microStepId, b.microStepId)),
     currentPlanState: {
       stages: sorted(sources.stages, (a, b) => a.orderNum - b.orderNum || compareText(a.id, b.id)),
       tasks: sorted(sources.tasks, (a, b) => a.sortOrder - b.sortOrder || compareText(a.id, b.id)),

@@ -25,6 +25,7 @@ export type PlannerMicroStepExecutionState = {
   status: ProgressStatus;
   deadline: string | null;
   contentValue: z.infer<typeof contentValueSchema> | null;
+  planningInputChanged?: boolean;
 };
 
 function isDateOnly(value: string): boolean {

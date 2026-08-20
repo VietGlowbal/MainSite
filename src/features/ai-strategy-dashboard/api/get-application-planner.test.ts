@@ -57,7 +57,7 @@ describe('getApplicationPlanner', () => {
 
   it('returns an empty canonical model for legacy-only applications without reading application_recommendations', async () => {
     const fake = fakeSupabase({ course_applications: [{ id: 'application-1' }], application_plans: [] });
-    await expect(getApplicationPlanner(fake.client, 'application-1', 'user-1')).resolves.toEqual({ plan: null, phases: [], diagnostics: [] });
+    await expect(getApplicationPlanner(fake.client, 'application-1', 'user-1')).resolves.toEqual({ plan: null, phases: [], lifecycle: 'empty', diagnostics: [] });
     expect(fake.calls.map((call) => call.table)).toEqual(['course_applications', 'application_plans']);
   });
 

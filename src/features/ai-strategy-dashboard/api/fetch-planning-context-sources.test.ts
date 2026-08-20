@@ -769,9 +769,10 @@ describe('fetchPlanningContextSources', () => {
     expect(result.evidenceInventory.documents).toHaveLength(1);
     expect(result.deadlineCandidates.length).toBeGreaterThanOrEqual(1);
 
-    // Every diagnostic should be 'present'
+    // Canonical planner inputs are absent before the first canonical plan;
+    // every upstream source supplied by this fixture is present.
     for (const diag of result.diagnostics) {
-      expect(diag.status).toBe('present');
+      expect(diag.status).toBe(diag.source === 'canonical_planner_inputs' ? 'missing' : 'present');
     }
   });
 });

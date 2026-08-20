@@ -24,6 +24,9 @@ export type PlannerPlan = {
   readiness: PlanReadiness;
 };
 
+/** Runtime state derived from the persisted hierarchy and execution state. */
+export type PlannerLifecycle = 'active' | 'waiting_for_input' | 'complete' | 'empty';
+
 export type PlannerPhase = {
   id: string;
   domainNodeId: string;
@@ -87,6 +90,7 @@ export type PlannerReadDiagnostic = {
 export type PlannerReadModel = {
   plan: PlannerPlan | null;
   phases: PlannerPhase[];
+  lifecycle: PlannerLifecycle;
   diagnostics: PlannerReadDiagnostic[];
 };
 

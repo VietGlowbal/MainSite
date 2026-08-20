@@ -599,6 +599,9 @@ export type PlanningContext = {
   /** Only constraints explicitly stored by the user. Never inferred. */
   userConstraints: UserConstraint[];
 
+  /** Validated, semantically-declared answers from canonical micro-steps. */
+  plannerInputs?: PlanningInput[];
+
   // ── Current plan execution state ─────────────────────────────────────────
   currentPlanState: {
     /** application_stages rows — conceptually ≈ Phase in the future hierarchy. */
@@ -615,6 +618,14 @@ export type PlanningContext = {
 
   // ── Provenance ───────────────────────────────────────────────────────────
   provenance: PlanningProvenance;
+};
+
+/** A student answer that Core 1 may consume only because its task declared this semantic key. */
+export type PlanningInput = {
+  semanticKey: string;
+  value: string;
+  microStepId: string;
+  provenance: 'user_provided';
 };
 
 // ─── Sourced inputs for the fetcher (Gate 2 contract) ────────────────────────
@@ -695,6 +706,8 @@ export type PlanningContextSources = {
   stages: ApplicationStage[];
   tasks: ApplicationTask[];
   recommendations: Recommendation[];
+  /** Optional for legacy/no-hierarchy applications; normalized by the compiler. */
+  plannerInputs?: PlanningInput[];
 
   // ── Deadline candidates ──────────────────────────────────────────────────
   /**

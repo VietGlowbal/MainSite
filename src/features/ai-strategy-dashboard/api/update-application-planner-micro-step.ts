@@ -1,14 +1,17 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   CORE3_PLAN_PRODUCER,
+  isCompleteContentValue,
+  parseContentBlock,
+  parseContentBlockValue,
   PROGRESS_STATUS,
   type PlannerMicroStepExecutionPatch,
   type PlannerMicroStepExecutionState,
 } from '../domain';
 
 export class PlannerMicroStepUpdateError extends Error {
-  constructor(readonly code: 'not_found' | 'read_failed' | 'update_failed') {
-    super(code === 'not_found' ? 'Micro-step is not available.' : 'Could not save this task.');
+  constructor(readonly code: 'not_found' | 'read_failed' | 'update_failed' | 'input_required') {
+    super(code === 'not_found' ? 'Micro-step is not available.' : code === 'input_required' ? 'Complete the required task input before marking this task complete.' : 'Could not save this task.');
     this.name = 'PlannerMicroStepUpdateError';
   }
 }
@@ -53,6 +56,16 @@ export async function updateApplicationPlannerMicroStep(
   if (patch.deadline !== undefined) fields.deadline = patch.deadline;
   if (patch.contentValue !== undefined) fields.content_value = patch.contentValue;
 
+  const existing = await supabase.from('application_plan_micro_steps').select('id,content_schema,content_value')
+    .eq('id', microStepId).in('step_id', stepIds).is('archived_at', null).maybeSingle();
+  if (existing.error) throw new PlannerMicroStepUpdateError('read_failed');
+  if (!existing.data) throw new PlannerMicroStepUpdateError('not_found');
+  const schema = parseContentBlock(existing.data.content_schema);
+  const effectiveContent = patch.contentValue === undefined ? parseContentBlockValue(existing.data.content_value) : patch.contentValue;
+  if (patch.status === 'completed' && schema && !isCompleteContentValue(schema, effectiveContent)) {
+    throw new PlannerMicroStepUpdateError('input_required');
+  }
+
   const updated = await supabase.from('application_plan_micro_steps').update(fields)
     .eq('id', microStepId).in('step_id', stepIds).is('archived_at', null)
     .select('id, status, deadline, content_value').maybeSingle();
@@ -65,6 +78,7 @@ export async function updateApplicationPlannerMicroStep(
     status: isProgressStatus(row.status) ? row.status : 'not_started',
     deadline: typeof row.deadline === 'string' ? row.deadline : null,
     contentValue: (row.content_value ?? null) as PlannerMicroStepExecutionState['contentValue'],
+    ...(patch.contentValue !== undefined && schema?.type === 'single_select' ? { planningInputChanged: true } : {}),
   };
 }
 

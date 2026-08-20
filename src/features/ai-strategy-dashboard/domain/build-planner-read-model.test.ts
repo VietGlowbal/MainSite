@@ -72,14 +72,14 @@ describe('buildPlannerReadModel', () => {
   });
 
   it('returns an empty canonical model for an application with no Core 3 plan', () => {
-    expect(buildPlannerReadModel(input({ plan: null }))).toEqual({ plan: null, phases: [], diagnostics: [] });
+    expect(buildPlannerReadModel(input({ plan: null }))).toEqual({ plan: null, phases: [], lifecycle: 'empty', diagnostics: [] });
   });
 
   it('does not expose an archived root plan', () => {
     const current = input();
     current.plan = { ...current.plan!, archivedAt: '2026-08-20T00:00:00.000Z' };
     expect(buildPlannerReadModel(current)).toEqual({
-      plan: null, phases: [], diagnostics: [{ kind: 'archived_plan', nodeId: 'plan-db', parentId: null }],
+      plan: null, phases: [], lifecycle: 'empty', diagnostics: [{ kind: 'archived_plan', nodeId: 'plan-db', parentId: null }],
     });
   });
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { generateRecommendations } from '@/features/ai-strategy-dashboard/api';
+import { generateRecommendations, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
 import { createClient } from '@/lib/supabase/server';
 
 /**
@@ -52,6 +52,10 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  if (await getPlannerMode(supabase, user.id) === 'canonical') {
+    return NextResponse.json({ error: 'This application uses the canonical Planner.' }, { status: 409 });
+  }
+
   const application = await loadApplication(supabase, applicationId, user.id);
   if (!application) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
@@ -66,6 +70,10 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+
+  if (await getPlannerMode(supabase, user.id) === 'canonical') {
+    return NextResponse.json({ error: 'This application uses the canonical Planner.' }, { status: 409 });
+  }
 
   const application = await loadApplication(supabase, applicationId, user.id);
   if (!application) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
