@@ -52,8 +52,36 @@ export async function syncApplicationPlan(
     getApplicationPlan(supabase, applicationId, userId),
     loadExistingPlan(supabase, applicationId),
   ]);
+  // Production uses the SECURITY DEFINER RPC installed by the production
+  // migration.  It reconciles the whole hierarchy in one transaction; the
+  // sequential path remains only for local/test environments without Postgres
+  // RPC support.
+  if (process.env.NODE_ENV === 'production') return applyPlanAtomically(supabase, applicationId, plan);
   const operations = reconcilePlan(applicationId, plan, existing).operations;
   return applyPlanOperations(supabase, operations, existing);
+}
+
+async function applyPlanAtomically(supabase: SupabaseClient, applicationId: string, plan: Awaited<ReturnType<typeof getApplicationPlan>>): Promise<SyncApplicationPlanResult> {
+  const payload = {
+    domainPlanId: plan.id,
+    readiness: plan.readiness,
+    phases: plan.phases.map((phase) => ({
+      domainNodeId: phase.id, title: phase.title, objective: phase.objective, order: phase.order,
+      sourceDecisionIds: phase.sourceDecisionIds, sourceProvenances: phase.sourceProvenances,
+      steps: phase.steps.map((step) => ({
+        domainNodeId: step.id, title: step.title, objective: step.objective, order: step.order,
+        sourceDecisionIds: step.sourceDecisionIds, sourceProvenances: step.sourceProvenances,
+        microSteps: step.microSteps.map((microStep) => ({
+          domainNodeId: microStep.id, title: microStep.title, order: microStep.order, readiness: microStep.readiness,
+          contentSchema: microStep.contentSchema ?? null, sourceDecisionIds: microStep.sourceDecisionIds, sourceProvenances: microStep.sourceProvenances,
+        })),
+      })),
+    })),
+  };
+  const response = await supabase.rpc('reconcile_canonical_application_plan', { p_application_id: applicationId, p_plan: payload });
+  if (response.error) throw new PlanPersistenceError(`Could not persist Core 3 plan atomically: ${response.error.message}`);
+  const result = response.data as Partial<SyncApplicationPlanResult> | null;
+  return { inserted: result?.inserted ?? 0, updated: result?.updated ?? 0, restored: result?.restored ?? 0, archived: result?.archived ?? 0 };
 }
 
 async function loadExistingPlan(supabase: SupabaseClient, applicationId: string): Promise<ExistingPersistedPlan> {

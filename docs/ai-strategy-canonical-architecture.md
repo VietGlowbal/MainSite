@@ -311,6 +311,30 @@ alongside its deterministic `domainNodeId` and parent context.
 
 ### Core 4 execution integration
 
+### Production rollout and progression
+
+For an entitled Plus/admin user, `getPlannerMode()` selects the canonical
+experience and `ensureApplicationPlan()` creates the hierarchy once when no
+active plan exists. Existing applications without entitlement retain the
+legacy Planner. The canonical route does not render the legacy category board
+or regenerate legacy recommendation tasks for canonical users; legacy rows
+remain read-only upstream evidence/history.
+
+Planning-owned input definitions now include deterministic `single_select`
+schemas with an explicit `semanticKey`. Core 4 persists the selected value in
+`content_value`; Gate 2 reads only valid declared semantic inputs back as
+user-provided `PlanningInput`s. Saving such an input runs the existing
+Assess -> Decide -> Plan chain and reconciles the plan. Status/deadline-only
+writes never trigger this progression. Input-required tasks cannot be marked
+complete without a valid value. A Planner read model derives `active`,
+`waiting_for_input`, `complete`, or `empty`; complete has an explicit UI state.
+
+`supabase-canonical-planner-production.sql` is the production follow-up to the
+Core 3 hierarchy migration. It revokes direct authenticated mutations of all
+canonical hierarchy tables and provides the service-role-only
+`reconcile_canonical_application_plan` RPC, which applies hierarchy
+reconciliation transactionally while preserving execution data on stable nodes.
+
 The active Planner route now selects deliberately between two non-merged data
 models: an application with an active canonical plan renders
 `HierarchicalApplicationPlanner`; an application with no plan keeps the legacy

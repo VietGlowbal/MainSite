@@ -7,6 +7,8 @@ export { getApplicationAssessments } from './get-application-assessments';
 export { getApplicationDecisions } from './get-application-decisions';
 export { getApplicationPlan } from './get-application-plan';
 export { PlanPersistenceError, syncApplicationPlan } from './sync-application-plan';
+export { ensureApplicationPlan, getPlannerMode, type EnsureApplicationPlanResult, type PlannerMode } from './planner-access';
+export { progressApplicationPlan } from './progress-application-plan';
 export type { SyncApplicationPlanResult } from './sync-application-plan';
 export { getApplicationPlanner, PlannerReadError } from './get-application-planner';
 export { updateApplicationPlannerMicroStep, PlannerMicroStepUpdateError } from './update-application-planner-micro-step';

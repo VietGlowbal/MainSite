@@ -5,7 +5,7 @@ import { useApplicationPlanner } from './use-application-planner';
 
 function planner(): PlannerReadModel {
   const micro = { id: 'micro-1', domainNodeId: 'micro:1', stepId: 'step-1', phaseId: 'phase-1', title: 'Upload evidence', order: 1, readiness: 'requires_enrichment' as const, contentSchema: { type: 'long_text' as const, prompt: 'Explain' }, sourceDecisionIds: [], sourceProvenances: [], status: 'not_started' as const, deadline: null, contentValue: null, executionEvidence: [] };
-  return { plan: { id: 'plan-1', applicationId: 'app-1', producer: 'core3_deterministic', domainPlanId: 'plan:1', readiness: 'requires_enrichment' }, diagnostics: [], phases: [{ id: 'phase-1', domainNodeId: 'phase:1', title: 'Phase', objective: 'Objective', order: 1, sourceDecisionIds: [], sourceProvenances: [], progress: { total: 1, completed: 0, percentage: 0 }, steps: [{ id: 'step-1', domainNodeId: 'step:1', phaseId: 'phase-1', title: 'Step', objective: 'Objective', order: 1, sourceDecisionIds: [], sourceProvenances: [], progress: { total: 1, completed: 0, percentage: 0 }, microSteps: [micro] }] }] };
+  return { plan: { id: 'plan-1', applicationId: 'app-1', producer: 'core3_deterministic', domainPlanId: 'plan:1', readiness: 'requires_enrichment' }, lifecycle: 'active', diagnostics: [], phases: [{ id: 'phase-1', domainNodeId: 'phase:1', title: 'Phase', objective: 'Objective', order: 1, sourceDecisionIds: [], sourceProvenances: [], progress: { total: 1, completed: 0, percentage: 0 }, steps: [{ id: 'step-1', domainNodeId: 'step:1', phaseId: 'phase-1', title: 'Step', objective: 'Objective', order: 1, sourceDecisionIds: [], sourceProvenances: [], progress: { total: 1, completed: 0, percentage: 0 }, microSteps: [micro] }] }] };
 }
 
 afterEach(() => vi.unstubAllGlobals());

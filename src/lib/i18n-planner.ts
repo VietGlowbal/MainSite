@@ -37,4 +37,7 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'complete ·': 'hoàn thành ·',
   Unscheduled: 'Chưa lên lịch',
   'Generate the deterministic Core 3 hierarchy for this application.': 'Tạo cấu trúc Core 3 xác định cho hồ sơ này.',
+  'We could not initialize your Planner. Please try again shortly.': 'Không thể khởi tạo kế hoạch của bạn. Vui lòng thử lại sau ít phút.',
+  'Select an option': 'Chọn một lựa chọn',
+  'You&apos;ve completed the current plan. We&apos;ll update it if your application information changes.': 'Bạn đã hoàn thành kế hoạch hiện tại. Chúng tôi sẽ cập nhật nếu thông tin hồ sơ thay đổi.',
 };

@@ -1,6 +1,7 @@
 /** Core 2 Decide: pure, conservative decisions over Core 1 findings. */
 
 import type { AssessmentResult } from './assessment';
+import type { PlanningInput } from './planning-context';
 import type { DecisionOption, DecisionReason, DecisionResult } from './decision';
 
 const DECISION_ORDER: Record<DecisionResult['status'], number> = {
@@ -14,11 +15,11 @@ const DECISION_ORDER: Record<DecisionResult['status'], number> = {
  * Compile decision boundaries from Assess findings only. It never re-evaluates
  * raw context, makes an AI call, or converts a decision into a planner task.
  */
-export function compileDecisions(assessments: readonly AssessmentResult[]): DecisionResult[] {
+export function compileDecisions(assessments: readonly AssessmentResult[], plannerInputs: readonly PlanningInput[] = []): DecisionResult[] {
   const normalized = uniqueSortedAssessments(assessments);
   return [
     applicationEligibilityDecision(normalized),
-    attentionFocusDecision(normalized),
+    attentionFocusDecision(normalized, plannerInputs),
     constraintContextDecision(normalized),
   ]
     .filter((decision): decision is DecisionResult => decision !== null)
@@ -90,7 +91,7 @@ function applicationEligibilityDecision(assessments: readonly AssessmentResult[]
   });
 }
 
-function attentionFocusDecision(assessments: readonly AssessmentResult[]): DecisionResult | null {
+function attentionFocusDecision(assessments: readonly AssessmentResult[], plannerInputs: readonly PlanningInput[]): DecisionResult | null {
   const signals = assessments.filter((assessment) =>
     assessment.decisionBasis === 'soft_signal'
     && (assessment.status === 'gap' || assessment.status === 'needs_attention'),
@@ -103,7 +104,9 @@ function attentionFocusDecision(assessments: readonly AssessmentResult[]): Decis
     'uncertain',
     [signal],
   ));
-  const multipleOptions = options.length > 1;
+  const selected = plannerInputs.find((input) => input.semanticKey === 'planner.attention_focus');
+  const selectedOption = selected ? options.find((option) => option.id === selected.value) : null;
+  const multipleOptions = options.length > 1 && !selectedOption;
   return decision({
     id: 'decision:attention-focus',
     subject: 'Application attention focus',
@@ -112,8 +115,8 @@ function attentionFocusDecision(assessments: readonly AssessmentResult[]): Decis
     summary: multipleOptions
       ? 'No deterministic rule chooses among these soft signals.'
       : 'This signal is available for later planning but does not block the application.',
-    options,
-    supporting: signals,
+    options: selectedOption ? [selectedOption] : options,
+    supporting: selectedOption ? signals.filter((signal) => selectedOption.reasons.some((reason) => reason.assessmentId === signal.id)) : signals,
     blocking: [],
   });
 }

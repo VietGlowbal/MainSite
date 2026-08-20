@@ -9,6 +9,7 @@ import type {
   PlannerReadModelInput,
   PlannerStep,
 } from './planner-read-model';
+import type { PlanReadiness } from './plan';
 import type { PlannerMicroStepExecutionPatch } from './planner-micro-step-execution';
 
 const EMPTY_PROGRESS: PlannerProgress = { total: 0, completed: 0, percentage: 0 };
@@ -21,11 +22,12 @@ const EMPTY_PROGRESS: PlannerProgress = { total: 0, completed: 0, percentage: 0 
 export function buildPlannerReadModel(input: PlannerReadModelInput): PlannerReadModel {
   const diagnostics: PlannerReadDiagnostic[] = [];
   const plan = input.plan;
-  if (!plan) return { plan: null, phases: [], diagnostics };
+  if (!plan) return { plan: null, phases: [], lifecycle: 'empty', diagnostics };
   if (plan.archivedAt !== null) {
     return {
       plan: null,
       phases: [],
+      lifecycle: 'empty',
       diagnostics: [{ kind: 'archived_plan', nodeId: plan.id, parentId: null }],
     };
   }
@@ -141,8 +143,16 @@ export function buildPlannerReadModel(input: PlannerReadModelInput): PlannerRead
       readiness: plan.readiness,
     },
     phases,
+    lifecycle: lifecycle(plan.readiness, phases),
     diagnostics: sortDiagnostics(diagnostics),
   };
+}
+
+function lifecycle(readiness: PlanReadiness, phases: readonly PlannerPhase[]): PlannerReadModel['lifecycle'] {
+  const micros = phases.flatMap((phase) => phase.steps.flatMap((step) => step.microSteps));
+  if (micros.length === 0) return readiness === 'empty' ? 'complete' : 'empty';
+  if (micros.every((micro) => micro.status === 'completed')) return 'complete';
+  return micros.some((micro) => micro.readiness === 'requires_user_input' && micro.status !== 'completed') ? 'waiting_for_input' : 'active';
 }
 
 /** Stable hierarchy order, flattened only as an execution projection. */

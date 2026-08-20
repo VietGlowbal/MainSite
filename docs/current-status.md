@@ -628,6 +628,23 @@ The planning source adapter accepts legacy `course_applications` schemas where
 optional metadata (such as `application_method`) has not been deployed; the
 application is read as a row and absent optional fields are treated as absent.
 
+### AI Planner productionization (working tree)
+
+The production canonical path now uses one Plus/admin entitlement boundary and
+automatically ensures a canonical plan on the application Planner route. It
+does not show legacy task-category execution UI for canonical users. The first
+real deterministic input is an attention-focus `single_select` with a declared
+semantic key: only a valid selected value may complete that task, and saving it
+runs the existing deterministic pipeline again. Status/deadline changes do not
+recompute the plan. The read model now exposes a lifecycle and an explicit
+complete state rather than an empty task list.
+
+`supabase-canonical-planner-production.sql` must be applied after
+`supabase-core3-plan-hierarchy.sql` before deploying this code. It is a new
+follow-up migration (not a rewrite of the earlier file): it revokes client-side
+canonical writes and installs the service-role-only transactional reconciliation
+RPC required by production `syncApplicationPlan()`.
+
 The dated audit remains the detailed evidence record. A code-only recheck on
 2026-08-06 found no commit that obviously closes its highest-priority items:
 
