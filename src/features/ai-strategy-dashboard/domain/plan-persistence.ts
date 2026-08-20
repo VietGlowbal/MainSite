@@ -1,6 +1,5 @@
-import type { AssessmentProvenance } from './assessment';
 import type { ContentBlock, ContentBlockValue } from '@/lib/match-insights';
-import type { PlanMicroStep, PlanNodeReadiness, PlanPhase, PlanReadiness, PlanResult, PlanStep } from './plan';
+import type { PlanMicroStep, PlanNodeReadiness, PlanNodeProvenance, PlanPhase, PlanReadiness, PlanResult, PlanStep } from './plan';
 
 /** The dedicated hierarchy is intentionally not a producer in the legacy recommendations table. */
 export const CORE3_PLAN_PRODUCER = 'core3_deterministic' as const;
@@ -21,7 +20,7 @@ type PersistedPlanningFields = {
   title: string;
   order: number;
   sourceDecisionIds: string[];
-  sourceProvenances: AssessmentProvenance[];
+  sourceProvenances: PlanNodeProvenance[];
   archivedAt: string | null;
 };
 
@@ -159,7 +158,7 @@ function planningFields(node: Pick<PlanPhase, 'id' | 'title' | 'order' | 'source
     title: node.title,
     order: node.order,
     sourceDecisionIds: [...node.sourceDecisionIds].sort(compare),
-    sourceProvenances: [...node.sourceProvenances].sort(compare),
+    sourceProvenances: [...node.sourceProvenances].sort((left, right) => canonical(left).localeCompare(canonical(right))),
   };
 }
 

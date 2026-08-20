@@ -313,6 +313,34 @@ alongside its deterministic `domainNodeId` and parent context.
 
 ### Production rollout and progression
 
+### Core 3 deterministic-first AI enrichment
+
+Core 3 now remains a deterministic scaffold compiler and adds an optional
+server-only enrichment boundary afterwards:
+
+```text
+Assess (deterministic) -> Decide (deterministic) -> Plan scaffold (deterministic)
+  -> validated AI enrichment -> deterministic merge -> canonical hierarchy
+```
+
+`generatePlanEnrichment()` reuses the repository OpenAI JSON-mode client. It
+receives only approved decision scopes, their grounded assessment summaries,
+the compact programme/constraint/deadline context, and explicit user-selected
+attention focus. It may expand confirmed blockers or a selected attention
+direction; it cannot expand `needs_user_choice` or use unknown requirements as
+facts. The model cannot return execution fields, deadlines, semantic keys,
+database IDs, or user identifiers. Zod validation enforces bounded hierarchy
+size, known/allowed decision IDs, strict object shapes, and stable client keys.
+
+The merge creates deterministic AI node IDs from the source decision and model
+client keys. Consequently a regenerated task with the same semantic key is
+reconciled as the same canonical node and keeps Core 4 status, date, content,
+and evidence. AI planning provenance (`provider`, `model`, prompt/enrichment
+version, timestamp, source decisions) is stored alongside—never instead of—the
+factual source provenance in the existing hierarchy JSONB metadata. Provider or
+validation failure persists the deterministic scaffold; page loads and normal
+execution updates do not make an AI call.
+
 For an entitled Plus/admin user, `getPlannerMode()` selects the canonical
 experience and `ensureApplicationPlan()` creates the hierarchy once when no
 active plan exists. Existing applications without entitlement retain the

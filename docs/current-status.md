@@ -11,6 +11,18 @@ Focused navigation tests pass 14/14 and TypeScript passes. The production
 Supabase migration and deployment remain required before the canonical route
 can initialize a real plan.
 
+Working tree 2026-08-21: Core 3 Plan now has a server-only, deterministic-first
+AI enrichment boundary using the existing OpenAI JSON-mode client. Pure
+Assess/Decide/Plan compilers remain unchanged. The model receives only
+whitelisted blocker or explicitly selected attention scopes and a narrow
+grounded context; strict Zod validation rejects forbidden execution fields,
+deadlines, unknown decision IDs, unknown schemas, duplicate client keys, and
+oversized output before a pure merge creates stable canonical node IDs. AI
+failure falls back to the deterministic scaffold. AI planning provenance is
+persisted in the existing source-provenance JSONB field alongside factual
+provenance, so no new migration is needed. Focused enrichment/Core 3/persistence
+tests pass 26/26 and strict TypeScript passes.
+
 Working tree 2026-08-20: Core 1 Assess is now callable end to end through
 `getApplicationAssessments(supabase, applicationId, userId)`: the source
 adapter fetches validated application facts and F5/F7 metadata,

@@ -6,6 +6,7 @@ export { fetchPlanningContextSources } from './fetch-planning-context-sources';
 export { getApplicationAssessments } from './get-application-assessments';
 export { getApplicationDecisions } from './get-application-decisions';
 export { getApplicationPlan } from './get-application-plan';
+export { getEnrichedApplicationPlan } from './get-enriched-application-plan';
 export { PlanPersistenceError, syncApplicationPlan } from './sync-application-plan';
 export { ensureApplicationPlan, getPlannerMode, type EnsureApplicationPlanResult, type PlannerMode } from './planner-access';
 export { progressApplicationPlan } from './progress-application-plan';

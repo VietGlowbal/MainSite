@@ -1,5 +1,5 @@
 import type { ContentBlock, ContentBlockValue } from '@/lib/match-insights';
-import type { AssessmentProvenance } from './assessment';
+import type { PlanNodeProvenance } from './plan';
 import type {
   PersistedPlan,
   PersistedPlanMicroStep,
@@ -34,7 +34,7 @@ export type PlannerPhase = {
   objective: string;
   order: number;
   sourceDecisionIds: string[];
-  sourceProvenances: AssessmentProvenance[];
+  sourceProvenances: PlanNodeProvenance[];
   progress: PlannerProgress;
   steps: PlannerStep[];
 };
@@ -47,7 +47,7 @@ export type PlannerStep = {
   objective: string;
   order: number;
   sourceDecisionIds: string[];
-  sourceProvenances: AssessmentProvenance[];
+  sourceProvenances: PlanNodeProvenance[];
   progress: PlannerProgress;
   microSteps: PlannerMicroStep[];
 };
@@ -63,7 +63,7 @@ export type PlannerMicroStep = {
   readiness: PlanNodeReadiness;
   contentSchema: ContentBlock | null;
   sourceDecisionIds: string[];
-  sourceProvenances: AssessmentProvenance[];
+  sourceProvenances: PlanNodeProvenance[];
   status: ProgressStatus;
   /** A PostgreSQL DATE represented as its timezone-free YYYY-MM-DD value. */
   deadline: string | null;

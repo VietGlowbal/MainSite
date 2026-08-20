@@ -9,7 +9,7 @@ import {
   type PersistedPlanStep,
   type PlanPersistenceOperation,
 } from '../domain';
-import { getApplicationPlan } from './get-application-plan';
+import { getEnrichedApplicationPlan } from './get-enriched-application-plan';
 
 export type SyncApplicationPlanResult = {
   inserted: number;
@@ -48,10 +48,11 @@ export async function syncApplicationPlan(
   if (ownership.error) throw new PlanPersistenceError(`Could not verify application ownership: ${ownership.error.message}`);
   if (!ownership.data) throw new PlanPersistenceError('Application was not found for this user.');
 
-  const [plan, existing] = await Promise.all([
-    getApplicationPlan(supabase, applicationId, userId),
+  const [enriched, existing] = await Promise.all([
+    getEnrichedApplicationPlan(supabase, applicationId, userId),
     loadExistingPlan(supabase, applicationId),
   ]);
+  const plan = enriched.plan;
   // Production uses the SECURITY DEFINER RPC installed by the production
   // migration.  It reconciles the whole hierarchy in one transaction; the
   // sequential path remains only for local/test environments without Postgres
@@ -61,7 +62,7 @@ export async function syncApplicationPlan(
   return applyPlanOperations(supabase, operations, existing);
 }
 
-async function applyPlanAtomically(supabase: SupabaseClient, applicationId: string, plan: Awaited<ReturnType<typeof getApplicationPlan>>): Promise<SyncApplicationPlanResult> {
+async function applyPlanAtomically(supabase: SupabaseClient, applicationId: string, plan: Awaited<ReturnType<typeof getEnrichedApplicationPlan>>['plan']): Promise<SyncApplicationPlanResult> {
   const payload = {
     domainPlanId: plan.id,
     readiness: plan.readiness,
@@ -264,6 +265,13 @@ function text(value: unknown): string { return typeof value === 'string' ? value
 function nullableText(value: unknown): string | null { return typeof value === 'string' ? value : null; }
 function number(value: unknown): number { return typeof value === 'number' ? value : 0; }
 function texts(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; }
-function provenances(value: unknown): PersistedPlanPhase['sourceProvenances'] { return texts(value).filter((value): value is PersistedPlanPhase['sourceProvenances'][number] => ['database_factual', 'ai_generated', 'user_provided', 'derived'].includes(value)); }
+function provenances(value: unknown): PersistedPlanPhase['sourceProvenances'] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item === 'string' && ['database_factual', 'ai_generated', 'user_provided', 'derived'].includes(item)) return [item as PersistedPlanPhase['sourceProvenances'][number]];
+    if (item && typeof item === 'object' && (item as Record<string, unknown>).kind === 'ai_planning') return [item as PersistedPlanPhase['sourceProvenances'][number]];
+    return [];
+  });
+}
 function planReadiness(value: unknown): PersistedPlan['readiness'] { return value === 'empty' || value === 'requires_user_input' || value === 'requires_enrichment' ? value : 'empty'; }
 function nodeReadiness(value: unknown): PersistedPlanMicroStep['readiness'] { return value === 'requires_user_input' || value === 'requires_enrichment' ? value : 'requires_enrichment'; }

@@ -1,6 +1,20 @@
 import type { AssessmentProvenance } from './assessment';
 import type { ContentBlock } from '@/lib/match-insights';
 
+/** Provenance for planning language created by the optional Core 3 AI layer. */
+export type AiPlanningProvenance = {
+  kind: 'ai_planning';
+  provider: 'openai';
+  model: string;
+  promptVersion: string;
+  enrichmentVersion: string;
+  generatedAt: string;
+  sourceDecisionIds: string[];
+};
+
+/** Factual provenance remains separate when a node also has AI planning copy. */
+export type PlanNodeProvenance = AssessmentProvenance | AiPlanningProvenance;
+
 /** What deterministic planning can honestly provide before enrichment or input. */
 export type PlanReadiness = 'empty' | 'requires_user_input' | 'requires_enrichment';
 
@@ -19,7 +33,7 @@ export type PlanPhase = {
   objective: string;
   order: number;
   sourceDecisionIds: string[];
-  sourceProvenances: AssessmentProvenance[];
+  sourceProvenances: PlanNodeProvenance[];
   steps: PlanStep[];
 };
 
@@ -29,7 +43,7 @@ export type PlanStep = {
   objective: string;
   order: number;
   sourceDecisionIds: string[];
-  sourceProvenances: AssessmentProvenance[];
+  sourceProvenances: PlanNodeProvenance[];
   microSteps: PlanMicroStep[];
 };
 
@@ -48,5 +62,5 @@ export type PlanMicroStep = {
    */
   contentSchema?: ContentBlock | null;
   sourceDecisionIds: string[];
-  sourceProvenances: AssessmentProvenance[];
+  sourceProvenances: PlanNodeProvenance[];
 };

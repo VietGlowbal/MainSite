@@ -1,0 +1,11 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { compileDecisions, compilePlan } from '../domain';
+import { generatePlanEnrichment } from './generate-plan-enrichment';
+import { getApplicationAssessments } from './get-application-assessments';
+
+/** Production orchestration: deterministic scaffold first, optional AI second. */
+export async function getEnrichedApplicationPlan(supabase: SupabaseClient, applicationId: string, userId: string) {
+  const { assessments, context } = await getApplicationAssessments(supabase, applicationId, userId);
+  const decisions = compileDecisions(assessments, context.plannerInputs);
+  return generatePlanEnrichment({ scaffold: compilePlan(decisions), decisions, assessments, context });
+}
