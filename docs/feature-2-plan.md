@@ -12,78 +12,29 @@ Source material used: `docs/ai-strategy-canonical-architecture.md`,
 scoring spec, the Matching Report layout, the Strategy Report layout and a
 complete Final Check spec.
 
-## Decisions needed before build starts
+## Decisions made (2026-08-20)
 
-These six block work. Everything else in this plan can proceed without them.
+All six are answered. Detail and consequences live in
+[strategy-reports-spec.md](strategy-reports-spec.md); this is the summary.
 
-**1. Matching Report dimensions: four or five?**
-The framework doc's F5 section defines five weighted dimensions (academic
-competitiveness 25%, persona alignment 25%, career direction 20%, financial
-feasibility 15%, application readiness 15%) on a 1-5 scale. These are already
-typed in `src/shared/evaluation/f5-programme-fit.ts` and in
-`programmeFitSchema`. The Matching Report layout in the same document shows a
-different set of four, as percentages: Academic Fit 75%, Programme Fit 92%,
-Values Fit 95%, Career Vision Fit 88%. Financial feasibility and application
-readiness are absent from the UI table.
-
-Recommendation: keep the five scored dimensions as the engine contract, and
-treat the UI's four as a presentation grouping over them. Values Fit maps to
-persona alignment, Programme Fit to the F4 narrative match. Application
-readiness surfaces in the Hard Criteria section rather than as a scored bar,
-which is what the framework itself says it is (a hard gate, not a graded
-metric). Needs confirming either way before F5 is written.
-
-**2. Do we show percentages next to a Reach/Match label?**
-The layout opens with OVERALL MATCH SCORE …% alongside Reach / Match / Strong
-Match / Safety, plus APPLICATION READINESS …% and CONFIDENCE LEVEL …%. The
-engine contract forbids emitting an admission probability, and a large
-percentage sitting next to a Reach/Match band will be read by students as an
-admit chance regardless of what the label underneath says.
-
-Recommendation: keep confidence as a percentage, express match as the band
-plus per-dimension bars, and drop the single headline percentage. If the
-headline number stays, it needs a label that cannot be misread and a line of
-copy directly under it saying what it is not.
-
-**3. "Strong Match" is a fourth band.**
-`ProgrammeFitClassification` currently allows safety, match, reach,
-currently_ineligible, insufficient_data. The layout adds Strong Match. Adding
-it means defining its academic threshold, since the classification rule is
-explicitly rule-based off the academic band, not a weighted sum.
-
-**4. F7 means two different things.**
-In the framework document, F7 is the LOR Strategy & Quality Review framework
-(F7.1 recommender matching, F7.2 recommended traits, F7.3 LOR quality review),
-and that one is partly built already under `src/lib/ai/lor.ts` and
-`/api/ai/lor-strategy`. In `docs/ai-strategy-canonical-architecture.md` and
-throughout the code, F7 means the Strategy Report engine. Two different things
-with one name will cost someone a day. One of them needs renaming before we
-write any more code against either.
-
-Recommendation: the LOR framework keeps F7 since that is what the source
-document says, and the Strategy Report engine becomes F8. Cheap to do now,
-expensive later.
-
-**5. The Execution Roadmap section is marked unfinished.**
-The Strategy Report's phase structure (4 phases, each with goal, key actions,
-deliverables, success criteria, timeline) carries an author note saying it is
-still being worked out. The Planner generates from this, so building it as
-specified risks building twice.
-
-Recommendation: build sections 1-4 of the Strategy Report to spec, and keep
-the current `roadmap.prioritize`/`.avoid` -> Planner path for phase 5 until the
-roadmap section is settled.
-
-**6. Final Check has a full spec already.**
-Item 12 is described as not built, which is true, but it is not unspecified.
-The document contains the whole thing: overall readiness percentage,
-document-by-document review (Purpose -> Evidence -> Strength -> Gap ->
-Strategic Contribution -> Recommended Action, with critical/strategic/polish
-tiers), and a narrative consistency audit. Worth knowing before deciding it is
-a later phase, because it is the piece that ties CV, Essay and LOR together and
-gives the merge work in items 9 and 10 an actual destination.
+1. **Five scored dimensions.** No schema change needed, `programmeFitSchema`
+   already has the five F5 keys.
+2. **Percentages stay**, headline match score included. Two conditions attach:
+   it is labelled and described as a match score and never as a chance of
+   admission, and `fitDimensionSchema.score` drops `.int()` so percentages
+   other than multiples of 20 are actually reachable.
+3. **`strong_match` added** as a fourth band, slotted between match and safety
+   on the academic band.
+4. **F7 stays with the LOR framework; the Strategy Report engine becomes F8.**
+   Read from a reply of "same reply" as accepting the recommendation. Worth an
+   explicit confirmation before the rename lands.
+5. **Execution Roadmap and Planner task contract get designed in one pass.**
+6. **Final Check gets a proposed scope**, drafted in the spec document.
 
 ## Assets still needed
+
+The two report PDFs have landed and are recorded in
+[strategy-reports-spec.md](strategy-reports-spec.md). Still outstanding:
 
 - The newer Strategy Master homepage design (item 8). Until it arrives, item 8
   is on hold and nobody should touch the current Hub.
@@ -166,7 +117,9 @@ stable typed contract waiting to be filled.
 That is good news for cost. The work is:
 
 - Implement F5 scoring to the weights in the framework doc, against the
-  existing types. Resolve decision 1 first.
+  existing types, using the five dimensions confirmed in decision 1. Section
+  layouts and the percentage handling are in
+  [strategy-reports-spec.md](strategy-reports-spec.md).
 - Implement the classification rule exactly as specified: any hard eligibility
   failure gives Currently Ineligible and overrides everything, otherwise the
   academic band alone decides Safety / Match / Reach. Persona, financial and
@@ -187,7 +140,8 @@ change.
 Five sections in the spec: strategic overview, strategic priority table,
 profile development strategy, narrative strategy, execution roadmap.
 
-Build 1-4. Hold 5 pending decision 5.
+Build all five. Per decision 5 the Execution Roadmap and the Planner task
+contract are designed together in one pass rather than built twice.
 
 Two things worth noticing. The strategic priority table is specified as
 editable by the applicant, which makes it the first real customer for the work
@@ -255,7 +209,8 @@ should guess at what is wrong with it. Blocked on the newer design arriving.
 
 Both appear in the nav as `locked: true` and neither has a route directory.
 Scholarships has no spec yet beyond the existing global catalogue. Final Check
-has a complete spec in the framework document (see decision 6).
+now has a proposed scope in
+[strategy-reports-spec.md](strategy-reports-spec.md), drafted per decision 6.
 
 Final Check is the natural close of the journey and gives the CV and Essay
 merge somewhere to point. Worth scheduling right after item 7 rather than last.
@@ -264,7 +219,7 @@ merge somewhere to point. Worth scheduling right after item 7 rather than last.
 
 1. Workstream 0. Small, unblocks honest reporting on everything else.
 2. Item 1 in parallel with the item 2 migration off `applicant_analyses`.
-3. Item 4 (F5 and the Matching Report), once decisions 1-3 are made.
+3. Item 4 (F5 and the Matching Report). Unblocked.
 4. Item 5, then item 6's mobile and reminder work in parallel.
 5. Item 7, seeded by what items 4 and 5 actually produce.
 6. Items 9, 10 and 12 together, since Final Check is what makes the merged CV
