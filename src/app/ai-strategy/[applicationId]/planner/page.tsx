@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { fetchOnboardingState, generateRecommendations } from '@/features/ai-strategy-dashboard/api';
+import { fetchOnboardingState, generateRecommendations, getApplicationPlanner } from '@/features/ai-strategy-dashboard/api';
 import {
   nextOnboardingStep,
   onboardingStepHref,
@@ -8,6 +8,8 @@ import {
 import {
   ApplicationPlanner,
   DashboardSummary,
+  GenerateCanonicalPlanButton,
+  HierarchicalApplicationPlanner,
   StrategyCategoryBoard,
 } from '@/features/ai-strategy-dashboard/ui';
 import { getUniversityQueries } from '@/features/universities/api';
@@ -42,6 +44,16 @@ export default async function PlannerPage({
     .maybeSingle();
 
   const hero = await fetchUniversityHero(application?.university_id ?? null);
+
+  // The hierarchy is canonical when it exists. A missing (or not-yet-deployed)
+  // hierarchy migration leaves the established legacy experience available;
+  // recommendations are never merged into a fake canonical structure.
+  let canonicalPlanner = null;
+  try {
+    canonicalPlanner = await getApplicationPlanner(supabase, applicationId, user.id);
+  } catch (error) {
+    console.error('[planner] canonical hierarchy unavailable; using legacy planner', error);
+  }
 
   const { data: latestMatch } = await supabase
     .from('application_match_analyses')
@@ -91,11 +103,18 @@ export default async function PlannerPage({
         ) : null}
 
         <StrategyCategoryBoard applicationId={applicationId} recommendations={recommendations} />
-        <ApplicationPlanner
-          applicationId={applicationId}
-          recommendations={recommendations}
-          today={new Date()}
-        />
+        {canonicalPlanner?.plan ? (
+          <HierarchicalApplicationPlanner applicationId={applicationId} planner={canonicalPlanner} />
+        ) : (
+          <>
+            {process.env.NODE_ENV !== 'production' ? <GenerateCanonicalPlanButton applicationId={applicationId} /> : null}
+            <ApplicationPlanner
+              applicationId={applicationId}
+              recommendations={recommendations}
+              today={new Date()}
+            />
+          </>
+        )}
       </div>
     </Container>
   );

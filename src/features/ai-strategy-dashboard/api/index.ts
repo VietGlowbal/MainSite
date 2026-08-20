@@ -2,3 +2,11 @@ export { fetchOnboardingState, markStrategyIntroSeen } from './onboarding-status
 export { generateRecommendations } from './generate-recommendations';
 export { generateRoadmapTasks } from './generate-roadmap-tasks';
 export { loadEvaluation } from './load-evaluation';
+export { fetchPlanningContextSources } from './fetch-planning-context-sources';
+export { getApplicationAssessments } from './get-application-assessments';
+export { getApplicationDecisions } from './get-application-decisions';
+export { getApplicationPlan } from './get-application-plan';
+export { PlanPersistenceError, syncApplicationPlan } from './sync-application-plan';
+export type { SyncApplicationPlanResult } from './sync-application-plan';
+export { getApplicationPlanner, PlannerReadError } from './get-application-planner';
+export { updateApplicationPlannerMicroStep, PlannerMicroStepUpdateError } from './update-application-planner-micro-step';

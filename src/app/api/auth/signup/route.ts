@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { sendEmail } from '@/lib/send-email';
 import { signupConfirmationEmail } from '@/lib/emails/signup-confirmation';
+import { resolveAuthOrigin } from '@/lib/auth-origin';
 
 /**
  * POST /api/auth/signup
@@ -20,14 +21,6 @@ const BodySchema = z.object({
   next: z.string().optional(),
 });
 
-function siteOrigin(request: NextRequest): string {
-  let v = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, '');
-  if (v && !/^https?:\/\//i.test(v)) {
-    v = `${v.startsWith('localhost') ? 'http' : 'https'}://${v}`;
-  }
-  return v || new URL(request.url).origin;
-}
-
 export async function POST(request: NextRequest) {
   let body: unknown;
   try {
@@ -44,7 +37,7 @@ export async function POST(request: NextRequest) {
   const normalizedEmail = input.email.trim().toLowerCase();
 
   const safeNext = input.next && input.next.startsWith('/') ? input.next : null;
-  const callbackUrl = new URL('/auth/callback', siteOrigin(request));
+  const callbackUrl = new URL('/auth/callback', resolveAuthOrigin(new URL(request.url).origin));
   if (safeNext) callbackUrl.searchParams.set('next', safeNext);
 
   const admin = createAdminClient();

@@ -2,6 +2,84 @@
 
 Last reconciled: **2026-08-15 (Asia/Bangkok)**
 
+Working tree 2026-08-20: Core 1 Assess is now callable end to end through
+`getApplicationAssessments(supabase, applicationId, userId)`: the source
+adapter fetches validated application facts and F5/F7 metadata,
+`compilePlanningContext()` produces a deterministic pure context snapshot, and
+`compileAssessments()` produces current-state findings. The context compiler
+uses explicit deadline-source precedence, retains conflicting equal-precedence
+candidates, separates requirements from evidence absence, preserves F5/F7
+provenance, and never performs I/O or calls AI. Focused source-adapter,
+context-compiler, and Assess tests pass 43/43; strict TypeScript passes; ESLint
+has 0 errors and one unrelated manual-payment test warning. The normal
+TypeScript command still reports only the stale generated `.next` validator
+for the removed `/ai-strategy/report` page.
+
+Working tree 2026-08-20: Core 2 Decide is now deterministic end to end through
+`getApplicationDecisions(supabase, applicationId, userId)`, which composes the
+existing Core 1 runtime exactly once and passes its unchanged assessments to
+`compileDecisions(AssessmentResult[]) -> DecisionResult[]`. It
+uses Core 1's explicit decision semantics rather than severity or prose to
+distinguish confirmed hard blockers, unresolved critical information, soft
+signals, and stored user constraints. It can mark the current application as
+blocked, needing information, or available-with-no-known-hard-blocker; it
+retains multiple soft attention directions as `needs_user_choice`, never
+auto-selecting one. F5 reasons retain AI provenance. This is pure/read-only
+and does not add AI, Planner writes, UI, or Core 3 Phase -> Step -> Micro-step
+generation. Focused Core 1/Core 2 runtime tests pass 58/58. Core 2 AI/hybrid
+enrichment or UI exposure remain optional future work; Core 4's existing
+Planner execution foundation remains separate.
+
+Working tree 2026-08-20: Core 3 Plan is deterministic end to end through
+`getApplicationPlan(supabase, applicationId, userId)`, which composes the
+single Core 1 source-fetch chain through Core 2 then returns an unchanged,
+traceable Phase -> Step -> Micro-step scaffold. The Core 3 -> Core 4 bridge is
+now implemented as a separate canonical hierarchy, not a flattening into the
+shared legacy `application_recommendations` table: `application_plans` ->
+`application_plan_phases` -> `application_plan_steps` ->
+`application_plan_micro_steps`. `reconcilePlan()` is pure and matches only
+stable deterministic node IDs, inserting/updating/restoring/archive-marking
+nodes in deterministic order. It preserves Core 4 micro-step execution state
+(`status`, `deadline`, `content_value`, `execution_evidence`) while refreshing
+planning-owned title/objective/readiness/order/provenance fields. The scoped
+`syncApplicationPlan()` runtime verifies application ownership, compiles once,
+and applies only hierarchy-table writes; it never writes legacy recommendations
+or invokes AI. Apply `supabase-core3-plan-hierarchy.sql` before using the
+runtime. Core 4 now has a read-only canonical boundary:
+`getApplicationPlanner()` loads only the hierarchy in bounded set queries and
+`buildPlannerReadModel()` returns active Phase -> Step -> Micro-step data,
+derived Phase/Step progress, and Calendar/Kanban micro-step projections. It
+excludes archived ancestors/descendants, preserves date-only deadlines and
+student execution values, and reports non-fatal orphan/duplicate/invalid-status
+diagnostics. It never queries or merges `application_recommendations`.
+Temporary compatibility is Strategy A: applications without a persisted Core 3
+plan receive an empty canonical model while the unchanged current Planner
+continues using legacy recommendations. Focused Core 1/Core 2/Core 3/bridge/
+read-model tests passed 101/101 before execution integration. Core 4 Execute
+is now complete for canonical plans: the Planner route chooses canonical
+hierarchy versus legacy recommendations explicitly; List renders responsive
+Phase -> Step -> Micro-step groups with collapse, search/filter context, and
+derived progress; Calendar and Kanban operate only on Micro-steps. Shared
+optimistic state writes status, date-only deadline, and interactive
+`content_value` through the canonical Micro-step PATCH endpoint, rolling back
+only the changed fields on failure. Canonical task detail is
+`/ai-strategy/[applicationId]/planner/tasks/[microStepId]`. Evidence upload
+remains legacy-only because its existing relation is recommendation-specific;
+stored execution evidence remains visible as a count. No AI, reminder, or
+legacy-data write/delete was added. The hierarchy migration must be applied
+before canonical Planner reads/writes work against a real database; no live
+migration was run. Remaining work is email reminders, optional AI/hybrid
+enrichment, and deliberate legacy backfill/retirement. For local demo, a
+legacy-only Planner now presents a development-only **Generate canonical plan**
+button; it calls a same-origin, authenticated, UUID-validated dev route that is
+404 in production, then refreshes into the canonical hierarchy. The focused
+Core 1–4 canonical/legacy Planner, content, and execution suite previously
+passed 163/163; the new dev bootstrap route passes 3/3 and strict TypeScript
+passes. Local auth origin tests pass 2/2: non-production now preserves the
+request origin even when `.env.local` contains the production public URL.
+Supabase Auth must still allow `http://localhost:3000/auth/callback` as a
+Redirect URL for local OAuth or email-confirmation testing.
+
 Code snapshot: branch `claude/university-application-flow-0khm6v`, merged
 with `main`. Two passes on this branch: the application setup flow redesign
 (Review Profile → Activities & Achievements with per-activity reflection and
