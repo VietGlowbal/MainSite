@@ -369,10 +369,10 @@ export async function fetchPlanningContextSources(
   const diagnostics: SourceDiagnostic[] = [];
 
   // ── 1. Application (FATAL) ─────────────────────────────────────────────────
-  const APPLICATION_SELECT =
-    'id,user_id,course_id,university_id,university_name,course_name,course_url,' +
-    'degree_level,subject,study_mode,intake,country,application_method,' +
-    'application_code,status,deadline,deadline_source,deadline_confidence';
+  // Deployments created before every optional application metadata column
+  // existed must still be able to compile a plan. Selecting the row avoids a
+  // hard PostgREST failure for a column that Core Planner can treat as absent.
+  const APPLICATION_SELECT = '*';
 
   const { data: appRow, error: appError } = await supabase
     .from('course_applications')
