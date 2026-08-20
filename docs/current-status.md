@@ -624,6 +624,10 @@ the existing application ownership check. Non-admins see the established
 legacy Planner until their canonical hierarchy has been created through the
 normal product flow.
 
+The planning source adapter accepts legacy `course_applications` schemas where
+optional metadata (such as `application_method`) has not been deployed; the
+application is read as a row and absent optional fields are treated as absent.
+
 The dated audit remains the detailed evidence record. A code-only recheck on
 2026-08-06 found no commit that obviously closes its highest-priority items:
 
