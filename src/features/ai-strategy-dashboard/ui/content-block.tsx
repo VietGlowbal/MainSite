@@ -22,38 +22,39 @@ export function ContentBlockInput({
   recommendationId,
   schema,
   value,
+  onSave,
 }: {
   applicationId: string;
   recommendationId: string;
   schema: ContentBlock;
   value: ContentBlockValue | null;
+  /** Canonical Micro-step detail supplies this; legacy recommendations use their existing route. */
+  onSave?: (contentValue: ContentBlockValue) => Promise<boolean>;
 }) {
+  const save = onSave ?? ((contentValue: ContentBlockValue) => saveContentValue(applicationId, recommendationId, contentValue));
   if (schema.type === 'structured_table') {
     return (
       <StructuredTableInput
-        applicationId={applicationId}
-        recommendationId={recommendationId}
         schema={schema}
         value={value?.type === 'structured_table' ? value : null}
+        onSave={save}
       />
     );
   }
   if (schema.type === 'long_text') {
     return (
       <LongTextInput
-        applicationId={applicationId}
-        recommendationId={recommendationId}
         schema={schema}
         value={value?.type === 'long_text' ? value : null}
+        onSave={save}
       />
     );
   }
   return (
     <ChecklistInput
-      applicationId={applicationId}
-      recommendationId={recommendationId}
       schema={schema}
       value={value?.type === 'checklist' ? value : null}
+      onSave={save}
     />
   );
 }
@@ -94,15 +95,13 @@ function SaveStatus({ saving }: { saving: boolean }) {
  * on every render is the simplest way to guarantee that without a debounce.
  */
 function LongTextInput({
-  applicationId,
-  recommendationId,
   schema,
   value,
+  onSave,
 }: {
-  applicationId: string;
-  recommendationId: string;
   schema: Extract<ContentBlock, { type: 'long_text' }>;
   value: Extract<ContentBlockValue, { type: 'long_text' }> | null;
+  onSave: (contentValue: ContentBlockValue) => Promise<boolean>;
 }) {
   const [text, setText] = useState(value?.text ?? '');
   const [saving, setSaving] = useState(false);
@@ -115,7 +114,7 @@ function LongTextInput({
 
   async function handleBlur() {
     setSaving(true);
-    await saveContentValue(applicationId, recommendationId, {
+    await onSave({
       type: 'long_text',
       text: textRef.current,
     });
@@ -153,15 +152,13 @@ function LongTextInput({
  * a checkbox click is already the finished edit.
  */
 function ChecklistInput({
-  applicationId,
-  recommendationId,
   schema,
   value,
+  onSave,
 }: {
-  applicationId: string;
-  recommendationId: string;
   schema: Extract<ContentBlock, { type: 'checklist' }>;
   value: Extract<ContentBlockValue, { type: 'checklist' }> | null;
+  onSave: (contentValue: ContentBlockValue) => Promise<boolean>;
 }) {
   const [checkedItems, setCheckedItems] = useState<Set<string>>(
     () => new Set(value?.checkedItems ?? []),
@@ -174,7 +171,7 @@ function ChecklistInput({
     else next.add(item);
     setCheckedItems(next);
     setSaving(true);
-    await saveContentValue(applicationId, recommendationId, {
+    await onSave({
       type: 'checklist',
       checkedItems: [...next],
     });
@@ -219,15 +216,13 @@ function nextRowId(): string {
  * in row 2's cells.
  */
 function StructuredTableInput({
-  applicationId,
-  recommendationId,
   schema,
   value,
+  onSave,
 }: {
-  applicationId: string;
-  recommendationId: string;
   schema: Extract<ContentBlock, { type: 'structured_table' }>;
   value: Extract<ContentBlockValue, { type: 'structured_table' }> | null;
+  onSave: (contentValue: ContentBlockValue) => Promise<boolean>;
 }) {
   const [rows, setRows] = useState<TableRow[]>(() => {
     const initial = value?.rows ?? [];
@@ -240,7 +235,7 @@ function StructuredTableInput({
 
   async function persist(nextRows: TableRow[]) {
     setSaving(true);
-    await saveContentValue(applicationId, recommendationId, {
+    await onSave({
       type: 'structured_table',
       rows: nextRows.map((r) => r.cells),
     });

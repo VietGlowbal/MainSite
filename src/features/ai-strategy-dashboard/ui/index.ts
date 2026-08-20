@@ -21,6 +21,9 @@ export { StrategyCategoryBoard } from './strategy-category-board';
  * right.
  */
 export { ApplicationPlanner } from './application-planner';
+export { HierarchicalApplicationPlanner } from './hierarchical-application-planner';
+export { CanonicalMicroStepDetail } from './canonical-micro-step-detail';
+export { GenerateCanonicalPlanButton } from './generate-canonical-plan-button';
 export { ProgressStatusControl } from './progress-status-control';
 export { EvidenceUpload } from './evidence-upload';
 export { AiCoachPanel } from './ai-coach-panel';

@@ -153,7 +153,8 @@ const contentTableRowSchema = z.record(z.string(), z.string());
  * union mirroring the block it answers, so a `long_text` answer can never be
  * saved against a `checklist` schema by a client bug.
  */
-const contentValueSchema = z.discriminatedUnion('type', [
+/** Shared validation for student-owned content values across legacy and canonical tasks. */
+export const contentValueSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('structured_table'), rows: z.array(contentTableRowSchema).max(50) }),
   z.object({ type: z.literal('long_text'), text: z.string().max(20_000) }),
   z.object({ type: z.literal('checklist'), checkedItems: z.array(z.string()).max(50) }),

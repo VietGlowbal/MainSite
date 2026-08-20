@@ -6,6 +6,7 @@ import { captureReferral, REF_COOKIE } from '@/lib/referrals';
 import { sendEmail } from '@/lib/send-email';
 import { welcomeEmail } from '@/lib/emails/welcome';
 import { contactDetailsComplete } from '@/features/auth/domain';
+import { resolveAuthOrigin } from '@/lib/auth-origin';
 
 function redirectClearingRef(url: string): NextResponse {
   const res = NextResponse.redirect(url);
@@ -13,17 +14,9 @@ function redirectClearingRef(url: string): NextResponse {
   return res;
 }
 
-function canonicalOrigin(requestOrigin: string): string {
-  let v = (process.env.NEXT_PUBLIC_SITE_URL ?? '').trim().replace(/\/+$/, '');
-  if (v && !/^https?:\/\//i.test(v)) {
-    v = `${v.startsWith('localhost') ? 'http' : 'https'}://${v}`;
-  }
-  return v || requestOrigin;
-}
-
 export async function GET(request: Request) {
   const { searchParams, origin: requestOrigin } = new URL(request.url);
-  const origin = canonicalOrigin(requestOrigin);
+  const origin = resolveAuthOrigin(requestOrigin);
   const code = searchParams.get('code');
   const next = searchParams.get('next');
   const safeNext = next?.startsWith('/') ? next : null;
