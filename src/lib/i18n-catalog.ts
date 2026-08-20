@@ -4,6 +4,7 @@ import { PERSONAL_REPORT_TRANSLATIONS } from './i18n-personal-report';
 import { STRATEGY_HUB_TRANSLATIONS } from './i18n-strategy-hub';
 import { MATCHING_REPORT_TRANSLATIONS } from './i18n-matching-report';
 import { FINAL_CHECK_TRANSLATIONS } from './i18n-final-check';
+import { STRATEGY_REPORT_TRANSLATIONS } from './i18n-strategy-report';
 
 /**
  * Runtime/static-audit translation catalog.
@@ -18,4 +19,5 @@ export const translations: Record<string, string> = {
   ...STRATEGY_HUB_TRANSLATIONS,
   ...MATCHING_REPORT_TRANSLATIONS,
   ...FINAL_CHECK_TRANSLATIONS,
+  ...STRATEGY_REPORT_TRANSLATIONS,
 };

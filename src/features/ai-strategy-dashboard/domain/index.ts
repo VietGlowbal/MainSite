@@ -113,3 +113,26 @@ export type {
   StrategyRecommendationRecord,
   StrategyRoadmap,
 } from './strategy-recommendation';
+
+export {
+  DIRECTION_DIMENSIONS,
+  DIRECTION_DIMENSION_LABELS,
+  PRIORITY_LEVEL_LABELS,
+  biggestChallenge,
+  chosenDiffersFromTopScore,
+  chosenOption,
+  developmentStrategies,
+  keyStrength,
+  rankedDirections,
+  strategicOverview,
+  strategicPriorities,
+} from './strategy-report-presentation';
+export type {
+  DevelopmentStrategies,
+  DimensionReading,
+  DirectionDimension,
+  PriorityLevel,
+  RankedDirection,
+  StrategicOverview,
+  StrategicPriorityRow,
+} from './strategy-report-presentation';
