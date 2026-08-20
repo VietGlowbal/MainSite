@@ -2,6 +2,7 @@ import { translations as baseTranslations } from './i18n-dictionary';
 import { APPLICATION_FLOW_TRANSLATIONS } from './i18n-application-flow';
 import { PERSONAL_REPORT_TRANSLATIONS } from './i18n-personal-report';
 import { STRATEGY_HUB_TRANSLATIONS } from './i18n-strategy-hub';
+import { MATCHING_REPORT_TRANSLATIONS } from './i18n-matching-report';
 
 /**
  * Runtime/static-audit translation catalog.
@@ -14,4 +15,5 @@ export const translations: Record<string, string> = {
   ...PERSONAL_REPORT_TRANSLATIONS,
   ...APPLICATION_FLOW_TRANSLATIONS,
   ...STRATEGY_HUB_TRANSLATIONS,
+  ...MATCHING_REPORT_TRANSLATIONS,
 };
