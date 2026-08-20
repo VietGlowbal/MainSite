@@ -113,3 +113,119 @@ export type {
   StrategyRecommendationRecord,
   StrategyRoadmap,
 } from './strategy-recommendation';
+
+// ─── Core 1 Gate 1 — Planning Context domain contract (types only) ───────────
+export type {
+  // Source metadata
+  SourceStatus,
+  SourceDiagnostic,
+  SourceProvenance,
+  StalenessState,
+  // Programme
+  PlanningProgrammeSummary,
+  // Requirements
+  RequirementGap,
+  UnresolvedRequirement,
+  // Constraints
+  HardConstraintKind,
+  HardConstraint,
+  // Gaps
+  PlanningGapSource,
+  PlanningGap,
+  // Interventions
+  F5ImprovementCandidate,
+  F7RoadmapCandidate,
+  InterventionCandidate,
+  // Evidence
+  ExistingEvidenceByTier,
+  EvidenceNeedsProof,
+  MissingEvidenceItem,
+  MissingInputSignal,
+  PlanningEvidenceDocument,
+  PlanningEvidenceInventory,
+  // Deadlines
+  PlanningDeadlineSource,
+  DeadlineCandidate,
+  DeadlinePrecedence,
+  DeadlineAuthority,
+  PlanningDeadline,
+  // User constraints
+  UserConstraintKind,
+  UserConstraint,
+  // Strategy
+  AiProposedPortfolioOpportunity,
+  PlanningStrategy,
+  // Provenance
+  PlanningProvenance,
+  // Top-level
+  PlanningContext,
+  PlanningContextSources,
+} from './planning-context';
+
+// Core 1 Assess -- deterministic current-state findings only.
+export { compilePlanningContext } from './compile-planning-context';
+export { compileAssessments } from './compile-assessments';
+export { compileDecisions } from './compile-decisions';
+export { compilePlan } from './compile-plan';
+export { CORE3_PLAN_PRODUCER, reconcilePlan } from './plan-persistence';
+export { plannerMicroStepExecutionPatchSchema } from './planner-micro-step-execution';
+export {
+  buildPlannerReadModel,
+  applyPlannerMicroStepExecution,
+  getCalendarMicroSteps,
+  getKanbanMicroSteps,
+  getPlannerMicroSteps,
+} from './build-planner-read-model';
+export {
+  ASSESSMENT_MODES,
+  ASSESSMENT_SEVERITIES,
+  ASSESSMENT_STATUSES,
+} from './assessment';
+export type {
+  AssessmentDecisionBasis,
+  AssessmentEvidence,
+  AssessmentKind,
+  AssessmentMode,
+  AssessmentProvenance,
+  AssessmentResult,
+  AssessmentSeverity,
+  AssessmentSource,
+  AssessmentStatus,
+} from './assessment';
+export type {
+  DecisionAssessment,
+  DecisionFeasibility,
+  DecisionOption,
+  DecisionReason,
+  DecisionResult,
+  DecisionStatus,
+} from './decision';
+export type {
+  PlanMicroStep,
+  PlanNodeReadiness,
+  PlanPhase,
+  PlanReadiness,
+  PlanResult,
+  PlanStep,
+} from './plan';
+export type {
+  ExistingPersistedPlan,
+  PersistedPlan,
+  PersistedPlanMicroStep,
+  PersistedPlanPhase,
+  PersistedPlanStep,
+  PlanPersistenceOperation,
+  PlanPersistenceOperations,
+} from './plan-persistence';
+export type {
+  PlannerMicroStep,
+  PlannerMicroStepProjection,
+  PlannerPhase,
+  PlannerPlan,
+  PlannerProgress,
+  PlannerReadDiagnostic,
+  PlannerReadModel,
+  PlannerReadModelInput,
+  PlannerStep,
+} from './planner-read-model';
+export type { PlannerMicroStepExecutionPatch, PlannerMicroStepExecutionState } from './planner-micro-step-execution';
