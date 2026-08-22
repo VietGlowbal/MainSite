@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useId, useRef, useState } from 'react';
+import { useId, useState } from 'react';
 import type { Recommendation } from '../domain';
 import {
   DEADLINE_MAX,
@@ -102,8 +102,9 @@ export function DueChip({ days }: { days: number | null }) {
  *     between `DEADLINE_MIN` and `DEADLINE_MAX`) or an empty one, which means
  *     the half-typed years above are simply not events;
  *   - never disables itself, so focus stays where the student put it. Ordering
- *     — the reason `disabled` was there — is kept by chaining a save onto any
- *     save still open instead, which no more steals focus than a promise can;
+ *     — the reason `disabled` was there — moved to `usePlannerRecommendations`,
+ *     which owns the state and the request and can serialize the second without
+ *     freezing the first's input;
  *   - holds an editing draft rather than rendering the prop straight, so a
  *     re-render mid-edit cannot reset the segment the student is in. The prop
  *     still wins whenever it changes underneath (a calendar drag, a rollback).
@@ -123,7 +124,6 @@ export function DeadlineControl({
 }) {
   const [draft, setDraft] = useState(deadline ?? '');
   const [lastDeadline, setLastDeadline] = useState(deadline ?? '');
-  const inFlight = useRef<Promise<void> | null>(null);
   const hintId = useId();
 
   /* Adjusting state during render, not in an effect: the draft has to follow
@@ -142,18 +142,12 @@ export function DeadlineControl({
     setDraft(value);
     if (value !== '' && !isPlannerDeadline(value)) return;
     if (value === (deadline ?? '')) return;
-
-    /* Ordering without `disabled`. An edit made while nothing is in flight —
-       every edit, in practice — saves straight away; one made while a save is
-       still open is chained behind it, so two PATCHes for the same row cannot
-       land in the wrong order. Either way the input keeps its focus, which is
-       the whole point. */
-    const save = (): Promise<void> => onChange(value === '' ? null : value).catch(() => {});
-    const chained = inFlight.current ? inFlight.current.then(save) : save();
-    inFlight.current = chained;
-    void chained.then(() => {
-      if (inFlight.current === chained) inFlight.current = null;
-    });
+    /* Straight through, every time. Ordering two saves for the same row is
+       `usePlannerRecommendations`'s job, not this control's — see its module
+       doc. Holding a queue here would have deferred the optimistic update
+       along with the request, so a correction typed during a slow save would
+       not have reached the calendar or the "days left" chip until it landed. */
+    void onChange(value === '' ? null : value);
   }
 
   return (
