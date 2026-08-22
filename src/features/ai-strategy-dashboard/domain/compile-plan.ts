@@ -81,8 +81,23 @@ function step(group: PlanGroup, decision: DecisionResult, order: number): PlanSt
       title: detail.microStepTitle,
       order: 1,
       readiness,
+      contentSchema: inputSchema(group, decision) ?? null,
       ...metadata,
     }],
+  };
+}
+
+/**
+ * Input contracts are deterministic and carry semantic keys.  Only these
+ * values may later influence Core 1/2; task title text is never parsed.
+ */
+function inputSchema(group: PlanGroup, decision: DecisionResult): PlanStep['microSteps'][number]['contentSchema'] {
+  if (group !== 'confirm_choices' || decision.id !== 'decision:attention-focus') return null;
+  return {
+    type: 'single_select',
+    prompt: 'Choose one application area to focus on next.',
+    semanticKey: 'planner.attention_focus',
+    options: decision.options.map((option) => ({ value: option.id, label: option.label })),
   };
 }
 

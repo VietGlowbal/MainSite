@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { PlanResult } from '../domain';
 
-vi.mock('./get-application-plan', () => ({ getApplicationPlan: vi.fn() }));
+vi.mock('./get-enriched-application-plan', () => ({ getEnrichedApplicationPlan: vi.fn() }));
 
-import { getApplicationPlan } from './get-application-plan';
+import { getEnrichedApplicationPlan } from './get-enriched-application-plan';
 import { syncApplicationPlan } from './sync-application-plan';
 
-const mockedGetApplicationPlan = vi.mocked(getApplicationPlan);
+const mockedGetApplicationPlan = vi.mocked(getEnrichedApplicationPlan);
 
 const compiledPlan: PlanResult = {
   id: 'plan:deterministic:a', readiness: 'requires_enrichment', phases: [{
@@ -69,7 +69,7 @@ afterEach(() => vi.resetAllMocks());
 
 describe('syncApplicationPlan', () => {
   it('checks application ownership and writes only the dedicated hierarchy on an initial sync', async () => {
-    mockedGetApplicationPlan.mockResolvedValue(compiledPlan);
+    mockedGetApplicationPlan.mockResolvedValue({ plan: compiledPlan, enriched: false });
     const fake = fakeSupabase();
 
     await expect(syncApplicationPlan(fake.client, 'application-1', 'user-1')).resolves.toEqual({ inserted: 4, updated: 0, restored: 0, archived: 0 });
@@ -88,7 +88,7 @@ describe('syncApplicationPlan', () => {
   it('preserves existing Core 4 execution fields while updating a Core 3 planning title', async () => {
     const revised = structuredClone(compiledPlan);
     revised.phases[0]!.steps[0]!.microSteps[0]!.title = 'Upload verified evidence';
-    mockedGetApplicationPlan.mockResolvedValue(revised);
+    mockedGetApplicationPlan.mockResolvedValue({ plan: revised, enriched: true });
     const fake = fakeSupabase({
       application_plans: [{ id: 'db-plan', application_id: 'application-1', producer: 'core3_deterministic', domain_plan_id: revised.id, readiness: revised.readiness, archived_at: null }],
       application_plan_phases: [{ id: 'db-phase', plan_id: 'db-plan', domain_node_id: 'phase:blockers', title: 'Resolve blockers', objective: 'Remove blocker.', sort_order: 1, source_decision_ids: ['decision:eligibility'], source_provenances: ['database_factual'], archived_at: null }],

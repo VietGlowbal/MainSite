@@ -61,6 +61,14 @@ describe('compileDecisions', () => {
     expect(focus.options.map((option) => option.id)).toEqual(['option:attention:identified-gap-a', 'option:attention:identified-gap-b']);
   });
 
+  it('uses only a declared planner input to resolve the selected attention direction', () => {
+    const first = assessment({ id: 'identified-gap:a', kind: 'identified_gap', subject: 'Academic evidence', status: 'needs_attention', decisionBasis: 'soft_signal' });
+    const second = assessment({ id: 'identified-gap:b', kind: 'identified_gap', subject: 'Narrative evidence', status: 'needs_attention', decisionBasis: 'soft_signal' });
+    const focus = decision(compileDecisions([assessment(), first, second], [{ semanticKey: 'planner.attention_focus', value: 'option:attention:identified-gap-b', microStepId: 'micro-1', provenance: 'user_provided' }]), 'decision:attention-focus');
+
+    expect(focus).toMatchObject({ status: 'available', options: [{ id: 'option:attention:identified-gap-b' }] });
+  });
+
   it('records a user constraint without falsely blocking feasibility when no comparable candidate fact exists', () => {
     const budget = assessment({
       id: 'constraint:budget', kind: 'constraint', subject: 'budget', currentState: 'USD 20,000',

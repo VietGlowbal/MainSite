@@ -66,11 +66,35 @@ const SECTIONS = [
   { id: 'roadmap', label: 'Roadmap' },
 ] as const;
 
-/** Wraps a section with a blur + "Go Plus" CTA for non-Plus users. */
-function PlusGated({ children }: { children: ReactNode }) {
+/**
+ * Wraps a section with a blur + "Go Plus" CTA for non-Plus users.
+ *
+ * Plus status is resolved once by the parent and passed in, so the gate never
+ * re-runs the entitlement check while the reader moves around the report. The
+ * `usePlusStatus()` fallback is only for a caller that has no status to hand.
+ */
+function PlusGated({
+  children,
+  isPlus: propIsPlus,
+  loading: propLoading,
+}: {
+  children: ReactNode;
+  isPlus?: boolean;
+  loading?: boolean;
+}) {
   const { t } = useLanguage();
   const router = useRouter();
-  const { isPlus } = usePlusStatus();
+  const plusStatus = usePlusStatus();
+  const isPlus = propIsPlus ?? plusStatus.isPlus;
+  const loading = propLoading ?? plusStatus.loading;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+      </div>
+    );
+  }
 
   if (isPlus) return <>{children}</>;
 
@@ -97,11 +121,14 @@ function PlusGated({ children }: { children: ReactNode }) {
 export function StrategyRecommendationReport({
   applicationId,
   recommendation,
+  initialPlus,
 }: {
   applicationId: string;
   recommendation: StrategyRecommendationRecord;
+  initialPlus?: boolean;
 }) {
   const { t } = useLanguage();
+  const { isPlus, loading } = usePlusStatus(initialPlus);
   const overview = strategicOverview(recommendation);
   const priorities = strategicPriorities(recommendation);
   const ranked = rankedDirections(recommendation);
@@ -136,7 +163,7 @@ export function StrategyRecommendationReport({
 
       <StrategicOverviewSection overview={overview} recommendation={recommendation} />
 
-      <PlusGated>
+      <PlusGated isPlus={isPlus} loading={loading}>
         <div className="flex flex-col gap-gb-4xl">
           <PrioritiesSection priorities={priorities} />
           <DevelopmentSection development={development} ranked={ranked} recommendation={recommendation} />

@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { fetchOnboardingState, generateRecommendations, getApplicationPlanner } from '@/features/ai-strategy-dashboard/api';
+import { ensureApplicationPlan, fetchOnboardingState, generateRecommendations, getApplicationPlanner, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
 import {
   nextOnboardingStep,
   onboardingStepHref,
@@ -8,13 +8,11 @@ import {
 import {
   ApplicationPlanner,
   DashboardSummary,
-  GenerateCanonicalPlanButton,
   HierarchicalApplicationPlanner,
   StrategyCategoryBoard,
 } from '@/features/ai-strategy-dashboard/ui';
 import { getUniversityQueries } from '@/features/universities/api';
 import { createClient } from '@/lib/supabase/server';
-import { isAdmin } from '@/server/auth/auth-helpers';
 import { Container } from '@/shared/ui';
 
 /** Canonical application-level Planner route. */
@@ -30,11 +28,15 @@ export default async function PlannerPage({
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
-  const canGenerateCanonicalPlan = process.env.NODE_ENV !== 'production' || await isAdmin(user.id);
+  const plannerMode = await getPlannerMode(supabase, user.id);
 
   const state = await fetchOnboardingState(supabase, user.id, applicationId);
   const step = nextOnboardingStep(state);
-  if (step !== 'dashboard') {
+  // The legacy board is the final stage of its older recommendation funnel.
+  // Canonical Planner is a Plus/admin workspace and starts from the current
+  // application state instead; it must remain reachable from the application
+  // navigation even before that legacy funnel is complete.
+  if (plannerMode === 'legacy' && step !== 'dashboard') {
     redirect(onboardingStepHref(step, applicationId));
   }
 
@@ -51,10 +53,11 @@ export default async function PlannerPage({
   // hierarchy migration leaves the established legacy experience available;
   // recommendations are never merged into a fake canonical structure.
   let canonicalPlanner = null;
-  try {
-    canonicalPlanner = await getApplicationPlanner(supabase, applicationId, user.id);
-  } catch (error) {
-    console.error('[planner] canonical hierarchy unavailable; using legacy planner', error);
+  let canonicalState: 'failed' | 'not_entitled' | 'ready' = 'not_entitled';
+  if (plannerMode === 'canonical') {
+    const ensured = await ensureApplicationPlan(supabase, applicationId, user.id);
+    canonicalState = ensured.kind === 'ready' ? 'ready' : ensured.kind === 'failed' ? 'failed' : 'not_entitled';
+    if (ensured.kind === 'ready') canonicalPlanner = await getApplicationPlanner(supabase, applicationId, user.id);
   }
 
   const { data: latestMatch } = await supabase
@@ -67,7 +70,7 @@ export default async function PlannerPage({
     .maybeSingle();
 
   let generationError: string | null = null;
-  if (latestMatch) {
+  if (latestMatch && plannerMode === 'legacy') {
     const result = await generateRecommendations(supabase, applicationId);
     if (!result.ok && result.error !== 'no_match_analysis') {
       generationError =
@@ -104,17 +107,13 @@ export default async function PlannerPage({
           </p>
         ) : null}
 
-        <StrategyCategoryBoard applicationId={applicationId} recommendations={recommendations} />
+        {plannerMode === 'legacy' ? <StrategyCategoryBoard applicationId={applicationId} recommendations={recommendations} /> : null}
         {canonicalPlanner?.plan ? (
           <HierarchicalApplicationPlanner applicationId={applicationId} planner={canonicalPlanner} />
+        ) : canonicalState === 'failed' ? (
+          <p role="alert" className="rounded-gb-lg border border-line bg-surface-muted px-gb-lg py-gb-md text-gb-sm text-fg-error">We could not initialize your Planner. Please try again shortly.</p>
         ) : (
           <>
-            {canGenerateCanonicalPlan ? (
-              <GenerateCanonicalPlanButton
-                applicationId={applicationId}
-                endpoint={process.env.NODE_ENV === 'production' ? 'admin' : 'dev'}
-              />
-            ) : null}
             <ApplicationPlanner
               applicationId={applicationId}
               recommendations={recommendations}

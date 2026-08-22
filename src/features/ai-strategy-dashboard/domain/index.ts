@@ -9,6 +9,10 @@ export {
   PROGRESS_STATUS_LABEL,
   RECOMMENDATION_PRIORITIES,
   completionPercent,
+  contentValueSchema,
+  isCompleteContentValue,
+  parseContentBlock,
+  parseContentBlockValue,
   groupByCategory,
   nextPriority,
   reconcileRecommendations,
@@ -167,6 +171,12 @@ export { compilePlanningContext } from './compile-planning-context';
 export { compileAssessments } from './compile-assessments';
 export { compileDecisions } from './compile-decisions';
 export { compilePlan } from './compile-plan';
+export {
+  AI_PLAN_ENRICHMENT_PROMPT_VERSION,
+  AI_PLAN_ENRICHMENT_VERSION,
+  mergePlanEnrichment,
+  validatePlanEnrichment,
+} from './plan-enrichment';
 export { CORE3_PLAN_PRODUCER, reconcilePlan } from './plan-persistence';
 export { plannerMicroStepExecutionPatchSchema } from './planner-micro-step-execution';
 export {
@@ -192,6 +202,8 @@ export type {
   AssessmentSource,
   AssessmentStatus,
 } from './assessment';
+export type { AiPlanningProvenance, PlanNodeProvenance } from './plan';
+export type { AiPlanEnrichment, PlanEnrichmentValidationResult } from './plan-enrichment';
 export type {
   DecisionAssessment,
   DecisionFeasibility,
@@ -222,6 +234,7 @@ export type {
   PlannerMicroStepProjection,
   PlannerPhase,
   PlannerPlan,
+  PlannerLifecycle,
   PlannerProgress,
   PlannerReadDiagnostic,
   PlannerReadModel,

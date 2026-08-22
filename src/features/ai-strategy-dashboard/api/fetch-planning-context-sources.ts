@@ -41,6 +41,7 @@ import type {
   PlanningDeadlineSource,
   PlanningEvidenceDocument,
   PlanningEvidenceInventory,
+  PlanningInput,
   PlanningProgrammeSummary,
   SourceDiagnostic,
   SourceProvenance,
@@ -369,10 +370,10 @@ export async function fetchPlanningContextSources(
   const diagnostics: SourceDiagnostic[] = [];
 
   // ── 1. Application (FATAL) ─────────────────────────────────────────────────
-  const APPLICATION_SELECT =
-    'id,user_id,course_id,university_id,university_name,course_name,course_url,' +
-    'degree_level,subject,study_mode,intake,country,application_method,' +
-    'application_code,status,deadline,deadline_source,deadline_confidence';
+  // Deployments created before every optional application metadata column
+  // existed must still be able to compile a plan. Selecting the row avoids a
+  // hard PostgREST failure for a column that Core Planner can treat as absent.
+  const APPLICATION_SELECT = '*';
 
   const { data: appRow, error: appError } = await supabase
     .from('course_applications')
@@ -688,6 +689,9 @@ export async function fetchPlanningContextSources(
     diagnostics.push({ source: 'uploaded_documents', status: 'present' });
   }
 
+  // â”€â”€ 12. Canonical planner answers (explicit semantic contracts only) â”€â”€
+  const plannerInputs = await loadPlannerInputs(supabase, applicationId, diagnostics);
+
   // ── Assemble ───────────────────────────────────────────────────────────────
   return {
     applicationId,
@@ -703,6 +707,43 @@ export async function fetchPlanningContextSources(
     programmeFit,
     strategyRecommendation,
     userConstraints,
+    plannerInputs,
     diagnostics,
   };
+}
+
+async function loadPlannerInputs(
+  supabase: SupabaseClient,
+  applicationId: string,
+  diagnostics: SourceDiagnostic[],
+): Promise<PlanningInput[]> {
+  const root = await supabase.from('application_plans').select('id')
+    .eq('application_id', applicationId).eq('producer', 'core3_deterministic').is('archived_at', null).maybeSingle();
+  if (root.error) {
+    diagnostics.push({ source: 'canonical_planner_inputs', status: 'unavailable', message: 'query failed' });
+    return [];
+  }
+  if (!root.data) {
+    diagnostics.push({ source: 'canonical_planner_inputs', status: 'missing' });
+    return [];
+  }
+  const phases = await supabase.from('application_plan_phases').select('id').eq('plan_id', root.data.id).is('archived_at', null);
+  if (phases.error || !phases.data?.length) return [];
+  const steps = await supabase.from('application_plan_steps').select('id').in('phase_id', phases.data.map((row) => row.id)).is('archived_at', null);
+  if (steps.error || !steps.data?.length) return [];
+  const micros = await supabase.from('application_plan_micro_steps').select('id,content_schema,content_value')
+    .in('step_id', steps.data.map((row) => row.id)).is('archived_at', null);
+  if (micros.error) {
+    diagnostics.push({ source: 'canonical_planner_inputs', status: 'unavailable', message: 'query failed' });
+    return [];
+  }
+  const inputs = (micros.data ?? []).flatMap((row): PlanningInput[] => {
+    const schema = row.content_schema as Record<string, unknown> | null;
+    const value = row.content_value as Record<string, unknown> | null;
+    if (schema?.type !== 'single_select' || typeof schema.semanticKey !== 'string' || value?.type !== 'single_select' || typeof value.value !== 'string') return [];
+    if (!Array.isArray(schema.options) || !schema.options.some((option) => typeof option === 'object' && option !== null && (option as Record<string, unknown>).value === value.value)) return [];
+    return [{ semanticKey: schema.semanticKey, value: value.value, microStepId: row.id, provenance: 'user_provided' }];
+  });
+  diagnostics.push({ source: 'canonical_planner_inputs', status: inputs.length ? 'present' : 'missing' });
+  return inputs;
 }

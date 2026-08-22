@@ -11,6 +11,34 @@ animated "Strategy Hub" landing page (from an owner-supplied HTML/CSS/JS
 prototype) and added the GlowBal Plus paywall on the per-application AI
 Strategy workspace it had been missing since 01/08. See "Last completed work"
 below.
+
+Working tree 2026-08-21: the canonical Application Planner is now a usable
+application-navigation destination for Plus and admin users, rather than a
+hidden URL behind the legacy recommendation onboarding gate. `ApplicationNav`
+unlocks its Planner item for canonical entitlement and the Planner route accepts
+that entry directly; free users retain the existing legacy onboarding gate.
+Focused navigation tests pass 14/14 and TypeScript passes. The production
+Supabase migration and deployment remain required before the canonical route
+can initialize a real plan.
+
+Working tree 2026-08-21: Core 3 Plan now has a server-only, deterministic-first
+AI enrichment boundary using the existing OpenAI JSON-mode client. Pure
+Assess/Decide/Plan compilers remain unchanged. The model receives only
+whitelisted blocker or explicitly selected attention scopes and a narrow
+grounded context; strict Zod validation rejects forbidden execution fields,
+deadlines, unknown decision IDs, unknown schemas, duplicate client keys, and
+oversized output before a pure merge creates stable canonical node IDs. AI
+failure falls back to the deterministic scaffold. AI planning provenance is
+persisted in the existing source-provenance JSONB field alongside factual
+provenance, so no new migration is needed. Focused enrichment/Core 3/persistence
+tests pass 26/26 and strict TypeScript passes.
+
+Working tree 2026-08-21: canonical Planner page entry now compares Core 1's
+deterministic `contextHash` with the persisted plan source fingerprint. Equal
+fingerprints do not invoke AI; changed factual/planning context triggers a
+safe canonical reconcile and optional enrichment. Core 4 status/deadline
+execution writes are excluded from the fingerprint and do not invoke AI.
+
 Working tree 2026-08-20: Core 1 Assess is now callable end to end through
 `getApplicationAssessments(supabase, applicationId, userId)`: the source
 adapter fetches validated application facts and F5/F7 metadata,
@@ -679,6 +707,27 @@ enforces same-origin POSTs, UUID validation, the existing admin guard, and
 the existing application ownership check. Non-admins see the established
 legacy Planner until their canonical hierarchy has been created through the
 normal product flow.
+
+The planning source adapter accepts legacy `course_applications` schemas where
+optional metadata (such as `application_method`) has not been deployed; the
+application is read as a row and absent optional fields are treated as absent.
+
+### AI Planner productionization (working tree)
+
+The production canonical path now uses one Plus/admin entitlement boundary and
+automatically ensures a canonical plan on the application Planner route. It
+does not show legacy task-category execution UI for canonical users. The first
+real deterministic input is an attention-focus `single_select` with a declared
+semantic key: only a valid selected value may complete that task, and saving it
+runs the existing deterministic pipeline again. Status/deadline changes do not
+recompute the plan. The read model now exposes a lifecycle and an explicit
+complete state rather than an empty task list.
+
+`supabase-canonical-planner-production.sql` must be applied after
+`supabase-core3-plan-hierarchy.sql` before deploying this code. It is a new
+follow-up migration (not a rewrite of the earlier file): it revokes client-side
+canonical writes and installs the service-role-only transactional reconciliation
+RPC required by production `syncApplicationPlan()`.
 
 The dated audit remains the detailed evidence record. A code-only recheck on
 2026-08-06 found no commit that obviously closes its highest-priority items:

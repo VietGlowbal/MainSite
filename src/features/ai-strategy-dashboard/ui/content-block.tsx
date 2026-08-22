@@ -50,6 +50,9 @@ export function ContentBlockInput({
       />
     );
   }
+  if (schema.type === 'single_select') {
+    return <SingleSelectInput schema={schema} value={value?.type === 'single_select' ? value : null} onSave={save} />;
+  }
   return (
     <ChecklistInput
       schema={schema}
@@ -57,6 +60,27 @@ export function ContentBlockInput({
       onSave={save}
     />
   );
+}
+
+function SingleSelectInput({
+  schema,
+  value,
+  onSave,
+}: {
+  schema: Extract<ContentBlock, { type: 'single_select' }>;
+  value: Extract<ContentBlockValue, { type: 'single_select' }> | null;
+  onSave: (contentValue: ContentBlockValue) => Promise<boolean>;
+}) {
+  const [selected, setSelected] = useState(value?.value ?? '');
+  const [saving, setSaving] = useState(false);
+  async function change(next: string) {
+    setSelected(next);
+    if (!next) return;
+    setSaving(true);
+    await onSave({ type: 'single_select', value: next });
+    setSaving(false);
+  }
+  return <div className="flex flex-col gap-gb-md"><p className="text-gb-sm text-fg-tertiary">{schema.prompt}</p><Select name="content-single-select" aria-label={schema.prompt} value={selected} onChange={(event) => void change(event.target.value)}><option value="">Select an option</option>{schema.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</Select><SaveStatus saving={saving} /></div>;
 }
 
 async function saveContentValue(

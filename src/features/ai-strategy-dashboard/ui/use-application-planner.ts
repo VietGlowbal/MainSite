@@ -36,9 +36,10 @@ export function useApplicationPlanner(applicationId: string, initial: PlannerRea
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
       });
       if (!response.ok) throw new Error('save_failed');
-      const payload = await response.json() as { microStep?: PlannerMicroStepExecutionPatch };
+      const payload = await response.json() as { microStep?: PlannerMicroStepExecutionPatch; progressed?: boolean };
       const serverPatch = payload.microStep;
       if (serverPatch) setPlanner((current) => applyPlannerMicroStepExecution(current, id, serverPatch));
+      if (payload.progressed && typeof window !== 'undefined') window.location.reload();
       return true;
     } catch {
       setPlanner((current) => applyPlannerMicroStepExecution(current, id, rollback));

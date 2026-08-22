@@ -9,7 +9,7 @@ import {
   type PersistedPlanStep,
   type PlanPersistenceOperation,
 } from '../domain';
-import { getApplicationPlan } from './get-application-plan';
+import { getEnrichedApplicationPlan } from './get-enriched-application-plan';
 
 export type SyncApplicationPlanResult = {
   inserted: number;
@@ -48,12 +48,41 @@ export async function syncApplicationPlan(
   if (ownership.error) throw new PlanPersistenceError(`Could not verify application ownership: ${ownership.error.message}`);
   if (!ownership.data) throw new PlanPersistenceError('Application was not found for this user.');
 
-  const [plan, existing] = await Promise.all([
-    getApplicationPlan(supabase, applicationId, userId),
+  const [enriched, existing] = await Promise.all([
+    getEnrichedApplicationPlan(supabase, applicationId, userId),
     loadExistingPlan(supabase, applicationId),
   ]);
+  const plan = enriched.plan;
+  // Production uses the SECURITY DEFINER RPC installed by the production
+  // migration.  It reconciles the whole hierarchy in one transaction; the
+  // sequential path remains only for local/test environments without Postgres
+  // RPC support.
+  if (process.env.NODE_ENV === 'production') return applyPlanAtomically(supabase, applicationId, plan);
   const operations = reconcilePlan(applicationId, plan, existing).operations;
   return applyPlanOperations(supabase, operations, existing);
+}
+
+async function applyPlanAtomically(supabase: SupabaseClient, applicationId: string, plan: Awaited<ReturnType<typeof getEnrichedApplicationPlan>>['plan']): Promise<SyncApplicationPlanResult> {
+  const payload = {
+    domainPlanId: plan.id,
+    readiness: plan.readiness,
+    phases: plan.phases.map((phase) => ({
+      domainNodeId: phase.id, title: phase.title, objective: phase.objective, order: phase.order,
+      sourceDecisionIds: phase.sourceDecisionIds, sourceProvenances: phase.sourceProvenances,
+      steps: phase.steps.map((step) => ({
+        domainNodeId: step.id, title: step.title, objective: step.objective, order: step.order,
+        sourceDecisionIds: step.sourceDecisionIds, sourceProvenances: step.sourceProvenances,
+        microSteps: step.microSteps.map((microStep) => ({
+          domainNodeId: microStep.id, title: microStep.title, order: microStep.order, readiness: microStep.readiness,
+          contentSchema: microStep.contentSchema ?? null, sourceDecisionIds: microStep.sourceDecisionIds, sourceProvenances: microStep.sourceProvenances,
+        })),
+      })),
+    })),
+  };
+  const response = await supabase.rpc('reconcile_canonical_application_plan', { p_application_id: applicationId, p_plan: payload });
+  if (response.error) throw new PlanPersistenceError(`Could not persist Core 3 plan atomically: ${response.error.message}`);
+  const result = response.data as Partial<SyncApplicationPlanResult> | null;
+  return { inserted: result?.inserted ?? 0, updated: result?.updated ?? 0, restored: result?.restored ?? 0, archived: result?.archived ?? 0 };
 }
 
 async function loadExistingPlan(supabase: SupabaseClient, applicationId: string): Promise<ExistingPersistedPlan> {
@@ -236,6 +265,13 @@ function text(value: unknown): string { return typeof value === 'string' ? value
 function nullableText(value: unknown): string | null { return typeof value === 'string' ? value : null; }
 function number(value: unknown): number { return typeof value === 'number' ? value : 0; }
 function texts(value: unknown): string[] { return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []; }
-function provenances(value: unknown): PersistedPlanPhase['sourceProvenances'] { return texts(value).filter((value): value is PersistedPlanPhase['sourceProvenances'][number] => ['database_factual', 'ai_generated', 'user_provided', 'derived'].includes(value)); }
+function provenances(value: unknown): PersistedPlanPhase['sourceProvenances'] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item) => {
+    if (typeof item === 'string' && ['database_factual', 'ai_generated', 'user_provided', 'derived'].includes(item)) return [item as PersistedPlanPhase['sourceProvenances'][number]];
+    if (item && typeof item === 'object' && (item as Record<string, unknown>).kind === 'ai_planning') return [item as PersistedPlanPhase['sourceProvenances'][number]];
+    return [];
+  });
+}
 function planReadiness(value: unknown): PersistedPlan['readiness'] { return value === 'empty' || value === 'requires_user_input' || value === 'requires_enrichment' ? value : 'empty'; }
 function nodeReadiness(value: unknown): PersistedPlanMicroStep['readiness'] { return value === 'requires_user_input' || value === 'requires_enrichment' ? value : 'requires_enrichment'; }

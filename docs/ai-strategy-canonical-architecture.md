@@ -311,6 +311,61 @@ alongside its deterministic `domainNodeId` and parent context.
 
 ### Core 4 execution integration
 
+### Production rollout and progression
+
+### Core 3 deterministic-first AI enrichment
+
+Core 3 now remains a deterministic scaffold compiler and adds an optional
+server-only enrichment boundary afterwards:
+
+```text
+Assess (deterministic) -> Decide (deterministic) -> Plan scaffold (deterministic)
+  -> validated AI enrichment -> deterministic merge -> canonical hierarchy
+```
+
+`generatePlanEnrichment()` reuses the repository OpenAI JSON-mode client. It
+receives only approved decision scopes, their grounded assessment summaries,
+the compact programme/constraint/deadline context, and explicit user-selected
+attention focus. It may expand confirmed blockers or a selected attention
+direction; it cannot expand `needs_user_choice` or use unknown requirements as
+facts. The model cannot return execution fields, deadlines, semantic keys,
+database IDs, or user identifiers. Zod validation enforces bounded hierarchy
+size, known/allowed decision IDs, strict object shapes, and stable client keys.
+
+The merge creates deterministic AI node IDs from the source decision and model
+client keys. Consequently a regenerated task with the same semantic key is
+reconciled as the same canonical node and keeps Core 4 status, date, content,
+and evidence. AI planning provenance (`provider`, `model`, prompt/enrichment
+version, timestamp, source decisions) is stored alongside—never instead of—the
+factual source provenance in the existing hierarchy JSONB metadata. Provider or
+validation failure persists the deterministic scaffold. On page load the
+server compares the current deterministic Core 1 `contextHash` with the source
+fingerprint in the persisted plan ID; equal fingerprints make no AI call,
+while changed source facts reconcile and enrich once. Normal execution
+status/deadline updates do not affect that fingerprint and never call AI.
+
+For an entitled Plus/admin user, `getPlannerMode()` selects the canonical
+experience and `ensureApplicationPlan()` creates the hierarchy once when no
+active plan exists. Existing applications without entitlement retain the
+legacy Planner. The canonical route does not render the legacy category board
+or regenerate legacy recommendation tasks for canonical users; legacy rows
+remain read-only upstream evidence/history.
+
+Planning-owned input definitions now include deterministic `single_select`
+schemas with an explicit `semanticKey`. Core 4 persists the selected value in
+`content_value`; Gate 2 reads only valid declared semantic inputs back as
+user-provided `PlanningInput`s. Saving such an input runs the existing
+Assess -> Decide -> Plan chain and reconciles the plan. Status/deadline-only
+writes never trigger this progression. Input-required tasks cannot be marked
+complete without a valid value. A Planner read model derives `active`,
+`waiting_for_input`, `complete`, or `empty`; complete has an explicit UI state.
+
+`supabase-canonical-planner-production.sql` is the production follow-up to the
+Core 3 hierarchy migration. It revokes direct authenticated mutations of all
+canonical hierarchy tables and provides the service-role-only
+`reconcile_canonical_application_plan` RPC, which applies hierarchy
+reconciliation transactionally while preserving execution data on stable nodes.
+
 The active Planner route now selects deliberately between two non-merged data
 models: an application with an active canonical plan renders
 `HierarchicalApplicationPlanner`; an application with no plan keeps the legacy

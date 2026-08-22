@@ -42,6 +42,7 @@ export function HierarchicalApplicationPlanner({ applicationId, planner }: { app
   }
 
   const visibleCount = getPlannerMicroSteps(visible).length;
+  if (controller.planner.lifecycle === 'complete') return <section className="rounded-gb-2xl border border-line bg-surface p-gb-3xl text-center"><h2 className="font-display text-gb-display-xs font-semibold text-fg">Application Planner</h2><p className="mt-gb-md text-gb-sm text-fg-muted">You&apos;ve completed the current plan. We&apos;ll update it if your application information changes.</p></section>;
   return (
     <section className="flex flex-col gap-gb-xl">
       <div className="flex flex-wrap items-center justify-between gap-gb-lg">

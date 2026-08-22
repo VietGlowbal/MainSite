@@ -158,6 +158,7 @@ export const contentValueSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('structured_table'), rows: z.array(contentTableRowSchema).max(50) }),
   z.object({ type: z.literal('long_text'), text: z.string().max(20_000) }),
   z.object({ type: z.literal('checklist'), checkedItems: z.array(z.string()).max(50) }),
+  z.object({ type: z.literal('single_select'), value: z.string().min(1).max(500) }),
 ]);
 
 /**
@@ -178,7 +179,25 @@ const contentBlockSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('structured_table'), columns: z.array(contentBlockColumnSchema).min(1) }),
   z.object({ type: z.literal('long_text'), prompt: z.string().min(1), minWords: z.number().optional() }),
   z.object({ type: z.literal('checklist'), items: z.array(z.string().min(1)).min(1) }),
+  z.object({
+    type: z.literal('single_select'),
+    prompt: z.string().min(1),
+    options: z.array(z.object({ value: z.string().min(1), label: z.string().min(1) })).min(1).max(20),
+    semanticKey: z.string().regex(/^[a-z][a-z0-9_.-]{1,100}$/),
+  }),
 ]);
+
+/** Validates a student value against the planning-owned schema before execution updates. */
+export function isCompleteContentValue(schema: ContentBlock | null, value: ContentBlockValue | null): boolean {
+  if (!schema || !value || schema.type !== value.type) return false;
+  if (schema.type === 'single_select' && value.type === 'single_select') return schema.options.some((option) => option.value === value.value);
+  if (schema.type === 'long_text' && value.type === 'long_text') {
+    const words = value.text.trim() ? value.text.trim().split(/\s+/).length : 0;
+    return words >= (schema.minWords ?? 1);
+  }
+  if (schema.type === 'checklist' && value.type === 'checklist') return schema.items.every((item) => value.checkedItems.includes(item));
+  return value.type === 'structured_table' && value.rows.length > 0;
+}
 
 /**
  * What `PATCH .../recommendations/[recId]` accepts.
@@ -241,7 +260,7 @@ export function nextPriority(recommendations: readonly Recommendation[]): Recomm
  * malformed row degrades to `null` (no content block, same as a task that
  * finishes elsewhere) instead of taking the page down.
  */
-function parseContentBlock(raw: unknown): ContentBlock | null {
+export function parseContentBlock(raw: unknown): ContentBlock | null {
   const parsed = contentBlockSchema.safeParse(raw);
   // zod's `.optional()` types the field as `T | undefined`, present-but-undefined
   // included; `ContentBlockColumn`/`ContentBlock`'s `exactOptionalPropertyTypes`
@@ -251,7 +270,7 @@ function parseContentBlock(raw: unknown): ContentBlock | null {
 }
 
 /** Same discipline as `parseContentBlock`, for the student-authored value column. */
-function parseContentBlockValue(raw: unknown): ContentBlockValue | null {
+export function parseContentBlockValue(raw: unknown): ContentBlockValue | null {
   const parsed = contentValueSchema.safeParse(raw);
   return parsed.success ? (parsed.data as ContentBlockValue) : null;
 }
