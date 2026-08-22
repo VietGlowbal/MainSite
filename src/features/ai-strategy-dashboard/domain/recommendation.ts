@@ -200,6 +200,36 @@ export function isCompleteContentValue(schema: ContentBlock | null, value: Conte
 }
 
 /**
+ * The window a planner deadline is allowed to fall in.
+ *
+ * WHY A RANGE AND NOT JUST A SHAPE. A native `<input type="date">` publishes
+ * its value the moment all three segments hold *something*, so the first
+ * digit of a hand-typed year arrives as `0002-03-03` — a syntactically
+ * perfect `YYYY-MM-DD` that a regex alone accepts and writes to the database
+ * before the student has finished typing `2026`. Application deadlines live
+ * in this century; anything outside this window is a half-typed year, not
+ * intent. `DeadlineControl` applies the same bound in the browser so the
+ * partial value never leaves it — this is the server-side backstop for every
+ * other write path.
+ */
+export const DEADLINE_MIN = '2000-01-01';
+export const DEADLINE_MAX = '2100-12-31';
+
+/**
+ * A real calendar day, in `YYYY-MM-DD`, inside the deadline window.
+ *
+ * Rejects `2026-02-30` as well as `0002-03-03`: the regex only counts digits,
+ * so the round-trip through `Date` is what proves the day actually exists.
+ */
+export function isPlannerDeadline(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  // Fixed-width ISO dates compare correctly as plain strings.
+  if (value < DEADLINE_MIN || value > DEADLINE_MAX) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/**
  * What `PATCH .../recommendations/[recId]` accepts.
  *
  * All three fields optional, at least one required — the board sends a
@@ -225,7 +255,7 @@ export const recommendationPatchSchema = z
     status: z.enum(PROGRESS_STATUS).optional(),
     deadline: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a YYYY-MM-DD date')
+      .refine(isPlannerDeadline, 'Expected a valid YYYY-MM-DD date')
       .nullable()
       .optional(),
     contentValue: contentValueSchema.nullable().optional(),
