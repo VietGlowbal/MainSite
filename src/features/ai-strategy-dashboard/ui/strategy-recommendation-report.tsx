@@ -67,10 +67,29 @@ const TABS = [
 ] as const;
 
 /** Wraps any tab content with a blur + "Go Plus" CTA for non-Plus users. */
-function BlurredTab({ children }: { children: ReactNode }) {
+/** Wraps any tab content with a blur + "Go Plus" CTA for non-Plus users. */
+function BlurredTab({
+  children,
+  isPlus: propIsPlus,
+  loading: propLoading,
+}: {
+  children: ReactNode;
+  isPlus?: boolean;
+  loading?: boolean;
+}) {
   const { t } = useLanguage();
   const router = useRouter();
-  const { isPlus } = usePlusStatus();
+  const plusStatus = usePlusStatus();
+  const isPlus = propIsPlus ?? plusStatus.isPlus;
+  const loading = propLoading ?? plusStatus.loading;
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[300px] items-center justify-center">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-brand border-t-transparent" />
+      </div>
+    );
+  }
 
   if (isPlus) return <>{children}</>;
 
@@ -103,12 +122,15 @@ function BlurredTab({ children }: { children: ReactNode }) {
 export function StrategyRecommendationReport({
   applicationId,
   recommendation,
+  initialPlus,
 }: {
   applicationId: string;
   recommendation: StrategyRecommendationRecord;
+  initialPlus?: boolean;
 }) {
   const { t } = useLanguage();
   const { active, setActive } = useReportTabs(TABS);
+  const { isPlus, loading } = usePlusStatus(initialPlus);
 
   return (
     <div className="flex flex-col gap-gb-3xl">
@@ -132,19 +154,27 @@ export function StrategyRecommendationReport({
       <ReportPanel tabKey={active}>
         {active === 'direction' ? <DirectionTab recommendation={recommendation} /> : null}
         {active === 'narrative' ? (
-          <BlurredTab><NarrativeTab recommendation={recommendation} /></BlurredTab>
+          <BlurredTab isPlus={isPlus} loading={loading}>
+            <NarrativeTab recommendation={recommendation} />
+          </BlurredTab>
         ) : null}
         {active === 'positioning' ? (
-          <BlurredTab><PositioningTab recommendation={recommendation} /></BlurredTab>
+          <BlurredTab isPlus={isPlus} loading={loading}>
+            <PositioningTab recommendation={recommendation} />
+          </BlurredTab>
         ) : null}
         {active === 'portfolio' ? (
-          <BlurredTab><PortfolioTab recommendation={recommendation} /></BlurredTab>
+          <BlurredTab isPlus={isPlus} loading={loading}>
+            <PortfolioTab recommendation={recommendation} />
+          </BlurredTab>
         ) : null}
         {active === 'differentiation' ? (
-          <BlurredTab><DifferentiationTab recommendation={recommendation} /></BlurredTab>
+          <BlurredTab isPlus={isPlus} loading={loading}>
+            <DifferentiationTab recommendation={recommendation} />
+          </BlurredTab>
         ) : null}
         {active === 'roadmap' ? (
-          <BlurredTab>
+          <BlurredTab isPlus={isPlus} loading={loading}>
             <RoadmapTab applicationId={applicationId} recommendation={recommendation} />
           </BlurredTab>
         ) : null}

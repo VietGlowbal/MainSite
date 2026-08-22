@@ -5,6 +5,9 @@
    scanning them is both wasteful and prone to file-lock crashes on Windows
    when a CSV is open in Excel (Turbopack panic: os error 32). */
 @source not "../../data";
+@source not "../../asw*";
+@source not "../../asw-*";
+@source not "../../chromeremotedesktophost.msi";
 
 /* Design tokens extracted from Figma. Must come after the Tailwind import so
    its @theme blocks merge into the generated theme. See src/styles/tokens.css. */
