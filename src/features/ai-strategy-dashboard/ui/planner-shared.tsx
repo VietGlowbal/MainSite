@@ -1,9 +1,16 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import type { Recommendation } from '../domain';
-import { dueLabel, dueTone, recommendationHelp } from '../domain';
+import {
+  DEADLINE_MAX,
+  DEADLINE_MIN,
+  dueLabel,
+  dueTone,
+  isPlannerDeadline,
+  recommendationHelp,
+} from '../domain';
 import {
   DUE_TONE_CLASS,
   PRIORITY_LABEL,
@@ -75,9 +82,35 @@ export function DueChip({ days }: { days: number | null }) {
  * Clearing the field sends `null` — the native date input's own "x" already
  * does this, so there is no separate clear button to build or explain.
  *
- * `disabled` while a save is in flight, the same reason `ProgressStatusControl`
- * disables its `<select>`: a second edit landing before the first PATCH
- * resolves could send the two out of order.
+ * ─── TYPING A YEAR BY HAND ───────────────────────────────────────────────────
+ *
+ * A native date input is three segments, and it publishes a value the instant
+ * all three hold something. Typing the year of 03/03/2026 therefore walks the
+ * value through `0002-03-03` → `0020-03-03` → `0202-03-03` → `2026-03-03`,
+ * firing a change event at every step. Two earlier decisions turned that into
+ * a bug that made the year impossible to enter at all:
+ *
+ *   1. Every change was treated as a committed edit, so the first year digit
+ *      PATCHed year 2 — a shape the old `YYYY-MM-DD` regex was happy with.
+ *   2. That save set `disabled` on the input. **A disabled element loses
+ *      focus**, so the segment editor closed and the remaining three digits
+ *      went nowhere. The student was left staring at `03/03/0002`, saved.
+ *
+ * So this control now:
+ *
+ *   - commits only a value `isPlannerDeadline` accepts (a real calendar day
+ *     between `DEADLINE_MIN` and `DEADLINE_MAX`) or an empty one, which means
+ *     the half-typed years above are simply not events;
+ *   - never disables itself, so focus stays where the student put it. Ordering
+ *     — the reason `disabled` was there — moved to `usePlannerRecommendations`,
+ *     which owns the state and the request and can serialize the second without
+ *     freezing the first's input;
+ *   - holds an editing draft rather than rendering the prop straight, so a
+ *     re-render mid-edit cannot reset the segment the student is in. The prop
+ *     still wins whenever it changes underneath (a calendar drag, a rollback).
+ *
+ * `min`/`max` mirror the same window into the native picker, so the browser's
+ * own arrows and its `:invalid` styling agree with what will actually save.
  */
 export function DeadlineControl({
   deadline,
@@ -89,26 +122,56 @@ export function DeadlineControl({
   label: string;
   onChange: (deadline: string | null) => Promise<void>;
 }) {
-  const [saving, setSaving] = useState(false);
+  const [draft, setDraft] = useState(deadline ?? '');
+  const [lastDeadline, setLastDeadline] = useState(deadline ?? '');
+  const hintId = useId();
 
-  async function handleChange(value: string) {
-    setSaving(true);
-    try {
-      await onChange(value === '' ? null : value);
-    } finally {
-      setSaving(false);
-    }
+  /* Adjusting state during render, not in an effect: the draft has to follow
+     an externally changed deadline (calendar drag, failed-save rollback)
+     without a flash of the stale one, and without clobbering an edit in
+     progress — this only runs when the prop itself moved. */
+  if ((deadline ?? '') !== lastDeadline) {
+    setLastDeadline(deadline ?? '');
+    setDraft(deadline ?? '');
+  }
+
+  /** Not yet a date we would save — mid-typing, or outside the window. */
+  const unsaved = draft !== '' && !isPlannerDeadline(draft);
+
+  function handleChange(value: string) {
+    setDraft(value);
+    if (value !== '' && !isPlannerDeadline(value)) return;
+    if (value === (deadline ?? '')) return;
+    /* Straight through, every time. Ordering two saves for the same row is
+       `usePlannerRecommendations`'s job, not this control's — see its module
+       doc. Holding a queue here would have deferred the optimistic update
+       along with the request, so a correction typed during a slow save would
+       not have reached the calendar or the "days left" chip until it landed. */
+    void onChange(value === '' ? null : value);
   }
 
   return (
-    <input
-      type="date"
-      aria-label={label}
-      value={deadline ?? ''}
-      disabled={saving}
-      onChange={(event) => void handleChange(event.target.value)}
-      className="rounded-gb-md border border-line bg-surface px-gb-md py-gb-xs text-gb-sm text-fg"
-    />
+    <span className="flex flex-col gap-gb-xxs">
+      <input
+        type="date"
+        aria-label={label}
+        min={DEADLINE_MIN}
+        max={DEADLINE_MAX}
+        value={draft}
+        aria-invalid={unsaved || undefined}
+        aria-describedby={unsaved ? hintId : undefined}
+        onChange={(event) => handleChange(event.target.value)}
+        className="rounded-gb-md border border-line bg-surface px-gb-md py-gb-xs text-gb-sm text-fg"
+      />
+      {unsaved ? (
+        /* Never fail silently: without this, a student who typed a two-digit
+           year and moved on would see the date sitting in the field and
+           assume it saved. */
+        <span id={hintId} className="max-w-[12rem] text-gb-xs text-fg-tertiary">
+          Enter a four-digit year to save this deadline.
+        </span>
+      ) : null}
+    </span>
   );
 }
 

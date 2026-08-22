@@ -130,6 +130,89 @@ describe('usePlannerRecommendations', () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  /**
+   * Three rapid deadline edits — what a held-down date spinner produces. The
+   * rollback base for each has to be the value on screen when *that* edit was
+   * made, not whatever the render that built the callback closed over, or a
+   * late failure restores a value the student replaced two edits ago.
+   */
+  it('rolls a failed deadline back to the value it replaced, not to a stale snapshot', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true }) // 01/09 saves
+      .mockResolvedValueOnce({ ok: true }) // 02/09 saves
+      .mockResolvedValueOnce({ ok: false }); // 03/09 fails
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => usePlannerRecommendations('app-1', [rec()]));
+
+    await act(async () => {
+      await result.current.updateDeadline('r1', '2026-09-01');
+      await result.current.updateDeadline('r1', '2026-09-02');
+      await result.current.updateDeadline('r1', '2026-09-03');
+    });
+
+    // Back to 02/09 — the last value the server actually accepted.
+    expect(result.current.recommendations[0]?.deadline).toBe('2026-09-02');
+    expect(result.current.error).toBe('That date did not save. Please try again.');
+  });
+
+  it('lets a later edit stand when an earlier one fails behind it', async () => {
+    let failFirst: (value: { ok: boolean }) => void = () => {};
+    const fetchMock = vi
+      .fn()
+      .mockReturnValueOnce(new Promise<{ ok: boolean }>((resolve) => { failFirst = resolve; }))
+      .mockResolvedValueOnce({ ok: true });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() =>
+      usePlannerRecommendations('app-1', [rec({ deadline: '2026-08-01' })]),
+    );
+
+    await act(async () => {
+      const first = result.current.updateDeadline('r1', '2026-09-01');
+      const second = result.current.updateDeadline('r1', '2026-09-02');
+      failFirst({ ok: false });
+      await Promise.all([first, second]);
+    });
+
+    // The failed first edit must not drag the row back to 01/08 over the top
+    // of the second edit, which the server did accept.
+    expect(result.current.recommendations[0]?.deadline).toBe('2026-09-02');
+  });
+
+  it('sends the second PATCH only after the first has finished', async () => {
+    const order: string[] = [];
+    let releaseFirst: (value: { ok: boolean }) => void = () => {};
+    const fetchMock = vi.fn((_url: string, init: { body: string }) => {
+      order.push(`sent ${init.body}`);
+      if (fetchMock.mock.calls.length === 1) {
+        return new Promise<{ ok: boolean }>((resolve) => { releaseFirst = resolve; });
+      }
+      return Promise.resolve({ ok: true });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => usePlannerRecommendations('app-1', [rec()]));
+
+    await act(async () => {
+      const first = result.current.updateDeadline('r1', '2026-09-01');
+      const second = result.current.updateDeadline('r1', '2026-09-02');
+
+      // Let the queue start whatever it is going to start. Only the first
+      // request may be out: the second is waiting on it, not racing it.
+      await Promise.resolve();
+      await Promise.resolve();
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+
+      releaseFirst({ ok: true });
+      await Promise.all([first, second]);
+    });
+
+    expect(order).toEqual([
+      'sent {"deadline":"2026-09-01"}',
+      'sent {"deadline":"2026-09-02"}',
+    ]);
+    expect(result.current.recommendations[0]?.deadline).toBe('2026-09-02');
+  });
+
   it('recovers independently when two edits are in flight at once', async () => {
     const fetchMock = vi
       .fn()

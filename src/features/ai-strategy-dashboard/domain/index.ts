@@ -5,12 +5,15 @@
  * here must be unit-testable without a database or a DOM.
  */
 export {
+  DEADLINE_MAX,
+  DEADLINE_MIN,
   PROGRESS_STATUS,
   PROGRESS_STATUS_LABEL,
   RECOMMENDATION_PRIORITIES,
   completionPercent,
   contentValueSchema,
   isCompleteContentValue,
+  isPlannerDeadline,
   parseContentBlock,
   parseContentBlockValue,
   groupByCategory,
