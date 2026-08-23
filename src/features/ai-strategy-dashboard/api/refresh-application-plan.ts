@@ -17,12 +17,14 @@ export async function refreshApplicationPlan(supabase: SupabaseClient, applicati
   const existing = await getApplicationPlanner(supabase, applicationId, userId).catch(() => null);
   const runId = await claimPlannerGeneration(admin, { applicationId, trigger, sourceFingerprint: null });
   if (!runId) return { refreshed: false, skipped: true, reason: 'concurrent' };
+  let currentFingerprint: string | null = null;
   try {
     const { context } = await getApplicationAssessments(supabase, applicationId, userId);
     const fingerprint = plannerSourceFingerprint(context);
+    currentFingerprint = fingerprint;
     const previousFingerprint = planFingerprint(existing?.plan?.domainPlanId);
     if (trigger !== 'manual_refresh' && trigger !== 'retry' && existing?.plan && !isPlannerStale(fingerprint, previousFingerprint)) {
-      await finishPlannerGeneration(admin, runId, { status: 'success', aiStatus: 'not_required' });
+      await finishPlannerGeneration(admin, runId, { status: 'success', sourceFingerprint: fingerprint, aiStatus: 'not_required' });
       return { refreshed: false, skipped: true, reason: 'current', runId };
     }
     const staleSince = existing?.plan && isPlannerStale(fingerprint, previousFingerprint)
@@ -36,11 +38,11 @@ export async function refreshApplicationPlan(supabase: SupabaseClient, applicati
     const ai = findAiProvenance(updated);
     const lifecycle = plannerLifecycle({ readModel: updated, stale: false });
     const aiStatus = enrichment.enriched ? 'success' : enrichment.fallbackReason === 'not_configured' ? 'not_required' : ai ? 'success' : enrichment.fallbackReason ? 'fallback' : 'not_required';
-    await finishPlannerGeneration(admin, runId, { status: 'success', planId: updated.plan?.id ?? null, aiStatus, provider: ai?.provider ?? null, model: ai?.model ?? null, promptVersion: ai?.promptVersion ?? null, enrichmentVersion: ai?.enrichmentVersion ?? null });
+    await finishPlannerGeneration(admin, runId, { status: 'success', sourceFingerprint: fingerprint, planId: updated.plan?.id ?? null, aiStatus, provider: ai?.provider ?? null, model: ai?.model ?? null, promptVersion: ai?.promptVersion ?? null, enrichmentVersion: ai?.enrichmentVersion ?? null });
     await upsertPlannerOps(admin, applicationId, { lifecycle, source_fingerprint: fingerprint, plan_fingerprint: nextFingerprint, stale_since: null, generation_status: 'success', last_success_at: new Date().toISOString(), failure_code: null, ai_status: aiStatus, ai_provider: ai?.provider ?? null, ai_model: ai?.model ?? null, ai_prompt_version: ai?.promptVersion ?? null, ai_enrichment_version: ai?.enrichmentVersion ?? null });
     return { refreshed: true, skipped: false, runId };
   } catch (error) {
-    await finishPlannerGeneration(admin, runId, { status: 'failed', aiStatus: 'failed', failureCode: 'persistence_failed' }).catch(() => undefined);
+    await finishPlannerGeneration(admin, runId, { status: 'failed', sourceFingerprint: currentFingerprint, aiStatus: 'failed', failureCode: 'persistence_failed' }).catch(() => undefined);
     await upsertPlannerOps(admin, applicationId, { lifecycle: existing?.plan ? 'failed' : 'failed', generation_status: 'failed', failure_code: 'persistence_failed', ai_status: 'failed' }).catch(() => undefined);
     console.error('[planner/ops] refresh failed', { applicationId, userId, error });
     throw error;
