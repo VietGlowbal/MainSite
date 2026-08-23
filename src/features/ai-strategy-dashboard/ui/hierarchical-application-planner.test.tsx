@@ -12,9 +12,10 @@ function planner(): PlannerReadModel {
 function scheduledPlanner(): PlannerReadModel {
   const model = planner();
   // Mid-current-month, so the calendar's default cursor month always contains
-  // it no matter when this suite runs.
+  // it no matter when this suite runs. The trailing non-null assertions keep
+  // the spread a full PlannerMicroStep under noUncheckedIndexedAccess.
   const midMonthIso = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, '0')}-15`;
-  const task = { ...model.phases[0]!.steps[0]!.microSteps[0], deadline: midMonthIso };
+  const task = { ...model.phases[0]!.steps[0]!.microSteps[0]!, deadline: midMonthIso };
   return {
     ...model,
     phases: [{
