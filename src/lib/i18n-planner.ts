@@ -67,4 +67,19 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'Your saved progress is kept.': 'Tiến độ bạn đã lưu vẫn được giữ nguyên.',
   'Needs your input': 'Cần bạn nhập thông tin',
   'Needs enrichment': 'Cần bổ sung dữ liệu',
+
+  // Canonical planner calendar (Part 5 follow-up) + email preference controls
+  'This plan has no micro-steps yet.': 'Kế hoạch này chưa có nhiệm vụ nhỏ nào.',
+  'Everything has a date.': 'Mọi việc đã có ngày hoàn thành.',
+  'Email notifications': 'Thông báo email',
+  'Choose which product emails GlowBal sends you.': 'Chọn những email sản phẩm mà GlowBal gửi cho bạn.',
+  'Deadline reminders': 'Nhắc hạn nộp hồ sơ',
+  'Emails 30, 7 and 1 day before each application deadline.': 'Gửi email trước 30, 7 và 1 ngày cho từng hạn nộp hồ sơ.',
+  'Weekly strategy digest': 'Tổng hợp chiến lược hàng tuần',
+  'One email a week summarising overdue and upcoming tasks.': 'Một email mỗi tuần tổng hợp các việc quá hạn và sắp đến hạn.',
+  'Timezone': 'Múi giờ',
+  'Reminders count days on your calendar — this is that calendar.': 'Việc đếm ngày nhắc dựa trên lịch của bạn — đây chính là lịch đó.',
+  'Save email preferences': 'Lưu tuỳ chọn email',
+  'Could not load email preferences.': 'Không thể tải tuỳ chọn email.',
+  'Could not update email preferences.': 'Không thể lưu tuỳ chọn email.',
 };
