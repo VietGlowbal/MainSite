@@ -11,6 +11,7 @@ export type EmailTemplateId =
   | 'onboarding-complete'
   | 'report-ready'
   | 'deadline-reminder'
+  | 'weekly-strategy-digest'
   | 'newsletter-welcome'
   | 'waitlist-confirmation'
   | 'mentorship-confirmation'

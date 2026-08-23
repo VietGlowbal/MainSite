@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { escapeHtml } from '../email/template';
-import { weeklyStrategyDigestEmail } from './lifecycle';
+import { deadlineReminderEmail, weeklyStrategyDigestEmail } from './lifecycle';
 
 describe('weeklyStrategyDigestEmail', () => {
   const plannerUrl = 'https://glowbal.example.com/planner?week=2026-W34';
@@ -121,5 +121,25 @@ describe('weeklyStrategyDigestEmail', () => {
     expect(html).toContain('Coming up');
     expect(html).toContain(escapeHtml(upcomingA.title));
     expect(html).toContain(escapeHtml(upcomingA.dueLabel));
+  });
+});
+
+describe('deadlineReminderEmail', () => {
+  const base = {
+    university: 'University of Melbourne',
+    deadlineLabel: 'Thu, Oct 15',
+    url: 'https://glowbal.example.com/ai-strategy/app-9/planner',
+  };
+
+  it('says the deadline is today when nothing remains, not tomorrow', () => {
+    const html = deadlineReminderEmail({ ...base, daysRemaining: 0 });
+
+    expect(html).toContain('Deadline today');
+    expect(html).not.toContain('Deadline tomorrow');
+  });
+
+  it('says the deadline is tomorrow at exactly one day out and counts further days', () => {
+    expect(deadlineReminderEmail({ ...base, daysRemaining: 1 })).toContain('Deadline tomorrow');
+    expect(deadlineReminderEmail({ ...base, daysRemaining: 7 })).toContain('7 days to go');
   });
 });

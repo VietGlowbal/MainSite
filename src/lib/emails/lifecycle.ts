@@ -107,7 +107,11 @@ export function deadlineReminderEmail(input: {
 
   return glowbalEmailLayout({
     preheader: `${option} deadline: ${input.deadlineLabel}`,
-    eyebrow: input.daysRemaining <= 1 ? 'Deadline tomorrow' : `${input.daysRemaining} days to go`,
+    eyebrow: input.daysRemaining <= 0
+      ? 'Deadline today'
+      : input.daysRemaining === 1
+        ? 'Deadline tomorrow'
+        : `${input.daysRemaining} days to go`,
     titleHtml: `${escapeHtml(option)} is getting close.`,
     bodyHtml: `
       <div>The deadline is <strong style="color:#FAFAFA;">${escapeHtml(input.deadlineLabel)}</strong>.</div>
