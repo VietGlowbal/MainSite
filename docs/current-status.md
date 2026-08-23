@@ -234,6 +234,17 @@ Focused navigation tests pass 14/14 and TypeScript passes. The production
 Supabase migration and deployment remain required before the canonical route
 can initialize a real plan.
 
+Working tree 2026-08-23: both Strategy Report variants now hand off directly
+to `/ai-strategy/[applicationId]/planner`; they no longer POST to the legacy
+`roadmap-tasks` route, which rejects canonical Planner applications. A separate
+production defect was found in `reconcile_canonical_application_plan`: the RPC
+overwrote the parent step UUID with the first inserted micro-step UUID, so any
+step with multiple micro-steps failed its second insert. Apply
+`supabase-canonical-planner-multi-microstep-fix.sql` after
+`supabase-canonical-planner-production.sql` to repair the installed function.
+The AI Strategy/Planner suite passes 451/451, TypeScript passes, and changed-file
+ESLint passes; E2E was intentionally not run.
+
 Working tree 2026-08-21: Core 3 Plan now has a server-only, deterministic-first
 AI enrichment boundary using the existing OpenAI JSON-mode client. Pure
 Assess/Decide/Plan compilers remain unchanged. The model receives only
@@ -942,6 +953,11 @@ complete state rather than an empty task list.
 follow-up migration (not a rewrite of the earlier file): it revokes client-side
 canonical writes and installs the service-role-only transactional reconciliation
 RPC required by production `syncApplicationPlan()`.
+
+After that migration, apply
+`supabase-canonical-planner-multi-microstep-fix.sql`. It replaces only the RPC
+and uses a dedicated micro-step UUID variable, preserving the parent step UUID
+through the full inner loop.
 
 The dated audit remains the detailed evidence record. A code-only recheck on
 2026-08-06 found no commit that obviously closes its highest-priority items:

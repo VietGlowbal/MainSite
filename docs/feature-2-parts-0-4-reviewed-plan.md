@@ -1288,6 +1288,14 @@ Measured after this bridge: focused report/planner regression suite 77/77,
 and signed-in planner sync still need verification after the listed migrations
 are applied.
 
+Repair 2026-08-23: both Strategy Report CTAs now navigate directly to the
+canonical Planner route instead of calling the rejected legacy roadmap-task
+endpoint. The additive
+`supabase-canonical-planner-multi-microstep-fix.sql` migration also prevents
+the transactional reconciler from replacing a parent step ID with its first
+micro-step ID. After the repair, the feature suite passes 451/451, TypeScript
+passes, and changed-file ESLint passes; E2E was intentionally not run.
+
 ### File
 
 - `roadmap-tasks/route.ts` or current canonical route/service

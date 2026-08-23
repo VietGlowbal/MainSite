@@ -502,34 +502,15 @@ function RoadmapSection({
   );
 }
 
-type AddToPlannerState = { kind: 'idle' } | { kind: 'generating' } | { kind: 'failed' };
-
 /**
- * Turns `roadmap.prioritize`/`.avoid` into Planner tasks
- * (`generateRoadmapTasks`) and hands off to the Planner to see them — same
- * "generate, then go look" shape as the onboarding flow into `/strategy/analysis`.
- * Re-clicking is safe: the generator reconciles by (category, title), so this
- * never duplicates a task already added.
+ * Opens the canonical Planner, whose page initializer compiles and reconciles
+ * the latest Strategy inputs before rendering it.
  */
 function AddToPlannerCard({ applicationId }: { applicationId: string }) {
   const { t } = useLanguage();
   const router = useRouter();
-  const [state, setState] = useState<AddToPlannerState>({ kind: 'idle' });
-
-  async function run() {
-    setState({ kind: 'generating' });
-    try {
-      const response = await fetch(`/api/applications/${applicationId}/strategy/roadmap-tasks`, {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        setState({ kind: 'failed' });
-        return;
-      }
-      router.push(`/ai-strategy/${applicationId}/strategy/dashboard`);
-    } catch {
-      setState({ kind: 'failed' });
-    }
+  function run() {
+    router.push(`/ai-strategy/${applicationId}/planner`);
   }
 
   return (
@@ -542,16 +523,10 @@ function AddToPlannerCard({ applicationId }: { applicationId: string }) {
       </p>
       <Button
         size="sm"
-        variant={state.kind === 'failed' ? 'secondary' : 'primary'}
         className="self-start"
-        onClick={() => void run()}
-        disabled={state.kind === 'generating'}
+        onClick={run}
       >
-        {state.kind === 'generating'
-          ? t('Adding to Planner...')
-          : state.kind === 'failed'
-            ? t('Try again')
-            : t('Add to Planner')}
+        {t('Add to Planner')}
       </Button>
     </Panel>
   );

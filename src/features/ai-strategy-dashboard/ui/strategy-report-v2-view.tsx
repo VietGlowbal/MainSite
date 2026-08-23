@@ -521,34 +521,15 @@ function ConsistencyLine({ label, value }: { label: string; value: string }) {
   );
 }
 
-type AddToPlannerState = { kind: 'idle' } | { kind: 'generating' } | { kind: 'failed' };
-
 /**
- * Hands the F8 Execution Roadmap off to the Planner via
- * `generateRoadmapTasks` — which already seeds one task per roadmap
- * DELIVERABLE and reconciles by (category, title), so re-clicking after a
- * regeneration updates the same tasks instead of duplicating them. Same
- * "generate, then go look" shape as the legacy view's card.
+ * Opens the canonical Planner, whose page initializer compiles and reconciles
+ * the latest F8 roadmap before rendering it.
  */
 function AddToPlannerCard({ applicationId }: { applicationId: string }) {
   const { t } = useLanguage();
   const router = useRouter();
-  const [state, setState] = useState<AddToPlannerState>({ kind: 'idle' });
-
-  async function run() {
-    setState({ kind: 'generating' });
-    try {
-      const response = await fetch(`/api/applications/${applicationId}/strategy/roadmap-tasks`, {
-        method: 'POST',
-      });
-      if (!response.ok) {
-        setState({ kind: 'failed' });
-        return;
-      }
-      router.push(`/ai-strategy/${applicationId}/strategy/dashboard`);
-    } catch {
-      setState({ kind: 'failed' });
-    }
+  function run() {
+    router.push(`/ai-strategy/${applicationId}/planner`);
   }
 
   return (
@@ -561,16 +542,10 @@ function AddToPlannerCard({ applicationId }: { applicationId: string }) {
       </p>
       <Button
         size="sm"
-        variant={state.kind === 'failed' ? 'secondary' : 'primary'}
         className="self-start"
-        onClick={() => void run()}
-        disabled={state.kind === 'generating'}
+        onClick={run}
       >
-        {state.kind === 'generating'
-          ? t('Adding to Planner...')
-          : state.kind === 'failed'
-            ? t('Try again')
-            : t('Add to Planner')}
+        {t('Add to Planner')}
       </Button>
     </Panel>
   );
