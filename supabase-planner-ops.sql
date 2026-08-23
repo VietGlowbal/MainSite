@@ -36,7 +36,7 @@ CREATE TABLE IF NOT EXISTS public.application_planner_generation_runs (
   model TEXT,
   prompt_version TEXT,
   enrichment_version TEXT,
-  failure_code TEXT,
+  failure_code TEXT CHECK (failure_code IS NULL OR failure_code IN ('source_unavailable','not_enough_data','ai_enrichment_failed','validation_failed','persistence_failed','migration_unavailable','concurrency_conflict','unknown')),
   started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
