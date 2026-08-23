@@ -51,6 +51,30 @@ green (0 missing / 0 mismatch / 0 dynamic gaps). Still open in this wave:
 Task 5.9 full regression including `npm run build`; hierarchical planner
 mobile pattern deferred to a second pass.
 
+Pushed 2026-08-23: `def840f..dda242e main -> origin/main` after the full
+suite measured 320 files / 3063 passed / 0 fail and `npm run build` exited 0.
+Consolidated pending-migration list agreed with the owner same day (each file
+idempotent; verify against a live schema dump before treating any as applied —
+this sandbox has no service key):
+**A. now required by the email cron** — `supabase-email-system.sql` (dev +
+production; without it the cron still sends but has no durable event_key
+dedup); **B. canonical planner** — `supabase-core3-plan-hierarchy.sql` then
+`supabase-canonical-planner-production.sql`; **C. Parts 0–4 strategy reports**
+— `supabase-strategy-recommendation-lineage.sql`,
+`supabase-strategy-report-v2.sql`, `supabase-report-overrides.sql`,
+`supabase-recommendation-source-key.sql` (`supabase-match-report-narrative.sql`
+dropped from the list: zero `match_report_narrative` references remain after
+the PR #216 merge removed the narrative layer); **D. Final Check** —
+`supabase-final-check.sql`; **E. repairs still NOT CONFIRMED RUN per
+known-issues §5r/s/t** — `supabase-application-cascade-repair.sql`,
+`supabase-personal-report-supplements.sql`,
+`supabase-personal-report-versions.sql`; **F. payments, when used** —
+`supabase-plus-promo-redemption.sql` then `supabase-plus-promo-v2.sql`
+(in that order), `supabase-manual-payment-subscription-conflict-repair.sql`
+(the first repair is confirmed applied), `supabase-vnpay-payments.sql`;
+**G. not yet written** — engine-version stamp for
+`application_match_analyses` (new file, Part 9B wave).
+
 Merge 2026-08-23 (latest): merged `origin/main` (4 incoming commits) into local
 `main`, which had diverged 3/4. The big incoming commit is PR #216 — an
 independent implementation of the same Feature-2 surface our Parts 0–4 work
