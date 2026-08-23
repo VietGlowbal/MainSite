@@ -9,6 +9,21 @@ function planner(): PlannerReadModel {
   return { plan: { id: 'plan-1', applicationId: 'app-1', producer: 'core3_deterministic', domainPlanId: 'plan:1', readiness: 'requires_enrichment' }, lifecycle: 'active', diagnostics: [], phases: [{ id: 'phase-1', domainNodeId: 'phase:1', title: 'Meet requirements', objective: 'Objective', order: 1, sourceDecisionIds: [], sourceProvenances: [], progress: { total: 1, completed: 0, percentage: 0 }, steps: [{ id: 'step-1', domainNodeId: 'step:1', phaseId: 'phase-1', title: 'Provide proof', objective: 'Objective', order: 1, sourceDecisionIds: [], sourceProvenances: [], progress: { total: 1, completed: 0, percentage: 0 }, microSteps: [task] }] }] };
 }
 
+function scheduledPlanner(): PlannerReadModel {
+  const model = planner();
+  // Mid-current-month, so the calendar's default cursor month always contains
+  // it no matter when this suite runs.
+  const midMonthIso = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, '0')}-15`;
+  const task = { ...model.phases[0]!.steps[0]!.microSteps[0], deadline: midMonthIso };
+  return {
+    ...model,
+    phases: [{
+      ...model.phases[0]!,
+      steps: [{ ...model.phases[0]!.steps[0]!, microSteps: [task] }],
+    }],
+  };
+}
+
 afterEach(() => vi.unstubAllGlobals());
 
 describe('HierarchicalApplicationPlanner', () => {
@@ -37,5 +52,30 @@ describe('HierarchicalApplicationPlanner', () => {
     await userEvent.click(screen.getByRole('tab', { name: 'Board' }));
     expect(screen.getByText('To do')).toBeInTheDocument();
     expect(screen.getByText('Meet requirements · Provide proof')).toBeInTheDocument();
+  });
+
+  it('renders a real month grid on the Calendar tab even when nothing is scheduled', async () => {
+    // Owner-reported production bug: with zero dated micro-steps the old
+    // grouped-by-deadline list rendered an empty column — no calendar at all.
+    render(<HierarchicalApplicationPlanner applicationId="app-1" planner={planner()} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Calendar' }));
+
+    for (const weekday of ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']) {
+      expect(screen.getByText(weekday)).toBeInTheDocument();
+    }
+    // A month label and month paging exist, and today is marked in the grid.
+    expect(screen.getByRole('button', { name: 'Today' })).toBeInTheDocument();
+    expect(screen.getByText(/20\d\d/)).toBeInTheDocument();
+  });
+
+  it('places a scheduled micro-step inside its deadline day cell', async () => {
+    render(<HierarchicalApplicationPlanner applicationId="app-1" planner={scheduledPlanner()} />);
+    await userEvent.click(screen.getByRole('tab', { name: 'Calendar' }));
+
+    // The task card renders in the grid (its deadline day is mid-month, so the
+    // default cursor month shows it), and the tray reports nothing unscheduled.
+    expect(screen.getByRole('link', { name: 'Upload evidence' })).toBeInTheDocument();
+    expect(screen.getByText('Unscheduled')).toBeInTheDocument();
+    expect(screen.getByText('Everything has a date.')).toBeInTheDocument();
   });
 });
