@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { ExistingPersistedPlan } from './plan-persistence';
+import type { ExistingPersistedPlan, PlanPersistenceOperation } from './plan-persistence';
 import { CORE3_PLAN_PRODUCER, reconcilePlan } from './plan-persistence';
 import type { PlanResult } from './plan';
 
@@ -116,5 +116,123 @@ describe('reconcilePlan', () => {
     const incompatible = persistedFor();
     incompatible.plan = { ...incompatible.plan!, producer: 'f5_match_analysis' };
     expect(() => reconcilePlan(applicationId, plan(), incompatible)).toThrow('different producer');
+  });
+});
+
+// ─── Part 6.3 — ownership proof tests ────────────────────────────────────────
+// The reconcile path is the contract that keeps regeneration from destroying
+// student work: matching is by domain_node_id, and micro-step writes may carry
+// ONLY planning-owned (generated) fields. These tests pin that contract with
+// exact key-set assertions so a future field slip fails loudly.
+
+type MicroStepWriteOp = Extract<PlanPersistenceOperation, { kind: 'insert_micro_step' | 'update_micro_step' | 'restore_micro_step' }>;
+
+/** Every emitted op that writes micro-step row content, across all three write kinds. */
+function microStepWriteOps(operations: readonly PlanPersistenceOperation[]): MicroStepWriteOp[] {
+  return operations.filter(
+    (operation): operation is MicroStepWriteOp =>
+      operation.kind === 'insert_micro_step' ||
+      operation.kind === 'update_micro_step' ||
+      operation.kind === 'restore_micro_step',
+  );
+}
+
+/** The exhaustive set of generated keys `microStepFields` may ever produce. */
+const GENERATED_MICRO_STEP_FIELD_KEYS = [
+  'contentSchema',
+  'domainNodeId',
+  'order',
+  'readiness',
+  'sourceDecisionIds',
+  'sourceProvenances',
+  'title',
+];
+
+describe('reconcilePlan ownership (Part 6.3)', () => {
+  function revisedPlanWith(microStepOverrides: Partial<PlanResult['phases'][number]['steps'][number]['microSteps'][number]>): PlanResult {
+    const current = plan();
+    return {
+      ...current,
+      phases: [{
+        ...current.phases[0]!,
+        steps: [{
+          ...current.phases[0]!.steps[0]!,
+          microSteps: [{ ...current.phases[0]!.steps[0]!.microSteps[0]!, ...microStepOverrides }],
+        }],
+      }],
+    };
+  }
+
+  it('keeps a regenerated micro-step on its existing database row when the domain_node_id is unchanged', () => {
+    const revised = revisedPlanWith({ title: 'Upload official evidence' });
+    const operations = reconcilePlan(applicationId, revised, persistedFor()).operations;
+
+    // Same domain_node_id must reconcile to an UPDATE of the SAME database id —
+    // never insert+archive, which would orphan status/deadline/content_value.
+    expect(
+      operations.filter((op) => op.kind === 'insert_micro_step' || op.kind === 'archive_micro_step'),
+    ).toEqual([]);
+    expect(
+      microStepWriteOps(operations).filter((op) => op.kind === 'update_micro_step').map((op) => op.id),
+    ).toEqual(['db-micro']);
+  });
+
+  it('emits micro-step writes whose fields carry generated planning keys only', () => {
+    // Cover both write paths: an update of a node with user progress present,
+    // and a fresh insert of a brand-new node.
+    const operations = [
+      ...reconcilePlan(applicationId, revisedPlanWith({ title: 'Upload official evidence' }), persistedFor()).operations,
+      ...reconcilePlan(applicationId, plan(), existing()).operations,
+    ];
+    const writes = microStepWriteOps(operations);
+    expect(writes.length).toBeGreaterThanOrEqual(2);
+
+    for (const operation of writes) {
+      // Exact key-set assertion: any future field slip (status / deadline /
+      // contentValue / executionEvidence / …) fails loudly right here.
+      expect(Object.keys(operation.fields).sort()).toEqual(GENERATED_MICRO_STEP_FIELD_KEYS);
+      expect(Object.keys(operation.fields)).not.toContain('status');
+      expect(Object.keys(operation.fields)).not.toContain('deadline');
+      expect(Object.keys(operation.fields)).not.toContain('contentValue');
+      expect(Object.keys(operation.fields)).not.toContain('executionEvidence');
+    }
+  });
+
+  it('regenerates a checklist micro-step around existing user progress without touching user-owned fields', () => {
+    const items = ['Book IELTS', 'Request official transcripts'];
+    const revised = revisedPlanWith({
+      title: 'Upload verified evidence',
+      contentSchema: { type: 'checklist', items },
+    });
+
+    // Existing row: checklist schema plus REAL user progress against it.
+    const persistedChecklist = persistedFor();
+    persistedChecklist.microSteps[0] = {
+      ...persistedChecklist.microSteps[0]!,
+      contentSchema: { type: 'checklist', items: ['Book IELTS'] },
+      status: 'in_progress',
+      deadline: '2026-10-01',
+      contentValue: { type: 'checklist', checkedItems: ['Book IELTS'] },
+      executionEvidence: [{ id: 'evidence-1' }],
+    };
+
+    const operations = reconcilePlan(applicationId, revised, persistedChecklist).operations;
+    const updates = microStepWriteOps(operations).filter((op) => op.kind === 'update_micro_step');
+    const update = updates[0];
+
+    // Identity survives the regenerate: same DB row updated, not re-created.
+    expect(updates).toHaveLength(1);
+    expect(update?.id).toBe('db-micro');
+
+    // Planning-owned fields refresh; the field SET stays generated-only.
+    expect(update?.fields.title).toBe('Upload verified evidence');
+    expect(update?.fields.contentSchema).toEqual({ type: 'checklist', items });
+    expect(Object.keys(update?.fields ?? {}).sort()).toEqual(GENERATED_MICRO_STEP_FIELD_KEYS);
+
+    // No op anywhere carries the student's answer, progress state or evidence.
+    const serialized = JSON.stringify(operations);
+    expect(serialized).not.toContain('checkedItems');
+    expect(serialized).not.toContain('in_progress');
+    expect(serialized).not.toContain('evidence-1');
   });
 });

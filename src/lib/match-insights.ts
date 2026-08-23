@@ -81,6 +81,14 @@ export type ImprovementActionType =
  * `internal_route`/`external_url`/`book_mentor` — the Statement Writer, the
  * CV builder, an advisor booking) — there is nothing to fill in on this page,
  * only a brief and a link to the tool that does the work.
+ *
+ * Versioning (`v`): OPTIONAL on every variant, and `1` is currently its only
+ * legal value. An ABSENT `v` IS a v1 block — legacy rows stay readable and
+ * generators are not required to emit it, so there is no migration and no
+ * bulk rewrite (plan §6.2). Any other value (a future/unknown version, e.g.
+ * `v: 2`) must fail read-back validation — see `parseContentBlock` in
+ * `src/features/ai-strategy-dashboard/domain/recommendation.ts` — so an
+ * unknown shape degrades to no block instead of being rendered wrong.
  */
 export const CONTENT_BLOCK_TYPES = ['structured_table', 'long_text', 'checklist', 'single_select'] as const;
 export type ContentBlockType = (typeof CONTENT_BLOCK_TYPES)[number];
@@ -98,13 +106,13 @@ export type ContentBlockColumn = {
 
 export type ContentBlock =
   /** Repeatable rows — courses, activities, projects, awards: anything that's a LIST of similar entries. */
-  | { type: 'structured_table'; columns: ContentBlockColumn[] }
+  | { type: 'structured_table'; columns: ContentBlockColumn[]; v?: 1 }
   /** A single narrative answer — motivation, impact, personal story: anything that doesn't decompose into rows. */
-  | { type: 'long_text'; prompt: string; minWords?: number }
+  | { type: 'long_text'; prompt: string; minWords?: number; v?: 1 }
   /** Discrete steps to complete rather than content to write, e.g. "request official transcripts". */
-  | { type: 'checklist'; items: string[] }
+  | { type: 'checklist'; items: string[]; v?: 1 }
   /** A deterministic planning decision; `semanticKey` is never inferred from UI text. */
-  | { type: 'single_select'; prompt: string; options: { value: string; label: string }[]; semanticKey: string };
+  | { type: 'single_select'; prompt: string; options: { value: string; label: string }[]; semanticKey: string; v?: 1 };
 
 /**
  * The student's saved answer for a `ContentBlock`, shaped to match it.

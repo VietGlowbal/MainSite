@@ -537,52 +537,270 @@ describe('reconcileSeeds with source keys', () => {
   });
 });
 
-// CHARACTERIZATION (Part 5.1 / 6.1): persisted `content_schema` /
-// `content_value` are student-facing JSONB written by an AI pipeline. The
-// parsers are the safety boundary — anything malformed, unknown, or from a
-// future version degrades to `null` (no block rendered, task still usable)
-// and must never throw into the page.
+// CHARACTERIZATION + GATE MATRIX (Part 5.1 / 6.1 / 6.2): persisted
+// `content_schema` / `content_value` are student-facing JSONB written by an AI
+// pipeline. The parsers are the safety boundary — anything malformed, of an
+// unknown type, or carrying an unknown future VERSION degrades to `null`
+// (no block rendered, task still usable) and must never throw into the page.
+// The matrix below is the fixture gate the Part 6 plan asks for: 4 real types ×
+// {fully valid, optional-field omission, malformed}, plus explicit-version,
+// unknown-type and non-object fixtures — one row per behaviour, no duplicates.
 describe('parseContentBlock / parseContentBlockValue degrade safely', () => {
-  it('parses a valid known block unchanged', () => {
-    const schema = { type: 'long_text', prompt: 'Reflect', minWords: 10 };
-    expect(parseContentBlock(schema)).toEqual(schema);
+  function expectParsed(parsed: unknown, expected: unknown) {
+    if (expected === null) expect(parsed).toBeNull();
+    else expect(parsed).toEqual(expected);
+  }
+
+  const singleSelect = {
+    type: 'single_select',
+    prompt: 'Pick your target tier',
+    options: [
+      { value: 'reach', label: 'Reach' },
+      { value: 'safe', label: 'Safe' },
+    ],
+    semanticKey: 'tier-choice',
+  };
+
+  const blockCases: { name: string; input: unknown; expected: unknown }[] = [
+    // ── Fully valid: round-trips unchanged. ──
+    {
+      name: 'parses a fully valid structured_table',
+      input: { type: 'structured_table', columns: [{ key: 'name', label: 'Name', type: 'text' }] },
+      expected: { type: 'structured_table', columns: [{ key: 'name', label: 'Name', type: 'text' }] },
+    },
+    {
+      name: 'parses a fully valid long_text',
+      input: { type: 'long_text', prompt: 'Reflect', minWords: 10 },
+      expected: { type: 'long_text', prompt: 'Reflect', minWords: 10 },
+    },
+    {
+      name: 'parses a fully valid checklist',
+      input: { type: 'checklist', items: ['Request official transcripts'] },
+      expected: { type: 'checklist', items: ['Request official transcripts'] },
+    },
+    {
+      name: 'parses a fully valid single_select',
+      input: singleSelect,
+      expected: singleSelect,
+    },
+    // ── Valid but OPTIONAL field omitted: nothing back-filled, nothing rejected. ──
+    {
+      name: 'parses a long_text without its optional minWords',
+      input: { type: 'long_text', prompt: 'Reflect' },
+      expected: { type: 'long_text', prompt: 'Reflect' },
+    },
+    {
+      name: 'parses a structured_table whose select column omits its optional options',
+      input: { type: 'structured_table', columns: [{ key: 'tier', label: 'Tier', type: 'select' }] },
+      expected: { type: 'structured_table', columns: [{ key: 'tier', label: 'Tier', type: 'select' }] },
+    },
+    // ── Malformed: missing fields, empty arrays, wrong primitive types → null. ──
+    {
+      name: 'returns null for a structured_table with no columns',
+      input: { type: 'structured_table' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a structured_table with empty columns',
+      input: { type: 'structured_table', columns: [] },
+      expected: null,
+    },
+    {
+      name: 'returns null for a structured_table whose columns is not an array',
+      input: { type: 'structured_table', columns: 'name' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a column with wrong primitive types',
+      input: { type: 'structured_table', columns: [{ key: 1, label: 'Name', type: 'text' }] },
+      expected: null,
+    },
+    {
+      name: 'returns null for a column with an unknown column type',
+      input: { type: 'structured_table', columns: [{ key: 'a', label: 'A', type: 'richtext' }] },
+      expected: null,
+    },
+    {
+      name: 'returns null for a long_text with no prompt',
+      input: { type: 'long_text' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a long_text with an empty prompt',
+      input: { type: 'long_text', prompt: '' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a long_text with a non-string prompt',
+      input: { type: 'long_text', prompt: 42 },
+      expected: null,
+    },
+    {
+      name: 'returns null for a long_text with a non-number minWords',
+      input: { type: 'long_text', prompt: 'x', minWords: 'many' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a checklist with no items',
+      input: { type: 'checklist' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a checklist with empty items',
+      input: { type: 'checklist', items: [] },
+      expected: null,
+    },
+    {
+      name: 'returns null for a checklist whose items is not an array',
+      input: { type: 'checklist', items: 'step one' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a checklist containing an empty item string',
+      input: { type: 'checklist', items: [''] },
+      expected: null,
+    },
+    {
+      name: 'returns null for a single_select with empty options',
+      input: { ...singleSelect, options: [] },
+      expected: null,
+    },
+    {
+      name: 'returns null for a single_select with a missing semanticKey',
+      input: { type: 'single_select', prompt: 'Pick', options: singleSelect.options },
+      expected: null,
+    },
+    {
+      name: 'returns null for a single_select with an invalid semanticKey format',
+      input: { ...singleSelect, semanticKey: 'Not A Key' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a single_select option with an empty value',
+      input: { ...singleSelect, options: [{ value: '', label: 'Reach' }] },
+      expected: null,
+    },
+    // ── Unknown / future TYPES degrade exactly like malformed payloads. ──
+    {
+      name: 'returns null for an unknown editable_priority_grid type',
+      input: { type: 'editable_priority_grid', rows: [] },
+      expected: null,
+    },
+    {
+      name: 'returns null for an unknown phase_timeline type',
+      input: { type: 'phase_timeline', phases: [] },
+      expected: null,
+    },
+    // ── Non-object garbage. ──
+    { name: 'returns null for a bare string', input: 'long_text', expected: null },
+    { name: 'returns null for a number', input: 42, expected: null },
+    { name: 'returns null for null', input: null, expected: null },
+    { name: 'returns null for an array', input: [], expected: null },
+  ];
+
+  it.each(blockCases)('$name', ({ input, expected }) => {
+    expectParsed(parseContentBlock(input), expected);
   });
 
-  it('keeps optional fields optional instead of failing them', () => {
-    expect(parseContentBlock({ type: 'long_text', prompt: 'Reflect' })).toEqual({
+  // Version gate (§6.2): absent `v` IS legacy v1 (covered above); an EXPLICIT
+  // `v: 1` is identical; ANY other value fails safeParse on every variant so
+  // `parseContentBlock` returns null and the UI falls back.
+  it('accepts every variant stamped explicitly with the current version v: 1', () => {
+    const blocksWithV1 = [
+      { type: 'structured_table', columns: [{ key: 'name', label: 'Name', type: 'text' }], v: 1 },
+      { type: 'long_text', prompt: 'Reflect', v: 1 },
+      { type: 'checklist', items: ['Request official transcripts'], v: 1 },
+      { ...singleSelect, v: 1 },
+    ];
+    for (const block of blocksWithV1) {
+      expect(parseContentBlock(block)).toEqual(block);
+    }
+  });
+
+  it('rejects every variant carrying an unknown future version (v: 2)', () => {
+    const blocksWithV2 = [
+      { type: 'structured_table', columns: [{ key: 'name', label: 'Name', type: 'text' }], v: 2 },
+      { type: 'long_text', prompt: 'Reflect', v: 2 },
+      { type: 'checklist', items: ['Request official transcripts'], v: 2 },
+      { ...singleSelect, v: 2 },
+    ];
+    for (const block of blocksWithV2) {
+      expect(parseContentBlock(block)).toBeNull();
+    }
+  });
+
+  it('rejects a known type with a non-numeric version', () => {
+    expect(parseContentBlock({ type: 'long_text', prompt: 'x', v: '1' })).toBeNull();
+  });
+
+  // ── Same discipline for the student-authored value column. ──
+  const valueCases: { name: string; input: unknown; expected: unknown }[] = [
+    {
+      name: 'parses a valid structured_table answer',
+      input: { type: 'structured_table', rows: [{ name: 'Physics Olympiad' }] },
+      expected: { type: 'structured_table', rows: [{ name: 'Physics Olympiad' }] },
+    },
+    {
+      name: 'parses a valid long_text answer',
+      input: { type: 'long_text', text: 'My motivation…' },
+      expected: { type: 'long_text', text: 'My motivation…' },
+    },
+    {
+      name: 'parses a valid checklist answer',
+      input: { type: 'checklist', checkedItems: ['Email the registrar'] },
+      expected: { type: 'checklist', checkedItems: ['Email the registrar'] },
+    },
+    {
+      name: 'parses a valid single_select answer',
+      input: { type: 'single_select', value: 'reach' },
+      expected: { type: 'single_select', value: 'reach' },
+    },
+    {
+      name: 'returns null for a long_text answer with no text',
+      input: { type: 'long_text' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a long_text answer with a non-string text',
+      input: { type: 'long_text', text: 42 },
+      expected: null,
+    },
+    {
+      name: 'returns null for a checklist answer with no checkedItems',
+      input: { type: 'checklist' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a structured_table answer with non-array rows',
+      input: { type: 'structured_table', rows: 'rows' },
+      expected: null,
+    },
+    {
+      name: 'returns null for a single_select answer with an empty value',
+      input: { type: 'single_select', value: '' },
+      expected: null,
+    },
+    {
+      name: 'returns null for an unknown answer type',
+      input: { type: 'time_machine' },
+      expected: null,
+    },
+    { name: 'returns null for a bare string', input: 'long_text', expected: null },
+    { name: 'returns null for a number', input: 42, expected: null },
+    { name: 'returns null for undefined', input: undefined, expected: null },
+  ];
+
+  it.each(valueCases)('$name', ({ input, expected }) => {
+    expectParsed(parseContentBlockValue(input), expected);
+  });
+
+  it('leaves student values unversioned by design: unknown keys are dropped, not rejected', () => {
+    // §6.2 versions only the AI-authored `content_schema`; `contentValueSchema`
+    // is deliberately untouched. A stray/future key on a saved answer must
+    // neither block reading the student's work nor be echoed back into writes.
+    expect(parseContentBlockValue({ type: 'long_text', text: 'x', v: 2 })).toEqual({
       type: 'long_text',
-      prompt: 'Reflect',
+      text: 'x',
     });
-  });
-
-  it('returns null for a known type with a malformed payload', () => {
-    expect(parseContentBlock({ type: 'checklist' })).toBeNull(); // items missing
-    expect(
-      parseContentBlock({ type: 'structured_table', columns: [] }), // min 1 column
-    ).toBeNull();
-    expect(
-      parseContentBlock({ type: 'single_select', prompt: 'Pick', options: [], semanticKey: 'a.b' }),
-    ).toBeNull();
-  });
-
-  it('returns null for an unknown or future block type', () => {
-    expect(parseContentBlock({ type: 'editable_priority_grid', rows: [] })).toBeNull();
-    expect(parseContentBlock({ type: 'phase_timeline', phases: [] })).toBeNull();
-  });
-
-  it('returns null for non-object garbage and nullish input', () => {
-    expect(parseContentBlock(null)).toBeNull();
-    expect(parseContentBlock('long_text')).toBeNull();
-    expect(parseContentBlock(42)).toBeNull();
-  });
-
-  it('applies the same discipline to persisted student values', () => {
-    expect(parseContentBlockValue({ type: 'checklist', checkedItems: ['a'] })).toEqual({
-      type: 'checklist',
-      checkedItems: ['a'],
-    });
-    expect(parseContentBlockValue({ type: 'time_machine' })).toBeNull();
-    expect(parseContentBlockValue({ type: 'long_text' })).toBeNull(); // text missing
-    expect(parseContentBlockValue(undefined)).toBeNull();
   });
 });

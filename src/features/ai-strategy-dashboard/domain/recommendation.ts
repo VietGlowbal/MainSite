@@ -167,6 +167,15 @@ export const contentValueSchema = z.discriminatedUnion('type', [
  * always has a non-empty `columns`/`items`. `parseContentBlock` below is what
  * enforces that guarantee still holds on the way back OUT of the database —
  * see its doc comment on why checking only `type` was not enough.
+ *
+ * VERSIONING (`v`, plan §6.2): OPTIONAL on every variant, and `1` is the only
+ * accepted value. Absent `v` means legacy v1 — existing rows stay valid and
+ * the generator is not required to emit it, so there is no migration and no
+ * bulk rewrite. Any other value (a future/unknown version, e.g. `v: 2`)
+ * FAILS this schema, so `parseContentBlock` returns `null` and the UI falls
+ * back to no block rather than guessing at a shape it doesn't know.
+ * Student-authored `content_value` is deliberately NOT versioned in this
+ * step — `contentValueSchema` stays untouched.
  */
 const contentBlockColumnSchema = z.object({
   key: z.string().min(1),
@@ -176,14 +185,15 @@ const contentBlockColumnSchema = z.object({
 });
 
 const contentBlockSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('structured_table'), columns: z.array(contentBlockColumnSchema).min(1) }),
-  z.object({ type: z.literal('long_text'), prompt: z.string().min(1), minWords: z.number().optional() }),
-  z.object({ type: z.literal('checklist'), items: z.array(z.string().min(1)).min(1) }),
+  z.object({ type: z.literal('structured_table'), columns: z.array(contentBlockColumnSchema).min(1), v: z.literal(1).optional() }),
+  z.object({ type: z.literal('long_text'), prompt: z.string().min(1), minWords: z.number().optional(), v: z.literal(1).optional() }),
+  z.object({ type: z.literal('checklist'), items: z.array(z.string().min(1)).min(1), v: z.literal(1).optional() }),
   z.object({
     type: z.literal('single_select'),
     prompt: z.string().min(1),
     options: z.array(z.object({ value: z.string().min(1), label: z.string().min(1) })).min(1).max(20),
     semanticKey: z.string().regex(/^[a-z][a-z0-9_.-]{1,100}$/),
+    v: z.literal(1).optional(),
   }),
 ]);
 
@@ -289,6 +299,10 @@ export function nextPriority(recommendations: readonly Recommendation[]): Recomm
  * what the doc comment always claimed to do; now it actually does it, and a
  * malformed row degrades to `null` (no content block, same as a task that
  * finishes elsewhere) instead of taking the page down.
+ *
+ * Versioning rides the same boundary: only an absent or `1` `v` passes
+ * (see `contentBlockSchema`), so a block written by a future generator
+ * degrades to `null` here and the UI falls back.
  */
 export function parseContentBlock(raw: unknown): ContentBlock | null {
   const parsed = contentBlockSchema.safeParse(raw);
