@@ -1,0 +1,9 @@
+import { listPlannerOpsAdmin } from '@/features/ai-strategy-dashboard/api';
+import { AdminHeading, EmptyRow, TableShell, TD, TH } from '../_ui';
+
+/** Small server-rendered operational view; it never sends student text to the browser. */
+export default async function AdminPlannerOpsPage() {
+  const { rows, applications } = await listPlannerOpsAdmin();
+  const labels = new Map((applications ?? []).map((application) => [application.id, application]));
+  return <><AdminHeading title="Planner Ops" description="Lifecycle, source freshness, AI outcomes and recovery signals for canonical plans." /><TableShell><thead><tr><th className={TH}>Application</th><th className={TH}>Lifecycle</th><th className={TH}>Generation</th><th className={TH}>AI</th><th className={TH}>Last success</th><th className={TH}>Failure</th></tr></thead><tbody>{rows.map((row) => { const application = labels.get(row.application_id); return <tr key={row.application_id} className="border-t border-line"><td className={TD}><p className="font-semibold text-fg">{application?.course_name ?? row.application_id}</p><p className="text-gb-xs text-fg-muted">{application?.university_name ?? 'Unknown university'}</p></td><td className={TD}>{row.lifecycle}{row.source_fingerprint !== row.plan_fingerprint ? <p className="text-gb-xs text-fg-error">stale</p> : null}</td><td className={TD}>{row.generation_status}</td><td className={TD}>{row.ai_status ?? '—'}{row.ai_model ? <p className="text-gb-xs text-fg-muted">{row.ai_model}</p> : null}</td><td className={TD}>{row.last_success_at ? new Date(row.last_success_at).toLocaleString('en-GB') : '—'}</td><td className={TD}>{row.failure_code ?? '—'}</td></tr>; })}{rows.length === 0 ? <EmptyRow colSpan={6}>No canonical Planner Ops records yet.</EmptyRow> : null}</tbody></TableShell></>;
+}

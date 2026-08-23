@@ -1,0 +1,53 @@
+import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/server/db/admin';
+import { getApplicationAssessments } from './get-application-assessments';
+import { getApplicationPlanner } from './get-application-planner';
+import { getPlannerMode } from './planner-mode';
+import { claimPlannerGeneration, finishPlannerGeneration, upsertPlannerOps } from './planner-ops-store';
+import { syncApplicationPlan } from './sync-application-plan';
+import { isPlannerStale, planFingerprint, plannerLifecycle, plannerSourceFingerprint } from '../domain';
+
+export type PlannerRefreshTrigger = 'initial_create' | 'semantic_input' | 'source_change' | 'manual_refresh' | 'retry';
+export type PlannerRefreshResult = { refreshed: boolean; skipped: boolean; reason?: 'not_entitled' | 'current' | 'concurrent'; runId?: string };
+
+/** Controlled, cross-instance-safe refresh. A failed run never archives the old plan. */
+export async function refreshApplicationPlan(supabase: SupabaseClient, applicationId: string, userId: string, trigger: PlannerRefreshTrigger): Promise<PlannerRefreshResult> {
+  if (await getPlannerMode(supabase, userId) !== 'canonical') return { refreshed: false, skipped: true, reason: 'not_entitled' };
+  const admin = createAdminClient();
+  const existing = await getApplicationPlanner(supabase, applicationId, userId).catch(() => null);
+  const runId = await claimPlannerGeneration(admin, { applicationId, trigger, sourceFingerprint: null });
+  if (!runId) return { refreshed: false, skipped: true, reason: 'concurrent' };
+  try {
+    const { context } = await getApplicationAssessments(supabase, applicationId, userId);
+    const fingerprint = plannerSourceFingerprint(context);
+    const previousFingerprint = planFingerprint(existing?.plan?.domainPlanId);
+    if (trigger !== 'manual_refresh' && trigger !== 'retry' && existing?.plan && !isPlannerStale(fingerprint, previousFingerprint)) {
+      await finishPlannerGeneration(admin, runId, { status: 'success', aiStatus: 'not_required' });
+      return { refreshed: false, skipped: true, reason: 'current', runId };
+    }
+    await upsertPlannerOps(admin, applicationId, { lifecycle: 'refreshing', source_fingerprint: fingerprint, plan_fingerprint: previousFingerprint, generation_status: 'running', last_attempt_at: new Date().toISOString(), failure_code: null });
+    let enrichment: { enriched: boolean; fallbackReason?: string } = { enriched: false };
+    await syncApplicationPlan(admin, applicationId, userId, { onEnrichment: (result) => { enrichment = result; } });
+    const updated = await getApplicationPlanner(admin, applicationId, userId);
+    const nextFingerprint = planFingerprint(updated.plan?.domainPlanId);
+    const ai = findAiProvenance(updated);
+    const lifecycle = plannerLifecycle({ readModel: updated, stale: false });
+    const aiStatus = enrichment.enriched ? 'success' : enrichment.fallbackReason === 'not_configured' ? 'not_required' : ai ? 'success' : enrichment.fallbackReason ? 'fallback' : 'not_required';
+    await finishPlannerGeneration(admin, runId, { status: 'success', planId: updated.plan?.id ?? null, aiStatus, provider: ai?.provider ?? null, model: ai?.model ?? null, promptVersion: ai?.promptVersion ?? null, enrichmentVersion: ai?.enrichmentVersion ?? null });
+    await upsertPlannerOps(admin, applicationId, { lifecycle, source_fingerprint: fingerprint, plan_fingerprint: nextFingerprint, stale_since: null, generation_status: 'success', last_success_at: new Date().toISOString(), failure_code: null, ai_status: aiStatus, ai_provider: ai?.provider ?? null, ai_model: ai?.model ?? null, ai_prompt_version: ai?.promptVersion ?? null, ai_enrichment_version: ai?.enrichmentVersion ?? null });
+    return { refreshed: true, skipped: false, runId };
+  } catch (error) {
+    await finishPlannerGeneration(admin, runId, { status: 'failed', aiStatus: 'failed', failureCode: 'persistence_failed' }).catch(() => undefined);
+    await upsertPlannerOps(admin, applicationId, { lifecycle: existing?.plan ? 'failed' : 'failed', generation_status: 'failed', failure_code: 'persistence_failed', ai_status: 'failed' }).catch(() => undefined);
+    console.error('[planner/ops] refresh failed', { applicationId, userId, error });
+    throw error;
+  }
+}
+
+function findAiProvenance(planner: Awaited<ReturnType<typeof getApplicationPlanner>>) {
+  for (const micro of planner.phases.flatMap((phase) => phase.steps).flatMap((step) => step.microSteps)) {
+    const provenance = micro.sourceProvenances.find((item): item is Extract<typeof item, { kind: 'ai_planning' }> => typeof item === 'object' && item !== null && item.kind === 'ai_planning');
+    if (provenance) return provenance;
+  }
+  return null;
+}

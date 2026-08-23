@@ -171,6 +171,7 @@ export { compilePlanningContext } from './compile-planning-context';
 export { compileAssessments } from './compile-assessments';
 export { compileDecisions } from './compile-decisions';
 export { compilePlan } from './compile-plan';
+export { isPlannerStale, planFingerprint, plannerLifecycle, plannerSourceFingerprint } from './planner-ops';
 export {
   AI_PLAN_ENRICHMENT_PROMPT_VERSION,
   AI_PLAN_ENRICHMENT_VERSION,
@@ -203,6 +204,7 @@ export type {
   AssessmentStatus,
 } from './assessment';
 export type { AiPlanningProvenance, PlanNodeProvenance } from './plan';
+export type { PlannerAiStatus, PlannerFailureCode, PlannerGenerationStatus, PlannerHealth, PlannerOpsLifecycle } from './planner-ops';
 export type { AiPlanEnrichment, PlanEnrichmentValidationResult } from './plan-enrichment';
 export type {
   DecisionAssessment,

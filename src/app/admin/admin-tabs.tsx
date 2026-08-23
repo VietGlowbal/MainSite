@@ -14,6 +14,7 @@ const ALL_TABS = [
   { href: '/admin/news', label: 'News & GEO', match: 'prefix' as const },
   { href: '/admin/users', label: 'Users', match: 'prefix' as const },
   { href: '/admin/coordinators', label: 'Coordinators', match: 'prefix' as const },
+  { href: '/admin/planner', label: 'Planner Ops', match: 'prefix' as const },
 ];
 
 /**

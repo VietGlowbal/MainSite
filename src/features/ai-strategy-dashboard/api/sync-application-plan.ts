@@ -17,6 +17,9 @@ export type SyncApplicationPlanResult = {
   restored: number;
   archived: number;
 };
+export type SyncApplicationPlanOptions = {
+  onEnrichment?: (result: { enriched: boolean; fallbackReason?: string }) => void;
+};
 
 /** Raised when a scoped read or write fails; callers must not treat it as an empty plan. */
 export class PlanPersistenceError extends Error {
@@ -38,6 +41,7 @@ export async function syncApplicationPlan(
   supabase: SupabaseClient,
   applicationId: string,
   userId: string,
+  options?: SyncApplicationPlanOptions,
 ): Promise<SyncApplicationPlanResult> {
   const ownership = await supabase
     .from('course_applications')
@@ -53,6 +57,7 @@ export async function syncApplicationPlan(
     loadExistingPlan(supabase, applicationId),
   ]);
   const plan = enriched.plan;
+  options?.onEnrichment?.(enriched);
   // Production uses the SECURITY DEFINER RPC installed by the production
   // migration.  It reconciles the whole hierarchy in one transaction; the
   // sequential path remains only for local/test environments without Postgres
