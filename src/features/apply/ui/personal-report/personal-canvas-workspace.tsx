@@ -1,6 +1,7 @@
 'use client';
 
 import {
+  useCallback,
   useEffect,
   useLayoutEffect,
   useMemo,
@@ -158,7 +159,12 @@ function useCuteCanvasSounds() {
     tone(760, 0.03, 0.08, 0.009, 'sine');
   }
 
-  return { open, close, tab };
+  // Memoised so callers can list `sounds` as an effect dependency without the
+  // effect re-running on every render. `open`/`close`/`tab` close over
+  // `audioRef` and nothing else — no state, no props — so pinning the first
+  // render's copies is safe and the empty dependency array is deliberate.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  return useMemo(() => ({ open, close, tab }), []);
 }
 
 function FocusModeIcon({ focused }: { focused: boolean }) {
@@ -403,6 +409,7 @@ export function PersonalCanvasWorkspace({
   const [connector, setConnector] = useState<ConnectorGeometry>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLElement>(null);
+  const lastTriggerRef = useRef<HTMLElement | null>(null);
   const sounds = useCuteCanvasSounds();
   const reduceMotion = useReducedMotion();
 
@@ -419,21 +426,30 @@ export function PersonalCanvasWorkspace({
   const tab =
     activeSpec?.tabs.find((candidate) => candidate.id === activeTab) ?? activeSpec?.tabs[0];
 
-  function openSection(section: PersonalCanvasSectionKey) {
-    const firstTab = specs[section].tabs[0]?.id ?? 'overview';
-    setActiveSection(section);
-    setActiveTab(firstTab);
-    setFocusMode(false);
-    sounds.open();
-  }
+  const openSection = useCallback(
+    (section: PersonalCanvasSectionKey) => {
+      // Remember what to hand focus back to when the panel closes. Without
+      // this, closing dumps a keyboard user at the top of the document.
+      lastTriggerRef.current =
+        document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const firstTab = specs[section].tabs[0]?.id ?? 'overview';
+      setActiveSection(section);
+      setActiveTab(firstTab);
+      setFocusMode(false);
+      sounds.open();
+    },
+    [specs, sounds],
+  );
 
-  function closePanel() {
-    if (!activeSection) return;
-    sounds.close();
-    setActiveSection(null);
+  const closePanel = useCallback(() => {
+    setActiveSection((current) => {
+      if (!current) return current;
+      sounds.close();
+      return null;
+    });
     setFocusMode(false);
     setConnector(null);
-  }
+  }, [sounds]);
 
   function selectTab(tabId: string) {
     if (tabId === activeTab) return;
@@ -443,10 +459,18 @@ export function PersonalCanvasWorkspace({
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
+      // A modifier means the browser or OS owns this chord, not us. Without
+      // this guard Cmd/Ctrl+F toggled focus mode AND called preventDefault(),
+      // which broke find-in-page on the whole report, and Cmd/Ctrl+1..6 opened
+      // a section behind the tab the user was switching to.
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+
+      const target = event.target;
       if (
-        event.target instanceof HTMLInputElement ||
-        event.target instanceof HTMLTextAreaElement ||
-        event.target instanceof HTMLSelectElement
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
       ) {
         return;
       }
@@ -461,7 +485,8 @@ export function PersonalCanvasWorkspace({
       };
 
       if (event.key === 'Escape') closePanel();
-      if (shortcuts[event.key]) openSection(shortcuts[event.key]!);
+      const shortcut = shortcuts[event.key];
+      if (shortcut) openSection(shortcut);
       if ((event.key === 'f' || event.key === 'F') && activeSection) {
         event.preventDefault();
         setFocusMode((current) => !current);
@@ -471,7 +496,34 @@ export function PersonalCanvasWorkspace({
 
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  });
+    // Previously this effect had no dependency array at all, so the listener
+    // was torn down and rebound after every single render of a large report.
+  }, [activeSection, closePanel, openSection, sounds]);
+
+  // Move focus into the panel when it opens, and give it back when it closes.
+  // On mobile the panel is a full-screen overlay; without this a keyboard or
+  // screen-reader user opened it and stayed on the button underneath, with no
+  // indication anything had happened.
+  useEffect(() => {
+    if (activeSection) {
+      panelRef.current?.focus();
+      return;
+    }
+    const trigger = lastTriggerRef.current;
+    lastTriggerRef.current = null;
+    if (!trigger) return;
+    // Restore focus only when it would otherwise be lost: either it has already
+    // fallen back to the body, or it is still inside the panel, which stays
+    // mounted while its exit animation runs. If the user has clicked or tabbed
+    // somewhere else in the meantime, leave them there — yanking them back is
+    // worse than not restoring at all.
+    const active = document.activeElement;
+    const stranded =
+      active === document.body ||
+      active === null ||
+      (active instanceof Node && panelRef.current?.contains(active) === true);
+    if (stranded) trigger.focus();
+  }, [activeSection]);
 
   useLayoutEffect(() => {
     if (!activeSection || focusMode) return;
@@ -601,6 +653,11 @@ export function PersonalCanvasWorkspace({
             <motion.aside
               key="personal-canvas-detail-panel"
               ref={panelRef}
+              // -1 so it can receive programmatic focus without entering the
+              // tab order. No aria-modal: on desktop this is a sticky side
+              // panel beside live content, not a modal, and claiming otherwise
+              // would tell a screen reader the rest of the page is inert.
+              tabIndex={-1}
               aria-label={`${activeSpec.label} details`}
               initial={panelInitial}
               animate={{ opacity: 1, x: 0, scale: 1 }}

@@ -38,3 +38,10 @@ export {
 export type { PersonalReportV2Record } from './personal-report-v2-repository';
 export { regeneratePersonalReport } from './personal-report-generation';
 export type { RegeneratePersonalReportResult } from './personal-report-generation';
+
+export {
+  getFinalCheckPageData,
+  loadComponentStates,
+  loadDocumentTexts,
+} from './final-check-repository';
+export type { FinalCheckPageData } from './final-check-repository';

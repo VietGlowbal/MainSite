@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
-  F5_DIMENSION_WEIGHTS,
+  assessProgrammeFit,
   buildProgrammeFitPlaceholder,
-  evaluateProgrammeFit,
   fitScoreToPercent,
+  F5_DIMENSION_KEYS,
+  F5_WEIGHTS,
+  type AcademicBand,
   type F5Dimension,
   type F5DimensionKey,
   type ProgrammeFitEligibility,
 } from './f5-programme-fit';
 
-// ─── Fixtures ────────────────────────────────────────────────────────────────
-
-const ELIGIBLE: ProgrammeFitEligibility = {
+const ALL_MET: ProgrammeFitEligibility = {
   requiredSubjects: 'met',
   minimumQualification: 'met',
   languageRequirement: 'met',
@@ -19,279 +19,221 @@ const ELIGIBLE: ProgrammeFitEligibility = {
   deadline: 'met',
 };
 
-const assessed = (score: number): F5Dimension => ({
-  status: 'assessed',
-  score,
-  summary: `Assessed at ${score}`,
-  strengths: [],
-  gaps: [],
-  evidenceRefs: [],
-});
+const ALL_UNKNOWN: ProgrammeFitEligibility = {
+  requiredSubjects: 'unknown',
+  minimumQualification: 'unknown',
+  languageRequirement: 'unknown',
+  citizenshipRequirement: 'unknown',
+  deadline: 'unknown',
+};
 
-const unassessed = (): F5Dimension => ({
-  status: 'not_available',
-  score: null,
-  summary: '',
-  strengths: [],
-  gaps: [],
-  evidenceRefs: [],
-});
-
-/** Order: academic, persona, career, financial, readiness. `null` → not_available, never zero-filled. */
-function dims(
-  academicCompetitiveness: number | null,
-  personaAlignment: number | null,
-  careerDirection: number | null,
-  financialFeasibility: number | null,
-  applicationReadiness: number | null,
-): Record<F5DimensionKey, F5Dimension> {
-  const build = (score: number | null) => (score === null ? unassessed() : assessed(score));
+function dimension(score: number | null, overrides: Partial<F5Dimension> = {}): F5Dimension {
   return {
-    academicCompetitiveness: build(academicCompetitiveness),
-    personaAlignment: build(personaAlignment),
-    careerDirection: build(careerDirection),
-    financialFeasibility: build(financialFeasibility),
-    applicationReadiness: build(applicationReadiness),
+    status: score === null ? 'not_available' : 'assessed',
+    score,
+    summary: 'summary',
+    strengths: [],
+    gaps: [],
+    evidenceRefs: [],
+    ...overrides,
   };
 }
 
-describe('F5_DIMENSION_WEIGHTS', () => {
-  it('sums to 1 so a fully-assessed profile needs no renormalisation', () => {
-    const total = Object.values(F5_DIMENSION_WEIGHTS).reduce((a, w) => a + w, 0);
-    expect(total).toBeCloseTo(1, 12);
-  });
+function dimensions(scores: Partial<Record<F5DimensionKey, number | null>>) {
+  const built = {} as Record<F5DimensionKey, F5Dimension>;
+  for (const key of F5_DIMENSION_KEYS) {
+    built[key] = dimension(key in scores ? (scores[key] ?? null) : 3);
+  }
+  return built;
+}
 
-  it('matches the canonical spec weights', () => {
-    expect(F5_DIMENSION_WEIGHTS).toEqual({
-      academicCompetitiveness: 0.25,
-      personaAlignment: 0.25,
-      careerDirection: 0.2,
-      financialFeasibility: 0.15,
-      applicationReadiness: 0.15,
-    });
+function fit(
+  academicBand: AcademicBand,
+  scores: Partial<Record<F5DimensionKey, number | null>> = {},
+  eligibility: ProgrammeFitEligibility = ALL_MET,
+) {
+  return assessProgrammeFit({ eligibility, academicBand, dimensions: dimensions(scores) });
+}
+
+describe('F5 weights', () => {
+  it('sums to exactly 1 so an unrenormalized score cannot drift', () => {
+    const total = F5_DIMENSION_KEYS.reduce((sum, key) => sum + F5_WEIGHTS[key], 0);
+    expect(total).toBeCloseTo(1, 10);
   });
 });
 
 describe('fitScoreToPercent', () => {
-  it('maps integer scores across the full 0-100 range', () => {
+  it('maps the rubric ends to the full 0-100 range', () => {
     expect(fitScoreToPercent(1)).toBe(0);
-    expect(fitScoreToPercent(2)).toBe(25);
-    expect(fitScoreToPercent(3)).toBe(50);
-    expect(fitScoreToPercent(4)).toBe(75);
     expect(fitScoreToPercent(5)).toBe(100);
+    expect(fitScoreToPercent(3)).toBe(50);
   });
 
-  it('supports decimal scores', () => {
-    expect(fitScoreToPercent(4.5)).toBe(88);
-    expect(fitScoreToPercent(3.7)).toBe(68);
+  it('reaches the fractional percentages the report layout uses', () => {
+    expect(fitScoreToPercent(4)).toBe(75);
+    expect(fitScoreToPercent(4.52)).toBe(88);
+    expect(fitScoreToPercent(4.68)).toBe(92);
   });
 
-  it('clamps inputs instead of allowing values outside 1-5', () => {
+  it('keeps "not assessed" distinct from zero', () => {
+    expect(fitScoreToPercent(null)).toBeNull();
+    expect(fitScoreToPercent(1)).toBe(0);
+  });
+
+  it('clamps out-of-range input rather than emitting an impossible percentage', () => {
     expect(fitScoreToPercent(0)).toBe(0);
-    expect(fitScoreToPercent(-2)).toBe(0);
     expect(fitScoreToPercent(9)).toBe(100);
   });
 });
 
-describe('evaluateProgrammeFit — scoring', () => {
-  // 1
-  it('scores all five dimensions with the canonical weights', () => {
-    // 0.25·4 + 0.25·3 + 0.20·5 + 0.15·2 + 0.15·3 = 3.5
-    const result = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: dims(4, 3, 5, 2, 3) });
-    expect(result.compositeScore).toBeCloseTo(3.5, 10);
-    expect(result.score).toBe(70);
-    expect(result.classification).toBe('strong_match');
-    expect(result.status).toBe('complete');
-    expect(result.kind).toBe('observation');
-    expect(result.missingInputs).toEqual([]);
-  });
-
-  // 2
-  it('renormalises when one non-academic dimension is missing', () => {
-    // Present weights: .25+.25+.15+.15 = .8; weighted sum 1+0.75+0.3+0.45 = 2.5 → 3.125.
-    const result = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: dims(4, 3, null, 2, 3) });
-    expect(result.compositeScore).toBeCloseTo(3.125, 10);
-    expect(result.missingInputs).toEqual(['careerDirection']);
-    expect(result.status).toBe('partial');
-    // Classification still comes from the academic score alone.
-    expect(result.classification).toBe('strong_match');
-  });
-
-  // 3
-  it('renormalises when several non-academic dimensions are missing', () => {
-    // Present weights: .25+.20 = .45; sum 1+1 = 2 → ≈4.4444.
-    const result = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: dims(4, null, 5, null, null) });
-    expect(result.compositeScore).toBeCloseTo(4.4444, 3);
-    expect(result.missingInputs).toEqual(['personaAlignment', 'financialFeasibility', 'applicationReadiness']);
-  });
-
-  // 4
-  it('reduces to the academic score alone when it is the only dimension present', () => {
-    // 0.25 is a power of two, so renormalisation recovers the value exactly.
-    const result = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: dims(4.2, null, null, null, null) });
-    expect(result.compositeScore).toBe(4.2);
-    expect(result.classification).toBe('strong_match');
-  });
-
-  // 6
-  it('supports decimal dimension scores end to end', () => {
-    const result = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: dims(3.7, 3.7, 3.7, 3.7, 3.7) });
-    expect(result.compositeScore).toBeCloseTo(3.7, 10);
-    expect(result.score).toBe(74);
-    expect(fitScoreToPercent(3.7)).toBe(68);
-  });
-
-  // 12
-  it('never lets filler content on a missing dimension change the weighted score', () => {
-    const clean = dims(4, null, 5, 2, 3);
-    const noisy = dims(4, null, 5, 2, 3);
-    // A missing dimension that carries junk prose/evidence must score identically.
-    noisy.personaAlignment = {
-      ...unassessed(),
-      summary: 'Leftover draft text that must be ignored',
-      strengths: ['phantom strength'],
-      gaps: ['phantom gap'],
-      evidenceRefs: [{ id: 'x', kind: 'achievement', label: 'Phantom' }],
-    };
-    const a = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: clean });
-    const b = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: noisy });
-    expect(b.compositeScore).toBe(a.compositeScore);
-    expect(b.classification).toBe(a.classification);
-  });
-});
-
-describe('evaluateProgrammeFit — classification bands', () => {
-  // 7 — every boundary of every academic band.
-  const boundaries: Array<[number, string]> = [
-    [5, 'safety'],
-    [4.5, 'safety'],
-    [4.49, 'strong_match'],
-    [3.5, 'strong_match'],
-    [3.49, 'match'],
-    [2.5, 'match'],
-    [2.49, 'reach'],
-    [1, 'reach'],
-  ];
-
-  for (const [score, expected] of boundaries) {
-    it(`classifies academic ${score} as ${expected}`, () => {
-      const result = evaluateProgrammeFit({
-        eligibility: ELIGIBLE,
-        dimensions: dims(score, 3, 3, 3, 3),
-      });
-      expect(result.classification).toBe(expected);
-    });
-  }
-
-  it('never lets the other four dimensions move the academic band', () => {
-    // Academic 2.6 sits in `match`; perfect everything else must not lift it.
-    const result = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: dims(2.6, 5, 5, 5, 5) });
-    expect(result.classification).toBe('match');
-    expect(result.compositeScore).toBeGreaterThan(4);
-  });
-
-  // 5 — academic missing means no band at all.
-  it('returns the canonical insufficient_data classification when academic is not assessed', () => {
-    const result = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: dims(null, 4, 4, 4, 4) });
-    expect(result.classification).toBe('insufficient_data');
-    expect(result.compositeScore).toBeNull();
-    expect(result.score).toBeNull();
-    expect(result.status).toBe('partial');
-    expect(result.confidence).toBe('low');
-    expect(result.kind).toBe('missing');
-    expect(result.missingInputs).toEqual(['academicCompetitiveness']);
-    expect(result.limitations.length).toBeGreaterThan(0);
-  });
-
-  // 8 — a failed hard gate overrides very high competitiveness.
-  it('returns currently_ineligible on a hard-gate failure even with perfect scores', () => {
-    const result = evaluateProgrammeFit({
-      eligibility: { ...ELIGIBLE, deadline: 'not_met' },
-      dimensions: dims(5, 5, 5, 5, 5),
+describe('F5 classification — hard gates come first', () => {
+  it('returns currently_ineligible when any single gate fails, whatever the scores', () => {
+    const result = fit('above_range', { academicCompetitiveness: 5 }, {
+      ...ALL_MET,
+      languageRequirement: 'not_met',
     });
     expect(result.classification).toBe('currently_ineligible');
-    expect(result.compositeScore).toBeNull();
-    expect(result.score).toBeNull();
-    expect(result.kind).toBe('observation');
+    expect(result.failedGates).toEqual(['languageRequirement']);
   });
 
-  // 9 — unknown gates are honest unknowns, not failures.
-  it('classifies normally when hard gates are unknown rather than failed', () => {
-    const result = evaluateProgrammeFit({
-      eligibility: {
-        requiredSubjects: 'unknown',
-        minimumQualification: 'unknown',
-        languageRequirement: 'unknown',
-        citizenshipRequirement: 'unknown',
-        deadline: 'unknown',
-      },
-      dimensions: dims(3.6, 3, 3, 3, 3),
+  it('reports every failed gate, not just the first', () => {
+    const result = fit('lower_range', {}, {
+      ...ALL_MET,
+      requiredSubjects: 'not_met',
+      deadline: 'not_met',
     });
-    expect(result.classification).toBe('strong_match');
+    expect(result.failedGates).toEqual(['requiredSubjects', 'deadline']);
   });
 
-  // 10 — nothing at all.
-  it('reports insufficient_data with every input listed when no dimension is assessed', () => {
-    const result = evaluateProgrammeFit({ eligibility: ELIGIBLE, dimensions: dims(null, null, null, null, null) });
-    expect(result.classification).toBe('insufficient_data');
-    expect(result.compositeScore).toBeNull();
-    expect(result.status).toBe('partial');
-    expect(result.confidence).toBe('low');
-    expect(result.missingInputs).toEqual([
-      'academicCompetitiveness',
-      'personaAlignment',
-      'financialFeasibility',
-      'careerDirection',
-      'applicationReadiness',
-    ]);
+  it('treats unknown as not-checked rather than as a failure', () => {
+    const result = fit('lower_range', {}, ALL_UNKNOWN);
+    expect(result.classification).toBe('match');
+    expect(result.failedGates).toEqual([]);
   });
 });
 
-// 11 — out-of-range scores are rejected at the deterministic engine itself.
-describe('evaluateProgrammeFit — invalid input rejection', () => {
-  it('throws when an assessed dimension score exceeds 5', () => {
-    expect(() =>
-      evaluateProgrammeFit({
-        eligibility: ELIGIBLE,
-        dimensions: { ...dims(4, 3, 3, 3, 3), academicCompetitiveness: assessed(5.5) },
-      }),
-    ).toThrow(/academicCompetitiveness/);
+describe('F5 classification — academic band decides the label', () => {
+  it.each([
+    ['above_range', 'safety'],
+    ['upper_range', 'strong_match'],
+    ['lower_range', 'match'],
+    ['below_range', 'reach'],
+  ] as const)('%s maps to %s', (band, expected) => {
+    expect(fit(band).classification).toBe(expected);
   });
 
-  it('throws when an assessed dimension score is below 1', () => {
-    expect(() =>
-      evaluateProgrammeFit({
-        eligibility: ELIGIBLE,
-        dimensions: { ...dims(4, 3, 3, 3, 3), personaAlignment: assessed(0.4) },
-      }),
-    ).toThrow(/personaAlignment/);
+  it('is insufficient_data when the programme publishes no usable range', () => {
+    const result = fit('unknown');
+    expect(result.classification).toBe('insufficient_data');
+    expect(result.limitations.join(' ')).toContain('no usable admitted-grade range');
   });
 
-  it('throws for non-finite scores regardless of which branch would run', () => {
-    expect(() =>
-      evaluateProgrammeFit({
-        eligibility: { ...ELIGIBLE, deadline: 'not_met' },
-        dimensions: { ...dims(4, 3, 3, 3, 3), careerDirection: assessed(Number.NaN) },
-      }),
-    ).toThrow(/careerDirection/);
+  it('is insufficient_data when academic standing itself could not be assessed', () => {
+    expect(fit('upper_range', { academicCompetitiveness: null }).classification).toBe(
+      'insufficient_data',
+    );
   });
 
-  it('still rejects invalid data even when the hard gate fails first', () => {
-    expect(() =>
-      evaluateProgrammeFit({
-        eligibility: { ...ELIGIBLE, requiredSubjects: 'not_met' },
-        dimensions: { ...dims(4, 3, 3, 3, 3), financialFeasibility: assessed(7) },
-      }),
-    ).toThrow(/financialFeasibility/);
+  it('does NOT let a strong non-academic dimension lift the band', () => {
+    const strongValues = fit('below_range', {
+      academicCompetitiveness: 2,
+      personaAlignment: 5,
+      careerDirection: 5,
+      financialFeasibility: 5,
+      applicationReadiness: 5,
+    });
+    expect(strongValues.classification).toBe('reach');
+  });
+
+  it('does NOT let a weak non-academic dimension lower the band', () => {
+    const weakValues = fit('above_range', {
+      academicCompetitiveness: 5,
+      personaAlignment: 1,
+      careerDirection: 1,
+      financialFeasibility: 1,
+      applicationReadiness: 1,
+    });
+    expect(weakValues.classification).toBe('safety');
+  });
+});
+
+describe('F5 scoring', () => {
+  it('applies the documented weights', () => {
+    const result = fit('lower_range', {
+      academicCompetitiveness: 5,
+      personaAlignment: 4,
+      financialFeasibility: 3,
+      careerDirection: 2,
+      applicationReadiness: 1,
+    });
+    // 0.25*5 + 0.25*4 + 0.15*3 + 0.20*2 + 0.15*1 = 3.25
+    expect(result.score).toBeCloseTo(3.25, 10);
+    expect(result.matchPercent).toBe(56);
+  });
+
+  it('renormalizes around a missing dimension instead of scoring it zero', () => {
+    const withMoney = fit('lower_range', { financialFeasibility: 1 });
+    const withoutMoney = fit('lower_range', { financialFeasibility: null });
+    // Everything else is 3. Dropping the dimension must land on 3, not drag
+    // the average down the way a zero would.
+    expect(withoutMoney.score).toBeCloseTo(3, 10);
+    expect(withMoney.score).toBeLessThan(withoutMoney.score as number);
+  });
+
+  it('discloses the renormalization rather than doing it silently', () => {
+    const result = fit('lower_range', { financialFeasibility: null });
+    expect(result.missingInputs).toEqual(['financialFeasibility']);
+    expect(result.limitations.join(' ')).toContain('financialFeasibility');
+    expect(result.limitations.join(' ')).toContain('not a penalty');
+  });
+
+  it('returns a null score, not a zero, when nothing at all could be assessed', () => {
+    const result = fit('unknown', {
+      academicCompetitiveness: null,
+      personaAlignment: null,
+      financialFeasibility: null,
+      careerDirection: null,
+      applicationReadiness: null,
+    });
+    expect(result.score).toBeNull();
+    expect(result.matchPercent).toBeNull();
+    expect(result.kind).toBe('missing');
+  });
+
+  it('derives confidence from how much could actually be assessed', () => {
+    expect(fit('lower_range').confidencePercent).toBe(100);
+    expect(fit('lower_range').confidence).toBe('high');
+
+    const thin = fit('lower_range', {
+      personaAlignment: null,
+      financialFeasibility: null,
+      careerDirection: null,
+    });
+    expect(thin.confidencePercent).toBe(40);
+    expect(thin.confidence).toBe('medium');
+  });
+
+  it('exposes readiness separately from the overall match score', () => {
+    const result = fit('lower_range', { applicationReadiness: 5 });
+    expect(result.readinessPercent).toBe(100);
+    expect(result.matchPercent).not.toBe(100);
   });
 });
 
 describe('buildProgrammeFitPlaceholder', () => {
-  it('assesses nothing and classifies insufficient_data until F5 runs for real', () => {
+  it('is not_assessed everywhere and never emits a zero score', () => {
     const placeholder = buildProgrammeFitPlaceholder();
-    expect(placeholder.status).toBe('not_implemented');
     expect(placeholder.classification).toBe('insufficient_data');
-    expect(placeholder.compositeScore).toBeNull();
-    expect(Object.values(placeholder.dimensions).every((d) => d.status === 'not_available' && d.score === null)).toBe(true);
+    expect(placeholder.matchPercent).toBeNull();
+    expect(placeholder.readinessPercent).toBeNull();
+    expect(placeholder.confidencePercent).toBe(0);
+    for (const key of F5_DIMENSION_KEYS) {
+      expect(placeholder.dimensions[key].status).toBe('not_available');
+      expect(placeholder.dimensions[key].score).toBeNull();
+    }
+  });
+
+  it('does not claim the applicant fails any gate', () => {
+    expect(buildProgrammeFitPlaceholder().failedGates).toEqual([]);
   });
 });

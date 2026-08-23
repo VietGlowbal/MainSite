@@ -1711,3 +1711,72 @@ user's entitlement.
    change required. Alternatively re-crop the framing so less of the width is
    thrown away, but `home-contact.tsx` documents the 576×533 crop as
    design-intended, so ask before changing it.
+
+## 5v. Fixed 2026-08-20 — do not re-introduce
+
+**The canonical Matching Report route rendered the wrong component.**
+`/ai-strategy/[applicationId]/matching-report` rendered `ProgrammeFitReport`
+(`features/ai-strategy-dashboard/ui`), a six-tab view of catalogue facts —
+university blurb, programme overview, requirements, costs — with no F5
+assessment in it at all. Meanwhile `MatchingReportView`
+(`features/apply/ui/matching-report-view.tsx`), the component actually built on
+the F5 `ProgrammeFit` contract with the five scored dimensions and the
+eligibility gates, was exported from the feature's `ui/index.ts` and rendered by
+**nothing**. The older `/ai-strategy/matching/[applicationId]` route that
+presumably once used it had been reduced to a redirect to the canonical route.
+
+So the report that answered "how well do I match this course" was unreachable,
+and the one on the canonical URL answered "what does this course cost".
+
+Neither typecheck nor lint catches this: an exported-but-unused React component
+is legitimate, and both routes rendered something plausible. It was only visible
+by asking who renders `MatchingReportView` and getting no answer.
+
+**Fixed** by pointing the route at `getMatchingReportPageData` +
+`MatchingReportView`. `ProgrammeFitReport` is deliberately kept — the older
+`/strategy/analysis/*` surfaces still reach it, and removing it is a separate
+cleanup.
+
+**Check before adding a report component**: grep for who renders it. This
+codebase has more than one pair of components covering the same product concept
+(see `docs/ai-strategy-route-audit.md` on the two CV systems), so "it exists and
+compiles" is not evidence that students can see it.
+
+## 5w. Fixed 2026-08-20 — do not re-introduce
+
+**Bare-key shortcuts on `window` broke browser find-in-page.** The Personal
+Canvas workspace binds `1`-`6`, `Escape` and `F` on `window` and did not check
+modifier keys. Consequences on the Personal Report:
+
+- **Cmd/Ctrl+F toggled focus mode and called `preventDefault()`**, so
+  find-in-page was disabled across the entire report. On a document that long
+  this is a serious loss and would read to a student as the page being broken.
+- **Cmd/Ctrl+1..6 opened a section** behind whichever browser tab the user was
+  switching to.
+- Alt chords collided the same way.
+- The guard covered `input`, `textarea` and `select` but not `contentEditable`
+  hosts.
+
+**Fixed** by returning early on `metaKey`, `ctrlKey` or `altKey`, and adding
+`isContentEditable` to the typing guard.
+
+**Two related defects fixed in the same pass:**
+
+1. **The detail panel moved no focus.** On mobile it is a full-screen overlay
+   (`fixed inset-x-3 bottom-3 top-20 z-[80]`), so a keyboard or screen-reader
+   user opened it and remained on the button underneath, with nothing announced.
+   Focus now moves in on open and returns to the opening control on close.
+   The restore is guarded to fire only when focus would otherwise be lost —
+   already on `body`, or still inside the panel, which stays mounted while
+   `AnimatePresence` runs its exit animation. **The first version of the fix
+   checked only for `body` and therefore never restored at all**, because the
+   exiting panel still held focus. Both branches are now pinned by tests.
+   The panel takes `tabIndex={-1}` and deliberately NOT `aria-modal`: on desktop
+   it is a sticky side panel beside live content, and claiming modality would
+   tell a screen reader the rest of the page is inert.
+2. **The keydown effect had no dependency array**, so the listener was torn down
+   and rebound after every render of a large report.
+
+**Rule for any new global key handler**: bare keys are only yours when no
+modifier is held, and never while the user is typing — `input`, `textarea`,
+`select` and `contentEditable`.

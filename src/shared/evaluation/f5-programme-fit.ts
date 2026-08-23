@@ -1,23 +1,44 @@
-import type { Confidence, EvidenceRef, Insight } from './types';
+import { confidenceFromCoverage, type Confidence, type EvidenceRef, type Insight } from './types';
+import { weightedScore, type WeightedMetric } from './weighted-score';
 
 /**
- * F5 — Programme Fit Framework.
+ * F5 — Programme Fit & Reach/Match/Safety Framework.
  *
- * ─── INTERFACES ONLY IN THIS PHASE ───────────────────────────────────────────
+ * ─── WHAT CHANGED ────────────────────────────────────────────────────────────
  *
- * F5 will be completed in the Matching Report phase. This file exists so the
- * `ProfileEvaluation` shape (see engine.ts) has a stable slot for it now and
- * nothing downstream has to be restructured when F5 is implemented — but no
- * scoring logic lives here yet. `buildProgrammeFitPlaceholder` is the only
- * function, and it always returns `not_available`.
+ * This file used to be interfaces only: `buildProgrammeFitPlaceholder` returned
+ * `not_available` for every dimension so that `ProfileEvaluation` had a stable
+ * slot while the Matching Report phase was still unscheduled. That phase is now
+ * in progress, so the scoring, the renormalization and the classification rule
+ * are implemented here. The placeholder is KEPT and still exported, because
+ * `runProfileEvaluation` legitimately runs without a programme attached — a
+ * Personal Report is user-level and has no target course to be assessed
+ * against. Absent programme input is "not assessed", never a zero.
  *
- * The five dimensions named here match the existing `programmeFitSchema` in
- * `src/features/apply/domain/ai-reports.ts` (academic competitiveness,
- * persona-programme alignment, financial feasibility, career direction
- * alignment, application readiness) — that shape is reused rather than
- * redefined, since it already satisfies core principle 6 (a missing
- * dimension is `not_available` with a null score, never a fabricated value)
- * and core principle 7 (no admissions probability, ever).
+ * ─── THE TWO HALVES ARE DELIBERATELY NOT THE SAME MECHANISM ──────────────────
+ *
+ * A student asks two different questions about a course, and conflating them
+ * is the single most damaging thing this framework could do:
+ *
+ *   1. "Am I ALLOWED to apply?"  — hard eligibility. Binary, per requirement.
+ *   2. "How do I COMPARE?"       — graded fit across five dimensions.
+ *
+ * So eligibility is a set of gates evaluated before any arithmetic, and it can
+ * only ever produce `currently_ineligible`. It never nudges a score. And the
+ * Reach/Match/Safety band is decided by the ACADEMIC band alone once the gates
+ * pass — persona alignment, money and career direction are reported beside the
+ * label but must never move it. A student who is academically below a
+ * programme's range does not become a "Match" because their values align well;
+ * telling them otherwise is how someone wastes an application fee.
+ *
+ * ─── NO ADMISSION PROBABILITY, AND WHY THE PERCENTAGE IS STILL FINE ──────────
+ *
+ * Core principle 7 forbids emitting an admissions probability, and that has not
+ * been relaxed. `fitScoreToPercent` converts a 1-5 rubric score into a
+ * percentage of ALIGNMENT — how well profile and programme correspond on the
+ * measured dimensions. That is not a chance of being admitted, and no caller may
+ * label or describe it as likelihood, odds or chance. The distinction lives in
+ * the copy as much as the code; see docs/strategy-reports-spec.md.
  */
 
 export const F5_DIMENSION_KEYS = [
@@ -30,11 +51,29 @@ export const F5_DIMENSION_KEYS = [
 
 export type F5DimensionKey = (typeof F5_DIMENSION_KEYS)[number];
 
+/**
+ * Weights from the owner's framework document, section 4. They sum to 1.
+ *
+ * Application readiness is weighted LOWEST of the five despite being the most
+ * consequential input, which looks wrong until you notice it is double-counted
+ * on purpose: it is really a hard gate (handled by `eligibility` above the
+ * scoring entirely), and the scored dimension only captures the softer part —
+ * portfolio, tests, how prepared the application itself is. Giving it a heavy
+ * scored weight as well would punish the same fact twice.
+ */
+export const F5_WEIGHTS: Record<F5DimensionKey, number> = {
+  academicCompetitiveness: 0.25,
+  personaAlignment: 0.25,
+  financialFeasibility: 0.15,
+  careerDirection: 0.2,
+  applicationReadiness: 0.15,
+};
+
 export type F5DimensionStatus = 'assessed' | 'limited' | 'not_available';
 
 export type F5Dimension = {
   status: F5DimensionStatus;
-  /** 1-5, null when `status` is `not_available`. */
+  /** 1-5, null when `status` is `not_available`. Fractional values are allowed — see `fitScoreToPercent`. */
   score: number | null;
   summary: string;
   strengths: string[];
@@ -51,6 +90,16 @@ export type ProgrammeFitEligibility = {
   deadline: 'met' | 'not_met' | 'unknown';
 };
 
+export const ELIGIBILITY_KEYS = [
+  'requiredSubjects',
+  'minimumQualification',
+  'languageRequirement',
+  'citizenshipRequirement',
+  'deadline',
+] as const;
+
+export type EligibilityKey = (typeof ELIGIBILITY_KEYS)[number];
+
 export type ProgrammeFitClassification =
   | 'safety'
   | 'strong_match'
@@ -59,140 +108,145 @@ export type ProgrammeFitClassification =
   | 'currently_ineligible'
   | 'insufficient_data';
 
-export const F5_DIMENSION_WEIGHTS: Record<F5DimensionKey, number> = {
-  academicCompetitiveness: 0.25,
-  personaAlignment: 0.25,
-  careerDirection: 0.20,
-  financialFeasibility: 0.15,
-  applicationReadiness: 0.15,
-};
-
-export function fitScoreToPercent(score: number): number {
-  return Math.round(((Math.min(5, Math.max(1, score)) - 1) / 4) * 100);
-}
+/**
+ * Where the applicant's academic standing sits against the programme's own
+ * typical admitted range. `unknown` is a first-class outcome: most catalogue
+ * rows carry no usable admitted range, and guessing one is exactly the failure
+ * `docs/known-issues.md §1a` exists to prevent.
+ */
+export type AcademicBand = 'above_range' | 'upper_range' | 'lower_range' | 'below_range' | 'unknown';
 
 export type ProgrammeFitResult = Insight & {
   classification: ProgrammeFitClassification;
   eligibility: ProgrammeFitEligibility;
   dimensions: Record<F5DimensionKey, F5Dimension>;
-  compositeScore: number | null;
+  academicBand: AcademicBand;
+  /** 0-100 alignment, or null when nothing could be scored. NOT a probability of admission. */
+  matchPercent: number | null;
+  /** 0-100 from the application-readiness dimension alone, or null when unassessed. */
+  readinessPercent: number | null;
+  /** 0-100, the share of the five dimensions that could actually be assessed. */
+  confidencePercent: number;
+  /** Which eligibility gates the applicant currently fails. Empty unless `currently_ineligible`. */
+  failedGates: EligibilityKey[];
 };
 
 /**
- * Calculates F5 Programme Fit classification and composite score from dimension assessments.
+ * Rubric score (1-5) to a 0-100 percentage.
+ *
+ * `(score - 1) / 4` rather than `score / 5`, so the full range is usable and a
+ * genuine 1-out-of-5 reads as 0% rather than a misleadingly encouraging 20%. A
+ * dimension that could not be assessed is `null` and renders as "not assessed",
+ * never as 0% — the two mean opposite things to a student.
  */
-export function evaluateProgrammeFit(args: {
+export function fitScoreToPercent(score: number | null): number | null {
+  if (score === null) return null;
+  const clamped = Math.min(5, Math.max(1, score));
+  return Math.round(((clamped - 1) / 4) * 100);
+}
+
+export type ProgrammeFitInput = {
   eligibility: ProgrammeFitEligibility;
+  academicBand: AcademicBand;
   dimensions: Record<F5DimensionKey, F5Dimension>;
-  confidence?: Confidence;
-}): ProgrammeFitResult {
-  const { eligibility, dimensions, confidence = 'medium' } = args;
+};
 
-  // Reject invalid scores loudly before any branch runs — a fabricated or
-  // corrupt score must never silently flow into a classification, even on the
-  // hard-gate path. The AI-output Zod schema enforces the same range upstream;
-  // this guard keeps the pure engine safe for callers that bypass it.
-  for (const [key, dim] of Object.entries(dimensions)) {
-    if (!dim || dim.score === null) continue;
-    if (!Number.isFinite(dim.score) || dim.score < 1 || dim.score > 5) {
-      throw new TypeError(`F5 dimension "${key}" score must be a finite number between 1 and 5`);
-    }
+/**
+ * Hard gates, evaluated before any arithmetic. Only an explicit `not_met`
+ * fails: `unknown` means we could not check, and treating "not checked" as
+ * "not met" would tell a student they are ineligible for a course they can
+ * apply to — the mirror image of the tick-mark problem the Programme Fit page
+ * has always refused to draw.
+ */
+function failedEligibilityGates(eligibility: ProgrammeFitEligibility): EligibilityKey[] {
+  return ELIGIBILITY_KEYS.filter((key) => eligibility[key] === 'not_met');
+}
+
+function classify(
+  academicBand: AcademicBand,
+  academicAssessed: boolean,
+  failedGates: readonly EligibilityKey[],
+): ProgrammeFitClassification {
+  // Overrides everything, per the framework document's classification rule.
+  if (failedGates.length > 0) return 'currently_ineligible';
+  if (!academicAssessed || academicBand === 'unknown') return 'insufficient_data';
+
+  switch (academicBand) {
+    case 'above_range':
+      return 'safety';
+    case 'upper_range':
+      return 'strong_match';
+    case 'lower_range':
+      return 'match';
+    case 'below_range':
+      return 'reach';
   }
+}
 
-  // Every unassessed key, computed once — early branches must report the
-  // complete gap list, not just the single dimension that triggered them.
-  const missingInputs: F5DimensionKey[] = F5_DIMENSION_KEYS.filter((key) => {
-    const dim = dimensions[key];
-    return !dim || dim.status === 'not_available' || dim.score === null;
-  });
+/** Human-readable disclosure of which dimensions were dropped and reweighted. */
+function renormalizationLimitation(missingKeys: readonly string[]): string {
+  const names = missingKeys.join(', ');
+  return `Not enough information to assess ${names}. The remaining dimensions were reweighted so the match score still sums correctly; it is not a penalty for the missing ones.`;
+}
 
-  const hardFilters = Object.values(eligibility);
-  if (hardFilters.includes('not_met')) {
-    return {
-      id: 'f5:evaluated',
-      frameworkId: 'F5',
-      status: 'complete',
-      score: null,
-      compositeScore: null,
-      confidence,
-      kind: 'observation',
-      evidenceRefs: Object.values(dimensions).flatMap((d) => d.evidenceRefs),
-      limitations: [],
-      missingInputs: [],
-      classification: 'currently_ineligible',
-      eligibility,
-      dimensions,
-    };
-  }
+export function assessProgrammeFit(input: ProgrammeFitInput): ProgrammeFitResult {
+  const { eligibility, academicBand, dimensions } = input;
 
+  const metrics: WeightedMetric[] = F5_DIMENSION_KEYS.map((key) => ({
+    key,
+    weight: F5_WEIGHTS[key],
+    value: dimensions[key].status === 'not_available' ? null : dimensions[key].score,
+  }));
+
+  const weighted = weightedScore(metrics);
+  const failedGates = failedEligibilityGates(eligibility);
   const academic = dimensions.academicCompetitiveness;
-  if (!academic || academic.status === 'not_available' || academic.score === null) {
-    return {
-      id: 'f5:evaluated',
-      frameworkId: 'F5',
-      status: 'partial',
-      score: null,
-      compositeScore: null,
-      confidence: 'low',
-      kind: 'missing',
-      evidenceRefs: Object.values(dimensions).flatMap((d) => d.evidenceRefs),
-      limitations: ['Academic competitiveness data is required to classify programme fit.'],
-      missingInputs,
-      classification: 'insufficient_data',
-      eligibility,
-      dimensions,
-    };
+  const academicAssessed = academic.status !== 'not_available' && academic.score !== null;
+
+  const classification = classify(academicBand, academicAssessed, failedGates);
+
+  const assessedCount = F5_DIMENSION_KEYS.filter(
+    (key) => dimensions[key].status !== 'not_available',
+  ).length;
+
+  const limitations: string[] = [];
+  if (weighted.renormalized) limitations.push(renormalizationLimitation(weighted.missingKeys));
+  if (academicBand === 'unknown' && failedGates.length === 0) {
+    limitations.push(
+      'This programme publishes no usable admitted-grade range, so we cannot place you as Reach, Match or Safety. The dimensions below are still scored.',
+    );
+  }
+  for (const key of F5_DIMENSION_KEYS) {
+    const limitation = dimensions[key].limitation;
+    if (limitation) limitations.push(limitation);
   }
 
-  let totalAssessedWeight = 0;
-  let weightedScoreSum = 0;
-
-  for (const [key, weight] of Object.entries(F5_DIMENSION_WEIGHTS) as Array<[F5DimensionKey, number]>) {
-    const dim = dimensions[key];
-    // Missing keys are already listed in the pre-computed `missingInputs`.
-    if (dim && dim.status !== 'not_available' && dim.score !== null) {
-      totalAssessedWeight += weight;
-      weightedScoreSum += dim.score * weight;
-    }
-  }
-
-  const compositeScore = totalAssessedWeight > 0 ? weightedScoreSum / totalAssessedWeight : null;
-
-  let classification: ProgrammeFitClassification;
-  if (academic.score >= 4.5) {
-    classification = 'safety';
-  } else if (academic.score >= 3.5) {
-    classification = 'strong_match';
-  } else if (academic.score >= 2.5) {
-    classification = 'match';
-  } else {
-    classification = 'reach';
-  }
+  const evidenceRefs = F5_DIMENSION_KEYS.flatMap((key) => dimensions[key].evidenceRefs);
 
   return {
-    id: 'f5:evaluated',
+    id: 'f5:programme-fit',
     frameworkId: 'F5',
-    status: missingInputs.length > 0 ? 'partial' : 'complete',
-    score: compositeScore !== null ? Math.round(compositeScore * 20) : null, // 0-100 scale for base Insight
-    compositeScore,
-    confidence,
-    kind: 'observation',
-    evidenceRefs: Object.values(dimensions).flatMap((d) => d.evidenceRefs),
-    limitations: [],
-    missingInputs,
+    status: classification === 'insufficient_data' ? 'insufficient_data' : 'assessed',
+    score: weighted.score,
+    confidence: confidenceFromCoverage(assessedCount, F5_DIMENSION_KEYS.length),
+    kind: weighted.score === null ? 'missing' : 'inference',
+    evidenceRefs,
+    limitations,
+    missingInputs: weighted.missingKeys,
     classification,
     eligibility,
     dimensions,
+    academicBand,
+    matchPercent: fitScoreToPercent(weighted.score),
+    readinessPercent: fitScoreToPercent(
+      dimensions.applicationReadiness.status === 'not_available'
+        ? null
+        : dimensions.applicationReadiness.score,
+    ),
+    confidencePercent: Math.round((assessedCount / F5_DIMENSION_KEYS.length) * 100),
+    failedGates,
   };
 }
-
-/**
- * The placeholder every consumer of `ProfileEvaluation` gets until the
- * Matching Report phase implements F5 for real. Every dimension is
- * `not_available` — never a guessed value — and the classification is
- * `insufficient_data`, which is itself a real, honest classification per the
- * existing schema (not an error state).
- */
 export function buildProgrammeFitPlaceholder(): ProgrammeFitResult {
   const emptyDimension: F5Dimension = {
     status: 'not_available',
@@ -201,7 +255,7 @@ export function buildProgrammeFitPlaceholder(): ProgrammeFitResult {
     strengths: [],
     gaps: [],
     evidenceRefs: [],
-    limitation: 'F5 is not yet implemented — see the Matching Report phase.',
+    limitation: 'No target programme is attached to this evaluation.',
   };
 
   const dimensions = {} as Record<F5DimensionKey, F5Dimension>;
@@ -210,13 +264,12 @@ export function buildProgrammeFitPlaceholder(): ProgrammeFitResult {
   return {
     id: 'f5:placeholder',
     frameworkId: 'F5',
-    status: 'not_implemented',
+    status: 'not_assessed',
     score: null,
-    compositeScore: null,
     confidence: 'low' as Confidence,
     kind: 'missing',
     evidenceRefs: [],
-    limitations: ['F5 Programme Fit is not yet implemented in this engine.'],
+    limitations: ['Programme Fit is assessed per application, and none is attached here.'],
     missingInputs: [...F5_DIMENSION_KEYS],
     classification: 'insufficient_data',
     eligibility: {
@@ -227,5 +280,10 @@ export function buildProgrammeFitPlaceholder(): ProgrammeFitResult {
       deadline: 'unknown',
     },
     dimensions,
+    academicBand: 'unknown',
+    matchPercent: null,
+    readinessPercent: null,
+    confidencePercent: 0,
+    failedGates: [],
   };
 }

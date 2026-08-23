@@ -25,6 +25,7 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'Confirm user choices': 'Xác nhận lựa chọn của bạn',
   'Structure available direction': 'Cụ thể hóa hướng đi hiện có',
 
+  'Enter a four-digit year to save this deadline.': 'Nhập năm gồm 4 chữ số để lưu hạn này.',
   'Expected a valid YYYY-MM-DD date': 'Cần một ngày hợp lệ theo định dạng YYYY-MM-DD',
   'Provide a status, deadline, or content value': 'Hãy cung cấp trạng thái, hạn hoàn thành hoặc nội dung',
   '← Back to planner': '← Quay lại kế hoạch',

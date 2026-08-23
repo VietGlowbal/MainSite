@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateProgrammeFit, type F5Dimension as EngineDimension } from '@/shared/evaluation/f5-programme-fit';
-import { canonicalize, enforceFitClassification, type ProgrammeFit } from './ai-reports';
+import { assessProgrammeFit, type AcademicBand } from '@/shared/evaluation/f5-programme-fit';
+import {
+  academicBandClassification,
+  canonicalize,
+  enforceFitClassification,
+  type ProgrammeFit,
+} from './ai-reports';
 
 describe('AI report contracts', () => {
   it('canonicalizes object keys without changing array order', () => {
@@ -71,84 +76,62 @@ describe('AI report contracts', () => {
       },
     };
 
+    // 4 is strong_match since that band was introduced — comfortably inside the
+    // programme's range without being clearly above it.
     expect(enforceFitClassification(fit).classification).toBe('strong_match');
-    const matchFit = {
-      ...fit,
-      dimensions: {
-        ...fit.dimensions,
-        academicCompetitiveness: { ...dimension, score: 3 },
-        personaAlignment: { ...dimension, score: 3 },
-        financialFeasibility: { ...dimension, score: 3 },
-        careerDirection: { ...dimension, score: 3 },
-        applicationReadiness: { ...dimension, score: 3 },
-      },
-    };
-    expect(enforceFitClassification(matchFit).classification).toBe('match');
   });
 
-  // Drift detector: `enforceFitClassification` (Zod-fit world) and
-  // `evaluateProgrammeFit` (shared-engine world) are two implementations of the
-  // SAME band rule. If they ever disagree, one of them changed without the
-  // other — this test is the tripwire, per the Feature 2 plan's "one rule"
-  // invariant.
-  describe('classification drift between enforceFitClassification and the shared engine', () => {
-    const zodDimension = (score: number | null) => ({
-      status: score === null ? ('not_available' as const) : ('assessed' as const),
-      score,
-      summary: 'Có dữ liệu.',
-      strengths: [],
-      gaps: [],
-      evidence: [],
-    });
+  it.each([
+    [5, 'safety'],
+    [4.5, 'safety'],
+    [4, 'strong_match'],
+    [3.5, 'strong_match'],
+    [3, 'match'],
+    [2.5, 'match'],
+    [2, 'reach'],
+    [1, 'reach'],
+  ] as const)('academic score %s classifies as %s', (score, expected) => {
+    expect(academicBandClassification(score)).toBe(expected);
+  });
 
-    const engineDimension = (score: number | null): EngineDimension => ({
-      status: score === null ? 'not_available' : 'assessed',
-      score,
-      summary: 'Engine fixture',
+  it('agrees with the shared engine, which owns the same rule for deterministic input', () => {
+    // Two implementations exist because the model-backed path and the
+    // deterministic path take different inputs. They must never disagree about
+    // the same band, or a student sees one label on the report and another in
+    // the Planner.
+    const flat = {
+      status: 'assessed' as const,
+      score: 3,
+      summary: '',
       strengths: [],
       gaps: [],
       evidenceRefs: [],
-    });
-
-    const eligibilityCases = [
-      { requiredSubjects: 'met', minimumQualification: 'met', languageRequirement: 'met', citizenshipRequirement: 'met', deadline: 'met' },
-      { requiredSubjects: 'not_met', minimumQualification: 'met', languageRequirement: 'unknown', citizenshipRequirement: 'unknown', deadline: 'met' },
-      { requiredSubjects: 'met', minimumQualification: 'unknown', languageRequirement: 'not_met', citizenshipRequirement: 'unknown', deadline: 'unknown' },
-    ] as const;
-
-    const academicScores = [5, 4.6, 4.5, 4.49, 3.9, 3.5, 3.49, 2.8, 2.5, 2.49, 1];
-
-    for (const eligibility of eligibilityCases) {
-      for (const score of academicScores) {
-        it(`agrees on eligibility=${eligibility.requiredSubjects}/${eligibility.languageRequirement} academic=${score}`, () => {
-          const fit = {
-            classification: 'safety',
-            confidence: 70,
-            limitations: [],
-            eligibility,
-            dimensions: {
-              academicCompetitiveness: zodDimension(score),
-              personaAlignment: zodDimension(3),
-              financialFeasibility: zodDimension(null),
-              careerDirection: zodDimension(4),
-              applicationReadiness: zodDimension(null),
-            },
-          } as unknown as ProgrammeFit;
-
-          expect(enforceFitClassification(fit).classification).toBe(
-            evaluateProgrammeFit({
-              eligibility,
-              dimensions: {
-                academicCompetitiveness: engineDimension(score),
-                personaAlignment: engineDimension(3),
-                financialFeasibility: engineDimension(null),
-                careerDirection: engineDimension(4),
-                applicationReadiness: engineDimension(null),
-              },
-            }).classification,
-          );
-        });
-      }
+    };
+    const bands: Array<[number, AcademicBand]> = [
+      [5, 'above_range'],
+      [4, 'upper_range'],
+      [3, 'lower_range'],
+      [1, 'below_range'],
+    ];
+    for (const [score, band] of bands) {
+      const engine = assessProgrammeFit({
+        academicBand: band,
+        eligibility: {
+          requiredSubjects: 'met',
+          minimumQualification: 'met',
+          languageRequirement: 'met',
+          citizenshipRequirement: 'met',
+          deadline: 'met',
+        },
+        dimensions: {
+          academicCompetitiveness: { ...flat, score },
+          personaAlignment: flat,
+          financialFeasibility: flat,
+          careerDirection: flat,
+          applicationReadiness: flat,
+        },
+      });
+      expect(engine.classification).toBe(academicBandClassification(score));
     }
   });
 });

@@ -5,12 +5,15 @@
  * here must be unit-testable without a database or a DOM.
  */
 export {
+  DEADLINE_MAX,
+  DEADLINE_MIN,
   PROGRESS_STATUS,
   PROGRESS_STATUS_LABEL,
   RECOMMENDATION_PRIORITIES,
   completionPercent,
   contentValueSchema,
   isCompleteContentValue,
+  isPlannerDeadline,
   parseContentBlock,
   parseContentBlockValue,
   groupByCategory,
@@ -252,3 +255,26 @@ export type {
   PlannerStep,
 } from './planner-read-model';
 export type { PlannerMicroStepExecutionPatch, PlannerMicroStepExecutionState } from './planner-micro-step-execution';
+
+export {
+  DIRECTION_DIMENSIONS,
+  DIRECTION_DIMENSION_LABELS,
+  PRIORITY_LEVEL_LABELS,
+  biggestChallenge,
+  chosenDiffersFromTopScore,
+  chosenOption,
+  developmentStrategies,
+  keyStrength,
+  rankedDirections,
+  strategicOverview,
+  strategicPriorities,
+} from './strategy-report-presentation';
+export type {
+  DevelopmentStrategies,
+  DimensionReading,
+  DirectionDimension,
+  PriorityLevel,
+  RankedDirection,
+  StrategicOverview,
+  StrategicPriorityRow,
+} from './strategy-report-presentation';

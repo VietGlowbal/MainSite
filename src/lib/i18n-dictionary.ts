@@ -6153,4 +6153,11 @@ export const translations: Record<string, string> = {
   '{count} of {total} answered': '{count}/{total} đã trả lời',
   Gap: 'Khoảng trống',
   Critical: 'Nghiêm trọng',
+
+  // Workspace status labels (features/application-strategy/domain/status.ts),
+  // added in PR #216. These had no Vietnamese entry; the gap only became
+  // visible to the checker once the Final Check route widened the scanned
+  // route graph.
+  "Needs attention": "Cần chú ý",
+  "Ready for audit": "Sẵn sàng rà soát",
 };

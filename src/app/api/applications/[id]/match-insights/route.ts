@@ -401,34 +401,12 @@ export async function POST(
     analysis_status: 'complete',
   };
 
-  let { data: inserted, error: insertError } = await supabase
+  const { data: inserted, error: insertError } = await supabase
     .from('application_match_analyses')
-    .insert(
-      insights.narrative ? { ...analysisRow, match_report_narrative: insights.narrative } : analysisRow,
-    )
+    .insert(analysisRow)
     .select()
     .single();
 
-  // Degraded mode: the narrative migration hasn't run yet — retry without the
-  // narrative so the deterministic report still saves. Never a silent data
-  // loss: the warn log names exactly what was skipped.
-  if (insertError && migrationMissing(insertError) && insights.narrative) {
-    logger.warn('matching_report_generate', {
-      userId,
-      applicationId,
-      stage: 'persisted',
-      outcome: 'migration_missing',
-      metadata: { detail: 'match_report_narrative column unavailable — saved without narrative' },
-      durationMs: getElapsed(),
-    });
-    const retry = await supabase
-      .from('application_match_analyses')
-      .insert(analysisRow)
-      .select()
-      .single();
-    inserted = retry.data;
-    insertError = retry.error;
-  }
   if (insertError) {
     logger.error('matching_report_generate', insertError, {
       userId,
@@ -461,14 +439,7 @@ export async function POST(
     promptVersion: MATCH_PROMPT_VERSION,
     inputHash,
     cached: false,
-    metadata: {
-      // Deterministic F5 re-derivation over the persisted dimensions — proves
-      // the band came from the rule, not the model, on every generation.
-      deterministicClassification: insights.deterministicEvaluation?.classification,
-      classificationAgreesWithEnforced: insights.deterministicEvaluation?.classificationAgreesWithEnforced,
-      unassessedDimensions: insights.deterministicEvaluation?.missingInputs,
-      narrativePersisted: Boolean(insights.narrative),
-    },
+    metadata: {},
   });
 
   // Best-effort: a new Matching Report is one of the two events that should

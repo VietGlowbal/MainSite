@@ -93,7 +93,11 @@ export function aiStrategyApplicationNav(
     // Canonical future destinations. Locked items are intentionally omitted by
     // SubNav until their product phases are implemented.
     { key: 'scholarships', label: 'Scholarships', href: `${app}/scholarships`, locked: true },
-    { key: 'finalCheck', label: 'Final Check', href: `${app}/final-check`, locked: true },
+    // Final Check is implemented and unlocked. The page handles its own
+    // "not enough attached yet" state rather than being gated here, because a
+    // student needs to see WHAT is missing — which is most of the report's
+    // value before any document exists.
+    { key: 'finalCheck', label: 'Final Check', href: `${app}/final-check` },
   ];
 }
 

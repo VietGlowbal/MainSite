@@ -1,13 +1,13 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
 // One implementation of the F5 weights + match-percentage formula, shared with
-// the deterministic evaluation module — the plan's "one helper and one formula
-// everywhere" invariant. features → shared is the allowed FSD direction.
+// the deterministic evaluation module â€” the plan's "one helper and one formula
+// everywhere" invariant. features â†’ shared is the allowed FSD direction.
 import { fitScoreToPercent } from '@/shared/evaluation/f5-programme-fit';
 
 export { fitScoreToPercent };
 
 /**
- * ⚠️ v1 Personal Report (`personal-report-v1-vi`) IS DEPRECATED.
+ * âš ï¸ v1 Personal Report (`personal-report-v1-vi`) IS DEPRECATED.
  *
  * The schemas and hydration logic that used to live here
  * (`personalReportSchema`, `personalReportDraftSchema`, `hydratePersonalReport`,
@@ -15,11 +15,11 @@ export { fitScoreToPercent };
  * report from a model-authored draft. The canonical Personal Report is now
  * `PersonalReportV2` (`src/features/apply/domain/personal-report.ts`), built
  * deterministically on top of the Shared Evaluation Engine's
- * `ProfileEvaluation` (`src/shared/evaluation`) — see
+ * `ProfileEvaluation` (`src/shared/evaluation`) â€” see
  * `docs/ai-evaluation-engine.md`. `/ai-strategy/report` permanently redirects
  * to `/ai-strategy/personal-report` (`next.config.ts`).
  *
- * `CandidateContext`/`loadCandidateContext` are NOT deprecated — the v2
+ * `CandidateContext`/`loadCandidateContext` are NOT deprecated â€” the v2
  * pipeline (`src/lib/ai/personal-report-v2.ts`) still reads the same
  * candidate context shape, it just extracts a `ProfileEvaluationInput` from
  * it instead of prompting a model for a whole report draft. `evidenceRefSchema`'s
@@ -70,7 +70,7 @@ export function canonicalize(value: unknown): unknown {
 
 /**
  * A 0-100 confidence score derived from how much of the candidate context is
- * actually filled in — still used by the Matching Report's `match-insights`
+ * actually filled in â€” still used by the Matching Report's `match-insights`
  * route to cap its own system-fit confidence. NOT part of v1's report
  * hydration anymore; that half of this function's original job
  * (`hydratePersonalReport`) is deleted, but the score itself is a generic
@@ -104,16 +104,16 @@ export function candidateConfidence(context: CandidateContext): {
   const limitations: string[] = [];
   if (activityCount < 3) {
     limitations.push(
-      'Chưa có đủ ba hoạt động độc lập để xác lập một mẫu hình ứng viên đáng tin cậy.',
+      'ChÆ°a cÃ³ Ä‘á»§ ba hoáº¡t Ä‘á»™ng Ä‘á»™c láº­p Ä‘á»ƒ xÃ¡c láº­p má»™t máº«u hÃ¬nh á»©ng viÃªn Ä‘Ã¡ng tin cáº­y.',
     );
     score = Math.min(score, 54);
   }
   if (!corroborated) {
-    limitations.push('Các nhận định hiện chủ yếu dựa trên thông tin tự khai, chưa có bằng chứng đính kèm.');
+    limitations.push('CÃ¡c nháº­n Ä‘á»‹nh hiá»‡n chá»§ yáº¿u dá»±a trÃªn thÃ´ng tin tá»± khai, chÆ°a cÃ³ báº±ng chá»©ng Ä‘Ã­nh kÃ¨m.');
     score = Math.min(score, 74);
   }
   if (profileValues.length < 5) {
-    limitations.push('Hồ sơ học tập và định hướng còn thiếu dữ liệu.');
+    limitations.push('Há»“ sÆ¡ há»c táº­p vÃ  Ä‘á»‹nh hÆ°á»›ng cÃ²n thiáº¿u dá»¯ liá»‡u.');
   }
 
   const normalized = Math.max(0, Math.min(100, Math.round(score)));
@@ -135,6 +135,11 @@ export const fitDimensionKeySchema = z.enum([
 export const fitDimensionSchema = z
   .object({
     status: z.enum(['assessed', 'limited', 'not_available']),
+    /**
+     * 1-5. Fractional values are allowed on purpose: the Matching Report
+     * renders these as percentages, and five integers can only ever produce
+     * multiples of 20. See `fitScoreToPercent` in the shared engine.
+     */
     score: z.number().min(1).max(5).nullable(),
     summary: z.string().min(1).max(800),
     strengths: z.array(z.string().min(1).max(300)).max(5),
@@ -190,8 +195,8 @@ export const programmeFitSchema = z.object({
 
 export type ProgrammeFit = z.infer<typeof programmeFitSchema>;
 
-// `F5_DIMENSION_WEIGHTS` and `fitScoreToPercent` live once, in
-// `@/shared/evaluation/f5-programme-fit` (re-exported at the top of this file).
+// `F5_WEIGHTS` and `fitScoreToPercent` live once, in
+// `@/shared/evaluation/f5-programme-fit`.
 
 export type MatchingAnalysisView = {
   fit: ProgrammeFit;
@@ -200,8 +205,6 @@ export type MatchingAnalysisView = {
   inputHash: string | null;
   strengths: string[];
   weaknesses: string[];
-  /** AI-synthesised narrative sections; null until generated or when validation dropped it. */
-  narrative: MatchingReportNarrative | null;
 };
 
 export type MatchingApplicationSummary = {
@@ -253,6 +256,22 @@ export type MatchingReportPageData = MatchingApplicationSummary & {
   }>;
 };
 
+/**
+ * The Reach/Match/Safety band is decided by hard eligibility and the academic
+ * dimension ALONE. A model may propose a classification; this function
+ * overrules it, so a well-aligned but academically-short applicant can never be
+ * told they are a "Match" because their values fit nicely.
+ *
+ * `strong_match` sits between match and safety: comfortably inside the
+ * programme's range without being clearly above it. Thresholds are evenly
+ * spaced across the 1-5 rubric and preserve the previous integer behaviour
+ * (5 safety, 3 match, 2 and below reach); the one change is that 4 is now
+ * `strong_match` where it used to fall into `match`.
+ *
+ * Mirrors `classify()` in `src/shared/evaluation/f5-programme-fit.ts`, which
+ * does the same job for the deterministic engine. The two must not diverge â€”
+ * see the contract test in ai-reports.test.ts.
+ */
 export function enforceFitClassification(fit: ProgrammeFit): ProgrammeFit {
   const hardFilters = Object.values(fit.eligibility);
   if (hardFilters.includes('not_met')) {
@@ -264,83 +283,17 @@ export function enforceFitClassification(fit: ProgrammeFit): ProgrammeFit {
   ) {
     return { ...fit, classification: 'insufficient_data' };
   }
-
-  const academicScore = fit.dimensions.academicCompetitiveness.score;
-  let classification: ProgrammeFit['classification'];
-  if (academicScore >= 4.5) {
-    classification = 'safety';
-  } else if (academicScore >= 3.5) {
-    classification = 'strong_match';
-  } else if (academicScore >= 2.5) {
-    classification = 'match';
-  } else {
-    classification = 'reach';
-  }
-
-  return { ...fit, classification };
+  return { ...fit, classification: academicBandClassification(fit.dimensions.academicCompetitiveness.score) };
 }
 
-/**
- * AI-synthesised narrative for the six canonical Matching Report sections
- * (`docs/strategy-reports-spec.md`). Deliberately carries NO scores and NO
- * classification — those are deterministic (fit_* columns) and the AI is
- * stripped of them before this object is validated.
- *
- * Every top-level field is optional so a partially-valid response degrades a
- * section instead of dropping the whole report: the deterministic sections
- * always render, whatever happens here. A malformed field fails Zod and is
- * omitted at write time — never defaulted to invented content.
- */
-export const matchingReportNarrativeSchema = z.object({
-  /** Section 1 — Overall Match Summary's fit statement ("…level of alignment because…"). */
-  fitStatement: z.string().min(1).max(800).optional(),
-  /** Section 1 — two to three strongest alignments: aspect → evidence → interpretation. */
-  topAlignments: z
-    .array(
-      z.object({
-        aspect: z.string().min(1).max(200),
-        evidence: z.string().min(1).max(500),
-        interpretation: z.string().min(1).max(500),
-      }),
-    )
-    .min(2)
-    .max(3)
-    .optional(),
-  /** Section 4 — up to three critical gaps with an honest impact rating. */
-  criticalGaps: z
-    .array(
-      z.object({
-        gap: z.string().min(1).max(300),
-        evidence: z.string().min(1).max(400),
-        whyItMatters: z.string().min(1).max(400),
-        impactLevel: z.number().int().min(1).max(5),
-        suggestedDirection: z.string().min(1).max(400),
-      }),
-    )
-    .max(3)
-    .optional(),
-  /** Section 4 — not required, but would raise competitiveness. */
-  competitiveGaps: z.array(z.string().min(1).max(300)).max(5).optional(),
-  /** Section 4 — fragmentation / lack of focus style risks. */
-  hiddenRisks: z.array(z.string().min(1).max(300)).max(5).optional(),
-  /** Section 5 — four canonical admissions-perspective blocks. */
-  admissionsPerspective: z
-    .object({
-      firstImpression: z.string().min(1).max(600),
-      strengthens: z.array(z.string().min(1).max(300)).max(5),
-      questions: z.array(z.string().min(1).max(300)).max(5),
-      desiredAdditions: z.array(z.string().min(1).max(300)).max(5),
-    })
-    .optional(),
-  /** Section 6 — conclusion + biggest strength/opportunity; the CTA itself is UI-owned. */
-  finalRecommendation: z
-    .object({
-      conclusion: z.string().min(1).max(600),
-      biggestStrength: z.string().min(1).max(300),
-      biggestOpportunity: z.string().min(1).max(300),
-    })
-    .optional(),
-});
+/** The score-to-band thresholds, exported so the report UI and tests share one source. */
+export function academicBandClassification(
+  academicScore: number,
+): 'safety' | 'strong_match' | 'match' | 'reach' {
+  if (academicScore >= 4.5) return 'safety';
+  if (academicScore >= 3.5) return 'strong_match';
+  if (academicScore >= 2.5) return 'match';
+  return 'reach';
+}
 
-export type MatchingReportNarrative = z.infer<typeof matchingReportNarrativeSchema>;
 
