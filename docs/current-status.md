@@ -23,8 +23,8 @@ persisted in the existing source-provenance JSONB field alongside factual
 provenance, so no new migration is needed. Focused enrichment/Core 3/persistence
 tests pass 26/26 and strict TypeScript passes.
 
-Working tree 2026-08-21: canonical Planner page entry now compares Core 1's
-deterministic `contextHash` with the persisted plan source fingerprint. Equal
+Working tree 2026-08-21: canonical Planner page entry now compares the
+deterministic Planner Ops source fingerprint with the persisted plan source fingerprint. Equal
 fingerprints do not invoke AI; changed factual/planning context triggers a
 safe canonical reconcile and optional enrichment. Core 4 status/deadline
 execution writes are excluded from the fingerprint and do not invoke AI.
@@ -38,7 +38,7 @@ current/stale/refreshing/failed/complete states, and `/admin/planner` exposes
 server-filtered lifecycle/AI signals. Plan and micro-step feedback is validated
 server-side, upserted per user/target, and cannot mutate planning facts. New
 migration: `supabase-planner-ops.sql`, after the two canonical hierarchy
-migrations. Focused Ops/fingerprint/enrichment/persistence tests pass 9/9;
+migrations. The Planner feature suite passes 332/332 tests;
 strict and base TypeScript pass; full lint has 0 errors and one pre-existing
 manual-payment warning.
 
