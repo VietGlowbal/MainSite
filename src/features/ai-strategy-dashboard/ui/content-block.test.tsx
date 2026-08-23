@@ -192,3 +192,51 @@ describe('ContentBlockInput — structured_table', () => {
     });
   });
 });
+
+describe('ContentBlockInput — single_select', () => {
+  const schema: ContentBlock = {
+    type: 'single_select',
+    prompt: 'What should this semester focus on?',
+    options: [
+      { value: 'deepen', label: 'Deepen the major' },
+      { value: 'broaden', label: 'Broaden with a minor' },
+    ],
+    semanticKey: 'focus.choice',
+  };
+
+  it('saves the chosen option immediately, keyed by its value not its label', async () => {
+    const fetchMock = stubFetch();
+    render(
+      <ContentBlockInput
+        applicationId="app-1"
+        recommendationId="rec-1"
+        schema={schema}
+        value={null}
+      />,
+    );
+
+    await userEvent.selectOptions(screen.getByLabelText(schema.prompt), 'deepen');
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/applications/app-1/strategy/recommendations/rec-1',
+      expect.objectContaining({ method: 'PATCH' }),
+    );
+    expect(lastPatchBody(fetchMock).contentValue).toEqual({ type: 'single_select', value: 'deepen' });
+  });
+
+  it('does not save while no option is chosen', async () => {
+    const fetchMock = stubFetch();
+    render(
+      <ContentBlockInput
+        applicationId="app-1"
+        recommendationId="rec-1"
+        schema={schema}
+        value={{ type: 'single_select', value: 'broaden' }}
+      />,
+    );
+
+    await userEvent.selectOptions(screen.getByLabelText(schema.prompt), '');
+
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});

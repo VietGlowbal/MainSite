@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { Recommendation } from '../domain';
 import { PlannerBoard } from './planner-board';
@@ -67,5 +67,78 @@ describe('PlannerBoard', () => {
     fireEvent.drop(doneColumn, { dataTransfer });
 
     expect(onStatusChange).toHaveBeenCalledWith('r1', 'completed');
+  });
+
+  // CHARACTERIZATION (Part 5.1): the board is a projection — it must render
+  // cards in the order the caller supplies and never reorder them itself.
+  // Part 5.3's responsive rework has to keep this property for both layouts.
+  it('renders cards within a column in the order given — ordering belongs to the caller', () => {
+    render(
+      <PlannerBoard
+        applicationId="app-1"
+        recommendations={[
+          rec({ id: 'first', title: 'First task', status: 'in_progress' }),
+          rec({ id: 'second', title: 'Second task', status: 'in_progress' }),
+        ]}
+        onStatusChange={vi.fn()}
+      />,
+    );
+
+    const column = screen.getByText('In progress').closest('section')!;
+    const first = within(column).getByText('First task');
+    const second = within(column).getByText('Second task');
+
+    expect(first.compareDocumentPosition(second) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  // CHARACTERIZATION (Part 5.1): all five statuses stay reachable as columns,
+  // each shows its count, and an empty column still offers its drop target —
+  // a mobile redesign may replace the grid but not lose any of these.
+  it('keeps every status reachable with counts, and an empty column keeps its drop target', () => {
+    render(
+      <PlannerBoard
+        applicationId="app-1"
+        recommendations={[rec({ status: 'blocked', title: 'Stuck on transcript' })]}
+        onStatusChange={vi.fn()}
+      />,
+    );
+
+    for (const label of ['To do', 'In progress', 'Review', 'Done', 'Blocked']) {
+      expect(screen.getByText(label)).toBeInTheDocument();
+    }
+    const blocked = screen.getByText('Blocked').closest('section')!;
+    expect(within(blocked).getByText('1')).toBeInTheDocument();
+
+    const todo = screen.getByText('To do').closest('section')!;
+    expect(within(todo).getByText('0')).toBeInTheDocument();
+    expect(within(todo).getByText('Drop a task here')).toBeInTheDocument();
+  });
+
+  // CHARACTERIZATION (Part 5.1): tasks seeded by the F8 roadmap
+  // (`generateRoadmapTasks` writes category `strategy-roadmap`) are ordinary
+  // recommendations to every view — same card, same detail link, no special
+  // casing that a rework could accidentally drop.
+  it('renders a roadmap-generated task like any other card, linking to its detail page', () => {
+    render(
+      <PlannerBoard
+        applicationId="app-9"
+        recommendations={[
+          rec({
+            id: 'roadmap-1',
+            category: 'strategy-roadmap',
+            title: 'Request official transcripts',
+          }),
+        ]}
+        onStatusChange={vi.fn()}
+      />,
+    );
+
+    const card = screen.getByText('Request official transcripts').closest('article')!;
+    const link = card.querySelector('a');
+    expect(link).not.toBeNull();
+    expect(link).toHaveAttribute(
+      'href',
+      '/ai-strategy/app-9/strategy/recommendations/roadmap-1',
+    );
   });
 });

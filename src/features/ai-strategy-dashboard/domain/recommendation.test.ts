@@ -4,6 +4,8 @@ import {
   completionPercent,
   groupByCategory,
   nextPriority,
+  parseContentBlock,
+  parseContentBlockValue,
   reconcileRecommendations,
   reconcileSeeds,
   recommendationFromImprovementAction,
@@ -532,5 +534,55 @@ describe('reconcileSeeds with source keys', () => {
     const second = reconcileSeeds(rowsAfterFirst, seeds);
     expect(second.toInsert).toHaveLength(0);
     expect(second.toArchiveIds).toHaveLength(0);
+  });
+});
+
+// CHARACTERIZATION (Part 5.1 / 6.1): persisted `content_schema` /
+// `content_value` are student-facing JSONB written by an AI pipeline. The
+// parsers are the safety boundary — anything malformed, unknown, or from a
+// future version degrades to `null` (no block rendered, task still usable)
+// and must never throw into the page.
+describe('parseContentBlock / parseContentBlockValue degrade safely', () => {
+  it('parses a valid known block unchanged', () => {
+    const schema = { type: 'long_text', prompt: 'Reflect', minWords: 10 };
+    expect(parseContentBlock(schema)).toEqual(schema);
+  });
+
+  it('keeps optional fields optional instead of failing them', () => {
+    expect(parseContentBlock({ type: 'long_text', prompt: 'Reflect' })).toEqual({
+      type: 'long_text',
+      prompt: 'Reflect',
+    });
+  });
+
+  it('returns null for a known type with a malformed payload', () => {
+    expect(parseContentBlock({ type: 'checklist' })).toBeNull(); // items missing
+    expect(
+      parseContentBlock({ type: 'structured_table', columns: [] }), // min 1 column
+    ).toBeNull();
+    expect(
+      parseContentBlock({ type: 'single_select', prompt: 'Pick', options: [], semanticKey: 'a.b' }),
+    ).toBeNull();
+  });
+
+  it('returns null for an unknown or future block type', () => {
+    expect(parseContentBlock({ type: 'editable_priority_grid', rows: [] })).toBeNull();
+    expect(parseContentBlock({ type: 'phase_timeline', phases: [] })).toBeNull();
+  });
+
+  it('returns null for non-object garbage and nullish input', () => {
+    expect(parseContentBlock(null)).toBeNull();
+    expect(parseContentBlock('long_text')).toBeNull();
+    expect(parseContentBlock(42)).toBeNull();
+  });
+
+  it('applies the same discipline to persisted student values', () => {
+    expect(parseContentBlockValue({ type: 'checklist', checkedItems: ['a'] })).toEqual({
+      type: 'checklist',
+      checkedItems: ['a'],
+    });
+    expect(parseContentBlockValue({ type: 'time_machine' })).toBeNull();
+    expect(parseContentBlockValue({ type: 'long_text' })).toBeNull(); // text missing
+    expect(parseContentBlockValue(undefined)).toBeNull();
   });
 });
