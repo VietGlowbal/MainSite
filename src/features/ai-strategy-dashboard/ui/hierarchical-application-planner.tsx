@@ -361,35 +361,18 @@ function MicroStepRow({
       </div>
     </article>
   );
-}
+}const MICRO_STEP_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-const MICRO_STEP_WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const STATUS_INDICATORS: Record<PlannerMicroStep['status'], { dot: string }> = {
+  not_started: { dot: 'bg-slate-400' },
+  in_progress: { dot: 'bg-blue-500' },
+  needs_review: { dot: 'bg-amber-500' },
+  completed: { dot: 'bg-emerald-500' },
+  blocked: { dot: 'bg-rose-500' },
+};
 
 /**
  * Canonical Planner — calendar view.
- *
- * ─── A REAL MONTH GRID, NOT A GROUPED LIST ───────────────────────────────────
- *
- * This used to render one section per distinct deadline and NOTHING at all
- * when no micro-step had a date yet — the calendar tab looked broken for every
- * fresh plan (owner-reported live against production). It now mirrors the
- * legacy planner's calendar (`planner-calendar.tsx`): a fixed six-week month
- * grid — always six rows so paging never changes height — with drop targets on
- * each day, today highlighted, and the unscheduled tray beside it. The grid
- * renders whether or not anything is scheduled; an empty plan is a state of
- * the calendar, not its absence.
- *
- * Micro-steps differ from legacy recommendations only in shape, so the shared
- * UTC date helpers (`calendarMonthGrid`, `monthLabel`, `shiftMonth`,
- * `toIsoDate`) are reused directly and the day bucketing is done inline — a
- * micro-step's `deadline` is already the same Postgres `DATE` string the
- * helpers key on.
- *
- * MOBILE (<768px) closes the deferred hierarchical-planner mobile pass: cells
- * shrink to tappable day numbers (≥44px, count in-cell), tapping selects a day
- * whose tasks render in a full-width agenda under the grid, and the tray moves
- * behind a disclosure button. Desktop remains the hydration default via
- * `useMediaQuery`, same as every Part-5 surface.
  */
 function MicroStepCalendar({
   applicationId,
@@ -402,9 +385,6 @@ function MicroStepCalendar({
 }) {
   const isDesktop = useMediaQuery('(min-width: 768px)', true);
   const t = useT();
-  // Computed once per mount; server and client agree except across a UTC
-  // midnight that falls between render and hydration — the same tolerance
- // everywhere else in the planner family.
   const [today] = useState(() => new Date());
   const todayIso = toIsoDate(today);
   const [cursor, setCursor] = useState(() => ({
@@ -417,8 +397,6 @@ function MicroStepCalendar({
   const [trayOpen, setTrayOpen] = useState(false);
 
   const allMicroSteps = getPlannerMicroSteps(planner);
-  /** Day-bucketed scheduled micro-steps — `scheduledByDay`'s logic on the
-      canonical projection's shape. */
   const byDay = new Map<string, typeof allMicroSteps>();
   for (const item of getCalendarMicroSteps(planner)) {
     const existing = byDay.get(item.deadline!);
@@ -452,21 +430,23 @@ function MicroStepCalendar({
   }
 
   const monthHeader = (
-    <div className="flex items-center justify-between gap-gb-lg">
-      <h3 className="text-gb-lg font-semibold text-fg">{monthLabel(cursor.year, cursor.month)}</h3>
-      <div className="flex items-center gap-gb-xs">
+    <div className="flex flex-wrap items-center justify-between gap-gb-md pb-gb-sm">
+      <h3 className="font-display text-gb-display-xs font-bold text-fg">
+        {monthLabel(cursor.year, cursor.month)}
+      </h3>
+      <div className="inline-flex items-center rounded-gb-xl border border-line bg-surface-muted p-1 shadow-2xs">
         <button
           type="button"
           onClick={() => selectMonth(-1)}
           aria-label="Previous month"
-          className="inline-flex size-gb-5xl items-center justify-center rounded-gb-md text-fg-secondary transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="inline-flex size-8 items-center justify-center rounded-gb-lg text-fg-secondary transition-colors hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-brand"
         >
-          <KitIcon art={ICONS.arrowLeft} frame={20} />
+          <KitIcon art={ICONS.arrowLeft} frame={16} />
         </button>
         <button
           type="button"
           onClick={() => setCursor({ year: today.getUTCFullYear(), month: today.getUTCMonth() })}
-          className="rounded-gb-md px-gb-lg py-gb-sm text-gb-sm font-semibold text-fg-secondary transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="rounded-gb-lg px-gb-lg py-gb-xs text-gb-xs font-bold text-fg-secondary transition-colors hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-brand"
         >
           Today
         </button>
@@ -474,9 +454,9 @@ function MicroStepCalendar({
           type="button"
           onClick={() => selectMonth(1)}
           aria-label="Next month"
-          className="inline-flex size-gb-5xl items-center justify-center rounded-gb-md text-fg-secondary transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="inline-flex size-8 items-center justify-center rounded-gb-lg text-fg-secondary transition-colors hover:bg-surface hover:text-fg focus-visible:outline-2 focus-visible:outline-brand"
         >
-          <KitIcon art={ICONS.arrowRight} frame={20} />
+          <KitIcon art={ICONS.arrowRight} frame={16} />
         </button>
       </div>
     </div>
@@ -485,15 +465,15 @@ function MicroStepCalendar({
   const unscheduledAside = (
     <aside
       {...dropHandlers(null)}
-      className={`flex flex-col gap-gb-md rounded-gb-2xl border p-gb-lg transition-colors ${
+      className={`flex flex-col gap-gb-md rounded-gb-2xl border p-gb-lg transition-all shadow-gb-xs ${
         overDay === null && draggingId !== null
-          ? 'border-brand bg-brand-subtle'
-          : 'border-line bg-surface-muted'
+          ? 'border-brand bg-brand-subtle/40 ring-2 ring-brand/20'
+          : 'border-line bg-surface-muted/60'
       }`}
     >
       <div className="flex items-center justify-between pb-gb-xs border-b border-line">
         <h3 className="text-gb-sm font-bold text-fg">Unscheduled</h3>
-        <span className="rounded-gb-full bg-surface px-gb-sm py-gb-xxs text-gb-xs font-semibold text-fg-tertiary border border-line">
+        <span className="rounded-gb-full bg-surface px-gb-md py-gb-xxs text-gb-xs font-bold text-fg-tertiary border border-line shadow-2xs">
           {tray.length}
         </span>
       </div>
@@ -501,22 +481,24 @@ function MicroStepCalendar({
         {tray.map((item) => (
           <div
             key={item.id}
-            className="rounded-gb-xl bg-surface border border-line p-gb-md shadow-gb-xs flex flex-col gap-gb-xs"
+            className="rounded-gb-xl bg-surface border border-line p-gb-md shadow-gb-xs flex flex-col gap-gb-sm hover:border-line-strong hover:shadow-gb-sm transition-all"
           >
             <MicroStepCard
               applicationId={applicationId}
               item={item}
               onDragStart={setDraggingId}
             />
-            <DeadlineControl
-              deadline={item.deadline}
-              label={`Deadline for ${item.title}`}
-              onChange={(deadline) => onDeadline(item.id, deadline)}
-            />
+            <div className="pt-gb-xxs border-t border-line/60">
+              <DeadlineControl
+                deadline={item.deadline}
+                label={`Deadline for ${item.title}`}
+                onChange={(deadline) => onDeadline(item.id, deadline)}
+              />
+            </div>
           </div>
         ))}
         {tray.length === 0 ? (
-          <p className="rounded-gb-lg border border-dashed border-line px-gb-lg py-gb-lg text-center text-gb-xs text-fg-muted">
+          <p className="rounded-gb-xl border border-dashed border-line bg-surface/50 px-gb-lg py-gb-xl text-center text-gb-xs text-fg-muted">
             {t('Everything has a date.')}
           </p>
         ) : null}
@@ -529,16 +511,12 @@ function MicroStepCalendar({
       <div className="flex flex-col gap-gb-lg bg-surface-muted/20 p-gb-xl">
         {monthHeader}
 
-        {/* Compact month grid — tap a day to load it into the agenda below.
-            Cells are buttons, not drop targets: native drag cannot start from
-            touch, so scheduling happens through each tray item's deadline
-            field. */}
-        <div className="overflow-hidden rounded-gb-xl border border-line">
-          <div className="grid grid-cols-7 bg-surface-muted">
+        <div className="overflow-hidden rounded-gb-2xl border border-line bg-surface shadow-gb-xs">
+          <div className="grid grid-cols-7 border-b border-line bg-surface-muted/80">
             {MICRO_STEP_WEEKDAYS.map((day) => (
               <div
                 key={day}
-                className="py-gb-sm text-center text-gb-xs font-semibold uppercase tracking-wide text-fg-tertiary"
+                className="py-gb-sm text-center text-[11px] font-bold uppercase tracking-wider text-fg-tertiary"
               >
                 {day}
               </div>
@@ -558,7 +536,7 @@ function MicroStepCalendar({
                   aria-pressed={isSelected}
                   aria-current={isToday ? 'date' : undefined}
                   aria-label={`${day.dayOfMonth}, ${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`}
-                  className={`flex min-h-[44px] flex-col items-center justify-center rounded-gb-sm border transition-colors focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand ${
+                  className={`flex min-h-[44px] flex-col items-center justify-center rounded-gb-lg border transition-all focus-visible:outline-2 focus-visible:outline-brand ${
                     isSelected
                       ? 'border-brand bg-brand-subtle font-semibold ring-2 ring-brand'
                       : 'border-transparent hover:bg-surface-muted'
@@ -567,18 +545,18 @@ function MicroStepCalendar({
                   <span
                     className={`rounded-gb-sm px-gb-xs text-gb-sm font-semibold ${
                       isToday && !isSelected
-                        ? 'bg-brand text-white'
+                        ? 'size-6 rounded-full bg-brand text-white flex items-center justify-center text-xs'
                         : isSelected
                           ? 'text-fg'
                           : day.inMonth
                             ? 'text-fg-secondary'
-                            : 'text-fg-muted'
+                            : 'text-fg-muted/60'
                     }`}
                   >
                     {day.dayOfMonth}
                   </span>
                   {tasks.length > 0 ? (
-                    <span aria-hidden="true" className="text-gb-xs font-medium text-fg-brand">
+                    <span aria-hidden="true" className="text-[10px] font-bold text-fg-brand">
                       {tasks.length}
                     </span>
                   ) : null}
@@ -588,9 +566,11 @@ function MicroStepCalendar({
           </div>
         </div>
 
-        {/* The selected day's micro-steps. */}
         <section className="flex flex-col gap-gb-md" data-microstep-agenda={activeIso}>
-          <h3 className="text-gb-sm font-bold text-fg">{activeIso}</h3>
+          <h3 className="text-gb-sm font-bold text-fg flex items-center gap-gb-xs">
+            <KitIcon art={ICONS.calendar} frame={16} className="text-fg-brand" />
+            <span>{activeIso}</span>
+          </h3>
           {(byDay.get(activeIso) ?? []).map((item) => (
             <MicroStepCard
               key={item.id}
@@ -600,7 +580,7 @@ function MicroStepCalendar({
             />
           ))}
           {(byDay.get(activeIso) ?? []).length === 0 ? (
-            <p className="rounded-gb-lg border border-dashed border-line px-gb-lg py-gb-xl text-center text-gb-xs text-fg-muted">
+            <p className="rounded-gb-xl border border-dashed border-line bg-surface px-gb-lg py-gb-xl text-center text-gb-xs text-fg-muted">
               {t('No tasks on this day')}
             </p>
           ) : null}
@@ -610,7 +590,7 @@ function MicroStepCalendar({
           type="button"
           onClick={() => setTrayOpen((open) => !open)}
           aria-expanded={trayOpen}
-          className="inline-flex items-center justify-between rounded-gb-lg border border-line bg-surface-muted px-gb-lg py-gb-md text-gb-sm font-semibold text-fg transition-colors hover:bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          className="inline-flex items-center justify-between rounded-gb-xl border border-line bg-surface px-gb-lg py-gb-md text-gb-sm font-semibold text-fg shadow-2xs transition-colors hover:bg-surface-muted focus-visible:outline-2 focus-visible:outline-brand"
         >
           {trayOpen
             ? t('Hide unscheduled')
@@ -628,16 +608,16 @@ function MicroStepCalendar({
           {monthHeader}
 
           {allMicroSteps.length === 0 ? (
-            <p className="rounded-gb-xl border border-dashed border-line px-gb-xl py-gb-3xl text-center text-gb-sm text-fg-muted">
+            <p className="rounded-gb-2xl border border-dashed border-line bg-surface px-gb-xl py-gb-3xl text-center text-gb-sm text-fg-muted">
               {t('This plan has no micro-steps yet.')}
             </p>
           ) : (
-            <div className="overflow-hidden rounded-gb-xl border border-line">
-              <div className="grid grid-cols-7 border-b border-line bg-surface-muted">
+            <div className="overflow-hidden rounded-gb-2xl border border-line bg-surface shadow-gb-xs">
+              <div className="grid grid-cols-7 border-b border-line bg-surface-muted/80">
                 {MICRO_STEP_WEEKDAYS.map((day) => (
                   <div
                     key={day}
-                    className="px-gb-md py-gb-md text-center text-gb-xs font-semibold uppercase tracking-wide text-fg-tertiary"
+                    className="px-gb-md py-gb-sm text-center text-[11px] font-bold uppercase tracking-wider text-fg-tertiary"
                   >
                     {day}
                   </div>
@@ -653,33 +633,36 @@ function MicroStepCalendar({
                     <div
                       key={day.iso}
                       {...dropHandlers(day.iso)}
-                      className={`flex min-h-[7rem] flex-col gap-gb-xs border-b border-r border-line p-gb-xs transition-colors last:border-r-0 ${
+                      className={`flex min-h-[7.5rem] flex-col gap-gb-xs border-b border-r border-line p-gb-xs transition-all last:border-r-0 ${
                         isTarget
-                          ? 'bg-brand-subtle'
+                          ? 'border-brand bg-brand-subtle/50 ring-2 ring-brand/30 ring-inset'
                           : day.inMonth
-                            ? 'bg-surface'
-                            : 'bg-surface-muted/60'
+                            ? 'bg-surface hover:bg-slate-50/40'
+                            : 'bg-surface-muted/40'
                       }`}
                     >
                       <span
-                        className={`self-start rounded-gb-sm px-gb-xs text-gb-xs font-semibold ${
+                        className={`self-start text-xs font-semibold ${
                           isToday
-                            ? 'bg-brand text-white'
+                            ? 'size-6 rounded-full bg-brand text-white flex items-center justify-center shadow-xs'
                             : day.inMonth
-                              ? 'text-fg-secondary'
-                              : 'text-fg-muted'
+                              ? 'text-fg-secondary px-gb-xs py-gb-xxs'
+                              : 'text-fg-muted/60 px-gb-xs py-gb-xxs'
                         }`}
                       >
                         {day.dayOfMonth}
                       </span>
-                      {tasks.map((item) => (
-                        <MicroStepCard
-                          key={item.id}
-                          applicationId={applicationId}
-                          item={item}
-                          onDragStart={setDraggingId}
-                        />
-                      ))}
+                      <div className="flex flex-col gap-1">
+                        {tasks.map((item) => (
+                          <MicroStepCard
+                            key={item.id}
+                            applicationId={applicationId}
+                            item={item}
+                            onDragStart={setDraggingId}
+                            compact
+                          />
+                        ))}
+                      </div>
                     </div>
                   );
                 })}
@@ -704,41 +687,71 @@ function MicroStepBoard({
   onStatus: (id: string, status: PlannerMicroStep['status']) => Promise<void>;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [overColumn, setOverColumn] = useState<PlannerMicroStep['status'] | null>(null);
   const items = getKanbanMicroSteps(planner);
 
   return (
     <div className="grid gap-gb-md p-gb-lg md:grid-cols-3 xl:grid-cols-5 bg-surface-muted/20">
       {KANBAN_COLUMNS.map((status) => {
         const columnItems = items.filter((item) => item.status === status);
+        const isTarget = overColumn === status;
+        const meta = STATUS_INDICATORS[status];
+
         return (
           <section
             key={status}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => draggingId && void onStatus(draggingId, status)}
-            className="flex min-h-[18rem] flex-col gap-gb-md rounded-gb-2xl border border-line bg-surface-muted p-gb-md"
+            onDragOver={(event) => {
+              event.preventDefault();
+              event.dataTransfer.dropEffect = 'move';
+              setOverColumn(status);
+            }}
+            onDragLeave={() => setOverColumn((curr) => (curr === status ? null : curr))}
+            onDrop={(event) => {
+              event.preventDefault();
+              const id = draggingId ?? event.dataTransfer.getData('text/plain');
+              setOverColumn(null);
+              setDraggingId(null);
+              if (id) void onStatus(id, status);
+            }}
+            className={`flex min-h-[22rem] flex-col gap-gb-md rounded-gb-2xl border p-gb-md transition-all shadow-2xs ${
+              isTarget
+                ? 'border-brand bg-brand-subtle/40 ring-2 ring-brand/20'
+                : 'border-line bg-surface-muted/60'
+            }`}
           >
             <header className="flex items-center justify-between pb-gb-xs border-b border-line">
-              <h3 className="text-gb-sm font-bold text-fg">
-                {KANBAN_COLUMN_LABEL[status]}
-              </h3>
-              <span className="rounded-gb-full bg-surface px-gb-sm py-gb-xxs text-gb-xs font-semibold text-fg-tertiary border border-line">
+              <div className="flex items-center gap-gb-xs">
+                <span className={`size-2 rounded-full ${meta.dot}`} aria-hidden="true" />
+                <h3 className="text-gb-sm font-bold text-fg">
+                  {KANBAN_COLUMN_LABEL[status]}
+                </h3>
+              </div>
+              <span className="rounded-gb-full bg-surface px-gb-sm py-gb-xxs text-gb-xs font-bold text-fg-tertiary border border-line shadow-2xs">
                 {columnItems.length}
               </span>
             </header>
-            <div className="flex flex-col gap-gb-sm">
+
+            <div className="flex flex-col gap-gb-sm flex-1">
               {columnItems.map((item) => (
                 <div
                   key={item.id}
-                  className="rounded-gb-xl bg-surface border border-line p-gb-md shadow-gb-xs flex flex-col gap-gb-xs"
+                  className="rounded-gb-xl bg-surface border border-line p-gb-md shadow-gb-xs flex flex-col gap-gb-xs hover:border-line-strong hover:shadow-gb-sm transition-all"
                 >
                   <MicroStepCard
                     applicationId={applicationId}
                     item={item}
                     onDragStart={setDraggingId}
                   />
-                  <StatusSelect microStep={item} onStatus={onStatus} />
+                  <div className="pt-gb-xxs border-t border-line/60">
+                    <StatusSelect microStep={item} onStatus={onStatus} />
+                  </div>
                 </div>
               ))}
+              {columnItems.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center rounded-gb-xl border border-dashed border-line/80 bg-surface/30 p-gb-md text-center text-gb-xs text-fg-muted">
+                  Nothing here yet
+                </div>
+              ) : null}
             </div>
           </section>
         );
@@ -751,34 +764,80 @@ function MicroStepCard({
   applicationId,
   item,
   onDragStart,
+  compact = false,
 }: {
   applicationId: string;
   item: ReturnType<typeof getPlannerMicroSteps>[number];
   onDragStart: (id: string) => void;
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <article
+        draggable
+        onDragStart={(event) => {
+          event.dataTransfer.setData('text/plain', item.id);
+          event.dataTransfer.effectAllowed = 'move';
+          onDragStart(item.id);
+        }}
+        className="group cursor-grab rounded-gb-md border border-line bg-surface p-gb-xs shadow-2xs transition-all hover:border-brand/40 hover:shadow-gb-xs active:cursor-grabbing"
+      >
+        <Link
+          href={`/ai-strategy/${applicationId}/planner/tasks/${item.id}`}
+          className="block text-[11px] font-bold leading-snug text-fg hover:text-fg-brand line-clamp-2 transition-colors focus-visible:outline-2 focus-visible:outline-brand"
+          draggable={false}
+        >
+          {item.title}
+        </Link>
+        <p className="mt-0.5 text-[10px] text-fg-tertiary truncate">
+          {item.phaseTitle} · {item.stepTitle}
+        </p>
+        {item.deadline ? (
+          <p className="mt-1 flex items-center gap-1 text-[10px] font-bold text-fg-brand">
+            <span className="size-1.5 rounded-full bg-brand shrink-0" />
+            <span>Due {item.deadline}</span>
+          </p>
+        ) : null}
+      </article>
+    );
+  }
+
   return (
     <article
       draggable
       onDragStart={(event) => {
         event.dataTransfer.setData('text/plain', item.id);
+        event.dataTransfer.effectAllowed = 'move';
         onDragStart(item.id);
       }}
       className="cursor-grab active:cursor-grabbing"
     >
       <Link
         href={`/ai-strategy/${applicationId}/planner/tasks/${item.id}`}
-        className="block text-gb-sm font-semibold text-fg hover:text-fg-brand hover:underline transition-colors"
+        className="block text-gb-sm font-bold text-fg hover:text-fg-brand hover:underline transition-colors focus-visible:outline-2 focus-visible:outline-brand"
+        draggable={false}
       >
         {item.title}
       </Link>
       <p className="mt-gb-xxs text-gb-xs text-fg-tertiary">
         {item.phaseTitle} · {item.stepTitle}
       </p>
-      {item.deadline ? (
-        <p className="mt-gb-xs text-gb-xs font-medium text-fg-brand">
-          Due {item.deadline}
-        </p>
-      ) : null}
+      <div className="mt-gb-xs flex flex-wrap items-center gap-gb-xs">
+        {item.readiness === 'requires_user_input' ? (
+          <Badge variant="brand-subtle" className="text-[11px] py-gb-xxs px-gb-xs">
+            Needs your input
+          </Badge>
+        ) : (
+          <Badge variant="neutral" className="text-[11px] py-gb-xxs px-gb-xs">
+            Needs enrichment
+          </Badge>
+        )}
+        {item.deadline ? (
+          <span className="text-gb-xs font-semibold text-fg-brand ml-auto">
+            Due {item.deadline}
+          </span>
+        ) : null}
+      </div>
     </article>
   );
 }
@@ -797,7 +856,7 @@ function StatusSelect({
       onChange={(event) =>
         void onStatus(microStep.id, event.target.value as PlannerMicroStep['status'])
       }
-      className="rounded-gb-md border border-line bg-surface px-gb-md py-gb-xs text-gb-xs font-medium text-fg shadow-gb-xs hover:border-line-strong focus:border-brand focus:outline-none transition-all"
+      className="w-full rounded-gb-lg border border-line bg-surface px-gb-md py-gb-xs text-gb-xs font-medium text-fg shadow-2xs hover:border-line-strong focus:border-brand focus:outline-none transition-all cursor-pointer"
     >
       {PROGRESS_STATUS.map((status) => (
         <option key={status} value={status}>

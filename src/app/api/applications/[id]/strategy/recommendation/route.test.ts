@@ -310,18 +310,29 @@ function setupSupabase(overrides: {
   /** Sequential results, one per insert call — models the degraded-mode retry. */
   insertStrategy?: Array<{ data: unknown; error: unknown }>;
   matchAnalyses?: { data: unknown; error: unknown };
-} = {}): { insertedStrategyPayloads: Array<Record<string, unknown>> } {
+} = {}): {
+  insertedStrategyPayloads: Array<Record<string, unknown>>;
+  matchAnalysisFilters: Array<[string, unknown]>;
+} {
   const appRes = overrides.application ?? { data: APPLICATION_ROW, error: null };
   const stratRes = overrides.latestStrategy ?? { data: null, error: null };
   const insertResults = overrides.insertStrategy ?? [DEFAULT_INSERT_RESULT];
   const insertedStrategyPayloads: Array<Record<string, unknown>> = [];
   const matchRes = overrides.matchAnalyses ?? { data: MATCH_ROW, error: null };
+  const matchAnalysisFilters: Array<[string, unknown]> = [];
 
   supabaseMock = {
     auth: { getUser: mocks.getUser },
     from: (table: string) => {
       if (table === 'course_applications') return tableChain(appRes);
-      if (table === 'application_match_analyses') return tableChain(matchRes);
+      if (table === 'application_match_analyses') {
+        const chain = tableChain(matchRes);
+        chain.eq = (column: string, value: unknown) => {
+          matchAnalysisFilters.push([column, value]);
+          return chain;
+        };
+        return chain;
+      }
       if (table === 'student_achievements') return tableChain({ data: [], error: null });
       if (table === 'student_activities') return tableChain({ data: [], error: null });
       if (table === 'universities') return tableChain({ data: { employability: 'Top 10%' }, error: null });
@@ -339,7 +350,7 @@ function setupSupabase(overrides: {
       throw new Error(`Unexpected table in test: ${table}`);
     },
   };
-  return { insertedStrategyPayloads };
+  return { insertedStrategyPayloads, matchAnalysisFilters };
 }
 
 async function importRoute() {
@@ -445,6 +456,20 @@ describe('/api/applications/[id]/strategy/recommendation', () => {
       expect(res.status).toBe(422);
       const json = await res.json();
       expect(json.needsInputs).toBe(true);
+    });
+
+    it('only consumes Matching Reports from the current prompt and F5 engine', async () => {
+      const { matchAnalysisFilters } = setupSupabase();
+      const { POST } = await importRoute();
+      const res = await POST(new Request('http://localhost', { method: 'POST' }), {
+        params: Promise.resolve({ id: 'app-1' }),
+      });
+
+      expect(res.status).toBe(200);
+      expect(matchAnalysisFilters).toEqual(expect.arrayContaining([
+        ['prompt_version', 'match-insights-v2-vi'],
+        ['f5_engine_version', 'f5-programme-fit-v1'],
+      ]));
     });
 
     it('returns cached recommendation when identical input version exists', async () => {

@@ -69,6 +69,9 @@ export const F5_WEIGHTS: Record<F5DimensionKey, number> = {
   applicationReadiness: 0.15,
 };
 
+/** Bump when the F5 scoring or classification contract changes. */
+export const F5_ENGINE_VERSION = 'f5-programme-fit-v1';
+
 export type F5DimensionStatus = 'assessed' | 'limited' | 'not_available';
 
 export type F5Dimension = {
@@ -115,6 +118,32 @@ export type ProgrammeFitClassification =
  * `docs/known-issues.md §1a` exists to prevent.
  */
 export type AcademicBand = 'above_range' | 'upper_range' | 'lower_range' | 'below_range' | 'unknown';
+
+/** Map the canonical 1-5 academic rubric to the F5 comparison band. */
+export function academicBandFromScore(score: number | null): AcademicBand {
+  if (score === null) return 'unknown';
+  if (score >= 4.5) return 'above_range';
+  if (score >= 3.5) return 'upper_range';
+  if (score >= 2.5) return 'lower_range';
+  return 'below_range';
+}
+
+/** The matching-report label for an assessed academic rubric score. */
+export function academicBandClassification(
+  academicScore: number,
+): 'safety' | 'strong_match' | 'match' | 'reach' {
+  switch (academicBandFromScore(academicScore)) {
+    case 'above_range':
+      return 'safety';
+    case 'upper_range':
+      return 'strong_match';
+    case 'lower_range':
+      return 'match';
+    case 'below_range':
+    case 'unknown':
+      return 'reach';
+  }
+}
 
 export type ProgrammeFitResult = Insight & {
   classification: ProgrammeFitClassification;

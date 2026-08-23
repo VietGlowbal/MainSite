@@ -1,11 +1,10 @@
 import { NextResponse } from 'next/server';
 import {
-  getLatestPersonalReportV2,
   loadCandidateContext,
   regeneratePersonalReport,
   stableHash,
 } from '@/features/apply/api';
-import { candidateConfidence, programmeFitSchema } from '@/features/apply/domain';
+import { programmeFitSchema } from '@/features/apply/domain';
 import { analyzeCourseMatchInsights } from '@/lib/ai/match-insights';
 import { extractDocumentText } from '@/lib/ai/document-text';
 import { defaultOpenAIModel } from '@/lib/ai/openai-client';
@@ -13,6 +12,13 @@ import type { PostgrestError } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
+import {
+  assessProgrammeFit,
+  academicBandFromScore,
+  F5_DIMENSION_KEYS,
+  F5_ENGINE_VERSION,
+  type F5Dimension,
+} from '@/shared/evaluation/f5-programme-fit';
 import {
   weightedScore,
   matchLabel,
@@ -59,6 +65,44 @@ function migrationMissing(error: PostgrestError | null | undefined): boolean {
   );
 }
 
+/**
+ * The model's F5 block is a structured assessment input (dimension evidence,
+ * rubric values and eligibility observations). It is never the stored result:
+ * the shared F5 engine owns arithmetic, hard gates and classification.
+ */
+function deterministicF5(
+  source: Awaited<ReturnType<typeof analyzeCourseMatchInsights>>['programmeFit'],
+) {
+  const dimensions = {} as Record<
+    (typeof F5_DIMENSION_KEYS)[number],
+    F5Dimension
+  >;
+  for (const key of F5_DIMENSION_KEYS) {
+    const dimension = source.dimensions[key];
+    dimensions[key] = {
+      status: dimension.status,
+      score: dimension.score,
+      summary: dimension.summary,
+      strengths: dimension.strengths,
+      gaps: dimension.gaps,
+      // The model supplies evidence text, but not stable source IDs. Keeping
+      // this list empty avoids manufacturing provenance; the report contract
+      // still persists the original evidence strings below.
+      evidenceRefs: [],
+      limitation: dimension.limitation,
+    };
+  }
+
+  const academic = source.dimensions.academicCompetitiveness;
+  return assessProgrammeFit({
+    eligibility: source.eligibility,
+    academicBand: academicBandFromScore(
+      academic.status === 'not_available' ? null : academic.score,
+    ),
+    dimensions,
+  });
+}
+
 export async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
@@ -101,8 +145,33 @@ export async function POST(
     return NextResponse.json({ error: 'Application not found' }, { status: 404 });
   }
 
+  const personalGeneration = await regeneratePersonalReport({
+    supabase,
+    userId,
+    trigger: 'matching_report',
+  });
+  if (personalGeneration.status !== 'cached' && personalGeneration.status !== 'regenerated') {
+    logger.warn('matching_report_generate', {
+      userId,
+      applicationId,
+      stage: 'validated',
+      outcome: 'personal_report_incomplete',
+      durationMs: getElapsed(),
+    });
+    const unavailable = personalGeneration.status === 'migration_missing' || personalGeneration.status === 'not_configured';
+    return NextResponse.json(
+      {
+        error: unavailable
+          ? 'Personal Report needs to be available before Matching Report generation can start.'
+          : 'Personal Report must complete before Matching Report generation can start.',
+      },
+      { status: unavailable ? 503 : 502 },
+    );
+  }
+  const personalRecord = personalGeneration.record;
+
   const universityId = application.university_id ?? application.courses?.university_id ?? null;
-  const [candidate, profileResult, documentsResult, personalResult, universityResult] =
+  const [candidate, profileResult, documentsResult, universityResult] =
     await Promise.all([
       loadCandidateContext(supabase, userId),
       supabase.from('student_profiles').select('plus_status, plus_expires_at').eq('user_id', userId).maybeSingle(),
@@ -110,7 +179,6 @@ export async function POST(
         .from('uploaded_documents')
         .select('id,type,storage_key,mime_type,parsed_text')
         .eq('user_id', userId),
-      getLatestPersonalReportV2(supabase, userId),
       universityId == null
         ? Promise.resolve({ data: null, error: null })
         : supabase.from('universities').select('*').eq('id', universityId).maybeSingle(),
@@ -226,8 +294,8 @@ export async function POST(
     achievements: text(candidate.achievements),
     personalContext:
       [
-        personalResult.record?.reportV2.coreIdentity.interpretation,
-        personalResult.record?.reportV2.drivingForce.explanation,
+        personalRecord.reportV2.coreIdentity.interpretation,
+        personalRecord.reportV2.drivingForce.explanation,
       ]
         .filter(Boolean)
         .join(' ') || text(profile.goals),
@@ -249,6 +317,9 @@ export async function POST(
     profile: profileInput,
     cvText,
     essayText,
+    personalReportVersionId: personalRecord.id,
+    personalReportInputHash: personalRecord.inputHash,
+    f5EngineVersion: F5_ENGINE_VERSION,
   });
 
   const { data: latestV2, error: latestError } = await supabase
@@ -335,25 +406,17 @@ export async function POST(
     );
   }
 
-  const candidateQuality = candidateConfidence(candidate).score;
-  const courseSignals = [
-    courseInput.entryRequirements,
-    courseInput.englishRequirements,
-    courseInput.tuition,
-    courseInput.careerOutcomes,
-    courseInput.universityInsight,
-  ].filter(Boolean).length;
-  const systemFitConfidence = Math.round(
-    candidateQuality * 0.55 + (courseSignals / 5) * 100 * 0.45,
-  );
+  const deterministic = deterministicF5(insights.programmeFit);
   const fit = programmeFitSchema.parse({
     ...insights.programmeFit,
-    confidence: Math.min(insights.programmeFit.confidence, systemFitConfidence),
+    // The model's confidence/classification are semantic hints only. These
+    // fields come from the deterministic engine and are persisted as its
+    // canonical output.
+    classification: deterministic.classification,
+    confidence: deterministic.confidencePercent,
     limitations: [
+      ...deterministic.limitations,
       ...insights.programmeFit.limitations,
-      ...(courseSignals < 3
-        ? ['Official programme data is not sufficient to assess every fit dimension.']
-        : []),
     ].slice(0, 10),
   });
 
@@ -393,6 +456,9 @@ export async function POST(
     model_name: defaultOpenAIModel(),
     prompt_version: MATCH_PROMPT_VERSION,
     input_hash: inputHash,
+    source_personal_report_version_id: personalRecord.id,
+    source_personal_report_input_hash: personalRecord.inputHash,
+    f5_engine_version: F5_ENGINE_VERSION,
     fit_dimensions: fit.dimensions,
     fit_eligibility: fit.eligibility,
     fit_classification: fit.classification,
@@ -401,11 +467,36 @@ export async function POST(
     analysis_status: 'complete',
   };
 
-  const { data: inserted, error: insertError } = await supabase
+  let { data: inserted, error: insertError } = await supabase
     .from('application_match_analyses')
     .insert(analysisRow)
     .select()
     .single();
+
+  if (migrationMissing(insertError)) {
+    const {
+      source_personal_report_version_id: _personalReportVersionId,
+      source_personal_report_input_hash: _personalReportInputHash,
+      f5_engine_version: _f5EngineVersion,
+      ...legacyAnalysisRow
+    } = analysisRow;
+    const retry = await supabase
+      .from('application_match_analyses')
+      .insert(legacyAnalysisRow)
+      .select()
+      .single();
+    if (!retry.error) {
+      inserted = retry.data;
+      insertError = null;
+      logger.warn('matching_report_generate', {
+        userId,
+        applicationId,
+        stage: 'persisted',
+        outcome: 'migration_missing',
+        durationMs: getElapsed(),
+      });
+    }
+  }
 
   if (insertError) {
     logger.error('matching_report_generate', insertError, {
@@ -441,23 +532,6 @@ export async function POST(
     cached: false,
     metadata: {},
   });
-
-  // Best-effort: a new Matching Report is one of the two events that should
-  // refresh the Personal Report (see `regeneratePersonalReport`'s doc
-  // comment). This never fails the Matching Report response — the report
-  // it just generated is already saved either way, and a skipped refresh
-  // here just means the Personal Report catches up next time something
-  // triggers it.
-  try {
-    await regeneratePersonalReport({ supabase, userId, trigger: 'matching_report' });
-  } catch (error) {
-    logger.error('personal_report_generate', error, {
-      userId,
-      applicationId,
-      stage: 'failed',
-      trigger: 'matching_report_background',
-    });
-  }
 
   return NextResponse.json({ ok: true, cached: false, analysis: inserted, unassessed });
 }

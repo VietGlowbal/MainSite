@@ -82,6 +82,14 @@ export function PlannerBoard({
   );
 }
 
+const STATUS_ACCENTS: Record<ProgressStatus, { dot: string }> = {
+  not_started: { dot: 'bg-slate-400' },
+  in_progress: { dot: 'bg-blue-500' },
+  needs_review: { dot: 'bg-amber-500' },
+  completed: { dot: 'bg-emerald-500' },
+  blocked: { dot: 'bg-rose-500' },
+};
+
 /**
  * The ≥768px kanban grid — DOM identical to the pre-5.3 single-tree version:
  * one section per status with its header, live count, cards and empty-column
@@ -103,11 +111,13 @@ function PlannerBoardDesktop({
   const columns = groupByStatus(recommendations);
 
   return (
-    <div className="flex flex-col gap-gb-lg">
-      <div className="grid gap-gb-lg p-gb-xl md:grid-cols-3 xl:grid-cols-5">
+    <div className="flex flex-col gap-gb-lg bg-surface-muted/20">
+      <div className="grid gap-gb-md p-gb-lg md:grid-cols-3 xl:grid-cols-5">
         {KANBAN_COLUMNS.map((status) => {
           const items = columns[status];
           const isTarget = overColumn === status;
+          const meta = STATUS_ACCENTS[status];
+
           return (
             <section
               key={status}
@@ -125,18 +135,25 @@ function PlannerBoardDesktop({
                 setDraggingId(null);
                 if (id) void onStatusChange(id, status);
               }}
-              className={`flex min-h-[16rem] flex-col gap-gb-lg rounded-gb-xl border p-gb-lg transition-colors ${
-                isTarget ? 'border-brand bg-brand-subtle' : 'border-line bg-surface-muted'
+              className={`flex min-h-[22rem] flex-col gap-gb-md rounded-gb-2xl border p-gb-md transition-all shadow-2xs ${
+                isTarget
+                  ? 'border-brand bg-brand-subtle/40 ring-2 ring-brand/20'
+                  : 'border-line bg-surface-muted/60'
               }`}
             >
-              <header className="flex items-center justify-between gap-gb-md">
-                <h3 className="text-gb-sm font-semibold text-fg">{KANBAN_COLUMN_LABEL[status]}</h3>
-                <span className="rounded-gb-full bg-surface px-gb-md py-gb-xxs text-gb-xs font-semibold text-fg-tertiary">
+              <header className="flex items-center justify-between pb-gb-xs border-b border-line">
+                <div className="flex items-center gap-gb-xs">
+                  <span className={`size-2 rounded-full ${meta.dot}`} aria-hidden="true" />
+                  <h3 className="text-gb-sm font-bold text-fg">
+                    {KANBAN_COLUMN_LABEL[status]}
+                  </h3>
+                </div>
+                <span className="rounded-gb-full bg-surface px-gb-sm py-gb-xxs text-gb-xs font-bold text-fg-tertiary border border-line shadow-2xs">
                   {items.length}
                 </span>
               </header>
 
-              <div className="flex flex-col gap-gb-md">
+              <div className="flex flex-col gap-gb-sm flex-1">
                 {items.map((rec) => (
                   <TaskCard
                     key={rec.id}
@@ -146,9 +163,9 @@ function PlannerBoardDesktop({
                   />
                 ))}
                 {items.length === 0 ? (
-                  <p className="rounded-gb-lg border border-dashed border-line px-gb-lg py-gb-2xl text-center text-gb-xs text-fg-muted">
+                  <div className="flex-1 flex items-center justify-center rounded-gb-xl border border-dashed border-line/80 bg-surface/30 p-gb-md text-center text-gb-xs text-fg-muted">
                     Drop a task here
-                  </p>
+                  </div>
                 ) : null}
               </div>
             </section>

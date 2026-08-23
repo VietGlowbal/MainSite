@@ -2,7 +2,10 @@
 // One implementation of the F5 weights + match-percentage formula, shared with
 // the deterministic evaluation module â€” the plan's "one helper and one formula
 // everywhere" invariant. features â†’ shared is the allowed FSD direction.
-import { fitScoreToPercent } from '@/shared/evaluation/f5-programme-fit';
+import {
+  academicBandClassification as classifyAcademicBand,
+  fitScoreToPercent,
+} from '@/shared/evaluation/f5-programme-fit';
 
 export { fitScoreToPercent };
 
@@ -290,10 +293,7 @@ export function enforceFitClassification(fit: ProgrammeFit): ProgrammeFit {
 export function academicBandClassification(
   academicScore: number,
 ): 'safety' | 'strong_match' | 'match' | 'reach' {
-  if (academicScore >= 4.5) return 'safety';
-  if (academicScore >= 3.5) return 'strong_match';
-  if (academicScore >= 2.5) return 'match';
-  return 'reach';
+  return classifyAcademicBand(academicScore);
 }
 
 

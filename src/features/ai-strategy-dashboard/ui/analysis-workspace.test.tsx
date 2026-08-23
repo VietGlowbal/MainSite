@@ -17,6 +17,30 @@ afterEach(() => {
 });
 
 describe('AnalysisWorkspace', () => {
+  it('does not start Matching Report generation until Personal Report completes', async () => {
+    let resolvePersonal: (() => void) | undefined;
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') {
+        return new Promise<Response>((resolve) => {
+          resolvePersonal = () => resolve({ ok: true, json: () => Promise.resolve({ reportV2: { coreIdentity: {} } }) } as Response);
+        });
+      }
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId={'app-1'} />);
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, { method: 'POST' }));
+    expect(fetchMock.mock.calls.map(([url]) => url)).not.toContain(MATCHING_GET);
+
+    resolvePersonal?.();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(MATCHING_GET));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(MATCHING_POST, { method: 'POST' }));
+  });
+
   it('generates the canonical Personal Report and Matching Report without calling legacy endpoints', async () => {
     const fetchMock = vi.fn((url: string, init?: RequestInit) => {
       if (url === PERSONAL_POST && init?.method === 'POST') return jsonResponse({ reportV2: { coreIdentity: {} } });
@@ -107,7 +131,7 @@ describe('AnalysisWorkspace', () => {
     vi.stubGlobal('fetch', fetchMock);
 
     render(<AnalysisWorkspace applicationId="app-1" />);
-    await waitFor(() => expect(screen.getByText(FRIENDLY_REPORT_ERROR)).toBeInTheDocument());
+    await waitFor(() => expect(screen.getAllByText(FRIENDLY_REPORT_ERROR)).toHaveLength(2));
     expect(screen.queryByText('Personal report failed')).not.toBeInTheDocument();
   });
 

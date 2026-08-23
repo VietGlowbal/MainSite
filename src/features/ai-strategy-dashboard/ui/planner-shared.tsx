@@ -250,18 +250,22 @@ export function TaskCard({
         event.dataTransfer.effectAllowed = 'move';
         onDragStart(recommendation.id);
       }}
-      className={`group cursor-grab rounded-gb-lg border border-line bg-surface shadow-gb-xs transition-shadow hover:shadow-gb-lg active:cursor-grabbing ${
-        compact ? 'p-gb-md' : 'p-gb-lg'
+      className={`group cursor-grab border border-line bg-surface shadow-2xs transition-all active:cursor-grabbing ${
+        compact
+          ? 'rounded-gb-md p-gb-xs hover:border-brand/40 hover:shadow-gb-xs'
+          : 'rounded-gb-xl p-gb-md shadow-gb-xs hover:border-line-strong hover:shadow-gb-sm'
       }`}
     >
       <Link
         href={`/ai-strategy/${applicationId}/strategy/recommendations/${recommendation.id}`}
-        className="flex flex-col gap-gb-md rounded-gb-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="flex flex-col gap-gb-xs rounded-gb-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
         // A click that ends a drag should not also open the task.
         draggable={false}
       >
         <p
-          className={`font-semibold text-fg ${compact ? 'line-clamp-2 text-gb-xs' : 'text-gb-sm'}`}
+          className={`font-bold text-fg leading-snug hover:text-fg-brand transition-colors ${
+            compact ? 'line-clamp-2 text-[11px]' : 'text-gb-sm'
+          }`}
         >
           {recommendation.title}
         </p>
@@ -271,7 +275,7 @@ export function TaskCard({
             {recommendation.reason ? (
               <p className="line-clamp-2 text-gb-xs text-fg-tertiary">{recommendation.reason}</p>
             ) : null}
-            <div className="flex flex-wrap items-center gap-gb-md">
+            <div className="flex flex-wrap items-center gap-gb-xs mt-gb-xxs">
               <Badge variant={PRIORITY_VARIANT[recommendation.priority]}>
                 {PRIORITY_LABEL[recommendation.priority]}
               </Badge>
@@ -279,7 +283,7 @@ export function TaskCard({
                 {categoryLabel(recommendation.category)}
               </span>
               {recommendation.estimatedImpact != null ? (
-                <span className="text-gb-xs font-medium text-fg-brand">
+                <span className="text-gb-xs font-semibold text-fg-brand ml-auto">
                   +{recommendation.estimatedImpact}
                 </span>
               ) : null}

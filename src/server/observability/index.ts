@@ -35,6 +35,7 @@ export type TelemetryOutcome =
   | 'not_configured'
   | 'missing_inputs'
   | 'not_ready'
+  | 'personal_report_incomplete'
   | 'app_lock_failed'
   | 'profile_lock_migration_missing'
   | 'validation_failed';

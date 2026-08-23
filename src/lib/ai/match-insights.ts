@@ -105,11 +105,12 @@ EACH IMPROVEMENT ALSO BUILDS ITS OWN TASK PAGE. Every improvement becomes a task
 - Also give each improvement: "submitChecklist" (1–4 short strings — what evidence/content counts as done, for a "What to submit" list), "tips" (1–3 short strings of practical advice), and "suggestedQuestions" (2–4 short first-person questions a candidate might ask an AI coach about this specific task, e.g. "What results should I include?").
 
 PROGRAMME FIT (F5) — separate from the document-match pillars:
-- Evaluate exactly five dimensions on a 1–5 rubric: academic competitiveness, persona–programme alignment, financial feasibility, career direction alignment, application readiness.
+- Extract structured evidence for exactly five dimensions on a 1–5 rubric: academic competitiveness, persona–programme alignment, financial feasibility, career direction alignment, application readiness.
+- The server passes these validated dimension inputs and eligibility observations through the deterministic F5 engine. Its weighted score, confidence, hard-gate result and classification are authoritative; do not treat the response's classification or confidence as authoritative.
 - A missing metric is not neutral. Set status "not_available", score null, explain the limitation, and do not fabricate a value.
 - Eligibility filters use only "met", "not_met", or "unknown". A hard "not_met" means "currently_ineligible".
-- Reach/Match/Safety is decided by the academic band after hard filters. Persona, finance and career remain separate dimensions and must not move that classification.
-- "strong_match" sits between "match" and "safety": comfortably inside the programme's typical range without being clearly above it. Whatever you emit is re-derived from the academic score server-side, so classify honestly rather than optimistically.
+- Reach/Match/Safety is decided by the academic band after hard filters. Persona, finance and career remain separate dimensions and must not move that classification. The server derives the band from the academic score.
+- "strong_match" sits between "match" and "safety": comfortably inside the programme's typical range without being clearly above it. The server re-derives this classification from the academic score, so the value emitted here is compatibility-only.
 - Scores are on a 1-5 rubric and MAY be fractional (e.g. 4.2) — the report renders them as percentages, so do not round to whole numbers unless the evidence is genuinely that coarse.
 - If academic comparison data is insufficient, classification is "insufficient_data".
 - Never calculate or imply an admission probability.

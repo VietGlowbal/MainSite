@@ -1,6 +1,10 @@
 # Current project status
 
-Last reconciled: **2026-08-15 (Asia/Bangkok)**
+Last reconciled: **2026-08-23 (Asia/Bangkok)**
+
+Full UI Polish across all Planner views (List, Calendar, Board/Kanban) complete 2026-08-23.
+- `HierarchicalApplicationPlanner`, `PlannerCalendar`, `PlannerBoard`, `PlannerShared`: refined with GlowBal design tokens (`brand` #E11D48, `surface-muted`, `line`, `rounded-gb-2xl`), responsive month headers, clean 6-week day cells, today badge, in-cell task cards, unscheduled sidebar trays, 5-column Kanban board with status indicator accent dots, count pills, and quick status select dropdowns.
+- Strict typecheck (`tsc -p tsconfig.strict.json`), i18n check (`check-i18n.mjs --all` with 0 missing keys), test suites (39 files, 437/437 passing), and Next.js production build (`npm run build`, 135/135 pages compiled) all verified passing 100%.
 
 Wave 2 of `docs/plans/2026-08-23-feature-2-parts-5-9-execution-v2.md`
 (Part 6 GenUI) complete 2026-08-23 (commits `d7fccee`, `f5f0112`).
@@ -158,6 +162,17 @@ migrations live (`supabase-strategy-recommendation-lineage.sql`,
 untracked `glowbal-resend-v2/` folder breaks local `npm run typecheck`
 (missing deps, unrelated to this work); PDF export still renders legacy rows
 only.
+
+Working tree 2026-08-23 (F5 route wiring): the live
+`applications/[id]/match-insights` route now adapts the validated model F5
+dimensions/eligibility into the shared deterministic engine. Weighted score,
+missing-dimension renormalisation, hard eligibility gates, confidence and
+classification are canonical server output; model classification/confidence
+are ignored. The input hash includes `F5_ENGINE_VERSION` so pre-change rows do
+not cache-hit. Measured: route regression 4/4, combined F5/AI/route suites
+46/46, matching presentation suites 31/31, base TypeScript clean, and ESLint
+clean on changed files. Strict TypeScript remains blocked only by the
+pre-existing `hierarchical-application-planner.test.tsx` optional-id error.
 
 Working tree 2026-08-22: Feature 2 Parts 0–2 implementation review + bug-fix
 pass. Fixed in `strategy/recommendation/route.ts`: the route wrote a

@@ -47,6 +47,8 @@ function tableChain(resolved: { data: unknown; error: unknown }) {
   return chain;
 }
 
+let insertedAnalysisRow: Record<string, unknown> | null = null;
+
 let supabaseMock: { auth: { getUser: typeof mocks.getUser }; from: (table: string) => unknown };
 
 function setupSupabase(overrides: {
@@ -71,9 +73,10 @@ function setupSupabase(overrides: {
         // go through this same chain object; distinguish by which method is
         // called next.
         const chain = tableChain(matchAnalysesSelect);
-        chain.insert = () => ({
-          select: () => ({ single: async () => matchAnalysesInsert }),
-        });
+        chain.insert = (row: Record<string, unknown>) => {
+          insertedAnalysisRow = row;
+          return { select: () => ({ single: async () => matchAnalysesInsert }) };
+        };
         return chain;
       }
       throw new Error(`Unexpected table: ${table}`);
@@ -122,16 +125,28 @@ const PROGRAMME_FIT = {
   },
 };
 
+const PERSONAL_REPORT_RECORD = {
+  id: 'personal-v1',
+  inputHash: 'personal-input-hash',
+  reportV2: {
+    coreIdentity: { interpretation: 'Strong fit' },
+    drivingForce: { explanation: 'Purposeful direction' },
+  },
+};
+
 describe('POST /api/applications/[id]/match-insights', () => {
   const originalApiKey = process.env.OPENAI_API_KEY;
   beforeEach(() => {
+    vi.clearAllMocks();
+    insertedAnalysisRow = null;
     process.env.OPENAI_API_KEY = 'test-key';
   });
   afterEach(() => {
     process.env.OPENAI_API_KEY = originalApiKey;
   });
 
-  it('regenerates the Personal Report, tagged matching_report, after a successful Matching Report', async () => {
+  it('requires a completed Personal Report before generating a Matching Report and persists its lineage', async () => {
+    insertedAnalysisRow = null;
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.loadCandidateContext.mockResolvedValue({
       profile: { academic_background: 'Strong background' },
@@ -143,7 +158,7 @@ describe('POST /api/applications/[id]/match-insights', () => {
       evidence: [],
     });
     mocks.getLatestPersonalReportV2.mockResolvedValue({ record: null, migrationMissing: false });
-    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: null });
+    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: PERSONAL_REPORT_RECORD });
     mocks.analyzeCourseMatchInsights.mockResolvedValue({
       pillars: {},
       confidence: 'medium',
@@ -156,12 +171,96 @@ describe('POST /api/applications/[id]/match-insights', () => {
     const response = await POST(request(), context());
 
     expect(response.status).toBe(200);
-    expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(
-      expect.objectContaining({ userId: 'user-1', trigger: 'matching_report' }),
+    expect(mocks.regeneratePersonalReport.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.analyzeCourseMatchInsights.mock.invocationCallOrder[0],
+    );
+    expect(insertedAnalysisRow).toMatchObject({
+      source_personal_report_version_id: 'personal-v1',
+      source_personal_report_input_hash: 'personal-input-hash',
+    });
+  });
+
+  it('does not generate a Matching Report when Personal Report generation fails', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.loadCandidateContext.mockResolvedValue({
+      profile: { academic_background: 'Strong background' },
+      achievements: [],
+      activities: [],
+      englishTests: [],
+      standardizedTests: [],
+      documents: [],
+      evidence: [],
+    });
+    mocks.getLatestPersonalReportV2.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.regeneratePersonalReport.mockResolvedValue({
+      status: 'error',
+      message: 'model timeout',
+      record: null,
+    });
+    mocks.analyzeCourseMatchInsights.mockResolvedValue({
+      pillars: {},
+      confidence: 'medium',
+      inputsPresent: [],
+      programmeFit: PROGRAMME_FIT,
+    });
+    setupSupabase();
+
+    const { POST } = await importRoute();
+    const response = await POST(request(), context());
+    expect(response.status).toBe(502);
+    expect(mocks.analyzeCourseMatchInsights).not.toHaveBeenCalled();
+  });
+  it('persists the deterministic academic band and renormalized result, not the model label', async () => {
+    insertedAnalysisRow = null;
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.loadCandidateContext.mockResolvedValue({
+      profile: { academic_background: 'Strong background' },
+      achievements: [],
+      activities: [],
+      englishTests: [],
+      standardizedTests: [],
+      documents: [],
+      evidence: [],
+    });
+    mocks.getLatestPersonalReportV2.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: PERSONAL_REPORT_RECORD });
+    mocks.analyzeCourseMatchInsights.mockResolvedValue({
+      pillars: {},
+      confidence: 'medium',
+      inputsPresent: [],
+      programmeFit: {
+        ...PROGRAMME_FIT,
+        classification: 'safety',
+        dimensions: {
+          ...PROGRAMME_FIT.dimensions,
+          financialFeasibility: {
+            status: 'not_available',
+            score: null,
+            summary: 'No budget evidence.',
+            strengths: [],
+            gaps: ['Budget missing'],
+            evidence: [],
+            limitation: 'No budget evidence.',
+          },
+        },
+      },
+    });
+    setupSupabase();
+
+    const { POST } = await importRoute();
+    const response = await POST(request(), context());
+
+    expect(response.status).toBe(200);
+    const row = insertedAnalysisRow as Record<string, unknown> | null;
+    expect(row?.fit_classification).toBe('match');
+    expect(row?.fit_confidence).toBe(80);
+    expect(row?.fit_limitations).toEqual(
+      expect.arrayContaining([expect.stringContaining('financialFeasibility')]),
     );
   });
 
-  it('still returns the Matching Report even when the Personal Report refresh throws', async () => {
+  it('lets a deterministic hard eligibility failure override every model label', async () => {
+    insertedAnalysisRow = null;
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.loadCandidateContext.mockResolvedValue({
       profile: { academic_background: 'Strong background' },
@@ -173,20 +272,24 @@ describe('POST /api/applications/[id]/match-insights', () => {
       evidence: [],
     });
     mocks.getLatestPersonalReportV2.mockResolvedValue({ record: null, migrationMissing: false });
-    mocks.regeneratePersonalReport.mockRejectedValue(new Error('model timeout'));
+    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: PERSONAL_REPORT_RECORD });
     mocks.analyzeCourseMatchInsights.mockResolvedValue({
       pillars: {},
       confidence: 'medium',
       inputsPresent: [],
-      programmeFit: PROGRAMME_FIT,
+      programmeFit: {
+        ...PROGRAMME_FIT,
+        classification: 'safety',
+        eligibility: { ...PROGRAMME_FIT.eligibility, languageRequirement: 'not_met' },
+      },
     });
     setupSupabase();
 
     const { POST } = await importRoute();
     const response = await POST(request(), context());
-    const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body.ok).toBe(true);
+    const row = insertedAnalysisRow as Record<string, unknown> | null;
+    expect(row?.fit_classification).toBe('currently_ineligible');
   });
 });
