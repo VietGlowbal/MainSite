@@ -35,5 +35,17 @@ export async function listPlannerOpsAdmin() {
   const { data: rows } = await admin.from('application_planner_ops').select('application_id,lifecycle,generation_status,last_attempt_at,last_success_at,failure_code,ai_status,ai_model,source_fingerprint,plan_fingerprint').order('updated_at', { ascending: false }).limit(200);
   const ids = (rows ?? []).map((row) => row.application_id);
   const { data: applications } = ids.length ? await admin.from('course_applications').select('id,course_name,university_name,user_id').in('id', ids) : { data: [] };
-  return { rows: rows ?? [], applications: applications ?? [] };
+  const { data: feedback } = ids.length
+    ? await admin.from('application_planner_feedback').select('application_id,rating,reason').in('application_id', ids)
+    : { data: [] };
+  const negativeByApplication = new Map<string, number>();
+  for (const item of feedback ?? []) {
+    if ((typeof item.rating === 'number' && item.rating <= 2) || item.reason !== null) {
+      negativeByApplication.set(item.application_id, (negativeByApplication.get(item.application_id) ?? 0) + 1);
+    }
+  }
+  return {
+    rows: (rows ?? []).map((row) => ({ ...row, negative_feedback_count: negativeByApplication.get(row.application_id) ?? 0 })),
+    applications: applications ?? [],
+  };
 }

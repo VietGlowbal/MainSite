@@ -25,7 +25,10 @@ export async function refreshApplicationPlan(supabase: SupabaseClient, applicati
       await finishPlannerGeneration(admin, runId, { status: 'success', aiStatus: 'not_required' });
       return { refreshed: false, skipped: true, reason: 'current', runId };
     }
-    await upsertPlannerOps(admin, applicationId, { lifecycle: 'refreshing', source_fingerprint: fingerprint, plan_fingerprint: previousFingerprint, generation_status: 'running', last_attempt_at: new Date().toISOString(), failure_code: null });
+    const staleSince = existing?.plan && isPlannerStale(fingerprint, previousFingerprint)
+      ? new Date().toISOString()
+      : null;
+    await upsertPlannerOps(admin, applicationId, { lifecycle: 'refreshing', source_fingerprint: fingerprint, plan_fingerprint: previousFingerprint, stale_since: staleSince, generation_status: 'running', last_attempt_at: new Date().toISOString(), failure_code: null });
     let enrichment: { enriched: boolean; fallbackReason?: string } = { enriched: false };
     await syncApplicationPlan(admin, applicationId, userId, { onEnrichment: (result) => { enrichment = result; } });
     const updated = await getApplicationPlanner(admin, applicationId, userId);
