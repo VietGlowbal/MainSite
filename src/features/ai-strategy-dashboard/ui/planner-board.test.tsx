@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Recommendation } from '../domain';
 import { PlannerBoard } from './planner-board';
 
@@ -47,7 +47,35 @@ function dataTransferStub() {
   };
 }
 
+/**
+ * Viewport control for the board's two presentations — Part 5.2/5.3 dispatch
+ * on `useMediaQuery('(min-width: 768px)')` (see use-media-query.ts), which
+ * reads whatever this stub reports when its effect subscribes.
+ *
+ * PLAIN ASSIGNMENT ON PURPOSE: src/__tests__/setup.ts installed the stub with
+ * Object.defineProperty and left it non-configurable, so re-defining it would
+ * throw — overwriting the writable data property is the supported override.
+ */
+function setMatchMedia(matches: boolean) {
+  window.matchMedia = ((query: string) => ({
+    matches,
+    media: query,
+    onchange: null,
+    addListener: () => {}, // deprecated
+    removeListener: () => {}, // deprecated
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => true,
+  })) as unknown as typeof window.matchMedia;
+}
+
 describe('PlannerBoard', () => {
+  // Every characterization below this line describes the DESKTOP grid, so the
+  // file pins the media query wide; the mobile suite re-pins narrow per test.
+  // (The shared stub defaults to matches:false — narrow — which would
+  // otherwise flip these renders onto BoardMobile after mount.)
+  beforeEach(() => setMatchMedia(true));
+
   it('reports the dropped column through onStatusChange — the drag that has to reach the list too', () => {
     const onStatusChange = vi.fn();
     render(
@@ -140,5 +168,157 @@ describe('PlannerBoard', () => {
       'href',
       '/ai-strategy/app-9/strategy/recommendations/roadmap-1',
     );
+  });
+
+  // ── Part 5.2 + 5.3 — the deliberate narrow-viewport model (<768px):
+  // one active status column behind an accessible tab switcher, cards
+  // changeable without drag, nothing refetched on tab switches.
+
+  describe('mobile (narrow viewport)', () => {
+    it('renders a tablist of five statuses in board order, each with its count', () => {
+      setMatchMedia(false);
+      render(
+        <PlannerBoard
+          applicationId="app-1"
+          recommendations={[
+            rec(),
+            rec({ id: 'r2', title: 'Draft SOP outline', status: 'in_progress' }),
+            rec({ id: 'r3', title: 'Chase referee email', status: 'in_progress' }),
+          ]}
+          onStatusChange={vi.fn()}
+        />,
+      );
+
+      const tablist = screen.getByRole('tablist');
+      const tabs = within(tablist).getAllByRole('tab');
+      expect(tabs).toHaveLength(5);
+      expect(within(tablist).getByRole('tab', { name: 'To do (1)' })).toBeInTheDocument();
+      expect(within(tablist).getByRole('tab', { name: 'In progress (2)' })).toBeInTheDocument();
+      expect(within(tablist).getByRole('tab', { name: 'Review (0)' })).toBeInTheDocument();
+      expect(within(tablist).getByRole('tab', { name: 'Done (0)' })).toBeInTheDocument();
+      expect(within(tablist).getByRole('tab', { name: 'Blocked (0)' })).toBeInTheDocument();
+      expect(screen.getByRole('tabpanel')).toBeInTheDocument();
+    });
+
+    it('mounts only the active column’s cards — other statuses stay out of the DOM until selected', () => {
+      setMatchMedia(false);
+      render(
+        <PlannerBoard
+          applicationId="app-1"
+          recommendations={[
+            rec(),
+            rec({ id: 'r2', title: 'Draft SOP outline', status: 'in_progress' }),
+          ]}
+          onStatusChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText('Retake IELTS')).toBeInTheDocument();
+      expect(screen.queryByText('Draft SOP outline')).not.toBeInTheDocument();
+    });
+
+    it('switches columns from the tabs alone — no mutation fired for looking', () => {
+      setMatchMedia(false);
+      const onStatusChange = vi.fn();
+      render(
+        <PlannerBoard
+          applicationId="app-1"
+          recommendations={[
+            rec(),
+            rec({ id: 'r2', title: 'Draft SOP outline', status: 'in_progress' }),
+          ]}
+          onStatusChange={onStatusChange}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole('tab', { name: 'In progress (1)' }));
+
+      expect(screen.getByText('Draft SOP outline')).toBeInTheDocument();
+      expect(screen.queryByText('Retake IELTS')).not.toBeInTheDocument();
+      expect(screen.getByRole('tab', { name: 'In progress (1)' })).toHaveAttribute(
+        'aria-selected',
+        'true',
+      );
+      expect(screen.getByRole('tab', { name: 'To do (1)' })).toHaveAttribute(
+        'aria-selected',
+        'false',
+      );
+      expect(onStatusChange).not.toHaveBeenCalled();
+    });
+
+    it('changes a card’s status through the per-card select — the same onStatusChange drag uses', () => {
+      setMatchMedia(false);
+      const onStatusChange = vi.fn();
+      render(
+        <PlannerBoard
+          applicationId="app-1"
+          recommendations={[rec()]}
+          onStatusChange={onStatusChange}
+        />,
+      );
+
+      const select = screen.getByLabelText('Change status — Retake IELTS');
+      expect(select).toHaveValue('not_started');
+      fireEvent.change(select, { target: { value: 'needs_review' } });
+
+      expect(onStatusChange).toHaveBeenCalledTimes(1);
+      expect(onStatusChange).toHaveBeenCalledWith('r1', 'needs_review');
+    });
+
+    it('keeps a compact empty note when the active status has no tasks', () => {
+      setMatchMedia(false);
+      render(
+        <PlannerBoard
+          applicationId="app-1"
+          recommendations={[rec({ status: 'completed', title: 'Already filed' })]}
+          onStatusChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.getByText('Nothing here yet')).toBeInTheDocument();
+      expect(screen.queryByText('Already filed')).not.toBeInTheDocument();
+    });
+
+    it('still links a roadmap-generated task to its detail page from the mobile panel', () => {
+      setMatchMedia(false);
+      render(
+        <PlannerBoard
+          applicationId="app-9"
+          recommendations={[
+            rec({
+              id: 'roadmap-1',
+              category: 'strategy-roadmap',
+              title: 'Request official transcripts',
+            }),
+          ]}
+          onStatusChange={vi.fn()}
+        />,
+      );
+
+      const card = screen.getByText('Request official transcripts').closest('article')!;
+      const link = card.querySelector('a');
+      expect(link).not.toBeNull();
+      expect(link).toHaveAttribute(
+        'href',
+        '/ai-strategy/app-9/strategy/recommendations/roadmap-1',
+      );
+    });
+  });
+
+  describe('desktop (wide viewport)', () => {
+    it('keeps the five-section grid and mounts no tab switcher', () => {
+      render(
+        <PlannerBoard
+          applicationId="app-1"
+          recommendations={[rec()]}
+          onStatusChange={vi.fn()}
+        />,
+      );
+
+      expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+      for (const label of ['To do', 'In progress', 'Review', 'Done', 'Blocked']) {
+        expect(screen.getByText(label).closest('section')).not.toBeNull();
+      }
+    });
   });
 });

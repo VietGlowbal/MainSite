@@ -41,4 +41,19 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'We could not initialize your Planner. Please try again shortly.': 'Không thể khởi tạo kế hoạch của bạn. Vui lòng thử lại sau ít phút.',
   'Select an option': 'Chọn một lựa chọn',
   'You&apos;ve completed the current plan. We&apos;ll update it if your application information changes.': 'Bạn đã hoàn thành kế hoạch hiện tại. Chúng tôi sẽ cập nhật nếu thông tin hồ sơ thay đổi.',
+
+  // Board mobile (Part 5.2–5.3)
+  'Task statuses': 'Trạng thái nhiệm vụ',
+  'Change status — {title}': 'Đổi trạng thái — {title}',
+  'Nothing here yet': 'Chưa có gì ở đây',
+
+  // Calendar mobile (Part 5.4)
+  'Day agenda': 'Lịch theo ngày',
+  '{count} task': '{count} nhiệm vụ',
+  '{count} tasks': '{count} nhiệm vụ',
+  'No tasks': 'Không có nhiệm vụ',
+  'No tasks on this day': 'Không có nhiệm vụ trong ngày này',
+  'Show unscheduled ({count})': 'Hiện phần chưa lên lịch ({count})',
+  'Hide unscheduled': 'Ẩn phần chưa lên lịch',
+  'Tip: you can also set or clear deadlines from the List view.': 'Mẹo: bạn cũng có thể đặt hoặc xoá hạn hoàn thành ở chế độ Danh sách.',
 };
