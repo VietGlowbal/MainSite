@@ -339,7 +339,7 @@ and evidence. AI planning provenance (`provider`, `model`, prompt/enrichment
 version, timestamp, source decisions) is stored alongside—never instead of—the
 factual source provenance in the existing hierarchy JSONB metadata. Provider or
 validation failure persists the deterministic scaffold. On page load the
-server compares the current deterministic Core 1 `contextHash` with the source
+server compares the current deterministic Planner Ops source fingerprint with the source
 fingerprint in the persisted plan ID; equal fingerprints make no AI call,
 while changed source facts reconcile and enrich once. Normal execution
 status/deadline updates do not affect that fingerprint and never call AI.
