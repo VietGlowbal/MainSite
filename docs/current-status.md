@@ -2,6 +2,32 @@
 
 Last reconciled: **2026-08-15 (Asia/Bangkok)**
 
+Wave 1 of `docs/plans/2026-08-23-feature-2-parts-5-9-execution-v2.md`
+complete 2026-08-23 (commits `def840f`, `9d9f6d9`, `afa726f`, `947c7aa`,
+`ec9a5f6`). Part 5.2–5.4: board and calendar are now dispatcher components —
+desktop trees byte-identical, narrow viewports get `BoardMobile` (ARIA tablist
+with per-status counts, one mounted tabpanel, per-card `<select>` through the
+same `onStatusChange`) and a compact calendar grid with a tap-selected day
+agenda plus an unscheduled tray whose drop handlers survive behind a
+disclosure. New `ui/use-media-query.ts` uses `useSyncExternalStore` with a
+desktop server snapshot so hydration never mismatches; the shared matchMedia
+test stub resolves width queries against jsdom's real 1024×768 viewport and
+exposes per-query overrides. Part 5.5–5.8: pure reminder policy in
+`src/lib/email/planner-reminders.ts` (user-local Intl calendar math anchored
+at UTC midnight, authority gate before parsing, ISO-8601 week keys, throwing
+event-key builders), wired into `/api/cron/lifecycle-emails` as two batched ≤200
+processors with per-item try/catch — deadline reminders (30/7/1-day +
+same-day, terminal application statuses excluded) and the weekly strategy
+digest over canonical micro-steps only (completed excluded, empty weeks never
+mail). `weeklyStrategyDigestEmail` added to lifecycle templates;
+`deadlineReminderEmail` says Deadline-today for daysRemaining 0. 11 new VI
+entries in `PLANNER_TRANSLATIONS`. Measured gates: feature suite 39 files /
+384 tests, email + cron suites 42 tests, repo-wide typecheck and
+typecheck:strict clean, eslint clean on all changed files, `check-i18n --all`
+green (0 missing / 0 mismatch / 0 dynamic gaps). Still open in this wave:
+Task 5.9 full regression including `npm run build`; hierarchical planner
+mobile pattern deferred to a second pass.
+
 Merge 2026-08-23 (latest): merged `origin/main` (4 incoming commits) into local
 `main`, which had diverged 3/4. The big incoming commit is PR #216 — an
 independent implementation of the same Feature-2 surface our Parts 0–4 work
