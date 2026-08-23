@@ -129,7 +129,12 @@ export const fitDimensionKeySchema = z.enum([
 export const fitDimensionSchema = z
   .object({
     status: z.enum(['assessed', 'limited', 'not_available']),
-    score: z.number().int().min(1).max(5).nullable(),
+    /**
+     * 1-5. Fractional values are allowed on purpose: the Matching Report
+     * renders these as percentages, and five integers can only ever produce
+     * multiples of 20. See `fitScoreToPercent` in the shared engine.
+     */
+    score: z.number().min(1).max(5).nullable(),
     summary: z.string().min(1).max(800),
     strengths: z.array(z.string().min(1).max(300)).max(5),
     gaps: z.array(z.string().min(1).max(300)).max(5),
@@ -164,6 +169,7 @@ export const eligibilitySchema = z.object({
 export const programmeFitSchema = z.object({
   classification: z.enum([
     'safety',
+    'strong_match',
     'match',
     'reach',
     'currently_ineligible',
@@ -241,6 +247,22 @@ export type MatchingReportPageData = MatchingApplicationSummary & {
   }>;
 };
 
+/**
+ * The Reach/Match/Safety band is decided by hard eligibility and the academic
+ * dimension ALONE. A model may propose a classification; this function
+ * overrules it, so a well-aligned but academically-short applicant can never be
+ * told they are a "Match" because their values fit nicely.
+ *
+ * `strong_match` sits between match and safety: comfortably inside the
+ * programme's range without being clearly above it. Thresholds are evenly
+ * spaced across the 1-5 rubric and preserve the previous integer behaviour
+ * (5 safety, 3 match, 2 and below reach); the one change is that 4 is now
+ * `strong_match` where it used to fall into `match`.
+ *
+ * Mirrors `classify()` in `src/shared/evaluation/f5-programme-fit.ts`, which
+ * does the same job for the deterministic engine. The two must not diverge —
+ * see the contract test in ai-reports.test.ts.
+ */
 export function enforceFitClassification(fit: ProgrammeFit): ProgrammeFit {
   const hardFilters = Object.values(fit.eligibility);
   if (hardFilters.includes('not_met')) {
@@ -252,7 +274,15 @@ export function enforceFitClassification(fit: ProgrammeFit): ProgrammeFit {
   ) {
     return { ...fit, classification: 'insufficient_data' };
   }
-  const academicScore = fit.dimensions.academicCompetitiveness.score;
-  const classification = academicScore >= 5 ? 'safety' : academicScore >= 3 ? 'match' : 'reach';
-  return { ...fit, classification };
+  return { ...fit, classification: academicBandClassification(fit.dimensions.academicCompetitiveness.score) };
+}
+
+/** The score-to-band thresholds, exported so the report UI and tests share one source. */
+export function academicBandClassification(
+  academicScore: number,
+): 'safety' | 'strong_match' | 'match' | 'reach' {
+  if (academicScore >= 4.5) return 'safety';
+  if (academicScore >= 3.5) return 'strong_match';
+  if (academicScore >= 2.5) return 'match';
+  return 'reach';
 }

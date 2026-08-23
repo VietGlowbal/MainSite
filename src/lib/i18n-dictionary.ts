@@ -5649,4 +5649,10 @@ export const translations: Record<string, string> = {
   "Search and compare 100+ accredited universities across UK, US, Australia, Singapore, and more. Filter by location, tuition fees, and admission criteria.": "Tìm kiếm và so sánh 100+ trường đại học được kiểm định tại Anh, Mỹ, Úc, Singapore và nhiều nơi khác. Lọc theo địa điểm, học phí và tiêu chí tuyển sinh.",
   "Explore Global Universities | GlowBal": "Khám phá các trường đại học toàn cầu | GlowBal",
   "Search and compare 100+ accredited global universities. Filter by location, tuition fees, and admission criteria.": "Tìm kiếm và so sánh 100+ trường đại học toàn cầu. Lọc theo địa điểm, học phí và tiêu chí tuyển sinh.",
+
+  // Workspace status labels (features/application-strategy/domain/status.ts).
+  // These had no Vietnamese entry; the gap only became visible to the checker
+  // once the Final Check route widened the scanned route graph.
+  "Needs attention": "Cần chú ý",
+  "Ready for audit": "Sẵn sàng rà soát",
 };

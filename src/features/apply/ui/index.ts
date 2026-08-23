@@ -49,3 +49,5 @@ export {
   ReflectionCardLoading,
   ReflectionCardView,
 } from './reflection-card-view';
+
+export { FinalCheckView } from './final-check-view';

@@ -245,3 +245,26 @@ export type {
   PlannerStep,
 } from './planner-read-model';
 export type { PlannerMicroStepExecutionPatch, PlannerMicroStepExecutionState } from './planner-micro-step-execution';
+
+export {
+  DIRECTION_DIMENSIONS,
+  DIRECTION_DIMENSION_LABELS,
+  PRIORITY_LEVEL_LABELS,
+  biggestChallenge,
+  chosenDiffersFromTopScore,
+  chosenOption,
+  developmentStrategies,
+  keyStrength,
+  rankedDirections,
+  strategicOverview,
+  strategicPriorities,
+} from './strategy-report-presentation';
+export type {
+  DevelopmentStrategies,
+  DimensionReading,
+  DirectionDimension,
+  PriorityLevel,
+  RankedDirection,
+  StrategicOverview,
+  StrategicPriorityRow,
+} from './strategy-report-presentation';

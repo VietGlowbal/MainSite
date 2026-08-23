@@ -45,7 +45,18 @@ describe('aiStrategyApplicationNav', () => {
       candidateConfirmed: true,
     });
     expect(items.find((item) => item.key === 'scholarships')?.locked).toBe(true);
-    expect(items.find((item) => item.key === 'finalCheck')?.locked).toBe(true);
+  });
+
+  it('exposes Final Check, which is implemented and gates itself on the page', () => {
+    const items = aiStrategyApplicationNav('app-123', {
+      analysisReady: true,
+      strategyReady: true,
+      plannerReady: true,
+      candidateConfirmed: true,
+    });
+    const finalCheck = items.find((item) => item.key === 'finalCheck');
+    expect(finalCheck?.locked).toBeUndefined();
+    expect(finalCheck?.href).toBe('/ai-strategy/app-123/final-check');
   });
 
   it('recognises canonical and legacy redirected paths for active-state compatibility', () => {

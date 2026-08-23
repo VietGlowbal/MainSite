@@ -265,3 +265,65 @@ export type {
   SignaturePatternSupportItem,
   ThemeChartItem,
 } from './personal-report-analytics';
+
+export { academicBandClassification } from './ai-reports';
+
+export {
+  CLASSIFICATION_META,
+  DIMENSION_META,
+  DIMENSION_ORDER,
+  MATCH_SCORE_DISCLAIMER,
+  alignmentLevel,
+  eligibilityRows,
+  fitRows,
+  matchSummary,
+  overallMatchPercent,
+  readinessPercent,
+  tieredGaps,
+} from './matching-report-presentation';
+export type {
+  AlignmentLevel,
+  ClassificationTone,
+  DimensionKey,
+  EligibilityRow,
+  FitRow,
+  GapEntry,
+  GapTier,
+  MatchSummary,
+} from './matching-report-presentation';
+
+export {
+  ACTION_TIER_LABELS,
+  ACTION_TIER_MEANINGS,
+  COMPONENT_KEYS,
+  COMPONENT_LABELS,
+  COMPONENT_WEIGHTS,
+  CONSISTENCY_CHECK_KEYS,
+  CONSISTENCY_CHECK_LABELS,
+  CRITICAL_ACTION_PENALTY,
+  MAX_CRITICAL_PENALTY,
+  READINESS_DISCLAIMER,
+  READINESS_STATE_LABELS,
+  canRunFinalCheck,
+  computeReadiness,
+  finalCheckGenerationSchema,
+  orderedReviews,
+  parseFinalCheckRow,
+  readinessState,
+  unsupportedPillars,
+} from './final-check';
+export type {
+  ActionTier,
+  ComponentKey,
+  ComponentState,
+  ComponentStatus,
+  ConsistencyCheck,
+  ConsistencyCheckKey,
+  DocumentReview,
+  FinalCheckGeneration,
+  FinalCheckRecord,
+  NarrativeAudit,
+  NarrativePillar,
+  Readiness,
+  ReadinessState,
+} from './final-check';
