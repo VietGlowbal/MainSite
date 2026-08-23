@@ -2,6 +2,29 @@
 
 Last reconciled: **2026-08-15 (Asia/Bangkok)**
 
+Wave 2 of `docs/plans/2026-08-23-feature-2-parts-5-9-execution-v2.md`
+(Part 6 GenUI) complete 2026-08-23 (commits `d7fccee`, `f5f0112`).
+`contentBlockSchema` variants now accept an optional `v` literal — only
+absent (legacy v1) or `1` parses; anything else degrades to `null` on
+read-back with no migration and no generator change, and student
+`content_value` stays unversioned. The degradation tests became a full
+fixture matrix (29 block + 13 value rows), and three ownership-proof
+tests pin reconcile: unchanged `domain_node_id` ⇒ same-row update,
+micro-step writes carry generated keys only (exact key-set assertion),
+checklist user progress survives regeneration. UI side:
+`ui/content-blocks/registry.ts` is an exhaustive block-input map behind a
+thin dispatcher — adding a variant without an input is a compile error;
+null/unknown blocks land on an honest FallbackBlock. structured_table
+renders card-per-row below 768px with the desktop table untouched,
+long_text wires its hint via aria-describedby, the checklist is
+regeneration-safe, single_select still saves by value with semanticKey
+never in the DOM. Measured gates: feature suite 39 files / **434 tests**
+(+50 vs Wave 1), typecheck + typecheck:strict clean, eslint clean on all
+changed files, `check-i18n --all` green. Still open in Part 6: §6.10
+verify against a real F8 generation (generate → Add-to-Planner → sync ×2
+no duplication → one broken block does not sink the page → mobile
+complete), which needs a dev server.
+
 Wave 1 of `docs/plans/2026-08-23-feature-2-parts-5-9-execution-v2.md`
 complete 2026-08-23 (commits `def840f`, `9d9f6d9`, `afa726f`, `947c7aa`,
 `ec9a5f6`). Part 5.2–5.4: board and calendar are now dispatcher components —
