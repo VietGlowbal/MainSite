@@ -56,4 +56,13 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'Show unscheduled ({count})': 'Hiện phần chưa lên lịch ({count})',
   'Hide unscheduled': 'Ẩn phần chưa lên lịch',
   'Tip: you can also set or clear deadlines from the List view.': 'Mẹo: bạn cũng có thể đặt hoặc xoá hạn hoàn thành ở chế độ Danh sách.',
+
+  // GenUI content blocks (Part 6)
+  '1 word': '1 từ',
+  '{count} words': '{count} từ',
+  'aim for at least {min}': 'nên đạt ít nhất {min} từ',
+  'Remove row {n}': 'Xoá dòng {n}',
+  'Row {n}': 'Dòng {n}',
+  'This task has no editable form right now.': 'Nhiệm vụ này hiện chưa có biểu mẫu để điền.',
+  'Your saved progress is kept.': 'Tiến độ bạn đã lưu vẫn được giữ nguyên.',
 };
