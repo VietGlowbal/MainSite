@@ -1,4 +1,10 @@
 import { z } from 'zod';
+// One implementation of the F5 weights + match-percentage formula, shared with
+// the deterministic evaluation module — the plan's "one helper and one formula
+// everywhere" invariant. features → shared is the allowed FSD direction.
+import { fitScoreToPercent } from '@/shared/evaluation/f5-programme-fit';
+
+export { fitScoreToPercent };
 
 /**
  * ⚠️ v1 Personal Report (`personal-report-v1-vi`) IS DEPRECATED.
@@ -129,7 +135,7 @@ export const fitDimensionKeySchema = z.enum([
 export const fitDimensionSchema = z
   .object({
     status: z.enum(['assessed', 'limited', 'not_available']),
-    score: z.number().int().min(1).max(5).nullable(),
+    score: z.number().min(1).max(5).nullable(),
     summary: z.string().min(1).max(800),
     strengths: z.array(z.string().min(1).max(300)).max(5),
     gaps: z.array(z.string().min(1).max(300)).max(5),
@@ -164,6 +170,7 @@ export const eligibilitySchema = z.object({
 export const programmeFitSchema = z.object({
   classification: z.enum([
     'safety',
+    'strong_match',
     'match',
     'reach',
     'currently_ineligible',
@@ -183,6 +190,9 @@ export const programmeFitSchema = z.object({
 
 export type ProgrammeFit = z.infer<typeof programmeFitSchema>;
 
+// `F5_DIMENSION_WEIGHTS` and `fitScoreToPercent` live once, in
+// `@/shared/evaluation/f5-programme-fit` (re-exported at the top of this file).
+
 export type MatchingAnalysisView = {
   fit: ProgrammeFit;
   createdAt: string;
@@ -190,6 +200,8 @@ export type MatchingAnalysisView = {
   inputHash: string | null;
   strengths: string[];
   weaknesses: string[];
+  /** AI-synthesised narrative sections; null until generated or when validation dropped it. */
+  narrative: MatchingReportNarrative | null;
 };
 
 export type MatchingApplicationSummary = {
@@ -252,7 +264,83 @@ export function enforceFitClassification(fit: ProgrammeFit): ProgrammeFit {
   ) {
     return { ...fit, classification: 'insufficient_data' };
   }
+
   const academicScore = fit.dimensions.academicCompetitiveness.score;
-  const classification = academicScore >= 5 ? 'safety' : academicScore >= 3 ? 'match' : 'reach';
+  let classification: ProgrammeFit['classification'];
+  if (academicScore >= 4.5) {
+    classification = 'safety';
+  } else if (academicScore >= 3.5) {
+    classification = 'strong_match';
+  } else if (academicScore >= 2.5) {
+    classification = 'match';
+  } else {
+    classification = 'reach';
+  }
+
   return { ...fit, classification };
 }
+
+/**
+ * AI-synthesised narrative for the six canonical Matching Report sections
+ * (`docs/strategy-reports-spec.md`). Deliberately carries NO scores and NO
+ * classification — those are deterministic (fit_* columns) and the AI is
+ * stripped of them before this object is validated.
+ *
+ * Every top-level field is optional so a partially-valid response degrades a
+ * section instead of dropping the whole report: the deterministic sections
+ * always render, whatever happens here. A malformed field fails Zod and is
+ * omitted at write time — never defaulted to invented content.
+ */
+export const matchingReportNarrativeSchema = z.object({
+  /** Section 1 — Overall Match Summary's fit statement ("…level of alignment because…"). */
+  fitStatement: z.string().min(1).max(800).optional(),
+  /** Section 1 — two to three strongest alignments: aspect → evidence → interpretation. */
+  topAlignments: z
+    .array(
+      z.object({
+        aspect: z.string().min(1).max(200),
+        evidence: z.string().min(1).max(500),
+        interpretation: z.string().min(1).max(500),
+      }),
+    )
+    .min(2)
+    .max(3)
+    .optional(),
+  /** Section 4 — up to three critical gaps with an honest impact rating. */
+  criticalGaps: z
+    .array(
+      z.object({
+        gap: z.string().min(1).max(300),
+        evidence: z.string().min(1).max(400),
+        whyItMatters: z.string().min(1).max(400),
+        impactLevel: z.number().int().min(1).max(5),
+        suggestedDirection: z.string().min(1).max(400),
+      }),
+    )
+    .max(3)
+    .optional(),
+  /** Section 4 — not required, but would raise competitiveness. */
+  competitiveGaps: z.array(z.string().min(1).max(300)).max(5).optional(),
+  /** Section 4 — fragmentation / lack of focus style risks. */
+  hiddenRisks: z.array(z.string().min(1).max(300)).max(5).optional(),
+  /** Section 5 — four canonical admissions-perspective blocks. */
+  admissionsPerspective: z
+    .object({
+      firstImpression: z.string().min(1).max(600),
+      strengthens: z.array(z.string().min(1).max(300)).max(5),
+      questions: z.array(z.string().min(1).max(300)).max(5),
+      desiredAdditions: z.array(z.string().min(1).max(300)).max(5),
+    })
+    .optional(),
+  /** Section 6 — conclusion + biggest strength/opportunity; the CTA itself is UI-owned. */
+  finalRecommendation: z
+    .object({
+      conclusion: z.string().min(1).max(600),
+      biggestStrength: z.string().min(1).max(300),
+      biggestOpportunity: z.string().min(1).max(300),
+    })
+    .optional(),
+});
+
+export type MatchingReportNarrative = z.infer<typeof matchingReportNarrativeSchema>;
+

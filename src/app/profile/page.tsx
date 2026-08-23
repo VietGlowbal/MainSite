@@ -1,13 +1,20 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getMentorSummary } from '@/lib/mentor-status';
+import { resolveApplicationReturn } from './_application-return';
 import { ProfileClient } from './profile-client';
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams?: Promise<{ return?: string }>;
+}) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) redirect('/auth');
+
+  const { return: returnParam } = (await searchParams) ?? {};
 
   const [
     profileResult,
@@ -17,6 +24,7 @@ export default async function ProfilePage() {
     workCountResult,
     englishCountResult,
     standardizedCountResult,
+    { returnTo, applicationLabel },
   ] = await Promise.all([
     supabase
       .from('student_profiles')
@@ -40,6 +48,7 @@ export default async function ProfilePage() {
     supabase.from('work_experiences').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('english_test_scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
     supabase.from('standardized_test_scores').select('id', { count: 'exact', head: true }).eq('user_id', user.id),
+    resolveApplicationReturn(supabase, user.id, returnParam),
   ]);
 
   const profile = profileResult.data;
@@ -72,6 +81,8 @@ export default async function ProfilePage() {
         isMentor={!!mentorSummary}
         plusStatus={!!profile?.plus_status}
         plusPlan={profile?.plus_plan ?? null}
+        returnTo={returnTo}
+        applicationLabel={applicationLabel}
       />
     </main>
   );

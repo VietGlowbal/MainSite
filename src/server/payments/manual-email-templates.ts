@@ -112,32 +112,26 @@ export function renderManualOutcomeEmail(input: {
   }
 
   const communityUrl = 'https://zalo.me/g/ggrpc483k4joxoev6dat';
-  const qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=https%3A%2F%2Fzalo.me%2Fg%2Fggrpc483k4joxoev6dat';
+  const qrUrl = 'https://glowbal-education.com/brand/zalo-community-qr.png';
 
   return {
     subject: `GlowBal — Xác nhận thanh toán thành công (${input.reference})`,
-    html: `<div style="font-family:Arial,sans-serif;color:#171717;line-height:1.6;max-width:600px;margin:0 auto;padding:24px;border:1px solid #e2e8f0;border-radius:12px;background:#ffffff">
-  <div style="margin-bottom:20px">
-    <strong style="color:#e11d48;font-size:18px;letter-spacing:0.5px">GLOWBAL EDUCATION</strong>
+    html: `<div style="font-family:Arial,Helvetica,sans-serif;color:#171717;line-height:1.6;max-width:650px;margin:0 auto;padding:24px 16px;background:#ffffff">
+  <p style="margin:0 0 16px;font-size:15px;color:#171717">Xin chào ${name},</p>
+  <p style="margin:0 0 16px;font-size:15px;color:#171717">GlowBal xác nhận <strong>bạn đã thanh toán thành công gói ${product}</strong>. Cảm ơn bạn đã tin tưởng và lựa chọn đồng hành cùng GlowBal trên hành trình chinh phục những cơ hội học tập toàn cầu.</p>
+  <p style="margin:0 0 16px;font-size:15px;color:#171717">Từ hôm nay, bạn đã chính thức trở thành một phần của <strong>GlowBal Community</strong> nơi bạn có thể kết nối với những bạn trẻ cùng mục tiêu, cập nhật cơ hội học bổng, chia sẻ kinh nghiệm du học và học hỏi từ các Achiever/Mentor trong cộng đồng.</p>
+  <p style="margin:0 0 8px;font-size:15px;color:#171717">👉 <strong>Tham gia GlowBal Community:</strong> [<a href="${communityUrl}" style="color:#2563eb;text-decoration:underline" target="_blank" rel="noopener noreferrer">${communityUrl}</a>]</p>
+  <p style="margin:0 0 12px;font-size:15px;color:#171717">📱 <strong>QR tham gia cộng đồng:</strong></p>
+  <div style="margin:0 0 20px">
+    <img src="${qrUrl}" alt="QR tham gia cộng đồng" width="180" height="180" style="display:block;border-radius:4px" />
   </div>
-  <p style="font-size:15px;margin-bottom:16px">Xin chào <strong>${name}</strong>,</p>
-  <p style="font-size:15px;margin-bottom:16px">GlowBal xác nhận bạn đã thanh toán thành công gói <strong>${product}</strong>. Cảm ơn bạn đã tin tưởng và lựa chọn đồng hành cùng GlowBal trên hành trình chinh phục những cơ hội học tập toàn cầu.</p>
-  <p style="font-size:15px;margin-bottom:16px">Từ hôm nay, bạn đã chính thức trở thành một phần của <strong>GlowBal Community</strong> nơi bạn có thể kết nối với những bạn trẻ cùng mục tiêu, cập nhật cơ hội học bổng, chia sẻ kinh nghiệm du học và học hỏi từ các Achiever/Mentor trong cộng đồng.</p>
-  <p style="font-size:15px;margin-bottom:12px">Tham gia GlowBal Community: <a href="${communityUrl}" style="color:#2563eb;text-decoration:underline;font-weight:600" target="_blank" rel="noopener noreferrer">${communityUrl}</a></p>
-  <p style="font-size:15px;margin-bottom:8px">QR tham gia cộng đồng:</p>
-  <div style="margin:12px 0 20px">
-    <img src="${qrUrl}" alt="QR tham gia cộng đồng" width="180" height="180" style="display:block;border-radius:8px;border:1px solid #cbd5e1" />
-  </div>
-  <p style="font-size:15px;margin-bottom:20px">Hy vọng GlowBal sẽ trở thành người bạn đồng hành hữu ích, giúp bạn tự tin hơn trong từng bước chuẩn bị hồ sơ và tiến gần hơn đến ngôi trường mơ ước.</p>
-  <p style="font-size:16px;font-weight:bold;color:#e11d48;letter-spacing:1px;margin:24px 0 20px">GO GLOW – GO GLOBAL</p>
-  <div style="border-top:1px solid #e2e8f0;padding-top:20px;font-size:14px;color:#334155;line-height:1.6">
+  <p style="margin:0 0 16px;font-size:15px;color:#171717">Hy vọng GlowBal sẽ trở thành người bạn đồng hành hữu ích, giúp bạn tự tin hơn trong từng bước chuẩn bị hồ sơ và tiến gần hơn đến ngôi trường mơ ước.</p>
+  <p style="margin:0 0 20px;font-size:15px;font-weight:bold;color:#171717">GO GLOW – GO GLOBAL ✈️🌍</p>
+  <div style="font-size:14px;color:#171717;line-height:1.6">
     <p style="margin:0 0 4px">Trân trọng,</p>
-    <p style="margin:0 0 8px;font-weight:bold;color:#0f172a">GLOWBAL EDUCATION</p>
-    <p style="margin:0 0 4px">Email: <a href="mailto:glowbal.edu@gmail.com" style="color:#2563eb;text-decoration:none">glowbal.edu@gmail.com</a></p>
-    <p style="margin:0">Website: <a href="https://glowbal-education.com" style="color:#2563eb;text-decoration:none" target="_blank" rel="noopener noreferrer">GlowBal Education</a></p>
-  </div>
-  <div style="margin-top:24px;padding-top:12px;border-top:1px dashed #cbd5e1;font-size:12px;color:#64748b">
-    Mã giao dịch: <code>${reference}</code> · <a href="${statusUrl}" style="color:#64748b;text-decoration:underline">Xem chi tiết trạng thái</a>
+    <p style="margin:0 0 6px;font-weight:bold">GLOWBAL EDUCATION</p>
+    <p style="margin:0 0 4px">✉️ Email: <a href="mailto:glowbal.edu@gmail.com" style="color:#2563eb;text-decoration:none">glowbal.edu@gmail.com</a></p>
+    <p style="margin:0">🌐 Website: <a href="https://glowbal-education.com" style="color:#2563eb;text-decoration:none" target="_blank" rel="noopener noreferrer">GlowBal Education</a></p>
   </div>
 </div>`,
     text: `Xin chào ${input.recipientName},
@@ -146,20 +140,16 @@ GlowBal xác nhận bạn đã thanh toán thành công gói ${input.productLabe
 
 Từ hôm nay, bạn đã chính thức trở thành một phần của GlowBal Community nơi bạn có thể kết nối với những bạn trẻ cùng mục tiêu, cập nhật cơ hội học bổng, chia sẻ kinh nghiệm du học và học hỏi từ các Achiever/Mentor trong cộng đồng.
 
-Tham gia GlowBal Community: ${communityUrl}
-QR tham gia cộng đồng: ${communityUrl}
+👉 Tham gia GlowBal Community: [${communityUrl}]
+📱 QR tham gia cộng đồng:
 
 Hy vọng GlowBal sẽ trở thành người bạn đồng hành hữu ích, giúp bạn tự tin hơn trong từng bước chuẩn bị hồ sơ và tiến gần hơn đến ngôi trường mơ ước.
 
-GO GLOW – GO GLOBAL
+GO GLOW – GO GLOBAL ✈️🌍
 
 Trân trọng,
 GLOWBAL EDUCATION
-Email: glowbal.edu@gmail.com
-Website: GlowBal Education
-
----
-Mã giao dịch: ${input.reference}
-Chi tiết: ${input.statusUrl}`,
+✉️ Email: glowbal.edu@gmail.com
+🌐 Website: GlowBal Education`,
   };
 }

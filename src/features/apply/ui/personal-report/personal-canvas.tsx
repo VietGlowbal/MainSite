@@ -118,7 +118,7 @@ function CanvasCell({
       aria-pressed={active}
       onClick={() => onSelect(section)}
       className={[
-        'group relative flex min-h-[13.75rem] flex-col overflow-hidden rounded-[1.75rem]',
+        'group relative flex min-h-[13.75rem] flex-col overflow-hidden rounded-gb-2xl',
         'border border-white/15 bg-brand px-gb-xl py-gb-xl text-white shadow-md',
         'transition duration-300 ease-out hover:-translate-y-1 hover:scale-[1.008] hover:shadow-xl',
         'focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand',
@@ -183,7 +183,7 @@ export function PersonalCanvasView({
           aria-pressed={activeSection === 'coreIdentity'}
           onClick={() => onSelect('coreIdentity')}
           className={[
-            'rounded-[1.5rem] border border-white/15 bg-brand px-gb-xl py-gb-lg text-left text-white shadow-md',
+            'rounded-gb-xl border border-white/15 bg-brand px-gb-xl py-gb-lg text-left text-white shadow-md',
             'transition duration-300 ease-out hover:-translate-y-0.5 hover:shadow-lg',
             activeSection === 'coreIdentity'
               ? 'ring-[3px] ring-white ring-offset-[4px] ring-offset-surface'
@@ -251,7 +251,7 @@ export function PersonalCanvasView({
       </div>
 
       {/* Desktop Personal Canvas: quadrant + overlapping central-circle geometry. */}
-      <div className="mx-auto hidden w-full max-w-[62rem] rounded-[2rem] border border-brand/10 bg-brand/5 p-gb-md shadow-sm md:block">
+      <div className="mx-auto hidden w-full max-w-[62rem] rounded-gb-2xl border border-brand/10 bg-brand/5 p-gb-md shadow-sm md:block">
         <div className="relative grid grid-cols-2 grid-rows-2 gap-gb-md">
           <CanvasCell
             section="drivingForces"

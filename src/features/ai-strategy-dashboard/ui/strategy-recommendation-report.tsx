@@ -4,7 +4,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type { DirectionOption, PortfolioOpportunity, StrategyRecommendationRecord } from '../domain';
 import { ReportPanel, ReportTabs, useReportTabs } from './report-chrome';
-import { useLanguage } from '@/lib/i18n';
+import { useLanguage, type Lang } from '@/lib/i18n';
+import { formatUiDate } from '@/shared/lib';
 import { Badge, Button, Panel, ScoreRing, type BadgeVariant } from '@/shared/ui';
 import { usePlusStatus } from '@/features/plus/hooks/use-plus-status';
 import type { ReactNode } from 'react';
@@ -128,7 +129,7 @@ export function StrategyRecommendationReport({
   recommendation: StrategyRecommendationRecord;
   initialPlus?: boolean;
 }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { active, setActive } = useReportTabs(TABS);
   const { isPlus, loading } = usePlusStatus(initialPlus);
 
@@ -139,7 +140,7 @@ export function StrategyRecommendationReport({
           <h1 className="font-display text-gb-display-sm font-semibold text-fg">
             {t('Your Personalized Strategy')}
           </h1>
-          <p className="text-gb-sm text-fg-tertiary">{formatDate(recommendation.createdAt)}</p>
+          <p className="text-gb-sm text-fg-tertiary">{formatDate(recommendation.createdAt, lang)}</p>
         </div>
         <DownloadPdfButton applicationId={applicationId} />
       </header>
@@ -484,8 +485,8 @@ function DownloadPdfButton({ applicationId }: { applicationId: string }) {
   );
 }
 
-function formatDate(iso: string): string {
+function formatDate(iso: string, lang: Lang): string {
   const date = new Date(iso);
   if (Number.isNaN(date.getTime())) return '';
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+  return formatUiDate(date, lang, { day: 'numeric', month: 'long', year: 'numeric' });
 }

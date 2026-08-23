@@ -199,17 +199,96 @@ describe('activeSubNavKey', () => {
 });
 
 describe('applicationIdFromPath', () => {
-  it('reads the id from both subtrees', () => {
-    expect(applicationIdFromPath('/apply/app_1')).toBe('app_1');
-    expect(applicationIdFromPath('/ai-strategy/app_1/strategy/dashboard')).toBe('app_1');
-  });
+  const testCases: Array<{ name: string; input: string; expected: string | null }> = [
+    { name: 'plain apply URL', input: '/apply/app_1', expected: 'app_1' },
+    {
+      name: 'plain strategy URL',
+      input: '/ai-strategy/app_1/strategy/dashboard',
+      expected: 'app_1',
+    },
+    { name: 'plain strategy root URL', input: '/ai-strategy/app_1', expected: 'app_1' },
+    {
+      name: 'URL-encoded return URL',
+      input: '/ai-strategy/reflection?return=%2Fai-strategy%2Fapp_xyz%2Fstrategy%2Fanalysis',
+      expected: 'app_xyz',
+    },
+    {
+      name: 'nested return URL (plain)',
+      input:
+        '/profile/academic?return=/ai-strategy/reflection?return=/ai-strategy/app_deep/strategy/analysis',
+      expected: 'app_deep',
+    },
+    {
+      name: 'nested return URL (double encoded)',
+      input:
+        '/profile/academic?return=%2Fai-strategy%2Freflection%3Freturn%3D%252Fai-strategy%252Fapp_deep%252Fstrategy%252Fanalysis',
+      expected: 'app_deep',
+    },
+    {
+      name: 'missing return param on non-application route',
+      input: '/ai-strategy/reflection/achievements',
+      expected: null,
+    },
+    {
+      name: 'personal report canonical route without application return',
+      input: '/ai-strategy/personal-report',
+      expected: null,
+    },
+    {
+      name: 'malformed encoding in query param',
+      input: '/profile?return=%E0%A4%A',
+      expected: null,
+    },
+    {
+      name: 'external URL rejection (absolute scheme)',
+      input: 'https://evil.com/apply/app_1',
+      expected: null,
+    },
+    {
+      name: 'external URL rejection (protocol relative)',
+      input: '//evil.com/apply/app_1',
+      expected: null,
+    },
+    {
+      name: 'external URL rejection (backslash variant)',
+      input: '/\\evil.com/apply/app_1',
+      expected: null,
+    },
+    {
+      name: 'external URL rejection in nested return parameter',
+      input: '/profile?return=https://evil.com/apply/app_1',
+      expected: null,
+    },
+    {
+      name: 'external URL rejection in nested return parameter (protocol relative)',
+      input: '/profile?return=//evil.com/apply/app_1',
+      expected: null,
+    },
+    {
+      name: 'javascript scheme rejection in return parameter',
+      input: '/profile?return=javascript:alert(1)',
+      expected: null,
+    },
+    {
+      name: 'missing application id (apply root)',
+      input: '/apply',
+      expected: null,
+    },
+    {
+      name: 'missing application id (discovery route)',
+      input: '/universities/12',
+      expected: null,
+    },
+    {
+      name: 'missing application id (profile root)',
+      input: '/profile',
+      expected: null,
+    },
+  ];
 
-  it('does not mistake /ai-strategy/reflection for an application', () => {
-    expect(applicationIdFromPath('/ai-strategy/reflection/achievements')).toBeNull();
-  });
-
-  it('returns null where there is no application', () => {
-    expect(applicationIdFromPath('/apply')).toBeNull();
-    expect(applicationIdFromPath('/universities/12')).toBeNull();
-  });
+  for (const tc of testCases) {
+    it(`handles ${tc.name}`, () => {
+      expect(applicationIdFromPath(tc.input)).toBe(tc.expected);
+    });
+  }
 });

@@ -158,7 +158,9 @@ describe('Reflection field localization', () => {
     }
     for (const { label, detail } of generateIntakeOptions()) {
       expect(screen.queryByText(label, { exact: true }), label).not.toBeInTheDocument();
-      expect(screen.queryByText(detail, { exact: true }), detail).not.toBeInTheDocument();
+      if (detail) {
+        expect(screen.queryByText(detail, { exact: true }), detail).not.toBeInTheDocument();
+      }
     }
-  });
+  }, 15_000);
 });

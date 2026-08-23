@@ -152,6 +152,8 @@ function clampScore(v: unknown): number {
 }
 
 /**
+ * @deprecated Use canonical Personal Report V2 pipeline (`src/lib/ai/personal-report-v2.ts` / `src/features/apply/domain/personal-report.ts`) instead.
+ *
  * Run the F1/F4 call. Throws on a hard failure (no key, network, unparseable
  * response) so the caller can surface an error — same contract as
  * `analyzeCourseMatchInsights`.

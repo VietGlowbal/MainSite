@@ -1,7 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import { useT } from '@/lib/i18n';
+import { useLanguage } from '@/lib/i18n';
+import { formatUiDate } from '@/shared/lib';
 import type {
   PersonalReportTrigger,
   PersonalReportV2,
@@ -46,7 +47,7 @@ export function PersonalReportV2View({
   returnTo?: string | undefined;
   matchingReportHref?: string | undefined;
 }) {
-  const t = useT();
+  const { t, lang } = useLanguage();
   const [report, setReport] = useState(initialReport);
   const [versions, setVersions] = useState(initialVersions);
   const [selectedVersionId, setSelectedVersionId] = useState(initialVersionId);
@@ -189,7 +190,7 @@ export function PersonalReportV2View({
             </p>
             {viewedGeneratedAt ? (
               <p className="text-gb-xs text-fg-muted">
-                {t('Generated')}: {new Date(viewedGeneratedAt).toLocaleDateString('en-US')}
+                {t('Generated')}: {formatUiDate(viewedGeneratedAt, lang)}
               </p>
             ) : null}
           </div>

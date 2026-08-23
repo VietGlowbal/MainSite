@@ -2,19 +2,30 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { UploadedDocument } from '@/lib/types';
 import { DocumentRow, Panel, PanelHeader } from '@/shared/ui';
+import { resolveApplicationReturn } from '../_application-return';
 import { ProfileSectionShell } from '../_section-shell';
 import { UploadDocumentForm } from '../upload-document-form';
 
-export default async function DocumentsPage() {
+export default async function DocumentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ return?: string }>;
+}) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
 
-  const { data } = await supabase
-    .from('uploaded_documents')
-    .select('*')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false });
+  const { return: returnParam } = await searchParams;
+  const [{ data }, { returnTo, applicationLabel }] = await Promise.all([
+    supabase
+      .from('uploaded_documents')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false }),
+    resolveApplicationReturn(supabase, user.id, returnParam),
+  ]);
 
   const documents = (data ?? []) as UploadedDocument[];
 
@@ -22,6 +33,8 @@ export default async function DocumentsPage() {
     <ProfileSectionShell
       title="Documents"
       description="Upload your CV, personal statement, transcripts and other supporting documents."
+      {...(applicationLabel ? { backHref: returnTo!, backLabel: `← ${applicationLabel}` } : {})}
+      {...(returnTo ? { contextNote: 'We need this before analysing your application.' } : {})}
     >
       <div className="flex flex-col gap-gb-3xl">
         <UploadDocumentForm />

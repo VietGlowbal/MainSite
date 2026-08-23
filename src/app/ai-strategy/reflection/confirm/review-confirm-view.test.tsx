@@ -65,4 +65,51 @@ describe('ReviewConfirmView read-only mode', () => {
       screen.getByRole('button', { name: 'Confirm & Generate Reports' }),
     ).toBeInTheDocument();
   });
+
+  it('renders blocking issues with actionable Fix this links and preserved return context', () => {
+    const unreadyReadiness = {
+      blockingIssues: [
+        {
+          key: 'majors' as const,
+          message: 'Please choose at least one subject of interest.',
+        },
+        {
+          key: 'countries' as const,
+          message: 'Please choose at least one destination.',
+        },
+      ],
+      achievementsNeedingReview: 2,
+      activitiesNeedingReview: 1,
+      ready: false,
+    };
+
+    render(
+      <ReviewConfirmView
+        reflection={reflection}
+        documents={[]}
+        readiness={unreadyReadiness}
+        returnTo="/apply/app-test"
+      />,
+    );
+
+    expect(
+      screen.getByText('A few things need your attention before you can confirm'),
+    ).toBeInTheDocument();
+
+    const fixLinks = screen.getAllByRole('link', { name: 'Fix this' });
+    expect(fixLinks[0]).toHaveAttribute(
+      'href',
+      `/ai-strategy/reflection?return=${encodeURIComponent('/apply/app-test')}`,
+    );
+    expect(fixLinks[1]).toHaveAttribute(
+      'href',
+      `/ai-strategy/reflection?return=${encodeURIComponent('/apply/app-test')}`,
+    );
+
+    const reviewLinks = screen.getAllByRole('link', { name: 'Review' });
+    expect(reviewLinks[0]).toHaveAttribute(
+      'href',
+      `/ai-strategy/reflection/achievements?return=${encodeURIComponent('/apply/app-test')}`,
+    );
+  });
 });

@@ -17,11 +17,13 @@ interface Props {
   userId: string;
   initialAchievements: Achievement[];
   initialSkills: string[];
+  returnTo?: string | null;
+  updatedLabel?: string;
 }
 
 const SKILL_SUGGESTIONS = ['Python', 'Public speaking', 'Research', 'Leadership', 'Data analysis', 'Debate', 'Volunteering', 'Graphic design'];
 
-export function AchievementsForm({ userId, initialAchievements, initialSkills }: Props) {
+export function AchievementsForm({ userId, initialAchievements, initialSkills, returnTo, updatedLabel }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [achievements, setAchievements] = useState<Achievement[]>(initialAchievements);
   const [skills, setSkills] = useState<string[]>(initialSkills);
@@ -118,6 +120,8 @@ export function AchievementsForm({ userId, initialAchievements, initialSkills }:
           saving={saving}
           message={message}
           label="Save achievements & skills"
+          returnTo={returnTo}
+          updatedLabel={updatedLabel ?? 'Achievements'}
         />
       </Panel>
     </div>

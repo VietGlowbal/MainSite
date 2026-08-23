@@ -75,23 +75,34 @@ export function SaveBar({
   saving,
   message,
   label = 'Save changes',
+  returnTo,
+  updatedLabel,
 }: {
   onSave: () => void;
   saving: boolean;
   message: SaveMessage;
   label?: string;
+  returnTo?: string | null | undefined;
+  updatedLabel?: string | undefined;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-gb-xl">
-      <Button onClick={onSave} disabled={saving} size="lg">
-        {saving ? 'Saving…' : label}
-      </Button>
-      <p
-        role="status"
-        className={`text-gb-sm ${message?.ok === false ? 'text-fg-error' : 'text-on-tier-safe'}`}
-      >
-        {message?.text ?? ''}
-      </p>
+    <div className="flex flex-wrap items-center justify-between gap-gb-xl">
+      <div className="flex flex-wrap items-center gap-gb-xl">
+        <Button onClick={onSave} disabled={saving} size="lg">
+          {saving ? 'Saving…' : label}
+        </Button>
+        <p
+          role="status"
+          className={`text-gb-sm ${message?.ok === false ? 'text-fg-error' : 'text-on-tier-safe'}`}
+        >
+          {message?.text ?? ''}
+        </p>
+      </div>
+      {returnTo ? (
+        <Button href={returnTo} variant="secondary" size="md">
+          Back
+        </Button>
+      ) : null}
     </div>
   );
 }

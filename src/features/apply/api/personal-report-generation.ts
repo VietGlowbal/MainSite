@@ -43,19 +43,38 @@ export type RegeneratePersonalReportResult =
   | { status: 'not_configured' }
   | { status: 'error'; message: string; record: PersonalReportV2Record | null };
 
+import { logger, startTimer } from '@/server/observability';
+
 export async function regeneratePersonalReport(args: {
   supabase: SupabaseClient;
   userId: string;
   trigger: PersonalReportTrigger;
 }): Promise<RegeneratePersonalReportResult> {
   const { supabase, userId, trigger } = args;
+  const getElapsed = startTimer();
+
+  logger.info('personal_report_generate', {
+    userId,
+    trigger,
+    stage: 'started',
+    outcome: 'started',
+  });
 
   const [rawContext, latest, supplements] = await Promise.all([
     loadCandidateContext(supabase, userId),
     getLatestPersonalReportV2(supabase, userId),
     getPersonalReportSupplements(supabase, userId),
   ]);
-  if (latest.migrationMissing) return { status: 'migration_missing' };
+  if (latest.migrationMissing) {
+    logger.warn('personal_report_generate', {
+      userId,
+      stage: 'validated',
+      outcome: 'migration_missing',
+      trigger,
+      durationMs: getElapsed(),
+    });
+    return { status: 'migration_missing' };
+  }
 
   // Report-only answers overlay the profile for this generation only — see
   // `applyPersonalReportSupplements`'s own doc comment for why they never
@@ -71,10 +90,30 @@ export async function regeneratePersonalReport(args: {
       current ? { inputHash: current.inputHash, engineVersion: current.engineVersion ?? '' } : null,
     ) || extractionChanged;
 
-  if (current && !regenerate) return { status: 'cached', record: current };
+  if (current && !regenerate) {
+    logger.info('personal_report_generate', {
+      userId,
+      stage: 'cache_hit',
+      outcome: 'cached',
+      cached: true,
+      inputHash,
+      trigger,
+      durationMs: getElapsed(),
+    });
+    return { status: 'cached', record: current };
+  }
 
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || !isOpenAIConfigured()) return { status: 'not_configured' };
+  if (!apiKey || !isOpenAIConfigured()) {
+    logger.warn('personal_report_generate', {
+      userId,
+      stage: 'validated',
+      outcome: 'not_configured',
+      trigger,
+      durationMs: getElapsed(),
+    });
+    return { status: 'not_configured' };
+  }
 
   try {
     const generatedAt = new Date().toISOString();
@@ -129,10 +168,39 @@ export async function regeneratePersonalReport(args: {
       trigger,
     });
     if (error || !inserted) {
-      return error?.migrationMissing
-        ? { status: 'migration_missing' }
-        : { status: 'error', message: 'Could not save the report.', record: current };
+      if (error?.migrationMissing) {
+        logger.warn('personal_report_generate', {
+          userId,
+          stage: 'persisted',
+          outcome: 'migration_missing',
+          trigger,
+          durationMs: getElapsed(),
+        });
+        return { status: 'migration_missing' };
+      }
+      logger.error('personal_report_generate', error, {
+        userId,
+        stage: 'persisted',
+        trigger,
+        inputHash,
+        durationMs: getElapsed(),
+      });
+      return { status: 'error', message: 'Could not save the report.', record: current };
     }
+
+    const durationMs = getElapsed();
+    logger.info('personal_report_generate', {
+      userId,
+      stage: 'completed',
+      outcome: 'success',
+      durationMs,
+      modelName,
+      promptVersion: PERSONAL_REPORT_EXTRACTION_VERSION,
+      engineVersion: ENGINE_VERSION,
+      inputHash,
+      trigger,
+      cached: false,
+    });
 
     return {
       status: 'regenerated',
@@ -150,9 +218,12 @@ export async function regeneratePersonalReport(args: {
       },
     };
   } catch (error) {
-    console.error('[personal-report-v2] generation failed', {
+    logger.error('personal_report_generate', error, {
+      userId,
+      stage: 'failed',
       trigger,
-      code: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+      inputHash,
+      durationMs: getElapsed(),
     });
     return {
       status: 'error',

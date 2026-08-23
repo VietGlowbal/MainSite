@@ -219,6 +219,8 @@ export {
   candidateConfidence,
   canonicalize,
   enforceFitClassification,
+  fitScoreToPercent,
+  matchingReportNarrativeSchema,
   programmeFitSchema,
 } from './ai-reports';
 export type {
@@ -228,6 +230,7 @@ export type {
   ProgrammeFit,
   MatchingAnalysisView,
   MatchingApplicationSummary,
+  MatchingReportNarrative,
   MatchingReportPageData,
 } from './ai-reports';
 export {

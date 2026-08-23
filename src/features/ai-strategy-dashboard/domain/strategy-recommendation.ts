@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { strategyReportV2Schema, type StrategyReportV2 } from './recommendation';
 
 /**
  * F7 — Strategic Recommendation Framework ("Personalized Strategy").
@@ -151,4 +152,19 @@ export function strategyRecommendationFromRow(
     pdfStoragePath: (row.pdf_storage_path as string | null) ?? null,
     createdAt: row.created_at as string,
   };
+}
+
+/**
+ * The five-section F8 Strategy Report reader (`report_v2` JSONB, prompt
+ * `strategy-report-f8-v3`). Deliberately SEPARATE from
+ * `strategyRecommendationFromRow` so every legacy consumer keeps compiling
+ * and behaving unchanged: a v2 row has NULL legacy columns, which the legacy
+ * reader already reports as `null` ("not a legacy report"), and this reader
+ * reports `null` for every pre-F8 row. Callers branch on whichever is
+ * non-null — the dual-shape rule the Strategy Report UI follows.
+ */
+export function strategyReportV2FromRow(row: Record<string, unknown>): StrategyReportV2 | null {
+  if (!row.report_v2) return null;
+  const parsed = strategyReportV2Schema.safeParse(row.report_v2);
+  return parsed.success ? parsed.data : null;
 }

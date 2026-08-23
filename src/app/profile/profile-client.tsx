@@ -66,6 +66,8 @@ type Props = {
   isMentor: boolean;
   plusStatus: boolean;
   plusPlan: string | null;
+  returnTo?: string | undefined;
+  applicationLabel?: string | undefined;
 };
 
 /* ─────────────────────────────────────────────────────────────────────────
@@ -366,6 +368,7 @@ function ProfileHero({
   plusPlan,
   isMentor,
   strength,
+  returnTo,
 }: {
   displayName: string;
   email: string;
@@ -376,6 +379,7 @@ function ProfileHero({
   plusPlan: string | null;
   isMentor: boolean;
   strength: number;
+  returnTo?: string | undefined;
 }) {
   // Through the formatter, not raw: the column holds a `2027-09` month token
   // from /profile's picker or an `autumn-2027` season token from the
@@ -392,6 +396,10 @@ function ProfileHero({
       ? t('{intake} · applying {year}', { intake: intakeLabel, year: profile.application_cycle_year })
       : intakeLabel
     : null;
+
+  const editProfileHref = returnTo
+    ? `/profile/personal?return=${encodeURIComponent(returnTo)}`
+    : '/profile/personal';
 
   return (
     <section className="flex flex-col gap-gb-4xl rounded-gb-2xl bg-surface-inverse-deep p-gb-3xl md:flex-row md:items-start md:justify-between md:p-gb-5xl">
@@ -424,7 +432,7 @@ function ProfileHero({
         </dl>
 
         <div className="flex flex-wrap gap-gb-lg">
-          <Button href="/profile/personal" variant="primary-on-dark" size="lg">
+          <Button href={editProfileHref} variant="primary-on-dark" size="lg">
             Edit profile
           </Button>
           {isMentor ? (
@@ -477,10 +485,12 @@ function SectionGroupBlock({
   group,
   index,
   input,
+  returnTo,
 }: {
   group: SectionGroup;
   index: number;
   input: SectionInputs;
+  returnTo?: string | undefined;
 }) {
   const { t } = useLanguage();
   const accent = ACCENT[group.accent];
@@ -524,7 +534,13 @@ function SectionGroupBlock({
 
       <div className="grid gap-gb-xl sm:grid-cols-2">
         {group.sections.map((section) => (
-          <SectionCard key={section.key} section={section} input={input} accent={group.accent} />
+          <SectionCard
+            key={section.key}
+            section={section}
+            input={input}
+            accent={group.accent}
+            returnTo={returnTo}
+          />
         ))}
       </div>
     </section>
@@ -539,20 +555,25 @@ function SectionCard({
   section,
   input,
   accent,
+  returnTo,
 }: {
   section: SectionDef;
   input: SectionInputs;
   accent: ProgressTone;
+  returnTo?: string | undefined;
 }) {
   const { t } = useLanguage();
   const tone = ACCENT[accent];
   const pct = section.pct(input);
   const done = pct >= 100;
   const untouched = pct === 0;
+  const href = returnTo
+    ? `${section.href}?return=${encodeURIComponent(returnTo)}`
+    : section.href;
 
   return (
     <Link
-      href={section.href}
+      href={href}
       className={`group flex flex-col gap-gb-lg rounded-gb-2xl border bg-surface p-gb-2xl shadow-gb-xs transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-gb-xxs hover:shadow-gb-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand motion-reduce:transition-none motion-reduce:hover:translate-y-0 ${tone.hover} ${
         /* Dashed while a card holds nothing, so an empty slot looks empty
            rather than looking like a filled card that happens to read 0%. */
@@ -590,8 +611,17 @@ function SectionCard({
    RIGHT RAIL
 ───────────────────────────────────────────────────────────────────────── */
 
-function DocumentsCard({ documents }: { documents: ProfileDocument[] }) {
+function DocumentsCard({
+  documents,
+  returnTo,
+}: {
+  documents: ProfileDocument[];
+  returnTo?: string | undefined;
+}) {
   const shown = documents.slice(0, 4);
+  const manageHref = returnTo
+    ? `/profile/documents?return=${encodeURIComponent(returnTo)}`
+    : '/profile/documents';
 
   return (
     <Panel padding="sm" className="flex flex-col gap-gb-xl">
@@ -599,7 +629,7 @@ function DocumentsCard({ documents }: { documents: ProfileDocument[] }) {
         title="Your documents"
         action={
           <Link
-            href="/profile/documents"
+            href={manageHref}
             className="text-gb-sm font-semibold text-fg-brand hover:underline"
           >
             Manage
@@ -630,7 +660,7 @@ function DocumentsCard({ documents }: { documents: ProfileDocument[] }) {
         </p>
       ) : null}
 
-      <Button href="/profile/documents" variant="secondary" size="lg" className="w-full">
+      <Button href={manageHref} variant="secondary" size="lg" className="w-full">
         <KitIcon art={ICONS.uploadCloud} frame={20} />
         Upload a document
       </Button>
@@ -700,6 +730,8 @@ export function ProfileClient({
   isMentor,
   plusStatus,
   plusPlan,
+  returnTo,
+  applicationLabel,
 }: Props) {
   const { t } = useLanguage();
   const input: SectionInputs = { profile, documents, workEntries, testScores };
@@ -709,6 +741,18 @@ export function ProfileClient({
 
   return (
     <div className="mx-auto flex max-w-gb-desktop flex-col gap-gb-4xl">
+      {returnTo ? (
+        <nav aria-label={t('Back')}>
+          <Link
+            href={returnTo}
+            className="inline-flex items-center gap-gb-xs text-gb-sm font-semibold text-fg-brand hover:underline"
+          >
+            <KitIcon art={ICONS.arrowLeft} frame={16} />
+            {applicationLabel ? `← ${applicationLabel}` : t('Back')}
+          </Link>
+        </nav>
+      ) : null}
+
       <ProfileHero
         displayName={displayName}
         email={email}
@@ -719,6 +763,7 @@ export function ProfileClient({
         plusPlan={plusPlan}
         isMentor={isMentor}
         strength={strength}
+        returnTo={returnTo}
       />
 
       <div className="grid gap-gb-4xl lg:grid-cols-[minmax(0,1fr)_340px]">
@@ -731,12 +776,18 @@ export function ProfileClient({
           </div>
 
           {SECTION_GROUPS.map((group, index) => (
-            <SectionGroupBlock key={group.key} group={group} index={index} input={input} />
+            <SectionGroupBlock
+              key={group.key}
+              group={group}
+              index={index}
+              input={input}
+              returnTo={returnTo}
+            />
           ))}
         </div>
 
         <aside className="flex flex-col gap-gb-xl">
-          <DocumentsCard documents={documents} />
+          <DocumentsCard documents={documents} returnTo={returnTo} />
           <ApplicationsCard activeApplications={activeApplications} />
           <AccountCard email={email} plusStatus={plusStatus} />
         </aside>

@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   MATCH_PROMPT_VERSION_V2,
   enforceFitClassification,
+  matchingReportNarrativeSchema,
   programmeFitSchema,
   type MatchingAnalysisView,
   type MatchingApplicationSummary,
@@ -24,6 +25,9 @@ function analysisFromRow(row: Record<string, unknown> | null): MatchingAnalysisV
     dimensions: row.fit_dimensions,
   });
   if (!parsed.success) return null;
+  // Narrative is optional twice over: the column may predate the migration
+  // (key absent) and a persisted value may fail today's stricter schema.
+  const narrative = matchingReportNarrativeSchema.safeParse(row.match_report_narrative);
   return {
     fit: enforceFitClassification(parsed.data),
     createdAt: String(row.created_at),
@@ -31,6 +35,7 @@ function analysisFromRow(row: Record<string, unknown> | null): MatchingAnalysisV
     inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
     strengths: stringArray(row.strengths),
     weaknesses: stringArray(row.weaknesses),
+    narrative: narrative.success ? narrative.data : null,
   };
 }
 
@@ -54,18 +59,36 @@ export async function listMatchingApplications(
   const { data: analyses, error: analysisError } = await supabase
     .from('application_match_analyses')
     .select(
-      'application_id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at',
+      'application_id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at,match_report_narrative',
     )
     .in('application_id', ids)
     .eq('analysis_status', 'complete')
     .eq('prompt_version', MATCH_PROMPT_VERSION_V2)
     .order('created_at', { ascending: false });
+  // The narrative column ships in supabase-match-report-narrative.sql; before
+  // it runs, the whole list query would fail on the unknown column — retry
+  // with the pre-narrative shape instead of losing every analysis.
+  let analysesData = analyses as Array<Record<string, unknown>> | null;
+  let analysesError = analysisError;
+  if (analysisError && /match_report_narrative/i.test(analysisError.message ?? '')) {
+    const retry = await supabase
+      .from('application_match_analyses')
+      .select(
+        'application_id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at',
+      )
+      .in('application_id', ids)
+      .eq('analysis_status', 'complete')
+      .eq('prompt_version', MATCH_PROMPT_VERSION_V2)
+      .order('created_at', { ascending: false });
+    analysesData = (retry.data ?? null) as Array<Record<string, unknown>> | null;
+    analysesError = retry.error;
+  }
   const missing =
-    analysisError?.code === '42703' ||
-    analysisError?.code === 'PGRST204' ||
-    /fit_dimensions|fit_confidence|input_hash/i.test(analysisError?.message ?? '');
+    analysesError?.code === '42703' ||
+    analysesError?.code === 'PGRST204' ||
+    /fit_dimensions|fit_confidence|input_hash/i.test(analysesError?.message ?? '');
   const latestByApplication = new Map<string, MatchingAnalysisView>();
-  for (const row of (analyses ?? []) as Array<Record<string, unknown>>) {
+  for (const row of analysesData ?? []) {
     const applicationId = String(row.application_id);
     if (latestByApplication.has(applicationId)) continue;
     const analysis = analysisFromRow(row);
@@ -104,7 +127,7 @@ export async function getMatchingReportPageData(
     supabase
       .from('application_match_analyses')
       .select(
-        'fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at',
+        'fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at,match_report_narrative',
       )
       .eq('application_id', applicationId)
       .eq('analysis_status', 'complete')
@@ -126,10 +149,26 @@ export async function getMatchingReportPageData(
           .eq('scholarships.status', 'published')
           .limit(8),
   ]);
+  // Narrative column not migrated yet — refetch the pre-narrative shape so
+  // the report page still renders its deterministic sections.
+  let analysisRowResult = analysisResult;
+  if (analysisResult.error && /match_report_narrative/i.test(analysisResult.error.message ?? '')) {
+    analysisRowResult = await supabase
+      .from('application_match_analyses')
+      .select(
+        'fit_dimensions,fit_eligibility,fit_classification,fit_confidence,fit_limitations,input_hash,prompt_version,strengths,weaknesses,created_at',
+      )
+      .eq('application_id', applicationId)
+      .eq('analysis_status', 'complete')
+      .eq('prompt_version', MATCH_PROMPT_VERSION_V2)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+  }
   const migrationMissing =
-    analysisResult.error?.code === '42703' ||
-    analysisResult.error?.code === 'PGRST204' ||
-    /fit_dimensions|fit_confidence|input_hash/i.test(analysisResult.error?.message ?? '');
+    analysisRowResult.error?.code === '42703' ||
+    analysisRowResult.error?.code === 'PGRST204' ||
+    /fit_dimensions|fit_confidence|input_hash/i.test(analysisRowResult.error?.message ?? '');
   const university = universityResult.data as Record<string, unknown> | null;
   const course = (application.courses ?? {}) as Record<string, unknown>;
   const scholarshipLinks = (scholarshipLinksResult.data ?? []) as Array<{
@@ -168,9 +207,7 @@ export async function getMatchingReportPageData(
       country: application.country ?? courseText('country') ?? universityText('country'),
       degreeLevel: application.degree_level ?? courseText('degree_level'),
       deadline: application.deadline ?? universityText('application_deadline'),
-      analysis: analysisFromRow(
-        (analysisResult.data ?? null) as Record<string, unknown> | null,
-      ),
+      analysis: analysisFromRow((analysisRowResult.data ?? null) as Record<string, unknown> | null),
       universityId,
       courseUrl: application.course_url ?? courseText('course_url'),
       studyMode: application.study_mode ?? courseText('study_mode'),

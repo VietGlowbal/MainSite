@@ -318,31 +318,9 @@ export function recommendationFromRow(row: Record<string, unknown>): Recommendat
  * for course-specific, evidence-based actions (`ImprovementAction`); this is
  * a deterministic reshaping of that output into the Dashboard's row shape,
  * the same "extend, don't replace" call `course-match.ts` makes for the
- * report. `estimatedEffort`, `deadline` and `relatedRequirement` have no
- * source yet, so they're left null rather than guessed.
- */
-export type RecommendationSeed = Pick<
-  Recommendation,
-  | 'applicationId'
-  | 'category'
-  | 'pillar'
-  | 'title'
-  | 'reason'
-  | 'priority'
-  | 'estimatedImpact'
-  | 'estimatedEffort'
-  | 'deadline'
-  | 'evidenceRequired'
-  | 'relatedRequirement'
-  | 'actionLabel'
-  | 'actionType'
-  | 'actionTarget'
-  | 'contentSchema'
-  | 'submitChecklist'
-  | 'tips'
-  | 'suggestedQuestions'
-  | 'sourceAnalysisId'
->;
+  * report. `estimatedEffort`, `deadline` and `relatedRequirement` have no
+  * source yet, so they're left null rather than guessed.
+  */
 
 export function recommendationFromImprovementAction(
   applicationId: string,
@@ -379,11 +357,45 @@ export function recommendationFromImprovementAction(
 }
 
 /** The slice of an existing DB row `reconcileRecommendations`/`reconcileSeeds` needs to match against. */
+export type RecommendationSeed = Pick<
+  Recommendation,
+  | 'applicationId'
+  | 'category'
+  | 'pillar'
+  | 'title'
+  | 'reason'
+  | 'priority'
+  | 'estimatedImpact'
+  | 'estimatedEffort'
+  | 'deadline'
+  | 'evidenceRequired'
+  | 'relatedRequirement'
+  | 'actionLabel'
+  | 'actionType'
+  | 'actionTarget'
+  | 'contentSchema'
+  | 'submitChecklist'
+  | 'tips'
+  | 'suggestedQuestions'
+  | 'sourceAnalysisId'
+> & {
+  /**
+   * Deterministic semantic identity (e.g. `strategy-roadmap::{phase}::{key}`).
+   * When present, reconciliation matches on it INSTEAD of (pillar, title) —
+   * a regenerated report that rewords a task updates the same row rather
+   * than duplicating it.
+   */
+  sourceKey?: string;
+};
+
+/** The slice of an existing DB row `reconcileRecommendations`/`reconcileSeeds` needs to match against. */
 export type ExistingRecommendation = {
   id: string;
   pillar: PillarKey | null;
   title: string;
   status: ProgressStatus;
+  /** Deterministic identity written by newer generators; null on legacy rows. */
+  sourceKey?: string | null;
 };
 
 export type RecommendationUpdate = {
@@ -457,17 +469,29 @@ export function reconcileSeeds(
   existing: readonly ExistingRecommendation[],
   seeds: readonly RecommendationSeed[],
 ): ReconcilePlan {
-  const key = (pillar: PillarKey | null, title: string) => `${pillar ?? ''}::${title}`;
+  const titleKey = (pillar: PillarKey | null, title: string) => `${pillar ?? ''}::${title}`;
 
+  // Two match keys, in priority order:
+  //   1. source_key — deterministic semantic identity from generators that
+  //      provide one (F8 roadmap deliverables). Reworded regenerations still
+  //      match their row.
+  //   2. (pillar, title) — legacy fallback for rows written before
+  //      source_key existed.
   const existingByKey = new Map<string, ExistingRecommendation>();
-  for (const rec of existing) existingByKey.set(key(rec.pillar, rec.title), rec);
+  for (const rec of existing) {
+    if (rec.sourceKey) existingByKey.set(rec.sourceKey, rec);
+    else existingByKey.set(titleKey(rec.pillar, rec.title), rec);
+  }
+
+  const keyFor = (seed: RecommendationSeed) =>
+    seed.sourceKey ?? titleKey(seed.pillar ?? null, seed.title);
 
   const matchedIds = new Set<string>();
   const toInsert: RecommendationSeed[] = [];
   const toUpdate: RecommendationUpdate[] = [];
 
   for (const seed of seeds) {
-    const match = existingByKey.get(key(seed.pillar, seed.title));
+    const match = existingByKey.get(keyFor(seed));
 
     if (!match) {
       toInsert.push(seed);
@@ -555,4 +579,187 @@ export function recommendationsFromRoadmap(
       }),
     ),
   ];
+}
+
+/**
+ * ─── F8 STRATEGY REPORT (v2 payload) ─────────────────────────────────────────
+ *
+ * The five canonical sections from `docs/strategy-reports-spec.md`, generated
+ * by prompt `strategy-report-f8-v3` and persisted in
+ * `application_strategy_recommendations.report_v2`.
+ *
+ * Contract notes:
+ * - Stable keys (`priority.key`, `theme.key`, `phase.phaseKey`,
+ *   `deliverable.key`) are REQUIRED and must be deterministic slugs — student
+ *   overrides and Planner reconciliation key on them, never on array index or
+ *   prose.
+ * - The model authors NO scores, NO classification and NO admission
+ *   probability anywhere in this payload; those are deterministic outputs of
+ *   the Personal Report / Matching Report inputs.
+ */
+export const strategyPriorityLevelSchema = z.enum(['critical', 'high', 'medium']);
+
+export const strategyReportV2Schema = z.object({
+  strategicOverview: z.object({
+    currentPosition: z.object({
+      profile: z.string().min(1).max(1200),
+      keyStrength: z.string().min(1).max(600),
+      biggestChallenge: z.string().min(1).max(600),
+    }),
+    strategicGoal: z.object({
+      primaryObjective: z.string().min(1).max(600),
+      positioning: z.string().min(1).max(600),
+    }),
+    topPriorities: z.array(z.string().min(1).max(200)).min(1).max(3),
+    expectedOutcome: z.string().min(1).max(800),
+  }),
+  priorityTable: z
+    .array(
+      z.object({
+        /** Deterministic slug — overrides + Planner seeds key on this. */
+        key: z.string().regex(/^[a-z][a-z0-9_-]{2,60}$/),
+        title: z.string().min(1).max(200),
+        currentSituation: z.string().min(1).max(800),
+        whyItMatters: z.string().min(1).max(600),
+        recommendedActions: z.array(z.string().min(1).max(300)).min(1).max(5),
+        expectedImpact: z.string().min(1).max(400),
+        level: strategyPriorityLevelSchema,
+      }),
+    )
+    .min(2)
+    .max(6),
+  profileDevelopmentStrategy: z.object({
+    academic: z.object({
+      currentStatus: z.string().min(1).max(600),
+      gap: z.string().min(1).max(600),
+      strategicFocus: z.string().min(1).max(600),
+      expectedOutcome: z.string().min(1).max(400),
+    }),
+    experience: z.object({
+      currentStatus: z.string().min(1).max(600),
+      gap: z.string().min(1).max(600),
+      strategicFocus: z.string().min(1).max(600),
+      expectedOutcome: z.string().min(1).max(400),
+    }),
+    differentiation: z.object({
+      currentAdvantage: z.string().min(1).max(600),
+      uniqueness: z.string().min(1).max(600),
+      amplifyHow: z.string().min(1).max(600),
+      desiredPerception: z.string().min(1).max(400),
+    }),
+  }),
+  narrativeStrategy: z.object({
+    coreNarrative: z.object({
+      centralStory: z.string().min(1).max(1200),
+      supportingEvidence: z.array(z.string().min(1).max(300)).max(6),
+      admissionsValue: z.string().min(1).max(600),
+    }),
+    themes: z
+      .array(
+        z.object({
+          key: z.string().regex(/^[a-z][a-z0-9_-]{2,60}$/),
+          title: z.string().min(1).max(150),
+          rationale: z.string().min(1).max(500),
+          evidence: z.array(z.string().min(1).max(300)).max(5),
+        }),
+      )
+      .min(1)
+      .max(5),
+    consistencyCheck: z.object({
+      supports: z.string().min(1).max(600),
+      feelsDisconnected: z.string().min(1).max(600),
+      emphasise: z.string().min(1).max(500),
+      supportingRole: z.string().min(1).max(500),
+    }),
+  }),
+  executionRoadmap: z
+    .object({
+      phases: z
+        .array(
+          z.object({
+            phaseKey: z.string().regex(/^[a-z][a-z0-9_-]{2,40}$/),
+            name: z.string().min(1).max(150),
+            objective: z.string().min(1).max(600),
+            keyActions: z.array(z.string().min(1).max(300)).max(6),
+            deliverables: z
+              .array(
+                z.object({
+                  key: z.string().regex(/^[a-z][a-z0-9_-]{2,60}$/),
+                  label: z.string().min(1).max(250),
+                  /** Existing tool this maps to; absent → plain task. */
+                  tool: z.enum(['personal_canvas', 'cv_builder', 'statement_writer']).optional(),
+                }),
+              )
+              .max(8),
+            successCriteria: z.array(z.string().min(1).max(300)).max(5),
+            timeline: z.string().min(1).max(150),
+          }),
+        )
+        .min(1)
+        .max(6),
+    }),
+});
+
+export type StrategyReportV2 = z.infer<typeof strategyReportV2Schema>;
+export type StrategyPriorityLevel = z.infer<typeof strategyPriorityLevelSchema>;
+
+/**
+ * F8's Execution Roadmap turned into Planner task seeds.
+ *
+ * ONE TASK PER DELIVERABLE, deliberately. Deliverables are the only roadmap
+ * items the F8 schema gives stable keys (`phaseKey`/`key` slugs), which is
+ * what lossless reconciliation requires; keyActions stay in the report as
+ * phase guidance rather than becoming untracked prose-keyed tasks that would
+ * duplicate on every regeneration. `tool` flows through to action_type/target
+ * where a canonical route exists (personal_canvas / cv / statement-feedback).
+ */
+export function recommendationsFromStrategyReportV2(
+  applicationId: string,
+  report: Pick<StrategyReportV2, 'executionRoadmap' | 'strategicOverview'>,
+): RecommendationSeed[] {
+  const seeds: RecommendationSeed[] = [];
+
+  for (const phase of report.executionRoadmap.phases) {
+    for (const deliverable of phase.deliverables) {
+      const sourceKey = `strategy-roadmap::${phase.phaseKey}::${deliverable.key}`;
+      seeds.push({
+        applicationId,
+        category: 'strategy-roadmap',
+        pillar: null,
+        sourceKey,
+        title: deliverable.label,
+        reason: `${phase.name}: ${phase.objective}`,
+        priority: phase.phaseKey === 'finalise_optimise' ? 'high' : 'medium',
+        estimatedImpact: null,
+        estimatedEffort: null,
+        deadline: null,
+        evidenceRequired: false,
+        relatedRequirement: null,
+        actionLabel: deliverable.tool ? 'Open tool' : null,
+        actionType:
+          deliverable.tool === 'cv_builder'
+            ? 'internal_route'
+            : deliverable.tool === 'statement_writer'
+              ? 'internal_route'
+              : deliverable.tool === 'personal_canvas'
+                ? 'internal_route'
+                : 'none',
+        actionTarget:
+          deliverable.tool === 'cv_builder'
+            ? `/apply/${applicationId}/cv`
+            : deliverable.tool === 'statement_writer'
+              ? `/apply/${applicationId}/statement-feedback`
+              : deliverable.tool === 'personal_canvas'
+                ? '/ai-strategy/personal-report'
+                : null,
+        contentSchema: null,
+        submitChecklist: phase.successCriteria.slice(0, 4),
+        tips: [],
+        suggestedQuestions: [],
+        sourceAnalysisId: null,
+      });
+    }
+  }
+
+  return seeds;
 }

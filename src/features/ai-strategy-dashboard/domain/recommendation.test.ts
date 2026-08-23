@@ -423,3 +423,114 @@ describe('recommendationPatchSchema', () => {
     ).toBe(false);
   });
 });
+import {
+  recommendationsFromStrategyReportV2,
+  type StrategyReportV2,
+} from './recommendation';
+
+const REPORT: StrategyReportV2 = {
+  strategicOverview: {
+    currentPosition: { profile: 'p', keyStrength: 's', biggestChallenge: 'c' },
+    strategicGoal: { primaryObjective: 'o', positioning: 'pos' },
+    topPriorities: ['a'],
+    expectedOutcome: 'e',
+  },
+  priorityTable: [
+    { key: 'k1', title: 't1', currentSituation: 'cs', whyItMatters: 'w', recommendedActions: ['r'], expectedImpact: 'i', level: 'critical' },
+  ],
+  profileDevelopmentStrategy: {
+    academic: { currentStatus: 'a', gap: 'b', strategicFocus: 'c', expectedOutcome: 'd' },
+    experience: { currentStatus: 'a', gap: 'b', strategicFocus: 'c', expectedOutcome: 'd' },
+    differentiation: { currentAdvantage: 'a', uniqueness: 'b', amplifyHow: 'c', desiredPerception: 'd' },
+  },
+  narrativeStrategy: {
+    coreNarrative: { centralStory: 's', supportingEvidence: [], admissionsValue: 'v' },
+    themes: [{ key: 'th1', title: 'T', rationale: 'r', evidence: [] }],
+    consistencyCheck: { supports: 'a', feelsDisconnected: 'b', emphasise: 'c', supportingRole: 'd' },
+  },
+  executionRoadmap: {
+    phases: [
+      {
+        phaseKey: 'strengthen_foundation',
+        name: 'Strengthen Foundation',
+        objective: 'Close gaps.',
+        keyActions: ['Book IELTS'],
+        deliverables: [
+          { key: 'ielts_booking', label: 'IELTS booking confirmed' },
+          { key: 'cv_upload', label: 'Upload CV', tool: 'cv_builder' },
+        ],
+        successCriteria: ['Test booked'],
+        timeline: 'Month 1',
+      },
+    ],
+  },
+};
+
+describe('recommendationsFromStrategyReportV2', () => {
+  it('creates one seed per deliverable with a deterministic source key', () => {
+    const seeds = recommendationsFromStrategyReportV2('app-1', REPORT);
+    expect(seeds.map((s) => s.sourceKey)).toEqual([
+      'strategy-roadmap::strengthen_foundation::ielts_booking',
+      'strategy-roadmap::strengthen_foundation::cv_upload',
+    ]);
+  });
+
+  it('maps known tools to canonical routes', () => {
+    const seeds = recommendationsFromStrategyReportV2('app-1', REPORT);
+    expect(seeds[1]?.actionTarget).toBe('/apply/app-1/cv');
+    expect(seeds[0]?.actionTarget).toBeNull();
+  });
+});
+
+describe('reconcileSeeds with source keys', () => {
+  it('updates in place when the title is reworded but the source key survives', () => {
+    const existingRow = existing({ id: 'row-1', sourceKey: 'strategy-roadmap::strengthen_foundation::cv_upload' });
+    const seed = recommendationsFromStrategyReportV2('app-1', REPORT)[1]!;
+    const plan = reconcileSeeds([existingRow], [seed]);
+    expect(plan.toInsert).toHaveLength(0);
+    expect(plan.toUpdate).toHaveLength(1);
+    expect(plan.toUpdate[0]?.id).toBe('row-1');
+  });
+
+  it('preserves a completed task untouched even when prose changes', () => {
+    const existingRow = existing({
+      id: 'row-2',
+      status: 'completed',
+      sourceKey: 'strategy-roadmap::strengthen_foundation::ielts_booking',
+    });
+    const seed = recommendationsFromStrategyReportV2('app-1', REPORT)[0]!;
+    const plan = reconcileSeeds([existingRow], [seed]);
+    expect(plan.toInsert).toHaveLength(0);
+    expect(plan.toUpdate).toHaveLength(0);
+  });
+
+  it('still matches legacy rows on (pillar, title) when no source key exists', () => {
+    // Roadmap seeds carry pillar: null, so a legacy row it produced must too.
+    const legacyRow = existing({ id: 'legacy-1', pillar: null }); // no sourceKey
+    const seeds = recommendationsFromRoadmap('app-1', {
+      why: 'why',
+      prioritize: ['Improve Mathematics grade'],
+      avoid: [],
+    });
+    const plan = reconcileSeeds([legacyRow], seeds);
+    expect(plan.toInsert).toHaveLength(0);
+    expect(plan.toUpdate).toHaveLength(1);
+    expect(plan.toUpdate[0]?.id).toBe('legacy-1');
+  });
+
+  it('is idempotent � running the same batch twice inserts nothing new the second time', () => {
+    const seeds = recommendationsFromStrategyReportV2('app-1', REPORT);
+    const first = reconcileSeeds([], seeds);
+    const rowsAfterFirst = first.toInsert.map((seed, index) =>
+      existing({
+        id: `new-${index}`,
+        sourceKey: seed.sourceKey ?? null,
+        pillar: seed.pillar,
+        title: seed.title,
+      }),
+    );
+    const second = reconcileSeeds(rowsAfterFirst, seeds);
+    expect(second.toInsert).toHaveLength(0);
+    expect(second.toArchiveIds).toHaveLength(0);
+  });
+});

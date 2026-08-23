@@ -8,6 +8,7 @@ import {
   onboardingReminderEmail,
   reportReadyEmail,
 } from '@/lib/emails/lifecycle';
+import { renderManualOutcomeEmail } from '@/server/payments/manual-email-templates';
 import { SITE_URL } from '@/lib/site-url';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,20 @@ type Preview = {
 export default function EmailPreviewPage() {
   if (process.env.NODE_ENV === 'production') notFound();
 
+  const paymentOutcome = renderManualOutcomeEmail({
+    confirmed: true,
+    recipientName: 'Nguyễn Văn A',
+    reference: 'GLOWMANUAL123',
+    productLabel: 'GlowBal Plus Pro',
+    statusUrl: `${SITE_URL}/payment/manual/status?reference=GLOWMANUAL123`,
+  });
+
   const previews: Preview[] = [
+    {
+      name: 'Payment Confirmation (Community Access)',
+      subject: paymentOutcome.subject,
+      html: paymentOutcome.html,
+    },
     {
       name: 'Confirm account',
       subject: 'Confirm your GlowBal account',

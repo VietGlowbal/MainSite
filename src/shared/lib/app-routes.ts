@@ -27,6 +27,8 @@
  * still renders something true.
  */
 
+import { isAllowedInternalReturnPath } from './return-path';
+
 export type Crumb = {
   label: string;
   /** Absent on the final crumb — you are already there. */
@@ -375,11 +377,49 @@ export function activeSubNavKey(pathname: string): string | null {
   return null;
 }
 
-/** The application id in a pathname, when it carries one. */
+/** The application id in a pathname, when it carries one (either directly or via nested return query parameter). */
 export function applicationIdFromPath(pathname: string): string | null {
+  if (!pathname || typeof pathname !== 'string') return null;
+
+  // Guard against non-internal, protocol-relative, or malformed paths
+  if (!isAllowedInternalReturnPath(pathname)) {
+    return null;
+  }
+
   const clean = pathname.split('?')[0] ?? '';
-  const strategy = /^\/ai-strategy\/([^/]+)\//.exec(clean);
-  if (strategy?.[1] && strategy[1] !== 'reflection') return strategy[1];
-  const apply = /^\/apply\/([^/]+)/.exec(clean);
-  return apply?.[1] ?? null;
+  const strategy = /^\/ai-strategy\/([^/]+)(\/|$)/.exec(clean);
+  if (
+    strategy?.[1] &&
+    strategy[1] !== 'reflection' &&
+    strategy[1] !== 'personal-report' &&
+    strategy[1] !== 'matching'
+  ) {
+    return strategy[1];
+  }
+  const apply = /^\/apply\/([^/]+)(\/|$)/.exec(clean);
+  if (apply?.[1]) return apply[1];
+
+  // Check nested return parameter if present
+  if (pathname.includes('?')) {
+    const searchPart = pathname.slice(pathname.indexOf('?') + 1);
+    try {
+      const params = new URLSearchParams(searchPart);
+      const returnParam = params.get('return') || params.get('returnTo');
+      if (returnParam) {
+        let decoded = returnParam;
+        try {
+          decoded = decodeURIComponent(returnParam);
+        } catch {
+          return null;
+        }
+        if (isAllowedInternalReturnPath(decoded)) {
+          return applicationIdFromPath(decoded);
+        }
+      }
+    } catch {
+      // ignore malformed query strings
+    }
+  }
+
+  return null;
 }

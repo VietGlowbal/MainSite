@@ -22,6 +22,7 @@ export {
   recommendationPatchSchema,
   recommendationStatusPatchSchema,
   recommendationsFromRoadmap,
+  recommendationsFromStrategyReportV2,
   sortByPriority,
   taskCounts,
 } from './recommendation';
@@ -105,6 +106,7 @@ export {
   portfolioOpportunitySourceSchema,
   portfolioRecommendationSchema,
   strategyRecommendationFromRow,
+  strategyReportV2FromRow,
   strategyRecommendationSchema,
   strategyRoadmapSchema,
 } from './strategy-recommendation';
@@ -117,6 +119,14 @@ export type {
   StrategyRecommendationRecord,
   StrategyRoadmap,
 } from './strategy-recommendation';
+export {
+  strategyPriorityLevelSchema,
+  strategyReportV2Schema,
+} from './recommendation';
+export type {
+  StrategyPriorityLevel,
+  StrategyReportV2,
+} from './recommendation';
 
 // ─── Core 1 Gate 1 — Planning Context domain contract (types only) ───────────
 export type {

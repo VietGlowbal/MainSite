@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import { PILLAR_BY_KEY, PILLAR_ORDER, type ImprovementAction, type PillarKey } from '@/lib/match-insights';
+import { logger, startTimer } from '@/server/observability';
 
 /**
  * POST /api/applications/[id]/improvement-tasks   { pillar?: PillarKey }
@@ -26,6 +27,7 @@ const ACTION_LABELS: Record<ImprovementAction['actionType'], string | undefined>
 };
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
+  const getElapsed = startTimer();
   const { id: applicationId } = await context.params;
 
   let body: unknown = {};
@@ -47,6 +49,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  logger.info('roadmap_tasks_generate', {
+    userId: user.id,
+    applicationId,
+    stage: 'started',
+    outcome: 'started',
+  });
+
   // Plus gate.
   const { data: profile } = await supabase
     .from('student_profiles')
@@ -54,6 +63,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     .eq('user_id', user.id)
     .maybeSingle();
   if (!isPlusEntitlementActive(profile ?? {})) {
+    logger.warn('roadmap_tasks_generate', {
+      userId: user.id,
+      applicationId,
+      stage: 'validated',
+      outcome: 'rate_limited',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json(
       { error: 'Improvement tasks are a GlowBal Plus feature.', upgrade: true },
       { status: 403 },
@@ -80,6 +96,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     .limit(1)
     .maybeSingle();
   if (!analysis?.pillars) {
+    logger.warn('roadmap_tasks_generate', {
+      userId: user.id,
+      applicationId,
+      stage: 'validated',
+      outcome: 'missing_inputs',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json({ error: 'Run a match analysis first.' }, { status: 409 });
   }
 
@@ -89,6 +112,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     (k) => pillarsData[k]?.improvements ?? [],
   );
   if (improvements.length === 0) {
+    logger.info('roadmap_tasks_generate', {
+      userId: user.id,
+      applicationId,
+      stage: 'completed',
+      outcome: 'success',
+      durationMs: getElapsed(),
+      metadata: { added: 0 },
+    });
     return NextResponse.json({ ok: true, added: 0, tasks: [] });
   }
 
@@ -133,6 +164,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     });
 
   if (rows.length === 0) {
+    logger.info('roadmap_tasks_generate', {
+      userId: user.id,
+      applicationId,
+      stage: 'completed',
+      outcome: 'success',
+      durationMs: getElapsed(),
+      metadata: { added: 0 },
+    });
     return NextResponse.json({ ok: true, added: 0, tasks: [] });
   }
 
@@ -141,9 +180,23 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     .insert(rows)
     .select();
   if (insErr) {
-    console.error('[improvement-tasks] insert failed', insErr);
+    logger.error('roadmap_tasks_generate', insErr, {
+      userId: user.id,
+      applicationId,
+      stage: 'persisted',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json({ error: 'Could not add improvement tasks.' }, { status: 500 });
   }
+
+  logger.info('roadmap_tasks_generate', {
+    userId: user.id,
+    applicationId,
+    stage: 'completed',
+    outcome: 'success',
+    durationMs: getElapsed(),
+    metadata: { added: created?.length ?? 0 },
+  });
 
   return NextResponse.json({ ok: true, added: created?.length ?? 0, tasks: created });
 }

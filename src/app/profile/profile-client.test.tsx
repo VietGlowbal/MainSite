@@ -117,4 +117,46 @@ describe('profile section groups', () => {
     expect(within(group('Your study direction')).getByText('0 of 2 done')).toBeInTheDocument();
     expect(screen.getAllByText('Not started')).toHaveLength(8);
   });
+
+  it('threads returnTo through section card hrefs and back navigation when present', () => {
+    const returnTarget = '/ai-strategy/app-99/strategy/analysis';
+    render(
+      <ProfileClient
+        displayName="Demo Student"
+        email="demo@example.com"
+        memberSince="Jan 2026"
+        profile={PROFILE}
+        documents={[]}
+        activeApplications={1}
+        workEntries={0}
+        testScores={0}
+        isMentor={false}
+        plusStatus={false}
+        plusPlan={null}
+        returnTo={returnTarget}
+        applicationLabel="Oxford · Law"
+      />,
+    );
+
+    const backLink = screen.getByRole('link', { name: '← Oxford · Law' });
+    expect(backLink).toHaveAttribute('href', returnTarget);
+
+    const personalCard = screen.getByRole('link', { name: /Personal information/i });
+    expect(personalCard).toHaveAttribute(
+      'href',
+      `/profile/personal?return=${encodeURIComponent(returnTarget)}`,
+    );
+
+    const preferencesCard = screen.getByRole('link', { name: /Target preferences/i });
+    expect(preferencesCard).toHaveAttribute(
+      'href',
+      `/profile/preferences?return=${encodeURIComponent(returnTarget)}`,
+    );
+
+    const editProfileBtn = screen.getByRole('link', { name: /Edit profile/i });
+    expect(editProfileBtn).toHaveAttribute(
+      'href',
+      `/profile/personal?return=${encodeURIComponent(returnTarget)}`,
+    );
+  });
 });

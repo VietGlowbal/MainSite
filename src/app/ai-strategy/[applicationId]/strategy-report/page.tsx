@@ -22,6 +22,7 @@ export default async function StrategyReportPage({
   if (
     step === 'personal-summary' ||
     step === 'achievements' ||
+    step === 'personal-reflection' ||
     step === 'confirm' ||
     step === 'analysis' ||
     step === 'intro'

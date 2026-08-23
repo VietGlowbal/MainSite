@@ -14,13 +14,17 @@
 // product decision.
 // ============================================================================
 
-import type { NarrativeProfile } from '@/features/ai-strategy-dashboard/domain';
 import {
   strategyRecommendationSchema,
   type StrategyRecommendation,
 } from '@/features/ai-strategy-dashboard/domain';
-import type { ProgrammeFit } from '@/features/apply/domain';
+import type { PersonalReportV2, ProgrammeFit } from '@/features/apply/domain';
+import { strategyReportV2Schema, type StrategyReportV2 } from '@/features/ai-strategy-dashboard/domain';
 import { openAiJsonCompletion, defaultOpenAIModel } from './openai-client';
+
+export const STRATEGY_RECOMMENDATION_PROMPT_VERSION = 'strategy-recommendation-f8-v2';
+/** Five-section F8 payload (`report_v2`) — see strategyReportV2Schema. */
+export const STRATEGY_REPORT_V2_PROMPT_VERSION = 'strategy-report-f8-v3';
 
 export type StrategyProgrammeInput = {
   universityName: string;
@@ -42,8 +46,20 @@ export type StrategyActivityInput = {
   description?: string | null;
 };
 
+export type StrategyRecommendationInputs = {
+  personalReport: PersonalReportV2;
+  fit: ProgrammeFit;
+  programme: StrategyProgrammeInput;
+  achievements: StrategyAchievementInput[];
+  activities: StrategyActivityInput[];
+  apiKey: string;
+  model?: string;
+};
+
 function buildSystemPrompt(): string {
-  return `You are a senior university admissions strategist writing a Strategic Recommendation Report for one applicant applying to one specific programme. You already have their Personal Report (who they are) and their Matching Report (how well they fit this programme) — your job is to turn those two read-only facts into a strategy: what to commit to, and how to become more competitive before they submit.
+  return `You are a senior university admissions strategist writing a Strategic Recommendation Report for one applicant applying to one specific programme. You have their structured Personal Report (who they are: Core Identity, Driving Force, Signature Pattern, Emerging Themes, Personal Positioning, Proof of Me, Evidence Confidence) and their Matching Report (Programme Fit: classification, dimension assessments, eligibility filters, limitations). Your job is to synthesise these canonical facts into a high-impact strategy: what direction to commit to, how to position the profile, how to evaluate their activity portfolio, how to differentiate, and an actionable roadmap before submission.
+
+Never calculate, estimate, or imply an admission probability, acceptance rate, or numerical chance of admission. Focus entirely on strategic positioning, fit alignment, and portfolio strengthening.
 
 Respond with VALID JSON ONLY (no markdown, no commentary) matching exactly:
 {
@@ -53,15 +69,15 @@ Respond with VALID JSON ONLY (no markdown, no commentary) matching exactly:
   ],
   "chosenDirection": "<must exactly match one \\"name\\" above — the one with the strongest case>",
   "chosenDirectionWhy": "<why this direction wins over the others, referencing the six scores>",
-  "narrative": "<the applicant's story told through the lens of the chosen direction — how their existing experiences, told in sequence, build toward it>",
+  "narrative": "<the applicant's story told through the lens of the chosen direction — how their existing experiences build toward it>",
   "positioningBefore": "<how the applicant would currently present themselves, unfocused>",
   "positioningAfter": "<how they should present themselves once committed to the chosen direction>",
   "positioningRationale": "<why the \\"after\\" positioning is stronger for this specific programme>",
   "portfolioEvaluations": [
     { "name": "<name of a real activity/achievement OR a proposed new opportunity>", "source": "existing_activity | ai_proposed", "strategicContribution": "<how it strengthens (or doesn't) the chosen direction>", "recommendation": "highly_recommended | recommended | low_priority" },
-    ...at least 2, mixing BOTH sources: every real activity/achievement provided must be evaluated (source: "existing_activity"), and at least one NEW opportunity you propose (source: "ai_proposed") the applicant does not yet have
+    ...at least 2, mixing BOTH sources: every real activity/achievement provided must be evaluated (source: "existing_activity"), and at least one NEW opportunity you propose (source: "ai_proposed")
   ],
-  "differentiationInsight": "<what makes this applicant's profile common vs. what other applicants for this direction typically also have>",
+  "differentiationInsight": "<what makes this applicant's profile common vs. what other applicants for this direction typically have>",
   "differentiationProposal": "<one concrete thing that would make them stand out from that common pool>",
   "roadmap": {
     "chosenStrategy": "<one-sentence restatement of the committed direction>",
@@ -74,23 +90,24 @@ Respond with VALID JSON ONLY (no markdown, no commentary) matching exactly:
 }
 
 FIELD NOTES (F7.1-F7.6, one JSON section per module):
-- F7.1 Strategic Direction Selection ("directionOptions"/"chosenDirection"/"chosenDirectionWhy"): propose 2-6 REAL candidate directions grounded in the applicant's actual signature pattern and emerging themes — not generic majors. Score each on six 0-10 dimensions: identityFit (matches who they already are), evidenceStrength (how much of what they've already done supports it), consistency (how much it reuses one throughline vs. scattering), differentiation (how distinct vs. common applicant pools), futureAlignment (fit with the target programme and career direction), scalability (room to grow it further before submitting). "overall" is your holistic score, not a plain average. Pick the strongest as "chosenDirection".
+- F7.1 Strategic Direction Selection ("directionOptions"/"chosenDirection"/"chosenDirectionWhy"): propose 2-6 REAL candidate directions grounded in the applicant's actual signature pattern and emerging themes — not generic majors. Score each on six 0-10 dimensions: identityFit, evidenceStrength, consistency, differentiation, futureAlignment, scalability. "overall" is your holistic score, not a plain average. Pick the strongest as "chosenDirection".
 - F7.2 Narrative Strategy ("narrative"): retell their existing experiences as a coherent story that arrives at the chosen direction. Do not invent experiences — resequence and reframe only what evidence supports.
 - F7.3 Positioning Strategy ("positioningBefore"/"positioningAfter"/"positioningRationale"): contrast an unfocused self-presentation against a focused one built around the chosen direction.
-- F7.4 Portfolio Strategy ("portfolioEvaluations"): evaluate the applicant's PORTFOLIO of activities against the chosen direction — both what they already have (source "existing_activity", one entry per real achievement/activity given to you) and what they are missing (source "ai_proposed", opportunities you invent that would plausibly be available to a student in their situation). Rate each highly_recommended / recommended / low_priority by how much it strengthens the chosen direction specifically, not how impressive it is in general.
-- F7.5 Differentiation Strategy ("differentiationInsight"/"differentiationProposal"): name the crowded pattern this applicant currently resembles (be specific: "another coding + hackathon profile", not "typical applicant"), then propose one differentiator that breaks from it while staying consistent with the chosen direction.
-- F7.6 Execution Roadmap ("roadmap"): the actionable summary — what to prioritize before submitting, what to avoid doing (because it would dilute the positioning), the positioning it produces, and the long-term narrative arc.
+- F7.4 Portfolio Strategy ("portfolioEvaluations"): evaluate the applicant's PORTFOLIO of activities against the chosen direction — both what they already have (source "existing_activity", one entry per real achievement/activity given to you) and what they are missing (source "ai_proposed", opportunities you propose). Rate each highly_recommended / recommended / low_priority.
+- F7.5 Differentiation Strategy ("differentiationInsight"/"differentiationProposal"): name the crowded pattern this applicant currently resembles, then propose one differentiator that breaks from it while staying consistent with the chosen direction.
+- F7.6 Execution Roadmap ("roadmap"): the actionable summary — what to prioritize before submitting, what to avoid doing, expected positioning, and long-term narrative arc.
 
 RULES:
-- Base everything ONLY on the Personal Report, Matching Report, programme facts and activities/achievements provided. Do not invent facts about the applicant — you MAY invent plausible new opportunities for F7.4's "ai_proposed" entries, clearly labelled as such.
+- Base everything ONLY on the Personal Report, Matching Report, programme facts and activities/achievements provided. Do not invent facts about the applicant — you MAY propose plausible new opportunities for F7.4's "ai_proposed" entries.
 - Every real achievement/activity provided to you must appear as an "existing_activity" entry in "portfolioEvaluations" — do not omit any.
 - Write every field in English.
 - All six-dimension scores in "directionOptions" are 0-10, one decimal place is fine.
-- Keep every direction's "name" short and ownable (a phrase a student could say about themselves), never a generic subject name alone.`;
+- Keep every direction's "name" short and ownable, never a generic subject name alone.
+- Never use admission probability or chance percentage language.`;
 }
 
 function buildUserPrompt(
-  narrative: NarrativeProfile,
+  personalReport: PersonalReportV2,
   fit: ProgrammeFit,
   programme: StrategyProgrammeInput,
   achievements: StrategyAchievementInput[],
@@ -103,21 +120,111 @@ function buildUserPrompt(
   if (programme.subject) parts.push(`Subject: ${programme.subject}`);
   if (programme.careerOutcomes) parts.push(`Career outcomes: ${programme.careerOutcomes}`);
 
-  parts.push('\nPERSONAL REPORT (F1/F4 — who this applicant is):');
-  parts.push(`Core identity: ${narrative.coreIdentity ?? '(not available)'}`);
-  parts.push(`Driving force: ${narrative.drivingForce ?? '(not available)'}`);
-  parts.push(`Signature pattern: ${narrative.signaturePattern.join(', ') || '(not available)'}`);
-  parts.push(`Emerging themes: ${narrative.emergingThemes.join(', ') || '(not available)'}`);
-  parts.push(`Current positioning: ${narrative.personalPositioning ?? '(not available)'}`);
-  parts.push(`Academic strengths: ${narrative.academicStrengths.join(', ') || '(not available)'}`);
-  parts.push(`Growth areas: ${narrative.growthAreas.join(', ') || '(not available)'}`);
+  parts.push('\nCANONICAL PERSONAL REPORT (Structured identity & evidence findings):');
 
-  parts.push('\nMATCHING REPORT (F5 — fit against this specific programme):');
+  // Core Identity
+  const ci = personalReport.coreIdentity;
+  parts.push('Core Identity:');
+  if (ci.available) {
+    if (ci.headline) parts.push(`- Headline: ${ci.headline}`);
+    if (ci.interpretation) parts.push(`- Interpretation: ${ci.interpretation}`);
+    if (ci.recurringRole) parts.push(`- Recurring Role: ${ci.recurringRole}`);
+    if (ci.recurringBehaviours.length > 0) parts.push(`- Recurring Behaviours: ${ci.recurringBehaviours.join(', ')}`);
+    if (ci.valueOrientation) parts.push(`- Value Orientation: ${ci.valueOrientation}`);
+    if (ci.observations.length > 0) parts.push(`- Observations / Academic Strengths: ${ci.observations.join('; ')}`);
+    if (ci.stillDeveloping.length > 0) parts.push(`- Developing / Growth Areas: ${ci.stillDeveloping.join('; ')}`);
+  } else {
+    parts.push(`- (insufficient data: ${ci.insufficientData?.reason ?? 'more evidence needed'})`);
+  }
+
+  // Driving Force
+  const df = personalReport.drivingForce;
+  parts.push('Driving Force:');
+  if (df.available) {
+    if (df.headline) parts.push(`- Headline: ${df.headline}`);
+    if (df.explanation) parts.push(`- Explanation: ${df.explanation}`);
+    if (df.repeatedMotivations.length > 0) parts.push(`- Repeated Motivations: ${df.repeatedMotivations.join(', ')}`);
+    parts.push(`- Nature: ${df.isHypothesis ? 'Emerging hypothesis' : 'Confirmed motivation'}`);
+    if (df.missingPersonalGrounding) parts.push(`- Personal Grounding: ${df.missingPersonalGrounding}`);
+  } else {
+    parts.push(`- (insufficient data: ${df.insufficientData?.reason ?? 'more evidence needed'})`);
+  }
+
+  // Signature Pattern
+  const sp = personalReport.signaturePattern;
+  parts.push('Signature Pattern:');
+  if (sp.available) {
+    parts.push(`- Pattern Strength: ${sp.patternStrength}`);
+    if (sp.distinctiveness) parts.push(`- Distinctiveness: ${sp.distinctiveness}`);
+    if (sp.steps.length > 0) {
+      parts.push(`- Steps: ${sp.steps.map((s) => `${s.label}: ${s.description}`).join(' -> ')}`);
+    }
+  } else {
+    parts.push(`- (insufficient data: ${sp.insufficientData?.reason ?? 'more evidence needed'})`);
+  }
+
+  // Emerging Themes
+  const et = personalReport.emergingThemes;
+  parts.push('Emerging Themes:');
+  if (et.available && et.themes.length > 0) {
+    for (const t of et.themes) {
+      parts.push(
+        `- ${t.theme} (${t.statusLabel}, supporting experiences: ${t.supportingExperiences.join(', ') || 'none'}) — ${t.explanation}`,
+      );
+    }
+  } else {
+    parts.push(`- (insufficient data: ${et.insufficientData?.reason ?? 'no themes established yet'})`);
+  }
+
+  // Personal Positioning
+  const pp = personalReport.personalPositioning;
+  parts.push('Personal Positioning:');
+  if (pp.available) {
+    if (pp.statement) parts.push(`- Statement: ${pp.statement}`);
+    if (pp.whyThisFits.length > 0) parts.push(`- Why This Fits: ${pp.whyThisFits.join('; ')}`);
+    if (pp.whatPreventsStrongerPositioning.length > 0) {
+      parts.push(`- Limitations / Growth Areas: ${pp.whatPreventsStrongerPositioning.join('; ')}`);
+    }
+  } else {
+    parts.push(`- (insufficient data: ${pp.insufficientData?.reason ?? 'more evidence needed'})`);
+  }
+
+  // Proof of Me key proofs
+  const pom = personalReport.proofOfMe;
+  if (pom.available && pom.cards.length > 0) {
+    parts.push('Grounded Proof of Me (Key Evidence Cards):');
+    for (const card of pom.cards.slice(0, 8)) {
+      parts.push(
+        `- ${card.title} [${card.verificationStatus}, ${card.evidenceStrength} strength]${card.role ? ` (Role: ${card.role})` : ''}${card.outcome ? ` (Outcome: ${card.outcome})` : ''}`,
+      );
+    }
+  }
+
+  parts.push(`Overall Evidence Confidence: ${personalReport.overallEvidenceConfidence}`);
+
+  parts.push('\nCANONICAL MATCHING REPORT (Programme Fit F5):');
   parts.push(`Classification: ${fit.classification}`);
-  for (const [key, dimension] of Object.entries(fit.dimensions)) {
+  parts.push(`Match Confidence: ${fit.confidence}%`);
+  parts.push('Eligibility Status:');
+  parts.push(`- Required Subjects: ${fit.eligibility.requiredSubjects}`);
+  parts.push(`- Minimum Qualification: ${fit.eligibility.minimumQualification}`);
+  parts.push(`- Language Requirement: ${fit.eligibility.languageRequirement}`);
+  parts.push(`- Citizenship Requirement: ${fit.eligibility.citizenshipRequirement}`);
+  parts.push(`- Deadline: ${fit.eligibility.deadline}`);
+
+  parts.push('Dimensions:');
+  for (const [key, dim] of Object.entries(fit.dimensions)) {
     parts.push(
-      `- ${key}: ${dimension.status}${dimension.score !== null ? ` (${dimension.score}/5)` : ''} — ${dimension.summary}`,
+      `- ${key}: ${dim.status}${dim.score !== null ? ` (${dim.score}/5)` : ''} — ${dim.summary}`,
     );
+    if (dim.strengths.length > 0) parts.push(`  Strengths: ${dim.strengths.join('; ')}`);
+    if (dim.gaps.length > 0) parts.push(`  Gaps: ${dim.gaps.join('; ')}`);
+    if (dim.evidence.length > 0) parts.push(`  Evidence: ${dim.evidence.join('; ')}`);
+    if (dim.limitation) parts.push(`  Limitation: ${dim.limitation}`);
+  }
+
+  if (fit.limitations.length > 0) {
+    parts.push(`Fit Limitations: ${fit.limitations.join('; ')}`);
   }
 
   parts.push('\nREAL ACHIEVEMENTS (must each appear as an "existing_activity" portfolio entry):');
@@ -145,19 +252,13 @@ function buildUserPrompt(
 /**
  * Run the F7 call. Throws on a hard failure (no key, network, unparseable or
  * schema-invalid response) so the caller can surface an error — same
- * contract as `analyzeApplicant`/`analyzeCourseMatchInsights`.
+ * contract as `analyzeCourseMatchInsights`.
  */
-export async function generateStrategyRecommendation(args: {
-  narrative: NarrativeProfile;
-  fit: ProgrammeFit;
-  programme: StrategyProgrammeInput;
-  achievements: StrategyAchievementInput[];
-  activities: StrategyActivityInput[];
-  apiKey: string;
-  model?: string;
-}): Promise<StrategyRecommendation> {
+export async function generateStrategyRecommendation(
+  args: StrategyRecommendationInputs,
+): Promise<StrategyRecommendation> {
   const {
-    narrative,
+    personalReport,
     fit,
     programme,
     achievements,
@@ -171,7 +272,7 @@ export async function generateStrategyRecommendation(args: {
     model,
     messages: [
       { role: 'system', content: buildSystemPrompt() },
-      { role: 'user', content: buildUserPrompt(narrative, fit, programme, achievements, activities) },
+      { role: 'user', content: buildUserPrompt(personalReport, fit, programme, achievements, activities) },
     ],
     temperature: 0.4,
     maxTokens: 3500,
@@ -186,3 +287,92 @@ export async function generateStrategyRecommendation(args: {
   }
   return result.data;
 }
+
+// ─── F8 five-section Strategy Report (report_v2) ────────────────────────────
+
+function buildSystemPromptV2(): string {
+  return `You are a senior university admissions strategist writing the five-section Strategy Report for one applicant applying to one specific programme. You have their structured Personal Report (Core Identity, Driving Force, Signature Pattern, Emerging Themes, Personal Positioning, Proof of Me, Evidence Confidence) and their Matching Report (Programme Fit classification, five dimension assessments, eligibility gates, limitations). Synthesise these canonical facts into an actionable strategy.
+
+ABSOLUTE RULES:
+- Never calculate, estimate, or imply an admission probability, acceptance rate, or numerical chance of admission. You are shaping strategy and positioning, never predicting outcomes.
+- Never invent achievements, evidence, or facts about the applicant. Every claim must trace to the provided report content; where evidence is thin, say what is missing instead of filling the gap.
+- Do not restate or recompute any fit score or classification.
+- Every "key"/"phaseKey" field MUST be a short deterministic slug (lowercase letters/digits/hyphens/underscores) naming the IDEA (e.g. "quant_portfolio_depth", "ielts_7_target") — student edits and Planner tasks key on it, so it must describe meaning, not position in a list.
+- Write every field in English.
+
+Respond with VALID JSON ONLY matching exactly:
+{
+  "strategicOverview": {
+    "currentPosition": { "profile": "...", "keyStrength": "...", "biggestChallenge": "..." },
+    "strategicGoal": { "primaryObjective": "...", "positioning": "..." },
+    "topPriorities": ["...", "...", "..."],
+    "expectedOutcome": "..."
+  },
+  "priorityTable": [
+    { "key": "<slug>", "title": "...", "currentSituation": "...", "whyItMatters": "...", "recommendedActions": ["...", "..."], "expectedImpact": "...", "level": "critical | high | medium" }
+  ],
+  "profileDevelopmentStrategy": {
+    "academic": { "currentStatus": "...", "gap": "...", "strategicFocus": "...", "expectedOutcome": "..." },
+    "experience": { "currentStatus": "...", "gap": "...", "strategicFocus": "...", "expectedOutcome": "..." },
+    "differentiation": { "currentAdvantage": "...", "uniqueness": "...", "amplifyHow": "...", "desiredPerception": "..." }
+  },
+  "narrativeStrategy": {
+    "coreNarrative": { "centralStory": "...", "supportingEvidence": ["..."], "admissionsValue": "..." },
+    "themes": [ { "key": "<slug>", "title": "...", "rationale": "...", "evidence": ["..."] } ],
+    "consistencyCheck": { "supports": "...", "feelsDisconnected": "...", "emphasise": "...", "supportingRole": "..." }
+  },
+  "executionRoadmap": {
+    "phases": [
+      { "phaseKey": "<slug>", "name": "...", "objective": "...", "keyActions": ["..."], "deliverables": [ { "key": "<slug>", "label": "...", "tool": "personal_canvas | cv_builder | statement_writer | (omit)" } ], "successCriteria": ["..."], "timeline": "..." }
+    ]
+  }
+}
+
+SHAPE NOTES:
+- priorityTable: 2-6 rows covering the applicant's decisive strategic moves for THIS programme.
+- narrativeStrategy.themes: 3-5 themes ONLY when evidence supports them; fewer honest themes beat padded ones.
+- executionRoadmap.phases: use these canonical phases IN ORDER when they fit: strengthen_foundation ("Strengthen Foundation"), build_competitive_advantages ("Build Competitive Advantages"), craft_application ("Craft Application"), finalise_optimise ("Finalise & Optimise").
+- deliverables.tool: set ONLY to a tool that genuinely fits the deliverable (Personal Canvas, CV Builder, Statement Writer); omit for everything else.`;
+}
+
+/**
+ * Run the F8 v3 call producing the five-section Strategy Report
+ * (`StrategyReportV2`). Same throw-on-failure contract as
+ * `generateStrategyRecommendation`; the caller persists lineage + input hash.
+ */
+export async function generateStrategyReportV2(
+  args: StrategyRecommendationInputs,
+): Promise<StrategyReportV2> {
+  const {
+    personalReport,
+    fit,
+    programme,
+    achievements,
+    activities,
+    apiKey,
+    model = defaultOpenAIModel(),
+  } = args;
+
+  const content = await openAiJsonCompletion({
+    apiKey,
+    model,
+    messages: [
+      { role: 'system', content: buildSystemPromptV2() },
+      // Same canonical input rendering as the legacy prompt — one source of
+      // truth for how the structured reports reach the model.
+      { role: 'user', content: buildUserPrompt(personalReport, fit, programme, achievements, activities) },
+    ],
+    temperature: 0.4,
+    maxTokens: 4500,
+  });
+
+  const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  const parsed = JSON.parse(cleaned) as unknown;
+
+  const result = strategyReportV2Schema.safeParse(parsed);
+  if (!result.success) {
+    throw new Error(`Invalid strategy report v2 output: ${result.error.issues[0]?.message ?? 'unknown'}`);
+  }
+  return result.data;
+}
+

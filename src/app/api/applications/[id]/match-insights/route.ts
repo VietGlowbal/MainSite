@@ -9,6 +9,7 @@ import { candidateConfidence, programmeFitSchema } from '@/features/apply/domain
 import { analyzeCourseMatchInsights } from '@/lib/ai/match-insights';
 import { extractDocumentText } from '@/lib/ai/document-text';
 import { defaultOpenAIModel } from '@/lib/ai/openai-client';
+import type { PostgrestError } from '@supabase/supabase-js';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
@@ -44,9 +45,12 @@ function text(value: unknown): string | null {
   return JSON.stringify(value);
 }
 
-function migrationMissing(error: { code?: string; message?: string } | null | undefined) {
+import { logger, startTimer } from '@/server/observability';
+
+function migrationMissing(error: PostgrestError | null | undefined): boolean {
+  if (!error) return false;
   return Boolean(
-    error &&
+    error.code === '42P01' ||
       (error.code === '42703' ||
         error.code === 'PGRST204' ||
         /input_hash|fit_dimensions|fit_eligibility|fit_classification|fit_confidence|fit_limitations/i.test(
@@ -59,6 +63,7 @@ export async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const getElapsed = startTimer();
   const { id: applicationId } = await context.params;
   const supabase = await createClient();
   const {
@@ -67,8 +72,24 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   const userId = user.id;
 
+  logger.info('matching_report_generate', {
+    userId,
+    applicationId,
+    stage: 'started',
+    outcome: 'started',
+  });
+
   const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
+  if (!apiKey) {
+    logger.warn('matching_report_generate', {
+      userId,
+      applicationId,
+      stage: 'validated',
+      outcome: 'not_configured',
+      durationMs: getElapsed(),
+    });
+    return NextResponse.json({ error: 'AI service not configured' }, { status: 503 });
+  }
 
   const { data: application, error: appError } = await supabase
     .from('course_applications')
@@ -139,6 +160,13 @@ export async function POST(
       candidate.activities.length,
   );
   if (!hasAnyInput) {
+    logger.warn('matching_report_generate', {
+      userId,
+      applicationId,
+      stage: 'validated',
+      outcome: 'missing_inputs',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json(
       {
         error: cvDoc || essayDoc
@@ -233,17 +261,40 @@ export async function POST(
     .limit(1)
     .maybeSingle();
   if (migrationMissing(latestError)) {
+    logger.warn('matching_report_generate', {
+      userId,
+      applicationId,
+      stage: 'validated',
+      outcome: 'migration_missing',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json(
       { error: 'Matching Report needs a database update before it can be used.' },
       { status: 503 },
     );
   }
   if (latestV2?.input_hash === inputHash) {
+    logger.info('matching_report_generate', {
+      userId,
+      applicationId,
+      stage: 'cache_hit',
+      outcome: 'cached',
+      cached: true,
+      inputHash,
+      durationMs: getElapsed(),
+    });
     return NextResponse.json({ ok: true, cached: true, analysis: latestV2 });
   }
   if (latestV2 && !isPlus) {
     const nextAt = new Date(new Date(latestV2.created_at).getTime() + COOLDOWN_MS);
     if (nextAt.getTime() > Date.now()) {
+      logger.warn('matching_report_generate', {
+        userId,
+        applicationId,
+        stage: 'validated',
+        outcome: 'rate_limited',
+        durationMs: getElapsed(),
+      });
       return NextResponse.json(
         {
           error: "Your information has changed, but a free report regeneration isn't available yet.",
@@ -268,8 +319,12 @@ export async function POST(
       model: defaultOpenAIModel(),
     });
   } catch (error) {
-    console.error('[match-insights] analysis failed', {
-      code: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+    logger.error('matching_report_generate', error, {
+      userId,
+      applicationId,
+      stage: 'generated',
+      inputHash,
+      durationMs: getElapsed(),
     });
     return NextResponse.json(
       {
@@ -320,37 +375,68 @@ export async function POST(
     .filter(Boolean)
     .join(' ');
 
-  const { data: inserted, error: insertError } = await supabase
+  const analysisRow = {
+    application_id: applicationId,
+    user_id: userId,
+    profile_version: 1,
+    current_match_score: currentScore,
+    max_possible_match_score: maxScore,
+    score_label: matchLabel(currentScore),
+    max_score_label: maxMatchLabel(maxScore),
+    pillars: insights.pillars,
+    confidence: insights.confidence,
+    inputs_present: insights.inputsPresent,
+    strengths,
+    weaknesses,
+    improvement_actions: improvementActions,
+    explanation,
+    model_name: defaultOpenAIModel(),
+    prompt_version: MATCH_PROMPT_VERSION,
+    input_hash: inputHash,
+    fit_dimensions: fit.dimensions,
+    fit_eligibility: fit.eligibility,
+    fit_classification: fit.classification,
+    fit_confidence: fit.confidence,
+    fit_limitations: fit.limitations,
+    analysis_status: 'complete',
+  };
+
+  let { data: inserted, error: insertError } = await supabase
     .from('application_match_analyses')
-    .insert({
-      application_id: applicationId,
-      user_id: userId,
-      profile_version: 1,
-      current_match_score: currentScore,
-      max_possible_match_score: maxScore,
-      score_label: matchLabel(currentScore),
-      max_score_label: maxMatchLabel(maxScore),
-      pillars: insights.pillars,
-      confidence: insights.confidence,
-      inputs_present: insights.inputsPresent,
-      strengths,
-      weaknesses,
-      improvement_actions: improvementActions,
-      explanation,
-      model_name: defaultOpenAIModel(),
-      prompt_version: MATCH_PROMPT_VERSION,
-      input_hash: inputHash,
-      fit_dimensions: fit.dimensions,
-      fit_eligibility: fit.eligibility,
-      fit_classification: fit.classification,
-      fit_confidence: fit.confidence,
-      fit_limitations: fit.limitations,
-      analysis_status: 'complete',
-    })
+    .insert(
+      insights.narrative ? { ...analysisRow, match_report_narrative: insights.narrative } : analysisRow,
+    )
     .select()
     .single();
+
+  // Degraded mode: the narrative migration hasn't run yet — retry without the
+  // narrative so the deterministic report still saves. Never a silent data
+  // loss: the warn log names exactly what was skipped.
+  if (insertError && migrationMissing(insertError) && insights.narrative) {
+    logger.warn('matching_report_generate', {
+      userId,
+      applicationId,
+      stage: 'persisted',
+      outcome: 'migration_missing',
+      metadata: { detail: 'match_report_narrative column unavailable — saved without narrative' },
+      durationMs: getElapsed(),
+    });
+    const retry = await supabase
+      .from('application_match_analyses')
+      .insert(analysisRow)
+      .select()
+      .single();
+    inserted = retry.data;
+    insertError = retry.error;
+  }
   if (insertError) {
-    console.error('[match-insights] store failed', insertError);
+    logger.error('matching_report_generate', insertError, {
+      userId,
+      applicationId,
+      stage: 'persisted',
+      inputHash,
+      durationMs: getElapsed(),
+    });
     return NextResponse.json(
       {
         error: migrationMissing(insertError)
@@ -365,6 +451,26 @@ export async function POST(
     (pillar) => !insights.pillars[pillar.key]?.assessed,
   ).map((pillar) => pillar.key as PillarKey);
 
+  logger.info('matching_report_generate', {
+    userId,
+    applicationId,
+    stage: 'completed',
+    outcome: 'success',
+    durationMs: getElapsed(),
+    modelName: defaultOpenAIModel(),
+    promptVersion: MATCH_PROMPT_VERSION,
+    inputHash,
+    cached: false,
+    metadata: {
+      // Deterministic F5 re-derivation over the persisted dimensions — proves
+      // the band came from the rule, not the model, on every generation.
+      deterministicClassification: insights.deterministicEvaluation?.classification,
+      classificationAgreesWithEnforced: insights.deterministicEvaluation?.classificationAgreesWithEnforced,
+      unassessedDimensions: insights.deterministicEvaluation?.missingInputs,
+      narrativePersisted: Boolean(insights.narrative),
+    },
+  });
+
   // Best-effort: a new Matching Report is one of the two events that should
   // refresh the Personal Report (see `regeneratePersonalReport`'s doc
   // comment). This never fails the Matching Report response — the report
@@ -374,8 +480,11 @@ export async function POST(
   try {
     await regeneratePersonalReport({ supabase, userId, trigger: 'matching_report' });
   } catch (error) {
-    console.error('[match-insights] personal report refresh failed', {
-      code: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
+    logger.error('personal_report_generate', error, {
+      userId,
+      applicationId,
+      stage: 'failed',
+      trigger: 'matching_report_background',
     });
   }
 

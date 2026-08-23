@@ -2,6 +2,75 @@
 
 Last reconciled: **2026-08-15 (Asia/Bangkok)**
 
+Working tree 2026-08-23 (later): bug-fix pass over the Parts 0–4 three-agent
+review (every finding re-verified against the working tree before fixing).
+Fixed: `matching-report-view.tsx` "Check profile data" threads `?return=` via
+the shared `withReturn` helper (the exact 5s/5u regression class); report-family
+dates go through new `shared/lib/ui-date.ts` (`formatUiDate`/`formatUiDateTime`,
+locale follows UI language) replacing hardcoded `en-US`/`en-GB`/`vi-VN`
+literals in matching-report-view, version-history, personal-report-v2-view,
+review-confirm-view, analysis-workspace, strategy-recommendation-report; three
+retired radius values in `personal-canvas.tsx` mapped to `rounded-gb-xl/2xl`;
+strategy export route answers **501** ("renderer not built for F8") for
+F8-only rows instead of the misleading 409; the F8 Strategy Report view gained
+an Add-to-Planner card reusing `generateRoadmapTasks` (which already reads
+`report_v2`); ~50 missing VI dictionary entries added — matching-report band/
+status labels (dynamic `t()` calls invisible to the static audit) plus F8
+chrome strings. INCIDENT, recovered: an accidental full-file overwrite
+destroyed the uncommitted tail of `i18n-dictionary.ts`; rebuilt by combining
+HEAD with string-literal pairs extracted from the Turbopack dev cache
+(`.next/**/src_lib_*` chunks keep source-format literals), a verbatim pre-loss
+read of lines 4208–4257, and freshly written translations only where no copy
+existed (F8 chrome, band labels); duplicates against HEAD deduped (11 lines,
+double-quoted HEAD tail the extractor initially missed). Verification this
+pass: typecheck clean on every touched file (repo-wide still blocked by the
+pre-existing untracked `glowbal-resend-v2/` missing deps), eslint 0 errors on
+changed files, `check-i18n --all` green (0 missing / 0 mismatch / 0 dynamic
+gaps). NOT run here: targeted vitest — the sandbox denies the child-process
+spawn vitest's config loader needs (`spawn EPERM`); run `npm test` outside
+before committing.
+
+Working tree 2026-08-23: Feature 2 Parts 3–4 implemented on top of the
+reviewed Parts 0–2. Part 3: F5 deterministic engine hardened (out-of-range
+rejection, complete missingInputs) with a 29-test matrix + drift-detector vs
+`enforceFitClassification` (33 boundary/gate cases); wired into match-insights
+(classification re-derived server-side, renormalisation disclosed in
+limitations, composite computed render-side via `fitScoreToPercent`);
+optional AI narrative (`match_report_narrative`) persisted/read with graceful
+degradation; Matching Report UI rebuilt around the six canonical sections.
+Part 4: five-section F8 payload (`strategyReportV2Schema`, prompt
+`strategy-report-f8-v3`) persisted in `report_v2` JSONB with legacy-shape
+fallback when migrations lag; student overrides table
+(`application_report_overrides`) + editable Strategic Priority Table layered
+override-first; Strategy Report UI dual-shape (v2 rows → new view, old rows →
+F7 layout untouched); Planner seeds from F8 deliverables keyed by deterministic
+`source_key` (migration adds column) so regeneration updates in place and never
+duplicates. Verification: 108 suites / 1053 tests pass, typecheck + strict
+clean, eslint clean on changed files, i18n 0 missing. PENDING: run 5 new SQL
+migrations live (`supabase-strategy-recommendation-lineage.sql`,
+`supabase-match-report-narrative.sql`, `supabase-strategy-report-v2.sql`,
+`supabase-report-overrides.sql`, `supabase-recommendation-source-key.sql`);
+untracked `glowbal-resend-v2/` folder breaks local `npm run typecheck`
+(missing deps, unrelated to this work); PDF export still renders legacy rows
+only.
+
+Working tree 2026-08-22: Feature 2 Parts 0–2 implementation review + bug-fix
+pass. Fixed in `strategy/recommendation/route.ts`: the route wrote a
+`student_personal_report_versions.id` into `source_analysis_id`, whose FK still
+references `applicant_analyses(id)` — every fresh insert failed 23503 and the
+silent fallback nulled lineage AND made the flawed cache check stale-hit forever
+(`|| !latestStrategy.source_analysis_id`). New guarded migration
+`supabase-strategy-recommendation-lineage.sql` adds `input_hash` +
+`source_personal_report_version_id` (correctly typed FK); the route now persists
+both, never writes `source_analysis_id`, caches on content-hash primary /
+exact-lineage fallback, and degrades to the pre-lineage insert shape when the
+migration has not run. Also fixed: activity-reflection "Finish reflection"
+missing `.catch` (unhandled rejection); personal-reflection-form now flushes a
+pending debounced edit on unmount; `fitScoreToPercent`/`F5_DIMENSION_WEIGHTS`
+deduped into `src/shared/evaluation/f5-programme-fit.ts` (re-exported from
+ai-reports). Verification: 9 focused suites / 109 tests pass, typecheck +
+strict typecheck + eslint clean, check-i18n 0 missing keys.
+
 Code snapshot: branch `claude/university-application-flow-0khm6v`, restarted
 from `main` after the branch's previous content (the application setup flow
 redesign + its UX/navigation correction pass, described in the two

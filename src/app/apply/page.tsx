@@ -122,14 +122,23 @@ async function fetchStrategyReadiness(
   // "independent reads run in parallel, not serialized behind
   // `course_applications`" property the original single-profile-row version
   // of this function had.
-  const analysesPromise = supabase
+  const personalReportPromise = supabase
+    .from('student_personal_report_versions')
+    .select('id')
+    .eq('user_id', userId)
+    .then((result) => result);
+
+  const legacyAnalysesPromise = supabase
     .from('applicant_analyses')
     .select('application_id')
     .eq('user_id', userId)
-    // Supabase's query builder does not fire the request until it is
-    // awaited/`.then()`ed — appending `.then()` here starts it immediately
-    // rather than leaving it to fire only once `Promise.all` below reaches
-    // it, which by then would be AFTER `applicationsPromise` resolves.
+    .then((result) => result);
+
+  const matchAnalysesPromise = supabase
+    .from('application_match_analyses')
+    .select('application_id')
+    .eq('user_id', userId)
+    .eq('analysis_status', 'complete')
     .then((result) => result);
 
   const applications = await applicationsPromise;
@@ -145,9 +154,20 @@ async function fetchStrategyReadiness(
     .select('id, personal_summary_reviewed_at, achievements_reviewed_at')
     .in('id', ids)
     .then((result) => result);
-  const [{ data: analyses }, reviewed] = await Promise.all([analysesPromise, reviewedPromise]);
 
-  const analysed = new Set((analyses ?? []).map((row) => String(row.application_id)));
+  const [personalReport, legacyAnalyses, matchAnalyses, reviewed] = await Promise.all([
+    personalReportPromise,
+    legacyAnalysesPromise,
+    matchAnalysesPromise,
+    reviewedPromise,
+  ]);
+
+  const hasUserPersonalReport = Boolean(
+    personalReport?.data &&
+      (Array.isArray(personalReport.data) ? personalReport.data.length > 0 : Boolean(personalReport.data)),
+  );
+  const legacyAnalysed = new Set((legacyAnalyses?.data ?? []).map((row) => String(row.application_id)));
+  const matchAnalysed = new Set((matchAnalyses?.data ?? []).map((row) => String(row.application_id)));
 
   if (reviewed.error) {
     console.warn(
@@ -164,8 +184,12 @@ async function fetchStrategyReadiness(
 
   const readiness: Record<string, boolean> = {};
   for (const app of applications) {
+    const hasPersonal = hasUserPersonalReport || legacyAnalysed.has(app.id);
+    const hasMatch = matchAnalysed.has(app.id);
+    const isAnalysed = hasPersonal && hasMatch;
+
     readiness[app.id] =
-      (reviewedById.get(app.id) ?? false) && analysed.has(app.id) && Boolean(app.strategyIntroSeenAt);
+      (reviewedById.get(app.id) ?? false) && isAnalysed && Boolean(app.strategyIntroSeenAt);
   }
   return readiness;
 }

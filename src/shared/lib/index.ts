@@ -39,3 +39,9 @@ export {
   type SubNavItem,
 } from './app-routes';
 export { isAllowedInternalReturnPath } from './return-path';
+export {
+  formatUiDate,
+  formatUiDateTime,
+  uiLocaleTag,
+  type UiLang,
+} from './ui-date';

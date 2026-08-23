@@ -1,13 +1,18 @@
 import { NextResponse } from 'next/server';
 import { analyzeApplicant } from '@/lib/ai/strategy-dashboard/applicant-analysis';
 import { createClient } from '@/lib/supabase/server';
+import { logger, startTimer } from '@/server/observability';
 
 /**
+ * @deprecated Legacy application-scoped applicant analysis route.
+ *
+ * CANONICAL REPLACEMENT: User-level Personal Report V2 (`/api/ai-strategy/personal-report`)
+ * and Matching Report (`/api/applications/[id]/match-insights`).
+ *
+ * Maintained only as a compatibility fallback for external/historical callers.
+ *
  * GET  /api/applications/[id]/strategy/applicant-analysis — latest stored analysis, or null.
  * POST /api/applications/[id]/strategy/applicant-analysis — generate a fresh one.
- *
- * requirements.md Requirement 6. Free tier (AI_JOURNEY's `report` step is
- * `paid: false`) — no Plus gating, unlike the Dashboard itself.
  */
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -50,6 +55,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 }
 
 export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
+  const getElapsed = startTimer();
   const { id: applicationId } = await context.params;
   const supabase = await createClient();
 
@@ -58,11 +64,25 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
+  logger.info('applicant_analysis_generate', {
+    userId: user.id,
+    applicationId,
+    stage: 'started',
+    outcome: 'started',
+  });
+
   const application = await loadApplication(supabase, applicationId, user.id);
   if (!application) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
+    logger.warn('applicant_analysis_generate', {
+      userId: user.id,
+      applicationId,
+      stage: 'validated',
+      outcome: 'not_configured',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json({ error: 'AI service not configured' }, { status: 500 });
   }
 
@@ -85,6 +105,13 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   ]);
 
   if (!profile) {
+    logger.warn('applicant_analysis_generate', {
+      userId: user.id,
+      applicationId,
+      stage: 'validated',
+      outcome: 'missing_inputs',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json(
       {
         error: 'Add your Personal Summary first so we can build your candidate portrait.',
@@ -116,7 +143,12 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
     });
   } catch (err) {
-    console.error('[strategy/applicant-analysis] analysis failed', err);
+    logger.error('applicant_analysis_generate', err, {
+      userId: user.id,
+      applicationId,
+      stage: 'generated',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json({ error: 'Analysis failed. Please try again.' }, { status: 502 });
   }
 
@@ -126,9 +158,6 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       application_id: applicationId,
       user_id: user.id,
       profile_version: profile.profile_version ?? 1,
-      // Column names are the pre-engine ones; the engine's section names live
-      // in the domain and meet these in `narrativeFromRow`. See
-      // supabase-evaluation-engine.sql on why they were not renamed.
       personality_summary: result.coreIdentity,
       learning_style: result.learningStyle,
       academic_strengths: result.academicStrengths,
@@ -146,22 +175,27 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     .single();
 
   if (insErr) {
-    console.error('[strategy/applicant-analysis] store failed', insErr);
-    // PGRST204 is PostgREST's "column not in the schema cache" — here it means
-    // one specific thing, so say which file fixes it rather than making the
-    // next person bisect the migrations. Same hint pattern as
-    // api/generate-recommendations.ts.
-    if (insErr.code === 'PGRST204') {
-      console.error(
-        '[strategy/applicant-analysis] applicant_analyses is missing a column the engine writes. ' +
-          'Run supabase-evaluation-engine.sql (adds emerging_themes).',
-      );
-    }
+    logger.error('applicant_analysis_generate', insErr, {
+      userId: user.id,
+      applicationId,
+      stage: 'persisted',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json(
       { error: 'Could not save your analysis. If this persists, the database migration may be missing.' },
       { status: 500 },
     );
   }
+
+  logger.info('applicant_analysis_generate', {
+    userId: user.id,
+    applicationId,
+    stage: 'completed',
+    outcome: 'success',
+    durationMs: getElapsed(),
+    modelName: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    promptVersion: 'evaluation-engine-f1-f4-v1',
+  });
 
   return NextResponse.json({ analysis: inserted });
 }

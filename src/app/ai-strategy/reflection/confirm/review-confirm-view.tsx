@@ -20,7 +20,8 @@ import {
 } from '@/features/apply/domain';
 import type { EvidenceDocument } from '@/features/apply/hooks';
 import { localizeIntakeCopy, ReflectionShell } from '@/features/apply/ui';
-import { useT } from '@/lib/i18n';
+import { useLanguage } from '@/lib/i18n';
+import { formatUiDate } from '@/shared/lib';
 import { Button, Checkbox, Modal, Panel, PanelHeader } from '@/shared/ui';
 
 /**
@@ -116,7 +117,7 @@ export function ReviewConfirmView({
    * exist (`confirmedReflectionContinueHref`). Unused outside `readOnly`. */
   continueHref?: string | undefined;
 }) {
-  const t = useT();
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const [acknowledged, setAcknowledged] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -131,7 +132,7 @@ export function ReviewConfirmView({
     reflection.activities.filter((a) => !isReflectionCardEmpty(a.reflectionCard)).length;
   const personalReflectionAnswered = personalReflectionAnsweredCount(reflection.personalReflection);
   const confirmedDate = confirmedAt
-    ? new Date(confirmedAt).toLocaleDateString('en-US', {
+    ? formatUiDate(confirmedAt, lang, {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
@@ -168,7 +169,13 @@ export function ReviewConfirmView({
       const body = await response.json().catch(() => null);
 
       if (!response.ok) {
-        setError(body?.message ?? t('We could not confirm your information. Please try again.'));
+        if (response.status === 429) {
+          setError(t('Rate limit reached. Please wait a moment and try again.'));
+        } else if (response.status === 503) {
+          setError(t('Service temporarily unavailable. Please try again shortly.'));
+        } else {
+          setError(body?.message ?? t('We could not confirm your information. Please try again.'));
+        }
         setSubmitting(false);
         setModalOpen(false);
         return;

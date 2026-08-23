@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
-import { strategyRecommendationFromRow } from '@/features/ai-strategy-dashboard/domain';
+import {
+  strategyRecommendationFromRow,
+  strategyReportV2FromRow,
+} from '@/features/ai-strategy-dashboard/domain';
 import { renderStrategyPdf, strategyExportFileName, strategyExportPath } from '@/lib/strategy-pdf';
 import { applyRateLimit, strategyExportLimiter } from '@/lib/rate-limiter';
 import { createAdminClient } from '@/lib/supabase/admin';
@@ -14,6 +17,11 @@ import { createClient } from '@/lib/supabase/server';
  * not pay for a second render. See `lib/strategy-pdf/render.ts` on why the
  * storage path is keyed by the recommendation row's own id rather than a
  * content-version counter.
+ *
+ * Dual-shape rule: a row carrying only the F8 `report_v2` payload has NULL
+ * legacy columns, so `strategyRecommendationFromRow` reports null. That is
+ * not "nothing to export" — the route answers 501 (renderer not built for
+ * F8 yet) instead of the misleading 409.
  */
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -50,10 +58,20 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     .maybeSingle();
 
   const recommendation = latest ? strategyRecommendationFromRow(latest) : null;
-  if (!recommendation) {
+  const reportV2 = latest ? strategyReportV2FromRow(latest) : null;
+  if (!recommendation && !reportV2) {
     return NextResponse.json(
       { error: 'Generate your Personalized Strategy before exporting it.' },
       { status: 409 },
+    );
+  }
+  if (!recommendation) {
+    // F8-only row (`report_v2`, legacy columns NULL): the PDF renderer below
+    // is built on the legacy F7 shape and cannot render it yet. Answer with
+    // the truthful "not implemented" instead of a misleading "generate first".
+    return NextResponse.json(
+      { error: 'PDF export for this Strategy Report format is not available yet.' },
+      { status: 501 },
     );
   }
 

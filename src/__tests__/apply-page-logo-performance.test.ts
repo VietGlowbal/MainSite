@@ -124,7 +124,9 @@ describe('ApplyPage logo loading', () => {
       },
       user_scholarships: { data: [], error: null },
       student_profiles: { data: null, error: null },
+      student_personal_report_versions: { data: null, error: null },
       applicant_analyses: { data: [], error: null },
+      application_match_analyses: { data: [], error: null },
     };
     const supabase = {
       auth: {
@@ -132,7 +134,7 @@ describe('ApplyPage logo loading', () => {
           data: { user: { id: 'user-1', email: 'student@example.com', user_metadata: {} } },
         }),
       },
-      from: vi.fn((table: string) => query(results[table])),
+      from: vi.fn((table: string) => query(results[table] ?? { data: [], error: null })),
     };
     mocks.createClient.mockResolvedValue(supabase);
     mockIdentity(supabase);
@@ -156,7 +158,9 @@ describe('ApplyPage logo loading', () => {
       course_applications: { data: [], error: null },
       user_scholarships: { data: [], error: null },
       student_profiles: { data: null, error: null },
+      student_personal_report_versions: { data: null, error: null },
       applicant_analyses: { data: [], error: null },
+      application_match_analyses: { data: [], error: null },
     };
     const supabase = {
       auth: {
@@ -166,7 +170,9 @@ describe('ApplyPage logo loading', () => {
       },
       from: vi.fn((table: string) => {
         started.push(table);
-        return table === 'user_universities' ? queryPromise(savedRows.promise) : query(results[table]);
+        return table === 'user_universities'
+          ? queryPromise(savedRows.promise)
+          : query(results[table] ?? { data: [], error: null });
       }),
     };
     mocks.createClient.mockResolvedValue(supabase);
@@ -181,12 +187,12 @@ describe('ApplyPage logo loading', () => {
     await expect(savedRowsPromise).resolves.toEqual([]);
   });
 
-  it('starts the applicant-analyses read before applications finish loading', async () => {
+  it('starts the readiness reads before applications finish loading', async () => {
     // `fetchStrategyReadiness` (src/app/apply/page.tsx) reads
-    // `applicant_analyses` filtered by `user_id` — unlike the per-application
-    // review-column read, which needs the ids `course_applications` resolves
-    // to, this one has no such dependency, so it must not be serialized
-    // behind `course_applications` finishing.
+    // `student_personal_report_versions`, `applicant_analyses`, and `application_match_analyses`
+    // filtered by `user_id` — unlike the per-application review-column read,
+    // which needs the ids `course_applications` resolves to, these have no such
+    // dependency, so they must not be serialized behind `course_applications` finishing.
     const applications = deferred<unknown>();
     const started: string[] = [];
     const executed: string[] = [];
@@ -197,7 +203,9 @@ describe('ApplyPage logo loading', () => {
       user_universities: { data: [], error: null },
       user_scholarships: { data: [], error: null },
       student_profiles: { data: null, error: null },
+      student_personal_report_versions: { data: null, error: null },
       applicant_analyses: { data: [], error: null },
+      application_match_analyses: { data: [], error: null },
     };
     const supabase = {
       auth: {
@@ -207,13 +215,19 @@ describe('ApplyPage logo loading', () => {
       },
       from: vi.fn((table: string) => {
         started.push(table);
-        if (table === 'applicant_analyses') {
-          const resolved = Promise.resolve(results[table]);
+        if (
+          table === 'student_personal_report_versions' ||
+          table === 'applicant_analyses' ||
+          table === 'application_match_analyses'
+        ) {
+          const resolved = Promise.resolve(results[table] ?? { data: [], error: null });
           const builder: Record<string, unknown> = {};
           const chain = () => builder;
           Object.assign(builder, {
             select: chain,
             eq: chain,
+            limit: chain,
+            maybeSingle: () => resolved,
             then: (onFulfilled: (value: unknown) => unknown, onRejected?: (error: unknown) => unknown) => {
               executed.push(table);
               return resolved.then(onFulfilled, onRejected);
@@ -223,7 +237,7 @@ describe('ApplyPage logo loading', () => {
         }
         return table === 'course_applications'
           ? queryPromise(applications.promise)
-          : query(results[table]);
+          : query(results[table] ?? { data: [], error: null });
       }),
     };
     mocks.createClient.mockResolvedValue(supabase);
@@ -235,7 +249,9 @@ describe('ApplyPage logo loading', () => {
 
     let schedulingError: unknown;
     try {
+      expect(executed).toContain('student_personal_report_versions');
       expect(executed).toContain('applicant_analyses');
+      expect(executed).toContain('application_match_analyses');
     } catch (error) {
       schedulingError = error;
     }
