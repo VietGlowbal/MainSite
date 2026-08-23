@@ -4,6 +4,11 @@ import type {
   PlanningInput,
   PlanningStrategyRoadmap,
 } from './planning-context';
+import {
+  isPlannerAvailabilityInputKey,
+  PLANNER_AVAILABILITY_INPUT_KEYS,
+  type PlannerAvailabilityInputKey,
+} from './planning-context';
 
 type StrategyRoadmapPlanContext = Pick<PlanningContext,
   'strategyRoadmap' | 'deadlines' | 'programmeRequirements' | 'userConstraints' | 'plannerInputs'
@@ -19,19 +24,74 @@ export function mergeStrategyRoadmapPlan(
   context: StrategyRoadmapPlanContext,
 ): PlanResult {
   const roadmap = context.strategyRoadmap;
-  if (!roadmap) return deterministicPlan;
+  const strategyPhases = !roadmap
+    ? []
+    : roadmap.kind === 'f8'
+      ? f8Phases(roadmap, context, nextOrder(deterministicPlan.phases))
+      : f7Phases(roadmap, context, nextOrder(deterministicPlan.phases));
+  const withRoadmap = strategyPhases.length === 0
+    ? deterministicPlan
+    : {
+      ...deterministicPlan,
+      readiness: deterministicPlan.readiness === 'requires_user_input'
+        ? 'requires_user_input' as const
+        : 'requires_enrichment' as const,
+      phases: [...deterministicPlan.phases, ...strategyPhases],
+    };
+  return mergeMissingAvailabilityInputs(withRoadmap, context.plannerInputs ?? []);
+}
 
-  const strategyPhases = roadmap.kind === 'f8'
-    ? f8Phases(roadmap, context, nextOrder(deterministicPlan.phases))
-    : f7Phases(roadmap, context, nextOrder(deterministicPlan.phases));
-  if (strategyPhases.length === 0) return deterministicPlan;
+const PLANNER_INPUT_DETAILS: Record<PlannerAvailabilityInputKey, { id: string; title: string; prompt: string; order: number }> = {
+  'planner.availability': {
+    id: 'micro-step:planner-inputs:availability',
+    title: 'Record when you are available',
+    prompt: 'Describe the days and times you can work on this application.',
+    order: 1,
+  },
+  'planner.time_capacity': {
+    id: 'micro-step:planner-inputs:time-capacity',
+    title: 'Record your weekly time capacity',
+    prompt: 'Describe how much time you can realistically spend on this application each week.',
+    order: 2,
+  },
+};
 
+function mergeMissingAvailabilityInputs(plan: PlanResult, inputs: readonly PlanningInput[]): PlanResult {
+  const missing = PLANNER_AVAILABILITY_INPUT_KEYS.filter((semanticKey) => !inputs.some((input) =>
+    input.provenance === 'user_provided' && input.semanticKey === semanticKey && input.value.trim().length > 0,
+  ));
+  if (missing.length === 0) return plan;
   return {
-    ...deterministicPlan,
-    readiness: deterministicPlan.readiness === 'requires_user_input'
-      ? 'requires_user_input'
-      : 'requires_enrichment',
-    phases: [...deterministicPlan.phases, ...strategyPhases],
+    ...plan,
+    readiness: 'requires_user_input',
+    phases: [...plan.phases, {
+      id: 'phase:planner-inputs',
+      title: 'Record planning availability',
+      objective: 'Use only the student’s explicitly recorded availability and time capacity for planning.',
+      order: nextOrder(plan.phases),
+      sourceDecisionIds: [],
+      sourceProvenances: [],
+      steps: [{
+        id: 'step:planner-inputs:availability',
+        title: 'Share available planning time',
+        objective: 'Record only the time you can commit to this application.',
+        order: 1,
+        sourceDecisionIds: [],
+        sourceProvenances: [],
+        microSteps: missing.map((semanticKey) => {
+          const detail = PLANNER_INPUT_DETAILS[semanticKey];
+          return {
+            id: detail.id,
+            title: detail.title,
+            order: detail.order,
+            readiness: 'requires_user_input' as const,
+            contentSchema: { type: 'long_text' as const, prompt: detail.prompt, semanticKey },
+            sourceDecisionIds: [],
+            sourceProvenances: [],
+          };
+        }),
+      }],
+    }],
   };
 }
 
@@ -129,7 +189,9 @@ function factualContext(context: StrategyRoadmapPlanContext): string {
 }
 
 function explicitAvailability(inputs: readonly PlanningInput[]): PlanningInput[] {
-  return inputs.filter((input) => input.semanticKey === 'planner.availability' || input.semanticKey === 'planner.time_capacity');
+  return inputs.filter((input) =>
+    input.provenance === 'user_provided' && isPlannerAvailabilityInputKey(input.semanticKey) && input.value.trim().length > 0,
+  );
 }
 
 function sourceProvenances(context: StrategyRoadmapPlanContext): PlanPhase['sourceProvenances'] {

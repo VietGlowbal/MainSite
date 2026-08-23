@@ -54,6 +54,10 @@ function buildSupabase(db: {
   application_match_analyses_error?: { code?: string; message: string } | null;
   application_strategy_recommendations?: MockTable[] | null;
   application_strategy_recommendations_error?: { code?: string; message: string } | null;
+  application_plans?: MockTable[] | null;
+  application_plan_phases?: MockTable[] | null;
+  application_plan_steps?: MockTable[] | null;
+  application_plan_micro_steps?: MockTable[] | null;
   student_profiles?: MockTable[] | null;
   student_profiles_error?: { code?: string; message: string } | null;
   uploaded_documents?: MockTable[] | null;
@@ -417,6 +421,41 @@ function allSources(overrides: Parameters<typeof buildSupabase>[0] = {}) {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('fetchPlanningContextSources', () => {
+  it('maps only non-empty declared long-text availability answers from canonical planner inputs', async () => {
+    const supabase = allSources({
+      application_plans: [{ id: 'plan-1' }],
+      application_plan_phases: [{ id: 'phase-1' }],
+      application_plan_steps: [{ id: 'step-1' }],
+      application_plan_micro_steps: [
+        {
+          id: 'availability-micro',
+          content_schema: { type: 'long_text', prompt: 'When can you work?', semanticKey: 'planner.availability' },
+          content_value: { type: 'long_text', text: 'Weekday evenings' },
+        },
+        {
+          id: 'empty-capacity-micro',
+          content_schema: { type: 'long_text', prompt: 'How much time?', semanticKey: 'planner.time_capacity' },
+          content_value: { type: 'long_text', text: '   ' },
+        },
+        {
+          id: 'undeclared-micro',
+          content_schema: { type: 'long_text', prompt: 'Other', semanticKey: 'planner.other' },
+          content_value: { type: 'long_text', text: 'Ignore this' },
+        },
+      ],
+    });
+
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.plannerInputs).toEqual([{
+      semanticKey: 'planner.availability',
+      value: 'Weekday evenings',
+      microStepId: 'availability-micro',
+      provenance: 'user_provided',
+    }]);
+    expect(result.diagnostics.find((diagnostic) => diagnostic.source === 'canonical_planner_inputs')).toMatchObject({ status: 'present' });
+  });
+
   // ── 1. All optional sources absent ──────────────────────────────────────────
   it('returns valid PlanningContextSources with nulls/empty arrays when all optional sources are absent', async () => {
     const supabase = buildSupabase({ course_applications: [VALID_APP] });

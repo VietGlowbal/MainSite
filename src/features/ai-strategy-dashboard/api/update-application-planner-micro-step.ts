@@ -8,6 +8,7 @@ import {
   type PlannerMicroStepExecutionPatch,
   type PlannerMicroStepExecutionState,
 } from '../domain';
+import { isPlannerAvailabilityInputKey } from '../domain/planning-context';
 
 export class PlannerMicroStepUpdateError extends Error {
   constructor(readonly code: 'not_found' | 'read_failed' | 'update_failed' | 'input_required') {
@@ -78,7 +79,7 @@ export async function updateApplicationPlannerMicroStep(
     status: isProgressStatus(row.status) ? row.status : 'not_started',
     deadline: typeof row.deadline === 'string' ? row.deadline : null,
     contentValue: (row.content_value ?? null) as PlannerMicroStepExecutionState['contentValue'],
-    ...(patch.contentValue !== undefined && schema?.type === 'single_select' ? { planningInputChanged: true } : {}),
+    ...(patch.contentValue !== undefined && (schema?.type === 'single_select' || (schema?.type === 'long_text' && isPlannerAvailabilityInputKey(schema.semanticKey))) ? { planningInputChanged: true } : {}),
   };
 }
 

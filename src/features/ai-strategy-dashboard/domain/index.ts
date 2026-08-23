@@ -192,7 +192,7 @@ export {
   mergePlanEnrichment,
   validatePlanEnrichment,
 } from './plan-enrichment';
-export { CORE3_PLAN_PRODUCER, reconcilePlan } from './plan-persistence';
+export { CORE3_PLAN_PRODUCER, reconcilePlan, retainAnsweredPlannerInputs } from './plan-persistence';
 export { plannerMicroStepExecutionPatchSchema } from './planner-micro-step-execution';
 export {
   buildPlannerReadModel,

@@ -186,7 +186,7 @@ const contentBlockColumnSchema = z.object({
 
 const contentBlockSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('structured_table'), columns: z.array(contentBlockColumnSchema).min(1), v: z.literal(1).optional() }),
-  z.object({ type: z.literal('long_text'), prompt: z.string().min(1), minWords: z.number().optional(), v: z.literal(1).optional() }),
+  z.object({ type: z.literal('long_text'), prompt: z.string().min(1), minWords: z.number().optional(), semanticKey: z.string().regex(/^[a-z][a-z0-9_.-]{1,100}$/).optional(), v: z.literal(1).optional() }),
   z.object({ type: z.literal('checklist'), items: z.array(z.string().min(1)).min(1), v: z.literal(1).optional() }),
   z.object({
     type: z.literal('single_select'),

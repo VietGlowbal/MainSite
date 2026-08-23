@@ -106,6 +106,85 @@ describe('reconcilePlan', () => {
     expect(JSON.stringify(operation)).not.toContain('contentValue');
   });
 
+  it('keeps answered conditional availability inputs through a second reconciliation without duplicate nodes', () => {
+    const first: PlanResult = {
+      id: 'plan:deterministic:availability-inputs',
+      readiness: 'requires_user_input',
+      phases: [{
+        id: 'phase:planner-inputs',
+        title: 'Record planning availability',
+        objective: 'Use explicit availability.',
+        order: 1,
+        sourceDecisionIds: [],
+        sourceProvenances: [],
+        steps: [{
+          id: 'step:planner-inputs:availability',
+          title: 'Share available planning time',
+          objective: 'Record available time.',
+          order: 1,
+          sourceDecisionIds: [],
+          sourceProvenances: [],
+          microSteps: [
+            {
+              id: 'micro-step:planner-inputs:availability',
+              title: 'Record when you are available',
+              order: 1,
+              readiness: 'requires_user_input',
+              contentSchema: { type: 'long_text', prompt: 'When can you work?', semanticKey: 'planner.availability' },
+              sourceDecisionIds: [],
+              sourceProvenances: [],
+            },
+            {
+              id: 'micro-step:planner-inputs:time-capacity',
+              title: 'Record weekly capacity',
+              order: 2,
+              readiness: 'requires_user_input',
+              contentSchema: { type: 'long_text', prompt: 'How much time?', semanticKey: 'planner.time_capacity' },
+              sourceDecisionIds: [],
+              sourceProvenances: [],
+            },
+          ],
+        }],
+      }],
+    };
+    const phase = first.phases[0]!;
+    const step = phase.steps[0]!;
+    const existingInputs: ExistingPersistedPlan = {
+      plan: { id: 'db-plan', applicationId, producer: CORE3_PLAN_PRODUCER, domainPlanId: first.id, readiness: first.readiness, archivedAt: null },
+      phases: [{ id: 'db-phase', planId: 'db-plan', domainNodeId: phase.id, title: phase.title, objective: phase.objective, order: phase.order, sourceDecisionIds: [], sourceProvenances: [], archivedAt: null }],
+      steps: [{ id: 'db-step', planId: 'db-plan', phaseId: 'db-phase', domainNodeId: step.id, title: step.title, objective: step.objective, order: step.order, sourceDecisionIds: [], sourceProvenances: [], archivedAt: null }],
+      microSteps: step.microSteps.map((microStep, index) => ({
+        id: `db-input-${index}`,
+        planId: 'db-plan',
+        stepId: 'db-step',
+        domainNodeId: microStep.id,
+        title: microStep.title,
+        order: microStep.order,
+        readiness: microStep.readiness,
+        contentSchema: microStep.contentSchema ?? null,
+        sourceDecisionIds: [],
+        sourceProvenances: [],
+        status: 'not_started',
+        deadline: null,
+        contentValue: index === 0
+          ? { type: 'long_text' as const, text: 'Weekday evenings' }
+          : { type: 'long_text' as const, text: '6 hours weekly' },
+        executionEvidence: [],
+        archivedAt: null,
+      })),
+    };
+
+    // The context has consumed both answers, so the mapper no longer emits the
+    // optional phase. Reconciliation must retain the student-owned input rows.
+    const second: PlanResult = { id: first.id, readiness: 'empty', phases: [] };
+    const operations = reconcilePlan(applicationId, second, existingInputs).operations;
+
+    expect(operations.filter((operation) => operation.kind.startsWith('archive_'))).toEqual([]);
+    expect(operations.filter((operation) => operation.kind.startsWith('insert_'))).toEqual([]);
+    expect(JSON.stringify(operations)).not.toContain('Weekday evenings');
+    expect(JSON.stringify(operations)).not.toContain('6 hours weekly');
+  });
+
   it('is independent of source input order and sorts source provenance before persisting', () => {
     const current = plan();
     const reordered = plan({ phases: [...current.phases].reverse() });

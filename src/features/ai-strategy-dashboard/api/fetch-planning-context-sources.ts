@@ -48,6 +48,7 @@ import type {
   SourceProvenance,
   UserConstraint,
 } from '../domain/planning-context';
+import { isPlannerAvailabilityInputKey } from '../domain/planning-context';
 import {
   isProfileEvaluation,
   parseImprovementActions,
@@ -800,9 +801,13 @@ async function loadPlannerInputs(
   const inputs = (micros.data ?? []).flatMap((row): PlanningInput[] => {
     const schema = row.content_schema as Record<string, unknown> | null;
     const value = row.content_value as Record<string, unknown> | null;
-    if (schema?.type !== 'single_select' || typeof schema.semanticKey !== 'string' || value?.type !== 'single_select' || typeof value.value !== 'string') return [];
-    if (!Array.isArray(schema.options) || !schema.options.some((option) => typeof option === 'object' && option !== null && (option as Record<string, unknown>).value === value.value)) return [];
-    return [{ semanticKey: schema.semanticKey, value: value.value, microStepId: row.id, provenance: 'user_provided' }];
+    if (schema?.type === 'single_select' && typeof schema.semanticKey === 'string' && value?.type === 'single_select' && typeof value.value === 'string') {
+      if (!Array.isArray(schema.options) || !schema.options.some((option) => typeof option === 'object' && option !== null && (option as Record<string, unknown>).value === value.value)) return [];
+      return [{ semanticKey: schema.semanticKey, value: value.value, microStepId: row.id, provenance: 'user_provided' }];
+    }
+    if (schema?.type !== 'long_text' || !isPlannerAvailabilityInputKey(schema.semanticKey) || value?.type !== 'long_text' || typeof value.text !== 'string') return [];
+    const text = value.text.trim();
+    return text ? [{ semanticKey: schema.semanticKey, value: text, microStepId: row.id, provenance: 'user_provided' }] : [];
   });
   diagnostics.push({ source: 'canonical_planner_inputs', status: inputs.length ? 'present' : 'missing' });
   return inputs;

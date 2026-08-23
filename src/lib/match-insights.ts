@@ -108,7 +108,7 @@ export type ContentBlock =
   /** Repeatable rows — courses, activities, projects, awards: anything that's a LIST of similar entries. */
   | { type: 'structured_table'; columns: ContentBlockColumn[]; v?: 1 }
   /** A single narrative answer — motivation, impact, personal story: anything that doesn't decompose into rows. */
-  | { type: 'long_text'; prompt: string; minWords?: number; v?: 1 }
+  | { type: 'long_text'; prompt: string; minWords?: number; semanticKey?: string; v?: 1 }
   /** Discrete steps to complete rather than content to write, e.g. "request official transcripts". */
   | { type: 'checklist'; items: string[]; v?: 1 }
   /** A deterministic planning decision; `semanticKey` is never inferred from UI text. */

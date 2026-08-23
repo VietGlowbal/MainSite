@@ -67,12 +67,54 @@ function f8Context(overrides: Record<string, unknown> = {}) {
       value: 'evenings',
       microStepId: 'availability-answer',
       provenance: 'user_provided' as const,
+    }, {
+      semanticKey: 'planner.time_capacity',
+      value: '6 hours weekly',
+      microStepId: 'time-capacity-answer',
+      provenance: 'user_provided' as const,
     }],
     ...overrides,
   };
 }
 
 describe('mergeStrategyRoadmapPlan', () => {
+  it('adds only missing declared availability inputs with stable long-text semantic keys', () => {
+    const availability = {
+      semanticKey: 'planner.availability',
+      value: 'Weekday evenings',
+      microStepId: 'availability-answer',
+      provenance: 'user_provided' as const,
+    };
+    const partial = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
+      strategyRoadmap: null,
+      plannerInputs: [availability],
+    }));
+    const inputPhase = partial.phases.find((phase) => phase.id === 'phase:planner-inputs');
+
+    expect(partial.readiness).toBe('requires_user_input');
+    expect(inputPhase).toMatchObject({
+      id: 'phase:planner-inputs',
+      steps: [{
+        id: 'step:planner-inputs:availability',
+        microSteps: [{
+          id: 'micro-step:planner-inputs:time-capacity',
+          readiness: 'requires_user_input',
+          contentSchema: { type: 'long_text', semanticKey: 'planner.time_capacity' },
+        }],
+      }],
+    });
+    expect(inputPhase?.steps[0]?.microSteps[0]?.order).toBe(2);
+
+    const complete = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context({
+      strategyRoadmap: null,
+      plannerInputs: [
+        availability,
+        { ...availability, semanticKey: 'planner.time_capacity', value: '6 hours weekly', microStepId: 'time-capacity-answer' },
+      ],
+    }));
+    expect(complete).toEqual(BASE_PLAN);
+  });
+
   it('maps F8 deliverables to deterministic canonical nodes and carries only factual planning context', () => {
     const plan = mergeStrategyRoadmapPlan(BASE_PLAN, f8Context());
     const phase = plan.phases[0];

@@ -643,6 +643,14 @@ export type PlanningInput = {
   provenance: 'user_provided';
 };
 
+/** Explicit free-text answers that planning may consume as availability facts. */
+export const PLANNER_AVAILABILITY_INPUT_KEYS = ['planner.availability', 'planner.time_capacity'] as const;
+export type PlannerAvailabilityInputKey = (typeof PLANNER_AVAILABILITY_INPUT_KEYS)[number];
+
+export function isPlannerAvailabilityInputKey(value: unknown): value is PlannerAvailabilityInputKey {
+  return typeof value === 'string' && (PLANNER_AVAILABILITY_INPUT_KEYS as readonly string[]).includes(value);
+}
+
 // ─── Sourced inputs for the fetcher (Gate 2 contract) ────────────────────────
 
 /**

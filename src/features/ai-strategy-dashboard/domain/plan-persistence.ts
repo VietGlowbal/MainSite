@@ -1,5 +1,6 @@
 import type { ContentBlock, ContentBlockValue } from '@/lib/match-insights';
 import type { PlanMicroStep, PlanNodeReadiness, PlanNodeProvenance, PlanPhase, PlanReadiness, PlanResult, PlanStep } from './plan';
+import { isPlannerAvailabilityInputKey } from './planning-context';
 
 /** The dedicated hierarchy is intentionally not a producer in the legacy recommendations table. */
 export const CORE3_PLAN_PRODUCER = 'core3_deterministic' as const;
@@ -77,6 +78,51 @@ export type PlanPersistenceOperations = {
 };
 
 /**
+ * A context-aware mapper emits availability inputs only while a value is
+ * missing. Keep a saved input node in the canonical hierarchy after Core 1
+ * consumes it, so a second sync never archives the student answer or creates a
+ * replacement row when it is edited later.
+ */
+export function retainAnsweredPlannerInputs(plan: PlanResult, existing: ExistingPersistedPlan): PlanResult {
+  const retained = existing.microSteps
+    .filter((microStep) => microStep.archivedAt === null && isAnsweredPlannerInput(microStep))
+    .sort((left, right) => compare(left.domainNodeId, right.domainNodeId));
+  const targetMicroIds = new Set(plan.phases.flatMap((phase) => phase.steps.flatMap((step) => step.microSteps.map((microStep) => microStep.id))));
+  const missing = retained.filter((microStep) => !targetMicroIds.has(microStep.domainNodeId));
+  if (missing.length === 0) return plan;
+
+  const phases = plan.phases.map((phase) => ({ ...phase, steps: phase.steps.map((step) => ({ ...step, microSteps: [...step.microSteps] })) }));
+  const phaseByNodeId = new Map(phases.map((phase) => [phase.id, phase]));
+  const persistedPhaseById = new Map(existing.phases.filter((phase) => phase.archivedAt === null).map((phase) => [phase.id, phase]));
+  const persistedStepById = new Map(existing.steps.filter((step) => step.archivedAt === null).map((step) => [step.id, step]));
+  let added = false;
+
+  for (const microStep of missing) {
+    const persistedStep = persistedStepById.get(microStep.stepId);
+    const persistedPhase = persistedStep ? persistedPhaseById.get(persistedStep.phaseId) : undefined;
+    if (!persistedStep || !persistedPhase) continue;
+
+    let phase = phaseByNodeId.get(persistedPhase.domainNodeId);
+    if (!phase) {
+      phase = persistedPhaseToPlan(persistedPhase);
+      phases.push(phase);
+      phaseByNodeId.set(phase.id, phase);
+    }
+    let step = phase.steps.find((candidate) => candidate.id === persistedStep.domainNodeId);
+    if (!step) {
+      step = persistedStepToPlan(persistedStep);
+      phase.steps.push(step);
+    }
+    step.microSteps.push(persistedMicroStepToPlan(microStep));
+    added = true;
+  }
+
+  return added
+    ? { ...plan, readiness: plan.readiness === 'empty' ? 'requires_enrichment' : plan.readiness, phases }
+    : plan;
+}
+
+/**
  * Pure, deterministic reconciliation from Core 3's hierarchy to the dedicated
  * persistence model. Node IDs are the only match key; title/category matching
  * is forbidden because generated wording can change between runs.
@@ -90,7 +136,8 @@ export function reconcilePlan(
     throw new Error('Existing plan belongs to a different producer.');
   }
 
-  const phases = sorted(plan.phases);
+  const targetPlan = retainAnsweredPlannerInputs(plan, existing);
+  const phases = sorted(targetPlan.phases);
   const steps = phases.flatMap((phase) => sorted(phase.steps).map((step) => ({ ...step, phase })));
   const microSteps = steps.flatMap((step) =>
     sorted(step.microSteps).map((microStep) => ({ ...microStep, step })),
@@ -100,7 +147,7 @@ export function reconcilePlan(
   assertUniqueNodeIds(microSteps.map((microStep) => microStep.id), 'micro-step');
 
   const operations: PlanPersistenceOperation[] = [];
-  const planFields = { domainPlanId: plan.id, readiness: plan.readiness };
+  const planFields = { domainPlanId: targetPlan.id, readiness: targetPlan.readiness };
   if (!existing.plan) {
     operations.push({ kind: 'insert_plan', applicationId, producer: CORE3_PLAN_PRODUCER, fields: planFields });
   } else if (!same(existing.plan, planFields, ['domainPlanId', 'readiness'])) {
@@ -112,6 +159,53 @@ export function reconcilePlan(
   reconcileNodes(microSteps, existing.microSteps, microStepFields, (microStep) => ({ kind: 'insert_micro_step', stepDomainNodeId: microStep.step.id, fields: microStepFields(microStep) }), (id, fields) => ({ kind: 'update_micro_step', id, fields }), (id, fields) => ({ kind: 'restore_micro_step', id, fields }), (id) => ({ kind: 'archive_micro_step', id }), operations);
 
   return { operations };
+}
+
+function isAnsweredPlannerInput(microStep: PersistedPlanMicroStep): boolean {
+  const schema = microStep.contentSchema;
+  const value = microStep.contentValue;
+  return schema?.type === 'long_text'
+    && isPlannerAvailabilityInputKey(schema.semanticKey)
+    && value?.type === 'long_text'
+    && value.text.trim().length > 0;
+}
+
+function persistedPhaseToPlan(phase: PersistedPlanPhase): PlanPhase {
+  return {
+    id: phase.domainNodeId,
+    title: phase.title,
+    objective: phase.objective,
+    order: phase.order,
+    sourceDecisionIds: [...phase.sourceDecisionIds],
+    sourceProvenances: [...phase.sourceProvenances],
+    steps: [],
+  };
+}
+
+function persistedStepToPlan(step: PersistedPlanStep): PlanStep {
+  return {
+    id: step.domainNodeId,
+    title: step.title,
+    objective: step.objective,
+    order: step.order,
+    sourceDecisionIds: [...step.sourceDecisionIds],
+    sourceProvenances: [...step.sourceProvenances],
+    microSteps: [],
+  };
+}
+
+function persistedMicroStepToPlan(microStep: PersistedPlanMicroStep): PlanMicroStep {
+  return {
+    id: microStep.domainNodeId,
+    title: microStep.title,
+    order: microStep.order,
+    // An answer is already present; this retained node is editable context, not
+    // an unresolved gate on the next plan read.
+    readiness: 'requires_enrichment',
+    contentSchema: microStep.contentSchema,
+    sourceDecisionIds: [...microStep.sourceDecisionIds],
+    sourceProvenances: [...microStep.sourceProvenances],
+  };
 }
 
 function reconcileNodes<TTarget extends { id: string }, TPersisted extends PersistedPlanningFields, TFields extends object>(

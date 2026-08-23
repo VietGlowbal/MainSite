@@ -1249,6 +1249,45 @@ Running reconciliation twice with the same F8 report must produce no duplicate t
 
 ## Task 4.7 — Integrate Execution Roadmap with Planner tasks
 
+### Working-tree bridge (2026-08-23)
+
+The canonical planner now consumes the current, schema-validated F8
+`report_v2` before an F7 roadmap fallback. F8 mapping is deterministic:
+
+- `phaseKey` becomes the canonical phase identity;
+- one phase deliverables step contains micro-steps keyed by
+  `phaseKey` + `deliverable.key`;
+- `keyActions` remain phase guidance on that step and `successCriteria` become
+  its deliverable checklist.
+
+This deliberately does not assign a prose key action to a particular
+deliverable: the F8 schema does not state that relationship, and inventing one
+would make reconciliation misleading. The stable deliverable keys let
+`reconcilePlan` update the same canonical micro-step while preserving
+student-owned progress, deadline, submitted content, and evidence. The legacy
+F7 roadmap remains an explicit compatibility fallback.
+
+Planner context adds only observed data to generated planning text: current
+F5 prompt/engine data, stored application deadlines, requirement IDs/titles,
+explicit profile preferences, and explicitly answered
+`planner.availability` or `planner.time_capacity` inputs. No availability or
+time capacity is inferred when such an answer is absent, and generated
+planning never writes the execution-owned deadline column.
+
+Those two inputs now have canonical producers: deterministic phase, step, and
+micro-step IDs with declared `long_text` semantic keys. The mapper emits only
+the keys still missing an explicit non-blank answer. The source loader consumes
+only those exact declared values as `user_provided`; a qualifying long-text save
+triggers the existing sync flow. A second reconciliation preserves an answered
+input's node and `content_value` while generated payloads omit that user-owned
+value, so it neither disappears nor duplicates. A canonical plan from before
+this contract is upgraded only when an unanswered input node is absent.
+
+Measured after this bridge: focused report/planner regression suite 77/77,
+`npm run typecheck`, and changed-file ESLint all passed. A live F8 generation
+and signed-in planner sync still need verification after the listed migrations
+are applied.
+
 ### File
 
 - `roadmap-tasks/route.ts` or current canonical route/service
@@ -1561,4 +1600,3 @@ Parts 0–4 are complete only when all of the following are true:
 - [ ] Lint and i18n checks pass.
 - [ ] Production build passes.
 - [ ] End-to-end acceptance scenarios A–G pass.
-

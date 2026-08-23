@@ -24,6 +24,10 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'Resolve required information': 'Làm rõ thông tin bắt buộc',
   'Confirm user choices': 'Xác nhận lựa chọn của bạn',
   'Structure available direction': 'Cụ thể hóa hướng đi hiện có',
+  'Record when you are available': 'Ghi lại thời gian bạn có thể tham gia',
+  'Record your weekly time capacity': 'Ghi lại quỹ thời gian hằng tuần của bạn',
+  'Record planning availability': 'Ghi lại thời gian dành cho kế hoạch',
+  'Share available planning time': 'Chia sẻ thời gian bạn có thể dành cho kế hoạch',
 
   'Enter a four-digit year to save this deadline.': 'Nhập năm gồm 4 chữ số để lưu hạn này.',
   'Expected a valid YYYY-MM-DD date': 'Cần một ngày hợp lệ theo định dạng YYYY-MM-DD',

@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   CORE3_PLAN_PRODUCER,
   reconcilePlan,
+  retainAnsweredPlannerInputs,
   type ExistingPersistedPlan,
   type PersistedPlan,
   type PersistedPlanMicroStep,
@@ -52,7 +53,7 @@ export async function syncApplicationPlan(
     getEnrichedApplicationPlan(supabase, applicationId, userId),
     loadExistingPlan(supabase, applicationId),
   ]);
-  const plan = enriched.plan;
+  const plan = retainAnsweredPlannerInputs(enriched.plan, existing);
   // Production uses the SECURITY DEFINER RPC installed by the production
   // migration.  It reconciles the whole hierarchy in one transaction; the
   // sequential path remains only for local/test environments without Postgres

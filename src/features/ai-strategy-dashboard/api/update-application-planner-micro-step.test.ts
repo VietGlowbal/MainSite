@@ -37,6 +37,24 @@ describe('updateApplicationPlannerMicroStep', () => {
     expect(fake.writes[0]).not.toHaveProperty('sort_order');
   });
 
+  it('marks a declared availability long-text save as a planning input change', async () => {
+    const schema = { type: 'long_text', prompt: 'When can you work?', semanticKey: 'planner.availability' } as const;
+    const fake = fakeSupabase({
+      existingMicro: { id: 'micro-1', content_schema: schema, content_value: null },
+      micro: { id: 'micro-1', status: 'not_started', deadline: null, content_value: { type: 'long_text', text: 'Weekday evenings' } },
+    });
+
+    const result = await updateApplicationPlannerMicroStep(fake.client, 'app-1', 'user-1', 'micro-1', {
+      contentValue: { type: 'long_text', text: 'Weekday evenings' },
+    });
+
+    expect(result).toMatchObject({
+      id: 'micro-1',
+      contentValue: { type: 'long_text', text: 'Weekday evenings' },
+      planningInputChanged: true,
+    });
+  });
+
   it('rejects foreign users before looking up a canonical hierarchy row', async () => {
     const fake = fakeSupabase({ owned: false });
     await expect(updateApplicationPlannerMicroStep(fake.client, 'app-1', 'other-user', 'legacy-recommendation-id', { status: 'completed' })).rejects.toMatchObject({ code: 'not_found' } satisfies Partial<PlannerMicroStepUpdateError>);

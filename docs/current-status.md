@@ -2,6 +2,31 @@
 
 Last reconciled: **2026-08-23 (Asia/Bangkok)**
 
+Working tree 2026-08-23: the report pipeline now enforces Personal Report
+completion before Matching Report generation, records Personal Report lineage
+on Matching Report rows, and filters Strategy/Planner consumption to the
+current Matching prompt and F5 engine. The canonical planner selects the
+current schema-validated F8 `report_v2` before its F7 fallback and reconciles
+F8 phase/deliverable keys into `application_plans` → phases → steps →
+micro-steps. Regeneration keeps the same deliverable node identity and never
+writes student-owned `status`, `deadline`, submitted content, or evidence.
+Planner context carries stored deadlines, application-requirement IDs, explicit
+profile preferences, and only explicit `planner.availability` /
+`planner.time_capacity` answers; it does not infer availability. Measured:
+focused report + planner regression suite **77/77 passing**, `npm run
+typecheck` passing, and ESLint passing on the changed planner files. Live
+schema application and signed-in browser verification remain unrun.
+
+The availability/time-capacity contract now has a canonical producer: declared
+`long_text` inputs with stable semantic keys. The deterministic mapper emits
+only missing inputs, the existing generic content-value flow marks a declared
+answer for re-sync, and reconciliation retains answered nodes without copying
+student-owned `content_value` or creating duplicates. Existing canonical plans
+that lack an unanswered declared input receive the same one-time upgrade. This
+addition measured **64/64** focused planner tests passing, `npm run typecheck`,
+and ESLint on all changed contract files; browser/database verification remains
+unrun.
+
 Full UI Polish across all Planner views (List, Calendar, Board/Kanban) complete 2026-08-23.
 - `HierarchicalApplicationPlanner`, `PlannerCalendar`, `PlannerBoard`, `PlannerShared`: refined with GlowBal design tokens (`brand` #E11D48, `surface-muted`, `line`, `rounded-gb-2xl`), responsive month headers, clean 6-week day cells, today badge, in-cell task cards, unscheduled sidebar trays, 5-column Kanban board with status indicator accent dots, count pills, and quick status select dropdowns.
 - Strict typecheck (`tsc -p tsconfig.strict.json`), i18n check (`check-i18n.mjs --all` with 0 missing keys), test suites (39 files, 437/437 passing), and Next.js production build (`npm run build`, 135/135 pages compiled) all verified passing 100%.
@@ -64,7 +89,8 @@ this sandbox has no service key):
 production; without it the cron still sends but has no durable event_key
 dedup); **B. canonical planner** — `supabase-core3-plan-hierarchy.sql` then
 `supabase-canonical-planner-production.sql`; **C. Parts 0–4 strategy reports**
-— `supabase-strategy-recommendation-lineage.sql`,
+— `supabase-matching-report-personal-lineage.sql`,
+`supabase-strategy-recommendation-lineage.sql`,
 `supabase-strategy-report-v2.sql`, `supabase-report-overrides.sql`,
 `supabase-recommendation-source-key.sql` (`supabase-match-report-narrative.sql`
 dropped from the list: zero `match_report_narrative` references remain after
@@ -75,9 +101,7 @@ known-issues §5r/s/t** — `supabase-application-cascade-repair.sql`,
 `supabase-personal-report-versions.sql`; **F. payments, when used** —
 `supabase-plus-promo-redemption.sql` then `supabase-plus-promo-v2.sql`
 (in that order), `supabase-manual-payment-subscription-conflict-repair.sql`
-(the first repair is confirmed applied), `supabase-vnpay-payments.sql`;
-**G. not yet written** — engine-version stamp for
-`application_match_analyses` (new file, Part 9B wave).
+(the first repair is confirmed applied), `supabase-vnpay-payments.sql`.
 
 Merge 2026-08-23 (latest): merged `origin/main` (4 incoming commits) into local
 `main`, which had diverged 3/4. The big incoming commit is PR #216 — an
