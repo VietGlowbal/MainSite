@@ -5,7 +5,7 @@ import { getApplicationPlanner } from './get-application-planner';
 import { getPlannerMode } from './planner-mode';
 import { claimPlannerGeneration, finishPlannerGeneration, upsertPlannerOps } from './planner-ops-store';
 import { syncApplicationPlan } from './sync-application-plan';
-import { isPlannerStale, planFingerprint, plannerLifecycle, plannerSourceFingerprint } from '../domain';
+import { isPlannerStale, planFingerprint, plannerLifecycle, plannerSourceFingerprint, type PlannerFailureCode } from '../domain';
 
 export type PlannerRefreshTrigger = 'initial_create' | 'semantic_input' | 'source_change' | 'manual_refresh' | 'retry';
 export type PlannerRefreshResult = { refreshed: boolean; skipped: boolean; reason?: 'not_entitled' | 'current' | 'concurrent'; runId?: string };
@@ -42,11 +42,23 @@ export async function refreshApplicationPlan(supabase: SupabaseClient, applicati
     await upsertPlannerOps(admin, applicationId, { lifecycle, source_fingerprint: fingerprint, plan_fingerprint: nextFingerprint, stale_since: null, generation_status: 'success', last_success_at: new Date().toISOString(), failure_code: null, ai_status: aiStatus, ai_provider: ai?.provider ?? null, ai_model: ai?.model ?? null, ai_prompt_version: ai?.promptVersion ?? null, ai_enrichment_version: ai?.enrichmentVersion ?? null });
     return { refreshed: true, skipped: false, runId };
   } catch (error) {
-    await finishPlannerGeneration(admin, runId, { status: 'failed', sourceFingerprint: currentFingerprint, aiStatus: 'failed', failureCode: 'persistence_failed' }).catch(() => undefined);
-    await upsertPlannerOps(admin, applicationId, { lifecycle: existing?.plan ? 'failed' : 'failed', generation_status: 'failed', failure_code: 'persistence_failed', ai_status: 'failed' }).catch(() => undefined);
+    const failureCode = classifyPlannerFailure(error);
+    await finishPlannerGeneration(admin, runId, { status: 'failed', sourceFingerprint: currentFingerprint, aiStatus: 'failed', failureCode }).catch(() => undefined);
+    await upsertPlannerOps(admin, applicationId, { lifecycle: 'failed', generation_status: 'failed', failure_code: failureCode, ai_status: 'failed' }).catch(() => undefined);
     console.error('[planner/ops] refresh failed', { applicationId, userId, error });
     throw error;
   }
+}
+
+function classifyPlannerFailure(error: unknown): PlannerFailureCode {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+  if (/application_planner_(ops|generation_runs)|relation .* does not exist|schema cache/.test(message)) return 'migration_unavailable';
+  if (/enrichment|openai|ai /.test(message)) return 'ai_enrichment_failed';
+  if (/validation|invalid output|unknown decision|unknown schema/.test(message)) return 'validation_failed';
+  if (/not enough|missing required|needs user input/.test(message)) return 'not_enough_data';
+  if (/source|assessment|programme|requirement|strategy|fetch|could not load/.test(message)) return 'source_unavailable';
+  if (/persist|persistence|atomic|insert|update|database/.test(message)) return 'persistence_failed';
+  return 'unknown';
 }
 
 function findAiProvenance(planner: Awaited<ReturnType<typeof getApplicationPlanner>>) {
