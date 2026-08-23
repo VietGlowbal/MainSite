@@ -15,41 +15,72 @@ import { Badge, Button, Panel, Textarea, useAutoGrowTextarea } from '@/shared/ui
 
 function PersonalQuestionRow({
   questionKey,
+  index,
   value,
   onChange,
   onBlur,
 }: {
   questionKey: PersonalReflectionKey;
+  index: number;
   value: string;
   onChange: (val: string) => void;
   onBlur: () => void;
 }) {
   const t = useT();
   const question = personalReflectionQuestion(questionKey);
-  const textareaRef = useAutoGrowTextarea<HTMLTextAreaElement>(value, { maxHeight: 360 });
+  const textareaRef = useAutoGrowTextarea<HTMLTextAreaElement>(value, { maxHeight: 400 });
+  const isAnswered = Boolean(value.trim());
 
   return (
-    <Panel className="flex flex-col gap-gb-md p-gb-xl">
-      <div className="flex flex-wrap items-start justify-between gap-gb-sm">
-        <div className="flex flex-col gap-gb-xxs">
-          <h2 className="text-gb-md font-semibold text-fg">{t(question.heading)}</h2>
-          <p className="text-gb-xs font-medium text-fg-tertiary">{t(question.shortLabel)}</p>
+    <section
+      aria-labelledby={`heading-${questionKey}`}
+      className="group relative rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.03)] hover:shadow-[0_8px_24px_-4px_rgba(0,0,0,0.06)] hover:border-slate-300 transition-all duration-200 flex flex-col gap-5 sm:gap-6"
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-start gap-3.5 flex-1 min-w-0">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-rose-50 text-xs font-bold text-rose-600 border border-rose-100/60 mt-0.5">
+            {String(index + 1).padStart(2, '0')}
+          </span>
+          <div className="flex flex-col gap-1 min-w-0">
+            <h2 id={`heading-${questionKey}`} className="text-base sm:text-lg font-semibold text-slate-900 leading-snug">
+              {t(question.heading)}
+            </h2>
+            <p className="text-xs font-medium text-slate-400">
+              {t(question.shortLabel)}
+            </p>
+          </div>
         </div>
-        {value.trim() ? (
-          <Badge variant="brand-subtle">{t('Answered')}</Badge>
-        ) : (
-          <Badge variant="neutral">{t('Optional')}</Badge>
-        )}
+
+        <div className="shrink-0">
+          {isAnswered ? (
+            <Badge variant="brand-subtle" className="px-3 py-1 text-xs font-semibold bg-rose-50 text-rose-600 border border-rose-100 rounded-full">
+              <span className="text-[10px] mr-1" aria-hidden="true">✓</span>
+              {t('Answered')}
+            </Badge>
+          ) : (
+            <Badge variant="neutral" className="px-3 py-1 text-xs font-medium bg-slate-100/90 text-slate-500 rounded-full">
+              {t('Optional')}
+            </Badge>
+          )}
+        </div>
       </div>
 
-      <ul className="flex flex-col gap-gb-xxs text-gb-sm text-fg-tertiary">
-        <li className="font-medium text-fg-tertiary">{t('Think about:')}</li>
-        {question.guidance.map((line) => (
-          <li key={line}>• {t(line)}</li>
-        ))}
-      </ul>
+      <div className="rounded-xl bg-slate-50/80 border border-slate-100/90 p-4 sm:p-5 flex flex-col gap-2">
+        <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-slate-500">
+          <span className="text-amber-500/90 text-sm leading-none" aria-hidden="true">💡</span>
+          <span>{t('Think about:')}</span>
+        </div>
+        <ul className="flex flex-col gap-1.5 text-xs sm:text-sm text-slate-600 leading-relaxed">
+          {question.guidance.map((line) => (
+            <li key={line} className="flex items-start gap-2">
+              <span className="text-slate-300 select-none text-xs leading-5" aria-hidden="true">•</span>
+              <span>{t(line)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
 
-      <div className="flex flex-col gap-gb-xs">
+      <div className="flex flex-col gap-1.5">
         <Textarea
           ref={textareaRef}
           name={`personal-reflection-${questionKey}`}
@@ -58,10 +89,10 @@ function PersonalQuestionRow({
           onChange={(e) => onChange(e.target.value)}
           onBlur={onBlur}
           placeholder={t('Tell us what happened in your own words…')}
-          className="resize-none"
+          className="min-h-[110px] rounded-xl border border-slate-200 bg-white p-3.5 sm:p-4 text-sm text-slate-800 placeholder:text-slate-400 focus:border-rose-400 focus:ring-4 focus:ring-rose-50/60 focus:outline-none transition-all resize-none leading-relaxed shadow-sm"
         />
       </div>
-    </Panel>
+    </section>
   );
 }
 
@@ -216,7 +247,7 @@ export function PersonalReflectionForm({
   };
 
   return (
-    <div className="flex flex-col gap-gb-2xl">
+    <div className="flex flex-col gap-8 sm:gap-10">
       {applicationLabel ? (
         <ReflectionBreadcrumb
           items={[
@@ -235,40 +266,52 @@ export function PersonalReflectionForm({
         />
       ) : null}
 
-      <header className="flex flex-wrap items-end justify-between gap-gb-md">
-        <div className="flex flex-col gap-gb-xs">
-          <h1 className="font-display text-gb-display-sm font-semibold tracking-gb-display-tight text-fg">
+      <header className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 pb-2 border-b border-slate-200/60">
+        <div className="flex flex-col gap-1.5">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
             {t('Personal Reflection')}
           </h1>
-          <p className="text-gb-sm text-fg-tertiary">
+          <p className="text-sm text-slate-500 max-w-xl leading-relaxed">
             {t(
               'Reflect on patterns across your experiences. All answers save automatically as you type.',
             )}
           </p>
         </div>
-        <div className="flex items-center gap-gb-sm">
-          <span className="text-gb-xs font-medium text-fg-tertiary">
+        <div className="flex items-center gap-3 shrink-0 self-start sm:self-auto bg-slate-50/90 border border-slate-200/80 px-4 py-2 rounded-full shadow-xs">
+          <span className="text-xs font-semibold text-slate-700">
             {t('{count} of {total} answered', {
               count: answeredCount,
               total: PERSONAL_REFLECTION_QUESTION_COUNT,
             })}
           </span>
-          <span className="text-gb-xs text-fg-muted">
-            {saveStatus === 'saving'
-              ? t('Saving…')
-              : saveStatus === 'saved'
-                ? t('Saved')
-                : saveStatus === 'error'
-                  ? t('Save error')
-                  : ''}
-          </span>
+          {saveStatus !== 'idle' ? (
+            <span className="flex items-center gap-1.5 text-xs font-medium text-slate-500 pl-2.5 border-l border-slate-200">
+              {saveStatus === 'saving' ? (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" aria-hidden="true" />
+                  <span className="text-rose-600">{t('Saving…')}</span>
+                </>
+              ) : saveStatus === 'saved' ? (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-emerald-500" aria-hidden="true" />
+                  <span className="text-emerald-700 font-medium">{t('Saved')}</span>
+                </>
+              ) : (
+                <>
+                  <span className="h-2 w-2 rounded-full bg-red-500" aria-hidden="true" />
+                  <span className="text-red-600">{t('Save error')}</span>
+                </>
+              )}
+            </span>
+          ) : null}
         </div>
       </header>
 
-      <div className="flex flex-col gap-gb-xl">
-        {PERSONAL_REFLECTION_QUESTIONS.map((q) => (
+      <div className="flex flex-col gap-6 sm:gap-8">
+        {PERSONAL_REFLECTION_QUESTIONS.map((q, idx) => (
           <PersonalQuestionRow
             key={q.key}
+            index={idx}
             questionKey={q.key}
             value={answers[q.key] ?? ''}
             onChange={(val) => handleFieldChange(q.key, val)}
@@ -278,7 +321,7 @@ export function PersonalReflectionForm({
       </div>
 
       {error ? (
-        <div className="flex items-center justify-between rounded-gb-md border border-line-error bg-surface-error p-gb-md text-gb-sm text-fg-error">
+        <div className="flex items-center justify-between rounded-xl border border-line-error bg-surface-error p-4 text-sm text-fg-error shadow-sm">
           <span>{error}</span>
           <Button
             type="button"
@@ -291,21 +334,29 @@ export function PersonalReflectionForm({
         </div>
       ) : null}
 
-      <div className="flex items-center justify-between gap-gb-lg border-t border-line pt-gb-xl">
+      <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-between gap-4 border-t border-slate-200/80 pt-8 pb-4">
         <Button
           type="button"
           variant="secondary"
           disabled={isNetworkSaving}
           onClick={() => void handleBack()}
+          className="rounded-xl px-5 py-2.5 font-medium"
         >
+          <span aria-hidden="true" className="mr-1">←</span>
           {t('Back to Achievements')}
         </Button>
         <Button
           type="button"
           disabled={isNetworkSaving}
           onClick={() => void handleContinue()}
+          className="rounded-xl px-6 py-2.5 font-semibold bg-rose-600 hover:bg-rose-700 text-white shadow-sm"
         >
-          {isNetworkSaving ? t('Saving…') : t('Continue to Review & Confirm')}
+          {isNetworkSaving ? t('Saving…') : (
+            <>
+              {t('Continue to Review & Confirm')}
+              <span aria-hidden="true" className="ml-1.5">→</span>
+            </>
+          )}
         </Button>
       </div>
     </div>
