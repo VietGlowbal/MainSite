@@ -161,7 +161,7 @@ export function DeadlineControl({
         aria-invalid={unsaved || undefined}
         aria-describedby={unsaved ? hintId : undefined}
         onChange={(event) => handleChange(event.target.value)}
-        className="rounded-gb-md border border-line bg-surface px-gb-md py-gb-xs text-gb-sm text-fg"
+        className="rounded-gb-md border border-line bg-surface px-gb-md py-gb-xs text-gb-xs font-medium text-fg shadow-gb-xs hover:border-line-strong focus:border-brand focus:outline-none transition-all"
       />
       {unsaved ? (
         /* Never fail silently: without this, a student who typed a two-digit

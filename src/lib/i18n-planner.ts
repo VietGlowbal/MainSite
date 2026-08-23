@@ -65,4 +65,6 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'Row {n}': 'Dòng {n}',
   'This task has no editable form right now.': 'Nhiệm vụ này hiện chưa có biểu mẫu để điền.',
   'Your saved progress is kept.': 'Tiến độ bạn đã lưu vẫn được giữ nguyên.',
+  'Needs your input': 'Cần bạn nhập thông tin',
+  'Needs enrichment': 'Cần bổ sung dữ liệu',
 };
