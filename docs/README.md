@@ -44,6 +44,7 @@ unrelated history end to end.
 |---|---|
 | [current-status.md](current-status.md) | Search first for the affected feature, recent work, verification, risks, and resume point. Read it end to end only for broad audits or session handoffs. |
 | [feature-2-plan.md](feature-2-plan.md) · [strategy-reports-spec.md](strategy-reports-spec.md) | Before touching any of the four Strategy reports. The plan is the sequenced twelve-part breakdown with the owner's decisions recorded; the spec carries the F5 weights, the classification rule, the report layouts and a build-status table of what is and is not implemented. |
+| [plans/2026-08-23-feature-2-parts-5-9-execution-v2.md](plans/2026-08-23-feature-2-parts-5-9-execution-v2.md) | **Before executing any Parts 5–9 work** (Planner mobile/reminders, GenUI task UI, CV/Essay consolidation, Final Check gaps). Active wave plan post-PR #216 merge, with the READY/GATE/BLOCKED matrix and the open owner questions. |
 | [redesign-status.md](redesign-status.md) | When changing a route or comparing it with Figma. It is the route/frame decision ledger, not the primary current-status file. |
 | [known-issues.md](known-issues.md) | Before touching `/universities`, `/my-universities`, `/mentors`, saving, auth — **or any `supabase-*.sql` file**. §0 is the migration trap; §1b is the mentorship RLS gap. |
 | [design-system.md](design-system.md) | Before writing any component. Token names, the primitives that already exist. |
