@@ -76,7 +76,6 @@ export function SaveBar({
   message,
   label = 'Save changes',
   returnTo,
-  updatedLabel,
 }: {
   onSave: () => void;
   saving: boolean;

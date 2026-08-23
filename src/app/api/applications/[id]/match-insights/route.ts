@@ -474,12 +474,11 @@ export async function POST(
     .single();
 
   if (migrationMissing(insertError)) {
-    const {
-      source_personal_report_version_id: _personalReportVersionId,
-      source_personal_report_input_hash: _personalReportInputHash,
-      f5_engine_version: _f5EngineVersion,
-      ...legacyAnalysisRow
-    } = analysisRow;
+    const legacyAnalysisRow = { ...analysisRow };
+    delete (legacyAnalysisRow as Record<string, unknown>).source_personal_report_version_id;
+    delete (legacyAnalysisRow as Record<string, unknown>).source_personal_report_input_hash;
+    delete (legacyAnalysisRow as Record<string, unknown>).f5_engine_version;
+
     const retry = await supabase
       .from('application_match_analyses')
       .insert(legacyAnalysisRow)

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, ICONS, KitIcon, Panel, ProgressBar, usePrefersReducedMotion } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
 import { formatUiDateTime } from '@/shared/lib';
@@ -69,21 +69,48 @@ export function AnalysisWorkspace({
   const { t, lang } = useLanguage();
   const [personal, setPersonal] = useState<ReportState>({ status: 'generating' });
   const [matching, setMatching] = useState<ReportState>({ status: 'generating' });
-  const ran = useRef(false);
 
   const personalHref = `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis`)}`;
   const matchingHref = `/ai-strategy/${applicationId}/matching-report`;
-  const errorMessages = {
-    generic: t('Something went wrong. Please try again.'),
-    rateLimit: t('Rate limit reached. Please wait a moment and try again.'),
-    unavailable: t('Service temporarily unavailable. Please try again shortly.'),
-  };
+  const errorMessages = useMemo(
+    () => ({
+      generic: t('Something went wrong. Please try again.'),
+      rateLimit: t('Rate limit reached. Please wait a moment and try again.'),
+      unavailable: t('Service temporarily unavailable. Please try again shortly.'),
+    }),
+    [t],
+  );
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
-  const generateReports = useCallback(async () => {
+  useEffect(() => {
+    let active = true;
+    async function loadReports() {
+      const personalState = await fetchOrGeneratePersonal(errorMessages);
+      if (!active) return;
+      setPersonal(personalState);
+      if (personalState.status !== 'complete') {
+        setMatching({
+          status: 'failed',
+          error: personalState.status === 'failed' ? personalState.error : errorMessages.generic,
+        });
+        return;
+      }
+      const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages);
+      if (!active) return;
+      setMatching(matchingState);
+    }
+    void loadReports();
+    return () => {
+      active = false;
+    };
+  }, [applicationId, errorMessages]);
+
+  const retryPersonal = useCallback(async () => {
+    setPersonal({ status: 'generating' });
+    setMatching({ status: 'generating' });
     const personalState = await fetchOrGeneratePersonal(errorMessages);
     setPersonal(personalState);
     if (personalState.status !== 'complete') {
@@ -93,29 +120,18 @@ export function AnalysisWorkspace({
       });
       return;
     }
-    setMatching(await fetchOrGenerateMatching(applicationId, errorMessages));
+    const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages);
+    setMatching(matchingState);
   }, [applicationId, errorMessages]);
 
-  useEffect(() => {
-    if (ran.current) return;
-    ran.current = true;
-    void generateReports();
-  }, [generateReports]);
-
-  function retryPersonal() {
-    setPersonal({ status: 'generating' });
-    setMatching({ status: 'generating' });
-    void generateReports();
-  }
-
-  function retryMatching() {
+  const retryMatching = useCallback(() => {
     if (personal.status !== 'complete') {
-      retryPersonal();
+      void retryPersonal();
       return;
     }
     setMatching({ status: 'generating' });
-    fetchOrGenerateMatching(applicationId, errorMessages).then(setMatching);
-  }
+    void fetchOrGenerateMatching(applicationId, errorMessages).then(setMatching);
+  }, [applicationId, errorMessages, personal.status, retryPersonal]);
 
   const completeCount = [personal, matching].filter((report) => report.status === 'complete').length;
   const allComplete = completeCount === 2;

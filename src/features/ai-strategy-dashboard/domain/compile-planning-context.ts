@@ -42,6 +42,9 @@ export function compilePlanningContext(sources: PlanningContextSources): Plannin
   const programmeRequirements = sorted(sources.requirements, compareRequirements);
   const deadlines = compileDeadlines(sources.deadlineCandidates);
   const applicantState = sources.profileEvaluation?.data ?? null;
+  const strategyRoadmap = sources.strategyRoadmap ?? (sources.strategyRecommendation
+    ? { kind: 'f7' as const, data: { roadmap: sources.strategyRecommendation.data.roadmap }, provenance: sources.strategyRecommendation.provenance }
+    : null);
 
   const contextWithoutHash: PlanningContext = {
     applicantState,
@@ -51,6 +54,7 @@ export function compilePlanningContext(sources: PlanningContextSources): Plannin
     unresolvedRequirements: unresolvedRequirements(programmeRequirements),
     hardConstraints: hardConstraints(programmeRequirements, deadlines),
     strategy: planningStrategy(sources),
+    strategyRoadmap,
     identifiedGaps: identifiedGaps(sources),
     interventionCandidates: interventionCandidates(sources),
     existingEvidence: existingEvidence(applicantState?.evidence.items ?? []),
@@ -70,7 +74,7 @@ export function compilePlanningContext(sources: PlanningContextSources): Plannin
     provenance: {
       personalReport: sources.profileEvaluation?.provenance ?? null,
       programmeFit: sources.programmeFit?.provenance ?? null,
-      strategy: sources.strategyRecommendation?.provenance ?? null,
+      strategy: strategyRoadmap?.provenance ?? sources.strategyRecommendation?.provenance ?? null,
       staleness: { personalReport: 'unknown', programmeFit: 'unknown', strategy: 'unknown' },
       sourceDiagnostics: sorted(sources.diagnostics, (a, b) => compareText(a.source, b.source) || compareText(a.status, b.status) || compareText(a.message ?? '', b.message ?? '')),
       contextHash: '',

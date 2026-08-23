@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { compileDecisions, compilePlan } from '../domain';
+import { compileDecisions, compilePlan, mergeStrategyRoadmapPlan } from '../domain';
 import { generatePlanEnrichment } from './generate-plan-enrichment';
 import { getApplicationAssessments } from './get-application-assessments';
 
@@ -7,7 +7,7 @@ import { getApplicationAssessments } from './get-application-assessments';
 export async function getEnrichedApplicationPlan(supabase: SupabaseClient, applicationId: string, userId: string) {
   const { assessments, context } = await getApplicationAssessments(supabase, applicationId, userId);
   const decisions = compileDecisions(assessments, context.plannerInputs);
-  const deterministic = compilePlan(decisions);
+  const deterministic = mergeStrategyRoadmapPlan(compilePlan(decisions), context);
   // Persist this Core 1 snapshot fingerprint in the plan id. It lets the page
   // cheaply decide whether source facts changed without ever calling an LLM.
   const scaffold = {

@@ -172,6 +172,7 @@ export type {
   // Strategy
   AiProposedPortfolioOpportunity,
   PlanningStrategy,
+  PlanningStrategyRoadmap,
   // Provenance
   PlanningProvenance,
   // Top-level
@@ -184,6 +185,7 @@ export { compilePlanningContext } from './compile-planning-context';
 export { compileAssessments } from './compile-assessments';
 export { compileDecisions } from './compile-decisions';
 export { compilePlan } from './compile-plan';
+export { mergeStrategyRoadmapPlan } from './strategy-roadmap-plan';
 export {
   AI_PLAN_ENRICHMENT_PROMPT_VERSION,
   AI_PLAN_ENRICHMENT_VERSION,

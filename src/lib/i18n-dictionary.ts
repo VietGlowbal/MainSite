@@ -6160,4 +6160,7 @@ export const translations: Record<string, string> = {
   // route graph.
   "Needs attention": "Cần chú ý",
   "Ready for audit": "Sẵn sàng rà soát",
+  'Complete roadmap deliverables': 'Hoàn thành các kết quả chiến lược',
+  'Legacy strategy roadmap': 'Lộ trình chiến lược kế thừa',
+  'Complete strategy priorities': 'Hoàn thành các ưu tiên chiến lược',
 };
