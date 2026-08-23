@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { ensureApplicationPlan, fetchOnboardingState, generateRecommendations, getApplicationPlanner, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
+import { ensureApplicationPlan, fetchOnboardingState, generateRecommendations, getApplicationPlanner, getApplicationPlannerHealth, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
 import {
   nextOnboardingStep,
   onboardingStepHref,
@@ -9,6 +9,7 @@ import {
   ApplicationPlanner,
   DashboardSummary,
   HierarchicalApplicationPlanner,
+  PlannerHealthBanner,
   StrategyCategoryBoard,
 } from '@/features/ai-strategy-dashboard/ui';
 import { getUniversityQueries } from '@/features/universities/api';
@@ -53,11 +54,15 @@ export default async function PlannerPage({
   // hierarchy migration leaves the established legacy experience available;
   // recommendations are never merged into a fake canonical structure.
   let canonicalPlanner = null;
+  let plannerHealth = null;
   let canonicalState: 'failed' | 'not_entitled' | 'ready' = 'not_entitled';
   if (plannerMode === 'canonical') {
     const ensured = await ensureApplicationPlan(supabase, applicationId, user.id);
     canonicalState = ensured.kind === 'ready' ? 'ready' : ensured.kind === 'failed' ? 'failed' : 'not_entitled';
-    if (ensured.kind === 'ready') canonicalPlanner = await getApplicationPlanner(supabase, applicationId, user.id);
+    if (ensured.kind === 'ready') {
+      canonicalPlanner = await getApplicationPlanner(supabase, applicationId, user.id);
+      plannerHealth = await getApplicationPlannerHealth(supabase, applicationId, user.id);
+    }
   }
 
   const { data: latestMatch } = await supabase
@@ -106,6 +111,8 @@ export default async function PlannerPage({
             {generationError}
           </p>
         ) : null}
+
+        {plannerMode === 'canonical' && plannerHealth ? <PlannerHealthBanner applicationId={applicationId} health={plannerHealth} /> : null}
 
         {plannerMode === 'legacy' ? <StrategyCategoryBoard applicationId={applicationId} recommendations={recommendations} /> : null}
         {canonicalPlanner?.plan ? (

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { compileDecisions, compilePlan } from '../domain';
+import { compileDecisions, compilePlan, plannerSourceFingerprint } from '../domain';
 import { generatePlanEnrichment } from './generate-plan-enrichment';
 import { getApplicationAssessments } from './get-application-assessments';
 
@@ -12,7 +12,7 @@ export async function getEnrichedApplicationPlan(supabase: SupabaseClient, appli
   // cheaply decide whether source facts changed without ever calling an LLM.
   const scaffold = {
     ...deterministic,
-    id: `${deterministic.id}:source:${context.provenance.contextHash}`,
+    id: `${deterministic.id}:source:${plannerSourceFingerprint(context)}`,
   };
   return generatePlanEnrichment({ scaffold, decisions, assessments, context });
 }
