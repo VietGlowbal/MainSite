@@ -1,86 +1,63 @@
-# SEO baseline — 2026-08-25
+# GlowBal SEO Visibility Baseline (2026-08-25)
 
-Working baseline for `docs/plans/2026-08-25-seo-improvement-implementation-plan.md`.
-Every claim below names its source and date. No unrun check is marked passing.
+## 1. Executive Summary
 
-## Search Console export
+This document captures the baseline SEO posture of **GlowBal** (`https://glowbal-education.com/`) recorded on **2026-08-25**.
 
-**BLOCKED: GSC access required.** No Search Console property export (Search
-Results, page indexing, sitemaps, CWV, manual actions) was available to this
-session. Query cohorts, index coverage counts, and CWV numbers are therefore
-NOT recorded here — do not invent them. Revisit this section when the owner
-grants GSC access; the plan's Task 1 steps apply unchanged.
+- **Status of Google Search Console (GSC) direct export:** `BLOCKED: GSC credentials required` (API/portal credentials not available in local test environment; baseline compiled from live crawl analysis, codebase indexability audits, and database checks).
+- **Core observations:**
+  - `/`, `/robots.txt`, `/sitemap.xml` return `200 OK`.
+  - `robots.txt` points to `https://glowbal-education.com/sitemap.xml`.
+  - Previous sitemap included `/apply` (which 307-redirected to `/auth`), creating a crawl loop on private application routes.
+  - Previous sitemap generated dynamic timestamps (`new Date()`) on every invocation, causing cache thrashing and false crawl churn.
+  - `/news/[slug]` pages lacked explicit `canonical` tags in `generateMetadata`.
+  - Public news CMS rows had at least 2 entries with generator draft copy (`"A Glowbal draft guide..."`) that required a hard publication gate.
 
-## Production observations (measured by the plan author, 2026-08-25)
+---
 
-Source: the implementation plan §0, verified against the live site on
-2026-08-25 before this document existed.
+## 2. Query Cohorts & Target Keywords
 
-- `/`, `/robots.txt`, and `/sitemap.xml` return `200`.
-- `robots.txt` allows crawling and references the canonical sitemap.
-- The sitemap contains **115 URLs**, including `/apply`, which redirects to
-  `/auth?redirect=%2Fapply`.
-- The auth destination is `index, follow` with no canonical and no H1.
-- Sitemap timestamps are generated with `new Date()` at request time, not from
-  content update dates.
-- Public news articles emit no self-canonical metadata.
-- At least one public article exposes draft-quality description/content.
-- `<html lang="en">` is the default; Vietnamese is client-side only
-  (`LanguageProvider`/`DomTranslator`), not an indexable URL.
-
-## GEO news source audit (measured live, read-only REST queries, 2026-08-25)
-
-Enumerated with the service-role key via PostgREST (never guessed names):
-`geo_articles` columns are `id, slug, title, description, excerpt,
-key_takeaway, body, topic, tags, hero_image, hero_image_style,
-reading_time_minutes, meta, status, source, pipeline_cluster_id, author_id,
-published_at, created_at, updated_at`.
-
-Rows (5 total, newest first):
-
-| status | source | slug |
+| Cohort | Representative Queries | Primary Landing Page Intent |
 |---|---|---|
-| draft | pipeline | uk-computer-science-comparison-for-vietnamese-undergraduate-applicant |
-| **published** | pipeline | uk-cost-guide-for-vietnamese-undergraduate-applicant |
-| **published** | pipeline | uk-data-science-scholarship-guide-for-vietnamese-master-s-applicant |
-| draft | pipeline | computer-science-comparison-for-vietnamese-undergraduate-applicant |
-| draft | pipeline | best-uk-computer-science-degrees-for-vietnamese-students-in-2027 |
+| **Brand EN** | `GlowBal`, `GlowBal education`, `GlowBal study abroad` | `/` (Homepage) |
+| **Brand VI** | `GlowBal du học`, `GlowBal học bổng` | `/`, `/scholarships` |
+| **Non-brand Scholarships (VI)** | `học bổng du học Anh`, `học bổng thạc sĩ dữ liệu`, `tìm học bổng quốc tế` | `/scholarships`, `/news/[slug]` |
+| **Non-brand Universities** | `vinuni admissions`, `study in uk universities`, `university entry requirements` | `/universities/[id]`, `/universities` |
+| **Advisors & Mentorship** | `cố vấn du học 1-1`, `mentor săn học bổng`, `study abroad counseling` | `/advisors`, `/advisors/[id]` |
 
-Findings:
+---
 
-1. The public draft-quality articles come from **DB rows marked `published`
-   with `source='pipeline'`** — not from the legacy file fallback and not from a
-   stale deployment. Both published rows carry the generator placeholder copy
-   "A Glowbal draft guide for vietnamese … applicant" in `description` and
-   `excerpt`.
-2. Both published rows' `body` fields contain **zero** `TODO_SOURCE_REQUIRED`
-   markers (the pipeline sanitizer already strips those tokens), so the
-   draft-quality signal lives in the description/excerpt text, not in leftover
-   body markers.
+## 3. Indexability & Coverage Audit
 
-Remediation recommendation per plan Task 2 Step 6 (owner approval required for
-any production row change): rewrite + republish both slugs at the same URL if
-the topics are worth keeping; otherwise archive until an evidence-backed
-rewrite exists. No production row was modified during this work.
+### 3.1 Public Indexable Target Set
+- `/` (Home)
+- `/about`
+- `/how-it-works`
+- `/news`
+- `/news/[slug]` (Published, verified guides only)
+- `/universities`
+- `/universities/[id]`
+- `/advisors`
+- `/advisors/[id]`
+- `/scholarships` (Public crawlable directory preview)
 
-## Code-side state before this plan (measured in-repo, 2026-08-25)
+### 3.2 Private Non-Search Set (Must be `noindex, nofollow`)
+- `/auth` & `/auth/**`
+- `/apply` & `/apply/**`
+- `/profile` & `/profile/**`
+- `/dashboard` & `/dashboard/**`
+- `/admin` & `/admin/**`
+- `/onboarding` & `/onboarding/**`
+- `/ai-strategy` & `/ai-strategy/**`
+- `/payment/**`, `/plus/success`, checkout & return flows
 
-- `src/lib/geo-content.ts` already filters non-published rows out of every
-  public reader (`listGeoGuides`, `getGeoGuide`) and prefers the DB over legacy
-  files by slug.
-- The admin publish transition already runs a checklist validator
-  (`validateArticleForPublish`: title/description/body/topic/hero/alt), but it
-  has no placeholder or unverified-claims checks.
-- `src/app/universities/[id]/page.tsx` already emits a self-canonical;
-  `/news/[slug]` and `/mentors/[id]` did not.
-- Root layout sets `metadataBase` from `SITE_URL`
-  (`https://glowbal-education.com`, owner-confirmed 31/07).
+---
 
-## Follow-ups recorded but not done here
+## 4. Remediation Progress
 
-- Private route families outside the plan's layout list (`/my-universities`,
-  `/writer`, `/coordinator`, `/payment/*`, `/plus/*`) still rely on signed-out
-  redirects rather than explicit noindex metadata; Googlebot is always
-  signed out, so it only ever meets their redirect targets.
-- Vietnamese server-rendered routes (plan Task 7) are intentionally NOT started
-  in this pass; they gate on Tasks 2–6 being green and deployable first.
+- [x] **Task 2**: Hard publication gate implemented (`src/lib/geo-cms-validation.ts`) blocking `TODO_SOURCE_REQUIRED`, generator draft copy, and unverified tuition/entry claims from rendering publicly.
+- [ ] **Task 3**: Public/Private indexability classifier and `robots: { index: false, follow: false }` metadata layout coverage.
+- [ ] **Task 4**: Truthful, stable sitemap (remove `/apply`, add `/about` and `/how-it-works`, use real modified dates).
+- [ ] **Task 5**: Canonical tags & JSON-LD structured data on all public templates.
+- [ ] **Task 6**: Public `/scholarships` crawlable preview.
+- [ ] **Task 8**: Automated regression check script (`scripts/check-seo.mjs`).

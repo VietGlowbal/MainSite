@@ -1,9 +1,15 @@
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isAdmin, isPaymentAdmin } from '@/lib/auth-helpers';
+import { PRIVATE_ROBOTS } from '@/lib/seo/indexability';
 import { Badge } from '@/shared/ui';
 import { AdminTabs } from './admin-tabs';
+
+export const metadata: Metadata = {
+  robots: PRIVATE_ROBOTS,
+};
 
 /**
  * Shared shell for /admin/*.

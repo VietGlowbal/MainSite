@@ -50,6 +50,10 @@ export default defineConfig({
             'src/shared/**/*.test.ts',
             'src/server/**/*.test.ts',
             'src/__tests__/**/*.test.ts',
+            // Top-level route tests (sitemap) and the GEO pipeline script
+            // tests, which are pure node — no window needed.
+            'src/app/*.test.ts',
+            'scripts/**/*.test.ts',
           ],
         },
       },

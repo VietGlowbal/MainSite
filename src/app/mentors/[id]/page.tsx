@@ -6,10 +6,14 @@ import {
   getPublicMentorSlots,
 } from '@/lib/mentors';
 import { createClient } from '@/lib/supabase/server';
+import { SITE_URL } from '@/lib/site-url';
+import { buildAdvisorJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
 import { MentorDetail } from './mentor-detail';
 
 /**
  * /mentors/[id] — Figma 375:21633 "Detail cố vấn" (1440x1823).
+ * Canonical public URL is /advisors/[id].
  *
  * Replaces the legacy `src/components/mentorship/MentorProfile.tsx`, which this
  * route rendered inside the app chrome. Two things were wrong with that page
@@ -41,10 +45,25 @@ export async function generateMetadata({
   // `bio` is the mentor's own words and the only prose on the row, so it is
   // trimmed rather than reworded.
   const description = mentor.bio?.slice(0, 155) ?? undefined;
+  const canonicalUrl = `${SITE_URL}/advisors/${mentor.id}`;
+  const title = `${mentor.display_name} — ${mentor.subject}${where} | GlowBal`;
 
   return {
-    title: `${mentor.display_name} — ${mentor.subject}${where} | GlowBal`,
+    title,
     ...(description ? { description } : {}),
+    alternates: buildLocaleAlternates(`/advisors/${mentor.id}`),
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      images: mentor.avatar_url ? [{ url: mentor.avatar_url, alt: mentor.display_name }] : undefined,
+    },
+    twitter: {
+      card: 'summary',
+      title,
+      description,
+      images: mentor.avatar_url ? [mentor.avatar_url] : undefined,
+    },
   };
 }
 
@@ -74,15 +93,30 @@ export default async function MentorDetailPage({
   const userName =
     (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
 
+  const jsonLd = buildAdvisorJsonLd({
+    name: mentor.display_name,
+    url: `${SITE_URL}/advisors/${mentor.id}`,
+    subject: mentor.subject,
+    universityName: mentor.university?.name ?? null,
+    bio: mentor.bio,
+    imageUrl: mentor.avatar_url,
+  });
+
   return (
-    <MentorDetail
-      mentor={mentor}
-      slots={slots}
-      reviews={reviews}
-      reviewCount={count}
-      isSignedIn={!!user}
-      userName={userName}
-      userAvatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
+      <MentorDetail
+        mentor={mentor}
+        slots={slots}
+        reviews={reviews}
+        reviewCount={count}
+        isSignedIn={!!user}
+        userName={userName}
+        userAvatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
+      />
+    </>
   );
 }

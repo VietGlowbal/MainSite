@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
+import { SITE_URL } from '@/lib/site-url';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
 import { listGeoGuides, listGeoTopics } from '@/lib/geo-content';
 import { NewsClient } from './news-client';
 
 export const metadata: Metadata = {
-  title: 'Study Abroad Guides, Insights & News',
+  title: 'Study Abroad Guides, Insights & News | GlowBal',
   description:
     'Read actionable guides on study abroad costs, scholarship application strategies, visa requirements, and student success stories.',
   keywords: [
@@ -14,14 +16,12 @@ export const metadata: Metadata = {
     'study in us',
     'kinh nghiệm du học',
   ],
+  alternates: buildLocaleAlternates('/news'),
   openGraph: {
     title: 'Study Abroad Guides, Insights & News | GlowBal',
     description:
       'Read actionable guides on study abroad costs, scholarship application strategies, visa requirements, and student success stories.',
-    url: '/news',
-  },
-  alternates: {
-    canonical: '/news',
+    url: `${SITE_URL}/news`,
   },
 };
 

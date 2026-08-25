@@ -16,10 +16,13 @@ const dictionaryFile = path.join(root, 'src/lib/i18n-catalog.ts');
 const sourceRoots = ['src/app', 'src/components', 'src/features', 'src/shared/ui'];
 const excludedSegments = new Set(['admin', 'api', 'dev', 'demo-throwaway']);
 const privateSegments = new Set(['profile', 'dashboard', 'apply', 'onboarding', 'my-universities', 'ai-strategy']);
-// These legal documents are intentionally maintained as authoritative
+// These legal documents and /vi localized routes are intentionally maintained as authoritative
 // Vietnamese copy. Keep them visible in the report, but do not treat their
 // source language as an untranslated UI regression.
 const authoritativeVietnameseRoutes = new Set(['/privacy', '/terms']);
+function isAuthoritativeVietnameseRoute(route) {
+  return typeof route === 'string' && (route === '/vi' || route.startsWith('/vi/') || authoritativeVietnameseRoutes.has(route));
+}
 // Keep the object-literal scan intentionally narrow: these property names are
 // user-facing copy in route metadata/nav configuration, while broad scanning
 // would pull in user-authored records and university/program data.
@@ -324,10 +327,10 @@ function main() {
   const candidates = scopedOccurrences.filter(({ key }) => dictionary[key] === undefined && !hasVietnamese(key));
   const viSource = scopedOccurrences.filter(({ key }) => hasVietnamese(key));
   const viSourceProtected = viSource.filter(({ key, route }) =>
-    authoritativeVietnameseRoutes.has(route) || isViSourceProtected(key),
+    isAuthoritativeVietnameseRoute(route) || isViSourceProtected(key),
   );
   const actionableViSource = viSource.filter(({ key, route }) =>
-    !authoritativeVietnameseRoutes.has(route) && !isViSourceProtected(key),
+    !isAuthoritativeVietnameseRoute(route) && !isViSourceProtected(key),
   );
   const protectedItems = candidates.filter(({ key }) => isProtectedStatic(key));
   const missing = candidates.filter(({ key }) => !isProtectedStatic(key));
@@ -340,7 +343,7 @@ function main() {
   const noAutoMissing = noAutoCandidates.filter(({ key }) => !isProtectedStatic(key));
   const noAutoViSource = noAuto.filter(({ key }) => hasVietnamese(key));
   const noAutoActionableViSource = noAutoViSource.filter(({ key, route }) =>
-    !authoritativeVietnameseRoutes.has(route) && !isViSourceProtected(key),
+    !isAuthoritativeVietnameseRoute(route) && !isViSourceProtected(key),
   );
 
   const report = {

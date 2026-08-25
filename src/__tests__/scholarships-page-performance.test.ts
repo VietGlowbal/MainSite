@@ -183,13 +183,14 @@ describe('ScholarshipsPage performance', () => {
     await expect(
       ScholarshipsPage({
         searchParams: Promise.resolve({
+          view: 'ai',
           q: 'Rhodes Scholarship',
           country: 'United Kingdom',
           page: '2',
         }),
       }),
     ).rejects.toThrow(
-      'redirect:/auth?redirect=%2Fscholarships%3Fq%3DRhodes%2BScholarship%26country%3DUnited%2BKingdom%26page%3D2',
+      'redirect:/auth?redirect=%2Fscholarships%3Fq%3DRhodes%2BScholarship%26country%3DUnited%2BKingdom%26page%3D2%26view%3Dai',
     );
   });
 

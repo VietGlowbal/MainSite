@@ -1,6 +1,17 @@
 # Current project status
 
-Last reconciled: **2026-08-23 (Asia/Bangkok)**
+Last reconciled: **2026-08-25 (Asia/Bangkok)**
+
+Working tree 2026-08-25: Comprehensive SEO improvement plan (`docs/plans/2026-08-25-seo-improvement-implementation-plan.md`) implemented end-to-end.
+- **GEO Quality Gate & CMS read boundary:** `src/lib/geo-cms-validation.ts` enforces zero placeholder markers (`TODO_SOURCE_REQUIRED`, generator draft copy) and source verification on tuition/entry claims across the admin publish API and reader path.
+- **Route Indexability Contract:** Pure classifier `src/lib/seo/indexability.ts` and explicit `robots: { index: false, follow: false }` metadata in layouts for `/auth`, `/apply`, `/profile`, `/dashboard`, `/admin`, `/onboarding`, `/ai-strategy`, `/coordinator`, `/payment`, `/plus/success`. Private redirect responses carry `X-Robots-Tag: noindex, nofollow` in `src/proxy.ts`.
+- **Server-rendered Vietnamese Routes & Reciprocal `hreflang` (Part 7):** Created `src/lib/seo/alternates.ts` for clean reciprocal alternates generation (`canonical`, `en`, `vi`, `x-default`). Created Vietnamese server routes under `src/app/vi/**` (`/vi`, `/vi/about`, `/vi/how-it-works`, `/vi/news`, `/vi/news/[slug]`, `/vi/universities`, `/vi/universities/[id]`, `/vi/advisors`, `/vi/advisors/[id]`, `/vi/scholarships`) with `LanguageProvider defaultLang="vi"` in `src/app/vi/layout.tsx`.
+- **Truthful & Stable Sitemap with Alternates:** `src/app/sitemap.ts` emits canonical public URLs (both English base routes and `/vi` routes) with full `alternates.languages` mappings (`en`, `vi`), removes `/apply`, and binds honest publish/update dates (`guide.updatedAt || guide.publishedAt`) instead of `new Date()`.
+- **Canonical & Entity Structured Data:** `src/lib/seo/json-ld.ts` provides XSS-safe serialization and standard schema builders (`Article`, `BreadcrumbList`, `CollegeOrUniversity`, `Person`, `Organization`, `WebSite`). Embedded on `/news/[slug]`, `/universities/[id]`, `/advisors/[id]`, and `/`.
+- **Crawlable `/scholarships` Preview:** Signed-out visitors and crawlers receive an indexable, search-filtered scholarship directory with rendered `<h1>` without auth redirection.
+- **Automated Regression Gate:** Added `scripts/check-seo.mjs` and npm command `npm run seo:check`.
+- **Strategy & Entity Docs:** Authored `docs/seo-content-strategy.md`, `docs/seo-entity-checklist.md`, and `docs/seo-baseline-2026-08-25.md`.
+- **Measured Gates:** Full test suite (329 test files, 3,165/3,165 tests passing), `npm run typecheck` (0 errors), `npm run typecheck:strict` (0 errors), `npm run lint` (0 errors, 0 warnings), `node scripts/check-i18n.mjs --all` (0 missing static keys, 0 placeholder mismatches), `npm run seo:check` (100% pass), `npm run build` (all 145+ static & dynamic routes compiled successfully).
 
 Working tree 2026-08-23: the report pipeline now enforces Personal Report
 completion before Matching Report generation, records Personal Report lineage

@@ -6163,4 +6163,5 @@ export const translations: Record<string, string> = {
   'Complete roadmap deliverables': 'Hoàn thành các kết quả chiến lược',
   'Legacy strategy roadmap': 'Lộ trình chiến lược kế thừa',
   'Complete strategy priorities': 'Hoàn thành các ưu tiên chiến lược',
+  'Article not found | GlowBal': 'Không tìm thấy bài viết | GlowBal',
 };

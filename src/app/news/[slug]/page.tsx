@@ -8,6 +8,8 @@ import { NewsletterCard } from '@/components/news/newsletter-card';
 import { SITE_URL } from '@/lib/site-url';
 import { T } from '@/lib/i18n';
 import { AutoTranslate } from '@/lib/use-auto-translate';
+import { serializeJsonLd } from '@/lib/seo/json-ld';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
 import { ArticleBody } from './article-body';
 
 function formatDate(value: string) {
@@ -42,16 +44,27 @@ function buildGuideJsonLd(guide: GeoGuide, related: GeoGuide[]) {
     ? (guide.heroImage.startsWith('http') ? guide.heroImage : `${SITE_URL}${guide.heroImage}`)
     : undefined;
 
+  const publishedDate = guide.publishedAt.slice(0, 10);
+  const modifiedDate = (guide.updatedAt || guide.publishedAt).slice(0, 10);
+
   const graph: Record<string, unknown>[] = [
     {
       '@type': 'Article',
       headline: guide.title,
       description: guide.description || guide.excerpt,
       ...(image ? { image: [image] } : {}),
-      datePublished: guide.publishedAt,
-      dateModified: guide.publishedAt,
-      author: { '@type': 'Organization', name: 'GLOWBAL', url: SITE_URL },
-      publisher: { '@type': 'Organization', name: 'GLOWBAL', url: SITE_URL },
+      datePublished: publishedDate,
+      dateModified: modifiedDate,
+      author: { '@type': 'Organization', name: 'GlowBal', url: SITE_URL },
+      publisher: {
+        '@type': 'Organization',
+        name: 'GlowBal',
+        url: SITE_URL,
+        logo: {
+          '@type': 'ImageObject',
+          url: `${SITE_URL}/glowbal-logo.png`,
+        },
+      },
       mainEntityOfPage: url,
       ...(guide.tags.length ? { keywords: guide.tags.join(', ') } : {}),
       ...(related.length ? { relatedLink: related.map((r) => `${SITE_URL}/news/${r.slug}`) } : {}),
@@ -59,7 +72,7 @@ function buildGuideJsonLd(guide: GeoGuide, related: GeoGuide[]) {
     {
       '@type': 'BreadcrumbList',
       itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'GLOWBAL News', item: `${SITE_URL}/news` },
+        { '@type': 'ListItem', position: 1, name: 'GlowBal News', item: `${SITE_URL}/news` },
         { '@type': 'ListItem', position: 2, name: guide.topic, item: `${SITE_URL}/news` },
         { '@type': 'ListItem', position: 3, name: guide.title, item: url },
       ],
@@ -81,15 +94,31 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const guide = await getGeoGuide(slug);
-  if (!guide) return {};
+  if (!guide) return { title: 'Article not found | GlowBal' };
   const md = guide.metadata as { title?: string; metaDescription?: string; heroImage?: string } | undefined;
+  const title = md?.title || guide.title;
+  const description = md?.metaDescription || guide.description;
+  const canonicalUrl = `${SITE_URL}/news/${slug}`;
+  const heroImg = md?.heroImage || (guide.heroImage ? (guide.heroImage.startsWith('http') ? guide.heroImage : `${SITE_URL}${guide.heroImage}`) : undefined);
+
   return {
-    title: md?.title || guide.title,
-    description: md?.metaDescription || guide.description,
+    title: `${title} | GlowBal`,
+    description,
+    alternates: buildLocaleAlternates(`/news/${slug}`),
     openGraph: {
-      title: md?.title || guide.title,
-      description: md?.metaDescription || guide.description,
-      images: md?.heroImage ? [md.heroImage] : undefined,
+      title,
+      description,
+      url: canonicalUrl,
+      type: 'article',
+      publishedTime: guide.publishedAt,
+      modifiedTime: guide.updatedAt || guide.publishedAt,
+      images: heroImg ? [{ url: heroImg, alt: title }] : undefined,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: heroImg ? [heroImg] : undefined,
     },
   };
 }
@@ -112,7 +141,7 @@ export default async function GuidePage({ params }: { params: Promise<{ slug: st
         type="application/ld+json"
         // Structured data helps AI search + Google understand and surface the
         // article and its place in the GEO graph.
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
       />
       <div className="app-page-container grid gap-6 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="rounded-[2rem] border border-white/80 bg-white/95 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-8">

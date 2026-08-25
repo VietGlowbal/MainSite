@@ -1,8 +1,14 @@
+import type { Metadata } from 'next';
 import { notFound, redirect } from 'next/navigation';
 import { ApplicationNav } from '@/components/application-nav';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 import { createClient } from '@/lib/supabase/server';
+import { PRIVATE_ROBOTS } from '@/lib/seo/indexability';
 import { ReflectionChrome } from '../reflection-chrome';
+
+export const metadata: Metadata = {
+  robots: PRIVATE_ROBOTS,
+};
 
 /**
  * Shell for every `/ai-strategy/[applicationId]/*` page (the AI Strategy

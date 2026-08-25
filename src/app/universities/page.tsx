@@ -19,8 +19,11 @@ import {
 import { Footer } from '@/shared/ui/footer';
 import { UniversityListClient } from './university-list-client';
 
+import { SITE_URL } from '@/lib/site-url';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
+
 export const metadata: Metadata = {
-  title: 'Explore Global Universities',
+  title: 'Explore Global Universities | GlowBal',
   description:
     'Search and compare 100+ accredited universities across UK, US, Australia, Singapore, and more. Filter by location, tuition fees, and admission criteria.',
   keywords: [
@@ -31,14 +34,12 @@ export const metadata: Metadata = {
     'vietnamese students abroad',
     'danh sách trường đại học du học',
   ],
+  alternates: buildLocaleAlternates('/universities'),
   openGraph: {
     title: 'Explore Global Universities | GlowBal',
     description:
       'Search and compare 100+ accredited global universities. Filter by location, tuition fees, and admission criteria.',
-    url: '/universities',
-  },
-  alternates: {
-    canonical: '/universities',
+    url: `${SITE_URL}/universities`,
   },
 };
 

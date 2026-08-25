@@ -129,6 +129,44 @@ describe('PATCH /api/admin/news/[id]', () => {
     expect(updateArticleMock).not.toHaveBeenCalled();
   });
 
+  it('blocks publishing with a structured blocker when the description carries generator draft copy', async () => {
+    getArticleByIdMock.mockResolvedValueOnce({
+      ...ARTICLE,
+      description: 'A Glowbal draft guide for vietnamese applicants',
+      excerpt: 'A Glowbal draft guide for vietnamese applicants',
+    });
+
+    const response = await PATCH(request({ status: 'published' }), { params: Promise.resolve({ id: ARTICLE.id }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.blockers.map((blocker: { code: string }) => blocker.code)).toContain('PLACEHOLDER_COPY');
+    expect(updateArticleMock).not.toHaveBeenCalled();
+  });
+
+  it('blocks publishing with a structured blocker when the body still carries TODO_SOURCE_REQUIRED markers', async () => {
+    getArticleByIdMock.mockResolvedValueOnce({
+      ...ARTICLE,
+      body: 'Tuition is £24,000.\n- TODO_SOURCE_REQUIRED: official fee page',
+    });
+
+    const response = await PATCH(request({ status: 'published' }), { params: Promise.resolve({ id: ARTICLE.id }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(400);
+    expect(body.blockers.map((blocker: { code: string }) => blocker.code)).toContain('PLACEHOLDER_SOURCE_MARKER');
+    expect(updateArticleMock).not.toHaveBeenCalled();
+  });
+
+  it('publishes cleanly when the checklist and publication gate are satisfied', async () => {
+    const response = await PATCH(request({ status: 'published' }), { params: Promise.resolve({ id: ARTICLE.id }) });
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body.blockers).toBeUndefined();
+    expect(updateArticleMock).toHaveBeenCalled();
+  });
+
   it('returns 409 when an autosave token is stale', async () => {
     updateArticleMock.mockRejectedValueOnce(new GeoArticleConflictError());
 

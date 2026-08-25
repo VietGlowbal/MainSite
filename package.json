@@ -27,6 +27,7 @@
     "test:ui": "vitest --ui",
     "typecheck": "tsc --noEmit",
     "typecheck:strict": "tsc -p tsconfig.strict.json",
+    "seo:check": "node scripts/check-seo.mjs",
     "check:node": "node scripts/check-node-version.mjs",
     "verify:pr": "node scripts/verify-pr.mjs",
     "test:e2e": "playwright test",

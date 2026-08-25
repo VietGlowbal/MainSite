@@ -36,6 +36,9 @@ import { Container, Footer } from '@/shared/ui';
  * copy, so it shows MissingContent). Footer + nav match the other rebuilt pages.
  */
 
+import { SITE_URL } from '@/lib/site-url';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
+
 export const metadata: Metadata = {
   title: 'About GlowBal — The Team Helping Students Study Abroad',
   description:
@@ -44,11 +47,9 @@ export const metadata: Metadata = {
     title: 'About GlowBal — The Team Helping Students Study Abroad | GlowBal',
     description:
       'Meet the team behind GlowBal — passionate educators, engineers, and mentors helping Vietnamese students study globally.',
-    url: '/about',
+    url: `${SITE_URL}/about`,
   },
-  alternates: {
-    canonical: '/about',
-  },
+  alternates: buildLocaleAlternates('/about'),
 };
 
 // Team roster changes rarely; mirror the home page's 12h ISR.

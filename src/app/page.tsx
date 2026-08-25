@@ -33,6 +33,8 @@ import { RateLimiter } from '@/lib/rate-limiter/rate-limiter';
 import { headers } from 'next/headers';
 import { getTeamMembers } from '@/lib/team';
 import { SITE_URL } from '@/lib/site-url';
+import { serializeJsonLd } from '@/lib/seo/json-ld';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
 
 /**
  * Five consultation requests per IP per hour. Generous for a person filling the
@@ -62,14 +64,12 @@ export const metadata: Metadata = {
     'học bổng du học',
     'du học',
   ],
-  alternates: {
-    canonical: '/',
-  },
+  alternates: buildLocaleAlternates('/'),
   openGraph: {
     title: 'GlowBal | Find Universities, Scholarships & Study Abroad Support',
     description:
       'GlowBal helps students discover global universities, find scholarships, and build application strategies with AI and real student supporters.',
-    url: '/',
+    url: SITE_URL,
     siteName: 'GlowBal',
     images: [
       {
@@ -310,7 +310,7 @@ export default async function Home() {
     <div className="gb-page-full-bleed gb-has-mobile-header bg-surface-inverse-strong">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(homeJsonLd) }}
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(homeJsonLd) }}
       />
       <SiteNavigation tone="dark" />
       {/* TopNav is desktop-only (hidden below md). Without this the landing

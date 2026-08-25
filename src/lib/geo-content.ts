@@ -1,6 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { hasPlaceholderPublicationQuality } from '@/lib/geo-cms-validation';
 
 export type GeoSupportCard = {
   title: string;
@@ -29,6 +30,8 @@ export type GeoGuide = {
   topic: string;
   readingTimeMinutes: number;
   publishedAt: string;
+  /** Last content update when the source exposes one (DB rows do; ISO date or datetime). */
+  updatedAt?: string;
   tags: string[];
   keyTakeaway?: string;
   supportCards: GeoSupportCard[];
@@ -154,6 +157,7 @@ function readGuideFromFile(filePath: string, status: 'draft' | 'published'): Geo
     topic: inferTopic(frontmatter, body, metadata),
     readingTimeMinutes: typeof metadata?.readingTimeMinutes === 'number' ? metadata.readingTimeMinutes : estimateReadMinutes(body),
     publishedAt: frontmatter.lastUpdated || new Date().toISOString().slice(0, 10),
+    updatedAt: frontmatter.lastUpdated || undefined,
     tags: Array.isArray(metadata?.tags) ? (metadata.tags as string[]) : [],
     keyTakeaway: typeof metadata?.keyTakeaway === 'string' ? metadata.keyTakeaway : undefined,
     supportCards: Array.isArray(metadata?.supportCards) ? (metadata.supportCards as GeoSupportCard[]) : [],
@@ -179,11 +183,21 @@ function listFileGuides(): GeoGuide[] {
 }
 
 function getFileGuide(slug: string): GeoGuide | null {
-  const publishedPath = path.join(publishedDir, `${slug}.md`);
-  if (fs.existsSync(publishedPath)) return readGuideFromFile(publishedPath, 'published');
-  const draftPath = path.join(draftsDir, `${slug}.md`);
-  if (fs.existsSync(draftPath)) return readGuideFromFile(draftPath, 'draft');
-  return null;
+  const guide =
+    (() => {
+      const publishedPath = path.join(publishedDir, `${slug}.md`);
+      if (fs.existsSync(publishedPath)) return readGuideFromFile(publishedPath, 'published');
+      const draftPath = path.join(draftsDir, `${slug}.md`);
+      if (fs.existsSync(draftPath)) return readGuideFromFile(draftPath, 'draft');
+      return null;
+    })();
+  if (!guide || guide.status !== 'published') return null;
+  // Legacy files are pre-sanitised (TODO markers already stripped), so the
+  // placeholder gate runs on the reader-facing fields only.
+  if (!hasPlaceholderPublicationQuality({ title: guide.title, description: guide.description, excerpt: guide.excerpt })) {
+    return null;
+  }
+  return guide;
 }
 
 // ── DB-backed readers (canonical CMS source) ────────────────────────────────
@@ -231,6 +245,7 @@ function mapRowToGuide(row: GeoArticleRow): GeoGuide {
     topic: row.topic || 'All topics',
     readingTimeMinutes: row.reading_time_minutes ?? estimateReadMinutes(row.body ?? ''),
     publishedAt: (row.published_at ?? row.updated_at).slice(0, 10),
+    updatedAt: row.updated_at,
     tags: Array.isArray(row.tags) ? row.tags : [],
     keyTakeaway: row.key_takeaway ?? undefined,
     supportCards: Array.isArray(metadata?.supportCards) ? (metadata!.supportCards as GeoSupportCard[]) : [],
@@ -242,6 +257,23 @@ function mapRowToGuide(row: GeoArticleRow): GeoGuide {
 const ARTICLE_COLUMNS =
   'slug, title, description, excerpt, key_takeaway, body, topic, tags, hero_image, hero_image_style, reading_time_minutes, meta, published_at, updated_at';
 
+/**
+ * The publication-quality gate applied at the public-read boundary. A stored
+ * `published` row that still carries generator placeholder copy (or a
+ * TODO_SOURCE_REQUIRED marker sanitisation would paper over) must never reach
+ * /news or the sitemap — measured live 2026-08-25: two `published` pipeline
+ * rows shipped "A Glowbal draft guide …" descriptions. This is read-side
+ * defence only; the admin publish transition enforces the same rules upstream.
+ */
+function rowIsPubliclyReadable(row: GeoArticleRow): boolean {
+  return hasPlaceholderPublicationQuality({
+    title: row.title,
+    description: row.description,
+    excerpt: row.excerpt,
+    body: row.body,
+  });
+}
+
 async function listPublishedDbGuides(): Promise<GeoGuide[]> {
   try {
     const admin = createAdminClient();
@@ -250,7 +282,7 @@ async function listPublishedDbGuides(): Promise<GeoGuide[]> {
       .select(ARTICLE_COLUMNS)
       .eq('status', 'published');
     if (error || !data) return [];
-    return (data as GeoArticleRow[]).map(mapRowToGuide);
+    return (data as GeoArticleRow[]).filter(rowIsPubliclyReadable).map(mapRowToGuide);
   } catch {
     return [];
   }
@@ -266,7 +298,11 @@ async function getPublishedDbGuide(slug: string): Promise<GeoGuide | null> {
       .eq('status', 'published')
       .maybeSingle();
     if (error || !data) return null;
-    return mapRowToGuide(data as GeoArticleRow);
+    const row = data as GeoArticleRow;
+    // The DB stays canonical by slug ONLY when its row is actually publishable;
+    // a matching legacy file never rescues a gated DB row.
+    if (!rowIsPubliclyReadable(row)) return null;
+    return mapRowToGuide(row);
   } catch {
     return null;
   }
@@ -285,7 +321,16 @@ export async function listGeoGuides(): Promise<GeoGuide[]> {
   const [fileGuides, dbGuides] = await Promise.all([
     // Draft and archived CMS rows are never public. Keep legacy drafts
     // available through listLegacyFileGuides() for the admin import job only.
-    Promise.resolve(listFileGuides().filter((guide) => guide.status === 'published')),
+    Promise.resolve(
+      listFileGuides().filter(
+        (guide) =>
+          guide.status === 'published' &&
+          // Same public gate as DB rows: legacy files keep their drafts for
+          // the admin import job, but a published file carrying generator
+          // placeholder copy is not reader-facing content.
+          hasPlaceholderPublicationQuality({ title: guide.title, description: guide.description, excerpt: guide.excerpt }),
+      ),
+    ),
     listPublishedDbGuides(),
   ]);
   const bySlug = new Map<string, GeoGuide>();
@@ -344,6 +389,8 @@ export async function listLinkedPublishedGuides(
 
     const byId = new Map<string, GeoGuide>();
     for (const row of targets as Array<GeoArticleRow & { id: string }>) {
+      // Related rails render on public article pages, so the same gate applies.
+      if (!rowIsPubliclyReadable(row)) continue;
       byId.set(row.id, mapRowToGuide(row));
     }
     // Preserve the link (weight) ordering.
