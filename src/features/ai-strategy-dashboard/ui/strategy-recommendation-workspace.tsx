@@ -2,8 +2,9 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import type { StrategyRecommendationRecord } from '../domain';
+import type { StrategyRecommendationRecord, StrategyReportV2 } from '../domain';
 import { StrategyRecommendationReport } from './strategy-recommendation-report';
+import { StrategyReportV2View } from './strategy-report-v2-view';
 import { Button, usePrefersReducedMotion } from '@/shared/ui';
 import { useLanguage } from '@/lib/i18n';
 
@@ -47,6 +48,7 @@ export function StrategyRecommendationWorkspace({
   const router = useRouter();
   const [state, setState] = useState<LoadState>('checking');
   const [recommendation, setRecommendation] = useState<StrategyRecommendationRecord | null>(null);
+  const [reportV2, setReportV2] = useState<StrategyReportV2 | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [messageIndex, setMessageIndex] = useState(0);
   const ran = useRef(false);
@@ -71,7 +73,15 @@ export function StrategyRecommendationWorkspace({
     async function run() {
       try {
         const existingRes = await fetch(`/api/applications/${applicationId}/strategy/recommendation`);
-        const existing = (await existingRes.json()) as { recommendation?: StrategyRecommendationRecord | null };
+        const existing = (await existingRes.json()) as {
+          recommendation?: StrategyRecommendationRecord | null;
+          reportV2?: StrategyReportV2 | null;
+        };
+        if (existing.reportV2) {
+          setReportV2(existing.reportV2);
+          setState('ready');
+          return;
+        }
         if (existing.recommendation) {
           setRecommendation(existing.recommendation);
           setState('ready');
@@ -84,6 +94,7 @@ export function StrategyRecommendationWorkspace({
         });
         const generated = (await generatedRes.json()) as {
           recommendation?: StrategyRecommendationRecord | null;
+          reportV2?: StrategyReportV2 | null;
           error?: string;
           needsInputs?: boolean;
         };
@@ -93,13 +104,14 @@ export function StrategyRecommendationWorkspace({
           return;
         }
 
-        if (!generatedRes.ok || !generated.recommendation) {
+        if (!generatedRes.ok || (!generated.recommendation && !generated.reportV2)) {
           setError(generated.error || t('Something went wrong. Please try again.'));
           setState('error');
           return;
         }
 
-        setRecommendation(generated.recommendation);
+        setRecommendation(generated.recommendation ?? null);
+        setReportV2(generated.reportV2 ?? null);
         setState('ready');
       } catch {
         setError(t('Something went wrong. Please try again.'));
@@ -107,6 +119,10 @@ export function StrategyRecommendationWorkspace({
       }
     }
   }, [applicationId, router, t]);
+
+  if (state === 'ready' && reportV2) {
+    return <StrategyReportV2View applicationId={applicationId} report={reportV2} />;
+  }
 
   if (state === 'ready' && recommendation) {
     return (

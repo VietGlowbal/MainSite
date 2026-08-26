@@ -12,26 +12,13 @@ import {
   writeJsonFile,
 } from './lib';
 import type { GeoQualityCheck, GeoReviewStatus } from './types';
-
-function hasSpecificTuitionClaims(body: string) {
-  const lines = body.split('\n');
-  return lines.some((line) => {
-    const lower = line.toLowerCase();
-    const mentionsCost = /\b(tuition|fee|fees|cost|costs)\b/.test(lower);
-    const looksLikePrice = /(?:£|\$|€)\s?\d|\b\d{4,6}\b/.test(line);
-    return mentionsCost && looksLikePrice && !/^[-*] .*https?:\/\//.test(line);
-  });
-}
-
-function hasSpecificEntryClaims(body: string) {
-  const lines = body.split('\n');
-  return lines.some((line) => {
-    const lower = line.toLowerCase();
-    const mentionsEntry = /\b(ielts|entry requirement|entry requirements|requirement|requirements)\b/.test(lower);
-    const looksLikeScore = /\b[4-9](?:\.\d)?\b|\b\d{2,3}\s?(?:ucas|tariff)?\b/i.test(line);
-    return mentionsEntry && looksLikeScore && !/^[-*] .*https?:\/\//.test(line);
-  });
-}
+// The publication gate is SHARED with the admin API and the public read path
+// (src/lib/geo-cms-validation.ts). Do not re-declare its regexes here.
+import {
+  hasUnverifiedEntryClaims,
+  hasUnverifiedTuitionClaims,
+  listPublicationBlockers,
+} from '../../src/lib/geo-cms-validation';
 
 function hasGenericAiPhrases(body: string) {
   return /(in today's competitive world|navigate the complex landscape|journey of studying abroad|unlock your potential)/i.test(
@@ -39,7 +26,7 @@ function hasGenericAiPhrases(body: string) {
   );
 }
 
-function evaluate(slug: string, markdown: string): GeoQualityCheck {
+export function evaluate(slug: string, markdown: string): GeoQualityCheck {
   const config = readConfig();
   const { frontmatter, body } = parseFrontmatter(markdown);
   const duplicateScore = Math.max(
@@ -61,8 +48,9 @@ function evaluate(slug: string, markdown: string): GeoQualityCheck {
   const officialSourceCount = sourcesForSlug(slug).filter((source) =>
     ['official-university', 'official-government', 'official-scholarship'].includes(source.sourceType),
   ).length;
-  const hasTuitionNumbersWithoutSource = hasSpecificTuitionClaims(body);
-  const hasEntryNumbersWithoutSource = hasSpecificEntryClaims(body);
+  // Same detectors the admin publish transition enforces — one implementation.
+  const hasTuitionNumbersWithoutSource = hasUnverifiedTuitionClaims(body);
+  const hasEntryNumbersWithoutSource = hasUnverifiedEntryClaims(body);
   const rankingLanguageWithoutMethodology = /(\bbest\b|\btop\b|\branked\b)/i.test(body) && !hasMethodology;
   const genericAiPhrases = hasGenericAiPhrases(body);
   const notes: string[] = [];
@@ -115,6 +103,24 @@ function evaluate(slug: string, markdown: string): GeoQualityCheck {
   if (rankingLanguageWithoutMethodology) blockerReasons.push('Uses ranking language without a methodology section.');
   if (duplicateRisk === 'high') blockerReasons.push('High duplicate risk.');
   if (genericAiPhrases) blockerReasons.push('Contains generic AI filler language.');
+
+  /*
+   * The hard publication-quality gate (placeholder copy, missing fields,
+   * unverified claims). Its messages join blockerReasons so a gated article can
+   * never reach reviewStatus 'publishable'. The human-review requirement stays
+   * with the existing config-driven logic below rather than the validator's
+   * flag, so this script's semantics do not change.
+   */
+  for (const blocker of listPublicationBlockers({
+    slug,
+    title: frontmatter.title,
+    description: frontmatter.description,
+    body,
+    officialSourceCount,
+  })) {
+    if (!blockerReasons.includes(blocker.message)) blockerReasons.push(blocker.message);
+  }
+
   score = Math.max(1, Math.min(100, score));
   const passed =
     score >= 70 && duplicateRisk !== 'high' && hasShortAnswer && hasMethodology && hasFaqs && hasGlowbalCTA;
@@ -151,11 +157,21 @@ function evaluate(slug: string, markdown: string): GeoQualityCheck {
   };
 }
 
-ensureDir(paths.qualityDir);
-const checks = readManifest().map((item) => {
-  const result = evaluate(item.slug, readMarkdown(path.join(process.cwd(), item.filePath)));
-  const outputPath = path.join(paths.qualityDir, `${item.slug}.json`);
-  writeJsonFile(outputPath, result);
-  return { ...result, file: path.relative(process.cwd(), outputPath) };
-});
-console.log(JSON.stringify({ checks }, null, 2));
+function main() {
+  ensureDir(paths.qualityDir);
+  const checks = readManifest().map((item) => {
+    const result = evaluate(item.slug, readMarkdown(path.join(process.cwd(), item.filePath)));
+    const outputPath = path.join(paths.qualityDir, `${item.slug}.json`);
+    writeJsonFile(outputPath, result);
+    return { ...result, file: path.relative(process.cwd(), outputPath) };
+  });
+  console.log(JSON.stringify({ checks }, null, 2));
+}
+
+/*
+ * Side effects run only under direct CLI execution (`npm run geo:quality`), so
+ * tests and other scripts can import `evaluate` without touching disk.
+ */
+if (process.argv[1] && process.argv[1].replace(/\\/g, '/').endsWith('scripts/geo/qualityCheck.ts')) {
+  main();
+}

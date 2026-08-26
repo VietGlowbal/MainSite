@@ -1,6 +1,7 @@
 'use client';
 
-import { useT } from '@/lib/i18n';
+import { useLanguage, type Lang } from '@/lib/i18n';
+import { formatUiDateTime } from '@/shared/lib';
 import type { PersonalReportTrigger, PersonalReportVersionSummary } from '../../domain';
 import { Select } from '@/shared/ui';
 
@@ -12,11 +13,12 @@ const TRIGGER_LABEL: Record<PersonalReportTrigger, string> = {
 
 function formatVersionLabel(
   t: (key: string, vars?: Record<string, string | number>) => string,
+  lang: Lang,
   version: PersonalReportVersionSummary,
   isLatest: boolean,
 ): string {
   const date = version.generatedAt
-    ? new Date(version.generatedAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+    ? formatUiDateTime(version.generatedAt, lang, { dateStyle: 'medium', timeStyle: 'short' })
     : '';
   const reason = t(TRIGGER_LABEL[version.trigger] ?? TRIGGER_LABEL.manual);
   return isLatest ? `${date} · ${t('Latest')} · ${reason}` : `${date} · ${reason}`;
@@ -35,7 +37,7 @@ export function VersionHistoryPicker({
   disabled: boolean;
   onSelect: (versionId: string) => void;
 }) {
-  const t = useT();
+  const { t, lang } = useLanguage();
   if (versions.length < 2) return null;
   return (
     <Select
@@ -48,7 +50,7 @@ export function VersionHistoryPicker({
     >
       {versions.map((version) => (
         <option key={version.id} value={version.id}>
-          {formatVersionLabel(t, version, version.id === latestVersionId)}
+          {formatVersionLabel(t, lang, version, version.id === latestVersionId)}
         </option>
       ))}
     </Select>

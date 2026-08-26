@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
 import { loadCandidateReflection, verifiedApplicationId } from '@/features/apply/api';
 import { candidateReadiness, candidateSnapshotPayloadSchema } from '@/features/apply/domain';
+import { logger, startTimer } from '@/server/observability';
 
 /**
  * POST /api/candidate-information/confirm
@@ -41,24 +42,6 @@ import { candidateReadiness, candidateSnapshotPayloadSchema } from '@/features/a
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-/**
- * Same shape of check the rest of this project uses for a column shipped
- * ahead of its migration — `42703`/`PGRST204` are PostgREST's two ways of
- * saying "that column doesn't exist", and `42P01` is Postgres's "that
- * relation doesn't exist".
- *
- * ⚠️ Deliberately does NOT match on the table/column name appearing anywhere
- * in the message. It used to, and that is exactly what turned a real
- * production incident into a silent dead end: an RLS policy gap made every
- * insert fail with `42501` (insufficient_privilege) — a permission error,
- * not a missing migration — but its message still names this table
- * ("new row violates row-level security policy for table
- * confirmed_candidate_snapshots"), so the loose regex matched anyway and
- * told a student to retry a request that could never succeed. Matching only
- * on `42703`/`PGRST204`/`42P01` plus an explicit "does not exist" phrase
- * means a permission error now falls through to the generic 500 instead —
- * still an error, but not a misleading one telling anybody to just wait.
- */
 function migrationMissing(error: { code?: string; message?: string } | null | undefined) {
   if (!error) return false;
   if (error.code === '42703' || error.code === 'PGRST204' || error.code === '42P01') return true;
@@ -68,6 +51,7 @@ function migrationMissing(error: { code?: string; message?: string } | null | un
 const bodySchema = z.object({ applicationId: z.string().uuid().optional() });
 
 export async function POST(request: Request) {
+  const getElapsed = startTimer();
   const supabase = await createClient();
   const {
     data: { user },
@@ -86,6 +70,13 @@ export async function POST(request: Request) {
   }
   const applicationId = await verifiedApplicationId(supabase, user.id, requestedApplicationId);
 
+  logger.info('candidate_confirmation', {
+    userId: user.id,
+    applicationId,
+    stage: 'started',
+    outcome: 'started',
+  });
+
   const { reflection, documents, confirmedAt } = await loadCandidateReflection(
     supabase,
     user.id,
@@ -103,6 +94,15 @@ export async function POST(request: Request) {
       ? await existingQuery.eq('application_id', applicationId).maybeSingle()
       : await existingQuery.maybeSingle();
 
+    logger.info('candidate_confirmation', {
+      userId: user.id,
+      applicationId,
+      stage: 'cache_hit',
+      outcome: 'cached',
+      cached: true,
+      durationMs: getElapsed(),
+    });
+
     return NextResponse.json({
       snapshotId: existing.data?.id ?? null,
       status: 'confirmed',
@@ -112,6 +112,13 @@ export async function POST(request: Request) {
 
   const readiness = candidateReadiness(reflection);
   if (!readiness.ready) {
+    logger.warn('candidate_confirmation', {
+      userId: user.id,
+      applicationId,
+      stage: 'validated',
+      outcome: 'not_ready',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json(
       {
         error: 'NOT_READY',
@@ -145,14 +152,23 @@ export async function POST(request: Request) {
         .single()
     : null;
   if (withAppColumn?.error && !migrationMissing(withAppColumn.error)) {
-    console.error('[candidate-information/confirm] snapshot insert failed:', withAppColumn.error);
+    logger.error('candidate_confirmation', withAppColumn.error, {
+      userId: user.id,
+      applicationId,
+      stage: 'persisted',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json({ error: 'Could not confirm your information' }, { status: 500 });
   }
   if (withAppColumn?.error) {
-    console.warn(
-      '[candidate-information/confirm] confirmed_candidate_snapshots.application_id is missing — run supabase-per-application-onboarding.sql. Saving without it.',
-      withAppColumn.error.message,
-    );
+    logger.warn('candidate_confirmation', {
+      userId: user.id,
+      applicationId,
+      stage: 'persisted',
+      outcome: 'migration_missing',
+      metadata: { detail: withAppColumn.error.message },
+      durationMs: getElapsed(),
+    });
   }
   const inserted =
     withAppColumn && !withAppColumn.error
@@ -165,16 +181,24 @@ export async function POST(request: Request) {
 
   if (inserted.error) {
     if (migrationMissing(inserted.error)) {
-      console.error(
-        '[candidate-information/confirm] confirmed_candidate_snapshots is missing — run supabase-candidate-confirmation.sql.',
-        inserted.error.message,
-      );
+      logger.warn('candidate_confirmation', {
+        userId: user.id,
+        applicationId,
+        stage: 'persisted',
+        outcome: 'migration_missing',
+        durationMs: getElapsed(),
+      });
       return NextResponse.json(
         { error: 'Confirmation is not available yet. Please try again shortly.' },
         { status: 503 },
       );
     }
-    console.error('[candidate-information/confirm] snapshot insert failed:', inserted.error);
+    logger.error('candidate_confirmation', inserted.error, {
+      userId: user.id,
+      applicationId,
+      stage: 'persisted',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json({ error: 'Could not confirm your information' }, { status: 500 });
   }
 
@@ -189,10 +213,13 @@ export async function POST(request: Request) {
       .update({ candidate_confirmed_at: nowIso })
       .eq('id', applicationId);
     if (appLocked.error) {
-      console.error(
-        '[candidate-information/confirm] could not set course_applications.candidate_confirmed_at — run supabase-per-application-onboarding.sql. Snapshot was saved but this application is not locked.',
-        appLocked.error.message,
-      );
+      logger.warn('candidate_confirmation', {
+        userId: user.id,
+        applicationId,
+        stage: 'persisted',
+        outcome: 'app_lock_failed',
+        durationMs: getElapsed(),
+      });
     }
   }
 
@@ -203,24 +230,35 @@ export async function POST(request: Request) {
 
   if (locked.error) {
     if (migrationMissing(locked.error)) {
-      // The snapshot exists, but the profile could not be locked — the next
-      // GET will see `confirmedAt: null` and treat the student as still
-      // editing, which is the same "degrades to the old behaviour" rule
-      // every other column this project has shipped ahead of a migration
-      // follows. It costs the lock, not the confirmation.
-      console.error(
-        '[candidate-information/confirm] student_profiles.confirmed_at is missing — run supabase-candidate-confirmation.sql. Snapshot was saved but the profile is not locked.',
-        locked.error.message,
-      );
+      logger.warn('candidate_confirmation', {
+        userId: user.id,
+        applicationId,
+        stage: 'persisted',
+        outcome: 'profile_lock_migration_missing',
+        durationMs: getElapsed(),
+      });
       return NextResponse.json({
         snapshotId: inserted.data.id,
         status: 'confirmed',
         confirmedAt: inserted.data.confirmed_at,
       });
     }
-    console.error('[candidate-information/confirm] lock failed:', locked.error);
+    logger.error('candidate_confirmation', locked.error, {
+      userId: user.id,
+      applicationId,
+      stage: 'persisted',
+      durationMs: getElapsed(),
+    });
     return NextResponse.json({ error: 'Could not confirm your information' }, { status: 500 });
   }
+
+  logger.info('candidate_confirmation', {
+    userId: user.id,
+    applicationId,
+    stage: 'completed',
+    outcome: 'success',
+    durationMs: getElapsed(),
+  });
 
   return NextResponse.json({
     snapshotId: inserted.data.id,

@@ -12,9 +12,13 @@ const CAREER_SUGGESTIONS = ['Software Engineer', 'Data Scientist', 'Product Mana
 export function GoalsForm({
   userId,
   initialProfile,
+  returnTo,
+  updatedLabel,
 }: {
   userId: string;
   initialProfile: StudentProfile | null;
+  returnTo?: string | null;
+  updatedLabel?: string;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [goals, setGoals] = useState(initialProfile?.goals ?? '');
@@ -84,7 +88,14 @@ export function GoalsForm({
           />
         </div>
 
-        <SaveBar onSave={handleSave} saving={saving} message={message} label="Save goals" />
+        <SaveBar
+          onSave={handleSave}
+          saving={saving}
+          message={message}
+          label="Save goals"
+          returnTo={returnTo}
+          updatedLabel={updatedLabel ?? 'Goals'}
+        />
       </Panel>
     </div>
   );

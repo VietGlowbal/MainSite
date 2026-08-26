@@ -67,6 +67,7 @@ export function seedToRow(seed: RecommendationSeed, recommendationType: string) 
     tips: seed.tips,
     suggested_questions: seed.suggestedQuestions,
     source_analysis_id: seed.sourceAnalysisId,
+    source_key: seed.sourceKey ?? null,
     archived_at: null,
   };
 }

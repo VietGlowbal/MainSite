@@ -2,16 +2,18 @@ import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { getScholarshipQueries } from '@/features/scholarships/api';
+import { SITE_URL } from '@/lib/site-url';
 import {
   parseScholarshipSearchParams,
   scholarshipSearchParams,
 } from '@/features/scholarships/directory-query';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
 import { loadScholarshipDirectory } from '@/features/scholarships/directory-loader';
 import { ScholarshipDirectoryClient } from './scholarship-directory-client';
 import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
 
 export const metadata: Metadata = {
-  title: 'Find Scholarships & Financial Aid',
+  title: 'Find Scholarships & Financial Aid | GlowBal',
   description:
     'Discover hundreds of international scholarships, government grants, and university funding opportunities tailored for Vietnamese students.',
   keywords: [
@@ -21,14 +23,12 @@ export const metadata: Metadata = {
     'scholarship deadlines',
     'học bổng du học',
   ],
+  alternates: buildLocaleAlternates('/scholarships'),
   openGraph: {
     title: 'Find Scholarships & Financial Aid | GlowBal',
     description:
       'Discover hundreds of international student scholarships and university funding opportunities.',
-    url: '/scholarships',
-  },
-  alternates: {
-    canonical: '/scholarships',
+    url: `${SITE_URL}/scholarships`,
   },
 };
 
@@ -41,16 +41,22 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
   const state = parseScholarshipSearchParams(await searchParams);
   const currentSearch = scholarshipSearchParams(state, {}).toString();
   const returnTo = currentSearch ? `/scholarships?${currentSearch}` : '/scholarships';
+
   const directoryPromise = state.view === 'directory'
     ? loadScholarshipDirectory(state)
     : Promise.resolve(null);
+
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) redirect(`/auth?redirect=${encodeURIComponent(returnTo)}`);
 
-  const applicationsPromise = state.view === 'ai'
+  // If user requests the personalized AI strategy workspace while signed out, redirect to auth
+  if (!user && state.view === 'ai') {
+    redirect(`/auth?redirect=${encodeURIComponent(returnTo)}`);
+  }
+
+  const applicationsPromise = (user && state.view === 'ai')
     ? supabase
         .from('course_applications')
         .select('id, university_name, course_name, degree_level, subject, country, country_flag, intake, deadline, status')
@@ -59,26 +65,38 @@ export default async function ScholarshipsPage({ searchParams }: Props) {
         .order('created_at', { ascending: false })
     : Promise.resolve({ data: [] });
 
-  const [directory, facets, savedResult, applicationsResult, savedScholarshipsResult, profileResult] =
-    await Promise.all([
-      directoryPromise,
-      getScholarshipQueries().facets(),
-      supabase
+  const savedUniversitiesPromise = user
+    ? supabase
         .from('user_universities')
         .select('university_id, universities(country)')
-        .eq('user_id', user.id),
-      applicationsPromise,
-      supabase
+        .eq('user_id', user.id)
+    : Promise.resolve({ data: [] });
+
+  const savedScholarshipsPromise = user
+    ? supabase
         .from('user_scholarships')
         .select('id, scholarship_id, university_id, saved_at')
         .eq('user_id', user.id)
         .order('saved_at', { ascending: true })
-        .order('id', { ascending: true }),
-      supabase
+        .order('id', { ascending: true })
+    : Promise.resolve({ data: [] });
+
+  const profilePromise = user
+    ? supabase
         .from('student_profiles')
         .select('plus_status, plus_expires_at, is_admin')
         .eq('user_id', user.id)
-        .maybeSingle(),
+        .maybeSingle()
+    : Promise.resolve({ data: null });
+
+  const [directory, facets, savedResult, applicationsResult, savedScholarshipsResult, profileResult] =
+    await Promise.all([
+      directoryPromise,
+      getScholarshipQueries().facets(),
+      savedUniversitiesPromise,
+      applicationsPromise,
+      savedScholarshipsPromise,
+      profilePromise,
     ]);
 
   const isPlus = isPlusEntitlementActive(profileResult.data ?? {});

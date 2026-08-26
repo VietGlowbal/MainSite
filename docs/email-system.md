@@ -67,6 +67,7 @@ Both reminders respect `email_preferences.product_updates = false` when a prefer
 - Strategy Report ready
 - Evaluation Report ready
 - application deadline reminders
+- weekly strategy digest (`weeklyStrategyDigestEmail` — one email per week summarising overdue + upcoming planner tasks; dedup and the send/no-send decision are the caller's job)
 
 These should be connected to the corresponding product event only when the event is genuinely useful outside the current screen. Do not synchronously email a user who is already sitting on the report generation screen waiting for the same result.
 

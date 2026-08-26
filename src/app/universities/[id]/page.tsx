@@ -6,6 +6,9 @@ import { officialWebsite, splitList } from '@/features/universities/domain';
 import { createClient } from '@/lib/supabase/server';
 import type { University } from '@/lib/types';
 import type { DetailSection } from './detail-nav';
+import { SITE_URL } from '@/lib/site-url';
+import { buildUniversityJsonLd, serializeJsonLd } from '@/lib/seo/json-ld';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
 import { UniversityDetail } from './university-detail';
 import { UniversityExtras, extraSectionsFor } from './university-extras';
 
@@ -43,7 +46,7 @@ export async function generateMetadata({
   params: Promise<{ id: string }>;
 }): Promise<Metadata> {
   const university = await loadUniversity((await params).id);
-  if (!university) return { title: 'University not found' };
+  if (!university) return { title: 'University not found | GlowBal' };
 
   // `specific_insight` is populated on all 97 rows and is the closest thing the
   // table has to a description; it is editorial prose, so it is trimmed rather
@@ -51,22 +54,26 @@ export async function generateMetadata({
   const description =
     university.specific_insight?.slice(0, 155) ??
     `Explore admissions, tuition fees, scholarships, and courses at ${university.name}.`;
-  const url = `/universities/${university.id}`;
-  const title = `${university.name} - Admissions & Scholarships`;
+  const url = `${SITE_URL}/universities/${university.id}`;
+  const title = `${university.name} - Admissions & Scholarships | GlowBal`;
 
   return {
     title,
     description,
+    alternates: buildLocaleAlternates(`/universities/${university.id}`),
     openGraph: {
-      title: `${university.name} | GlowBal`,
+      title,
       description,
       url,
       images: university.image_url
         ? [{ url: university.image_url, alt: university.name }]
         : undefined,
     },
-    alternates: {
-      canonical: url,
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: university.image_url ? [university.image_url] : undefined,
     },
   };
 }
@@ -137,17 +144,33 @@ export default async function UniversityDetailPage({
   const userName =
     (user?.user_metadata?.full_name as string | undefined) || user?.email?.split('@')[0] || null;
 
+  const officialSite = officialWebsite(university.name);
+  const jsonLd = buildUniversityJsonLd({
+    name: university.name,
+    url: `${SITE_URL}/universities/${university.id}`,
+    imageUrl: university.image_url,
+    officialWebsite: officialSite,
+    description: university.specific_insight ?? null,
+    addressCountry: university.country,
+  });
+
   return (
-    <UniversityDetail
-      university={university}
-      scholarships={scholarships}
-      sections={sectionsFor(university)}
-      extras={<UniversityExtras universityId={university.id} isSignedIn={!!user} />}
-      officialSite={officialWebsite(university.name)}
-      isSignedIn={!!user}
-      isSaved={isSaved}
-      userName={userName}
-      userAvatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
-    />
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: serializeJsonLd(jsonLd) }}
+      />
+      <UniversityDetail
+        university={university}
+        scholarships={scholarships}
+        sections={sectionsFor(university)}
+        extras={<UniversityExtras universityId={university.id} isSignedIn={!!user} />}
+        officialSite={officialSite}
+        isSignedIn={!!user}
+        isSaved={isSaved}
+        userName={userName}
+        userAvatarUrl={(user?.user_metadata?.avatar_url as string | undefined) ?? null}
+      />
+    </>
   );
 }

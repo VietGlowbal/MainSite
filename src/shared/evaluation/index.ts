@@ -102,7 +102,15 @@ export { scoreNarrativeBaseFaithful } from './f4-quality';
 export { assessMotivationConsistencyWithProfile } from './profile-motivation';
 export type { ProfileMotivation } from './profile-motivation';
 
-export { F5_DIMENSION_KEYS, buildProgrammeFitPlaceholder } from './f5-programme-fit';
+export {
+  academicBandClassification,
+  academicBandFromScore,
+  assessProgrammeFit,
+  buildProgrammeFitPlaceholder,
+  F5_DIMENSION_KEYS,
+  F5_ENGINE_VERSION,
+  fitScoreToPercent,
+} from './f5-programme-fit';
 export type {
   F5Dimension,
   F5DimensionKey,

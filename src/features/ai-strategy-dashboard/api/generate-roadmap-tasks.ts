@@ -1,11 +1,22 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { reconcileSeeds, recommendationsFromRoadmap, type ExistingRecommendation } from '../domain';
+import {
+  recommendationsFromRoadmap,
+  recommendationsFromStrategyReportV2,
+  reconcileSeeds,
+  strategyReportV2FromRow,
+  type ExistingRecommendation,
+} from '../domain';
 import { seedToRow } from './generate-recommendations';
 
 export type GenerateRoadmapTasksResult = {
   ok: boolean;
   /** Set when `ok` is false — a specific, user-facing-safe reason. */
-  error?: 'no_strategy_recommendation' | 'read_failed' | 'insert_failed' | 'update_failed' | 'archive_failed';
+  error?:
+    | 'no_strategy_recommendation'
+    | 'read_failed'
+    | 'insert_failed'
+    | 'update_failed'
+    | 'archive_failed';
   inserted: number;
   updated: number;
   archived: number;
@@ -14,15 +25,21 @@ export type GenerateRoadmapTasksResult = {
 const ROADMAP_CATEGORY = 'strategy-roadmap';
 
 /**
- * Turns the latest F7 Personalized Strategy report's Execution Roadmap into
+ * Turns the latest Strategy Report's Execution Roadmap into
  * `application_recommendations` rows — the "generate Planner tasks from this
- * strategy report" button on `strategy-recommendation-report.tsx`.
+ * strategy report" button.
+ *
+ * Two source shapes, latest-wins:
+ * - `report_v2` (F8 five-section payload): one seed per roadmap DELIVERABLE,
+ *   keyed by the deterministic `source_key` so regenerations update in place
+ *   (`recommendationsFromStrategyReportV2`).
+ * - legacy F7 `roadmap` column (prioritize/avoid prose): reconciled on
+ *   (pillar, title) exactly as before — rows written by this path keep
+ *   working unchanged.
  *
  * Same reconcile-not-append shape as `generateRecommendations` (see its doc
  * comment), scoped to `category = 'strategy-roadmap'` so re-clicking this
- * button only ever touches the rows it itself produced — the F5-sourced
- * profile-improvement rows sitting in the same table are a different
- * generator's business.
+ * button only ever touches the rows it itself produced.
  */
 export async function generateRoadmapTasks(
   supabase: SupabaseClient,
@@ -30,30 +47,50 @@ export async function generateRoadmapTasks(
 ): Promise<GenerateRoadmapTasksResult> {
   const { data: latestStrategy } = await supabase
     .from('application_strategy_recommendations')
-    .select('roadmap')
+    .select('roadmap,report_v2')
     .eq('application_id', applicationId)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (!latestStrategy) {
-    return { ok: false, error: 'no_strategy_recommendation', inserted: 0, updated: 0, archived: 0 };
-  }
-
-  const roadmap = latestStrategy.roadmap as {
+  // The report_v2 column ships in supabase-strategy-report-v2.sql; before it
+  // runs, the combined select would fail outright — fall back to the legacy
+  // column only.
+  let roadmapJson = (latestStrategy?.roadmap ?? null) as {
     why: string;
     prioritize: string[];
     avoid: string[];
-  };
-  const seeds = recommendationsFromRoadmap(applicationId, roadmap);
+  } | null;
+  let reportV2 = latestStrategy ? strategyReportV2FromRow(latestStrategy) : null;
 
-  const { data: existingRows, error: readError } = await supabase
+  if (latestStrategy && !reportV2 && roadmapJson === null) {
+    const retry = await supabase
+      .from('application_strategy_recommendations')
+      .select('roadmap')
+      .eq('application_id', applicationId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    roadmapJson = (retry.data?.roadmap ?? null) as typeof roadmapJson;
+    reportV2 = null;
+  }
+
+  if (!reportV2 && !roadmapJson) {
+    return { ok: false, error: 'no_strategy_recommendation', inserted: 0, updated: 0, archived: 0 };
+  }
+
+  const seeds = reportV2
+    ? recommendationsFromStrategyReportV2(applicationId, reportV2)
+    : recommendationsFromRoadmap(applicationId, roadmapJson!);
+
+  const existingSelect = supabase
     .from('application_recommendations')
-    .select('id, pillar, title, status')
+    .select('id,pillar,title,status,source_key')
     .eq('application_id', applicationId)
     .eq('category', ROADMAP_CATEGORY)
     .is('archived_at', null);
 
+  const { data: existingRows, error: readError } = await existingSelect;
   if (readError) {
     console.error('[generateRoadmapTasks] read existing failed', readError);
     return { ok: false, error: 'read_failed', inserted: 0, updated: 0, archived: 0 };
@@ -64,6 +101,7 @@ export async function generateRoadmapTasks(
     pillar: r.pillar as ExistingRecommendation['pillar'],
     title: r.title as string,
     status: r.status as ExistingRecommendation['status'],
+    sourceKey: (r.source_key as string | null) ?? null,
   }));
 
   const plan = reconcileSeeds(existing, seeds);

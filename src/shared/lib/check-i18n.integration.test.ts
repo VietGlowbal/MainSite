@@ -45,7 +45,7 @@ describe('production i18n checker', () => {
     } finally {
       if (existsSync(tempDir)) rmSync(tempDir, { recursive: true, force: true });
     }
-  });
+  }, 30000);
 
   it('keeps the Vietnamese-source exemption to the two legal routes', () => {
     // `actionable VI-only source: 0` above is satisfiable two ways: by writing

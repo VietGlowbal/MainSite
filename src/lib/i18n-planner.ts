@@ -24,7 +24,12 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'Resolve required information': 'Làm rõ thông tin bắt buộc',
   'Confirm user choices': 'Xác nhận lựa chọn của bạn',
   'Structure available direction': 'Cụ thể hóa hướng đi hiện có',
+  'Record when you are available': 'Ghi lại thời gian bạn có thể tham gia',
+  'Record your weekly time capacity': 'Ghi lại quỹ thời gian hằng tuần của bạn',
+  'Record planning availability': 'Ghi lại thời gian dành cho kế hoạch',
+  'Share available planning time': 'Chia sẻ thời gian bạn có thể dành cho kế hoạch',
 
+  'Enter a four-digit year to save this deadline.': 'Nhập năm gồm 4 chữ số để lưu hạn này.',
   'Expected a valid YYYY-MM-DD date': 'Cần một ngày hợp lệ theo định dạng YYYY-MM-DD',
   'Provide a status, deadline, or content value': 'Hãy cung cấp trạng thái, hạn hoàn thành hoặc nội dung',
   '← Back to planner': '← Quay lại kế hoạch',
@@ -40,4 +45,45 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'We could not initialize your Planner. Please try again shortly.': 'Không thể khởi tạo kế hoạch của bạn. Vui lòng thử lại sau ít phút.',
   'Select an option': 'Chọn một lựa chọn',
   'You&apos;ve completed the current plan. We&apos;ll update it if your application information changes.': 'Bạn đã hoàn thành kế hoạch hiện tại. Chúng tôi sẽ cập nhật nếu thông tin hồ sơ thay đổi.',
+
+  // Board mobile (Part 5.2–5.3)
+  'Task statuses': 'Trạng thái nhiệm vụ',
+  'Change status — {title}': 'Đổi trạng thái — {title}',
+  'Nothing here yet': 'Chưa có gì ở đây',
+
+  // Calendar mobile (Part 5.4)
+  'Day agenda': 'Lịch theo ngày',
+  '{count} task': '{count} nhiệm vụ',
+  '{count} tasks': '{count} nhiệm vụ',
+  'No tasks': 'Không có nhiệm vụ',
+  'No tasks on this day': 'Không có nhiệm vụ trong ngày này',
+  'Show unscheduled ({count})': 'Hiện phần chưa lên lịch ({count})',
+  'Hide unscheduled': 'Ẩn phần chưa lên lịch',
+  'Tip: you can also set or clear deadlines from the List view.': 'Mẹo: bạn cũng có thể đặt hoặc xoá hạn hoàn thành ở chế độ Danh sách.',
+
+  // GenUI content blocks (Part 6)
+  '1 word': '1 từ',
+  '{count} words': '{count} từ',
+  'aim for at least {min}': 'nên đạt ít nhất {min} từ',
+  'Remove row {n}': 'Xoá dòng {n}',
+  'Row {n}': 'Dòng {n}',
+  'This task has no editable form right now.': 'Nhiệm vụ này hiện chưa có biểu mẫu để điền.',
+  'Your saved progress is kept.': 'Tiến độ bạn đã lưu vẫn được giữ nguyên.',
+  'Needs your input': 'Cần bạn nhập thông tin',
+  'Needs enrichment': 'Cần bổ sung dữ liệu',
+
+  // Canonical planner calendar (Part 5 follow-up) + email preference controls
+  'This plan has no micro-steps yet.': 'Kế hoạch này chưa có nhiệm vụ nhỏ nào.',
+  'Everything has a date.': 'Mọi việc đã có ngày hoàn thành.',
+  'Email notifications': 'Thông báo email',
+  'Choose which product emails GlowBal sends you.': 'Chọn những email sản phẩm mà GlowBal gửi cho bạn.',
+  'Deadline reminders': 'Nhắc hạn nộp hồ sơ',
+  'Emails 30, 7 and 1 day before each application deadline.': 'Gửi email trước 30, 7 và 1 ngày cho từng hạn nộp hồ sơ.',
+  'Weekly strategy digest': 'Tổng hợp chiến lược hàng tuần',
+  'One email a week summarising overdue and upcoming tasks.': 'Một email mỗi tuần tổng hợp các việc quá hạn và sắp đến hạn.',
+  'Timezone': 'Múi giờ',
+  'Reminders count days on your calendar — this is that calendar.': 'Việc đếm ngày nhắc dựa trên lịch của bạn — đây chính là lịch đó.',
+  'Save email preferences': 'Lưu tuỳ chọn email',
+  'Could not load email preferences.': 'Không thể tải tuỳ chọn email.',
+  'Could not update email preferences.': 'Không thể lưu tuỳ chọn email.',
 };

@@ -10,6 +10,7 @@ import {
   updateArticle,
   validateArticleForPublish,
 } from '@/lib/geo-cms';
+import { countOfficialSources, listPublicationBlockers } from '@/lib/geo-cms-validation';
 
 /** Refresh the public pages that render GEO articles after a mutation. */
 function revalidateArticle(slug?: string, previousSlug?: string) {
@@ -82,9 +83,28 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (!existing) return NextResponse.json({ error: 'Article not found' }, { status: 404 });
 
     if (parsed.data.status === 'published') {
-      const errors = validateArticleForPublish({ ...existing, ...parsed.data });
-      if (errors.length) {
-        return NextResponse.json({ error: 'Complete the publish checklist', errors }, { status: 400 });
+      const merged = { ...existing, ...parsed.data };
+      const errors = validateArticleForPublish(merged);
+      /*
+       * The same publication-quality gate the pipeline and the public read
+       * path use — one validator, three call sites (see geo-cms-validation.ts).
+       * An explicit "publish" request is the admin's human sign-off, so the
+       * review flag is not demanded again here; the pipeline's own
+       * config.requireHumanReview still gates generated content upstream.
+       */
+      const blockers = listPublicationBlockers({
+        slug: merged.slug,
+        title: merged.title,
+        description: merged.description,
+        excerpt: merged.excerpt,
+        body: merged.body,
+        officialSourceCount: countOfficialSources(merged.meta),
+      });
+      if (errors.length || blockers.length) {
+        return NextResponse.json(
+          { error: 'Publication blocked', ...(errors.length ? { errors } : {}), ...(blockers.length ? { blockers } : {}) },
+          { status: 400 },
+        );
       }
     }
 

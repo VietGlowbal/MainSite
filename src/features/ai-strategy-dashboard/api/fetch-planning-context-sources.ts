@@ -28,12 +28,13 @@ import type {
 } from '@/lib/apply-types';
 import { getLatestPersonalReportV2 } from '@/features/apply/api';
 import {
-  MATCH_PROMPT_VERSION_V2,
   enforceFitClassification,
   programmeFitSchema,
 } from '@/features/apply/domain';
+import { MATCH_PROMPT_VERSION } from '@/lib/match-insights';
+import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
 import { recommendationFromRow } from '../domain/recommendation';
-import { strategyRecommendationFromRow } from '../domain/strategy-recommendation';
+import { strategyRecommendationFromRow, strategyReportV2FromRow } from '../domain/strategy-recommendation';
 import type {
   DeadlineAuthority,
   DeadlineCandidate,
@@ -47,10 +48,16 @@ import type {
   SourceProvenance,
   UserConstraint,
 } from '../domain/planning-context';
+import { isPlannerAvailabilityInputKey } from '../domain/planning-context';
 import {
   isProfileEvaluation,
   parseImprovementActions,
 } from './planning-context-source-parsers';
+
+// Core 1 must select the same current persisted F8 shape as its writer. Keep
+// this local to avoid importing the model-generation module into the context
+// compiler (which creates a runtime cycle under test).
+const CURRENT_STRATEGY_REPORT_V2_PROMPT_VERSION = 'strategy-report-f8-v3';
 
 // ─── Fatal error ──────────────────────────────────────────────────────────────
 
@@ -530,11 +537,12 @@ export async function fetchPlanningContextSources(
     .from('application_match_analyses')
     .select(
       'id,fit_dimensions,fit_eligibility,fit_classification,fit_confidence,' +
-      'fit_limitations,input_hash,prompt_version,model_name,improvement_actions,created_at',
+      'fit_limitations,input_hash,prompt_version,f5_engine_version,model_name,improvement_actions,created_at',
     )
     .eq('application_id', applicationId)
     .eq('analysis_status', 'complete')
-    .eq('prompt_version', MATCH_PROMPT_VERSION_V2)
+    .eq('prompt_version', MATCH_PROMPT_VERSION)
+    .eq('f5_engine_version', F5_ENGINE_VERSION)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -565,7 +573,7 @@ export async function fetchPlanningContextSources(
         generatedAt: row.created_at as string,
         inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
         promptVersion: typeof row.prompt_version === 'string' ? row.prompt_version : null,
-        engineVersion: null, // match analyses do not store an engine version
+        engineVersion: typeof row.f5_engine_version === 'string' ? row.f5_engine_version : null,
         modelName: typeof row.model_name === 'string' ? row.model_name : null,
         sourceAnalysisId: null,
         sourceMatchAnalysisId: null,
@@ -581,6 +589,43 @@ export async function fetchPlanningContextSources(
 
   // ── 9. Strategy Recommendation (F7) ───────────────────────────────────────
   let strategyRecommendation: PlanningContextSources['strategyRecommendation'] = null;
+  let strategyRoadmap: NonNullable<PlanningContextSources['strategyRoadmap']> | null = null;
+
+  // F8 is the canonical shape. Query it first so an older F7 row cannot
+  // displace the current report_v2 roadmap by created_at alone.
+  const { data: f8Row } = await supabase
+    .from('application_strategy_recommendations')
+    .select(
+      'id,source_analysis_id,source_match_analysis_id,report_v2,input_hash,' +
+      'model_name,prompt_version,created_at',
+    )
+    .eq('application_id', applicationId)
+    .eq('prompt_version', CURRENT_STRATEGY_REPORT_V2_PROMPT_VERSION)
+    .not('report_v2', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (f8Row) {
+    const row = f8Row as unknown as Record<string, unknown>;
+    const reportV2 = strategyReportV2FromRow(row);
+    if (reportV2) {
+      strategyRoadmap = {
+        kind: 'f8',
+        data: { executionRoadmap: reportV2.executionRoadmap },
+        provenance: {
+          id: typeof row.id === 'string' ? row.id : '',
+          generatedAt: typeof row.created_at === 'string' ? row.created_at : '',
+          inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+          promptVersion: typeof row.prompt_version === 'string' ? row.prompt_version : null,
+          engineVersion: null,
+          modelName: typeof row.model_name === 'string' ? row.model_name : null,
+          sourceAnalysisId: typeof row.source_analysis_id === 'string' ? row.source_analysis_id : null,
+          sourceMatchAnalysisId: typeof row.source_match_analysis_id === 'string' ? row.source_match_analysis_id : null,
+        },
+      };
+    }
+  }
 
   // Mirror the GET route: newest first, no prompt_version filter (F7 does not
   // have the same version-gating as F5).
@@ -650,6 +695,21 @@ export async function fetchPlanningContextSources(
   }
 
   // ── 10. User constraints (from student_profiles) ───────────────────────────
+  if (!strategyRoadmap && strategyRecommendation) {
+    strategyRoadmap = {
+      kind: 'f7',
+      data: { roadmap: strategyRecommendation.data.roadmap },
+      provenance: strategyRecommendation.provenance,
+    };
+  }
+  if (strategyRoadmap?.kind === 'f8') {
+    strategyRecommendation = null;
+    const diagnosticIndex = diagnostics.findIndex((diagnostic) => diagnostic.source === 'application_strategy_recommendations');
+    const diagnostic = { source: 'application_strategy_recommendations', status: 'present' as const };
+    if (diagnosticIndex >= 0) diagnostics[diagnosticIndex] = diagnostic;
+    else diagnostics.push(diagnostic);
+  }
+
   let userConstraints: UserConstraint[] = [];
   const { data: profileRow, error: profileError } = await supabase
     .from('student_profiles')
@@ -706,6 +766,7 @@ export async function fetchPlanningContextSources(
     profileEvaluation,
     programmeFit,
     strategyRecommendation,
+    strategyRoadmap,
     userConstraints,
     plannerInputs,
     diagnostics,
@@ -740,9 +801,13 @@ async function loadPlannerInputs(
   const inputs = (micros.data ?? []).flatMap((row): PlanningInput[] => {
     const schema = row.content_schema as Record<string, unknown> | null;
     const value = row.content_value as Record<string, unknown> | null;
-    if (schema?.type !== 'single_select' || typeof schema.semanticKey !== 'string' || value?.type !== 'single_select' || typeof value.value !== 'string') return [];
-    if (!Array.isArray(schema.options) || !schema.options.some((option) => typeof option === 'object' && option !== null && (option as Record<string, unknown>).value === value.value)) return [];
-    return [{ semanticKey: schema.semanticKey, value: value.value, microStepId: row.id, provenance: 'user_provided' }];
+    if (schema?.type === 'single_select' && typeof schema.semanticKey === 'string' && value?.type === 'single_select' && typeof value.value === 'string') {
+      if (!Array.isArray(schema.options) || !schema.options.some((option) => typeof option === 'object' && option !== null && (option as Record<string, unknown>).value === value.value)) return [];
+      return [{ semanticKey: schema.semanticKey, value: value.value, microStepId: row.id, provenance: 'user_provided' }];
+    }
+    if (schema?.type !== 'long_text' || !isPlannerAvailabilityInputKey(schema.semanticKey) || value?.type !== 'long_text' || typeof value.text !== 'string') return [];
+    const text = value.text.trim();
+    return text ? [{ semanticKey: schema.semanticKey, value: text, microStepId: row.id, provenance: 'user_provided' }] : [];
   });
   diagnostics.push({ source: 'canonical_planner_inputs', status: inputs.length ? 'present' : 'missing' });
   return inputs;

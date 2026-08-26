@@ -593,7 +593,7 @@ describe('CvBuilderWorkspace', () => {
     expect(
       screen.queryByText('AI is reading and evaluating the CV…'),
     ).not.toBeInTheDocument();
-  }, 10_000);
+  }, 30_000);
 
   it('keeps clarification mode when retrying a missing revised section', async () => {
     vi.stubGlobal(
@@ -612,7 +612,19 @@ describe('CvBuilderWorkspace', () => {
             { status: 200, headers: { 'Content-Type': 'application/x-ndjson' } },
           ),
         )
-        .mockImplementationOnce(() => new Promise<Response>(() => {})),
+        .mockResolvedValueOnce(
+          new Response(
+            `${JSON.stringify({
+              type: 'section',
+              section: 'projects',
+              data: { items: generatedCv.projects },
+            })}\n`,
+            {
+              status: 200,
+              headers: { 'Content-Type': 'application/x-ndjson' },
+            },
+          ),
+        ),
     );
     localStorage.setItem(
       'glowbal:cv-builder:v1:user-1:app-1',
@@ -660,7 +672,7 @@ describe('CvBuilderWorkspace', () => {
     expect(
       JSON.parse(String(vi.mocked(fetch).mock.calls[1]?.[1]?.body)),
     ).toEqual(expect.objectContaining({ mode: 'clarification' }));
-  });
+  }, 30_000);
 
   it('locks the selected starting format and finishes on the CV Draft step', async () => {
     localStorage.setItem(

@@ -1,7 +1,13 @@
+import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isCoordinator } from '@/lib/auth-helpers';
+import { PRIVATE_ROBOTS } from '@/lib/seo/indexability';
+
+export const metadata: Metadata = {
+  robots: PRIVATE_ROBOTS,
+};
 
 /**
  * Shell for /coordinator/*.

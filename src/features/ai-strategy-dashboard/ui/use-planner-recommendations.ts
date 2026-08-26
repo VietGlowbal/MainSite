@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ProgressStatus, Recommendation } from '../domain';
 
 export type PlannerRecommendationsController = {
@@ -44,9 +44,30 @@ export type PlannerRecommendationsController = {
  * ROLLBACK IS PER-FIELD, NOT A FULL SNAPSHOT. A failed save restores only the
  * one field (`status` or `deadline`) on the one recommendation that failed,
  * to the value it had immediately before that edit — not the whole array to
- * some earlier snapshot. Two edits in flight at once (a card dragged on the
- * board while a date is dragged on the calendar) can therefore fail and
- * recover independently.
+ * some earlier snapshot. Two edits to different fields (a card dragged on the
+ * board while a date is dragged on the calendar) therefore fail and recover
+ * independently.
+ *
+ * THE ARRAY IS READ FROM A REF, NOT FROM RENDER STATE. `updateStatus` and
+ * `updateDeadline` need the value a field held *immediately before this edit*
+ * in order to roll back to it. Reading that from `recommendations` would read
+ * whatever the render that created the callback closed over, which can be
+ * several edits stale by the time the callback runs — `DeadlineControl` can
+ * fire an edit per spinner tick. `latest` is updated synchronously by
+ * `applyLocally`, so the rollback base is always the value actually on screen.
+ *
+ * REQUESTS ARE SERIALIZED PER HOOK; OPTIMISM IS NOT. The optimistic update runs
+ * immediately — a correction made while an earlier save is still open shows up
+ * in all three views at once — but the PATCH itself queues behind any request
+ * still open, so two writes to the same row cannot reach Postgres in the
+ * opposite order to the one the student made them in. This is where that guard
+ * belongs: `DeadlineControl` used to hold it, which meant the control had to
+ * choose between correct ordering and letting the student keep typing.
+ *
+ * A SUPERSEDED FAILURE DOES NOT ROLL BACK. If an edit fails after a later edit
+ * to the same field has already been applied, restoring the old value would
+ * discard the newer one the student can see. The later edit's own result
+ * governs the field instead; `editSeq` is what tells the two apart.
  */
 export function usePlannerRecommendations(
   applicationId: string,
@@ -54,11 +75,16 @@ export function usePlannerRecommendations(
 ): PlannerRecommendationsController {
   const [recommendations, setRecommendations] = useState<Recommendation[]>(() => [...initial]);
   const [error, setError] = useState<string | null>(null);
+  /** The array as it is *now* — see the module doc. */
+  const latest = useRef(recommendations);
+  /** The most recent edit per `id:field`, so a stale failure can stand down. */
+  const editSeq = useRef(new Map<string, number>());
+  /** The request currently open, if any; the next one queues behind it. */
+  const chain = useRef<Promise<unknown>>(Promise.resolve());
 
   function applyLocally(id: string, fields: Partial<Pick<Recommendation, 'status' | 'deadline'>>) {
-    setRecommendations((current) =>
-      current.map((rec) => (rec.id === id ? { ...rec, ...fields } : rec)),
-    );
+    latest.current = latest.current.map((rec) => (rec.id === id ? { ...rec, ...fields } : rec));
+    setRecommendations(latest.current);
   }
 
   async function save(
@@ -67,33 +93,47 @@ export function usePlannerRecommendations(
     rollback: Partial<Pick<Recommendation, 'status' | 'deadline'>>,
     failureMessage: string,
   ) {
+    // Per field, not per row: a status edit must not cancel out a deadline
+    // edit made a moment later on the same task.
+    const scope = `${id}:${Object.keys(body).sort().join(',')}`;
+    const seq = (editSeq.current.get(scope) ?? 0) + 1;
+    editSeq.current.set(scope, seq);
     setError(null);
-    try {
-      const response = await fetch(
-        `/api/applications/${applicationId}/strategy/recommendations/${id}`,
-        {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(body),
-        },
-      );
-      if (!response.ok) throw new Error('save failed');
-    } catch {
-      // Put the field back where the server still has it — see the module doc.
-      applyLocally(id, rollback);
-      setError(failureMessage);
-    }
+
+    const send = async () => {
+      try {
+        const response = await fetch(
+          `/api/applications/${applicationId}/strategy/recommendations/${id}`,
+          {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+          },
+        );
+        if (!response.ok) throw new Error('save failed');
+      } catch {
+        // A later edit to this same field has since been applied; rolling back
+        // now would discard it, and its own save will report its own result.
+        if (editSeq.current.get(scope) !== seq) return;
+        // Put the field back where the server still has it — see the module doc.
+        applyLocally(id, rollback);
+        setError(failureMessage);
+      }
+    };
+
+    chain.current = chain.current.then(send, send);
+    await chain.current;
   }
 
   async function updateStatus(id: string, status: ProgressStatus) {
-    const original = recommendations.find((rec) => rec.id === id);
+    const original = latest.current.find((rec) => rec.id === id);
     if (!original || original.status === status) return;
     applyLocally(id, { status });
     await save(id, { status }, { status: original.status }, 'That change did not save. Please try again.');
   }
 
   async function updateDeadline(id: string, deadline: string | null) {
-    const original = recommendations.find((rec) => rec.id === id);
+    const original = latest.current.find((rec) => rec.id === id);
     if (!original || original.deadline === deadline) return;
     applyLocally(id, { deadline });
     await save(

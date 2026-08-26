@@ -42,6 +42,9 @@ import { Button, Container, Footer, Panel } from '@/shared/ui';
  * The session is read only to draw the right header.
  */
 
+import { SITE_URL } from '@/lib/site-url';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
+
 export const metadata: Metadata = {
   title: 'How GlowBal Works — AI & Mentor Study Abroad Guidance',
   description:
@@ -50,11 +53,9 @@ export const metadata: Metadata = {
     title: 'How GlowBal Works — AI & Mentor Study Abroad Guidance | GlowBal',
     description:
       'Discover how GlowBal takes you from university search to course applications, scholarship discovery, and personalized AI strategies.',
-    url: '/how-it-works',
+    url: `${SITE_URL}/how-it-works`,
   },
-  alternates: {
-    canonical: '/how-it-works',
-  },
+  alternates: buildLocaleAlternates('/how-it-works'),
 };
 
 export default async function HowItWorksPage() {

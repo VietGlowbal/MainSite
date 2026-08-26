@@ -28,7 +28,7 @@ import type {
   PortfolioOpportunity,
   StrategyRoadmap,
 } from './strategy-recommendation';
-import type { Recommendation } from './recommendation';
+import type { Recommendation, StrategyReportV2 } from './recommendation';
 import type {
   ApplicationRequirement,
   ApplicationStage,
@@ -489,6 +489,19 @@ export type PlanningStrategy = {
   // Provenance lives in PlanningProvenance.strategy — not embedded here.
 };
 
+/** The current F8 roadmap, or the older F7 roadmap when F8 is unavailable. */
+export type PlanningStrategyRoadmap =
+  | {
+    kind: 'f8';
+    data: Pick<StrategyReportV2, 'executionRoadmap'>;
+    provenance: SourceProvenance;
+  }
+  | {
+    kind: 'f7';
+    data: Pick<StrategyRecommendation, 'roadmap'>;
+    provenance: SourceProvenance;
+  };
+
 // ─── Provenance block ─────────────────────────────────────────────────────────
 
 export type PlanningProvenance = {
@@ -563,6 +576,8 @@ export type PlanningContext = {
    * interventionCandidates only.
    */
   strategy: PlanningStrategy | null;
+  /** F8 is preferred; F7 is retained only as a compatibility fallback. */
+  strategyRoadmap?: PlanningStrategyRoadmap | null;
 
   // ── Gaps & opportunities ─────────────────────────────────────────────────
   /** Weaknesses / mismatches sourced from F5 dimensions/limitations and F4. */
@@ -627,6 +642,14 @@ export type PlanningInput = {
   microStepId: string;
   provenance: 'user_provided';
 };
+
+/** Explicit free-text answers that planning may consume as availability facts. */
+export const PLANNER_AVAILABILITY_INPUT_KEYS = ['planner.availability', 'planner.time_capacity'] as const;
+export type PlannerAvailabilityInputKey = (typeof PLANNER_AVAILABILITY_INPUT_KEYS)[number];
+
+export function isPlannerAvailabilityInputKey(value: unknown): value is PlannerAvailabilityInputKey {
+  return typeof value === 'string' && (PLANNER_AVAILABILITY_INPUT_KEYS as readonly string[]).includes(value);
+}
 
 // ─── Sourced inputs for the fetcher (Gate 2 contract) ────────────────────────
 
@@ -762,6 +785,8 @@ export type PlanningContextSources = {
     data: StrategyRecommendation;
     provenance: SourceProvenance;
   } | null;
+  /** Optional while older callers still provide only strategyRecommendation. */
+  strategyRoadmap?: PlanningStrategyRoadmap | null;
 
   // ── User constraints ─────────────────────────────────────────────────────
   /**

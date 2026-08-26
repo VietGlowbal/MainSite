@@ -26,6 +26,7 @@ type Write = { table: string; kind: 'insert' | 'update'; payload: Record<string,
 function fakeSupabase(rows: Record<string, Record<string, unknown>[]> = {}) {
   const calls: { table: string; filters: [string, unknown][] }[] = [];
   const writes: Write[] = [];
+  const rpcCalls: { name: string; args: Record<string, unknown> }[] = [];
   const insertedIds: Record<string, string[]> = {
     application_plans: ['db-plan'], application_plan_phases: ['db-phase'], application_plan_steps: ['db-step'], application_plan_micro_steps: ['db-micro'],
   };
@@ -62,10 +63,24 @@ function fakeSupabase(rows: Record<string, Record<string, unknown>[]> = {}) {
     calls.push({ table, filters });
     return builder;
   };
-  return { client: { from } as never, calls, writes };
+  return {
+    client: {
+      from,
+      rpc: async (name: string, args: Record<string, unknown>) => {
+        rpcCalls.push({ name, args });
+        return { data: { inserted: 0, updated: 0, restored: 0, archived: 0 }, error: null };
+      },
+    } as never,
+    calls,
+    writes,
+    rpcCalls,
+  };
 }
 
-afterEach(() => vi.resetAllMocks());
+afterEach(() => {
+  vi.resetAllMocks();
+  vi.unstubAllEnvs();
+});
 
 describe('syncApplicationPlan', () => {
   it('checks application ownership and writes only the dedicated hierarchy on an initial sync', async () => {
@@ -104,5 +119,31 @@ describe('syncApplicationPlan', () => {
     expect(update?.payload).not.toHaveProperty('deadline');
     expect(update?.payload).not.toHaveProperty('content_value');
     expect(update?.payload).not.toHaveProperty('execution_evidence');
+  });
+
+  it('keeps answered conditional availability inputs in the production RPC payload on a second sync', async () => {
+    mockedGetApplicationPlan.mockResolvedValue({ plan: { id: 'plan:deterministic:availability-inputs', readiness: 'empty', phases: [] }, enriched: false });
+    const fake = fakeSupabase({
+      application_plans: [{ id: 'db-plan', application_id: 'application-1', producer: 'core3_deterministic', domain_plan_id: 'plan:deterministic:availability-inputs', readiness: 'requires_user_input', archived_at: null }],
+      application_plan_phases: [{ id: 'db-phase', plan_id: 'db-plan', domain_node_id: 'phase:planner-inputs', title: 'Record planning availability', objective: 'Use explicit availability.', sort_order: 1, source_decision_ids: [], source_provenances: [], archived_at: null }],
+      application_plan_steps: [{ id: 'db-step', phase_id: 'db-phase', domain_node_id: 'step:planner-inputs:availability', title: 'Share available planning time', objective: 'Record available time.', sort_order: 1, source_decision_ids: [], source_provenances: [], archived_at: null }],
+      application_plan_micro_steps: [{ id: 'db-input', step_id: 'db-step', domain_node_id: 'micro-step:planner-inputs:availability', title: 'Record when you are available', sort_order: 1, readiness: 'requires_user_input', content_schema: { type: 'long_text', prompt: 'When can you work?', semanticKey: 'planner.availability' }, source_decision_ids: [], source_provenances: [], status: 'not_started', deadline: null, content_value: { type: 'long_text', text: 'Weekday evenings' }, execution_evidence: [], archived_at: null }],
+    });
+    vi.stubEnv('NODE_ENV', 'production');
+
+    await expect(syncApplicationPlan(fake.client, 'application-1', 'user-1')).resolves.toEqual({ inserted: 0, updated: 0, restored: 0, archived: 0 });
+
+    const payload = fake.rpcCalls[0]?.args.p_plan as { phases: { domainNodeId: string; steps: { microSteps: { domainNodeId: string; contentSchema: unknown }[] }[] }[] };
+    expect(fake.rpcCalls[0]?.name).toBe('reconcile_canonical_application_plan');
+    expect(payload.phases[0]?.domainNodeId).toBe('phase:planner-inputs');
+    expect(payload.phases[0]?.steps[0]?.microSteps).toEqual([{
+      domainNodeId: 'micro-step:planner-inputs:availability',
+      title: 'Record when you are available',
+      order: 1,
+      readiness: 'requires_enrichment',
+      contentSchema: { type: 'long_text', prompt: 'When can you work?', semanticKey: 'planner.availability' },
+      sourceDecisionIds: [],
+      sourceProvenances: [],
+    }]);
   });
 });

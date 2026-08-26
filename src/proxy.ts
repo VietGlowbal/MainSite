@@ -15,7 +15,19 @@ const PROTECTED_ROUTES = [
   '/onboarding/complete',
 ];
 
-const PUBLIC_MARKETING_ROUTES = new Set(['/about', '/news', '/universities', '/advisors']);
+const PUBLIC_MARKETING_ROUTES = new Set([
+  '/about',
+  '/how-it-works',
+  '/news',
+  '/universities',
+  '/advisors',
+  '/vi',
+  '/vi/about',
+  '/vi/how-it-works',
+  '/vi/news',
+  '/vi/universities',
+  '/vi/advisors',
+]);
 
 // Paths that stay reachable even while the site lock (below) is on: static
 // assets, API routes (already individually authed — cron secrets, webhooks,
@@ -34,6 +46,12 @@ function bypassesSiteLock(pathname: string): boolean {
   );
 }
 
+function noindexRedirect(url: URL | string): NextResponse {
+  const res = NextResponse.redirect(url);
+  res.headers.set('X-Robots-Tag', 'noindex, nofollow');
+  return res;
+}
+
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -50,7 +68,7 @@ export async function proxy(request: NextRequest) {
       url.pathname = '/coming-soon';
       url.search = '';
       url.searchParams.set('from', `${pathname}${request.nextUrl.search}`);
-      return NextResponse.redirect(url);
+      return noindexRedirect(url);
     }
   }
 
@@ -114,7 +132,7 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/auth';
     url.searchParams.set('redirect', `${pathname}${request.nextUrl.search}`);
-    return NextResponse.redirect(url);
+    return noindexRedirect(url);
   }
 
   // Logged in user on /auth → redirect away.
@@ -130,7 +148,7 @@ export async function proxy(request: NextRequest) {
   ) {
     const redirectTarget = request.nextUrl.searchParams.get('redirect');
     if (redirectTarget?.startsWith('/')) {
-      return NextResponse.redirect(new URL(redirectTarget, request.url));
+      return noindexRedirect(new URL(redirectTarget, request.url));
     }
 
     /*
@@ -142,7 +160,7 @@ export async function proxy(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = '/apply';
     url.search = '';
-    return NextResponse.redirect(url);
+    return noindexRedirect(url);
   }
 
   // Onboarding gate: signed-in users without a completed profile shouldn't
@@ -207,7 +225,7 @@ export async function proxy(request: NextRequest) {
       url.pathname = '/auth/complete-profile';
       url.search = '';
       url.searchParams.set('next', `${pathname}${request.nextUrl.search}`);
-      return NextResponse.redirect(url);
+      return noindexRedirect(url);
     }
 
     if (needsOnboardingCheck) {
@@ -221,7 +239,7 @@ export async function proxy(request: NextRequest) {
         const url = request.nextUrl.clone();
         url.pathname = '/onboarding';
         url.search = '';
-        return NextResponse.redirect(url);
+        return noindexRedirect(url);
       }
     }
   }

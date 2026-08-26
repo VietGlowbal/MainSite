@@ -13,8 +13,11 @@ import { MentorsClient } from './mentors-client';
  * read per mentor on /mentors/[id], which is where booking happens.
  */
 
+import { SITE_URL } from '@/lib/site-url';
+import { buildLocaleAlternates } from '@/lib/seo/alternates';
+
 export const metadata: Metadata = {
-  title: 'Connect with Student Advisors & Mentors',
+  title: 'Connect with Student Advisors & Mentors | GlowBal',
   description:
     'Talk 1-on-1 with admitted students and mentors who have successfully applied to top global universities. Get honest advice, profile reviews, and interview prep.',
   keywords: [
@@ -24,14 +27,12 @@ export const metadata: Metadata = {
     'study abroad advice',
     'cố vấn du học',
   ],
+  alternates: buildLocaleAlternates('/advisors'),
   openGraph: {
     title: 'Connect with Student Advisors & Mentors | GlowBal',
     description:
       'Talk 1-on-1 with admitted students and mentors who have successfully applied to top global universities.',
-    url: '/advisors',
-  },
-  alternates: {
-    canonical: '/advisors',
+    url: `${SITE_URL}/advisors`,
   },
 };
 

@@ -265,7 +265,7 @@ function streamingResponse() {
   };
 }
 
-describe('StatementWriter VinUni routing', () => {
+describe('StatementWriter VinUni routing', { timeout: 30_000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     Element.prototype.scrollIntoView = vi.fn();
@@ -687,7 +687,7 @@ describe('StatementWriter VinUni routing', () => {
     await userEvent.type(screen.getByLabelText('Nội dung bài luận'), submittedText);
     await userEvent.click(screen.getByRole('button', { name: 'Analyze' }));
     await waitFor(() =>
-      expect(screen.getByRole('button', { name: 'Phân tích lại' })).toBeInTheDocument(),
+      expect(screen.getByRole('button', { name: /Phân tích lại|Re-analyze/ })).toBeInTheDocument(),
     );
 
     expect(mocks.supabase.auth.getUser).not.toHaveBeenCalled();

@@ -72,7 +72,12 @@ export default async function StrategyAnalysisPage({
 
   const state = await fetchOnboardingState(supabase, user.id, applicationId);
   const step = nextOnboardingStep(state);
-  if (step === 'personal-summary' || step === 'achievements' || step === 'confirm') {
+  if (
+    step === 'personal-summary' ||
+    step === 'achievements' ||
+    step === 'personal-reflection' ||
+    step === 'confirm'
+  ) {
     redirect(onboardingStepHref(step, applicationId));
   }
 

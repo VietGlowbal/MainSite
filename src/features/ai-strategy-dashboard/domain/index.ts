@@ -5,6 +5,8 @@
  * here must be unit-testable without a database or a DOM.
  */
 export {
+  DEADLINE_MAX,
+  DEADLINE_MIN,
   PROGRESS_STATUS,
   PROGRESS_STATUS_LABEL,
   RECOMMENDATION_PRIORITIES,
@@ -12,6 +14,7 @@ export {
   contentValueSchema,
   isCompleteContentValue,
   isContentValueCompatible,
+  isPlannerDeadline,
   parseContentBlock,
   parseContentBlockValue,
   groupByCategory,
@@ -23,6 +26,7 @@ export {
   recommendationPatchSchema,
   recommendationStatusPatchSchema,
   recommendationsFromRoadmap,
+  recommendationsFromStrategyReportV2,
   sortByPriority,
   taskCounts,
 } from './recommendation';
@@ -106,6 +110,7 @@ export {
   portfolioOpportunitySourceSchema,
   portfolioRecommendationSchema,
   strategyRecommendationFromRow,
+  strategyReportV2FromRow,
   strategyRecommendationSchema,
   strategyRoadmapSchema,
 } from './strategy-recommendation';
@@ -118,6 +123,14 @@ export type {
   StrategyRecommendationRecord,
   StrategyRoadmap,
 } from './strategy-recommendation';
+export {
+  strategyPriorityLevelSchema,
+  strategyReportV2Schema,
+} from './recommendation';
+export type {
+  StrategyPriorityLevel,
+  StrategyReportV2,
+} from './recommendation';
 
 // ─── Core 1 Gate 1 — Planning Context domain contract (types only) ───────────
 export type {
@@ -160,6 +173,7 @@ export type {
   // Strategy
   AiProposedPortfolioOpportunity,
   PlanningStrategy,
+  PlanningStrategyRoadmap,
   // Provenance
   PlanningProvenance,
   // Top-level
@@ -173,13 +187,14 @@ export { compileAssessments } from './compile-assessments';
 export { compileDecisions } from './compile-decisions';
 export { compilePlan } from './compile-plan';
 export { isPlannerStale, planFingerprint, plannerLifecycle, plannerSourceFingerprint } from './planner-ops';
+export { mergeStrategyRoadmapPlan } from './strategy-roadmap-plan';
 export {
   AI_PLAN_ENRICHMENT_PROMPT_VERSION,
   AI_PLAN_ENRICHMENT_VERSION,
   mergePlanEnrichment,
   validatePlanEnrichment,
 } from './plan-enrichment';
-export { CORE3_PLAN_PRODUCER, reconcilePlan } from './plan-persistence';
+export { CORE3_PLAN_PRODUCER, reconcilePlan, retainAnsweredPlannerInputs } from './plan-persistence';
 export { plannerMicroStepExecutionPatchSchema } from './planner-micro-step-execution';
 export {
   buildPlannerReadModel,
@@ -245,3 +260,26 @@ export type {
   PlannerStep,
 } from './planner-read-model';
 export type { PlannerMicroStepExecutionPatch, PlannerMicroStepExecutionState } from './planner-micro-step-execution';
+
+export {
+  DIRECTION_DIMENSIONS,
+  DIRECTION_DIMENSION_LABELS,
+  PRIORITY_LEVEL_LABELS,
+  biggestChallenge,
+  chosenDiffersFromTopScore,
+  chosenOption,
+  developmentStrategies,
+  keyStrength,
+  rankedDirections,
+  strategicOverview,
+  strategicPriorities,
+} from './strategy-report-presentation';
+export type {
+  DevelopmentStrategies,
+  DimensionReading,
+  DirectionDimension,
+  PriorityLevel,
+  RankedDirection,
+  StrategicOverview,
+  StrategicPriorityRow,
+} from './strategy-report-presentation';

@@ -167,6 +167,15 @@ export const contentValueSchema = z.discriminatedUnion('type', [
  * always has a non-empty `columns`/`items`. `parseContentBlock` below is what
  * enforces that guarantee still holds on the way back OUT of the database —
  * see its doc comment on why checking only `type` was not enough.
+ *
+ * VERSIONING (`v`, plan §6.2): OPTIONAL on every variant, and `1` is the only
+ * accepted value. Absent `v` means legacy v1 — existing rows stay valid and
+ * the generator is not required to emit it, so there is no migration and no
+ * bulk rewrite. Any other value (a future/unknown version, e.g. `v: 2`)
+ * FAILS this schema, so `parseContentBlock` returns `null` and the UI falls
+ * back to no block rather than guessing at a shape it doesn't know.
+ * Student-authored `content_value` is deliberately NOT versioned in this
+ * step — `contentValueSchema` stays untouched.
  */
 const contentBlockColumnSchema = z.object({
   key: z.string().min(1),
@@ -176,14 +185,15 @@ const contentBlockColumnSchema = z.object({
 });
 
 const contentBlockSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('structured_table'), columns: z.array(contentBlockColumnSchema).min(1) }),
-  z.object({ type: z.literal('long_text'), prompt: z.string().min(1), minWords: z.number().optional() }),
-  z.object({ type: z.literal('checklist'), items: z.array(z.string().min(1)).min(1) }),
+  z.object({ type: z.literal('structured_table'), columns: z.array(contentBlockColumnSchema).min(1), v: z.literal(1).optional() }),
+  z.object({ type: z.literal('long_text'), prompt: z.string().min(1), minWords: z.number().optional(), semanticKey: z.string().regex(/^[a-z][a-z0-9_.-]{1,100}$/).optional(), v: z.literal(1).optional() }),
+  z.object({ type: z.literal('checklist'), items: z.array(z.string().min(1)).min(1), v: z.literal(1).optional() }),
   z.object({
     type: z.literal('single_select'),
     prompt: z.string().min(1),
     options: z.array(z.object({ value: z.string().min(1), label: z.string().min(1) })).min(1).max(20),
     semanticKey: z.string().regex(/^[a-z][a-z0-9_.-]{1,100}$/),
+    v: z.literal(1).optional(),
   }),
 ]);
 
@@ -215,6 +225,36 @@ export function isContentValueCompatible(schema: ContentBlock | null, value: Con
 }
 
 /**
+ * The window a planner deadline is allowed to fall in.
+ *
+ * WHY A RANGE AND NOT JUST A SHAPE. A native `<input type="date">` publishes
+ * its value the moment all three segments hold *something*, so the first
+ * digit of a hand-typed year arrives as `0002-03-03` — a syntactically
+ * perfect `YYYY-MM-DD` that a regex alone accepts and writes to the database
+ * before the student has finished typing `2026`. Application deadlines live
+ * in this century; anything outside this window is a half-typed year, not
+ * intent. `DeadlineControl` applies the same bound in the browser so the
+ * partial value never leaves it — this is the server-side backstop for every
+ * other write path.
+ */
+export const DEADLINE_MIN = '2000-01-01';
+export const DEADLINE_MAX = '2100-12-31';
+
+/**
+ * A real calendar day, in `YYYY-MM-DD`, inside the deadline window.
+ *
+ * Rejects `2026-02-30` as well as `0002-03-03`: the regex only counts digits,
+ * so the round-trip through `Date` is what proves the day actually exists.
+ */
+export function isPlannerDeadline(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  // Fixed-width ISO dates compare correctly as plain strings.
+  if (value < DEADLINE_MIN || value > DEADLINE_MAX) return false;
+  const date = new Date(`${value}T00:00:00Z`);
+  return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+}
+
+/**
  * What `PATCH .../recommendations/[recId]` accepts.
  *
  * All three fields optional, at least one required — the board sends a
@@ -240,7 +280,7 @@ export const recommendationPatchSchema = z
     status: z.enum(PROGRESS_STATUS).optional(),
     deadline: z
       .string()
-      .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a YYYY-MM-DD date')
+      .refine(isPlannerDeadline, 'Expected a valid YYYY-MM-DD date')
       .nullable()
       .optional(),
     contentValue: contentValueSchema.nullable().optional(),
@@ -274,6 +314,10 @@ export function nextPriority(recommendations: readonly Recommendation[]): Recomm
  * what the doc comment always claimed to do; now it actually does it, and a
  * malformed row degrades to `null` (no content block, same as a task that
  * finishes elsewhere) instead of taking the page down.
+ *
+ * Versioning rides the same boundary: only an absent or `1` `v` passes
+ * (see `contentBlockSchema`), so a block written by a future generator
+ * degrades to `null` here and the UI falls back.
  */
 export function parseContentBlock(raw: unknown): ContentBlock | null {
   const parsed = contentBlockSchema.safeParse(raw);
@@ -333,31 +377,9 @@ export function recommendationFromRow(row: Record<string, unknown>): Recommendat
  * for course-specific, evidence-based actions (`ImprovementAction`); this is
  * a deterministic reshaping of that output into the Dashboard's row shape,
  * the same "extend, don't replace" call `course-match.ts` makes for the
- * report. `estimatedEffort`, `deadline` and `relatedRequirement` have no
- * source yet, so they're left null rather than guessed.
- */
-export type RecommendationSeed = Pick<
-  Recommendation,
-  | 'applicationId'
-  | 'category'
-  | 'pillar'
-  | 'title'
-  | 'reason'
-  | 'priority'
-  | 'estimatedImpact'
-  | 'estimatedEffort'
-  | 'deadline'
-  | 'evidenceRequired'
-  | 'relatedRequirement'
-  | 'actionLabel'
-  | 'actionType'
-  | 'actionTarget'
-  | 'contentSchema'
-  | 'submitChecklist'
-  | 'tips'
-  | 'suggestedQuestions'
-  | 'sourceAnalysisId'
->;
+  * report. `estimatedEffort`, `deadline` and `relatedRequirement` have no
+  * source yet, so they're left null rather than guessed.
+  */
 
 export function recommendationFromImprovementAction(
   applicationId: string,
@@ -394,11 +416,45 @@ export function recommendationFromImprovementAction(
 }
 
 /** The slice of an existing DB row `reconcileRecommendations`/`reconcileSeeds` needs to match against. */
+export type RecommendationSeed = Pick<
+  Recommendation,
+  | 'applicationId'
+  | 'category'
+  | 'pillar'
+  | 'title'
+  | 'reason'
+  | 'priority'
+  | 'estimatedImpact'
+  | 'estimatedEffort'
+  | 'deadline'
+  | 'evidenceRequired'
+  | 'relatedRequirement'
+  | 'actionLabel'
+  | 'actionType'
+  | 'actionTarget'
+  | 'contentSchema'
+  | 'submitChecklist'
+  | 'tips'
+  | 'suggestedQuestions'
+  | 'sourceAnalysisId'
+> & {
+  /**
+   * Deterministic semantic identity (e.g. `strategy-roadmap::{phase}::{key}`).
+   * When present, reconciliation matches on it INSTEAD of (pillar, title) —
+   * a regenerated report that rewords a task updates the same row rather
+   * than duplicating it.
+   */
+  sourceKey?: string;
+};
+
+/** The slice of an existing DB row `reconcileRecommendations`/`reconcileSeeds` needs to match against. */
 export type ExistingRecommendation = {
   id: string;
   pillar: PillarKey | null;
   title: string;
   status: ProgressStatus;
+  /** Deterministic identity written by newer generators; null on legacy rows. */
+  sourceKey?: string | null;
 };
 
 export type RecommendationUpdate = {
@@ -472,17 +528,29 @@ export function reconcileSeeds(
   existing: readonly ExistingRecommendation[],
   seeds: readonly RecommendationSeed[],
 ): ReconcilePlan {
-  const key = (pillar: PillarKey | null, title: string) => `${pillar ?? ''}::${title}`;
+  const titleKey = (pillar: PillarKey | null, title: string) => `${pillar ?? ''}::${title}`;
 
+  // Two match keys, in priority order:
+  //   1. source_key — deterministic semantic identity from generators that
+  //      provide one (F8 roadmap deliverables). Reworded regenerations still
+  //      match their row.
+  //   2. (pillar, title) — legacy fallback for rows written before
+  //      source_key existed.
   const existingByKey = new Map<string, ExistingRecommendation>();
-  for (const rec of existing) existingByKey.set(key(rec.pillar, rec.title), rec);
+  for (const rec of existing) {
+    if (rec.sourceKey) existingByKey.set(rec.sourceKey, rec);
+    else existingByKey.set(titleKey(rec.pillar, rec.title), rec);
+  }
+
+  const keyFor = (seed: RecommendationSeed) =>
+    seed.sourceKey ?? titleKey(seed.pillar ?? null, seed.title);
 
   const matchedIds = new Set<string>();
   const toInsert: RecommendationSeed[] = [];
   const toUpdate: RecommendationUpdate[] = [];
 
   for (const seed of seeds) {
-    const match = existingByKey.get(key(seed.pillar, seed.title));
+    const match = existingByKey.get(keyFor(seed));
 
     if (!match) {
       toInsert.push(seed);
@@ -570,4 +638,187 @@ export function recommendationsFromRoadmap(
       }),
     ),
   ];
+}
+
+/**
+ * ─── F8 STRATEGY REPORT (v2 payload) ─────────────────────────────────────────
+ *
+ * The five canonical sections from `docs/strategy-reports-spec.md`, generated
+ * by prompt `strategy-report-f8-v3` and persisted in
+ * `application_strategy_recommendations.report_v2`.
+ *
+ * Contract notes:
+ * - Stable keys (`priority.key`, `theme.key`, `phase.phaseKey`,
+ *   `deliverable.key`) are REQUIRED and must be deterministic slugs — student
+ *   overrides and Planner reconciliation key on them, never on array index or
+ *   prose.
+ * - The model authors NO scores, NO classification and NO admission
+ *   probability anywhere in this payload; those are deterministic outputs of
+ *   the Personal Report / Matching Report inputs.
+ */
+export const strategyPriorityLevelSchema = z.enum(['critical', 'high', 'medium']);
+
+export const strategyReportV2Schema = z.object({
+  strategicOverview: z.object({
+    currentPosition: z.object({
+      profile: z.string().min(1).max(1200),
+      keyStrength: z.string().min(1).max(600),
+      biggestChallenge: z.string().min(1).max(600),
+    }),
+    strategicGoal: z.object({
+      primaryObjective: z.string().min(1).max(600),
+      positioning: z.string().min(1).max(600),
+    }),
+    topPriorities: z.array(z.string().min(1).max(200)).min(1).max(3),
+    expectedOutcome: z.string().min(1).max(800),
+  }),
+  priorityTable: z
+    .array(
+      z.object({
+        /** Deterministic slug — overrides + Planner seeds key on this. */
+        key: z.string().regex(/^[a-z][a-z0-9_-]{2,60}$/),
+        title: z.string().min(1).max(200),
+        currentSituation: z.string().min(1).max(800),
+        whyItMatters: z.string().min(1).max(600),
+        recommendedActions: z.array(z.string().min(1).max(300)).min(1).max(5),
+        expectedImpact: z.string().min(1).max(400),
+        level: strategyPriorityLevelSchema,
+      }),
+    )
+    .min(2)
+    .max(6),
+  profileDevelopmentStrategy: z.object({
+    academic: z.object({
+      currentStatus: z.string().min(1).max(600),
+      gap: z.string().min(1).max(600),
+      strategicFocus: z.string().min(1).max(600),
+      expectedOutcome: z.string().min(1).max(400),
+    }),
+    experience: z.object({
+      currentStatus: z.string().min(1).max(600),
+      gap: z.string().min(1).max(600),
+      strategicFocus: z.string().min(1).max(600),
+      expectedOutcome: z.string().min(1).max(400),
+    }),
+    differentiation: z.object({
+      currentAdvantage: z.string().min(1).max(600),
+      uniqueness: z.string().min(1).max(600),
+      amplifyHow: z.string().min(1).max(600),
+      desiredPerception: z.string().min(1).max(400),
+    }),
+  }),
+  narrativeStrategy: z.object({
+    coreNarrative: z.object({
+      centralStory: z.string().min(1).max(1200),
+      supportingEvidence: z.array(z.string().min(1).max(300)).max(6),
+      admissionsValue: z.string().min(1).max(600),
+    }),
+    themes: z
+      .array(
+        z.object({
+          key: z.string().regex(/^[a-z][a-z0-9_-]{2,60}$/),
+          title: z.string().min(1).max(150),
+          rationale: z.string().min(1).max(500),
+          evidence: z.array(z.string().min(1).max(300)).max(5),
+        }),
+      )
+      .min(1)
+      .max(5),
+    consistencyCheck: z.object({
+      supports: z.string().min(1).max(600),
+      feelsDisconnected: z.string().min(1).max(600),
+      emphasise: z.string().min(1).max(500),
+      supportingRole: z.string().min(1).max(500),
+    }),
+  }),
+  executionRoadmap: z
+    .object({
+      phases: z
+        .array(
+          z.object({
+            phaseKey: z.string().regex(/^[a-z][a-z0-9_-]{2,40}$/),
+            name: z.string().min(1).max(150),
+            objective: z.string().min(1).max(600),
+            keyActions: z.array(z.string().min(1).max(300)).max(6),
+            deliverables: z
+              .array(
+                z.object({
+                  key: z.string().regex(/^[a-z][a-z0-9_-]{2,60}$/),
+                  label: z.string().min(1).max(250),
+                  /** Existing tool this maps to; absent → plain task. */
+                  tool: z.enum(['personal_canvas', 'cv_builder', 'statement_writer']).optional(),
+                }),
+              )
+              .max(8),
+            successCriteria: z.array(z.string().min(1).max(300)).max(5),
+            timeline: z.string().min(1).max(150),
+          }),
+        )
+        .min(1)
+        .max(6),
+    }),
+});
+
+export type StrategyReportV2 = z.infer<typeof strategyReportV2Schema>;
+export type StrategyPriorityLevel = z.infer<typeof strategyPriorityLevelSchema>;
+
+/**
+ * F8's Execution Roadmap turned into Planner task seeds.
+ *
+ * ONE TASK PER DELIVERABLE, deliberately. Deliverables are the only roadmap
+ * items the F8 schema gives stable keys (`phaseKey`/`key` slugs), which is
+ * what lossless reconciliation requires; keyActions stay in the report as
+ * phase guidance rather than becoming untracked prose-keyed tasks that would
+ * duplicate on every regeneration. `tool` flows through to action_type/target
+ * where a canonical route exists (personal_canvas / cv / statement-feedback).
+ */
+export function recommendationsFromStrategyReportV2(
+  applicationId: string,
+  report: Pick<StrategyReportV2, 'executionRoadmap' | 'strategicOverview'>,
+): RecommendationSeed[] {
+  const seeds: RecommendationSeed[] = [];
+
+  for (const phase of report.executionRoadmap.phases) {
+    for (const deliverable of phase.deliverables) {
+      const sourceKey = `strategy-roadmap::${phase.phaseKey}::${deliverable.key}`;
+      seeds.push({
+        applicationId,
+        category: 'strategy-roadmap',
+        pillar: null,
+        sourceKey,
+        title: deliverable.label,
+        reason: `${phase.name}: ${phase.objective}`,
+        priority: phase.phaseKey === 'finalise_optimise' ? 'high' : 'medium',
+        estimatedImpact: null,
+        estimatedEffort: null,
+        deadline: null,
+        evidenceRequired: false,
+        relatedRequirement: null,
+        actionLabel: deliverable.tool ? 'Open tool' : null,
+        actionType:
+          deliverable.tool === 'cv_builder'
+            ? 'internal_route'
+            : deliverable.tool === 'statement_writer'
+              ? 'internal_route'
+              : deliverable.tool === 'personal_canvas'
+                ? 'internal_route'
+                : 'none',
+        actionTarget:
+          deliverable.tool === 'cv_builder'
+            ? `/apply/${applicationId}/cv`
+            : deliverable.tool === 'statement_writer'
+              ? `/apply/${applicationId}/statement-feedback`
+              : deliverable.tool === 'personal_canvas'
+                ? '/ai-strategy/personal-report'
+                : null,
+        contentSchema: null,
+        submitChecklist: phase.successCriteria.slice(0, 4),
+        tips: [],
+        suggestedQuestions: [],
+        sourceAnalysisId: null,
+      });
+    }
+  }
+
+  return seeds;
 }

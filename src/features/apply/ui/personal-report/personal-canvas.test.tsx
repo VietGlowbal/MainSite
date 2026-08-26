@@ -290,3 +290,112 @@ describe('PersonalCanvasWorkspace', () => {
     });
   });
 });
+
+/**
+ * Keyboard shortcut regressions.
+ *
+ * The canvas binds bare 1-6, Escape and F on `window`. Before these tests it
+ * did so without checking modifier keys, so browser and OS chords collided with
+ * it — most damagingly Cmd/Ctrl+F, which toggled focus mode AND called
+ * preventDefault(), disabling find-in-page across the whole report.
+ */
+describe('PersonalCanvasWorkspace keyboard shortcuts', () => {
+  function renderWorkspace() {
+    return render(
+      <PersonalCanvasWorkspace report={report()} returnTo={undefined} onRegenerate={undefined} />,
+    );
+  }
+
+  function panel() {
+    return screen.queryByRole('complementary', { name: /details$/i });
+  }
+
+  it('opens a section on a bare number key', () => {
+    renderWorkspace();
+    fireEvent.keyDown(window, { key: '1' });
+    expect(panel()).toBeInTheDocument();
+  });
+
+  it('does not hijack Cmd+F or Ctrl+F, so find-in-page still works', () => {
+    renderWorkspace();
+
+    const meta = new KeyboardEvent('keydown', { key: 'f', metaKey: true, cancelable: true });
+    const ctrl = new KeyboardEvent('keydown', { key: 'f', ctrlKey: true, cancelable: true });
+    window.dispatchEvent(meta);
+    window.dispatchEvent(ctrl);
+
+    expect(meta.defaultPrevented).toBe(false);
+    expect(ctrl.defaultPrevented).toBe(false);
+  });
+
+  it('does not open a section on Cmd+1 or Ctrl+2, which switch browser tabs', () => {
+    renderWorkspace();
+    fireEvent.keyDown(window, { key: '1', metaKey: true });
+    expect(panel()).not.toBeInTheDocument();
+    fireEvent.keyDown(window, { key: '2', ctrlKey: true });
+    expect(panel()).not.toBeInTheDocument();
+  });
+
+  it('ignores Alt chords', () => {
+    renderWorkspace();
+    fireEvent.keyDown(window, { key: '3', altKey: true });
+    expect(panel()).not.toBeInTheDocument();
+  });
+
+  it('closes on Escape', async () => {
+    renderWorkspace();
+    fireEvent.keyDown(window, { key: '1' });
+    expect(panel()).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: 'Escape' });
+    // AnimatePresence keeps the node mounted for its exit animation.
+    await waitFor(() => expect(panel()).not.toBeInTheDocument());
+  });
+
+  it('does not fire while the user is typing in a contenteditable field', () => {
+    renderWorkspace();
+    const editable = document.createElement('div');
+    editable.contentEditable = 'true';
+    // jsdom does not derive isContentEditable from the attribute.
+    Object.defineProperty(editable, 'isContentEditable', { value: true });
+    document.body.appendChild(editable);
+
+    fireEvent.keyDown(editable, { key: '1' });
+    expect(panel()).not.toBeInTheDocument();
+
+    document.body.removeChild(editable);
+  });
+
+  it('moves focus into the panel when it opens', () => {
+    renderWorkspace();
+    fireEvent.keyDown(window, { key: '2' });
+    expect(panel()).toHaveFocus();
+  });
+
+  it('hands focus back to the control that opened the panel when it closes', async () => {
+    renderWorkspace();
+    const trigger = screen.getAllByRole('button', { name: /core identity/i })[0]!;
+    trigger.focus();
+    fireEvent.click(trigger);
+    expect(panel()).toHaveFocus();
+
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    // Focus is still inside the exiting panel at this point, which is exactly
+    // the case the restore has to handle — otherwise a keyboard user is left
+    // on a node that is about to be removed.
+    await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it('leaves focus alone if the user moved on before the panel closed', async () => {
+    renderWorkspace();
+    const trigger = screen.getAllByRole('button', { name: /core identity/i })[0]!;
+    fireEvent.click(trigger);
+
+    const elsewhere = screen.getAllByRole('button', { name: /driving forces/i })[0]!;
+    elsewhere.focus();
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    await waitFor(() => expect(panel()).not.toBeInTheDocument());
+    expect(elsewhere).toHaveFocus();
+  });
+});

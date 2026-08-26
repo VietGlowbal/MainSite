@@ -13,11 +13,13 @@ export function PersonalForm({
   displayName,
   email,
   initialProfile,
+  returnTo,
 }: {
   userId: string;
   displayName: string;
   email: string;
   initialProfile: StudentProfile | null;
+  returnTo?: string | null;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [fullName, setFullName] = useState(displayName);
@@ -148,7 +150,13 @@ export function PersonalForm({
           />
         </div>
 
-        <SaveBar onSave={handleSave} saving={saving} message={message} />
+        <SaveBar
+          onSave={handleSave}
+          saving={saving}
+          message={message}
+          returnTo={returnTo}
+          updatedLabel="Personal information"
+        />
       </Panel>
     </div>
   );

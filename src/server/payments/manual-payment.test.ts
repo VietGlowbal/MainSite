@@ -140,18 +140,18 @@ describe('manual payment email templates', () => {
     });
 
     expect(email.subject).toBe('GlowBal — Xác nhận thanh toán thành công (GLOWMANUAL123)');
-    expect(email.html).toContain('Xin chào <strong>&lt;Student Name&gt;</strong>');
-    expect(email.html).toContain('GlowBal xác nhận bạn đã thanh toán thành công gói <strong>GlowBal Plus · Starter</strong>.');
+    expect(email.html).toContain('Xin chào &lt;Student Name&gt;,');
+    expect(email.html).toContain('GlowBal xác nhận <strong>bạn đã thanh toán thành công gói GlowBal Plus · Starter</strong>.');
     expect(email.html).toContain('GlowBal Community');
     expect(email.html).toContain('https://zalo.me/g/ggrpc483k4joxoev6dat');
     expect(email.html).toContain('QR tham gia cộng đồng:');
-    expect(email.html).toContain('api.qrserver.com');
-    expect(email.html).toContain('GO GLOW – GO GLOBAL');
+    expect(email.html).toContain('zalo-community-qr.png');
+    expect(email.html).toContain('GO GLOW – GO GLOBAL ✈️🌍');
     expect(email.html).toContain('GLOWBAL EDUCATION');
     expect(email.html).toContain('glowbal.edu@gmail.com');
     expect(email.html).toContain('https://glowbal-education.com');
-    expect(email.text).toContain('Tham gia GlowBal Community: https://zalo.me/g/ggrpc483k4joxoev6dat');
-    expect(email.text).toContain('GO GLOW – GO GLOBAL');
+    expect(email.text).toContain('👉 Tham gia GlowBal Community: [https://zalo.me/g/ggrpc483k4joxoev6dat]');
+    expect(email.text).toContain('GO GLOW – GO GLOBAL ✈️🌍');
   });
 
   it('renders the payment support email when unconfirmed', () => {

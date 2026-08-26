@@ -36,19 +36,28 @@ function interpolate(value: string, vars?: Record<string, string | number>) {
   return value.replace(/\{(\w+)\}/g, (_, key) => (key in vars ? String(vars[key]) : `{${key}}`));
 }
 
-export function LanguageProvider({ children }: { children: ReactNode }) {
-  // Always start as English so server and first client render match (no
-  // hydration mismatch); the stored preference is applied in the effect below.
-  const [lang, setLangState] = useState<Lang>('en');
+export function LanguageProvider({
+  children,
+  defaultLang = 'en',
+}: {
+  children: ReactNode;
+  defaultLang?: Lang;
+}) {
+  // Always start as defaultLang so server and first client render match
+  const [lang, setLangState] = useState<Lang>(defaultLang);
 
   useEffect(() => {
+    if (defaultLang === 'vi') {
+      document.documentElement.lang = 'vi';
+      return;
+    }
     const stored = (localStorage.getItem(STORAGE_KEY) as Lang | null) ?? 'en';
     if (stored === 'vi') {
       // Use startTransition to avoid synchronous setState in effect body
       React.startTransition(() => setLangState('vi'));
     }
     document.documentElement.lang = stored;
-  }, []);
+  }, [defaultLang]);
 
   const setLang = useCallback((next: Lang) => {
     setLangState(next);

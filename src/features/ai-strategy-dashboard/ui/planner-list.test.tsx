@@ -78,6 +78,83 @@ describe('PlannerList', () => {
     expect(onDeadlineChange).toHaveBeenCalledWith('r1', null);
   });
 
+
+  /**
+   * The reported bug: a native date input publishes a value as soon as all
+   * three segments hold something, so the first digit of a hand-typed year
+   * arrived as year 2 — saved, and (because saving disabled the input) with
+   * the focus taken away before the remaining digits could be typed.
+   */
+  it('does not save the half-typed years a date input emits while the year is being entered', async () => {
+    const onDeadlineChange = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlannerList
+        applicationId="app-1"
+        recommendations={[rec()]}
+        today={today}
+        onDeadlineChange={onDeadlineChange}
+        onStatusSaved={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByLabelText('Deadline for Retake IELTS');
+    for (const partial of ['0002-09-01', '0020-09-01', '0202-09-01']) {
+      fireEvent.change(input, { target: { value: partial } });
+    }
+
+    expect(onDeadlineChange).not.toHaveBeenCalled();
+    // The field still shows what was typed, so the year can be finished...
+    expect(input).toHaveValue('0202-09-01');
+    expect(screen.getByText('Enter a four-digit year to save this deadline.')).toBeInTheDocument();
+
+    // ...and the finished year is the only thing that reaches the server.
+    fireEvent.change(input, { target: { value: '2026-09-01' } });
+    expect(onDeadlineChange).toHaveBeenCalledTimes(1);
+    expect(onDeadlineChange).toHaveBeenCalledWith('r1', '2026-09-01');
+  });
+
+  it('keeps focus in the field while a save is in flight, so the date can still be edited', async () => {
+    // A save that never settles. The old control disabled the input for the
+    // whole of it, and a disabled element loses focus — which is what made the
+    // remaining year digits go nowhere.
+    const onDeadlineChange = vi.fn().mockReturnValue(new Promise<void>(() => {}));
+    render(
+      <PlannerList
+        applicationId="app-1"
+        recommendations={[rec()]}
+        today={today}
+        onDeadlineChange={onDeadlineChange}
+        onStatusSaved={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByLabelText('Deadline for Retake IELTS');
+    input.focus();
+    fireEvent.change(input, { target: { value: '2026-09-01' } });
+
+    expect(onDeadlineChange).toHaveBeenCalledWith('r1', '2026-09-01');
+    expect(input).toBeEnabled();
+    expect(input).toHaveFocus();
+  });
+
+  it('rejects a date outside the planner window rather than storing it', async () => {
+    const onDeadlineChange = vi.fn().mockResolvedValue(undefined);
+    render(
+      <PlannerList
+        applicationId="app-1"
+        recommendations={[rec()]}
+        today={today}
+        onDeadlineChange={onDeadlineChange}
+        onStatusSaved={vi.fn()}
+      />,
+    );
+
+    const input = screen.getByLabelText('Deadline for Retake IELTS');
+    fireEvent.change(input, { target: { value: '1998-09-01' } });
+
+    expect(onDeadlineChange).not.toHaveBeenCalled();
+  });
+
   it('folds a status the shared control already saved into the planner-wide state', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true }));
     const onStatusSaved = vi.fn();

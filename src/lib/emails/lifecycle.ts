@@ -107,7 +107,11 @@ export function deadlineReminderEmail(input: {
 
   return glowbalEmailLayout({
     preheader: `${option} deadline: ${input.deadlineLabel}`,
-    eyebrow: input.daysRemaining <= 1 ? 'Deadline tomorrow' : `${input.daysRemaining} days to go`,
+    eyebrow: input.daysRemaining <= 0
+      ? 'Deadline today'
+      : input.daysRemaining === 1
+        ? 'Deadline tomorrow'
+        : `${input.daysRemaining} days to go`,
     titleHtml: `${escapeHtml(option)} is getting close.`,
     bodyHtml: `
       <div>The deadline is <strong style="color:#FAFAFA;">${escapeHtml(input.deadlineLabel)}</strong>.</div>
@@ -116,6 +120,81 @@ export function deadlineReminderEmail(input: {
     actionHtml: emailButton('Finish my application →', input.url),
     includeSocials: false,
     footerNote: 'You can turn deadline reminders off in your GlowBal email preferences.',
+  });
+}
+
+type DigestTask = { title: string; dueLabel: string };
+
+function digestSectionHtml(label: string, tasks: DigestTask[]): string {
+  if (!tasks.length) return '';
+  return `
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:26px;text-align:left;">
+      <tr>
+        <td style="padding-bottom:2px;font-family:Arial,Helvetica,sans-serif;font-size:11px;line-height:16px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:#E11D48;text-align:left;">${escapeHtml(label)}</td>
+      </tr>
+      ${tasks
+        .map(
+          (task) => `
+        <tr>
+          <td style="padding:12px 0;border-bottom:1px solid #242428;text-align:left;">
+            <div style="font-family:Arial,Helvetica,sans-serif;font-size:14px;line-height:21px;font-weight:700;color:#FAFAFA;">${escapeHtml(task.title)}</div>
+            <div style="margin-top:3px;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:18px;color:#a3a3a3;">${escapeHtml(task.dueLabel)}</div>
+          </td>
+        </tr>`,
+        )
+        .join('')}
+    </table>`;
+}
+
+/**
+ * Weekly planner digest: one email summarising overdue + upcoming planner
+ * tasks per week instead of one email per task. docs/email-system.md §"Planner
+ * and deadlines" prefers a weekly strategy digest because per-task mail trains
+ * students to ignore product email; the digest keeps a single useful
+ * return-to-product moment per week.
+ *
+ * Rendering contract:
+ * - Overdue renders before upcoming. Each row pairs a task title with its due
+ *   label. Deduplication across sections is the CALLER's job — if the same
+ *   title is passed to both arrays, this template honestly renders it in both.
+ * - Every dynamic string passes through escapeHtml before interpolation, so
+ *   student/AI-generated titles can never inject markup. Long titles simply
+ *   wrap; there are no width assumptions or truncation.
+ * - An all-empty digest still renders valid HTML with an explicit
+ *   nothing-scheduled body. Whether to send zero-task digests is decided by
+ *   the caller/cron, not by this template.
+ * - English copy only today, consistent with the other templates here;
+ *   Vietnamese localisation rides on preferred_language handling later — no
+ *   i18n mechanism is invented here.
+ */
+export function weeklyStrategyDigestEmail(input: {
+  url: string; // canonical deep link into the planner (already application-scoped by the caller)
+  weekLabel: string; // e.g. 'Aug 24 – Aug 30' — caller-localized; template renders verbatim
+  overdue: Array<{ title: string; dueLabel: string }>;
+  upcoming: Array<{ title: string; dueLabel: string }>;
+  readinessPercent?: number;
+}): string {
+  const metrics: Array<{ label: string; value: string }> = [];
+  if (typeof input.readinessPercent === 'number') {
+    metrics.push({ label: 'Readiness', value: `${Math.round(input.readinessPercent)}%` });
+  }
+  const hasTasks = input.overdue.length > 0 || input.upcoming.length > 0;
+
+  const listHtml = hasTasks
+    ? `${digestSectionHtml('Overdue', input.overdue)}${digestSectionHtml('Coming up', input.upcoming)}`
+    : '<div style="margin-top:18px;">There is nothing scheduled this week — enjoy the calm, or get ahead on your applications.</div>';
+
+  return glowbalEmailLayout({
+    preheader: `Your GlowBal plan for ${input.weekLabel}`,
+    eyebrow: 'Weekly strategy digest',
+    titleHtml: `Your plan for ${escapeHtml(input.weekLabel)}.`,
+    bodyHtml: `
+      <div>Here is where your applications stand for <strong style="color:#FAFAFA;">${escapeHtml(input.weekLabel)}</strong>.</div>
+      ${metricRow(metrics)}
+      ${listHtml}`,
+    actionHtml: emailButton('Open my planner →', input.url),
+    includeSocials: false,
+    footerNote: 'You can turn the weekly strategy digest off in your GlowBal email preferences.',
   });
 }
 

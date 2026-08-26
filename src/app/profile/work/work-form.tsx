@@ -14,9 +14,13 @@ type DraftExperience = Omit<WorkExperience, 'id' | 'user_id' | 'created_at' | 'u
 export function WorkForm({
   userId,
   initialExperiences,
+  returnTo,
+  updatedLabel,
 }: {
   userId: string;
   initialExperiences: WorkExperience[];
+  returnTo?: string | null;
+  updatedLabel?: string;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const [experiences, setExperiences] = useState<DraftExperience[]>(
@@ -174,7 +178,14 @@ export function WorkForm({
         )}
       />
 
-      <SaveBar onSave={handleSave} saving={saving} message={message} label="Save experiences" />
+      <SaveBar
+        onSave={handleSave}
+        saving={saving}
+        message={message}
+        label="Save experiences"
+        returnTo={returnTo}
+        updatedLabel={updatedLabel ?? 'Work experience'}
+      />
     </Panel>
   );
 }

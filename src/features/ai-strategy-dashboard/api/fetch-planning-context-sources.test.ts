@@ -54,6 +54,10 @@ function buildSupabase(db: {
   application_match_analyses_error?: { code?: string; message: string } | null;
   application_strategy_recommendations?: MockTable[] | null;
   application_strategy_recommendations_error?: { code?: string; message: string } | null;
+  application_plans?: MockTable[] | null;
+  application_plan_phases?: MockTable[] | null;
+  application_plan_steps?: MockTable[] | null;
+  application_plan_micro_steps?: MockTable[] | null;
   student_profiles?: MockTable[] | null;
   student_profiles_error?: { code?: string; message: string } | null;
   uploaded_documents?: MockTable[] | null;
@@ -336,6 +340,50 @@ const VALID_STRATEGY_ROW: MockTable = {
   created_at: '2025-01-02T00:00:00Z',
 };
 
+const VALID_F8_STRATEGY_ROW: MockTable = {
+  id: 'strategy-f8-1',
+  application_id: 'app-1',
+  source_analysis_id: null,
+  source_match_analysis_id: 'match-1',
+  input_hash: 'strategy-f8-hash',
+  model_name: 'gpt-4o',
+  prompt_version: 'strategy-report-f8-v3',
+  created_at: '2025-01-03T00:00:00Z',
+  report_v2: {
+    strategicOverview: {
+      currentPosition: { profile: 'Current profile', keyStrength: 'Research evidence', biggestChallenge: 'Language evidence' },
+      strategicGoal: { primaryObjective: 'Strengthen application', positioning: 'Research-focused applicant' },
+      topPriorities: ['Strengthen language evidence'],
+      expectedOutcome: 'A clearer application narrative',
+    },
+    priorityTable: [
+      { key: 'language_evidence', title: 'Language evidence', currentSituation: 'No test result', whyItMatters: 'Entry condition', recommendedActions: ['Book test'], expectedImpact: 'Eligibility evidence', level: 'critical' },
+      { key: 'research_narrative', title: 'Research narrative', currentSituation: 'Evidence is scattered', whyItMatters: 'Differentiation', recommendedActions: ['Organize examples'], expectedImpact: 'Clearer story', level: 'high' },
+    ],
+    profileDevelopmentStrategy: {
+      academic: { currentStatus: 'Good foundation', gap: 'Language evidence', strategicFocus: 'Book test', expectedOutcome: 'Verified result' },
+      experience: { currentStatus: 'Research activity', gap: 'Evidence structure', strategicFocus: 'Document impact', expectedOutcome: 'Clear examples' },
+      differentiation: { currentAdvantage: 'Research interest', uniqueness: 'Cross-disciplinary view', amplifyHow: 'Use examples', desiredPerception: 'Focused applicant' },
+    },
+    narrativeStrategy: {
+      coreNarrative: { centralStory: 'Research-led development', supportingEvidence: ['Project work'], admissionsValue: 'Clear motivation' },
+      themes: [{ key: 'research_growth', title: 'Research growth', rationale: 'Matches the programme', evidence: ['Project work'] }],
+      consistencyCheck: { supports: 'Research evidence', feelsDisconnected: 'Unrelated claims', emphasise: 'Research growth', supportingRole: 'Activities support the story' },
+    },
+    executionRoadmap: {
+      phases: [{
+        phaseKey: 'strengthen_foundation',
+        name: 'Strengthen foundation',
+        objective: 'Establish required evidence',
+        keyActions: ['Book test'],
+        deliverables: [{ key: 'ielts_booking', label: 'IELTS booking confirmation' }],
+        successCriteria: ['A test is booked'],
+        timeline: 'Before application',
+      }],
+    },
+  },
+};
+
 const VALID_PROFILE: MockTable = {
   budget_range: '20000-30000',
   tuition_budget_usd: null,
@@ -373,6 +421,41 @@ function allSources(overrides: Parameters<typeof buildSupabase>[0] = {}) {
 // ─── Tests ────────────────────────────────────────────────────────────────────
 
 describe('fetchPlanningContextSources', () => {
+  it('maps only non-empty declared long-text availability answers from canonical planner inputs', async () => {
+    const supabase = allSources({
+      application_plans: [{ id: 'plan-1' }],
+      application_plan_phases: [{ id: 'phase-1' }],
+      application_plan_steps: [{ id: 'step-1' }],
+      application_plan_micro_steps: [
+        {
+          id: 'availability-micro',
+          content_schema: { type: 'long_text', prompt: 'When can you work?', semanticKey: 'planner.availability' },
+          content_value: { type: 'long_text', text: 'Weekday evenings' },
+        },
+        {
+          id: 'empty-capacity-micro',
+          content_schema: { type: 'long_text', prompt: 'How much time?', semanticKey: 'planner.time_capacity' },
+          content_value: { type: 'long_text', text: '   ' },
+        },
+        {
+          id: 'undeclared-micro',
+          content_schema: { type: 'long_text', prompt: 'Other', semanticKey: 'planner.other' },
+          content_value: { type: 'long_text', text: 'Ignore this' },
+        },
+      ],
+    });
+
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.plannerInputs).toEqual([{
+      semanticKey: 'planner.availability',
+      value: 'Weekday evenings',
+      microStepId: 'availability-micro',
+      provenance: 'user_provided',
+    }]);
+    expect(result.diagnostics.find((diagnostic) => diagnostic.source === 'canonical_planner_inputs')).toMatchObject({ status: 'present' });
+  });
+
   // ── 1. All optional sources absent ──────────────────────────────────────────
   it('returns valid PlanningContextSources with nulls/empty arrays when all optional sources are absent', async () => {
     const supabase = buildSupabase({ course_applications: [VALID_APP] });
@@ -614,8 +697,24 @@ describe('fetchPlanningContextSources', () => {
     // source_match_analysis_id → application_match_analyses.id
     expect(prov.sourceMatchAnalysisId).toBe('match-1');
     expect(prov.promptVersion).toBe('strategy-recommendation-f7-v1');
+    expect(result.strategyRoadmap).toMatchObject({ kind: 'f7' });
     const diag = result.diagnostics.find((d) => d.source === 'application_strategy_recommendations');
     expect(diag?.status).toBe('present');
+  });
+
+  it('prefers a current validated F8 report_v2 roadmap over the F7 fallback', async () => {
+    const supabase = buildSupabase({
+      course_applications: [VALID_APP],
+      application_strategy_recommendations: [VALID_F8_STRATEGY_ROW],
+    });
+    const result = await fetchPlanningContextSources(supabase as never, 'app-1', 'user-1');
+
+    expect(result.strategyRoadmap).toMatchObject({
+      kind: 'f8',
+      provenance: { id: 'strategy-f8-1', inputHash: 'strategy-f8-hash' },
+      data: { executionRoadmap: { phases: [{ phaseKey: 'strengthen_foundation' }] } },
+    });
+    expect(result.strategyRecommendation).toBeNull();
   });
 
   // ── 14. Malformed F7 → null + invalid ─────────────────────────────────────────

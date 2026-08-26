@@ -18,12 +18,15 @@ function buildSupabase(options: {
   /** Simulates only `supabase-application-experience-flow.sql` (the personal_reflection_reviewed_at column) not having run yet. */
   personalReflectionColumnMissing?: boolean;
   hasApplicantAnalysis?: boolean;
+  hasPersonalReportV2?: boolean;
   hasCompleteMatchAnalysis?: boolean;
   introSeenAt?: string | null;
   hasStrategyRecommendation?: boolean;
 }) {
   function resolve(table: string, selected: string) {
     switch (table) {
+      case 'student_personal_report_versions':
+        return { data: options.hasPersonalReportV2 ? { id: 'v2-1' } : null, error: null };
       case 'applicant_analyses':
         return { data: options.hasApplicantAnalysis ? { id: 'analysis-1' } : null, error: null };
       case 'application_match_analyses':

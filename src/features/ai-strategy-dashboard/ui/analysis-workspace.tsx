@@ -1,50 +1,44 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, ICONS, KitIcon, Panel, ProgressBar, usePrefersReducedMotion } from '@/shared/ui';
-import { useT } from '@/lib/i18n';
+import { useLanguage } from '@/lib/i18n';
+import { formatUiDateTime } from '@/shared/lib';
 
-type ReportKey = 'personal' | 'matching';
 type ReportStatus = 'generating' | 'complete' | 'failed';
-type ReportState = { status: ReportStatus; error?: string };
+type ReportState = { status: ReportStatus; error?: string | undefined };
 
 /**
- * Generate the real user-level Personal Report first. The historical
- * application-scoped applicant-analysis is then maintained only as an
- * internal compatibility adapter because the current Strategy generator still
- * consumes that row. A user-visible "Personal Report complete" therefore
- * always means `/ai-strategy/personal-report` is actually ready.
+ * Generate the canonical user-level Personal Report.
+ * Strategy generation consumes this canonical Personal Report directly.
  */
-async function fetchOrGeneratePersonal(applicationId: string, genericError: string): Promise<ReportState> {
+async function fetchOrGeneratePersonal(
+  errorMessages: { generic: string; rateLimit: string; unavailable: string },
+): Promise<ReportState> {
   try {
     const canonical = await fetch('/api/ai-strategy/personal-report', { method: 'POST' });
     const canonicalBody = await canonical.json().catch(() => ({}));
     if (!canonical.ok || !canonicalBody.reportV2) {
-      return { status: 'failed', error: canonicalBody.error || genericError };
-    }
-
-    // Temporary adapter for the existing F7 Strategy route. This result is
-    // never presented as a second Personal Report.
-    const existingLegacy = await fetch(`/api/applications/${applicationId}/strategy/applicant-analysis`);
-    const existingLegacyBody = await existingLegacy.json().catch(() => ({}));
-    if (!existingLegacyBody.analysis) {
-      const legacy = await fetch(`/api/applications/${applicationId}/strategy/applicant-analysis`, {
-        method: 'POST',
-      });
-      const legacyBody = await legacy.json().catch(() => ({}));
-      if (!legacy.ok || legacyBody.error) {
-        return { status: 'failed', error: legacyBody.error || genericError };
+      if (canonical.status === 429) {
+        return { status: 'failed', error: errorMessages.rateLimit };
       }
+      if (canonical.status === 503) {
+        return { status: 'failed', error: errorMessages.unavailable };
+      }
+      return { status: 'failed', error: canonicalBody.error || errorMessages.generic };
     }
 
     return { status: 'complete' };
   } catch {
-    return { status: 'failed', error: genericError };
+    return { status: 'failed', error: errorMessages.generic };
   }
 }
 
-async function fetchOrGenerateMatching(applicationId: string, genericError: string): Promise<ReportState> {
+async function fetchOrGenerateMatching(
+  applicationId: string,
+  errorMessages: { generic: string; rateLimit: string; unavailable: string },
+): Promise<ReportState> {
   try {
     const existing = await fetch(`/api/applications/${applicationId}/strategy/course-match`);
     const existingBody = await existing.json().catch(() => ({}));
@@ -52,10 +46,14 @@ async function fetchOrGenerateMatching(applicationId: string, genericError: stri
 
     const created = await fetch(`/api/applications/${applicationId}/match-insights`, { method: 'POST' });
     const createdBody = await created.json().catch(() => ({}));
-    if (!created.ok || createdBody.error) return { status: 'failed', error: createdBody.error || genericError };
+    if (!created.ok || createdBody.error) {
+      if (created.status === 429) return { status: 'failed', error: errorMessages.rateLimit };
+      if (created.status === 503) return { status: 'failed', error: errorMessages.unavailable };
+      return { status: 'failed', error: createdBody.error || errorMessages.generic };
+    }
     return { status: 'complete' };
   } catch {
-    return { status: 'failed', error: genericError };
+    return { status: 'failed', error: errorMessages.generic };
   }
 }
 
@@ -68,52 +66,78 @@ export function AnalysisWorkspace({
   confirmedAt?: string | null | undefined;
   matchingSubtitle?: string | undefined;
 }) {
-  const t = useT();
+  const { t, lang } = useLanguage();
   const [personal, setPersonal] = useState<ReportState>({ status: 'generating' });
   const [matching, setMatching] = useState<ReportState>({ status: 'generating' });
-  const ran = useRef<Record<ReportKey, boolean>>({ personal: false, matching: false });
 
   const personalHref = `/ai-strategy/personal-report?return=${encodeURIComponent(`/ai-strategy/${applicationId}/strategy/analysis`)}`;
   const matchingHref = `/ai-strategy/${applicationId}/matching-report`;
-  const genericError = t('Something went wrong. Please try again.');
+  const errorMessages = useMemo(
+    () => ({
+      generic: t('Something went wrong. Please try again.'),
+      rateLimit: t('Rate limit reached. Please wait a moment and try again.'),
+      unavailable: t('Service temporarily unavailable. Please try again shortly.'),
+    }),
+    [t],
+  );
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);
 
   useEffect(() => {
-    if (ran.current.personal) return;
-    ran.current.personal = true;
-    async function run() {
-      setPersonal(await fetchOrGeneratePersonal(applicationId, genericError));
+    let active = true;
+    async function loadReports() {
+      const personalState = await fetchOrGeneratePersonal(errorMessages);
+      if (!active) return;
+      setPersonal(personalState);
+      if (personalState.status !== 'complete') {
+        setMatching({
+          status: 'failed',
+          error: personalState.status === 'failed' ? personalState.error : errorMessages.generic,
+        });
+        return;
+      }
+      const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages);
+      if (!active) return;
+      setMatching(matchingState);
     }
-    void run();
-  }, [applicationId, genericError]);
+    void loadReports();
+    return () => {
+      active = false;
+    };
+  }, [applicationId, errorMessages]);
 
-  useEffect(() => {
-    if (ran.current.matching) return;
-    ran.current.matching = true;
-    async function run() {
-      setMatching(await fetchOrGenerateMatching(applicationId, genericError));
-    }
-    void run();
-  }, [applicationId, genericError]);
-
-  function retryPersonal() {
+  const retryPersonal = useCallback(async () => {
     setPersonal({ status: 'generating' });
-    fetchOrGeneratePersonal(applicationId, genericError).then(setPersonal);
-  }
-
-  function retryMatching() {
     setMatching({ status: 'generating' });
-    fetchOrGenerateMatching(applicationId, genericError).then(setMatching);
-  }
+    const personalState = await fetchOrGeneratePersonal(errorMessages);
+    setPersonal(personalState);
+    if (personalState.status !== 'complete') {
+      setMatching({
+        status: 'failed',
+        error: personalState.status === 'failed' ? personalState.error : errorMessages.generic,
+      });
+      return;
+    }
+    const matchingState = await fetchOrGenerateMatching(applicationId, errorMessages);
+    setMatching(matchingState);
+  }, [applicationId, errorMessages]);
+
+  const retryMatching = useCallback(() => {
+    if (personal.status !== 'complete') {
+      void retryPersonal();
+      return;
+    }
+    setMatching({ status: 'generating' });
+    void fetchOrGenerateMatching(applicationId, errorMessages).then(setMatching);
+  }, [applicationId, errorMessages, personal.status, retryPersonal]);
 
   const completeCount = [personal, matching].filter((report) => report.status === 'complete').length;
   const allComplete = completeCount === 2;
   const anyFailed = personal.status === 'failed' || matching.status === 'failed';
   const confirmedDate = confirmedAt
-    ? new Date(confirmedAt).toLocaleString('en-US', {
+    ? formatUiDateTime(confirmedAt, lang, {
         day: 'numeric',
         month: 'long',
         year: 'numeric',

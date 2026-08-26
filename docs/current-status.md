@@ -1,6 +1,230 @@
 # Current project status
 
-Last reconciled: **2026-08-15 (Asia/Bangkok)**
+Last reconciled: **2026-08-25 (Asia/Bangkok)**
+
+Working tree 2026-08-25: Comprehensive SEO improvement plan (`docs/plans/2026-08-25-seo-improvement-implementation-plan.md`) implemented end-to-end.
+- **GEO Quality Gate & CMS read boundary:** `src/lib/geo-cms-validation.ts` enforces zero placeholder markers (`TODO_SOURCE_REQUIRED`, generator draft copy) and source verification on tuition/entry claims across the admin publish API and reader path.
+- **Route Indexability Contract:** Pure classifier `src/lib/seo/indexability.ts` and explicit `robots: { index: false, follow: false }` metadata in layouts for `/auth`, `/apply`, `/profile`, `/dashboard`, `/admin`, `/onboarding`, `/ai-strategy`, `/coordinator`, `/payment`, `/plus/success`. Private redirect responses carry `X-Robots-Tag: noindex, nofollow` in `src/proxy.ts`.
+- **Server-rendered Vietnamese Routes & Reciprocal `hreflang` (Part 7):** Created `src/lib/seo/alternates.ts` for clean reciprocal alternates generation (`canonical`, `en`, `vi`, `x-default`). Created Vietnamese server routes under `src/app/vi/**` (`/vi`, `/vi/about`, `/vi/how-it-works`, `/vi/news`, `/vi/news/[slug]`, `/vi/universities`, `/vi/universities/[id]`, `/vi/advisors`, `/vi/advisors/[id]`, `/vi/scholarships`) with `LanguageProvider defaultLang="vi"` in `src/app/vi/layout.tsx`.
+- **Truthful & Stable Sitemap with Alternates:** `src/app/sitemap.ts` emits canonical public URLs (both English base routes and `/vi` routes) with full `alternates.languages` mappings (`en`, `vi`), removes `/apply`, and binds honest publish/update dates (`guide.updatedAt || guide.publishedAt`) instead of `new Date()`.
+- **Canonical & Entity Structured Data:** `src/lib/seo/json-ld.ts` provides XSS-safe serialization and standard schema builders (`Article`, `BreadcrumbList`, `CollegeOrUniversity`, `Person`, `Organization`, `WebSite`). Embedded on `/news/[slug]`, `/universities/[id]`, `/advisors/[id]`, and `/`.
+- **Crawlable `/scholarships` Preview:** Signed-out visitors and crawlers receive an indexable, search-filtered scholarship directory with rendered `<h1>` without auth redirection.
+- **Automated Regression Gate:** Added `scripts/check-seo.mjs` and npm command `npm run seo:check`.
+- **Strategy & Entity Docs:** Authored `docs/seo-content-strategy.md`, `docs/seo-entity-checklist.md`, and `docs/seo-baseline-2026-08-25.md`.
+- **Measured Gates:** Full test suite (329 test files, 3,165/3,165 tests passing), `npm run typecheck` (0 errors), `npm run typecheck:strict` (0 errors), `npm run lint` (0 errors, 0 warnings), `node scripts/check-i18n.mjs --all` (0 missing static keys, 0 placeholder mismatches), `npm run seo:check` (100% pass), `npm run build` (all 145+ static & dynamic routes compiled successfully).
+
+Working tree 2026-08-23: the report pipeline now enforces Personal Report
+completion before Matching Report generation, records Personal Report lineage
+on Matching Report rows, and filters Strategy/Planner consumption to the
+current Matching prompt and F5 engine. The canonical planner selects the
+current schema-validated F8 `report_v2` before its F7 fallback and reconciles
+F8 phase/deliverable keys into `application_plans` → phases → steps →
+micro-steps. Regeneration keeps the same deliverable node identity and never
+writes student-owned `status`, `deadline`, submitted content, or evidence.
+Planner context carries stored deadlines, application-requirement IDs, explicit
+profile preferences, and only explicit `planner.availability` /
+`planner.time_capacity` answers; it does not infer availability. Measured:
+focused report + planner regression suite **77/77 passing**, `npm run
+typecheck` passing, and ESLint passing on the changed planner files. Live
+schema application and signed-in browser verification remain unrun.
+
+The availability/time-capacity contract now has a canonical producer: declared
+`long_text` inputs with stable semantic keys. The deterministic mapper emits
+only missing inputs, the existing generic content-value flow marks a declared
+answer for re-sync, and reconciliation retains answered nodes without copying
+student-owned `content_value` or creating duplicates. Existing canonical plans
+that lack an unanswered declared input receive the same one-time upgrade. This
+addition measured **64/64** focused planner tests passing, `npm run typecheck`,
+and ESLint on all changed contract files; browser/database verification remains
+unrun.
+
+Full UI Polish across all Planner views (List, Calendar, Board/Kanban) complete 2026-08-23.
+- `HierarchicalApplicationPlanner`, `PlannerCalendar`, `PlannerBoard`, `PlannerShared`: refined with GlowBal design tokens (`brand` #E11D48, `surface-muted`, `line`, `rounded-gb-2xl`), responsive month headers, clean 6-week day cells, today badge, in-cell task cards, unscheduled sidebar trays, 5-column Kanban board with status indicator accent dots, count pills, and quick status select dropdowns.
+- Strict typecheck (`tsc -p tsconfig.strict.json`), i18n check (`check-i18n.mjs --all` with 0 missing keys), test suites (39 files, 437/437 passing), and Next.js production build (`npm run build`, 135/135 pages compiled) all verified passing 100%.
+
+Wave 2 of `docs/plans/2026-08-23-feature-2-parts-5-9-execution-v2.md`
+(Part 6 GenUI) complete 2026-08-23 (commits `d7fccee`, `f5f0112`).
+`contentBlockSchema` variants now accept an optional `v` literal — only
+absent (legacy v1) or `1` parses; anything else degrades to `null` on
+read-back with no migration and no generator change, and student
+`content_value` stays unversioned. The degradation tests became a full
+fixture matrix (29 block + 13 value rows), and three ownership-proof
+tests pin reconcile: unchanged `domain_node_id` ⇒ same-row update,
+micro-step writes carry generated keys only (exact key-set assertion),
+checklist user progress survives regeneration. UI side:
+`ui/content-blocks/registry.ts` is an exhaustive block-input map behind a
+thin dispatcher — adding a variant without an input is a compile error;
+null/unknown blocks land on an honest FallbackBlock. structured_table
+renders card-per-row below 768px with the desktop table untouched,
+long_text wires its hint via aria-describedby, the checklist is
+regeneration-safe, single_select still saves by value with semanticKey
+never in the DOM. Measured gates: feature suite 39 files / **434 tests**
+(+50 vs Wave 1), typecheck + typecheck:strict clean, eslint clean on all
+changed files, `check-i18n --all` green. Still open in Part 6: §6.10
+verify against a real F8 generation (generate → Add-to-Planner → sync ×2
+no duplication → one broken block does not sink the page → mobile
+complete), which needs a dev server.
+
+Wave 1 of `docs/plans/2026-08-23-feature-2-parts-5-9-execution-v2.md`
+complete 2026-08-23 (commits `def840f`, `9d9f6d9`, `afa726f`, `947c7aa`,
+`ec9a5f6`). Part 5.2–5.4: board and calendar are now dispatcher components —
+desktop trees byte-identical, narrow viewports get `BoardMobile` (ARIA tablist
+with per-status counts, one mounted tabpanel, per-card `<select>` through the
+same `onStatusChange`) and a compact calendar grid with a tap-selected day
+agenda plus an unscheduled tray whose drop handlers survive behind a
+disclosure. New `ui/use-media-query.ts` uses `useSyncExternalStore` with a
+desktop server snapshot so hydration never mismatches; the shared matchMedia
+test stub resolves width queries against jsdom's real 1024×768 viewport and
+exposes per-query overrides. Part 5.5–5.8: pure reminder policy in
+`src/lib/email/planner-reminders.ts` (user-local Intl calendar math anchored
+at UTC midnight, authority gate before parsing, ISO-8601 week keys, throwing
+event-key builders), wired into `/api/cron/lifecycle-emails` as two batched ≤200
+processors with per-item try/catch — deadline reminders (30/7/1-day +
+same-day, terminal application statuses excluded) and the weekly strategy
+digest over canonical micro-steps only (completed excluded, empty weeks never
+mail). `weeklyStrategyDigestEmail` added to lifecycle templates;
+`deadlineReminderEmail` says Deadline-today for daysRemaining 0. 11 new VI
+entries in `PLANNER_TRANSLATIONS`. Measured gates: feature suite 39 files /
+384 tests, email + cron suites 42 tests, repo-wide typecheck and
+typecheck:strict clean, eslint clean on all changed files, `check-i18n --all`
+green (0 missing / 0 mismatch / 0 dynamic gaps). Still open in this wave:
+Task 5.9 full regression including `npm run build`; hierarchical planner
+mobile pattern deferred to a second pass.
+
+Pushed 2026-08-23: `def840f..dda242e main -> origin/main` after the full
+suite measured 320 files / 3063 passed / 0 fail and `npm run build` exited 0.
+Consolidated pending-migration list agreed with the owner same day (each file
+idempotent; verify against a live schema dump before treating any as applied —
+this sandbox has no service key):
+**A. now required by the email cron** — `supabase-email-system.sql` (dev +
+production; without it the cron still sends but has no durable event_key
+dedup); **B. canonical planner** — `supabase-core3-plan-hierarchy.sql` then
+`supabase-canonical-planner-production.sql`; **C. Parts 0–4 strategy reports**
+— `supabase-matching-report-personal-lineage.sql`,
+`supabase-strategy-recommendation-lineage.sql`,
+`supabase-strategy-report-v2.sql`, `supabase-report-overrides.sql`,
+`supabase-recommendation-source-key.sql` (`supabase-match-report-narrative.sql`
+dropped from the list: zero `match_report_narrative` references remain after
+the PR #216 merge removed the narrative layer); **D. Final Check** —
+`supabase-final-check.sql`; **E. repairs still NOT CONFIRMED RUN per
+known-issues §5r/s/t** — `supabase-application-cascade-repair.sql`,
+`supabase-personal-report-supplements.sql`,
+`supabase-personal-report-versions.sql`; **F. payments, when used** —
+`supabase-plus-promo-redemption.sql` then `supabase-plus-promo-v2.sql`
+(in that order), `supabase-manual-payment-subscription-conflict-repair.sql`
+(the first repair is confirmed applied), `supabase-vnpay-payments.sql`.
+
+Merge 2026-08-23 (latest): merged `origin/main` (4 incoming commits) into local
+`main`, which had diverged 3/4. The big incoming commit is PR #216 — an
+independent implementation of the same Feature-2 surface our Parts 0–4 work
+covered: real F5 engine (`assessProgrammeFit`, AcademicBand-based
+classification, `strong_match`, fractional scores), Matching Report rebuilt as
+six sections on the canonical route, Strategy Report restructured into five
+sections, Final Check built end to end (route + API + repository +
+`supabase-final-check.sql`, nav unlocked), plus three planner deadline-input
+fixes. Resolution rule: where the two implementations overlapped, PR #216's
+design wins (it is what their presentation layer, docs, and tests pin); where
+our work was independent and still true, it was preserved. Concretely: our
+`evaluateProgrammeFit`/`compositeScore` engine, the AI `matchingReportNarrative`
+layer (schema + prompt + persistence + retry paths), and its dictionary/tests
+were removed in favour of theirs — including reverting
+`ai-reports-repository.ts` to base; our lang-aware dates in
+`strategy-recommendation-report.tsx` (`formatUiDate(iso, lang)`) and the
+`withReturn('/profile', …)` thread on the rebuilt Matching Report were ported
+onto their versions; the recovered `i18n-dictionary.ts` block survived intact
+and their two workspace-status entries were appended (union, 0 duplicate keys).
+Semantic breakage the textual merge hid and this pass fixed:
+`match-insights/route.ts` still referenced `.narrative`/`.deterministicEvaluation`,
+and domain/index.ts still re-exported the deleted schema. Measured after the
+merge: typecheck ✅, typecheck:strict ✅, lint 0 errors (4 pre-existing
+warnings), `check-i18n --all` green (0 missing / 0 mismatch / 0 dynamic gaps),
+dictionary scan 4523 keys / 0 dups, full `npm test` 2944 passed with 2
+timeout-flaky failures that both pass in isolation (resource contention under
+parallel load, not merge damage). NOTE: vitest now runs inside the sandbox
+(file policy changed to danger-full-access), so future passes can measure
+tests directly. Backup branch before the merge: `backup/pre-merge-f67b35f`.
+Still unrun: `supabase-final-check.sql` must be applied before Final Check
+generation works in production (per PR #216).
+
+Working tree 2026-08-23 (later): bug-fix pass over the Parts 0–4 three-agent
+review (every finding re-verified against the working tree before fixing).
+Fixed: `matching-report-view.tsx` "Check profile data" threads `?return=` via
+the shared `withReturn` helper (the exact 5s/5u regression class); report-family
+dates go through new `shared/lib/ui-date.ts` (`formatUiDate`/`formatUiDateTime`,
+locale follows UI language) replacing hardcoded `en-US`/`en-GB`/`vi-VN`
+literals in matching-report-view, version-history, personal-report-v2-view,
+review-confirm-view, analysis-workspace, strategy-recommendation-report; three
+retired radius values in `personal-canvas.tsx` mapped to `rounded-gb-xl/2xl`;
+strategy export route answers **501** ("renderer not built for F8") for
+F8-only rows instead of the misleading 409; the F8 Strategy Report view gained
+an Add-to-Planner card reusing `generateRoadmapTasks` (which already reads
+`report_v2`); ~50 missing VI dictionary entries added — matching-report band/
+status labels (dynamic `t()` calls invisible to the static audit) plus F8
+chrome strings. INCIDENT, recovered: an accidental full-file overwrite
+destroyed the uncommitted tail of `i18n-dictionary.ts`; rebuilt by combining
+HEAD with string-literal pairs extracted from the Turbopack dev cache
+(`.next/**/src_lib_*` chunks keep source-format literals), a verbatim pre-loss
+read of lines 4208–4257, and freshly written translations only where no copy
+existed (F8 chrome, band labels); duplicates against HEAD deduped (11 lines,
+double-quoted HEAD tail the extractor initially missed). Verification this
+pass: typecheck clean on every touched file (repo-wide still blocked by the
+pre-existing untracked `glowbal-resend-v2/` missing deps), eslint 0 errors on
+changed files, `check-i18n --all` green (0 missing / 0 mismatch / 0 dynamic
+gaps). NOT run here: targeted vitest — the sandbox denies the child-process
+spawn vitest's config loader needs (`spawn EPERM`); run `npm test` outside
+before committing.
+
+Working tree 2026-08-23: Feature 2 Parts 3–4 implemented on top of the
+reviewed Parts 0–2. Part 3: F5 deterministic engine hardened (out-of-range
+rejection, complete missingInputs) with a 29-test matrix + drift-detector vs
+`enforceFitClassification` (33 boundary/gate cases); wired into match-insights
+(classification re-derived server-side, renormalisation disclosed in
+limitations, composite computed render-side via `fitScoreToPercent`);
+optional AI narrative (`match_report_narrative`) persisted/read with graceful
+degradation; Matching Report UI rebuilt around the six canonical sections.
+Part 4: five-section F8 payload (`strategyReportV2Schema`, prompt
+`strategy-report-f8-v3`) persisted in `report_v2` JSONB with legacy-shape
+fallback when migrations lag; student overrides table
+(`application_report_overrides`) + editable Strategic Priority Table layered
+override-first; Strategy Report UI dual-shape (v2 rows → new view, old rows →
+F7 layout untouched); Planner seeds from F8 deliverables keyed by deterministic
+`source_key` (migration adds column) so regeneration updates in place and never
+duplicates. Verification: 108 suites / 1053 tests pass, typecheck + strict
+clean, eslint clean on changed files, i18n 0 missing. PENDING: run 5 new SQL
+migrations live (`supabase-strategy-recommendation-lineage.sql`,
+`supabase-match-report-narrative.sql`, `supabase-strategy-report-v2.sql`,
+`supabase-report-overrides.sql`, `supabase-recommendation-source-key.sql`);
+untracked `glowbal-resend-v2/` folder breaks local `npm run typecheck`
+(missing deps, unrelated to this work); PDF export still renders legacy rows
+only.
+
+Working tree 2026-08-23 (F5 route wiring): the live
+`applications/[id]/match-insights` route now adapts the validated model F5
+dimensions/eligibility into the shared deterministic engine. Weighted score,
+missing-dimension renormalisation, hard eligibility gates, confidence and
+classification are canonical server output; model classification/confidence
+are ignored. The input hash includes `F5_ENGINE_VERSION` so pre-change rows do
+not cache-hit. Measured: route regression 4/4, combined F5/AI/route suites
+46/46, matching presentation suites 31/31, base TypeScript clean, and ESLint
+clean on changed files. Strict TypeScript remains blocked only by the
+pre-existing `hierarchical-application-planner.test.tsx` optional-id error.
+
+Working tree 2026-08-22: Feature 2 Parts 0–2 implementation review + bug-fix
+pass. Fixed in `strategy/recommendation/route.ts`: the route wrote a
+`student_personal_report_versions.id` into `source_analysis_id`, whose FK still
+references `applicant_analyses(id)` — every fresh insert failed 23503 and the
+silent fallback nulled lineage AND made the flawed cache check stale-hit forever
+(`|| !latestStrategy.source_analysis_id`). New guarded migration
+`supabase-strategy-recommendation-lineage.sql` adds `input_hash` +
+`source_personal_report_version_id` (correctly typed FK); the route now persists
+both, never writes `source_analysis_id`, caches on content-hash primary /
+exact-lineage fallback, and degrades to the pre-lineage insert shape when the
+migration has not run. Also fixed: activity-reflection "Finish reflection"
+missing `.catch` (unhandled rejection); personal-reflection-form now flushes a
+pending debounced edit on unmount; `fitScoreToPercent`/`F5_DIMENSION_WEIGHTS`
+deduped into `src/shared/evaluation/f5-programme-fit.ts` (re-exported from
+ai-reports). Verification: 9 focused suites / 109 tests pass, typecheck +
+strict typecheck + eslint clean, check-i18n 0 missing keys.
 
 Code snapshot: branch `claude/university-application-flow-0khm6v`, restarted
 from `main` after the branch's previous content (the application setup flow
@@ -20,6 +244,17 @@ that entry directly; free users retain the existing legacy onboarding gate.
 Focused navigation tests pass 14/14 and TypeScript passes. The production
 Supabase migration and deployment remain required before the canonical route
 can initialize a real plan.
+
+Working tree 2026-08-23: both Strategy Report variants now hand off directly
+to `/ai-strategy/[applicationId]/planner`; they no longer POST to the legacy
+`roadmap-tasks` route, which rejects canonical Planner applications. A separate
+production defect was found in `reconcile_canonical_application_plan`: the RPC
+overwrote the parent step UUID with the first inserted micro-step UUID, so any
+step with multiple micro-steps failed its second insert. Apply
+`supabase-canonical-planner-multi-microstep-fix.sql` after
+`supabase-canonical-planner-production.sql` to repair the installed function.
+The AI Strategy/Planner suite passes 451/451, TypeScript passes, and changed-file
+ESLint passes; E2E was intentionally not run.
 
 Working tree 2026-08-21: Core 3 Plan now has a server-only, deterministic-first
 AI enrichment boundary using the existing OpenAI JSON-mode client. Pure
@@ -155,6 +390,62 @@ owner's implementation spec, then a follow-up UX/navigation correction pass
 "Application setup" stepper, the approved four-category taxonomy, and a
 three-level low-effort reflection UX) against the owner's second spec. See
 "Last completed work" below for both.
+
+Working tree 2026-08-20 (branch `claude/feature-2-strategy-review-ahahsw`,
+PR #216): the four Strategy reports. Detail and the decisions behind them are in
+[strategy-reports-spec.md](strategy-reports-spec.md) and
+[feature-2-plan.md](feature-2-plan.md).
+
+- **F5 Programme Fit is implemented.** `src/shared/evaluation/f5-programme-fit.ts`
+  was interfaces-only (`buildProgrammeFitPlaceholder` returned `not_available`
+  for every dimension) and was the one framework with no test file. It now
+  scores against the documented weights (academic 25, persona 25, career 20,
+  financial 15, readiness 15) via `weightedScore`, so a missing dimension is
+  renormalised and disclosed rather than scored zero. Hard eligibility gates run
+  before any arithmetic and can only produce `currently_ineligible`; only an
+  explicit `not_met` fails, since `unknown` means unchecked. The band is decided
+  by the academic dimension alone, tested in both directions.
+- **`strong_match` added** between match and safety, thresholds shared through
+  `academicBandClassification()`. An academic score of 4 now classifies as
+  `strong_match` where it previously fell into `match`.
+- **`fitDimensionSchema.score` no longer requires an integer.** Five integers
+  could only render as multiples of 20, so the report layout's 75/88/92% were
+  unreachable. Percentages convert as `(score - 1) / 4 * 100`.
+- **The Matching Report route was pointing at the wrong component.**
+  `/ai-strategy/[applicationId]/matching-report` rendered `ProgrammeFitReport`
+  (a six-tab view of catalogue facts, no F5 in it), while `MatchingReportView` —
+  built on the F5 contract — was exported and rendered by nothing. The route now
+  renders the latter, rebuilt as six sections. `ProgrammeFitReport` is retained;
+  the older `/strategy/analysis/*` surfaces still reach it.
+- **The Strategy Report is five sections**, not six engine-named tabs. Direction
+  scores are derived into a key strength and biggest challenge, and the ranking
+  now carries the margin to the leader. Academic and experience development
+  strategies are named as not generated rather than padded — they need new
+  prompt fields.
+- **Final Application Check is built** at `/ai-strategy/[applicationId]/final-check`
+  and unlocked in the nav. Readiness is computed deterministically from
+  component coverage minus outstanding critical findings; the generation schema
+  has no field for a score, so a model cannot author one. `not_required` is
+  distinguished from `missing`, and a recommender strategy never counts as a
+  reviewed letter.
+  ⚠️ **`supabase-final-check.sql` has NOT been run.** Until it is, generation
+  returns 503 with a named hint and the page renders the live inventory only.
+- **Four Personal Canvas bugs fixed.** Modifier chords were treated as canvas
+  shortcuts, so Cmd/Ctrl+F toggled focus mode and called `preventDefault()` —
+  find-in-page was broken across the whole report. The detail panel moved no
+  focus, stranding keyboard and screen-reader users behind a full-screen mobile
+  overlay. The keydown effect had no dependency array. `contentEditable` hosts
+  were not guarded.
+- **No admission probability anywhere.** Both the match score and the readiness
+  figure measure alignment/completeness, with disclaimers pinned by tests that
+  assert no user-facing string uses chance, odds, likelihood or probability
+  wording in either language.
+
+Verification for that work: typecheck, typecheck:strict, lint (one pre-existing
+unrelated manual-payment warning), `check-i18n` at 0 missing static keys and 0
+missing dynamic catalog entries, full Vitest 2735 passing across 292 files, and
+a production build that emits every new route. Local builds need Supabase env
+vars present; CI supplies them.
 
 Working tree 2026-08-18: `/universities/matches` now uses deterministic
 `university-rec-v1` preference recommendations. The route loads profile inputs,
@@ -385,6 +676,7 @@ code, the code wins.
 
 | Commit | Completed work | User and system impact |
 |---|---|---|
+| `working tree` (Planner deadline entry) | **Fixed the Planner deadline field making the year impossible to type.** Reported by the owner with a row saved as `03/03/0002`. A native `<input type="date">` publishes a value the instant all three segments hold something, so hand-typing the year walked it through `0002-…` → `0020-…` → `0202-…` → `2026-…`, firing a change event each step. `DeadlineControl` treated every one as a committed edit — and the resulting save set `disabled` on the input, which **removes focus**, so the remaining three digits went nowhere and year 2 was what got PATCHed. The old `^d{4}-d{2}-d{2}$` regex on both `recommendationPatchSchema` and `plannerMicroStepExecutionPatchSchema` accepted it. Now: a shared `isPlannerDeadline` (real calendar day, `DEADLINE_MIN` 2000-01-01 … `DEADLINE_MAX` 2100-12-31) gates both the control and both schemas; the control never disables itself (save ordering is kept by chaining onto any save still open instead) and holds an editing draft so a re-render cannot reset the segment being typed; `min`/`max` mirror the window into the native picker; an inline "Enter a four-digit year to save this deadline." hint means a half-typed year no longer fails silently. Both planner surfaces share the control, so the list, the calendar tray and the micro-step detail page are all covered. **Save ordering moved to `usePlannerRecommendations`** (Codex review): the control briefly queued saves itself, which deferred the *optimistic update* along with the request and left the queued callback resolving its rollback against a stale render snapshot — a failure could then roll the row back past a value the server had already accepted. The hook now reads the array from a `latest` ref updated synchronously by `applyLocally` (correct rollback base), serializes only the PATCH behind any request still open (correct Postgres ordering, immediate optimism), and drops a rollback whose edit has since been superseded (`editSeq`, keyed per `id:field` so a status edit cannot cancel a deadline edit). 334/334 ai-strategy-dashboard tests, both TypeScript checks, ESLint (0 errors), the static i18n audit (0 missing keys) and the production build pass. Pre-existing unrelated failures: `src/lib/payments/vnpay-migration.test.ts` (fails on a clean tree too) and three 5s-timeout flakes under full-suite load (`cv/review`, `cv/target-profile`, `StatementWriter`) that pass in isolation. | A student can type a deadline by hand again. Deadlines outside 2000–2100 can no longer be written by any path. **Rows already saved with a bogus year are not cleaned up by this change** — the Supabase project was paused, so no audit query was run; `application_recommendations.deadline` outside the window needs a one-off sweep once it is live. |
 | `working tree` (scholarship drawer on the tracker) | **Made the chosen scholarships visible on the application they were chosen for.** Reported by the owner 18/08: an application row means "I saved this university, picked its scholarships and pressed Plan my application", but the row named none of them — the only place the choice showed was the saved list further down, i.e. the step before. New `src/app/apply/application-scholarships.tsx`: a rose drawer under each row, open by default when something is chosen, each award a coupon-style ticket (value on a dashed stub, scope, name trimmed of the university by `scholarshipLabel`, deadline, official-page link, Remove), with a header carrying the count and the best stated coverage percentage, and a multi-select picker dialog. Modelled on the gift/voucher block an e-commerce cart nests under a line item, per the owner's reference. Writes go straight to `user_scholarships` with the student's own session (RLS is `auth.uid() = user_id` for all verbs), the same way the saved list's existing attach/remove already work, followed by `router.refresh()` so the saved list's badges and net-tuition figures are re-read rather than guessed. Server side, `fetchApplicationScholarships` in `apply/page.tsx` adds two reads for the whole list — the `user_scholarships → scholarships` join, and `byUniversityIds` for what the picker offers. ⚠️ **Keyed by university, not application**: `user_scholarships` has no `application_id` and none was invented, so two applications at one university show the same awards and a change here also changes the saved list; the picker says so. ⚠️ **The two sets overlap but neither contains the other** — measured live 18/08, 39 of 84 saved awards point at a scholarship that is not linked to the university it was saved under, so `chosen` cannot be derived by filtering the directory's options and the drawer unions them instead. `/dev/saved-list` now renders one preview application so the drawer is reviewable without an account. **Two review findings fixed on top:** (1) `SavedListSection` seeded its local `rows` from props ONCE and never reconciled — a pre-existing bug the drawer made reachable a new way, since `router.refresh()` preserves client state, so the saved list below kept showing the old badges and net tuition after any change (including its own "Apply scholarship"); it now re-seeds when the prop identity changes, guarded by a regression test that was confirmed to fail without the fix. (2) A tick and an untick in one Save are two statements with no transaction available from the browser: the delete no longer runs if the upsert failed (a failed swap used to take the old award away and put nothing in its place), and the drawer is set to what actually landed rather than rolled back wholesale, with the dialog staying open and showing the error so the student can retry from their own ticks. | A student sees, on the application itself, which funding they are applying with — and can add or drop an award without scrolling to the saved list and re-ticking a university. No migration: `user_scholarships` already carries `university_id` (`supabase-saved-scholarships.sql`). 13 new EN→VI dictionary entries, required because `/apply` is a PII route with machine translation switched off. Measured: base TypeScript clean apart from one pre-existing stale `.next/types/validator.ts` reference to a deleted route, ESLint 0 findings on the changed files, 4 new component tests passing, and the drawer/picker/mobile reflow verified in a browser against live directory data. |
 | `working tree` (contact-details gate) | **Made name / phone / date of birth mandatory on every sign-up path.** Measured cause first: of 409 accounts, 333 came through Google and **none** of them had a phone or a date of birth, because Google's consent screen returns only name/email/picture and no OAuth provider will render our fields. The email path was fine (62/73) — its 13 gaps all predate 2026-06-20, when the fields were added to the form. New: `src/features/auth/domain/contact-details.ts` (pure predicate + validation, 12 unit tests) and `/auth/complete-profile`, a three-field screen with **no skip control** (owner's call, hard gate). `src/proxy.ts` holds any signed-in student missing phone or DOB there before the onboarding gate, sharing one profile read with it; `/auth/callback` sends them there at sign-in. `/universities` and `/advisors` stay ungated so browsing never hits the wall. Also closed the email hole: `/api/auth/signup` had `full_name`/`phone`/`date_of_birth` as Zod `.optional()` defaulting to `''`, so HTML `required` was the only enforcement and a direct POST created blank-field accounts. Phone is now normalised to E.164 (VN `0…` → `+84…`) and written straight to `student_profiles` rather than via the lossy auth-metadata copy in the callback — the path that turned 63 metadata phones into 16 profile ones. ⚠️ **`''` is the missing value here, not NULL**: 19 rows are NOT NULL, 16 hold a number. ⚠️ The E2E account (`E2E_EMAIL`) now needs phone + DOB or `signed-in.spec.ts` fails on its first assertion. **Four review findings fixed on top:** (1) `PROTECTED_ROUTES` is not the set of authenticated routes — `/ai-strategy/*`, `/scholarships` and `/universities/matches` each call `getUser()` inside their own server component, so a gate built from that list alone left them reachable by URL; they are now named explicitly in `CONTACT_GATED`, while payment returns (`/plus/success`, `/payment/*`) are deliberately excluded so a paid-for confirmation is never bounced into a form. (2) The form now carries `method="post"` — a submit that beats hydration fell back to a native GET, putting name/phone/DOB in the URL, history and access logs. (3) `?next=` accepted `//attacker.example`, which begins with `/` but is protocol-relative and leaves the origin — `safeInternalPath` now requires a real same-origin path. (4) `Date.parse` normalises impossible dates (`2002-02-30` → 2 March) rather than rejecting them, so a direct API POST reached Postgres and 500'd; `isRealCalendarDate` round-trips the components instead. |
 | `working tree` (branch `claude/university-application-flow-0khm6v`, Strategy Hub + Plus paywall) | **Rebuilt `/ai-strategy` as the "Strategy Hub"** — the animated landing page every "Strategy Master" nav click (`STRATEGY_ACTION` in `nav-items.tsx`, unchanged href) and every "Go to My Portal" CTA now lands on, replacing the old Stage-3 explainer. Built from an owner-supplied combined HTML/CSS/JS prototype (`GlowBal Strategy Hub — Combined Demo`) under `src/features/marketing/ui/strategy-hub/`: a hero reusing the homepage's existing `HeroGlobe` canvas animation (not the prototype's static globe image) with a single real CTA into `/apply` (the prototype's two-path "choose existing / start new" chooser modal collapsed to one, since `/apply` is already the unified entry point — see its own `page.tsx` comment), a click-to-play animated tour section (explicitly framed as an illustrative animation, not a real recording — no fabricated product-tour claims), and a 3-card interactive Reports Hub (Personal → the real `/ai-strategy/personal-report`, Matching/Strategy → `/apply`, since both are application-scoped) plus a 4th "Evaluation Report" card shown disabled/"Coming soon" since that feature does not exist yet. Deliberately ships no fabricated testimonials (the prototype's are explicitly placeholder-labelled) per the project's standing rule against them. Sound: real synthesized Web Audio effects (`use-strategy-hub-sound.ts`, oscillator+gain envelopes, no audio files, ported from the prototype's design), defaulting **on** per explicit owner instruction. Animations (`@keyframes` block in `strategy-hub.tsx`, same one-off pattern as `match-badge.tsx`) all pair `motion-safe:animate-[...]` with a `motion-reduce:` fallback. **Landed the GlowBal Plus paywall the previous `/ai-strategy/page.tsx` comment had been describing as not-yet-built since 01/08**: `/ai-strategy/[applicationId]/layout.tsx` now reads `plus_status`/`plus_expires_at`/`is_admin` alongside its existing ownership check and redirects a non-entitled student to `/plus?application=<id>` (a return-aware redirect target the `/plus` page already supported but nothing called) — this gates the whole per-application AI Strategy workspace (matching-report, planner, strategy-report, statement, cv/*) in one place, while the user-level Personal Report and reflections stay free, matching the owner's "paywall goes on the Strategy, after the application stage" instruction. Per explicit owner direction, this is a hard gate on ALL non-admin users (no grandfathering) — every student without an active Plus entitlement is redirected the first time they try to continue an application. Added an admin-side manual override alongside it: `/admin/users` (`admin-users-client.tsx` + `api/admin/users/route.ts`) gained a "Grant Plus"/"Revoke Plus" toggle mirroring the existing is_admin pattern (12-month grant, `plus_plan: 'admin-grant'`, best-effort audit row in `plus_subscriptions`), additive to — not a replacement for — the existing VNPay/manual-bank-transfer checkout paths and the existing `/admin/bookings` manual-payment-claim approval flow. New `src/lib/i18n-strategy-hub.ts` catalog (~65 EN/VI pairs), merged into `i18n-catalog.ts`. Full 282-file/2534-test suite, both TypeScript checks, ESLint (0 errors), the static i18n audit (0 missing keys), and the Next.js production build all pass. Browser verification not done this pass — no connected browser instance. | A student who clicks "Strategy Master" now sees a real animated hub instead of a static explainer, with working links into My Portal and the real Personal Report. A student without GlowBal Plus can still browse My Portal and open an application, but hits `/plus` the moment they try to continue into that application's actual AI Strategy workspace — no free access to Matching/Strategy reports or the planner for a specific course anymore. An admin can grant or revoke that access directly from a user search, independent of the payment flow. **No new migration required**: `plus_status`/`plus_expires_at`/`plus_plan` already existed on `student_profiles` (`supabase-plus.sql`). |
@@ -698,6 +990,11 @@ complete state rather than an empty task list.
 follow-up migration (not a rewrite of the earlier file): it revokes client-side
 canonical writes and installs the service-role-only transactional reconciliation
 RPC required by production `syncApplicationPlan()`.
+
+After that migration, apply
+`supabase-canonical-planner-multi-microstep-fix.sql`. It replaces only the RPC
+and uses a dedicated micro-step UUID variable, preserving the parent step UUID
+through the full inner loop.
 
 The dated audit remains the detailed evidence record. A code-only recheck on
 2026-08-06 found no commit that obviously closes its highest-priority items:

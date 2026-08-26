@@ -77,39 +77,48 @@ export async function fetchOnboardingState(
   userId: string,
   applicationId: string,
 ): Promise<OnboardingState> {
-  const [application, analysis, matchAnalysis, strategyRecommendation] = await Promise.all([
-    selectApplicationFlags(supabase, userId, applicationId),
-    supabase
-      .from('applicant_analyses')
-      .select('id')
-      .eq('application_id', applicationId)
-      .limit(1)
-      .maybeSingle(),
-    // `analysis_status = 'complete'` is only ever set in the same insert that
-    // writes `fit_dimensions`/`fit_classification` (match-insights/route.ts),
-    // so a row this query finds is a real Matching Report, not a placeholder
-    // — see the note on `aiAnalysisComplete` below.
-    supabase
-      .from('application_match_analyses')
-      .select('id')
-      .eq('application_id', applicationId)
-      .eq('analysis_status', 'complete')
-      .limit(1)
-      .maybeSingle(),
-    supabase
-      .from('application_strategy_recommendations')
-      .select('id')
-      .eq('application_id', applicationId)
-      .limit(1)
-      .maybeSingle(),
-  ]);
+  const [application, personalV2, legacyAnalysis, matchAnalysis, strategyRecommendation] =
+    await Promise.all([
+      selectApplicationFlags(supabase, userId, applicationId),
+      supabase
+        .from('student_personal_report_versions')
+        .select('id')
+        .eq('user_id', userId)
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('applicant_analyses')
+        .select('id')
+        .eq('application_id', applicationId)
+        .limit(1)
+        .maybeSingle(),
+      // `analysis_status = 'complete'` is only ever set in the same insert that
+      // writes `fit_dimensions`/`fit_classification` (match-insights/route.ts),
+      // so a row this query finds is a real Matching Report, not a placeholder
+      // — see the note on `aiAnalysisComplete` below.
+      supabase
+        .from('application_match_analyses')
+        .select('id')
+        .eq('application_id', applicationId)
+        .eq('analysis_status', 'complete')
+        .limit(1)
+        .maybeSingle(),
+      supabase
+        .from('application_strategy_recommendations')
+        .select('id')
+        .eq('application_id', applicationId)
+        .limit(1)
+        .maybeSingle(),
+    ]);
+
+  const hasPersonalReport = Boolean(personalV2.data) || Boolean(legacyAnalysis.data);
 
   return {
     personalSummaryComplete: Boolean(application?.personal_summary_reviewed_at),
     achievementsComplete: Boolean(application?.achievements_reviewed_at),
     personalReflectionComplete: Boolean(application?.personal_reflection_reviewed_at),
     candidateConfirmed: Boolean(application?.candidate_confirmed_at),
-    aiAnalysisComplete: Boolean(analysis.data) && Boolean(matchAnalysis.data),
+    aiAnalysisComplete: hasPersonalReport && Boolean(matchAnalysis.data),
     introSeen: Boolean(application?.strategy_intro_seen_at),
     strategyComplete: Boolean(strategyRecommendation.data),
   };

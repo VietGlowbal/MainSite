@@ -1,7 +1,16 @@
-import { z } from 'zod';
+﻿import { z } from 'zod';
+// One implementation of the F5 weights + match-percentage formula, shared with
+// the deterministic evaluation module â€” the plan's "one helper and one formula
+// everywhere" invariant. features â†’ shared is the allowed FSD direction.
+import {
+  academicBandClassification as classifyAcademicBand,
+  fitScoreToPercent,
+} from '@/shared/evaluation/f5-programme-fit';
+
+export { fitScoreToPercent };
 
 /**
- * ⚠️ v1 Personal Report (`personal-report-v1-vi`) IS DEPRECATED.
+ * âš ï¸ v1 Personal Report (`personal-report-v1-vi`) IS DEPRECATED.
  *
  * The schemas and hydration logic that used to live here
  * (`personalReportSchema`, `personalReportDraftSchema`, `hydratePersonalReport`,
@@ -9,11 +18,11 @@ import { z } from 'zod';
  * report from a model-authored draft. The canonical Personal Report is now
  * `PersonalReportV2` (`src/features/apply/domain/personal-report.ts`), built
  * deterministically on top of the Shared Evaluation Engine's
- * `ProfileEvaluation` (`src/shared/evaluation`) — see
+ * `ProfileEvaluation` (`src/shared/evaluation`) â€” see
  * `docs/ai-evaluation-engine.md`. `/ai-strategy/report` permanently redirects
  * to `/ai-strategy/personal-report` (`next.config.ts`).
  *
- * `CandidateContext`/`loadCandidateContext` are NOT deprecated — the v2
+ * `CandidateContext`/`loadCandidateContext` are NOT deprecated â€” the v2
  * pipeline (`src/lib/ai/personal-report-v2.ts`) still reads the same
  * candidate context shape, it just extracts a `ProfileEvaluationInput` from
  * it instead of prompting a model for a whole report draft. `evidenceRefSchema`'s
@@ -64,7 +73,7 @@ export function canonicalize(value: unknown): unknown {
 
 /**
  * A 0-100 confidence score derived from how much of the candidate context is
- * actually filled in — still used by the Matching Report's `match-insights`
+ * actually filled in â€” still used by the Matching Report's `match-insights`
  * route to cap its own system-fit confidence. NOT part of v1's report
  * hydration anymore; that half of this function's original job
  * (`hydratePersonalReport`) is deleted, but the score itself is a generic
@@ -98,16 +107,16 @@ export function candidateConfidence(context: CandidateContext): {
   const limitations: string[] = [];
   if (activityCount < 3) {
     limitations.push(
-      'Chưa có đủ ba hoạt động độc lập để xác lập một mẫu hình ứng viên đáng tin cậy.',
+      'ChÆ°a cÃ³ Ä‘á»§ ba hoáº¡t Ä‘á»™ng Ä‘á»™c láº­p Ä‘á»ƒ xÃ¡c láº­p má»™t máº«u hÃ¬nh á»©ng viÃªn Ä‘Ã¡ng tin cáº­y.',
     );
     score = Math.min(score, 54);
   }
   if (!corroborated) {
-    limitations.push('Các nhận định hiện chủ yếu dựa trên thông tin tự khai, chưa có bằng chứng đính kèm.');
+    limitations.push('CÃ¡c nháº­n Ä‘á»‹nh hiá»‡n chá»§ yáº¿u dá»±a trÃªn thÃ´ng tin tá»± khai, chÆ°a cÃ³ báº±ng chá»©ng Ä‘Ã­nh kÃ¨m.');
     score = Math.min(score, 74);
   }
   if (profileValues.length < 5) {
-    limitations.push('Hồ sơ học tập và định hướng còn thiếu dữ liệu.');
+    limitations.push('Há»“ sÆ¡ há»c táº­p vÃ  Ä‘á»‹nh hÆ°á»›ng cÃ²n thiáº¿u dá»¯ liá»‡u.');
   }
 
   const normalized = Math.max(0, Math.min(100, Math.round(score)));
@@ -129,7 +138,12 @@ export const fitDimensionKeySchema = z.enum([
 export const fitDimensionSchema = z
   .object({
     status: z.enum(['assessed', 'limited', 'not_available']),
-    score: z.number().int().min(1).max(5).nullable(),
+    /**
+     * 1-5. Fractional values are allowed on purpose: the Matching Report
+     * renders these as percentages, and five integers can only ever produce
+     * multiples of 20. See `fitScoreToPercent` in the shared engine.
+     */
+    score: z.number().min(1).max(5).nullable(),
     summary: z.string().min(1).max(800),
     strengths: z.array(z.string().min(1).max(300)).max(5),
     gaps: z.array(z.string().min(1).max(300)).max(5),
@@ -164,6 +178,7 @@ export const eligibilitySchema = z.object({
 export const programmeFitSchema = z.object({
   classification: z.enum([
     'safety',
+    'strong_match',
     'match',
     'reach',
     'currently_ineligible',
@@ -182,6 +197,9 @@ export const programmeFitSchema = z.object({
 });
 
 export type ProgrammeFit = z.infer<typeof programmeFitSchema>;
+
+// `F5_WEIGHTS` and `fitScoreToPercent` live once, in
+// `@/shared/evaluation/f5-programme-fit`.
 
 export type MatchingAnalysisView = {
   fit: ProgrammeFit;
@@ -241,6 +259,22 @@ export type MatchingReportPageData = MatchingApplicationSummary & {
   }>;
 };
 
+/**
+ * The Reach/Match/Safety band is decided by hard eligibility and the academic
+ * dimension ALONE. A model may propose a classification; this function
+ * overrules it, so a well-aligned but academically-short applicant can never be
+ * told they are a "Match" because their values fit nicely.
+ *
+ * `strong_match` sits between match and safety: comfortably inside the
+ * programme's range without being clearly above it. Thresholds are evenly
+ * spaced across the 1-5 rubric and preserve the previous integer behaviour
+ * (5 safety, 3 match, 2 and below reach); the one change is that 4 is now
+ * `strong_match` where it used to fall into `match`.
+ *
+ * Mirrors `classify()` in `src/shared/evaluation/f5-programme-fit.ts`, which
+ * does the same job for the deterministic engine. The two must not diverge â€”
+ * see the contract test in ai-reports.test.ts.
+ */
 export function enforceFitClassification(fit: ProgrammeFit): ProgrammeFit {
   const hardFilters = Object.values(fit.eligibility);
   if (hardFilters.includes('not_met')) {
@@ -252,7 +286,14 @@ export function enforceFitClassification(fit: ProgrammeFit): ProgrammeFit {
   ) {
     return { ...fit, classification: 'insufficient_data' };
   }
-  const academicScore = fit.dimensions.academicCompetitiveness.score;
-  const classification = academicScore >= 5 ? 'safety' : academicScore >= 3 ? 'match' : 'reach';
-  return { ...fit, classification };
+  return { ...fit, classification: academicBandClassification(fit.dimensions.academicCompetitiveness.score) };
 }
+
+/** The score-to-band thresholds, exported so the report UI and tests share one source. */
+export function academicBandClassification(
+  academicScore: number,
+): 'safety' | 'strong_match' | 'match' | 'reach' {
+  return classifyAcademicBand(academicScore);
+}
+
+

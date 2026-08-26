@@ -1,12 +1,13 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { regions, subjectFamilies, supportNeeds } from '@/lib/onboarding-options';
 import type { StudentProfile } from '@/lib/types';
-import { Input, Panel, PanelHeader, Select } from '@/shared/ui';
+import { Checkbox, Input, Panel, PanelHeader, Select } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
+import { useT } from '@/lib/i18n';
 import {
   IntakeFields,
   SaveBar,
@@ -36,6 +37,167 @@ const STUDY_MODES = ['Full-time', 'Part-time', 'Either'];
 const OPEN_TO_IDEAS = 'Open to ideas';
 const COUNTRY_OPTIONS = [OPEN_TO_IDEAS, ...new Set(regions.flatMap((region) => region.countries))];
 const SUBJECT_OPTIONS = [...new Set(subjectFamilies.flatMap((family) => family.children))];
+
+/**
+ * Reminder emails fire on the STUDENT'S calendar day (docs/email-system.md
+ * §"Planner and deadlines"), so the zone here decides which day a reminder is
+ * "1 day before". A curated IANA shortlist keeps the control readable; a zone
+ * saved by any other path that is not in the list is prepended so the select
+ * never silently rewrites a stored value it cannot display.
+ */
+const DEFAULT_TIME_ZONE = 'Asia/Ho_Chi_Minh';
+const TIMEZONE_OPTIONS = [
+  'Asia/Ho_Chi_Minh',
+  'Asia/Bangkok',
+  'Asia/Jakarta',
+  'Asia/Singapore',
+  'Asia/Kuala_Lumpur',
+  'Asia/Manila',
+  'Asia/Tokyo',
+  'Asia/Seoul',
+  'Asia/Shanghai',
+  'Asia/Hong_Kong',
+  'Australia/Sydney',
+  'Australia/Melbourne',
+  'Pacific/Auckland',
+  'Europe/London',
+  'Europe/Dublin',
+  'Europe/Paris',
+  'Europe/Berlin',
+  'Europe/Madrid',
+  'Europe/Amsterdam',
+  'America/New_York',
+  'America/Toronto',
+  'America/Chicago',
+  'America/Denver',
+  'America/Los_Angeles',
+  'UTC',
+];
+
+type EmailPrefsState = {
+  deadline_reminders: boolean;
+  weekly_strategy_digest: boolean;
+  timezone: string;
+};
+
+function timezoneOptionsFor(current: string): string[] {
+  return TIMEZONE_OPTIONS.includes(current)
+    ? TIMEZONE_OPTIONS
+    : [current, ...TIMEZONE_OPTIONS];
+}
+
+/**
+ * The controls behind the promises every reminder email makes in its footer —
+ * "You can turn deadline reminders off in your GlowBal email preferences".
+ * Reads and writes `/api/email/preferences`, whose defaults fail open to
+ * everything-on: a student who has never opened this panel still gets the
+ * documented default behaviour without a row existing.
+ */
+function EmailNotificationsPanel() {
+  const t = useT();
+  const [loading, setLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<SaveMessage>(null);
+  const [deadlineReminders, setDeadlineReminders] = useState(true);
+  const [weeklyDigest, setWeeklyDigest] = useState(true);
+  const [timezone, setTimezone] = useState(DEFAULT_TIME_ZONE);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/email/preferences')
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Could not load email preferences.');
+        const body = (await response.json()) as { preferences: EmailPrefsState };
+        if (cancelled) return;
+        setDeadlineReminders(body.preferences.deadline_reminders);
+        setWeeklyDigest(body.preferences.weekly_strategy_digest);
+        setTimezone(body.preferences.timezone || DEFAULT_TIME_ZONE);
+        setLoading(false);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoadFailed(true);
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  async function handleSave() {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/email/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          deadline_reminders: deadlineReminders,
+          weekly_strategy_digest: weeklyDigest,
+          timezone,
+        }),
+      });
+      if (!response.ok) throw new Error('Could not update email preferences.');
+      setMessage({ text: t('Saved successfully.'), ok: true });
+    } catch {
+      setMessage({ text: t('Could not update email preferences.'), ok: false });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Panel className="flex flex-col gap-gb-2xl">
+      <PanelHeader
+        title={t('Email notifications')}
+        description={t('Choose which product emails GlowBal sends you.')}
+      />
+
+      {loadFailed ? (
+        <p role="alert" className="text-gb-sm text-fg-error">
+          {t('Could not load email preferences.')}
+        </p>
+      ) : (
+        <div className="flex flex-col gap-gb-lg">
+          <Checkbox
+            name="deadline_reminders"
+            label={t('Deadline reminders')}
+            checked={deadlineReminders}
+            onChange={(event) => setDeadlineReminders(event.target.checked)}
+            disabled={loading}
+            description={t('Emails 30, 7 and 1 day before each application deadline.')}
+          />
+          <Checkbox
+            name="weekly_strategy_digest"
+            label={t('Weekly strategy digest')}
+            checked={weeklyDigest}
+            onChange={(event) => setWeeklyDigest(event.target.checked)}
+            disabled={loading}
+            description={t('One email a week summarising overdue and upcoming tasks.')}
+          />
+          <Select
+            name="email_timezone"
+            label={t('Timezone')}
+            hint={t('Reminders count days on your calendar — this is that calendar.')}
+            value={timezone}
+            onChange={(event) => setTimezone(event.target.value)}
+            disabled={loading}
+          >
+            {timezoneOptionsFor(timezone).map((zone) => (
+              <option key={zone} value={zone}>
+                {zone}
+              </option>
+            ))}
+          </Select>
+        </div>
+      )}
+
+      <SaveBar onSave={handleSave} saving={saving} message={message} label={t('Save email preferences')} />
+    </Panel>
+  );
+}
 
 function normalizeCountries(values: string[]): string[] {
   const uniqueValues = values.filter((value, index) => (
@@ -198,6 +360,8 @@ export function PreferencesForm({
           label={returnTo ? 'Save & return to application' : 'Save preferences'}
         />
       </Panel>
+
+      <EmailNotificationsPanel />
     </div>
   );
 }

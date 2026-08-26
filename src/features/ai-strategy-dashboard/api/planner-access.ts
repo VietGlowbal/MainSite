@@ -5,6 +5,10 @@ import { refreshApplicationPlan } from './refresh-application-plan';
 import { assertCanonicalPlannerAccess } from './canonical-access';
 import { getPlannerMicroSteps, plannerSourceFingerprint } from '../domain';
 import { getPlannerMode } from './planner-mode';
+import {
+  PLANNER_AVAILABILITY_INPUT_KEYS,
+  type PlanningInput,
+} from '../domain/planning-context';
 
 /** Canonical read boundary used by pages and server orchestration. */
 export async function getCanonicalApplicationPlanner(
@@ -40,13 +44,11 @@ export async function ensureApplicationPlan(
   if (error || !application) return { kind: 'not_found' };
   try {
     const existing = await getCanonicalApplicationPlanner(supabase, applicationId, userId);
-    // One-time rollout upgrade: early foundation plans have the attention
-    // decision node but no schema. Reconcile once so it becomes a real input;
-    // normal existing plans are never regenerated on page load.
-    const needsInputUpgrade = getPlannerMicroSteps(existing).some((micro) =>
-      micro.domainNodeId.includes('attention-focus') && micro.contentSchema === null,
-    );
     const { context } = await getApplicationAssessments(supabase, applicationId, userId);
+    // One-time rollout upgrade: early foundation plans can lack declared
+    // inputs. Reconcile only when an unanswered input is also absent, so an
+    // existing input remains stable while its answer is being collected.
+    const needsInputUpgrade = needsPlannerInputUpgrade(existing, context.plannerInputs ?? []);
     const sourceFingerprint = `:source:${plannerSourceFingerprint(context)}`;
     const sourceChanged = existing.plan !== null && !existing.plan.domainPlanId.includes(sourceFingerprint);
     if (existing.plan && !needsInputUpgrade && !sourceChanged) return { kind: 'ready', created: false };
@@ -60,3 +62,26 @@ export async function ensureApplicationPlan(
 }
 
 export { assertCanonicalPlannerAccess, CanonicalPlannerAccessError } from './canonical-access';
+
+function needsPlannerInputUpgrade(
+  existing: Awaited<ReturnType<typeof getApplicationPlanner>>,
+  plannerInputs: readonly PlanningInput[],
+): boolean {
+  const microSteps = getPlannerMicroSteps(existing);
+  const missingAttentionInput = microSteps.some((micro) =>
+    micro.domainNodeId.includes('attention-focus') && micro.contentSchema === null,
+  );
+  const missingAvailabilityInput = PLANNER_AVAILABILITY_INPUT_KEYS.some((semanticKey) => {
+    const hasExplicitAnswer = plannerInputs.some((input) =>
+      input.provenance === 'user_provided'
+      && input.semanticKey === semanticKey
+      && input.value.trim().length > 0,
+    );
+    const hasInputNode = microSteps.some((micro) =>
+      micro.contentSchema?.type === 'long_text'
+      && micro.contentSchema.semanticKey === semanticKey,
+    );
+    return !hasExplicitAnswer && !hasInputNode;
+  });
+  return missingAttentionInput || missingAvailabilityInput;
+}
