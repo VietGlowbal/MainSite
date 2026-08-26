@@ -112,7 +112,14 @@ export function PersonalReportV2View({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           trigger,
-          ...(force ? { force: true, idempotencyKey: globalThis.crypto.randomUUID() } : {}),
+          ...(force
+            ? {
+                force: true,
+                idempotencyKey:
+                  globalThis.crypto?.randomUUID?.() ??
+                  `report-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              }
+            : {}),
         }),
       });
       const body = await response.json().catch(() => ({}));

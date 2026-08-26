@@ -84,10 +84,10 @@ function reportWithDrivingForceGap(): PersonalReportV2 {
 
 function fetchMockFor(overrides: { versions?: unknown[] } = {}) {
   return vi.fn().mockImplementation((url: string) => {
-    if (url === '/api/ai-strategy/personal-report/supplement') {
+    if (url === '/api/applications/app-1/personal-report/supplement' || url === '/api/ai-strategy/personal-report/supplement') {
       return Promise.resolve(new Response(JSON.stringify({ success: true }), { status: 200 }));
     }
-    if (url === '/api/ai-strategy/personal-report') {
+    if (url === '/api/applications/app-1/personal-report' || url === '/api/ai-strategy/personal-report') {
       return Promise.resolve(
         new Response(
           JSON.stringify({
@@ -100,12 +100,12 @@ function fetchMockFor(overrides: { versions?: unknown[] } = {}) {
         ),
       );
     }
-    if (url === '/api/ai-strategy/personal-report/versions') {
+    if (url === '/api/applications/app-1/personal-report/versions' || url === '/api/ai-strategy/personal-report/versions') {
       return Promise.resolve(
         new Response(JSON.stringify({ versions: overrides.versions ?? [] }), { status: 200 }),
       );
     }
-    if (typeof url === 'string' && url.startsWith('/api/ai-strategy/personal-report/versions/')) {
+    if (typeof url === 'string' && (url.startsWith('/api/applications/app-1/personal-report/versions/') || url.startsWith('/api/ai-strategy/personal-report/versions/'))) {
       return Promise.resolve(
         new Response(
           JSON.stringify({
@@ -132,6 +132,8 @@ describe('PersonalReportV2View — inline report answers', () => {
         initialReport={reportWithDrivingForceGap()}
         initialVersionId="v1"
         initialVersions={[{ id: 'v1', generatedAt: '2026-08-13T00:00:00.000Z', trigger: 'manual' }]}
+        applicationId="app-1"
+        applicationConfirmed
         studentName="Olivia"
         generatedAt="2026-08-14T00:00:00.000Z"
         migrationMissing={false}
@@ -153,7 +155,7 @@ describe('PersonalReportV2View — inline report answers', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/ai-strategy/personal-report/supplement',
+        '/api/applications/app-1/personal-report/supplement',
         expect.objectContaining({
           method: 'POST',
           body: JSON.stringify({
@@ -167,10 +169,20 @@ describe('PersonalReportV2View — inline report answers', () => {
     // Saving triggers the same regeneration path, tagged as an answered-question update.
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        '/api/ai-strategy/personal-report',
+        '/api/applications/app-1/personal-report',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ trigger: 'supplement_answer' }),
+          body: expect.stringMatching(/"trigger":"supplement_answer"/),
+        }),
+      );
+      const regenerationCall = fetchMock.mock.calls.find(
+        ([url]) => url === '/api/applications/app-1/personal-report',
+      );
+      expect(JSON.parse((regenerationCall?.[1]?.body as string) || '{}')).toEqual(
+        expect.objectContaining({
+          trigger: 'supplement_answer',
+          force: true,
+          idempotencyKey: expect.any(String),
         }),
       );
     });
