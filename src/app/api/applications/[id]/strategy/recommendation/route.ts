@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { strategyRecommendationFromRow, strategyReportV2FromRow } from '@/features/ai-strategy-dashboard/domain';
-import { getLatestPersonalReportV2, stableHash } from '@/features/apply/api';
+import { getLatestApplicationPersonalReportV2, stableHash } from '@/features/apply/api';
 import { enforceFitClassification, programmeFitSchema, type ProgrammeFit } from '@/features/apply/domain';
 import {
   generateStrategyRecommendation,
@@ -115,7 +115,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
     { data: activities },
     universityResult,
   ] = await Promise.all([
-    getLatestPersonalReportV2(supabase, user.id),
+    getLatestApplicationPersonalReportV2(supabase, { userId: user.id, applicationId }),
     supabase
       .from('application_match_analyses')
       .select('*')

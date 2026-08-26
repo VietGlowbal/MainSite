@@ -3,7 +3,7 @@ import type { PersonalReportV2 } from '@/features/apply/domain';
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
-  getLatestPersonalReportV2: vi.fn(),
+  getLatestApplicationPersonalReportV2: vi.fn(),
   generateStrategyRecommendation: vi.fn(),
   generateStrategyReportV2: vi.fn(),
 }));
@@ -17,7 +17,7 @@ vi.mock('@/lib/ai/strategy-recommendation', () => ({
 }));
 
 vi.mock('@/features/apply/api', () => ({
-  getLatestPersonalReportV2: mocks.getLatestPersonalReportV2,
+  getLatestApplicationPersonalReportV2: mocks.getLatestApplicationPersonalReportV2,
   stableHash: (val: unknown) => `hash-${JSON.stringify(val).length}`,
 }));
 
@@ -363,8 +363,8 @@ describe('/api/applications/[id]/strategy/recommendation', () => {
   beforeEach(() => {
     process.env.OPENAI_API_KEY = 'test-key';
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
-    mocks.getLatestPersonalReportV2.mockResolvedValue({
-      record: { id: 'pr-1', reportV2: PERSONAL_REPORT_V2, promptVersion: 'personal-v2' },
+    mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({
+      record: { id: 'pr-1', applicationId: 'app-1', confirmedSnapshotId: 'snap-1', sourceAnalysisVersionId: 'analysis-1', reportContractVersion: 'personal-report-v3', cacheKey: 'cache-1', reportV2: PERSONAL_REPORT_V2, promptVersion: 'personal-v2' },
       migrationMissing: false,
     });
     mocks.generateStrategyRecommendation.mockResolvedValue(GENERATED_STRATEGY);
@@ -436,7 +436,7 @@ describe('/api/applications/[id]/strategy/recommendation', () => {
     });
 
     it('returns 422 with needsInputs when personal report is missing', async () => {
-      mocks.getLatestPersonalReportV2.mockResolvedValue({ record: null, migrationMissing: false });
+      mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({ record: null, migrationMissing: false });
       setupSupabase();
       const { POST } = await importRoute();
       const res = await POST(new Request('http://localhost', { method: 'POST' }), {
@@ -561,6 +561,10 @@ describe('/api/applications/[id]/strategy/recommendation', () => {
       expect(insertedStrategyPayloads[0].input_hash).not.toBe('');
       expect(insertedStrategyPayloads[0].source_personal_report_version_id).toBe('pr-1');
       expect(insertedStrategyPayloads[0].source_match_analysis_id).toBe('match-1');
+      expect(mocks.getLatestApplicationPersonalReportV2).toHaveBeenCalledWith(
+        expect.anything(),
+        { userId: 'user-1', applicationId: 'app-1' },
+      );
       expect(insertedStrategyPayloads[0].prompt_version).toBe('strategy-report-f8-v3');
       expect(insertedStrategyPayloads[0].report_v2).toEqual(GENERATED_STRATEGY_V2);
       // The legacy column must not receive a personal-report-version id — its
