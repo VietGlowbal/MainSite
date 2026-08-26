@@ -1,11 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const migration = readFileSync(new URL('../../../supabase-vnpay-payments.sql', import.meta.url), 'utf8');
-const checkoutRoute = readFileSync(
-  new URL('../../app/api/payments/vnpay/checkout/route.ts', import.meta.url),
-  'utf8',
-);
+const readText = (url: URL) => readFileSync(url, 'utf8').replace(/\r\n/g, '\n');
+const migration = readText(new URL('../../../supabase-vnpay-payments.sql', import.meta.url));
+const checkoutRoute = readText(new URL('../../app/api/payments/vnpay/checkout/route.ts', import.meta.url));
 
 describe('VNPay migration invariants', () => {
   it('binds the held slot before creating the ledger and requires exact ownership on IPN', () => {

@@ -64,6 +64,7 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Back to latest': 'Quay lại phiên bản mới nhất',
   'Could not load that version.': 'Không thể tải phiên bản đó.',
   'Could not save the report.': 'Không thể lưu báo cáo.',
+  'Could not save the application analysis.': 'Không thể lưu phân tích hồ sơ ứng tuyển.',
   'The AI could not produce a valid report. Your previous report, if any, has been kept.':
     'AI chưa thể tạo báo cáo hợp lệ. Báo cáo trước đó, nếu có, vẫn được giữ nguyên.',
 
@@ -127,11 +128,21 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   Growth: 'Phát triển',
   Vision: 'Tầm nhìn',
   'Personal Report sections': 'Các phần của Báo cáo Cá nhân',
+  'Keyboard: 1–6 opens a section · Esc closes': 'Bàn phím: 1–6 mở một phần · Esc đóng',
   'Driving Forces': 'Các động lực',
   'Proven Capabilities': 'Năng lực đã được chứng minh',
   'Social Proof': 'Bằng chứng xã hội',
   'Areas for Growth': 'Các lĩnh vực cần phát triển',
   'Long-Term Vision': 'Tầm nhìn dài hạn',
+  'Short Term': 'Ngắn hạn',
+  'Mid Term': 'Trung hạn',
+  'Long Term': 'Dài hạn',
+  'Open Core Identity details': 'Mở chi tiết Bản sắc cốt lõi',
+  'Open Driving Forces details': 'Mở chi tiết Các động lực',
+  'Open Proven Capabilities details': 'Mở chi tiết Năng lực đã được chứng minh',
+  'Open Areas for Growth details': 'Mở chi tiết Các lĩnh vực cần phát triển',
+  'Open Social Proof details': 'Mở chi tiết Bằng chứng xã hội',
+  'Open Long-Term Vision details': 'Mở chi tiết Tầm nhìn dài hạn',
   'The recurring roles, behaviours and patterns that describe who you consistently show yourself to be.':
     'Các vai trò, hành vi và mẫu lặp lại mô tả con người mà bạn liên tục thể hiện.',
   'What repeatedly motivates your choices, where those motivations appear in your experiences, and how confidently the evidence supports them.':
@@ -156,6 +167,10 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'What your evidence shows you can do': 'Những điều bằng chứng cho thấy bạn có thể làm',
   'The evidence behind your profile': 'Bằng chứng đứng sau hồ sơ của bạn',
   'The directions emerging from your current trajectory': 'Những hướng đi đang nổi lên từ quỹ đạo hiện tại của bạn',
+  'Confirm Candidate Information before generating this report.':
+    'Hãy xác nhận Thông tin Ứng viên trước khi tạo báo cáo này.',
+  'This report is based on an older confirmed snapshot. Generate the latest version to update it.':
+    'Báo cáo này dựa trên ảnh chụp đã xác nhận cũ hơn. Hãy tạo phiên bản mới nhất để cập nhật.',
 
   // Growth and identity evidence views.
   'Where your profile can become stronger': 'Nơi hồ sơ của bạn có thể trở nên mạnh hơn',
