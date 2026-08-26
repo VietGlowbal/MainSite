@@ -215,6 +215,13 @@ export async function regeneratePersonalReport(args: {
         trigger,
         generatedAt: inserted.generatedAt,
         createdAt: inserted.generatedAt,
+        // Lineage fields arrive with Task 8's application-scoped orchestrator;
+        // the legacy global path keeps writing archive rows (all NULL).
+        applicationId: null,
+        confirmedSnapshotId: null,
+        sourceAnalysisVersionId: null,
+        reportContractVersion: null,
+        cacheKey: null,
       },
     };
   } catch (error) {
