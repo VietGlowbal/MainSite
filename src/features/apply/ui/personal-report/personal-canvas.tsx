@@ -252,7 +252,7 @@ function LongTermVisionBanner({
       onClick={() => onSelect('longTermVision')}
       className={[
         'group relative w-full overflow-hidden rounded-gb-2xl text-left shadow-md transition duration-300 ease-out',
-        'border border-rose-200/80 bg-gradient-to-b from-[#ffedf1] via-[#ffe3e8] to-[#fecdd6]',
+        'border border-rose-200/80 bg-gradient-to-b from-[var(--color-gb-brand-50)] via-[var(--color-gb-brand-100)] to-[var(--color-gb-brand-300)]',
         'hover:-translate-y-1 hover:shadow-xl focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-brand',
         active
           ? 'z-20 -translate-y-0.5 ring-[3px] ring-brand ring-offset-[5px] ring-offset-surface shadow-2xl'
@@ -268,28 +268,28 @@ function LongTermVisionBanner({
         >
           <defs>
             <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fff5f7" />
-              <stop offset="100%" stopColor="#ffe4e9" />
+              <stop offset="0%" stopColor="var(--color-gb-brand-50)" />
+              <stop offset="100%" stopColor="var(--color-gb-brand-100)" />
             </linearGradient>
             <linearGradient id="farMountain" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fca5a5" stopOpacity="0.6" />
-              <stop offset="100%" stopColor="#f87171" stopOpacity="0.8" />
+              <stop offset="0%" stopColor="var(--color-gb-brand-300)" stopOpacity="0.6" />
+              <stop offset="100%" stopColor="var(--color-gb-brand-500)" stopOpacity="0.8" />
             </linearGradient>
             <linearGradient id="peakSun" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#f43f5e" />
-              <stop offset="100%" stopColor="#e11d48" />
+              <stop offset="0%" stopColor="var(--color-gb-brand-500)" />
+              <stop offset="100%" stopColor="var(--color-gb-brand-600)" />
             </linearGradient>
             <linearGradient id="peakShadow" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stopColor="#be123c" />
-              <stop offset="100%" stopColor="#881337" />
+              <stop offset="0%" stopColor="var(--color-gb-brand-700)" />
+              <stop offset="100%" stopColor="var(--color-gb-brand-700)" />
             </linearGradient>
             <linearGradient id="midHills" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#fb7185" />
-              <stop offset="100%" stopColor="#be123c" />
+              <stop offset="0%" stopColor="var(--color-gb-brand-500)" />
+              <stop offset="100%" stopColor="var(--color-gb-brand-700)" />
             </linearGradient>
             <linearGradient id="foreHills" x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="0%" stopColor="#e11d48" />
-              <stop offset="100%" stopColor="#9f1239" />
+              <stop offset="0%" stopColor="var(--color-gb-brand-600)" />
+              <stop offset="100%" stopColor="var(--color-gb-brand-700)" />
             </linearGradient>
           </defs>
 
@@ -297,14 +297,14 @@ function LongTermVisionBanner({
           <rect width="1000" height="320" fill="url(#skyGrad)" />
 
           {/* Soft clouds */}
-          <g fill="#ffffff" fillOpacity="0.7">
+          <g fill="var(--color-gb-neutral-0)" fillOpacity="0.7">
             <path d="M260 55 Q275 35 300 40 Q325 35 340 50 Q360 50 365 65 Q355 80 330 80 L270 80 Q255 75 260 55 Z" />
             <path d="M600 40 Q615 25 635 30 Q655 25 670 40 Q685 40 690 55 Q680 65 660 65 L610 65 Q595 60 600 40 Z" />
           </g>
 
           {/* Distant mountain silhouette on right */}
           <path d="M580 320 L760 110 L940 320 Z" fill="url(#farMountain)" />
-          <path d="M760 110 L740 145 Q760 135 780 145 Z" fill="#ffffff" fillOpacity="0.8" />
+          <path d="M760 110 L740 145 Q760 135 780 145 Z" fill="var(--color-gb-neutral-0)" fillOpacity="0.8" />
 
           {/* Middle Range Mountains & foothills */}
           <path
@@ -316,17 +316,17 @@ function LongTermVisionBanner({
           {/* Main Mountain Peak Facets (3D Shaded Peak) */}
           <polygon points="760,110 660,320 765,320" fill="url(#peakSun)" />
           <polygon points="760,110 765,320 890,320" fill="url(#peakShadow)" />
-          <polygon points="760,110 735,145 760,138 785,148" fill="#ffffff" fillOpacity="0.95" />
+          <polygon points="760,110 735,145 760,138 785,148" fill="var(--color-gb-neutral-0)" fillOpacity="0.95" />
 
           {/* Flag at summit */}
-          <line x1="760" y1="110" x2="760" y2="70" stroke="#e11d48" strokeWidth="2.5" />
-          <path d="M760 70 L790 82 L760 94 Z" fill="#e11d48" />
+          <line x1="760" y1="110" x2="760" y2="70" stroke="var(--color-gb-brand-600)" strokeWidth="2.5" />
+          <path d="M760 70 L790 82 L760 94 Z" fill="var(--color-gb-brand-600)" />
 
           {/* Foreground Foothill curves */}
           <path d="M0 320 Q180 250 350 280 Q520 310 700 280 L1000 320 Z" fill="url(#foreHills)" />
 
           {/* Pine Tree Groves (Realistic sharp vector pines) */}
-          <g fill="#6b0d26">
+          <g fill="var(--color-gb-brand-700)">
             <path d="M680 280 L686 260 L692 280 Z M682 268 L686 250 L690 268 Z" />
             <path d="M700 275 L707 252 L714 275 Z M703 260 L707 242 L711 260 Z" />
             <path d="M720 285 L726 265 L732 285 Z" />
@@ -354,17 +354,17 @@ function LongTermVisionBanner({
                C 742 215, 700 240, 640 252
                C 525 258, 440 238, 485 195
                C 512 168, 502 142, 500 135 Z"
-            fill="#ffffff"
-            stroke="#ffffff"
+            fill="var(--color-gb-neutral-0)"
+            stroke="var(--color-gb-neutral-0)"
             strokeWidth="1.5"
           />
 
           {/* Concentric Ripple Target directly under vertical connector */}
           <g transform="translate(500, 135)">
-            <ellipse cx="0" cy="0" rx="46" ry="16" fill="none" stroke="#ffffff" strokeWidth="2" strokeOpacity="0.75" />
-            <ellipse cx="0" cy="0" rx="30" ry="10.5" fill="none" stroke="#ffffff" strokeWidth="2" strokeOpacity="0.85" />
-            <ellipse cx="0" cy="0" rx="15" ry="5.5" fill="none" stroke="#ffffff" strokeWidth="1.5" />
-            <circle cx="0" cy="0" r="5" fill="#e11d48" stroke="#ffffff" strokeWidth="2" />
+            <ellipse cx="0" cy="0" rx="46" ry="16" fill="none" stroke="var(--color-gb-neutral-0)" strokeWidth="2" strokeOpacity="0.75" />
+            <ellipse cx="0" cy="0" rx="30" ry="10.5" fill="none" stroke="var(--color-gb-neutral-0)" strokeWidth="2" strokeOpacity="0.85" />
+            <ellipse cx="0" cy="0" rx="15" ry="5.5" fill="none" stroke="var(--color-gb-neutral-0)" strokeWidth="1.5" />
+            <circle cx="0" cy="0" r="5" fill="var(--color-gb-brand-600)" stroke="var(--color-gb-neutral-0)" strokeWidth="2" />
           </g>
         </svg>
       </div>

@@ -13,13 +13,13 @@
   - `course_applications.candidate_confirmed_at` đã có.
   - `catalog_programmes` là **VIEW** trên `courses` (`programme_id == courses.id`) → FK trong migration trỏ về `public.courses`, không phải view.
   - Các file repo/generation/context đúng như plan liệt kê.
-- Lưu ý môi trường: không có `SUPABASE_SERVICE_ROLE_KEY` → mọi bước "verify migration against DB" sẽ bỏ qua, chỉ ghi nhận vào docs cuối phiên.
+- Lưu ý môi trường: pre-flight ban đầu chưa có `SUPABASE_SERVICE_ROLE_KEY`, nên migration chưa thể kiểm tra live ở thời điểm đó. Sau khi owner chạy migration, read-only schema verification ngày 2026-08-26 dùng service role đã xác nhận đủ 7 bảng/cột mới; không thực hiện ghi/xóa dữ liệu.
 
 ---
 
 ## Task 1: application-scoped persistence & lineage
 
-**Trạng thái:** IN PROGRESS
+**Trạng thái:** DONE
 
 ### Step 1–2: Test failing trước ✅
 
@@ -33,7 +33,7 @@ Thêm 11 test mới vào `personal-report-v2-repository.test.ts`:
 
 Kết quả chạy: **FAIL như kỳ vọng** — `11 failed | 14 passed` ("function is not a function", thiếu export).
 
-### Step 3: File migration `supabase-application-personal-report-state.sql` ✅ (chưa chạy DB)
+### Step 3: File migration `supabase-application-personal-report-state.sql` ✅ (đã verify live)
 
 - ALTER `student_personal_report_versions`: +`application_id` (FK cascade), `confirmed_snapshot_id`, `source_analysis_version_id`, `report_contract_version`, `cache_key`; index `(application_id, created_at DESC)`; unique partial `(application_id, cache_key) WHERE NOT NULL`.
 - ALTER `confirmed_candidate_snapshots`: +`payload_hash`, `supersedes_snapshot_id`; index `(application_id, confirmed_at DESC)`.
@@ -66,7 +66,7 @@ Kết quả chạy: **FAIL như kỳ vọng** — `11 failed | 14 passed` ("func
 
 `feat: add application personal report persistence` — gồm migration SQL + repository + test + type fix generation.
 
-**Trạng thái:** DONE (migration file đã tạo, chờ owner chạy DB)
+**Trạng thái:** DONE (owner đã chạy migration; schema live đã được kiểm tra read-only)
 
 ---
 
@@ -223,7 +223,7 @@ Thêm file `domain.test.ts` (6 test: fingerprint ổn định theo thứ tự ro
 | 5 State + Academic | `bc6697b` | 8 |
 | 6 Reflection/Follow-up | (vừa commit) | 28 |
 
-Tổng cộng dồn: typecheck PASS toàn repo sau mỗi task. Chưa đụng UI/Matching/Strategy (Task 10–11). Migration SQL vẫn chờ owner chạy.
+Tổng cộng dồn: typecheck PASS toàn repo sau mỗi task. Chưa đụng UI/Matching/Strategy (Task 10–11). Migration Personal Report đã được owner chạy; phần RLS cross-user vẫn cần kiểm thử bằng hai tài khoản authenticated trên non-production.
 
 ---
 
@@ -310,3 +310,4 @@ Kết luận kiểm chứng từng điểm (có đúng/sai đều ghi rõ):
 - Commit: recorded with this task-log update as `test: verify application personal report isolation`.
 - Verification: integration fixture 3/3 passed; report/evaluation/evidence/AI suite 80 files/822 tests passed; typecheck and scoped ESLint passed; production build passed with existing Turbopack filesystem-tracing warnings.
 - `npm.cmd run verify:pr` was not completed because this checkout uses Node 24.13.0 while the project requires 24.19.0. Non-production migration/RLS verification was not run because no database test environment was available.
+- Owner subsequently applied `supabase-application-personal-report-state.sql` to the configured Supabase project. Read-only verification confirmed all 7 new tables, all required lineage columns/types, and 24 legacy report rows retaining `application_id = NULL`; no production writes were made by the verification. Cross-user RLS behavior on a non-production project remains unverified because no such environment is configured.

@@ -198,7 +198,7 @@ export async function POST(request: Request) {
     return DROPPABLE_COLUMNS.filter((column) => named.has(column));
   }
 
-  let workingRow: Record<string, unknown> = { ...baseRow };
+  const workingRow: Record<string, unknown> = { ...baseRow };
   let inserted: Awaited<ReturnType<typeof insertSnapshot>> | null = null;
   let lastError: { code?: string; message?: string } | null = null;
   while (!inserted) {
