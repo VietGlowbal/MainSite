@@ -24,9 +24,25 @@ export const candidateSnapshotDocumentSchema = z.object({
   fileName: z.string().min(1),
 });
 
+/** One resolved Adaptive Follow-up answer frozen into a snapshot (schema v2). */
+export const candidateFollowUpAnswerSchema = z.object({
+  activityId: z.string().min(1),
+  dimension: z.string().min(1),
+  question: z.string().min(1),
+  answer: z.string().min(1),
+  round: z.number().int().min(1).max(2),
+});
+
 export const candidateSnapshotPayloadSchema = z.object({
   reflection: reflectionSchema,
   documents: z.array(candidateSnapshotDocumentSchema).max(50).default([]),
+  /**
+   * Schema v2 addition — latest non-superseded Adaptive Follow-up answers,
+   * copied in at confirm time so a report derived from this snapshot sees the
+   * answers as they were when the student confirmed. Optional so v1 payloads
+   * still validate.
+   */
+  followUpAnswers: z.array(candidateFollowUpAnswerSchema).max(200).optional(),
 });
 
 export type CandidateSnapshotDocument = z.infer<typeof candidateSnapshotDocumentSchema>;

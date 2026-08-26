@@ -21,7 +21,8 @@ vi.mock('@/lib/supabase/server', () => ({
   }),
 }));
 
-vi.mock('@/features/apply/api', () => ({
+vi.mock('@/features/apply/api', async () => ({
+  ...(await vi.importActual<object>('@/features/apply/api')),
   loadCandidateReflection: mocks.loadCandidateReflection,
   verifiedApplicationId: mocks.verifiedApplicationId,
 }));
@@ -289,12 +290,20 @@ describe('POST /api/candidate-information/confirm', () => {
       });
       const insertedRows: Record<string, unknown>[] = [];
       const courseApplicationUpdate: { value?: Record<string, unknown>; eq?: unknown[] } = {};
+      let snapshotTableCalls = 0;
       mocks.from.mockImplementation((table: string) => {
         if (table === 'confirmed_candidate_snapshots') {
-          return insertBuilder(
-            { data: { id: 'snap-4', confirmed_at: '2026-08-13T12:00:00Z' }, error: null },
-            insertedRows,
-          );
+          // 1st call = supersedes lookup (no previous row here); later = insert.
+          snapshotTableCalls += 1;
+          return snapshotTableCalls === 1
+            ? selectBuilder({ data: null, error: null })
+            : insertBuilder(
+                { data: { id: 'snap-4', confirmed_at: '2026-08-13T12:00:00Z' }, error: null },
+                insertedRows,
+              );
+        }
+        if (table === 'student_activity_follow_up_answers') {
+          throw new Error(`relation "student_activity_follow_up_answers" does not exist`);
         }
         if (table === 'course_applications') {
           return updateBuilder({ error: null }, courseApplicationUpdate);
@@ -320,9 +329,13 @@ describe('POST /api/candidate-information/confirm', () => {
         documents: [],
         confirmedAt: null,
       });
+      let snapshotTableCalls = 0;
       let snapshotInsertAttempt = 0;
       mocks.from.mockImplementation((table: string) => {
         if (table === 'confirmed_candidate_snapshots') {
+          snapshotTableCalls += 1;
+          // 1st call = supersedes lookup.
+          if (snapshotTableCalls === 1) return selectBuilder({ data: null, error: null });
           snapshotInsertAttempt += 1;
           if (snapshotInsertAttempt === 1) {
             return insertBuilder({
@@ -331,6 +344,9 @@ describe('POST /api/candidate-information/confirm', () => {
             });
           }
           return insertBuilder({ data: { id: 'snap-5', confirmed_at: '2026-08-13T12:00:00Z' }, error: null });
+        }
+        if (table === 'student_activity_follow_up_answers') {
+          throw new Error(`relation "student_activity_follow_up_answers" does not exist`);
         }
         if (table === 'course_applications' || table === 'student_profiles') {
           return updateBuilder({ error: null });
@@ -345,6 +361,96 @@ describe('POST /api/candidate-information/confirm', () => {
       expect(response.status).toBe(200);
       expect(body.snapshotId).toBe('snap-5');
       expect(snapshotInsertAttempt).toBe(2);
+    });
+  });
+
+  /**
+   * Snapshot revisions — a REOPENED application appends a new confirmed
+   * snapshot that supersedes (never replaces) the previous one, carrying an
+   * integrity hash of its canonical payload.
+   */
+  describe('snapshot revisions', () => {
+    function revisionHarness(options: { previousSnapshotId: string | null }) {
+      const insertedRows: Record<string, unknown>[] = [];
+      const lookupEqCalls: unknown[][] = [];
+      const courseApplicationUpdate: { value?: Record<string, unknown>; eq?: unknown[] } = {};
+      let snapshotSelectCalls = 0;
+      mocks.from.mockImplementation((table: string) => {
+        if (table === 'confirmed_candidate_snapshots') {
+          snapshotSelectCalls += 1;
+          // 1st call on this table = previous-snapshot lookup; later = insert.
+          if (snapshotSelectCalls === 1) {
+            return selectBuilder(
+              { data: options.previousSnapshotId ? { id: options.previousSnapshotId } : null, error: null },
+              lookupEqCalls,
+            );
+          }
+          return insertBuilder(
+            { data: { id: 'snap-new', confirmed_at: '2026-08-26T12:00:00Z' }, error: null },
+            insertedRows,
+          );
+        }
+        if (table === 'student_activity_follow_up_answers') {
+          // Follow-up loader degrades to empty when the migration/table is absent.
+          throw new Error(`relation "student_activity_follow_up_answers" does not exist`);
+        }
+        if (table === 'course_applications') {
+          return updateBuilder({ error: null }, courseApplicationUpdate);
+        }
+        if (table === 'student_profiles') {
+          return updateBuilder({ error: null });
+        }
+        throw new Error(`unexpected table ${table}`);
+      });
+      return { insertedRows, lookupEqCalls, courseApplicationUpdate };
+    }
+
+    beforeEach(() => {
+      mocks.verifiedApplicationId.mockResolvedValue('app-1');
+      mocks.loadCandidateReflection.mockResolvedValue({
+        reflection: READY_REFLECTION,
+        documents: [],
+        confirmedAt: null, // reopened → editable again
+      });
+    });
+
+    it('appends a schema v2 snapshot with payload_hash superseding the application’s previous snapshot', async () => {
+      const { insertedRows, lookupEqCalls } = revisionHarness({ previousSnapshotId: 'snap-prev' });
+
+      const { POST } = await import('./route');
+      const response = await POST(request({ applicationId: 'app-1' }));
+      const body = await response.json();
+
+      expect(response.status).toBe(200);
+      expect(body.snapshotId).toBe('snap-new');
+
+      const row = insertedRows[0];
+      expect(row?.application_id).toBe('app-1');
+      expect(row?.schema_version).toBe(2);
+      expect(row?.payload_hash).toMatch(/^[0-9a-f]{64}$/);
+      expect(row?.supersedes_snapshot_id).toBe('snap-prev');
+      // The supersedes pointer is resolved within THIS application's history only.
+      expect(lookupEqCalls).toContainEqual(['application_id', 'app-1']);
+    });
+
+    it("confirming one application does not modify another application's snapshot lineage", async () => {
+      const { insertedRows, courseApplicationUpdate } = revisionHarness({ previousSnapshotId: 'snap-prev-a1' });
+
+      const { POST } = await import('./route');
+      await POST(request({ applicationId: 'app-1' }));
+
+      expect(insertedRows.every((row) => row.application_id === 'app-1')).toBe(true);
+      expect(courseApplicationUpdate.eq).toEqual(['id', 'app-1']);
+    });
+
+    it('leaves supersedes_snapshot_id unset on the very first confirmation', async () => {
+      const { insertedRows } = revisionHarness({ previousSnapshotId: null });
+
+      const { POST } = await import('./route');
+      const response = await POST(request({ applicationId: 'app-1' }));
+
+      expect(response.status).toBe(200);
+      expect(insertedRows[0]?.supersedes_snapshot_id).toBeUndefined();
     });
   });
 });

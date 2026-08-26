@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createHash } from 'crypto';
 import {
   activityReflectionSchema,
   reflectionCardSchema,
@@ -341,4 +342,95 @@ export async function loadCandidateReflection(
     documents,
     confirmedAt: profile.confirmedAt,
   };
+}
+
+// ── snapshot schema v2 helpers ───────────────────────────────────────────────
+
+/** One resolved Adaptive Follow-up answer copied into a confirmed snapshot. */
+export type CandidateFollowUpAnswer = {
+  activityId: string;
+  dimension: string;
+  question: string;
+  answer: string;
+  round: number;
+};
+
+/**
+ * Latest non-superseded Adaptive Follow-up answers for ONE application's
+ * activities, ready to be copied into that application's next confirmed
+ * snapshot (see supabase-application-personal-report-state.sql). Tolerant of
+ * the migration not having run yet — degrades to an empty list, never blocks
+ * confirmation.
+ */
+export async function loadResolvedFollowUpAnswers(
+  supabase: Client,
+  userId: string,
+  applicationId?: string,
+): Promise<CandidateFollowUpAnswer[]> {
+  try {
+    let query = supabase
+      .from('student_activity_follow_up_answers')
+      .select('activity_id, dimension, question, answer, round')
+      .eq('user_id', userId)
+      .is('superseded_by_answer_id', null);
+    if (applicationId) query = query.eq('application_id', applicationId);
+    const { data, error } = await query.order('created_at', { ascending: true });
+    if (error) {
+      console.warn(
+        '[candidate-snapshot-repository] could not read follow-up answers — run supabase-application-personal-report-state.sql. Continuing without them.',
+        error.message,
+      );
+      return [];
+    }
+    return (data ?? []).map((row) => ({
+      activityId: row.activity_id as string,
+      dimension: row.dimension as string,
+      question: row.question as string,
+      answer: row.answer as string,
+      round: row.round as number,
+    }));
+  } catch (error) {
+    console.warn('[candidate-snapshot-repository] follow-up answer read threw; continuing without them.', error);
+    return [];
+  }
+}
+
+/**
+ * Deterministic serialization for payload hashing: object keys are sorted
+ * recursively and arrays with no product meaning are ordered by a stable key
+ * so two semantically identical snapshots always hash identically.
+ */
+export function canonicalSnapshotPayloadString(payload: unknown): string {
+  const stable = (value: unknown): unknown => {
+    if (Array.isArray(value)) {
+      const normalized = value.map(stable);
+      return normalized.sort((a, b) => {
+        const keyOf = (item: unknown): string => {
+          if (item && typeof item === 'object') {
+            const record = item as Record<string, unknown>;
+            if (typeof record['id'] === 'string') return record['id'];
+            if (typeof record['activityId'] === 'string' && typeof record['dimension'] === 'string') {
+              return `${record['activityId']}|${record['dimension']}|${String(record['round'] ?? '')}`;
+            }
+          }
+          return JSON.stringify(item);
+        };
+        return keyOf(a).localeCompare(keyOf(b));
+      });
+    }
+    if (value && typeof value === 'object') {
+      return Object.fromEntries(
+        Object.entries(value as Record<string, unknown>)
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, item]) => [key, stable(item)]),
+      );
+    }
+    return value;
+  };
+  return JSON.stringify(stable(payload));
+}
+
+/** SHA-256 of the canonical snapshot payload — the snapshot's integrity hash. */
+export function hashCandidateSnapshotPayload(payload: unknown): string {
+  return createHash('sha256').update(canonicalSnapshotPayloadString(payload)).digest('hex');
 }

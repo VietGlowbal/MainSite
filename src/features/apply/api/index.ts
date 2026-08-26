@@ -16,8 +16,12 @@ export {
   getMatchingReportPageData,
   listMatchingApplications,
 } from './ai-reports-repository';
-export { loadCandidateReflection } from './candidate-snapshot-repository';
-export type { CandidateReflectionRecord } from './candidate-snapshot-repository';
+export {
+  hashCandidateSnapshotPayload,
+  loadCandidateReflection,
+  loadResolvedFollowUpAnswers,
+} from './candidate-snapshot-repository';
+export type { CandidateFollowUpAnswer, CandidateReflectionRecord } from './candidate-snapshot-repository';
 export { verifiedApplicationId } from './verified-application-id';
 export { loadApplicationSummary } from './application-summary';
 export { loadProfileReview } from './profile-review';
