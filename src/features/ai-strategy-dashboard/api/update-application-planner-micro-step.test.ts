@@ -8,7 +8,7 @@ function fakeSupabase(options: { owned?: boolean; micro?: Record<string, unknown
     application_plans: [{ id: 'plan-1' }],
     application_plan_phases: [{ id: 'phase-1' }],
     application_plan_steps: [{ id: 'step-1' }],
-    application_plan_micro_steps: [{ id: 'micro-1', content_schema: null, content_value: null }],
+    application_plan_micro_steps: [{ id: 'micro-1', content_schema: { type: 'long_text', prompt: 'Explain' }, content_value: null }],
   };
   const from = (table: string) => {
     let updatePayload: Record<string, unknown> | null = null;
@@ -40,6 +40,12 @@ describe('updateApplicationPlannerMicroStep', () => {
   it('rejects foreign users before looking up a canonical hierarchy row', async () => {
     const fake = fakeSupabase({ owned: false });
     await expect(updateApplicationPlannerMicroStep(fake.client, 'app-1', 'other-user', 'legacy-recommendation-id', { status: 'completed' })).rejects.toMatchObject({ code: 'not_found' } satisfies Partial<PlannerMicroStepUpdateError>);
+    expect(fake.writes).toEqual([]);
+  });
+
+  it('rejects a content value that does not match the stored schema', async () => {
+    const fake = fakeSupabase({ micro: { id: 'micro-1', content_schema: { type: 'single_select', prompt: 'Focus', semanticKey: 'focus', options: [{ value: 'essay', label: 'Essay' }] }, content_value: null } });
+    await expect(updateApplicationPlannerMicroStep(fake.client, 'app-1', 'user-1', 'micro-1', { contentValue: { type: 'single_select', value: 'portfolio' } })).rejects.toMatchObject({ code: 'invalid_content' });
     expect(fake.writes).toEqual([]);
   });
 });

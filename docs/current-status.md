@@ -52,6 +52,19 @@ migrations. The Planner feature suite passes 332/332 tests;
 strict and base TypeScript pass; full lint has 0 errors and one pre-existing
 manual-payment warning.
 
+Working tree 2026-08-23: canonical Planner production hardening now closes the
+remaining access, crash-recovery, persistence, and canonical/legacy isolation
+gaps. Canonical reads and execution/refresh/feedback boundaries require both
+Plus/admin entitlement and application ownership; admin sync uses a trusted
+server-only feature entry point; generation leases are claimable/reclaimable
+through a forward-only hardening migration; content schema changes validate
+and reset incompatible execution values; and DashboardSummary derives progress
+from the canonical hierarchy. Regression coverage is 351 focused Planner/API/UI
+tests, with base and strict TypeScript plus targeted ESLint clean. A real local
+Postgres run is scripted but not runnable in this checkout because neither
+`psql`/Supabase CLI nor a running Docker daemon is available; no production
+migration or deployment was performed.
+
 Working tree 2026-08-20: Core 1 Assess is now callable end to end through
 `getApplicationAssessments(supabase, applicationId, userId)`: the source
 adapter fetches validated application facts and F5/F7 metadata,

@@ -11,6 +11,7 @@ export {
   completionPercent,
   contentValueSchema,
   isCompleteContentValue,
+  isContentValueCompatible,
   parseContentBlock,
   parseContentBlockValue,
   groupByCategory,

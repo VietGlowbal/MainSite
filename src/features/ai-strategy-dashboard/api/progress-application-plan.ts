@@ -2,6 +2,7 @@ import type { PlannerMicroStepExecutionPatch, PlannerMicroStepExecutionState } f
 import { createAdminClient } from '@/server/db/admin';
 import { refreshApplicationPlan } from './refresh-application-plan';
 import { updateApplicationPlannerMicroStep } from './update-application-planner-micro-step';
+import { assertCanonicalPlannerAccess } from './canonical-access';
 
 /** Trusted orchestration: execution saves may explicitly advance Core 1 -> 3. */
 export async function progressApplicationPlan(
@@ -11,6 +12,7 @@ export async function progressApplicationPlan(
   patch: PlannerMicroStepExecutionPatch,
 ): Promise<{ microStep: PlannerMicroStepExecutionState; progressed: boolean }> {
   const trusted = createAdminClient();
+  await assertCanonicalPlannerAccess(trusted, applicationId, userId);
   const microStep = await updateApplicationPlannerMicroStep(trusted, applicationId, userId, microStepId, patch);
   if (microStep.planningInputChanged) {
     await refreshApplicationPlan(trusted, applicationId, userId, 'semantic_input');

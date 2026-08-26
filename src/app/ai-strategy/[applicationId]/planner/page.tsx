@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
-import { ensureApplicationPlan, fetchOnboardingState, generateRecommendations, getApplicationPlanner, getApplicationPlannerHealth, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
+import { ensureApplicationPlan, fetchOnboardingState, generateRecommendations, getCanonicalApplicationPlanner, getApplicationPlannerHealth, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
 import {
+  getPlannerMicroSteps,
   nextOnboardingStep,
   onboardingStepHref,
   recommendationFromRow,
@@ -60,7 +61,7 @@ export default async function PlannerPage({
     const ensured = await ensureApplicationPlan(supabase, applicationId, user.id);
     canonicalState = ensured.kind === 'ready' ? 'ready' : ensured.kind === 'failed' ? 'failed' : 'not_entitled';
     if (ensured.kind === 'ready') {
-      canonicalPlanner = await getApplicationPlanner(supabase, applicationId, user.id);
+      canonicalPlanner = await getCanonicalApplicationPlanner(supabase, applicationId, user.id);
       plannerHealth = await getApplicationPlannerHealth(supabase, applicationId, user.id);
     }
   }
@@ -83,15 +84,27 @@ export default async function PlannerPage({
     }
   }
 
-  const { data: recommendationRows } = await supabase
-    .from('application_recommendations')
-    .select('*')
-    .eq('application_id', applicationId)
-    .not('category', 'is', null)
-    .is('archived_at', null)
-    .order('priority', { ascending: false });
+  const { data: recommendationRows } = plannerMode === 'legacy'
+    ? await supabase
+      .from('application_recommendations')
+      .select('*')
+      .eq('application_id', applicationId)
+      .not('category', 'is', null)
+      .is('archived_at', null)
+      .order('priority', { ascending: false })
+    : { data: [] };
 
   const recommendations = (recommendationRows ?? []).map(recommendationFromRow);
+  const canonicalProgress = plannerMode === 'canonical'
+    ? canonicalPlanner
+      ? (() => {
+        const micros = getPlannerMicroSteps(canonicalPlanner);
+        const nextTask = micros.find((micro) => micro.status !== 'completed');
+        const completed = micros.filter((micro) => micro.status === 'completed').length;
+        return { completed, total: micros.length, percentage: micros.length ? Math.round((completed / micros.length) * 100) : 0, nextTitle: nextTask?.title ?? null };
+      })()
+      : null
+    : undefined;
 
   return (
     <Container className="max-w-6xl py-gb-7xl">
@@ -103,7 +116,8 @@ export default async function PlannerPage({
           location={hero.country}
           currentMatchPercent={latestMatch?.current_match_score ?? 0}
           deadline={application?.deadline ?? null}
-          recommendations={recommendations}
+          recommendations={plannerMode === 'legacy' ? recommendations : undefined}
+          canonicalProgress={canonicalProgress}
         />
 
         {generationError ? (
@@ -119,14 +133,10 @@ export default async function PlannerPage({
           <HierarchicalApplicationPlanner applicationId={applicationId} planner={canonicalPlanner} />
         ) : canonicalState === 'failed' ? (
           <p role="alert" className="rounded-gb-lg border border-line bg-surface-muted px-gb-lg py-gb-md text-gb-sm text-fg-error">We could not initialize your Planner. Please try again shortly.</p>
+        ) : plannerMode === 'canonical' ? (
+          <p role="status" className="rounded-gb-lg border border-line bg-surface-muted px-gb-lg py-gb-md text-gb-sm">Your Planner is being initialized. Refresh this page in a moment.</p>
         ) : (
-          <>
-            <ApplicationPlanner
-              applicationId={applicationId}
-              recommendations={recommendations}
-              today={new Date()}
-            />
-          </>
+          <ApplicationPlanner applicationId={applicationId} recommendations={recommendations} today={new Date()} />
         )}
       </div>
     </Container>

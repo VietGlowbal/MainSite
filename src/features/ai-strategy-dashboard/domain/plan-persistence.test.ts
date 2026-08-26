@@ -106,6 +106,35 @@ describe('reconcilePlan', () => {
     expect(JSON.stringify(operation)).not.toContain('contentValue');
   });
 
+  it('preserves execution state for wording-only schema changes', () => {
+    const source = plan();
+    const micro = source.phases[0]!.steps[0]!.microSteps[0]!;
+    const current = persistedFor(source);
+    current.microSteps[0] = {
+      ...current.microSteps[0]!,
+      status: 'completed',
+      contentSchema: { type: 'long_text', prompt: 'Explain the evidence', minWords: 1 },
+      contentValue: { type: 'long_text', text: 'Student work' },
+    };
+    const revised = plan({ phases: [{ ...source.phases[0]!, steps: [{ ...source.phases[0]!.steps[0]!, microSteps: [{ ...micro, contentSchema: { type: 'long_text', prompt: 'Describe the evidence', minWords: 1 } }] }] }] });
+    const operation = reconcilePlan(applicationId, revised, current).operations.find((item) => item.kind === 'update_micro_step');
+    expect(operation).toMatchObject({ kind: 'update_micro_step', fields: { contentSchema: { type: 'long_text', prompt: 'Describe the evidence' } } });
+    expect(operation && 'fields' in operation ? operation.fields.executionReset : undefined).toBeUndefined();
+  });
+
+  it('marks an incompatible schema change for execution reset', () => {
+    const current = persistedFor();
+    current.microSteps[0] = {
+      ...current.microSteps[0]!,
+      status: 'completed',
+      contentSchema: { type: 'long_text', prompt: 'Explain', minWords: 1 },
+      contentValue: { type: 'long_text', text: 'Student work' },
+    };
+    const revised = plan({ phases: [{ ...plan().phases[0]!, steps: [{ ...plan().phases[0]!.steps[0]!, microSteps: [{ ...plan().phases[0]!.steps[0]!.microSteps[0]!, contentSchema: { type: 'single_select', prompt: 'Choose', semanticKey: 'planner.focus', options: [{ value: 'a', label: 'A' }] } }] }] }] });
+    const operation = reconcilePlan(applicationId, revised, current).operations.find((item) => item.kind === 'update_micro_step');
+    expect(operation && 'fields' in operation ? operation.fields.executionReset : undefined).toBe(true);
+  });
+
   it('is independent of source input order and sorts source provenance before persisting', () => {
     const current = plan();
     const reordered = plan({ phases: [...current.phases].reverse() });

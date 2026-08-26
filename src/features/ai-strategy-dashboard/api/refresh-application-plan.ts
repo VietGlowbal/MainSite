@@ -3,6 +3,7 @@ import { createAdminClient } from '@/server/db/admin';
 import { getApplicationAssessments } from './get-application-assessments';
 import { getApplicationPlanner } from './get-application-planner';
 import { getPlannerMode } from './planner-mode';
+import { assertCanonicalPlannerAccess } from './canonical-access';
 import { claimPlannerGeneration, finishPlannerGeneration, upsertPlannerOps } from './planner-ops-store';
 import { syncApplicationPlan } from './sync-application-plan';
 import { isPlannerStale, planFingerprint, plannerLifecycle, plannerSourceFingerprint, type PlannerFailureCode } from '../domain';
@@ -13,6 +14,7 @@ export type PlannerRefreshResult = { refreshed: boolean; skipped: boolean; reaso
 /** Controlled, cross-instance-safe refresh. A failed run never archives the old plan. */
 export async function refreshApplicationPlan(supabase: SupabaseClient, applicationId: string, userId: string, trigger: PlannerRefreshTrigger): Promise<PlannerRefreshResult> {
   if (await getPlannerMode(supabase, userId) !== 'canonical') return { refreshed: false, skipped: true, reason: 'not_entitled' };
+  await assertCanonicalPlannerAccess(supabase, applicationId, userId);
   const admin = createAdminClient();
   const existing = await getApplicationPlanner(supabase, applicationId, userId).catch(() => null);
   const runId = await claimPlannerGeneration(admin, { applicationId, trigger, sourceFingerprint: null });

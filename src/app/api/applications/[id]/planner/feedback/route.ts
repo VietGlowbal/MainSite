@@ -24,6 +24,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   if (await getPlannerMode(supabase, user.id) !== 'canonical') return NextResponse.json({ error: 'Planner access requires GlowBal Plus.' }, { status: 403 });
   const result = await savePlannerFeedback(applicationId, user.id, parsed.data);
+  if (result.kind === 'not_entitled') return NextResponse.json({ error: 'Planner access requires GlowBal Plus.' }, { status: 403 });
   if (result.kind === 'not_found') return NextResponse.json({ error: 'Planner not found' }, { status: 404 });
   if (result.kind === 'target_not_found') return NextResponse.json({ error: 'Task not found' }, { status: 404 });
   if (result.kind === 'failed') return NextResponse.json({ error: 'Could not save feedback' }, { status: 500 });

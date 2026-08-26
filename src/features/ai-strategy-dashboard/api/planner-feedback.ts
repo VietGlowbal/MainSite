@@ -1,10 +1,17 @@
 import { createAdminClient } from '@/lib/supabase/admin';
+import { assertCanonicalPlannerAccess, CanonicalPlannerAccessError } from './canonical-access';
 
 export type PlannerFeedbackInput = { targetType: 'plan' | 'micro_step'; targetId?: string | null; rating?: number | null; reason?: string | null; comment?: string | null };
 
 /** Trusted server repository for feedback; target ownership is rechecked here. */
 export async function savePlannerFeedback(applicationId: string, userId: string, input: PlannerFeedbackInput) {
   const admin = createAdminClient();
+  try {
+    await assertCanonicalPlannerAccess(admin, applicationId, userId);
+  } catch (error) {
+    if (error instanceof CanonicalPlannerAccessError && error.code === 'not_entitled') return { kind: 'not_entitled' as const };
+    return { kind: 'not_found' as const };
+  }
   const { data: application } = await admin.from('course_applications').select('id').eq('id', applicationId).eq('user_id', userId).maybeSingle();
   if (!application) return { kind: 'not_found' as const };
   const { data: plan } = await admin.from('application_plans').select('id').eq('application_id', applicationId).eq('producer', 'core3_deterministic').is('archived_at', null).maybeSingle();
@@ -17,15 +24,17 @@ export async function savePlannerFeedback(applicationId: string, userId: string,
     if (!phase || phase.plan_id !== plan.id) return { kind: 'target_not_found' as const };
   }
   const targetId = input.targetId ?? null;
-  const existingQuery = admin.from('application_planner_feedback').select('id').eq('user_id', userId).eq('application_id', applicationId).eq('plan_id', plan.id).eq('target_type', input.targetType);
-  const existing = targetId ? await existingQuery.eq('target_id', targetId).maybeSingle() : await existingQuery.is('target_id', null).maybeSingle();
-  const fields = { rating: input.rating ?? null, reason: input.reason ?? null, comment: input.comment || null, updated_at: new Date().toISOString() };
-  if (existing.data) {
-    const result = await admin.from('application_planner_feedback').update(fields).eq('id', existing.data.id);
-    if (result.error) return { kind: 'failed' as const };
-    return { kind: 'saved' as const, id: existing.data.id as string };
-  }
-  const result = await admin.from('application_planner_feedback').insert({ ...fields, application_id: applicationId, plan_id: plan.id, user_id: userId, target_type: input.targetType, target_id: targetId }).select('id').single();
+  const result = await admin.from('application_planner_feedback').upsert({
+    application_id: applicationId,
+    plan_id: plan.id,
+    user_id: userId,
+    target_type: input.targetType,
+    target_id: targetId,
+    rating: input.rating ?? null,
+    reason: input.reason ?? null,
+    comment: input.comment || null,
+    updated_at: new Date().toISOString(),
+  }, { onConflict: 'user_id,application_id,plan_id,target_type,target_key' }).select('id').single();
   if (result.error) return { kind: 'failed' as const };
   return { kind: 'saved' as const, id: result.data.id as string };
 }

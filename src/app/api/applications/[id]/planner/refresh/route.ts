@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getPlannerMode, refreshApplicationPlan, type PlannerRefreshTrigger } from '@/features/ai-strategy-dashboard/api';
+import { CanonicalPlannerAccessError, getPlannerMode, refreshApplicationPlan, type PlannerRefreshTrigger } from '@/features/ai-strategy-dashboard/api';
 import { createClient } from '@/lib/supabase/server';
 import { sameOrigin } from '@/server/payments/manual-review-auth';
 
@@ -25,6 +25,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const result = await refreshApplicationPlan(supabase, id, user.id, parsed.data.trigger as PlannerRefreshTrigger);
     return NextResponse.json(result, { status: result.reason === 'concurrent' ? 409 : 200 });
   } catch (error) {
+    if (error instanceof CanonicalPlannerAccessError && error.code === 'not_found') return NextResponse.json({ error: 'Planner not found' }, { status: 404 });
+    if (error instanceof CanonicalPlannerAccessError && error.code === 'not_entitled') return NextResponse.json({ error: 'Planner access requires GlowBal Plus.' }, { status: 403 });
     console.error('[planner/refresh] failed', { applicationId: id, userId: user.id, error });
     return NextResponse.json({ error: 'We could not update your plan. Your current plan is still available.' }, { status: 500 });
   }

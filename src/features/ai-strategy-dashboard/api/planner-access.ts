@@ -2,8 +2,19 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getApplicationPlanner } from './get-application-planner';
 import { getApplicationAssessments } from './get-application-assessments';
 import { refreshApplicationPlan } from './refresh-application-plan';
+import { assertCanonicalPlannerAccess } from './canonical-access';
 import { getPlannerMicroSteps, plannerSourceFingerprint } from '../domain';
 import { getPlannerMode } from './planner-mode';
+
+/** Canonical read boundary used by pages and server orchestration. */
+export async function getCanonicalApplicationPlanner(
+  supabase: SupabaseClient,
+  applicationId: string,
+  userId: string,
+) {
+  await assertCanonicalPlannerAccess(supabase, applicationId, userId);
+  return getApplicationPlanner(supabase, applicationId, userId);
+}
 
 export type EnsureApplicationPlanResult =
   | { kind: 'ready'; created: boolean }
@@ -28,7 +39,7 @@ export async function ensureApplicationPlan(
     .eq('id', applicationId).eq('user_id', userId).maybeSingle();
   if (error || !application) return { kind: 'not_found' };
   try {
-    const existing = await getApplicationPlanner(supabase, applicationId, userId);
+    const existing = await getCanonicalApplicationPlanner(supabase, applicationId, userId);
     // One-time rollout upgrade: early foundation plans have the attention
     // decision node but no schema. Reconcile once so it becomes a real input;
     // normal existing plans are never regenerated on page load.
@@ -47,3 +58,5 @@ export async function ensureApplicationPlan(
     return { kind: 'failed' };
   }
 }
+
+export { assertCanonicalPlannerAccess, CanonicalPlannerAccessError } from './canonical-access';

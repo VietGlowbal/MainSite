@@ -74,10 +74,12 @@ function SingleSelectInput({
   const [selected, setSelected] = useState(value?.value ?? '');
   const [saving, setSaving] = useState(false);
   async function change(next: string) {
+    const previous = selected;
     setSelected(next);
     if (!next) return;
     setSaving(true);
-    await onSave({ type: 'single_select', value: next });
+    const saved = await onSave({ type: 'single_select', value: next });
+    if (!saved) setSelected(previous);
     setSaving(false);
   }
   return <div className="flex flex-col gap-gb-md"><p className="text-gb-sm text-fg-tertiary">{schema.prompt}</p><Select name="content-single-select" aria-label={schema.prompt} value={selected} onChange={(event) => void change(event.target.value)}><option value="">Select an option</option>{schema.options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</Select><SaveStatus saving={saving} /></div>;
@@ -137,11 +139,16 @@ function LongTextInput({
   }
 
   async function handleBlur() {
+    const previous = value?.text ?? '';
     setSaving(true);
-    await onSave({
+    const saved = await onSave({
       type: 'long_text',
       text: textRef.current,
     });
+    if (!saved) {
+      textRef.current = previous;
+      setText(previous);
+    }
     setSaving(false);
   }
 
@@ -190,15 +197,17 @@ function ChecklistInput({
   const [saving, setSaving] = useState(false);
 
   async function toggle(item: string) {
+    const previous = checkedItems;
     const next = new Set(checkedItems);
     if (next.has(item)) next.delete(item);
     else next.add(item);
     setCheckedItems(next);
     setSaving(true);
-    await onSave({
+    const saved = await onSave({
       type: 'checklist',
       checkedItems: [...next],
     });
+    if (!saved) setCheckedItems(previous);
     setSaving(false);
   }
 
@@ -256,13 +265,21 @@ function StructuredTableInput({
   });
   const [saving, setSaving] = useState(false);
   const rowsRef = useRef(rows);
+  const savedRowsRef = useRef(rows);
 
   async function persist(nextRows: TableRow[]) {
+    const previous = savedRowsRef.current;
     setSaving(true);
-    await onSave({
+    const saved = await onSave({
       type: 'structured_table',
       rows: nextRows.map((r) => r.cells),
     });
+    if (saved) {
+      savedRowsRef.current = nextRows;
+    } else {
+      rowsRef.current = previous;
+      setRows(previous);
+    }
     setSaving(false);
   }
 

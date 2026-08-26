@@ -199,6 +199,21 @@ export function isCompleteContentValue(schema: ContentBlock | null, value: Conte
   return value.type === 'structured_table' && value.rows.length > 0;
 }
 
+/** Structural compatibility for preserving a saved value across plan edits. */
+export function isContentValueCompatible(schema: ContentBlock | null, value: ContentBlockValue | null): boolean {
+  if (!schema || !value || schema.type !== value.type) return schema === null && value === null;
+  if (schema.type === 'single_select' && value.type === 'single_select') {
+    return schema.options.some((option) => option.value === value.value);
+  }
+  if (schema.type === 'long_text' && value.type === 'long_text') return true;
+  if (schema.type === 'checklist' && value.type === 'checklist') {
+    return value.checkedItems.every((item) => schema.items.includes(item));
+  }
+  if (schema.type !== 'structured_table' || value.type !== 'structured_table') return false;
+  const columns = new Set(schema.columns.map((column) => column.key));
+  return value.rows.every((row) => Object.keys(row).every((key) => columns.has(key)));
+}
+
 /**
  * What `PATCH .../recommendations/[recId]` accepts.
  *

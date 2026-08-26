@@ -4,7 +4,7 @@ import { NextRequest } from 'next/server';
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
   isAdmin: vi.fn(),
-  syncApplicationPlan: vi.fn(),
+  syncApplicationPlanWithTrustedClient: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: mocks.createClient }));
@@ -14,7 +14,7 @@ vi.mock('@/server/payments/manual-review-auth', () => ({
 }));
 vi.mock('@/features/ai-strategy-dashboard/api', () => ({
   PlanPersistenceError: class PlanPersistenceError extends Error {},
-  syncApplicationPlan: mocks.syncApplicationPlan,
+  syncApplicationPlanWithTrustedClient: mocks.syncApplicationPlanWithTrustedClient,
 }));
 
 import { POST } from './route';
@@ -35,18 +35,18 @@ describe('POST /api/admin/applications/[id]/planner/sync', () => {
     const response = await POST(request(), { params: Promise.resolve({ id: applicationId }) });
 
     expect(response.status).toBe(403);
-    expect(mocks.syncApplicationPlan).not.toHaveBeenCalled();
+    expect(mocks.syncApplicationPlanWithTrustedClient).not.toHaveBeenCalled();
   });
 
   it('syncs an admin\'s own UUID-scoped application', async () => {
     const supabase = { auth: { getUser: vi.fn(async () => ({ data: { user: { id: 'user-1' } } })) } };
     mocks.createClient.mockResolvedValue(supabase);
     mocks.isAdmin.mockResolvedValue(true);
-    mocks.syncApplicationPlan.mockResolvedValue({ inserted: 4, updated: 0, restored: 0, archived: 0 });
+    mocks.syncApplicationPlanWithTrustedClient.mockResolvedValue({ inserted: 4, updated: 0, restored: 0, archived: 0 });
 
     const response = await POST(request(), { params: Promise.resolve({ id: applicationId }) });
 
     expect(response.status).toBe(200);
-    expect(mocks.syncApplicationPlan).toHaveBeenCalledWith(supabase, applicationId, 'user-1');
+    expect(mocks.syncApplicationPlanWithTrustedClient).toHaveBeenCalledWith(applicationId, 'user-1');
   });
 });

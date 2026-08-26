@@ -27,6 +27,43 @@ describe('Planner Ops source freshness', () => {
     expect(plannerSourceFingerprint(context({ strategy: { direction: 'research' } }))).not.toBe(plannerSourceFingerprint(context({ strategy: { direction: 'industry' } })));
   });
 
+  it('changes for profile, evidence, missing-input, F5, F7, answer, and attention changes', () => {
+    const base = { ...(context({
+      applicantState: { evidence: { strength: 'low' } },
+      existingEvidence: { verified: [{ id: 'e-1' }], attributable: [], stated: [] },
+      evidenceNeedsProof: [],
+      missingEvidence: [],
+      missingInputSignals: [],
+      provenance: { sourceDiagnostics: [], personalReport: null, programmeFit: null, strategy: null },
+      interventionCandidates: [{ source: 'f5_improvement', sourceAnalysisId: 'f5-1', action: { id: 'a-1', title: 'Improve evidence' } }],
+      plannerInputs: [{ semanticKey: 'attention-focus', value: 'evidence', microStepId: 'micro-1', provenance: 'user_provided' }],
+      strategy: { direction: 'research', priorities: ['evidence', 'essay'] },
+    })) as Record<string, unknown> };
+    const first = plannerSourceFingerprint(base as never);
+    for (const changed of [
+      { applicantState: { evidence: { strength: 'high' } } },
+      { existingEvidence: { verified: [{ id: 'e-2' }], attributable: [], stated: [] } },
+      { missingEvidence: [{ description: 'Transcript', reason: 'required', source: 'programme_requirement' }] },
+      { missingInputSignals: [{ description: 'growth', frameworkContext: 'f4' }] },
+      { interventionCandidates: [{ source: 'f5_improvement', sourceAnalysisId: 'f5-1', action: { id: 'a-1', title: 'Improve writing' } }] },
+      { interventionCandidates: [{ source: 'f7_priority', sourceAnalysisId: 'f7-1', label: 'Portfolio', rationale: 'Differentiate' }] },
+      { plannerInputs: [{ semanticKey: 'attention-focus', value: 'portfolio', microStepId: 'micro-1', provenance: 'user_provided' }] },
+      { provenance: { sourceDiagnostics: [], staleness: { personalReport: 'stale', programmeFit: 'current', strategy: 'current' }, personalReport: null, programmeFit: null, strategy: null } },
+    ]) {
+      expect(plannerSourceFingerprint({ ...base, ...changed } as never)).not.toBe(first);
+    }
+  });
+
+  it('preserves semantic order but normalizes unordered collections', () => {
+    const ordered = context({ strategy: { priorities: ['one', 'two'] } });
+    const swapped = context({ strategy: { priorities: ['two', 'one'] } });
+    expect(plannerSourceFingerprint(ordered)).not.toBe(plannerSourceFingerprint(swapped));
+    const unorderedFirst = context({ userConstraints: [{ kind: 'budget', value: '1000' }, { kind: 'study_mode', value: 'online' }] });
+    const unorderedSecond = context({ userConstraints: [{ kind: 'study_mode', value: 'online' }, { kind: 'budget', value: '1000' }] });
+    expect(plannerSourceFingerprint(unorderedFirst)).toBe(plannerSourceFingerprint(unorderedSecond));
+    expect(plannerSourceFingerprint(context({ executionStatus: 'completed', executionDeadline: '2030-01-01', feedback: 5, view: 'board', collapsed: true }))).toBe(plannerSourceFingerprint(context()));
+  });
+
   it('maps read-model states without conflating empty and complete', () => {
     const plan = { id: 'plan', applicationId: 'app', producer: 'core3_deterministic', domainPlanId: 'plan:source:planner-fnv1a-32:aaaaaaaa', readiness: 'requires_enrichment' as const };
     const base = { plan, phases: [], lifecycle: 'active' as const, diagnostics: [] };
