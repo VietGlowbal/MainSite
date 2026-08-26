@@ -86,4 +86,9 @@ export const PLANNER_TRANSLATIONS: Record<string, string> = {
   'Save email preferences': 'Lưu tuỳ chọn email',
   'Could not load email preferences.': 'Không thể tải tuỳ chọn email.',
   'Could not update email preferences.': 'Không thể lưu tuỳ chọn email.',
+  'Your Planner is being initialized. Refresh this page in a moment.': 'Kế hoạch của bạn đang được khởi tạo. Hãy làm mới trang sau giây lát.',
+  'Was this useful?': 'Nội dung này có hữu ích không?',
+  'Thanks — this helps improve Planner quality.': 'Cảm ơn — phản hồi này giúp cải thiện chất lượng Planner.',
+  'Could not save feedback.': 'Không thể lưu phản hồi.',
+  'tasks complete': 'nhiệm vụ đã hoàn thành',
 };
