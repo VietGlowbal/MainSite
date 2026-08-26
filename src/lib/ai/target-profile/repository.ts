@@ -133,10 +133,14 @@ export async function getLatestTargetProfileVersion(
   supabase: SupabaseClient,
   args: { userId: string; programmeId: string; scholarshipKey?: string },
 ): Promise<StoredTargetProfileVersion | null> {
+  // Programme-scoped cache: rows are shared across users (the profile is
+  // extracted from catalogue data only and contains no personal data), so the
+  // read deliberately does NOT filter by user. `userId` is kept in the
+  // signature for logging/provenance symmetry with createTargetProfileVersion.
+  void args.userId;
   let query = supabase
     .from('programme_target_profile_versions')
     .select('id, source_fingerprint, profile, created_at')
-    .eq('user_id', args.userId)
     .eq('programme_id', args.programmeId);
   query = args.scholarshipKey
     ? query.eq('scholarship_key', args.scholarshipKey)
@@ -147,7 +151,13 @@ export async function getLatestTargetProfileVersion(
     .maybeSingle();
 
   if (error) {
-    if (!isSchemaGap(error)) console.error('[target-profile] version lookup failed', error);
+    // Surface schema gaps loudly (warn) so a column/table mismatch can never
+    // silently masquerade as a cold cache again; genuine read failures error.
+    if (isSchemaGap(error)) {
+      console.warn('[target-profile] version lookup hit a schema gap', error.code, error.message);
+    } else {
+      console.error('[target-profile] version lookup failed', error);
+    }
     return null;
   }
   if (!data?.profile) return null;

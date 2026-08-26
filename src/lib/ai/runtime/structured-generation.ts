@@ -78,14 +78,19 @@ type CompletionResponse = {
 export type StructuredProviderClient = {
   chat: {
     completions: {
-      create(args: {
-        model: string;
-        messages: ChatMessage[];
-        temperature?: number;
-        max_tokens?: number;
-        response_format?: Record<string, unknown>;
-        signal?: AbortSignal;
-      }): Promise<CompletionResponse>;
+      // OpenAI SDK signature: create(body, options). Request-level controls
+      // such as `signal` belong in OPTIONS, never inside the body — a stray
+      // body key would be serialized to the API and abort nothing.
+      create(
+        body: {
+          model: string;
+          messages: ChatMessage[];
+          temperature?: number;
+          max_tokens?: number;
+          response_format?: Record<string, unknown>;
+        },
+        options?: { signal?: AbortSignal },
+      ): Promise<CompletionResponse>;
     };
   };
 };
@@ -185,14 +190,18 @@ export async function generateStructured<T>(args: {
 
   const callProvider = async (messages: ChatMessage[]): Promise<string> => {
     try {
-      const response = await provider.chat.completions.create({
-        model,
-        messages,
-        temperature,
-        max_tokens: maxTokens,
-        ...(jsonSchemaFormat ? { response_format: jsonSchemaFormat } : {}),
-        signal: controller.signal,
-      });
+      const response = await provider.chat.completions.create(
+        {
+          model,
+          messages,
+          temperature,
+          max_tokens: maxTokens,
+          ...(jsonSchemaFormat ? { response_format: jsonSchemaFormat } : {}),
+        },
+        // Abort lives in the SDK's options argument so the 55s budget truly
+        // cancels the in-flight HTTP request.
+        { signal: controller.signal },
+      );
       accumulateUsage(response);
       const choice = response.choices?.[0];
       if (choice?.finish_reason === 'length') {

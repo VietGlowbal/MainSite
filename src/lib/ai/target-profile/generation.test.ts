@@ -254,14 +254,16 @@ function supabaseWithProjection(projection: CatalogueProjection, latestVersion: 
     }
     if (table === 'programme_target_profile_versions') {
       return {
+        // Read chain mirrors getLatestTargetProfileVersion: select →
+        // eq(programme_id) → is(scholarship_key, null) → order → limit →
+        // maybeSingle. The cache is programme-scoped and shared across
+        // users, so there is deliberately no user filter in the chain.
         select: () => ({
           eq: () => ({
-            eq: () => ({
-              is: () => ({
-                order: () => ({
-                  limit: () => ({
-                    maybeSingle: async () => ({ data: latestVersion, error: null }),
-                  }),
+            is: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: async () => ({ data: latestVersion, error: null }),
                 }),
               }),
             }),

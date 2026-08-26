@@ -94,15 +94,18 @@ ALTER TABLE public.programme_target_profile_versions ENABLE ROW LEVEL SECURITY;
 
 DO $$
 BEGIN
+  -- READ: shared programme-level cache — any authenticated user may read a
+  -- stored profile (content is catalogue-derived, no personal data). Without
+  -- this, cross-user reuse is impossible and every student pays the AI cost.
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies
     WHERE schemaname = 'public' AND tablename = 'programme_target_profile_versions'
-      AND policyname = 'programme_target_profile_versions_select_own'
+      AND policyname = 'programme_target_profile_versions_select_authenticated'
   ) THEN
-    CREATE POLICY "programme_target_profile_versions_select_own"
+    CREATE POLICY "programme_target_profile_versions_select_authenticated"
       ON public.programme_target_profile_versions
       FOR SELECT TO authenticated
-      USING (auth.uid() = created_by);
+      USING (true);
   END IF;
   IF NOT EXISTS (
     SELECT 1 FROM pg_policies

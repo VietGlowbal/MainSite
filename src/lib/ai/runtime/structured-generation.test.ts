@@ -13,10 +13,10 @@ type Output = z.infer<typeof SCHEMA>;
 
 /** Minimal stand-in for the OpenAI chat.completions namespace. */
 function fakeClient(
-  impl: (callArgs: {
-    messages: Array<{ role: string; content: string }>;
-    signal?: AbortSignal;
-  }) => Promise<{
+  impl: (
+    callArgs: { messages: Array<{ role: string; content: string }> },
+    callOptions: { signal?: AbortSignal } | undefined,
+  ) => Promise<{
     choices: Array<{ message: { content: string }; finish_reason: string }>;
     usage?: { prompt_tokens: number; completion_tokens: number; total_tokens: number };
   }>,
@@ -60,6 +60,16 @@ describe('generateStructured', () => {
     expect(result.meta.promptVersion).toBe('tp-v1');
     expect(result.meta.schemaVersion).toBe('ts-v1');
     expect(typeof result.meta.latencyMs).toBe('number');
+
+    // Regression: the abort signal must ride the SDK's OPTIONS argument —
+    // never inside the request body (an unknown body field can be rejected
+    // by the provider, and a body-level signal aborts nothing).
+    const [body, options] = create.mock.calls[0] as [
+      Record<string, unknown>,
+      { signal?: AbortSignal } | undefined,
+    ];
+    expect('signal' in body).toBe(false);
+    expect(options?.signal).toBeInstanceOf(AbortSignal);
   });
 
   it('gives an invalid output exactly one repair attempt, then succeeds', async () => {
@@ -117,9 +127,9 @@ describe('generateStructured', () => {
 
   it('aborts within its internal budget and reports a timeout', async () => {
     const { client, create } = fakeClient(
-      ({ signal }) =>
+      (_body, options) =>
         new Promise((_, reject) => {
-          signal?.addEventListener('abort', () => {
+          options?.signal?.addEventListener('abort', () => {
             const abortError = new Error('This operation was aborted');
             abortError.name = 'AbortError';
             reject(abortError);
