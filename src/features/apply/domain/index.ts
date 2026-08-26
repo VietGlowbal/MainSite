@@ -233,6 +233,7 @@ export type {
 } from './ai-reports';
 export {
   buildPersonalReport,
+  PERSONAL_REPORT_CONTRACT_VERSION,
   STUDY_MOTIVATION_SUPPLEMENT_KEY,
   themeMaturityResults,
 } from './personal-report';
@@ -248,6 +249,9 @@ export type {
   PersonalPositioningSection,
   PersonalReportTrigger,
   PersonalReportV2,
+  PersonalReportEvidenceCoverage,
+  PersonalReportInsight,
+  PersonalReportKeyTakeaways,
   PersonalReportVersionSummary,
   PositioningDimensionKey,
   ProofCard,

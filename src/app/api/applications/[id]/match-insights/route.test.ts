@@ -174,6 +174,9 @@ describe('POST /api/applications/[id]/match-insights', () => {
     expect(mocks.regeneratePersonalReport.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.analyzeCourseMatchInsights.mock.invocationCallOrder[0],
     );
+    expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(
+      expect.objectContaining({ applicationId: 'app-1' }),
+    );
     expect(insertedAnalysisRow).toMatchObject({
       source_personal_report_version_id: 'personal-v1',
       source_personal_report_input_hash: 'personal-input-hash',

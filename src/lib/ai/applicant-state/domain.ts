@@ -35,6 +35,8 @@ export interface ActivityAnalysisItem {
   title: string;
   category?: string | null;
   freeText: string | null;
+  /** Storage key of an uploaded document backing this entry (achievements). */
+  evidenceKey?: string | null;
   followUpAnswers?: CandidateFollowUpAnswer[];
 }
 
@@ -61,6 +63,8 @@ export interface IdentitySignals {
 
 export interface ApplicantAIState extends BaseApplicantAIState {
   academicProfile?: AcademicProfile;
+  /** Snapshot achievements — parallel to `activities`, never merged into it. */
+  achievements: ActivityAnalysisItem[];
   activities: ActivityAnalysisItem[];
   evidenceBank: EvidenceBankItem[];
   identitySignals?: IdentitySignals;

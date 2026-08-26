@@ -14,10 +14,15 @@ type ReportState = { status: ReportStatus; error?: string | undefined };
  * Strategy generation consumes this canonical Personal Report directly.
  */
 async function fetchOrGeneratePersonal(
+  applicationId: string,
   errorMessages: { generic: string; rateLimit: string; unavailable: string },
 ): Promise<ReportState> {
   try {
-    const canonical = await fetch('/api/ai-strategy/personal-report', { method: 'POST' });
+    const canonical = await fetch('/api/ai-strategy/personal-report', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId }),
+    });
     const canonicalBody = await canonical.json().catch(() => ({}));
     if (!canonical.ok || !canonicalBody.reportV2) {
       if (canonical.status === 429) {
@@ -88,7 +93,7 @@ export function AnalysisWorkspace({
   useEffect(() => {
     let active = true;
     async function loadReports() {
-      const personalState = await fetchOrGeneratePersonal(errorMessages);
+      const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages);
       if (!active) return;
       setPersonal(personalState);
       if (personalState.status !== 'complete') {
@@ -111,7 +116,7 @@ export function AnalysisWorkspace({
   const retryPersonal = useCallback(async () => {
     setPersonal({ status: 'generating' });
     setMatching({ status: 'generating' });
-    const personalState = await fetchOrGeneratePersonal(errorMessages);
+    const personalState = await fetchOrGeneratePersonal(applicationId, errorMessages);
     setPersonal(personalState);
     if (personalState.status !== 'complete') {
       setMatching({

@@ -59,7 +59,11 @@ export function EvidenceUpload({
     setReanalysis('running');
     try {
       const [personalRes, matchRes] = await Promise.all([
-        fetch('/api/ai-strategy/personal-report', { method: 'POST' }),
+        fetch('/api/ai-strategy/personal-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ applicationId }),
+        }),
         fetch(`/api/applications/${applicationId}/match-insights`, { method: 'POST' }),
       ]);
       if (!personalRes.ok || !matchRes.ok) {

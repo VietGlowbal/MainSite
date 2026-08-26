@@ -148,6 +148,7 @@ export async function POST(
   const personalGeneration = await regeneratePersonalReport({
     supabase,
     userId,
+    applicationId,
     trigger: 'matching_report',
   });
   if (personalGeneration.status !== 'cached' && personalGeneration.status !== 'regenerated') {

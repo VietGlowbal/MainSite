@@ -994,6 +994,8 @@ The dated audit remains the detailed evidence record. A code-only recheck on
 See [audit-2026-08-03.md](audit-2026-08-03.md) for the point-in-time audit and
 [known-issues.md](known-issues.md) for historical traps and regression notes.
 
+Working tree 2026-08-26: completed Personal Report Task 8 wiring: application-scoped generation reads one confirmed snapshot, persists analysis/evidence/report lineage, validates the 150-200-word snapshot contract, handles cache/force/idempotency and deterministic fallback, and passes applicationId through report-generation callers. Measured: focused 71/71 tests, `npm.cmd run typecheck`, scoped ESLint, and `npm.cmd run build` pass. Strict typecheck remains blocked by pre-existing errors in matching/canvas UI and an evidence-bank test.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:

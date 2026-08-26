@@ -210,9 +210,11 @@ describe('synthesizePersonalReportNarrative', () => {
   });
 
   it('hydrates a response that only cites known evidence ids', async () => {
+    const snapshotSummary = Array.from({ length: 150 }, (_, index) => `word${index}`).join(' ');
     const fetchMock = vi.fn().mockResolvedValue(
       chatResponse(
         JSON.stringify({
+          snapshot: { summary: snapshotSummary },
           overview: null,
           coreIdentity: {
             headline: 'A natural organiser',
@@ -235,6 +237,7 @@ describe('synthesizePersonalReportNarrative', () => {
     });
 
     expect(result?.coreIdentity?.headline).toBe('A natural organiser');
+    expect(result?.snapshot?.summary).toBe(snapshotSummary);
     expect(result?.coreIdentity?.evidenceRefs).toEqual([
       { id: 'activity-1', kind: 'activity', label: 'Coding club' },
     ]);

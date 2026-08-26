@@ -33,7 +33,13 @@ describe('AnalysisWorkspace', () => {
 
     render(<AnalysisWorkspace applicationId={'app-1'} />);
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, { method: 'POST' }));
+    await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: 'app-1' }),
+      }),
+    );
     expect(fetchMock.mock.calls.map(([url]) => url)).not.toContain(MATCHING_GET);
 
     resolvePersonal?.();
@@ -64,7 +70,11 @@ describe('AnalysisWorkspace', () => {
       'href',
       '/ai-strategy/app-1/matching-report',
     );
-    expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, { method: 'POST' });
+    expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ applicationId: 'app-1' }),
+    });
     expect(screen.queryByText('Generating…')).not.toBeInTheDocument();
   });
 

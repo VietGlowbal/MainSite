@@ -235,4 +235,27 @@ describe('buildPersonalReport', () => {
     });
     expect(result.overallEvidenceConfidence).toBe(evaluation.confidence);
   });
+
+  it('emits the application report contract with bounded summary and explicit evidence gaps', () => {
+    const result = report({ evidenceItems: [] });
+    const summaryWords = result.snapshot?.summary.trim().split(/\s+/).length ?? 0;
+
+    expect(summaryWords).toBeGreaterThanOrEqual(150);
+    expect(summaryWords).toBeLessThanOrEqual(200);
+    expect(result.growthAreas?.[0]).toMatchObject({
+      kind: 'growth_area',
+      scope: 'insufficient',
+      currentGap: expect.any(String),
+      importance: expect.any(String),
+      direction: expect.any(String),
+      limitations: expect.any(Array),
+    });
+    expect(result.keyTakeaways).toEqual(
+      expect.objectContaining({
+        whatMakesYouStandOut: expect.any(Object),
+        competitiveAdvantage: expect.any(Object),
+        growthOpportunity: expect.any(Object),
+      }),
+    );
+  });
 });

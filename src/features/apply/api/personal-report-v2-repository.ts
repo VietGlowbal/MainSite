@@ -339,6 +339,27 @@ export async function getPersonalReportSupplements(
   return Object.fromEntries((data ?? []).map((row) => [row.field_key, row.answer]));
 }
 
+/** Application-scoped report supplements; legacy global answers never cross application boundaries. */
+export async function getApplicationPersonalReportSupplements(
+  supabase: SupabaseClient,
+  scope: ApplicationReportScope,
+): Promise<Record<string, string>> {
+  const { data, error } = await supabase
+    .from('application_personal_report_supplements')
+    .select('field_key, answer')
+    .eq('user_id', scope.userId)
+    .eq('application_id', scope.applicationId);
+
+  if (error) {
+    const migrationMissing =
+      error.code === '42P01' || error.code === 'PGRST205' || error.code === '42703';
+    if (!migrationMissing) console.error('[personal-report-v2] application supplement read failed', error);
+    return {};
+  }
+
+  return Object.fromEntries((data ?? []).map((row) => [row.field_key, row.answer]));
+}
+
 export async function savePersonalReportSupplement(
   supabase: SupabaseClient,
   args: { userId: string; fieldKey: string; answer: string },

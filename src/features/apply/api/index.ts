@@ -33,13 +33,14 @@ export type {
 } from './profile-review';
 export {
   createPersonalReportV2Version,
+  getApplicationPersonalReportSupplements,
   getLatestPersonalReportV2,
   getPersonalReportSupplements,
   getPersonalReportV2Version,
   listPersonalReportV2Versions,
   savePersonalReportSupplement,
 } from './personal-report-v2-repository';
-export type { PersonalReportV2Record } from './personal-report-v2-repository';
+export type { ApplicationReportScope, PersonalReportV2Record } from './personal-report-v2-repository';
 export { regeneratePersonalReport } from './personal-report-generation';
 export type { RegeneratePersonalReportResult } from './personal-report-generation';
 

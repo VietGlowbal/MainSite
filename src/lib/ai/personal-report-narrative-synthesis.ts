@@ -42,7 +42,15 @@ const textSectionSchema = z.object({
   evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
 });
 
+const snapshotSchema = z.object({
+  summary: z.string().min(1).max(1600).refine(
+    (value) => value.trim().split(/\s+/).length >= 150 && value.trim().split(/\s+/).length <= 200,
+    'snapshot.summary must contain 150-200 words',
+  ),
+});
+
 const synthesisResponseSchema = z.object({
+  snapshot: snapshotSchema.optional(),
   overview: z
     .object({
       summary: z.string().min(1).max(700),
@@ -67,6 +75,7 @@ const synthesisResponseSchema = z.object({
 });
 
 export type PersonalReportNarrativeSynthesis = {
+  snapshot?: { summary: string };
   overview: { summary: string; evidenceRefs: EvidenceRef[] } | null;
   coreIdentity: { headline: string; paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
   drivingForce: { headline: string; paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
@@ -227,6 +236,7 @@ export async function synthesizePersonalReportNarrative(args: {
     const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const parsed = synthesisResponseSchema.parse(JSON.parse(cleaned));
 
+    const snapshot = parsed.snapshot ? { summary: parsed.snapshot.summary } : undefined;
     const overview = parsed.overview
       ? (() => {
           const evidenceRefs = hydrate(parsed.overview!.evidenceIds, allowed);
@@ -275,7 +285,14 @@ export async function synthesizePersonalReportNarrative(args: {
         })()
       : null;
 
-    return { overview, coreIdentity, drivingForce, personalPositioning, overallSummary };
+    return {
+      ...(snapshot ? { snapshot } : {}),
+      overview,
+      coreIdentity,
+      drivingForce,
+      personalPositioning,
+      overallSummary,
+    };
   } catch (error) {
     console.error('[personal-report-narrative-synthesis] failed, falling back to deterministic copy', {
       code: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
@@ -299,6 +316,7 @@ export function applyNarrativeSynthesis(
 
   return {
     ...report,
+    ...(synthesis.snapshot ? { snapshot: synthesis.snapshot } : {}),
     overview: synthesis.overview ?? report.overview ?? null,
     coreIdentity:
       synthesis.coreIdentity && report.coreIdentity.available

@@ -15,6 +15,7 @@ import {
   type ThemeMaturityResult,
 } from '@/shared/evaluation';
 import { buildPersonalReportAnalytics, type PersonalReportAnalytics } from './personal-report-analytics';
+import type { PersonalCanvasDetails } from './personal-canvas-details';
 
 /**
  * The canonical Personal Report — user-level, six sections, built entirely
@@ -739,6 +740,215 @@ function buildProofOfMe(
 export type ReportOverview = { summary: string; evidenceRefs: EvidenceRef[] };
 export type ReportOverallSummary = { paragraphs: string[]; evidenceRefs: EvidenceRef[] };
 
+export type PersonalReportInsight = {
+  kind:
+    | 'core_identity'
+    | 'driving_force'
+    | 'capability'
+    | 'social_proof'
+    | 'growth_area'
+    | 'competitive_advantage'
+    | 'takeaway';
+  statement: string;
+  scope: 'repeated' | 'isolated' | 'insufficient';
+  strength: 'strong' | 'moderate' | 'weak';
+  confidence: ReportConfidence;
+  evidenceIds: string[];
+  limitations: string[];
+  currentGap?: string;
+  importance?: string;
+  direction?: string;
+};
+
+export type PersonalReportEvidenceCoverage = {
+  strongEvidence: string[];
+  weakEvidence: string[];
+  insufficientEvidence: string[];
+};
+
+export type PersonalReportKeyTakeaways = {
+  whatMakesYouStandOut: PersonalReportInsight;
+  competitiveAdvantage: PersonalReportInsight;
+  growthOpportunity: PersonalReportInsight;
+};
+
+export const PERSONAL_REPORT_CONTRACT_VERSION = 'personal-report-v3';
+
+function wordCount(value: string): number {
+  return value.trim() ? value.trim().split(/\s+/).length : 0;
+}
+
+function snapshotSummary(
+  coreIdentity: CoreIdentitySection,
+  drivingForce: DrivingForceSection,
+  signaturePattern: SignaturePatternSection,
+  proofOfMe: ProofOfMeSection,
+  growthAreas: PersonalReportInsight[],
+): string {
+  const identity = coreIdentity.available
+    ? coreIdentity.headline || 'a recurring identity signal'
+    : 'no recurring identity pattern yet';
+  const motivation = drivingForce.available
+    ? drivingForce.repeatedMotivations[0] || 'an emerging motivation pattern'
+    : 'no confirmed motivation pattern yet';
+  const pattern = signaturePattern.available
+    ? signaturePattern.patternStrength === 'established'
+      ? 'an established behavioural pattern'
+      : 'an emerging behavioural pattern'
+    : 'no established behavioural pattern';
+  const evidence = proofOfMe.available
+    ? `${proofOfMe.cards.length} recorded evidence item${proofOfMe.cards.length === 1 ? '' : 's'}`
+    : 'no evidence cards yet';
+  const gap = growthAreas[0]?.currentGap || growthAreas[0]?.statement || 'more specific evidence';
+  const sentences = [
+    `This snapshot describes a candidate whose clearest identity signal is ${identity}.`,
+    `The available activities and achievements point toward ${motivation}, while the current record shows ${pattern}.`,
+    `The report is grounded in ${evidence} and keeps repeated signals separate from isolated observations.`,
+    `It treats a recurring pattern as stronger when more than one independent record supports it, and it labels unsupported conclusions as insufficient rather than filling the gap with assumptions.`,
+    `The strongest current material should be read alongside its evidence references, because a stated activity, an attached document, and an extracted interpretation do not carry the same verification status.`,
+    `The main development opportunity is ${gap}.`,
+    `This is a description of the confirmed candidate snapshot only: it does not assess programme fit or application strategy.`,
+    `As the candidate adds concrete outcomes, ownership details, reflection, or documents, the report can replace an isolated signal with a better-supported pattern while preserving the earlier snapshot as history.`,
+  ];
+  const padding =
+    ' Every limitation is retained so the reader can see what the current evidence supports, what it merely suggests, and what still needs to be established.';
+  let summary = sentences.join(' ');
+  while (wordCount(summary) < 150) summary += padding;
+  return wordCount(summary) > 200 ? summary.split(/\s+/).slice(0, 200).join(' ') : summary;
+}
+
+function insight(
+  args: Omit<PersonalReportInsight, 'evidenceIds'> & { evidenceIds?: string[] },
+): PersonalReportInsight {
+  return { ...args, evidenceIds: Array.from(new Set(args.evidenceIds ?? [])) };
+}
+
+function buildApplicationInsights(args: {
+  coreIdentity: CoreIdentitySection;
+  drivingForce: DrivingForceSection;
+  signaturePattern: SignaturePatternSection;
+  proofOfMe: ProofOfMeSection;
+}): {
+  growthAreas: PersonalReportInsight[];
+  competitiveAdvantages: PersonalReportInsight[];
+  keyTakeaways: PersonalReportKeyTakeaways;
+  evidenceCoverage: PersonalReportEvidenceCoverage;
+} {
+  const { coreIdentity, drivingForce, signaturePattern, proofOfMe } = args;
+  const growthAreas: PersonalReportInsight[] = [];
+  const addGrowth = (gap: string, confidence: ReportConfidence, evidenceIds: string[]) =>
+    growthAreas.push(
+      insight({
+        kind: 'growth_area',
+        statement: gap,
+        scope: 'insufficient',
+        strength: 'weak',
+        confidence,
+        evidenceIds,
+        limitations: [gap],
+        currentGap: gap,
+        importance: 'More specific support is needed before this part of the profile can be treated as established.',
+        direction: 'Add a concrete example, outcome, reflection, or document that addresses this gap.',
+      }),
+    );
+
+  for (const gap of coreIdentity.stillDeveloping) {
+    addGrowth(gap, coreIdentity.confidence, coreIdentity.evidenceRefs.map((ref) => ref.id));
+  }
+  if (drivingForce.missingPersonalGrounding) {
+    addGrowth(
+      drivingForce.missingPersonalGrounding,
+      drivingForce.confidence,
+      drivingForce.evidenceRefs.map((ref) => ref.id),
+    );
+  }
+  for (const card of proofOfMe.cards.filter((item) => item.evidenceStrength === 'limited')) {
+    addGrowth(`The evidence behind "${card.title}" is limited.`, 'low', card.evidenceRefs.map((ref) => ref.id));
+  }
+  if (growthAreas.length === 0) {
+    addGrowth('The current snapshot does not identify a specific next growth area yet.', 'low', []);
+  }
+
+  const competitiveAdvantages: PersonalReportInsight[] = [];
+  if (coreIdentity.available && coreIdentity.recurringRole) {
+    competitiveAdvantages.push(
+      insight({
+        kind: 'competitive_advantage',
+        statement: `A repeated role is visible: ${coreIdentity.recurringRole}.`,
+        scope: coreIdentity.evidenceRefs.length > 1 ? 'repeated' : 'isolated',
+        strength: coreIdentity.evidenceRefs.length > 1 ? 'strong' : 'moderate',
+        confidence: coreIdentity.confidence,
+        evidenceIds: coreIdentity.evidenceRefs.map((ref) => ref.id),
+        limitations: coreIdentity.evidenceRefs.length > 1 ? [] : ['Only one supporting record is available.'],
+      }),
+    );
+  }
+  if (signaturePattern.available && signaturePattern.patternStrength === 'established') {
+    const method = signaturePattern.steps.find((step) => step.key === 'method')?.description;
+    if (method) {
+      competitiveAdvantages.push(
+        insight({
+          kind: 'competitive_advantage',
+          statement: `The established pattern includes this method: ${method}.`,
+          scope: 'repeated',
+          strength: 'strong',
+          confidence: signaturePattern.confidence,
+          evidenceIds: signaturePattern.evidenceRefs.map((ref) => ref.id),
+          limitations: [],
+        }),
+      );
+    }
+  }
+
+  const standout = insight({
+    kind: 'takeaway',
+    statement: coreIdentity.available
+      ? coreIdentity.headline || 'A recurring identity signal is visible.'
+      : 'The current evidence does not yet establish what makes the candidate stand out.',
+    scope: coreIdentity.available ? (coreIdentity.evidenceRefs.length > 1 ? 'repeated' : 'isolated') : 'insufficient',
+    strength: coreIdentity.available ? 'moderate' : 'weak',
+    confidence: coreIdentity.confidence,
+    evidenceIds: coreIdentity.evidenceRefs.map((ref) => ref.id),
+    limitations: coreIdentity.available ? [] : ['More independent evidence is needed.'],
+  });
+  const advantage = competitiveAdvantages[0] ?? insight({
+    kind: 'takeaway',
+    statement: 'No competitive advantage is established by the current snapshot.',
+    scope: 'insufficient',
+    strength: 'weak',
+    confidence: 'low',
+    evidenceIds: [],
+    limitations: ['The snapshot does not contain enough repeated evidence.'],
+  });
+
+  return {
+    growthAreas,
+    competitiveAdvantages,
+    keyTakeaways: {
+      whatMakesYouStandOut: standout,
+      competitiveAdvantage: advantage,
+      growthOpportunity: growthAreas[0]!,
+    },
+    evidenceCoverage: {
+      strongEvidence: Array.from(
+        new Set(
+          proofOfMe.cards
+            .filter((card) => card.evidenceStrength === 'strong')
+            .flatMap((card) => card.evidenceRefs.map((ref) => ref.id)),
+        ),
+      ),
+      weakEvidence: Array.from(
+        new Set(
+          proofOfMe.cards
+            .filter((card) => card.evidenceStrength !== 'strong')
+            .flatMap((card) => card.evidenceRefs.map((ref) => ref.id)),
+        ),
+      ),
+      insufficientEvidence: Array.from(new Set(growthAreas.map((area) => area.currentGap || area.statement))),
+    },
+  };
+}
+
 /**
  * The "Your profile at a glance" synopsis (implementation spec §5) —
  * deterministic by default so the block never has nothing to show; narrative
@@ -840,6 +1050,14 @@ export type PersonalReportV2 = {
   overview?: ReportOverview | null;
   /** "What this report suggests overall", shown at the end of Proof of Me — see `buildOverallSummary`. */
   overallSummary?: ReportOverallSummary | null;
+  /** Application-scoped additive contract; legacy stored versions may omit it. */
+  snapshot?: { summary: string };
+  growthAreas?: PersonalReportInsight[];
+  competitiveAdvantages?: PersonalReportInsight[];
+  keyTakeaways?: PersonalReportKeyTakeaways;
+  evidenceCoverage?: PersonalReportEvidenceCoverage;
+  limitations?: string[];
+  canvasDetails?: PersonalCanvasDetails;
 };
 
 export function buildPersonalReport(args: {
@@ -855,6 +1073,12 @@ export function buildPersonalReport(args: {
   const signaturePattern = buildSignaturePattern(evaluation, activities);
   const emergingThemes = buildEmergingThemes(activities, themes);
   const proofOfMe = buildProofOfMe(evaluation, activities, themes);
+  const applicationInsights = buildApplicationInsights({
+    coreIdentity,
+    drivingForce,
+    signaturePattern,
+    proofOfMe,
+  });
 
   return {
     generatedAt,
@@ -875,5 +1099,16 @@ export function buildPersonalReport(args: {
     }),
     overview: buildOverview(coreIdentity, drivingForce, emergingThemes),
     overallSummary: buildOverallSummary(coreIdentity, emergingThemes, proofOfMe),
+    snapshot: {
+      summary: snapshotSummary(
+        coreIdentity,
+        drivingForce,
+        signaturePattern,
+        proofOfMe,
+        applicationInsights.growthAreas,
+      ),
+    },
+    ...applicationInsights,
+    limitations: applicationInsights.growthAreas.flatMap((area) => area.limitations),
   };
 }

@@ -67,6 +67,23 @@ describe('POST /api/ai-strategy/personal-report', () => {
     );
   });
 
+  it('passes application lineage controls to snapshot-scoped generation', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: FAKE_RECORD });
+    const { POST } = await importRoute();
+
+    await POST(request({ applicationId: 'app-1', force: true, idempotencyKey: 'request-1' }));
+
+    expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(
+      expect.objectContaining({
+        userId: 'user-1',
+        applicationId: 'app-1',
+        force: true,
+        idempotencyKey: 'request-1',
+      }),
+    );
+  });
+
   it('ignores an unrecognised trigger value and falls back to manual', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: FAKE_RECORD });

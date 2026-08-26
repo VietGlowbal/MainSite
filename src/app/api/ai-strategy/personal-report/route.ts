@@ -4,7 +4,8 @@ import { regeneratePersonalReport } from '@/features/apply/api';
 import { createClient } from '@/lib/supabase/server';
 
 /**
- * Canonical user-level Personal Report generation.
+ * Canonical Personal Report generation. When an applicationId is supplied,
+ * generation is pinned to that application's confirmed snapshot.
  *
  * The actual decision logic (regenerate or return the cached latest
  * version) lives in `regeneratePersonalReport`
@@ -15,7 +16,12 @@ import { createClient } from '@/lib/supabase/server';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
-const bodySchema = z.object({ trigger: z.enum(['manual', 'supplement_answer']).optional() });
+const bodySchema = z.object({
+  applicationId: z.string().trim().min(1).max(200).optional(),
+  trigger: z.enum(['manual', 'supplement_answer']).optional(),
+  force: z.boolean().optional(),
+  idempotencyKey: z.string().trim().min(1).max(200).optional(),
+});
 
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -26,11 +32,23 @@ export async function POST(request: Request) {
 
   const rawBody = await request.json().catch(() => ({}));
   const parsedBody = bodySchema.safeParse(rawBody);
-  const trigger = parsedBody.success ? (parsedBody.data.trigger ?? 'manual') : 'manual';
+  const body = parsedBody.success ? parsedBody.data : {};
 
-  const result = await regeneratePersonalReport({ supabase, userId: user.id, trigger });
+  const result = await regeneratePersonalReport({
+    supabase,
+    userId: user.id,
+    trigger: body.trigger ?? 'manual',
+    ...(body.applicationId ? { applicationId: body.applicationId } : {}),
+    ...(body.force !== undefined ? { force: body.force } : {}),
+    ...(body.idempotencyKey ? { idempotencyKey: body.idempotencyKey } : {}),
+  });
 
   switch (result.status) {
+    case 'snapshot_missing':
+      return NextResponse.json(
+        { error: 'Confirm Candidate Information for an application before generating a Personal Report.' },
+        { status: 409 },
+      );
     case 'migration_missing':
       return NextResponse.json(
         { error: 'This feature is not enabled in this environment.' },

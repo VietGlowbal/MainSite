@@ -2,9 +2,18 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   loadCandidateContext: vi.fn(),
+  buildApplicantStateFromSnapshot: vi.fn(),
+  candidateContextFromState: vi.fn(),
+  SnapshotNotFoundError: class SnapshotNotFoundError extends Error {},
   getLatestPersonalReportV2: vi.fn(),
+  getLatestApplicationPersonalReportV2: vi.fn(),
+  findPersonalReportV2ByCacheKey: vi.fn(),
+  getApplicationPersonalReportSupplements: vi.fn(),
   getPersonalReportSupplements: vi.fn(),
   createPersonalReportV2Version: vi.fn(),
+  getLatestApplicationProfileAnalysis: vi.fn(),
+  saveApplicationProfileAnalysis: vi.fn(),
+  buildEvidenceBank: vi.fn(),
   applyPersonalReportSupplements: vi.fn((context: unknown) => context),
   buildProfileEvaluationInput: vi.fn(),
   isOpenAIConfigured: vi.fn(),
@@ -25,12 +34,26 @@ const mocks = vi.hoisted(() => ({
 vi.mock('./candidate-context', () => ({
   loadCandidateContext: mocks.loadCandidateContext,
   candidateContextHash: () => 'hash-current',
+  stableHash: () => 'stable-hash',
+}));
+vi.mock('@/lib/ai/applicant-state/context-builder', () => ({
+  buildApplicantStateFromSnapshot: mocks.buildApplicantStateFromSnapshot,
+  candidateContextFromState: mocks.candidateContextFromState,
+  SnapshotNotFoundError: mocks.SnapshotNotFoundError,
 }));
 vi.mock('./personal-report-v2-repository', () => ({
   getLatestPersonalReportV2: mocks.getLatestPersonalReportV2,
+  getLatestApplicationPersonalReportV2: mocks.getLatestApplicationPersonalReportV2,
+  findPersonalReportV2ByCacheKey: mocks.findPersonalReportV2ByCacheKey,
+  getApplicationPersonalReportSupplements: mocks.getApplicationPersonalReportSupplements,
   getPersonalReportSupplements: mocks.getPersonalReportSupplements,
   createPersonalReportV2Version: mocks.createPersonalReportV2Version,
 }));
+vi.mock('./application-analysis-repository', () => ({
+  getLatestApplicationProfileAnalysis: mocks.getLatestApplicationProfileAnalysis,
+  saveApplicationProfileAnalysis: mocks.saveApplicationProfileAnalysis,
+}));
+vi.mock('@/shared/evidence/build-evidence-bank', () => ({ buildEvidenceBank: mocks.buildEvidenceBank }));
 vi.mock('@/lib/ai/personal-report-v2', () => ({
   applyPersonalReportSupplements: mocks.applyPersonalReportSupplements,
   buildProfileEvaluationInput: mocks.buildProfileEvaluationInput,
@@ -46,7 +69,10 @@ vi.mock('@/shared/evaluation', () => ({
   runProfileEvaluation: mocks.runProfileEvaluation,
   shouldRegenerate: mocks.shouldRegenerate,
 }));
-vi.mock('../domain', () => ({ buildPersonalReport: mocks.buildPersonalReport }));
+vi.mock('../domain', () => ({
+  buildPersonalReport: mocks.buildPersonalReport,
+  PERSONAL_REPORT_CONTRACT_VERSION: 'personal-report-v3',
+}));
 vi.mock('../domain/personal-canvas-details', () => ({
   buildPersonalCanvasDetails: mocks.buildPersonalCanvasDetails,
 }));
@@ -56,6 +82,15 @@ async function importSubject() {
 }
 
 const FAKE_CONTEXT = { profile: {}, achievements: [], activities: [] };
+const FAKE_STATE = {
+  applicantId: 'user-1',
+  applicationId: 'app-a',
+  snapshotId: 'snapshot-a',
+  achievements: [],
+  activities: [],
+  evidenceBank: [],
+  academicProfile: { records: [] },
+};
 const FAKE_RECORD = {
   id: 'v1',
   reportV2: { overallEvidenceConfidence: 'low' },
@@ -72,6 +107,14 @@ const FAKE_RECORD = {
 describe('regeneratePersonalReport', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.buildApplicantStateFromSnapshot.mockResolvedValue(FAKE_STATE);
+    mocks.candidateContextFromState.mockReturnValue(FAKE_CONTEXT);
+    mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.getLatestApplicationProfileAnalysis.mockResolvedValue(null);
+    mocks.getApplicationPersonalReportSupplements.mockResolvedValue({});
+    mocks.findPersonalReportV2ByCacheKey.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.buildEvidenceBank.mockReturnValue({ version: 'eb-v1', sources: {}, interpretations: [], claims: [], missingInformation: [] });
+    mocks.saveApplicationProfileAnalysis.mockResolvedValue({ versionId: 'analysis-a', migrationMissing: false });
     mocks.applyPersonalReportSupplements.mockImplementation((context: unknown) => context);
     mocks.buildPersonalCanvasDetails.mockReturnValue({
       capabilities: [],
@@ -197,5 +240,194 @@ describe('regeneratePersonalReport', () => {
     process.env.OPENAI_API_KEY = originalKey;
     expect(result.status).toBe('error');
     if (result.status === 'error') expect(result.record?.id).toBe('v1');
+  });
+
+  it('generates from the requested application snapshot and writes complete lineage', async () => {
+    mocks.isOpenAIConfigured.mockReturnValue(true);
+    mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
+    mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
+    mocks.buildPersonalReport.mockReturnValue({ overallEvidenceConfidence: 'medium' });
+    mocks.createPersonalReportV2Version.mockResolvedValue({
+      record: { id: 'application-v1', generatedAt: '2026-08-26T00:00:00.000Z' },
+      error: null,
+    });
+    const originalKey = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = 'test-key';
+
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({
+      supabase: {} as never,
+      userId: 'user-1',
+      applicationId: 'app-a',
+      trigger: 'manual',
+    });
+
+    process.env.OPENAI_API_KEY = originalKey;
+    expect(result.status).toBe('regenerated');
+    expect(mocks.loadCandidateContext).not.toHaveBeenCalled();
+    expect(mocks.buildApplicantStateFromSnapshot).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1', applicationId: 'app-a' }),
+    );
+    expect(mocks.saveApplicationProfileAnalysis).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ applicationId: 'app-a', confirmedSnapshotId: 'snapshot-a' }),
+    );
+    expect(mocks.createPersonalReportV2Version).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        applicationId: 'app-a',
+        confirmedSnapshotId: 'snapshot-a',
+        sourceAnalysisVersionId: 'analysis-a',
+        reportContractVersion: 'personal-report-v3',
+        cacheKey: 'stable-hash',
+      }),
+    );
+  });
+
+  it('does not generate when the application has no confirmed snapshot', async () => {
+    mocks.buildApplicantStateFromSnapshot.mockRejectedValue(new mocks.SnapshotNotFoundError());
+
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({
+      supabase: {} as never,
+      userId: 'user-1',
+      applicationId: 'app-a',
+      trigger: 'manual',
+    });
+
+    expect(result).toEqual({ status: 'snapshot_missing' });
+    expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+  });
+
+  it('returns the application cache for the same snapshot and contracts', async () => {
+    mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({
+      migrationMissing: false,
+      record: {
+        ...FAKE_RECORD,
+        applicationId: 'app-a',
+        confirmedSnapshotId: 'snapshot-a',
+        sourceAnalysisVersionId: 'analysis-a',
+        reportContractVersion: 'personal-report-v3',
+        cacheKey: 'stable-hash',
+        inputHash: 'stable-hash',
+      },
+    });
+
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({
+      supabase: {} as never,
+      userId: 'user-1',
+      applicationId: 'app-a',
+      trigger: 'manual',
+    });
+
+    expect(result.status).toBe('cached');
+    expect(mocks.buildProfileEvaluationInput).not.toHaveBeenCalled();
+    expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+  });
+
+  it('force generation reuses the analysis snapshot and appends a new version', async () => {
+    mocks.getLatestApplicationProfileAnalysis.mockResolvedValue({
+      id: 'analysis-a',
+      confirmedSnapshotId: 'snapshot-a',
+      inputHash: 'stable-hash',
+      moduleVersions: {
+        applicantState: 'applicant-state-v1',
+        reflection: 'reflection-analysis-v1',
+        evidence: 'eb-v1',
+        extraction: 'extraction-v2',
+      },
+      structuredOutputs: {
+        evaluation: { confidence: 'medium' },
+        evaluationInput: { narrativeActivities: [], intendedDirection: null },
+      },
+      evidenceBank: { claims: [] },
+    });
+    mocks.buildPersonalReport.mockReturnValue({ overallEvidenceConfidence: 'medium' });
+    mocks.createPersonalReportV2Version.mockResolvedValue({
+      record: { id: 'application-v2', generatedAt: '2026-08-26T00:00:00.000Z' },
+      error: null,
+    });
+
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({
+      supabase: {} as never,
+      userId: 'user-1',
+      applicationId: 'app-a',
+      trigger: 'manual',
+      force: true,
+    });
+
+    expect(result.status).toBe('regenerated');
+    expect(mocks.buildProfileEvaluationInput).not.toHaveBeenCalled();
+    expect(mocks.saveApplicationProfileAnalysis).not.toHaveBeenCalled();
+    expect(mocks.createPersonalReportV2Version).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({ sourceAnalysisVersionId: 'analysis-a' }),
+    );
+  });
+
+  it('deduplicates requests carrying the same idempotency key', async () => {
+    mocks.findPersonalReportV2ByCacheKey.mockResolvedValue({
+      migrationMissing: false,
+      record: { ...FAKE_RECORD, applicationId: 'app-a', confirmedSnapshotId: 'snapshot-a', cacheKey: 'stable-hash' },
+    });
+
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({
+      supabase: {} as never,
+      userId: 'user-1',
+      applicationId: 'app-a',
+      trigger: 'manual',
+      idempotencyKey: 'request-1',
+    });
+
+    expect(result.status).toBe('cached');
+    expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
+  });
+
+  it('persists deterministic report limitations when narrative synthesis fails', async () => {
+    mocks.isOpenAIConfigured.mockReturnValue(true);
+    mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
+    mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
+    mocks.buildPersonalReport.mockReturnValue({ overallEvidenceConfidence: 'medium', limitations: [] });
+    mocks.synthesizePersonalReportNarrative.mockResolvedValue(null);
+    mocks.createPersonalReportV2Version.mockResolvedValue({
+      record: { id: 'application-v1', generatedAt: '2026-08-26T00:00:00.000Z' },
+      error: null,
+    });
+    const originalKey = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = 'test-key';
+
+    const { regeneratePersonalReport } = await importSubject();
+    await regeneratePersonalReport({ supabase: {} as never, userId: 'user-1', applicationId: 'app-a', trigger: 'manual' });
+    process.env.OPENAI_API_KEY = originalKey;
+
+    expect(mocks.createPersonalReportV2Version).toHaveBeenCalledWith(
+      {},
+      expect.objectContaining({
+        reportV2: expect.objectContaining({ limitations: expect.arrayContaining([expect.stringContaining('Narrative synthesis')]) }),
+      }),
+    );
+  });
+
+  it('keeps the previous report and writes no analysis when an extractor fails', async () => {
+    mocks.isOpenAIConfigured.mockReturnValue(true);
+    mocks.buildProfileEvaluationInput.mockRejectedValue(new Error('extractor failed'));
+    const originalKey = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = 'test-key';
+
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({
+      supabase: {} as never,
+      userId: 'user-1',
+      applicationId: 'app-a',
+      trigger: 'manual',
+    });
+    process.env.OPENAI_API_KEY = originalKey;
+
+    expect(result.status).toBe('error');
+    expect(mocks.saveApplicationProfileAnalysis).not.toHaveBeenCalled();
+    expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 });

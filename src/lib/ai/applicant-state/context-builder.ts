@@ -2,7 +2,7 @@ import {
   canonicalSnapshotPayloadString,
 } from '@/features/apply/api/candidate-snapshot-repository';
 import { createHash } from 'crypto';
-import type { ApplicantAIState } from './domain';
+import type { AcademicRecord, ApplicantAIState } from './domain';
 
 /**
  * Reconstructs the ApplicantAIState from ONE confirmed snapshot (Task 5).
@@ -10,7 +10,7 @@ import type { ApplicantAIState } from './domain';
  * SNAPSHOT-ONLY BY CONSTRUCTION: this module's only database read is
  * `confirmed_candidate_snapshots`, filtered by user_id + application_id (+ id
  * when a specific snapshot is requested). There is no code path that could
- * reach `student_profiles`, `student_achievements`, or any other live table —
+ * reach `student_profiles`, `student_achievements`, or any other live table --
  * so editing live data after snapshot A can never change state A, and a test
  * can prove it by throwing on any other table access.
  */
@@ -76,7 +76,7 @@ export async function buildApplicantStateFromSnapshot(args: {
   return stateFromSnapshotRow(data as unknown as SnapshotRow);
 }
 
-/** Pure converter — exported for tests and Task 8 reuse. */
+/** Pure converter -- exported for tests and Task 8 reuse. */
 export function stateFromSnapshotRow(row: SnapshotRow): ApplicantAIState {
   const reflection = row.payload?.reflection ?? {};
   const followUps = row.payload?.followUpAnswers ?? [];
@@ -87,7 +87,15 @@ export function stateFromSnapshotRow(row: SnapshotRow): ApplicantAIState {
     followUpsByActivity.set(answer.activityId, list);
   }
 
-  type RawItem = { id?: unknown; title?: unknown; category?: unknown; detail?: unknown; description?: unknown };
+  type RawItem = {
+    id?: unknown;
+    title?: unknown;
+    category?: unknown;
+    detail?: unknown;
+    description?: unknown;
+    evidenceKey?: unknown;
+    evidence_key?: unknown;
+  };
   const mapItems = (items: unknown, prefix: 'achievement' | 'activity') =>
     (Array.isArray(items) ? items : []).flatMap((raw) => {
       const item = raw as RawItem;
@@ -105,21 +113,32 @@ export function stateFromSnapshotRow(row: SnapshotRow): ApplicantAIState {
               : typeof item.description === 'string'
                 ? item.description
                 : null,
+          evidenceKey:
+            typeof (item.evidenceKey ?? item.evidence_key) === 'string' &&
+            String(item.evidenceKey ?? item.evidence_key).trim()
+              ? String(item.evidenceKey ?? item.evidence_key)
+              : null,
           followUpAnswers: followUpsByActivity.get(id) ?? [],
         },
       ];
     });
 
   const achievements = mapItems(reflection['achievements'], 'achievement');
-  // Activities only — achievements stay in their own list (and in the
+  // Activities only -- achievements stay in their own list (and in the
   // evidence bank); the state's `activities` mirrors the snapshot's
   // activities slice exactly.
   const activities = mapItems(reflection['activities'], 'activity');
 
   const evidenceBank = [
+    ...achievements.map((item) => ({
+      id: item.id,
+      kind: 'achievement' as const,
+      label: item.title,
+      raw: item,
+    })),
     ...activities.map((item) => ({
       id: item.id,
-      kind: item.id.startsWith('activity:') ? ('activity' as const) : ('achievement' as const),
+      kind: 'activity' as const,
       label: item.title,
       raw: item,
     })),
@@ -163,11 +182,12 @@ export function stateFromSnapshotRow(row: SnapshotRow): ApplicantAIState {
     applicationId: row.application_id,
     snapshotId: row.id,
     academicProfile: {
-      records: academicRecordsRaw as ApplicantAIState['academicProfile'] extends undefined ? never[] : any[],
+      records: academicRecordsRaw as AcademicRecord[],
       gradesSummary:
         typeof reflection['grades_summary'] === 'string' ? reflection['grades_summary'] : null,
       curriculum: typeof reflection['curriculum'] === 'string' ? reflection['curriculum'] : null,
     },
+    achievements,
     activities,
     evidenceBank,
     directionSignals: {
@@ -186,5 +206,105 @@ export function stateFromSnapshotRow(row: SnapshotRow): ApplicantAIState {
       supersedesSnapshotId: (row.supersedes_snapshot_id as string | null) ?? undefined,
       schemaVersion: row.schema_version ?? null,
     },
+  };
+}
+
+/**
+ * Rebuilds the v2 pipeline's `CandidateContext` from an ApplicantAIState
+ * (Task 8). The state was itself reconstructed ONLY from the confirmed
+ * snapshot, so this converter inherits that isolation: no live table can
+ * influence the report input. Field mapping mirrors what
+ * `loadCandidateContext` produces from live rows — achievements carry their
+ * free text under `detail`, activities under `description` — so
+ * `buildProfileEvaluationInput` needs no changes.
+ */
+export function candidateContextFromState(state: ApplicantAIState): import('@/features/apply/domain').CandidateContext {
+  const profile: Record<string, unknown> = {};
+  for (const item of state.evidenceBank) {
+    if (item.kind === 'profile') {
+      const key = item.id.slice('profile:'.length);
+      profile[key] = item.raw;
+    }
+  }
+
+  const achievementRows = state.achievements.map((item) => ({
+    id: item.id.slice('achievement:'.length),
+    title: item.title,
+    category: item.category ?? null,
+    detail: item.freeText,
+    evidence_key: item.evidenceKey ?? null,
+  }));
+
+  const activityRows = state.activities.map((item) => ({
+    id: item.id.slice('activity:'.length),
+    title: item.title,
+    category: item.category ?? null,
+    description: [
+      item.freeText,
+      ...(item.followUpAnswers ?? []).map(
+        (answer) => `Question: ${answer.question}\nAnswer: ${answer.answer}`,
+      ),
+    ]
+      .filter(Boolean)
+      .join('\n'),
+  }));
+
+  const englishTests = (state.academicProfile?.records ?? [])
+    .filter((record) => record.kind === 'english_test')
+    .map((record, index) => ({
+      id: record.id ?? `english-${index}`,
+      test_type: record.testType ?? null,
+      overall_score: record.value,
+    }));
+
+  const standardizedTests = (state.academicProfile?.records ?? [])
+    .filter((record) => record.kind === 'standardized_test')
+    .map((record, index) => ({
+      id: record.id ?? `standardized-${index}`,
+      test_type: record.testType ?? null,
+      score: record.value,
+    }));
+
+  const documents = state.evidenceBank
+    .filter((item) => item.kind === 'document')
+    .flatMap((item) => {
+      const raw = (item.raw ?? {}) as { id?: unknown; type?: unknown; fileName?: unknown };
+      const id = typeof raw.id === 'string' ? raw.id : item.id.slice('document:'.length);
+      return [
+        {
+          id,
+          type: typeof raw.type === 'string' ? raw.type : 'other',
+          file_name: typeof raw.fileName === 'string' ? raw.fileName : item.label,
+        },
+      ];
+    });
+
+  const label = (kind: string, item: { title?: string; label: string }): string =>
+    (item.title || item.label || kind).slice(0, 240);
+
+  const evidence: import('@/features/apply/domain').EvidenceRef[] = [
+    ...achievementRows.map((row) => ({ id: `achievement:${row.id}`, kind: 'achievement' as const, label: label('achievement', { title: row.title, label: '' }) })),
+    ...activityRows.map((row) => ({ id: `activity:${row.id}`, kind: 'activity' as const, label: label('activity', { title: row.title, label: '' }) })),
+    ...englishTests.map((row) => ({
+      id: `english_test:${row.id}`,
+      kind: 'english_test' as const,
+      label: `${String(row.test_type || 'English test')} ${String(row.overall_score ?? '')}`.trim().slice(0, 240) || 'English test',
+    })),
+    ...standardizedTests.map((row) => ({
+      id: `standardized_test:${row.id}`,
+      kind: 'standardized_test' as const,
+      label: `${String(row.test_type || 'Standardized test')} ${String(row.score ?? '')}`.trim().slice(0, 240) || 'Standardized test',
+    })),
+    ...documents.map((row) => ({ id: `document:${row.id}`, kind: 'document' as const, label: String(row.file_name).slice(0, 240) })),
+  ];
+
+  return {
+    profile,
+    achievements: achievementRows,
+    activities: activityRows,
+    englishTests,
+    standardizedTests,
+    documents,
+    evidence,
   };
 }
