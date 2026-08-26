@@ -71,7 +71,7 @@ ALTER TABLE public.student_profiles
   ADD COLUMN IF NOT EXISTS personal_reflection_completed_at TIMESTAMPTZ;
 
 COMMENT ON COLUMN public.student_profiles.personal_reflection_answers IS
-  '{ q1: "...", q2: "...", q3: "...", q4: "...", q5: "..." } — see src/features/apply/domain/personal-reflection.ts. Global, reusable across every application, like achievements.';
+  '{ q1: "...", q2: "...", q3: "...", q4: "...", q5: "...", q6: "...", q7: "..." } — see src/features/apply/domain/personal-reflection.ts. Global, reusable across every application, like achievements.';
 
 -- ── Per-application Personal Reflection review flag ─────────────────────────
 --
@@ -84,4 +84,4 @@ ALTER TABLE public.course_applications
   ADD COLUMN IF NOT EXISTS personal_reflection_reviewed_at TIMESTAMPTZ;
 
 COMMENT ON COLUMN public.course_applications.personal_reflection_reviewed_at IS
-  'Set by PATCH /api/reflection/personal when the five Personal Reflection questions are saved (or skipped) for THIS application.';
+  'Set by PATCH /api/reflection/personal when the seven Personal Reflection questions are saved for THIS application.';

@@ -109,6 +109,7 @@ export const APPLICATION_FLOW_TRANSLATIONS: Record<string, string> = {
   // Step 3 — Personal Reflection
   'Personal Reflection': 'Suy ngẫm cá nhân',
   'Think about:': 'Hãy nghĩ về:',
+  'Sample answer': 'Câu trả lời mẫu',
   'Continue to Review & Confirm': 'Tiếp tục đến Xem lại & Xác nhận',
   'This was confirmed on {date} and is used to generate your reports.':
     'Thông tin này đã được xác nhận vào {date} và được dùng để tạo báo cáo của bạn.',
@@ -122,6 +123,76 @@ export const APPLICATION_FLOW_TRANSLATIONS: Record<string, string> = {
     'Hãy nghĩ về thử thách lớn nhất bạn từng đối mặt. Nó đã thay đổi cách bạn suy nghĩ hoặc hành động như thế nào?',
   'Imagine yourself 10 years from now. What would make you feel that your work truly mattered?':
     'Hãy tưởng tượng bạn của 10 năm sau. Điều gì sẽ khiến bạn cảm thấy công việc của mình thực sự có ý nghĩa?',
+
+  // Personal Reflection — current seven-question set
+  'What You Enjoy Exploring': 'Điều bạn thích khám phá',
+  'What topics, activities, or problems do you genuinely enjoy exploring? Why do you find them interesting?':
+    'Những chủ đề, hoạt động hoặc vấn đề nào bạn thực sự thích tìm hiểu? Vì sao chúng khiến bạn quan tâm?',
+  'Think about what you enjoy learning, discussing, researching, or doing even without being asked.':
+    'Hãy nghĩ về điều bạn thích học hỏi, thảo luận, nghiên cứu hoặc thực hiện ngay cả khi không ai yêu cầu.',
+  'Mention what specifically interests you and why.':
+    'Hãy nêu rõ điều gì thu hút bạn và vì sao.',
+  'I often find myself reading about how technology can improve education. I like thinking about why some students struggle with traditional learning and how technology could make learning more personalised.':
+    'Tôi thường tìm đọc về cách công nghệ có thể cải thiện giáo dục. Tôi thích suy nghĩ về lý do một số học sinh gặp khó khăn với cách học truyền thống và cách công nghệ có thể cá nhân hóa việc học.',
+
+  'A Perspective-Changing Experience': 'Một trải nghiệm thay đổi góc nhìn',
+  'What is one experience that has changed the way you think or see yourself? What happened, and how did it change you?':
+    'Trải nghiệm nào đã thay đổi cách bạn suy nghĩ hoặc nhìn nhận bản thân? Điều gì đã xảy ra và nó thay đổi bạn ra sao?',
+  'This could be a challenge, a project, a volunteer experience, a competition, or even a personal moment.':
+    'Đó có thể là một thử thách, dự án, trải nghiệm tình nguyện, cuộc thi hoặc một khoảnh khắc cá nhân.',
+  'Briefly explain what happened, what you realised, and how it changed your mindset, values, or actions.':
+    'Hãy tóm tắt điều đã xảy ra, điều bạn nhận ra và cách nó thay đổi tư duy, giá trị hoặc hành động của bạn.',
+  'Volunteering at an English class for visually impaired students changed how I viewed accessibility. I realised that many difficulties came not from the students’ abilities, but from how the learning environment was designed.':
+    'Việc tình nguyện tại một lớp tiếng Anh cho học sinh khiếm thị đã thay đổi cách tôi nhìn về khả năng tiếp cận. Tôi nhận ra nhiều khó khăn không đến từ năng lực của các bạn, mà từ cách môi trường học tập được thiết kế.',
+
+  'A Problem You Care About': 'Một vấn đề bạn quan tâm',
+  'What is one problem in your school, community, or society that you genuinely care about? Who is affected, and why does this problem matter to you?':
+    'Một vấn đề ở trường, cộng đồng hoặc xã hội mà bạn thực sự quan tâm là gì? Ai bị ảnh hưởng và vì sao vấn đề này quan trọng với bạn?',
+  'Name one specific problem, who is affected, and why you personally care about it.':
+    'Hãy nêu một vấn đề cụ thể, những ai bị ảnh hưởng và lý do cá nhân khiến bạn quan tâm.',
+  'It can come from your school, community, industry, or personal experience.':
+    'Vấn đề này có thể xuất phát từ trường học, cộng đồng, ngành nghề hoặc trải nghiệm cá nhân của bạn.',
+  'I care about the lack of career guidance for high school students in smaller cities. Many students have limited exposure to different careers, so they often choose majors based on what their families or friends recommend.':
+    'Tôi quan tâm đến việc thiếu định hướng nghề nghiệp cho học sinh trung học ở các thành phố nhỏ. Nhiều bạn ít được tiếp cận với các nghề nghiệp khác nhau nên thường chọn ngành theo lời khuyên của gia đình hoặc bạn bè.',
+
+  'What You Are Proud Of': 'Điều bạn tự hào',
+  'What is something you have built, improved, solved, or helped others achieve that you are genuinely proud of? What did you personally do?':
+    'Bạn đã xây dựng, cải thiện, giải quyết hoặc giúp người khác đạt được điều gì mà bạn thực sự tự hào? Bạn đã trực tiếp làm gì?',
+  'Choose something where you made a meaningful contribution.':
+    'Hãy chọn một việc mà bạn đã đóng góp một cách có ý nghĩa.',
+  'Explain what you did, the challenge you faced, and what changed because of your work. Add numbers if possible.':
+    'Hãy giải thích điều bạn đã làm, thử thách bạn gặp phải và điều gì thay đổi nhờ công việc của bạn. Thêm số liệu nếu có thể.',
+  'I am most proud of a financial literacy workshop I organised for middle school students. I redesigned the activities into an investment simulation and led a five-person team to deliver the programme to over 100 students.':
+    'Tôi tự hào nhất về một buổi học về kiến thức tài chính mà tôi tổ chức cho học sinh trung học cơ sở. Tôi thiết kế lại hoạt động thành mô phỏng đầu tư và dẫn dắt nhóm năm người triển khai chương trình cho hơn 100 học sinh.',
+
+  'Why This Major': 'Vì sao chọn ngành này',
+  'Why did you choose your intended major?': 'Vì sao bạn chọn ngành học dự định?',
+  'Describe the experience, interest, or problem that led you to this field.':
+    'Hãy mô tả trải nghiệm, mối quan tâm hoặc vấn đề đã đưa bạn đến với lĩnh vực này.',
+  'Explain what you hope to learn and how those skills could help solve problems you care about.':
+    'Hãy giải thích điều bạn muốn học và cách các kỹ năng đó có thể giúp giải quyết những vấn đề bạn quan tâm.',
+  'I want to use technology and business to make quality education more accessible to students with disabilities, especially by developing learning products that allow them to study more independently.':
+    'Tôi muốn dùng công nghệ và kinh doanh để giúp giáo dục chất lượng dễ tiếp cận hơn với học sinh khuyết tật, đặc biệt thông qua các sản phẩm học tập giúp các bạn học độc lập hơn.',
+
+  'Future Change': 'Thay đổi trong tương lai',
+  'What problem or change do you hope to work on in the future?':
+    'Bạn hy vọng sẽ giải quyết vấn đề hoặc tạo ra thay đổi gì trong tương lai?',
+  'Start with one problem or group of people you care about; you do not need a specific career title yet.':
+    'Hãy bắt đầu với một vấn đề hoặc nhóm người bạn quan tâm; bạn chưa cần có một chức danh nghề nghiệp cụ thể.',
+  'Imagine what you would like to change, the kind of solution you might create, and who would benefit.':
+    'Hãy hình dung điều bạn muốn thay đổi, loại giải pháp bạn có thể tạo ra và những ai sẽ được hưởng lợi.',
+  'I want to make quality learning more accessible to students with disabilities. I hope to develop technology-enabled learning products that adapt to different needs rather than expecting every learner to use the same system.':
+    'Tôi muốn giúp việc học chất lượng dễ tiếp cận hơn với học sinh khuyết tật. Tôi hy vọng phát triển các sản phẩm học tập ứng dụng công nghệ có thể thích ứng với nhu cầu khác nhau, thay vì buộc mọi người học theo cùng một hệ thống.',
+
+  'Ideal University Environment': 'Môi trường đại học lý tưởng',
+  'What kind of university environment would help you become the person you want to be?':
+    'Môi trường đại học như thế nào sẽ giúp bạn trở thành con người bạn mong muốn?',
+  'Consider how you learn best, who you want to learn with, and what you want to experience outside the classroom.':
+    'Hãy cân nhắc cách bạn học tốt nhất, những người bạn muốn học cùng và trải nghiệm bạn muốn có ngoài lớp học.',
+  'You might include projects, research, entrepreneurship, competitions, mentorship, or community work.':
+    'Bạn có thể đề cập đến dự án, nghiên cứu, khởi nghiệp, cuộc thi, cố vấn hoặc hoạt động cộng đồng.',
+  'I want an environment where I can learn through real projects rather than lectures alone. I would like to work with students from different disciplines, receive mentorship, and have opportunities to test ideas through entrepreneurship and community initiatives.':
+    'Tôi muốn một môi trường nơi tôi có thể học qua các dự án thực tế thay vì chỉ nghe giảng. Tôi muốn làm việc với sinh viên từ nhiều ngành khác nhau, nhận được sự cố vấn và có cơ hội thử nghiệm ý tưởng qua khởi nghiệp và các sáng kiến cộng đồng.',
 
   // Personal Reflection — Guidance Prompts (Bullets)
   'Which moments or activities still stand out?': 'Những khoảnh khắc hay hoạt động nào vẫn còn đọng lại rõ nét nhất?',

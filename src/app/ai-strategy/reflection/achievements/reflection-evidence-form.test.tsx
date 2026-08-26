@@ -1,0 +1,157 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ReflectionEvidenceForm } from './reflection-evidence-form';
+
+const pushMock = vi.fn();
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({
+    push: pushMock,
+  }),
+  useSearchParams: () => ({
+    get: (key: string) => (key === 'return' ? '/custom-return' : null),
+  }),
+}));
+
+vi.mock('@/lib/supabase/client', () => ({
+  createClient: () => ({
+    storage: {
+      from: () => ({
+        createSignedUrl: vi.fn().mockResolvedValue({ data: { signedUrl: 'https://example.com/demo.pdf' } }),
+      }),
+    },
+  }),
+}));
+
+describe('ReflectionEvidenceForm (SVG & Mockup UI)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ ok: true }),
+    });
+  });
+
+  it('renders the complete inline form matching Figma mockups', () => {
+    render(
+      <ReflectionEvidenceForm
+        initialAchievements={[
+          {
+            id: 'ach-1',
+            category: 'competition',
+            title: '1 Giải nhất Kì thi Olympic Toán học Sinh viên toàn quốc 2024',
+            competition: 'Olympic Toán học Toàn quốc',
+            organisation: 'Hội Toán học Việt Nam / ĐHQG',
+            year: 2024,
+            level: 'National',
+            detail: 'Điểm số đạt được 28.5/30',
+          },
+        ]}
+        initialActivities={[
+          {
+            id: 'act-1',
+            category: 'community_project',
+            title: 'Chiến dịch Mùa hè xanh 2024',
+            organisation: 'Đoàn trường THPT',
+            level: 'Trưởng ban Tổ chức',
+            period: '06/2024 - 08/2024',
+            description: 'Điều phối tình nguyện viên',
+          },
+        ]}
+        initialDocuments={[
+          {
+            id: 'doc-1',
+            fileName: 'Resume.pdf',
+            storageKey: 'resumes/1.pdf',
+            uploadedAt: '2026-08-26T00:00:00Z',
+          },
+        ]}
+      />,
+    );
+
+    // Header & Titles
+    expect(
+      screen.getByRole('heading', { level: 2, name: /Thành tích học thuật và hoạt động phi học thuật/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: /^Thành tích học thuật$/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 3, name: /^Hoạt động phi học thuật$/i }),
+    ).toBeInTheDocument();
+
+    // CV Upload Hero
+    expect(screen.getByText(/Tải lên CV của bạn/i)).toBeInTheDocument();
+    expect(screen.getByText(/Resume.pdf/i)).toBeInTheDocument();
+    expect(screen.getByText(/Hoàn tất/i)).toBeInTheDocument();
+
+    // Achievements & Activities cards
+    expect(screen.getByDisplayValue('1 Giải nhất Kì thi Olympic Toán học Sinh viên toàn quốc 2024')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('Chiến dịch Mùa hè xanh 2024')).toBeInTheDocument();
+
+    // Submit button
+    expect(screen.getByRole('button', { name: /Tiếp tục/i })).toBeInTheDocument();
+  });
+
+  it('allows adding and removing achievements', async () => {
+    const user = userEvent.setup();
+    render(
+      <ReflectionEvidenceForm
+        initialAchievements={[]}
+        initialActivities={[]}
+        initialDocuments={[]}
+      />,
+    );
+
+    // Initial empty card is present
+    expect(screen.getByText(/Thành tích 1/i)).toBeInTheDocument();
+
+    // Click Add Achievement button
+    const addButtons = screen.getAllByTitle(/Add/i);
+    await user.click(addButtons[0]);
+
+    // Now Thành tích 2 should be present
+    expect(screen.getByText(/Thành tích 2/i)).toBeInTheDocument();
+  });
+
+  it('submits valid achievements and activities to /api/reflection and routes to personal reflection', async () => {
+    const user = userEvent.setup();
+    render(
+      <ReflectionEvidenceForm
+        initialAchievements={[
+          {
+            id: 'ach-1',
+            category: 'competition',
+            title: 'Giải nhất Olympic',
+            year: 2024,
+          },
+        ]}
+        initialActivities={[
+          {
+            id: 'act-1',
+            category: 'community_project',
+            title: 'Mùa hè xanh',
+          },
+        ]}
+        initialDocuments={[]}
+      />,
+    );
+
+    const submitBtn = screen.getByRole('button', { name: /Tiếp tục/i });
+    await user.click(submitBtn);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/api/reflection',
+        expect.objectContaining({
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: expect.stringContaining('Giải nhất Olympic'),
+        }),
+      );
+      expect(pushMock).toHaveBeenCalledWith(
+        '/ai-strategy/reflection/personal?return=%2Fcustom-return',
+      );
+    });
+  });
+});

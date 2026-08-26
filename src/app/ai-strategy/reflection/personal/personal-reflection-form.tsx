@@ -49,6 +49,11 @@ function PersonalQuestionRow({
         ))}
       </ul>
 
+      <details className="rounded-gb-md bg-surface-muted px-gb-lg py-gb-md text-gb-sm text-fg-secondary">
+        <summary className="cursor-pointer font-medium text-fg">{t('Sample answer')}</summary>
+        <p className="mt-gb-sm leading-relaxed">{t(question.sampleAnswer)}</p>
+      </details>
+
       <div className="flex flex-col gap-gb-xs pt-gb-xs">
         <Textarea
           ref={textareaRef}
@@ -69,7 +74,7 @@ type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 /**
  * Step 3 — Personal Reflection: single-page review & edit layout rendering all
- * five cross-cutting questions with debounced autosave.
+ * seven cross-cutting questions with debounced autosave.
  */
 export function PersonalReflectionForm({
   applicationId,
@@ -216,7 +221,7 @@ export function PersonalReflectionForm({
   };
 
   return (
-    <div className="flex flex-col gap-gb-3xl">
+    <div className="flex flex-col gap-gb-3xl" data-no-auto-translate>
       {applicationLabel ? (
         <ReflectionBreadcrumb
           items={[
@@ -265,7 +270,7 @@ export function PersonalReflectionForm({
         </div>
       </header>
 
-      <div className="flex flex-col gap-gb-2xl">
+      <div className="flex flex-col gap-gb-3xl">
         {PERSONAL_REFLECTION_QUESTIONS.map((q) => (
           <PersonalQuestionRow
             key={q.key}

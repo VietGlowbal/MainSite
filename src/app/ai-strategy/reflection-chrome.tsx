@@ -21,6 +21,7 @@ import { Container, Footer } from '@/shared/ui';
 export function ReflectionChrome({
   nav,
   stepper,
+  containerClassName,
   children,
 }: {
   user: User | null;
@@ -42,6 +43,7 @@ export function ReflectionChrome({
    * measure (unlike `nav`), directly above whatever the page renders.
    */
   stepper?: React.ReactNode | undefined;
+  containerClassName?: string | undefined;
   children: React.ReactNode;
 }) {
   return (
@@ -51,7 +53,7 @@ export function ReflectionChrome({
       {nav}
 
       <main className="min-h-screen pb-gb-9xl pt-gb-5xl">
-        <Container className="max-w-4xl">
+        <Container className={containerClassName ?? 'max-w-5xl'}>
           {stepper ? <div className="mb-gb-3xl">{stepper}</div> : null}
           {children}
         </Container>
