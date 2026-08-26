@@ -8,6 +8,7 @@
 
 SELECT set_config('planner.test.app_id', :'app_id', false);
 SELECT set_config('planner.test.foreign_id', :'foreign_id', false);
+SELECT set_config('planner.test.plan_payload', :'plan_payload', false);
 SET ROLE service_role;
 SELECT public.reconcile_canonical_application_plan(:'app_id'::uuid, :'plan_payload'::jsonb);
 SELECT public.reconcile_canonical_application_plan(:'app_id'::uuid, :'plan_payload'::jsonb);
@@ -63,7 +64,7 @@ END $$;
 -- A failing reconciliation rolls back the whole function statement.
 DO $$ DECLARE v_before TEXT; v_after TEXT; v_failed BOOLEAN := false; BEGIN
   SELECT title INTO v_before FROM public.application_plan_phases WHERE domain_node_id = 'phase:test';
-  BEGIN PERFORM public.reconcile_canonical_application_plan(current_setting('planner.test.app_id')::uuid, replace(:'plan_payload', '"order":1', '"order":0')::jsonb); EXCEPTION WHEN OTHERS THEN v_failed := true; END;
+  BEGIN PERFORM public.reconcile_canonical_application_plan(current_setting('planner.test.app_id')::uuid, replace(current_setting('planner.test.plan_payload'), '"order":1', '"order":0')::jsonb); EXCEPTION WHEN OTHERS THEN v_failed := true; END;
   SELECT title INTO v_after FROM public.application_plan_phases WHERE domain_node_id = 'phase:test';
   IF NOT v_failed OR v_before <> v_after THEN RAISE EXCEPTION 'RPC rollback failed'; END IF;
 END $$;
