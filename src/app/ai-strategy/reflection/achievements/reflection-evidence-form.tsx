@@ -42,56 +42,56 @@ const YEAR_OPTIONS = Array.from({ length: 15 }, (_, i) => {
 });
 
 const LEVEL_OPTIONS = [
-  { value: 'National', label: 'National' },
+  { value: 'National', label: 'National / Country' },
   { value: 'International', label: 'International' },
-  { value: 'City / Local', label: 'City / Local' },
+  { value: 'City / Local', label: 'City / Province' },
   { value: 'School', label: 'School' },
   { value: 'Regional', label: 'Regional' },
   { value: 'University', label: 'University' },
   { value: 'Community', label: 'Community' },
-  { value: 'Organisation', label: 'Organisation' },
+  { value: 'Organisation', label: 'Organization' },
   { value: 'Other', label: 'Other' },
 ];
 
 const ACADEMIC_CATEGORY_OPTIONS: ComboboxOption[] = [
   {
     value: 'academic_award',
-    label: 'Academic award',
+    label: 'Academic awards & prizes',
   },
   {
     value: 'competition',
-    label: 'Scholarship',
+    label: 'Scholarships',
   },
   {
     value: 'research',
-    label: 'Research / publication',
+    label: 'Research & Publications',
   },
   {
     value: 'certification',
-    label: 'Certificate / recognition',
+    label: 'Certificates of Merit',
   },
 ];
 
 const ACTIVITY_CATEGORY_OPTIONS: ComboboxOption[] = [
   {
     value: 'community_project',
-    label: 'Community volunteering / project (core role, measurable impact)',
+    label: 'Volunteering / Community Project (core role, measurable impact)',
   },
   {
     value: 'leadership',
-    label: 'Club / team leadership (President, lead, project founder... 6+ months)',
+    label: 'Club / Team Leadership (President, Lead, Founder for 6+ months)',
   },
   {
     value: 'innovation',
-    label: 'Personal project / startup / social initiative (created a concrete product, service, or movement)',
+    label: 'Personal Projects / Entrepreneurship / Social Initiatives',
   },
   {
     value: 'personal_growth',
-    label: 'Internship / company / NGO project (at least 1-2 months)',
+    label: 'Internship / Company / NGO Project (minimum 1-2 months)',
   },
   {
     value: 'mentoring',
-    label: 'Mentoring / tutoring students (at least 3-6 months)',
+    label: 'Mentoring / Tutoring (at least 3-6 months)',
   },
   {
     value: 'other',
@@ -421,7 +421,7 @@ export function ReflectionEvidenceForm({
       <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full pb-16">
         {/* Main Page Title */}
         <h2 className="text-xl sm:text-2xl font-bold text-[#E11D48] text-center mt-2 mb-4 tracking-tight">
-          {t('Academic achievements and extracurricular activities')}
+          {t('Academic achievements and non-academic activities')}
         </h2>
 
         {/* Hero CV Upload Area */}
@@ -454,12 +454,12 @@ export function ReflectionEvidenceForm({
                 >
                   {/* Card Title */}
                   <h4 className="text-center font-bold text-neutral-900 text-base sm:text-lg mb-1">
-                    {t('Achievement {number}', { number: idx + 1 })}
+                    {t('Achievement {index}', { index: idx + 1 })}
                   </h4>
 
                   {/* 1. Loại thành tích học thuật */}
                   <MultiSelectCombobox
-                    label="Academic achievement type"
+                    label="Academic category"
                     value={selectedCategoryLabel}
                     options={ACADEMIC_CATEGORY_OPTIONS}
                     placeholder="Search or select..."
@@ -471,33 +471,33 @@ export function ReflectionEvidenceForm({
 
                   {/* 2. Tên thành tích * */}
                   <ClearableInput
-                    label="Tên thành tích"
+                    label="Achievement name"
                     required
                     value={item.title}
                     onChange={(val) => updateAchievement(idx, { title: val })}
-                      placeholder="For example: First prize in the Hanoi City Mathematics Olympiad 2026"
+                    placeholder="e.g. First Prize, National Olympiad 2024"
                   />
 
                   {/* 3. Tên cuộc thi / Giải thưởng & Đơn vị tổ chức */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <ClearableInput
-                      label="Competition or organisation name"
+                      label="Competition / Award name"
                       value={item.competition ?? ''}
                       onChange={(val) => updateAchievement(idx, { competition: val })}
-                      placeholder="For example: Hanoi City Mathematics Olympiad"
+                      placeholder="e.g. National High School Contest"
                     />
                     <ClearableInput
-                      label="Organising body"
+                      label="Organizing institution"
                       value={item.organisation ?? ''}
                       onChange={(val) => updateAchievement(idx, { organisation: val })}
-                      placeholder="For example: Vietnam Mathematical Society / VNU"
+                      placeholder="e.g. Vietnam Mathematical Society / VNU"
                     />
                   </div>
 
                   {/* 4. Năm đạt & Cấp độ */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <ClearableSelect
-                      label="Award year"
+                      label="Year achieved"
                       value={item.year ?? CURRENT_YEAR}
                       onChange={(val) => updateAchievement(idx, { year: Number(val) || CURRENT_YEAR })}
                       options={YEAR_OPTIONS}
@@ -513,7 +513,7 @@ export function ReflectionEvidenceForm({
                   {/* 5. Bổ sung thông tin chi tiết */}
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="text-sm font-medium text-neutral-800">
-                      {t('Detailed description')}
+                      {t('Additional details')}
                     </label>
                     <textarea
                       value={item.detail ?? ''}
@@ -538,7 +538,7 @@ export function ReflectionEvidenceForm({
         {/* ── Section 2: Non-Academic Activities ─────────────────────────── */}
         <section className="flex flex-col gap-5 mt-4">
           <h3 className="text-xl sm:text-2xl font-bold text-[#E11D48] text-center tracking-tight">
-            {t('Extracurricular activities')}
+            {t('Non-academic activities')}
           </h3>
 
           <div className="flex flex-col gap-6">
@@ -554,16 +554,16 @@ export function ReflectionEvidenceForm({
                 >
                   {/* Card Title */}
                   <h4 className="text-center font-bold text-neutral-900 text-base sm:text-lg mb-1">
-                    {t('Activity {number}', { number: idx + 1 })}
+                    {t('Activity {index}', { index: idx + 1 })}
                   </h4>
 
                   {/* 1. Loại hoạt động phi học thuật */}
                   <MultiSelectCombobox
-                    label="Extracurricular activity type"
+                    label="Non-academic activity type"
                     value={selectedCategoryLabel}
                     options={ACTIVITY_CATEGORY_OPTIONS}
                     placeholder="Search or select..."
-                    warningNote="Activities where you only participated as a regular member can be brief or omitted so you can prioritise experiences with a stronger role."
+                    warningNote="Activity note on core role"
                     onChange={(selectedLabel) => {
                       const cat = mapToActivityCategory(selectedLabel);
                       updateActivity(idx, { category: cat });
@@ -577,29 +577,29 @@ export function ReflectionEvidenceForm({
                       required
                       value={item.title}
                       onChange={(val) => updateActivity(idx, { title: val })}
-                      placeholder="For example: Green Summer Campaign"
+                      placeholder="e.g. Green Summer Volunteer Campaign"
                     />
                     <ClearableInput
-                      label="Role"
+                      label="Position / Role"
                       value={item.level ?? ''}
                       onChange={(val) => updateActivity(idx, { level: val })}
-                      placeholder="For example: Organising Committee Lead"
+                      placeholder="e.g. Project Lead / Head of Organizing Committee"
                     />
                   </div>
 
                   {/* 3. Tổ chức / Đơn vị & Thời gian */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <ClearableInput
-                      label="Organisation / project name"
+                      label="Organization / Project name"
                       value={item.organisation ?? ''}
                       onChange={(val) => updateActivity(idx, { organisation: val })}
-                      placeholder="For example: High School Union"
+                      placeholder="e.g. Youth Union / High School"
                     />
                     <ClearableInput
-                      label="Period"
+                      label="Time period"
                       value={item.period ?? ''}
                       onChange={(val) => updateActivity(idx, { period: val })}
-                      placeholder="For example: 06/2024 – 08/2024"
+                      placeholder="e.g. 06/2024 – 08/2024"
                     />
                   </div>
 

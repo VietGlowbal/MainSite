@@ -50,7 +50,7 @@ export function MultiSelectCombobox({
   );
 
   const selectedOption = options.find((opt) => opt.value === value || opt.label === value);
-  const displayLabel = selectedOption ? t(selectedOption.label) : value;
+  const displayLabel = selectedOption ? selectedOption.label : value;
 
   return (
     <div className="flex flex-col gap-1.5 w-full relative" ref={containerRef}>
@@ -374,8 +374,8 @@ export function CVHeroUpload({
           </svg>
         </div>
         <p className="text-base font-bold text-neutral-900 mb-1">
-              {t('Upload your CV')}{' '}
-              <span className="font-normal text-neutral-600">{t('or drag and drop it here (PDF, DOCX, up to 10MB)')}</span>
+          {t('Upload your CV')}{' '}
+          <span className="font-normal text-neutral-600">{t('or drag and drop here (PDF, DOCX, max 10MB)')}</span>
         </p>
         {isAnalyzing && (
           <div className="flex items-center gap-2 mt-3 text-sm text-gb-brand-600 font-medium animate-pulse">
@@ -383,7 +383,7 @@ export function CVHeroUpload({
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
             </svg>
-            <span>{t('Analysing and extracting achievements automatically...')}</span>
+            <span>{t('Analyzing and automatically extracting achievements...')}</span>
           </div>
         )}
       </div>
@@ -410,7 +410,7 @@ export function CVHeroUpload({
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M5 13l4 4L19 7" />
                   </svg>
-                  {t('Complete')}
+                  {t('Completed')}
                 </span>
               </div>
               {/* Progress Bar */}
@@ -427,7 +427,7 @@ export function CVHeroUpload({
             type="button"
             onClick={() => onRemove(file.id)}
             className="text-neutral-400 hover:text-red-500 p-2 rounded-xl hover:bg-neutral-50 transition-colors shrink-0"
-            title={t('Delete file')}
+            title={t('Remove file')}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
@@ -443,7 +443,7 @@ export function CVHeroUpload({
 
       {/* Helper text */}
       <p className="text-center text-xs sm:text-sm text-neutral-500 my-1">
-        {t('If you do not have a CV, you can enter the information below')}
+        {t('If you don’t have a CV yet, you can manually enter your achievements below.')}
       </p>
     </div>
   );
@@ -498,7 +498,7 @@ export function FloatingHelpButton() {
         type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="fixed bottom-6 right-6 w-12 h-12 rounded-full bg-gb-brand-600 text-white shadow-xl flex items-center justify-center font-bold text-lg hover:bg-gb-brand-700 hover:scale-105 active:scale-95 transition-all z-50 focus:outline-none focus:ring-4 focus:ring-rose-200"
-        title={t('Help / Guidance')}
+        title={t('Help / Instructions')}
       >
         ?
       </button>
@@ -506,7 +506,7 @@ export function FloatingHelpButton() {
       {isOpen && (
         <div className="fixed bottom-20 right-6 max-w-sm bg-white rounded-2xl shadow-2xl border border-neutral-200 p-5 z-50 animate-in fade-in slide-in-from-bottom-4 duration-200">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-bold text-neutral-900">{t('How to fill this in')}</h4>
+            <h4 className="text-sm font-bold text-neutral-900">{t('Instructions for filling information')}</h4>
             <button
               onClick={() => setIsOpen(false)}
               className="text-neutral-400 hover:text-neutral-600 p-1 rounded-full"
@@ -518,12 +518,12 @@ export function FloatingHelpButton() {
           </div>
           <p className="text-xs text-neutral-600 leading-relaxed mb-2">
             {t(
-              'Upload a CV (PDF, DOCX) so the system can identify and quickly fill your awards, projects, and activities. Or enter each achievement manually in the fields below.',
+              'You can upload your CV (PDF, DOCX) to automatically extract your achievements and activities, or manually enter them below.',
             )}
           </p>
           <p className="text-xs text-neutral-600 leading-relaxed">
             {t(
-              'Supporting evidence (certificates, awards, and publications) helps GlowBal build a more reliable application strategy.',
+              'Supporting documents (certificates, publications) increase verification reliability when GlowBal crafts your application strategy.',
             )}
           </p>
         </div>

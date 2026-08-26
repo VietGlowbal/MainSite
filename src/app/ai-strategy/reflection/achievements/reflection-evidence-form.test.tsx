@@ -71,19 +71,19 @@ describe('ReflectionEvidenceForm (SVG & Mockup UI)', () => {
 
     // Header & Titles
     expect(
-      screen.getByRole('heading', { level: 2, name: /Academic achievements and extracurricular activities/i }),
+      screen.getByRole('heading', { level: 2, name: /Academic achievements and non-academic activities/i }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole('heading', { level: 3, name: /^Academic achievements$/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { level: 3, name: /^Extracurricular activities$/i }),
+      screen.getByRole('heading', { level: 3, name: /^Non-academic activities$/i }),
     ).toBeInTheDocument();
 
     // CV Upload Hero
     expect(screen.getByText(/Upload your CV/i)).toBeInTheDocument();
     expect(screen.getByText(/Resume.pdf/i)).toBeInTheDocument();
-    expect(screen.getByText(/Complete/i)).toBeInTheDocument();
+    expect(screen.getByText(/Completed/i)).toBeInTheDocument();
 
     // Achievements & Activities cards
     expect(screen.getByDisplayValue('1 Giải nhất Kì thi Olympic Toán học Sinh viên toàn quốc 2024')).toBeInTheDocument();
