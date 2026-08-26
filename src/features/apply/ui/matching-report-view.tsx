@@ -106,7 +106,8 @@ export function MatchingReportView({
       const body = await response.json().catch(() => ({}));
       if (!response.ok) {
         setError(body?.error ?? t('We could not build the report. Please try again.'));
-        if (body?.nextAvailableAt) setNextAt(body.nextAvailableAt);
+        const nextRegenerationAt = body?.nextRegenerationAt ?? body?.nextAvailableAt;
+        if (nextRegenerationAt) setNextAt(nextRegenerationAt);
         return;
       }
       router.refresh();

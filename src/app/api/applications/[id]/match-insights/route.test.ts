@@ -52,9 +52,11 @@ let insertedAnalysisRow: Record<string, unknown> | null = null;
 let supabaseMock: { auth: { getUser: typeof mocks.getUser }; from: (table: string) => unknown };
 
 function setupSupabase(overrides: {
+  application?: { data: unknown; error: unknown };
   matchAnalysesSelect?: { data: unknown; error: unknown };
   matchAnalysesInsert?: { data: unknown; error: unknown };
 } = {}) {
+  const application = overrides.application ?? { data: APPLICATION_ROW, error: null };
   const matchAnalysesSelect = overrides.matchAnalysesSelect ?? { data: null, error: null };
   const matchAnalysesInsert = overrides.matchAnalysesInsert ?? {
     data: { id: 'analysis-1' },
@@ -64,7 +66,7 @@ function setupSupabase(overrides: {
   supabaseMock = {
     auth: { getUser: mocks.getUser },
     from: (table: string) => {
-      if (table === 'course_applications') return tableChain({ data: APPLICATION_ROW, error: null });
+      if (table === 'course_applications') return tableChain(application);
       if (table === 'student_profiles') return tableChain({ data: { plus_status: false }, error: null });
       if (table === 'uploaded_documents') return tableChain({ data: [], error: null });
       if (table === 'universities') return tableChain({ data: null, error: null });
@@ -145,6 +147,28 @@ describe('POST /api/applications/[id]/match-insights', () => {
     process.env.OPENAI_API_KEY = originalApiKey;
   });
 
+  it('returns 401 before reading application data when the session is absent', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: null } });
+    setupSupabase();
+
+    const { POST } = await importRoute();
+    const response = await POST(request(), context());
+
+    expect(response.status).toBe(401);
+    expect(mocks.regeneratePersonalReport).not.toHaveBeenCalled();
+  });
+
+  it('returns 404 when the application is not owned by the current user', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    setupSupabase({ application: { data: null, error: { code: 'PGRST116' } } });
+
+    const { POST } = await importRoute();
+    const response = await POST(request(), context());
+
+    expect(response.status).toBe(404);
+    expect(mocks.regeneratePersonalReport).not.toHaveBeenCalled();
+  });
+
   it('requires a completed Personal Report before generating a Matching Report and persists its lineage', async () => {
     insertedAnalysisRow = null;
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
@@ -180,6 +204,9 @@ describe('POST /api/applications/[id]/match-insights', () => {
     expect(insertedAnalysisRow).toMatchObject({
       source_personal_report_version_id: 'personal-v1',
       source_personal_report_input_hash: 'personal-input-hash',
+      fit_dimensions: PROGRAMME_FIT.dimensions,
+      fit_eligibility: PROGRAMME_FIT.eligibility,
+      fit_classification: 'match',
     });
   });
 
@@ -211,6 +238,97 @@ describe('POST /api/applications/[id]/match-insights', () => {
     const { POST } = await importRoute();
     const response = await POST(request(), context());
     expect(response.status).toBe(502);
+    expect(mocks.analyzeCourseMatchInsights).not.toHaveBeenCalled();
+  });
+
+  it('returns a complete cached analysis without calling the AI analyzer again', async () => {
+    const cached = {
+      id: 'analysis-cached',
+      input_hash: 'stable-hash',
+      report_v2: null,
+      fit_dimensions: PROGRAMME_FIT.dimensions,
+      fit_eligibility: PROGRAMME_FIT.eligibility,
+      fit_classification: PROGRAMME_FIT.classification,
+      fit_confidence: 50,
+      fit_limitations: [],
+      created_at: '2026-08-01T00:00:00.000Z',
+    };
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.loadCandidateContext.mockResolvedValue({
+      profile: { academic_background: 'Strong background' },
+      achievements: [],
+      activities: [],
+      englishTests: [],
+      standardizedTests: [],
+      documents: [],
+      evidence: [],
+    });
+    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: PERSONAL_REPORT_RECORD });
+    setupSupabase({ matchAnalysesSelect: { data: cached, error: null } });
+
+    const { POST } = await importRoute();
+    const response = await POST(request(), context());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({ ok: true, cached: true, analysis: cached });
+    expect(mocks.analyzeCourseMatchInsights).not.toHaveBeenCalled();
+  });
+
+  it('keeps the previous analysis when generation fails and does not insert a replacement', async () => {
+    const previous = {
+      id: 'analysis-previous',
+      input_hash: 'previous-hash',
+      created_at: '2026-07-31T00:00:00.000Z',
+    };
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.loadCandidateContext.mockResolvedValue({
+      profile: { academic_background: 'Strong background' },
+      achievements: [],
+      activities: [],
+      englishTests: [],
+      standardizedTests: [],
+      documents: [],
+      evidence: [],
+    });
+    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: PERSONAL_REPORT_RECORD });
+    mocks.analyzeCourseMatchInsights.mockRejectedValue(new Error('model timeout'));
+    setupSupabase({ matchAnalysesSelect: { data: previous, error: null } });
+
+    const { POST } = await importRoute();
+    const response = await POST(request(), context());
+    const body = await response.json();
+
+    expect(response.status).toBe(502);
+    expect(body.analysis).toEqual(previous);
+    expect(insertedAnalysisRow).toBeNull();
+  });
+
+  it('uses nextRegenerationAt for the free cooldown response', async () => {
+    const previous = {
+      id: 'analysis-previous',
+      input_hash: 'previous-hash',
+      created_at: new Date(Date.now() - 60_000).toISOString(),
+    };
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.loadCandidateContext.mockResolvedValue({
+      profile: { academic_background: 'Strong background' },
+      achievements: [],
+      activities: [],
+      englishTests: [],
+      standardizedTests: [],
+      documents: [],
+      evidence: [],
+    });
+    mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: PERSONAL_REPORT_RECORD });
+    setupSupabase({ matchAnalysesSelect: { data: previous, error: null } });
+
+    const { POST } = await importRoute();
+    const response = await POST(request(), context());
+    const body = await response.json();
+
+    expect(response.status).toBe(429);
+    expect(body.nextRegenerationAt).toEqual(expect.any(String));
+    expect(body.nextAvailableAt).toBeUndefined();
     expect(mocks.analyzeCourseMatchInsights).not.toHaveBeenCalled();
   });
   it('persists the deterministic academic band and renormalized result, not the model label', async () => {

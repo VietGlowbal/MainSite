@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { MatchingReportPageData } from '../domain';
 import { MatchingReportView } from './matching-report-view';
 
@@ -80,6 +80,10 @@ function renderReport(override?: Partial<MatchingReportPageData>) {
 }
 
 describe('MatchingReportView', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it('renders all six sections', () => {
     renderReport();
 
@@ -93,6 +97,31 @@ describe('MatchingReportView', () => {
     ]) {
       expect(screen.getByRole('heading', { name: heading })).toBeInTheDocument();
     }
+  });
+
+  it('renders legacy analyses that do not carry a report_v2 payload', () => {
+    renderReport();
+
+    expect(screen.getByRole('heading', { name: 'Overall match' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'What to do next' })).toBeInTheDocument();
+  });
+
+  it('renders the canonical nextRegenerationAt cooldown field', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({
+          error: 'Try again later',
+          nextRegenerationAt: '2026-08-28T12:00:00.000Z',
+        }),
+      }),
+    );
+    renderReport();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Update report' }));
+
+    await waitFor(() => expect(screen.getByText(/Next free generation/)).toBeInTheDocument());
   });
 
   it('names every one of the five dimensions', () => {
