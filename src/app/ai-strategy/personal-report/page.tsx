@@ -1,5 +1,11 @@
 import { redirect } from 'next/navigation';
-import { getLatestPersonalReportV2, listPersonalReportV2Versions, verifiedApplicationId } from '@/features/apply/api';
+import {
+  getLatestApplicationPersonalReportV2,
+  getLatestPersonalReportV2,
+  listApplicationPersonalReportV2Versions,
+  listPersonalReportV2Versions,
+  verifiedApplicationId,
+} from '@/features/apply/api';
 import { PersonalReportV2View } from '@/features/apply/ui';
 import { applicationIdFromPath } from '@/shared/lib';
 import { createClient } from '@/lib/supabase/server';
@@ -7,8 +13,9 @@ import { ReflectionChrome } from '../reflection-chrome';
 import { ApplicationNavFromReturn } from '../reflection/application-nav-from-return';
 
 /**
- * `/ai-strategy/personal-report` — the canonical, user-level Personal
- * Report.
+ * `/ai-strategy/personal-report` — the report view. When opened from an
+ * application it loads that application's report and history; without a
+ * return context it remains a read-only legacy archive view.
  *
  * Renamed from `/ai-strategy/report` (see `docs/ai-evaluation-engine.md`
  * and the Personal Report rebuild notes): the old route now permanently
@@ -16,16 +23,10 @@ import { ApplicationNavFromReturn } from '../reflection/application-nav-from-ret
  * append-only version history (`student_personal_report_versions`, see
  * `supabase-personal-report-versions.sql`) — every past version stays
  * readable via the dropdown `PersonalReportV2View` renders from
- * `initialVersions`. A version is created by a student's own action
- * (`PersonalReportV2View`'s "Create report" / answering a report question,
- * via `POST /api/ai-strategy/personal-report`) or automatically whenever a
- * Matching Report is generated (`regeneratePersonalReport`, called from
- * `match-insights/route.ts`) — see that function's doc comment for why
- * there is no manual regeneration cooldown.
- *
- * Deliberately NOT scoped to an application: this report has no
- * `applicationId` anywhere in its data path, matching the product
- * requirement that changing a university application must never affect it.
+ * `initialVersions`. An application-scoped version is created by a student's
+ * own action (`PersonalReportV2View`'s "Create report" / answering a report
+ * question, via the application report endpoint) or automatically whenever a
+ * Matching Report is generated.
  *
  * ─── BUT STILL NAVIGABLE FROM ONE, VIA `?return=` ────────────────────────────
  *
@@ -38,10 +39,8 @@ import { ApplicationNavFromReturn } from '../reflection/application-nav-from-ret
  * that context comes from when the student arrived via
  * `aiStrategyApplicationNav()`'s "Personal Report" entry. It is passed
  * through to `PersonalReportV2View` only once verified, and NEVER baked into
- * the stored `report_v2` itself — the report is generated once and reused
- * across every application, so a stale `applicationId` from whichever visit
- * happened to trigger generation must never end up inside the cached
- * content, only in this request's own render.
+ * the stored `report_v2` itself — application ownership and confirmation are
+ * checked again by every application-scoped read/write endpoint.
  */
 export default async function PersonalReportPage({
   searchParams,
@@ -59,10 +58,22 @@ export default async function PersonalReportPage({
     ? await verifiedApplicationId(supabase, user.id, applicationIdFromPath(returnTo) ?? undefined)
     : undefined;
 
-  const [stored, versionList] = await Promise.all([
-    getLatestPersonalReportV2(supabase, user.id),
-    listPersonalReportV2Versions(supabase, user.id),
-  ]);
+  const [stored, versionList] = applicationId
+    ? await Promise.all([
+        getLatestApplicationPersonalReportV2(supabase, { userId: user.id, applicationId }),
+        listApplicationPersonalReportV2Versions(supabase, { userId: user.id, applicationId }),
+      ])
+    : await Promise.all([
+        getLatestPersonalReportV2(supabase, user.id),
+        listPersonalReportV2Versions(supabase, user.id),
+      ]);
+  const applicationState = applicationId
+    ? await loadApplicationState(supabase, user.id, applicationId)
+    : null;
+  const latestSnapshotId = applicationState?.snapshotId ?? null;
+  const stale = applicationId
+    ? !applicationState?.confirmed || Boolean(stored.record && stored.record.confirmedSnapshotId !== latestSnapshotId)
+    : false;
   const studentName =
     (user.user_metadata?.full_name as string | undefined) || user.email?.split('@')[0] || 'there';
 
@@ -72,12 +83,41 @@ export default async function PersonalReportPage({
         initialReport={stored.record?.reportV2 ?? null}
         initialVersionId={stored.record?.id ?? null}
         initialVersions={versionList.versions}
+        applicationId={applicationId}
+        applicationConfirmed={applicationId ? applicationState?.confirmed : undefined}
+        stale={stale}
         studentName={studentName}
         generatedAt={stored.record?.generatedAt ?? null}
-        migrationMissing={stored.migrationMissing}
+        migrationMissing={stored.migrationMissing || versionList.migrationMissing}
         returnTo={applicationId ? returnTo : undefined}
         matchingReportHref={applicationId ? `/ai-strategy/${applicationId}/matching-report` : '/ai-strategy/matching'}
       />
     </ReflectionChrome>
   );
+}
+
+async function loadApplicationState(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+  applicationId: string,
+): Promise<{ confirmed: boolean; snapshotId: string | null }> {
+  const application = await supabase
+    .from('course_applications')
+    .select('candidate_confirmed_at')
+    .eq('id', applicationId)
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (application.error || !application.data?.candidate_confirmed_at) {
+    return { confirmed: false, snapshotId: null };
+  }
+
+  const snapshot = await supabase
+    .from('confirmed_candidate_snapshots')
+    .select('id')
+    .eq('application_id', applicationId)
+    .eq('user_id', userId)
+    .order('confirmed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return { confirmed: Boolean(snapshot.data?.id), snapshotId: (snapshot.data?.id as string | undefined) ?? null };
 }

@@ -242,7 +242,7 @@ describe('PersonalReportV2View — version history', () => {
 
     // The gap action only renders once its Canvas section is open.
     await user.click(screen.getAllByRole('button', { name: /Driving Forces/i })[0]!);
-    const panel = within(screen.getByRole('complementary', { name: 'Driving Forces details' }));
+    const panel = within(screen.getByRole('dialog', { name: 'Driving Forces details' }));
 
     // Answering inline is disabled while viewing history — the gap action falls back to a
     // plain link instead of the inline textarea button.
@@ -313,7 +313,7 @@ describe('PersonalReportV2View — analytics wiring', () => {
     // Scoped to the open panel: the same content is also duplicated in the
     // print-only view (`aria-hidden`, so excluded from role queries, but
     // still real text `getByText` would otherwise match twice).
-    const panel = within(screen.getByRole('complementary', { name: 'Core Identity details' }));
+    const panel = within(screen.getByRole('dialog', { name: 'Core Identity details' }));
     expect(panel.getByText('Identity evidence profile')).toBeInTheDocument();
     expect(panel.getByRole('list', { name: 'Core identity evidence signals' })).toBeInTheDocument();
   });

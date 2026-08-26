@@ -199,7 +199,7 @@ describe('PersonalCanvasView', () => {
 });
 
 describe('PersonalCanvasWorkspace', () => {
-  it('opens a contextual detail panel, has no sound toggle, and animates closed', async () => {
+  it('opens a contextual detail modal and has no sound toggle', async () => {
     render(
       <PersonalCanvasWorkspace
         report={report()}
@@ -213,18 +213,16 @@ describe('PersonalCanvasWorkspace', () => {
     fireEvent.click(screen.getAllByRole('button', { name: /social proof/i })[0]!);
 
     expect(
-      screen.getByRole('complementary', { name: /social proof details/i }),
+      screen.getByRole('dialog', { name: /social proof details/i }),
     ).toBeInTheDocument();
     expect(screen.getByRole('tab', { name: /overview/i })).toHaveAttribute(
       'aria-selected',
       'true',
     );
-    expect(screen.getByRole('button', { name: /focus this section/i })).toContainHTML('<svg');
-
     fireEvent.click(screen.getByRole('button', { name: /close section/i }));
     await waitFor(() => {
       expect(
-        screen.queryByRole('complementary', { name: /social proof details/i }),
+        screen.queryByRole('dialog', { name: /social proof details/i }),
       ).not.toBeInTheDocument();
     });
   });
@@ -307,7 +305,7 @@ describe('PersonalCanvasWorkspace keyboard shortcuts', () => {
   }
 
   function panel() {
-    return screen.queryByRole('complementary', { name: /details$/i });
+    return screen.queryByRole('dialog', { name: /details$/i });
   }
 
   it('opens a section on a bare number key', () => {
@@ -347,7 +345,6 @@ describe('PersonalCanvasWorkspace keyboard shortcuts', () => {
     fireEvent.keyDown(window, { key: '1' });
     expect(panel()).toBeInTheDocument();
     fireEvent.keyDown(window, { key: 'Escape' });
-    // AnimatePresence keeps the node mounted for its exit animation.
     await waitFor(() => expect(panel()).not.toBeInTheDocument());
   });
 
@@ -365,10 +362,10 @@ describe('PersonalCanvasWorkspace keyboard shortcuts', () => {
     document.body.removeChild(editable);
   });
 
-  it('moves focus into the panel when it opens', () => {
+  it('moves focus to the close button when the modal opens', () => {
     renderWorkspace();
     fireEvent.keyDown(window, { key: '2' });
-    expect(panel()).toHaveFocus();
+    expect(screen.getByRole('button', { name: /close section/i })).toHaveFocus();
   });
 
   it('hands focus back to the control that opened the panel when it closes', async () => {
@@ -376,13 +373,10 @@ describe('PersonalCanvasWorkspace keyboard shortcuts', () => {
     const trigger = screen.getAllByRole('button', { name: /core identity/i })[0]!;
     trigger.focus();
     fireEvent.click(trigger);
-    expect(panel()).toHaveFocus();
+    expect(screen.getByRole('button', { name: /close section/i })).toHaveFocus();
 
     fireEvent.keyDown(window, { key: 'Escape' });
 
-    // Focus is still inside the exiting panel at this point, which is exactly
-    // the case the restore has to handle — otherwise a keyboard user is left
-    // on a node that is about to be removed.
     await waitFor(() => expect(trigger).toHaveFocus());
   });
 

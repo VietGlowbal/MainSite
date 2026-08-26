@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AnalysisWorkspace } from './analysis-workspace';
 
-const PERSONAL_POST = '/api/ai-strategy/personal-report';
+const PERSONAL_POST = '/api/applications/app-1/personal-report';
 const MATCHING_GET = '/api/applications/app-1/strategy/course-match';
 const MATCHING_POST = '/api/applications/app-1/match-insights';
 const FRIENDLY_REPORT_ERROR = "We couldn't finish this report. We'll retry it using your confirmed information.";
@@ -37,7 +37,7 @@ describe('AnalysisWorkspace', () => {
       expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applicationId: 'app-1' }),
+        body: JSON.stringify({}),
       }),
     );
     expect(fetchMock.mock.calls.map(([url]) => url)).not.toContain(MATCHING_GET);
@@ -73,7 +73,7 @@ describe('AnalysisWorkspace', () => {
     expect(fetchMock).toHaveBeenCalledWith(PERSONAL_POST, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId: 'app-1' }),
+      body: JSON.stringify({}),
     });
     expect(screen.queryByText('Generating…')).not.toBeInTheDocument();
   });

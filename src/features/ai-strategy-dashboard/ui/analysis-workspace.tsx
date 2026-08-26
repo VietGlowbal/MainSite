@@ -10,18 +10,17 @@ type ReportStatus = 'generating' | 'complete' | 'failed';
 type ReportState = { status: ReportStatus; error?: string | undefined };
 
 /**
- * Generate the canonical user-level Personal Report.
- * Strategy generation consumes this canonical Personal Report directly.
+ * Generate the current application's Personal Report.
  */
 async function fetchOrGeneratePersonal(
   applicationId: string,
   errorMessages: { generic: string; rateLimit: string; unavailable: string },
 ): Promise<ReportState> {
   try {
-    const canonical = await fetch('/api/ai-strategy/personal-report', {
+    const canonical = await fetch(`/api/applications/${applicationId}/personal-report`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId }),
+      body: JSON.stringify({}),
     });
     const canonicalBody = await canonical.json().catch(() => ({}));
     if (!canonical.ok || !canonicalBody.reportV2) {

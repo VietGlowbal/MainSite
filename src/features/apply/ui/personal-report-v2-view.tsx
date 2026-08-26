@@ -32,6 +32,9 @@ export function PersonalReportV2View({
   initialReport,
   initialVersionId,
   initialVersions,
+  applicationId,
+  applicationConfirmed,
+  stale,
   studentName,
   generatedAt,
   migrationMissing,
@@ -41,6 +44,9 @@ export function PersonalReportV2View({
   initialReport: PersonalReportV2 | null;
   initialVersionId: string | null;
   initialVersions: PersonalReportVersionSummary[];
+  applicationId?: string | undefined;
+  applicationConfirmed?: boolean | undefined;
+  stale?: boolean | undefined;
   studentName: string;
   generatedAt: string | null;
   migrationMissing: boolean;
@@ -55,8 +61,20 @@ export function PersonalReportV2View({
   const [viewedGeneratedAt, setViewedGeneratedAt] = useState(generatedAt);
   const [busy, setBusy] = useState(false);
   const [versionLoading, setVersionLoading] = useState(false);
+  const reportEndpoint = applicationId
+    ? `/api/applications/${applicationId}/personal-report`
+    : '/api/ai-strategy/personal-report';
+  const versionsEndpoint = applicationId
+    ? `${reportEndpoint}/versions`
+    : '/api/ai-strategy/personal-report/versions';
   const [error, setError] = useState<string | null>(
-    migrationMissing ? t('This feature is not enabled in the database.') : null,
+    migrationMissing
+      ? t('This feature is not enabled in the database.')
+      : applicationConfirmed === false
+        ? t('Confirm Candidate Information before generating this report.')
+        : stale
+          ? t('This report is based on an older confirmed snapshot. Generate the latest version to update it.')
+          : null,
   );
 
   useLoadingIndicator(
@@ -70,7 +88,7 @@ export function PersonalReportV2View({
 
   async function refreshVersions() {
     try {
-      const response = await fetch('/api/ai-strategy/personal-report/versions');
+      const response = await fetch(versionsEndpoint);
       const body = await response.json().catch(() => ({}));
       if (response.ok && Array.isArray(body.versions)) {
         setVersions(body.versions as PersonalReportVersionSummary[]);
@@ -80,15 +98,22 @@ export function PersonalReportV2View({
     }
   }
 
-  async function generate(trigger: PersonalReportTrigger = 'manual') {
+  async function generate(trigger: PersonalReportTrigger = 'manual', force = false) {
+    if (applicationId && applicationConfirmed === false) {
+      setError(t('Confirm Candidate Information before generating this report.'));
+      return;
+    }
     setBusy(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/ai-strategy/personal-report', {
+      const response = await fetch(reportEndpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ trigger }),
+        body: JSON.stringify({
+          trigger,
+          ...(force ? { force: true, idempotencyKey: globalThis.crypto.randomUUID() } : {}),
+        }),
       });
       const body = await response.json().catch(() => ({}));
 
@@ -117,7 +142,7 @@ export function PersonalReportV2View({
     setError(null);
 
     try {
-      const response = await fetch(`/api/ai-strategy/personal-report/versions/${versionId}`);
+      const response = await fetch(`${versionsEndpoint}/${versionId}`);
       const body = await response.json().catch(() => ({}));
 
       if (!response.ok) throw new Error(body.error || t('Could not load that version.'));
@@ -152,7 +177,16 @@ export function PersonalReportV2View({
           </p>
         </div>
         {error ? <p className="max-w-xl text-gb-sm text-fg-error">{error}</p> : null}
-        <Button size="lg" onClick={() => void generate()} disabled={busy || migrationMissing}>
+        <Button
+          size="lg"
+          onClick={() => void generate()}
+          disabled={
+            busy ||
+            migrationMissing ||
+            !applicationId ||
+            applicationConfirmed === false
+          }
+        >
           {busy ? t('Creating report…') : t('Create report')}
         </Button>
         <Button href={withReturn('/ai-strategy/reflection', returnTo)} variant="secondary">
@@ -162,10 +196,10 @@ export function PersonalReportV2View({
     );
   }
 
-  const onRegenerate = isHistorical
+  const onRegenerate = !applicationId || isHistorical || applicationConfirmed === false
     ? undefined
     : (trigger: PersonalReportTrigger) => {
-        void generate(trigger);
+        void generate(trigger, true);
       };
 
   return (
@@ -245,6 +279,7 @@ export function PersonalReportV2View({
         <PersonalCanvasWorkspace
           report={report}
           returnTo={returnTo}
+          applicationId={applicationId}
           onRegenerate={onRegenerate}
         />
       </div>

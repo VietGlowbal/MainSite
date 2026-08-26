@@ -55,18 +55,23 @@ export function withReturn(href: string, returnTo: string | undefined): string {
  * no callback and therefore remain read-only.
  */
 const PersonalReportInlineUpdateContext = createContext<(() => void) | undefined>(undefined);
+const PersonalReportInlineApplicationContext = createContext<string | undefined>(undefined);
 
 export function PersonalReportInlineUpdateProvider({
   onAnswered,
+  applicationId,
   children,
 }: {
   onAnswered: (() => void) | undefined;
+  applicationId?: string | undefined;
   children: ReactNode;
 }) {
   return (
-    <PersonalReportInlineUpdateContext.Provider value={onAnswered}>
-      {children}
-    </PersonalReportInlineUpdateContext.Provider>
+    <PersonalReportInlineApplicationContext.Provider value={applicationId}>
+      <PersonalReportInlineUpdateContext.Provider value={onAnswered}>
+        {children}
+      </PersonalReportInlineUpdateContext.Provider>
+    </PersonalReportInlineApplicationContext.Provider>
   );
 }
 
@@ -92,6 +97,7 @@ export function InlineAnswerAction({
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const applicationId = useContext(PersonalReportInlineApplicationContext);
 
   if (!open) {
     return (
@@ -106,11 +112,16 @@ export function InlineAnswerAction({
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch('/api/ai-strategy/personal-report/supplement', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fieldKey, answer: value.trim() }),
-      });
+      const response = await fetch(
+        applicationId
+          ? `/api/applications/${applicationId}/personal-report/supplement`
+          : '/api/ai-strategy/personal-report/supplement',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fieldKey, answer: value.trim() }),
+        },
+      );
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || t('Could not save your answer.'));
       setOpen(false);
@@ -173,6 +184,7 @@ export function InlineEvidenceAction({
   const [value, setValue] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const applicationId = useContext(PersonalReportInlineApplicationContext);
 
   if (!open) {
     return (
@@ -187,11 +199,16 @@ export function InlineEvidenceAction({
     setSaving(true);
     setError(null);
     try {
-      const response = await fetch('/api/ai-strategy/personal-report/evidence', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ answer: value.trim() }),
-      });
+      const response = await fetch(
+        applicationId
+          ? `/api/applications/${applicationId}/personal-report/evidence`
+          : '/api/ai-strategy/personal-report/evidence',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ answer: value.trim() }),
+        },
+      );
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.error || t('Could not save your answer.'));
       setOpen(false);

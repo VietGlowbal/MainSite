@@ -3,15 +3,13 @@
 import {
   useCallback,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type ReactNode,
 } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { PersonalReportV2, PersonalReportTrigger } from '../../domain';
-import { Badge } from '@/shared/ui';
+import { Badge, Modal } from '@/shared/ui';
 import { AreasForGrowthView } from './areas-for-growth';
 import { CoreIdentityView } from './core-identity';
 import { DrivingForceView } from './driving-force';
@@ -47,14 +45,6 @@ type SectionSpec = {
   description: string;
   tabs: TabSpec[];
 };
-
-type ConnectorGeometry = {
-  path: string;
-  startX: number;
-  startY: number;
-  width: number;
-  height: number;
-} | null;
 
 /**
  * Canvas sounds are intentionally always enabled. AudioContext is still
@@ -165,37 +155,6 @@ function useCuteCanvasSounds() {
   // render's copies is safe and the empty dependency array is deliberate.
   // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => ({ open, close, tab }), []);
-}
-
-function FocusModeIcon({ focused }: { focused: boolean }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 24 24"
-      className="h-[1.1rem] w-[1.1rem]"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      {focused ? (
-        <>
-          <path d="M3 9h6V3" />
-          <path d="M21 9h-6V3" />
-          <path d="M3 15h6v6" />
-          <path d="M21 15h-6v6" />
-        </>
-      ) : (
-        <>
-          <path d="M8 3H3v5" />
-          <path d="M16 3h5v5" />
-          <path d="M8 21H3v-5" />
-          <path d="M16 21h5v-5" />
-        </>
-      )}
-    </svg>
-  );
 }
 
 function panelTitle(report: PersonalReportV2, section: PersonalCanvasSectionKey): string {
@@ -397,21 +356,17 @@ function sectionSpecs({
 export function PersonalCanvasWorkspace({
   report,
   returnTo,
+  applicationId,
   onRegenerate,
 }: {
   report: PersonalReportV2;
   returnTo: string | undefined;
+  applicationId?: string | undefined;
   onRegenerate: ((trigger: PersonalReportTrigger) => void) | undefined;
 }) {
   const [activeSection, setActiveSection] = useState<PersonalCanvasSectionKey | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [focusMode, setFocusMode] = useState(false);
-  const [connector, setConnector] = useState<ConnectorGeometry>(null);
-  const workspaceRef = useRef<HTMLDivElement>(null);
-  const panelRef = useRef<HTMLElement>(null);
-  const lastTriggerRef = useRef<HTMLElement | null>(null);
   const sounds = useCuteCanvasSounds();
-  const reduceMotion = useReducedMotion();
 
   const onAnswered = useMemo(
     () => (onRegenerate ? () => onRegenerate('supplement_answer') : undefined),
@@ -428,14 +383,9 @@ export function PersonalCanvasWorkspace({
 
   const openSection = useCallback(
     (section: PersonalCanvasSectionKey) => {
-      // Remember what to hand focus back to when the panel closes. Without
-      // this, closing dumps a keyboard user at the top of the document.
-      lastTriggerRef.current =
-        document.activeElement instanceof HTMLElement ? document.activeElement : null;
       const firstTab = specs[section].tabs[0]?.id ?? 'overview';
       setActiveSection(section);
       setActiveTab(firstTab);
-      setFocusMode(false);
       sounds.open();
     },
     [specs, sounds],
@@ -447,8 +397,6 @@ export function PersonalCanvasWorkspace({
       sounds.close();
       return null;
     });
-    setFocusMode(false);
-    setConnector(null);
   }, [sounds]);
 
   function selectTab(tabId: string) {
@@ -487,11 +435,6 @@ export function PersonalCanvasWorkspace({
       if (event.key === 'Escape') closePanel();
       const shortcut = shortcuts[event.key];
       if (shortcut) openSection(shortcut);
-      if ((event.key === 'f' || event.key === 'F') && activeSection) {
-        event.preventDefault();
-        setFocusMode((current) => !current);
-        sounds.tab();
-      }
     }
 
     window.addEventListener('keydown', onKeyDown);
@@ -500,174 +443,27 @@ export function PersonalCanvasWorkspace({
     // was torn down and rebound after every single render of a large report.
   }, [activeSection, closePanel, openSection, sounds]);
 
-  // Move focus into the panel when it opens, and give it back when it closes.
-  // On mobile the panel is a full-screen overlay; without this a keyboard or
-  // screen-reader user opened it and stayed on the button underneath, with no
-  // indication anything had happened.
-  useEffect(() => {
-    if (activeSection) {
-      panelRef.current?.focus();
-      return;
-    }
-    const trigger = lastTriggerRef.current;
-    lastTriggerRef.current = null;
-    if (!trigger) return;
-    // Restore focus only when it would otherwise be lost: either it has already
-    // fallen back to the body, or it is still inside the panel, which stays
-    // mounted while its exit animation runs. If the user has clicked or tabbed
-    // somewhere else in the meantime, leave them there — yanking them back is
-    // worse than not restoring at all.
-    const active = document.activeElement;
-    const stranded =
-      active === document.body ||
-      active === null ||
-      (active instanceof Node && panelRef.current?.contains(active) === true);
-    if (stranded) trigger.focus();
-  }, [activeSection]);
-
-  useLayoutEffect(() => {
-    if (!activeSection || focusMode) return;
-
-    const workspace = workspaceRef.current;
-    const panel = panelRef.current;
-    if (!workspace || !panel) return;
-
-    const update = () => {
-      if (window.innerWidth < 1024) {
-        setConnector(null);
-        return;
-      }
-
-      // Both the mobile and desktop Canvas are mounted at once and hidden with
-      // responsive CSS. Querying the first match anchors to the hidden mobile
-      // copy on desktop, which is what caused the connector to originate near
-      // the top of the page. Pick the control that actually has layout.
-      const selected = Array.from(
-        workspace.querySelectorAll<HTMLElement>(
-          `[data-canvas-section="${activeSection}"]`,
-        ),
-      ).find((element) => {
-        const rect = element.getBoundingClientRect();
-        const style = window.getComputedStyle(element);
-        return (
-          rect.width > 0 &&
-          rect.height > 0 &&
-          style.display !== 'none' &&
-          style.visibility !== 'hidden'
-        );
-      });
-      if (!selected) {
-        setConnector(null);
-        return;
-      }
-
-      const workspaceRect = workspace.getBoundingClientRect();
-      const selectedRect = selected.getBoundingClientRect();
-      const panelRect = panel.getBoundingClientRect();
-
-      const startX = selectedRect.right - workspaceRect.left;
-      const startY = selectedRect.top + selectedRect.height / 2 - workspaceRect.top;
-      const endX = panelRect.left - workspaceRect.left + 2;
-      const minEndY = panelRect.top - workspaceRect.top + 84;
-      const maxEndY = panelRect.bottom - workspaceRect.top - 84;
-      const endY = Math.min(Math.max(startY, minEndY), maxEndY);
-      const midX = startX + (endX - startX) * 0.52;
-      const height = Math.max(workspaceRect.height, panelRect.bottom - workspaceRect.top);
-
-      setConnector({
-        path: `M ${startX} ${startY} C ${midX} ${startY}, ${midX} ${endY}, ${endX} ${endY}`,
-        startX,
-        startY,
-        width: workspaceRect.width,
-        height,
-      });
-    };
-
-    // Grid columns and the panel both animate on open. Track their real
-    // bounding boxes only while that transition is in flight, then let the
-    // observers below handle any later responsive/content changes.
-    let animationFrame = 0;
-    const startedAt = performance.now();
-    const trackOpeningLayout = (now: number) => {
-      update();
-      if (now - startedAt < 650) {
-        animationFrame = window.requestAnimationFrame(trackOpeningLayout);
-      }
-    };
-    animationFrame = window.requestAnimationFrame(trackOpeningLayout);
-
-    const observer =
-      typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
-    observer?.observe(workspace);
-    observer?.observe(panel);
-    window.addEventListener('resize', update);
-
-    return () => {
-      window.cancelAnimationFrame(animationFrame);
-      observer?.disconnect();
-      window.removeEventListener('resize', update);
-    };
-  }, [activeSection, focusMode, activeTab]);
-
-  const panelInitial = reduceMotion
-    ? { opacity: 0 }
-    : { opacity: 0, x: 36, scale: 0.985 };
-  const panelExit = reduceMotion
-    ? { opacity: 0 }
-    : { opacity: 0, x: 24, scale: 0.99 };
-  const panelTransition = reduceMotion
-    ? { duration: 0.12 }
-    : { type: 'spring' as const, stiffness: 340, damping: 30, mass: 0.82 };
-
   return (
     <section className="flex flex-col gap-gb-lg">
-      <div
-        ref={workspaceRef}
-        className={[
-          'relative grid items-start transition-[grid-template-columns,gap] duration-500',
-          activeSection
-            ? focusMode
-              ? 'lg:grid-cols-[0_minmax(0,1fr)] lg:gap-0'
-              : 'lg:grid-cols-[minmax(0,0.98fr)_minmax(34rem,1.02fr)] lg:gap-gb-xl'
-            : 'lg:grid-cols-1',
-        ].join(' ')}
-      >
-        <div
-          className={[
-            'min-w-0 transition duration-300',
-            focusMode ? 'pointer-events-none opacity-10 blur-[2px]' : '',
-          ].join(' ')}
-        >
+      <div className="min-w-0">
           <PersonalCanvasView
             report={report}
             activeSection={activeSection}
             onSelect={openSection}
           />
           <p className="mt-gb-md text-center text-gb-xs text-fg-muted print:hidden">
-            Keyboard: 1–6 opens a section · Esc closes · F toggles focus
+            Keyboard: 1–6 opens a section · Esc closes
           </p>
-        </div>
+      </div>
 
-        <AnimatePresence initial={false}>
-          {activeSection && activeSpec ? (
-            <motion.aside
-              key="personal-canvas-detail-panel"
-              ref={panelRef}
-              // -1 so it can receive programmatic focus without entering the
-              // tab order. No aria-modal: on desktop this is a sticky side
-              // panel beside live content, not a modal, and claiming otherwise
-              // would tell a screen reader the rest of the page is inert.
-              tabIndex={-1}
-              aria-label={`${activeSpec.label} details`}
-              initial={panelInitial}
-              animate={{ opacity: 1, x: 0, scale: 1 }}
-              exit={panelExit}
-              transition={panelTransition}
-              className={[
-                'fixed inset-x-3 bottom-3 top-20 z-[80] flex min-h-0 flex-col overflow-hidden rounded-gb-2xl border border-line bg-surface shadow-2xl',
-                'lg:sticky lg:top-24 lg:z-20 lg:max-h-[calc(100vh-7rem)]',
-              ].join(' ')}
-            >
+      {activeSpec ? (
+        <Modal
+          open={Boolean(activeSection)}
+          onClose={closePanel}
+          label={`${activeSpec.label} details`}
+          className="max-w-4xl overflow-hidden p-0"
+        >
+          <div className="flex max-h-[85vh] min-h-0 flex-col">
               <header className="shrink-0 border-b border-line bg-surface px-gb-xl pt-gb-xl">
                 <div className="flex items-start justify-between gap-gb-lg">
                   <div className="min-w-0">
@@ -686,19 +482,6 @@ export function PersonalCanvasWorkspace({
                   </div>
 
                   <div className="flex shrink-0 items-center gap-gb-sm print:hidden">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setFocusMode((current) => !current);
-                        sounds.tab();
-                      }}
-                      aria-pressed={focusMode}
-                      aria-label={focusMode ? 'Exit focus mode' : 'Focus this section'}
-                      title={focusMode ? 'Exit focus mode' : 'Focus this section'}
-                      className="hidden h-10 w-10 place-items-center rounded-gb-lg border border-line bg-surface text-fg-tertiary shadow-sm transition hover:border-brand/30 hover:bg-brand/5 hover:text-fg-brand lg:grid"
-                    >
-                      <FocusModeIcon focused={focusMode} />
-                    </button>
                     <button
                       type="button"
                       onClick={closePanel}
@@ -736,46 +519,13 @@ export function PersonalCanvasWorkspace({
                 role="tabpanel"
                 className="min-h-0 flex-1 overflow-y-auto p-gb-xl"
               >
-                <PersonalReportInlineUpdateProvider onAnswered={onAnswered}>
+                <PersonalReportInlineUpdateProvider onAnswered={onAnswered} applicationId={applicationId}>
                   {tab?.content}
                 </PersonalReportInlineUpdateProvider>
               </div>
-            </motion.aside>
-          ) : null}
-        </AnimatePresence>
-
-        {connector && activeSection && !focusMode ? (
-          <svg
-            aria-hidden="true"
-            className="pointer-events-none absolute left-0 top-0 z-10 hidden overflow-visible text-fg-brand lg:block"
-            width={connector.width}
-            height={connector.height}
-            viewBox={`0 0 ${connector.width} ${connector.height}`}
-          >
-            <motion.path
-              key={activeSection}
-              d={connector.path}
-              fill="none"
-              stroke="white"
-              strokeWidth="5"
-              strokeLinecap="round"
-              strokeDasharray="8 8"
-              className="drop-shadow-sm"
-              initial={reduceMotion ? false : { pathLength: 0, opacity: 0 }}
-              animate={{ pathLength: 1, opacity: 1 }}
-              transition={{ duration: reduceMotion ? 0 : 0.35, ease: 'easeOut' }}
-            />
-            <circle
-              cx={connector.startX}
-              cy={connector.startY}
-              r="7"
-              fill="white"
-              stroke="currentColor"
-              strokeWidth="4"
-            />
-          </svg>
-        ) : null}
-      </div>
+          </div>
+        </Modal>
+      ) : null}
     </section>
   );
 }

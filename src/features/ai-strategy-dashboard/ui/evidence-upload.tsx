@@ -18,7 +18,7 @@ type ReanalysisState = 'idle' | 'running' | 'done' | 'error';
  * design.md originally sketched. Building a real async job queue (matching
  * the course-parser's polling convention) is a bigger lift than this pass
  * has room for, and a fake one would be worse than an honest gap. "Re-analyse
- * now" calls the canonical endpoints (`/api/ai-strategy/personal-report`,
+ * now" calls the canonical endpoints (`/api/applications/[id]/personal-report`,
  * `match-insights`, `strategy/recommendation`) a Dashboard visit triggers.
  */
 export function EvidenceUpload({
@@ -59,10 +59,10 @@ export function EvidenceUpload({
     setReanalysis('running');
     try {
       const [personalRes, matchRes] = await Promise.all([
-        fetch('/api/ai-strategy/personal-report', {
+        fetch(`/api/applications/${applicationId}/personal-report`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ applicationId }),
+          body: JSON.stringify({}),
         }),
         fetch(`/api/applications/${applicationId}/match-insights`, { method: 'POST' }),
       ]);
