@@ -996,6 +996,8 @@ See [audit-2026-08-03.md](audit-2026-08-03.md) for the point-in-time audit and
 
 3c0a5b6 (2026-08-26): completed Personal Report Task 8 wiring: application-scoped generation reads one confirmed snapshot, persists analysis/evidence/report lineage, validates the 150-200-word snapshot contract, handles cache/force/idempotency and deterministic fallback, and passes applicationId through report-generation callers. Measured: focused 71/71 tests, `npm.cmd run typecheck`, scoped ESLint, and `npm.cmd run build` pass. Strict typecheck remains blocked by pre-existing errors in matching/canvas UI and an evidence-bank test.
 
+2026-08-26 application Personal Report Tasks 9–12: Task 9 history reads and version routes committed as `c952d69`; Task 10 downstream report lineage committed as `2114eb7`; Task 11 application-scoped Personal Report UI/evidence wiring committed as `1749ca8` with the regeneration/read-only hardening follow-up in `a10c294`; Task 12 isolation/concurrency integration coverage is committed with the task log. Measured: report/evaluation/evidence/AI suite 80 files/822 tests passed, focused application/report suite 11 files/70 tests passed, integration fixture 3/3 passed, `npm.cmd run typecheck` passed, scoped ESLint passed, and `npm.cmd run build` passed with existing Turbopack filesystem-tracing warnings. `npm.cmd run verify:pr` could not complete because this checkout has Node 24.13.0 while the project requires 24.19.0; non-production migration/RLS verification was not run because no database test environment was available.
+
 ## Handoff protocol
 
 After material work, update this file in the same change:
