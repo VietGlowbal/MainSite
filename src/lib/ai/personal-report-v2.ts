@@ -1,4 +1,5 @@
 import { STUDY_MOTIVATION_SUPPLEMENT_KEY, type CandidateContext } from '@/features/apply/domain';
+import { analyzeReflectionAnswers } from './reflection-analysis';
 import type {
   CmcaitfFields,
   CompetencyClaim,
@@ -458,14 +459,39 @@ export async function buildProfileEvaluationInput(args: {
   const profile = context.profile as Record<string, unknown>;
   const intendedDirection = text(profile.goals) || null;
 
+  // The seven Personal Reflection answers — previously ignored entirely
+  // (plan Task 6 regression). They now (a) join the vagueness-graded written
+  // fields, (b) feed profile motivations, and (c) ride along as dimension-
+  // tagged Identity/Direction signals so downstream consumers and the input
+  // hash both see them.
+  const reflectionAnswers = (profile.personal_reflection_answers ?? null) as
+    | Record<string, string | undefined>
+    | null;
+  const reflectionAnalysis = analyzeReflectionAnswers(reflectionAnswers);
+  const reflectionWrittenFields: VaguenessField[] = reflectionAnalysis.signals.map((signal) => ({
+    field: `reflection_${signal.key}`,
+    label: `Personal reflection — ${signal.dimension.replaceAll('_', ' ')}`,
+    value: signal.value,
+  }));
+  const reflectionMotivations = reflectionAnalysis.signals
+    .filter((signal) =>
+      ['interests_motivations', 'academic_direction', 'career_direction'].includes(signal.dimension),
+    )
+    .map((signal) => ({
+      id: `profile:reflection_${signal.key}`,
+      label: `Reflection — ${signal.dimension.replaceAll('_', ' ')}`,
+      value: signal.value,
+    }));
+
   return {
     subjectId,
-    writtenFields: writtenFieldsFor(context),
+    writtenFields: [...writtenFieldsFor(context), ...reflectionWrittenFields],
     reflectionRecords,
     competencyClaims,
     evidenceItems,
     narrativeActivities,
-    profileMotivations: profileMotivationsFor(context),
+    profileMotivations: [...profileMotivationsFor(context), ...reflectionMotivations],
+    reflectionAnswerSignals: reflectionAnalysis.signals,
     intendedDirection,
     generatedAt,
   };

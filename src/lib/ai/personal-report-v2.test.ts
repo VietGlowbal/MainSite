@@ -1,6 +1,14 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CandidateContext } from '@/features/apply/domain';
-import { applyPersonalReportSupplements, buildProfileEvaluationInput } from './personal-report-v2';
+import {
+  applyPersonalReportSupplements,
+  buildProfileEvaluationInput,
+} from './personal-report-v2';
+import {
+  REFLECTION_ANSWER_DIMENSIONS,
+  deriveReflectionSignals,
+  analyzeReflectionAnswers,
+} from './reflection-analysis';
 
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -192,5 +200,82 @@ describe('applyPersonalReportSupplements', () => {
       'evidence:broken': '{not-json',
     });
     expect(result).toBe(baseContext);
+  });
+});
+
+/**
+ * Regression coverage for the seven Personal Reflection answers (plan Task 6):
+ * `buildProfileEvaluationInput` used to ignore
+ * `profile.personal_reflection_answers` entirely, so Q1–Q7 never influenced
+ * Identity/Direction analysis or the input hash.
+ */
+describe('seven personal reflection answers feed Identity/Direction signals', () => {
+  const ANSWERS = {
+    q1: 'I am drawn to building practical tools for my community.',
+    q2: 'Growing as a patient organiser taught me to value reliability.',
+    q3: 'I care about unequal access to education technology.',
+    q4: 'I owned the entire rollout of our school tutoring platform.',
+    q5: 'I want a computer science degree focused on human-computer interaction.',
+    q6: 'In ten years I want to lead product teams in edtech.',
+    q7: 'I prefer a campus with tight-knit residential colleges.',
+  };
+
+  function contextWith(answers: Record<string, string>): CandidateContext {
+    return {
+      ...baseContext,
+      profile: { ...baseContext.profile, personal_reflection_answers: answers },
+    };
+  }
+
+  async function buildWith(answers: Record<string, string>) {
+    // Extraction calls get valid-but-empty responses — this suite targets
+    // deterministic signal wiring, not the model.
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockImplementation((_url: string, init: RequestInit) => {
+        const body = JSON.parse(init.body as string);
+        const userMessage = body.messages[1].content as string;
+        if (userMessage.includes('competenc')) {
+          return Promise.resolve(chatResponse({ claims: [] }));
+        }
+        if (userMessage.includes('role and domainTheme') || userMessage.includes('CMCAITF')) {
+          return Promise.resolve(chatResponse({ items: [] }));
+        }
+        return Promise.resolve(chatResponse({ items: [] }));
+      }),
+    );
+    return buildProfileEvaluationInput({
+      context: contextWith(answers),
+      subjectId: 'user-1',
+      generatedAt: '2026-08-26T00:00:00.000Z',
+      apiKey: 'test-key',
+    });
+  }
+
+  it.each(Object.keys(ANSWERS) as Array<keyof typeof ANSWERS>)(
+    'changing %s changes its mapped signal dimension and the input hash',
+    async (key) => {
+      const baseline = await buildWith(ANSWERS);
+      const changedAnswers = { ...ANSWERS, [key]: `${ANSWERS[key]} (revised answer)` };
+      const changed = await buildWith(changedAnswers);
+
+      const dimension = REFLECTION_ANSWER_DIMENSIONS[key];
+      const baseSignal = baseline.reflectionAnswerSignals?.find((signal) => signal.key === key);
+      const changedSignal = changed.reflectionAnswerSignals?.find((signal) => signal.key === key);
+
+      expect(dimension).toBeTruthy();
+      expect(baseSignal?.value).toBe(ANSWERS[key]);
+      expect(changedSignal?.value).toBe(`${ANSWERS[key]} (revised answer)`);
+
+      expect(JSON.stringify(baseline)).not.toEqual(JSON.stringify(changed));
+    },
+  );
+
+  it('drops empty answers entirely from the built signals', () => {
+    // Covered exhaustively in reflection-analysis.test.ts; here just prove
+    // the pipeline tolerates a context with no answers at all.
+    return buildWith({}).then((result) => {
+      expect(result.reflectionAnswerSignals).toEqual([]);
+    });
   });
 });

@@ -23,6 +23,36 @@ import {
 } from './profile-motivation';
 import { lowestConfidence, type Confidence } from './types';
 
+/** The seven Personal Reflection answer keys, q1–q7 (see personal-reflection.ts domain). */
+export type ReflectionAnswerKey = 'q1' | 'q2' | 'q3' | 'q4' | 'q5' | 'q6' | 'q7';
+
+export type ReflectionAnswerDimension =
+  | 'interests_motivations'
+  | 'values_growth'
+  | 'problem_domains'
+  | 'capability_ownership'
+  | 'academic_direction'
+  | 'career_direction'
+  | 'environment_preference';
+
+export const REFLECTION_ANSWER_DIMENSIONS: Record<ReflectionAnswerKey, ReflectionAnswerDimension> = {
+  q1: 'interests_motivations',
+  q2: 'values_growth',
+  q3: 'problem_domains',
+  q4: 'capability_ownership',
+  q5: 'academic_direction',
+  q6: 'career_direction',
+  q7: 'environment_preference',
+};
+
+export type ReflectionAnswerSignal = {
+  key: ReflectionAnswerKey;
+  dimension: ReflectionAnswerDimension;
+  value: string;
+  /** repeated = ≥2 independent sources; isolated = this single answer only. */
+  status: 'repeated' | 'isolated';
+};
+
 /**
  * The GlowBal Shared Evaluation Engine — assembly.
  *
@@ -51,6 +81,12 @@ export type ProfileEvaluationInput = {
   narrativeActivities: readonly NarrativeActivity[];
   /** Explicit motivation answers from the user-level Reflection profile. */
   profileMotivations?: readonly ProfileMotivation[];
+  /**
+   * The seven Personal Reflection answers, dimension-tagged (q1–q7 →
+   * Identity/Direction dimensions; see lib/ai/reflection-analysis.ts).
+   * Additive and optional so pre-existing callers stay valid.
+   */
+  reflectionAnswerSignals?: readonly ReflectionAnswerSignal[];
   /** F4.5 — stated only when the student has actually said where they are heading; never inferred. */
   intendedDirection: string | null;
   generatedAt: string;

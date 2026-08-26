@@ -47,6 +47,7 @@ export interface EvidenceBankItem {
 
 export interface DirectionSignals {
   intendedDirection?: string | null;
+  academicDirection?: string | null;
   careerDirection?: string | null;
   preferredEnvironment?: string | null;
 }
