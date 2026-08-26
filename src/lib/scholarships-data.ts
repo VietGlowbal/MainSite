@@ -218,23 +218,6 @@ export function getPublishedScholarships() {
   return getPublishedScholarshipsCached();
 }
 
-/**
- * Does this scholarship match the logged-in user's saved universities? Returns
- * the match reason so the UI can label "For you" cards and sort them first.
- */
-export function scorePersonalMatch(
-  s: DirectoryScholarship,
-  savedUniversityIds: number[],
-  savedCountries: string[],
-): { matched: boolean; reason: 'university' | 'country' | null } {
-  if (savedUniversityIds.length && s.universityIds.some((id) => savedUniversityIds.includes(id))) {
-    return { matched: true, reason: 'university' };
-  }
-  if (savedCountries.length) {
-    if (s.country && savedCountries.includes(s.country)) return { matched: true, reason: 'country' };
-    if (s.universityCountries.some((c) => savedCountries.includes(c))) {
-      return { matched: true, reason: 'country' };
-    }
-  }
-  return { matched: false, reason: null };
-}
+// Kept as a compatibility export for server-side callers. Client components
+// should import this pure function from the scholarships domain barrel instead.
+export { scorePersonalMatch } from '@/features/scholarships/domain/personal-match';

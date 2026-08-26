@@ -30,6 +30,27 @@ describe('useApplicationPlanner', () => {
     expect(result.current.error).toBe('That date did not save. Please try again.');
   });
 
+  it('does not let an earlier failed request roll back a later successful field', async () => {
+    let resolveStatus!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+    let resolveDeadline!: (value: { ok: boolean; json?: () => Promise<unknown> }) => void;
+    const statusResponse = new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => { resolveStatus = resolve; });
+    const deadlineResponse = new Promise<{ ok: boolean; json?: () => Promise<unknown> }>((resolve) => { resolveDeadline = resolve; });
+    const fetchMock = vi.fn().mockReturnValueOnce(statusResponse).mockReturnValueOnce(deadlineResponse);
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = renderHook(() => useApplicationPlanner('app-1', planner()));
+    let statusPromise!: Promise<void>;
+    let deadlinePromise!: Promise<void>;
+    await act(async () => {
+      statusPromise = result.current.updateMicroStepStatus('micro-1', 'in_progress');
+      deadlinePromise = result.current.updateMicroStepDeadline('micro-1', '2026-10-01');
+      resolveStatus({ ok: true, json: async () => ({ microStep: { status: 'in_progress' } }) });
+      await Promise.resolve();
+      resolveDeadline({ ok: false });
+      await Promise.all([statusPromise, deadlinePromise]);
+    });
+    expect(getPlannerMicroSteps(result.current.planner)[0]).toMatchObject({ status: 'in_progress', deadline: null });
+  });
+
   it('persists interactive content through the canonical PATCH endpoint', async () => {
     const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ microStep: { contentValue: { type: 'long_text', text: 'Student work' } } }) });
     vi.stubGlobal('fetch', fetchMock);

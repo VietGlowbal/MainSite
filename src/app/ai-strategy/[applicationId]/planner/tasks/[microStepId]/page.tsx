@@ -1,5 +1,5 @@
 import { notFound, redirect } from 'next/navigation';
-import { getApplicationPlanner } from '@/features/ai-strategy-dashboard/api';
+import { CanonicalPlannerAccessError, getCanonicalApplicationPlanner } from '@/features/ai-strategy-dashboard/api';
 import { CanonicalMicroStepDetail } from '@/features/ai-strategy-dashboard/ui';
 import { createClient } from '@/lib/supabase/server';
 
@@ -9,7 +9,13 @@ export default async function PlannerMicroStepPage({ params }: { params: Promise
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/auth');
-  const planner = await getApplicationPlanner(supabase, applicationId, user.id);
+  let planner;
+  try {
+    planner = await getCanonicalApplicationPlanner(supabase, applicationId, user.id);
+  } catch (error) {
+    if (error instanceof CanonicalPlannerAccessError) notFound();
+    throw error;
+  }
   if (!planner.plan || !planner.phases.some((phase) => phase.steps.some((step) => step.microSteps.some((task) => task.id === microStepId)))) notFound();
   return <CanonicalMicroStepDetail applicationId={applicationId} planner={planner} microStepId={microStepId} />;
 }

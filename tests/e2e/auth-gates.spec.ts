@@ -41,17 +41,21 @@ for (const route of PROTECTED) {
 }
 
 test('public routes are not gated', async ({ page }) => {
-  for (const route of ['/universities', '/advisors', '/news']) {
+  for (const route of ['/universities', '/advisors', '/news', '/scholarships']) {
     await page.goto(route);
     await expect(page, `${route} should stay public`).toHaveURL(new RegExp(`${route}$`));
   }
 });
 
-test('scholarships requires an account', async ({ page }) => {
+test('scholarships AI workspace requires an account', async ({ page }) => {
   // Gated by a redirect inside the page rather than by the proxy, so it is
   // worth asserting separately — the mechanism differs from PROTECTED above.
-  await page.goto('/scholarships');
+  await page.goto('/scholarships?view=ai');
   await expect(page).toHaveURL(/\/auth/);
+
+  const redirect = new URL(page.url()).searchParams.get('redirect');
+  expect(redirect, 'AI workspace should preserve its return destination').toContain('/scholarships');
+  expect(redirect, 'AI workspace should preserve its view').toContain('view=ai');
 });
 
 test('the old saved-list URL is a permanent redirect into /apply', async ({ page }) => {

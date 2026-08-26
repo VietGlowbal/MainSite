@@ -1,29 +1,32 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { isPlusEntitlementActive } from '@/lib/entitlements/entitlement-service';
-import { createAdminClient } from '@/server/db/admin';
-import { isAdmin } from '@/server/auth/auth-helpers';
 import { getApplicationPlanner } from './get-application-planner';
 import { getApplicationAssessments } from './get-application-assessments';
-import { syncApplicationPlan } from './sync-application-plan';
-import { getPlannerMicroSteps } from '../domain';
+import { refreshApplicationPlan } from './refresh-application-plan';
+import { assertCanonicalPlannerAccess } from './canonical-access';
+import { getPlannerMicroSteps, plannerSourceFingerprint } from '../domain';
+import { getPlannerMode } from './planner-mode';
 import {
   PLANNER_AVAILABILITY_INPUT_KEYS,
   type PlanningInput,
 } from '../domain/planning-context';
 
-export type PlannerMode = 'canonical' | 'legacy';
+/** Canonical read boundary used by pages and server orchestration. */
+export async function getCanonicalApplicationPlanner(
+  supabase: SupabaseClient,
+  applicationId: string,
+  userId: string,
+) {
+  await assertCanonicalPlannerAccess(supabase, applicationId, userId);
+  return getApplicationPlanner(supabase, applicationId, userId);
+}
+
 export type EnsureApplicationPlanResult =
   | { kind: 'ready'; created: boolean }
   | { kind: 'not_entitled' }
   | { kind: 'not_found' }
   | { kind: 'failed' };
 
-/** Single server-side rollout boundary: Plus and admins use canonical Planner. */
-export async function getPlannerMode(supabase: SupabaseClient, userId: string): Promise<PlannerMode> {
-  const { data } = await supabase.from('student_profiles')
-    .select('plus_status,plus_expires_at,is_admin').eq('user_id', userId).maybeSingle();
-  return isPlusEntitlementActive(data ?? {}) || await isAdmin(userId) ? 'canonical' : 'legacy';
-}
+export { getPlannerMode, type PlannerMode } from './planner-mode';
 
 /**
  * Idempotent production initializer and source-change reconciler. The Core 1
@@ -40,23 +43,25 @@ export async function ensureApplicationPlan(
     .eq('id', applicationId).eq('user_id', userId).maybeSingle();
   if (error || !application) return { kind: 'not_found' };
   try {
-    const existing = await getApplicationPlanner(supabase, applicationId, userId);
+    const existing = await getCanonicalApplicationPlanner(supabase, applicationId, userId);
     const { context } = await getApplicationAssessments(supabase, applicationId, userId);
     // One-time rollout upgrade: early foundation plans can lack declared
     // inputs. Reconcile only when an unanswered input is also absent, so an
     // existing input remains stable while its answer is being collected.
     const needsInputUpgrade = needsPlannerInputUpgrade(existing, context.plannerInputs ?? []);
-    const sourceFingerprint = `:source:${context.provenance.contextHash}`;
+    const sourceFingerprint = `:source:${plannerSourceFingerprint(context)}`;
     const sourceChanged = existing.plan !== null && !existing.plan.domainPlanId.includes(sourceFingerprint);
     if (existing.plan && !needsInputUpgrade && !sourceChanged) return { kind: 'ready', created: false };
     // Trusted server client is the sole Core 3 writer after RLS hardening.
-    await syncApplicationPlan(createAdminClient(), applicationId, userId);
+    await refreshApplicationPlan(supabase, applicationId, userId, 'source_change');
     return { kind: 'ready', created: true };
   } catch (error) {
     console.error('[planner] ensure canonical plan failed', { applicationId, userId, error });
     return { kind: 'failed' };
   }
 }
+
+export { assertCanonicalPlannerAccess, CanonicalPlannerAccessError } from './canonical-access';
 
 function needsPlannerInputUpgrade(
   existing: Awaited<ReturnType<typeof getApplicationPlanner>>,

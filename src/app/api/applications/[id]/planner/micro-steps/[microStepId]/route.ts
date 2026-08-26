@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getPlannerMode, PlannerMicroStepUpdateError, progressApplicationPlan } from '@/features/ai-strategy-dashboard/api';
+import { CanonicalPlannerAccessError, getPlannerMode, PlannerMicroStepUpdateError, progressApplicationPlan } from '@/features/ai-strategy-dashboard/api';
 import { plannerMicroStepExecutionPatchSchema } from '@/features/ai-strategy-dashboard/domain';
 import { createClient } from '@/lib/supabase/server';
 import { sameOrigin } from '@/server/payments/manual-review-auth';
@@ -32,11 +32,16 @@ export async function PATCH(
     const result = await progressApplicationPlan(applicationId, user.id, microStepId, parsed.data);
     return NextResponse.json(result);
   } catch (error) {
+    if (error instanceof CanonicalPlannerAccessError && error.code === 'not_found') return NextResponse.json({ error: 'Task not found' }, { status: 404 });
+    if (error instanceof CanonicalPlannerAccessError && error.code === 'not_entitled') return NextResponse.json({ error: 'Planner access requires GlowBal Plus.' }, { status: 403 });
     if (error instanceof PlannerMicroStepUpdateError && error.code === 'not_found') {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
     if (error instanceof PlannerMicroStepUpdateError && error.code === 'input_required') {
       return NextResponse.json({ error: error.message }, { status: 409 });
+    }
+    if (error instanceof PlannerMicroStepUpdateError && error.code === 'invalid_content') {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
     console.error('[planner/micro-steps/:id] update failed', error);
     return NextResponse.json({ error: 'Could not save this task' }, { status: 500 });

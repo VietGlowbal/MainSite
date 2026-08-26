@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { Container } from '@/shared/ui';
 import { DashboardSummary, HierarchicalApplicationPlanner } from '@/features/ai-strategy-dashboard/ui';
@@ -117,10 +118,12 @@ export default function DevPlannerPage() {
             deadline={null}
             recommendations={[]}
           />
-          <HierarchicalApplicationPlanner
-            applicationId="demo-vinuni"
-            planner={mockPlanner}
-          />
+          <Suspense fallback={null}>
+            <HierarchicalApplicationPlanner
+              applicationId="demo-vinuni"
+              planner={mockPlanner}
+            />
+          </Suspense>
         </div>
       </Container>
     </main>

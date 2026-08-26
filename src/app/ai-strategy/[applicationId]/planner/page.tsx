@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
-import { ensureApplicationPlan, fetchOnboardingState, generateRecommendations, getApplicationPlanner, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
+import { ensureApplicationPlan, fetchOnboardingState, generateRecommendations, getCanonicalApplicationPlanner, getApplicationPlannerHealth, getPlannerMode } from '@/features/ai-strategy-dashboard/api';
 import {
+  getPlannerMicroSteps,
   nextOnboardingStep,
   onboardingStepHref,
   recommendationFromRow,
@@ -9,6 +10,7 @@ import {
   ApplicationPlanner,
   DashboardSummary,
   HierarchicalApplicationPlanner,
+  PlannerHealthBanner,
   StrategyCategoryBoard,
 } from '@/features/ai-strategy-dashboard/ui';
 import { getUniversityQueries } from '@/features/universities/api';
@@ -53,11 +55,15 @@ export default async function PlannerPage({
   // hierarchy migration leaves the established legacy experience available;
   // recommendations are never merged into a fake canonical structure.
   let canonicalPlanner = null;
+  let plannerHealth = null;
   let canonicalState: 'failed' | 'not_entitled' | 'ready' = 'not_entitled';
   if (plannerMode === 'canonical') {
     const ensured = await ensureApplicationPlan(supabase, applicationId, user.id);
     canonicalState = ensured.kind === 'ready' ? 'ready' : ensured.kind === 'failed' ? 'failed' : 'not_entitled';
-    if (ensured.kind === 'ready') canonicalPlanner = await getApplicationPlanner(supabase, applicationId, user.id);
+    if (ensured.kind === 'ready') {
+      canonicalPlanner = await getCanonicalApplicationPlanner(supabase, applicationId, user.id);
+      plannerHealth = await getApplicationPlannerHealth(supabase, applicationId, user.id);
+    }
   }
 
   const { data: latestMatch } = await supabase
@@ -78,15 +84,27 @@ export default async function PlannerPage({
     }
   }
 
-  const { data: recommendationRows } = await supabase
-    .from('application_recommendations')
-    .select('*')
-    .eq('application_id', applicationId)
-    .not('category', 'is', null)
-    .is('archived_at', null)
-    .order('priority', { ascending: false });
+  const { data: recommendationRows } = plannerMode === 'legacy'
+    ? await supabase
+      .from('application_recommendations')
+      .select('*')
+      .eq('application_id', applicationId)
+      .not('category', 'is', null)
+      .is('archived_at', null)
+      .order('priority', { ascending: false })
+    : { data: [] };
 
   const recommendations = (recommendationRows ?? []).map(recommendationFromRow);
+  const canonicalProgress = plannerMode === 'canonical'
+    ? canonicalPlanner
+      ? (() => {
+        const micros = getPlannerMicroSteps(canonicalPlanner);
+        const nextTask = micros.find((micro) => micro.status !== 'completed');
+        const completed = micros.filter((micro) => micro.status === 'completed').length;
+        return { completed, total: micros.length, percentage: micros.length ? Math.round((completed / micros.length) * 100) : 0, nextTitle: nextTask?.title ?? null };
+      })()
+      : null
+    : undefined;
 
   return (
     <Container className="max-w-6xl py-gb-7xl">
@@ -98,7 +116,8 @@ export default async function PlannerPage({
           location={hero.country}
           currentMatchPercent={latestMatch?.current_match_score ?? 0}
           deadline={application?.deadline ?? null}
-          recommendations={recommendations}
+          recommendations={plannerMode === 'legacy' ? recommendations : undefined}
+          canonicalProgress={canonicalProgress}
         />
 
         {generationError ? (
@@ -107,19 +126,17 @@ export default async function PlannerPage({
           </p>
         ) : null}
 
+        {plannerMode === 'canonical' && plannerHealth ? <PlannerHealthBanner applicationId={applicationId} health={plannerHealth} /> : null}
+
         {plannerMode === 'legacy' ? <StrategyCategoryBoard applicationId={applicationId} recommendations={recommendations} /> : null}
         {canonicalPlanner?.plan ? (
           <HierarchicalApplicationPlanner applicationId={applicationId} planner={canonicalPlanner} />
         ) : canonicalState === 'failed' ? (
           <p role="alert" className="rounded-gb-lg border border-line bg-surface-muted px-gb-lg py-gb-md text-gb-sm text-fg-error">We could not initialize your Planner. Please try again shortly.</p>
+        ) : plannerMode === 'canonical' ? (
+          <p role="status" className="rounded-gb-lg border border-line bg-surface-muted px-gb-lg py-gb-md text-gb-sm">Your Planner is being initialized. Refresh this page in a moment.</p>
         ) : (
-          <>
-            <ApplicationPlanner
-              applicationId={applicationId}
-              recommendations={recommendations}
-              today={new Date()}
-            />
-          </>
+          <ApplicationPlanner applicationId={applicationId} recommendations={recommendations} today={new Date()} />
         )}
       </div>
     </Container>
