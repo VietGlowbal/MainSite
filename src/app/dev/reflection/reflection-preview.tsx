@@ -25,34 +25,27 @@ export function ReflectionPreview({ step }: { step: 'about' | 'evidence' }) {
             {
               id: 'demo-1',
               category: 'competition',
-              title: 'Demo placing — Example Mathematics Olympiad',
-              competition: 'Example Olympiad',
-              organisation: 'Example Department of Education',
-              level: 'Cấp thành phố',
-              year: 2026,
-              detail: 'Demo entry. Not a real student record.',
+              title: '1 Giải nhất Kì thi Olympic Toán học Sinh viên toàn quốc 2024',
+              competition: 'Olympic Toán học Toàn quốc',
+              organisation: 'Hội Toán học Việt Nam / ĐHQG',
+              level: 'National',
+              year: 2024,
+              detail:
+                'Điểm số đạt được: 28.5/30, xếp thứ 2 toàn đoàn. Đại diện cho trường Đại học Khoa học Tự nhiên tham dự vòng chung kết và đạt thành tích xuất sắc.',
               reviewStatus: 'reviewed',
               sourceType: 'manual',
-            },
-            {
-              id: 'demo-3',
-              category: 'certification',
-              title: 'Demo — Example English Test 8.0',
-              organisation: 'Example Test Board',
-              year: 2025,
-              detail: 'Demo entry, showing an unreviewed AI-extracted card.',
-              reviewStatus: 'needs_review',
-              sourceType: 'document',
-              sources: [{ documentId: 'demo-doc', fileName: 'Demo_CV.pdf', page: 2 }],
             },
           ]}
           initialActivities={[
             {
               id: 'demo-2',
-              category: 'mentoring',
-              title: 'Demo peer tutoring programme',
-              organisation: 'Example School',
-              period: '2024 – 2026',
+              category: 'community_project',
+              title: 'Chiến dịch Mùa hè xanh 2024',
+              organisation: 'Đoàn trường THPT',
+              level: 'Trưởng ban Tổ chức',
+              period: '06/2024 - 08/2024',
+              description:
+                'Điều phối 50 tình nguyện viên tham gia xây dựng 2 phòng học cho trẻ em vùng cao và tổ chức các lớp sinh hoạt hè.',
               reviewStatus: 'reviewed',
               sourceType: 'manual',
             },
@@ -60,7 +53,7 @@ export function ReflectionPreview({ step }: { step: 'about' | 'evidence' }) {
           initialDocuments={[
             {
               id: 'demo-doc',
-              fileName: 'Demo_CV.pdf',
+              fileName: 'Resume.pdf',
               storageKey: '',
               uploadedAt: new Date().toISOString(),
             },

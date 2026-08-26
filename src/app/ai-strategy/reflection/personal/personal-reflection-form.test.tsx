@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PERSONAL_REFLECTION_QUESTIONS } from '@/features/apply/domain';
+import { LanguageProvider } from '@/lib/i18n';
+import { LanguageSwitcher } from '@/shared/ui/language-switcher';
 import { PersonalReflectionForm } from './personal-reflection-form';
 
 const mockPush = vi.fn();
@@ -18,7 +20,7 @@ describe('PersonalReflectionForm', () => {
     });
   });
 
-  it('renders all 5 questions simultaneously with guidance and initial values', () => {
+  it('renders all 7 questions simultaneously with guidance, sample answers, and initial values', () => {
     render(
       <PersonalReflectionForm
         initial={{
@@ -34,12 +36,30 @@ describe('PersonalReflectionForm', () => {
     for (const q of PERSONAL_REFLECTION_QUESTIONS) {
       expect(screen.getByText(q.heading)).toBeInTheDocument();
       expect(screen.getByText(q.shortLabel)).toBeInTheDocument();
+      expect(screen.getByText(q.sampleAnswer)).toBeInTheDocument();
     }
 
     const textareas = screen.getAllByRole('textbox');
-    expect(textareas).toHaveLength(5);
+    expect(textareas).toHaveLength(7);
     expect(textareas[0]).toHaveValue('Answer 1');
-    expect(screen.getByText('1 of 5 answered')).toBeInTheDocument();
+    expect(screen.getByText('1 of 7 answered')).toBeInTheDocument();
+  });
+
+  it('switches the dictionary-backed reflection copy back to English', () => {
+    render(
+      <LanguageProvider defaultLang="vi">
+        <LanguageSwitcher />
+        <PersonalReflectionForm initial={{}} />
+      </LanguageProvider>,
+    );
+
+    expect(screen.getByText('Điều bạn thích khám phá')).toBeInTheDocument();
+    expect(screen.getAllByText('Câu trả lời mẫu')).toHaveLength(7);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to English' }));
+
+    expect(screen.getByText('What You Enjoy Exploring')).toBeInTheDocument();
+    expect(screen.getAllByText('Sample answer')).toHaveLength(7);
   });
 
   it('debounces autosave by 1000ms upon typing', async () => {

@@ -1,5 +1,11 @@
 # Current project status
 
+Working tree 2026-08-26: added Vietnamese dictionary coverage for all seven Personal Reflection labels, questions, guidance prompts, and sample answers. The sample-answer disclosure now also uses the translator; the form opts out of DOM-level translation so toggling back to English cannot be overwritten. Measured: focused Personal Reflection Vitest 7/7 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
+
+Working tree 2026-08-26: replaced Personal Reflection's previous five prompts with the supplied seven-question “About Yourself” and “About Your Direction” set. Each prompt now includes its guidance and sample answer; completion and progress correctly use seven answers. Measured: focused Vitest 11/11 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
+
+Working tree 2026-08-25 (reflection evidence UI continuation): the achievements reflection form now follows the supplied SVG layout more closely: normalized achievement cards, compact activity detail row, corrected searchable picker focus behavior, compact add controls, and the sample upload row. The uncommitted shared reflection shell change was restored to HEAD after review; the unrelated latest SEO commit was not rolled back. Measured after this pass: npm.cmd run typecheck and npm.cmd run lint pass. npm.cmd run build also passes.
+
 Last reconciled: **2026-08-25 (Asia/Bangkok)**
 
 Working tree 2026-08-25: Comprehensive SEO improvement plan (`docs/plans/2026-08-25-seo-improvement-implementation-plan.md`) implemented end-to-end.

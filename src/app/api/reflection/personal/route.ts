@@ -7,7 +7,7 @@ import { createClient } from '@/lib/supabase/server';
 /**
  * PATCH /api/reflection/personal
  *
- * Saves the five cross-cutting Personal Reflection answers — see
+ * Saves the seven cross-cutting Personal Reflection answers — see
  * `src/features/apply/domain/personal-reflection.ts`. Global and reusable
  * across every application, like achievements, so this writes
  * `student_profiles.personal_reflection_answers` (never a per-application

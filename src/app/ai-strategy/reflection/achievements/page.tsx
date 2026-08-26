@@ -63,7 +63,12 @@ export default async function ReflectionAchievementsPage({
     ) : undefined;
 
   return (
-    <ReflectionChrome user={user} nav={<ApplicationNavFromReturn returnTo={returnTo} />} stepper={stepper}>
+    <ReflectionChrome
+      user={user}
+      nav={<ApplicationNavFromReturn returnTo={returnTo} />}
+      stepper={stepper}
+      containerClassName="max-w-6xl"
+    >
       {confirmedAt ? (
         <ConfirmedAchievementsView
           achievements={reflection.achievements}
