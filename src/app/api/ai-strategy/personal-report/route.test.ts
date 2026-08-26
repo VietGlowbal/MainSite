@@ -1,4 +1,5 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { personalReportLimiter } from '@/lib/rate-limiter';
 
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
@@ -19,7 +20,7 @@ async function importRoute() {
   return import('./route');
 }
 
-function request(body?: unknown) {
+function request(body: unknown = { applicationId: 'app-1' }) {
   return new Request('http://localhost/api/ai-strategy/personal-report', {
     method: 'POST',
     body: body === undefined ? undefined : JSON.stringify(body),
@@ -33,6 +34,11 @@ const FAKE_RECORD = {
 };
 
 describe('POST /api/ai-strategy/personal-report', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    personalReportLimiter.resetAll();
+  });
+
   it('requires authentication', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: null } });
     const { POST } = await importRoute();
@@ -60,7 +66,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'regenerated', record: FAKE_RECORD });
     const { POST } = await importRoute();
 
-    await POST(request({ trigger: 'supplement_answer' }));
+    await POST(request({ applicationId: 'app-1', trigger: 'supplement_answer' }));
 
     expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(
       expect.objectContaining({ trigger: 'supplement_answer' }),
@@ -84,14 +90,24 @@ describe('POST /api/ai-strategy/personal-report', () => {
     );
   });
 
-  it('ignores an unrecognised trigger value and falls back to manual', async () => {
+  it('accepts matching_report for the compatibility seam', async () => {
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: FAKE_RECORD });
     const { POST } = await importRoute();
 
-    await POST(request({ trigger: 'matching_report' }));
+    await POST(request({ applicationId: 'app-1', trigger: 'matching_report' }));
 
-    expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(expect.objectContaining({ trigger: 'manual' }));
+    expect(mocks.regeneratePersonalReport).toHaveBeenCalledWith(expect.objectContaining({ trigger: 'matching_report' }));
+  });
+
+  it('requires application context and never creates a global report row', async () => {
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    const { POST } = await importRoute();
+
+    const response = await POST(request({}));
+    expect(response.status).toBe(422);
+    expect((await response.json()).code).toBe('APPLICATION_REQUIRED');
+    expect(mocks.regeneratePersonalReport).not.toHaveBeenCalled();
   });
 
   it('returns the cached report with its version id', async () => {
@@ -99,7 +115,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'cached', record: FAKE_RECORD });
     const { POST } = await importRoute();
 
-    const response = await POST(request({}));
+    const response = await POST(request({ applicationId: 'app-1' }));
     const body = await response.json();
 
     expect(response.status).toBe(200);
@@ -116,7 +132,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'migration_missing' });
     const { POST } = await importRoute();
 
-    const response = await POST(request({}));
+    const response = await POST(request({ applicationId: 'app-1' }));
     expect(response.status).toBe(503);
   });
 
@@ -125,7 +141,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
     mocks.regeneratePersonalReport.mockResolvedValue({ status: 'not_configured' });
     const { POST } = await importRoute();
 
-    const response = await POST(request({}));
+    const response = await POST(request({ applicationId: 'app-1' }));
     expect(response.status).toBe(503);
   });
 
@@ -138,7 +154,7 @@ describe('POST /api/ai-strategy/personal-report', () => {
     });
     const { POST } = await importRoute();
 
-    const response = await POST(request({}));
+    const response = await POST(request({ applicationId: 'app-1' }));
     const body = await response.json();
 
     expect(response.status).toBe(502);

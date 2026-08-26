@@ -99,6 +99,42 @@ export async function getLatestApplicationProfileAnalysis(
   };
 }
 
+export async function getApplicationProfileAnalysisVersion(
+  supabase: SupabaseClient,
+  scope: { userId: string; applicationId: string },
+  versionId: string,
+): Promise<{ analysis: StoredApplicationProfileAnalysis | null; migrationMissing: boolean }> {
+  const { data, error } = await supabase
+    .from('application_profile_analysis_versions')
+    .select(
+      'id,confirmed_snapshot_id,input_hash,module_versions,structured_outputs,evidence_bank,created_at',
+    )
+    .eq('id', versionId)
+    .eq('user_id', scope.userId)
+    .eq('application_id', scope.applicationId)
+    .maybeSingle();
+
+  if (error) {
+    const migrationMissing = isMigrationMissing(error);
+    if (!migrationMissing) console.error('[application-analysis] version read failed', error);
+    return { analysis: null, migrationMissing };
+  }
+  if (!data) return { analysis: null, migrationMissing: false };
+
+  return {
+    analysis: {
+      id: data.id as string,
+      confirmedSnapshotId: (data.confirmed_snapshot_id as string | null) ?? null,
+      inputHash: data.input_hash as string,
+      moduleVersions: (data.module_versions as Record<string, string>) ?? {},
+      structuredOutputs: (data.structured_outputs as Record<string, unknown>) ?? {},
+      evidenceBank: data.evidence_bank ?? null,
+      createdAt: data.created_at as string,
+    },
+    migrationMissing: false,
+  };
+}
+
 export async function saveApplicationAcademicAssessment(
   supabase: SupabaseClient,
   args: {

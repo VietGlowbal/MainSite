@@ -360,6 +360,28 @@ export async function getApplicationPersonalReportSupplements(
   return Object.fromEntries((data ?? []).map((row) => [row.field_key, row.answer]));
 }
 
+export async function saveApplicationPersonalReportSupplement(
+  supabase: SupabaseClient,
+  args: { userId: string; applicationId: string; fieldKey: string; answer: string },
+): Promise<{ error: { migrationMissing: boolean; message: string } | null }> {
+  const { error } = await supabase.from('application_personal_report_supplements').upsert(
+    {
+      user_id: args.userId,
+      application_id: args.applicationId,
+      field_key: args.fieldKey,
+      answer: args.answer,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'user_id,application_id,field_key' },
+  );
+
+  if (!error) return { error: null };
+
+  const migrationMissing = isMigrationMissing(error);
+  console.error('[personal-report-v2] application supplement upsert failed', error);
+  return { error: { migrationMissing, message: error.message } };
+}
+
 export async function savePersonalReportSupplement(
   supabase: SupabaseClient,
   args: { userId: string; fieldKey: string; answer: string },

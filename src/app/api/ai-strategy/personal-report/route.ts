@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import { regeneratePersonalReport } from '@/features/apply/api';
 import { createClient } from '@/lib/supabase/server';
+import { applyRateLimit, personalReportLimiter } from '@/lib/rate-limiter';
 
 /**
  * Canonical Personal Report generation. When an applicationId is supplied,
@@ -14,11 +15,11 @@ import { createClient } from '@/lib/supabase/server';
  * that module's doc comment for why there is no time-based cooldown here.
  */
 export const runtime = 'nodejs';
-export const maxDuration = 120;
+export const maxDuration = 60;
 
 const bodySchema = z.object({
   applicationId: z.string().trim().min(1).max(200).optional(),
-  trigger: z.enum(['manual', 'supplement_answer']).optional(),
+  trigger: z.enum(['manual', 'matching_report', 'supplement_answer']).optional(),
   force: z.boolean().optional(),
   idempotencyKey: z.string().trim().min(1).max(200).optional(),
 });
@@ -32,13 +33,23 @@ export async function POST(request: Request) {
 
   const rawBody = await request.json().catch(() => ({}));
   const parsedBody = bodySchema.safeParse(rawBody);
-  const body = parsedBody.success ? parsedBody.data : {};
+  if (!parsedBody.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
+  const body = parsedBody.data;
+  if (!body.applicationId) {
+    return NextResponse.json(
+      { error: 'An applicationId is required for Personal Report generation.', code: 'APPLICATION_REQUIRED' },
+      { status: 422 },
+    );
+  }
+
+  const limited = applyRateLimit(personalReportLimiter, `${user.id}:${body.applicationId}`, 'Personal Report');
+  if (limited) return limited;
 
   const result = await regeneratePersonalReport({
     supabase,
     userId: user.id,
     trigger: body.trigger ?? 'manual',
-    ...(body.applicationId ? { applicationId: body.applicationId } : {}),
+    applicationId: body.applicationId,
     ...(body.force !== undefined ? { force: body.force } : {}),
     ...(body.idempotencyKey ? { idempotencyKey: body.idempotencyKey } : {}),
   });

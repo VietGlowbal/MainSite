@@ -196,6 +196,12 @@ export const strategyAiLimiter = new RateLimiter({
   windowMs: 60000,
 });
 
+/** Personal Report generation budget, per user and application. */
+export const personalReportLimiter = new RateLimiter({
+  maxRequests: 5,
+  windowMs: 60000,
+});
+
 /** PDF export guard for Application Strategy. */
 export const strategyExportLimiter = new RateLimiter({
   maxRequests: 5,

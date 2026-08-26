@@ -32,8 +32,17 @@ export type {
   StandardizedTestSummary,
 } from './profile-review';
 export {
+  getApplicationProfileAnalysisVersion,
+  getLatestApplicationProfileAnalysis,
+} from './application-analysis-repository';
+export type { StoredApplicationProfileAnalysis } from './application-analysis-repository';
+export {
   createPersonalReportV2Version,
+  getApplicationPersonalReportV2Version,
   getApplicationPersonalReportSupplements,
+  getLatestApplicationPersonalReportV2,
+  listApplicationPersonalReportV2Versions,
+  saveApplicationPersonalReportSupplement,
   getLatestPersonalReportV2,
   getPersonalReportSupplements,
   getPersonalReportV2Version,

@@ -1,0 +1,123 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { personalReportLimiter } from '@/lib/rate-limiter';
+
+const mocks = vi.hoisted(() => ({
+  getUser: vi.fn(),
+  getLatest: vi.fn(),
+  regenerate: vi.fn(),
+}));
+
+vi.mock('@/lib/supabase/server', () => ({ createClient: async () => supabaseMock }));
+vi.mock('@/features/apply/api', () => ({
+  getLatestApplicationPersonalReportV2: mocks.getLatest,
+  regeneratePersonalReport: mocks.regenerate,
+}));
+
+function chain(result: { data: unknown; error: unknown }) {
+  const value: Record<string, unknown> = {};
+  const self = () => value;
+  value.select = self;
+  value.eq = self;
+  value.order = self;
+  value.limit = self;
+  value.maybeSingle = async () => result;
+  return value;
+}
+
+let application: { id: string; candidate_confirmed_at: string | null } | null = {
+  id: 'app-1',
+  candidate_confirmed_at: '2026-08-20T00:00:00Z',
+};
+let snapshot: { id: string; confirmed_at: string } | null = {
+  id: 'snapshot-1',
+  confirmed_at: '2026-08-20T00:00:00Z',
+};
+let supabaseMock: { auth: { getUser: typeof mocks.getUser }; from: (table: string) => unknown };
+
+function setup() {
+  supabaseMock = {
+    auth: { getUser: mocks.getUser },
+    from: (table: string) => {
+      if (table === 'course_applications') return chain({ data: application, error: null });
+      if (table === 'confirmed_candidate_snapshots') return chain({ data: snapshot, error: null });
+      throw new Error(`Unexpected table: ${table}`);
+    },
+  };
+}
+
+function context() {
+  return { params: Promise.resolve({ id: 'app-1' }) };
+}
+
+function request(body?: unknown) {
+  return new Request('http://localhost/api/applications/app-1/personal-report', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+}
+
+const record = {
+  id: 'report-1',
+  reportV2: { overallEvidenceConfidence: 'high' },
+  generatedAt: '2026-08-20T00:00:00Z',
+  confirmedSnapshotId: 'snapshot-1',
+};
+
+describe('application Personal Report route', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    personalReportLimiter.resetAll();
+    application = { id: 'app-1', candidate_confirmed_at: '2026-08-20T00:00:00Z' };
+    snapshot = { id: 'snapshot-1', confirmed_at: '2026-08-20T00:00:00Z' };
+    setup();
+    mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
+    mocks.getLatest.mockResolvedValue({ record: null, migrationMissing: false });
+    mocks.regenerate.mockResolvedValue({ status: 'regenerated', record });
+  });
+
+  it('requires authentication and ownership', async () => {
+    const { GET } = await import('./route');
+    mocks.getUser.mockResolvedValueOnce({ data: { user: null } });
+    expect((await GET(new Request('http://localhost/x'), context())).status).toBe(401);
+
+    application = null;
+    expect((await GET(new Request('http://localhost/x'), context())).status).toBe(404);
+  });
+
+  it('marks a confirmed application stale when its newest snapshot has no report', async () => {
+    const { GET } = await import('./route');
+    const response = await GET(new Request('http://localhost/x'), context());
+    const body = await response.json();
+
+    expect(response.status).toBe(200);
+    expect(body).toMatchObject({ applicationId: 'app-1', reportV2: null, confirmed: true, stale: true });
+  });
+
+  it('passes trigger, force and idempotency through to application-scoped generation', async () => {
+    const { POST } = await import('./route');
+    const response = await POST(request({ trigger: 'matching_report', force: true, idempotencyKey: 'req-1' }), context());
+
+    expect(response.status).toBe(200);
+    expect(mocks.regenerate).toHaveBeenCalledWith(expect.objectContaining({
+      userId: 'user-1', applicationId: 'app-1', trigger: 'matching_report', force: true, idempotencyKey: 'req-1',
+    }));
+  });
+
+  it('blocks unconfirmed applications before generation', async () => {
+    const { POST } = await import('./route');
+    application = { id: 'app-1', candidate_confirmed_at: null };
+    const response = await POST(request(), context());
+
+    expect(response.status).toBe(409);
+    expect(mocks.regenerate).not.toHaveBeenCalled();
+  });
+
+  it('returns 422 for invalid controls and 429 after the configured window budget', async () => {
+    const { POST } = await import('./route');
+    expect((await POST(request({ force: 'yes' }), context())).status).toBe(422);
+
+    for (let i = 0; i < 5; i += 1) expect((await POST(request(), context())).status).toBe(200);
+    expect((await POST(request(), context())).status).toBe(429);
+  });
+});
