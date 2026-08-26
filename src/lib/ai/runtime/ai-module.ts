@@ -40,13 +40,13 @@ export interface ApplicantAIState {
   applicationId: string;
   snapshotId: string;
   analysisVersionId?: string;
-  targetProfile?: Record<string, unknown>;
-  academicProfile?: Record<string, unknown>;
-  activities: Array<Record<string, unknown>>;
-  evidenceBank: Array<Record<string, unknown>>;
-  identitySignals?: Record<string, unknown>;
-  directionSignals?: Record<string, unknown>;
-  personalReport?: Record<string, unknown>;
+  targetProfile?: unknown;
+  academicProfile?: unknown;
+  activities: unknown[];
+  evidenceBank: unknown[];
+  identitySignals?: unknown;
+  directionSignals?: unknown;
+  personalReport?: unknown;
   metadata: StateMetadata;
 }
 
