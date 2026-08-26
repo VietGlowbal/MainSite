@@ -2,6 +2,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import {
   CORE3_PLAN_PRODUCER,
   isCompleteContentValue,
+  isContentValueCompatible,
   parseContentBlock,
   parseContentBlockValue,
   PROGRESS_STATUS,
@@ -11,8 +12,8 @@ import {
 import { isPlannerAvailabilityInputKey } from '../domain/planning-context';
 
 export class PlannerMicroStepUpdateError extends Error {
-  constructor(readonly code: 'not_found' | 'read_failed' | 'update_failed' | 'input_required') {
-    super(code === 'not_found' ? 'Micro-step is not available.' : code === 'input_required' ? 'Complete the required task input before marking this task complete.' : 'Could not save this task.');
+  constructor(readonly code: 'not_found' | 'read_failed' | 'update_failed' | 'input_required' | 'invalid_content') {
+    super(code === 'not_found' ? 'Micro-step is not available.' : code === 'input_required' ? 'Complete the required task input before marking this task complete.' : code === 'invalid_content' ? 'This task input is not valid for the current task schema.' : 'Could not save this task.');
     this.name = 'PlannerMicroStepUpdateError';
   }
 }
@@ -63,6 +64,9 @@ export async function updateApplicationPlannerMicroStep(
   if (!existing.data) throw new PlannerMicroStepUpdateError('not_found');
   const schema = parseContentBlock(existing.data.content_schema);
   const effectiveContent = patch.contentValue === undefined ? parseContentBlockValue(existing.data.content_value) : patch.contentValue;
+  if (patch.contentValue !== undefined && patch.contentValue !== null && !isContentValueCompatible(schema, patch.contentValue)) {
+    throw new PlannerMicroStepUpdateError('invalid_content');
+  }
   if (patch.status === 'completed' && schema && !isCompleteContentValue(schema, effectiveContent)) {
     throw new PlannerMicroStepUpdateError('input_required');
   }

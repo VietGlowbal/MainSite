@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { createAdminClient } from '@/server/db/admin';
 import {
   CORE3_PLAN_PRODUCER,
   reconcilePlan,
@@ -17,6 +18,9 @@ export type SyncApplicationPlanResult = {
   updated: number;
   restored: number;
   archived: number;
+};
+export type SyncApplicationPlanOptions = {
+  onEnrichment?: (result: { enriched: boolean; fallbackReason?: string }) => void;
 };
 
 /** Raised when a scoped read or write fails; callers must not treat it as an empty plan. */
@@ -39,6 +43,7 @@ export async function syncApplicationPlan(
   supabase: SupabaseClient,
   applicationId: string,
   userId: string,
+  options?: SyncApplicationPlanOptions,
 ): Promise<SyncApplicationPlanResult> {
   const ownership = await supabase
     .from('course_applications')
@@ -54,6 +59,7 @@ export async function syncApplicationPlan(
     loadExistingPlan(supabase, applicationId),
   ]);
   const plan = retainAnsweredPlannerInputs(enriched.plan, existing);
+  options?.onEnrichment?.(enriched);
   // Production uses the SECURITY DEFINER RPC installed by the production
   // migration.  It reconciles the whole hierarchy in one transaction; the
   // sequential path remains only for local/test environments without Postgres
@@ -61,6 +67,19 @@ export async function syncApplicationPlan(
   if (process.env.NODE_ENV === 'production') return applyPlanAtomically(supabase, applicationId, plan);
   const operations = reconcilePlan(applicationId, plan, existing).operations;
   return applyPlanOperations(supabase, operations, existing);
+}
+
+/**
+ * Server-only trusted entry point for operator/admin workflows.  Keeping the
+ * service-role client construction behind the feature API prevents route
+ * handlers from importing the privileged database module directly.
+ */
+export function syncApplicationPlanWithTrustedClient(
+  applicationId: string,
+  userId: string,
+  options?: SyncApplicationPlanOptions,
+): Promise<SyncApplicationPlanResult> {
+  return syncApplicationPlan(createAdminClient(), applicationId, userId, options);
 }
 
 async function applyPlanAtomically(supabase: SupabaseClient, applicationId: string, plan: Awaited<ReturnType<typeof getEnrichedApplicationPlan>>['plan']): Promise<SyncApplicationPlanResult> {
@@ -196,11 +215,11 @@ async function applyPlanOperations(
         result.inserted += 1;
         break;
       case 'update_micro_step':
-        await updateById(supabase, 'application_plan_micro_steps', operation.id, { ...microStepPayload(operation.fields), updated_at: now }, 'update plan micro-step');
+        await updateById(supabase, 'application_plan_micro_steps', operation.id, { ...microStepPayload(operation.fields), ...(operation.fields.executionReset ? { status: 'not_started', content_value: null } : {}), updated_at: now }, 'update plan micro-step');
         result.updated += 1;
         break;
       case 'restore_micro_step':
-        await updateById(supabase, 'application_plan_micro_steps', operation.id, { ...microStepPayload(operation.fields), archived_at: null, updated_at: now }, 'restore plan micro-step');
+        await updateById(supabase, 'application_plan_micro_steps', operation.id, { ...microStepPayload(operation.fields), ...(operation.fields.executionReset ? { status: 'not_started', content_value: null } : {}), archived_at: null, updated_at: now }, 'restore plan micro-step');
         result.restored += 1;
         break;
       case 'archive_micro_step':

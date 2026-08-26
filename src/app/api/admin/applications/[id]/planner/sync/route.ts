@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { PlanPersistenceError, syncApplicationPlan } from '@/features/ai-strategy-dashboard/api';
+import { PlanPersistenceError, syncApplicationPlanWithTrustedClient } from '@/features/ai-strategy-dashboard/api';
 import { createClient } from '@/lib/supabase/server';
 import { isAdmin } from '@/server/auth/auth-helpers';
 import { sameOrigin } from '@/server/payments/manual-review-auth';
@@ -27,7 +27,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!(await isAdmin(user.id))) return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 
   try {
-    const result = await syncApplicationPlan(supabase, parsedApplicationId.data, user.id);
+    const result = await syncApplicationPlanWithTrustedClient(parsedApplicationId.data, user.id);
     return NextResponse.json({ result });
   } catch (error) {
     if (error instanceof PlanPersistenceError && error.message === 'Application was not found for this user.') {

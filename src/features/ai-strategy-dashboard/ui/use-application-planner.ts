@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   applyPlannerMicroStepExecution,
   getPlannerMicroSteps,
@@ -20,9 +20,18 @@ export type ApplicationPlannerController = {
 export function useApplicationPlanner(applicationId: string, initial: PlannerReadModel): ApplicationPlannerController {
   const [planner, setPlanner] = useState(initial);
   const [error, setError] = useState<string | null>(null);
+  const plannerRef = useRef(initial);
+
+  const commit = useCallback((updater: (current: PlannerReadModel) => PlannerReadModel) => {
+    setPlanner((current) => {
+      const next = updater(current);
+      plannerRef.current = next;
+      return next;
+    });
+  }, []);
 
   const mutate = useCallback(async (id: string, patch: PlannerMicroStepExecutionPatch, message: string): Promise<boolean> => {
-    const before = getPlannerMicroSteps(planner).find((microStep) => microStep.id === id);
+    const before = getPlannerMicroSteps(plannerRef.current).find((microStep) => microStep.id === id);
     if (!before) { setError('That task is no longer available.'); return false; }
     const rollback: PlannerMicroStepExecutionPatch = {
       ...(patch.status !== undefined ? { status: before.status } : {}),
@@ -30,7 +39,7 @@ export function useApplicationPlanner(applicationId: string, initial: PlannerRea
       ...(patch.contentValue !== undefined ? { contentValue: before.contentValue } : {}),
     };
     setError(null);
-    setPlanner((current) => applyPlannerMicroStepExecution(current, id, patch));
+    commit((current) => applyPlannerMicroStepExecution(current, id, patch));
     try {
       const response = await fetch(`/api/applications/${applicationId}/planner/micro-steps/${id}`, {
         method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
@@ -38,15 +47,26 @@ export function useApplicationPlanner(applicationId: string, initial: PlannerRea
       if (!response.ok) throw new Error('save_failed');
       const payload = await response.json() as { microStep?: PlannerMicroStepExecutionPatch; progressed?: boolean };
       const serverPatch = payload.microStep;
-      if (serverPatch) setPlanner((current) => applyPlannerMicroStepExecution(current, id, serverPatch));
+      if (serverPatch) commit((current) => applyPlannerMicroStepExecution(current, id, serverPatch));
       if (payload.progressed && typeof window !== 'undefined') window.location.reload();
       return true;
     } catch {
-      setPlanner((current) => applyPlannerMicroStepExecution(current, id, rollback));
+      commit((current) => {
+        const currentMicro = getPlannerMicroSteps(current).find((microStep) => microStep.id === id);
+        if (!currentMicro) return current;
+        // Roll back only fields that still contain this request's optimistic
+        // value. A later mutation that changed another field is preserved.
+        const safeRollback: PlannerMicroStepExecutionPatch = {
+          ...(patch.status !== undefined && currentMicro.status === patch.status ? { status: rollback.status } : {}),
+          ...(patch.deadline !== undefined && currentMicro.deadline === patch.deadline ? { deadline: rollback.deadline } : {}),
+          ...(patch.contentValue !== undefined && JSON.stringify(currentMicro.contentValue) === JSON.stringify(patch.contentValue) ? { contentValue: rollback.contentValue } : {}),
+        };
+        return applyPlannerMicroStepExecution(current, id, safeRollback);
+      });
       setError(message);
       return false;
     }
-  }, [applicationId, planner]);
+  }, [applicationId, commit]);
 
   return {
     planner,

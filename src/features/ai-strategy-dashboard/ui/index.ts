@@ -23,6 +23,7 @@ export { StrategyCategoryBoard } from './strategy-category-board';
 export { ApplicationPlanner } from './application-planner';
 export { HierarchicalApplicationPlanner } from './hierarchical-application-planner';
 export { CanonicalMicroStepDetail } from './canonical-micro-step-detail';
+export { PlannerHealthBanner } from './planner-health-banner';
 export { GenerateCanonicalPlanButton } from './generate-canonical-plan-button';
 export { ProgressStatusControl } from './progress-status-control';
 export { EvidenceUpload } from './evidence-upload';

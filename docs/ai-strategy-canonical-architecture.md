@@ -339,10 +339,28 @@ and evidence. AI planning provenance (`provider`, `model`, prompt/enrichment
 version, timestamp, source decisions) is stored alongside—never instead of—the
 factual source provenance in the existing hierarchy JSONB metadata. Provider or
 validation failure persists the deterministic scaffold. On page load the
-server compares the current deterministic Core 1 `contextHash` with the source
+server compares the current deterministic Planner Ops source fingerprint with the source
 fingerprint in the persisted plan ID; equal fingerprints make no AI call,
 while changed source facts reconcile and enrich once. Normal execution
 status/deadline updates do not affect that fingerprint and never call AI.
+
+### Planner Ops (cross-cutting, not Core 5)
+
+Planner Ops wraps the four product cores with lifecycle, freshness, reliability,
+feedback and monitoring. `plannerSourceFingerprint()` hashes normalized
+programme requirements, planning gaps/interventions, authoritative deadlines,
+constraints, F5/F7-derived planning signals and semantic Planner inputs. It
+excludes execution status, student deadlines, evidence, view selection and
+feedback. `refreshApplicationPlan()` compares that fingerprint, claims one
+database-backed generation run per application, preserves an existing plan on
+failure, and records bounded failure/AI outcome metadata. `getApplicationPlannerHealth()`
+is the single health read model and never invokes AI.
+
+Feedback is a server-validated quality signal for a plan or micro-step. It is
+upsert-like per user/target, stores only bounded reason/comment/version context,
+and never mutates Assess facts or triggers regeneration. Admin Planner Ops is a
+server-rendered filtered table showing lifecycle, stale state, generation and AI
+fallback signals without student content.
 
 For an entitled Plus/admin user, `getPlannerMode()` selects the canonical
 experience and `ensureApplicationPlan()` creates the hierarchy once when no

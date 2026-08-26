@@ -18,7 +18,7 @@ import {
   FUNDING_TYPE_LABELS,
   SCHOLARSHIP_SCOPE_LABELS,
 } from '@/lib/scholarship-constants';
-import { scorePersonalMatch, type DirectoryScholarship } from '@/lib/scholarships-data';
+import type { DirectoryScholarship } from '@/lib/scholarships-data';
 import {
   scholarshipSearchParams,
   type Page,
@@ -28,7 +28,7 @@ import {
   type ScholarshipQueryState,
   type ScholarshipSort,
 } from '@/features/scholarships/directory-query';
-import { scholarshipSaveDestination } from '@/features/scholarships';
+import { scorePersonalMatch, scholarshipSaveDestination } from '@/features/scholarships/domain';
 import type { ScholarshipDirectoryResponse } from '@/features/scholarships/directory-loader';
 import { useDirectoryNavigation } from '@/shared/hooks/use-directory-navigation';
 import {

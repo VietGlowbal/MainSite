@@ -1,5 +1,6 @@
 import type { ContentBlock, ContentBlockValue } from '@/lib/match-insights';
 import type { PlanMicroStep, PlanNodeReadiness, PlanNodeProvenance, PlanPhase, PlanReadiness, PlanResult, PlanStep } from './plan';
+import { isCompleteContentValue, isContentValueCompatible } from './recommendation';
 import { isPlannerAvailabilityInputKey } from './planning-context';
 
 /** The dedicated hierarchy is intentionally not a producer in the legacy recommendations table. */
@@ -56,6 +57,7 @@ type PlanFields = Pick<PersistedPlan, 'domainPlanId' | 'readiness'>;
 type PhaseFields = Pick<PersistedPlanPhase, 'domainNodeId' | 'title' | 'objective' | 'order' | 'sourceDecisionIds' | 'sourceProvenances'>;
 type StepFields = Pick<PersistedPlanStep, 'domainNodeId' | 'title' | 'objective' | 'order' | 'sourceDecisionIds' | 'sourceProvenances'>;
 type MicroStepFields = Pick<PersistedPlanMicroStep, 'domainNodeId' | 'title' | 'order' | 'readiness' | 'contentSchema' | 'sourceDecisionIds' | 'sourceProvenances'>;
+type MicroStepPersistenceFields = MicroStepFields & { executionReset?: boolean };
 
 export type PlanPersistenceOperation =
   | { kind: 'insert_plan'; applicationId: string; producer: typeof CORE3_PLAN_PRODUCER; fields: PlanFields }
@@ -68,9 +70,9 @@ export type PlanPersistenceOperation =
   | { kind: 'update_step'; id: string; fields: StepFields }
   | { kind: 'restore_step'; id: string; fields: StepFields }
   | { kind: 'archive_step'; id: string }
-  | { kind: 'insert_micro_step'; stepDomainNodeId: string; fields: MicroStepFields }
-  | { kind: 'update_micro_step'; id: string; fields: MicroStepFields }
-  | { kind: 'restore_micro_step'; id: string; fields: MicroStepFields }
+  | { kind: 'insert_micro_step'; stepDomainNodeId: string; fields: MicroStepPersistenceFields }
+  | { kind: 'update_micro_step'; id: string; fields: MicroStepPersistenceFields }
+  | { kind: 'restore_micro_step'; id: string; fields: MicroStepPersistenceFields }
   | { kind: 'archive_micro_step'; id: string };
 
 export type PlanPersistenceOperations = {
@@ -211,7 +213,7 @@ function persistedMicroStepToPlan(microStep: PersistedPlanMicroStep): PlanMicroS
 function reconcileNodes<TTarget extends { id: string }, TPersisted extends PersistedPlanningFields, TFields extends object>(
   targets: readonly TTarget[],
   persisted: readonly TPersisted[],
-  toFields: (target: TTarget) => TFields,
+  toFields: (target: TTarget, current?: TPersisted) => TFields,
   insert: (target: TTarget) => PlanPersistenceOperation,
   update: (id: string, fields: TFields) => PlanPersistenceOperation,
   restore: (id: string, fields: TFields) => PlanPersistenceOperation,
@@ -223,7 +225,7 @@ function reconcileNodes<TTarget extends { id: string }, TPersisted extends Persi
 
   for (const target of targets) {
     const current = existingByNodeId.get(target.id);
-    const fields = toFields(target);
+    const fields = toFields(target, current);
     if (!current) operations.push(insert(target));
     else if (current.archivedAt !== null) operations.push(restore(current.id, fields));
     else if (!same(current, fields, Object.keys(fields))) operations.push(update(current.id, fields));
@@ -242,8 +244,19 @@ function stepFields(step: PlanStep): StepFields {
   return { ...planningFields(step), objective: step.objective };
 }
 
-function microStepFields(microStep: PlanMicroStep): MicroStepFields {
-  return { ...planningFields(microStep), readiness: microStep.readiness, contentSchema: microStep.contentSchema ?? null };
+function microStepFields(microStep: PlanMicroStep, current?: PersistedPlanMicroStep): MicroStepPersistenceFields {
+  const nextSchema = microStep.contentSchema ?? null;
+  const schemaChanged = current !== undefined && canonical(current.contentSchema) !== canonical(nextSchema);
+  const executionReset = schemaChanged && (
+    !isContentValueCompatible(nextSchema, current.contentValue)
+    || (current.status === 'completed' && !isCompleteContentValue(nextSchema, current.contentValue))
+  );
+  return {
+    ...planningFields(microStep),
+    readiness: microStep.readiness,
+    contentSchema: nextSchema,
+    ...(executionReset ? { executionReset: true } : {}),
+  };
 }
 
 function planningFields(node: Pick<PlanPhase, 'id' | 'title' | 'order' | 'sourceDecisionIds' | 'sourceProvenances'>): Omit<PhaseFields, 'objective'> {
@@ -265,7 +278,7 @@ function assertUniqueNodeIds(ids: readonly string[], type: string) {
 }
 
 function same(left: object, right: object, keys: readonly string[]): boolean {
-  return keys.every((key) => canonical((left as Record<string, unknown>)[key as string]) === canonical((right as Record<string, unknown>)[key as string]));
+  return keys.filter((key) => key !== 'executionReset').every((key) => canonical((left as Record<string, unknown>)[key as string]) === canonical((right as Record<string, unknown>)[key as string]));
 }
 
 function canonical(value: unknown): string {

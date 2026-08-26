@@ -7,6 +7,44 @@
  * dictionary file.
  */
 export const APPLICATION_FLOW_TRANSLATIONS: Record<string, string> = {
+  // Achievements & activities evidence form controls
+  'City / Local': 'Tỉnh / Thành phố',
+  Regional: 'Khu vực',
+  Community: 'Cộng đồng',
+  Organisation: 'Tổ chức',
+  'Academic award': 'Giải thưởng học thuật',
+  'Research / publication': 'Nghiên cứu khoa học / Bài báo được xuất bản',
+  'Certificate / recognition': 'Bằng khen / Giấy khen',
+  'Community volunteering / project (core role, measurable impact)':
+    'Hoạt động tình nguyện / Dự án cộng đồng (vai trò cốt lõi, tác động đo lường được)',
+  'Club / team leadership (President, lead, project founder... 6+ months)':
+    'Lãnh đạo CLB / Đội nhóm (Chủ tịch, Trưởng ban, Founder dự án... từ 6 tháng trở lên)',
+  'Personal project / startup / social initiative (created a concrete product, service, or movement)':
+    'Dự án cá nhân / Khởi nghiệp / Sáng kiến xã hội (tạo ra sản phẩm, dịch vụ hoặc phong trào cụ thể)',
+  'Internship / company / NGO project (at least 1-2 months)':
+    'Thực tập / Dự án tại Doanh nghiệp / Tổ chức phi chính phủ (tối thiểu 1-2 tháng)',
+  'Mentoring / tutoring students (at least 3-6 months)':
+    'Cố vấn / Dạy kèm học sinh (ít nhất 3-6 tháng)',
+  'Upload failed. Please try again.': 'Tải lên thất bại. Vui lòng thử lại.',
+  'For example: Hanoi City Mathematics Olympiad': 'Ví dụ: Olympic Toán học Thành phố Hà Nội',
+  'For example: Vietnam Mathematical Society / VNU': 'Ví dụ: Hội Toán học Việt Nam / ĐHQG',
+  'For example: Green Summer Campaign': 'Ví dụ: Chiến dịch Mùa hè xanh',
+  'For example: Organising Committee Lead': 'Ví dụ: Trưởng ban Tổ chức',
+  'For example: High School Union': 'Ví dụ: Đoàn trường THPT',
+  'For example: 06/2024 – 08/2024': 'Ví dụ: 06/2024 - 08/2024',
+  'No matching options': 'Không có lựa chọn phù hợp',
+  'or drag and drop it here (PDF, DOCX, up to 10MB)': 'hoặc kéo thả vào đây (PDF, DOCX, tối đa 10MB)',
+  'Analysing and extracting achievements automatically...': 'Đang phân tích và tự động trích xuất thành tích...',
+  'Delete file': 'Xóa tệp',
+  'If you do not have a CV, you can enter the information below': 'Nếu chưa có CV có thể tự nhập thông tin ở dưới',
+  'Remove this card': 'Xóa thẻ này',
+  'Help / Guidance': 'Trợ giúp / Hướng dẫn',
+  'How to fill this in': 'Hướng dẫn điền thông tin',
+  'Upload a CV (PDF, DOCX) so the system can identify and quickly fill your awards, projects, and activities. Or enter each achievement manually in the fields below.':
+    'Bạn có thể tải lên tệp CV (PDF, DOCX) để hệ thống tự động nhận diện và điền nhanh các giải thưởng, dự án và hoạt động của bạn. Hoặc bạn có thể tự nhập tay từng thành tích vào các ô bên dưới.',
+  'Supporting evidence (certificates, awards, and publications) helps GlowBal build a more reliable application strategy.':
+    'Các minh chứng đính kèm (giấy khen, chứng chỉ, bài báo) sẽ giúp tăng độ tin cậy khi GlowBal xây dựng chiến lược ứng tuyển.',
+
   // Step 1 — Review Existing Profile
   'Before we start, check your information': 'Trước khi bắt đầu, hãy kiểm tra thông tin của bạn',
   'We’ve brought across the information you’ve already given GlowBal. Check that everything is still correct before we analyse this application.':

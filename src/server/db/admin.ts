@@ -1,3 +1,4 @@
+import './server-only-guard';
 import { createClient } from '@supabase/supabase-js';
 
 export function createAdminClient() {

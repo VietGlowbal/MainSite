@@ -23,6 +23,7 @@ export function DashboardSummary({
   currentMatchPercent,
   deadline,
   recommendations,
+  canonicalProgress,
 }: {
   universityName: string;
   courseName: string;
@@ -33,11 +34,19 @@ export function DashboardSummary({
   currentMatchPercent: number;
   /** `course_applications.deadline`, an ISO date string, or null when unset. */
   deadline: string | null;
-  recommendations: readonly Recommendation[];
+  recommendations?: readonly Recommendation[];
+  /** Canonical hierarchy progress. When supplied, legacy recommendations are ignored. */
+  canonicalProgress?: { completed: number; total: number; percentage: number; nextTitle: string | null } | null;
 }) {
-  const next = nextPriority(recommendations);
-  const { completed, total } = taskCounts(recommendations);
-  const percentDone = computeCompletionPercent(recommendations);
+  const isCanonical = canonicalProgress !== undefined;
+  const next = isCanonical ? null : nextPriority(recommendations ?? []);
+  const legacyCounts = isCanonical ? null : taskCounts(recommendations ?? []);
+  const completed = canonicalProgress?.completed ?? legacyCounts?.completed ?? 0;
+  const total = canonicalProgress?.total ?? legacyCounts?.total ?? 0;
+  const percentDone = canonicalProgress?.percentage ?? (isCanonical ? 0 : computeCompletionPercent(recommendations ?? []));
+  const nextTitle = isCanonical
+    ? canonicalProgress === null ? 'Not available' : (canonicalProgress?.nextTitle ?? 'All caught up')
+    : (next?.title ?? 'All caught up');
 
   return (
     <Panel className="flex flex-col gap-gb-3xl lg:flex-row lg:items-center p-gb-2xl sm:p-gb-3xl shadow-gb-xs">
@@ -81,7 +90,7 @@ export function DashboardSummary({
           <p className="text-gb-xs font-medium uppercase tracking-wide text-fg-tertiary">Application Progress</p>
           <ProgressBar value={percentDone} label="Application progress" />
           <p className="text-gb-xs text-fg-tertiary">
-            {percentDone}% complete · {completed} of {total} tasks completed
+            {isCanonical && canonicalProgress === null ? 'Not available' : `${percentDone}% complete · ${completed} of ${total} tasks completed`}
           </p>
         </div>
 
@@ -89,7 +98,7 @@ export function DashboardSummary({
           <IconCircle icon={ICONS.edit02} tone="brand" />
           <div className="flex flex-col gap-gb-xxs min-w-0">
             <p className="text-gb-xs font-medium uppercase tracking-wide text-fg-tertiary">Next Priority</p>
-            <p className="text-gb-sm font-semibold text-fg truncate">{next?.title ?? 'All caught up'}</p>
+            <p className="text-gb-sm font-semibold text-fg truncate">{nextTitle}</p>
           </div>
         </div>
 
