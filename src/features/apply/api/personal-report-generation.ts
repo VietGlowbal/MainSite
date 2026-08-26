@@ -385,6 +385,7 @@ async function regenerateApplicationPersonalReport(
     activities: evaluationInput.narrativeActivities,
     intendedDirection: evaluationInput.intendedDirection,
     generatedAt,
+    evidenceBank,
   });
   const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
   let reportV2 = deterministicReport;

@@ -16,6 +16,7 @@ import {
 } from '@/shared/evaluation';
 import { buildPersonalReportAnalytics, type PersonalReportAnalytics } from './personal-report-analytics';
 import type { PersonalCanvasDetails } from './personal-canvas-details';
+import type { EvidenceBank } from '@/shared/evidence/domain';
 
 /**
  * The canonical Personal Report — user-level, six sections, built entirely
@@ -807,7 +808,7 @@ function snapshotSummary(
     `It treats a recurring pattern as stronger when more than one independent record supports it, and it labels unsupported conclusions as insufficient rather than filling the gap with assumptions.`,
     `The strongest current material should be read alongside its evidence references, because a stated activity, an attached document, and an extracted interpretation do not carry the same verification status.`,
     `The main development opportunity is ${gap}.`,
-    `This is a description of the confirmed candidate snapshot only: it does not assess programme fit or application strategy.`,
+    `This is a description of the confirmed candidate snapshot only: it does not assess external selection decisions.`,
     `As the candidate adds concrete outcomes, ownership details, reflection, or documents, the report can replace an isolated signal with a better-supported pattern while preserving the earlier snapshot as history.`,
   ];
   const padding =
@@ -823,11 +824,35 @@ function insight(
   return { ...args, evidenceIds: Array.from(new Set(args.evidenceIds ?? [])) };
 }
 
+function evidenceCoverageFromBank(
+  evidenceBank: EvidenceBank,
+  fallback: PersonalReportEvidenceCoverage,
+): PersonalReportEvidenceCoverage {
+  const strongEvidence = evidenceBank.claims
+    .filter((claim) => claim.status === 'verified')
+    .flatMap((claim) => claim.sourceRefs);
+  const weakEvidence = evidenceBank.claims
+    .filter((claim) => claim.status !== 'verified')
+    .flatMap((claim) => claim.sourceRefs);
+
+  return {
+    strongEvidence: Array.from(new Set(strongEvidence)),
+    weakEvidence: Array.from(new Set(weakEvidence)),
+    insufficientEvidence: Array.from(
+      new Set([
+        ...fallback.insufficientEvidence,
+        ...evidenceBank.missingInformation.map((item) => `${item.area}: ${item.note}`),
+      ]),
+    ),
+  };
+}
+
 function buildApplicationInsights(args: {
   coreIdentity: CoreIdentitySection;
   drivingForce: DrivingForceSection;
   signaturePattern: SignaturePatternSection;
   proofOfMe: ProofOfMeSection;
+  evidenceBank?: EvidenceBank;
 }): {
   growthAreas: PersonalReportInsight[];
   competitiveAdvantages: PersonalReportInsight[];
@@ -921,6 +946,24 @@ function buildApplicationInsights(args: {
     limitations: ['The snapshot does not contain enough repeated evidence.'],
   });
 
+  const fallbackCoverage = {
+    strongEvidence: Array.from(
+      new Set(
+        proofOfMe.cards
+          .filter((card) => card.evidenceStrength === 'strong')
+          .flatMap((card) => card.evidenceRefs.map((ref) => ref.id)),
+      ),
+    ),
+    weakEvidence: Array.from(
+      new Set(
+        proofOfMe.cards
+          .filter((card) => card.evidenceStrength !== 'strong')
+          .flatMap((card) => card.evidenceRefs.map((ref) => ref.id)),
+      ),
+    ),
+    insufficientEvidence: Array.from(new Set(growthAreas.map((area) => area.currentGap || area.statement))),
+  } satisfies PersonalReportEvidenceCoverage;
+
   return {
     growthAreas,
     competitiveAdvantages,
@@ -929,23 +972,9 @@ function buildApplicationInsights(args: {
       competitiveAdvantage: advantage,
       growthOpportunity: growthAreas[0]!,
     },
-    evidenceCoverage: {
-      strongEvidence: Array.from(
-        new Set(
-          proofOfMe.cards
-            .filter((card) => card.evidenceStrength === 'strong')
-            .flatMap((card) => card.evidenceRefs.map((ref) => ref.id)),
-        ),
-      ),
-      weakEvidence: Array.from(
-        new Set(
-          proofOfMe.cards
-            .filter((card) => card.evidenceStrength !== 'strong')
-            .flatMap((card) => card.evidenceRefs.map((ref) => ref.id)),
-        ),
-      ),
-      insufficientEvidence: Array.from(new Set(growthAreas.map((area) => area.currentGap || area.statement))),
-    },
+    evidenceCoverage: args.evidenceBank
+      ? evidenceCoverageFromBank(args.evidenceBank, fallbackCoverage)
+      : fallbackCoverage,
   };
 }
 
@@ -1065,8 +1094,9 @@ export function buildPersonalReport(args: {
   activities: readonly NarrativeActivity[];
   intendedDirection: string | null;
   generatedAt: string;
+  evidenceBank?: EvidenceBank;
 }): PersonalReportV2 {
-  const { evaluation, activities, intendedDirection, generatedAt } = args;
+  const { evaluation, activities, intendedDirection, generatedAt, evidenceBank } = args;
   const themes = themeMaturityResults(activities);
   const coreIdentity = buildCoreIdentity(evaluation, activities);
   const drivingForce = buildDrivingForce(evaluation, activities);
@@ -1078,6 +1108,7 @@ export function buildPersonalReport(args: {
     drivingForce,
     signaturePattern,
     proofOfMe,
+    evidenceBank,
   });
 
   return {

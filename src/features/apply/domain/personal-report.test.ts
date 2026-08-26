@@ -5,6 +5,8 @@ import {
   type NarrativeActivity,
   type ProfileEvaluationInput,
 } from '@/shared/evaluation';
+import { buildEvidenceBank } from '@/shared/evidence/build-evidence-bank';
+import type { EvidenceBank } from '@/shared/evidence/domain';
 import { buildPersonalReport } from './personal-report';
 
 const TUTOR: NarrativeActivity = {
@@ -83,7 +85,7 @@ function input(overrides: Partial<ProfileEvaluationInput> = {}): ProfileEvaluati
   };
 }
 
-function report(overrides: Partial<ProfileEvaluationInput> = {}) {
+function report(overrides: Partial<ProfileEvaluationInput> = {}, evidenceBank?: EvidenceBank) {
   const args = input(overrides);
   const evaluation = runProfileEvaluation(args);
   return buildPersonalReport({
@@ -91,6 +93,7 @@ function report(overrides: Partial<ProfileEvaluationInput> = {}) {
     activities: args.narrativeActivities,
     intendedDirection: args.intendedDirection,
     generatedAt: args.generatedAt,
+    evidenceBank,
   });
 }
 
@@ -200,6 +203,8 @@ describe('buildPersonalReport', () => {
     expect(serialized).not.toContain('programmefit');
     expect(serialized).not.toContain('admission');
     expect(serialized).not.toContain('probability');
+    expect(serialized).not.toContain('programme fit');
+    expect(serialized).not.toContain('application strategy');
   });
 
   it('global report not tied to applicationId: the input and output contain no applicationId field', () => {
@@ -257,5 +262,25 @@ describe('buildPersonalReport', () => {
         growthOpportunity: expect.any(Object),
       }),
     );
+  });
+
+  it('uses the persisted Evidence Bank for coverage and preserves raw-source provenance', () => {
+    const evidenceBank = buildEvidenceBank({
+      academicRecords: [],
+      activities: [
+        {
+          id: 'careerbridge',
+          kind: 'achievement',
+          title: CAREERBRIDGE.title,
+          freeText: CAREERBRIDGE.outcome,
+          evidenceKey: 'document-1',
+        },
+      ],
+      documents: [{ id: 'document-1', fileName: 'CareerBridge confirmation.pdf' }],
+    });
+    const result = report({ narrativeActivities: [CAREERBRIDGE] }, evidenceBank);
+
+    expect(result.evidenceCoverage?.strongEvidence).toContain('achievement:careerbridge');
+    expect(result.evidenceCoverage?.weakEvidence).not.toContain('achievement:careerbridge');
   });
 });
