@@ -15,7 +15,10 @@
   "hasGlowbalCTA": true,
   "officialSourceCount": 0,
   "todoSourceCount": 5,
-  "blockerReasons": [],
+  "blockerReasons": [
+    "Body or description still contains TODO_SOURCE_REQUIRED markers — add verified official sources first",
+    "Description or excerpt still contains generator placeholder copy (\"draft guide\") — write a real reader-facing summary"
+  ],
   "notes": [
     "Contains TODO_SOURCE_REQUIRED markers and requires human review."
   ]

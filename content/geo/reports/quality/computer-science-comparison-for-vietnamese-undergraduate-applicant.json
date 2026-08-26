@@ -16,7 +16,9 @@
   "officialSourceCount": 0,
   "todoSourceCount": 2,
   "blockerReasons": [
-    "High duplicate risk."
+    "High duplicate risk.",
+    "Body or description still contains TODO_SOURCE_REQUIRED markers — add verified official sources first",
+    "Description or excerpt still contains generator placeholder copy (\"draft guide\") — write a real reader-facing summary"
   ],
   "notes": [
     "High duplicate risk against an existing page.",
