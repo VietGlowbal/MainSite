@@ -116,7 +116,7 @@ describe('buildEvidenceBank — provenance rules', () => {
 
     const ieltsClaims = bank.claims.filter((claim) => claim.normalizedValue?.metric === 'ielts');
     expect(ieltsClaims).toHaveLength(1);
-    expect(ieltsClaims[0].sourceRefs).toEqual(
+    expect(ieltsClaims[0]!.sourceRefs).toEqual(
       expect.arrayContaining(['english_test:ielts-1', 'english_test:ielts-2']),
     );
   });

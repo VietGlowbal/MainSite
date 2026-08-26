@@ -93,7 +93,7 @@ function report(overrides: Partial<ProfileEvaluationInput> = {}, evidenceBank?: 
     activities: args.narrativeActivities,
     intendedDirection: args.intendedDirection,
     generatedAt: args.generatedAt,
-    evidenceBank,
+    ...(evidenceBank ? { evidenceBank } : {}),
   });
 }
 

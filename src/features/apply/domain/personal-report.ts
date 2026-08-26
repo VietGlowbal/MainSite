@@ -1108,7 +1108,7 @@ export function buildPersonalReport(args: {
     drivingForce,
     signaturePattern,
     proofOfMe,
-    evidenceBank,
+    ...(evidenceBank ? { evidenceBank } : {}),
   });
 
   return {
