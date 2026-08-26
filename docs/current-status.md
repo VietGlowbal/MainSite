@@ -1,5 +1,23 @@
 # Current project status
 
+Working tree 2026-08-27: fixed the terminal hardened canonical Planner
+reconciler so micro-step inserts collect their IDs in `v_micro_id` and never
+overwrite the parent `v_step_id`. Added
+`supabase-planner-production-hardening-multi-microstep-fix.sql` as the
+forward-only repair for databases where hardening was already applied; it keeps
+hardening's application lock, content-value compatibility/reset rules,
+archiving, and service-role grant. The real PostgreSQL harness now reconciles
+three sibling micro-steps and checks their common parent, stable IDs,
+execution-state preservation, schema-reset behavior, archiving, and atomic
+rollback. The required hardened sequence is Core 3 hierarchy → canonical
+production → Planner Ops → production hardening → the terminal hardening
+multi-microstep repair; the earlier canonical repair is pre-hardening only.
+Measured locally: Planner Vitest 48 files / 476 tests, migration Vitest 3/3,
+base and strict TypeScript, ESLint, `git diff --check`, and production build
+all passed. The build used placeholder Supabase configuration and logged its
+expected unreachable-placeholder fetches while exiting 0. PostgreSQL
+integration remains for CI because `psql` is unavailable locally.
+
 Working tree 2026-08-26: added Vietnamese dictionary coverage for all seven Personal Reflection labels, questions, guidance prompts, and sample answers. The sample-answer disclosure now also uses the translator; the form opts out of DOM-level translation so toggling back to English cannot be overwritten. Measured: focused Personal Reflection Vitest 7/7 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 
 Working tree 2026-08-26: replaced Personal Reflection's previous five prompts with the supplied seven-question “About Yourself” and “About Your Direction” set. Each prompt now includes its guidance and sample answer; completion and progress correctly use seven answers. Measured: focused Vitest 11/11 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
@@ -256,9 +274,13 @@ to `/ai-strategy/[applicationId]/planner`; they no longer POST to the legacy
 `roadmap-tasks` route, which rejects canonical Planner applications. A separate
 production defect was found in `reconcile_canonical_application_plan`: the RPC
 overwrote the parent step UUID with the first inserted micro-step UUID, so any
-step with multiple micro-steps failed its second insert. Apply
-`supabase-canonical-planner-multi-microstep-fix.sql` after
-`supabase-canonical-planner-production.sql` to repair the installed function.
+step with multiple micro-steps failed its second insert. For a database that
+has only the canonical production reconciler, apply
+`supabase-canonical-planner-multi-microstep-fix.sql`. Do not apply that older
+repair after `supabase-planner-production-hardening.sql`: it predates and
+would replace hardening's lock and content-value compatibility logic. A
+hardened database instead requires the terminal,
+`supabase-planner-production-hardening-multi-microstep-fix.sql` repair.
 The AI Strategy/Planner suite passes 451/451, TypeScript passes, and changed-file
 ESLint passes; E2E was intentionally not run.
 
@@ -997,10 +1019,16 @@ follow-up migration (not a rewrite of the earlier file): it revokes client-side
 canonical writes and installs the service-role-only transactional reconciliation
 RPC required by production `syncApplicationPlan()`.
 
-After that migration, apply
-`supabase-canonical-planner-multi-microstep-fix.sql`. It replaces only the RPC
-and uses a dedicated micro-step UUID variable, preserving the parent step UUID
-through the full inner loop.
+For the complete Planner Ops/hardening deployment, apply migrations in this
+order: `supabase-core3-plan-hierarchy.sql`,
+`supabase-canonical-planner-production.sql`, `supabase-planner-ops.sql`,
+`supabase-planner-production-hardening.sql`, then the forward-only terminal
+repair `supabase-planner-production-hardening-multi-microstep-fix.sql`. The
+terminal repair uses a dedicated micro-step UUID variable while retaining
+hardening's application lock and content-value compatibility/reset logic. The
+older `supabase-canonical-planner-multi-microstep-fix.sql` is only the repair
+for an installation that has not applied hardening; it must not follow
+hardening.
 
 The dated audit remains the detailed evidence record. A code-only recheck on
 2026-08-06 found no commit that obviously closes its highest-priority items:

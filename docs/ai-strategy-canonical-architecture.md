@@ -384,9 +384,16 @@ canonical hierarchy tables and provides the service-role-only
 `reconcile_canonical_application_plan` RPC, which applies hierarchy
 reconciliation transactionally while preserving execution data on stable nodes.
 
-`supabase-canonical-planner-multi-microstep-fix.sql` must follow that migration.
-It repairs the reconciler's nested loop so the UUID returned by a micro-step
-insert cannot overwrite the parent step UUID used by subsequent micro-steps.
+For an installation that stops at the canonical production migration,
+`supabase-canonical-planner-multi-microstep-fix.sql` repairs the reconciler's
+nested loop so the UUID returned by a micro-step insert cannot overwrite the
+parent step UUID used by subsequent micro-steps. It must not be the final
+reconciler after production hardening because it predates hardening's
+application lock and content-value compatibility logic. The complete current
+sequence is Core 3 hierarchy → canonical production → Planner Ops → production
+hardening → `supabase-planner-production-hardening-multi-microstep-fix.sql`.
+That terminal, forward-only repair retains hardening behaviour while preserving
+the parent step UUID through every micro-step insert.
 
 The active Planner route now selects deliberately between two non-merged data
 models: an application with an active canonical plan renders
