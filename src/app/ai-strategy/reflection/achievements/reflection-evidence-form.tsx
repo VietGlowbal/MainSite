@@ -42,60 +42,60 @@ const YEAR_OPTIONS = Array.from({ length: 15 }, (_, i) => {
 });
 
 const LEVEL_OPTIONS = [
-  { value: 'National', label: 'Toàn quốc / Quốc gia' },
-  { value: 'International', label: 'Quốc tế' },
-  { value: 'City / Local', label: 'Tỉnh / Thành phố' },
-  { value: 'School', label: 'Trường' },
-  { value: 'Regional', label: 'Khu vực' },
-  { value: 'University', label: 'Đại học' },
-  { value: 'Community', label: 'Cộng đồng' },
-  { value: 'Organisation', label: 'Tổ chức' },
-  { value: 'Other', label: 'Khác' },
+  { value: 'National', label: 'National / Country' },
+  { value: 'International', label: 'International' },
+  { value: 'City / Local', label: 'City / Province' },
+  { value: 'School', label: 'School' },
+  { value: 'Regional', label: 'Regional' },
+  { value: 'University', label: 'University' },
+  { value: 'Community', label: 'Community' },
+  { value: 'Organisation', label: 'Organization' },
+  { value: 'Other', label: 'Other' },
 ];
 
 const ACADEMIC_CATEGORY_OPTIONS: ComboboxOption[] = [
   {
     value: 'academic_award',
-    label: 'Giải thưởng học thuật',
+    label: 'Academic awards & prizes',
   },
   {
     value: 'competition',
-    label: 'Học bổng',
+    label: 'Scholarships',
   },
   {
     value: 'research',
-    label: 'Nghiên cứu khoa học / Bài báo được xuất bản',
+    label: 'Research & Publications',
   },
   {
     value: 'certification',
-    label: 'Bằng khen / Giấy khen',
+    label: 'Certificates of Merit',
   },
 ];
 
 const ACTIVITY_CATEGORY_OPTIONS: ComboboxOption[] = [
   {
     value: 'community_project',
-    label: 'Hoạt động tình nguyện / Dự án cộng đồng (vai trò cốt lõi, tác động đo lường được)',
+    label: 'Volunteering / Community Project (core role, measurable impact)',
   },
   {
     value: 'leadership',
-    label: 'Lãnh đạo CLB / Đội nhóm (Chủ tịch, Trưởng ban, Founder dự án... từ 6 tháng trở lên)',
+    label: 'Club / Team Leadership (President, Lead, Founder for 6+ months)',
   },
   {
     value: 'innovation',
-    label: 'Dự án cá nhân / Khởi nghiệp / Sáng kiến xã hội (tạo ra sản phẩm, dịch vụ hoặc phong trào cụ thể)',
+    label: 'Personal Projects / Entrepreneurship / Social Initiatives',
   },
   {
     value: 'personal_growth',
-    label: 'Thực tập / Dự án tại Doanh nghiệp / Tổ chức phi chính phủ (tối thiểu 1-2 tháng)',
+    label: 'Internship / Company / NGO Project (minimum 1-2 months)',
   },
   {
     value: 'mentoring',
-    label: 'Cố vấn / Dạy kèm học sinh (ít nhất 3-6 tháng)',
+    label: 'Mentoring / Tutoring (at least 3-6 months)',
   },
   {
     value: 'other',
-    label: 'Khác',
+    label: 'Other',
   },
 ];
 
@@ -421,7 +421,7 @@ export function ReflectionEvidenceForm({
       <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full pb-16">
         {/* Main Page Title */}
         <h2 className="text-xl sm:text-2xl font-bold text-[#E11D48] text-center mt-2 mb-4 tracking-tight">
-          {t('Thành tích học thuật và hoạt động phi học thuật')}
+          {t('Academic achievements and non-academic activities')}
         </h2>
 
         {/* Hero CV Upload Area */}
@@ -438,7 +438,7 @@ export function ReflectionEvidenceForm({
         {/* ── Section 1: Academic Achievements ───────────────────────────── */}
         <section className="flex flex-col gap-5 mt-6">
           <h3 className="text-xl sm:text-2xl font-bold text-[#E11D48] text-center tracking-tight">
-            {t('Thành tích học thuật')}
+            {t('Academic achievements')}
           </h3>
 
           <div className="flex flex-col gap-6">
@@ -454,12 +454,12 @@ export function ReflectionEvidenceForm({
                 >
                   {/* Card Title */}
                   <h4 className="text-center font-bold text-neutral-900 text-base sm:text-lg mb-1">
-                    {t('Thành tích {index}', { index: idx + 1 })}
+                    {t('Achievement {index}', { index: idx + 1 })}
                   </h4>
 
                   {/* 1. Loại thành tích học thuật */}
                   <MultiSelectCombobox
-                    label="Loại thành tích học thuật"
+                    label="Academic category"
                     value={selectedCategoryLabel}
                     options={ACADEMIC_CATEGORY_OPTIONS}
                     placeholder="Search or select..."
@@ -471,39 +471,39 @@ export function ReflectionEvidenceForm({
 
                   {/* 2. Tên thành tích * */}
                   <ClearableInput
-                    label="Tên thành tích"
+                    label="Achievement name"
                     required
                     value={item.title}
                     onChange={(val) => updateAchievement(idx, { title: val })}
-                    placeholder="vd: Giải nhất Kì thi Olympic Toán học Sinh viên toàn quốc 2024"
+                    placeholder="e.g. First Prize, National Olympiad 2024"
                   />
 
                   {/* 3. Tên cuộc thi / Giải thưởng & Đơn vị tổ chức */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <ClearableInput
-                      label="Tên cuộc thi / Giải thưởng"
+                      label="Competition / Award name"
                       value={item.competition ?? ''}
                       onChange={(val) => updateAchievement(idx, { competition: val })}
-                      placeholder="vd: Olympic Toán học Toàn quốc"
+                      placeholder="e.g. National High School Contest"
                     />
                     <ClearableInput
-                      label="Đơn vị tổ chức"
+                      label="Organizing institution"
                       value={item.organisation ?? ''}
                       onChange={(val) => updateAchievement(idx, { organisation: val })}
-                      placeholder="vd: Hội Toán học Việt Nam / ĐHQG"
+                      placeholder="e.g. Vietnam Mathematical Society / VNU"
                     />
                   </div>
 
                   {/* 4. Năm đạt & Cấp độ */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <ClearableSelect
-                      label="Năm đạt"
+                      label="Year achieved"
                       value={item.year ?? CURRENT_YEAR}
                       onChange={(val) => updateAchievement(idx, { year: Number(val) || CURRENT_YEAR })}
                       options={YEAR_OPTIONS}
                     />
                     <ClearableSelect
-                      label="Cấp độ"
+                      label="Level"
                       value={item.level ?? 'National'}
                       onChange={(val) => updateAchievement(idx, { level: val })}
                       options={LEVEL_OPTIONS}
@@ -513,7 +513,7 @@ export function ReflectionEvidenceForm({
                   {/* 5. Bổ sung thông tin chi tiết */}
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="text-sm font-medium text-neutral-800">
-                      {t('Bổ sung thông tin chi tiết')}
+                      {t('Additional details')}
                     </label>
                     <textarea
                       value={item.detail ?? ''}
@@ -538,7 +538,7 @@ export function ReflectionEvidenceForm({
         {/* ── Section 2: Non-Academic Activities ─────────────────────────── */}
         <section className="flex flex-col gap-5 mt-4">
           <h3 className="text-xl sm:text-2xl font-bold text-[#E11D48] text-center tracking-tight">
-            {t('Hoạt động phi học thuật')}
+            {t('Non-academic activities')}
           </h3>
 
           <div className="flex flex-col gap-6">
@@ -554,16 +554,16 @@ export function ReflectionEvidenceForm({
                 >
                   {/* Card Title */}
                   <h4 className="text-center font-bold text-neutral-900 text-base sm:text-lg mb-1">
-                    {t('Hoạt động {index}', { index: idx + 1 })}
+                    {t('Activity {index}', { index: idx + 1 })}
                   </h4>
 
                   {/* 1. Loại hoạt động phi học thuật */}
                   <MultiSelectCombobox
-                    label="Loại hoạt động phi học thuật"
+                    label="Non-academic activity type"
                     value={selectedCategoryLabel}
                     options={ACTIVITY_CATEGORY_OPTIONS}
                     placeholder="Search or select..."
-                    warningNote="Hoạt động chỉ tham gia đơn thuần (thành viên thông thường) có thể ghi ngắn gọn hoặc không đưa vào để ưu tiên các hoạt động có vai trò nổi bật."
+                    warningNote="Activity note on core role"
                     onChange={(selectedLabel) => {
                       const cat = mapToActivityCategory(selectedLabel);
                       updateActivity(idx, { category: cat });
@@ -573,40 +573,40 @@ export function ReflectionEvidenceForm({
                   {/* 2. Tên hoạt động * & Vai trò / Vị trí */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <ClearableInput
-                      label="Tên hoạt động"
+                      label="Activity name"
                       required
                       value={item.title}
                       onChange={(val) => updateActivity(idx, { title: val })}
-                      placeholder="vd: Chiến dịch Mùa hè xanh"
+                      placeholder="e.g. Green Summer Volunteer Campaign"
                     />
                     <ClearableInput
-                      label="Vị trí"
+                      label="Position / Role"
                       value={item.level ?? ''}
                       onChange={(val) => updateActivity(idx, { level: val })}
-                      placeholder="vd: Trưởng ban Tổ chức"
+                      placeholder="e.g. Project Lead / Head of Organizing Committee"
                     />
                   </div>
 
                   {/* 3. Tổ chức / Đơn vị & Thời gian */}
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                     <ClearableInput
-                      label="Tên tổ chức/Dự án"
+                      label="Organization / Project name"
                       value={item.organisation ?? ''}
                       onChange={(val) => updateActivity(idx, { organisation: val })}
-                      placeholder="vd: Đoàn trường THPT"
+                      placeholder="e.g. Youth Union / High School"
                     />
                     <ClearableInput
-                      label="Thời gian"
+                      label="Time period"
                       value={item.period ?? ''}
                       onChange={(val) => updateActivity(idx, { period: val })}
-                      placeholder="vd: 06/2024 - 08/2024"
+                      placeholder="e.g. 06/2024 – 08/2024"
                     />
                   </div>
 
                   {/* 4. Mô tả chi tiết */}
                   <div className="flex flex-col gap-1.5 w-full">
                     <label className="text-sm font-medium text-neutral-800">
-                      {t('Mô tả chi tiết')}
+                      {t('Detailed description')}
                     </label>
                     <textarea
                       value={item.description ?? ''}
@@ -643,7 +643,7 @@ export function ReflectionEvidenceForm({
             onClick={() => void handleSubmit()}
             className="bg-[#E11D48] hover:bg-[#BE123C] active:scale-[0.99] text-white font-bold text-base py-3.5 px-16 rounded-xl shadow-lg shadow-rose-600/20 hover:shadow-rose-600/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {saving ? t('Saving…') : t('Tiếp tục')}
+            {saving ? t('Saving…') : t('Continue')}
           </button>
         </div>
 

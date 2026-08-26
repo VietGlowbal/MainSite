@@ -71,26 +71,26 @@ describe('ReflectionEvidenceForm (SVG & Mockup UI)', () => {
 
     // Header & Titles
     expect(
-      screen.getByRole('heading', { level: 2, name: /Thành tích học thuật và hoạt động phi học thuật/i }),
+      screen.getByRole('heading', { level: 2, name: /Academic achievements and non-academic activities/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { level: 3, name: /^Thành tích học thuật$/i }),
+      screen.getByRole('heading', { level: 3, name: /^Academic achievements$/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { level: 3, name: /^Hoạt động phi học thuật$/i }),
+      screen.getByRole('heading', { level: 3, name: /^Non-academic activities$/i }),
     ).toBeInTheDocument();
 
     // CV Upload Hero
-    expect(screen.getByText(/Tải lên CV của bạn/i)).toBeInTheDocument();
+    expect(screen.getByText(/Upload your CV/i)).toBeInTheDocument();
     expect(screen.getByText(/Resume.pdf/i)).toBeInTheDocument();
-    expect(screen.getByText(/Hoàn tất/i)).toBeInTheDocument();
+    expect(screen.getByText(/Completed/i)).toBeInTheDocument();
 
     // Achievements & Activities cards
     expect(screen.getByDisplayValue('1 Giải nhất Kì thi Olympic Toán học Sinh viên toàn quốc 2024')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Chiến dịch Mùa hè xanh 2024')).toBeInTheDocument();
 
     // Submit button
-    expect(screen.getByRole('button', { name: /Tiếp tục/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Continue/i })).toBeInTheDocument();
   });
 
   it('allows adding and removing achievements', async () => {
@@ -104,14 +104,14 @@ describe('ReflectionEvidenceForm (SVG & Mockup UI)', () => {
     );
 
     // Initial empty card is present
-    expect(screen.getByText(/Thành tích 1/i)).toBeInTheDocument();
+    expect(screen.getByText(/Achievement 1/i)).toBeInTheDocument();
 
     // Click Add Achievement button
     const addButtons = screen.getAllByTitle(/Add/i);
     await user.click(addButtons[0]);
 
-    // Now Thành tích 2 should be present
-    expect(screen.getByText(/Thành tích 2/i)).toBeInTheDocument();
+    // Now Achievement 2 should be present
+    expect(screen.getByText(/Achievement 2/i)).toBeInTheDocument();
   });
 
   it('submits valid achievements and activities to /api/reflection and routes to personal reflection', async () => {
@@ -137,7 +137,7 @@ describe('ReflectionEvidenceForm (SVG & Mockup UI)', () => {
       />,
     );
 
-    const submitBtn = screen.getByRole('button', { name: /Tiếp tục/i });
+    const submitBtn = screen.getByRole('button', { name: /Continue/i });
     await user.click(submitBtn);
 
     await waitFor(() => {
