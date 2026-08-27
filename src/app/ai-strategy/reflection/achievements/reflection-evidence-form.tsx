@@ -22,9 +22,12 @@ import {
   DuplicatePrompt,
   FloatingHelpButton,
   MultiSelectCombobox,
+  EditEvidenceModal,
   ReflectionShell,
   RemoveCircularButton,
+  ReviewFlowDrawer,
   type ComboboxOption,
+  type EvidenceDraft,
   type UploadedFileItem,
 } from '@/features/apply/ui';
 import { useT } from '@/lib/i18n';
@@ -131,7 +134,9 @@ export function ReflectionEvidenceForm({
 }) {
   const t = useT();
   const router = useRouter();
-  const returnTo = useSearchParams().get('return');
+  const searchParams = useSearchParams();
+  const returnTo = searchParams.get('return');
+  const reviewRequested = searchParams.get('review') === '1';
   const { upload } = useDocumentUpload();
   const { documents, addUploaded, remove: removeDocument } = useEvidenceDocuments(initialDocuments);
 
@@ -175,6 +180,13 @@ export function ReflectionEvidenceForm({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [reviewOpen, setReviewOpen] = useState(reviewRequested);
+  const [editDraft, setEditDraft] = useState<EvidenceDraft | null>(null);
+  const [reviewTotal] = useState(
+    () =>
+      initialAchievements.filter((item) => item.reviewStatus === 'needs_review').length +
+      initialActivities.filter((item) => item.reviewStatus === 'needs_review').length,
+  );
 
   useLoadingIndicator(saving, t('Saving your achievements'));
 
@@ -406,6 +418,58 @@ export function ReflectionEvidenceForm({
       setError(t('Could not save achievements. Please try again.'));
       setSaving(false);
     }
+  }
+
+  const reviewQueue: EvidenceDraft[] = [
+    ...achievements
+      .filter((item) => item.reviewStatus === 'needs_review')
+      .map((item) => ({ kind: 'achievement' as const, ...item })),
+    ...activities
+      .filter((item) => item.reviewStatus === 'needs_review')
+      .map((item) => ({ kind: 'activity' as const, ...item })),
+  ];
+
+  function markReviewKept(item: EvidenceDraft) {
+    if (item.kind === 'achievement') {
+      setAchievements((prev) =>
+        prev.map((current) => (current.id === item.id ? { ...current, reviewStatus: 'reviewed' } : current)),
+      );
+    } else {
+      setActivities((prev) =>
+        prev.map((current) => (current.id === item.id ? { ...current, reviewStatus: 'reviewed' } : current)),
+      );
+    }
+  }
+
+  function removeReviewItem(item: EvidenceDraft) {
+    if (item.kind === 'achievement') {
+      setAchievements((prev) => prev.filter((current) => current.id !== item.id));
+    } else {
+      setActivities((prev) => prev.filter((current) => current.id !== item.id));
+    }
+  }
+
+  function saveReviewEdit(next: EvidenceDraft) {
+    const { kind, ...values } = next;
+    if (kind === 'achievement') {
+      setAchievements((prev) =>
+        prev.map((current) =>
+          current.id === values.id
+            ? { ...(values as AchievementValues), reviewStatus: 'reviewed' }
+            : current,
+        ),
+      );
+    } else {
+      setActivities((prev) =>
+        prev.map((current) =>
+          current.id === values.id
+            ? { ...(values as ActivityValues), reviewStatus: 'reviewed' }
+            : current,
+        ),
+      );
+    }
+    setEditDraft(null);
+    setReviewOpen(true);
   }
 
   const uploadedFileList: UploadedFileItem[] = documents.map((doc) => ({
@@ -646,6 +710,30 @@ export function ReflectionEvidenceForm({
             {saving ? t('Saving…') : t('Continue')}
           </button>
         </div>
+
+        <ReviewFlowDrawer
+          open={reviewOpen}
+          queue={reviewQueue}
+          total={reviewTotal}
+          onKeep={markReviewKept}
+          onEdit={(item) => {
+            setReviewOpen(false);
+            setEditDraft(item);
+          }}
+          onRemove={removeReviewItem}
+          onClose={() => setReviewOpen(false)}
+          t={t}
+        />
+        <EditEvidenceModal
+          open={editDraft !== null}
+          draft={editDraft}
+          onClose={() => {
+            setEditDraft(null);
+            setReviewOpen(true);
+          }}
+          onSave={saveReviewEdit}
+          t={t}
+        />
 
         {/* Floating Help Button */}
         <FloatingHelpButton />

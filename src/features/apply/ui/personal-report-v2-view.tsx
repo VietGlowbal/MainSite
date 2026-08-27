@@ -158,7 +158,19 @@ export function PersonalReportV2View({
         const response = await fetch(reportEndpoint);
         const body = await response.json().catch(() => ({}));
         if (cancelled || !response.ok) return;
-        if (body.reportV2) {
+        if (body.generation?.status === 'blocked') {
+          setError(t('Could not create the report.'));
+          setWaitingForGeneration(false);
+          setBusy(false);
+          return;
+        }
+        const generationActive = ['pending', 'processing', 'retry'].includes(body.generation?.status);
+        const reportIsFresh = Boolean(
+          body.reportV2 &&
+            (!body.generation ||
+              (body.generation.status === 'complete' && body.generation.report_version_id === body.versionId)),
+        );
+        if (reportIsFresh && !generationActive) {
           setReport(body.reportV2 as PersonalReportV2);
           setSelectedVersionId(body.versionId as string | null);
           setLatestVersionId(body.versionId as string | null);

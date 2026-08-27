@@ -25,13 +25,76 @@ response, while leaving route behavior unchanged. Measured: that route suite
 10/10, base and strict TypeScript, and `git diff --check` pass. PostgreSQL
 integration was not run locally because `psql` is unavailable.
 
+Working tree 2026-08-27: fixed advisor applications being invisible and
+unactionable at `/admin/achievers`. Submission was already succeeding — a
+read-only production check found 6 reviewable `achiever_profiles` rows, 2 of
+them pending — but the page queried with the signed-in request client, whose
+RLS policy exposes only approved profiles and the caller's own row. Approve and
+Reject used that same browser client, so they could update zero rows without an
+error while the UI still moved the card to Processed. The review queue now
+loads through an admin-authorized mentorship repository using the trusted
+server client and an explicit minimal projection; decisions go through a new
+admin-authorized PATCH route, update pending rows only, and change client state
+only after the database confirms the write. No migration is required. The
+optional `quick_signup` badge was removed from the DTO after the live exact-
+projection check proved that column is not deployed. Measured locally: focused
+Vitest 3 files / 9 tests passing, base and strict TypeScript, scoped ESLint, and
+the static i18n audit (0 missing keys), and the Next.js 16.3.1 production build
+pass. The build retains the 3 pre-existing Turbopack filesystem-tracing warnings
+in `src/lib/geo-content.ts`.
+
+Working tree 2026-08-27: fixed role-gated top-navigation links disappearing
+outside `/profile`. The advisor, coordinator, and admin checks now live in one
+root navigation-role provider shared by both the legacy app header and the
+`SiteNavigation` header used by Home and other rebuilt routes; desktop and
+mobile menus receive the same role destinations. Role reads remain best-effort
+UI affordances and do not replace the existing server-side route guards.
+Measured locally: focused navigation Vitest **4 files / 22 tests passing**,
+base and strict TypeScript, scoped ESLint, `git diff --check`, and the Next.js
+16.3.1 production build pass. The build retains three pre-existing Turbopack
+filesystem-tracing warnings in `src/lib/geo-content.ts`. Signed-in browser
+verification remains unrun.
+
+Working tree 2026-08-26: kept the Personal Canvas artwork as the desktop background and changed its four upper/middle hover effects to SVG cutouts. Each highlight now follows its panel and excludes the shared Core Identity hub; rectangular hover shadows were removed. Hotspots 1/4/5 were then lifted to match their artwork, the hover/active highlight was strengthened, and hotspots 2/3 were shortened to stop at their own lower divider (with further 0.75% and 1% trims). The centre hotspot and all cutout ellipses now derive from the actual 1024×731 artwork circle coordinates, rather than estimated per-card percentages. Parts 4/5 now start at their actual divider and extend to their existing bottom edge. Selecting a section now opens the existing accessible centered modal rather than shrinking the canvas into a side panel and drawing a connector; the modal owns Escape, backdrop close, scroll lock, and focus return. Part 6 uses a stronger brand overlay and shadow on hover/selection. Last focused Personal Canvas measurement before the final 1% adjustment: Vitest 13/13 passing and `git diff --check` passing; no test rerun by owner request. ESLint still reports 26 pre-existing raw-colour errors in the same uncommitted canvas overhaul; browser visual verification remains unrun.
+
+Working tree 2026-08-27: fixed the terminal hardened canonical Planner
+reconciler so micro-step inserts collect their IDs in `v_micro_id` and never
+overwrite the parent `v_step_id`. Added
+`supabase-planner-production-hardening-multi-microstep-fix.sql` as the
+forward-only repair for databases where hardening was already applied; it keeps
+hardening's application lock, content-value compatibility/reset rules,
+archiving, and service-role grant. The real PostgreSQL harness now reconciles
+three sibling micro-steps and checks their common parent, stable IDs,
+execution-state preservation, schema-reset behavior, archiving, and atomic
+rollback. The required hardened sequence is Core 3 hierarchy → canonical
+production → Planner Ops → production hardening → the terminal hardening
+multi-microstep repair; the earlier canonical repair is pre-hardening only.
+Measured locally: Planner Vitest 48 files / 476 tests, migration Vitest 3/3,
+base and strict TypeScript, ESLint, `git diff --check`, and production build
+all passed. The build used placeholder Supabase configuration and logged its
+expected unreachable-placeholder fetches while exiting 0. PostgreSQL
+integration remains for CI because `psql` is unavailable locally.
+
+Working tree 2026-08-27 (Personal Report backend review fixes): application
+scoping, atomic confirmation, exact document evidence, reflection signal
+propagation, academic assessment persistence, issued follow-up questions,
+durable queue idempotency/force handling, safe generation DTOs, and fresh UI
+polling are implemented. Added the required Supabase migration scripts and
+regression coverage. Measured: full Vitest 362 files / 3440 passed (2 todo),
+`npm.cmd run typecheck`, `npm.cmd run typecheck:strict`, `npm.cmd run lint`
+(0 errors, 591 warnings), `node scripts/check-i18n.mjs --all`,
+`npm.cmd run build:ci`, and `git diff --check` pass. Live Supabase schema/RLS
+and signed-in browser verification remain unrun. `npm.cmd run verify:pr` is
+blocked locally because the repository requires Node 24.19.0 and this shell
+has Node 24.13.0.
+
 Working tree 2026-08-26: added Vietnamese dictionary coverage for all seven Personal Reflection labels, questions, guidance prompts, and sample answers. The sample-answer disclosure now also uses the translator; the form opts out of DOM-level translation so toggling back to English cannot be overwritten. Measured: focused Personal Reflection Vitest 7/7 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 
 Working tree 2026-08-26: replaced Personal Reflection's previous five prompts with the supplied seven-question “About Yourself” and “About Your Direction” set. Each prompt now includes its guidance and sample answer; completion and progress correctly use seven answers. Measured: focused Vitest 11/11 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 
 Working tree 2026-08-25 (reflection evidence UI continuation): the achievements reflection form now follows the supplied SVG layout more closely: normalized achievement cards, compact activity detail row, corrected searchable picker focus behavior, compact add controls, and the sample upload row. The uncommitted shared reflection shell change was restored to HEAD after review; the unrelated latest SEO commit was not rolled back. Measured after this pass: npm.cmd run typecheck and npm.cmd run lint pass. npm.cmd run build also passes.
 
-Last reconciled: **2026-08-25 (Asia/Bangkok)**
+Last reconciled: **2026-08-27 (Asia/Saigon)**
 
 Working tree 2026-08-25: Comprehensive SEO improvement plan (`docs/plans/2026-08-25-seo-improvement-implementation-plan.md`) implemented end-to-end.
 - **GEO Quality Gate & CMS read boundary:** `src/lib/geo-cms-validation.ts` enforces zero placeholder markers (`TODO_SOURCE_REQUIRED`, generator draft copy) and source verification on tuition/entry claims across the admin publish API and reader path.

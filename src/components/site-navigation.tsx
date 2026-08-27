@@ -3,6 +3,10 @@
 import Link from 'next/link';
 import { useSyncExternalStore } from 'react';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import {
+  useNavigationRoles,
+  withNavigationRoleItems,
+} from '@/components/navigation-roles';
 import { useNavigationSession } from '@/components/navigation-session';
 import { SavedNavLink } from '@/components/saved-nav-link';
 import { getMarketingNavPresentation } from '@/features/marketing/ui';
@@ -40,6 +44,7 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
   // across EN ↔ VI updates.
   const { lang, t } = useLanguage();
   const session = useNavigationSession();
+  const roles = useNavigationRoles();
   const hydrated = useHydrated();
   const sessionReady = hydrated && session.ready;
 
@@ -55,6 +60,11 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
   const primaryAction = sessionReady ? presentation.primaryAction : undefined;
   const accountAction = sessionReady ? presentation.accountAction : undefined;
   const user = sessionReady && session.signedIn ? session.user : null;
+  const items = withNavigationRoleItems(
+    presentation.items,
+    sessionReady ? roles : null,
+    t,
+  );
 
   return (
     <>
@@ -62,7 +72,7 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
         key={`top-nav-${lang}`}
         tone={tone}
         logo={<GlowbalLogo height={28} />}
-        items={presentation.items}
+        items={items}
         primaryAction={primaryAction}
         {...(showSaved ? { utility: <SavedNavLink /> } : {})}
         {...(user
@@ -84,7 +94,7 @@ export function SiteNavigation({ tone = 'dark', showSaved = false }: Props) {
             <GlowbalLogo height={28} />
           </Link>
         }
-        items={presentation.items}
+        items={items}
         primaryAction={primaryAction}
         secondaryAction={accountAction}
         {...(showSaved ? { utility: <SavedNavLink variant="row" /> } : {})}

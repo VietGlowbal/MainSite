@@ -70,6 +70,11 @@ export async function POST(request: Request) {
         { error: 'The AI service is not configured. Missing OPENAI_API_KEY.' },
         { status: 503 },
       );
+    case 'insufficient_evidence':
+      return NextResponse.json(
+        { error: 'Add reflections, activities, or achievements before generating a Personal Report.' },
+        { status: 422 },
+      );
     case 'error':
       return NextResponse.json(
         {

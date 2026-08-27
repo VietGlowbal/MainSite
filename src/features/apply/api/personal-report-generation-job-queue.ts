@@ -15,6 +15,7 @@ export type ApplicationPersonalReportGenerationJob = {
   application_id: string;
   status: ApplicationPersonalReportGenerationJobStatus;
   trigger: PersonalReportTrigger;
+  idempotency_key: string | null;
   force_requested: boolean;
   attempts: number;
   next_attempt_at: string;
@@ -61,13 +62,23 @@ export async function getApplicationPersonalReportGeneration(
 
 export async function enqueueApplicationPersonalReportGeneration(
   supabase: SupabaseClient,
-  args: { userId: string; applicationId: string; trigger: PersonalReportTrigger; force?: boolean },
+  args: { userId: string; applicationId: string; trigger: PersonalReportTrigger; force?: boolean; idempotencyKey?: string },
 ): Promise<{ job: ApplicationPersonalReportGenerationJob | null; migrationMissing: boolean }> {
   const current = await getApplicationPersonalReportGeneration(supabase, args);
   if (current.migrationMissing) return current;
+  if (
+    current.job &&
+    args.idempotencyKey &&
+    current.job.idempotency_key === args.idempotencyKey
+  ) return current;
   if (current.job && ACTIVE.has(current.job.status)) {
     if (!args.force || current.job.force_requested) return current;
-    const { data, error } = await supabase.from(TABLE).update({ force_requested: true, trigger: args.trigger, updated_at: new Date().toISOString() })
+    const { data, error } = await supabase.from(TABLE).update({
+      force_requested: true,
+      idempotency_key: args.idempotencyKey ?? current.job.idempotency_key,
+      trigger: args.trigger,
+      updated_at: new Date().toISOString(),
+    })
       .eq('id', current.job.id).select().single();
     if (error) return { job: null, migrationMissing: isPersonalReportGenerationJobsMigrationMissing(error) };
     return { job: asJob(data), migrationMissing: false };
@@ -79,6 +90,7 @@ export async function enqueueApplicationPersonalReportGeneration(
     application_id: args.applicationId,
     status: 'pending' as const,
     trigger: args.trigger,
+    idempotency_key: args.idempotencyKey ?? null,
     force_requested: Boolean(args.force),
     attempts: 0,
     next_attempt_at: now,
@@ -120,13 +132,24 @@ export async function markApplicationPersonalReportGenerationComplete(
   args: { reportVersionId: string; confirmedSnapshotId: string | null; inputHash: string },
 ): Promise<void> {
   const now = new Date().toISOString();
-  const { error } = await createAdminClient().from(TABLE).update({
+  const admin = createAdminClient();
+  const { data, error } = await admin.from(TABLE).update({
     status: 'complete', report_version_id: args.reportVersionId,
     confirmed_snapshot_id: args.confirmedSnapshotId, input_hash: args.inputHash,
     error_code: null, error_message: null, locked_at: null, locked_by: null, force_requested: false,
     completed_at: now, updated_at: now,
-  }).eq('id', jobId);
+  }).eq('id', jobId).eq('force_requested', false).select('id').maybeSingle();
   if (error) throw error;
+  // A force request may have arrived after the worker claimed this job. The
+  // conditional completion above then affects zero rows; requeue the same
+  // durable row so the request cannot be lost.
+  if (!data) {
+    const { error: requeueError } = await admin.from(TABLE).update({
+      status: 'pending', next_attempt_at: now, locked_at: null, locked_by: null,
+      completed_at: null, error_code: null, error_message: null, updated_at: now,
+    }).eq('id', jobId).eq('force_requested', true);
+    if (requeueError) throw requeueError;
+  }
 }
 
 export async function blockApplicationPersonalReportGeneration(

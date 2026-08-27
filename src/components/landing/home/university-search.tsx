@@ -52,7 +52,8 @@ export function UniversitySearch() {
   const [query, setQuery] = useState('');
   const [matches, setMatches] = useState<UniversityMatch[]>([]);
   const [loading, setLoading] = useState(false);
-  useLoadingIndicator(loading, 'Searching universities');
+  const visibleLoading = query.trim().length >= 2 && loading;
+  useLoadingIndicator(visibleLoading, 'Searching universities');
   const [selected, setSelected] = useState<UniversityMatch | null>(null);
   const [gateOpen, setGateOpen] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
@@ -62,12 +63,10 @@ export function UniversitySearch() {
     if (selected) return;
     const q = query.trim();
     if (q.length < 2) {
-      setMatches([]);
-      setLoading(false);
       return;
     }
-    setLoading(true);
     const handle = setTimeout(async () => {
+      setLoading(true);
       abortRef.current?.abort();
       const ctrl = new AbortController();
       abortRef.current = ctrl;
@@ -83,6 +82,8 @@ export function UniversitySearch() {
     }, 250);
     return () => clearTimeout(handle);
   }, [query, selected]);
+
+  const visibleMatches = query.trim().length < 2 ? [] : matches;
 
   const reset = useCallback(() => {
     setSelected(null);
@@ -110,7 +111,7 @@ export function UniversitySearch() {
               autoComplete="off"
               className="h-14 w-full rounded-2xl border border-slate-200 bg-white pl-12 pr-4 text-base text-slate-900 shadow-[0_8px_24px_rgba(30,40,80,0.06)] outline-none transition placeholder:text-slate-400 focus:border-pink-300 focus:ring-2 focus:ring-pink-200"
             />
-            {loading ? (
+            {visibleLoading ? (
               <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400">Searching…</span>
             ) : null}
           </div>
@@ -118,9 +119,9 @@ export function UniversitySearch() {
           {/* Results */}
           {query.trim().length >= 2 ? (
             <div className="mt-3 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_8px_24px_rgba(30,40,80,0.06)]">
-              {matches.length > 0 ? (
+              {visibleMatches.length > 0 ? (
                 <ul className="divide-y divide-slate-100">
-                  {matches.map((m) => (
+                  {visibleMatches.map((m) => (
                     <li key={m.id}>
                       <button
                         type="button"

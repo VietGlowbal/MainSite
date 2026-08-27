@@ -28,22 +28,24 @@ describe('getLatestPersonalReportV2', () => {
       from: () => ({
         select: () => ({
           eq: () => ({
-            order: () => ({
-              limit: () => ({
-                maybeSingle: async () => ({
-                  data: {
-                    id: 'v2',
-                    report_v2: MINIMAL_REPORT,
-                    structured_evaluation: null,
-                    evaluation_engine_version: '1.1.0',
-                    input_hash: 'hash-2',
-                    prompt_version: 'p2',
-                    model_name: 'gpt-4o',
-                    trigger: 'matching_report',
-                    generated_at: '2026-08-14T00:00:00.000Z',
-                    created_at: '2026-08-14T00:00:00.000Z',
-                  },
-                  error: null,
+            is: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: async () => ({
+                    data: {
+                      id: 'v2',
+                      report_v2: MINIMAL_REPORT,
+                      structured_evaluation: null,
+                      evaluation_engine_version: '1.1.0',
+                      input_hash: 'hash-2',
+                      prompt_version: 'p2',
+                      model_name: 'gpt-4o',
+                      trigger: 'matching_report',
+                      generated_at: '2026-08-14T00:00:00.000Z',
+                      created_at: '2026-08-14T00:00:00.000Z',
+                    },
+                    error: null,
+                  }),
                 }),
               }),
             }),
@@ -63,9 +65,11 @@ describe('getLatestPersonalReportV2', () => {
       from: () => ({
         select: () => ({
           eq: () => ({
-            order: () => ({
-              limit: () => ({
-                maybeSingle: async () => ({ data: null, error: null }),
+            is: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: async () => ({ data: null, error: null }),
+                }),
               }),
             }),
           }),
@@ -83,9 +87,14 @@ describe('getLatestPersonalReportV2', () => {
       from: () => ({
         select: () => ({
           eq: () => ({
-            order: () => ({
-              limit: () => ({
-                maybeSingle: async () => ({ data: null, error: { code: '42P01', message: 'relation does not exist' } }),
+            is: () => ({
+              order: () => ({
+                limit: () => ({
+                  maybeSingle: async () => ({
+                    data: null,
+                    error: { code: '42P01', message: 'relation does not exist' },
+                  }),
+                }),
               }),
             }),
           }),
@@ -105,16 +114,18 @@ describe('listPersonalReportV2Versions', () => {
       from: () => ({
         select: () => ({
           eq: () => ({
-            order: async () => ({
+            is: () => ({
+              order: async () => ({
               data: [
                 { id: 'v2', generated_at: '2026-08-14T00:00:00.000Z', trigger: 'matching_report' },
                 { id: 'v1', generated_at: '2026-08-13T00:00:00.000Z', trigger: null },
               ],
               error: null,
+              }),
+              }),
             }),
           }),
         }),
-      }),
     };
 
     const { versions, migrationMissing } = await listPersonalReportV2Versions(supabase as never, 'user-1');
@@ -130,7 +141,7 @@ describe('listPersonalReportV2Versions', () => {
       from: () => ({
         select: () => ({
           eq: () => ({
-            order: async () => ({ data: null, error: { code: '42P01', message: 'relation does not exist' } }),
+            is: () => ({ order: async () => ({ data: null, error: { code: '42P01', message: 'relation does not exist' } }) }),
           }),
         }),
       }),
@@ -154,6 +165,7 @@ describe('getPersonalReportV2Version', () => {
               eq: (column2: string, value2: unknown) => {
                 capturedFilters = { ...capturedFilters, [column2]: value2 };
                 return {
+                  is: () => ({
                   maybeSingle: async () => ({
                     data: {
                       id: 'v1',
@@ -168,6 +180,7 @@ describe('getPersonalReportV2Version', () => {
                       created_at: '2026-08-13T00:00:00.000Z',
                     },
                     error: null,
+                  }),
                   }),
                 };
               },
@@ -188,7 +201,7 @@ describe('getPersonalReportV2Version', () => {
         select: () => ({
           eq: () => ({
             eq: () => ({
-              maybeSingle: async () => ({ data: null, error: null }),
+              is: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
             }),
           }),
         }),
@@ -251,6 +264,26 @@ describe('createPersonalReportV2Version', () => {
 
     expect(record).toBeNull();
     expect(error?.migrationMissing).toBe(true);
+  });
+
+  it('rejects application writes that omit required lineage', async () => {
+    const insert = vi.fn();
+    const result = await createPersonalReportV2Version({ from: () => ({ insert }) } as never, {
+      userId: 'user-1',
+      applicationId: 'app-1',
+      reportV2: MINIMAL_REPORT as never,
+      evaluation: {} as never,
+      inputHash: 'hash-5',
+      engineVersion: '1.1.0',
+      promptVersion: 'p5',
+      modelName: 'gpt-4o',
+      trigger: 'manual',
+      confirmedSnapshotId: 'snapshot-1',
+    });
+
+    expect(result.record).toBeNull();
+    expect(result.error?.message).toContain('lineage');
+    expect(insert).not.toHaveBeenCalled();
   });
 });
 

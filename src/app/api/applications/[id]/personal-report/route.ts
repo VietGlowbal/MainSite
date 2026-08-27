@@ -25,6 +25,27 @@ const bodySchema = z.object({
 
 type Params = { params: Promise<{ id: string }> };
 
+function publicGeneration(job: Awaited<ReturnType<typeof getApplicationPersonalReportGeneration>>['job']) {
+  if (!job) return null;
+  const safeErrorCodes = new Set([
+    'SNAPSHOT_MISSING',
+    'INSUFFICIENT_EVIDENCE',
+    'MIGRATION_MISSING',
+    'NOT_CONFIGURED',
+    'AI_GENERATION_FAILED',
+    'WORKER_ERROR',
+  ]);
+  return {
+    status: job.status,
+    force_requested: job.force_requested,
+    confirmed_snapshot_id: job.confirmed_snapshot_id,
+    input_hash: job.input_hash,
+    report_version_id: job.report_version_id,
+    error_code: job.error_code && safeErrorCodes.has(job.error_code) ? job.error_code : null,
+    error_message: job.status === 'blocked' ? 'Could not create the report. Please try again.' : null,
+  };
+}
+
 export async function GET(_request: Request, context: Params) {
   const { id: applicationId } = await context.params;
   const supabase = await createClient();
@@ -67,7 +88,7 @@ export async function GET(_request: Request, context: Params) {
     confirmed: Boolean(owned.data.candidate_confirmed_at && snapshotId),
     confirmedSnapshotId: snapshotId,
     stale,
-    generation: generation.job,
+    generation: publicGeneration(generation.job),
   });
 }
 
@@ -97,6 +118,21 @@ export async function POST(request: Request, context: Params) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
 
+  const currentGeneration = await getApplicationPersonalReportGeneration(supabase, {
+    userId: user.id,
+    applicationId,
+  });
+  if (currentGeneration.migrationMissing) {
+    return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
+  }
+  if (
+    currentGeneration.job &&
+    ['pending', 'processing', 'retry'].includes(currentGeneration.job.status) &&
+    (!parsed.data.force || currentGeneration.job.force_requested)
+  ) {
+    return NextResponse.json({ applicationId, queued: true, generation: publicGeneration(currentGeneration.job), stale: true }, { status: 202 });
+  }
+
   const limited = applyRateLimit(personalReportLimiter, `${user.id}:${applicationId}`, 'Personal Report');
   if (limited) return limited;
 
@@ -105,8 +141,9 @@ export async function POST(request: Request, context: Params) {
     applicationId,
     trigger: parsed.data.trigger ?? 'manual',
     force: parsed.data.force,
+    idempotencyKey: parsed.data.idempotencyKey,
   });
   if (queued.migrationMissing) return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
   if (!queued.job) return NextResponse.json({ error: 'Could not queue Personal Report generation.' }, { status: 502 });
-  return NextResponse.json({ applicationId, queued: true, generation: queued.job, stale: true }, { status: 202 });
+  return NextResponse.json({ applicationId, queued: true, generation: publicGeneration(queued.job), stale: true }, { status: 202 });
 }

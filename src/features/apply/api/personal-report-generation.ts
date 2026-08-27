@@ -69,6 +69,7 @@ export type RegeneratePersonalReportResult =
   | { status: 'cached'; record: PersonalReportV2Record }
   | { status: 'regenerated'; record: PersonalReportV2Record }
   | { status: 'snapshot_missing' }
+  | { status: 'insufficient_evidence' }
   | { status: 'migration_missing' }
   | { status: 'not_configured' }
   | { status: 'error'; message: string; record: PersonalReportV2Record | null };
@@ -146,10 +147,11 @@ function stateEvidenceBank(
   const documents = state.evidenceBank
     .filter((item) => item.kind === 'document')
     .map((item) => {
-      const raw = (item.raw ?? {}) as { id?: unknown; fileName?: unknown };
+      const raw = (item.raw ?? {}) as { id?: unknown; fileName?: unknown; storageKey?: unknown };
       return {
         id: typeof raw.id === 'string' ? raw.id : item.id.slice('document:'.length),
         fileName: typeof raw.fileName === 'string' ? raw.fileName : item.label,
+        storageKey: typeof raw.storageKey === 'string' ? raw.storageKey : null,
       };
     });
   const followUpAnswers = state.activities.flatMap((item) => item.followUpAnswers ?? []);
@@ -387,6 +389,16 @@ async function regenerateApplicationPersonalReport(
     generatedAt,
     evidenceBank,
   });
+  if (
+    !deterministicReport.coreIdentity.available &&
+    !deterministicReport.drivingForce.available &&
+    !deterministicReport.signaturePattern.available &&
+    !deterministicReport.emergingThemes.available &&
+    !deterministicReport.personalPositioning.available &&
+    !deterministicReport.proofOfMe.available
+  ) {
+    return { status: 'insufficient_evidence' };
+  }
   const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
   const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey || !isOpenAIConfigured()) return { status: 'not_configured' };

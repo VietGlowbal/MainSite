@@ -30,11 +30,20 @@ async function processJob(job: Awaited<ReturnType<typeof claimApplicationPersona
       });
       return 'complete';
     }
-    if (result.status === 'snapshot_missing' || result.status === 'migration_missing' || result.status === 'not_configured') {
+    if (
+      result.status === 'snapshot_missing' ||
+      result.status === 'insufficient_evidence' ||
+      result.status === 'migration_missing' ||
+      result.status === 'not_configured'
+    ) {
       await blockApplicationPersonalReportGeneration(
         job.id,
         result.status.toUpperCase(),
-        result.status === 'snapshot_missing' ? 'Confirm Candidate Information before generating this report.' : 'Generation prerequisites are unavailable.',
+        result.status === 'snapshot_missing'
+          ? 'Confirm Candidate Information before generating this report.'
+          : result.status === 'insufficient_evidence'
+            ? 'Add reflections, activities, or achievements before generating this report.'
+            : 'Generation prerequisites are unavailable.',
       );
       return 'blocked';
     }

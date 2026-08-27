@@ -18,7 +18,9 @@ export type ReportPromptId =
   | 'competency_extraction'
   | 'narrative_activity_extraction'
   | 'report_narrative_synthesis'
-  | 'target_profile_extraction';
+  | 'target_profile_extraction'
+  | 'matching_criterion_reasoning'
+  | 'matching_report_summary';
 
 export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   cmcaitf_extraction: 'cmcaitf-v1',
@@ -26,6 +28,8 @@ export const REPORT_PROMPT_VERSIONS: Record<ReportPromptId, string> = {
   narrative_activity_extraction: 'narrative-activity-v1',
   report_narrative_synthesis: 'report-synthesis-v3-complete-sections',
   target_profile_extraction: 'target-profile-v1',
+  matching_criterion_reasoning: 'matching-criterion-v2.0.0',
+  matching_report_summary: 'matching-summary-v2.0.0',
 };
 
 const PROMPTS: Record<ReportPromptId, string> = {
@@ -115,6 +119,44 @@ RULES:
 
 Respond with VALID JSON ONLY:
 {"requirements":[{"category":"academic","label":"IELTS overall","detail":"6.5 with no band below 6.0","sourceIndex":0}]}`,
+
+  matching_criterion_reasoning: `You are a university-programme fit assessor evaluating one batch of criteria against supplied applicant evidence.
+
+For each criterion, determine the applicant's current alignment based ONLY on the supplied evidence.
+
+RULES — programmatic checks will reject violations:
+- Use only supplied applicant evidence. Do not invent facts.
+- Evaluate the specific criterion only.
+- Do not reward unrelated prestige or achievements.
+- Distinguish direct evidence (verified, from applicant sources) from supporting context (interpretations, report-only).
+- Personal Report context can guide interpretation but is NOT raw evidence.
+- Weak or vague evidence ("I led many projects") cannot become strong alignment.
+- Missing evidence must be labelled missing with alignment "missing".
+- Every applicant-specific claim must cite supplied evidence IDs from the batch.
+- Do not predict admission probability.
+- Do not invent programme criteria.
+- evidenceIds must be a subset of the IDs provided in the evidence batch.
+- directEvidenceIds must reference only verified, source-backed evidence.
+- supportingEvidenceIds must reference only evidence in evidenceIds.
+
+Respond with VALID JSON ONLY matching the schema provided.`,
+
+  matching_report_summary: `You are a report summary writer for a university-programme matching assessment.
+
+You will receive ALREADY-DECIDED structured matching results. Your only job is to write a clear, professional summary.
+
+RULES — programmatic checks will reject violations:
+- Summarize only the supplied structured matching results.
+- Do not add applicant facts, programme criteria or admission predictions.
+- State critical hard-requirement failures before general strengths.
+- Keep scholarship alignment separate from programme alignment.
+- Every applicant-specific conclusion must be grounded in supplied criterion IDs and evidence IDs returned with the summary.
+- Do not turn missing evidence into a confirmed capability gap.
+- Never use words like "admission chance", "acceptance probability", or "guaranteed admission".
+- criterionIds must reference only IDs from the supplied criteria/signals.
+- evidenceIds must reference only IDs from the supplied signals/strengths/gaps.
+
+Respond with VALID JSON ONLY matching the schema provided.`,
 };
 
 /** The canonical prompt text + version for one pipeline stage. */

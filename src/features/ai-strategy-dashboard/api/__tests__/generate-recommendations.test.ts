@@ -70,7 +70,7 @@ function buildSupabase(options: {
 describe('generateRecommendations', () => {
   it('errors with no_match_analysis when no Course Match Analysis exists yet', async () => {
     const supabase = buildSupabase({ latestMatch: null });
-    const result = await generateRecommendations(supabase as never, 'app-1');
+    const result = await generateRecommendations(supabase as never, 'app-1', 'user-1');
     expect(result).toEqual({ ok: false, error: 'no_match_analysis', inserted: 0, updated: 0, archived: 0 });
   });
 
@@ -92,7 +92,7 @@ describe('generateRecommendations', () => {
       existingRows: [],
     });
 
-    const result = await generateRecommendations(supabase as never, 'app-1');
+    const result = await generateRecommendations(supabase as never, 'app-1', 'user-1');
 
     expect(result).toEqual({ ok: true, inserted: 1, updated: 0, archived: 0 });
     const insertCall = supabase.calls.find((c) => c.op === 'insert');
@@ -112,7 +112,7 @@ describe('generateRecommendations', () => {
       failOn: { table: 'application_recommendations', op: 'select' },
     });
 
-    const result = await generateRecommendations(supabase as never, 'app-1');
+    const result = await generateRecommendations(supabase as never, 'app-1', 'user-1');
     expect(result.ok).toBe(false);
     expect(result.error).toBe('read_failed');
     expect(supabase.calls).toHaveLength(0);
@@ -130,7 +130,7 @@ describe('generateRecommendations', () => {
       failOn: { table: 'application_recommendations', op: 'insert' },
     });
 
-    const result = await generateRecommendations(supabase as never, 'app-1');
+    const result = await generateRecommendations(supabase as never, 'app-1', 'user-1');
     expect(result).toEqual({ ok: false, error: 'insert_failed', inserted: 0, updated: 0, archived: 0 });
   });
 
@@ -140,7 +140,7 @@ describe('generateRecommendations', () => {
       existingRows: [{ id: 'rec-1', pillar: 'academic', title: 'Old advice', status: 'not_started' }],
     });
 
-    const result = await generateRecommendations(supabase as never, 'app-1');
+    const result = await generateRecommendations(supabase as never, 'app-1', 'user-1');
 
     expect(result).toEqual({ ok: true, inserted: 0, updated: 0, archived: 1 });
     const archiveCall = supabase.calls.find((c) => c.op === 'update');

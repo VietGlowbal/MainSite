@@ -457,7 +457,6 @@ export async function buildProfileEvaluationInput(args: {
   });
 
   const profile = context.profile as Record<string, unknown>;
-  const intendedDirection = text(profile.goals) || null;
 
   // The seven Personal Reflection answers — previously ignored entirely
   // (plan Task 6 regression). They now (a) join the vagueness-graded written
@@ -474,14 +473,20 @@ export async function buildProfileEvaluationInput(args: {
     value: signal.value,
   }));
   const reflectionMotivations = reflectionAnalysis.signals
-    .filter((signal) =>
-      ['interests_motivations', 'academic_direction', 'career_direction'].includes(signal.dimension),
-    )
     .map((signal) => ({
       id: `profile:reflection_${signal.key}`,
       label: `Reflection — ${signal.dimension.replaceAll('_', ' ')}`,
       value: signal.value,
     }));
+
+  const reflectionDirection = reflectionAnalysis.signals
+    .filter((signal) => signal.key === 'q5' || signal.key === 'q6')
+    .map((signal) => signal.value)
+    .filter(Boolean)
+    .join('; ');
+  const intendedDirection = [text(profile.goals), reflectionDirection]
+    .filter(Boolean)
+    .join('; ') || null;
 
   return {
     subjectId,

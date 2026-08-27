@@ -196,4 +196,46 @@ describe('MatchingReportView', () => {
       '/ai-strategy/application-1/strategy-report',
     );
   });
+
+  it('renders V2 report when present, with separated missing evidence and scholarship', () => {
+    const v2Data = {
+      ...data,
+      analysis: {
+        ...data.analysis,
+        reportV2: {
+          contractVersion: 'matching-report-v2',
+          overall: { fitScore: 90, fitLabel: 'strong_current_alignment', summary: '', summaryCriterionIds: [], summaryEvidenceIds: [], strongestAlignment: [], mostImportantGaps: [], evidenceCoverage: 90 },
+          academicRequirements: [
+            { criterionId: 'hard1', status: 'does_not_meet', explanation: 'Missing GPA', applicantValue: null, requiredValue: null, evidenceIds: [] }
+          ],
+          strengths: [ { id: 's1', title: 'Strong Math', description: '', whyItMatters: 'Math', criterionIds: [], evidenceIds: [], strength: 'high', positioningUse: null } ],
+          gaps: [
+            { id: 'g1', type: 'capability_gap', title: 'Real Gap', whyItMatters: 'Gap', description: '', criterionIds: [], currentEvidenceIds: [], severity: 'critical', fixability: 'low', evidenceNeeded: [], priority: 1 },
+            { id: 'g2', type: 'missing_evidence', title: 'Missing Proof', whyItMatters: 'Proof', description: '', criterionIds: [], currentEvidenceIds: [], severity: 'medium', fixability: 'high', evidenceNeeded: [], priority: 2 }
+          ],
+          criteria: [],
+          programmeAlignment: [],
+          positioningOpportunities: [],
+          scholarshipAlignment: { criteria: [], strengths: [], gaps: [] },
+          metadata: {} as any,
+          programmeFit: {} as any,
+          dependencyIndex: {}
+        }
+      }
+    } as any;
+
+    render(<MatchingReportView data={v2Data} migrationMissing={false} />);
+    
+    // It should render V2 headings
+    expect(screen.getByText('Critical Requirements')).toBeDefined();
+    expect(screen.getAllByText('Strongest Alignment Areas').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Important Gaps').length).toBeGreaterThan(0);
+    expect(screen.getByText('Programme Criteria Breakdown')).toBeDefined();
+    expect(screen.getByText('Positioning Opportunities')).toBeDefined();
+    expect(screen.getByText('Scholarship Alignment')).toBeDefined();
+    expect(screen.getByText('Evidence that improves assessment')).toBeDefined();
+  });
 });
+
+
+

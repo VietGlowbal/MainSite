@@ -40,11 +40,7 @@ export function usePlusStatus(initialPlus?: boolean) {
     if (initialPlus !== undefined) return;
     if (typeof window === 'undefined') return;
 
-    if (cachedIsPlus !== null) {
-      setFetchedIsPlus(cachedIsPlus);
-      setFetching(false);
-      return;
-    }
+    if (cachedIsPlus !== null) return;
 
     let isMounted = true;
     async function checkEntitlement(): Promise<boolean> {

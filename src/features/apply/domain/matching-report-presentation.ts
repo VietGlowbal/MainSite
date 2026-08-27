@@ -186,7 +186,7 @@ export function readinessPercent(fit: ProgrammeFit): number | null {
 }
 
 export type EligibilityRow = {
-  key: keyof ProgrammeFit['eligibility'];
+  key: string;
   label: string;
   status: 'met' | 'not_met' | 'unknown';
   statusLabel: string;
@@ -277,5 +277,21 @@ export function matchSummary(fit: ProgrammeFit): MatchSummary {
     confidencePercent: fit.confidence,
     alignment: alignmentLevel(percent),
     blockingRequirements: eligibilityRows(fit).filter((row) => row.blocking),
+  };
+}
+import type { MatchingReportV2 } from '@/lib/ai/matching/domain';
+
+export function getV2Sections(report: MatchingReportV2) {
+  return {
+    snapshot: report.overall,
+    criticalRequirements: report.academicRequirements,
+    strengths: report.strengths,
+    gaps: report.gaps,
+    criteriaBreakdown: report.programmeAlignment,
+    opportunities: report.positioningOpportunities,
+    scholarship: report.scholarshipAlignment,
+    evidenceNeeded: report.gaps.filter(
+      (g) => g.type === 'missing_evidence' || g.type === 'weak_evidence' || g.evidenceNeeded.length > 0,
+    ),
   };
 }

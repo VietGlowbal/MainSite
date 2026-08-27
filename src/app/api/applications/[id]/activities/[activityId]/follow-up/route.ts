@@ -19,7 +19,7 @@ import {
  *
  * Body `{ action: 'question' }` returns the NEXT question (deterministic
  * priority ladder; AI phrasing falls back to templates).
- * Body `{ action: 'answer', dimension, round, question, answer }` appends an
+ * Body `{ action: 'answer', questionId, dimension, round, question, answer }` appends an
  * append-only row to `student_activity_follow_up_answers` (see
  * supabase-application-personal-report-state.sql); a later round supersedes,
  * never deletes, the previous one. Resolved answers are copied into THIS
@@ -37,6 +37,7 @@ const bodySchema = z.discriminatedUnion('action', [
   z.object({ action: z.literal('question') }),
   z.object({
     action: z.literal('answer'),
+    questionId: z.string().uuid(),
     dimension: z.enum(FOLLOW_UP_DIMENSION_PRIORITY),
     round: z.number().int().min(1).max(MAX_ATTEMPTS_PER_DIMENSION),
     question: z.string().min(4).max(500),
@@ -96,18 +97,29 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Activity not found' }, { status: 404 });
   }
 
-  // Existing answers for THIS activity + application — the deterministic
-  // engine's entire state. Columns mirror student_activity_follow_up_answers
-  // exactly; a phantom column here would degrade to an empty state and
-  // silently disable every cap below.
-  const answersResult = await supabase
-    .from('student_activity_follow_up_answers')
-    .select('id, dimension, question, answer, round')
-    .eq('user_id', user.id)
-    .eq('application_id', applicationId)
-    .eq('activity_id', activityId)
-    .order('created_at', { ascending: true });
-  if (answersResult.error && !migrationMissing(answersResult.error)) {
+  const [answersResult, questionsResult] = await Promise.all([
+    supabase
+      .from('student_activity_follow_up_answers')
+      .select('id, question_id, dimension, question, answer, round')
+      .eq('user_id', user.id)
+      .eq('application_id', applicationId)
+      .eq('activity_id', activityId)
+      .order('created_at', { ascending: true }),
+    supabase
+      .from('student_activity_follow_up_questions')
+      .select('id, dimension, question, round, answered_at, created_at')
+      .eq('user_id', user.id)
+      .eq('application_id', applicationId)
+      .eq('activity_id', activityId)
+      .order('created_at', { ascending: true }),
+  ]);
+  if (migrationMissing(answersResult.error) || migrationMissing(questionsResult.error)) {
+    return NextResponse.json(
+      { error: 'Follow-up persistence is not available yet. Please try again shortly.' },
+      { status: 503 },
+    );
+  }
+  if (answersResult.error || questionsResult.error) {
     logger.error('roadmap_tasks_generate', answersResult.error, {
       userId: user.id,
       applicationId,
@@ -118,22 +130,19 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   const rows = ((answersResult.data ?? []) as Array<Record<string, unknown>>);
+  const questionRows = ((questionsResult.data ?? []) as Array<Record<string, unknown>>);
   const existingAnswers: ExistingAnswer[] = rows.map((row, index) => ({
-    questionId: typeof row.id === 'string' ? row.id : `stored:${index}`,
+    questionId: typeof row.question_id === 'string' ? row.question_id : `stored:${index}`,
     dimension: String(row.dimension) as FollowUpDimension,
     round: Number(row.round ?? 1),
     answer: String(row.answer ?? ''),
   }));
-  // Every question previously ASKED (its text is persisted with its answer)
-  // so the engine never re-issues the same phrasing.
-  const askedQuestions = rows
-    .filter((row) => typeof row.question === 'string' && (row.question as string).trim())
-    .map((row, index) => ({
-      id: typeof row.id === 'string' ? row.id : `asked:${index}`,
-      dimension: String(row.dimension) as FollowUpDimension,
-      text: String(row.question),
-      askedAt: new Date(0).toISOString(),
-    }));
+  const askedQuestions = questionRows.map((row) => ({
+    id: String(row.id),
+    dimension: String(row.dimension) as FollowUpDimension,
+    text: String(row.question),
+    askedAt: String(row.created_at ?? new Date(0).toISOString()),
+  }));
 
   if (parsedBody.action === 'question') {
     if (existingAnswers.length >= MAX_QUESTIONS_PER_ACTIVITY || askedQuestions.length >= MAX_QUESTIONS_PER_ACTIVITY) {
@@ -148,13 +157,46 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (!next.ok) {
       return NextResponse.json({ status: 'complete', question: null });
     }
+    const questionWrite = await supabase
+      .from('student_activity_follow_up_questions')
+      .insert({
+        user_id: user.id,
+        application_id: applicationId,
+        activity_id: activityId,
+        dimension: next.question.dimension,
+        round: next.question.round,
+        question: next.question.text,
+      })
+      .select('id, dimension, round, question')
+      .single();
+    let savedQuestion = questionWrite.data as Record<string, unknown> | null;
+    if (questionWrite.error?.code === '23505') {
+      const existingQuestion = await supabase
+        .from('student_activity_follow_up_questions')
+        .select('id, dimension, round, question')
+        .eq('user_id', user.id)
+        .eq('application_id', applicationId)
+        .eq('activity_id', activityId)
+        .eq('dimension', next.question.dimension)
+        .eq('round', next.question.round)
+        .maybeSingle();
+      if (existingQuestion.error || !existingQuestion.data) {
+        return NextResponse.json({ error: 'Could not save follow-up question' }, { status: 500 });
+      }
+      savedQuestion = existingQuestion.data as Record<string, unknown>;
+    } else if (questionWrite.error || !savedQuestion) {
+      return NextResponse.json(
+        { error: migrationMissing(questionWrite.error) ? 'Follow-up persistence is not available yet. Please try again shortly.' : 'Could not save follow-up question' },
+        { status: migrationMissing(questionWrite.error) ? 503 : 500 },
+      );
+    }
     return NextResponse.json({
       status: 'ok',
       question: {
-        id: next.question.id,
-        dimension: next.question.dimension,
-        round: next.question.round,
-        text: next.question.text,
+        id: savedQuestion.id,
+        dimension: savedQuestion.dimension,
+        round: savedQuestion.round,
+        text: savedQuestion.question,
         phrasing: next.question.phrasing,
       },
     });
@@ -162,17 +204,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   // ── action === 'answer': enforce the hard limits before persisting ────────
   const sameDimensionCount = existingAnswers.filter((entry) => entry.dimension === parsedBody.dimension).length;
-  // Stale-replay guard: the submitted question text must be NEW for this
-  // activity — a client replaying a question that already has an answer (or
-  // fabricating one from an old screen) gets 409 instead of duplicate history.
-  const questionReplay = askedQuestions.some(
-    (asked) => asked.text.trim().toLowerCase() === parsedBody.question.trim().toLowerCase(),
-  );
+  const targetQuestion = questionRows.find((row) => String(row.id) === parsedBody.questionId);
   if (
     existingAnswers.length >= MAX_QUESTIONS_PER_ACTIVITY ||
     sameDimensionCount >= MAX_ATTEMPTS_PER_DIMENSION ||
     sameDimensionCount + 1 !== parsedBody.round ||
-    questionReplay
+    !targetQuestion ||
+    targetQuestion.answered_at != null ||
+    String(targetQuestion.dimension) !== parsedBody.dimension ||
+    Number(targetQuestion.round) !== parsedBody.round ||
+    String(targetQuestion.question).trim() !== parsedBody.question.trim()
   ) {
     // Covers stale/duplicated submissions from an out-of-date client.
     return NextResponse.json({ error: 'STALE_QUESTION' }, { status: 409 });
@@ -184,6 +225,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       user_id: user.id,
       application_id: applicationId,
       activity_id: activityId,
+      question_id: parsedBody.questionId,
       dimension: parsedBody.dimension,
       question: parsedBody.question,
       answer: parsedBody.answer,
@@ -193,6 +235,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     .single();
 
   if (inserted.error) {
+    if (inserted.error.code === 'P0001') {
+      return NextResponse.json({ error: 'STALE_QUESTION' }, { status: 409 });
+    }
     if (migrationMissing(inserted.error)) {
       return NextResponse.json(
         { error: 'Follow-up persistence is not available yet. Please try again shortly.' },
@@ -208,32 +253,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: 'Could not save your answer' }, { status: 500 });
   }
 
-  // Supersede markers are WRITTEN here: every earlier non-superseded answer
-  // for the same dimension now points at the new row. The snapshot loader
-  // filters `superseded_by_answer_id IS NULL`, so without this update old
-  // rounds would leak into the next confirmed snapshot. Non-fatal on failure:
-  // the answer itself is already persisted append-only.
-  const newAnswerId = (inserted.data as { id?: string } | null)?.id;
-  if (newAnswerId) {
-    const superseded = await supabase
-      .from('student_activity_follow_up_answers')
-      .update({ superseded_by_answer_id: newAnswerId })
-      .eq('application_id', applicationId)
-      .eq('activity_id', activityId)
-      .eq('dimension', parsedBody.dimension)
-      .is('superseded_by_answer_id', null)
-      .neq('id', newAnswerId);
-    if (superseded.error && !migrationMissing(superseded.error)) {
-      logger.warn('roadmap_tasks_generate', {
-        userId: user.id,
-        applicationId,
-        stage: 'persisted',
-        outcome: 'failed',
-        durationMs: getElapsed(),
-        metadata: { operation: 'activity_follow_up_supersede', answerId: newAnswerId, message: String(superseded.error.message ?? '') },
-      });
-    }
-  }
+  // A database trigger marks prior rounds superseded and consumes the issued
+  // question in the same transaction as this insert.
 
   logger.info('roadmap_tasks_generate', {
     userId: user.id,

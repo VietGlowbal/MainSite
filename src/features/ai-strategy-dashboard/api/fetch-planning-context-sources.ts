@@ -26,12 +26,11 @@ import type {
   ApplicationTask,
   CourseApplicationStatus,
 } from '@/lib/apply-types';
-import { getLatestPersonalReportV2 } from '@/features/apply/api';
+import { getLatestApplicationPersonalReportV2 } from '@/features/apply/api';
 import {
   enforceFitClassification,
   programmeFitSchema,
 } from '@/features/apply/domain';
-import { MATCH_PROMPT_VERSION } from '@/lib/match-insights';
 import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
 import { recommendationFromRow } from '../domain/recommendation';
 import { strategyRecommendationFromRow, strategyReportV2FromRow } from '../domain/strategy-recommendation';
@@ -500,9 +499,10 @@ export async function fetchPlanningContextSources(
   // ── 7. Profile Evaluation (Personal Report V2 → structured_evaluation) ────
   let profileEvaluation: PlanningContextSources['profileEvaluation'] = null;
 
-  // Reuse the repository's own query semantics (ordering, selection, userId filter).
+  // Reuse the application-scoped repository query; never let another
+  // application (or a legacy archive row) feed this planner context.
   const { record: reportRecord, migrationMissing: reportMigMissing } =
-    await getLatestPersonalReportV2(supabase, userId);
+    await getLatestApplicationPersonalReportV2(supabase, { userId, applicationId });
 
   if (reportMigMissing) {
     diagnostics.push({ source: 'student_personal_report_versions', status: 'unavailable', message: 'migration missing' });
@@ -531,8 +531,8 @@ export async function fetchPlanningContextSources(
   // ── 8. Programme Fit (F5 — application_match_analyses) ────────────────────
   let programmeFit: PlanningContextSources['programmeFit'] = null;
 
-  // Mirror the canonical runtime: filter by MATCH_PROMPT_VERSION_V2 and
-  // analysis_status = 'complete', newest first.
+  // Consume the canonical F5 columns written alongside Matching Report V2;
+  // the planner does not parse report_v2 itself.
   const { data: matchRow, error: matchError } = await supabase
     .from('application_match_analyses')
     .select(
@@ -540,8 +540,8 @@ export async function fetchPlanningContextSources(
       'fit_limitations,input_hash,prompt_version,f5_engine_version,model_name,improvement_actions,created_at',
     )
     .eq('application_id', applicationId)
+    .eq('user_id', userId)
     .eq('analysis_status', 'complete')
-    .eq('prompt_version', MATCH_PROMPT_VERSION)
     .eq('f5_engine_version', F5_ENGINE_VERSION)
     .order('created_at', { ascending: false })
     .limit(1)

@@ -154,7 +154,7 @@ export function ScholarshipDirectoryClient({
     initialFocusUniversity,
     initialQueryState,
   ]);
-  const getPrefetchHrefs = useCallback(scholarshipPrefetchHrefs, []);
+  const getPrefetchHrefs = useCallback((data: ScholarshipDirectoryResponse) => scholarshipPrefetchHrefs(data), []);
   const directory = useDirectoryNavigation({
     pathname: '/scholarships',
     endpoint: '/api/directory/scholarships',

@@ -9,7 +9,6 @@ import {
   STRATEGY_REPORT_V2_PROMPT_VERSION,
 } from '@/lib/ai/strategy-recommendation';
 import { defaultOpenAIModel } from '@/lib/ai/openai-client';
-import { MATCH_PROMPT_VERSION } from '@/lib/match-insights';
 import { createClient } from '@/lib/supabase/server';
 import { logger, startTimer } from '@/server/observability';
 import { F5_ENGINE_VERSION } from '@/shared/evaluation/f5-programme-fit';
@@ -120,8 +119,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       .from('application_match_analyses')
       .select('*')
       .eq('application_id', applicationId)
+      .eq('user_id', user.id)
       .eq('analysis_status', 'complete')
-      .eq('prompt_version', MATCH_PROMPT_VERSION)
       .eq('f5_engine_version', F5_ENGINE_VERSION)
       .order('created_at', { ascending: false })
       .limit(1)

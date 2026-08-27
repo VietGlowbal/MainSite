@@ -68,3 +68,4 @@ next-env.d.ts
 /.playwright-cli
 /.codex-tmp
 /.codegraph
+*.exe

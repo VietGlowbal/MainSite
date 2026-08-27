@@ -5,6 +5,8 @@ import {
   hashCandidateSnapshotPayload,
   loadCandidateReflection,
   loadResolvedFollowUpAnswers,
+  ApplicationLookupError,
+  ApplicationNotOwnedError,
   verifiedApplicationId,
 } from '@/features/apply/api';
 import { candidateReadiness, candidateSnapshotPayloadSchema } from '@/features/apply/domain';
@@ -63,17 +65,41 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // A bare POST with no body is still valid — the legacy, non-application-
-  // scoped entry points never sent one and never will.
+  // A bare POST with no body is still valid for the legacy entry point. Once a
+  // caller supplies an application id, malformed or unowned ids must fail
+  // closed rather than silently becoming a global confirmation.
   let requestedApplicationId: string | undefined;
   try {
-    const raw = await request.json();
-    const parsed = bodySchema.safeParse(raw);
-    if (parsed.success) requestedApplicationId = parsed.data.applicationId;
+    const raw = await request.text();
+    if (raw.trim()) {
+      let parsedJson: unknown;
+      try {
+        parsedJson = JSON.parse(raw);
+      } catch {
+        return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
+      }
+      const parsed = bodySchema.safeParse(parsedJson);
+      if (!parsed.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
+      requestedApplicationId = parsed.data.applicationId;
+    }
   } catch {
-    // No body, or invalid JSON — treated the same as "no applicationId given".
+    return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
   }
-  const applicationId = await verifiedApplicationId(supabase, user.id, requestedApplicationId);
+  let applicationId: string | undefined;
+  if (requestedApplicationId) {
+    try {
+      applicationId = await verifiedApplicationId(supabase, user.id, requestedApplicationId, { strict: true });
+    } catch (error) {
+      if (error instanceof ApplicationNotOwnedError) {
+        return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
+      }
+      if (error instanceof ApplicationLookupError) {
+        return NextResponse.json({ error: 'Could not verify application.' }, { status: 503 });
+      }
+      throw error;
+    }
+    if (!applicationId) return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
+  }
 
   logger.info('candidate_confirmation', {
     userId: user.id,
@@ -138,7 +164,11 @@ export async function POST(request: Request) {
 
   const payload = candidateSnapshotPayloadSchema.parse({
     reflection,
-    documents: documents.map((document) => ({ id: document.id, fileName: document.fileName })),
+    documents: documents.map((document) => ({
+      id: document.id,
+      fileName: document.fileName,
+      storageKey: document.storageKey,
+    })),
     // Schema v2: resolved Adaptive Follow-up answers are frozen INTO the
     // snapshot at confirm time, so a report derived from this snapshot reads
     // the answers as the student confirmed them. Tolerant loader — an
@@ -153,115 +183,70 @@ export async function POST(request: Request) {
   const nowIso = new Date().toISOString();
   const payloadHash = hashCandidateSnapshotPayload(payload);
 
-  // The snapshot this new row SUPERSEDES — the latest existing row for THIS
-  // application (a reopened application's re-confirm appends; a first confirm
-  // has nothing to point at). Resolved within application scope only, never
-  // across applications.
-  let supersedesSnapshotId: string | undefined;
+  let savedRow: { id: string; confirmed_at: string };
   if (applicationId) {
-    const previous = await supabase
-      .from('confirmed_candidate_snapshots')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('application_id', applicationId)
-      .order('confirmed_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (!previous.error && previous.data?.id) {
-      supersedesSnapshotId = previous.data.id as string;
-    }
-  }
-
-  const baseRow = {
-    user_id: user.id,
-    payload,
-    schema_version: 2 as const,
-    confirmed_at: nowIso,
-    payload_hash: payloadHash,
-    ...(supersedesSnapshotId ? { supersedes_snapshot_id: supersedesSnapshotId } : {}),
-    ...(applicationId ? { application_id: applicationId } : {}),
-  };
-
-  /**
-   * Layered insert tolerant of ANY of the newer columns not being migrated yet:
-   * each failure naming a missing column drops exactly that column and retries
-   * (`ADD COLUMN IF NOT EXISTS` migrations may land in any order). An error
-   * that names none of our columns is real and fails the request.
-   */
-  const DROPPABLE_COLUMNS = ['supersedes_snapshot_id', 'payload_hash', 'application_id'] as const;
-  function missingColumnsFrom(error: { code?: string; message?: string }): string[] {
-    if (!migrationMissing(error)) return [];
-    const named = new Set<string>();
-    for (const match of error.message?.matchAll(/column "?([a-z_]+)"? does not exist/gi) ?? []) {
-      named.add(match[1]);
-    }
-    return DROPPABLE_COLUMNS.filter((column) => named.has(column));
-  }
-
-  const workingRow: Record<string, unknown> = { ...baseRow };
-  let inserted: Awaited<ReturnType<typeof insertSnapshot>> | null = null;
-  let lastError: { code?: string; message?: string } | null = null;
-  while (!inserted) {
-    const attempt = await insertSnapshot(workingRow);
-    if (!attempt.error) {
-      inserted = attempt;
-      break;
-    }
-    lastError = attempt.error;
-    const missing = missingColumnsFrom(attempt.error);
-    if (missing.length === 0 || missing.length === Object.keys(workingRow).length) break;
-    for (const column of missing) delete workingRow[column];
-  }
-
-  async function insertSnapshot(row: Record<string, unknown>) {
-    return supabase.from('confirmed_candidate_snapshots').insert(row).select('id, confirmed_at').single();
-  }
-
-  if (inserted?.error == null && inserted?.data) {
-    // success path continues below
-  } else if (lastError && migrationMissing(lastError)) {
-    logger.warn('candidate_confirmation', {
-      userId: user.id,
-      applicationId,
-      stage: 'persisted',
-      outcome: 'migration_missing',
-      durationMs: getElapsed(),
+    // Application confirmation is one transaction: the database function locks
+    // the application row, re-checks idempotency, appends the revision and sets
+    // candidate_confirmed_at. Never degrade this path to a global/partial row.
+    const atomic = await supabase.rpc('confirm_application_candidate_snapshot', {
+      p_application_id: applicationId,
+      p_payload: payload,
+      p_payload_hash: payloadHash,
+      p_confirmed_at: nowIso,
     });
-    return NextResponse.json(
-      { error: 'Confirmation is not available yet. Please try again shortly.' },
-      { status: 503 },
-    );
-  } else if (lastError) {
-    logger.error('candidate_confirmation', lastError, {
-      userId: user.id,
-      applicationId,
-      stage: 'persisted',
-      durationMs: getElapsed(),
-    });
-    return NextResponse.json({ error: 'Could not confirm your information' }, { status: 500 });
-  }
-
-  const savedRow = inserted!.data as { id: string; confirmed_at: string };
-
-  // Per-application lock — the actual gate `fetchOnboardingState` reads for
-  // THIS application going forward. Best-effort against a missing migration,
-  // same "costs the lock, not the confirmation" rule the global update below
-  // already follows: the snapshot above is the real record of what happened,
-  // and a re-POST is safe (idempotent) if this update never lands.
-  if (applicationId) {
-    const appLocked = await supabase
-      .from('course_applications')
-      .update({ candidate_confirmed_at: nowIso })
-      .eq('id', applicationId);
-    if (appLocked.error) {
-      logger.warn('candidate_confirmation', {
+    if (atomic.error) {
+      if (atomic.error.code === 'P0001' && /application not found/i.test(atomic.error.message ?? '')) {
+        return NextResponse.json({ error: 'Application not found.' }, { status: 404 });
+      }
+      logger.error('candidate_confirmation', atomic.error, {
         userId: user.id,
         applicationId,
         stage: 'persisted',
-        outcome: 'app_lock_failed',
+        outcome: migrationMissing(atomic.error) ? 'migration_missing' : 'failed',
         durationMs: getElapsed(),
       });
+      return NextResponse.json(
+        { error: migrationMissing(atomic.error) ? 'Confirmation is not available yet. Please try again shortly.' : 'Could not confirm your information' },
+        { status: migrationMissing(atomic.error) ? 503 : 500 },
+      );
     }
+    const row = (Array.isArray(atomic.data) ? atomic.data[0] : atomic.data) as
+      | { snapshot_id?: unknown; confirmed_at?: unknown }
+      | null;
+    if (!row?.snapshot_id || typeof row.confirmed_at !== 'string') {
+      return NextResponse.json({ error: 'Could not confirm your information' }, { status: 500 });
+    }
+    savedRow = { id: String(row.snapshot_id), confirmed_at: row.confirmed_at };
+  } else {
+    // Legacy global confirmation remains for callers that send no application
+    // context. It is deliberately not available to application requests.
+    const nowIsoLegacy = nowIso;
+    const baseRow = {
+      user_id: user.id,
+      payload,
+      schema_version: 2 as const,
+      confirmed_at: nowIsoLegacy,
+      payload_hash: payloadHash,
+    };
+    const inserted = await supabase
+      .from('confirmed_candidate_snapshots')
+      .insert(baseRow)
+      .select('id, confirmed_at')
+      .single();
+    if (inserted.error || !inserted.data) {
+      logger.error('candidate_confirmation', inserted.error, {
+        userId: user.id,
+        applicationId,
+        stage: 'persisted',
+        outcome: migrationMissing(inserted.error) ? 'migration_missing' : 'failed',
+        durationMs: getElapsed(),
+      });
+      return NextResponse.json(
+        { error: migrationMissing(inserted.error) ? 'Confirmation is not available yet. Please try again shortly.' : 'Could not confirm your information' },
+        { status: migrationMissing(inserted.error) ? 503 : 500 },
+      );
+    }
+    savedRow = inserted.data as { id: string; confirmed_at: string };
   }
 
   const locked = await supabase
@@ -276,6 +261,20 @@ export async function POST(request: Request) {
         applicationId,
         stage: 'persisted',
         outcome: 'profile_lock_migration_missing',
+        durationMs: getElapsed(),
+      });
+      return NextResponse.json({
+        snapshotId: savedRow.id,
+        status: 'confirmed',
+        confirmedAt: savedRow.confirmed_at,
+      });
+    }
+    if (applicationId) {
+      logger.warn('candidate_confirmation', {
+        userId: user.id,
+        applicationId,
+        stage: 'persisted',
+        outcome: 'failed',
         durationMs: getElapsed(),
       });
       return NextResponse.json({

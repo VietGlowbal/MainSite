@@ -69,9 +69,7 @@ export function AdminCoordinatorsClient() {
   const [query, setQuery] = useState('');
   const [copied, setCopied] = useState<string | null>(null);
 
-  async function load() {
-    setState({ kind: 'loading' });
-    try {
+  async function fetchState(): Promise<Extract<LoadState, { kind: 'ready' }>> {
       const [ambRes, usersRes] = await Promise.all([
         fetch('/api/admin/coordinators', { cache: 'no-store' }),
         fetch('/api/admin/users', { cache: 'no-store' }),
@@ -84,7 +82,13 @@ export function AdminCoordinatorsClient() {
       const usersBody = usersRes.ok
         ? ((await usersRes.json()) as { users: AdminUser[] })
         : { users: [] };
-      setState({ kind: 'ready', ambassadors: ambBody.ambassadors, users: usersBody.users });
+      return { kind: 'ready', ambassadors: ambBody.ambassadors, users: usersBody.users };
+  }
+
+  async function load() {
+    setState({ kind: 'loading' });
+    try {
+      setState(await fetchState());
     } catch (err) {
       setState({
         kind: 'error',
@@ -94,7 +98,19 @@ export function AdminCoordinatorsClient() {
   }
 
   useEffect(() => {
-    void load();
+    let active = true;
+    void fetchState().then(
+      (next) => active && setState(next),
+      (err: unknown) =>
+        active &&
+        setState({
+          kind: 'error',
+          message: err instanceof Error ? err.message : 'Failed to load.',
+        }),
+    );
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function setCoordinator(userId: string, next: boolean) {

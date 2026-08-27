@@ -70,6 +70,7 @@ export default async function PlannerPage({
     .from('application_match_analyses')
     .select('current_match_score, max_possible_match_score')
     .eq('application_id', applicationId)
+    .eq('user_id', user.id)
     .eq('analysis_status', 'complete')
     .order('created_at', { ascending: false })
     .limit(1)
@@ -77,7 +78,7 @@ export default async function PlannerPage({
 
   let generationError: string | null = null;
   if (latestMatch && plannerMode === 'legacy') {
-    const result = await generateRecommendations(supabase, applicationId);
+    const result = await generateRecommendations(supabase, applicationId, user.id);
     if (!result.ok && result.error !== 'no_match_analysis') {
       generationError =
         "We couldn't refresh your recommendations just now. Showing what's already saved.";

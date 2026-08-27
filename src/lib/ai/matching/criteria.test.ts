@@ -176,4 +176,20 @@ describe('normalizeTargetProfile', () => {
       expect.arrayContaining(['minimum', 'mathematics', 'grade', 'required']),
     );
   });
+
+  it('does not turn a merely named portfolio/document into a hard gate', () => {
+    const criteria = normalizeTargetProfile({
+      ...profile,
+      requirements: [{
+        id: 'app-optional',
+        category: 'application',
+        label: 'Portfolio',
+        detail: 'Examples of prior work may be included.',
+        status: 'optional',
+        sourceRefs: ['source:application'],
+        missingInformation: null,
+      }],
+    });
+    expect(criteria[0]?.requirementType).not.toBe('hard');
+  });
 });

@@ -112,7 +112,9 @@ export type CatalogueProjection = {
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) {
     const items = value.map(canonical);
-    return items.sort((a, b) => stableKey(a).localeCompare(stableKey(b)));
+    return items.sort((a, b) =>
+      stableKey(a).localeCompare(stableKey(b)) || JSON.stringify(a).localeCompare(JSON.stringify(b)),
+    );
   }
   if (value && typeof value === 'object') {
     return Object.fromEntries(
@@ -140,12 +142,21 @@ function stableKey(item: unknown): string {
 /** Fingerprint of the catalogue sources behind a profile — the cache key. */
 export function canonicalSourceFingerprint(projection: CatalogueProjection): string {
   const material = [
-    { kind: 'programme', row: projection.programme },
-    { kind: 'admission_requirements', rows: projection.admissionRequirements },
+    { kind: 'programme', row: projection.programme ? canonicalSourceRow(projection.programme) : null },
+    { kind: 'admission_requirements', rows: projection.admissionRequirements.map(canonicalSourceRow) },
     { kind: 'field_values', rows: projection.fieldValues.map(pickIdentity) },
-    { kind: 'sources', rows: projection.sources },
+    {
+      kind: 'sources',
+      rows: projection.sources.map(({ ref, url, title, contentHash }) => ({ ref, url, title, contentHash })),
+    },
   ];
   return createSha256(JSON.stringify(canonical(material)));
+}
+
+function canonicalSourceRow(row: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(row).filter(([key]) => !/(^|_)(retrieved|updated|created)_at$/.test(key) && key !== 'source_retrieved_at'),
+  );
 }
 
 /** Field values are hashed by identity+status, not full payload, so pure re-fetches with identical content still hit cache via updated_at changes only when real. */
@@ -155,8 +166,6 @@ function pickIdentity(row: Record<string, unknown>): Record<string, unknown> {
     field_name: row['field_name'] ?? null,
     value: row['value'] ?? null,
     verification_status: row['verification_status'] ?? null,
-    retrieved_at: row['retrieved_at'] ?? null,
-    source_run_id: row['source_run_id'] ?? null,
   };
 }
 

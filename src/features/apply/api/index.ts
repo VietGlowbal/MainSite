@@ -13,16 +13,24 @@ export {
   stableHash,
 } from './candidate-context';
 export {
+  getLatestApplicationMatchingAnalysis,
+  getMatchingAnalysisByInputHash,
   getMatchingReportPageData,
   listMatchingApplications,
+  saveApplicationMatchingAnalysis,
 } from './ai-reports-repository';
+export type { MatchingAnalysisRecord } from './ai-reports-repository';
 export {
   hashCandidateSnapshotPayload,
   loadCandidateReflection,
   loadResolvedFollowUpAnswers,
 } from './candidate-snapshot-repository';
 export type { CandidateFollowUpAnswer, CandidateReflectionRecord } from './candidate-snapshot-repository';
-export { verifiedApplicationId } from './verified-application-id';
+export {
+  ApplicationLookupError,
+  ApplicationNotOwnedError,
+  verifiedApplicationId,
+} from './verified-application-id';
 export { loadApplicationSummary } from './application-summary';
 export { loadProfileReview } from './profile-review';
 export type {
@@ -34,6 +42,7 @@ export type {
 export {
   getApplicationProfileAnalysisVersion,
   getLatestApplicationProfileAnalysis,
+  saveApplicationAcademicAssessment,
 } from './application-analysis-repository';
 export type { StoredApplicationProfileAnalysis } from './application-analysis-repository';
 export {

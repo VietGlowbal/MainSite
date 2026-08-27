@@ -64,6 +64,7 @@ export const PERSONAL_REPORT_TRANSLATIONS: Record<string, string> = {
   'Back to latest': 'Quay lại phiên bản mới nhất',
   'Could not load that version.': 'Không thể tải phiên bản đó.',
   'Could not save the report.': 'Không thể lưu báo cáo.',
+  'Application report lineage is incomplete.': 'Thiếu đầy đủ lineage của báo cáo ứng dụng.',
   'Could not save the application analysis.': 'Không thể lưu phân tích hồ sơ ứng tuyển.',
   'The AI could not produce a valid report. Your previous report, if any, has been kept.':
     'AI chưa thể tạo báo cáo hợp lệ. Báo cáo trước đó, nếu có, vẫn được giữ nguyên.',

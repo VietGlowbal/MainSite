@@ -63,16 +63,20 @@ export function AdminUsersClient() {
   const [error, setError] = useState<string | null>(null);
   const [page, setPage] = useState(1);
 
-  async function load() {
-    setState({ kind: 'loading' });
-    try {
+  async function fetchState(): Promise<Extract<LoadState, { kind: 'ready' }>> {
       const res = await fetch('/api/admin/users', { cache: 'no-store' });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
         throw new Error(body.error ?? `Request failed (${res.status})`);
       }
       const body = (await res.json()) as { users: AdminUser[] };
-      setState({ kind: 'ready', users: body.users });
+      return { kind: 'ready', users: body.users };
+  }
+
+  async function load() {
+    setState({ kind: 'loading' });
+    try {
+      setState(await fetchState());
     } catch (err) {
       setState({
         kind: 'error',
@@ -82,7 +86,19 @@ export function AdminUsersClient() {
   }
 
   useEffect(() => {
-    void load();
+    let active = true;
+    void fetchState().then(
+      (next) => active && setState(next),
+      (err: unknown) =>
+        active &&
+        setState({
+          kind: 'error',
+          message: err instanceof Error ? err.message : 'Failed to load users.',
+        }),
+    );
+    return () => {
+      active = false;
+    };
   }, []);
 
   async function setAdmin(userId: string, nextIsAdmin: boolean) {

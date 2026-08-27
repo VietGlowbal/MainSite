@@ -152,7 +152,48 @@ describe('PersonalReportV2View — inline report answers', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create report' }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/applications/app-1/personal-report'));
-    await screen.findByRole('heading', { name: 'Olivia' });
+    await screen.findByRole('heading', { name: 'Olivia' }, { timeout: 5_000 });
+  });
+
+  it('does not accept the old report while the queued job is still processing', async () => {
+    const user = userEvent.setup();
+    let polls = 0;
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/applications/app-1/personal-report' && init?.method === 'POST') {
+        return Promise.resolve(new Response(JSON.stringify({ queued: true, generation: { status: 'pending' } }), { status: 202 }));
+      }
+      if (url === '/api/applications/app-1/personal-report') {
+        polls += 1;
+        const complete = polls > 1;
+        return Promise.resolve(new Response(JSON.stringify({
+          reportV2: reportWithDrivingForceGap(),
+          versionId: complete ? 'v2' : 'v1',
+          generatedAt: '2026-08-14T01:00:00.000Z',
+          generation: complete
+            ? { status: 'complete', report_version_id: 'v2' }
+            : { status: 'processing', report_version_id: 'v1' },
+        }), { status: 200 }));
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <PersonalReportV2View
+        initialReport={null}
+        initialVersionId={null}
+        initialVersions={[]}
+        applicationId="app-1"
+        applicationConfirmed
+        studentName="Olivia"
+        generatedAt={null}
+        migrationMissing={false}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Create report' }));
+    await screen.findByRole('heading', { name: 'Olivia' }, { timeout: 5_000 });
+    expect(polls).toBeGreaterThanOrEqual(2);
   });
 
   it('expands the Driving Force gap action into a textarea, saves it, and regenerates the report', async () => {

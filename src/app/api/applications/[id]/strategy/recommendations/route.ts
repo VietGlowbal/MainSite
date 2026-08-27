@@ -78,7 +78,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const application = await loadApplication(supabase, applicationId, user.id);
   if (!application) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
-  const result = await generateRecommendations(supabase, applicationId);
+  const result = await generateRecommendations(supabase, applicationId, user.id);
   if (result.error === 'no_match_analysis') {
     return NextResponse.json(
       { error: 'Run your Course Match Analysis first so we know what to recommend.' },

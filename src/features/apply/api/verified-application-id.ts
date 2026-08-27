@@ -1,5 +1,19 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+export class ApplicationNotOwnedError extends Error {
+  constructor() {
+    super('Application not found');
+    this.name = 'ApplicationNotOwnedError';
+  }
+}
+
+export class ApplicationLookupError extends Error {
+  constructor() {
+    super('Application lookup failed');
+    this.name = 'ApplicationLookupError';
+  }
+}
+
 /**
  * `applicationId` arrives from the client, ultimately derived from a
  * `?return=` URL — untrusted, the same caveat
@@ -14,13 +28,16 @@ export async function verifiedApplicationId(
   supabase: SupabaseClient,
   userId: string,
   applicationId: string | undefined,
+  options?: { strict?: boolean },
 ): Promise<string | undefined> {
   if (!applicationId) return undefined;
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('course_applications')
     .select('id')
     .eq('id', applicationId)
     .eq('user_id', userId)
     .maybeSingle();
+  if (error && options?.strict) throw new ApplicationLookupError();
+  if (!data && options?.strict) throw new ApplicationNotOwnedError();
   return data ? applicationId : undefined;
 }

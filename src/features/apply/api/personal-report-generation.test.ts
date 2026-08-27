@@ -104,6 +104,16 @@ const FAKE_RECORD = {
   createdAt: '2026-08-13T00:00:00.000Z',
 };
 
+const NARRATIVE_READY_REPORT = {
+  overallEvidenceConfidence: 'medium',
+  coreIdentity: { available: true },
+  drivingForce: { available: false },
+  signaturePattern: { available: false },
+  emergingThemes: { available: false },
+  personalPositioning: { available: false },
+  proofOfMe: { available: false },
+};
+
 describe('regeneratePersonalReport', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -247,7 +257,7 @@ describe('regeneratePersonalReport', () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
-    mocks.buildPersonalReport.mockReturnValue({ overallEvidenceConfidence: 'medium' });
+    mocks.buildPersonalReport.mockReturnValue(NARRATIVE_READY_REPORT);
     mocks.createPersonalReportV2Version.mockResolvedValue({
       record: { id: 'application-v1', generatedAt: '2026-08-26T00:00:00.000Z' },
       error: null,
@@ -300,6 +310,34 @@ describe('regeneratePersonalReport', () => {
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
+  it('blocks an application report with no evidence-backed section instead of retrying AI', async () => {
+    mocks.isOpenAIConfigured.mockReturnValue(true);
+    mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
+    mocks.runProfileEvaluation.mockReturnValue({ confidence: 'low' });
+    mocks.buildPersonalReport.mockReturnValue({
+      coreIdentity: { available: false },
+      drivingForce: { available: false },
+      signaturePattern: { available: false },
+      emergingThemes: { available: false },
+      personalPositioning: { available: false },
+      proofOfMe: { available: false },
+    });
+    const originalKey = process.env.OPENAI_API_KEY;
+    process.env.OPENAI_API_KEY = 'test-key';
+
+    const { regeneratePersonalReport } = await importSubject();
+    const result = await regeneratePersonalReport({
+      supabase: {} as never,
+      userId: 'user-1',
+      applicationId: 'app-a',
+      trigger: 'manual',
+    });
+
+    process.env.OPENAI_API_KEY = originalKey;
+    expect(result.status).toBe('insufficient_evidence');
+    expect(mocks.synthesizePersonalReportNarrative).not.toHaveBeenCalled();
+  });
+
   it('returns the application cache for the same snapshot and contracts', async () => {
     mocks.getLatestApplicationPersonalReportV2.mockResolvedValue({
       migrationMissing: false,
@@ -344,7 +382,7 @@ describe('regeneratePersonalReport', () => {
       },
       evidenceBank: { claims: [] },
     });
-    mocks.buildPersonalReport.mockReturnValue({ overallEvidenceConfidence: 'medium' });
+    mocks.buildPersonalReport.mockReturnValue(NARRATIVE_READY_REPORT);
     mocks.createPersonalReportV2Version.mockResolvedValue({
       record: { id: 'application-v2', generatedAt: '2026-08-26T00:00:00.000Z' },
       error: null,
@@ -391,7 +429,7 @@ describe('regeneratePersonalReport', () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
-    mocks.buildPersonalReport.mockReturnValue({ overallEvidenceConfidence: 'medium', limitations: [] });
+    mocks.buildPersonalReport.mockReturnValue({ ...NARRATIVE_READY_REPORT, limitations: [] });
     mocks.synthesizePersonalReportNarrative.mockResolvedValue(null);
     mocks.createPersonalReportV2Version.mockResolvedValue({
       record: { id: 'application-v1', generatedAt: '2026-08-26T00:00:00.000Z' },

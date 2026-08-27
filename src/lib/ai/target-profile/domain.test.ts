@@ -89,6 +89,28 @@ describe('canonicalSourceFingerprint', () => {
     };
     expect(canonicalSourceFingerprint(changed)).not.toBe(canonicalSourceFingerprint(PROJECTION));
   });
+
+  it('ignores retrieval timestamps when the ingested content is unchanged', () => {
+    const refreshed: CatalogueProjection = {
+      ...PROJECTION,
+      programme: { ...PROJECTION.programme, source_retrieved_at: '2026-08-27T00:00:00Z' },
+      sources: PROJECTION.sources.map((source) => ({
+        ...source,
+        retrievedAt: '2026-08-27T00:00:00Z',
+      })),
+      fieldValues: PROJECTION.fieldValues.map((field) => ({
+        ...field,
+        retrieved_at: '2026-08-27T00:00:00Z',
+      })),
+      admissionRequirements: ADMISSION_ROWS.map((row) => ({
+        ...row,
+        source_retrieved_at: '2026-08-27T00:00:00Z',
+        updated_at: '2026-08-27T00:00:00Z',
+      })),
+    };
+
+    expect(canonicalSourceFingerprint(refreshed)).toBe(canonicalSourceFingerprint(PROJECTION));
+  });
 });
 
 describe('targetProfileSchema', () => {
