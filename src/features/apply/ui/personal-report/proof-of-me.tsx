@@ -70,6 +70,11 @@ export function ProofOfMeView({
     <SectionShell eyebrow={t('Proof of Me')} title={t('The evidence behind every claim above')}>
       {section.available ? (
         <div className="flex flex-col gap-gb-2xl">
+          {section.narrative ? (
+            <p className="text-gb-sm leading-relaxed text-fg-tertiary" data-no-auto-translate>
+              {section.narrative}
+            </p>
+          ) : null}
           <div className="grid gap-gb-lg sm:grid-cols-2">
             {section.cards.map((card) => (
               <div key={card.activityId} className="flex flex-col gap-gb-md rounded-gb-xl border border-line p-gb-lg" data-no-auto-translate>

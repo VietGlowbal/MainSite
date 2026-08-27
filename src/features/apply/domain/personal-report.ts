@@ -418,6 +418,8 @@ export type EmergingTheme = {
 export type EmergingThemesSection = {
   available: boolean;
   themes: EmergingTheme[];
+  /** AI-authored synthesis over the deterministic theme facts; absent on historical versions. */
+  narrative?: string | null;
   insufficientData: InsufficientData | null;
 };
 
@@ -627,6 +629,8 @@ export type ProofCard = {
 export type ProofOfMeSection = {
   available: boolean;
   cards: ProofCard[];
+  /** AI-authored synthesis over the deterministic proof cards; absent on historical versions. */
+  narrative?: string | null;
   insufficientData: InsufficientData | null;
 };
 

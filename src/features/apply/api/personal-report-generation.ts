@@ -396,6 +396,7 @@ async function regenerateApplicationPersonalReport(
         intendedDirection: evaluationInput.intendedDirection,
         apiKey: process.env.OPENAI_API_KEY,
         model: modelName,
+        grounding: { evaluationInput, evaluation, evidenceBank },
       });
       reportV2 = synthesis
         ? applyNarrativeSynthesis(deterministicReport, synthesis)
@@ -581,6 +582,7 @@ async function regenerateLegacyPersonalReport(
       intendedDirection: evaluationInput.intendedDirection,
       apiKey,
       model: modelName,
+      grounding: { evaluationInput, evaluation, evidenceBank: null },
     });
     const synthesizedReport = applyNarrativeSynthesis(deterministicReport, synthesis);
 

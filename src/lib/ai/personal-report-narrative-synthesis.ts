@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { PersonalReportV2, SignaturePatternStepKey } from '@/features/apply/domain';
-import type { EvidenceRef } from '@/shared/evaluation';
+import type { EvidenceRef, ProfileEvaluation, ProfileEvaluationInput } from '@/shared/evaluation';
+import type { EvidenceBank } from '@/shared/evidence/domain';
 import { openAiJsonCompletion } from './openai-client';
 import { getReportPrompt } from './runtime/prompt-registry';
 
@@ -42,6 +43,11 @@ const textSectionSchema = z.object({
   evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
 });
 
+const narrativeSectionSchema = z.object({
+  paragraphs: z.array(z.string().min(1).max(700)).min(1).max(MAX_PARAGRAPHS),
+  evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
+});
+
 const snapshotSchema = z.object({
   summary: z.string().min(1).max(1600).refine(
     (value) => value.trim().split(/\s+/).length >= 150 && value.trim().split(/\s+/).length <= 200,
@@ -59,6 +65,8 @@ const synthesisResponseSchema = z.object({
     .nullable(),
   coreIdentity: textSectionSchema.nullable(),
   drivingForce: textSectionSchema.nullable(),
+  signaturePattern: narrativeSectionSchema.nullable(),
+  emergingThemes: narrativeSectionSchema.nullable(),
   personalPositioning: z
     .object({
       statement: z.string().min(1).max(500),
@@ -66,6 +74,7 @@ const synthesisResponseSchema = z.object({
       evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
     })
     .nullable(),
+  proofOfMe: narrativeSectionSchema.nullable(),
   overallSummary: z
     .object({
       paragraphs: z.array(z.string().min(1).max(700)).min(1).max(MAX_PARAGRAPHS),
@@ -79,8 +88,17 @@ export type PersonalReportNarrativeSynthesis = {
   overview: { summary: string; evidenceRefs: EvidenceRef[] } | null;
   coreIdentity: { headline: string; paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
   drivingForce: { headline: string; paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
+  signaturePattern: { paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
+  emergingThemes: { paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
   personalPositioning: { statement: string; whyItFits: string[]; evidenceRefs: EvidenceRef[] } | null;
+  proofOfMe: { paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
   overallSummary: { paragraphs: string[]; evidenceRefs: EvidenceRef[] } | null;
+};
+
+export type PersonalReportNarrativeGrounding = {
+  evaluationInput: ProfileEvaluationInput;
+  evaluation: ProfileEvaluation;
+  evidenceBank: EvidenceBank | null;
 };
 
 // Prompt text and its version live in the shared registry (Task 2).
@@ -103,6 +121,15 @@ type SynthesisSectionInput = {
     patternStrength: 'established' | 'emerging';
     steps: { key: SignaturePatternStepKey; label: string; description: string }[];
   } | null;
+  emergingThemes: {
+    themes: Array<{
+      theme: string;
+      status: string;
+      explanation: string;
+      supportingExperiences: string[];
+      limitation: string;
+    }>;
+  } | null;
   personalPositioning: {
     identity: string | null;
     signatureStrength: string | null;
@@ -113,6 +140,17 @@ type SynthesisSectionInput = {
     coherent: boolean;
     directionAligned: boolean;
     credible: boolean;
+  } | null;
+  proofOfMe: {
+    cards: Array<{
+      title: string;
+      role: string | null;
+      personalContribution: string | null;
+      outcome: string | null;
+      competenciesDemonstrated: string[];
+      evidenceStrength: string;
+      verificationStatus: string;
+    }>;
   } | null;
   overall: {
     confidence: string;
@@ -154,6 +192,17 @@ export function synthesisInputFromReport(
           })),
         }
       : null,
+    emergingThemes: report.emergingThemes.available
+      ? {
+          themes: report.emergingThemes.themes.map((theme) => ({
+            theme: theme.theme,
+            status: theme.statusLabel,
+            explanation: theme.explanation,
+            supportingExperiences: theme.supportingExperiences,
+            limitation: theme.limitation,
+          })),
+        }
+      : null,
     personalPositioning: report.personalPositioning.available
       ? {
           identity: report.coreIdentity.recurringBehaviours[0] ?? report.coreIdentity.recurringRole,
@@ -167,6 +216,19 @@ export function synthesisInputFromReport(
           coherent: report.personalPositioning.coherent,
           directionAligned: report.personalPositioning.directionAligned,
           credible: report.personalPositioning.credible,
+        }
+      : null,
+    proofOfMe: report.proofOfMe.available
+      ? {
+          cards: report.proofOfMe.cards.map((card) => ({
+            title: card.title,
+            role: card.role,
+            personalContribution: card.personalContribution,
+            outcome: card.outcome,
+            competenciesDemonstrated: card.competenciesDemonstrated,
+            evidenceStrength: card.evidenceStrength,
+            verificationStatus: card.verificationStatus,
+          })),
         }
       : null,
     overall: {
@@ -190,6 +252,39 @@ export function allowedEvidenceIdsFor(report: PersonalReportV2): Map<string, Evi
   return new Map(all.map((ref) => [ref.id, ref]));
 }
 
+function evidenceMap(refs: readonly EvidenceRef[]): Map<string, EvidenceRef> {
+  return new Map(refs.map((ref) => [ref.id, ref]));
+}
+
+function allowedEvidenceIdsBySection(report: PersonalReportV2) {
+  return {
+    coreIdentity: evidenceMap(report.coreIdentity.evidenceRefs),
+    drivingForce: evidenceMap(report.drivingForce.evidenceRefs),
+    signaturePattern: evidenceMap(report.signaturePattern.evidenceRefs),
+    emergingThemes: evidenceMap(report.emergingThemes.themes.flatMap((theme) => theme.evidenceRefs)),
+    personalPositioning: evidenceMap(report.personalPositioning.evidenceRefs),
+    proofOfMe: evidenceMap(report.proofOfMe.cards.flatMap((card) => card.evidenceRefs)),
+  };
+}
+
+function reasoningBundle(grounding: PersonalReportNarrativeGrounding) {
+  const { evaluationInput } = grounding;
+  return {
+    extractedInputs: {
+      writtenFields: evaluationInput.writtenFields,
+      reflectionRecords: evaluationInput.reflectionRecords,
+      competencyClaims: evaluationInput.competencyClaims,
+      evidenceItems: evaluationInput.evidenceItems,
+      narrativeActivities: evaluationInput.narrativeActivities,
+      profileMotivations: evaluationInput.profileMotivations ?? [],
+      reflectionAnswerSignals: evaluationInput.reflectionAnswerSignals ?? [],
+      intendedDirection: evaluationInput.intendedDirection,
+    },
+    evaluation: grounding.evaluation,
+    evidenceBank: grounding.evidenceBank,
+  };
+}
+
 function hydrate(ids: readonly string[], allowed: ReadonlyMap<string, EvidenceRef>): EvidenceRef[] | null {
   const refs: EvidenceRef[] = [];
   for (const id of ids) {
@@ -205,20 +300,38 @@ export async function synthesizePersonalReportNarrative(args: {
   intendedDirection: string | null;
   apiKey: string;
   model: string;
+  grounding: PersonalReportNarrativeGrounding;
 }): Promise<PersonalReportNarrativeSynthesis | null> {
   const { report, intendedDirection, apiKey, model } = args;
   const sectionInput = synthesisInputFromReport(report, intendedDirection);
   const allowed = allowedEvidenceIdsFor(report);
+  const allowedBySection = allowedEvidenceIdsBySection(report);
 
   // Nothing available to write about yet — do not call the model for an
   // empty report; every section would come back null anyway.
-  if (!sectionInput.coreIdentity && !sectionInput.drivingForce && !sectionInput.personalPositioning) {
+  if (
+    !sectionInput.coreIdentity &&
+    !sectionInput.drivingForce &&
+    !sectionInput.signaturePattern &&
+    !sectionInput.emergingThemes &&
+    !sectionInput.personalPositioning &&
+    !sectionInput.proofOfMe
+  ) {
     return null;
   }
 
   const userPrompt = JSON.stringify({
     input: sectionInput,
-    allowedEvidenceIds: [...allowed.keys()],
+    reasoningBundle: reasoningBundle(args.grounding),
+    allowedEvidenceIds: {
+      all: [...allowed.keys()],
+      coreIdentity: [...allowedBySection.coreIdentity.keys()],
+      drivingForce: [...allowedBySection.drivingForce.keys()],
+      signaturePattern: [...allowedBySection.signaturePattern.keys()],
+      emergingThemes: [...allowedBySection.emergingThemes.keys()],
+      personalPositioning: [...allowedBySection.personalPositioning.keys()],
+      proofOfMe: [...allowedBySection.proofOfMe.keys()],
+    },
   });
 
   try {
@@ -236,6 +349,17 @@ export async function synthesizePersonalReportNarrative(args: {
     const cleaned = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
     const parsed = synthesisResponseSchema.parse(JSON.parse(cleaned));
 
+    if (
+      Boolean(parsed.coreIdentity) !== Boolean(sectionInput.coreIdentity) ||
+      Boolean(parsed.drivingForce) !== Boolean(sectionInput.drivingForce) ||
+      Boolean(parsed.signaturePattern) !== Boolean(sectionInput.signaturePattern) ||
+      Boolean(parsed.emergingThemes) !== Boolean(sectionInput.emergingThemes) ||
+      Boolean(parsed.personalPositioning) !== Boolean(sectionInput.personalPositioning) ||
+      Boolean(parsed.proofOfMe) !== Boolean(sectionInput.proofOfMe)
+    ) {
+      throw new Error('Narrative synthesis must cover every available report section.');
+    }
+
     const snapshot = parsed.snapshot ? { summary: parsed.snapshot.summary } : undefined;
     const overview = parsed.overview
       ? (() => {
@@ -247,7 +371,7 @@ export async function synthesizePersonalReportNarrative(args: {
     const coreIdentity =
       parsed.coreIdentity && sectionInput.coreIdentity
         ? (() => {
-            const evidenceRefs = hydrate(parsed.coreIdentity!.evidenceIds, allowed);
+          const evidenceRefs = hydrate(parsed.coreIdentity!.evidenceIds, allowedBySection.coreIdentity);
             return evidenceRefs
               ? { headline: parsed.coreIdentity!.headline, paragraphs: parsed.coreIdentity!.paragraphs, evidenceRefs }
               : null;
@@ -257,17 +381,33 @@ export async function synthesizePersonalReportNarrative(args: {
     const drivingForce =
       parsed.drivingForce && sectionInput.drivingForce
         ? (() => {
-            const evidenceRefs = hydrate(parsed.drivingForce!.evidenceIds, allowed);
+          const evidenceRefs = hydrate(parsed.drivingForce!.evidenceIds, allowedBySection.drivingForce);
             return evidenceRefs
               ? { headline: parsed.drivingForce!.headline, paragraphs: parsed.drivingForce!.paragraphs, evidenceRefs }
               : null;
           })()
         : null;
 
+    const signaturePattern =
+      parsed.signaturePattern && sectionInput.signaturePattern
+        ? (() => {
+            const evidenceRefs = hydrate(parsed.signaturePattern!.evidenceIds, allowedBySection.signaturePattern);
+            return evidenceRefs ? { paragraphs: parsed.signaturePattern!.paragraphs, evidenceRefs } : null;
+          })()
+        : null;
+
+    const emergingThemes =
+      parsed.emergingThemes && sectionInput.emergingThemes
+        ? (() => {
+            const evidenceRefs = hydrate(parsed.emergingThemes!.evidenceIds, allowedBySection.emergingThemes);
+            return evidenceRefs ? { paragraphs: parsed.emergingThemes!.paragraphs, evidenceRefs } : null;
+          })()
+        : null;
+
     const personalPositioning =
       parsed.personalPositioning && sectionInput.personalPositioning
         ? (() => {
-            const evidenceRefs = hydrate(parsed.personalPositioning!.evidenceIds, allowed);
+          const evidenceRefs = hydrate(parsed.personalPositioning!.evidenceIds, allowedBySection.personalPositioning);
             return evidenceRefs
               ? {
                   statement: parsed.personalPositioning!.statement,
@@ -278,6 +418,14 @@ export async function synthesizePersonalReportNarrative(args: {
           })()
         : null;
 
+    const proofOfMe =
+      parsed.proofOfMe && sectionInput.proofOfMe
+        ? (() => {
+            const evidenceRefs = hydrate(parsed.proofOfMe!.evidenceIds, allowedBySection.proofOfMe);
+            return evidenceRefs ? { paragraphs: parsed.proofOfMe!.paragraphs, evidenceRefs } : null;
+          })()
+        : null;
+
     const overallSummary = parsed.overallSummary
       ? (() => {
           const evidenceRefs = hydrate(parsed.overallSummary!.evidenceIds, allowed);
@@ -285,12 +433,26 @@ export async function synthesizePersonalReportNarrative(args: {
         })()
       : null;
 
+    if (
+      (sectionInput.coreIdentity && !coreIdentity) ||
+      (sectionInput.drivingForce && !drivingForce) ||
+      (sectionInput.signaturePattern && !signaturePattern) ||
+      (sectionInput.emergingThemes && !emergingThemes) ||
+      (sectionInput.personalPositioning && !personalPositioning) ||
+      (sectionInput.proofOfMe && !proofOfMe)
+    ) {
+      throw new Error('Narrative synthesis cited evidence outside its section.');
+    }
+
     return {
       ...(snapshot ? { snapshot } : {}),
       overview,
       coreIdentity,
       drivingForce,
+      signaturePattern,
+      emergingThemes,
       personalPositioning,
+      proofOfMe,
       overallSummary,
     };
   } catch (error) {
@@ -334,6 +496,20 @@ export function applyNarrativeSynthesis(
             explanation: synthesis.drivingForce.paragraphs.join('\n\n'),
           }
         : report.drivingForce,
+    signaturePattern:
+      synthesis.signaturePattern && report.signaturePattern.available
+        ? {
+            ...report.signaturePattern,
+            distinctiveness: synthesis.signaturePattern.paragraphs.join('\n\n'),
+          }
+        : report.signaturePattern,
+    emergingThemes:
+      synthesis.emergingThemes && report.emergingThemes.available
+        ? {
+            ...report.emergingThemes,
+            narrative: synthesis.emergingThemes.paragraphs.join('\n\n'),
+          }
+        : report.emergingThemes,
     personalPositioning:
       synthesis.personalPositioning && report.personalPositioning.available
         ? {
@@ -342,6 +518,13 @@ export function applyNarrativeSynthesis(
             whyThisFits: synthesis.personalPositioning.whyItFits,
           }
         : report.personalPositioning,
+    proofOfMe:
+      synthesis.proofOfMe && report.proofOfMe.available
+        ? {
+            ...report.proofOfMe,
+            narrative: synthesis.proofOfMe.paragraphs.join('\n\n'),
+          }
+        : report.proofOfMe,
     overallSummary: synthesis.overallSummary ?? report.overallSummary ?? null,
   };
 }

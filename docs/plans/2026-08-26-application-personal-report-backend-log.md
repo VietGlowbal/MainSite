@@ -312,3 +312,19 @@ Kết luận kiểm chứng từng điểm (có đúng/sai đều ghi rõ):
 - `npm.cmd run verify:pr` passed in a clean worktree with Node 24.19.0: base and strict TypeScript, ESLint (0 errors/7 warnings), 345 test files with 3276 passing tests/2 todo, coverage, and the production build. Build output retains the existing three `geo-content.ts` filesystem-tracing warnings and non-fatal placeholder-Supabase fetch logs.
 - Owner subsequently applied `supabase-application-personal-report-state.sql` to the configured Supabase project. Read-only verification confirmed all 7 new tables, all required lineage columns/types, and 24 legacy report rows retaining `application_id = NULL`; no production writes were made by the verification. Cross-user RLS behavior on a non-production project remains unverified because no such environment is configured.
 - GitNexus was refreshed with `gitnexus analyze` at `dac508e`; explicit impact review found the shared report orchestrator high-risk/critical by graph fan-out (95 impacted symbols, 13 processes) and the canonical POST route critical (38 impacted symbols, 27 processes). Existing uncommitted Matching Report UI changes were kept out of this task commit.
+
+## Task 13 — Complete AI-authored Personal Report generation (approved design)
+
+### Decision log
+
+- **AI input:** use the complete, application-scoped structured/extracted input already pinned to the confirmed snapshot: profile/reflection signals, achievements, activities, follow-up answers, supplements, academic facts, deterministic evaluation, and Evidence Bank provenance. Evidence uploads contribute their existing extracted metadata/provenance; no new binary PDF/DOCX extraction scope.
+- **AI output:** one cohesive synthesis call writes evidence-grounded prose for all six Personal Report sections. Deterministic code remains authoritative for facts, scores, confidence, academic verdicts, availability, chart data, and evidence verification.
+- **Validation:** require section-scoped valid evidence IDs and a complete schema; reject the entire response on a bad citation, schema failure, timeout, or missing grounded section. Do not persist a mixed or deterministic fallback report.
+- **Reliability:** durable application report generation jobs are deduplicated by application/snapshot/input hash, claimed atomically, and retry AI/validation failures automatically with backoff until an AI-complete report is persisted. Missing prerequisites such as API configuration, migrations, or a confirmed snapshot are `blocked`, not retried.
+- **UX:** reuse the existing Personal Report generation animation, backed by persisted job status so progress survives refresh. No new visual surface is needed.
+
+### Alternatives rejected
+
+- Six independent section calls: higher latency/cost and inconsistent cross-section narrative.
+- Infinite retry inside one HTTP request: cannot survive request timeout/reload and risks duplicate provider calls.
+- Deterministic fallback persistence: does not meet the owner requirement for a complete AI-authored report.

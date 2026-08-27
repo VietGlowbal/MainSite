@@ -20,6 +20,11 @@ export function EmergingThemesView({
     <SectionShell eyebrow={t('Emerging Themes')} title={t('What they keep returning to')}>
       {section.available ? (
         <div className="flex flex-col gap-gb-xl">
+          {section.narrative ? (
+            <p className="text-gb-sm leading-relaxed text-fg-tertiary" data-no-auto-translate>
+              {section.narrative}
+            </p>
+          ) : null}
           {themeMaturity && themeMaturity.length > 0 ? (
             <div className="flex flex-col gap-gb-md" data-no-auto-translate>
               <p className="text-gb-xs font-semibold uppercase tracking-wide text-fg-muted">{t('Theme maturity')}</p>
