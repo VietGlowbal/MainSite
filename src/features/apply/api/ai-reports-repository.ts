@@ -1,4 +1,5 @@
-import type { SupabaseClient } from '@supabase/supabase-js';
+﻿import type { SupabaseClient, PostgrestError } from '@supabase/supabase-js';
+import { matchingReportV2Schema, type MatchingReportV2 } from '@/lib/ai/matching/domain';
 import {
   MATCH_PROMPT_VERSION_V2,
   enforceFitClassification,
@@ -215,4 +216,252 @@ export async function getMatchingReportPageData(
     },
     migrationMissing: Boolean(migrationMissing),
   };
+}
+
+export interface MatchingAnalysisRecord {
+  id: string;
+  applicationId: string;
+  userId: string;
+  inputHash: string | null;
+  promptVersion: string;
+  createdAt: string;
+  analysisStatus: string;
+  // Legacy columns (always present)
+  currentMatchScore: number | null;
+  maxPossibleMatchScore: number | null;
+  scoreLabel: string | null;
+  pillars: Record<string, unknown> | null;
+  strengths: string[] | null;
+  weaknesses: string[] | null;
+  improvementActions: unknown[] | null;
+  // F5 columns (present if migrated)
+  fitDimensions: Record<string, unknown> | null;
+  fitEligibility: Record<string, unknown> | null;
+  fitClassification: string | null;
+  fitConfidence: number | null;
+  fitLimitations: string[] | null;
+  // V2 columns (present if report_v2 exists)
+  reportV2: MatchingReportV2 | null;
+  reportContractVersion: string | null;
+  matchingEngineVersion: string | null;
+  targetProfileVersionId: string | null;
+  sourceAnalysisVersionId: string | null;
+  confirmedSnapshotId: string | null;
+  // Lineage
+  sourcePersonalReportVersionId: string | null;
+  sourcePersonalReportInputHash: string | null;
+  f5EngineVersion: string | null;
+}
+
+export function isMigrationMissing(error: PostgrestError | null | undefined): boolean {
+  if (!error) return false;
+  return (
+    error.code === '42P01' ||
+    error.code === '42703' ||
+    error.code === 'PGRST204' ||
+    error.code === 'PGRST205'
+  );
+}
+
+export function toMatchingAnalysisRecord(row: Record<string, unknown>): MatchingAnalysisRecord {
+  let parsedReport: MatchingReportV2 | null = null;
+  if (row.report_v2) {
+    const parsed = matchingReportV2Schema.safeParse(row.report_v2);
+    if (parsed.success) {
+      parsedReport = parsed.data;
+    }
+  }
+
+  return {
+    id: String(row.id || ''),
+    applicationId: String(row.application_id || ''),
+    userId: String(row.user_id || ''),
+    inputHash: typeof row.input_hash === 'string' ? row.input_hash : null,
+    promptVersion: String(row.prompt_version || ''),
+    createdAt: String(row.created_at || ''),
+    analysisStatus: String(row.analysis_status || ''),
+
+    currentMatchScore: typeof row.current_match_score === 'number' ? row.current_match_score : null,
+    maxPossibleMatchScore: typeof row.max_possible_match_score === 'number' ? row.max_possible_match_score : null,
+    scoreLabel: typeof row.score_label === 'string' ? row.score_label : null,
+    pillars: row.pillars && typeof row.pillars === 'object' ? (row.pillars as Record<string, unknown>) : null,
+    strengths: Array.isArray(row.strengths) ? row.strengths.filter((s) => typeof s === 'string') : null,
+    weaknesses: Array.isArray(row.weaknesses) ? row.weaknesses.filter((w) => typeof w === 'string') : null,
+    improvementActions: Array.isArray(row.improvement_actions) ? row.improvement_actions : null,
+
+    fitDimensions: row.fit_dimensions && typeof row.fit_dimensions === 'object' ? (row.fit_dimensions as Record<string, unknown>) : null,
+    fitEligibility: row.fit_eligibility && typeof row.fit_eligibility === 'object' ? (row.fit_eligibility as Record<string, unknown>) : null,
+    fitClassification: typeof row.fit_classification === 'string' ? row.fit_classification : null,
+    fitConfidence: typeof row.fit_confidence === 'number' ? row.fit_confidence : null,
+    fitLimitations: Array.isArray(row.fit_limitations) ? row.fit_limitations.filter((l) => typeof l === 'string') : null,
+
+    reportV2: parsedReport,
+    reportContractVersion: typeof row.report_contract_version === 'string' ? row.report_contract_version : null,
+    matchingEngineVersion: typeof row.matching_engine_version === 'string' ? row.matching_engine_version : null,
+    targetProfileVersionId: typeof row.target_profile_version_id === 'string' ? row.target_profile_version_id : null,
+    sourceAnalysisVersionId: typeof row.source_analysis_version_id === 'string' ? row.source_analysis_version_id : null,
+    confirmedSnapshotId: typeof row.confirmed_snapshot_id === 'string' ? row.confirmed_snapshot_id : null,
+
+    sourcePersonalReportVersionId: typeof row.source_personal_report_version_id === 'string' ? row.source_personal_report_version_id : null,
+    sourcePersonalReportInputHash: typeof row.source_personal_report_input_hash === 'string' ? row.source_personal_report_input_hash : null,
+    f5EngineVersion: typeof row.f5_engine_version === 'string' ? row.f5_engine_version : null,
+  };
+}
+
+export async function getLatestApplicationMatchingAnalysis(
+  supabase: SupabaseClient,
+  scope: { userId: string; applicationId: string },
+  filter?: { promptVersion?: string; analysisStatus?: string },
+): Promise<{ record: MatchingAnalysisRecord | null; migrationMissing: boolean }> {
+  let query = supabase
+    .from('application_match_analyses')
+    .select('*')
+    .eq('application_id', scope.applicationId)
+    .eq('user_id', scope.userId);
+
+  if (filter?.promptVersion) {
+    query = query.eq('prompt_version', filter.promptVersion);
+  }
+  if (filter?.analysisStatus) {
+    query = query.eq('analysis_status', filter.analysisStatus);
+  }
+
+  const { data, error } = await query.order('created_at', { ascending: false }).limit(1).maybeSingle();
+
+  if (error) {
+    const missing = isMigrationMissing(error);
+    if (!missing) console.error('[matching-analysis] read failed', error);
+    return { record: null, migrationMissing: missing };
+  }
+
+  if (!data) return { record: null, migrationMissing: false };
+
+  return { record: toMatchingAnalysisRecord(data), migrationMissing: false };
+}
+
+export async function getMatchingAnalysisByInputHash(
+  supabase: SupabaseClient,
+  scope: { userId: string; applicationId: string },
+  inputHash: string,
+): Promise<{ record: MatchingAnalysisRecord | null; migrationMissing: boolean }> {
+  const { data, error } = await supabase
+    .from('application_match_analyses')
+    .select('*')
+    .eq('application_id', scope.applicationId)
+    .eq('user_id', scope.userId)
+    .eq('input_hash', inputHash)
+    .maybeSingle();
+
+  if (error) {
+    const missing = isMigrationMissing(error);
+    if (!missing) console.error('[matching-analysis] read failed by hash', error);
+    return { record: null, migrationMissing: missing };
+  }
+
+  if (!data) return { record: null, migrationMissing: false };
+
+  return { record: toMatchingAnalysisRecord(data), migrationMissing: false };
+}
+
+export async function saveApplicationMatchingAnalysis(
+  supabase: SupabaseClient,
+  args: {
+    applicationId: string;
+    userId: string;
+    inputHash: string;
+    promptVersion: string;
+    // Legacy columns
+    legacy: {
+      currentMatchScore: number;
+      maxPossibleMatchScore: number;
+      scoreLabel: string;
+      maxScoreLabel: string;
+      pillars: Record<string, unknown>;
+      confidence: number;
+      inputsPresent: Record<string, boolean>;
+      strengths: string[];
+      weaknesses: string[];
+      improvementActions: unknown[];
+      explanation: string;
+    };
+    // V2 report
+    reportV2: MatchingReportV2;
+    // Lineage
+    modelName: string;
+    targetProfileVersionId: string;
+    sourceAnalysisVersionId: string;
+    confirmedSnapshotId: string;
+    sourcePersonalReportVersionId: string;
+    sourcePersonalReportInputHash: string;
+    f5EngineVersion: string;
+    // F5 fit
+    fitDimensions: Record<string, unknown>;
+    fitEligibility: Record<string, unknown>;
+    fitClassification: string;
+    fitConfidence: number;
+    fitLimitations: string[];
+  },
+): Promise<{ record: MatchingAnalysisRecord | null; migrationMissing: boolean }> {
+  const commonRow = {
+    application_id: args.applicationId,
+    user_id: args.userId,
+    input_hash: args.inputHash,
+    prompt_version: args.promptVersion,
+    analysis_status: 'complete',
+
+    current_match_score: args.legacy.currentMatchScore,
+    max_possible_match_score: args.legacy.maxPossibleMatchScore,
+    score_label: args.legacy.scoreLabel,
+    max_score_label: args.legacy.maxScoreLabel,
+    pillars: args.legacy.pillars,
+    confidence_score: args.legacy.confidence,
+    inputs_present: args.legacy.inputsPresent,
+    strengths: args.legacy.strengths,
+    weaknesses: args.legacy.weaknesses,
+    improvement_actions: args.legacy.improvementActions,
+    explanation: args.legacy.explanation,
+
+    fit_dimensions: args.fitDimensions,
+    fit_eligibility: args.fitEligibility,
+    fit_classification: args.fitClassification,
+    fit_confidence: args.fitConfidence,
+    fit_limitations: args.fitLimitations,
+  };
+
+  const v2Columns = {
+    report_v2: args.reportV2,
+    report_contract_version: args.reportV2.contractVersion,
+    matching_engine_version: args.reportV2.metadata.matchingEngineVersion,
+    target_profile_version_id: args.targetProfileVersionId,
+    source_analysis_version_id: args.sourceAnalysisVersionId,
+    confirmed_snapshot_id: args.confirmedSnapshotId,
+    source_personal_report_version_id: args.sourcePersonalReportVersionId,
+    source_personal_report_input_hash: args.sourcePersonalReportInputHash,
+    f5_engine_version: args.f5EngineVersion,
+  };
+
+  const { data, error } = await supabase
+    .from('application_match_analyses')
+    .insert({ ...commonRow, ...v2Columns })
+    .select('*')
+    .single();
+
+  if (error) {
+    if (isMigrationMissing(error)) {
+      // dual-write fallback
+      const { data: legacyData, error: legacyError } = await supabase
+        .from('application_match_analyses')
+        .insert(commonRow)
+        .select('*')
+        .single();
+      
+      if (legacyError) {
+        return { record: null, migrationMissing: true };
+      }
+      return { record: toMatchingAnalysisRecord(legacyData), migrationMissing: true };
+    }
+    return { record: null, migrationMissing: false };
+  }
+
+  return { record: toMatchingAnalysisRecord(data), migrationMissing: false };
 }
