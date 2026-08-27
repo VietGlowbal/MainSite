@@ -13,9 +13,13 @@ export {
   stableHash,
 } from './candidate-context';
 export {
+  getLatestApplicationMatchingAnalysis,
+  getMatchingAnalysisByInputHash,
   getMatchingReportPageData,
   listMatchingApplications,
+  saveApplicationMatchingAnalysis,
 } from './ai-reports-repository';
+export type { MatchingAnalysisRecord } from './ai-reports-repository';
 export {
   hashCandidateSnapshotPayload,
   loadCandidateReflection,
