@@ -108,6 +108,10 @@ regression coverage. Measured: full Vitest 362 files / 3440 passed (2 todo),
 and signed-in browser verification remain unrun. `npm.cmd run verify:pr` is
 blocked locally because the repository requires Node 24.19.0 and this shell
 has Node 24.13.0.
+Owner telemetry then exposed a live `42702` failure in the new confirmation
+RPC (`confirmed_at` was ambiguous in its `RETURNING` clause); the SQL migration
+was corrected and pushed as `636d8a4`. Re-run
+`supabase-application-confirm-atomic.sql` in Supabase before retrying confirm.
 
 Working tree 2026-08-26: added Vietnamese dictionary coverage for all seven Personal Reflection labels, questions, guidance prompts, and sample answers. The sample-answer disclosure now also uses the translator; the form opts out of DOM-level translation so toggling back to English cannot be overwritten. Measured: focused Personal Reflection Vitest 7/7 passing, `npm.cmd run typecheck`, and `git diff --check` pass.
 
