@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
 import type { AchieverStatus } from '@/types/achievers';
 import { Badge, Button, ICONS, KitIcon, Panel, type BadgeVariant } from '@/shared/ui';
 import { useLoadingIndicator } from '@/shared/ui/loading-overlay';
@@ -57,27 +56,42 @@ function formatDate(value: string): string {
 export function AdminAchieversClient({ applications }: { applications: Application[] }) {
   const [items, setItems] = useState(applications);
   const [updating, setUpdating] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   useLoadingIndicator(updating !== null, 'Updating the application');
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  async function updateStatus(id: string, status: AchieverStatus) {
+  async function updateStatus(id: string, status: 'approved' | 'rejected') {
     setUpdating(id);
-    const supabase = createClient();
+    setError(null);
+    try {
+      const response = await fetch(`/api/admin/achievers/${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ status }),
+      });
+      const payload = (await response.json().catch(() => null)) as
+        | { error?: string; application?: { status?: AchieverStatus } }
+        | null;
+      if (!response.ok) {
+        throw new Error(payload?.error ?? 'Could not update the advisor application.');
+      }
 
-    const updateData: Record<string, unknown> = { status };
-    if (status === 'approved') {
-      updateData.verified_at = new Date().toISOString();
+      const savedStatus = payload?.application?.status;
+      if (savedStatus !== 'approved' && savedStatus !== 'rejected') {
+        throw new Error('The server returned an invalid application status.');
+      }
+      setItems((prev) =>
+        prev.map((item) => (item.id === id ? { ...item, status: savedStatus } : item)),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : 'Could not update the advisor application.',
+      );
+    } finally {
+      setUpdating(null);
     }
-
-    await supabase
-      .from('achiever_profiles')
-      .update(updateData)
-      .eq('id', id);
-
-    setItems((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, status } : item)),
-    );
-    setUpdating(null);
   }
 
   const pending = items.filter((a) => a.status === 'pending');
@@ -85,6 +99,12 @@ export function AdminAchieversClient({ applications }: { applications: Applicati
 
   return (
     <div className="flex flex-col gap-gb-4xl">
+      {error ? (
+        <div role="alert">
+          <Panel className="border-danger text-gb-sm text-danger">{error}</Panel>
+        </div>
+      ) : null}
+
       <section className="flex flex-col gap-gb-xl">
         <h3 className="text-gb-lg font-semibold text-fg">Pending ({pending.length})</h3>
 
@@ -171,14 +191,14 @@ export function AdminAchieversClient({ applications }: { applications: Applicati
                 <div className="flex flex-wrap gap-gb-lg border-t border-line pt-gb-xl">
                   <Button
                     onClick={() => void updateStatus(app.id, 'approved')}
-                    disabled={updating === app.id}
+                    disabled={updating !== null}
                     size="lg"
                   >
                     Approve
                   </Button>
                   <Button
                     onClick={() => void updateStatus(app.id, 'rejected')}
-                    disabled={updating === app.id}
+                    disabled={updating !== null}
                     variant="secondary"
                     size="lg"
                   >

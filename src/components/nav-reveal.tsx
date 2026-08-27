@@ -1,14 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useSyncExternalStore } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { GlowbalLogo } from '@/components/glowbal-logo';
+import {
+  useNavigationRoles,
+  withNavigationRoleItems,
+  type NavigationRoles,
+} from '@/components/navigation-roles';
 import { useNavigationSession, type NavigationSessionValue } from '@/components/navigation-session';
 import { SavedNavLink } from '@/components/saved-nav-link';
 import { getMarketingNavPresentation } from '@/features/marketing/ui';
 import { useLanguage } from '@/lib/i18n';
-import { createClient } from '@/lib/supabase/client';
 import { MobileNav, type MobileNavEntry } from '@/shared/ui/mobile-nav';
 import { isNavGroup } from '@/shared/ui/nav-model';
 import { TopNav } from '@/shared/ui/top-nav';
@@ -66,15 +70,6 @@ function useNavPrefFlag(key: string): boolean {
 }
 
 /**
- * Role-gated extras. Everything a normal student sees comes from the shared
- * audience-aware navigation model; these three are appended per role and have
- * no marketing equivalent, because nothing about them is public.
- */
-const MENTOR_DASHBOARD_ITEM = { href: '/dashboard/advisor', label: 'Advisor hub' };
-const COORDINATOR_ITEM = { href: '/coordinator', label: 'Coordinator' };
-const ADMIN_ITEM = { href: '/admin', label: 'Admin' };
-
-/**
  * The destinations this user can see, in order.
  *
  * ⚠️ THE SEVEN-ITEM APP LIST THAT USED TO LIVE HERE IS GONE (01/08). It named
@@ -94,7 +89,7 @@ const ADMIN_ITEM = { href: '/admin', label: 'Admin' };
  * appended, not merged, so they always sit after the audience's shared entries.
  */
 function navEntriesFor(
-  user: UserSummary | null,
+  roles: NavigationRoles | null,
   t: (key: string) => string,
   session: Pick<NavigationSessionValue, 'ready' | 'signedIn' | 'completed'>,
 ): MobileNavEntry[] {
@@ -107,13 +102,7 @@ function navEntriesFor(
       : { href: entry.href, label: entry.label },
   );
 
-  const extras = [
-    ...(user?.isMentor ? [MENTOR_DASHBOARD_ITEM] : []),
-    ...(user?.isCoordinator ? [COORDINATOR_ITEM] : []),
-    ...(user?.isAdmin ? [ADMIN_ITEM] : []),
-  ];
-
-  return [...shared, ...extras.map((item) => ({ href: item.href, label: t(item.label) }))];
+  return withNavigationRoleItems(shared, roles, t);
 }
 
 /*
@@ -136,10 +125,10 @@ function navEntriesFor(
  * hamburger, so the destinations they carried between them all land here.
  */
 function MobileNavigation({
-  user,
+  roles,
   session,
 }: {
-  user: UserSummary | null;
+  roles: NavigationRoles | null;
   session: NavigationSessionValue;
 }) {
   const { t } = useLanguage();
@@ -150,7 +139,7 @@ function MobileNavigation({
       : { signedIn: true, completed: true },
     t,
   );
-  const items = navEntriesFor(user, t, session);
+  const items = navEntriesFor(roles, t, session);
 
   return (
     <MobileNav
@@ -174,15 +163,7 @@ type UserSummary = {
   id: string;
   name: string;
   avatarUrl?: string;
-  isMentor?: boolean;
-  isAdmin?: boolean;
-  isCoordinator?: boolean;
 };
-
-type UserRoles = Pick<
-  UserSummary,
-  'id' | 'isMentor' | 'isAdmin' | 'isCoordinator'
->;
 
 /**
  * The app's desktop header.
@@ -203,9 +184,11 @@ type UserRoles = Pick<
  */
 function AppTopNav({
   user,
+  roles,
   session,
 }: {
   user: UserSummary | null;
+  roles: NavigationRoles | null;
   session: NavigationSessionValue;
 }) {
   const { t } = useLanguage();
@@ -216,7 +199,7 @@ function AppTopNav({
       : { signedIn: true, completed: true },
     t,
   );
-  const items = navEntriesFor(user, t, session);
+  const items = navEntriesFor(roles, t, session);
 
   return (
     <TopNav
@@ -244,8 +227,7 @@ function AppTopNav({
 export function NavReveal() {
   const pathname = usePathname();
   const navigationSession = useNavigationSession();
-  const [roles, setRoles] = useState<UserRoles | null>(null);
-  const roleRequestVersion = useRef(0);
+  const roles = useNavigationRoles();
 
   // Hide nav on home page regardless of revealed state
   const isHomePage = pathname === '/';
@@ -389,81 +371,22 @@ export function NavReveal() {
     };
   }, []);
 
-  const navigationUserId = navigationSession.user?.id ?? null;
-
-  useEffect(() => {
-    let active = true;
-    const requestVersion = ++roleRequestVersion.current;
-
-    if (!navigationUserId || rendersOwnChrome) {
-      return () => {
-        active = false;
-      };
-    }
-
-    const userId = navigationUserId;
-    const supabase = createClient();
-    async function loadRoles() {
-      // Best-effort fetch of the mentor profile flag. RLS-safe — anyone
-      // can read their own row. We don't block the header on this; the
-      // pill simply appears after the request resolves.
-      const [mentorResult, adminResult, coordinatorResult] = await Promise.all([
-        supabase
-          .from('achiever_profiles')
-          .select('id')
-          .eq('id', userId)
-          .maybeSingle(),
-        // Admin status is checked server-side so the env-based bootstrap
-        // list (ADMIN_USER_IDS) keeps working without exposing it.
-        fetch('/api/admin/check', { cache: 'no-store' })
-          .then((r) => (r.ok ? r.json() : { isAdmin: false }))
-          .catch(() => ({ isAdmin: false })) as Promise<{ isAdmin: boolean }>,
-        // Coordinator status — same server-side pattern as admin so the
-        // COORDINATOR_USER_IDS env bootstrap keeps working.
-        fetch('/api/coordinator/check', { cache: 'no-store' })
-          .then((r) => (r.ok ? r.json() : { isCoordinator: false }))
-          .catch(() => ({ isCoordinator: false })) as Promise<{ isCoordinator: boolean }>,
-      ]);
-      if (!active || requestVersion !== roleRequestVersion.current) return;
-      setRoles({
-        id: userId,
-        isMentor: !!mentorResult.data,
-        isAdmin: adminResult.isAdmin === true,
-        isCoordinator: coordinatorResult.isCoordinator === true,
-      });
-    }
-
-    void loadRoles();
-
-    return () => {
-      active = false;
-    };
-  }, [navigationUserId, rendersOwnChrome]);
-
   // Non-landing pages always show the nav, and the server knows that, so the
   // first client render matches the server HTML exactly.
   if (rendersOwnChrome) return null;
   if (isHomePage && !revealedOnLanding) return null;
 
-  const displayUser = navigationSession.user
-    ? {
-        id: navigationSession.user.id,
-        name: navigationSession.user.name,
-        avatarUrl: navigationSession.user.avatarUrl,
-        ...(roles?.id === navigationSession.user.id
-          ? {
-              isMentor: roles.isMentor,
-              isAdmin: roles.isAdmin,
-              isCoordinator: roles.isCoordinator,
-            }
-          : {}),
-      }
-    : null;
-
   return (
     <div data-global-navigation>
-      <AppTopNav user={displayUser} session={navigationSession} />
-      <MobileNavigation user={displayUser} session={navigationSession} />
+      <AppTopNav
+        user={navigationSession.user}
+        roles={roles}
+        session={navigationSession}
+      />
+      <MobileNavigation
+        roles={roles}
+        session={navigationSession}
+      />
     </div>
   );
 }

@@ -1,5 +1,35 @@
 # Current project status
 
+Working tree 2026-08-27: fixed advisor applications being invisible and
+unactionable at `/admin/achievers`. Submission was already succeeding — a
+read-only production check found 6 reviewable `achiever_profiles` rows, 2 of
+them pending — but the page queried with the signed-in request client, whose
+RLS policy exposes only approved profiles and the caller's own row. Approve and
+Reject used that same browser client, so they could update zero rows without an
+error while the UI still moved the card to Processed. The review queue now
+loads through an admin-authorized mentorship repository using the trusted
+server client and an explicit minimal projection; decisions go through a new
+admin-authorized PATCH route, update pending rows only, and change client state
+only after the database confirms the write. No migration is required. The
+optional `quick_signup` badge was removed from the DTO after the live exact-
+projection check proved that column is not deployed. Measured locally: focused
+Vitest 3 files / 9 tests passing, base and strict TypeScript, scoped ESLint, and
+the static i18n audit (0 missing keys), and the Next.js 16.3.1 production build
+pass. The build retains the 3 pre-existing Turbopack filesystem-tracing warnings
+in `src/lib/geo-content.ts`.
+
+Working tree 2026-08-27: fixed role-gated top-navigation links disappearing
+outside `/profile`. The advisor, coordinator, and admin checks now live in one
+root navigation-role provider shared by both the legacy app header and the
+`SiteNavigation` header used by Home and other rebuilt routes; desktop and
+mobile menus receive the same role destinations. Role reads remain best-effort
+UI affordances and do not replace the existing server-side route guards.
+Measured locally: focused navigation Vitest **4 files / 22 tests passing**,
+base and strict TypeScript, scoped ESLint, `git diff --check`, and the Next.js
+16.3.1 production build pass. The build retains three pre-existing Turbopack
+filesystem-tracing warnings in `src/lib/geo-content.ts`. Signed-in browser
+verification remains unrun.
+
 Working tree 2026-08-26: kept the Personal Canvas artwork as the desktop background and changed its four upper/middle hover effects to SVG cutouts. Each highlight now follows its panel and excludes the shared Core Identity hub; rectangular hover shadows were removed. Hotspots 1/4/5 were then lifted to match their artwork, the hover/active highlight was strengthened, and hotspots 2/3 were shortened to stop at their own lower divider (with further 0.75% and 1% trims). The centre hotspot and all cutout ellipses now derive from the actual 1024×731 artwork circle coordinates, rather than estimated per-card percentages. Parts 4/5 now start at their actual divider and extend to their existing bottom edge. Selecting a section now opens the existing accessible centered modal rather than shrinking the canvas into a side panel and drawing a connector; the modal owns Escape, backdrop close, scroll lock, and focus return. Part 6 uses a stronger brand overlay and shadow on hover/selection. Last focused Personal Canvas measurement before the final 1% adjustment: Vitest 13/13 passing and `git diff --check` passing; no test rerun by owner request. ESLint still reports 26 pre-existing raw-colour errors in the same uncommitted canvas overhaul; browser visual verification remains unrun.
 Working tree 2026-08-27: fixed the terminal hardened canonical Planner
 reconciler so micro-step inserts collect their IDs in `v_micro_id` and never
