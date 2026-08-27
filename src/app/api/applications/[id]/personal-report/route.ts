@@ -97,6 +97,21 @@ export async function POST(request: Request, context: Params) {
   const parsed = bodySchema.safeParse(await request.json().catch(() => ({})));
   if (!parsed.success) return NextResponse.json({ error: 'Invalid request.' }, { status: 422 });
 
+  const currentGeneration = await getApplicationPersonalReportGeneration(supabase, {
+    userId: user.id,
+    applicationId,
+  });
+  if (currentGeneration.migrationMissing) {
+    return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
+  }
+  if (
+    currentGeneration.job &&
+    ['pending', 'processing', 'retry'].includes(currentGeneration.job.status) &&
+    (!parsed.data.force || currentGeneration.job.force_requested)
+  ) {
+    return NextResponse.json({ applicationId, queued: true, generation: currentGeneration.job, stale: true }, { status: 202 });
+  }
+
   const limited = applyRateLimit(personalReportLimiter, `${user.id}:${applicationId}`, 'Personal Report');
   if (limited) return limited;
 
