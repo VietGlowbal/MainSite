@@ -37,7 +37,7 @@ const criterionFor = (overrides: Partial<MatchingCriterion> = {}): MatchingCrite
   sourceText: 'Research experience',
   expectedSignals: ['research', 'experience'],
   negativeSignals: [],
-  metadata: { importanceSource: 'source', targetRequirementId: 'req-1' },
+  metadata: { importanceSource: 'source', targetRequirementId: 'req-1', missingInformation: null },
   ...overrides,
 });
 

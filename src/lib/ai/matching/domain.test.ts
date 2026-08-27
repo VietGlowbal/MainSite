@@ -4,6 +4,7 @@ import {
   MATCHING_REPORT_CONTRACT_VERSION,
   matchingEvidenceSchema,
   matchingReportV2Schema,
+  matchingSummaryResultSchema,
   fitSignalSchema,
   type MatchingReportV2,
 } from './domain';
@@ -54,6 +55,7 @@ const criterion = {
   metadata: {
     importanceSource: 'source' as const,
     targetRequirementId: 'adm-1',
+    missingInformation: null,
   },
 };
 
@@ -200,5 +202,13 @@ describe('matching report v2 domain contract', () => {
     expect(
       matchingReportV2Schema.safeParse({ ...report(), contractVersion: 'matching-report-v3' }).success,
     ).toBe(false);
+  });
+
+  it('enforces the summary length contract at both boundaries', () => {
+    const base = { summary: '', criterionIds: [], evidenceIds: [] };
+    expect(matchingSummaryResultSchema.safeParse({ ...base, summary: 'x'.repeat(80) }).success).toBe(true);
+    expect(matchingSummaryResultSchema.safeParse({ ...base, summary: 'x'.repeat(1_600) }).success).toBe(true);
+    expect(matchingSummaryResultSchema.safeParse({ ...base, summary: 'x'.repeat(79) }).success).toBe(false);
+    expect(matchingSummaryResultSchema.safeParse({ ...base, summary: 'x'.repeat(1_601) }).success).toBe(false);
   });
 });
