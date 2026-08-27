@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { isAuthorizedCron } from '@/lib/cron-auth';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { regeneratePersonalReport } from '@/features/apply/api/personal-report-generation';
 import {
   blockApplicationPersonalReportGeneration,
   claimApplicationPersonalReportGenerations,
   markApplicationPersonalReportGenerationComplete,
+  regeneratePersonalReport,
   retryApplicationPersonalReportGeneration,
-} from '@/features/apply/api/personal-report-generation-job-queue';
+} from '@/features/apply/api';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';

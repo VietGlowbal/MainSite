@@ -59,13 +59,6 @@ function request(body?: unknown) {
   });
 }
 
-const record = {
-  id: 'report-1',
-  reportV2: { overallEvidenceConfidence: 'high' },
-  generatedAt: '2026-08-20T00:00:00Z',
-  confirmedSnapshotId: 'snapshot-1',
-};
-
 describe('application Personal Report route', () => {
   beforeEach(() => {
     vi.clearAllMocks();
