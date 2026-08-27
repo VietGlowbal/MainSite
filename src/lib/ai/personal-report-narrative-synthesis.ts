@@ -40,12 +40,12 @@ const MAX_EVIDENCE_IDS = 12;
 const textSectionSchema = z.object({
   headline: z.string().min(1).max(200),
   paragraphs: z.array(z.string().min(1).max(700)).min(1).max(MAX_PARAGRAPHS),
-  evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
+  evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
 });
 
 const narrativeSectionSchema = z.object({
   paragraphs: z.array(z.string().min(1).max(700)).min(1).max(MAX_PARAGRAPHS),
-  evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
+  evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
 });
 
 const snapshotSchema = z.object({
@@ -60,7 +60,7 @@ const synthesisResponseSchema = z.object({
   overview: z
     .object({
       summary: z.string().min(1).max(700),
-      evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
+      evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
     })
     .nullable(),
   coreIdentity: textSectionSchema.nullable(),
@@ -71,14 +71,14 @@ const synthesisResponseSchema = z.object({
     .object({
       statement: z.string().min(1).max(500),
       whyItFits: z.array(z.string().min(1).max(300)).min(1).max(5),
-      evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
+      evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
     })
     .nullable(),
   proofOfMe: narrativeSectionSchema.nullable(),
   overallSummary: z
     .object({
       paragraphs: z.array(z.string().min(1).max(700)).min(1).max(MAX_PARAGRAPHS),
-      evidenceIds: z.array(z.string().min(1).max(160)).max(MAX_EVIDENCE_IDS),
+      evidenceIds: z.array(z.string().min(1).max(160)).min(1).max(MAX_EVIDENCE_IDS),
     })
     .nullable(),
 });

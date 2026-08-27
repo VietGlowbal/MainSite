@@ -5,6 +5,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/process-personal-report-generation",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/link-applications",
       "schedule": "30 2 * * *"
     },

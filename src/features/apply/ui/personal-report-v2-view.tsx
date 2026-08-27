@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLanguage } from '@/lib/i18n';
 import { formatUiDate } from '@/shared/lib';
 import type {
@@ -60,6 +60,7 @@ export function PersonalReportV2View({
   const [latestVersionId, setLatestVersionId] = useState(initialVersionId);
   const [viewedGeneratedAt, setViewedGeneratedAt] = useState(generatedAt);
   const [busy, setBusy] = useState(false);
+  const [waitingForGeneration, setWaitingForGeneration] = useState(false);
   const [versionLoading, setVersionLoading] = useState(false);
   const reportEndpoint = applicationId
     ? `/api/applications/${applicationId}/personal-report`
@@ -78,7 +79,7 @@ export function PersonalReportV2View({
   );
 
   useLoadingIndicator(
-    busy,
+    busy || waitingForGeneration,
     report ? t('Updating your Personal Report') : t('Creating your Personal Report'),
   );
 
@@ -106,6 +107,7 @@ export function PersonalReportV2View({
     setBusy(true);
     setError(null);
 
+    let queued = false;
     try {
       const response = await fetch(reportEndpoint, {
         method: 'POST',
@@ -124,6 +126,12 @@ export function PersonalReportV2View({
       });
       const body = await response.json().catch(() => ({}));
 
+      if (response.status === 202 && body.queued) {
+        queued = true;
+        setWaitingForGeneration(true);
+        return;
+      }
+
       if (body.reportV2) setReport(body.reportV2 as PersonalReportV2);
       if (body.versionId) {
         setSelectedVersionId(body.versionId as string);
@@ -138,9 +146,43 @@ export function PersonalReportV2View({
         requestError instanceof Error ? requestError.message : t('Could not create the report.'),
       );
     } finally {
-      setBusy(false);
+      if (!queued) setBusy(false);
     }
   }
+
+  useEffect(() => {
+    if (!waitingForGeneration) return;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const response = await fetch(reportEndpoint);
+        const body = await response.json().catch(() => ({}));
+        if (cancelled || !response.ok) return;
+        if (body.reportV2) {
+          setReport(body.reportV2 as PersonalReportV2);
+          setSelectedVersionId(body.versionId as string | null);
+          setLatestVersionId(body.versionId as string | null);
+          setViewedGeneratedAt(body.generatedAt as string | null);
+          setWaitingForGeneration(false);
+          setBusy(false);
+          return;
+        }
+        if (body.generation?.status === 'blocked') {
+          setError(body.generation.error_message || t('Could not create the report.'));
+          setWaitingForGeneration(false);
+          setBusy(false);
+        }
+      } catch {
+        // Keep the existing animation running; the durable job will retry.
+      }
+    };
+    void poll();
+    const interval = window.setInterval(() => void poll(), 2_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [reportEndpoint, t, waitingForGeneration]);
 
   async function viewVersion(versionId: string) {
     if (versionId === selectedVersionId) return;

@@ -52,6 +52,11 @@ export {
 export type { ApplicationReportScope, PersonalReportV2Record } from './personal-report-v2-repository';
 export { regeneratePersonalReport } from './personal-report-generation';
 export type { RegeneratePersonalReportResult } from './personal-report-generation';
+export {
+  enqueueApplicationPersonalReportGeneration,
+  getApplicationPersonalReportGeneration,
+} from './personal-report-generation-job-queue';
+export type { ApplicationPersonalReportGenerationJob } from './personal-report-generation-job-queue';
 
 export {
   getFinalCheckPageData,

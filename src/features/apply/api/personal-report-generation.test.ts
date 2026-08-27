@@ -123,6 +123,7 @@ describe('regeneratePersonalReport', () => {
       growthPriorities: [],
       futurePathways: [],
     });
+    mocks.synthesizePersonalReportNarrative.mockResolvedValue({});
   });
 
   it('returns migration_missing without touching OpenAI when the versions table has not been created yet', async () => {
@@ -386,7 +387,7 @@ describe('regeneratePersonalReport', () => {
     expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
-  it('persists deterministic report limitations when narrative synthesis fails', async () => {
+  it('keeps the prior report and does not persist a deterministic fallback when narrative synthesis fails', async () => {
     mocks.isOpenAIConfigured.mockReturnValue(true);
     mocks.buildProfileEvaluationInput.mockResolvedValue({ narrativeActivities: [], intendedDirection: null });
     mocks.runProfileEvaluation.mockReturnValue({ confidence: 'medium' });
@@ -400,15 +401,11 @@ describe('regeneratePersonalReport', () => {
     process.env.OPENAI_API_KEY = 'test-key';
 
     const { regeneratePersonalReport } = await importSubject();
-    await regeneratePersonalReport({ supabase: {} as never, userId: 'user-1', applicationId: 'app-a', trigger: 'manual' });
+    const result = await regeneratePersonalReport({ supabase: {} as never, userId: 'user-1', applicationId: 'app-a', trigger: 'manual' });
     process.env.OPENAI_API_KEY = originalKey;
 
-    expect(mocks.createPersonalReportV2Version).toHaveBeenCalledWith(
-      {},
-      expect.objectContaining({
-        reportV2: expect.objectContaining({ limitations: expect.arrayContaining([expect.stringContaining('Narrative synthesis')]) }),
-      }),
-    );
+    expect(result.status).toBe('error');
+    expect(mocks.createPersonalReportV2Version).not.toHaveBeenCalled();
   });
 
   it('keeps the previous report and writes no analysis when an extractor fails', async () => {

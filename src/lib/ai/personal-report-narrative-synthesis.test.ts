@@ -398,6 +398,19 @@ describe('synthesizePersonalReportNarrative', () => {
     expect(result).toBeNull();
   });
 
+  it('rejects an available section with no evidence citation', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      chatResponse(JSON.stringify(completeSynthesisResponse({ proofOfMe: { paragraphs: ['Ungrounded.'], evidenceIds: [] } }))),
+    );
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await synthesizePersonalReportNarrative({
+      report: fullReport(), intendedDirection: null, apiKey: 'test-key', model: 'gpt-4o', grounding: narrativeGrounding(),
+    });
+
+    expect(result).toBeNull();
+  });
+
   it('falls back to null (deterministic copy) when the completion call throws', async () => {
     const fetchMock = vi.fn().mockRejectedValue(new Error('network down'));
     vi.stubGlobal('fetch', fetchMock);

@@ -122,6 +122,39 @@ function fetchMockFor(overrides: { versions?: unknown[] } = {}) {
 }
 
 describe('PersonalReportV2View — inline report answers', () => {
+  it('keeps the existing creation animation active while a queued report is polled to completion', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+      if (url === '/api/applications/app-1/personal-report' && init?.method === 'POST') {
+        return Promise.resolve(new Response(JSON.stringify({ queued: true, generation: { status: 'pending' } }), { status: 202 }));
+      }
+      if (url === '/api/applications/app-1/personal-report') {
+        return Promise.resolve(new Response(JSON.stringify({
+          reportV2: reportWithDrivingForceGap(), versionId: 'v2', generatedAt: '2026-08-14T01:00:00.000Z',
+        }), { status: 200 }));
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <PersonalReportV2View
+        initialReport={null}
+        initialVersionId={null}
+        initialVersions={[]}
+        applicationId="app-1"
+        applicationConfirmed
+        studentName="Olivia"
+        generatedAt={null}
+        migrationMissing={false}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Create report' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/applications/app-1/personal-report'));
+    await screen.findByRole('heading', { name: 'Olivia' });
+  });
+
   it('expands the Driving Force gap action into a textarea, saves it, and regenerates the report', async () => {
     const user = userEvent.setup();
     const fetchMock = fetchMockFor();

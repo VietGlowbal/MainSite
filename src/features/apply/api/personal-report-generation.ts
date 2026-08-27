@@ -388,43 +388,23 @@ async function regenerateApplicationPersonalReport(
     evidenceBank,
   });
   const modelName = process.env.OPENAI_MODEL || 'gpt-4o';
-  let reportV2 = deterministicReport;
-  if (process.env.OPENAI_API_KEY && isOpenAIConfigured()) {
-    try {
-      const synthesis = await synthesizePersonalReportNarrative({
-        report: deterministicReport,
-        intendedDirection: evaluationInput.intendedDirection,
-        apiKey: process.env.OPENAI_API_KEY,
-        model: modelName,
-        grounding: { evaluationInput, evaluation, evidenceBank },
-      });
-      reportV2 = synthesis
-        ? applyNarrativeSynthesis(deterministicReport, synthesis)
-        : {
-            ...deterministicReport,
-            limitations: [
-              ...(deterministicReport.limitations ?? []),
-              'Narrative synthesis was unavailable; this report uses deterministic evidence-grounded copy.',
-            ],
-          };
-    } catch (error) {
-      logger.warn('personal_report_generate', {
-        userId,
-        applicationId,
-        trigger,
-        stage: 'generated',
-        outcome: 'validation_failed',
-        error: error instanceof Error ? error.message : 'UNKNOWN_ERROR',
-      });
-      reportV2 = {
-        ...deterministicReport,
-        limitations: [
-          ...(deterministicReport.limitations ?? []),
-          'Narrative synthesis was unavailable; this report uses deterministic evidence-grounded copy.',
-        ],
-      };
-    }
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || !isOpenAIConfigured()) return { status: 'not_configured' };
+  const synthesis = await synthesizePersonalReportNarrative({
+    report: deterministicReport,
+    intendedDirection: evaluationInput.intendedDirection,
+    apiKey,
+    model: modelName,
+    grounding: { evaluationInput, evaluation, evidenceBank },
+  });
+  if (!synthesis) {
+    return {
+      status: 'error',
+      message: 'The AI could not produce a complete evidence-grounded report. Generation will retry automatically.',
+      record: current,
+    };
   }
+  let reportV2 = applyNarrativeSynthesis(deterministicReport, synthesis);
 
   reportV2 = {
     ...reportV2,
@@ -584,6 +564,13 @@ async function regenerateLegacyPersonalReport(
       model: modelName,
       grounding: { evaluationInput, evaluation, evidenceBank: null },
     });
+    if (!synthesis) {
+      return {
+        status: 'error',
+        message: 'The AI could not produce a complete evidence-grounded report.',
+        record: current,
+      };
+    }
     const synthesizedReport = applyNarrativeSynthesis(deterministicReport, synthesis);
 
     // Personal Canvas visual data is generated once and stored with this

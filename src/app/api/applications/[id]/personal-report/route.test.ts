@@ -4,13 +4,15 @@ import { personalReportLimiter } from '@/lib/rate-limiter';
 const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   getLatest: vi.fn(),
-  regenerate: vi.fn(),
+  enqueue: vi.fn(),
+  getGeneration: vi.fn(),
 }));
 
 vi.mock('@/lib/supabase/server', () => ({ createClient: async () => supabaseMock }));
 vi.mock('@/features/apply/api', () => ({
   getLatestApplicationPersonalReportV2: mocks.getLatest,
-  regeneratePersonalReport: mocks.regenerate,
+  enqueueApplicationPersonalReportGeneration: mocks.enqueue,
+  getApplicationPersonalReportGeneration: mocks.getGeneration,
 }));
 
 function chain(result: { data: unknown; error: unknown }) {
@@ -73,7 +75,11 @@ describe('application Personal Report route', () => {
     setup();
     mocks.getUser.mockResolvedValue({ data: { user: { id: 'user-1' } } });
     mocks.getLatest.mockResolvedValue({ record: null, migrationMissing: false });
-    mocks.regenerate.mockResolvedValue({ status: 'regenerated', record });
+    mocks.enqueue.mockResolvedValue({
+      migrationMissing: false,
+      job: { id: 'job-1', status: 'pending', attempts: 0 },
+    });
+    mocks.getGeneration.mockResolvedValue({ migrationMissing: false, job: null });
   });
 
   it('requires authentication and ownership', async () => {
@@ -94,13 +100,13 @@ describe('application Personal Report route', () => {
     expect(body).toMatchObject({ applicationId: 'app-1', reportV2: null, confirmed: true, stale: true });
   });
 
-  it('passes trigger, force and idempotency through to application-scoped generation', async () => {
+  it('queues application-scoped generation and preserves force intent', async () => {
     const { POST } = await import('./route');
     const response = await POST(request({ trigger: 'matching_report', force: true, idempotencyKey: 'req-1' }), context());
 
-    expect(response.status).toBe(200);
-    expect(mocks.regenerate).toHaveBeenCalledWith(expect.objectContaining({
-      userId: 'user-1', applicationId: 'app-1', trigger: 'matching_report', force: true, idempotencyKey: 'req-1',
+    expect(response.status).toBe(202);
+    expect(mocks.enqueue).toHaveBeenCalledWith(expect.anything(), expect.objectContaining({
+      userId: 'user-1', applicationId: 'app-1', force: true,
     }));
   });
 
@@ -110,14 +116,14 @@ describe('application Personal Report route', () => {
     const response = await POST(request(), context());
 
     expect(response.status).toBe(409);
-    expect(mocks.regenerate).not.toHaveBeenCalled();
+    expect(mocks.enqueue).not.toHaveBeenCalled();
   });
 
   it('returns 422 for invalid controls and 429 after the configured window budget', async () => {
     const { POST } = await import('./route');
     expect((await POST(request({ force: 'yes' }), context())).status).toBe(422);
 
-    for (let i = 0; i < 5; i += 1) expect((await POST(request(), context())).status).toBe(200);
+    for (let i = 0; i < 5; i += 1) expect((await POST(request(), context())).status).toBe(202);
     expect((await POST(request(), context())).status).toBe(429);
   });
 });

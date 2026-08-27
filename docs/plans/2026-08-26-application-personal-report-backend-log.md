@@ -328,3 +328,10 @@ Kết luận kiểm chứng từng điểm (có đúng/sai đều ghi rõ):
 - Six independent section calls: higher latency/cost and inconsistent cross-section narrative.
 - Infinite retry inside one HTTP request: cannot survive request timeout/reload and risks duplicate provider calls.
 - Deterministic fallback persistence: does not meet the owner requirement for a complete AI-authored report.
+
+### Implementation — 2026-08-27
+
+- `81ae63c` requires one validated, evidence-cited AI synthesis for all six canonical sections and supplies the complete application-scoped extracted/evaluation/Evidence Bank bundle. The report is not persisted when the synthesis is incomplete or has an invalid citation.
+- `supabase-application-personal-report-generation-jobs.sql` adds a durable, owner-isolated queue with an atomic `FOR UPDATE SKIP LOCKED` claim RPC. There is one live job per application (a stricter deduplication boundary); it always regenerates from the newest confirmed snapshot.
+- Application report requests now queue work and the existing loading animation polls persisted job status. `/api/cron/process-personal-report-generation` retries AI/worker failures with capped backoff until completion; missing snapshot, migration, or API configuration is recorded as blocked.
+- Required deployment action: run `supabase-application-personal-report-generation-jobs.sql` before deploying the worker route and its one-minute Vercel Cron entry.

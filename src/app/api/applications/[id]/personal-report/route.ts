@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 import {
+  enqueueApplicationPersonalReportGeneration,
+  getApplicationPersonalReportGeneration,
   getLatestApplicationPersonalReportV2,
-  regeneratePersonalReport,
 } from '@/features/apply/api';
 import { createClient } from '@/lib/supabase/server';
 import { applyRateLimit, personalReportLimiter } from '@/lib/rate-limiter';
@@ -41,13 +42,14 @@ export async function GET(_request: Request, context: Params) {
   }
   if (!owned.data) return NextResponse.json({ error: 'Application not found' }, { status: 404 });
 
-  const [latest, snapshot] = await Promise.all([
+  const [latest, snapshot, generation] = await Promise.all([
     getLatestApplicationPersonalReportV2(supabase, { userId: user.id, applicationId }),
     owned.data.candidate_confirmed_at
       ? loadLatestApplicationSnapshot(supabase, user.id, applicationId)
       : Promise.resolve({ data: null, error: null }),
+    getApplicationPersonalReportGeneration(supabase, { userId: user.id, applicationId }),
   ]);
-  if (latest.migrationMissing || isPersonalReportMigrationMissing(snapshot.error)) {
+  if (latest.migrationMissing || generation.migrationMissing || isPersonalReportMigrationMissing(snapshot.error)) {
     return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
   }
 
@@ -65,6 +67,7 @@ export async function GET(_request: Request, context: Params) {
     confirmed: Boolean(owned.data.candidate_confirmed_at && snapshotId),
     confirmedSnapshotId: snapshotId,
     stale,
+    generation: generation.job,
   });
 }
 
@@ -97,36 +100,13 @@ export async function POST(request: Request, context: Params) {
   const limited = applyRateLimit(personalReportLimiter, `${user.id}:${applicationId}`, 'Personal Report');
   if (limited) return limited;
 
-  const result = await regeneratePersonalReport({
-    supabase,
+  const queued = await enqueueApplicationPersonalReportGeneration(supabase, {
     userId: user.id,
     applicationId,
     trigger: parsed.data.trigger ?? 'manual',
     force: parsed.data.force,
-    idempotencyKey: parsed.data.idempotencyKey,
   });
-
-  switch (result.status) {
-    case 'snapshot_missing':
-      return NextResponse.json({ error: 'Confirm Candidate Information before generating a Personal Report.', code: 'APPLICATION_NOT_CONFIRMED' }, { status: 409 });
-    case 'migration_missing':
-      return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
-    case 'not_configured':
-      return NextResponse.json({ error: 'The AI service is not configured.' }, { status: 503 });
-    case 'error':
-      return NextResponse.json(
-        { error: result.message, ...(result.record ? { reportV2: result.record.reportV2 } : {}) },
-        { status: 502 },
-      );
-    case 'cached':
-    case 'regenerated':
-      return NextResponse.json({
-        applicationId,
-        reportV2: result.record.reportV2,
-        cached: result.status === 'cached',
-        versionId: result.record.id,
-        generatedAt: result.record.generatedAt,
-        stale: false,
-      });
-  }
+  if (queued.migrationMissing) return NextResponse.json({ error: 'This feature is not enabled in this environment.' }, { status: 503 });
+  if (!queued.job) return NextResponse.json({ error: 'Could not queue Personal Report generation.' }, { status: 502 });
+  return NextResponse.json({ applicationId, queued: true, generation: queued.job, stale: true }, { status: 202 });
 }
