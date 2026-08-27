@@ -9,6 +9,39 @@ import { formatUiDateTime } from '@/shared/lib';
 type ReportStatus = 'generating' | 'complete' | 'failed';
 type ReportState = { status: ReportStatus; error?: string | undefined };
 
+const PERSONAL_REPORT_POLL_MS = 2_000;
+
+function waitForNextPersonalReportPoll() {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, PERSONAL_REPORT_POLL_MS));
+}
+
+async function waitForPersonalReport(
+  applicationId: string,
+  errorMessages: { generic: string; rateLimit: string; unavailable: string },
+): Promise<ReportState> {
+  for (;;) {
+    try {
+      const response = await fetch(`/api/applications/${applicationId}/personal-report`);
+      const body = await response.json().catch(() => ({}));
+
+      if (response.ok) {
+        if (body.generation?.status === 'blocked') {
+          return { status: 'failed', error: errorMessages.generic };
+        }
+        if (body.reportV2 && (!body.generation || body.generation.status === 'complete')) {
+          return { status: 'complete' };
+        }
+      } else if (response.status !== 503) {
+        if (response.status === 429) return { status: 'failed', error: errorMessages.rateLimit };
+        return { status: 'failed', error: body.error || errorMessages.generic };
+      }
+    } catch {
+      // Keep polling; the durable worker owns generation and will retry.
+    }
+    await waitForNextPersonalReportPoll();
+  }
+}
+
 /**
  * Generate the current application's Personal Report.
  */
@@ -22,8 +55,11 @@ async function fetchOrGeneratePersonal(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
     });
-    const canonicalBody = await canonical.json().catch(() => ({}));
-    if (!canonical.ok || !canonicalBody.reportV2) {
+      const canonicalBody = await canonical.json().catch(() => ({}));
+      if (canonical.status === 202 && canonicalBody.queued) {
+        return waitForPersonalReport(applicationId, errorMessages);
+      }
+      if (!canonical.ok || !canonicalBody.reportV2) {
       if (canonical.status === 429) {
         return { status: 'failed', error: errorMessages.rateLimit };
       }

@@ -8,8 +8,8 @@ const MATCHING_GET = '/api/applications/app-1/strategy/course-match';
 const MATCHING_POST = '/api/applications/app-1/match-insights';
 const FRIENDLY_REPORT_ERROR = "We couldn't finish this report. We'll retry it using your confirmed information.";
 
-function jsonResponse(body: unknown, ok = true) {
-  return Promise.resolve({ ok, json: () => Promise.resolve(body) } as Response);
+function jsonResponse(body: unknown, ok = true, status = ok ? 200 : 500) {
+  return Promise.resolve({ ok, status, json: () => Promise.resolve(body) } as Response);
 }
 
 afterEach(() => {
@@ -76,6 +76,31 @@ describe('AnalysisWorkspace', () => {
       body: JSON.stringify({}),
     });
     expect(screen.queryByText('Generating…')).not.toBeInTheDocument();
+  });
+
+  it('waits for queued Personal Report generation before starting Matching Report generation', async () => {
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (url === PERSONAL_POST && init?.method === 'POST') {
+        return jsonResponse({ queued: true }, true, 202);
+      }
+      if (url === PERSONAL_POST && !init) {
+        return jsonResponse({ generation: { status: 'complete' }, reportV2: { coreIdentity: {} } });
+      }
+      if (url === MATCHING_GET && !init) return jsonResponse({ analysis: null });
+      if (url === MATCHING_POST && init?.method === 'POST') return jsonResponse({ analysis: { id: 'm1' } });
+      throw new Error(`unexpected fetch ${url}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(<AnalysisWorkspace applicationId="app-1" />);
+
+    await waitFor(() => expect(screen.getByText('Your reports are ready')).toBeInTheDocument());
+    expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
+      PERSONAL_POST,
+      PERSONAL_POST,
+      MATCHING_GET,
+      MATCHING_POST,
+    ]);
   });
 
   it('lets the canonical Personal Report be opened while Matching is still generating', async () => {
