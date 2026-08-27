@@ -103,6 +103,20 @@ describe('application Personal Report route', () => {
     }));
   });
 
+  it('returns an already-active job without consuming the generation rate limit', async () => {
+    const { POST } = await import('./route');
+    const activeJob = { id: 'job-1', status: 'pending', attempts: 0 };
+    mocks.getGeneration.mockResolvedValue({ migrationMissing: false, job: activeJob });
+
+    for (let i = 0; i < 6; i += 1) {
+      const response = await POST(request(), context());
+      expect(response.status).toBe(202);
+      await expect(response.json()).resolves.toMatchObject({ queued: true, generation: activeJob });
+    }
+
+    expect(mocks.enqueue).not.toHaveBeenCalled();
+  });
+
   it('blocks unconfirmed applications before generation', async () => {
     const { POST } = await import('./route');
     application = { id: 'app-1', candidate_confirmed_at: null };
